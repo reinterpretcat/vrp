@@ -228,8 +228,12 @@ where
                         }
                         .map(|w2| {
                             // case b
-                            let w2 = w2.read().unwrap().weights.clone();
-                            weights.as_slice().into_iter().zip(w2.into_iter()).map(|(&w1, w2)| (w1 + w2) / 2.).collect()
+                            weights
+                                .as_slice()
+                                .into_iter()
+                                .zip(w2.read().unwrap().weights.iter())
+                                .map(|(&w1, &w2)| (w1 + w2) / 2.)
+                                .collect()
                         })
                         .unwrap_or_else(|| {
                             // case a
@@ -246,12 +250,11 @@ where
                             })
                             .map(|w2| {
                                 // cases a & c
-                                let w2 = w2.read().unwrap().weights.clone();
                                 weights
                                     .as_slice()
                                     .into_iter()
-                                    .zip(w2.into_iter())
-                                    .map(|(&w1, w2)| if w2 > w1 { w1 - (w2 - w1) } else { w1 + (w1 - w2) })
+                                    .zip(w2.read().unwrap().weights.iter())
+                                    .map(|(&w1, &w2)| if w2 > w1 { w1 - (w2 - w1) } else { w1 + (w1 - w2) })
                                     .collect()
                             })
                             // case d
