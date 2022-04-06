@@ -219,8 +219,9 @@ where
                     .into_iter()
                     .map(|(n_x, n_y)| {
                         let mut new_node = self.create_node(get_coord(n_x, n_y), weights.as_slice());
+                        let offset_abs = (n_x.abs(), n_y.abs());
 
-                        new_node.weights = match (n_x.abs(), n_y.abs()) {
+                        new_node.weights = match offset_abs {
                             (1, 0) => get_node(n_x * 2, 0),
                             (0, 1) => get_node(0, n_y * 2),
                             _ => unreachable!(),
@@ -232,13 +233,13 @@ where
                         })
                         .unwrap_or_else(|| {
                             // case a
-                            match (n_x.abs(), n_y.abs()) {
+                            match offset_abs {
                                 (1, 0) => get_node(-n_x, 0),
                                 (0, 1) => get_node(0, -n_y),
                                 _ => unreachable!(),
                             }
                             // case c
-                            .or_else(|| match (n_x.abs(), n_y.abs()) {
+                            .or_else(|| match offset_abs {
                                 (1, 0) => get_node(0, 1).or_else(|| get_node(0, -1)),
                                 (0, 1) => get_node(1, 0).or_else(|| get_node(-1, 0)),
                                 _ => unreachable!(),
@@ -276,9 +277,13 @@ where
                 let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
 
                 node.adjust(input.weights(), learning_rate);
-                node.neighbours(self, radius).filter_map(|(n, _)| n).for_each(|n| {
-                    n.write().unwrap().adjust(input.weights(), learning_rate);
-                });
+                node.neighbours(self, radius).filter_map(|(n, offset)| n.map(|n| (n, offset))).for_each(
+                    |(n, offset)| {
+                        let distance = offset.0.abs() + offset.1.abs();
+                        let learning_rate = learning_rate / distance as f64;
+                        n.write().unwrap().adjust(input.weights(), learning_rate);
+                    },
+                );
             }
         }
     }
