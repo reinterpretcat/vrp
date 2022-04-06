@@ -201,8 +201,11 @@ where
             // insertion within weight distribution
             (true, true) => {
                 let node = node.read().unwrap();
-                let coordinate = node.coordinate.clone();
+                let coord = node.coordinate.clone();
                 let weights = node.weights.clone();
+
+                let get_coord = |offset_x: i32, offset_y: i32| Coordinate(coord.0 + offset_x, coord.1 + offset_y);
+                let get_node = |offset_x: i32, offset_y: i32| self.nodes.get(&get_coord(offset_x, offset_y));
 
                 // NOTE insert new nodes only in main directions
                 #[allow(clippy::needless_collect)]
@@ -215,36 +218,51 @@ where
                 let new_nodes = offsets
                     .into_iter()
                     .map(|(n_x, n_y)| {
-                        let mut new_node =
-                            self.create_node(Coordinate(coordinate.0 + n_x, coordinate.1 + n_y), weights.as_slice());
+                        let mut new_node = self.create_node(get_coord(n_x, n_y), weights.as_slice());
 
-                        let (close_neighbours, far_neighbours): (Vec<_>, Vec<_>) = new_node
-                            .neighbours(self, 2)
-                            .filter_map(|(n, offset)| n.map(|n| (n.read().unwrap().weights.clone(), offset)))
-                            .partition(|(_, (x, y))| x.abs() + y.abs() < 2);
-
-                        // handle case d separately
-                        new_node.weights = if close_neighbours.len() == 1 && far_neighbours.is_empty() {
-                            self.min_max_weights
-                                .0
-                                .iter()
-                                .zip(self.min_max_weights.1.iter())
-                                .map(|(min, max)| (min + max) / 2.)
-                                .collect()
-                        } else {
-                            // NOTE handle cases a/b/c the same way which is different from the original paper a bit
-                            let dimens = self.dimension;
-                            let close_weights = get_avg_weights(close_neighbours.iter().map(|(n, _)| n), dimens);
-                            let far_weights = get_avg_weights(far_neighbours.iter().map(|(n, _)| n), dimens);
-
-                            let weights = close_weights
-                                .into_iter()
-                                .zip(far_weights.into_iter())
-                                .map(|(w1, w2)| if w2 > w1 { w1 - (w2 - w1) } else { w1 + (w1 - w2) })
-                                .collect();
-
-                            weights
-                        };
+                        new_node.weights = match (n_x.abs(), n_y.abs()) {
+                            (1, 0) => get_node(n_x * 2, 0),
+                            (0, 1) => get_node(0, n_y * 2),
+                            _ => unreachable!(),
+                        }
+                        .map(|w2| {
+                            // case b
+                            let w2 = w2.read().unwrap().weights.clone();
+                            weights.as_slice().into_iter().zip(w2.into_iter()).map(|(&w1, w2)| (w1 + w2) / 2.).collect()
+                        })
+                        .unwrap_or_else(|| {
+                            // case a
+                            match (n_x.abs(), n_y.abs()) {
+                                (1, 0) => get_node(-n_x, 0),
+                                (0, 1) => get_node(0, -n_y),
+                                _ => unreachable!(),
+                            }
+                            // case c
+                            .or_else(|| match (n_x.abs(), n_y.abs()) {
+                                (1, 0) => get_node(0, 1).or_else(|| get_node(0, -1)),
+                                (0, 1) => get_node(1, 0).or_else(|| get_node(-1, 0)),
+                                _ => unreachable!(),
+                            })
+                            .map(|w2| {
+                                // cases a & c
+                                let w2 = w2.read().unwrap().weights.clone();
+                                weights
+                                    .as_slice()
+                                    .into_iter()
+                                    .zip(w2.into_iter())
+                                    .map(|(&w1, w2)| if w2 > w1 { w1 - (w2 - w1) } else { w1 + (w1 - w2) })
+                                    .collect()
+                            })
+                            // case d
+                            .unwrap_or_else(|| {
+                                self.min_max_weights
+                                    .0
+                                    .iter()
+                                    .zip(self.min_max_weights.1.iter())
+                                    .map(|(min, max)| (min + max) / 2.)
+                                    .collect()
+                            })
+                        });
 
                         new_node
                     })
@@ -364,15 +382,4 @@ where
 fn update_min_max(min_max_weights: &mut (Vec<f64>, Vec<f64>), weights: &[f64]) {
     min_max_weights.0.iter_mut().zip(weights.iter()).for_each(|(curr, v)| *curr = curr.min(*v));
     min_max_weights.1.iter_mut().zip(weights.iter()).for_each(|(curr, v)| *curr = curr.max(*v));
-}
-
-fn get_avg_weights<'a>(weights_collection: impl Iterator<Item = &'a Vec<f64>>, dimension: usize) -> Vec<f64> {
-    let (mut weights, amount) = weights_collection.fold((vec![0.; dimension], 0), |(mut acc, amount), weights| {
-        acc.iter_mut().zip(weights.iter()).for_each(|(value, new)| *value += new);
-        (acc, amount + 1)
-    });
-
-    weights.iter_mut().for_each(|value| *value /= amount as f64);
-
-    weights
 }

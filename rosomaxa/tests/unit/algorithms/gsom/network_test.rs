@@ -1,4 +1,3 @@
-use crate::algorithms::gsom::network::get_avg_weights;
 use crate::algorithms::gsom::{Coordinate, Network};
 use crate::helpers::algorithms::gsom::{create_test_network, Data, DataStorage, DataStorageFactory};
 use crate::utils::{compare_floats, DefaultRandom, Random};
@@ -136,13 +135,4 @@ fn can_create_and_update_extended_neighbourhood() {
             unreachable!("unexpected neighbourhood for: ({},{}), {} vs {}", x, y, count, expected_count)
         }
     });
-}
-
-#[test]
-fn can_get_average_weights() {
-    let weights = vec![vec![0., 1., 3.], vec![3., -2., 4.], vec![-5., 20., -10.], vec![2., 5., -2.]];
-
-    let avg_weights = get_avg_weights(weights.iter(), 3);
-
-    assert_eq!(avg_weights, vec![0., 6., -1.25]);
 }
