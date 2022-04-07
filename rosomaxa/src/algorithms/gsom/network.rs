@@ -187,7 +187,7 @@ where
                 node.new_hit(self.time);
             }
 
-            (node.error > self.growing_threshold, node.is_boundary(self))
+            (!(node.error < self.growing_threshold), node.is_boundary(self))
         };
 
         match (exceeds_ae, is_boundary) {
@@ -224,7 +224,7 @@ where
                 let new_nodes = offsets
                     .into_iter()
                     .map(|(n_x, n_y)| {
-                        let mut new_node = self.create_node(get_coord(n_x, n_y), weights.as_slice());
+                        let mut new_node = self.create_node(get_coord(n_x, n_y), weights.as_slice(), 0.);
                         let offset_abs = (n_x.abs(), n_y.abs());
 
                         new_node.weights = match offset_abs {
@@ -300,12 +300,12 @@ where
     /// Inserts new neighbors if necessary.
     fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) {
         update_min_max(&mut self.min_max_weights, weights);
-        self.nodes.insert(coordinate.clone(), Arc::new(RwLock::new(self.create_node(coordinate, weights))));
+        self.nodes.insert(coordinate.clone(), Arc::new(RwLock::new(self.create_node(coordinate, weights, 0.))));
     }
 
     /// Creates a new node for given data.
-    fn create_node(&self, coordinate: Coordinate, weights: &[f64]) -> Node<I, S> {
-        Node::new(coordinate, weights, 0., self.rebalance_memory, self.storage_factory.eval())
+    fn create_node(&self, coordinate: Coordinate, weights: &[f64], error: f64) -> Node<I, S> {
+        Node::new(coordinate, weights, error, self.rebalance_memory, self.storage_factory.eval())
     }
 
     /// Rebalances network.

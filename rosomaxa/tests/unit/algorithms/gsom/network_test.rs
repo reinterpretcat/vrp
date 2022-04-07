@@ -147,7 +147,7 @@ mod node_growing {
     use super::*;
     use crate::algorithms::gsom::{NetworkConfig, NodeLink};
     use rand::prelude::StdRng;
-    use std::sync::Arc;
+    use std::sync::{Arc, RwLock};
 
     fn create_trivial_network(has_initial_error: bool) -> NetworkType {
         struct DummyRandom {}
@@ -195,9 +195,8 @@ mod node_growing {
 
     fn can_grow_initial_nodes_properly_impl(target_coord: (i32, i32), expected_new_nodes: Vec<((i32, i32), Vec<f64>)>) {
         let mut network = create_trivial_network(true);
-        let bmu = get_node(target_coord, &network).unwrap();
 
-        network.update(&bmu, &Data::new(2., 2., 2.), 2., true);
+        network.update(&get_node(target_coord, &network).unwrap(), &Data::new(2., 2., 2.), 2., true);
 
         assert_eq!(network.nodes.len(), 6);
         expected_new_nodes.into_iter().for_each(|((offset_x, offset_y), weights)| {
@@ -206,5 +205,23 @@ mod node_growing {
             assert_eq!(node.error, 0.);
             assert_eq!(node.weights, weights);
         });
+    }
+
+    #[test]
+    fn can_grow_new_nodes_properly() {
+        let w1_coord = Coordinate(1, 2);
+        let mut network = create_trivial_network(true);
+        network
+            .nodes
+            .insert(w1_coord.clone(), Arc::new(RwLock::new(network.create_node(w1_coord.clone(), &[3., 6., 10.], 0.))));
+
+        network.update(&get_node((w1_coord.0, w1_coord.1), &network).unwrap(), &Data::new(2., 2., 2.), 6., true);
+
+        [((2, 2), vec![3., 4., 13.]), ((0, 2), vec![3., 4., 13.]), ((1, 3), vec![3., 4., 13.])].into_iter().for_each(
+            |(coord, weights)| {
+                let node = get_node(coord, &network).unwrap();
+                assert_eq!(node.read().unwrap().weights.clone(), weights);
+            },
+        );
     }
 }
