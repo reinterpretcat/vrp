@@ -1,138 +1,210 @@
 use crate::algorithms::gsom::{Coordinate, Network};
-use crate::helpers::algorithms::gsom::{create_test_network, Data, DataStorage, DataStorageFactory};
-use crate::utils::{compare_floats, DefaultRandom, Random};
-use std::cmp::Ordering;
-
-#[test]
-fn can_train_network() {
-    let mut network = create_test_network(false);
-    let samples = vec![Data::new(1.0, 0.0, 0.0), Data::new(0.0, 1.0, 0.0), Data::new(0.0, 0.0, 1.0)];
-
-    // train
-    let random = DefaultRandom::default();
-    for _ in 1..4 {
-        for _ in 1..500 {
-            let sample_i = random.uniform_int(0, samples.len() as i32 - 1) as usize;
-            network.train(samples[sample_i].clone(), true);
-        }
-
-        network.retrain(10, &|node| !node.read().unwrap().storage.data.is_empty());
-    }
-
-    assert!(!network.nodes.len() >= 3);
-    assert_eq!(network.nodes.len(), network.size());
-    samples.iter().for_each(|sample| {
-        let node = network.find_bmu(sample);
-        let node = node.read().unwrap();
-
-        assert_eq!(node.storage.data.first().unwrap().values, sample.values);
-        assert_eq!(node.weights.iter().map(|v| v.round()).collect::<Vec<_>>(), sample.values);
-    });
-}
-
-parameterized_test! {can_use_initial_error_parameter, (has_initial_error, size), {
-    can_use_initial_error_parameter_impl(has_initial_error, size);
-}}
-
-can_use_initial_error_parameter! {
-    case01: (false, 4),
-    case02: (true, 6),
-}
-
-fn can_use_initial_error_parameter_impl(has_initial_error: bool, size: usize) {
-    let mut network = create_test_network(has_initial_error);
-
-    network.train(Data::new(1.0, 0.0, 0.0), true);
-
-    assert_eq!(network.size(), size);
-}
+use crate::helpers::algorithms::gsom::{Data, DataStorage, DataStorageFactory};
+use crate::utils::Random;
 
 type NetworkType = Network<Data, DataStorage, DataStorageFactory>;
 
-fn get_coord_data(coord: (i32, i32), offset: (i32, i32), network: &NetworkType) -> (Coordinate, Vec<f64>) {
-    let node = network.nodes.get(&Coordinate(coord.0 + offset.0, coord.1 + offset.1)).unwrap();
-    let node = node.read().unwrap();
+mod common {
+    use super::*;
+    use crate::helpers::algorithms::gsom::create_test_network;
+    use crate::utils::{compare_floats, DefaultRandom};
+    use std::cmp::Ordering;
 
-    let coordinate = node.coordinate.clone();
-    let weights = node.weights.clone();
+    #[test]
+    fn can_train_network() {
+        let mut network = create_test_network(false);
+        let samples = vec![Data::new(1.0, 0.0, 0.0), Data::new(0.0, 1.0, 0.0), Data::new(0.0, 0.0, 1.0)];
 
-    (coordinate, weights)
-}
+        // train
+        let random = DefaultRandom::default();
+        for _ in 1..4 {
+            for _ in 1..500 {
+                let sample_i = random.uniform_int(0, samples.len() as i32 - 1) as usize;
+                network.train(samples[sample_i].clone(), true);
+            }
 
-fn add_node(x: i32, y: i32, network: &mut NetworkType) {
-    network.insert(Coordinate(x, y), &[x as f64, y as f64]);
-}
-
-fn update_zero_neighborhood(network: &mut NetworkType) {
-    add_node(-1, 1, network);
-    add_node(-1, 0, network);
-    add_node(-1, -1, network);
-    add_node(0, -1, network);
-    add_node(1, -1, network);
-}
-
-#[test]
-fn can_insert_initial_node_neighborhood() {
-    let network = create_test_network(false);
-    assert_eq!(network.nodes.len(), 4);
-
-    assert_eq!(get_coord_data((0, 0), (1, 0), &network).0, Coordinate(1, 0));
-    assert_eq!(get_coord_data((0, 0), (0, 1), &network).0, Coordinate(0, 1));
-
-    assert_eq!(get_coord_data((1, 0), (-1, 0), &network).0, Coordinate(0, 0));
-    assert_eq!(get_coord_data((1, 0), (0, 1), &network).0, Coordinate(1, 1));
-
-    assert_eq!(get_coord_data((1, 1), (-1, 0), &network).0, Coordinate(0, 1));
-    assert_eq!(get_coord_data((1, 1), (0, -1), &network).0, Coordinate(1, 0));
-
-    assert_eq!(get_coord_data((0, 1), (0, -1), &network).0, Coordinate(0, 0));
-    assert_eq!(get_coord_data((0, 1), (1, 0), &network).0, Coordinate(1, 1));
-}
-
-#[test]
-fn can_create_and_update_extended_neighbourhood() {
-    let mut network = create_test_network(false);
-    update_zero_neighborhood(&mut network);
-    network.nodes.get(&Coordinate(0, 0)).unwrap().read().unwrap().neighbours(&network, 1).for_each(|(node, _)| {
-        let node = node.unwrap();
-        let mut node = node.write().unwrap();
-        node.error = 42.;
-    });
-
-    // -1+1  0+1  +1+1
-    // -1+0  0 0  +1 0
-    // -1-1  0-1  +1-1
-    assert_eq!(network.nodes.len(), 9);
-    network.nodes.iter().filter(|(coord, _)| **coord != Coordinate(0, 0)).for_each(|(coord, node)| {
-        let error = node.read().unwrap().error;
-        if compare_floats(error, 42.) != Ordering::Equal {
-            unreachable!("node is not updated: ({},{}), value: {}", coord.0, coord.1, error);
+            network.retrain(10, &|node| !node.read().unwrap().storage.data.is_empty());
         }
-    });
-    [
-        (1, (0, 0), 8),
-        (1, (0, -1), 5),
-        (1, (0, 1), 5),
-        (1, (1, 0), 5),
-        (1, (-1, 0), 5),
-        (1, (-1, 1), 3),
-        (1, (1, 1), 3),
-        (1, (-1, -1), 3),
-        (1, (1, -1), 3),
-    ]
-    .into_iter()
-    .for_each(|(radius, (x, y), expected_count)| {
-        let count = network
-            .nodes
-            .get(&Coordinate(x, y))
-            .unwrap()
-            .read()
-            .unwrap()
-            .neighbours(&network, radius)
-            .filter(|(node, _)| node.is_some())
-            .count();
-        if count != expected_count {
-            unreachable!("unexpected neighbourhood for: ({},{}), {} vs {}", x, y, count, expected_count)
+
+        assert!(!network.nodes.len() >= 3);
+        assert_eq!(network.nodes.len(), network.size());
+        samples.iter().for_each(|sample| {
+            let node = network.find_bmu(sample);
+            let node = node.read().unwrap();
+
+            assert_eq!(node.storage.data.first().unwrap().values, sample.values);
+            assert_eq!(node.weights.iter().map(|v| v.round()).collect::<Vec<_>>(), sample.values);
+        });
+    }
+
+    parameterized_test! {can_use_initial_error_parameter, (has_initial_error, size), {
+        can_use_initial_error_parameter_impl(has_initial_error, size);
+    }}
+
+    can_use_initial_error_parameter! {
+        case01: (false, 4),
+        case02: (true, 6),
+    }
+
+    fn can_use_initial_error_parameter_impl(has_initial_error: bool, size: usize) {
+        let mut network = create_test_network(has_initial_error);
+
+        network.train(Data::new(1.0, 0.0, 0.0), true);
+
+        assert_eq!(network.size(), size);
+    }
+
+    fn get_coord_data(coord: (i32, i32), offset: (i32, i32), network: &NetworkType) -> (Coordinate, Vec<f64>) {
+        let node = network.nodes.get(&Coordinate(coord.0 + offset.0, coord.1 + offset.1)).unwrap();
+        let node = node.read().unwrap();
+
+        let coordinate = node.coordinate.clone();
+        let weights = node.weights.clone();
+
+        (coordinate, weights)
+    }
+
+    fn add_node(x: i32, y: i32, network: &mut NetworkType) {
+        network.insert(Coordinate(x, y), &[x as f64, y as f64]);
+    }
+
+    fn update_zero_neighborhood(network: &mut NetworkType) {
+        add_node(-1, 1, network);
+        add_node(-1, 0, network);
+        add_node(-1, -1, network);
+        add_node(0, -1, network);
+        add_node(1, -1, network);
+    }
+
+    #[test]
+    fn can_insert_initial_node_neighborhood() {
+        let network = create_test_network(false);
+        assert_eq!(network.nodes.len(), 4);
+
+        assert_eq!(get_coord_data((0, 0), (1, 0), &network).0, Coordinate(1, 0));
+        assert_eq!(get_coord_data((0, 0), (0, 1), &network).0, Coordinate(0, 1));
+
+        assert_eq!(get_coord_data((1, 0), (-1, 0), &network).0, Coordinate(0, 0));
+        assert_eq!(get_coord_data((1, 0), (0, 1), &network).0, Coordinate(1, 1));
+
+        assert_eq!(get_coord_data((1, 1), (-1, 0), &network).0, Coordinate(0, 1));
+        assert_eq!(get_coord_data((1, 1), (0, -1), &network).0, Coordinate(1, 0));
+
+        assert_eq!(get_coord_data((0, 1), (0, -1), &network).0, Coordinate(0, 0));
+        assert_eq!(get_coord_data((0, 1), (1, 0), &network).0, Coordinate(1, 1));
+    }
+
+    #[test]
+    fn can_create_and_update_extended_neighbourhood() {
+        let mut network = create_test_network(false);
+        update_zero_neighborhood(&mut network);
+        network.nodes.get(&Coordinate(0, 0)).unwrap().read().unwrap().neighbours(&network, 1).for_each(|(node, _)| {
+            let node = node.unwrap();
+            let mut node = node.write().unwrap();
+            node.error = 42.;
+        });
+
+        // -1+1  0+1  +1+1
+        // -1+0  0 0  +1 0
+        // -1-1  0-1  +1-1
+        assert_eq!(network.nodes.len(), 9);
+        network.nodes.iter().filter(|(coord, _)| **coord != Coordinate(0, 0)).for_each(|(coord, node)| {
+            let error = node.read().unwrap().error;
+            if compare_floats(error, 42.) != Ordering::Equal {
+                unreachable!("node is not updated: ({},{}), value: {}", coord.0, coord.1, error);
+            }
+        });
+        [
+            (1, (0, 0), 8),
+            (1, (0, -1), 5),
+            (1, (0, 1), 5),
+            (1, (1, 0), 5),
+            (1, (-1, 0), 5),
+            (1, (-1, 1), 3),
+            (1, (1, 1), 3),
+            (1, (-1, -1), 3),
+            (1, (1, -1), 3),
+        ]
+        .into_iter()
+        .for_each(|(radius, (x, y), expected_count)| {
+            let count = network
+                .nodes
+                .get(&Coordinate(x, y))
+                .unwrap()
+                .read()
+                .unwrap()
+                .neighbours(&network, radius)
+                .filter(|(node, _)| node.is_some())
+                .count();
+            if count != expected_count {
+                unreachable!("unexpected neighbourhood for: ({},{}), {} vs {}", x, y, count, expected_count)
+            }
+        });
+    }
+}
+
+mod node_growing {
+    use super::*;
+    use crate::algorithms::gsom::{NetworkConfig, NodeLink};
+    use rand::prelude::StdRng;
+    use std::sync::Arc;
+
+    fn create_trivial_network(has_initial_error: bool) -> NetworkType {
+        struct DummyRandom {}
+        impl Random for DummyRandom {
+            fn is_hit(&self, _: f64) -> bool {
+                false
+            }
+            fn get_rng(&self) -> StdRng {
+                unreachable!()
+            }
         }
-    });
+        Network::new(
+            [
+                Data::new(1., 4., 8.), // n00
+                Data::new(2., 5., 9.), // n01
+                Data::new(3., 8., 7.), // n11
+                Data::new(9., 3., 2.), // n10
+            ],
+            NetworkConfig {
+                spread_factor: 0.25,
+                distribution_factor: 0.25,
+                learning_rate: 0.1,
+                rebalance_memory: 500,
+                has_initial_error,
+            },
+            Arc::new(DummyRandom {}),
+            DataStorageFactory,
+        )
+    }
+
+    fn get_node(coord: (i32, i32), network: &NetworkType) -> Option<NodeLink<Data, DataStorage>> {
+        network.nodes.get(&Coordinate(coord.0, coord.1)).cloned()
+    }
+
+    parameterized_test! {can_grow_initial_nodes_properly, (target_coord, expected_new_nodes), {
+        can_grow_initial_nodes_properly_impl(target_coord, expected_new_nodes);
+    }}
+
+    can_grow_initial_nodes_properly! {
+        case01: ((0, 0), vec![((-1, 0), vec![-7., 5., 14.]), ((0, -1), vec![0., 3., 7.])]),
+        case02: ((0, 1), vec![((-1, 0), vec![1., 2., 11.]), ((0, 1), vec![3., 6., 10.])]),
+        case03: ((1, 0), vec![((1, 0), vec![17., 2., -4.]), ((0, -1), vec![15., -2., -3.])]),
+        case04: ((1, 1), vec![((1, 0), vec![4., 11., 5.]), ((0, 1), vec![-3., 13., 12.])]),
+    }
+
+    fn can_grow_initial_nodes_properly_impl(target_coord: (i32, i32), expected_new_nodes: Vec<((i32, i32), Vec<f64>)>) {
+        let mut network = create_trivial_network(true);
+        let bmu = get_node(target_coord, &network).unwrap();
+
+        network.update(&bmu, &Data::new(2., 2., 2.), 2., true);
+
+        assert_eq!(network.nodes.len(), 6);
+        expected_new_nodes.into_iter().for_each(|((offset_x, offset_y), weights)| {
+            let node = get_node((target_coord.0 + offset_x, target_coord.1 + offset_y), &network).unwrap();
+            let node = node.read().unwrap();
+            assert_eq!(node.error, 0.);
+            assert_eq!(node.weights, weights);
+        });
+    }
 }
