@@ -26,7 +26,7 @@ where
     learning_rate: f64,
     time: usize,
     rebalance_memory: usize,
-    min_max_weights: (Vec<f64>, Vec<f64>),
+    min_max_weights: MinMaxWeights,
     nodes: HashMap<Coordinate, NodeLink<I, S>>,
     storage_factory: F,
 }
@@ -43,9 +43,10 @@ pub struct NetworkConfig {
     pub rebalance_memory: usize,
     /// If set to true, initial nodes have error set to the value equal to growing threshold.
     pub has_initial_error: bool,
-    /// A random used to generate a noise applied internally to errors and weights.
-    pub random: Arc<dyn Random + Send + Sync>,
 }
+
+/// Specifies min max weights type.
+type MinMaxWeights = (Vec<f64>, Vec<f64>);
 
 impl<I, S, F> Network<I, S, F>
 where
@@ -54,7 +55,12 @@ where
     F: StorageFactory<I, S>,
 {
     /// Creates a new instance of `Network`.
-    pub fn new(roots: [I; 4], config: NetworkConfig, storage_factory: F) -> Self {
+    pub fn new(
+        roots: [I; 4],
+        config: NetworkConfig,
+        random: Arc<dyn Random + Send + Sync>,
+        storage_factory: F,
+    ) -> Self {
         let dimension = roots[0].weights().len();
 
         assert!(roots.iter().all(|r| r.weights().len() == dimension));
@@ -62,7 +68,7 @@ where
 
         let growing_threshold = -1. * dimension as f64 * config.spread_factor.log2();
         let initial_error = if config.has_initial_error { growing_threshold } else { 0. };
-        let noise = Noise::new(1., (0.95, 1.05), config.random);
+        let noise = Noise::new(1., (0.95, 1.05), random);
 
         let (nodes, min_max_weights) =
             Self::create_initial_nodes(roots, initial_error, config.rebalance_memory, &noise, &storage_factory);
@@ -199,6 +205,7 @@ where
                 });
             }
             // insertion within weight distribution
+            #[allow(clippy::needless_collect)]
             (true, true) => {
                 let node = node.read().unwrap();
                 let coord = node.coordinate.clone();
@@ -208,7 +215,6 @@ where
                 let get_node = |offset_x: i32, offset_y: i32| self.nodes.get(&get_coord(offset_x, offset_y));
 
                 // NOTE insert new nodes only in main directions
-                #[allow(clippy::needless_collect)]
                 let offsets = node
                     .neighbours(self, 1)
                     .filter(|(_, (x, y))| x.abs() + y.abs() < 2)
@@ -230,7 +236,7 @@ where
                             // case b
                             weights
                                 .as_slice()
-                                .into_iter()
+                                .iter()
                                 .zip(w2.read().unwrap().weights.iter())
                                 .map(|(&w1, &w2)| (w1 + w2) / 2.)
                                 .collect()
@@ -252,7 +258,7 @@ where
                                 // cases a & c
                                 weights
                                     .as_slice()
-                                    .into_iter()
+                                    .iter()
                                     .zip(w2.read().unwrap().weights.iter())
                                     .map(|(&w1, &w2)| if w2 > w1 { w1 - (w2 - w1) } else { w1 + (w1 - w2) })
                                     .collect()
@@ -299,7 +305,7 @@ where
 
     /// Creates a new node for given data.
     fn create_node(&self, coordinate: Coordinate, weights: &[f64]) -> Node<I, S> {
-        Node::new(coordinate.clone(), weights, 0., self.rebalance_memory, self.storage_factory.eval())
+        Node::new(coordinate, weights, 0., self.rebalance_memory, self.storage_factory.eval())
     }
 
     /// Rebalances network.
@@ -345,7 +351,7 @@ where
         rebalance_memory: usize,
         noise: &Noise,
         storage_factory: &F,
-    ) -> (HashMap<Coordinate, NodeLink<I, S>>, (Vec<f64>, Vec<f64>)) {
+    ) -> (HashMap<Coordinate, NodeLink<I, S>>, MinMaxWeights) {
         let create_node_link = |coordinate: Coordinate, input: I| {
             let weights = input.weights().iter().map(|&value| noise.generate(value)).collect::<Vec<_>>();
             let mut node = Node::<I, S>::new(

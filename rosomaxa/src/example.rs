@@ -12,6 +12,7 @@ use crate::utils::Noise;
 use crate::*;
 use hashbrown::{HashMap, HashSet};
 use std::any::Any;
+use std::iter::once;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -380,7 +381,10 @@ impl Solver {
             ))
         };
         let fitness_fn = self.fitness_fn.ok_or_else(|| "objective function must be set".to_string())?;
-        let weight_fn = self.weight_fn.unwrap_or_else(|| Arc::new(|data| data.to_vec()));
+        let weight_fn = self.weight_fn.unwrap_or_else({
+            let fitness_fn = fitness_fn.clone();
+            move || Arc::new(move |data| data.iter().cloned().chain(once(fitness_fn.deref()(data))).collect())
+        });
         let objective = Arc::new(VectorObjective::new(fitness_fn, weight_fn));
         let initial_operators = self
             .initial_solutions
