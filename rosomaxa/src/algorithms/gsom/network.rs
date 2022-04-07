@@ -3,7 +3,7 @@
 mod network_test;
 
 use super::*;
-use crate::utils::{parallel_into_collect, Noise, Random};
+use crate::utils::{compare_floats, parallel_into_collect, Noise, Random};
 use hashbrown::HashMap;
 use rand::prelude::SliceRandom;
 use std::cmp::Ordering;
@@ -187,114 +187,122 @@ where
                 node.new_hit(self.time);
             }
 
-            (!(node.error < self.growing_threshold), node.is_boundary(self))
+            (
+                matches!(compare_floats(node.error, self.growing_threshold), Ordering::Equal | Ordering::Greater),
+                node.is_boundary(self),
+            )
         };
 
         match (exceeds_ae, is_boundary) {
-            // error distribution
-            (true, false) => {
-                let mut node = node.write().unwrap();
-                node.error = 0.5 * self.growing_threshold;
-
-                node.neighbours(self, radius).for_each(|(n, (x, y))| {
-                    if let Some(n) = n {
-                        let mut node = n.write().unwrap();
-                        let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as f64;
-                        node.error += distribution_factor * node.error;
-                    }
+            (true, false) => self.distribute_error(node, radius),
+            (true, true) => {
+                self.grow_nodes(node).into_iter().for_each(|(coordinate, weights)| {
+                    self.insert(coordinate.clone(), weights.as_slice());
+                    let new_node = self.nodes.get(&coordinate).unwrap();
+                    self.adjust_weights(new_node, input.weights(), radius);
                 });
             }
-            // insertion within weight distribution
-            #[allow(clippy::needless_collect)]
-            (true, true) => {
-                let node = node.read().unwrap();
-                let coord = node.coordinate.clone();
-                let weights = node.weights.clone();
-
-                let get_coord = |offset_x: i32, offset_y: i32| Coordinate(coord.0 + offset_x, coord.1 + offset_y);
-                let get_node = |offset_x: i32, offset_y: i32| self.nodes.get(&get_coord(offset_x, offset_y));
-
-                // NOTE insert new nodes only in main directions
-                let offsets = node
-                    .neighbours(self, 1)
-                    .filter(|(_, (x, y))| x.abs() + y.abs() < 2)
-                    .filter_map(|(node, offset)| if node.is_none() { Some(offset) } else { None })
-                    .collect::<Vec<_>>();
-
-                let new_nodes = offsets
-                    .into_iter()
-                    .map(|(n_x, n_y)| {
-                        let mut new_node = self.create_node(get_coord(n_x, n_y), weights.as_slice(), 0.);
-                        let offset_abs = (n_x.abs(), n_y.abs());
-
-                        new_node.weights = match offset_abs {
-                            (1, 0) => get_node(n_x * 2, 0),
-                            (0, 1) => get_node(0, n_y * 2),
-                            _ => unreachable!(),
-                        }
-                        .map(|w2| {
-                            // case b
-                            weights
-                                .as_slice()
-                                .iter()
-                                .zip(w2.read().unwrap().weights.iter())
-                                .map(|(&w1, &w2)| (w1 + w2) / 2.)
-                                .collect()
-                        })
-                        .unwrap_or_else(|| {
-                            // case a
-                            match offset_abs {
-                                (1, 0) => get_node(-n_x, 0),
-                                (0, 1) => get_node(0, -n_y),
-                                _ => unreachable!(),
-                            }
-                            // case c
-                            .or_else(|| match offset_abs {
-                                (1, 0) => get_node(0, 1).or_else(|| get_node(0, -1)),
-                                (0, 1) => get_node(1, 0).or_else(|| get_node(-1, 0)),
-                                _ => unreachable!(),
-                            })
-                            .map(|w2| {
-                                // cases a & c
-                                weights
-                                    .as_slice()
-                                    .iter()
-                                    .zip(w2.read().unwrap().weights.iter())
-                                    .map(|(&w1, &w2)| if w2 > w1 { w1 - (w2 - w1) } else { w1 + (w1 - w2) })
-                                    .collect()
-                            })
-                            // case d
-                            .unwrap_or_else(|| {
-                                self.min_max_weights
-                                    .0
-                                    .iter()
-                                    .zip(self.min_max_weights.1.iter())
-                                    .map(|(min, max)| (min + max) / 2.)
-                                    .collect()
-                            })
-                        });
-
-                        new_node
-                    })
-                    .collect::<Vec<_>>();
-
-                new_nodes.into_iter().for_each(|node| self.insert(node.coordinate, node.weights.as_slice()))
-            }
-            // weight adjustments
-            _ => {
-                let mut node = node.write().unwrap();
-                let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
-
-                node.adjust(input.weights(), learning_rate);
-                node.neighbours(self, radius).filter_map(|(n, offset)| n.map(|n| (n, offset))).for_each(
-                    |(n, offset)| {
-                        let distance = offset.0.abs() + offset.1.abs();
-                        let learning_rate = learning_rate / distance as f64;
-                        n.write().unwrap().adjust(input.weights(), learning_rate);
-                    },
-                );
-            }
+            _ => self.adjust_weights(node, input.weights(), radius),
         }
+    }
+
+    fn distribute_error(&self, node: &NodeLink<I, S>, radius: usize) {
+        let mut node = node.write().unwrap();
+        node.error = 0.5 * self.growing_threshold;
+
+        node.neighbours(self, radius).for_each(|(n, (x, y))| {
+            if let Some(n) = n {
+                let mut node = n.write().unwrap();
+                let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as f64;
+                node.error += distribution_factor * node.error;
+            }
+        });
+    }
+
+    #[allow(clippy::needless_collect)]
+    fn grow_nodes(&self, node: &NodeLink<I, S>) -> Vec<(Coordinate, Vec<f64>)> {
+        let node = node.read().unwrap();
+        let coord = node.coordinate.clone();
+        let weights = node.weights.clone();
+
+        let get_coord = |offset_x: i32, offset_y: i32| Coordinate(coord.0 + offset_x, coord.1 + offset_y);
+        let get_node = |offset_x: i32, offset_y: i32| self.nodes.get(&get_coord(offset_x, offset_y));
+
+        // NOTE insert new nodes only in main directions
+        let offsets = node
+            .neighbours(self, 1)
+            .filter(|(_, (x, y))| x.abs() + y.abs() < 2)
+            .filter_map(|(node, offset)| if node.is_none() { Some(offset) } else { None })
+            .collect::<Vec<_>>();
+
+        offsets
+            .into_iter()
+            .map(|(n_x, n_y)| {
+                let coord = get_coord(n_x, n_y);
+                let offset_abs = (n_x.abs(), n_y.abs());
+
+                let weights = match offset_abs {
+                    (1, 0) => get_node(n_x * 2, 0),
+                    (0, 1) => get_node(0, n_y * 2),
+                    _ => unreachable!(),
+                }
+                .map(|w2| {
+                    // case b
+                    weights
+                        .as_slice()
+                        .iter()
+                        .zip(w2.read().unwrap().weights.iter())
+                        .map(|(&w1, &w2)| (w1 + w2) / 2.)
+                        .collect()
+                })
+                .unwrap_or_else(|| {
+                    // case a
+                    match offset_abs {
+                        (1, 0) => get_node(-n_x, 0),
+                        (0, 1) => get_node(0, -n_y),
+                        _ => unreachable!(),
+                    }
+                    // case c
+                    .or_else(|| match offset_abs {
+                        (1, 0) => get_node(0, 1).or_else(|| get_node(0, -1)),
+                        (0, 1) => get_node(1, 0).or_else(|| get_node(-1, 0)),
+                        _ => unreachable!(),
+                    })
+                    .map(|w2| {
+                        // cases a & c
+                        weights
+                            .as_slice()
+                            .iter()
+                            .zip(w2.read().unwrap().weights.iter())
+                            .map(|(&w1, &w2)| if w2 > w1 { w1 - (w2 - w1) } else { w1 + (w1 - w2) })
+                            .collect()
+                    })
+                    // case d
+                    .unwrap_or_else(|| {
+                        self.min_max_weights
+                            .0
+                            .iter()
+                            .zip(self.min_max_weights.1.iter())
+                            .map(|(min, max)| (min + max) / 2.)
+                            .collect()
+                    })
+                });
+
+                (coord, weights)
+            })
+            .collect()
+    }
+
+    fn adjust_weights(&self, node: &NodeLink<I, S>, weights: &[f64], radius: usize) {
+        let mut node = node.write().unwrap();
+        let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
+
+        node.adjust(weights, learning_rate);
+        node.neighbours(self, radius).filter_map(|(n, offset)| n.map(|n| (n, offset))).for_each(|(n, offset)| {
+            let distance = offset.0.abs() + offset.1.abs();
+            let learning_rate = learning_rate / distance as f64;
+            n.write().unwrap().adjust(weights, learning_rate);
+        });
     }
 
     /// Inserts new neighbors if necessary.

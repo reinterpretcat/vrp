@@ -182,15 +182,19 @@ mod node_growing {
         network.nodes.get(&Coordinate(coord.0, coord.1)).cloned()
     }
 
+    fn round_weights(weights: &[f64]) -> Vec<f64> {
+        weights.iter().map(|w| (w * 1000.).round() / 1000.).collect()
+    }
+
     parameterized_test! {can_grow_initial_nodes_properly, (target_coord, expected_new_nodes), {
         can_grow_initial_nodes_properly_impl(target_coord, expected_new_nodes);
     }}
 
     can_grow_initial_nodes_properly! {
-        case01: ((0, 0), vec![((-1, 0), vec![-7., 5., 14.]), ((0, -1), vec![0., 3., 7.])]),
-        case02: ((0, 1), vec![((-1, 0), vec![1., 2., 11.]), ((0, 1), vec![3., 6., 10.])]),
-        case03: ((1, 0), vec![((1, 0), vec![17., 2., -4.]), ((0, -1), vec![15., -2., -3.])]),
-        case04: ((1, 1), vec![((1, 0), vec![4., 11., 5.]), ((0, 1), vec![-3., 13., 12.])]),
+        case01: ((0, 0), vec![((-1, 0), vec![-6.623, 4.874, 13.497]), ((0, -1), vec![0.073, 2.963, 6.817])]),
+        case02: ((0, 1), vec![((-1, 0), vec![1.042, 2.0, 10.623]), ((0, 1), vec![2.963, 5.853, 9.707])]),
+        case03: ((1, 0), vec![((1, 0), vec![16.45, 2.0, -3.78]), ((0, -1), vec![14.455, -1.832, -2.791])]),
+        case04: ((1, 1), vec![((1, 0), vec![3.927, 10.67, 4.89]), ((0, 1), vec![-2.791, 12.539, 11.581])]),
     }
 
     fn can_grow_initial_nodes_properly_impl(target_coord: (i32, i32), expected_new_nodes: Vec<((i32, i32), Vec<f64>)>) {
@@ -203,7 +207,7 @@ mod node_growing {
             let node = get_node((target_coord.0 + offset_x, target_coord.1 + offset_y), &network).unwrap();
             let node = node.read().unwrap();
             assert_eq!(node.error, 0.);
-            assert_eq!(node.weights, weights);
+            assert_eq!(round_weights(node.weights.as_slice()), weights);
         });
     }
 
@@ -217,11 +221,16 @@ mod node_growing {
 
         network.update(&get_node((w1_coord.0, w1_coord.1), &network).unwrap(), &Data::new(2., 2., 2.), 6., true);
 
-        [((2, 2), vec![3., 4., 13.]), ((0, 2), vec![3., 4., 13.]), ((1, 3), vec![3., 4., 13.])].into_iter().for_each(
-            |(coord, weights)| {
-                let node = get_node(coord, &network).unwrap();
-                assert_eq!(node.read().unwrap().weights.clone(), weights);
-            },
-        );
+        [
+            ((2, 2), vec![2.948, 3.895, 12.423]),
+            ((0, 2), vec![2.917, 3.833, 12.083]),
+            ((1, 3), vec![2.929, 3.858, 12.222]),
+        ]
+        .into_iter()
+        .for_each(|(coord, weights)| {
+            let node = get_node(coord, &network).unwrap();
+            let actual = round_weights(node.read().unwrap().weights.as_slice());
+            assert_eq!(actual, weights);
+        });
     }
 }
