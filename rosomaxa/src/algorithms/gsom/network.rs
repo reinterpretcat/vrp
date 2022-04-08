@@ -94,23 +94,34 @@ where
     }
 
     /// Stores multiple inputs into the network.
-    pub fn store_batch<T: Sized + Send + Sync>(&mut self, item_data: Vec<T>, time: usize, map_func: fn(T) -> I) {
+    pub fn store_batch<T: Send + Sync>(&mut self, item_data: Vec<T>, time: usize, map_func: fn(T) -> I) {
         self.time = time;
-        self.train_batch(item_data, true, map_func);
+        let nodes_data = parallel_into_collect(item_data, |item| {
+            let input = map_func(item);
+            let bmu = self.find_bmu(&input);
+            let error = bmu.read().unwrap().distance(input.weights());
+            (bmu, error, input)
+        });
+        self.train_batch(nodes_data, true);
     }
 
-    /// Performs smoothing phase
+    /// Performs smoothing phase.
     pub fn smooth(&mut self, rebalance_count: usize) {
-        let mut data = Vec::with_capacity(self.nodes.len());
         (0..rebalance_count).for_each(|_| {
-            data.clear();
-            data.extend(self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain(0..)));
-
+            let mut data = self
+                .nodes
+                .iter_mut()
+                .flat_map(|(_, node)| node.write().unwrap().storage.drain(0..))
+                .collect::<Vec<_>>();
             data.shuffle(&mut rand::thread_rng());
 
-            data.drain(0..).for_each(|input| {
-                self.train(input, false);
+            let nodes_data = parallel_into_collect(data, |input| {
+                let bmu = self.find_bmu(&input);
+                let error = bmu.read().unwrap().distance(input.weights());
+                (bmu, error, input)
             });
+
+            self.train_batch(nodes_data, false);
         });
     }
 
@@ -179,14 +190,7 @@ where
     }
 
     /// Trains network on inputs.
-    fn train_batch<T: Send + Sync>(&mut self, item_data: Vec<T>, is_new_input: bool, map_func: fn(T) -> I) {
-        let nodes_data = parallel_into_collect(item_data, |item| {
-            let input = map_func(item);
-            let bmu = self.find_bmu(&input);
-            let error = bmu.read().unwrap().distance(input.weights());
-            (bmu, error, input)
-        });
-
+    fn train_batch(&mut self, nodes_data: Vec<(NodeLink<I, S>, f64, I)>, is_new_input: bool) {
         nodes_data.into_iter().for_each(|(bmu, error, input)| {
             self.update(&bmu, &input, error, is_new_input);
             bmu.write().unwrap().storage.add(input);

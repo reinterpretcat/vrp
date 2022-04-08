@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 * fix tour order issue related to break/reload activities
 * fix limit violation issue in specific use cases
+* improve rosomaxa and customized gsom implementation
 
 
 ## [v1.16.1] - 2022-03-10
