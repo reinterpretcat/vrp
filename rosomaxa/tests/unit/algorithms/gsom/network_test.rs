@@ -19,17 +19,15 @@ mod common {
         let random = DefaultRandom::default();
         for j in 1..4 {
             for i in 1..500 {
-                let sample_i = random.uniform_int(0, samples.len() as i32 - 1) as usize;
-                network.store(samples[sample_i].clone(), j * i + i);
+                let idx = random.uniform_int(0, samples.len() as i32 - 1) as usize;
+                network.store(samples[idx].clone(), j * i + i);
             }
 
-            network.smooth(1);
-            network.compact(&|node| !node.read().unwrap().storage.data.is_empty());
-            network.smooth(2);
+            network.smooth(4);
         }
+        network.compact(&|node| !node.read().unwrap().storage.data.is_empty());
 
         assert!(!network.nodes.len() >= 4);
-        assert_eq!(network.nodes.len(), network.size());
         samples.iter().for_each(|sample| {
             let node = network.find_bmu(sample);
             let node = node.read().unwrap();

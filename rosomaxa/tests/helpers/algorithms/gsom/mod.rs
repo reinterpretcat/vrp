@@ -81,7 +81,7 @@ pub fn create_test_network(has_initial_error: bool) -> Network<Data, DataStorage
             spread_factor: 0.25,
             distribution_factor: 0.25,
             learning_rate: 0.1,
-            rebalance_memory: 500,
+            rebalance_memory: 100,
             has_initial_error,
         },
         Arc::new(DefaultRandom::default()),

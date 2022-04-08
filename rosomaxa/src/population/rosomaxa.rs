@@ -50,7 +50,7 @@ impl RosomaxaConfig {
             objective_reshuffling: 0.01,
             learning_rate: 0.1,
             rebalance_memory: 100,
-            rebalance_count: 2,
+            rebalance_count: 4,
             exploration_ratio: 0.9,
         }
     }
