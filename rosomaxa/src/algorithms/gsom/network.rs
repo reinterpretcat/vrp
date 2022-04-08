@@ -99,12 +99,41 @@ where
         self.train_batch(item_data, true, map_func);
     }
 
-    /// Retrains the whole network.
-    pub fn retrain(&mut self, rebalance_count: usize, node_filter: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
-        // NOTE compact before rebalancing to reduce network size to be rebalanced
-        self.compact(node_filter);
-        self.rebalance(rebalance_count);
-        self.compact(node_filter);
+    /// Performs smoothing phase
+    pub fn smooth(&mut self, rebalance_count: usize) {
+        let mut data = Vec::with_capacity(self.nodes.len());
+        (0..rebalance_count).for_each(|_| {
+            data.clear();
+            data.extend(self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain(0..)));
+
+            data.shuffle(&mut rand::thread_rng());
+
+            data.drain(0..).for_each(|input| {
+                self.train(input, false);
+            });
+        });
+    }
+
+    /// Compacts network.
+    pub fn compact(&mut self, node_filter: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
+        let original = self.nodes.len();
+        let mut removed = vec![];
+        let mut remove_node = |coordinate: &Coordinate| {
+            // NOTE: prevent network to be less than 4 nodes
+            if (original - removed.len()) > 4 {
+                removed.push(coordinate.clone());
+            }
+        };
+
+        // remove user defined nodes
+        self.nodes
+            .iter_mut()
+            .filter(|(_, node)| !node_filter.deref()(node))
+            .for_each(|(coordinate, _)| remove_node(coordinate));
+
+        removed.iter().for_each(|coordinate| {
+            self.nodes.remove(coordinate);
+        });
     }
 
     /// Finds node by its coordinate.
@@ -176,9 +205,9 @@ where
 
     /// Updates network according to the error.
     fn update(&mut self, node: &NodeLink<I, S>, input: &I, error: f64, is_new_input: bool) {
-        let radius = 2;
+        let radius = if is_new_input { 2 } else { 1 };
 
-        let (exceeds_ae, is_boundary) = {
+        let (exceeds_ae, can_grow) = {
             let mut node = node.write().unwrap();
             node.error += error;
 
@@ -189,20 +218,20 @@ where
 
             (
                 matches!(compare_floats(node.error, self.growing_threshold), Ordering::Equal | Ordering::Greater),
-                node.is_boundary(self),
+                node.is_boundary(self) && is_new_input,
             )
         };
 
-        match (exceeds_ae, is_boundary) {
+        match (exceeds_ae, can_grow) {
             (true, false) => self.distribute_error(node, radius),
             (true, true) => {
                 self.grow_nodes(node).into_iter().for_each(|(coordinate, weights)| {
                     self.insert(coordinate.clone(), weights.as_slice());
                     let new_node = self.nodes.get(&coordinate).unwrap();
-                    self.adjust_weights(new_node, input.weights(), radius);
+                    self.adjust_weights(new_node, input.weights(), radius, is_new_input);
                 });
             }
-            _ => self.adjust_weights(node, input.weights(), radius),
+            _ => self.adjust_weights(node, input.weights(), radius, is_new_input),
         }
     }
 
@@ -293,9 +322,10 @@ where
             .collect()
     }
 
-    fn adjust_weights(&self, node: &NodeLink<I, S>, weights: &[f64], radius: usize) {
+    fn adjust_weights(&self, node: &NodeLink<I, S>, weights: &[f64], radius: usize, is_new_input: bool) {
         let mut node = node.write().unwrap();
         let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
+        let learning_rate = if is_new_input { 0.25 * learning_rate } else { learning_rate };
 
         node.adjust(weights, learning_rate);
         node.neighbours(self, radius).filter_map(|(n, offset)| n.map(|n| (n, offset))).for_each(|(n, offset)| {
@@ -314,42 +344,6 @@ where
     /// Creates a new node for given data.
     fn create_node(&self, coordinate: Coordinate, weights: &[f64], error: f64) -> Node<I, S> {
         Node::new(coordinate, weights, error, self.rebalance_memory, self.storage_factory.eval())
-    }
-
-    /// Rebalances network.
-    fn rebalance(&mut self, rebalance_count: usize) {
-        let mut data = Vec::with_capacity(self.nodes.len());
-        (0..rebalance_count).for_each(|_| {
-            data.clear();
-            data.extend(self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain(0..)));
-
-            data.shuffle(&mut rand::thread_rng());
-
-            data.drain(0..).for_each(|input| {
-                self.train(input, false);
-            });
-        });
-    }
-
-    fn compact(&mut self, node_filter: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
-        let original = self.nodes.len();
-        let mut removed = vec![];
-        let mut remove_node = |coordinate: &Coordinate| {
-            // NOTE: prevent network to be less than 4 nodes
-            if (original - removed.len()) > 4 {
-                removed.push(coordinate.clone());
-            }
-        };
-
-        // remove user defined nodes
-        self.nodes
-            .iter_mut()
-            .filter(|(_, node)| !node_filter.deref()(node))
-            .for_each(|(coordinate, _)| remove_node(coordinate));
-
-        removed.iter().for_each(|coordinate| {
-            self.nodes.remove(coordinate);
-        });
     }
 
     /// Creates nodes for initial topology.

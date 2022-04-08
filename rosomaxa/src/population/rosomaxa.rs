@@ -358,46 +358,44 @@ where
         rebalance_memory: usize,
         rebalance_count: usize,
     ) {
-        let rebalance_memory = rebalance_memory as f64;
         let keep_size = match statistics.improvement_1000_ratio {
-            v if v > 0.2 => {
+            v if v > 0.25 => {
                 // https://www.wolframalpha.com/input/?i=plot+%281+-+1%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
                 let x = statistics.termination_estimate.clamp(0., 1.);
                 let ratio = 1. - 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.5)));
-                rebalance_memory + rebalance_memory * ratio
+                rebalance_memory + (rebalance_memory as f64 * ratio) as usize
             }
-            v if v > 0.1 => 2. * rebalance_memory,
-            v if v > 0.01 => 3. * rebalance_memory,
-            _ => 4. * rebalance_memory,
-        } as usize;
+            _ => rebalance_memory,
+        };
 
-        if statistics.generation == 0 || network.size() <= keep_size {
+        let is_lower = network.size() <= keep_size;
+
+        if statistics.generation % rebalance_memory == 0 || !is_lower {
+            network.smooth(1);
+        }
+
+        if is_lower {
             return;
         }
 
         let get_distance = |node: &NodeLink<IndividualInput<S>, IndividualStorage<O, S>>| {
             let node = node.read().unwrap();
-            let individual = node.storage.population.select().next();
+            let individual = node.storage.population.ranked().next();
 
-            individual.map(|individual| relative_distance(best_fitness.iter().cloned(), individual.get_fitness()))
+            individual.map(|(individual, _)| relative_distance(best_fitness.iter().cloned(), individual.get_fitness()))
         };
 
         // determine percentile value
         let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
         distances.sort_by(|a, b| compare_floats(*b, *a));
-        let percentile_idx = if distances.len() > keep_size {
-            distances.len() - keep_size
-        } else {
-            // NOTE remove 75% of nodes
-            const PERCENTILE_THRESHOLD: f64 = 0.75;
 
-            (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize
-        };
+        // NOTE remove 25% of nodes passed distance check
+        const PERCENTILE_THRESHOLD: f64 = 0.25;
+        let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
 
         if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
-            network.retrain(rebalance_count, &|node| {
-                get_distance(node).map_or(false, |distance| distance < distance_threshold)
-            });
+            network.compact(&|node| get_distance(node).map_or(false, |distance| distance < distance_threshold));
+            network.smooth(rebalance_count);
         }
     }
 
