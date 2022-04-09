@@ -22,7 +22,7 @@ pub fn run_solver(
     let fitness_fn = get_fitness_fn_by_name(function_name);
     let random = Arc::new(DefaultRandom::default());
 
-    let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random.clone()));
+    let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random));
     let delta_op = VectorHeuristicOperatorMode::JustDelta(-0.1..0.1);
 
     let (solutions, _) = Solver::default()
