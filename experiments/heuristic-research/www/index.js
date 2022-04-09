@@ -84,6 +84,9 @@ function updatePlot() {
         case 'himmelblau':
             Chart.himmelblau(canvas, generation_value, pitch_value, yaw_value);
             break;
+        case 'ackley':
+            Chart.ackley(canvas, generation_value, pitch_value, yaw_value);
+            break;
         default:
             break;
     }
@@ -111,6 +114,10 @@ function runExperiment() {
             z = getRandomInRange(-5.12, 5.12)
             break;
         case 'himmelblau':
+            x = getRandomInRange(-5.0, 5.0)
+            z = getRandomInRange(-5.0, 5.0)
+            break;
+        case 'ackley':
             x = getRandomInRange(-5.0, 5.0)
             z = getRandomInRange(-5.0, 5.0)
             break;

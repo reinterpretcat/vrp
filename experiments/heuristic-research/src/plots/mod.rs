@@ -61,6 +61,19 @@ impl Chart {
         )?;
         Ok(())
     }
+
+    /// Draws plot for ackley function.
+    pub fn ackley(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
+        draw(
+            canvas,
+            generation,
+            pitch,
+            yaw,
+            Axes { x: (-5.0..5.0, 0.2), y: (0.0..14.), z: (-5.0..5.0, 0.2) },
+            "ackley",
+        )?;
+        Ok(())
+    }
 }
 
 fn draw(
