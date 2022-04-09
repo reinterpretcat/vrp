@@ -22,15 +22,19 @@ lazy_static! {
 
 /// Runs experiment.
 #[wasm_bindgen]
-pub fn run_experiment(x: f64, z: f64, generations: usize) {
+pub fn run_experiment(function_name: &str, x: f64, z: f64, generations: usize) {
     let selection_size = 8;
-    let function_name = "rosenbrock";
-
     let logger = Arc::new(|message: &str| {
         web_sys::console::log_1(&message.into());
     });
 
     run_solver(function_name, selection_size, vec![x, z], generations, logger)
+}
+
+/// Clears experiment data.
+#[wasm_bindgen]
+pub fn clear() {
+    EXPERIMENT_DATA.lock().unwrap().clear()
 }
 
 /// Gets current (last) generation.

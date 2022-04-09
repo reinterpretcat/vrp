@@ -23,25 +23,56 @@ pub struct Chart {}
 
 #[wasm_bindgen]
 impl Chart {
-    /// Renders plot for rosenbrock function.
+    /// Draws plot for rosenbrock function.
     pub fn rosenbrock(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
-        drawing::draw(
+        draw(
             canvas,
-            &DrawConfig {
-                axes: Axes { x: (-2.0..2.0, 0.15), y: (0.0..3610.0), z: (-2.0..2.0, 0.15) },
-                projection: Projection { pitch, yaw, scale: 0.8 },
-                series: Series {
-                    surface: {
-                        let fitness_fn = get_fitness_fn_by_name("rosenbrock");
-                        Box::new(move |x, z| fitness_fn.deref()(&[x, z]))
-                    },
-                    points: Box::new(move || get_points(generation)),
-                },
-            },
-        )
-        .map_err(|err| err.to_string())?;
+            generation,
+            pitch,
+            yaw,
+            Axes { x: (-2.0..2.0, 0.15), y: (0.0..3610.), z: (-2.0..2.0, 0.15) },
+            "rosenbrock",
+        )?;
         Ok(())
     }
+
+    /// Draws plot for rastrigin function.
+    pub fn rastrigin(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
+        draw(
+            canvas,
+            generation,
+            pitch,
+            yaw,
+            Axes { x: (-5.12..5.12, 0.2), y: (0.0..80.), z: (-5.12..5.12, 0.2) },
+            "rastrigin",
+        )?;
+        Ok(())
+    }
+}
+
+fn draw(
+    canvas: HtmlCanvasElement,
+    generation: usize,
+    pitch: f64,
+    yaw: f64,
+    axes: Axes,
+    name: &str,
+) -> Result<(), String> {
+    drawing::draw(
+        canvas,
+        &DrawConfig {
+            axes,
+            projection: Projection { pitch, yaw, scale: 0.8 },
+            series: Series {
+                surface: {
+                    let fitness_fn = get_fitness_fn_by_name(name);
+                    Box::new(move |x, z| fitness_fn.deref()(&[x, z]))
+                },
+                points: Box::new(move || get_points(generation)),
+            },
+        },
+    )
+    .map_err(|err| err.to_string())
 }
 
 fn get_points(generation: usize) -> Vec<ColoredDataPoint> {

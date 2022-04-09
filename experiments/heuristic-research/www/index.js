@@ -22,16 +22,16 @@ export function main() {
 }
 
 /** This function is used in `bootstrap.js` to setup imports. */
-export function setup(WasmChart, run_experiment, get_generation) {
+export function setup(WasmChart, run_experiment, clear) {
     Chart = WasmChart;
     Chart.run_experiment = run_experiment;
-    Chart.get_generation = get_generation;
+    Chart.clear = clear;
 }
 
 /** Add event listeners. */
 function setupUI() {
     status.innerText = "WebAssembly loaded!";
-    plotType.addEventListener("change", updatePlot);
+    plotType.addEventListener("change", changePlot);
 
     yaw.addEventListener("change", updatePlot);
     pitch.addEventListener("change", updatePlot);
@@ -56,6 +56,12 @@ function setupCanvas() {
     updatePlot();
 }
 
+/** Changes plot **/
+function changePlot() {
+    Chart.clear()
+    updatePlot()
+}
+
 /** Redraw currently selected plot. */
 function updatePlot() {
     const selected = plotType.selectedOptions[0];
@@ -69,8 +75,11 @@ function updatePlot() {
     const start = performance.now();
 
     switch(selected.value) {
-        case "rosenbrock":
+        case 'rosenbrock':
             Chart.rosenbrock(canvas, generation_value, pitch_value, yaw_value);
+            break;
+        case 'rastrigin':
+            Chart.rastrigin(canvas, generation_value, pitch_value, yaw_value);
             break;
         default:
             break;
@@ -84,15 +93,28 @@ function updatePlot() {
 
 /** Runs experiment. */
 function runExperiment() {
-    // NOTE: a blocking call here
     // TODO configure parameters from outside
     let max_gen = 2000
-    let x = getRandomInRange(-2.0, 2.0)
-    let z = getRandomInRange(-2.0, 2.0)
+    let function_name = plotType.selectedOptions[0].value;
+
+    var x = 0.0, z = 0.0;
+    switch(function_name) {
+        case 'rosenbrock':
+            x = getRandomInRange(-2.0, 2.0)
+            z = getRandomInRange(-2.0, 2.0)
+            break;
+        case 'rastrigin':
+            x = getRandomInRange(-5.12, 5.12)
+            z = getRandomInRange(-5.12, 5.12)
+            break;
+        default:
+            break;
+    }
 
     console.log(`init point is: (${x}, ${z})`)
 
-    Chart.run_experiment(x, z, max_gen);
+    // NOTE: a blocking call here
+    Chart.run_experiment(function_name, x, z, max_gen);
     updatePlot();
     generations.max = max_gen;
     generations.classList.remove("hide");
