@@ -84,7 +84,7 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
 
     /// Checks if the cell is at the boundary of the network.
     pub fn is_boundary<F: StorageFactory<I, S>>(&self, network: &Network<I, S, F>) -> bool {
-        self.neighbours(network, 1).any(|(node, _)| node.is_none())
+        self.neighbours(network, 1).filter(|(_, (x, y))| x.abs() + y.abs() < 2).any(|(node, _)| node.is_none())
     }
 
     /// Gets iterator over nodes in neighbourhood.
