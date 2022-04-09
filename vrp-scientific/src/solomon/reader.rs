@@ -120,7 +120,7 @@ impl<R: Read> SolomonReader<R> {
             .buffer
             .split_whitespace()
             .map(|line| line.parse::<usize>().unwrap())
-            .try_collect()
+            .try_collect_tuple()
             .ok_or_else(|| "cannot parse vehicle number or/and capacity".to_string())?;
 
         Ok(VehicleLine { number, capacity })
@@ -132,7 +132,7 @@ impl<R: Read> SolomonReader<R> {
             .buffer
             .split_whitespace()
             .map(|line| line.parse::<i32>().unwrap())
-            .try_collect()
+            .try_collect_tuple()
             .ok_or_else(|| "cannot read customer line".to_string())?;
         Ok(JobLine {
             id: id as usize,
