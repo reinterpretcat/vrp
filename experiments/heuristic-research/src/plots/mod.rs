@@ -48,6 +48,19 @@ impl Chart {
         )?;
         Ok(())
     }
+
+    /// Draws plot for himmelblau function.
+    pub fn himmelblau(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
+        draw(
+            canvas,
+            generation,
+            pitch,
+            yaw,
+            Axes { x: (-5.0..5.0, 0.2), y: (0.0..700.), z: (-5.0..5.0, 0.2) },
+            "himmelblau",
+        )?;
+        Ok(())
+    }
 }
 
 fn draw(
