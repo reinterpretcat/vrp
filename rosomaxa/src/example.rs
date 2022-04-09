@@ -13,7 +13,7 @@ use crate::*;
 use hashbrown::{HashMap, HashSet};
 use std::any::Any;
 use std::iter::once;
-use std::ops::Deref;
+use std::ops::{Deref, Range};
 use std::sync::Arc;
 
 /// An objective function which calculates a fitness of a vector.
@@ -211,6 +211,8 @@ pub enum VectorHeuristicOperatorMode {
     JustNoise(Noise),
     /// Adds some noice to specific dimensions.
     DimensionNoise(Noise, HashSet<usize>),
+    /// Adds a delta for each dimension.
+    JustDelta(Range<f64>),
 }
 
 /// A naive implementation of heuristic search operator in vector space.
@@ -227,13 +229,18 @@ impl HeuristicOperator for VectorHeuristicOperator {
         Self::Solution::new(
             match &self.mode {
                 VectorHeuristicOperatorMode::JustNoise(noise) => {
-                    solution.data.iter().map(|d| *d + noise.generate(*d)).collect()
+                    solution.data.iter().map(|&d| d + noise.generate(d)).collect()
                 }
                 VectorHeuristicOperatorMode::DimensionNoise(noise, dimens) => solution
                     .data
                     .iter()
                     .enumerate()
-                    .map(|(idx, d)| if dimens.contains(&idx) { *d + noise.generate(*d) } else { *d })
+                    .map(|(idx, &d)| if dimens.contains(&idx) { d + noise.generate(d) } else { d })
+                    .collect(),
+                VectorHeuristicOperatorMode::JustDelta(range) => solution
+                    .data
+                    .iter()
+                    .map(|&d| d + context.environment().random.uniform_real(range.start, range.end))
                     .collect(),
             },
             context.objective.clone(),

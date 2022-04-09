@@ -21,13 +21,16 @@ pub fn run_solver(
 ) {
     let fitness_fn = get_fitness_fn_by_name(function_name);
     let random = Arc::new(DefaultRandom::default());
+
     let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random.clone()));
+    let delta_op = VectorHeuristicOperatorMode::JustDelta(-0.1..0.1);
 
     let (solutions, _) = Solver::default()
         .use_dynamic_heuristic_only()
         .with_logger(logger.clone())
         .with_init_solutions(vec![init_solution])
-        .with_operator(noise_op, "first", 1.)
+        .with_operator(noise_op, "noise", 1.)
+        .with_operator(delta_op, "delta", 0.2)
         .with_termination(None, Some(generations), None, None)
         .with_fitness_fn(fitness_fn)
         .with_context_factory(Box::new({
