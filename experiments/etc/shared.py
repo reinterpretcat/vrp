@@ -29,7 +29,7 @@ class SolverClient:
                        ['-c'], [config_path], ['-o'], [solution_path]], [])
 
         if extra_args != '':
-            command = sum([command], [extra_args])
+            command = command + [extra_args]
 
         p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -45,7 +45,7 @@ class SolverClient:
         command = [self.cli_path, 'solve', scientific_format, problem_path, '-c', config_path, '-o', solution_path]
 
         if extra_args != '':
-            command = sum([command], [extra_args])
+            command = command + [extra_args]
 
         p = subprocess.run(command, capture_output=True, text=True)
 
