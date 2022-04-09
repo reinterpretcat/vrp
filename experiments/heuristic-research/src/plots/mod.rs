@@ -25,53 +25,29 @@ pub struct Chart {}
 impl Chart {
     /// Draws plot for rosenbrock function.
     pub fn rosenbrock(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
-        draw(
-            canvas,
-            generation,
-            pitch,
-            yaw,
-            Axes { x: (-2.0..2.0, 0.15), y: (0.0..3610.), z: (-2.0..2.0, 0.15) },
-            "rosenbrock",
-        )?;
+        let axes = Axes { x: (-2.0..2.0, 0.15), y: (0.0..3610.), z: (-2.0..2.0, 0.15) };
+        draw(canvas, generation, pitch, yaw, axes, "rosenbrock")?;
         Ok(())
     }
 
     /// Draws plot for rastrigin function.
     pub fn rastrigin(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
-        draw(
-            canvas,
-            generation,
-            pitch,
-            yaw,
-            Axes { x: (-5.12..5.12, 0.2), y: (0.0..80.), z: (-5.12..5.12, 0.2) },
-            "rastrigin",
-        )?;
+        let axes = Axes { x: (-5.12..5.12, 0.2), y: (0.0..80.), z: (-5.12..5.12, 0.2) };
+        draw(canvas, generation, pitch, yaw, axes, "rastrigin")?;
         Ok(())
     }
 
     /// Draws plot for himmelblau function.
     pub fn himmelblau(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
-        draw(
-            canvas,
-            generation,
-            pitch,
-            yaw,
-            Axes { x: (-5.0..5.0, 0.2), y: (0.0..700.), z: (-5.0..5.0, 0.2) },
-            "himmelblau",
-        )?;
+        let axes = Axes { x: (-5.0..5.0, 0.2), y: (0.0..700.), z: (-5.0..5.0, 0.2) };
+        draw(canvas, generation, pitch, yaw, axes, "himmelblau")?;
         Ok(())
     }
 
     /// Draws plot for ackley function.
     pub fn ackley(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
-        draw(
-            canvas,
-            generation,
-            pitch,
-            yaw,
-            Axes { x: (-5.0..5.0, 0.2), y: (0.0..14.), z: (-5.0..5.0, 0.2) },
-            "ackley",
-        )?;
+        let axes = Axes { x: (-5.0..5.0, 0.2), y: (0.0..14.), z: (-5.0..5.0, 0.2) };
+        draw(canvas, generation, pitch, yaw, axes, "ackley")?;
         Ok(())
     }
 }
