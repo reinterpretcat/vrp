@@ -29,8 +29,8 @@ fn create_himmelblau_function() -> FitnessFn {
     Arc::new(|input| {
         assert_eq!(input.len(), 2);
 
-        let x = input.first().unwrap().clone();
-        let y = input.last().unwrap().clone();
+        let x = *input.first().unwrap();
+        let y = *input.last().unwrap();
 
         let left = x * x + y - 11.;
         let right = x + y * y - 7.;

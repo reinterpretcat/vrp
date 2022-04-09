@@ -10,6 +10,9 @@ All notable changes to this project will be documented in this file.
 * fix limit violation issue in specific use cases
 * improve rosomaxa and customized gsom implementation
 
+### Added
+* heuristic research playground to test and demonstrate
+
 
 ## [v1.16.1] - 2022-03-10
 
