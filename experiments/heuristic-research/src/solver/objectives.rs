@@ -1,5 +1,9 @@
 //! Specifies benchmark functions for metaheuristic testing, see https://en.wikipedia.org/wiki/Test_functions_for_optimization.
 
+#[cfg(test)]
+#[path = "../../tests/unit/solver/objectives_test.rs"]
+mod objectives_test;
+
 use rosomaxa::example::{create_rosenbrock_function, FitnessFn};
 use std::sync::Arc;
 
