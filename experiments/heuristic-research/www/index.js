@@ -59,6 +59,7 @@ function setupCanvas() {
 /** Changes plot **/
 function changePlot() {
     Chart.clear()
+    generations.classList.add("hide");
     updatePlot()
 }
 
@@ -86,6 +87,9 @@ function updatePlot() {
             break;
         case 'ackley':
             Chart.ackley(canvas, generation_value, pitch_value, yaw_value);
+            break;
+        case 'matyas':
+            Chart.matyas(canvas, generation_value, pitch_value, yaw_value);
             break;
         default:
             break;
@@ -120,6 +124,10 @@ function runExperiment() {
         case 'ackley':
             x = getRandomInRange(-5.0, 5.0)
             z = getRandomInRange(-5.0, 5.0)
+            break;
+        case 'matyas':
+            x = getRandomInRange(-10.0, 10.0)
+            z = getRandomInRange(-10.0, 10.0)
             break;
         default:
             break;

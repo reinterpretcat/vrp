@@ -14,6 +14,7 @@ pub fn get_fitness_fn_by_name(name: &str) -> FitnessFn {
         "rastrigin" => create_rastrigin_function(),
         "himmelblau" => create_himmelblau_function(),
         "ackley" => create_ackley_function(),
+        "matyas" => create_matyas_function(),
         _ => panic!("unknown objective name: `{}`", name),
     }
 }
@@ -21,7 +22,7 @@ pub fn get_fitness_fn_by_name(name: &str) -> FitnessFn {
 /// Specifies [Rastrigin](https://en.wikipedia.org/wiki/Rastrigin_function) function.
 /// This multimodal function is difficult to solve as it presents numerous local minima locations
 /// where an optimization algorithm, with poor explorative capability, has high chances of being
-/// trapped. The function’s only globally best solution 0 is found at f(x * )=[0,0,…,0] within the
+/// trapped. The function’s only globally best solution 0 is found at f(i)=[0,0,…,0] within the
 /// domain of [-5.12,5.12].
 fn create_rastrigin_function() -> FitnessFn {
     Arc::new(|input| {
@@ -35,7 +36,7 @@ fn create_rastrigin_function() -> FitnessFn {
 /// Specifies [Himmelblau](https://en.wikipedia.org/wiki/Himmelblau%27s_function) function.
 /// This is a multimodal function. It is usually solved with continuous values in the domain of
 /// [-5,5]. The best solution 0 can be found at four locations: f(x * )=[3.2,2.0],
-/// f(x * )=[-2.805118,3.131312], f(x * )=[-3.779310,-3.283186], and f(x * )=[3.584428,-1.848126]
+/// f(x * )=[-2.805118,3.131312], f(xi)=[-3.779310,-3.283186], and f(x * )=[3.584428,-1.848126]
 /// in 2 dimensional space.
 fn create_himmelblau_function() -> FitnessFn {
     Arc::new(|input| {
@@ -54,7 +55,7 @@ fn create_himmelblau_function() -> FitnessFn {
 /// Specifies [Ackley](https://en.wikipedia.org/wiki/Ackley_function) function.
 /// This multimodal function is one of the most commonly used test function for metaheuristic
 /// algorithm evaluation. It has numerous local minima but one global optimal solution found in
-/// deep narrow basin in the middle. The best solution 0 is found at f(x * )=[0,0,…,0] in domain
+/// deep narrow basin in the middle. The best solution 0 is found at f(xi)=[0,0,…,0] in domain
 /// [-32,32].
 fn create_ackley_function() -> FitnessFn {
     Arc::new(|input| {
@@ -67,5 +68,18 @@ fn create_ackley_function() -> FitnessFn {
         let fx = fx - (cosine_sum / n).exp();
 
         fx + std::f64::consts::E + 20.
+    })
+}
+
+/// Specifies Matyas function.
+/// The best solution 0 is found at f(i)=[0,0] in domain [-10,10].
+fn create_matyas_function() -> FitnessFn {
+    Arc::new(|input| {
+        assert_eq!(input.len(), 2);
+
+        let x = *input.first().unwrap();
+        let y = *input.last().unwrap();
+
+        0.26 * (x * x + y * y) - 0.48 * x * y
     })
 }

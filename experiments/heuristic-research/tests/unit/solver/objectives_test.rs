@@ -37,3 +37,11 @@ fn can_find_ackley_optimum() {
 
     assert!(ackley(&[0., 0.]).abs() < FITNESS_EPSILON);
 }
+
+#[test]
+fn can_find_matyas_optimum() {
+    let matyas = get_fitness_fn_by_name("matyas");
+    let matyas = matyas.deref();
+
+    assert!(matyas(&[0., 0.]).abs() < FITNESS_EPSILON);
+}

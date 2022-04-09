@@ -50,6 +50,13 @@ impl Chart {
         draw(canvas, generation, pitch, yaw, axes, "ackley")?;
         Ok(())
     }
+
+    /// Draws plot for matyas function.
+    pub fn matyas(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
+        let axes = Axes { x: (-10.0..10.0, 0.4), y: (0.0..100.), z: (-10.0..10.0, 0.4) };
+        draw(canvas, generation, pitch, yaw, axes, "matyas")?;
+        Ok(())
+    }
 }
 
 fn draw(
