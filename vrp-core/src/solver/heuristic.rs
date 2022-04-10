@@ -50,13 +50,7 @@ pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, Proble
 /// Creates config builder with default settings.
 pub fn create_default_config_builder(problem: Arc<Problem>, environment: Arc<Environment>) -> ProblemConfigBuilder {
     let selection_size = get_default_selection_size(environment.as_ref());
-
-    let population = get_default_population::<RefinementContext, _, _>(
-        problem.objective.clone(),
-        environment.clone(),
-        selection_size,
-    );
-
+    let population = get_default_population(problem.objective.clone(), environment.clone(), selection_size);
     let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
 
     ProblemConfigBuilder::default()

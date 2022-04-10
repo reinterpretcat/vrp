@@ -500,7 +500,7 @@ fn get_population(
 
     match mode {
         Some("deep") => Box::new(ElitismPopulation::new(objective, environment.random.clone(), 4, selection_size)),
-        _ => get_default_population::<RefinementContext, _, _>(objective, environment, selection_size),
+        _ => get_default_population(objective, environment, selection_size),
     }
 }
 

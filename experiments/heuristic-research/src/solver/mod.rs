@@ -1,6 +1,7 @@
 use rosomaxa::evolution::TelemetryMode;
 use rosomaxa::example::*;
 use rosomaxa::get_default_population;
+use rosomaxa::population::*;
 use rosomaxa::prelude::*;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -14,6 +15,7 @@ pub use self::proxies::*;
 /// Runs the solver to minimize objective function with given name.
 pub fn run_solver(
     function_name: &str,
+    population_type: &str,
     selection_size: usize,
     init_solution: Vec<f64>,
     generations: usize,
@@ -35,12 +37,9 @@ pub fn run_solver(
         .with_fitness_fn(fitness_fn)
         .with_context_factory(Box::new({
             let logger = logger.clone();
+            let population_type = population_type.to_string();
             move |objective, environment| {
-                let inner = get_default_population::<VectorContext, _, _>(
-                    objective.clone(),
-                    environment.clone(),
-                    selection_size,
-                );
+                let inner = get_population(&population_type, objective.clone(), environment.clone(), selection_size);
                 let population = Box::new(ProxyPopulation::new(inner));
                 let telemetry_mode =
                     TelemetryMode::OnlyLogging { logger, log_best: 20, log_population: 100, dump_population: false };
@@ -53,4 +52,26 @@ pub fn run_solver(
     let (individual, fitness) = solutions.first().expect("empty solutions");
 
     logger.deref()(&format!("solution: {:?}, fitness: {}", individual, fitness));
+}
+
+fn get_population<O, S>(
+    population_type: &str,
+    objective: Arc<O>,
+    environment: Arc<Environment>,
+    selection_size: usize,
+) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
+where
+    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
+{
+    match population_type {
+        "greedy" => Box::new(Greedy::new(objective, 1, None)),
+        "elitism" => Box::new(Elitism::new(objective, environment.random.clone(), 2, selection_size)),
+        "rosomaxa" => Box::new(
+            Rosomaxa::new(objective, environment, RosomaxaConfig::new_with_defaults(selection_size))
+                .expect("cannot create rosomaxa with default configuration"),
+        ),
+        "default" => get_default_population(objective, environment, selection_size),
+        _ => unreachable!(),
+    }
 }

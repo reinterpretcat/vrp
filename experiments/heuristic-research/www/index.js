@@ -2,7 +2,8 @@ class Chart {}
 
 const canvas = document.getElementById("canvas");
 const coord = document.getElementById("coord");
-const plotType = document.getElementById("plot-type");
+const plotFunction = document.getElementById("plot-function");
+const plotPopulation = document.getElementById("plot-population");
 const pitch = document.getElementById("pitch");
 const yaw = document.getElementById("yaw");
 const status = document.getElementById("status");
@@ -11,12 +12,6 @@ const generations = document.getElementById("generations");
 
 /** Main entry point */
 export function main() {
-    let hash = location.hash.substr(1);
-    for(var i = 0; i < plotType.options.length; i++) {
-        if(hash === plotType.options[i].value) {
-            plotType.value = hash;
-        }
-    }
     setupUI();
     setupCanvas();
 }
@@ -31,7 +26,8 @@ export function setup(WasmChart, run_experiment, clear) {
 /** Add event listeners. */
 function setupUI() {
     status.innerText = "WebAssembly loaded!";
-    plotType.addEventListener("change", changePlot);
+    plotFunction.addEventListener("change", changePlot);
+    plotPopulation.addEventListener("change", changePlot);
 
     yaw.addEventListener("change", updatePlot);
     pitch.addEventListener("change", updatePlot);
@@ -65,7 +61,7 @@ function changePlot() {
 
 /** Redraw currently selected plot. */
 function updatePlot() {
-    const selected = plotType.selectedOptions[0];
+    const selected = plotFunction.selectedOptions[0];
 
     let yaw_value = Number(yaw.value) / 100.0;
     let pitch_value = Number(pitch.value) / 100.0;
@@ -105,7 +101,8 @@ function updatePlot() {
 function runExperiment() {
     // TODO configure parameters from outside
     let max_gen = 2000
-    let function_name = plotType.selectedOptions[0].value;
+    let function_name = plotFunction.selectedOptions[0].value;
+    let population_type = plotPopulation.selectedOptions[0].value;
 
     var x = 0.0, z = 0.0;
     switch(function_name) {
@@ -136,7 +133,7 @@ function runExperiment() {
     console.log(`init point is: (${x}, ${z})`)
 
     // NOTE: a blocking call here
-    Chart.run_experiment(function_name, x, z, max_gen);
+    Chart.run_experiment(function_name, population_type, x, z, max_gen);
     updatePlot();
     generations.max = max_gen;
     generations.classList.remove("hide");

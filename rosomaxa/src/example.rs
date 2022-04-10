@@ -407,11 +407,7 @@ impl Solver {
                     let selection_size = get_default_selection_size(environment.as_ref());
                     VectorContext::new(
                         objective.clone(),
-                        get_default_population::<VectorContext, _, _>(
-                            objective.clone(),
-                            environment.clone(),
-                            selection_size,
-                        ),
+                        get_default_population(objective.clone(), environment.clone(), selection_size),
                         TelemetryMode::OnlyLogging {
                             logger: environment.logger.clone(),
                             log_best: 100,

@@ -263,13 +263,12 @@ pub fn get_default_selection_size(environment: &Environment) -> usize {
 }
 
 /// Gets default population algorithm.
-pub fn get_default_population<C, O, S>(
+pub fn get_default_population<O, S>(
     objective: Arc<O>,
     environment: Arc<Environment>,
     selection_size: usize,
 ) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + 'static,
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
 {
