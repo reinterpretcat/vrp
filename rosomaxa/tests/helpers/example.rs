@@ -22,8 +22,7 @@ pub fn create_heuristic_context_with_solutions(solutions: Vec<Vec<f64>>) -> Vect
     let objective = create_example_objective();
     let selection_size = get_default_selection_size(environment.as_ref());
 
-    let mut population =
-        get_default_population::<VectorContext, _, _>(objective.clone(), environment.clone(), selection_size);
+    let mut population = get_default_population(objective.clone(), environment.clone(), selection_size);
 
     let solutions = solutions.into_iter().map(|data| VectorSolution::new(data, objective.clone())).collect();
     population.add_all(solutions);
