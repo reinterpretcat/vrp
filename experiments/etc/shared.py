@@ -61,9 +61,10 @@ class SolverClient:
             except NameError:
                 raise ValueError('cannot get solution statistic')
 
-            # expected: rank: 0, cost: 57137.26(0.000%), tours: 94, unassigned: 0, fitness: (0.000, 94.000, 57137.259)
+            # expected:
+            # rank: 0, fitness: (0.000, 92.000, 53389.603),
             for best in re.finditer(
-                    r"rank: 0, cost: (?P<cost>[0-9.]+)[^,]+, tours: (?P<tours>[0-9]+), unassigned: (?P<unassigned>[0-9]+)",
+                    r"rank: 0, fitness: \((?P<unassigned>[0-9.]+), (?P<tours>[0-9.]+), (?P<cost>[0-9.]+)\)",
                     p.stdout):
                 pass
 
@@ -74,8 +75,8 @@ class SolverClient:
 
             with open(solution_path, 'r') as f:
                 return f.read(), float(statistic.group('duration')), int(statistic.group('generations')), \
-                       float(statistic.group('speed')), float(best.group('cost')), int(best.group('tours')), \
-                       int(best.group('unassigned'))
+                       float(statistic.group('speed')), float(best.group('cost')), int(float(best.group('tours'))), \
+                       int(float(best.group('unassigned')))
         else:
             raise ValueError("cannot solve problem: {}".format(p.stderr))
             pass
