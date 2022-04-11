@@ -12,15 +12,19 @@
 //! # use std::sync::Arc;
 //! use rosomaxa::prelude::*;
 //! use rosomaxa::example::*;
+//!
 //! let random = Arc::new(DefaultRandom::default());
-//! // an example of heuristic operator, it is domain specific
+//! // examples of heuristic operator, they are domain specific. Essentially, heuristic operator
+//! // is responsible to produce a new, potentially better solution from the given one.
 //! let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random));
+//! let delta_op = VectorHeuristicOperatorMode::JustDelta(-0.1..0.1);
 //!
 //! // add some configuration and run the solver
 //! let (solutions, _) = Solver::default()
 //!     .with_fitness_fn(create_rosenbrock_function())
 //!     .with_init_solutions(vec![vec![2., 2.]])
-//!     .with_operator(noise_op, "first", 1.)
+//!     .with_operator(noise_op, "noise", 1.)
+//!     .with_operator(delta_op, "delta", 0.2)
 //!     .with_termination(Some(5), Some(1000), None, None)
 //!     .solve()
 //!     .expect("cannot build and use solver");
@@ -28,7 +32,7 @@
 //! // expecting at least one solution with fitness close to 0
 //! assert_eq!(solutions.len(), 1);
 //! let (_, fitness) = solutions.first().unwrap();
-//! assert!(*fitness < 0.01);
+//! assert!(*fitness < 0.001);
 //!
 //! # Ok::<(), String>(())
 //! ```
