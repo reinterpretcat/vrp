@@ -14,8 +14,8 @@ fn can_use_init_solution_with_dispatch() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![1., 0.]),
-                create_delivery_job_with_times("job2", vec![1., 0.], vec![(7, 100)], 1.),
+                create_delivery_job("job1", (1., 0.)),
+                create_delivery_job_with_times("job2", (1., 0.), vec![(7, 100)], 1.),
             ],
             ..create_empty_plan()
         },
@@ -24,7 +24,7 @@ fn can_use_init_solution_with_dispatch() {
                 vehicle_ids: vec!["v1".to_string(), "v2".to_string()],
                 shifts: vec![VehicleShift {
                     dispatch: Some(vec![VehicleDispatch {
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                         limits: vec![
                             VehicleDispatchLimit { max: 1, start: format_time(2.), end: format_time(4.) },
                             VehicleDispatchLimit { max: 1, start: format_time(4.), end: format_time(6.) },
@@ -54,7 +54,7 @@ fn can_use_init_solution_with_dispatch() {
                 shift_index: 0,
                 stops: vec![
                     Stop::Point(PointStop {
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:00Z".to_string(),
                             departure: "1970-01-01T00:00:04Z".to_string(),
@@ -117,7 +117,7 @@ fn can_use_init_solution_with_dispatch() {
                 shift_index: 0,
                 stops: vec![
                     Stop::Point(PointStop {
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:00Z".to_string(),
                             departure: "1970-01-01T00:00:06Z".to_string(),

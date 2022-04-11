@@ -6,7 +6,7 @@ use crate::helpers::*;
 fn create_problem_with_dispatch(dispatch: Option<Vec<VehicleDispatch>>) -> Problem {
     Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![3., 0.]), create_delivery_job("job2", vec![5., 0.])],
+            jobs: vec![create_delivery_job("job1", (3., 0.)), create_delivery_job("job2", (5., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet {
@@ -23,7 +23,7 @@ fn create_problem_with_dispatch(dispatch: Option<Vec<VehicleDispatch>>) -> Probl
 #[test]
 fn can_assign_single_dispatch() {
     let problem = create_problem_with_dispatch(Some(vec![VehicleDispatch {
-        location: vec![7., 0.].to_loc(),
+        location: (7., 0.).to_loc(),
         limits: vec![VehicleDispatchLimit { max: 1, start: format_time(10.), end: format_time(12.) }],
         tag: None,
     }]));
@@ -101,7 +101,7 @@ fn can_assign_single_dispatch() {
 #[test]
 fn can_assign_dispatch_at_start() {
     let problem = create_problem_with_dispatch(Some(vec![VehicleDispatch {
-        location: vec![0., 0.].to_loc(),
+        location: (0., 0.).to_loc(),
         limits: vec![VehicleDispatchLimit { max: 1, start: format_time(0.), end: format_time(2.) }],
         tag: None,
     }]));
@@ -123,7 +123,7 @@ fn can_assign_dispatch_at_start() {
 #[test]
 fn can_handle_unassignable_dispatch() {
     let problem = create_problem_with_dispatch(Some(vec![VehicleDispatch {
-        location: vec![1001., 0.].to_loc(),
+        location: (1001., 0.).to_loc(),
         limits: vec![VehicleDispatchLimit { max: 1, start: format_time(10.), end: format_time(12.) }],
         tag: None,
     }]));
@@ -140,20 +140,20 @@ parameterized_test! {can_handle_two_dispatch, (first_dispatch, second_dispatch, 
 }}
 
 can_handle_two_dispatch! {
-    case01: ((&[7., 0.], (7., 8.)), (&[8., 0.], (8., 9.)), &[7., 0.], 40.),
-    case02: ((&[8., 0.], (8., 9.)), (&[7., 0.], (7., 8.)), &[7., 0.], 40.),
-    case03: ((&[1001., 0.], (10., 11.)), (&[8., 0.], (8., 9.)), &[8., 0.], 44.),
+    case01: (((7., 0.), (7., 8.)), ((8., 0.), (8., 9.)), (7., 0.), 40.),
+    case02: (((8., 0.), (8., 9.)), ((7., 0.), (7., 8.)), (7., 0.), 40.),
+    case03: (((1001., 0.), (10., 11.)), ((8., 0.), (8., 9.)), (8., 0.), 44.),
 }
 
 fn can_handle_two_dispatch_impl(
-    first_dispatch: (&[f64; 2], (f64, f64)),
-    second_dispatch: (&[f64; 2], (f64, f64)),
-    expected_location: &[f64; 2],
+    first_dispatch: ((f64, f64), (f64, f64)),
+    second_dispatch: ((f64, f64), (f64, f64)),
+    expected_location: (f64, f64),
     expected_cost: f64,
 ) {
     let problem = create_problem_with_dispatch(Some(vec![
         VehicleDispatch {
-            location: first_dispatch.0.to_vec().to_loc(),
+            location: first_dispatch.0.to_loc(),
             limits: vec![VehicleDispatchLimit {
                 max: 1,
                 start: format_time((first_dispatch.1).0),
@@ -162,7 +162,7 @@ fn can_handle_two_dispatch_impl(
             tag: None,
         },
         VehicleDispatch {
-            location: second_dispatch.0.to_vec().to_loc(),
+            location: second_dispatch.0.to_loc(),
             limits: vec![VehicleDispatchLimit {
                 max: 1,
                 start: format_time((second_dispatch.1).0),
@@ -177,7 +177,7 @@ fn can_handle_two_dispatch_impl(
 
     assert!(!solution.tours.is_empty());
     let second_stop = solution.tours[0].stops[1].as_point().unwrap();
-    assert_eq!(second_stop.location, expected_location.to_vec().to_loc());
+    assert_eq!(second_stop.location, expected_location.to_loc());
     assert_eq!(second_stop.activities[0].activity_type, "dispatch");
     assert_eq!(solution.statistic.cost, expected_cost);
 }
@@ -186,11 +186,11 @@ fn create_problem_with_dispatch_5jobs(vehicle_ids: Vec<&str>, dispatch: Option<V
     Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![2., 0.]),
-                create_delivery_job("job2", vec![2., 0.]),
-                create_delivery_job("job3", vec![2., 0.]),
-                create_delivery_job("job4", vec![2., 0.]),
-                create_delivery_job("job5", vec![2., 0.]),
+                create_delivery_job("job1", (2., 0.)),
+                create_delivery_job("job2", (2., 0.)),
+                create_delivery_job("job3", (2., 0.)),
+                create_delivery_job("job4", (2., 0.)),
+                create_delivery_job("job5", (2., 0.)),
             ],
             ..create_empty_plan()
         },
@@ -229,7 +229,7 @@ fn can_dispatch_multiple_vehicles_at_single_dispatch() {
     let problem = create_problem_with_dispatch_5jobs(
         vec!["v1", "v2", "v3", "v4", "v5"],
         Some(vec![VehicleDispatch {
-            location: vec![1., 0.].to_loc(),
+            location: (1., 0.).to_loc(),
             limits: vec![
                 VehicleDispatchLimit { max: 2, start: format_time(10.), end: format_time(12.) },
                 VehicleDispatchLimit { max: 3, start: format_time(13.), end: format_time(16.) },

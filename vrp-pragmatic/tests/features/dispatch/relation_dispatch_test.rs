@@ -7,9 +7,9 @@ fn can_use_dispatch_in_relation() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![1., 0.]),
-                create_delivery_job("job2", vec![2., 0.]),
-                create_delivery_job("job3", vec![3., 0.]),
+                create_delivery_job("job1", (1., 0.)),
+                create_delivery_job("job2", (2., 0.)),
+                create_delivery_job("job3", (3., 0.)),
             ],
             relations: Some(vec![Relation {
                 type_field: RelationType::Strict,
@@ -23,7 +23,7 @@ fn can_use_dispatch_in_relation() {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     dispatch: Some(vec![VehicleDispatch {
-                        location: vec![7., 0.].to_loc(),
+                        location: (7., 0.).to_loc(),
                         limits: vec![VehicleDispatchLimit { max: 1, start: format_time(7.), end: format_time(9.) }],
                         tag: None,
                     }]),

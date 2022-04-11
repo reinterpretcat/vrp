@@ -71,11 +71,11 @@ mod single {
         let problem = Problem {
             plan: Plan {
                 jobs: vec![
-                    create_delivery_job("job1", vec![1., 0.]),
-                    create_delivery_job("job2", vec![2., 0.]),
-                    create_pickup_job("job3", vec![3., 0.]),
-                    create_delivery_job("job4", vec![4., 0.]),
-                    create_pickup_job("job5", vec![5., 0.]),
+                    create_delivery_job("job1", (1., 0.)),
+                    create_delivery_job("job2", (2., 0.)),
+                    create_pickup_job("job3", (3., 0.)),
+                    create_delivery_job("job4", (4., 0.)),
+                    create_pickup_job("job5", (5., 0.)),
                 ],
                 relations,
                 ..create_empty_plan()
@@ -87,11 +87,11 @@ mod single {
                     profile: create_default_vehicle_profile(),
                     costs: create_default_vehicle_costs(),
                     shifts: vec![VehicleShift {
-                        start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                        start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                         end: Some(ShiftEnd {
                             earliest: None,
                             latest: format_time(1000.).to_string(),
-                            location: vec![0., 0.].to_loc(),
+                            location: (0., 0.).to_loc(),
                         }),
                         dispatch: None,
                         breaks: Some(vec![VehicleBreak::Optional {
@@ -101,7 +101,7 @@ mod single {
                         }]),
                         reloads: Some(vec![VehicleReload {
                             times: None,
-                            location: vec![0., 0.].to_loc(),
+                            location: (0., 0.).to_loc(),
                             duration: 2.0,
                             tag: None,
                         }]),
@@ -144,7 +144,7 @@ mod single {
                             1,
                         ),
                         Stop::Point(PointStop {
-                            location: vec![2., 0.].to_loc(),
+                            location: (2., 0.).to_loc(),
                             time: Schedule {
                                 arrival: "1970-01-01T00:00:03Z".to_string(),
                                 departure: "1970-01-01T00:00:06Z".to_string(),

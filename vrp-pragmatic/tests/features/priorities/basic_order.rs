@@ -6,9 +6,9 @@ use crate::helpers::*;
 fn create_test_plan_with_three_jobs() -> Plan {
     Plan {
         jobs: vec![
-            create_delivery_job_with_order("job1", vec![2., 0.], 2),
-            create_delivery_job_with_order("job2", vec![5., 0.], 1),
-            create_delivery_job("job3", vec![7., 0.]),
+            create_delivery_job_with_order("job1", (2., 0.), 2),
+            create_delivery_job_with_order("job2", (5., 0.), 1),
+            create_delivery_job("job3", (7., 0.)),
         ],
         ..create_empty_plan()
     }
@@ -155,7 +155,7 @@ fn can_follow_order_when_prioritized_property_set() {
 
 #[test]
 fn can_handle_order_between_special_activities() {
-    let create_test_job = |id: &str, location: Vec<f64>, order: i32| Job {
+    let create_test_job = |id: &str, location: (f64, f64), order: i32| Job {
         deliveries: Some(vec![JobTask {
             places: vec![JobPlace { times: None, location: location.to_loc(), duration: 100., tag: None }],
             demand: Some(vec![1]),
@@ -165,7 +165,7 @@ fn can_handle_order_between_special_activities() {
     };
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_test_job("job1", vec![1., 0.], 2), create_test_job("job2", vec![2., 0.], 1)],
+            jobs: vec![create_test_job("job1", (1., 0.), 2), create_test_job("job2", (2., 0.), 1)],
             ..create_empty_plan()
         },
         fleet: Fleet {
@@ -174,13 +174,13 @@ fn can_handle_order_between_special_activities() {
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(1000.).to_string(),
-                        location: vec![10., 0.].to_loc(),
+                        location: (10., 0.).to_loc(),
                     }),
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(100.), format_time(200.)]),
                         places: vec![VehicleOptionalBreakPlace {
                             duration: 1.,
-                            location: Some(vec![0., 0.].to_loc()),
+                            location: Some((0., 0.).to_loc()),
                             tag: None,
                         }],
                         policy: Some(VehicleOptionalBreakPolicy::SkipIfNoIntersection),

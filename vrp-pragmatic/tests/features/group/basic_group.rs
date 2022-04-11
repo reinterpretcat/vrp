@@ -7,10 +7,10 @@ fn can_group_jobs() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_group("job1", vec![1., 0.], "one"),
-                create_delivery_job("job2", vec![2., 0.]),
-                create_delivery_job_with_group("job3", vec![9., 0.], "one"),
-                create_delivery_job("job4", vec![8., 0.]),
+                create_delivery_job_with_group("job1", (1., 0.), "one"),
+                create_delivery_job("job2", (2., 0.)),
+                create_delivery_job_with_group("job3", (9., 0.), "one"),
+                create_delivery_job("job4", (8., 0.)),
             ],
             ..create_empty_plan()
         },

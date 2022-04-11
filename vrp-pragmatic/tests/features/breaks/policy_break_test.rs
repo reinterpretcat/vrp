@@ -16,29 +16,25 @@ can_skip_break_when_vehicle_not_used! {
 fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleOptionalBreakPolicy>) {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
+            jobs: vec![create_delivery_job("job1", (5., 0.)), create_delivery_job("job2", (10., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![
                 VehicleType {
                     shifts: vec![VehicleShift {
-                        start: ShiftStart {
-                            earliest: format_time(0.),
-                            latest: None,
-                            location: vec![100., 0.].to_loc(),
-                        },
+                        start: ShiftStart { earliest: format_time(0.), latest: None, location: (100., 0.).to_loc() },
                         end: Some(ShiftEnd {
                             earliest: None,
                             latest: format_time(1000.).to_string(),
-                            location: vec![100., 0.].to_loc(),
+                            location: (100., 0.).to_loc(),
                         }),
                         dispatch: None,
                         breaks: Some(vec![VehicleBreak::Optional {
                             time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(8.)]),
                             places: vec![VehicleOptionalBreakPlace {
                                 duration: 2.0,
-                                location: Some(vec![6., 0.].to_loc()),
+                                location: Some((6., 0.).to_loc()),
                                 tag: None,
                             }],
                             policy,
@@ -128,7 +124,7 @@ can_skip_break_when_jobs_completed! {
 
 fn can_skip_break_when_jobs_completed_impl(policy: Option<VehicleOptionalBreakPolicy>) {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", vec![1., 0.], 10.)], ..create_empty_plan() },
+        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", (1., 0.), 10.)], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
@@ -136,7 +132,7 @@ fn can_skip_break_when_jobs_completed_impl(policy: Option<VehicleOptionalBreakPo
                         time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(8.)]),
                         places: vec![VehicleOptionalBreakPlace {
                             duration: 2.0,
-                            location: Some(vec![6., 0.].to_loc()),
+                            location: Some((6., 0.).to_loc()),
                             tag: None,
                         }],
                         policy,
@@ -217,7 +213,7 @@ can_skip_second_break_when_jobs_completed! {
 fn can_skip_second_break_when_jobs_completed_impl(policy: Option<VehicleOptionalBreakPolicy>) {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
+            jobs: vec![create_delivery_job("job1", (5., 0.)), create_delivery_job("job2", (10., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet {
@@ -228,7 +224,7 @@ fn can_skip_second_break_when_jobs_completed_impl(policy: Option<VehicleOptional
                             time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
                             places: vec![VehicleOptionalBreakPlace {
                                 duration: 2.0,
-                                location: Some(vec![6., 0.].to_loc()),
+                                location: Some((6., 0.).to_loc()),
                                 tag: None,
                             }],
                             policy: policy.clone(),
@@ -337,10 +333,7 @@ fn can_skip_break_depending_on_policy_impl(
     expected: i64,
 ) {
     let problem = Problem {
-        plan: Plan {
-            jobs: vec![create_delivery_job_with_duration("job1", vec![location, 0.], 0.)],
-            ..create_empty_plan()
-        },
+        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", (location, 0.), 0.)], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {

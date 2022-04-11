@@ -7,16 +7,16 @@ fn can_use_two_strict_relations_with_two_vehicles_with_new_jobs() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![1., 0.]),
-                create_delivery_job("job2", vec![2., 0.]),
-                create_delivery_job("job3", vec![3., 0.]),
-                create_delivery_job("job4", vec![4., 0.]),
-                create_delivery_job("job5", vec![5., 0.]),
-                create_delivery_job("job6", vec![6., 0.]),
-                create_delivery_job("job7", vec![7., 0.]),
-                create_delivery_job("job8", vec![8., 0.]),
-                create_delivery_job("job9", vec![9., 0.]),
-                create_delivery_job("job10", vec![10., 0.]),
+                create_delivery_job("job1", (1., 0.)),
+                create_delivery_job("job2", (2., 0.)),
+                create_delivery_job("job3", (3., 0.)),
+                create_delivery_job("job4", (4., 0.)),
+                create_delivery_job("job5", (5., 0.)),
+                create_delivery_job("job6", (6., 0.)),
+                create_delivery_job("job7", (7., 0.)),
+                create_delivery_job("job8", (8., 0.)),
+                create_delivery_job("job9", (9., 0.)),
+                create_delivery_job("job10", (10., 0.)),
             ],
             relations: Some(vec![
                 Relation {

@@ -24,12 +24,12 @@ fn can_balance_activities_with_threshold_impl(threshold: Option<f64>, expected_l
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1.0", vec![1., 0.]),
-                create_delivery_job("job1.1", vec![1., 0.]),
-                create_delivery_job("job1.2", vec![1., 0.]),
-                create_delivery_job("job1.3", vec![1., 0.]),
-                create_delivery_job("job2.0", vec![2., 0.]),
-                create_delivery_job("job2.1", vec![2., 0.]),
+                create_delivery_job("job1.0", (1., 0.)),
+                create_delivery_job("job1.1", (1., 0.)),
+                create_delivery_job("job1.2", (1., 0.)),
+                create_delivery_job("job1.3", (1., 0.)),
+                create_delivery_job("job2.0", (2., 0.)),
+                create_delivery_job("job2.1", (2., 0.)),
             ],
             ..create_empty_plan()
         },

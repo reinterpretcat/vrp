@@ -5,8 +5,8 @@ fn can_handle_parking_with_no_clusters_and_job_time_windows() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_times("job1", vec![52.424, 13.215], vec![(50400, 57600)], 1.),
-                create_delivery_job_with_times("job2", vec![52.512, 13.384], vec![(32400, 46800)], 1.),
+                create_delivery_job_with_times("job1", (52.424, 13.215), vec![(50400, 57600)], 1.),
+                create_delivery_job_with_times("job2", (52.512, 13.384), vec![(32400, 46800)], 1.),
             ],
             clustering: Some(Clustering::Vicinity {
                 profile: VehicleProfile { matrix: "car".to_string(), scale: None },
@@ -56,23 +56,23 @@ parameterized_test! {can_handle_waiting_time_with_parking, (jobs, threshold, veh
 
 can_handle_waiting_time_with_parking! {
     case_01: (vec![
-            ("job1", vec![52.424, 13.2148], vec![(32400, 39600)]),
-            ("job2", vec![52.507, 13.506], vec![(50400, 57600)]),
-            ("job3", vec![52.498, 13.499], vec![(50400, 57600)]),
+            ("job1", (52.424, 13.2148), vec![(32400, 39600)]),
+            ("job2", (52.507, 13.506), vec![(50400, 57600)]),
+            ("job3", (52.498, 13.499), vec![(50400, 57600)]),
         ],
         (1143., 128.), (52.505, 13.218),
     ),
     case_02: (vec![
-            ("job1", vec![52.559, 13.228], vec![(50400, 64800)]),
-            ("job2", vec![52.575, 13.395], vec![(32400, 39600)]),
-            ("job3", vec![52.575, 13.395], vec![(32400, 39600)]),
+            ("job1", (52.559, 13.228), vec![(50400, 64800)]),
+            ("job2", (52.575, 13.395), vec![(32400, 39600)]),
+            ("job3", (52.575, 13.395), vec![(32400, 39600)]),
         ],
         (210., 930.), (52.577, 13.530),
     ),
 }
 
 fn can_handle_waiting_time_with_parking_impl(
-    jobs: Vec<(&str, Vec<f64>, Vec<(i32, i32)>)>,
+    jobs: Vec<(&str, (f64, f64), Vec<(i32, i32)>)>,
     threshold: (f64, f64),
     vehicle_location: Location,
 ) {

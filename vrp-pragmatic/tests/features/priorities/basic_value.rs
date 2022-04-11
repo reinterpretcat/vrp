@@ -19,10 +19,7 @@ can_prefer_jobs_with_more_value! {
 fn can_prefer_jobs_with_more_value_impl(objectives: Option<Vec<Vec<Objective>>>) {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![
-                create_delivery_job("job1", vec![1., 0.]),
-                create_delivery_job_with_value("job2", vec![2., 0.], 100.),
-            ],
+            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job_with_value("job2", (2., 0.), 100.)],
             ..create_empty_plan()
         },
         fleet: Fleet {

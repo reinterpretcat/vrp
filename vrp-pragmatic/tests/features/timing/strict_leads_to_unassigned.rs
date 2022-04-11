@@ -7,11 +7,11 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_times("job1", vec![10., 0.], vec![(0, 10)], 0.),
-                create_delivery_job_with_times("job2", vec![20., 0.], vec![(10, 20)], 0.),
-                create_delivery_job_with_times("job3", vec![30., 0.], vec![(20, 30)], 0.),
-                create_delivery_job_with_times("job4", vec![40., 0.], vec![(30, 40)], 0.),
-                create_delivery_job_with_times("job5", vec![50., 0.], vec![(0, 10)], 0.),
+                create_delivery_job_with_times("job1", (10., 0.), vec![(0, 10)], 0.),
+                create_delivery_job_with_times("job2", (20., 0.), vec![(10, 20)], 0.),
+                create_delivery_job_with_times("job3", (30., 0.), vec![(20, 30)], 0.),
+                create_delivery_job_with_times("job4", (40., 0.), vec![(30, 40)], 0.),
+                create_delivery_job_with_times("job5", (50., 0.), vec![(0, 10)], 0.),
             ],
             ..create_empty_plan()
         },

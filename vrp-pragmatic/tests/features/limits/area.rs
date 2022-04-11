@@ -7,11 +7,11 @@ fn can_use_constrained_areas() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![1., 0.]),
-                create_delivery_job("job2", vec![2., 0.]),
-                create_delivery_job("job3", vec![3., 0.]),
-                create_delivery_job("job4", vec![4., 0.]),
-                create_delivery_job("job5", vec![5., 0.]),
+                create_delivery_job("job1", (1., 0.)),
+                create_delivery_job("job2", (2., 0.)),
+                create_delivery_job("job3", (3., 0.)),
+                create_delivery_job("job4", (4., 0.)),
+                create_delivery_job("job5", (5., 0.)),
             ],
             areas: Some(vec![
                 Area { id: "area1".to_string(), jobs: to_strings(vec!["job1", "job5"]) },
@@ -63,11 +63,11 @@ fn can_use_unconstrained_areas_impl(area1_job_value: f64, expected_job_ids: Vec<
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_demand("job1", vec![1., 0.], vec![2]),
-                create_delivery_job_with_demand("job2", vec![2., 0.], vec![1]),
-                create_delivery_job_with_demand("job3", vec![3., 0.], vec![1]),
-                create_delivery_job_with_demand("job4", vec![4., 0.], vec![1]),
-                create_delivery_job_with_demand("job5", vec![5., 0.], vec![2]),
+                create_delivery_job_with_demand("job1", (1., 0.), vec![2]),
+                create_delivery_job_with_demand("job2", (2., 0.), vec![1]),
+                create_delivery_job_with_demand("job3", (3., 0.), vec![1]),
+                create_delivery_job_with_demand("job4", (4., 0.), vec![1]),
+                create_delivery_job_with_demand("job5", (5., 0.), vec![2]),
             ],
             areas: Some(vec![
                 Area { id: "area1".to_string(), jobs: to_strings(vec!["job1", "job5"]) },

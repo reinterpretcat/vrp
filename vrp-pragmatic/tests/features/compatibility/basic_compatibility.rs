@@ -7,10 +7,10 @@ fn can_separate_jobs_based_on_compatibility() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_compatibility("food", vec![1., 0.], "food"),
-                create_delivery_job("job2", vec![8., 0.]),
-                create_delivery_job_with_compatibility("junk", vec![2., 0.], "junk"),
-                create_delivery_job("job4", vec![9., 0.]),
+                create_delivery_job_with_compatibility("food", (1., 0.), "food"),
+                create_delivery_job("job2", (8., 0.)),
+                create_delivery_job_with_compatibility("junk", (2., 0.), "junk"),
+                create_delivery_job("job4", (9., 0.)),
             ],
             ..create_empty_plan()
         },
@@ -52,8 +52,8 @@ fn can_unassign_job_due_to_compatibility() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_compatibility("food", vec![1., 0.], "food"),
-                create_delivery_job_with_compatibility("junk", vec![2., 0.], "junk"),
+                create_delivery_job_with_compatibility("food", (1., 0.), "food"),
+                create_delivery_job_with_compatibility("junk", (2., 0.), "junk"),
             ],
             ..create_empty_plan()
         },

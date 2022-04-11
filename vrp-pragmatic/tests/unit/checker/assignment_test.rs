@@ -186,7 +186,7 @@ fn check_jobs_impl(
 fn can_detect_time_window_violation() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(1, 2)], 1.)],
+            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(1, 2)], 1.)],
             ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
@@ -250,7 +250,7 @@ fn can_detect_time_window_violation() {
 fn can_detect_job_duration_violation() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(5, 10)], 1.)],
+            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(5, 10)], 1.)],
             ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
@@ -313,12 +313,12 @@ fn can_detect_job_duration_violation() {
 #[test]
 fn can_detect_dispatch_violations() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job("job1", vec![2., 0.])], ..create_empty_plan() },
+        plan: Plan { jobs: vec![create_delivery_job("job1", (2., 0.))], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     dispatch: Some(vec![VehicleDispatch {
-                        location: vec![1., 0.].to_loc(),
+                        location: (1., 0.).to_loc(),
                         limits: vec![VehicleDispatchLimit { max: 1, start: format_time(1.), end: format_time(2.) }],
                         tag: None,
                     }]),
@@ -377,8 +377,8 @@ fn can_detect_group_violations() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_group("job1", vec![1., 0.], "group1"),
-                create_delivery_job_with_group("job2", vec![1., 0.], "group1"),
+                create_delivery_job_with_group("job1", (1., 0.), "group1"),
+                create_delivery_job_with_group("job2", (1., 0.), "group1"),
             ],
             ..create_empty_plan()
         },

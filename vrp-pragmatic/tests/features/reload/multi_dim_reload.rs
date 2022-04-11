@@ -8,25 +8,25 @@ fn can_use_multi_dim_capacity() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_demand("job1", vec![1., 0.], vec![1, 1]),
-                create_delivery_job_with_demand("job2", vec![2., 0.], vec![1, 1]),
+                create_delivery_job_with_demand("job1", (1., 0.), vec![1, 1]),
+                create_delivery_job_with_demand("job2", (2., 0.), vec![1, 1]),
             ],
             ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(100.).to_string(),
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                     }),
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                         duration: 2.0,
                         tag: None,
                     }]),

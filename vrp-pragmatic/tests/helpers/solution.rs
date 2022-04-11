@@ -52,7 +52,7 @@ fn create_stop_with_activity_impl(
     job_tag: Option<String>,
 ) -> Stop {
     Stop::Point(PointStop {
-        location: vec![location.0, location.1].to_loc(),
+        location: (location.0, location.1).to_loc(),
         time: Schedule { arrival: time.0.to_string(), departure: time.1.to_string() },
         load,
         distance,

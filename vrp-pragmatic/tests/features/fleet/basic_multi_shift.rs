@@ -9,8 +9,8 @@ fn can_use_multiple_times_from_vehicle_and_job() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_times("job1", vec![10., 0.], vec![(0, 100)], 1.),
-                create_delivery_job_with_times("job2", vec![10., 0.], vec![(100, 200)], 1.),
+                create_delivery_job_with_times("job1", (10., 0.), vec![(0, 100)], 1.),
+                create_delivery_job_with_times("job2", (10., 0.), vec![(100, 200)], 1.),
             ],
             ..create_empty_plan()
         },
@@ -18,24 +18,20 @@ fn can_use_multiple_times_from_vehicle_and_job() {
             vehicles: vec![VehicleType {
                 shifts: vec![
                     VehicleShift {
-                        start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                        start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                         end: Some(ShiftEnd {
                             earliest: None,
                             latest: format_time(99.).to_string(),
-                            location: vec![0., 0.].to_loc(),
+                            location: (0., 0.).to_loc(),
                         }),
                         ..create_default_vehicle_shift()
                     },
                     VehicleShift {
-                        start: ShiftStart {
-                            earliest: format_time(100.),
-                            latest: None,
-                            location: vec![0., 0.].to_loc(),
-                        },
+                        start: ShiftStart { earliest: format_time(100.), latest: None, location: (0., 0.).to_loc() },
                         end: Some(ShiftEnd {
                             earliest: None,
                             latest: format_time(200.).to_string(),
-                            location: vec![0., 0.].to_loc(),
+                            location: (0., 0.).to_loc(),
                         }),
                         ..create_default_vehicle_shift()
                     },
@@ -145,7 +141,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
 fn can_prefer_first_days_with_minimize_arrival_time_objective() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![1., 0.])],
+            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job("job2", (1., 0.))],
             ..create_empty_plan()
         },
         objectives: Some(vec![
@@ -161,7 +157,7 @@ fn can_prefer_first_days_with_minimize_arrival_time_objective() {
                         start: ShiftStart {
                             earliest: format_time(*earliest),
                             latest: None,
-                            location: vec![0., 0.].to_loc(),
+                            location: (0., 0.).to_loc(),
                         },
                         end: None,
                         ..create_default_vehicle_shift()

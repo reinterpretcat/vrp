@@ -10,11 +10,11 @@ use std::sync::Arc;
 use vrp_core::models::common::Profile as CoreProfile;
 use vrp_core::models::problem::{ActivityCost, SimpleActivityCost, TransportCost};
 
-pub fn create_job_place(location: Vec<f64>, tag: Option<String>) -> JobPlace {
+pub fn create_job_place(location: (f64, f64), tag: Option<String>) -> JobPlace {
     JobPlace { times: None, location: location.to_loc(), duration: 1., tag }
 }
 
-pub fn create_task(location: Vec<f64>, tag: Option<String>) -> JobTask {
+pub fn create_task(location: (f64, f64), tag: Option<String>) -> JobTask {
     JobTask { places: vec![create_job_place(location, tag)], demand: Some(vec![1]), order: None }
 }
 
@@ -32,11 +32,11 @@ pub fn create_job(id: &str) -> Job {
     }
 }
 
-pub fn create_delivery_job(id: &str, location: Vec<f64>) -> Job {
-    Job { deliveries: Some(vec![create_task(location.clone(), None)]), ..create_job(id) }
+pub fn create_delivery_job(id: &str, location: (f64, f64)) -> Job {
+    Job { deliveries: Some(vec![create_task(location, None)]), ..create_job(id) }
 }
 
-pub fn create_delivery_job_with_order(id: &str, location: Vec<f64>, order: i32) -> Job {
+pub fn create_delivery_job_with_order(id: &str, location: (f64, f64), order: i32) -> Job {
     Job {
         deliveries: Some(vec![JobTask {
             places: vec![create_job_place(location, None)],
@@ -47,7 +47,7 @@ pub fn create_delivery_job_with_order(id: &str, location: Vec<f64>, order: i32) 
     }
 }
 
-pub fn create_delivery_job_with_group(id: &str, location: Vec<f64>, group: &str) -> Job {
+pub fn create_delivery_job_with_group(id: &str, location: (f64, f64), group: &str) -> Job {
     Job {
         deliveries: Some(vec![JobTask {
             places: vec![create_job_place(location, None)],
@@ -59,7 +59,7 @@ pub fn create_delivery_job_with_group(id: &str, location: Vec<f64>, group: &str)
     }
 }
 
-pub fn create_delivery_job_with_compatibility(id: &str, location: Vec<f64>, compatibility: &str) -> Job {
+pub fn create_delivery_job_with_compatibility(id: &str, location: (f64, f64), compatibility: &str) -> Job {
     Job {
         deliveries: Some(vec![JobTask {
             places: vec![create_job_place(location, None)],
@@ -71,15 +71,15 @@ pub fn create_delivery_job_with_compatibility(id: &str, location: Vec<f64>, comp
     }
 }
 
-pub fn create_delivery_job_with_skills(id: &str, location: Vec<f64>, skills: JobSkills) -> Job {
+pub fn create_delivery_job_with_skills(id: &str, location: (f64, f64), skills: JobSkills) -> Job {
     Job { skills: Some(skills), ..create_delivery_job(id, location) }
 }
 
-pub fn create_delivery_job_with_demand(id: &str, location: Vec<f64>, demand: Vec<i32>) -> Job {
+pub fn create_delivery_job_with_demand(id: &str, location: (f64, f64), demand: Vec<i32>) -> Job {
     Job { deliveries: Some(vec![JobTask { demand: Some(demand), ..create_task(location, None) }]), ..create_job(id) }
 }
 
-pub fn create_delivery_job_with_duration(id: &str, location: Vec<f64>, duration: f64) -> Job {
+pub fn create_delivery_job_with_duration(id: &str, location: (f64, f64), duration: f64) -> Job {
     Job {
         deliveries: Some(vec![JobTask {
             places: vec![JobPlace { duration, ..create_job_place(location, None) }],
@@ -90,7 +90,7 @@ pub fn create_delivery_job_with_duration(id: &str, location: Vec<f64>, duration:
     }
 }
 
-pub fn create_delivery_job_with_times(id: &str, location: Vec<f64>, times: Vec<(i32, i32)>, duration: f64) -> Job {
+pub fn create_delivery_job_with_times(id: &str, location: (f64, f64), times: Vec<(i32, i32)>, duration: f64) -> Job {
     Job {
         deliveries: Some(vec![JobTask {
             places: vec![JobPlace { duration, times: convert_times(&times), ..create_job_place(location, None) }],
@@ -101,30 +101,30 @@ pub fn create_delivery_job_with_times(id: &str, location: Vec<f64>, times: Vec<(
     }
 }
 
-pub fn create_delivery_job_with_value(id: &str, location: Vec<f64>, value: f64) -> Job {
-    Job { deliveries: Some(vec![create_task(location.clone(), None)]), value: Some(value), ..create_job(id) }
+pub fn create_delivery_job_with_value(id: &str, location: (f64, f64), value: f64) -> Job {
+    Job { deliveries: Some(vec![create_task(location, None)]), value: Some(value), ..create_job(id) }
 }
 
-pub fn create_pickup_job(id: &str, location: Vec<f64>) -> Job {
-    Job { pickups: Some(vec![create_task(location.clone(), None)]), ..create_job(id) }
+pub fn create_pickup_job(id: &str, location: (f64, f64)) -> Job {
+    Job { pickups: Some(vec![create_task(location, None)]), ..create_job(id) }
 }
 
-pub fn create_pickup_job_with_demand(id: &str, location: Vec<f64>, demand: Vec<i32>) -> Job {
+pub fn create_pickup_job_with_demand(id: &str, location: (f64, f64), demand: Vec<i32>) -> Job {
     Job { pickups: Some(vec![JobTask { demand: Some(demand), ..create_task(location, None) }]), ..create_job(id) }
 }
 
-pub fn create_replacement_job(id: &str, location: Vec<f64>) -> Job {
+pub fn create_replacement_job(id: &str, location: (f64, f64)) -> Job {
     Job { replacements: Some(vec![create_task(location.clone(), None)]), ..create_job(id) }
 }
 
-pub fn create_service_job(id: &str, location: Vec<f64>) -> Job {
-    Job { services: Some(vec![JobTask { demand: None, ..create_task(location.clone(), None) }]), ..create_job(id) }
+pub fn create_service_job(id: &str, location: (f64, f64)) -> Job {
+    Job { services: Some(vec![JobTask { demand: None, ..create_task(location, None) }]), ..create_job(id) }
 }
 
-pub fn create_pickup_delivery_job(id: &str, pickup_location: Vec<f64>, delivery_location: Vec<f64>) -> Job {
+pub fn create_pickup_delivery_job(id: &str, pickup_location: (f64, f64), delivery_location: (f64, f64)) -> Job {
     Job {
-        pickups: Some(vec![create_task(pickup_location.clone(), Some("p1".to_string()))]),
-        deliveries: Some(vec![create_task(delivery_location.clone(), Some("d1".to_string()))]),
+        pickups: Some(vec![create_task(pickup_location, Some("p1".to_string()))]),
+        deliveries: Some(vec![create_task(delivery_location, Some("d1".to_string()))]),
         ..create_job(id)
     }
 }
@@ -132,15 +132,15 @@ pub fn create_pickup_delivery_job(id: &str, pickup_location: Vec<f64>, delivery_
 pub fn create_pickup_delivery_job_with_params(
     id: &str,
     demand: Vec<i32>,
-    pickup: (Vec<f64>, f64, Vec<(i32, i32)>),
-    delivery: (Vec<f64>, f64, Vec<(i32, i32)>),
+    pickup: ((f64, f64), f64, Vec<(i32, i32)>),
+    delivery: ((f64, f64), f64, Vec<(i32, i32)>),
 ) -> Job {
     Job {
         pickups: Some(vec![JobTask {
             places: vec![JobPlace {
                 duration: pickup.1,
                 times: convert_times(&pickup.2),
-                ..create_job_place(pickup.0.clone(), Some("p1".to_string()))
+                ..create_job_place(pickup.0, Some("p1".to_string()))
             }],
             demand: Some(demand.clone()),
             order: None,
@@ -149,7 +149,7 @@ pub fn create_pickup_delivery_job_with_params(
             places: vec![JobPlace {
                 duration: delivery.1,
                 times: convert_times(&delivery.2),
-                ..create_job_place(delivery.0.clone(), Some("d1".to_string()))
+                ..create_job_place(delivery.0, Some("d1".to_string()))
             }],
             demand: Some(demand.clone()),
             order: None,
@@ -182,7 +182,7 @@ pub fn create_multi_job(
             .map(|(i, (location, duration, demand))| JobTask {
                 places: vec![JobPlace {
                     duration,
-                    ..create_job_place(vec![location.0, location.1], Some(format!("{}{}", prefix, i + 1)))
+                    ..create_job_place((location.0, location.1), Some(format!("{}{}", prefix, i + 1)))
                 }],
                 demand: Some(demand),
                 order: None,
@@ -205,7 +205,7 @@ pub fn create_default_vehicle_shift() -> VehicleShift {
 
 pub fn create_default_open_vehicle_shift() -> VehicleShift {
     VehicleShift {
-        start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+        start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
         end: None,
         dispatch: None,
         breaks: None,
@@ -215,11 +215,11 @@ pub fn create_default_open_vehicle_shift() -> VehicleShift {
 
 pub fn create_default_vehicle_shift_with_locations(start: (f64, f64), end: (f64, f64)) -> VehicleShift {
     VehicleShift {
-        start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![start.0, start.1].to_loc() },
+        start: ShiftStart { earliest: format_time(0.), latest: None, location: (start.0, start.1).to_loc() },
         end: Some(ShiftEnd {
             earliest: None,
             latest: format_time(1000.).to_string(),
-            location: vec![end.0, end.1].to_loc(),
+            location: (end.0, end.1).to_loc(),
         }),
         dispatch: None,
         breaks: None,

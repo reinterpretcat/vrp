@@ -16,7 +16,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload_impl(generations
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("simple", vec![1., 0.]),
+                create_delivery_job("simple", (1., 0.)),
                 create_multi_job(
                     "multi",
                     vec![((2., 0.), 1., vec![1]), ((8., 0.), 1., vec![1])],
@@ -28,17 +28,17 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload_impl(generations
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(100.).to_string(),
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                     }),
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                         duration: 2.0,
                         tag: None,
                     }]),

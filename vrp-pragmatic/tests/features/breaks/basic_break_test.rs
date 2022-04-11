@@ -7,7 +7,7 @@ use crate::helpers::*;
 fn can_assign_break_between_jobs() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
+            jobs: vec![create_delivery_job("job1", (5., 0.)), create_delivery_job("job2", (10., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet {
@@ -18,7 +18,7 @@ fn can_assign_break_between_jobs() {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
                         places: vec![VehicleOptionalBreakPlace {
                             duration: 2.0,
-                            location: Some(vec![6., 0.].to_loc()),
+                            location: Some((6., 0.).to_loc()),
                             tag: Some("break_tag".to_string()),
                         }],
                         policy: None,

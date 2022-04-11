@@ -6,7 +6,7 @@ use vrp_core::models::examples::create_example_problem;
 fn create_test_problem() -> Problem {
     Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
+            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job("job2", (2., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
@@ -36,7 +36,7 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> So
                     0,
                 ),
                 Stop::Point(PointStop {
-                    location: vec![1., 0.].to_loc(),
+                    location: (1., 0.).to_loc(),
                     time: Schedule { arrival: format_time(first.0), departure: "1970-01-01T00:00:02Z".to_string() },
                     distance: first.1,
                     parking: None,
@@ -51,7 +51,7 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> So
                     }],
                 }),
                 Stop::Point(PointStop {
-                    location: vec![2., 0.].to_loc(),
+                    location: (2., 0.).to_loc(),
                     time: Schedule { arrival: format_time(second.0), departure: "1970-01-01T00:00:04Z".to_string() },
                     distance: second.1,
                     parking: None,
@@ -59,7 +59,7 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> So
                     activities: vec![Activity {
                         job_id: "job2".to_string(),
                         activity_type: "delivery".to_string(),
-                        location: Some(vec![2., 0.].to_loc()),
+                        location: Some((2., 0.).to_loc()),
                         time: None,
                         job_tag: None,
                         commute: None,

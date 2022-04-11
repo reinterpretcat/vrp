@@ -4,14 +4,14 @@ use crate::format_time;
 use crate::helpers::*;
 
 fn create_shift_start() -> ShiftStart {
-    ShiftStart { earliest: format_time(0.), latest: Some(format_time(0.)), location: vec![0., 0.].to_loc() }
+    ShiftStart { earliest: format_time(0.), latest: Some(format_time(0.)), location: (0., 0.).to_loc() }
 }
 
 #[test]
 fn can_assign_break_during_travel() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
+            jobs: vec![create_delivery_job("job1", (5., 0.)), create_delivery_job("job2", (10., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet {
@@ -112,7 +112,7 @@ fn can_assign_break_during_travel() {
 #[test]
 fn can_assign_break_during_activity() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", vec![5., 0.], 3.)], ..create_empty_plan() },
+        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", (5., 0.), 3.)], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 costs: create_default_vehicle_costs(),
@@ -157,7 +157,7 @@ fn can_assign_break_during_activity() {
                         0,
                     ),
                     Stop::Point(PointStop {
-                        location: vec![5., 0.].to_loc(),
+                        location: (5., 0.).to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:05Z".to_string(),
                             departure: "1970-01-01T00:00:10Z".to_string(),
@@ -169,7 +169,7 @@ fn can_assign_break_during_activity() {
                             Activity {
                                 job_id: "job1".to_string(),
                                 activity_type: "delivery".to_string(),
-                                location: Some(vec![5., 0.].to_loc()),
+                                location: Some((5., 0.).to_loc()),
                                 time: Some(Interval {
                                     start: "1970-01-01T00:00:05Z".to_string(),
                                     end: "1970-01-01T00:00:10Z".to_string(),

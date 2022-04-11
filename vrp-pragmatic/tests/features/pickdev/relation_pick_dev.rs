@@ -7,8 +7,8 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_pickup_delivery_job("job1", vec![20., 0.], vec![15., 0.]),
-                create_pickup_delivery_job("job2", vec![5., 0.], vec![20., 0.]),
+                create_pickup_delivery_job("job1", (20., 0.), (15., 0.)),
+                create_pickup_delivery_job("job2", (5., 0.), (20., 0.)),
             ],
             relations: Some(vec![Relation {
                 type_field: RelationType::Sequence,

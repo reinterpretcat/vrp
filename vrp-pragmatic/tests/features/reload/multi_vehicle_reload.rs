@@ -7,24 +7,24 @@ use crate::helpers::*;
 fn can_use_one_vehicle_with_reload_instead_of_two() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
+            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job("job2", (2., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(100.).to_string(),
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                     }),
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                         duration: 2.0,
                         tag: None,
                     }]),

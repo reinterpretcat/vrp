@@ -7,7 +7,7 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("simple", vec![1., 0.]),
+                create_delivery_job("simple", (1., 0.)),
                 create_multi_job(
                     "multi",
                     vec![((2., 0.), 1., vec![1]), ((8., 0.), 1., vec![1])],

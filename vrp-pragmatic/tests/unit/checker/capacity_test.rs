@@ -25,28 +25,28 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![1., 0.]),
-                create_delivery_job("job2", vec![2., 0.]),
-                create_delivery_job("job3", vec![3., 0.]),
-                create_pickup_job("job4", vec![4., 0.]),
-                create_pickup_delivery_job("job5", vec![1., 0.], vec![5., 0.]),
+                create_delivery_job("job1", (1., 0.)),
+                create_delivery_job("job2", (2., 0.)),
+                create_delivery_job("job3", (3., 0.)),
+                create_pickup_job("job4", (4., 0.)),
+                create_pickup_delivery_job("job5", (1., 0.), (5., 0.)),
             ],
             ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(1000.).to_string(),
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                     }),
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                         duration: 2.0,
                         tag: None,
                     }]),
@@ -79,7 +79,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                     0,
                 ),
                 Stop::Point(PointStop {
-                    location: vec![1., 0.].to_loc(),
+                    location: (1., 0.).to_loc(),
                     time: Schedule {
                         arrival: "1970-01-01T00:00:03Z".to_string(),
                         departure: "1970-01-01T00:00:05Z".to_string(),
@@ -107,7 +107,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                     ],
                 }),
                 Stop::Point(PointStop {
-                    location: vec![0., 0.].to_loc(),
+                    location: (0., 0.).to_loc(),
                     time: Schedule {
                         arrival: "1970-01-01T00:00:03Z".to_string(),
                         departure: "1970-01-01T00:00:05Z".to_string(),
@@ -125,7 +125,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                     }],
                 }),
                 Stop::Point(PointStop {
-                    location: vec![2., 0.].to_loc(),
+                    location: (2., 0.).to_loc(),
                     time: Schedule {
                         arrival: "1970-01-01T00:00:07Z".to_string(),
                         departure: "1970-01-01T00:00:08Z".to_string(),
@@ -137,7 +137,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                         Activity {
                             job_id: "job2".to_string(),
                             activity_type: "delivery".to_string(),
-                            location: Some(vec![2., 0.].to_loc()),
+                            location: Some((2., 0.).to_loc()),
                             time: Some(Interval {
                                 start: "1970-01-01T00:00:08Z".to_string(),
                                 end: "1970-01-01T00:00:09Z".to_string(),
@@ -148,7 +148,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                         Activity {
                             job_id: "job3".to_string(),
                             activity_type: "delivery".to_string(),
-                            location: Some(vec![3., 0.].to_loc()),
+                            location: Some((3., 0.).to_loc()),
                             time: Some(Interval {
                                 start: "1970-01-01T00:00:09Z".to_string(),
                                 end: "1970-01-01T00:00:10Z".to_string(),
@@ -204,10 +204,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
 #[ignore]
 fn can_check_load_when_departure_has_other_activity() {
     let problem = Problem {
-        plan: Plan {
-            jobs: vec![create_pickup_delivery_job("job1", vec![0., 0.], vec![1., 0.])],
-            ..create_empty_plan()
-        },
+        plan: Plan { jobs: vec![create_pickup_delivery_job("job1", (0., 0.), (1., 0.))], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],
             profiles: create_default_matrix_profiles(),
@@ -227,7 +224,7 @@ fn can_check_load_when_departure_has_other_activity() {
             shift_index: 0,
             stops: vec![
                 Stop::Point(PointStop {
-                    location: vec![0., 0.].to_loc(),
+                    location: (0., 0.).to_loc(),
                     time: Schedule {
                         arrival: "1970-01-01T00:00:00Z".to_string(),
                         departure: "1970-01-01T00:00:01Z".to_string(),

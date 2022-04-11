@@ -6,7 +6,7 @@ use std::panic::catch_unwind;
 fn can_skip_constraints_check() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
+            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job("job2", (2., 0.))],
             relations: Some(vec![Relation {
                 type_field: RelationType::Any,
                 jobs: to_strings(vec!["departure", "job1", "job2"]),

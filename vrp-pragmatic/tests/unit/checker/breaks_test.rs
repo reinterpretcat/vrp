@@ -72,17 +72,17 @@ fn can_check_breaks_impl(
 ) {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
+            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job("job2", (2., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(1000.).to_string(),
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                     }),
                     dispatch: None,
                     breaks: Some(vec![VehicleBreak::Optional {
@@ -148,7 +148,7 @@ fn can_check_breaks_impl(
                     5,
                 ),
                 Stop::Point(PointStop {
-                    location: vec![2., 0.].to_loc(),
+                    location: (2., 0.).to_loc(),
                     time: Schedule {
                         arrival: "1970-01-01T00:00:03Z".to_string(),
                         departure: "1970-01-01T00:00:06Z".to_string(),

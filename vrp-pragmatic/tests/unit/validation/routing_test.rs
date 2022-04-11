@@ -36,7 +36,7 @@ fn can_detect_empty_profiles() {
 fn can_detect_mixed_locations() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_index("job1", 0), create_delivery_job("job2", vec![1.0, 0.])],
+            jobs: vec![create_delivery_job_with_index("job1", 0), create_delivery_job("job2", (1., 0.))],
             relations: None,
             ..create_empty_plan()
         },

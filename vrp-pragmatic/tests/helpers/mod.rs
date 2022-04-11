@@ -3,14 +3,15 @@
 #[macro_use]
 pub mod macros;
 
+/// A helper trait to create Location from some type.
 pub trait ToLocation {
-    fn to_loc(&self) -> Location;
+    fn to_loc(self) -> Location;
 }
 
-impl ToLocation for Vec<f64> {
-    fn to_loc(&self) -> Location {
-        assert_eq!(self.len(), 2);
-        Location::new_coordinate(*self.get(0).unwrap(), *self.get(1).unwrap())
+impl ToLocation for (f64, f64) {
+    fn to_loc(self) -> Location {
+        let (lat, lng) = self;
+        Location::new_coordinate(lat, lng)
     }
 }
 

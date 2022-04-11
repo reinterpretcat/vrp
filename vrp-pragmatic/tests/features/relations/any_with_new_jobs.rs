@@ -6,9 +6,9 @@ fn create_and_solve_problem_with_three_jobs(any_relation_jobs: Vec<String>) -> S
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![1., 0.]),
-                create_delivery_job("job2", vec![2., 0.]),
-                create_delivery_job("job3", vec![3., 0.]),
+                create_delivery_job("job1", (1., 0.)),
+                create_delivery_job("job2", (2., 0.)),
+                create_delivery_job("job3", (3., 0.)),
             ],
             relations: Some(vec![Relation {
                 type_field: RelationType::Any,

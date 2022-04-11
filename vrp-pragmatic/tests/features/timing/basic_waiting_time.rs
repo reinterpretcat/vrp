@@ -8,8 +8,8 @@ fn can_wait_for_job_start() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_times("job1", vec![1., 0.], vec![(0, 1)], 0.),
-                create_delivery_job_with_times("job2", vec![2., 0.], vec![(10, 20)], 0.),
+                create_delivery_job_with_times("job1", (1., 0.), vec![(0, 1)], 0.),
+                create_delivery_job_with_times("job2", (2., 0.), vec![(10, 20)], 0.),
             ],
             ..create_empty_plan()
         },
@@ -86,7 +86,7 @@ fn can_wait_for_job_start() {
 fn can_skip_initial_waiting() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(10, 20)], 10.)],
+            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(10, 20)], 10.)],
             ..create_empty_plan()
         },
         fleet: Fleet {
@@ -154,7 +154,7 @@ fn can_skip_initial_waiting() {
 fn can_consider_latest_departure_time() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(10, 20)], 10.)],
+            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(10, 20)], 10.)],
             ..create_empty_plan()
         },
         fleet: Fleet {

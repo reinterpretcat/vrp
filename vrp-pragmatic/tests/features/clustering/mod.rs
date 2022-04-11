@@ -28,7 +28,7 @@ impl From<ActivityData> for Activity {
     fn from(activity: ActivityData) -> Self {
         let convert_expected_commute_info = |commute: CommuteData| {
             commute.map(|commute| CommuteInfo {
-                location: vec![commute.0, 0.].to_loc(),
+                location: (commute.0, 0.).to_loc(),
                 distance: commute.1,
                 time: Interval { start: format_time(commute.2), end: format_time(commute.3) },
             })
@@ -37,7 +37,7 @@ impl From<ActivityData> for Activity {
         Activity {
             job_id: activity.job_id,
             activity_type: activity.a_type,
-            location: activity.location.map(|loc| vec![loc, 0.].to_loc()),
+            location: activity.location.map(|loc| (loc, 0.).to_loc()),
             time: activity.time.map(|(start, end)| Interval { start: format_time(start), end: format_time(end) }),
             job_tag: None,
             commute: activity.commute.map(|(fwd, bak)| Commute {
@@ -60,7 +60,7 @@ struct StopData {
 impl StopData {
     pub fn new(data: (f64, i64, i32, i64, (Timestamp, Timestamp), Vec<ActivityData>)) -> Self {
         Self {
-            location: vec![data.0, 0.].to_loc(),
+            location: (data.0, 0.).to_loc(),
             distance: data.1,
             load: data.2,
             parking: data.3,
@@ -109,8 +109,8 @@ fn create_test_problem(jobs_data: &[(f64, &str)], capacity: i32, clustering: Clu
                 .iter()
                 .enumerate()
                 .map(|(idx, &(loc, j_type))| match j_type {
-                    "delivery" => create_delivery_job(&format!("job{}", idx + 1), vec![loc, 0.]),
-                    "pickup" => create_pickup_job(&format!("job{}", idx + 1), vec![loc, 0.]),
+                    "delivery" => create_delivery_job(&format!("job{}", idx + 1), (loc, 0.)),
+                    "pickup" => create_pickup_job(&format!("job{}", idx + 1), (loc, 0.)),
                     _ => unreachable!(),
                 })
                 .collect(),

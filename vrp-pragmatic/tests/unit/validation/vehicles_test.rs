@@ -49,7 +49,7 @@ fn can_detect_invalid_area_impl(
 ) {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
+            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job("job2", (2., 0.))],
             areas: areas.as_ref().map(|areas| {
                 areas
                     .iter()
@@ -179,7 +179,7 @@ fn can_handle_rescheduling_with_required_break_impl(latest: Option<f64>, expecte
                     start: ShiftStart {
                         earliest: format_time(0.),
                         latest: latest.map(|latest| format_time(latest)),
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                     },
                     breaks: Some(vec![VehicleBreak::Required {
                         time: VehicleRequiredBreakTime::OffsetTime(10.),

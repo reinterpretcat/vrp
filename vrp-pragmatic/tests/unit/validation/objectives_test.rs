@@ -143,7 +143,7 @@ fn can_detect_invalid_value_or_order_impl(value: Option<f64>, order: Option<i32>
     let problem = Problem {
         plan: Plan {
             jobs: vec![Job {
-                deliveries: Some(vec![JobTask { order, ..create_task(vec![1., 0.], None) }]),
+                deliveries: Some(vec![JobTask { order, ..create_task((1., 0.), None) }]),
                 value,
                 ..create_job("job1")
             }],
@@ -180,7 +180,7 @@ fn can_detect_missing_order_objective_impl(objectives: Option<Vec<Vec<Objective>
     let problem = Problem {
         plan: Plan {
             jobs: vec![Job {
-                deliveries: Some(vec![JobTask { order: Some(1), ..create_task(vec![1., 0.], None) }]),
+                deliveries: Some(vec![JobTask { order: Some(1), ..create_task((1., 0.), None) }]),
                 ..create_job("job1")
             }],
             ..create_empty_plan()
@@ -218,7 +218,7 @@ fn can_detect_missing_value_objective_impl(objectives: Option<Vec<Vec<Objective>
     let problem = Problem {
         plan: Plan {
             jobs: vec![Job {
-                deliveries: Some(vec![create_task(vec![1., 0.], None)]),
+                deliveries: Some(vec![create_task((1., 0.), None)]),
                 value: Some(1.),
                 ..create_job("job1")
             }],

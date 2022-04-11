@@ -7,10 +7,10 @@ fn can_balance_duration() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_duration("job1", vec![1., 0.], 10.),
-                create_delivery_job_with_duration("job2", vec![2., 0.], 10.),
-                create_delivery_job_with_duration("job3", vec![3., 0.], 10.),
-                create_delivery_job_with_duration("job4", vec![4., 0.], 10.),
+                create_delivery_job_with_duration("job1", (1., 0.), 10.),
+                create_delivery_job_with_duration("job2", (2., 0.), 10.),
+                create_delivery_job_with_duration("job3", (3., 0.), 10.),
+                create_delivery_job_with_duration("job4", (4., 0.), 10.),
             ],
             ..create_empty_plan()
         },

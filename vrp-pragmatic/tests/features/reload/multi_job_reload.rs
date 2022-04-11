@@ -9,9 +9,9 @@ fn can_serve_multi_job_and_delivery_with_reload() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("simple1", vec![1., 0.]),
-                create_delivery_job("simple2", vec![3., 0.]),
-                create_delivery_job("simple3", vec![7., 0.]),
+                create_delivery_job("simple1", (1., 0.)),
+                create_delivery_job("simple2", (3., 0.)),
+                create_delivery_job("simple3", (7., 0.)),
                 create_multi_job(
                     "multi",
                     vec![((2., 0.), 1., vec![1]), ((8., 0.), 1., vec![1])],
@@ -23,17 +23,17 @@ fn can_serve_multi_job_and_delivery_with_reload() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(100.).to_string(),
-                        location: vec![10., 0.].to_loc(),
+                        location: (10., 0.).to_loc(),
                     }),
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                         duration: 2.0,
                         tag: None,
                     }]),
@@ -159,10 +159,10 @@ fn can_properly_handle_load_without_capacity_violation() {
                 create_pickup_delivery_job_with_params(
                     "job1",
                     vec![2],
-                    (vec![52., 0.], 10., vec![]),
-                    (vec![1., 0.], 12., vec![]),
+                    ((52., 0.), 10., vec![]),
+                    ((1., 0.), 12., vec![]),
                 ),
-                create_pickup_job_with_demand("job2", vec![67., 0.], vec![2]),
+                create_pickup_job_with_demand("job2", (67., 0.), vec![2]),
             ],
             ..create_empty_plan()
         },

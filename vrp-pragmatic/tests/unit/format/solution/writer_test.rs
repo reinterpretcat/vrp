@@ -34,7 +34,7 @@ fn create_test_problem_and_coord_index() -> (DomainProblem, CoordIndex) {
 fn can_create_solution() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
+            jobs: vec![create_delivery_job("job1", (5., 0.)), create_delivery_job("job2", (10., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet {
@@ -110,7 +110,7 @@ fn can_create_solution() {
 fn can_merge_activities_with_same_location_in_one_stop() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![5., 0.])],
+            jobs: vec![create_delivery_job("job1", (5., 0.)), create_delivery_job("job2", (5., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet {

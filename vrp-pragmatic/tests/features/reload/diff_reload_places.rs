@@ -7,35 +7,31 @@ fn can_use_reloads_with_different_locations() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![10., 0.]),
-                create_delivery_job("job2", vec![11., 0.]),
-                create_delivery_job("job3", vec![20., 0.]),
-                create_delivery_job("job4", vec![21., 0.]),
-                create_delivery_job("job5", vec![30., 0.]),
+                create_delivery_job("job1", (10., 0.)),
+                create_delivery_job("job2", (11., 0.)),
+                create_delivery_job("job3", (20., 0.)),
+                create_delivery_job("job4", (21., 0.)),
+                create_delivery_job("job5", (30., 0.)),
             ],
             ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
-                    end: Some(ShiftEnd {
-                        earliest: None,
-                        latest: format_time(1000.),
-                        location: vec![32., 0.].to_loc(),
-                    }),
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (32., 0.).to_loc() }),
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![
                         VehicleReload {
                             times: None,
-                            location: vec![12., 0.].to_loc(),
+                            location: (12., 0.).to_loc(),
                             duration: 2.0,
                             tag: Some("close".to_string()),
                         },
                         VehicleReload {
                             times: None,
-                            location: vec![33., 0.].to_loc(),
+                            location: (33., 0.).to_loc(),
                             duration: 2.0,
                             tag: Some("far".to_string()),
                         },

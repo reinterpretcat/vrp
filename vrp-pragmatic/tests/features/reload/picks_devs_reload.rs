@@ -8,28 +8,28 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("d1", vec![1., 0.]),
-                create_delivery_job("d2", vec![4., 0.]),
-                create_delivery_job("d3", vec![10., 0.]),
-                create_pickup_job("p1", vec![2., 0.]),
-                create_pickup_job("p2", vec![5., 0.]),
+                create_delivery_job("d1", (1., 0.)),
+                create_delivery_job("d2", (4., 0.)),
+                create_delivery_job("d3", (10., 0.)),
+                create_pickup_job("p1", (2., 0.)),
+                create_pickup_job("p2", (5., 0.)),
             ],
             ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(100.).to_string(),
-                        location: vec![6., 0.].to_loc(),
+                        location: (6., 0.).to_loc(),
                     }),
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,
-                        location: vec![3., 0.].to_loc(),
+                        location: (3., 0.).to_loc(),
                         duration: 2.0,
                         tag: None,
                     }]),

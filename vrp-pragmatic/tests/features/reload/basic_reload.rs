@@ -9,13 +9,13 @@ parameterized_test! {can_use_vehicle_with_two_tours_and_two_jobs, (jobs, unassig
 
 can_use_vehicle_with_two_tours_and_two_jobs! {
     case01: (vec![
-                create_delivery_job("job1", vec![1., 0.]),
-                create_delivery_job("job2", vec![2., 0.])],
+                create_delivery_job("job1", (1., 0.)),
+                create_delivery_job("job2", (2., 0.))],
             None),
     case02: (vec![
-               create_delivery_job("job1", vec![1., 0.]),
-               create_delivery_job("job2", vec![2., 0.]),
-               create_delivery_job("job3", vec![3., 0.])
+               create_delivery_job("job1", (1., 0.)),
+               create_delivery_job("job2", (2., 0.)),
+               create_delivery_job("job3", (3., 0.))
              ],
              Some(vec![
                UnassignedJob {
@@ -34,17 +34,17 @@ fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<Job>, unassigned: 
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(100.).to_string(),
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                     }),
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                         duration: 2.0,
                         tag: None,
                     }]),

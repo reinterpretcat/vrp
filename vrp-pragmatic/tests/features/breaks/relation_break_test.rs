@@ -23,8 +23,8 @@ fn get_solution(
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_duration("job1", vec![1., 0.], job_duration),
-                create_delivery_job_with_duration("job2", vec![2., 0.], job_duration),
+                create_delivery_job_with_duration("job1", (1., 0.), job_duration),
+                create_delivery_job_with_duration("job2", (2., 0.), job_duration),
             ],
             relations: Some(vec![Relation {
                 type_field: relation_type,
@@ -69,8 +69,7 @@ can_use_break_between_two_jobs_in_relation! {
 }
 
 fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, jobs: Vec<String>) {
-    let solution =
-        get_solution(relation_type, 1., Some(vec![3., 0.].to_loc()), get_permissive_break_time(), jobs, true);
+    let solution = get_solution(relation_type, 1., Some((3., 0.).to_loc()), get_permissive_break_time(), jobs, true);
 
     assert_eq!(
         solution,
@@ -149,8 +148,7 @@ can_use_break_last_in_relation! {
 }
 
 fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<String>) {
-    let solution =
-        get_solution(relation_type, 1., Some(vec![3., 0.].to_loc()), get_permissive_break_time(), jobs, true);
+    let solution = get_solution(relation_type, 1., Some((3., 0.).to_loc()), get_permissive_break_time(), jobs, true);
 
     assert_eq!(
         solution,

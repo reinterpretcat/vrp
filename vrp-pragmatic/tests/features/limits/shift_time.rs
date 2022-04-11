@@ -12,7 +12,7 @@ fn create_vehicle_type_with_shift_time_limit(shift_time: f64) -> VehicleType {
 #[test]
 fn can_limit_one_job_by_shift_time() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job("job1", vec![100., 0.])], ..create_empty_plan() },
+        plan: Plan { jobs: vec![create_delivery_job("job1", (100., 0.))], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![create_vehicle_type_with_shift_time_limit(99.)],
             profiles: create_default_matrix_profiles(),
@@ -51,11 +51,11 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_duration("job1", vec![1., 0.], 10.),
-                create_delivery_job_with_duration("job2", vec![2., 0.], 10.),
-                create_delivery_job_with_duration("job3", vec![3., 0.], 10.),
-                create_delivery_job_with_duration("job4", vec![4., 0.], 10.),
-                create_delivery_job_with_duration("job5", vec![5., 0.], 10.),
+                create_delivery_job_with_duration("job1", (1., 0.), 10.),
+                create_delivery_job_with_duration("job2", (2., 0.), 10.),
+                create_delivery_job_with_duration("job3", (3., 0.), 10.),
+                create_delivery_job_with_duration("job4", (4., 0.), 10.),
+                create_delivery_job_with_duration("job5", (5., 0.), 10.),
             ],
             ..create_empty_plan()
         },
@@ -158,7 +158,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
 fn can_serve_job_when_it_starts_late() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(100, 200)], 10.)],
+            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(100, 200)], 10.)],
             ..create_empty_plan()
         },
         fleet: Fleet {

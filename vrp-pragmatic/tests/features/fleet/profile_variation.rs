@@ -12,7 +12,7 @@ fn create_vehicle_type(type_id: &str, scale: Option<f64>) -> VehicleType {
 #[test]
 fn can_use_scale() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job("job1", vec![10., 0.])], ..create_empty_plan() },
+        plan: Plan { jobs: vec![create_delivery_job("job1", (10., 0.))], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![create_vehicle_type("normal", None), create_vehicle_type("slow", Some(0.5))],
             profiles: create_default_matrix_profiles(),

@@ -11,13 +11,13 @@ fn create_basic_problem(breaks: Option<Vec<VehicleBreak>>) -> Problem {
     Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![1., 0.]),
+                create_delivery_job("job1", (1., 0.)),
                 create_multi_job(
                     "job2",
                     vec![((2., 0.), 1., vec![1]), ((3., 0.), 1., vec![1])],
                     vec![((4., 0.), 1., vec![2])],
                 ),
-                create_pickup_job("job3", vec![5., 0.]),
+                create_pickup_job("job3", (5., 0.)),
             ],
             ..create_empty_plan()
         },
@@ -117,7 +117,7 @@ fn can_read_basic_init_solution() {
                     "p1",
                 ),
                 Stop::Point(PointStop {
-                    location: vec![3., 0.].to_loc(),
+                    location: (3., 0.).to_loc(),
                     time: Schedule {
                         arrival: "1970-01-01T00:00:05Z".to_string(),
                         departure: "1970-01-01T00:00:08Z".to_string(),
@@ -129,7 +129,7 @@ fn can_read_basic_init_solution() {
                         Activity {
                             job_id: "job2".to_string(),
                             activity_type: "pickup".to_string(),
-                            location: Some(vec![3., 0.].to_loc()),
+                            location: Some((3., 0.).to_loc()),
                             time: Some(Interval {
                                 start: "1970-01-01T00:00:05Z".to_string(),
                                 end: "1970-01-01T00:00:06Z".to_string(),
@@ -140,7 +140,7 @@ fn can_read_basic_init_solution() {
                         Activity {
                             job_id: "break".to_string(),
                             activity_type: "break".to_string(),
-                            location: Some(vec![3., 0.].to_loc()),
+                            location: Some((3., 0.).to_loc()),
                             time: Some(Interval {
                                 start: "1970-01-01T00:00:06Z".to_string(),
                                 end: "1970-01-01T00:00:08Z".to_string(),
@@ -219,7 +219,7 @@ fn can_handle_commute_error_in_init_solution() {
                     0,
                 ),
                 Stop::Point(PointStop {
-                    location: vec![1., 0.].to_loc(),
+                    location: (1., 0.).to_loc(),
                     time: Schedule {
                         arrival: "1970-01-01T00:00:01Z".to_string(),
                         departure: "1970-01-01T00:00:02Z".to_string(),
@@ -230,7 +230,7 @@ fn can_handle_commute_error_in_init_solution() {
                     activities: vec![Activity {
                         job_id: "job1".to_string(),
                         activity_type: "delivery".to_string(),
-                        location: Some(vec![1., 0.].to_loc()),
+                        location: Some((1., 0.).to_loc()),
                         time: Some(Interval {
                             start: "1970-01-01T00:00:01Z".to_string(),
                             end: "1970-01-01T00:00:02Z".to_string(),

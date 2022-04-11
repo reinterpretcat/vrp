@@ -8,9 +8,9 @@ fn can_assign_service_job() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![1., 0.]),
-                create_service_job("job2", vec![2., 0.]),
-                create_pickup_job("job3", vec![3., 0.]),
+                create_delivery_job("job1", (1., 0.)),
+                create_service_job("job2", (2., 0.)),
+                create_pickup_job("job3", (3., 0.)),
             ],
             ..create_empty_plan()
         },
@@ -20,7 +20,7 @@ fn can_assign_service_job() {
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(1000.).to_string(),
-                        location: vec![4., 0.].to_loc(),
+                        location: (4., 0.).to_loc(),
                     }),
                     ..create_default_vehicle_shift()
                 }],

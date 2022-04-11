@@ -8,7 +8,7 @@ fn can_have_unassigned_due_to_missing_vehicle_skill() {
         plan: Plan {
             jobs: vec![create_delivery_job_with_skills(
                 "job1",
-                vec![1., 0.],
+                (1., 0.),
                 all_of_skills(vec!["unique_skill".to_string()]),
             )],
             ..create_empty_plan()

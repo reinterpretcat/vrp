@@ -7,13 +7,13 @@ fn can_use_strict_and_sequence_relation_for_one_vehicle() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![1., 0.]),
-                create_delivery_job("job2", vec![2., 0.]),
-                create_delivery_job("job3", vec![3., 0.]),
-                create_delivery_job("job4", vec![4., 0.]),
-                create_delivery_job("job5", vec![5., 0.]),
-                create_delivery_job("job6", vec![6., 0.]),
-                create_delivery_job("job7", vec![7., 0.]),
+                create_delivery_job("job1", (1., 0.)),
+                create_delivery_job("job2", (2., 0.)),
+                create_delivery_job("job3", (3., 0.)),
+                create_delivery_job("job4", (4., 0.)),
+                create_delivery_job("job5", (5., 0.)),
+                create_delivery_job("job6", (6., 0.)),
+                create_delivery_job("job7", (7., 0.)),
             ],
             relations: Some(vec![
                 Relation {
@@ -142,14 +142,14 @@ fn can_use_strict_and_sequence_relation_for_two_vehicles() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![1., 0.]),
-                create_delivery_job("job2", vec![2., 0.]),
-                create_delivery_job("job3", vec![3., 0.]),
-                create_delivery_job("job4", vec![4., 0.]),
-                create_delivery_job("job5", vec![5., 0.]),
-                create_delivery_job("job6", vec![6., 0.]),
-                create_delivery_job("job7", vec![7., 0.]),
-                create_delivery_job("job8", vec![8., 0.]),
+                create_delivery_job("job1", (1., 0.)),
+                create_delivery_job("job2", (2., 0.)),
+                create_delivery_job("job3", (3., 0.)),
+                create_delivery_job("job4", (4., 0.)),
+                create_delivery_job("job5", (5., 0.)),
+                create_delivery_job("job6", (6., 0.)),
+                create_delivery_job("job7", (7., 0.)),
+                create_delivery_job("job8", (8., 0.)),
             ],
             relations: Some(vec![
                 Relation {

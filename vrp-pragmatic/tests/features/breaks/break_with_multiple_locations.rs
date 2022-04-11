@@ -7,7 +7,7 @@ use crate::helpers::*;
 fn can_assign_break_using_second_place() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![10., 0.]), create_delivery_job("job2", vec![20., 0.])],
+            jobs: vec![create_delivery_job("job1", (10., 0.)), create_delivery_job("job2", (20., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet {
@@ -17,19 +17,19 @@ fn can_assign_break_using_second_place() {
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(1000.).to_string(),
-                        location: vec![30., 0.].to_loc(),
+                        location: (30., 0.).to_loc(),
                     }),
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(10.), format_time(30.)]),
                         places: vec![
                             VehicleOptionalBreakPlace {
                                 duration: 2.0,
-                                location: Some(vec![1., 0.].to_loc()),
+                                location: Some((1., 0.).to_loc()),
                                 tag: Some("first".to_string()),
                             },
                             VehicleOptionalBreakPlace {
                                 duration: 2.0,
-                                location: Some(vec![11., 0.].to_loc()),
+                                location: Some((11., 0.).to_loc()),
                                 tag: Some("second".to_string()),
                             },
                         ],

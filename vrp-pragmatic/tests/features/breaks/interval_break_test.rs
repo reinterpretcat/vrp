@@ -12,7 +12,7 @@ fn create_test_objectives() -> Option<Vec<Vec<Objective>>> {
 fn can_assign_interval_break_between_jobs() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![15., 0.])],
+            jobs: vec![create_delivery_job("job1", (5., 0.)), create_delivery_job("job2", (15., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet {
@@ -59,7 +59,7 @@ fn can_assign_interval_break_between_jobs() {
                         0
                     ),
                     Stop::Point(PointStop {
-                        location: vec![5., 0.].to_loc(),
+                        location: (5., 0.).to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:05Z".to_string(),
                             departure: "1970-01-01T00:00:08Z".to_string(),
@@ -71,7 +71,7 @@ fn can_assign_interval_break_between_jobs() {
                             Activity {
                                 job_id: "job1".to_string(),
                                 activity_type: "delivery".to_string(),
-                                location: Some(vec![5., 0.].to_loc()),
+                                location: Some((5., 0.).to_loc()),
                                 time: Some(Interval {
                                     start: "1970-01-01T00:00:05Z".to_string(),
                                     end: "1970-01-01T00:00:06Z".to_string(),
@@ -82,7 +82,7 @@ fn can_assign_interval_break_between_jobs() {
                             Activity {
                                 job_id: "break".to_string(),
                                 activity_type: "break".to_string(),
-                                location: Some(vec![5., 0.].to_loc()),
+                                location: Some((5., 0.).to_loc()),
                                 time: Some(Interval {
                                     start: "1970-01-01T00:00:06Z".to_string(),
                                     end: "1970-01-01T00:00:08Z".to_string(),
@@ -126,10 +126,10 @@ fn can_assign_interval_break_with_reload() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![10., 0.]),
-                create_delivery_job("job2", vec![15., 0.]),
-                create_delivery_job("job3", vec![20., 0.]),
-                create_delivery_job("job4", vec![25., 0.]),
+                create_delivery_job("job1", (10., 0.)),
+                create_delivery_job("job2", (15., 0.)),
+                create_delivery_job("job3", (20., 0.)),
+                create_delivery_job("job4", (25., 0.)),
             ],
             ..create_empty_plan()
         },
@@ -139,12 +139,12 @@ fn can_assign_interval_break_with_reload() {
                     start: ShiftStart {
                         earliest: format_time(0.),
                         latest: Some(format_time(0.)),
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                     },
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(1000.).to_string(),
-                        location: vec![30., 0.].to_loc(),
+                        location: (30., 0.).to_loc(),
                     }),
                     dispatch: None,
                     breaks: Some(vec![VehicleBreak::Optional {
@@ -154,7 +154,7 @@ fn can_assign_interval_break_with_reload() {
                     }]),
                     reloads: Some(vec![VehicleReload {
                         times: Some(vec![vec![format_time(0.), format_time(1000.)]]),
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                         duration: 3.0,
                         tag: None,
                     }]),
@@ -194,7 +194,7 @@ fn can_assign_interval_break_with_reload() {
                         0
                     ),
                     Stop::Point(PointStop {
-                        location: vec![10., 0.].to_loc(),
+                        location: (10., 0.).to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:10Z".to_string(),
                             departure: "1970-01-01T00:00:13Z".to_string(),
@@ -206,7 +206,7 @@ fn can_assign_interval_break_with_reload() {
                             Activity {
                                 job_id: "job1".to_string(),
                                 activity_type: "delivery".to_string(),
-                                location: Some(vec![10., 0.].to_loc()),
+                                location: Some((10., 0.).to_loc()),
                                 time: Some(Interval {
                                     start: "1970-01-01T00:00:10Z".to_string(),
                                     end: "1970-01-01T00:00:11Z".to_string(),
@@ -217,7 +217,7 @@ fn can_assign_interval_break_with_reload() {
                             Activity {
                                 job_id: "break".to_string(),
                                 activity_type: "break".to_string(),
-                                location: Some(vec![10., 0.].to_loc()),
+                                location: Some((10., 0.).to_loc()),
                                 time: Some(Interval {
                                     start: "1970-01-01T00:00:11Z".to_string(),
                                     end: "1970-01-01T00:00:13Z".to_string(),
@@ -286,8 +286,8 @@ fn can_consider_departure_rescheduling() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_times("job1", vec![5., 0.], vec![(10, 10)], 1.),
-                create_delivery_job_with_times("job2", vec![10., 0.], vec![(10, 30)], 1.),
+                create_delivery_job_with_times("job1", (5., 0.), vec![(10, 10)], 1.),
+                create_delivery_job_with_times("job2", (10., 0.), vec![(10, 30)], 1.),
             ],
             ..create_empty_plan()
         },

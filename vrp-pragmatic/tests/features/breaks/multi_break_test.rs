@@ -7,7 +7,7 @@ use crate::helpers::*;
 fn can_use_two_breaks() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![99., 0.])],
+            jobs: vec![create_delivery_job("job1", (5., 0.)), create_delivery_job("job2", (99., 0.))],
             ..create_empty_plan()
         },
         fleet: Fleet {
@@ -16,14 +16,14 @@ fn can_use_two_breaks() {
                     start: ShiftStart {
                         earliest: format_time(0.),
                         latest: Some(format_time(0.)),
-                        location: vec![0., 0.].to_loc(),
+                        location: (0., 0.).to_loc(),
                     },
                     breaks: Some(vec![
                         VehicleBreak::Optional {
                             time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
                             places: vec![VehicleOptionalBreakPlace {
                                 duration: 2.0,
-                                location: Some(vec![6., 0.].to_loc()),
+                                location: Some((6., 0.).to_loc()),
                                 tag: None,
                             }],
                             policy: None,
@@ -85,7 +85,7 @@ fn can_use_two_breaks() {
                         6,
                     ),
                     Stop::Point(PointStop {
-                        location: vec![99., 0.].to_loc(),
+                        location: (99., 0.).to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:01:42Z".to_string(),
                             departure: "1970-01-01T00:01:45Z".to_string(),
@@ -97,7 +97,7 @@ fn can_use_two_breaks() {
                             Activity {
                                 job_id: "job2".to_string(),
                                 activity_type: "delivery".to_string(),
-                                location: Some(vec![99., 0.].to_loc()),
+                                location: Some((99., 0.).to_loc()),
                                 time: Some(Interval {
                                     start: "1970-01-01T00:01:42Z".to_string(),
                                     end: "1970-01-01T00:01:43Z".to_string(),
@@ -108,7 +108,7 @@ fn can_use_two_breaks() {
                             Activity {
                                 job_id: "break".to_string(),
                                 activity_type: "break".to_string(),
-                                location: Some(vec![99., 0.].to_loc()),
+                                location: Some((99., 0.).to_loc()),
                                 time: Some(Interval {
                                     start: "1970-01-01T00:01:43Z".to_string(),
                                     end: "1970-01-01T00:01:45Z".to_string(),

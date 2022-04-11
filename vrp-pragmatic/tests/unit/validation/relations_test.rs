@@ -43,7 +43,7 @@ fn can_detect_relation_errors_impl(
 ) {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job2", vec![1., 0.])],
+            jobs: vec![create_delivery_job("job2", (1., 0.))],
             relations: Some(vec![Relation {
                 type_field: RelationType::Strict,
                 jobs: job_ids,
@@ -80,12 +80,12 @@ fn can_detect_multi_place_time_window_jobs_impl(relation_type: RelationType, exp
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_times("job1", vec![1., 0.], vec![(10, 20), (30, 40)], 10.),
-                create_delivery_job("job2", vec![1., 0.]),
+                create_delivery_job_with_times("job1", (1., 0.), vec![(10, 20), (30, 40)], 10.),
+                create_delivery_job("job2", (1., 0.)),
                 Job {
                     deliveries: Some(vec![JobTask {
-                        places: vec![create_job_place(vec![1., 0.], None), create_job_place(vec![2., 0.], None)],
-                        ..create_task(vec![1., 0.], None)
+                        places: vec![create_job_place((1., 0.), None), create_job_place((2., 0.), None)],
+                        ..create_task((1., 0.), None)
                     }]),
                     ..create_job("job3")
                 },
@@ -128,7 +128,7 @@ can_detect_multi_vehicle_assignment! {
 fn can_detect_multi_vehicle_assignment_impl(relations: Vec<(&str, &str)>, expected: Option<&str>) {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![1.0, 0.]), create_delivery_job("job2", vec![2.0, 0.])],
+            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job("job2", (2., 0.))],
             relations: Some(
                 relations
                     .iter()
@@ -181,7 +181,7 @@ fn can_detect_incomplete_multi_job_in_relation_impl(
 ) {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_pickup_delivery_job("job1", vec![1., 0.], vec![2., 0.])],
+            jobs: vec![create_pickup_delivery_job("job1", (1., 0.), (2., 0.))],
             relations: Some(vec![Relation {
                 type_field: relation_type,
                 jobs,

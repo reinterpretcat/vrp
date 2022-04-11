@@ -21,7 +21,7 @@ can_detect_reserved_ids! {
 
 fn can_detect_reserved_ids_impl(job_id: String, expected: Option<&str>) {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job(job_id.as_str(), vec![1., 0.])], ..create_empty_plan() },
+        plan: Plan { jobs: vec![create_delivery_job(job_id.as_str(), (1., 0.))], ..create_empty_plan() },
         fleet: Fleet { vehicles: vec![create_default_vehicle("vehicle")], profiles: vec![] },
         ..create_empty_problem()
     };
@@ -50,7 +50,7 @@ fn can_detect_empty_job() {
 #[test]
 fn can_detect_negative_duration() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", vec![1., 0.], -10.)], ..create_empty_plan() },
+        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", (1., 0.), -10.)], ..create_empty_plan() },
         ..create_empty_problem()
     };
 
@@ -64,7 +64,7 @@ fn can_detect_negative_duration() {
 fn can_detect_negative_demand() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_demand("job1", vec![1., 0.], vec![0, -1])],
+            jobs: vec![create_delivery_job_with_demand("job1", (1., 0.), vec![0, -1])],
             ..create_empty_plan()
         },
         ..create_empty_problem()

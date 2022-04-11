@@ -10,9 +10,9 @@ fn can_create_geo_json_from_solution() {
     let problem = FormatProblem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![1., 0.]),
-                create_delivery_job_with_demand("job2", vec![2., 0.], vec![10]),
-                create_delivery_job("job3", vec![3., 0.]),
+                create_delivery_job("job1", (1., 0.)),
+                create_delivery_job_with_demand("job2", (2., 0.), vec![10]),
+                create_delivery_job("job3", (3., 0.)),
             ],
             ..create_empty_plan()
         },

@@ -75,7 +75,7 @@ fn can_read_complex_problem() {
                                 vec!["1970-01-01T00:00:00Z".to_string(), "1970-01-01T00:01:40Z".to_string()],
                                 vec!["1970-01-01T00:01:50Z".to_string(), "1970-01-01T00:02:00Z".to_string()],
                             ]),
-                            location: vec![52.48325, 13.4436].to_loc(),
+                            location: (52.48325, 13.4436).to_loc(),
                             duration: 100.0,
                             tag: Some("my_delivery".to_string()),
                         }],
@@ -92,7 +92,7 @@ fn can_read_complex_problem() {
                                 "1970-01-01T00:00:10Z".to_string(),
                                 "1970-01-01T00:00:30Z".to_string(),
                             ]]),
-                            location: vec![52.48300, 13.4420].to_loc(),
+                            location: (52.48300, 13.4420).to_loc(),
                             duration: 110.0,
                             tag: None,
                         }],
@@ -105,7 +105,7 @@ fn can_read_complex_problem() {
                                 "1970-01-01T00:00:50Z".to_string(),
                                 "1970-01-01T00:01:00Z".to_string(),
                             ]]),
-                            location: vec![52.48325, 13.4436].to_loc(),
+                            location: (52.48325, 13.4436).to_loc(),
                             duration: 120.0,
                             tag: None,
                         }],
@@ -121,7 +121,7 @@ fn can_read_complex_problem() {
                                 "1970-01-01T00:00:10Z".to_string(),
                                 "1970-01-01T00:01:10Z".to_string(),
                             ]]),
-                            location: vec![52.48321, 13.4438].to_loc(),
+                            location: (52.48321, 13.4438).to_loc(),
                             duration: 90.0,
                             tag: None,
                         }],
@@ -144,12 +144,12 @@ fn can_read_complex_problem() {
                     start: ShiftStart {
                         earliest: "1970-01-01T00:00:00Z".to_string(),
                         latest: None,
-                        location: vec![52.4862, 13.45148].to_loc(),
+                        location: (52.4862, 13.45148).to_loc(),
                     },
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: "1970-01-01T00:01:40Z".to_string(),
-                        location: vec![52.4862, 13.45148].to_loc(),
+                        location: (52.4862, 13.45148).to_loc(),
                     }),
                     dispatch: None,
                     breaks: Some(vec![VehicleBreak::Optional {
@@ -159,7 +159,7 @@ fn can_read_complex_problem() {
                         ]),
                         places: vec![VehicleOptionalBreakPlace {
                             duration: 100.0,
-                            location: Some(vec![52.48315, 13.4330].to_loc()),
+                            location: Some((52.48315, 13.4330).to_loc()),
                             tag: None,
                         }],
                         policy: None,
@@ -290,8 +290,8 @@ fn can_create_approximation_matrices() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job("job1", vec![52.52599, 13.45413]),
-                create_delivery_job("job2", vec![52.5165, 13.3808]),
+                create_delivery_job("job1", (52.52599, 13.45413)),
+                create_delivery_job("job2", (52.5165, 13.3808)),
             ],
             ..create_empty_plan()
         },
