@@ -44,13 +44,13 @@ impl RosomaxaConfig {
         Self {
             selection_size,
             elite_size: 2,
-            node_size: 2,
-            spread_factor: 0.25,
-            distribution_factor: 0.25,
+            node_size: 4,
+            spread_factor: 0.75,
+            distribution_factor: 0.75,
             objective_reshuffling: 0.01,
             learning_rate: 0.1,
             rebalance_memory: 100,
-            rebalance_count: 4,
+            rebalance_count: 2,
             exploration_ratio: 0.9,
         }
     }
@@ -139,11 +139,10 @@ where
             RosomaxaPhases::Exploration { network, coordinates, selection_size, .. } => {
                 let (elite_explore_size, node_explore_size) = match *selection_size {
                     value if value > 6 => {
-                        let elite_size = self.environment.random.uniform_int(2, 4) as usize;
+                        let elite_size = self.environment.random.uniform_int(1, 2) as usize;
                         (elite_size, 2)
                     }
-                    value if value > 4 => (2, 2),
-                    value if value > 2 => (2, 1),
+                    value if value > 4 => (1, 2),
                     _ => (1, 1),
                 };
 
@@ -283,7 +282,6 @@ where
                         network,
                         coordinates,
                         best_fitness.as_slice(),
-                        statistics,
                         self.environment.random.as_ref(),
                     );
                 } else {
@@ -304,7 +302,6 @@ where
         network: &'a IndividualNetwork<O, S>,
         coordinates: &mut Vec<(Coordinate, f64, usize)>,
         best_fitness: &[f64],
-        statistics: &HeuristicStatistics,
         random: &(dyn Random + Send + Sync),
     ) {
         coordinates.clear();
@@ -321,34 +318,7 @@ where
             coordinate
         }));
 
-        let shuffle_amount = Self::calculate_shuffle_amount(statistics, coordinates.len());
-        if shuffle_amount != coordinates.len() {
-            // partially randomize order
-            if random.is_head_not_tails() {
-                coordinates.sort_by(|(_, distance_a, _), (_, distance_b, _)| compare_floats(*distance_a, *distance_b));
-            } else {
-                coordinates.sort_by(|(_, _, last_hit_a), (_, _, last_hit_b)| last_hit_a.cmp(last_hit_b));
-            }
-
-            coordinates.partial_shuffle(&mut random.get_rng(), shuffle_amount);
-        } else {
-            coordinates.shuffle(&mut random.get_rng());
-        }
-    }
-
-    fn calculate_shuffle_amount(statistics: &HeuristicStatistics, length: usize) -> usize {
-        let ratio = match statistics.improvement_1000_ratio {
-            v if v > 0.5 => {
-                // https://www.wolframalpha.com/input/?i=plot+0.66+*+%281-+1%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
-                let progress = statistics.termination_estimate;
-                let ratio = 0.5 * (1. - 1. / (1. + std::f64::consts::E.powf(-10. * (progress - 0.5))));
-                ratio.clamp(0.1, 0.5)
-            }
-            v if v > 0.2 => 0.5,
-            _ => 1.,
-        };
-
-        (length as f64 * ratio).round() as usize
+        coordinates.shuffle(&mut random.get_rng());
     }
 
     fn optimize_network(
@@ -358,23 +328,16 @@ where
         rebalance_memory: usize,
         rebalance_count: usize,
     ) {
-        let keep_size = match statistics.improvement_1000_ratio {
-            v if v > 0.25 => {
-                // https://www.wolframalpha.com/input/?i=plot+%281+-+1%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
-                let x = statistics.termination_estimate.clamp(0., 1.);
-                let ratio = 1. - 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.5)));
-                rebalance_memory + (rebalance_memory as f64 * ratio) as usize
-            }
-            _ => rebalance_memory,
-        };
+        // https://www.wolframalpha.com/input?i=plot+2+*+%281+-+1%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
+        let x = statistics.termination_estimate.clamp(0., 1.);
+        let ratio = 2. * (1. - 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.5))));
+        let keep_size = rebalance_memory + (rebalance_memory as f64 * ratio) as usize;
 
-        let is_lower = network.size() <= keep_size;
-
-        if statistics.generation % rebalance_memory == 0 || !is_lower {
+        if statistics.generation % rebalance_memory == 0 {
             network.smooth(1);
         }
 
-        if is_lower {
+        if network.size() <= keep_size {
             return;
         }
 
@@ -389,11 +352,11 @@ where
         let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
         distances.sort_by(|a, b| compare_floats(*b, *a));
 
-        // NOTE remove 25% of nodes passed distance check
-        const PERCENTILE_THRESHOLD: f64 = 0.25;
+        const PERCENTILE_THRESHOLD: f64 = 0.1;
         let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
 
         if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
+            network.smooth(1);
             network.compact(&|node| get_distance(node).map_or(false, |distance| distance < distance_threshold));
             network.smooth(rebalance_count);
         }
