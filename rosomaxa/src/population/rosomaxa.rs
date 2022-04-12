@@ -361,7 +361,6 @@ where
         let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
 
         if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
-            network.smooth(1);
             network.compact(&|node| get_distance(node).map_or(false, |distance| distance < distance_threshold));
             network.smooth(rebalance_count);
         }
