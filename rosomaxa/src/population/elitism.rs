@@ -9,7 +9,7 @@ use crate::{HeuristicSpeed, HeuristicStatistics};
 use std::cmp::Ordering;
 use std::fmt::{Formatter, Write};
 use std::iter::{empty, once};
-use std::ops::RangeBounds;
+use std::ops::{Deref, RangeBounds};
 use std::sync::Arc;
 
 /// A simple evolution aware implementation of [`Population`] trait with the the following
@@ -32,6 +32,7 @@ where
     max_population_size: usize,
     individuals: Vec<S>,
     speed: Option<HeuristicSpeed>,
+    dedup_fn: Box<dyn Fn(&S, &S) -> bool + Send + Sync>,
 }
 
 /// Keeps track of dominance order in the population for certain individual.
@@ -141,18 +142,42 @@ where
     S: HeuristicSolution + DominanceOrdered,
 {
     /// Creates a new instance of `Elitism`.
-    ///
-    /// * `problem` - a Vehicle Routing Problem definition.
-    /// * `max_population_size` - a max size of population size.
     pub fn new(
         objective: Arc<O>,
         random: Arc<dyn Random + Send + Sync>,
         max_population_size: usize,
         selection_size: usize,
     ) -> Self {
-        assert!(max_population_size > 0);
+        Self::new_with_dedup(
+            objective,
+            random,
+            max_population_size,
+            selection_size,
+            Box::new(|a, b| {
+                if a.get_order().rank == b.get_order().rank {
+                    // NOTE just using crowding distance here does not work
 
-        Self { objective, random, selection_size, max_population_size, individuals: vec![], speed: None }
+                    let fitness_a = a.get_fitness();
+                    let fitness_b = b.get_fitness();
+
+                    fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
+                } else {
+                    false
+                }
+            }),
+        )
+    }
+
+    /// Creates a new instance of `Elitism` with custom deduplication function.
+    pub fn new_with_dedup(
+        objective: Arc<O>,
+        random: Arc<dyn Random + Send + Sync>,
+        max_population_size: usize,
+        selection_size: usize,
+        dedup_fn: Box<dyn Fn(&S, &S) -> bool + Send + Sync>,
+    ) -> Self {
+        assert!(max_population_size > 0);
+        Self { objective, random, selection_size, max_population_size, individuals: vec![], speed: None, dedup_fn }
     }
 
     /// Shuffles objective function.
@@ -182,20 +207,7 @@ where
 
         best_order.into_iter().for_each(|order| self.individuals[order.orig_index].set_order(order));
         self.individuals.sort_by(|a, b| a.get_order().seq_index.cmp(&b.get_order().seq_index));
-
-        // deduplicate population
-        self.individuals.dedup_by(|a, b| {
-            if a.get_order().rank == b.get_order().rank {
-                // NOTE just using crowding distance here does not work
-
-                let fitness_a = a.get_fitness();
-                let fitness_b = b.get_fitness();
-
-                fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
-            } else {
-                false
-            }
-        });
+        self.individuals.dedup_by(|a, b| self.dedup_fn.deref()(a, b));
     }
 
     fn ensure_max_population_size(&mut self) {
