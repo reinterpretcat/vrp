@@ -477,7 +477,21 @@ where
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
 {
     fn eval(&self) -> IndividualStorage<O, S> {
-        let mut elitism = Elitism::new(self.objective.clone(), self.random.clone(), self.node_size, self.node_size);
+        let mut elitism = Elitism::new_with_dedup(
+            self.objective.clone(),
+            self.random.clone(),
+            self.node_size,
+            self.node_size,
+            Box::new(|a, b| {
+                // TODO return slice instead of vector?
+                let weights_a = a.weights();
+                let weights_b = b.weights();
+
+                let distance = relative_distance(weights_a.iter().cloned(), weights_b.iter().cloned());
+
+                distance < 0.1
+            }),
+        );
         if self.random.is_hit(self.reshuffling_probability) {
             elitism.shuffle_objective();
         }
