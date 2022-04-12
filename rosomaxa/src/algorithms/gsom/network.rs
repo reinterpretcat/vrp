@@ -65,6 +65,7 @@ where
 
         assert!(roots.iter().all(|r| r.weights().len() == dimension));
         assert!(config.distribution_factor > 0. && config.distribution_factor < 1.);
+        assert!(config.spread_factor > 0. && config.spread_factor < 1.);
 
         let growing_threshold = -1. * dimension as f64 * config.spread_factor.log2();
         let initial_error = if config.has_initial_error { growing_threshold } else { 0. };
