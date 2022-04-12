@@ -329,7 +329,12 @@ where
         rebalance_count: usize,
     ) {
         // https://www.wolframalpha.com/input?i=plot+2+*+%281+-+1%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
-        let x = statistics.termination_estimate.clamp(0., 1.);
+        let x = match statistics.improvement_1000_ratio {
+            v if v < 0.25 => v,
+            _ => statistics.termination_estimate,
+        }
+        .clamp(0., 1.);
+
         let ratio = 2. * (1. - 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.5))));
         let keep_size = rebalance_memory + (rebalance_memory as f64 * ratio) as usize;
 
