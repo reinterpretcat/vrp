@@ -4,7 +4,6 @@ mod crowding_distance_test;
 
 use crate::algorithms::nsga2::non_dominated_sort::Front;
 use crate::algorithms::nsga2::*;
-use std::f64::INFINITY;
 
 pub struct AssignedCrowdingDistance<'a, S>
 where
@@ -45,8 +44,8 @@ pub fn assign_crowding_distance<'a, S>(
 
             // assign infinite crowding distance to the extremes
             {
-                a.first_mut().unwrap().crowding_distance = INFINITY;
-                a.last_mut().unwrap().crowding_distance = INFINITY;
+                a.first_mut().unwrap().crowding_distance = f64::INFINITY;
+                a.last_mut().unwrap().crowding_distance = f64::INFINITY;
             }
 
             // the distance between the "best" and "worst" solution according to "objective"
