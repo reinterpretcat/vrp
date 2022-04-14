@@ -330,7 +330,7 @@ where
     fn adjust_weights(&self, node: &NodeLink<I, S>, weights: &[f64], radius: usize, is_new_input: bool) {
         let mut node = node.write().unwrap();
         let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
-        let learning_rate = if is_new_input { 0.25 * learning_rate } else { learning_rate };
+        let learning_rate = if is_new_input { learning_rate } else { 0.25 * learning_rate };
 
         node.adjust(weights, learning_rate);
         node.neighbours(self, radius).filter_map(|(n, offset)| n.map(|n| (n, offset))).for_each(|(n, offset)| {
