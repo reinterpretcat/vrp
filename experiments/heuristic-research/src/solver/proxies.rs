@@ -1,4 +1,4 @@
-use crate::{DataPoint, EXPERIMENT_DATA};
+use crate::*;
 use rosomaxa::example::*;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
@@ -10,16 +10,19 @@ use std::sync::MutexGuard;
 pub type VectorPopulation =
     Box<dyn HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + Send + Sync>;
 
+/// Keeps track of all experiment data for visualization purposes.
 #[derive(Default)]
 pub struct ExperimentData {
     /// Current generation.
     pub generation: usize,
     /// Called on new individuals addition.
-    pub on_add: HashMap<usize, Vec<DataPoint>>,
+    pub on_add: HashMap<usize, Vec<DataPoint3D>>,
     /// Called on individual selection.
-    pub on_select: HashMap<usize, Vec<DataPoint>>,
+    pub on_select: HashMap<usize, Vec<DataPoint3D>>,
     /// Called on generation.
-    pub on_generation: HashMap<usize, (HeuristicStatistics, Vec<DataPoint>)>,
+    pub on_generation: HashMap<usize, (HeuristicStatistics, Vec<DataPoint3D>)>,
+    /// Keeps track population state at generation.
+    pub population_state: HashMap<usize, PopulationState>,
 }
 
 impl ExperimentData {
@@ -32,10 +35,10 @@ impl ExperimentData {
     }
 }
 
-impl From<&VectorSolution> for DataPoint {
+impl From<&VectorSolution> for DataPoint3D {
     fn from(solution: &VectorSolution) -> Self {
         assert_eq!(solution.data.len(), 2);
-        DataPoint(solution.data[0], solution.fitness(), solution.data[1])
+        DataPoint3D(solution.data[0], solution.fitness(), solution.data[1])
     }
 }
 
@@ -83,6 +86,8 @@ impl HeuristicPopulation for ProxyPopulation {
 
         let individuals = self.inner.all().map(|individual| individual.into()).collect();
         self.acquire().on_generation.insert(self.generation, (statistics.clone(), individuals));
+
+        self.acquire().population_state.insert(self.generation, parse_population_state(self.inner.to_string()));
 
         self.inner.on_generation(statistics)
     }

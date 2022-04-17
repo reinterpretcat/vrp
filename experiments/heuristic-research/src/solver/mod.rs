@@ -12,6 +12,9 @@ pub use self::objectives::*;
 mod proxies;
 pub use self::proxies::*;
 
+mod state;
+pub use self::state::*;
+
 /// Runs the solver to minimize objective function with given name.
 pub fn run_solver(
     function_name: &str,

@@ -99,3 +99,11 @@ impl Display for NetworkState {
         )
     }
 }
+
+impl TryFrom<String> for NetworkState {
+    type Error = String;
+
+    fn try_from(value: String) -> std::result::Result<Self, Self::Error> {
+        todo!()
+    }
+}

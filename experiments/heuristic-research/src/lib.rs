@@ -4,16 +4,21 @@
 extern crate lazy_static;
 
 use crate::solver::*;
+use rosomaxa::algorithms::gsom::Coordinate;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use wasm_bindgen::prelude::*;
 
-/// Specifies a data point type.
-#[derive(Clone)]
-pub struct DataPoint(f64, f64, f64);
-
 mod plots;
+
 mod solver;
 pub use self::solver::run_solver;
+
+/// Specifies a data point type for 3D chart.
+#[derive(Clone)]
+pub struct DataPoint3D(f64, f64, f64);
+/// Specifies a matrix data type.
+pub type MatrixData = HashMap<Coordinate, f64>;
 
 lazy_static! {
     /// Keeps track of data used by the solver population.

@@ -69,22 +69,26 @@ fn draw(
 ) -> Result<(), String> {
     drawing::draw(
         canvas,
-        &DrawConfig {
+        &SolutionDrawConfig {
             axes,
             projection: Projection { pitch, yaw, scale: 0.8 },
-            series: Series {
+            series: Series3D {
                 surface: {
                     let fitness_fn = get_fitness_fn_by_name(name);
                     Box::new(move |x, z| fitness_fn.deref()(&[x, z]))
                 },
-                points: Box::new(move || get_points(generation)),
+                points: Box::new(move || get_solution_points(generation)),
             },
+        },
+        &PopulationDrawConfig {
+            axes: Axes { x: (Default::default(), 0.0), y: Default::default(), z: (Default::default(), 0.0) },
+            series: get_population_series(generation),
         },
     )
     .map_err(|err| err.to_string())
 }
 
-fn get_points(generation: usize) -> Vec<ColoredDataPoint> {
+fn get_solution_points(generation: usize) -> Vec<ColoredDataPoint3D> {
     EXPERIMENT_DATA
         .lock()
         .ok()
@@ -106,4 +110,29 @@ fn get_points(generation: usize) -> Vec<ColoredDataPoint> {
             data_points
         })
         .unwrap_or_else(Vec::new)
+}
+
+fn get_population_series(generation: usize) -> PopulationSeries {
+    EXPERIMENT_DATA
+        .lock()
+        .ok()
+        .and_then(|data| match data.population_state.get(&generation) {
+            Some(PopulationState::Rosomaxa { rows, cols, objective, u_matrix, t_matrix, l_matrix }) => {
+                let get_series = |matrix: &MatrixData| {
+                    let matrix = matrix.clone();
+                    Series2D { matrix: Box::new(move || matrix.clone()) }
+                };
+
+                Some(PopulationSeries::Rosomaxa {
+                    rows: rows.clone(),
+                    cols: cols.clone(),
+                    objective: get_series(objective),
+                    u_matrix: get_series(u_matrix),
+                    t_matrix: get_series(t_matrix),
+                    l_matrix: get_series(l_matrix),
+                })
+            }
+            _ => None,
+        })
+        .unwrap_or(PopulationSeries::Unknown)
 }

@@ -28,7 +28,7 @@ pub struct Node<I: Input, S: Storage<Item = I>> {
 pub type NodeLink<I, S> = Arc<RwLock<Node<I, S>>>;
 
 /// Coordinate of the node.
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Coordinate(pub i32, pub i32);
 
 impl<I: Input, S: Storage<Item = I>> Node<I, S> {
