@@ -3,7 +3,6 @@ use crate::plots::*;
 use crate::DataPoint3D;
 use itertools::Itertools;
 use plotters::coord::Shift;
-use plotters::prelude::*;
 use plotters_canvas::CanvasBackend;
 use rosomaxa::algorithms::gsom::Coordinate;
 use std::ops::Deref;
