@@ -9,7 +9,7 @@ fn main() {
     let z = -2.;
     let generations = 2000;
     let selection_size = 8;
-    let population_type = "default";
+    let population_type = "rosomaxa";
     let logger = Environment::default().logger;
 
     run_solver(function_name, population_type, selection_size, vec![x, z], generations, logger);

@@ -1,6 +1,5 @@
 use rosomaxa::evolution::TelemetryMode;
 use rosomaxa::example::*;
-use rosomaxa::get_default_population;
 use rosomaxa::population::*;
 use rosomaxa::prelude::*;
 use std::ops::Deref;
@@ -42,8 +41,8 @@ pub fn run_solver(
             let logger = logger.clone();
             let population_type = population_type.to_string();
             move |objective, environment| {
-                let inner = get_population(&population_type, objective.clone(), environment.clone(), selection_size);
-                let population = Box::new(ProxyPopulation::new(inner));
+                let population =
+                    get_population(&population_type, objective.clone(), environment.clone(), selection_size);
                 let telemetry_mode =
                     TelemetryMode::OnlyLogging { logger, log_best: 20, log_population: 100, dump_population: false };
                 VectorContext::new(objective, population, telemetry_mode, environment)
@@ -57,24 +56,21 @@ pub fn run_solver(
     logger.deref()(&format!("solution: {:?}, fitness: {}", individual, fitness));
 }
 
-fn get_population<O, S>(
+fn get_population(
     population_type: &str,
-    objective: Arc<O>,
+    objective: Arc<VectorObjective>,
     environment: Arc<Environment>,
     selection_size: usize,
-) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
-where
-    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
-{
+) -> Box<VectorPopulation> {
     match population_type {
-        "greedy" => Box::new(Greedy::new(objective, 1, None)),
-        "elitism" => Box::new(Elitism::new(objective, environment.random.clone(), 2, selection_size)),
-        "rosomaxa" => Box::new(
+        "greedy" => Box::new(ProxyPopulation::new(Greedy::new(objective, 1, None))),
+        "elitism" => {
+            Box::new(ProxyPopulation::new(Elitism::new(objective, environment.random.clone(), 2, selection_size)))
+        }
+        "rosomaxa" => Box::new(ProxyPopulation::new(
             Rosomaxa::new(objective, environment, RosomaxaConfig::new_with_defaults(selection_size))
                 .expect("cannot create rosomaxa with default configuration"),
-        ),
-        "default" => get_default_population(objective, environment, selection_size),
+        )),
         _ => unreachable!(),
     }
 }

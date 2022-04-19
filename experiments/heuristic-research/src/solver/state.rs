@@ -1,14 +1,13 @@
-#[cfg(test)]
-#[path = "../../tests/unit/solver/state_test.rs"]
-mod state_test;
-
 use crate::MatrixData;
-use regex::{Captures, Regex};
-use rosomaxa::algorithms::gsom::{Coordinate, NetworkState, NodeState};
+use rosomaxa::algorithms::gsom::{Coordinate, NetworkState};
+use rosomaxa::example::*;
+use rosomaxa::population::Rosomaxa;
+use rosomaxa::prelude::*;
+use std::any::TypeId;
 use std::ops::Range;
-use std::str::FromStr;
 
 /// Represents population state specific for supported types.
+#[allow(clippy::large_enum_variant)]
 pub enum PopulationState {
     /// Unknown (or unimplemented) population type.
     Unknown,
@@ -44,14 +43,18 @@ impl PopulationState {
 }
 
 /// Parses population state from a string representation.
-pub fn parse_population_state(serialized: String) -> PopulationState {
-    if let Some(network) = try_parse_network_state(&serialized) {
-        return create_rosomaxa_state(network);
-    }
-
+pub fn get_population_state<P>(population: &P) -> PopulationState
+where
+    P: HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + 'static,
+{
     // TODO try parse elitism and greedy
 
-    return PopulationState::Unknown;
+    if TypeId::of::<P>() == TypeId::of::<Rosomaxa<VectorObjective, VectorSolution>>() {
+        let rosomaxa = unsafe { std::mem::transmute::<&P, &Rosomaxa<VectorObjective, VectorSolution>>(population) };
+        NetworkState::try_from(rosomaxa).map(create_rosomaxa_state).unwrap_or(PopulationState::Unknown)
+    } else {
+        PopulationState::Unknown
+    }
 }
 
 fn create_rosomaxa_state(network_state: NetworkState) -> PopulationState {
@@ -75,61 +78,4 @@ fn create_rosomaxa_state(network_state: NetworkState) -> PopulationState {
 
         rosomaxa
     })
-}
-
-fn try_parse_network_state(value: &String) -> Option<NetworkState> {
-    lazy_static! {
-        static ref NETWORK_STATE_META: Regex = Regex::new(
-            r"(?x)\(
-                (?P<rows_start>-?\d+),
-                (?P<rows_end>-?\d+),
-                (?P<cols_start>-?\d+),
-                (?P<cols_end>-?\d+),
-                (?P<num_weights>-?\d+),
-                \[(?P<nodes>.*)\]
-            \)"
-        )
-        .unwrap();
-        static ref NETWORK_STATE_NODES: Regex = Regex::new(
-            r"(?x)\(
-                (?P<x>-?\d+),
-                (?P<y>-?\d+),
-                (?P<unified_dist>\d*[.]?\d+),
-                (?P<total_hits>\d+),
-                (?P<last_hits>\d+),
-                \[[^,]*,[^,]*,(?P<objective>-?\d*[.]?\d+)],
-                [^)]*
-            \)"
-        )
-        .unwrap();
-    }
-
-    NETWORK_STATE_META.captures(value).map(|captures: Captures| {
-        let rows_start = get_captured_value("rows_start", &captures).unwrap();
-        let rows_end = get_captured_value("rows_end", &captures).unwrap();
-        let cols_start = get_captured_value("cols_start", &captures).unwrap();
-        let cols_end = get_captured_value("cols_end", &captures).unwrap();
-        let num_weights = get_captured_value("num_weights", &captures).unwrap();
-
-        let nodes = NETWORK_STATE_NODES
-            .captures_iter(captures.name("nodes").unwrap().as_str())
-            .map(|captures| NodeState {
-                coordinate: (get_captured_value("x", &captures).unwrap(), get_captured_value("y", &captures).unwrap()),
-                unified_distance: get_captured_value("unified_dist", &captures).unwrap(),
-                weights: vec![0., 0., get_captured_value("objective", &captures).unwrap()],
-                total_hits: get_captured_value("total_hits", &captures).unwrap(),
-                last_hits: get_captured_value("last_hits", &captures).unwrap(),
-                dump: "".to_string(),
-            })
-            .collect();
-
-        NetworkState { shape: ((rows_start..rows_end), (cols_start..cols_end), num_weights), nodes }
-    })
-}
-
-fn get_captured_value<T>(group: &str, captures: &Captures) -> Result<T, T::Err>
-where
-    T: FromStr,
-{
-    captures.name(group).unwrap().as_str().parse::<T>()
 }

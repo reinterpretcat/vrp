@@ -73,7 +73,7 @@ pub trait HeuristicSolution: Send + Sync {
 /// Represents a heuristic objective function.
 pub trait HeuristicObjective: MultiObjective + Send + Sync {}
 /// Specifies a dynamically dispatched type for heuristic population.
-pub type DynHeuristicPopulation<O, S> = dyn HeuristicPopulation<Objective = O, Individual = S>;
+pub type DynHeuristicPopulation<O, S> = dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync;
 /// Specifies a heuristic result type.
 pub type HeuristicResult<O, S> = Result<(Box<DynHeuristicPopulation<O, S>>, Option<TelemetryMetrics>), String>;
 

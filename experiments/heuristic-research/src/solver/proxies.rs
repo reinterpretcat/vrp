@@ -6,10 +6,6 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::sync::MutexGuard;
 
-/// A type alias for vector based population.
-pub type VectorPopulation =
-    Box<dyn HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + Send + Sync>;
-
 /// Keeps track of all experiment data for visualization purposes.
 #[derive(Default)]
 pub struct ExperimentData {
@@ -43,14 +39,20 @@ impl From<&VectorSolution> for DataPoint3D {
 }
 
 /// A population type which provides way to intercept some of population data.
-pub struct ProxyPopulation {
+pub struct ProxyPopulation<P>
+where
+    P: HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + 'static,
+{
     generation: usize,
-    inner: VectorPopulation,
+    inner: P,
 }
 
-impl ProxyPopulation {
+impl<P> ProxyPopulation<P>
+where
+    P: HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + 'static,
+{
     /// Creates a new instance of `ProxyPopulation`.
-    pub fn new(inner: VectorPopulation) -> Self {
+    pub fn new(inner: P) -> Self {
         EXPERIMENT_DATA.lock().unwrap().clear();
         Self { generation: 0, inner }
     }
@@ -60,7 +62,10 @@ impl ProxyPopulation {
     }
 }
 
-impl HeuristicPopulation for ProxyPopulation {
+impl<P> HeuristicPopulation for ProxyPopulation<P>
+where
+    P: HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + 'static,
+{
     type Objective = VectorObjective;
     type Individual = VectorSolution;
 
@@ -87,7 +92,7 @@ impl HeuristicPopulation for ProxyPopulation {
         let individuals = self.inner.all().map(|individual| individual.into()).collect();
         self.acquire().on_generation.insert(self.generation, (statistics.clone(), individuals));
 
-        self.acquire().population_state.insert(self.generation, parse_population_state(self.inner.to_string()));
+        self.acquire().population_state.insert(self.generation, get_population_state(&self.inner));
 
         self.inner.on_generation(statistics)
     }
@@ -121,7 +126,10 @@ impl HeuristicPopulation for ProxyPopulation {
     }
 }
 
-impl Display for ProxyPopulation {
+impl<P> Display for ProxyPopulation<P>
+where
+    P: HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + 'static,
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.inner.fmt(f)
     }

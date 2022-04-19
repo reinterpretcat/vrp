@@ -21,7 +21,6 @@ rosomaxa = { path = "../../rosomaxa" }
 plotters = "0.3.1"
 plotters-canvas = "0.3.0"
 itertools = "0.10.3"
-regex = "1.5.5"
 wasm-bindgen = "0.2.62"
 web-sys = { version = "0.3.56", features = ["HtmlCanvasElement", "console"] }
 wee_alloc = "0.4.5"

@@ -133,7 +133,7 @@ where
         let mut remove_node = |coordinate: &Coordinate| {
             // NOTE: prevent network to be less than 4 nodes
             if (original - removed.len()) > 4 {
-                removed.push(coordinate.clone());
+                removed.push(*coordinate);
             }
         };
 
@@ -231,7 +231,7 @@ where
             (true, false) => self.distribute_error(node, radius),
             (true, true) => {
                 self.grow_nodes(node).into_iter().for_each(|(coordinate, weights)| {
-                    self.insert(coordinate.clone(), weights.as_slice());
+                    self.insert(coordinate, weights.as_slice());
                     let new_node = self.nodes.get(&coordinate).unwrap();
                     self.adjust_weights(new_node, input.weights(), radius, is_new_input);
                 });
@@ -256,7 +256,7 @@ where
     #[allow(clippy::needless_collect)]
     fn grow_nodes(&self, node: &NodeLink<I, S>) -> Vec<(Coordinate, Vec<f64>)> {
         let node = node.read().unwrap();
-        let coord = node.coordinate.clone();
+        let coord = node.coordinate;
         let weights = node.weights.clone();
 
         let get_coord = |offset_x: i32, offset_y: i32| Coordinate(coord.0 + offset_x, coord.1 + offset_y);
@@ -343,7 +343,7 @@ where
     /// Inserts new neighbors if necessary.
     fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) {
         update_min_max(&mut self.min_max_weights, weights);
-        self.nodes.insert(coordinate.clone(), Arc::new(RwLock::new(self.create_node(coordinate, weights, 0.))));
+        self.nodes.insert(coordinate, Arc::new(RwLock::new(self.create_node(coordinate, weights, 0.))));
     }
 
     /// Creates a new node for given data.

@@ -42,8 +42,8 @@ fn can_get_crowding_distance() {
     let cb = crowding.iter().find(|i| i.solution.eq(&b)).unwrap();
     let cd = crowding.iter().find(|i| i.solution.eq(&d)).unwrap();
 
-    assert_eq!(INFINITY, ca.crowding_distance);
-    assert_eq!(INFINITY, cb.crowding_distance);
+    assert_eq!(f64::INFINITY, ca.crowding_distance);
+    assert_eq!(f64::INFINITY, cb.crowding_distance);
 
     // only cd is in the middle. spread is in both dimensions the same
     // (2.0). norm is 1.0 / (spread * #objectives) = 1.0 / 4.0. As we

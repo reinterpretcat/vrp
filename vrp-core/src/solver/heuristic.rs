@@ -10,7 +10,8 @@ use rosomaxa::termination::*;
 use std::marker::PhantomData;
 
 /// A type alias for domain specific population.
-pub type TargetPopulation = Box<dyn HeuristicPopulation<Objective = ProblemObjective, Individual = InsertionContext>>;
+pub type TargetPopulation =
+    Box<dyn HeuristicPopulation<Objective = ProblemObjective, Individual = InsertionContext> + Send + Sync>;
 /// A type alias for domain specific heuristic.
 pub type TargetHeuristic =
     Box<dyn HyperHeuristic<Context = RefinementContext, Objective = ProblemObjective, Solution = InsertionContext>>;

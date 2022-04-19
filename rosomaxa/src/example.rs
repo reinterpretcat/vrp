@@ -56,7 +56,7 @@ impl VectorContext {
     /// Creates a new instance of `VectorContext`.
     pub fn new(
         objective: Arc<VectorObjective>,
-        population: Box<dyn HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution>>,
+        population: Box<VectorPopulation>,
         telemetry_mode: TelemetryMode,
         environment: Arc<Environment>,
     ) -> Self {

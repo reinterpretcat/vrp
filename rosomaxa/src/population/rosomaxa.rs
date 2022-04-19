@@ -309,7 +309,7 @@ where
             let node = node.read().unwrap();
             let coordinate = node.storage.population.select().next().map(|individual| {
                 (
-                    coordinate.clone(),
+                    *coordinate,
                     relative_distance(best_fitness.iter().cloned(), individual.get_fitness()),
                     node.get_last_hits(network.get_current_time()),
                 )
@@ -414,6 +414,21 @@ where
                 write!(f, "{}", state)
             }
             _ => write!(f, "{}", self.elite),
+        }
+    }
+}
+
+impl<'a, O, S> TryFrom<&'a Rosomaxa<O, S>> for NetworkState
+where
+    O: HeuristicObjective<Solution = S> + Shuffled,
+    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+{
+    type Error = String;
+
+    fn try_from(value: &'a Rosomaxa<O, S>) -> Result<Self, Self::Error> {
+        match &value.phase {
+            RosomaxaPhases::Exploration { network, .. } => Ok(get_network_state(network)),
+            _ => Err("not in exploration state".to_string()),
         }
     }
 }
