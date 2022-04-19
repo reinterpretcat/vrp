@@ -3,18 +3,15 @@ use crate::plots::*;
 use crate::DataPoint3D;
 use itertools::Itertools;
 use plotters::coord::Shift;
-use plotters_canvas::CanvasBackend;
 use rosomaxa::algorithms::gsom::Coordinate;
 use std::ops::Deref;
-use web_sys::HtmlCanvasElement;
 
 /// Draws chart on canvas according to the drawing configs.
-pub fn draw(
-    canvas: HtmlCanvasElement,
+pub fn draw<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
     solution_config: &SolutionDrawConfig,
     population_config: &PopulationDrawConfig,
 ) -> DrawResult<()> {
-    let area = CanvasBackend::with_canvas_object(canvas).unwrap().into_drawing_area();
     area.fill(&WHITE)?;
 
     let (left, right) = area.split_horizontally(500);
@@ -23,10 +20,15 @@ pub fn draw(
 
     draw_population(right, population_config)?;
 
+    area.present()?;
+
     Ok(())
 }
 
-fn draw_solution(area: DrawingArea<CanvasBackend, Shift>, solution_config: &SolutionDrawConfig) -> DrawResult<()> {
+fn draw_solution<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
+    solution_config: &SolutionDrawConfig,
+) -> DrawResult<()> {
     let x_axis = (solution_config.axes.x.0.start..solution_config.axes.x.0.end).step(solution_config.axes.x.1);
     let z_axis = (solution_config.axes.z.0.start..solution_config.axes.z.0.end).step(solution_config.axes.z.1);
     let y_axis = solution_config.axes.y.start..solution_config.axes.y.end;
@@ -66,8 +68,8 @@ fn draw_solution(area: DrawingArea<CanvasBackend, Shift>, solution_config: &Solu
     Ok(())
 }
 
-fn draw_population(
-    area: DrawingArea<CanvasBackend, Shift>,
+fn draw_population<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
     population_config: &PopulationDrawConfig,
 ) -> DrawResult<()> {
     match &population_config.series {
@@ -76,7 +78,7 @@ fn draw_population(
             assert_eq!(sub_areas.len(), 4);
 
             let draw_series2d =
-                |area: &mut DrawingArea<CanvasBackend, Shift>, caption: &str, series: &Series2D| -> DrawResult<()> {
+                |area: &mut DrawingArea<B, Shift>, caption: &str, series: &Series2D| -> DrawResult<()> {
                     let mut chart = ChartBuilder::on(area)
                         .caption(caption, ("sans-serif", 12))
                         .build_cartesian_2d(rows.clone(), cols.clone())?;

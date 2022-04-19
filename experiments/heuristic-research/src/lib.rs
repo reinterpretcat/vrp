@@ -10,6 +10,7 @@ use std::sync::{Arc, Mutex};
 use wasm_bindgen::prelude::*;
 
 mod plots;
+pub use self::plots::{draw_plots, Axes};
 
 mod solver;
 pub use self::solver::run_solver;

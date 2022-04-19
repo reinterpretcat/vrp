@@ -1,7 +1,9 @@
 #![allow(clippy::unused_unit)]
 
 use super::*;
+use plotters::coord::Shift;
 use plotters::prelude::*;
+use plotters_canvas::CanvasBackend;
 use std::ops::Deref;
 use web_sys::HtmlCanvasElement;
 
@@ -26,41 +28,46 @@ impl Chart {
     /// Draws plot for rosenbrock function.
     pub fn rosenbrock(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-2.0..2.0, 0.15), y: (0.0..3610.), z: (-2.0..2.0, 0.15) };
-        draw(canvas, generation, pitch, yaw, axes, "rosenbrock")?;
+        draw_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rosenbrock")?;
         Ok(())
     }
 
     /// Draws plot for rastrigin function.
     pub fn rastrigin(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-5.12..5.12, 0.2), y: (0.0..80.), z: (-5.12..5.12, 0.2) };
-        draw(canvas, generation, pitch, yaw, axes, "rastrigin")?;
+        draw_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rastrigin")?;
         Ok(())
     }
 
     /// Draws plot for himmelblau function.
     pub fn himmelblau(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-5.0..5.0, 0.2), y: (0.0..700.), z: (-5.0..5.0, 0.2) };
-        draw(canvas, generation, pitch, yaw, axes, "himmelblau")?;
+        draw_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "himmelblau")?;
         Ok(())
     }
 
     /// Draws plot for ackley function.
     pub fn ackley(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-5.0..5.0, 0.2), y: (0.0..14.), z: (-5.0..5.0, 0.2) };
-        draw(canvas, generation, pitch, yaw, axes, "ackley")?;
+        draw_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "ackley")?;
         Ok(())
     }
 
     /// Draws plot for matyas function.
     pub fn matyas(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-10.0..10.0, 0.4), y: (0.0..100.), z: (-10.0..10.0, 0.4) };
-        draw(canvas, generation, pitch, yaw, axes, "matyas")?;
+        draw_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "matyas")?;
         Ok(())
     }
 }
 
-fn draw(
-    canvas: HtmlCanvasElement,
+fn get_canvas_drawing_area(canvas: HtmlCanvasElement) -> DrawingArea<CanvasBackend, Shift> {
+    CanvasBackend::with_canvas_object(canvas).unwrap().into_drawing_area()
+}
+
+/// Draws plots on given area.
+pub fn draw_plots<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
     generation: usize,
     pitch: f64,
     yaw: f64,
@@ -68,7 +75,7 @@ fn draw(
     name: &str,
 ) -> Result<(), String> {
     drawing::draw(
-        canvas,
+        area,
         &SolutionDrawConfig {
             axes,
             projection: Projection { pitch, yaw, scale: 0.8 },

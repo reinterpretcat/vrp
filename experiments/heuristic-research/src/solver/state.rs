@@ -98,6 +98,7 @@ fn try_parse_network_state(value: &String) -> Option<NetworkState> {
                 (?P<total_hits>\d+),
                 (?P<last_hits>\d+),
                 \[[^,]*,[^,]*,(?P<objective>-?\d*[.]?\d+)],
+                [^)]*
             \)"
         )
         .unwrap();
