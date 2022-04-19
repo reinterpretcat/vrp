@@ -1,9 +1,11 @@
 use super::DrawResult;
 use crate::plots::*;
 use crate::DataPoint3D;
-use itertools::Itertools;
+use itertools::{Itertools, MinMaxResult};
 use plotters::coord::Shift;
 use rosomaxa::algorithms::gsom::Coordinate;
+use rosomaxa::utils::compare_floats;
+use std::cmp::Ordering;
 use std::ops::Deref;
 
 /// Draws chart on canvas according to the drawing configs.
@@ -14,11 +16,16 @@ pub fn draw<B: DrawingBackend + 'static>(
 ) -> DrawResult<()> {
     area.fill(&WHITE)?;
 
-    let (left, right) = area.split_horizontally(500);
-
-    draw_solution(left, solution_config)?;
-
-    draw_population(right, population_config)?;
+    match &population_config.series {
+        PopulationSeries::Unknown => {
+            draw_solution(&area, solution_config)?;
+        }
+        PopulationSeries::Rosomaxa { .. } => {
+            let (left, right) = area.split_horizontally(500);
+            draw_solution(&left, solution_config)?;
+            draw_population(&right, population_config)?;
+        }
+    }
 
     area.present()?;
 
@@ -26,14 +33,14 @@ pub fn draw<B: DrawingBackend + 'static>(
 }
 
 fn draw_solution<B: DrawingBackend + 'static>(
-    area: DrawingArea<B, Shift>,
+    area: &DrawingArea<B, Shift>,
     solution_config: &SolutionDrawConfig,
 ) -> DrawResult<()> {
     let x_axis = (solution_config.axes.x.0.start..solution_config.axes.x.0.end).step(solution_config.axes.x.1);
     let z_axis = (solution_config.axes.z.0.start..solution_config.axes.z.0.end).step(solution_config.axes.z.1);
     let y_axis = solution_config.axes.y.start..solution_config.axes.y.end;
 
-    let mut chart = ChartBuilder::on(&area).build_cartesian_3d(x_axis.clone(), y_axis, z_axis.clone())?;
+    let mut chart = ChartBuilder::on(area).build_cartesian_3d(x_axis.clone(), y_axis, z_axis.clone())?;
 
     chart.with_projection(|mut pb| {
         pb.yaw = solution_config.projection.yaw;
@@ -69,7 +76,7 @@ fn draw_solution<B: DrawingBackend + 'static>(
 }
 
 fn draw_population<B: DrawingBackend + 'static>(
-    area: DrawingArea<B, Shift>,
+    area: &DrawingArea<B, Shift>,
     population_config: &PopulationDrawConfig,
 ) -> DrawResult<()> {
     match &population_config.series {
@@ -81,6 +88,7 @@ fn draw_population<B: DrawingBackend + 'static>(
                 |area: &mut DrawingArea<B, Shift>, caption: &str, series: &Series2D| -> DrawResult<()> {
                     let mut chart = ChartBuilder::on(area)
                         .caption(caption, ("sans-serif", 12))
+                        .margin(5)
                         .build_cartesian_2d(rows.clone(), cols.clone())?;
 
                     chart
@@ -91,24 +99,30 @@ fn draw_population<B: DrawingBackend + 'static>(
                         .disable_y_mesh()
                         .draw()?;
 
-                    let matrix = series.matrix.deref()();
+                    let matrix: MatrixData = series.matrix.deref()();
+                    let size = match matrix.iter().minmax_by(|(_, &a), (_, &b)| compare_floats(a, b)) {
+                        MinMaxResult::OneElement((_, &value)) if compare_floats(value, 0.) != Ordering::Equal => value,
+                        MinMaxResult::MinMax((_, &min), (_, &max)) => max - min,
+                        _ => 1.,
+                    };
 
                     chart.draw_series(rows.clone().cartesian_product(cols.clone()).map(|(x, y)| {
-                        let v = matrix.get(&Coordinate(x, y)).cloned().unwrap_or(0.);
+                        let points = [(x, y), (x + 1, y + 1)];
 
-                        Rectangle::new(
-                            [(x, y), (x + 1, y + 1)],
-                            HSLColor(240. / 360. - 240. / 360. * v / 20., 0.7, 0.1 + 0.4 * v / 20.).filled(),
-                        )
+                        if let Some(v) = matrix.get(&Coordinate(x, y)).cloned() {
+                            Rectangle::new(points, HSLColor(240. / 360. - 240. / 360. * v / size, 1., 0.7).filled())
+                        } else {
+                            Rectangle::new(points, WHITE)
+                        }
                     }))?;
 
                     Ok(())
                 };
 
-            draw_series2d(sub_areas.get_mut(0).unwrap(), "objective", objective)?;
-            draw_series2d(sub_areas.get_mut(1).unwrap(), "unified", u_matrix)?;
-            draw_series2d(sub_areas.get_mut(2).unwrap(), "total", t_matrix)?;
-            draw_series2d(sub_areas.get_mut(3).unwrap(), "last", l_matrix)?;
+            draw_series2d(sub_areas.get_mut(0).unwrap(), "objective value", objective)?;
+            draw_series2d(sub_areas.get_mut(1).unwrap(), "unified distance", u_matrix)?;
+            draw_series2d(sub_areas.get_mut(2).unwrap(), "total hits", t_matrix)?;
+            draw_series2d(sub_areas.get_mut(3).unwrap(), "last hits", l_matrix)?;
         }
         PopulationSeries::Unknown => {}
     };
