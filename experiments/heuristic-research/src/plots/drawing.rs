@@ -84,45 +84,58 @@ fn draw_population<B: DrawingBackend + 'static>(
             let mut sub_areas = area.split_evenly((2, 2));
             assert_eq!(sub_areas.len(), 4);
 
-            let draw_series2d =
-                |area: &mut DrawingArea<B, Shift>, caption: &str, series: &Series2D| -> DrawResult<()> {
-                    let mut chart = ChartBuilder::on(area)
-                        .caption(caption, ("sans-serif", 12))
-                        .margin(5)
-                        .build_cartesian_2d(rows.clone(), cols.clone())?;
-
-                    chart
-                        .configure_mesh()
-                        .x_labels(rows.len())
-                        .y_labels(cols.len())
-                        .disable_x_mesh()
-                        .disable_y_mesh()
-                        .draw()?;
-
-                    let matrix: MatrixData = series.matrix.deref()();
-                    let size = match matrix.iter().minmax_by(|(_, &a), (_, &b)| compare_floats(a, b)) {
-                        MinMaxResult::OneElement((_, &value)) if compare_floats(value, 0.) != Ordering::Equal => value,
-                        MinMaxResult::MinMax((_, &min), (_, &max)) => max - min,
-                        _ => 1.,
-                    };
-
-                    chart.draw_series(rows.clone().cartesian_product(cols.clone()).map(|(x, y)| {
-                        let points = [(x, y), (x + 1, y + 1)];
-
-                        if let Some(v) = matrix.get(&Coordinate(x, y)).cloned() {
-                            Rectangle::new(points, HSLColor(240. / 360. - 240. / 360. * v / size, 1., 0.7).filled())
-                        } else {
-                            Rectangle::new(points, WHITE)
-                        }
-                    }))?;
-
-                    Ok(())
+            let draw_series2d = |area: &mut DrawingArea<B, Shift>,
+                                 caption_fn: &dyn Fn(f64, f64) -> String,
+                                 series: &Series2D|
+             -> DrawResult<()> {
+                let matrix: MatrixData = series.matrix.deref()();
+                let (min, max, size) = match matrix.iter().minmax_by(|(_, &a), (_, &b)| compare_floats(a, b)) {
+                    MinMaxResult::OneElement((_, &value)) if compare_floats(value, 0.) != Ordering::Equal => {
+                        (value, value, value)
+                    }
+                    MinMaxResult::MinMax((_, &min), (_, &max)) => (min, max, max - min),
+                    _ => (1., 1., 1.),
                 };
 
-            draw_series2d(sub_areas.get_mut(0).unwrap(), "objective value", objective)?;
-            draw_series2d(sub_areas.get_mut(1).unwrap(), "unified distance", u_matrix)?;
-            draw_series2d(sub_areas.get_mut(2).unwrap(), "total hits", t_matrix)?;
-            draw_series2d(sub_areas.get_mut(3).unwrap(), "last hits", l_matrix)?;
+                let mut chart = ChartBuilder::on(area)
+                    .caption(caption_fn(min, max).as_str(), ("sans-serif", 12))
+                    .margin(5)
+                    .build_cartesian_2d(rows.clone(), cols.clone())?;
+
+                chart
+                    .configure_mesh()
+                    .x_labels(rows.len())
+                    .y_labels(cols.len())
+                    .disable_x_mesh()
+                    .disable_y_mesh()
+                    .draw()?;
+
+                chart.draw_series(rows.clone().cartesian_product(cols.clone()).map(|(x, y)| {
+                    let points = [(x, y), (x + 1, y + 1)];
+
+                    if let Some(v) = matrix.get(&Coordinate(x, y)).cloned() {
+                        Rectangle::new(points, HSLColor(240. / 360. - 240. / 360. * v / size, 1., 0.7).filled())
+                    } else {
+                        Rectangle::new(points, WHITE)
+                    }
+                }))?;
+
+                Ok(())
+            };
+
+            let get_caption_float = |caption: &str| {
+                let caption = caption.to_string();
+                move |min: f64, max: f64| format!("{} [{:.2}..{:.2}]", caption, min, max)
+            };
+            let get_caption_usize = |caption: &str| {
+                let caption = caption.to_string();
+                move |min: f64, max: f64| format!("{} [{}..{}]", caption, min as usize, max as usize)
+            };
+
+            draw_series2d(sub_areas.get_mut(0).unwrap(), &get_caption_float("objective value"), objective)?;
+            draw_series2d(sub_areas.get_mut(1).unwrap(), &get_caption_float("unified distance"), u_matrix)?;
+            draw_series2d(sub_areas.get_mut(2).unwrap(), &get_caption_usize("total hits"), t_matrix)?;
+            draw_series2d(sub_areas.get_mut(3).unwrap(), &get_caption_usize("last hits"), l_matrix)?;
         }
         PopulationSeries::Unknown => {}
     };

@@ -67,8 +67,15 @@ fn create_rosomaxa_state(network_state: NetworkState) -> PopulationState {
         let coordinate = Coordinate(node.coordinate.0, node.coordinate.1);
         match &mut rosomaxa {
             PopulationState::Rosomaxa { objective, u_matrix, t_matrix, l_matrix, .. } => {
-                // NOTE assumption is that last weight is objective value
-                objective.insert(coordinate, *node.weights.last().unwrap());
+                // NOTE get first fitness in assumption of sorted order
+                let fitness = match (node.dump.starts_with("[["), node.dump.find(']')) {
+                    (true, Some(value)) => node.dump[2..value].parse::<f64>().ok(),
+                    _ => None,
+                };
+
+                if let Some(fitness) = fitness {
+                    objective.insert(coordinate, fitness);
+                }
                 u_matrix.insert(coordinate, node.unified_distance);
                 t_matrix.insert(coordinate, node.total_hits as f64);
                 l_matrix.insert(coordinate, node.last_hits as f64);
