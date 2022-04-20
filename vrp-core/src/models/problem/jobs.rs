@@ -6,10 +6,10 @@ use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
 use hashbrown::HashMap;
 use rosomaxa::prelude::compare_floats;
-use std::cell::UnsafeCell;
 use std::cmp::Ordering::Less;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Weak};
+use crate::utils::as_mut;
 
 /// Represents a job variant.
 #[derive(Clone)]
@@ -162,23 +162,13 @@ impl Multi {
 
     /// Wraps given multi job into [`Arc`] adding reference to it from all sub-jobs.
     pub fn bind(multi: Self) -> Arc<Self> {
-        // NOTE: layout must be identical
-        #[allow(dead_code)]
-        struct SingleConstruct {
-            pub places: UnsafeCell<Vec<Place>>,
-            pub dimens: UnsafeCell<Dimensions>,
-        }
+        Arc::new_cyclic(|weak_multi| {
+            multi.jobs.iter().for_each(|job| {
+                unsafe { as_mut(job.as_ref()) }.dimens.set_value("rf", weak_multi.clone());
+            });
 
-        let multi = Arc::new(multi);
-
-        multi.jobs.iter().for_each(|job| {
-            let weak_multi = Arc::downgrade(&multi);
-            let job: Arc<SingleConstruct> = unsafe { std::mem::transmute(job.clone()) };
-            let dimens = unsafe { &mut *job.dimens.get() };
-            dimens.set_value("rf", weak_multi);
-        });
-
-        multi
+            multi
+        })
     }
 
     /// Returns parent multi job for given sub-job.

@@ -9,9 +9,11 @@ All notable changes to this project will be documented in this file.
 * fix tour order issue related to break/reload activities
 * fix limit violation issue in specific use cases
 * improve rosomaxa and customized gsom implementation
+* use a new `Arc::new_cyclic` method to bind multi-single jobs
 
 ### Added
-* heuristic research playground to test and demonstrate
+
+* heuristic research playground with algorithm visualizations capabilities
 
 
 ## [v1.16.1] - 2022-03-10
