@@ -361,7 +361,12 @@ where
         let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
 
         if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
-            network.compact(&|node| get_distance(node).map_or(false, |distance| distance < distance_threshold));
+            network.compact(&|node, unified_distance| {
+                // NOTE
+                // unified distance filter improves diversity property
+                // distance filter improves exploitation characterisitc by removing old (or empty) nodes
+                unified_distance > 0.1 && get_distance(node).map_or(false, |distance| distance < distance_threshold)
+            });
             network.smooth(rebalance_count);
         }
     }
@@ -508,6 +513,7 @@ where
 
                 let distance = relative_distance(weights_a.iter().cloned(), weights_b.iter().cloned());
 
+                // NOTE custom dedup rule to increase diversity property
                 distance < 0.1
             }),
         );

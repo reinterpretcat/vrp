@@ -127,7 +127,7 @@ where
     }
 
     /// Compacts network.
-    pub fn compact(&mut self, node_filter: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
+    pub fn compact(&mut self, node_filter: &(dyn Fn(&NodeLink<I, S>, f64) -> bool)) {
         let original = self.nodes.len();
         let mut removed = vec![];
         let mut remove_node = |coordinate: &Coordinate| {
@@ -139,8 +139,11 @@ where
 
         // remove user defined nodes
         self.nodes
-            .iter_mut()
-            .filter(|(_, node)| !node_filter.deref()(node))
+            .iter()
+            .filter(|(_, node)| {
+                let unified_distance = node.read().unwrap().unified_distance(self, 1);
+                !node_filter.deref()(node, unified_distance)
+            })
             .for_each(|(coordinate, _)| remove_node(coordinate));
 
         removed.iter().for_each(|coordinate| {
