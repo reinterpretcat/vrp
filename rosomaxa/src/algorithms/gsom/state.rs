@@ -50,17 +50,12 @@ where
         .map(|node| {
             let node = node.read().unwrap();
 
-            let (sum, count) = node.neighbours(network, 1).filter_map(|(n, _)| n).fold((0., 0), |(sum, count), n| {
-                let distance = node.storage.distance(node.weights.as_slice(), n.read().unwrap().weights.as_slice());
-                (sum + distance, count + 1)
-            });
-
             let mut dump = String::new();
             write!(dump, "{}", node.storage).unwrap();
 
             NodeState {
                 coordinate: (node.coordinate.0, node.coordinate.1),
-                unified_distance: if count > 0 { sum / count as f64 } else { 0. },
+                unified_distance: node.unified_distance(network, 1),
                 weights: node.weights.clone(),
                 total_hits: node.total_hits,
                 last_hits: node.get_last_hits(network.get_current_time()),

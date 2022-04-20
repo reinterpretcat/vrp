@@ -102,4 +102,18 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
                 .map(move |y| (network.find(&Coordinate(node_x + x, node_y + y)), (x, y)))
         })
     }
+
+    /// Gets unified distance.
+    pub fn unified_distance<F: StorageFactory<I, S>>(&self, network: &Network<I, S, F>, radius: usize) -> f64 {
+        let (sum, count) = self.neighbours(network, radius).filter_map(|(n, _)| n).fold((0., 0), |(sum, count), n| {
+            let distance = self.storage.distance(self.weights.as_slice(), n.read().unwrap().weights.as_slice());
+            (sum + distance, count + 1)
+        });
+
+        if count > 0 {
+            sum / count as f64
+        } else {
+            0.
+        }
+    }
 }
