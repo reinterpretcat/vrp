@@ -357,7 +357,7 @@ where
         let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
         distances.sort_by(|a, b| compare_floats(*b, *a));
 
-        const PERCENTILE_THRESHOLD: f64 = 0.1;
+        const PERCENTILE_THRESHOLD: f64 = 0.01;
         let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
 
         if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
