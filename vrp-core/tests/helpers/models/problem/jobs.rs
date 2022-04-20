@@ -47,8 +47,22 @@ pub fn test_single_with_locations(locations: Vec<Option<Location>>) -> Arc<Singl
     })
 }
 
+pub fn test_multi_with_id(id: &str, jobs: Vec<Arc<Single>>) -> Arc<Multi> {
+    let mut dimens = Dimensions::new();
+    dimens.set_id(id);
+
+    Multi::new_shared(jobs, dimens)
+}
+
 pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> Arc<Multi> {
-    Multi::bind(Multi::new(locations.into_iter().map(test_single_with_locations).collect(), Default::default()))
+    Multi::new_shared(locations.into_iter().map(test_single_with_locations).collect(), Default::default())
+}
+
+pub fn test_multi_with_permutations(id: &str, jobs: Vec<Arc<Single>>, permutations: Vec<Vec<usize>>) -> Arc<Multi> {
+    let mut dimens = Dimensions::new();
+    dimens.set_id(id);
+
+    Multi::new_shared_with_permutator(jobs, dimens, Box::new(FixedJobPermutation::new(permutations)))
 }
 
 pub fn get_job_id(job: &Job) -> &String {
@@ -113,64 +127,11 @@ impl SingleBuilder {
         std::mem::replace(&mut self.single, test_single())
     }
 
+    pub fn build_shared(&mut self) -> Arc<Single> {
+        Arc::new(self.build())
+    }
+
     pub fn build_as_job_ref(&mut self) -> Job {
         Job::Single(Arc::new(self.build()))
-    }
-}
-
-fn test_multi() -> Multi {
-    let mut multi =
-        Multi::new(vec![test_single_with_id("single1"), test_single_with_id("single2")], Default::default());
-    multi.dimens.set_id("multi");
-    multi
-}
-
-pub struct MultiBuilder {
-    multi: Multi,
-    custom_permutator: bool,
-}
-
-impl Default for MultiBuilder {
-    fn default() -> Self {
-        let mut multi = Multi::new(vec![], Default::default());
-        multi.dimens.set_id("multi");
-
-        Self { multi, custom_permutator: false }
-    }
-}
-
-impl MultiBuilder {
-    pub fn new_with_permutations(permutations: Vec<Vec<usize>>) -> Self {
-        Self {
-            multi: Multi::new_with_permutator(
-                vec![],
-                Default::default(),
-                Box::new(FixedJobPermutation::new(permutations)),
-            ),
-            custom_permutator: true,
-        }
-    }
-
-    pub fn id(&mut self, id: &str) -> &mut Self {
-        self.multi.dimens.set_id(id);
-        self
-    }
-
-    pub fn job(&mut self, job: Single) -> &mut Self {
-        self.multi.jobs.push(Arc::new(job));
-        self
-    }
-
-    pub fn jobs(&mut self, jobs: Vec<Single>) -> &mut Self {
-        self.multi.jobs.extend(jobs.into_iter().map(Arc::new));
-        self
-    }
-
-    pub fn build(&mut self) -> Job {
-        let multi = std::mem::replace(&mut self.multi, test_multi());
-        let multi = if !self.custom_permutator { Multi::new(multi.jobs, multi.dimens) } else { multi };
-
-        let multi = Multi::bind(multi);
-        Job::Multi(multi)
     }
 }

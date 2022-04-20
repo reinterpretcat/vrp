@@ -433,10 +433,10 @@ fn get_multi_job(
     let singles = singles.into_iter().map(Arc::new).collect::<Vec<_>>();
 
     let multi = if singles.len() == 2 && deliveries_start_index == 1 {
-        Multi::new(singles, dimens)
+        Multi::new_shared(singles, dimens)
     } else {
         let jobs_len = singles.len();
-        Multi::new_with_permutator(
+        Multi::new_shared_with_permutator(
             singles,
             dimens,
             Box::new(VariableJobPermutation::new(
@@ -448,7 +448,7 @@ fn get_multi_job(
         )
     };
 
-    Job::Multi(Multi::bind(multi))
+    Job::Multi(multi)
 }
 
 fn create_condition(vehicle_id: String, shift_index: usize) -> Arc<dyn Fn(&Actor) -> bool + Sync + Send> {

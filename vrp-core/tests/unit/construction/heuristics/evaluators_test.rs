@@ -228,10 +228,13 @@ mod multi {
 
     #[test]
     fn can_insert_job_with_location_into_empty_tour() {
-        let job = MultiBuilder::default()
-            .job(SingleBuilder::default().id("s1").location(Some(3)).build())
-            .job(SingleBuilder::default().id("s2").location(Some(7)).build())
-            .build();
+        let job = Job::Multi(test_multi_with_id(
+            "multi",
+            vec![
+                SingleBuilder::default().id("s1").location(Some(3)).build_shared(),
+                SingleBuilder::default().id("s2").location(Some(7)).build_shared(),
+            ],
+        ));
         let mut ctx = create_test_insertion_context(create_test_registry());
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
@@ -253,11 +256,16 @@ mod multi {
         case2: vec![(0, 1111), (1, 3)],
     }
     fn can_handle_activity_constraint_violation_impl(singles: Vec<InsertionData>) {
-        let mut job = MultiBuilder::default();
-        singles.iter().zip(0usize..).for_each(|((_, loc), index)| {
-            job.job(SingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build());
-        });
-        let job = job.build();
+        let job = Job::Multi(test_multi_with_id(
+            "multi",
+            singles
+                .iter()
+                .zip(0usize..)
+                .map(|((_, loc), index)| {
+                    SingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build_shared()
+                })
+                .collect(),
+        ));
         let mut ctx = create_test_insertion_context(create_test_registry());
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
@@ -305,11 +313,16 @@ mod multi {
         let routes = vec![route_ctx];
         let constraint = create_constraint_pipeline_with_transport();
         let mut ctx = create_insertion_context(registry, constraint, routes);
-        let mut job = MultiBuilder::default();
-        expected.iter().zip(0usize..).for_each(|((_, loc), index)| {
-            job.job(SingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build());
-        });
-        let job = job.build();
+        let job = Job::Multi(test_multi_with_id(
+            "multi",
+            expected
+                .iter()
+                .zip(0usize..)
+                .map(|((_, loc), index)| {
+                    SingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build_shared()
+                })
+                .collect(),
+        ));
 
         let result = evaluate_job_insertion(&mut ctx, &job, position);
 
@@ -325,11 +338,15 @@ mod multi {
     #[test]
     fn can_choose_cheaper_permutation_from_two() {
         let mut ctx = create_test_insertion_context(create_test_registry());
-        let job = MultiBuilder::new_with_permutations(vec![vec![0, 1, 2], vec![1, 0, 2], vec![2, 1, 0]])
-            .job(SingleBuilder::default().id("s1").location(Some(10)).build())
-            .job(SingleBuilder::default().id("s2").location(Some(5)).build())
-            .job(SingleBuilder::default().id("s3").location(Some(15)).build())
-            .build();
+        let job = Job::Multi(test_multi_with_permutations(
+            "multi",
+            vec![
+                SingleBuilder::default().id("s1").location(Some(10)).build_shared(),
+                SingleBuilder::default().id("s2").location(Some(5)).build_shared(),
+                SingleBuilder::default().id("s3").location(Some(15)).build_shared(),
+            ],
+            vec![vec![0, 1, 2], vec![1, 0, 2], vec![2, 1, 0]],
+        ));
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 

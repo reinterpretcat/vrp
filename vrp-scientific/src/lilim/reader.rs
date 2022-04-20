@@ -111,10 +111,10 @@ impl<R: Read> LilimReader<R> {
             let pickup = customers.get(&relation.pickup).unwrap();
             let delivery = customers.get(&relation.delivery).unwrap();
 
-            jobs.push(Job::Multi(Multi::bind(Multi::new(
+            jobs.push(Job::Multi(Multi::new_shared(
                 vec![self.create_single_job(pickup), self.create_single_job(delivery)],
                 create_dimens_with_id("mlt", &index.to_string()),
-            ))));
+            )));
         });
 
         Ok(jobs)

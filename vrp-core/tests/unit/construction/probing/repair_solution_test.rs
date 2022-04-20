@@ -34,8 +34,8 @@ fn create_test_problem(
         .into_iter()
         .map(|(id, data)| Job::Single(Arc::new(create_single(id, data))))
         .chain(multies.into_iter().map(|(id, singles)| {
-            let singles = singles.into_iter().map(|data| create_single(id, data)).collect();
-            MultiBuilder::default().id(id).jobs(singles).build()
+            let singles = singles.into_iter().map(|data| Arc::new(create_single(id, data))).collect();
+            Job::Multi(test_multi_with_id(id, singles))
         }))
         .collect::<Vec<_>>();
 

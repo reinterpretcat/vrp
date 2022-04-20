@@ -4,12 +4,12 @@ mod jobs_test;
 
 use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
+use crate::utils::as_mut;
 use hashbrown::HashMap;
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering::Less;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Weak};
-use crate::utils::as_mut;
 
 /// Represents a job variant.
 #[derive(Clone)]
@@ -132,18 +132,18 @@ impl JobPermutation for FixedJobPermutation {
 impl Multi {
     /// Creates a new multi job from given 'dimens' and `jobs` assuming that jobs has to be
     /// inserted in order they specified.
-    pub fn new(jobs: Vec<Arc<Single>>, dimens: Dimensions) -> Self {
+    pub fn new_shared(jobs: Vec<Arc<Single>>, dimens: Dimensions) -> Arc<Self> {
         let permutations = vec![(0..jobs.len()).collect()];
-        Self { jobs, dimens, permutator: Box::new(FixedJobPermutation::new(permutations)) }
+        Self::bind(Self { jobs, dimens, permutator: Box::new(FixedJobPermutation::new(permutations)) })
     }
 
     /// Creates a new multi job from given 'dimens' and `jobs` using `permutator` to control insertion order.
-    pub fn new_with_permutator(
+    pub fn new_shared_with_permutator(
         jobs: Vec<Arc<Single>>,
         dimens: Dimensions,
         permutator: Box<dyn JobPermutation + Send + Sync>,
-    ) -> Self {
-        Self { jobs, dimens, permutator }
+    ) -> Arc<Self> {
+        Self::bind(Self { jobs, dimens, permutator })
     }
 
     /// Returns all sub-jobs permutations.
@@ -160,8 +160,13 @@ impl Multi {
         self.permutator.validate(permutations)
     }
 
+    /// Returns parent multi job for given sub-job.
+    pub fn roots(single: &Single) -> Option<Arc<Multi>> {
+        single.dimens.get_value::<Weak<Multi>>("rf").and_then(|w| w.upgrade())
+    }
+
     /// Wraps given multi job into [`Arc`] adding reference to it from all sub-jobs.
-    pub fn bind(multi: Self) -> Arc<Self> {
+    fn bind(multi: Self) -> Arc<Self> {
         Arc::new_cyclic(|weak_multi| {
             multi.jobs.iter().for_each(|job| {
                 unsafe { as_mut(job.as_ref()) }.dimens.set_value("rf", weak_multi.clone());
@@ -169,11 +174,6 @@ impl Multi {
 
             multi
         })
-    }
-
-    /// Returns parent multi job for given sub-job.
-    pub fn roots(single: &Single) -> Option<Arc<Multi>> {
-        single.dimens.get_value::<Weak<Multi>>("rf").and_then(|w| w.upgrade())
     }
 }
 
