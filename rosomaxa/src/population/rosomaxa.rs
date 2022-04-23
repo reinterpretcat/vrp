@@ -31,8 +31,6 @@ pub struct RosomaxaConfig {
     pub learning_rate: f64,
     /// A node rebalance memory of GSOM.
     pub rebalance_memory: usize,
-    /// A rebalance count.
-    pub rebalance_count: usize,
     /// A ratio of exploration phase.
     pub exploration_ratio: f64,
 }
@@ -50,7 +48,6 @@ impl RosomaxaConfig {
             objective_reshuffling: 0.01,
             learning_rate: 0.1,
             rebalance_memory: 100,
-            rebalance_count: 2,
             exploration_ratio: 0.9,
         }
     }
@@ -275,7 +272,7 @@ where
                         statistics,
                         best_fitness.as_slice(),
                         self.config.rebalance_memory,
-                        self.config.rebalance_count,
+                        self.config.learning_rate,
                     );
 
                     Self::fill_populations(
@@ -326,7 +323,7 @@ where
         statistics: &HeuristicStatistics,
         best_fitness: &[f64],
         rebalance_memory: usize,
-        rebalance_count: usize,
+        init_learning_rate: f64,
     ) {
         // https://www.wolframalpha.com/input?i=plot+2+*+%281+-+1%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
         let x = match statistics.improvement_1000_ratio {
@@ -344,6 +341,10 @@ where
 
         if network.size() <= keep_size {
             return;
+        }
+
+        if init_learning_rate < 1. {
+            network.set_learning_rate(statistics.termination_estimate.clamp(init_learning_rate, 1.));
         }
 
         let get_distance = |node: &NodeLink<IndividualInput<S>, IndividualStorage<O, S>>| {
@@ -367,7 +368,7 @@ where
                 // distance filter improves exploitation characteristic by removing old (or empty) nodes
                 unified_distance > 0.1 && get_distance(node).map_or(false, |distance| distance < distance_threshold)
             });
-            network.smooth(rebalance_count);
+            network.smooth(1);
         }
     }
 

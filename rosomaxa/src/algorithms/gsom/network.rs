@@ -87,6 +87,11 @@ where
         }
     }
 
+    /// Sets a new learning rate.
+    pub fn set_learning_rate(&mut self, learning_rate: f64) {
+        self.learning_rate = learning_rate;
+    }
+
     /// Stores input into the network.
     pub fn store(&mut self, input: I, time: usize) {
         debug_assert!(input.weights().len() == self.dimension);
