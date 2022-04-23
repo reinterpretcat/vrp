@@ -42,7 +42,7 @@ impl RosomaxaConfig {
         Self {
             selection_size,
             elite_size: 2,
-            node_size: 4,
+            node_size: 2,
             spread_factor: 0.75,
             distribution_factor: 0.75,
             objective_reshuffling: 0.01,
