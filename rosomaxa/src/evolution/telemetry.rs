@@ -44,8 +44,8 @@ pub struct TelemetryGeneration {
 pub struct TelemetryIndividual {
     /// Rank in population.
     pub rank: usize,
-    /// Solution improvement from best individual.
-    pub improvement: f64,
+    /// Solution difference from best individual.
+    pub difference: f64,
     /// Objectives fitness values.
     pub fitness: Vec<f64>,
 }
@@ -318,9 +318,9 @@ where
     ) -> TelemetryIndividual {
         let fitness = solution.get_fitness().collect::<Vec<_>>();
 
-        let (_, improvement) = get_fitness_value(objective, population, solution);
+        let (_, difference) = get_fitness_value(objective, population, solution);
 
-        TelemetryIndividual { rank, improvement, fitness }
+        TelemetryIndividual { rank, difference: difference.abs(), fitness }
     }
 
     fn log_individual(&self, metrics: &TelemetryIndividual, gen_info: Option<(usize, Timer)>) {
@@ -335,7 +335,7 @@ where
                 fitness
             )
         } else {
-            format!("\trank: {}, fitness: ({}), improvement: {:.3}%", metrics.rank, fitness, metrics.improvement)
+            format!("\trank: {}, fitness: ({}), difference: {:.3}%", metrics.rank, fitness, metrics.difference)
         };
 
         self.log(value.as_str());

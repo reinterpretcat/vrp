@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 * fix tour order issue related to break/reload activities
 * fix limit violation issue in specific use cases
 * improve rosomaxa and customized gsom implementation
+* make search more exploratory
 * use a new `Arc::new_cyclic` method to bind multi-single jobs
 
 ### Added

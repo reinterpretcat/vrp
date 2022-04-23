@@ -18,21 +18,21 @@ preparing initial solution(-s)
 created initial population in 2317ms
 [2s] generation 0 took 21ms, fitness: (0.000, 104.000, 70669.056)
 [2s] population state (phase: initial, speed: 0.00 gen/sec, improvement ratio: 1.000:1.000):
-        rank: 0, fitness: (0.000, 104.000, 70669.056), improvement: 0.000%
-        rank: 1, fitness: (0.000, 104.000, 70705.550), improvement: 0.052%
+        rank: 0, fitness: (0.000, 104.000, 70669.056), difference: 0.000%
+        rank: 1, fitness: (0.000, 104.000, 70705.550), difference: 0.052%
 [5s] generation 100 took 27ms, fitness: (0.000, 96.000, 64007.851)
 [7s] generation 200 took 19ms, fitness: (0.000, 95.000, 63087.282)
 ..
 149s] generation 4000 took 44ms, fitness: (0.000, 92.000, 54032.930)
 [149s] population state (phase: exploration, speed: 26.78 gen/sec, improvement ratio: 0.235:0.155):
-        rank: 0, fitness: (0.000, 92.000, 54032.930), improvement: 0.000%
-        rank: 1, fitness: (0.000, 92.000, 54032.930), improvement: 0.000%
+        rank: 0, fitness: (0.000, 92.000, 54032.930), difference: 0.000%
+        rank: 1, fitness: (0.000, 92.000, 54032.930), difference: 0.000%
 [153s] generation 4100 took 42ms, fitness: (0.000, 92.000, 54021.021)
 ..
 [297s] generation 7200 took 20ms, fitness: (0.000, 92.000, 53264.644)
 [299s] population state (phase: exploitation, speed: 24.16 gen/sec, improvement ratio: 0.165:0.058):
-        rank: 0, fitness: (0.000, 92.000, 53264.026), improvement: 0.000%
-        rank: 1, fitness: (0.000, 92.000, 53264.026), improvement: 0.000%
+        rank: 0, fitness: (0.000, 92.000, 53264.026), difference: 0.000%
+        rank: 1, fitness: (0.000, 92.000, 53264.026), difference: 0.000%
 [299s] total generations: 7246, speed: 24.16 gen/sec
 Route 1: 144 925 689 739 358 32 783 924 461 111 766 842 433
 ..

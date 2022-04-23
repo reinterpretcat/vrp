@@ -602,7 +602,7 @@ fn create_extras(_solution: &Solution, metrics: Option<&TelemetryMetrics>) -> Op
                             .population
                             .individuals
                             .iter()
-                            .map(|i| ApiIndividual { improvement: i.improvement, fitness: i.fitness.clone() })
+                            .map(|i| ApiIndividual { difference: i.difference, fitness: i.fitness.clone() })
                             .collect(),
                     },
                 })

@@ -270,7 +270,7 @@ pub struct Generation {
 #[serde(rename_all = "camelCase")]
 pub struct Individual {
     /// Solution cost difference from best individual.
-    pub improvement: f64,
+    pub difference: f64,
     /// Objectives fitness values.
     pub fitness: Vec<f64>,
 }
