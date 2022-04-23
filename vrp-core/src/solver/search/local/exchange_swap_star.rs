@@ -43,7 +43,8 @@ impl LocalOperator for ExchangeSwapStar {
         _refinement_ctx: &RefinementContext,
         insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
-        const ROUTE_PAIRS_THRESHOLD: usize = 32;
+        // NOTE higher value affects performance
+        const ROUTE_PAIRS_THRESHOLD: usize = 4;
 
         let mut insertion_ctx = insertion_ctx.deep_copy();
 
