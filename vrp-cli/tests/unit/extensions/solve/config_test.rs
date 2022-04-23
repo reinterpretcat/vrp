@@ -39,18 +39,16 @@ fn can_read_full_config() {
             objective_reshuffling,
             learning_rate,
             rebalance_memory,
-            rebalance_count,
             exploration_ratio,
         } => {
             assert_eq!(selection_size, Some(8));
             assert_eq!(max_elite_size, Some(2));
             assert_eq!(max_node_size, Some(2));
-            assert_eq!(spread_factor, Some(0.25));
-            assert_eq!(distribution_factor, Some(0.25));
+            assert_eq!(spread_factor, Some(0.75));
+            assert_eq!(distribution_factor, Some(0.75));
             assert_eq!(objective_reshuffling, Some(0.01));
             assert_eq!(learning_rate, Some(0.1));
             assert_eq!(rebalance_memory, Some(100));
-            assert_eq!(rebalance_count, Some(2));
             assert_eq!(exploration_ratio, Some(0.9));
         }
         _ => unreachable!(),

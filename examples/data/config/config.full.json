@@ -53,7 +53,7 @@
       "type": "rosomaxa",
       "selectionSize": 8,
       "maxEliteSize": 2,
-      "maxNodeSize": 4,
+      "maxNodeSize": 2,
       "spreadFactor": 0.75,
       "distributionFactor": 0.75,
       "objectiveReshuffling": 0.01,
