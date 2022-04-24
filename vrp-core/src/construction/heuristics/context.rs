@@ -382,7 +382,7 @@ impl RouteState {
 
     /// Sets flag.
     pub fn set_flag(&mut self, flag: u8) {
-        self.flags = self.flags | flag;
+        self.flags |= flag;
     }
 
     /// Gets flags.
