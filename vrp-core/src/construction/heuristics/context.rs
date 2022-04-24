@@ -173,11 +173,23 @@ pub struct RouteContext {
     cache: Arc<RouteCache>,
 }
 
-/// Provides the way to associate arbitrary data within route and activity.
+/// Provides the way to associate arbitrary data within route or/and activity.
+/// NOTE: do not put any state which is not refreshed after accept_route_state call: it will be
+/// wiped out at some point.
 pub struct RouteState {
     route_states: HashMap<i32, StateValue>,
     activity_states: HashMap<ActivityWithKey, StateValue>,
-    keys: HashSet<i32>,
+    route_keys: HashSet<i32>,
+    activity_keys: HashSet<i32>,
+    flags: u8,
+}
+
+/// Specifies route state flags which are stateful and not reset during `accept_route_state`.
+pub mod state_flags {
+    /// No flags set.
+    pub const NO_FLAGS: u8 = 0x00;
+    /// Route is in unassignable state.
+    pub const UNASSIGNABLE: u8 = 0x01;
 }
 
 impl RouteContext {
@@ -195,24 +207,7 @@ impl RouteContext {
     /// Creates a deep copy of `RouteContext`.
     pub fn deep_copy(&self) -> Self {
         let new_route = Route { actor: self.route.actor.clone(), tour: self.route.tour.deep_copy() };
-        let mut new_state = RouteState::new_with_sizes(self.state.sizes());
-
-        // copy activity states
-        self.route.tour.all_activities().zip(0_usize..).for_each(|(a, index)| {
-            self.state.all_keys().for_each(|key| {
-                if let Some(value) = self.state.get_activity_state_raw(key, a) {
-                    let a = new_route.tour.get(index).unwrap();
-                    new_state.put_activity_state_raw(key, a, value.clone());
-                }
-            });
-        });
-
-        // copy route states
-        self.state.all_keys().for_each(|key| {
-            if let Some(value) = self.state.get_route_state_raw(key) {
-                new_state.put_route_state_raw(key, value.clone());
-            }
-        });
+        let new_state = RouteState::from_other_and_tours(self.state.as_ref(), &self.route.tour, &new_route.tour);
 
         RouteContext {
             route: Arc::new(new_route),
@@ -289,18 +284,34 @@ impl Eq for RouteContext {}
 
 impl Default for RouteState {
     fn default() -> RouteState {
-        RouteState::new_with_sizes((2, 4))
+        RouteState {
+            route_states: HashMap::with_capacity(2),
+            activity_states: HashMap::with_capacity(4),
+            route_keys: HashSet::with_capacity(2),
+            activity_keys: HashSet::with_capacity(4),
+            flags: state_flags::NO_FLAGS,
+        }
     }
 }
 
 impl RouteState {
-    /// Creates a new RouteState using giving capacities.
-    pub fn new_with_sizes(sizes: (usize, usize)) -> RouteState {
-        RouteState {
-            route_states: HashMap::with_capacity(sizes.0),
-            activity_states: HashMap::with_capacity(sizes.1),
-            keys: HashSet::with_capacity(sizes.0 + sizes.1),
-        }
+    /// A fast way to create `RouteState`.
+    pub(crate) fn from_other_and_tours(other: &Self, old_tour: &Tour, new_tour: &Tour) -> Self {
+        let route_states = other.route_states.clone();
+        let route_keys = other.route_keys.clone();
+        let activity_keys = other.activity_keys.clone();
+        let mut activity_states = HashMap::with_capacity(other.activity_states.len());
+
+        old_tour.all_activities().enumerate().for_each(|(index, activity)| {
+            other.all_activity_keys().for_each(|key| {
+                if let Some(value) = other.get_activity_state_raw(key, activity) {
+                    let activity = new_tour.get(index).unwrap();
+                    activity_states.insert((activity as *const Activity as usize, key), value.clone());
+                }
+            });
+        });
+
+        Self { route_states, activity_states, route_keys, activity_keys, flags: other.flags }
     }
 
     /// Gets value associated with key converted to given type.
@@ -326,37 +337,42 @@ impl RouteState {
     /// Puts value associated with key.
     pub fn put_route_state<T: Send + Sync + 'static>(&mut self, key: i32, value: T) {
         self.route_states.insert(key, Arc::new(value));
-        self.keys.insert(key);
+        self.route_keys.insert(key);
     }
 
     /// Puts value associated with key.
     pub fn put_route_state_raw(&mut self, key: i32, value: Arc<dyn Any + Send + Sync>) {
         self.route_states.insert(key, value);
-        self.keys.insert(key);
+        self.route_keys.insert(key);
     }
 
     /// Puts value associated with key and specific activity.
     pub fn put_activity_state<T: Send + Sync + 'static>(&mut self, key: i32, activity: &Activity, value: T) {
         self.activity_states.insert((activity as *const Activity as usize, key), Arc::new(value));
-        self.keys.insert(key);
+        self.activity_keys.insert(key);
     }
 
     /// Puts value associated with key and specific activity.
     pub fn put_activity_state_raw(&mut self, key: i32, activity: &Activity, value: StateValue) {
         self.activity_states.insert((activity as *const Activity as usize, key), value);
-        self.keys.insert(key);
+        self.activity_keys.insert(key);
     }
 
     /// Removes all activity states for given activity.
     pub fn remove_activity_states(&mut self, activity: &Activity) {
-        for (_, key) in self.keys.iter().enumerate() {
+        for (_, key) in self.activity_keys.iter().enumerate() {
             self.activity_states.remove(&(activity as *const Activity as usize, *key));
         }
     }
 
-    /// Returns all state keys.
-    pub fn all_keys(&'_ self) -> impl Iterator<Item = i32> + '_ {
-        self.keys.iter().cloned()
+    /// Returns all activity state keys.
+    pub fn all_activity_keys(&'_ self) -> impl Iterator<Item = i32> + '_ {
+        self.activity_keys.iter().cloned()
+    }
+
+    /// Returns all route state keys.
+    pub fn all_route_keys(&'_ self) -> impl Iterator<Item = i32> + '_ {
+        self.route_keys.iter().cloned()
     }
 
     /// Returns size route state storage.
@@ -364,10 +380,32 @@ impl RouteState {
         (self.route_states.capacity(), self.activity_states.capacity())
     }
 
-    /// Clear all states.
+    /// Sets flag.
+    pub fn set_flag(&mut self, flag: u8) {
+        self.flags = self.flags | flag;
+    }
+
+    /// Gets flags.
+    pub fn get_flags(&self) -> u8 {
+        self.flags
+    }
+
+    /// Returns true if flag is set.
+    pub fn has_flag(&self, flag: u8) -> bool {
+        self.flags | flag > 0
+    }
+
+    /// Resets all flags.
+    pub fn reset_flags(&mut self) {
+        self.flags = state_flags::NO_FLAGS
+    }
+
+    /// Clear all states, but keeps flags.
     pub fn clear(&mut self) {
-        self.keys.clear();
+        self.activity_keys.clear();
         self.activity_states.clear();
+
+        self.route_keys.clear();
         self.route_states.clear();
     }
 }

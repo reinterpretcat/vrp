@@ -134,8 +134,6 @@ const TOUR_ORDER_CONSTRAINT_CODE: i32 = 12;
 const GROUP_CONSTRAINT_CODE: i32 = 13;
 const COMPATIBILITY_CONSTRAINT_CODE: i32 = 14;
 
-pub(crate) const UNASSIGNABLE_ROUTE_KEY: i32 = 100;
-
 /// An job id to job index.
 pub type JobIndex = HashMap<String, CoreJob>;
 

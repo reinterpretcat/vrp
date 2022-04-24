@@ -1,4 +1,4 @@
-use crate::format::{JobIndex, UNASSIGNABLE_ROUTE_KEY};
+use crate::format::JobIndex;
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::*;
@@ -60,7 +60,7 @@ pub fn get_route_modifier(
             let mut route_ctx = route_ctx;
 
             if !candidates.is_empty() {
-                route_ctx.state_mut().put_route_state(UNASSIGNABLE_ROUTE_KEY, true);
+                route_ctx.state_mut().set_flag(state_flags::UNASSIGNABLE);
             }
 
             route_ctx

@@ -138,6 +138,8 @@ impl ConstraintPipeline {
     /// Accepts route state.
     pub fn accept_route_state(&self, route_ctx: &mut RouteContext) {
         if route_ctx.is_stale() {
+            route_ctx.state_mut().clear();
+
             let activities = route_ctx.route.tour.job_activity_count();
             self.modules.iter().for_each(|c| c.accept_route_state(route_ctx));
             assert_eq!(activities, route_ctx.route.tour.job_activity_count());

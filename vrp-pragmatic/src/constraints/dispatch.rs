@@ -3,11 +3,10 @@
 mod dispatch_test;
 
 use crate::constraints::*;
-use crate::format::UNASSIGNABLE_ROUTE_KEY;
 use std::iter::once;
 use std::slice::Iter;
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
+use vrp_core::construction::heuristics::{state_flags, ActivityContext, RouteContext, SolutionContext};
 use vrp_core::models::problem::Job;
 
 pub struct DispatchModule {
@@ -103,7 +102,7 @@ impl HardRouteConstraint for DispatchHardRouteConstraint {
                 } else {
                     None
                 };
-            } else if is_unassignable_route(route_ctx) {
+            } else if route_ctx.state.has_flag(state_flags::UNASSIGNABLE) {
                 return Some(RouteConstraintViolation { code: self.code });
             }
         }
@@ -145,8 +144,4 @@ fn is_dispatch_single(single: &Arc<Single>) -> bool {
 
 fn is_dispatch_activity(activity: &Option<&Activity>) -> bool {
     activity.and_then(|activity| activity.job.as_ref()).map_or(false, is_dispatch_single)
-}
-
-fn is_unassignable_route(route_ctx: &RouteContext) -> bool {
-    route_ctx.state.get_route_state::<bool>(UNASSIGNABLE_ROUTE_KEY).cloned().unwrap_or(false)
 }
