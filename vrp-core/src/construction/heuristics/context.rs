@@ -392,7 +392,7 @@ impl RouteState {
 
     /// Returns true if flag is set.
     pub fn has_flag(&self, flag: u8) -> bool {
-        self.flags | flag > 0
+        (self.flags & flag) > 0
     }
 
     /// Resets all flags.
