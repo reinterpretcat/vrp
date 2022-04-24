@@ -192,7 +192,7 @@ impl Tour {
     pub fn deep_copy(&self) -> Tour {
         Tour {
             activities: self.activities.iter().map(|a| a.deep_copy()).collect(),
-            jobs: self.jobs.iter().cloned().collect(),
+            jobs: self.jobs.clone(),
             is_closed: self.is_closed,
         }
     }
