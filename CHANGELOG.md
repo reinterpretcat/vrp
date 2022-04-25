@@ -4,13 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.17.0] - 2022-04-25
+
+This release focuses on internal algorithm improvements in direction of predictability.
+
 ### Changed
 
+* upgrade to 1.60 rust
 * fix tour order issue related to break/reload activities
 * fix limit violation issue in specific use cases
-* improve rosomaxa and customized gsom implementation
-* make search more exploratory
+* improve rosomaxa and customized GSOM implementation
 * use a new `Arc::new_cyclic` method to bind multi-single jobs
+* fix regression in runtime performance related to greediness of SWAP* heuristic implementation
 
 ### Added
 
@@ -57,9 +63,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-* migrated to 2021 edition
+* migrate to 2021 edition
 * update dependencies
-* removed dependency on `chrono` in favor of `time`
+* remove dependency on `chrono` in favor of `time`
 * use variable strategy for leg insertion analysis
 * adjust route removal ruin methods to limit a bit amount of removed jobs
 * order of initial heuristics
@@ -460,7 +466,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.16.1...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.17.0...HEAD
+[v1.17.0]: https://github.com/reinterpretcat/vrp/compare/v1.16.1..v1.17.0
 [v1.16.1]: https://github.com/reinterpretcat/vrp/compare/v1.16.0...v1.16.1
 [v1.16.0]: https://github.com/reinterpretcat/vrp/compare/v1.15.0...v1.16.0
 [v1.15.0]: https://github.com/reinterpretcat/vrp/compare/v1.14.0...v1.15.0
