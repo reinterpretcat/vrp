@@ -29,7 +29,7 @@ mod cli {
 
     pub fn get_app() -> Command<'static> {
         Command::new("Vehicle Routing Problem Solver")
-            .version("1.16.1")
+            .version("1.17.0")
             .author("Ilya Builuk <ilya.builuk@gmail.com>")
             .about("A command line interface to Vehicle Routing Problem solver")
             .subcommand(get_analyze_app())

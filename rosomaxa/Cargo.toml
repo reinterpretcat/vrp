@@ -1,6 +1,6 @@
 [package]
 name = "rosomaxa"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
@@ -21,4 +21,4 @@ num_cpus = "1.13.1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2.5", features = ["js"] }
-js-sys = "0.3.56"
+js-sys = "0.3.57"
