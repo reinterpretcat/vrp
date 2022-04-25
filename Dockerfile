@@ -21,7 +21,7 @@ COPY vrp-scientific ./vrp-scientific
 COPY vrp-pragmatic ./vrp-pragmatic
 COPY vrp-cli ./vrp-cli
 
-RUN cargo build --release
+RUN cargo build --release -p vrp-cli
 
 
 FROM alpine:3.12
