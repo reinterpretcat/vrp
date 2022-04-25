@@ -32,7 +32,7 @@ where
     max_population_size: usize,
     individuals: Vec<S>,
     speed: Option<HeuristicSpeed>,
-    dedup_fn: Box<dyn Fn(&S, &S) -> bool + Send + Sync>,
+    dedup_fn: Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>,
 }
 
 /// Keeps track of dominance order in the population for certain individual.
@@ -153,7 +153,7 @@ where
             random,
             max_population_size,
             selection_size,
-            Box::new(|a, b| {
+            Box::new(|_, a, b| {
                 if a.get_order().rank == b.get_order().rank {
                     // NOTE just using crowding distance here does not work
 
@@ -174,7 +174,7 @@ where
         random: Arc<dyn Random + Send + Sync>,
         max_population_size: usize,
         selection_size: usize,
-        dedup_fn: Box<dyn Fn(&S, &S) -> bool + Send + Sync>,
+        dedup_fn: Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>,
     ) -> Self {
         assert!(max_population_size > 0);
         Self { objective, random, selection_size, max_population_size, individuals: vec![], speed: None, dedup_fn }
@@ -207,7 +207,7 @@ where
 
         best_order.into_iter().for_each(|order| self.individuals[order.orig_index].set_order(order));
         self.individuals.sort_by(|a, b| a.get_order().seq_index.cmp(&b.get_order().seq_index));
-        self.individuals.dedup_by(|a, b| self.dedup_fn.deref()(a, b));
+        self.individuals.dedup_by(|a, b| self.dedup_fn.deref()(&objective, a, b));
     }
 
     fn ensure_max_population_size(&mut self) {

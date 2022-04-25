@@ -218,7 +218,13 @@ where
         Ok(Self {
             objective: objective.clone(),
             environment: environment.clone(),
-            elite: Elitism::new(objective, environment.random.clone(), config.elite_size, config.selection_size),
+            elite: Elitism::new_with_dedup(
+                objective.clone(),
+                environment.random.clone(),
+                config.elite_size,
+                config.selection_size,
+                create_dedup_fn(0.02),
+            ),
             phase: RosomaxaPhases::Initial { solutions: vec![] },
             config,
         })
@@ -507,16 +513,7 @@ where
             self.random.clone(),
             self.node_size,
             self.node_size,
-            Box::new(|a, b| {
-                // TODO return slice instead of vector?
-                let weights_a = a.weights();
-                let weights_b = b.weights();
-
-                let distance = relative_distance(weights_a.iter().cloned(), weights_b.iter().cloned());
-
-                // NOTE custom dedup rule to increase diversity property
-                distance < 0.1
-            }),
+            create_dedup_fn(0.1),
         );
         if self.random.is_hit(self.reshuffling_probability) {
             elitism.shuffle_objective();
@@ -568,4 +565,27 @@ where
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.population)
     }
+}
+
+fn create_dedup_fn<O, S>(threshold: f64) -> Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>
+where
+    O: HeuristicObjective<Solution = S> + Shuffled,
+    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+{
+    // NOTE custom dedup rule to increase diversity property
+    Box::new(move |objective, a, b| match objective.total_order(a, b) {
+        Ordering::Equal => {
+            let fitness_a = a.get_fitness();
+            let fitness_b = b.get_fitness();
+
+            fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
+        }
+        _ => {
+            let weights_a = a.weights();
+            let weights_b = b.weights();
+            let distance = relative_distance(weights_a.iter().cloned(), weights_b.iter().cloned());
+
+            distance < threshold
+        }
+    })
 }
