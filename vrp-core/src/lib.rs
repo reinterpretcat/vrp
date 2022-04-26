@@ -74,14 +74,16 @@
 //!
 //! ```
 //! # use vrp_core::models::examples::create_example_problem;
+//! # use vrp_core::solver::get_default_telemetry_mode;
 //! # use std::sync::Arc;
 //! use vrp_core::prelude::*;
 //!
 //! // create your VRP problem
 //! let problem = create_example_problem();
 //! let environment = Arc::new(Environment::new_with_time_quota(Some(10)));
+//! let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
 //! // build solver config to run 10 secs or 1000 generation
-//! let config = create_default_config_builder(problem.clone(), environment)
+//! let config = create_default_config_builder(problem.clone(), environment, telemetry_mode)
 //!     .with_max_time(Some(10))
 //!     .with_max_generations(Some(10))
 //!     .build()?;

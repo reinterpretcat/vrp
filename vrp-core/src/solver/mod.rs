@@ -251,14 +251,16 @@ impl InitialOperator for RecreateInitialOperator {
 ///
 /// ```
 /// # use vrp_core::models::examples::create_example_problem;
+/// # use vrp_core::solver::get_default_telemetry_mode;
 /// # use std::sync::Arc;
 /// use vrp_core::prelude::*;
 ///
 /// // create your VRP problem
 /// let problem: Arc<Problem> = create_example_problem();
 /// let environment = Arc::new(Environment::new_with_time_quota(Some(60)));
+/// let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
 /// // build solver config using pre-build builder with defaults and then override some parameters
-/// let config = create_default_config_builder(problem.clone(), environment)
+/// let config = create_default_config_builder(problem.clone(), environment, telemetry_mode)
 ///     .with_max_time(Some(60))
 ///     .with_max_generations(Some(100))
 ///     .build()?;

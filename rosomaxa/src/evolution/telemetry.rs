@@ -57,6 +57,7 @@ pub struct TelemetryPopulation {
 }
 
 /// Specifies a telemetry mode.
+#[derive(Clone)]
 pub enum TelemetryMode {
     /// No telemetry at all.
     None,

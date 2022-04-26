@@ -6,6 +6,7 @@ use std::sync::Arc;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::core::models::{Problem as CoreProblem, Solution as CoreSolution};
 use vrp_pragmatic::core::prelude::*;
+use vrp_pragmatic::core::solver::get_default_telemetry_mode;
 use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, Matrix, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
 use vrp_pragmatic::format::FormatError;
@@ -59,7 +60,8 @@ fn run_examples(base_path: &str) {
             panic!("cannot read pragmatic problem: {}", FormatError::format_many(errors.as_slice(), "\t\n"))
         }));
 
-        let config = create_default_config_builder(core_problem.clone(), environment)
+        let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
+        let config = create_default_config_builder(core_problem.clone(), environment, telemetry_mode)
             .with_max_generations(Some(100))
             .build()
             .unwrap_or_else(|err| panic!("cannot build default solver configuration: {}", err));

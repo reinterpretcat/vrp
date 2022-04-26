@@ -49,10 +49,13 @@ pub type TargetHeuristicGroup = HeuristicGroup<RefinementContext, ProblemObjecti
 pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, ProblemObjective, InsertionContext, String>;
 
 /// Creates config builder with default settings.
-pub fn create_default_config_builder(problem: Arc<Problem>, environment: Arc<Environment>) -> ProblemConfigBuilder {
+pub fn create_default_config_builder(
+    problem: Arc<Problem>,
+    environment: Arc<Environment>,
+    telemetry_mode: TelemetryMode,
+) -> ProblemConfigBuilder {
     let selection_size = get_default_selection_size(environment.as_ref());
     let population = get_default_population(problem.objective.clone(), environment.clone(), selection_size);
-    let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
 
     ProblemConfigBuilder::default()
         .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))

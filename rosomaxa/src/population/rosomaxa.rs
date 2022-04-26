@@ -219,7 +219,7 @@ where
             objective: objective.clone(),
             environment: environment.clone(),
             elite: Elitism::new_with_dedup(
-                objective.clone(),
+                objective,
                 environment.random.clone(),
                 config.elite_size,
                 config.selection_size,

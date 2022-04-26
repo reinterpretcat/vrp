@@ -1,5 +1,6 @@
 use super::*;
 use std::fs::File;
+use vrp_core::models::examples::create_example_problem;
 
 #[test]
 fn can_read_full_config() {
@@ -130,6 +131,30 @@ fn can_create_default_config() {
     assert!(config.hyper.is_none());
     assert!(config.termination.is_none());
     assert!(config.telemetry.is_none());
+}
+
+#[test]
+fn can_configure_telemetry_metrics() {
+    let config = Config {
+        evolution: None,
+        hyper: None,
+        termination: Some(TerminationConfig { max_time: None, max_generations: Some(100), variation: None }),
+        environment: None,
+        telemetry: Some(TelemetryConfig {
+            progress: None,
+            metrics: Some(MetricsConfig { enabled: true, track_population: Some(10) }),
+        }),
+    };
+
+    let (_, _, metrics) = create_builder_from_config(create_example_problem(), Vec::default(), &config)
+        .and_then(|config_builder| config_builder.build())
+        .map(|evolution_config| Solver::new(create_example_problem(), evolution_config))
+        .and_then(|solver| solver.solve())
+        .unwrap();
+
+    let metrics = metrics.expect("no metrics");
+    assert_eq!(metrics.generations, 100);
+    assert_eq!(metrics.evolution.len(), 10 + 1);
 }
 
 fn as_scalar_probability(probability: &OperatorProbabilityType) -> f64 {

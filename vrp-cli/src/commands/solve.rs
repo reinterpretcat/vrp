@@ -381,19 +381,23 @@ pub fn run_solve(
                                 .map(|config| Solver::new(problem.clone(), config))
                                 .map_err(|err| format!("cannot read config: '{}'", err))?
                         } else {
-                            let config = create_default_config_builder(problem.clone(), environment.clone())
-                                .with_init_solutions(solutions, init_size)
-                                .with_max_generations(max_generations)
-                                .with_max_time(max_time)
-                                .with_min_cv(min_cv, "min_cv".to_string())
-                                .with_context(RefinementContext::new(
-                                    problem.clone(),
-                                    get_population(mode, problem.objective.clone(), environment.clone()),
-                                    telemetry_mode,
-                                    environment.clone(),
-                                ))
-                                .with_heuristic(get_heuristic(matches, problem.clone(), environment)?)
-                                .build()?;
+                            let config = create_default_config_builder(
+                                problem.clone(),
+                                environment.clone(),
+                                telemetry_mode.clone(),
+                            )
+                            .with_init_solutions(solutions, init_size)
+                            .with_max_generations(max_generations)
+                            .with_max_time(max_time)
+                            .with_min_cv(min_cv, "min_cv".to_string())
+                            .with_context(RefinementContext::new(
+                                problem.clone(),
+                                get_population(mode, problem.objective.clone(), environment.clone()),
+                                telemetry_mode,
+                                environment.clone(),
+                            ))
+                            .with_heuristic(get_heuristic(matches, problem.clone(), environment)?)
+                            .build()?;
 
                             Solver::new(problem.clone(), config)
                         };

@@ -431,7 +431,7 @@ fn configure_from_evolution(
     mut builder: ProblemConfigBuilder,
     problem: Arc<Problem>,
     environment: Arc<Environment>,
-    telemetry_config: &Option<TelemetryConfig>,
+    telemetry_mode: TelemetryMode,
     population_config: &Option<EvolutionConfig>,
 ) -> Result<ProblemConfigBuilder, String> {
     if let Some(config) = population_config {
@@ -523,8 +523,6 @@ fn configure_from_evolution(
                     Box::new(RosomaxaPopulation::new(problem.objective.clone(), environment.clone(), config)?)
                 }
             };
-
-            let telemetry_mode = get_telemetry_mode(environment.clone(), telemetry_config);
 
             builder = builder.with_context(RefinementContext::new(problem, population, telemetry_mode, environment));
         }
@@ -823,11 +821,12 @@ pub fn create_builder_from_config(
 ) -> Result<ProblemConfigBuilder, String> {
     let environment =
         configure_from_environment(&config.environment, config.termination.as_ref().and_then(|t| t.max_time));
-    let mut builder =
-        create_default_config_builder(problem.clone(), environment.clone()).with_init_solutions(solutions, None);
+    let telemetry_mode = get_telemetry_mode(environment.clone(), &config.telemetry);
+    let mut builder = create_default_config_builder(problem.clone(), environment.clone(), telemetry_mode.clone())
+        .with_init_solutions(solutions, None);
 
     builder =
-        configure_from_evolution(builder, problem.clone(), environment.clone(), &config.telemetry, &config.evolution)?;
+        configure_from_evolution(builder, problem.clone(), environment.clone(), telemetry_mode, &config.evolution)?;
     builder = configure_from_hyper(builder, problem, environment, &config.hyper)?;
     builder = configure_from_termination(builder, &config.termination);
 

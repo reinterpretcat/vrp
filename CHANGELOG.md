@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+* fix issue: telemetry metrics are not included in solution file
+
 
 ## [v1.17.0] - 2022-04-25
 
