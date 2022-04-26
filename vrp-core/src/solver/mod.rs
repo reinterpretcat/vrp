@@ -116,6 +116,8 @@ mod heuristic;
 
 /// A key to store solution order information.
 const SOLUTION_ORDER_KEY: i32 = 1;
+/// A key to store solution weights information.
+const SOLUTION_WEIGHTS_KEY: i32 = 2;
 
 /// Keys for balancing objectives.
 const BALANCE_MAX_LOAD_KEY: i32 = 20;

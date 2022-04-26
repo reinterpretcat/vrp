@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* adapt `RosomaxaWeighted` interface for weight caching
+
 ### Fixed
 
 * fix issue: telemetry metrics are not included in solution file

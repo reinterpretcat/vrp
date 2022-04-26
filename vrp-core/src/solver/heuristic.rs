@@ -4,6 +4,7 @@ use crate::models::common::SingleDimLoad;
 use crate::models::problem::ProblemObjective;
 use crate::rosomaxa::get_default_selection_size;
 use crate::solver::search::*;
+use rosomaxa::algorithms::gsom::Input;
 use rosomaxa::hyper::*;
 use rosomaxa::population::*;
 use rosomaxa::termination::*;
@@ -123,8 +124,8 @@ pub fn create_elitism_population(objective: Arc<ProblemObjective>, environment: 
 }
 
 impl RosomaxaWeighted for InsertionContext {
-    fn weights(&self) -> Vec<f64> {
-        vec![
+    fn init_weights(&mut self) {
+        let weights = vec![
             get_max_load_variance(self),
             get_duration_mean(self),
             get_distance_mean(self),
@@ -136,7 +137,14 @@ impl RosomaxaWeighted for InsertionContext {
             get_longest_distance_between_depot_customer_mean(self),
             self.solution.routes.len() as f64,
             self.solution.unassigned.len() as f64,
-        ]
+        ];
+        self.solution.state.insert(SOLUTION_WEIGHTS_KEY, Arc::new(weights));
+    }
+}
+
+impl Input for InsertionContext {
+    fn weights(&self) -> &[f64] {
+        self.solution.state.get(&SOLUTION_WEIGHTS_KEY).and_then(|s| s.downcast_ref::<Vec<f64>>()).unwrap().as_slice()
     }
 }
 

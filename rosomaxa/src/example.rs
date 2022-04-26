@@ -4,6 +4,7 @@
 #[path = "../tests/unit/example_test.rs"]
 mod example_test;
 
+use crate::algorithms::gsom::Input;
 use crate::evolution::*;
 use crate::hyper::*;
 use crate::population::{DominanceOrder, DominanceOrdered, RosomaxaWeighted, Shuffled};
@@ -41,6 +42,7 @@ pub struct VectorObjective {
 pub struct VectorSolution {
     /// Solution payload.
     pub data: Vec<f64>,
+    weights: Vec<f64>,
     objective: Arc<VectorObjective>,
     order: DominanceOrder,
 }
@@ -171,15 +173,21 @@ impl DominanceOrdered for VectorSolution {
 }
 
 impl RosomaxaWeighted for VectorSolution {
-    fn weights(&self) -> Vec<f64> {
-        self.objective.weight_fn.deref()(self.data.as_slice())
+    fn init_weights(&mut self) {
+        self.weights = self.objective.weight_fn.deref()(self.data.as_slice());
+    }
+}
+
+impl Input for VectorSolution {
+    fn weights(&self) -> &[f64] {
+        self.weights.as_slice()
     }
 }
 
 impl VectorSolution {
     /// Creates a new instance of `VectorSolution`.
     pub fn new(data: Vec<f64>, objective: Arc<VectorObjective>) -> Self {
-        Self { data, objective, order: DominanceOrder::default() }
+        Self { data, objective, weights: Vec::default(), order: DominanceOrder::default() }
     }
 }
 

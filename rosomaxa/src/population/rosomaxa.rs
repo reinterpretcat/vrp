@@ -53,10 +53,10 @@ impl RosomaxaConfig {
     }
 }
 
-/// Specifies behavior which returns a weights used to distinguish different solutions.
-pub trait RosomaxaWeighted {
-    /// Returns a weights used to distinguish different solutions.
-    fn weights(&self) -> Vec<f64>;
+/// Specifies behavior which keeps track of weights used to distinguish different solutions.
+pub trait RosomaxaWeighted: Input {
+    /// Initializes weights.
+    fn init_weights(&mut self);
 }
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
@@ -87,7 +87,7 @@ where
         let elite = individuals
             .iter()
             .filter(|individual| self.is_comparable_with_best_known(individual, best_known))
-            .map(|individual| individual.deep_copy())
+            .map(|individual| init_individual(individual.deep_copy()))
             .collect::<Vec<_>>();
         let is_improved = self.elite.add_all(elite);
 
@@ -96,7 +96,7 @@ where
                 known_individuals.extend(individuals.into_iter())
             }
             RosomaxaPhases::Exploration { network, statistics, .. } => {
-                network.store_batch(individuals, statistics.generation, IndividualInput::new);
+                network.store_batch(individuals, statistics.generation, init_individual);
             }
             RosomaxaPhases::Exploitation { .. } => {}
         }
@@ -106,6 +106,7 @@ where
 
     fn add(&mut self, individual: Self::Individual) -> bool {
         let best_known = self.elite.ranked().map(|(i, _)| i).next();
+        let individual = init_individual(individual);
         let is_improved = if self.is_comparable_with_best_known(&individual, best_known) {
             self.elite.add(individual.deep_copy())
         } else {
@@ -114,9 +115,7 @@ where
 
         match &mut self.phase {
             RosomaxaPhases::Initial { solutions: individuals } => individuals.push(individual),
-            RosomaxaPhases::Exploration { network, statistics, .. } => {
-                network.store(IndividualInput::new(individual), statistics.generation)
-            }
+            RosomaxaPhases::Exploration { network, statistics, .. } => network.store(individual, statistics.generation),
             RosomaxaPhases::Exploitation { .. } => {}
         }
 
@@ -202,7 +201,7 @@ where
     }
 }
 
-type IndividualNetwork<O, S> = Network<IndividualInput<S>, IndividualStorage<O, S>, IndividualStorageFactory<O, S>>;
+type IndividualNetwork<O, S> = Network<S, IndividualStorage<O, S>, IndividualStorageFactory<O, S>>;
 
 impl<O, S> Rosomaxa<O, S>
 where
@@ -245,7 +244,7 @@ where
                         &self.config,
                         individuals.drain(0..4).collect(),
                     );
-                    individuals.drain(0..).for_each(|individual| network.store(IndividualInput::new(individual), 0));
+                    individuals.drain(0..).for_each(|individual| network.store(init_individual(individual), 0));
 
                     self.phase = RosomaxaPhases::Exploration {
                         network,
@@ -353,7 +352,7 @@ where
             network.set_learning_rate(statistics.termination_estimate.clamp(init_learning_rate, 1.));
         }
 
-        let get_distance = |node: &NodeLink<IndividualInput<S>, IndividualStorage<O, S>>| {
+        let get_distance = |node: &NodeLink<S, IndividualStorage<O, S>>| {
             let node = node.read().unwrap();
             let individual = node.storage.population.ranked().next();
 
@@ -384,10 +383,10 @@ where
         config: &RosomaxaConfig,
         individuals: Vec<S>,
     ) -> IndividualNetwork<O, S> {
-        let inputs_vec = individuals.into_iter().map(IndividualInput::new).collect::<Vec<_>>();
+        let inputs_vec = individuals.into_iter().map(init_individual).collect::<Vec<_>>();
 
         let inputs_slice = inputs_vec.into_boxed_slice();
-        let inputs_array: Box<[IndividualInput<S>; 4]> = match inputs_slice.try_into() {
+        let inputs_array: Box<[S; 4]> = match inputs_slice.try_into() {
             Ok(ba) => ba,
             Err(o) => panic!("expected individuals of length {} but it was {}", 4, o.len()),
         };
@@ -465,30 +464,14 @@ where
     },
 }
 
-struct IndividualInput<S>
+fn init_individual<S>(individual: S) -> S
 where
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
 {
-    weights: Vec<f64>,
-    individual: S,
-}
+    let mut individual = individual;
+    individual.init_weights();
 
-impl<S> IndividualInput<S>
-where
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
-{
-    pub fn new(individual: S) -> Self {
-        Self { weights: individual.weights(), individual }
-    }
-}
-
-impl<S> Input for IndividualInput<S>
-where
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
-{
-    fn weights(&self) -> &[f64] {
-        self.weights.as_slice()
-    }
+    individual
 }
 
 struct IndividualStorageFactory<O, S>
@@ -502,7 +485,7 @@ where
     objective: Arc<O>,
 }
 
-impl<O, S> StorageFactory<IndividualInput<S>, IndividualStorage<O, S>> for IndividualStorageFactory<O, S>
+impl<O, S> StorageFactory<S, IndividualStorage<O, S>> for IndividualStorageFactory<O, S>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
@@ -535,17 +518,17 @@ where
     O: HeuristicObjective<Solution = S> + Shuffled,
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
 {
-    type Item = IndividualInput<S>;
+    type Item = S;
 
     fn add(&mut self, input: Self::Item) {
-        self.population.add(input.individual);
+        self.population.add(input);
     }
 
     fn drain<R>(&mut self, range: R) -> Vec<Self::Item>
     where
         R: RangeBounds<usize>,
     {
-        self.population.drain(range).into_iter().map(IndividualInput::new).collect()
+        self.population.drain(range).into_iter().collect()
     }
 
     fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
