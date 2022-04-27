@@ -2,6 +2,7 @@ use super::*;
 use crate::algorithms::math::relative_distance;
 use crate::algorithms::mdp::*;
 use crate::utils::{compare_floats, Random};
+use crate::Timer;
 use hashbrown::HashMap;
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -184,8 +185,9 @@ where
             SearchAction::Search { heuristic_idx } => {
                 let solution = self.solution.as_ref().unwrap();
                 let (heuristic, _) = &self.registry.heuristics[*heuristic_idx];
+                let (new_solution, _) = Timer::measure_duration(|| heuristic.search(self.heuristic_ctx, solution));
 
-                heuristic.search(self.heuristic_ctx, solution)
+                new_solution
             }
         };
 
