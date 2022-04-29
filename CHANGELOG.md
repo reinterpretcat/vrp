@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * adapt `RosomaxaWeighted` interface for weight caching
+* modify MDP reward of heuristic based on its execution time
 
 ### Fixed
 
