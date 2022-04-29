@@ -102,6 +102,7 @@ use rosomaxa::evolution::*;
 use rosomaxa::prelude::*;
 use rosomaxa::{get_default_population, DynHeuristicPopulation, TelemetryHeuristicContext};
 use std::any::Any;
+use std::ops::Deref;
 use std::sync::Arc;
 
 pub use self::heuristic::*;
@@ -292,6 +293,12 @@ impl Solver {
     /// Solves a Vehicle Routing Problem and returns a _(solution, its cost)_ pair in case of success
     /// or error description, if solution cannot be found.
     pub fn solve(self) -> Result<(Solution, Cost, Option<TelemetryMetrics>), String> {
+        self.config.context.environment.logger.deref()(&format!(
+            "total jobs: {}, actors: {}",
+            self.problem.jobs.size(),
+            self.problem.fleet.actors.len()
+        ));
+
         let (mut solutions, metrics) = EvolutionSimulator::new(self.config)?.run()?;
 
         // NOTE select the first best individual from population
