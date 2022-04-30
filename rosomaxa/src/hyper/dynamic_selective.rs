@@ -158,7 +158,9 @@ impl Eq for MedianRatio {}
 
 impl MedianRatio {
     pub fn eval(&self, value: f64) -> f64 {
-        match (self.ratio, compare_floats(value, 0.)) {
+        let ratio = self.ratio.clamp(0.5, 2.);
+
+        match (ratio, compare_floats(value, 0.)) {
             (ratio, _) if ratio < 1.001 => value,
             (ratio, Ordering::Equal) => -2. * ratio,
             (ratio, Ordering::Less) => value * ratio,
