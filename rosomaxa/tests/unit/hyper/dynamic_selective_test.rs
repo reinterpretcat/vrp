@@ -13,6 +13,7 @@ can_evaluate_state_reward! {
     case_03: (1.5, 0., -3.),
     case_04: (1.5, -10., -15.),
     case_05: (1.5, 30., 20.),
+    case_06: (3., 30., 15.),
 }
 
 fn can_evaluate_state_reward_impl(ratio: f64, value: f64, expected: f64) {
