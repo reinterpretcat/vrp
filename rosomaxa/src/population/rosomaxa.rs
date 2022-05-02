@@ -352,6 +352,12 @@ where
             network.set_learning_rate(statistics.termination_estimate.clamp(init_learning_rate, 1.));
         }
 
+        let max_unified_distance = network
+            .get_nodes()
+            .map(|node| node.read().unwrap().unified_distance(network, 1))
+            .max_by(|a, b| compare_floats(*a, *b))
+            .unwrap_or(0.);
+
         let get_distance = |node: &NodeLink<S, IndividualStorage<O, S>>| {
             let node = node.read().unwrap();
             let individual = node.storage.population.ranked().next();
@@ -371,7 +377,9 @@ where
                 // NOTE
                 // unified distance filter improves diversity property
                 // distance filter improves exploitation characteristic by removing old (or empty) nodes
-                unified_distance > 0.1 && get_distance(node).map_or(false, |distance| distance < distance_threshold)
+
+                let is_far_enough = compare_floats(unified_distance, max_unified_distance * 0.1) != Ordering::Less;
+                is_far_enough && get_distance(node).map_or(false, |distance| distance < distance_threshold)
             });
             network.smooth(1);
         }
