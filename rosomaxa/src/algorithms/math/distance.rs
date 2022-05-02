@@ -11,7 +11,7 @@ where
     a.zip(b)
         .fold(0_f64, |acc, (a, b)| {
             let divider = a.abs().max(b.abs());
-            let change = if compare_floats(divider, 0.) == Ordering::Equal { 0. } else { (a - b) / divider };
+            let change = if compare_floats(divider, 0.) == Ordering::Equal { 0. } else { (a - b).abs() / divider };
 
             acc + change * change
         })
