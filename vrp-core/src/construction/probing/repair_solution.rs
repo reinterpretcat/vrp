@@ -105,9 +105,9 @@ fn synchronize_jobs(
             (HashMap::default(), HashSet::<Job>::default()),
             |(mut synchronized_jobs, mut invalid_multi_job_ids), (job, single)| {
                 let is_already_processed = synchronized_jobs.contains_key(&job) && job.as_single().is_some();
-                let is_invalid_multi_subjob = invalid_multi_job_ids.contains(&job);
+                let is_invalid_multi_job = invalid_multi_job_ids.contains(&job);
 
-                if !is_already_processed && !is_invalid_multi_subjob {
+                if !is_already_processed && !is_invalid_multi_job {
                     let eval_ctx = EvaluationContext {
                         constraint,
                         job: &job,
@@ -129,7 +129,7 @@ fn synchronize_jobs(
                     if let InsertionResult::Success(success) = insertion_result {
                         apply_insertion_success(new_insertion_ctx, success);
                         synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
-                    } else if let Some(_) = job.as_multi() {
+                    } else if job.as_multi().is_some() {
                         invalid_multi_job_ids.insert(job.clone());
                     }
                 }
