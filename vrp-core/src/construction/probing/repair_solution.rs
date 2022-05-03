@@ -4,7 +4,7 @@ mod repair_solution_test;
 
 use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::*;
-use crate::models::common::TimeSpan;
+use crate::models::common::{IdDimension, TimeSpan};
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::Activity;
 use hashbrown::{HashMap, HashSet};
@@ -93,7 +93,7 @@ fn synchronize_jobs(
     let leg_selector = VariableLegSelector::new(new_insertion_ctx.environment.random.clone());
     let result_selector = BestResultSelector::default();
 
-    route_ctx
+    let (synchronized_jobs, _) = route_ctx
         .route
         .tour
         .all_activities()
@@ -101,10 +101,17 @@ fn synchronize_jobs(
         .filter(|(single, activity)| is_activity_to_single_match(activity, single))
         .filter_map(|(single, activity)| activity.retrieve_job().map(|job| (job, single)))
         .filter(|(job, _)| !assigned_jobs.contains(job))
-        .fold(HashMap::default(), |mut synchronized_jobs, (job, single)| {
-            let is_already_processed = synchronized_jobs.contains_key(&job) && job.as_single().is_some();
+        .fold(
+            (HashMap::default(), HashSet::<String>::default()),
+            |(mut synchronized_jobs, mut invalid_multi_job_ids), (job, single)| {
+                let is_already_processed = synchronized_jobs.contains_key(&job) && job.as_single().is_some();
+                // We need to avoid skipping the deliveries while still inserting pickups of sub jobs of multi jobs
+                // as this can render the state of constraints (example: capacity constraint module) invalid.
+                // See unit test for more information.
+                let is_invalid_multi_subjob =
+                    job.dimens().get_id().map(|job_id| invalid_multi_job_ids.contains(job_id)).unwrap_or(false);
 
-            if !is_already_processed {
+            if !is_already_processed && !is_invalid_multi_subjob {
                 let eval_ctx = EvaluationContext {
                     constraint,
                     job: &job,
@@ -123,14 +130,21 @@ fn synchronize_jobs(
                     None,
                 );
 
-                if let InsertionResult::Success(success) = insertion_result {
-                    apply_insertion_success(new_insertion_ctx, success);
-                    synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
+                    if let InsertionResult::Success(success) = insertion_result {
+                        apply_insertion_success(new_insertion_ctx, success);
+                        synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
+                    } else if let Job::Multi(inner) = &job {
+                        if let Some(id) = inner.dimens.get_id() {
+                            invalid_multi_job_ids.insert(id.to_string());
+                        }
+                    }
                 }
-            }
 
-            synchronized_jobs
-        })
+                (synchronized_jobs, invalid_multi_job_ids)
+            },
+        );
+
+    synchronized_jobs
 }
 
 fn is_activity_to_single_match(activity: &Activity, single: &Single) -> bool {
