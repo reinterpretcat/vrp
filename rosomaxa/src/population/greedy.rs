@@ -92,7 +92,7 @@ where
             "".to_string()
         };
 
-        write!(f, "[{}],", values)
+        write!(f, "[{}]", values)
     }
 }
 

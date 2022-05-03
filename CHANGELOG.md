@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 * fix issue: telemetry metrics are not included in solution file
+* fix issue: capacity violation in rare cases when multi-jobs are used
 
 
 ## [v1.17.0] - 2022-04-25
