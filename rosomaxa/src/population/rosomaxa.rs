@@ -146,7 +146,7 @@ where
                     self.elite
                         .select()
                         .take(elite_explore_size)
-                        .chain(coordinates.iter().flat_map(move |(coordinate, _, _)| {
+                        .chain(coordinates.iter().flat_map(move |coordinate| {
                             let explore_size = self.environment.random.uniform_int(1, node_explore_size) as usize;
 
                             network
@@ -280,12 +280,7 @@ where
                         self.config.learning_rate,
                     );
 
-                    Self::fill_populations(
-                        network,
-                        coordinates,
-                        best_fitness.as_slice(),
-                        self.environment.random.as_ref(),
-                    );
+                    Self::fill_populations(network, coordinates, self.environment.random.as_ref());
                 } else {
                     self.phase = RosomaxaPhases::Exploitation { selection_size }
                 }
@@ -302,22 +297,17 @@ where
 
     fn fill_populations<'a>(
         network: &'a IndividualNetwork<O, S>,
-        coordinates: &mut Vec<(Coordinate, f64, usize)>,
-        best_fitness: &[f64],
+        coordinates: &mut Vec<Coordinate>,
         random: &(dyn Random + Send + Sync),
     ) {
         coordinates.clear();
         coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
             let node = node.read().unwrap();
-            let coordinate = node.storage.population.select().next().map(|individual| {
-                (
-                    *coordinate,
-                    relative_distance(best_fitness.iter().cloned(), individual.get_fitness()),
-                    node.get_last_hits(network.get_current_time()),
-                )
-            });
-
-            coordinate
+            if node.storage.population.size() > 0 {
+                Some(*coordinate)
+            } else {
+                None
+            }
         }));
 
         coordinates.shuffle(&mut random.get_rng());
@@ -463,7 +453,7 @@ where
     },
     Exploration {
         network: IndividualNetwork<O, S>,
-        coordinates: Vec<(Coordinate, f64, usize)>,
+        coordinates: Vec<Coordinate>,
         statistics: HeuristicStatistics,
         selection_size: usize,
     },
