@@ -4,7 +4,7 @@ mod repair_solution_test;
 
 use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::*;
-use crate::models::common::{IdDimension, TimeSpan};
+use crate::models::common::TimeSpan;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::Activity;
 use hashbrown::{HashMap, HashSet};
@@ -102,41 +102,35 @@ fn synchronize_jobs(
         .filter_map(|(single, activity)| activity.retrieve_job().map(|job| (job, single)))
         .filter(|(job, _)| !assigned_jobs.contains(job))
         .fold(
-            (HashMap::default(), HashSet::<String>::default()),
+            (HashMap::default(), HashSet::<Job>::default()),
             |(mut synchronized_jobs, mut invalid_multi_job_ids), (job, single)| {
                 let is_already_processed = synchronized_jobs.contains_key(&job) && job.as_single().is_some();
-                // We need to avoid skipping the deliveries while still inserting pickups of sub jobs of multi jobs
-                // as this can render the state of constraints (example: capacity constraint module) invalid.
-                // See unit test for more information.
-                let is_invalid_multi_subjob =
-                    job.dimens().get_id().map(|job_id| invalid_multi_job_ids.contains(job_id)).unwrap_or(false);
+                let is_invalid_multi_subjob = invalid_multi_job_ids.contains(&job);
 
-            if !is_already_processed && !is_invalid_multi_subjob {
-                let eval_ctx = EvaluationContext {
-                    constraint,
-                    job: &job,
-                    leg_selector: &leg_selector,
-                    result_selector: &result_selector,
-                };
-                let route_ctx = new_insertion_ctx.solution.routes.get(route_idx).unwrap();
+                if !is_already_processed && !is_invalid_multi_subjob {
+                    let eval_ctx = EvaluationContext {
+                        constraint,
+                        job: &job,
+                        leg_selector: &leg_selector,
+                        result_selector: &result_selector,
+                    };
+                    let route_ctx = new_insertion_ctx.solution.routes.get(route_idx).unwrap();
 
-                let insertion_result = evaluate_single_constraint_in_route(
-                    new_insertion_ctx,
-                    &eval_ctx,
-                    route_ctx,
-                    single,
-                    position,
-                    0.,
-                    None,
-                );
+                    let insertion_result = evaluate_single_constraint_in_route(
+                        new_insertion_ctx,
+                        &eval_ctx,
+                        route_ctx,
+                        single,
+                        position,
+                        0.,
+                        None,
+                    );
 
                     if let InsertionResult::Success(success) = insertion_result {
                         apply_insertion_success(new_insertion_ctx, success);
                         synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
-                    } else if let Job::Multi(inner) = &job {
-                        if let Some(id) = inner.dimens.get_id() {
-                            invalid_multi_job_ids.insert(id.to_string());
-                        }
+                    } else if let Some(_) = job.as_multi() {
+                        invalid_multi_job_ids.insert(job.clone());
                     }
                 }
 
