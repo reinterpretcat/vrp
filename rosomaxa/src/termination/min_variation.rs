@@ -77,7 +77,8 @@ where
             }
             IntervalType::Period(period) => {
                 let elapsed_time = heuristic_ctx.statistics().time.elapsed_millis();
-                let mut rng = heuristic_ctx.environment().random.get_rng();
+                let random = heuristic_ctx.environment().random.clone();
+                let mut rng = random.get_rng();
 
                 let values = heuristic_ctx
                     .state_mut::<Vec<(u128, Vec<f64>)>, _>(self.key.clone(), Vec::<(u128, Vec<f64>)>::default);

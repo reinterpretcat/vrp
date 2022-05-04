@@ -1,5 +1,10 @@
 use rand::SeedableRng;
 use rosomaxa::prelude::{Random, RandomGen};
+use std::cell::UnsafeCell;
+
+thread_local! {
+    static DEFAULT_RNG: UnsafeCell<RandomGen> = UnsafeCell::new(RandomGen::seed_from_u64(0));
+}
 
 struct FakeDistribution<T> {
     values: Vec<T>,
@@ -53,39 +58,11 @@ impl Random for FakeRandom {
         self.uniform_real(0., 1.) < probability
     }
 
-    fn get_rng(&self) -> RandomGen {
-        RandomGen::seed_from_u64(0)
-    }
-}
-
-pub struct EchoRandom {
-    use_min: bool,
-}
-
-impl EchoRandom {
-    pub fn new(use_min: bool) -> Self {
-        Self { use_min }
-    }
-}
-
-impl Random for EchoRandom {
-    fn uniform_int(&self, min: i32, max: i32) -> i32 {
-        if self.use_min {
-            min
-        } else {
-            max
-        }
+    fn weighted(&self, _: &[usize]) -> usize {
+        todo!()
     }
 
-    fn uniform_real(&self, min: f64, max: f64) -> f64 {
-        if self.use_min {
-            min
-        } else {
-            max
-        }
-    }
-
-    fn get_rng(&self) -> RandomGen {
-        RandomGen::seed_from_u64(0)
+    fn get_rng(&self) -> &mut RandomGen {
+        unsafe { &mut *DEFAULT_RNG.with(|cell| cell.get()) }
     }
 }

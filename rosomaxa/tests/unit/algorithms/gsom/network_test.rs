@@ -152,10 +152,27 @@ mod node_growing {
     fn create_trivial_network(has_initial_error: bool) -> NetworkType {
         struct DummyRandom {}
         impl Random for DummyRandom {
+            fn uniform_int(&self, _: i32, _: i32) -> i32 {
+                unreachable!()
+            }
+
+            fn uniform_real(&self, _: f64, _: f64) -> f64 {
+                unreachable!()
+            }
+
+            fn is_head_not_tails(&self) -> bool {
+                unreachable!()
+            }
+
             fn is_hit(&self, _: f64) -> bool {
                 false
             }
-            fn get_rng(&self) -> RandomGen {
+
+            fn weighted(&self, _: &[usize]) -> usize {
+                unreachable!()
+            }
+
+            fn get_rng(&self) -> &mut RandomGen {
                 unreachable!()
             }
         }
