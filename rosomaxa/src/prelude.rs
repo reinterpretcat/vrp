@@ -33,4 +33,4 @@ pub use crate::utils::Environment;
 pub use crate::utils::InfoLogger;
 pub use crate::utils::Noise;
 pub use crate::utils::Quota;
-pub use crate::utils::Random;
+pub use crate::utils::{Random, RandomGen};

@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 * adapt `RosomaxaWeighted` interface for weight caching
 * modify MDP reward of heuristic based on its execution time
+* use `SmallRng` as faster alternative to `StdRng`
 
 ### Fixed
 

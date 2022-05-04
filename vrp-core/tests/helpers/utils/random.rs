@@ -1,6 +1,5 @@
-use rand::prelude::StdRng;
 use rand::SeedableRng;
-use rosomaxa::prelude::Random;
+use rosomaxa::prelude::{Random, RandomGen};
 
 struct FakeDistribution<T> {
     values: Vec<T>,
@@ -46,8 +45,16 @@ impl Random for FakeRandom {
         unsafe { self.const_cast().reals.next() }
     }
 
-    fn get_rng(&self) -> StdRng {
-        StdRng::seed_from_u64(0)
+    fn is_head_not_tails(&self) -> bool {
+        self.uniform_int(1, 2) == 1
+    }
+
+    fn is_hit(&self, probability: f64) -> bool {
+        self.uniform_real(0., 1.) < probability
+    }
+
+    fn get_rng(&self) -> RandomGen {
+        RandomGen::seed_from_u64(0)
     }
 }
 
@@ -78,7 +85,7 @@ impl Random for EchoRandom {
         }
     }
 
-    fn get_rng(&self) -> StdRng {
-        StdRng::seed_from_u64(0)
+    fn get_rng(&self) -> RandomGen {
+        RandomGen::seed_from_u64(0)
     }
 }

@@ -4,6 +4,9 @@ mod random_test;
 
 use rand::prelude::*;
 
+/// Specifies underlying random generator type.
+pub type RandomGen = SmallRng;
+
 /// Provides the way to use randomized values in generic way.
 pub trait Random {
     /// Produces integral random value, uniformly distributed on the closed interval [min, max]
@@ -28,12 +31,12 @@ pub trait Random {
 
     /// Flips a coin and returns true if it is "heads", false otherwise.
     fn is_head_not_tails(&self) -> bool {
-        self.uniform_int(1, 2) == 1
+        self.get_rng().gen_bool(0.5)
     }
 
     /// Tests probability value in (0., 1.) range.
     fn is_hit(&self, probability: f64) -> bool {
-        self.uniform_real(0., 1.) < probability
+        self.get_rng().gen_bool(probability.clamp(0., 1.))
     }
 
     /// Returns an index from collected with probability weight.
@@ -50,7 +53,7 @@ pub trait Random {
     }
 
     /// Returns RNG.
-    fn get_rng(&self) -> StdRng;
+    fn get_rng(&self) -> RandomGen;
 }
 
 /// A default random implementation.
@@ -67,11 +70,11 @@ impl DefaultRandom {
 }
 
 impl Random for DefaultRandom {
-    fn get_rng(&self) -> StdRng {
+    fn get_rng(&self) -> RandomGen {
         if let Some(ref seed) = self.seed {
-            StdRng::seed_from_u64(*seed)
+            RandomGen::seed_from_u64(*seed)
         } else {
-            StdRng::from_rng(thread_rng()).expect("cannot get RNG")
+            RandomGen::from_rng(thread_rng()).expect("cannot get RNG")
         }
     }
 }

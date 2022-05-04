@@ -15,5 +15,5 @@ description = "A core algorithms to solve a Vehicle Routing Problem"
 rosomaxa = { path = "../rosomaxa", version = "0.2.0" }
 
 rayon = "1.5.2"
-rand = "0.8.5"
+rand = { version = "0.8.5", features = ["small_rng"] }
 hashbrown = "0.12.0"

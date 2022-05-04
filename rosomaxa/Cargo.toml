@@ -13,7 +13,7 @@ description = "A rosomaxa algorithm and other building blocks for creating a sol
 
 [dependencies]
 rayon = "1.5.1"
-rand = "0.8.5"
+rand = { version = "0.8.5", features = ["small_rng"] }
 hashbrown = "0.12.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

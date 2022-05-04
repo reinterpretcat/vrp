@@ -1,5 +1,5 @@
-use crate::utils::Random;
-use rand::prelude::*;
+use crate::prelude::*;
+use rand::SeedableRng;
 
 struct FakeDistribution<T> {
     values: Vec<T>,
@@ -45,8 +45,8 @@ impl Random for FakeRandom {
         unsafe { self.const_cast().reals.next() }
     }
 
-    fn get_rng(&self) -> StdRng {
-        StdRng::seed_from_u64(0)
+    fn get_rng(&self) -> RandomGen {
+        RandomGen::seed_from_u64(0)
     }
 }
 
@@ -77,7 +77,7 @@ impl Random for EchoRandom {
         }
     }
 
-    fn get_rng(&self) -> StdRng {
-        StdRng::seed_from_u64(0)
+    fn get_rng(&self) -> RandomGen {
+        RandomGen::seed_from_u64(0)
     }
 }

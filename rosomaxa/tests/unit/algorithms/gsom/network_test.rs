@@ -146,7 +146,7 @@ mod common {
 mod node_growing {
     use super::*;
     use crate::algorithms::gsom::{NetworkConfig, NodeLink};
-    use rand::prelude::StdRng;
+    use crate::prelude::RandomGen;
     use std::sync::{Arc, RwLock};
 
     fn create_trivial_network(has_initial_error: bool) -> NetworkType {
@@ -155,7 +155,7 @@ mod node_growing {
             fn is_hit(&self, _: f64) -> bool {
                 false
             }
-            fn get_rng(&self) -> StdRng {
+            fn get_rng(&self) -> RandomGen {
                 unreachable!()
             }
         }
