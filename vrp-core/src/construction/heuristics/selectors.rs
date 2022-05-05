@@ -292,10 +292,11 @@ impl LegSelector for VariableLegSelector {
         job: &Job,
         skip: usize,
     ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a> {
-        let (greedy_threshold, sample_size) = match job {
-            Job::Single(_) => (24, 16),
-            Job::Multi(multi) if multi.jobs.len() == 2 => (16, 8),
-            Job::Multi(_) => (16, 4),
+        let gen_usize = |min: i32, max: i32| self.random.uniform_int(min, max) as usize;
+
+        let greedy_threshold = match job {
+            Job::Single(_) => gen_usize(12, 24),
+            Job::Multi(_) => gen_usize(8, 16),
         };
 
         let total_legs = route_ctx.route.tour.legs().size_hint().0;
@@ -304,6 +305,12 @@ impl LegSelector for VariableLegSelector {
         if visit_legs < greedy_threshold {
             Box::new(route_ctx.route.tour.legs().skip(skip))
         } else {
+            let sample_size = match job {
+                Job::Single(_) => ((greedy_threshold as f64 * 0.8) as usize).min(16),
+                Job::Multi(multi) if multi.jobs.len() == 2 => gen_usize(4, 8),
+                Job::Multi(_) => 4,
+            };
+
             Box::new(SelectionSamplingIterator::new(
                 route_ctx.route.tour.legs().skip(skip),
                 sample_size,

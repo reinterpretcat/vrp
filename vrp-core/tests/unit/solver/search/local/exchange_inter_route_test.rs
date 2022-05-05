@@ -27,7 +27,7 @@ fn can_use_exchange_inter_route_best_operator_impl(
     expected_ids: &[Vec<&str>],
 ) {
     let matrix = (3, 3);
-    let ints = vec![seed_route, seed_job];
+    let ints = [seed_route, seed_job].into_iter().chain([16; 128].into_iter()).collect();
     let reals = vec![1.; 128];
 
     let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
