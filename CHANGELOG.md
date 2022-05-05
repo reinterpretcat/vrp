@@ -15,6 +15,10 @@ All notable changes to this project will be documented in this file.
 * fix issue: telemetry metrics are not included in solution file
 * fix issue: capacity violation in rare cases when multi-jobs are used
 
+### Added
+
+* `WorstRouteRemoval`: removes routes with the smallest amount of jobs
+
 
 ## [v1.17.0] - 2022-04-25
 

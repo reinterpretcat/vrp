@@ -89,7 +89,7 @@ fn can_read_full_config() {
             match operators.get(2).unwrap() {
                 SearchOperatorType::RuinRecreate { probability, ruins, recreates } => {
                     assert_eq!(as_scalar_probability(probability), 1.);
-                    assert_eq!(ruins.len(), 6);
+                    assert_eq!(ruins.len(), 7);
                     assert_eq!(recreates.len(), 12);
                 }
                 _ => unreachable!(),

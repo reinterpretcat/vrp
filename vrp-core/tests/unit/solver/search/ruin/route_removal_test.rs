@@ -5,6 +5,7 @@ use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_rout
 use crate::helpers::utils::create_test_environment_with_random;
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition, Problem};
+use crate::solver::search::WorstRouteRemoval;
 use std::sync::Arc;
 
 #[test]
@@ -60,4 +61,24 @@ fn can_remove_parts_random_routes_from_context() {
         vec!["c1", "c2", "c4", "c5", "c6", "c7"]
     );
     assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), vec![vec!["c0", "c3"]]);
+}
+
+#[test]
+fn can_remove_worst_route() {
+    let matrix = (4, 4);
+    let reals = vec![1.];
+
+    let (problem, mut solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, false);
+    solution.routes[2].tour.remove_activity_at(1);
+    let insertion_ctx = InsertionContext::new_from_solution(
+        Arc::new(problem),
+        (solution, None),
+        create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], reals))),
+    );
+
+    let insertion_ctx = WorstRouteRemoval::default()
+        .run(&mut create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
+
+    assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), vec!["c10", "c11", "c9"]);
+    assert_eq!(insertion_ctx.solution.routes.len(), 3);
 }

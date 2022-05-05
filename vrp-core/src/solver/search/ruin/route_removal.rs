@@ -57,8 +57,6 @@ impl Ruin for RandomRouteRemoval {
 pub struct CloseRouteRemoval {}
 
 impl Ruin for CloseRouteRemoval {
-    // NOTE clippy's false positive in route_groups_distances loop
-    #[allow(clippy::needless_collect)]
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         if let Some(route_groups_distances) = group_routes_by_proximity(&insertion_ctx) {
             let random = insertion_ctx.environment.random.clone();
@@ -79,6 +77,7 @@ impl Ruin for CloseRouteRemoval {
 
             let take_count = random.uniform_int(2, 3) as usize;
 
+            #[allow(clippy::needless_collect)]
             let routes = route_groups_distances[route_index]
                 .iter()
                 .take(take_count)
@@ -89,6 +88,45 @@ impl Ruin for CloseRouteRemoval {
                 remove_route(&mut insertion_ctx.solution, &mut route_ctx, random.as_ref());
             });
         }
+
+        insertion_ctx
+    }
+}
+
+/// Removes a "worst" routes: e.g. the smallest ones.
+#[derive(Default)]
+pub struct WorstRouteRemoval {}
+
+impl Ruin for WorstRouteRemoval {
+    fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
+        let random = insertion_ctx.environment.random.clone();
+
+        let mut route_sizes = insertion_ctx
+            .solution
+            .routes
+            .iter()
+            .enumerate()
+            // TODO exclude locked jobs from calculation
+            .map(|(route_idx, route_ctx)| (route_idx, route_ctx.route.tour.job_count()))
+            .collect::<Vec<_>>();
+        route_sizes.sort_by(|(_, job_count_left), (_, job_count_right)| job_count_left.cmp(job_count_right));
+        route_sizes.truncate(8);
+
+        let shuffle_amount = (route_sizes.len() as f64 * 0.25) as usize;
+        route_sizes.partial_shuffle(random.get_rng(), shuffle_amount);
+
+        let remove_count = if random.is_hit(0.2) { 2 } else { 1 }.min(route_sizes.len());
+
+        #[allow(clippy::needless_collect)]
+        let routes = route_sizes
+            .iter()
+            .take(remove_count)
+            .filter_map(|(idx, _)| insertion_ctx.solution.routes.get(*idx).cloned())
+            .collect::<Vec<_>>();
+
+        routes.into_iter().for_each(|mut route_ctx| {
+            remove_route(&mut insertion_ctx.solution, &mut route_ctx, random.as_ref());
+        });
 
         insertion_ctx
     }

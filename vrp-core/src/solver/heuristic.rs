@@ -269,6 +269,7 @@ mod statik {
 
         // initialize ruin
         let close_route = Arc::new(CloseRouteRemoval::default());
+        let worst_route = Arc::new(WorstRouteRemoval::default());
         let random_route = Arc::new(RandomRouteRemoval::default());
         let random_job = Arc::new(RandomJobRemoval::new(RuinLimits::default()));
         let random_ruin = create_default_random_ruin();
@@ -285,6 +286,7 @@ mod statik {
                 5,
             ),
             (vec![(close_route, 1.), (random_job.clone(), 0.1)], 2),
+            (vec![(worst_route, 1.), (random_job.clone(), 0.1)], 1),
             (vec![(random_route, 1.), (random_job, 0.1)], 1),
         ]));
 
@@ -299,6 +301,7 @@ mod statik {
         Arc::new(WeightedRuin::new(vec![
             (vec![(Arc::new(CloseRouteRemoval::default()), 1.)], 100),
             (vec![(Arc::new(RandomRouteRemoval::default()), 1.)], 10),
+            (vec![(Arc::new(WorstRouteRemoval::default()), 1.)], 5),
             (vec![(Arc::new(RandomJobRemoval::new(RuinLimits::default())), 1.)], 2),
         ]))
     }
@@ -361,18 +364,18 @@ mod dynamic {
         let primary_ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String)> = vec![
             (Arc::new(AdjustedStringRemoval::default()), "asr".to_string()),
             (Arc::new(NeighbourRemoval::default()), "neighbour_removal".to_string()),
-            (Arc::new(WorstJobRemoval::default()), "worst_job".to_string()),
             (
                 Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment.clone())),
                 "cluster_removal".to_string(),
             ),
+            (Arc::new(WorstJobRemoval::default()), "worst_job".to_string()),
             (Arc::new(RandomJobRemoval::new(RuinLimits::default())), "random_job_removal_1".to_string()),
             (Arc::new(RandomRouteRemoval::default()), "random_route_removal".to_string()),
-        ];
-        let secondary_ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String)> = vec![
             (Arc::new(CloseRouteRemoval::default()), "close_route_removal".to_string()),
-            (Arc::new(RandomJobRemoval::new(RuinLimits::new(2, 8, 0.1, 2))), "random_job_removal_2".to_string()),
+            (Arc::new(WorstRouteRemoval::default()), "worst_route_removal".to_string()),
         ];
+        let secondary_ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String)> =
+            vec![(Arc::new(RandomJobRemoval::new(RuinLimits::new(2, 8, 0.1, 2))), "random_job_removal_2".to_string())];
 
         // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
         let ruins = primary_ruins
