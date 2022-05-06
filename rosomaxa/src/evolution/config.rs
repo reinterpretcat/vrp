@@ -316,15 +316,9 @@ where
                 logger.deref()("configured to use custom heuristic");
                 heuristic
             } else {
-                Box::new(MultiSelective::new(
-                    Box::new(DynamicSelective::new(
-                        self.heuristic_operators
-                            .ok_or_else(|| "missing heuristic operators or heuristic".to_string())?,
-                        context.environment().random.clone(),
-                    )),
-                    Box::new(StaticSelective::new(
-                        self.heuristic_group.ok_or_else(|| "missing heuristic group or heuristic".to_string())?,
-                    )),
+                Box::new(DynamicSelective::new(
+                    self.heuristic_operators.ok_or_else(|| "missing heuristic operators or heuristic".to_string())?,
+                    context.environment().random.clone(),
                 ))
             },
             context,

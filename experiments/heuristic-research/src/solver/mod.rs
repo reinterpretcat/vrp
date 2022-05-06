@@ -30,7 +30,6 @@ pub fn run_solver(
     let delta_op = VectorHeuristicOperatorMode::JustDelta(-0.1..0.1);
 
     let (solutions, _) = Solver::default()
-        .use_dynamic_heuristic_only()
         .with_logger(logger.clone())
         .with_init_solutions(vec![init_solution])
         .with_operator(noise_op, "noise", 1.)

@@ -277,7 +277,7 @@ pub type ContextFactory = Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>)
 /// An example of the optimization solver to solve trivial problems.
 pub struct Solver {
     logger: Option<InfoLogger>,
-    use_dynamic_heuristic_only: bool,
+    use_static_heuristic: bool,
     initial_solutions: Vec<Vec<f64>>,
     initial_params: (usize, f64),
     fitness_fn: Option<FitnessFn>,
@@ -294,7 +294,7 @@ impl Default for Solver {
     fn default() -> Self {
         Self {
             logger: None,
-            use_dynamic_heuristic_only: false,
+            use_static_heuristic: false,
             initial_solutions: vec![],
             initial_params: (4, 0.05),
             fitness_fn: None,
@@ -311,8 +311,8 @@ impl Default for Solver {
 
 impl Solver {
     /// Use dynamic selective only
-    pub fn use_dynamic_heuristic_only(mut self) -> Self {
-        self.use_dynamic_heuristic_only = true;
+    pub fn use_static_heuristic(mut self) -> Self {
+        self.use_static_heuristic = true;
         self
     }
 
@@ -387,13 +387,10 @@ impl Solver {
         });
 
         // build instances of implementation types from submitted data
-        let heuristic = if self.use_dynamic_heuristic_only {
-            self.create_dynamic_heuristic(environment.clone())
+        let heuristic = if self.use_static_heuristic {
+            self.create_static_heuristic(environment.clone())
         } else {
-            Box::new(MultiSelective::new(
-                self.create_dynamic_heuristic(environment.clone()),
-                self.create_static_heuristic(environment.clone()),
-            ))
+            self.create_dynamic_heuristic(environment.clone())
         };
         let fitness_fn = self.fitness_fn.ok_or_else(|| "objective function must be set".to_string())?;
         let weight_fn = self.weight_fn.unwrap_or_else({

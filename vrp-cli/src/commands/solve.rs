@@ -517,7 +517,7 @@ fn get_heuristic(
         Some("dynamic") => Ok(get_dynamic_heuristic(problem, environment)),
         Some("static") => Ok(get_static_heuristic(problem, environment)),
         Some(name) if name != "default" => Err(format!("unknown heuristic type name: '{}'", name)),
-        _ => Ok(get_dynamic_heuristic(problem, environment)),
+        _ => Ok(get_default_heuristic(problem, environment)),
     }
 }
 

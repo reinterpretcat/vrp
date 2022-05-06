@@ -72,10 +72,7 @@ pub fn get_default_telemetry_mode(logger: InfoLogger) -> TelemetryMode {
 
 /// Gets default heuristic.
 pub fn get_default_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
-    Box::new(MultiSelective::<RefinementContext, ProblemObjective, InsertionContext>::new(
-        get_dynamic_heuristic(problem.clone(), environment.clone()),
-        get_static_heuristic(problem, environment),
-    ))
+    get_dynamic_heuristic(problem, environment)
 }
 
 /// Gets static heuristic using default settings.

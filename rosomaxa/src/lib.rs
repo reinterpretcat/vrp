@@ -226,7 +226,7 @@ where
 }
 
 /// Defines instant refinement speed type.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum HeuristicSpeed {
     /// Not yet calculated
     Unknown,

@@ -399,17 +399,27 @@ impl SpeedTracker {
             self.initial_estimate = termination_estimate;
             self.initial_time = elapsed;
         } else {
-            let average = (elapsed - self.initial_time) / generation as f64;
+            // average gen/sec speed excluding initial solutions
+            let average = if elapsed > self.initial_time {
+                generation as f64 / ((elapsed - self.initial_time) / 1_000_000.)
+            } else {
+                1000.
+            };
 
             let delta = (termination_estimate - self.initial_estimate).max(0.);
-            let ratio = match (generation, delta) {
-                (generation, delta) if generation < 10 && delta > 0.1 => 0.1,
-                (generation, delta) if generation < 100 && delta > 0.1 => 0.25,
-                (generation, delta) if generation < 200 && delta > 0.1 => 0.5,
-                (generation, delta) if generation < 500 && delta > 0.2 => 0.5,
+
+            let ratio = match (generation, delta, average) {
+                (generation, delta, _) if generation < 10 && delta > 0.1 => 0.1,
+                (generation, delta, _) if generation < 100 && delta > 0.1 => 0.25,
+                (generation, delta, _) if generation < 200 && delta > 0.1 => 0.5,
+                (generation, delta, _) if generation < 500 && delta > 0.2 => 0.5,
+
+                (generation, _, average) if generation > 5 && average < 4. => 0.25,
+                (generation, _, average) if generation > 5 && average < 8. => 0.5,
                 _ => 1.,
             };
-            let is_slow = compare_floats(ratio, 1.) == Ordering::Less && average < 5.;
+
+            let is_slow = compare_floats(ratio, 1.) == Ordering::Less;
 
             self.speed = match &self.speed {
                 HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } if !is_slow => {

@@ -4,11 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+This release focuses on performance improvements.
+
 ### Changed
 
 * adapt `RosomaxaWeighted` interface for weight caching
 * modify MDP reward of heuristic based on its execution time
 * `breaking`: use `SmallRng` as faster alternative to `StdRng` and avoid initialization on each usage
+* improve slow search detection logic
 
 ### Fixed
 
@@ -18,6 +21,10 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 * `WorstRouteRemoval`: removes routes with the smallest amount of jobs
+
+### Removed
+
+* remove `MultiSelective` and use `DynamicSelective` by default
 
 
 ## [v1.17.0] - 2022-04-25
