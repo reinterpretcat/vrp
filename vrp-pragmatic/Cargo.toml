@@ -1,6 +1,6 @@
 [package]
 name = "vrp-pragmatic"
-version = "1.17.0"
+version = "1.18.0"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["vrp", "optimization"]
@@ -12,14 +12,14 @@ edition = "2021"
 description = "An extension logic for solving rich VRP"
 
 [dependencies]
-vrp-core = { path = "../vrp-core", version = "1.17.0" }
+vrp-core = { path = "../vrp-core", version = "1.18.0" }
 
-serde = { version = "1.0.136", features = ["derive"] }
-serde_json = "1.0.79"
+serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0.81"
 
 time = { version = "0.3.9", features = ["parsing", "formatting"] }
 rand = { version = "0.8.5", features = ["small_rng"] }
-hashbrown = "0.12.0"
+hashbrown = "0.12.1"
 
 [dev-dependencies]
 proptest = "1.0.0"
