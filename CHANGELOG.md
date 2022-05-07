@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.18.0] - 2022-05-07
+
 This release focuses on performance improvements.
 
 ### Changed
@@ -12,6 +15,7 @@ This release focuses on performance improvements.
 * modify MDP reward of heuristic based on its execution time
 * `breaking`: use `SmallRng` as faster alternative to `StdRng` and avoid initialization on each usage
 * improve slow search detection logic
+* update dependencies
 
 ### Fixed
 
@@ -488,7 +492,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.17.0...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.18.0...HEAD
+[v1.18.0]: https://github.com/reinterpretcat/vrp/compare/v1.17.0..v1.18.0
 [v1.17.0]: https://github.com/reinterpretcat/vrp/compare/v1.16.1..v1.17.0
 [v1.16.1]: https://github.com/reinterpretcat/vrp/compare/v1.16.0...v1.16.1
 [v1.16.0]: https://github.com/reinterpretcat/vrp/compare/v1.15.0...v1.16.0
