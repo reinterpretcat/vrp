@@ -44,7 +44,7 @@ impl LocalOperator for ExchangeSwapStar {
         insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
         // NOTE higher value affects performance
-        const ROUTE_PAIRS_THRESHOLD: usize = 4;
+        const ROUTE_PAIRS_THRESHOLD: usize = 8;
 
         let mut insertion_ctx = insertion_ctx.deep_copy();
 
@@ -87,14 +87,14 @@ fn get_evaluation_context<'a>(search_ctx: &'a SearchContext, job: &'a Job) -> Ev
 fn create_route_pairs(insertion_ctx: &InsertionContext, route_pairs_threshold: usize) -> Vec<(usize, usize)> {
     let random = insertion_ctx.environment.random.clone();
 
-    if random.is_hit(0.9) { None } else { group_routes_by_proximity(insertion_ctx) }
+    if random.is_hit(0.1) { None } else { group_routes_by_proximity(insertion_ctx) }
         .map(|route_groups_distances| {
             let used_indices = RwLock::new(HashSet::<(usize, usize)>::new());
             let distances = route_groups_distances
                 .into_iter()
                 .enumerate()
                 .flat_map(|(outer_idx, mut route_group_distance)| {
-                    let shuffle_amount = (route_group_distance.len() as f64 * 0.5) as usize;
+                    let shuffle_amount = (route_group_distance.len() as f64 * 0.1) as usize;
                     route_group_distance.partial_shuffle(&mut random.get_rng(), shuffle_amount);
                     route_group_distance
                         .iter()
