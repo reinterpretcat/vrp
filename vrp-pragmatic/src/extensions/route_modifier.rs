@@ -6,11 +6,7 @@ use vrp_core::models::common::{IdDimension, ValueDimension};
 use vrp_core::prelude::*;
 
 /// Returns route modifier.
-pub fn get_route_modifier(
-    constraint: Arc<ConstraintPipeline>,
-    random: Arc<dyn Random + Send + Sync>,
-    job_index: JobIndex,
-) -> RouteModifier {
+pub fn get_route_modifier(constraint: Arc<ConstraintPipeline>, job_index: JobIndex) -> RouteModifier {
     RouteModifier::new(move |route_ctx: RouteContext| {
         let actor = &route_ctx.route.actor;
         let vehicle = &actor.vehicle;
@@ -24,7 +20,7 @@ pub fn get_route_modifier(
             .take_while(|job| job.is_some())
             .collect::<Vec<_>>();
 
-        let leg_selector = VariableLegSelector::new(random.clone());
+        let leg_selector = AllLegSelector::default();
         let result_selector = BestResultSelector::default();
 
         let result = candidates

@@ -273,6 +273,21 @@ pub trait LegSelector {
     ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a>;
 }
 
+/// Selects all legs.
+#[derive(Default)]
+pub struct AllLegSelector {}
+
+impl LegSelector for AllLegSelector {
+    fn get_legs<'a>(
+        &self,
+        route_ctx: &'a RouteContext,
+        _: &Job,
+        skip: usize,
+    ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a> {
+        Box::new(route_ctx.route.tour.legs().skip(skip))
+    }
+}
+
 /// Selects different legs based on route and job size.
 pub struct VariableLegSelector {
     random: Arc<dyn Random + Send + Sync>,
