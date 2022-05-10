@@ -95,7 +95,7 @@ fn create_multiple_insertion_ctxs(
     let mut route_groups_distances = group_routes_by_proximity(insertion_ctx)?;
     route_groups_distances.iter_mut().for_each(|route_distances| {
         let random = &insertion_ctx.environment.random;
-        let shuffle_count = random.uniform_int(2, (route_distances.len() as i32 / 4).max(2)) as usize;
+        let shuffle_count = random.uniform_int(2, (route_distances.len() as i32 / 10).max(2)) as usize;
         route_distances.partial_shuffle(&mut random.get_rng(), shuffle_count);
     });
 

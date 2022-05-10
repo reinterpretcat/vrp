@@ -176,7 +176,7 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProxi
             .map(|(outer_idx, outer_medoid)| {
                 let mut route_distances = indexed_medoids
                     .iter()
-                    .filter(move |(inner_idx, _)| *outer_idx != *inner_idx)
+                    .filter(move |(inner_idx, _)| *outer_idx > *inner_idx)
                     .map(move |(inner_idx, inner_medoid)| {
                         let distance = match (outer_medoid, inner_medoid) {
                             (Some(outer_medoid), Some(inner_medoid)) => {

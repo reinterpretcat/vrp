@@ -122,7 +122,7 @@ fn create_route_pairs(insertion_ctx: &InsertionContext, route_pairs_threshold: u
             let all_route_pairs = (0..route_count)
                 .flat_map(move |outer_idx| {
                     (0..route_count)
-                        .filter(move |&inner_idx| outer_idx != inner_idx)
+                        .filter(move |&inner_idx| outer_idx > inner_idx)
                         .map(move |inner_idx| (outer_idx, inner_idx))
                 })
                 .collect::<Vec<_>>();
