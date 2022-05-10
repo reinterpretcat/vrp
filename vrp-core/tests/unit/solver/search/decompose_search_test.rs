@@ -9,7 +9,7 @@ fn can_create_multiple_insertion_ctxs_without_unassigned() {
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
     let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
 
-    let individuals = create_multiple_insertion_ctxs(&individual, (2, 2)).unwrap();
+    let individuals = create_multiple_insertion_contexts(&individual, (2, 2)).unwrap();
 
     assert_eq!(individuals.len(), 4);
     assert_eq!(individuals[0].0.solution.routes.len(), 2);
@@ -27,7 +27,7 @@ fn can_create_multiple_insertion_ctxs_with_unassigned() {
     solution.routes.remove(0);
     let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
 
-    let individuals = create_multiple_insertion_ctxs(&individual, (2, 2)).unwrap();
+    let individuals = create_multiple_insertion_contexts(&individual, (2, 2)).unwrap();
 
     assert_eq!(individuals.len(), 4);
 

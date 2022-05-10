@@ -37,7 +37,7 @@ impl HeuristicOperator for DecomposeSearch {
         let refinement_ctx = heuristic_ctx;
         let insertion_ctx = solution;
 
-        decompose_insertion_ctx(refinement_ctx, insertion_ctx, self.max_routes_range)
+        decompose_insertion_context(refinement_ctx, insertion_ctx, self.max_routes_range)
             .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx, contexts))
             .unwrap_or_else(|| self.inner_search.search(heuristic_ctx, insertion_ctx))
     }
@@ -88,26 +88,26 @@ fn create_population(insertion_ctx: InsertionContext) -> TargetPopulation {
     Box::new(GreedyPopulation::new(insertion_ctx.problem.objective.clone(), 1, Some(insertion_ctx)))
 }
 
-fn create_multiple_insertion_ctxs(
+fn create_multiple_insertion_contexts(
     insertion_ctx: &InsertionContext,
     max_routes_range: (i32, i32),
 ) -> Option<Vec<(InsertionContext, HashSet<usize>)>> {
     let mut route_groups_distances = group_routes_by_proximity(insertion_ctx)?;
-    route_groups_distances.iter_mut().for_each(|route_distances| {
+    route_groups_distances.iter_mut().for_each(|route_group_distance| {
         let random = &insertion_ctx.environment.random;
-        let shuffle_count = random.uniform_int(2, (route_distances.len() as i32 / 10).max(2)) as usize;
-        route_distances.partial_shuffle(&mut random.get_rng(), shuffle_count);
+        let shuffle_count = random.uniform_int(2, (route_group_distance.len() as i32 / 5).max(2)) as usize;
+        route_group_distance.partial_shuffle(&mut random.get_rng(), shuffle_count);
     });
 
-    // identify route groups and create insertion_ctxs from them
+    // identify route groups and create contexts from them
     let used_indices = RwLock::new(HashSet::new());
     let insertion_ctxs = route_groups_distances
         .iter()
         .enumerate()
         .filter(|(outer_idx, _)| !used_indices.read().unwrap().contains(outer_idx))
         .map(|(outer_idx, route_group_distance)| {
-            let group_size =
-                insertion_ctx.environment.random.uniform_int(max_routes_range.0, max_routes_range.1) as usize;
+            let (min, max) = max_routes_range;
+            let group_size = insertion_ctx.environment.random.uniform_int(min, max) as usize;
             let route_group = once(outer_idx)
                 .chain(
                     route_group_distance
@@ -200,12 +200,12 @@ fn create_empty_insertion_ctxs(
     }
 }
 
-fn decompose_insertion_ctx(
+fn decompose_insertion_context(
     refinement_ctx: &RefinementContext,
     insertion_ctx: &InsertionContext,
     max_routes_range: (i32, i32),
 ) -> Option<Vec<(RefinementContext, HashSet<usize>)>> {
-    create_multiple_insertion_ctxs(insertion_ctx, max_routes_range)
+    create_multiple_insertion_contexts(insertion_ctx, max_routes_range)
         .map(|insertion_ctxs| {
             insertion_ctxs
                 .into_iter()

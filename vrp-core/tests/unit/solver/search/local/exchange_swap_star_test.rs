@@ -65,13 +65,13 @@ can_use_exchange_swap_star! {
     case_04: (
         vec![vec!["c0", "c1", "c3"], vec!["c4", "c7", "c2"], vec!["c6", "c5", "c8"]],
         vec!["c2", "c3"],
-        vec![vec!["c3", "c4", "c5"], vec!["c0", "c1", "c2"], vec!["c6", "c7", "c8"]],
+        vec![vec!["cX", "c3", "c5"], vec!["cX", "c4", "c2"], vec!["c6", "c7", "c8"]],
     ),
 }
 
 fn can_use_exchange_swap_star_impl(jobs_order: Vec<Vec<&str>>, locked_ids: Vec<&str>, expected: Vec<Vec<&str>>) {
     let matrix = (3, 3);
-    let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![1], vec![0.; 9])));
+    let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], vec![0.; 9])));
     let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
     let mut insertion_ctx = promote_to_locked(
         InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone()),
@@ -84,13 +84,13 @@ fn can_use_exchange_swap_star_impl(jobs_order: Vec<Vec<&str>>, locked_ids: Vec<&
         .iter()
         .map(|route_ctx| get_vehicle_id(&route_ctx.route.actor.vehicle).clone())
         .collect::<Vec<_>>();
+    assert_eq!(vehicles, vec!["0", "1", "2"]);
 
     let insertion_ctx = ExchangeSwapStar::new(environment.random.clone())
         .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
         .expect("cannot find new solution");
 
-    assert_eq!(vehicles, vec!["0", "1", "2"]);
-    compare_with_ignore(get_customer_ids_from_routes(&insertion_ctx).as_slice(), expected.as_slice(), "");
+    compare_with_ignore(get_customer_ids_from_routes(&insertion_ctx).as_slice(), expected.as_slice(), "cX");
 }
 
 #[test]
@@ -239,10 +239,9 @@ parameterized_test! { can_create_route_pairs, (route_pairs_threshold, is_proximi
 
 can_create_route_pairs! {
     case_01: (9, true, 3),
-    case_02: (9, false, 6),
-
+    case_02: (9, false, 3),
     case_03: (2, true, 2),
-    case_04: (4, false, 4),
+    case_04: (2, false, 2),
 }
 
 fn can_create_route_pairs_impl(route_pairs_threshold: usize, is_proximity: bool, expected_length: usize) {
