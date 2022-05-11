@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* adapt weights in heuristics
+
 
 ## [v1.18.0] - 2022-05-07
 
