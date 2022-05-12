@@ -318,10 +318,11 @@ impl<T: LoadOps> ConstraintModule for CapacityConstraintModule<T> {
             solution_ctx.unassigned.retain(|job, _| !jobs.contains(job));
             solution_ctx.ignored.extend(jobs.into_iter());
             // NOTE reevaluate insertion of unassigned due to capacity constraint jobs
-            solution_ctx.unassigned.iter_mut().for_each(|pair| {
-                if *pair.1 == self.code {
-                    *pair.1 = 0;
+            solution_ctx.unassigned.iter_mut().for_each(|pair| match pair.1 {
+                UnassignedCode::Simple(code) if *code == self.code => {
+                    *pair.1 = UnassignedCode::Unknown;
                 }
+                _ => {}
             });
         } else if self.is_vehicle_full(route_ctx) {
             // move all reloads for this shift to required

@@ -203,10 +203,12 @@ fn finalize_synchronization(
     insertion_ctx: &InsertionContext,
     unassigned: HashSet<Job>,
 ) {
-    new_insertion_ctx
-        .solution
-        .unassigned
-        .extend(unassigned.into_iter().chain(insertion_ctx.solution.required.iter().cloned()).map(|job| (job, -1)));
+    new_insertion_ctx.solution.unassigned.extend(
+        unassigned
+            .into_iter()
+            .chain(insertion_ctx.solution.required.iter().cloned())
+            .map(|job| (job, UnassignedCode::Unknown)),
+    );
 
     new_insertion_ctx.restore();
 

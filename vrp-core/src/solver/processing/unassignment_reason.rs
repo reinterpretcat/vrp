@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::heuristics::*;
-use rosomaxa::utils::{parallel_into_collect, CollectGroupBy};
+use rosomaxa::utils::parallel_into_collect;
 
 /// Tries to improve job unassignment reason.
 #[derive(Default)]
@@ -23,32 +23,31 @@ impl HeuristicSolutionProcessing for UnassignmentReason {
                 leg_selector: &leg_selector,
                 result_selector: &result_selector,
             };
-            let mut unassigned = insertion_ctx
+            let details = insertion_ctx
                 .solution
                 .routes
                 .iter()
                 .map(|route_ctx| {
-                    evaluate_job_insertion_in_route(
-                        &insertion_ctx,
-                        &eval_ctx,
-                        route_ctx,
-                        InsertionPosition::Any,
-                        InsertionResult::make_failure(),
+                    (
+                        route_ctx.route.actor.clone(),
+                        evaluate_job_insertion_in_route(
+                            &insertion_ctx,
+                            &eval_ctx,
+                            route_ctx,
+                            InsertionPosition::Any,
+                            InsertionResult::make_failure(),
+                        ),
                     )
                 })
-                .filter_map(|result| match &result {
-                    InsertionResult::Failure(failure) if failure.constraint > 0 => Some(failure.constraint),
+                .filter_map(|(actor, result)| match &result {
+                    InsertionResult::Failure(failure) => Some((actor, failure.constraint)),
                     _ => None,
                 })
-                .collect_group_by_key(|code| *code)
-                .into_iter()
-                .map(|code_stat| (code_stat.0, code_stat.1.len()))
                 .collect::<Vec<_>>();
 
-            unassigned.sort_by(|(_, a), (_, b)| b.cmp(a));
-            let frequent_code = unassigned.first().map(|(code, _)| *code).unwrap_or(code);
+            let code = if details.is_empty() { code } else { UnassignedCode::Detailed(details) };
 
-            (job, frequent_code)
+            (job, code)
         });
 
         insertion_ctx.solution.unassigned.extend(unassigned.into_iter());

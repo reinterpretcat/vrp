@@ -16,7 +16,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
     let mut locked: HashSet<Job> = Default::default();
     let mut reserved: HashSet<Job> = Default::default();
     let mut ignored: HashSet<Job> = Default::default();
-    let mut unassigned: HashMap<Job, i32> = Default::default();
+    let mut unassigned: HashMap<Job, UnassignedCode> = Default::default();
     let mut routes: Vec<RouteContext> = Default::default();
     let mut registry = Registry::new(&problem.fleet, environment.random.clone());
     let state = Default::default();
@@ -81,7 +81,9 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
             }
             (None, false) => {
                 // TODO what reason code to use?
-                unassigned.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned().map(|j| (j, 0))));
+                unassigned.extend(
+                    lock.details.iter().flat_map(|d| d.jobs.iter().cloned().map(|j| (j, UnassignedCode::Unknown))),
+                );
             }
             (_, _) => {
                 locked.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned()));
@@ -194,5 +196,8 @@ fn update_insertion_context(insertion_ctx: &mut InsertionContext) {
     // promote required to ignored when necessary
     insertion_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
     // promote all required to unassigned to have a valid statistics
-    insertion_ctx.solution.unassigned.extend(insertion_ctx.solution.required.drain(0..).map(|job| (job, 0)));
+    insertion_ctx
+        .solution
+        .unassigned
+        .extend(insertion_ctx.solution.required.drain(0..).map(|job| (job, UnassignedCode::Unknown)));
 }

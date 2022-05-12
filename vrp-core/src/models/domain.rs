@@ -1,4 +1,5 @@
 use crate::construction::constraints::ConstraintPipeline;
+use crate::construction::heuristics::UnassignedCode;
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
 use hashbrown::HashMap;
@@ -44,7 +45,7 @@ pub struct Solution {
     pub routes: Vec<Route>,
 
     /// List of unassigned jobs within reason code.
-    pub unassigned: Vec<(Job, i32)>,
+    pub unassigned: Vec<(Job, UnassignedCode)>,
 
     /// Specifies index for storing extra data of arbitrary type.
     pub extras: Arc<Extras>,

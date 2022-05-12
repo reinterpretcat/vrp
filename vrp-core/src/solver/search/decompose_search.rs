@@ -253,7 +253,7 @@ fn merge_best(
     dest_solution.ignored.extend(source_solution.ignored.iter().cloned());
     dest_solution.required.extend(source_solution.required.iter().cloned());
     dest_solution.locked.extend(source_solution.locked.iter().cloned());
-    dest_solution.unassigned.extend(source_solution.unassigned.iter().map(|(k, v)| (k.clone(), *v)));
+    dest_solution.unassigned.extend(source_solution.unassigned.iter().map(|(k, v)| (k.clone(), v.clone())));
 
     source_solution.routes.iter().for_each(|route_ctx| {
         dest_solution.registry.use_route(route_ctx);

@@ -167,8 +167,8 @@ impl HeuristicSolutionProcessing for VicinityClustering {
             .flat_map(|(job, code)| {
                 job.dimens()
                     .get_cluster()
-                    .map(|clusters| clusters.iter().map(|info| (info.job.clone(), *code)).collect::<Vec<_>>())
-                    .unwrap_or_else(|| vec![(job.clone(), *code)])
+                    .map(|clusters| clusters.iter().map(|info| (info.job.clone(), code.clone())).collect::<Vec<_>>())
+                    .unwrap_or_else(|| vec![(job.clone(), code.clone())])
                     .into_iter()
             })
             .collect();

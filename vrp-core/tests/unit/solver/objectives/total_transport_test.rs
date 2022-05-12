@@ -1,4 +1,4 @@
-use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState, SolutionContext, UnassignedCode};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::domain::{create_empty_solution_context, create_registry_context};
 use crate::helpers::models::problem::*;
@@ -44,7 +44,7 @@ fn can_calculate_transport_cost() {
     let transport = TestTransportCost::new_shared();
     let constraint = Arc::new(create_constraint_pipeline_with_transport());
     let mut unassigned = HashMap::new();
-    unassigned.insert(Job::Single(Arc::new(test_single())), 1);
+    unassigned.insert(Job::Single(Arc::new(test_single())), UnassignedCode::Simple(1));
     let problem = Arc::new(Problem {
         fleet: fleet.clone(),
         jobs: Arc::new(Jobs::new(&fleet, vec![], &transport)),

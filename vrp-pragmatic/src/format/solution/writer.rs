@@ -11,6 +11,7 @@ use crate::{format_time, parse_time};
 use std::cmp::Ordering;
 use std::io::{BufWriter, Write};
 use vrp_core::construction::constraints::route_intervals;
+use vrp_core::construction::heuristics::UnassignedCode;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Multi, TravelTime};
 use vrp_core::models::solution::{Activity, Route};
@@ -510,7 +511,14 @@ fn create_unassigned(solution: &Solution) -> Option<Vec<UnassignedJob>> {
         .iter()
         .filter(|(job, _)| job.dimens().get_value::<String>("vehicle_id").is_none())
         .map(|(job, code)| {
-            let (code, reason) = map_code_reason(*code);
+            // TODO change api to support multiple codes
+            let code = match code {
+                UnassignedCode::Unknown => 0,
+                UnassignedCode::Simple(code) => *code,
+                UnassignedCode::Detailed(details) => details.first().map_or(0, |detail| detail.1),
+            };
+
+            let (code, reason) = map_code_reason(code);
             UnassignedJob {
                 job_id: job.dimens().get_id().expect("job id expected").clone(),
                 reasons: vec![UnassignedJobReason { code: code.to_string(), description: reason.to_string() }],

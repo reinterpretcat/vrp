@@ -1,5 +1,5 @@
 use crate::construction::constraints::{ConstraintPipeline, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
-use crate::construction::heuristics::{InsertionContext, RegistryContext, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, RegistryContext, SolutionContext, UnassignedCode};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_route_context_with_activities;
@@ -94,7 +94,7 @@ pub fn create_simple_insertion_ctx(distance: f64, unassigned: usize) -> Insertio
         insertion_ctx
             .solution
             .unassigned
-            .insert(problem.jobs.all().next().clone().expect("at least one job expected"), 0);
+            .insert(problem.jobs.all().next().clone().expect("at least one job expected"), UnassignedCode::Unknown);
     });
 
     insertion_ctx
