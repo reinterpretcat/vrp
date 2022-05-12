@@ -412,7 +412,7 @@ mod dynamic {
             ),
             (Arc::new(DecomposeSearch::new(inner_search.clone(), (2, 4), 2)), "decompose_search".to_string()),
             (
-                Arc::new(InfeasibleSearch::new(inner_search, 4, (0.05, 0.2), (0.05, 0.33))),
+                Arc::new(InfeasibleSearch::new(inner_search, 2, (0.05, 0.2), (0.05, 0.33))),
                 "infeasible_search".to_string(),
             ),
             (
