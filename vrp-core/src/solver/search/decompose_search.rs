@@ -22,6 +22,7 @@ pub struct DecomposeSearch {
 impl DecomposeSearch {
     /// Create a new instance of `DecomposeSearch`.
     pub fn new(inner_search: TargetHeuristicOperator, max_routes_range: (usize, usize), repeat_count: usize) -> Self {
+        assert!(max_routes_range.0 > 1);
         let max_routes_range = (max_routes_range.0 as i32, max_routes_range.1 as i32);
 
         Self { inner_search, max_routes_range, repeat_count }
@@ -99,6 +100,9 @@ fn create_multiple_insertion_contexts(
         route_group_distance.partial_shuffle(&mut random.get_rng(), shuffle_count);
     });
 
+    let (min, max) = max_routes_range;
+    let max = if insertion_ctx.solution.routes.len() < 4 { 2 } else { max };
+
     // identify route groups and create contexts from them
     let used_indices = RwLock::new(HashSet::new());
     let insertion_ctxs = route_groups_distances
@@ -106,7 +110,6 @@ fn create_multiple_insertion_contexts(
         .enumerate()
         .filter(|(outer_idx, _)| !used_indices.read().unwrap().contains(outer_idx))
         .map(|(outer_idx, route_group_distance)| {
-            let (min, max) = max_routes_range;
             let group_size = insertion_ctx.environment.random.uniform_int(min, max) as usize;
             let route_group = once(outer_idx)
                 .chain(
