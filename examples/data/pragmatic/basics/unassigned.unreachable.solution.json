@@ -1,13 +1,15 @@
 {
   "statistic": {
-    "cost": 43.091514000000004,
-    "distance": 13687,
-    "duration": 3819,
+    "cost": 29.538104,
+    "distance": 6836,
+    "duration": 1284,
     "times": {
-      "driving": 3219,
+      "driving": 684,
       "serving": 600,
       "waiting": 0,
-      "break": 0
+      "break": 0,
+      "commuting": 0,
+      "parking": 0
     }
   },
   "tours": [
@@ -42,10 +44,10 @@
             "lng": 13.3808
           },
           "time": {
-            "arrival": "2019-07-04T09:12:41Z",
-            "departure": "2019-07-04T09:17:41Z"
+            "arrival": "2019-07-04T09:02:56Z",
+            "departure": "2019-07-04T09:07:56Z"
           },
-          "distance": 2641,
+          "distance": 1758,
           "load": [
             1
           ],
@@ -62,10 +64,10 @@
             "lng": 13.45413
           },
           "time": {
-            "arrival": "2019-07-04T09:38:22Z",
-            "departure": "2019-07-04T09:43:22Z"
+            "arrival": "2019-07-04T09:16:24Z",
+            "departure": "2019-07-04T09:21:24Z"
           },
-          "distance": 8404,
+          "distance": 6836,
           "load": [
             0
           ],
@@ -75,37 +77,19 @@
               "type": "delivery"
             }
           ]
-        },
-        {
-          "location": {
-            "lat": 52.5316,
-            "lng": 13.3884
-          },
-          "time": {
-            "arrival": "2019-07-04T10:03:39Z",
-            "departure": "2019-07-04T10:03:39Z"
-          },
-          "distance": 13687,
-          "load": [
-            0
-          ],
-          "activities": [
-            {
-              "jobId": "arrival",
-              "type": "arrival"
-            }
-          ]
         }
       ],
       "statistic": {
-        "cost": 43.091514000000004,
-        "distance": 13687,
-        "duration": 3819,
+        "cost": 29.538104,
+        "distance": 6836,
+        "duration": 1284,
         "times": {
-          "driving": 3219,
+          "driving": 684,
           "serving": 600,
           "waiting": 0,
-          "break": 0
+          "break": 0,
+          "commuting": 0,
+          "parking": 0
         }
       }
     }
@@ -115,8 +99,12 @@
       "jobId": "job2",
       "reasons": [
         {
-          "code": "REACHABLE_CONSTRAINT",
-          "description": "location unreachable"
+          "code": "TIME_WINDOW_CONSTRAINT",
+          "description": "cannot be visited within time window",
+          "detail": {
+            "vehicle_id": "vehicle_1",
+            "shift_index": 0
+          }
         }
       ]
     }

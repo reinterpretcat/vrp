@@ -162,7 +162,8 @@ fn can_vary_cluster_size_based_on_capacity_impl(
                     job_id: job_id.to_string(),
                     reasons: vec![UnassignedJobReason {
                         code: "CAPACITY_CONSTRAINT".to_string(),
-                        description: "does not fit into any vehicle due to capacity".to_string()
+                        description: "does not fit into any vehicle due to capacity".to_string(),
+                        detail: Some(UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 })
                     }]
                 })
                 .collect()),

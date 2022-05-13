@@ -42,41 +42,31 @@ fn create_default_selectors() -> (VariableLegSelector, BestResultSelector) {
     (leg_selector, result_selector)
 }
 
-parameterized_test! { can_use_exchange_swap_star, (jobs_order, locked_ids, expected), {
-    can_use_exchange_swap_star_impl(jobs_order, locked_ids, expected);
+parameterized_test! { can_use_exchange_swap_star, (jobs_order, expected), {
+    can_use_exchange_swap_star_impl(jobs_order, expected);
 }}
 
 can_use_exchange_swap_star! {
     case_01: (
         vec![vec!["c0", "c1", "c2"], vec!["c3", "c4", "c5"], vec!["c6", "c7", "c8"]],
-        vec![],
         vec![vec!["c0", "c1", "c2"], vec!["c3", "c4", "c5"], vec!["c6", "c7", "c8"]],
     ),
     case_02: (
         vec![vec!["c0", "c1", "c3"], vec!["c4", "c7", "c2"], vec!["c6", "c5", "c8"]],
-        vec![],
         vec![vec!["c0", "c1", "c2"], vec!["c3", "c4", "c5"], vec!["c6", "c7", "c8"]],
     ),
     case_03: (
         vec![vec!["c0", "c8", "c3"], vec!["c4", "c7", "c2"], vec!["c6", "c5", "c1"]],
-        vec![],
         vec![vec!["c0", "c1", "c2"], vec!["c6", "c7", "c8"], vec!["c3", "c4", "c5"]],
-    ),
-    case_04: (
-        vec![vec!["c0", "c1", "c3"], vec!["c4", "c7", "c2"], vec!["c6", "c5", "c8"]],
-        vec!["c2", "c3"],
-        vec![vec!["cX", "c3", "c5"], vec!["cX", "c4", "c2"], vec!["c6", "c7", "c8"]],
     ),
 }
 
-fn can_use_exchange_swap_star_impl(jobs_order: Vec<Vec<&str>>, locked_ids: Vec<&str>, expected: Vec<Vec<&str>>) {
+fn can_use_exchange_swap_star_impl(jobs_order: Vec<Vec<&str>>, expected: Vec<Vec<&str>>) {
     let matrix = (3, 3);
     let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], vec![0.; 9])));
     let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
-    let mut insertion_ctx = promote_to_locked(
-        InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone()),
-        locked_ids.as_slice(),
-    );
+    let mut insertion_ctx =
+        InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
     rearrange_jobs_in_routes(&mut insertion_ctx, jobs_order.as_slice());
     let vehicles = insertion_ctx
         .solution
@@ -90,7 +80,35 @@ fn can_use_exchange_swap_star_impl(jobs_order: Vec<Vec<&str>>, locked_ids: Vec<&
         .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
         .expect("cannot find new solution");
 
-    compare_with_ignore(get_customer_ids_from_routes(&insertion_ctx).as_slice(), expected.as_slice(), "cX");
+    compare_with_ignore(get_customer_ids_from_routes(&insertion_ctx).as_slice(), expected.as_slice(), "");
+}
+
+#[test]
+fn can_keep_locked_jobs_in_place() {
+    let jobs_order = vec![vec!["c0", "c1", "c3"], vec!["c4", "c7", "c2"], vec!["c6", "c5", "c8"]];
+    let locked_ids = vec!["c2", "c3"];
+    let matrix = (3, 3);
+    let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], vec![0.; 9])));
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
+    let mut insertion_ctx = promote_to_locked(
+        InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone()),
+        locked_ids.as_slice(),
+    );
+    rearrange_jobs_in_routes(&mut insertion_ctx, jobs_order.as_slice());
+
+    let insertion_ctx = ExchangeSwapStar::new(environment.random.clone())
+        .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
+        .expect("cannot find new solution");
+
+    let result_ids = get_customer_ids_from_routes(&insertion_ctx);
+    assert!(result_ids[0].contains(&"c3".to_string()));
+    assert!(!result_ids[0].contains(&"c2".to_string()));
+
+    assert!(result_ids[1].contains(&"c2".to_string()));
+    assert!(!result_ids[1].contains(&"c3".to_string()));
+
+    assert!(!result_ids[2].contains(&"c2".to_string()));
+    assert!(!result_ids[2].contains(&"c3".to_string()));
 }
 
 #[test]

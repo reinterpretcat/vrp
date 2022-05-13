@@ -207,6 +207,19 @@ pub struct UnassignedJobReason {
     pub code: String,
     /// Description.
     pub description: String,
+    /// Optionally, more details.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<UnassignedJobDetail>,
+}
+
+/// Unassigned job details.
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct UnassignedJobDetail {
+    /// Vehicle id.
+    pub vehicle_id: String,
+    /// Vehicle shift index.
+    pub shift_index: usize,
 }
 
 /// Unassigned job.

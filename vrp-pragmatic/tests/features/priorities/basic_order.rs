@@ -147,7 +147,8 @@ fn can_follow_order_when_prioritized_property_set() {
             job_id: "job3".to_string(),
             reasons: vec![UnassignedJobReason {
                 code: "MAX_DISTANCE_CONSTRAINT".to_string(),
-                description: "cannot be assigned due to max distance constraint of vehicle".to_string()
+                description: "cannot be assigned due to max distance constraint of vehicle".to_string(),
+                detail: Some(UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }),
             }]
         }])
     );

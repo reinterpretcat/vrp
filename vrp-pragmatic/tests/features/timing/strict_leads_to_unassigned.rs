@@ -99,7 +99,8 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
                 job_id: "job5".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "TIME_WINDOW_CONSTRAINT".to_string(),
-                    description: "cannot be visited within time window".to_string()
+                    description: "cannot be visited within time window".to_string(),
+                    detail: Some(UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }),
                 }]
             }]),
             ..create_empty_solution()

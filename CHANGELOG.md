@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* expose more than one reason of job unassignment. This should give more information why job was not assigned to existing tours.
+
 ### Changed
 
 * adapt weights in heuristics

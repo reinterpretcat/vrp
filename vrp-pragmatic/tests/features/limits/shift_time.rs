@@ -38,7 +38,8 @@ fn can_limit_one_job_by_shift_time() {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "SHIFT_TIME_CONSTRAINT".to_string(),
-                    description: "cannot be assigned due to shift time constraint of vehicle".to_string()
+                    description: "cannot be assigned due to shift time constraint of vehicle".to_string(),
+                    detail: None,
                 }]
             }]),
             ..create_empty_solution()
@@ -136,14 +137,16 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                     job_id: "job4".to_string(),
                     reasons: vec![UnassignedJobReason {
                         code: "SHIFT_TIME_CONSTRAINT".to_string(),
-                        description: "cannot be assigned due to shift time constraint of vehicle".to_string()
+                        description: "cannot be assigned due to shift time constraint of vehicle".to_string(),
+                        detail: Some(UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }),
                     }]
                 },
                 UnassignedJob {
                     job_id: "job5".to_string(),
                     reasons: vec![UnassignedJobReason {
                         code: "SHIFT_TIME_CONSTRAINT".to_string(),
-                        description: "cannot be assigned due to shift time constraint of vehicle".to_string()
+                        description: "cannot be assigned due to shift time constraint of vehicle".to_string(),
+                        detail: Some(UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }),
                     }]
                 }
             ]),

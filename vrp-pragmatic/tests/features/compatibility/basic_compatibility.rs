@@ -1,5 +1,5 @@
 use crate::format::problem::*;
-use crate::format::solution::UnassignedJobReason;
+use crate::format::solution::{UnassignedJobDetail, UnassignedJobReason};
 use crate::helpers::*;
 
 #[test]
@@ -74,7 +74,8 @@ fn can_unassign_job_due_to_compatibility() {
         reasons,
         vec![UnassignedJobReason {
             code: "COMPATIBILITY_CONSTRAINT".to_string(),
-            description: "cannot be assigned due to compatibility constraint".to_string()
+            description: "cannot be assigned due to compatibility constraint".to_string(),
+            detail: Some(UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 })
         }]
     );
 }

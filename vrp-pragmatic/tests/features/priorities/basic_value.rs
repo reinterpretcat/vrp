@@ -1,6 +1,6 @@
 use crate::format::problem::Objective::*;
 use crate::format::problem::*;
-use crate::format::solution::{UnassignedJob, UnassignedJobReason};
+use crate::format::solution::{UnassignedJob, UnassignedJobDetail, UnassignedJobReason};
 use crate::helpers::*;
 
 parameterized_test! {can_prefer_jobs_with_more_value, objectives, {
@@ -43,7 +43,8 @@ fn can_prefer_jobs_with_more_value_impl(objectives: Option<Vec<Vec<Objective>>>)
             job_id: "job1".to_string(),
             reasons: vec![UnassignedJobReason {
                 code: "CAPACITY_CONSTRAINT".to_string(),
-                description: "does not fit into any vehicle due to capacity".to_string()
+                description: "does not fit into any vehicle due to capacity".to_string(),
+                detail: Some(UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 })
             }]
         }
     );

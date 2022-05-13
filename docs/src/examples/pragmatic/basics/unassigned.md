@@ -1,6 +1,6 @@
 # Unassigned jobs
 
-This example demonstrates one job which is unassigned due to unreachable location.
+This example demonstrates one job which is unassigned due to time window constraints.
 
 <details>
     <summary>Problem</summary><p>

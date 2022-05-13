@@ -104,7 +104,8 @@ fn can_unassign_due_to_dimension_mismatch() {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "CAPACITY_CONSTRAINT".to_string(),
-                    description: "does not fit into any vehicle due to capacity".to_string()
+                    description: "does not fit into any vehicle due to capacity".to_string(),
+                    detail: None,
                 }]
             }]),
             ..create_empty_solution()

@@ -3,10 +3,12 @@
 When job cannot be assigned, it goes to the list of unassigned jobs:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/unassigned.unreachable.solution.json:113:123}}
+{{#include ../../../../../examples/data/pragmatic/basics/unassigned.unreachable.solution.json:97:111}}
 ```
 
-Each item in this list has job id, reason code and description.
+Each item in this list has job id, reason code, description and, optionally, some extra details like vehicle id and
+shift index. You will get as many reasons as tours in the solution. This information can be used to understand why the
+job was not added to the existing tours.
 
 
 ## Reasons of unassigned jobs

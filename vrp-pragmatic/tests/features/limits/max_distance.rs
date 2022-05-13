@@ -35,7 +35,8 @@ fn can_limit_by_max_distance() {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "MAX_DISTANCE_CONSTRAINT".to_string(),
-                    description: "cannot be assigned due to max distance constraint of vehicle".to_string()
+                    description: "cannot be assigned due to max distance constraint of vehicle".to_string(),
+                    detail: None
                 }]
             }]),
             ..create_empty_solution()
@@ -74,7 +75,8 @@ fn can_handle_empty_route() {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "MAX_DISTANCE_CONSTRAINT".to_string(),
-                    description: "cannot be assigned due to max distance constraint of vehicle".to_string()
+                    description: "cannot be assigned due to max distance constraint of vehicle".to_string(),
+                    detail: None,
                 }]
             }]),
             ..create_empty_solution()

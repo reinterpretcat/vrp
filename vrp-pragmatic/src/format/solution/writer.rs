@@ -506,23 +506,40 @@ fn calculate_load(current: MultiDimLoad, act: &Activity, is_multi_dimen: bool) -
 }
 
 fn create_unassigned(solution: &Solution) -> Option<Vec<UnassignedJob>> {
+    let create_simple_reasons = |code: i32| {
+        let (code, reason) = map_code_reason(code);
+        vec![UnassignedJobReason { code: code.to_string(), description: reason.to_string(), detail: None }]
+    };
+
     let unassigned = solution
         .unassigned
         .iter()
         .filter(|(job, _)| job.dimens().get_value::<String>("vehicle_id").is_none())
         .map(|(job, code)| {
-            // TODO change api to support multiple codes
-            let code = match code {
-                UnassignedCode::Unknown => 0,
-                UnassignedCode::Simple(code) => *code,
-                UnassignedCode::Detailed(details) => details.first().map_or(0, |detail| detail.1),
+            let job_id = job.dimens().get_id().expect("job id expected").clone();
+
+            let reasons = match code {
+                UnassignedCode::Simple(code) => create_simple_reasons(*code),
+                UnassignedCode::Detailed(details) if !details.is_empty() => details
+                    .iter()
+                    .map(|(actor, code)| {
+                        let (code, reason) = map_code_reason(*code);
+                        let dimens = &actor.vehicle.dimens;
+
+                        UnassignedJobReason {
+                            detail: Some(UnassignedJobDetail {
+                                vehicle_id: dimens.get_id().cloned().unwrap(),
+                                shift_index: dimens.get_value::<usize>("shift_index").cloned().unwrap(),
+                            }),
+                            code: code.to_string(),
+                            description: reason.to_string(),
+                        }
+                    })
+                    .collect(),
+                _ => create_simple_reasons(0),
             };
 
-            let (code, reason) = map_code_reason(code);
-            UnassignedJob {
-                job_id: job.dimens().get_id().expect("job id expected").clone(),
-                reasons: vec![UnassignedJobReason { code: code.to_string(), description: reason.to_string() }],
-            }
+            UnassignedJob { job_id, reasons }
         })
         .collect::<Vec<_>>();
 
