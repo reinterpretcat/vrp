@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.18.1] - 2022-05-13
+
 ### Added
 
 * expose more than one reason of job unassignment. This should give more information why job was not assigned to existing tours.
@@ -500,7 +503,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.18.0...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.18.1...HEAD
+[v1.18.1]: https://github.com/reinterpretcat/vrp/compare/v1.18.0..v1.18.1
 [v1.18.0]: https://github.com/reinterpretcat/vrp/compare/v1.17.0..v1.18.0
 [v1.17.0]: https://github.com/reinterpretcat/vrp/compare/v1.16.1..v1.17.0
 [v1.16.1]: https://github.com/reinterpretcat/vrp/compare/v1.16.0...v1.16.1
