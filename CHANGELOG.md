@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* `RedistributeSearch` heuristic
+
 
 ## [v1.18.1] - 2022-05-13
 

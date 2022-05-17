@@ -32,6 +32,9 @@ pub use self::infeasible_search::InfeasibleSearch;
 mod local_search;
 pub use self::local_search::LocalSearch;
 
+mod redistribute_search;
+pub use self::redistribute_search::RedistributeSearch;
+
 mod ruin_recreate;
 pub use self::ruin_recreate::RuinAndRecreate;
 

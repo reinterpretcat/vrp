@@ -419,6 +419,12 @@ mod dynamic {
                 Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(random.clone())))),
                 "local_swap_star".to_string(),
             ),
+            (
+                Arc::new(RedistributeSearch::new(Arc::new(WeightedRecreate::new(
+                    recreates.iter().map(|(recreate, _)| (recreate.clone(), 1)).collect(),
+                )))),
+                "redistribute_search".to_string(),
+            ),
         ];
 
         recreates
