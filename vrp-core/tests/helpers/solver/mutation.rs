@@ -107,7 +107,7 @@ pub fn rearrange_jobs_in_routes(insertion_ctx: &mut InsertionContext, job_order:
 pub fn add_leg_constraint(problem: &mut Problem, disallowed_pairs: Vec<(&str, &str)>) {
     let disallowed_pairs =
         disallowed_pairs.into_iter().map(|(prev, next)| (prev.to_string(), next.to_string())).collect();
-    unsafe { as_mut(problem.constraint.as_ref()) }.add_constraint(&ConstraintVariant::HardActivity(Arc::new(
+    unsafe { as_mut(problem.constraint.as_ref()) }.add_constraint(ConstraintVariant::HardActivity(Arc::new(
         LegConstraint::new(disallowed_pairs, "cX".to_string()),
     )));
 }
