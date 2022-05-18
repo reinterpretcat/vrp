@@ -108,6 +108,7 @@ fn remove_jobs(
 
     SelectionSamplingIterator::new(insertion_ctx.solution.routes.iter_mut(), sample, random.clone())
         .flat_map(|route_ctx| {
+            #[allow(clippy::needless_collect)]
             let all_jobs = route_ctx.route.tour.jobs().filter(|job| !locked.contains(job)).collect::<Vec<_>>();
             let amount = random.uniform_int(jobs_range.start, jobs_range.end) as usize;
             let jobs = SelectionSamplingIterator::new(all_jobs.into_iter(), amount, random.clone()).collect::<Vec<_>>();
@@ -131,9 +132,9 @@ fn create_amended_constraint(original: &ConstraintPipeline, rules: HashMap<Job, 
         ..ConstraintPipeline::default()
     };
 
-    pipeline.add_constraint(&ConstraintVariant::HardRoute(Arc::new(RedistributeHardConstraint { rules })));
+    pipeline.add_constraint(ConstraintVariant::HardRoute(Arc::new(RedistributeHardConstraint { rules })));
     original.get_constraints().for_each(|constraint| {
-        pipeline.add_constraint(&constraint);
+        pipeline.add_constraint(constraint);
     });
 
     pipeline

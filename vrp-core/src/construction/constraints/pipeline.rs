@@ -205,7 +205,7 @@ impl ConstraintPipeline {
             self.state_keys.insert(*key);
         });
 
-        module.get_constraints().for_each(|constraint| Self::add_constraint(self, constraint));
+        module.get_constraints().cloned().for_each(|constraint| Self::add_constraint(self, constraint));
 
         self.modules.push(module);
 
@@ -213,12 +213,12 @@ impl ConstraintPipeline {
     }
 
     /// Adds constraint into pipeline.
-    pub fn add_constraint(&mut self, constraint: &ConstraintVariant) {
+    pub fn add_constraint(&mut self, constraint: ConstraintVariant) {
         match constraint {
-            ConstraintVariant::HardRoute(c) => self.hard_route_constraints.push(c.clone()),
-            ConstraintVariant::HardActivity(c) => self.hard_activity_constraints.push(c.clone()),
-            ConstraintVariant::SoftRoute(c) => self.soft_route_constraints.push(c.clone()),
-            ConstraintVariant::SoftActivity(c) => self.soft_activity_constraints.push(c.clone()),
+            ConstraintVariant::HardRoute(value) => self.hard_route_constraints.push(value),
+            ConstraintVariant::HardActivity(value) => self.hard_activity_constraints.push(value),
+            ConstraintVariant::SoftRoute(value) => self.soft_route_constraints.push(value),
+            ConstraintVariant::SoftActivity(value) => self.soft_activity_constraints.push(value),
         }
     }
 

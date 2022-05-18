@@ -151,7 +151,7 @@ fn use_stochastic_rule(
                 )),
                 _ => constraint,
             };
-        modified.add_constraint(&constraint);
+        modified.add_constraint(constraint);
     });
 }
 
@@ -166,6 +166,7 @@ fn use_permissive_rule(
         .map(|module| {
             module
                 .get_constraints()
+                .cloned()
                 .map(|constraint| match &constraint {
                     ConstraintVariant::HardRoute(_) | ConstraintVariant::HardActivity(_) => (constraint, true),
                     _ => (constraint, false),
@@ -192,7 +193,7 @@ fn use_permissive_rule(
         .enumerate()
         .filter(|(index, _)| *index != indices[skip_index])
         .flat_map(|(_, constraints)| constraints.iter())
-        .for_each(|(constraint, _)| modified.add_constraint(constraint));
+        .for_each(|(constraint, _)| modified.add_constraint(constraint.clone()));
 }
 
 fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionContext {
