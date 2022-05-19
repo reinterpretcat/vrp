@@ -111,12 +111,44 @@ fn remove_jobs(
             #[allow(clippy::needless_collect)]
             let all_jobs = route_ctx.route.tour.jobs().filter(|job| !locked.contains(job)).collect::<Vec<_>>();
             let amount = random.uniform_int(jobs_range.start, jobs_range.end) as usize;
-            let jobs = SelectionSamplingIterator::new(all_jobs.into_iter(), amount, random.clone()).collect::<Vec<_>>();
 
-            jobs.iter().for_each(|job| {
-                route_ctx.route_mut().tour.remove(job);
-                unassigned.insert(job.clone(), UnassignedCode::Unknown);
-            });
+            let jobs = if random.is_head_not_tails() {
+                let jobs =
+                    SelectionSamplingIterator::new(all_jobs.into_iter(), amount, random.clone()).collect::<Vec<_>>();
+                jobs.iter().for_each(|job| {
+                    route_ctx.route_mut().tour.remove(job);
+                    unassigned.insert(job.clone(), UnassignedCode::Unknown);
+                });
+
+                jobs
+            } else {
+                (0..amount).fold(Vec::new(), |mut acc, _| {
+                    let job = if random.is_head_not_tails() {
+                        route_ctx
+                            .route
+                            .tour
+                            .all_activities()
+                            .filter_map(|a| a.retrieve_job())
+                            .find(|job| !locked.contains(job))
+                    } else {
+                        route_ctx
+                            .route
+                            .tour
+                            .all_activities()
+                            .rev()
+                            .filter_map(|a| a.retrieve_job())
+                            .find(|job| !locked.contains(job))
+                    };
+
+                    if let Some(job) = job {
+                        route_ctx.route_mut().tour.remove(&job);
+                        unassigned.insert(job.clone(), UnassignedCode::Unknown);
+                        acc.push(job)
+                    }
+
+                    acc
+                })
+            };
 
             constraint.accept_route_state(route_ctx);
 
