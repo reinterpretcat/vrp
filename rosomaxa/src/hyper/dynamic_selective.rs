@@ -313,6 +313,11 @@ where
     S: HeuristicSolution,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.tracker.telemetry.is_empty() {
+            return Ok(());
+        }
+
+        f.write_fmt(format_args!("name,generation,duration,state\n"))?;
         self.tracker.telemetry.iter().try_for_each(|(name, entries)| {
             entries.iter().try_for_each(|(generation, duration, state)| {
                 let state = match state {
