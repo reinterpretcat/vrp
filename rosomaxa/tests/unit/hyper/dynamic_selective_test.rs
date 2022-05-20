@@ -41,7 +41,8 @@ fn can_estimate_median() {
             solution.deep_copy()
         }
     }
-    let random = Environment::default().random.clone();
+    let environment = Environment::default();
+    let random = environment.random.clone();
     let solution = VectorSolution::new(vec![0., 0.], create_example_objective());
     let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
         vec![
@@ -51,11 +52,47 @@ fn can_estimate_median() {
                 "second".to_string(),
             ),
         ],
-        random,
+        &environment,
     );
 
     heuristic.search(&create_default_heuristic_context(), (0..100).map(|_| &solution).collect());
 
-    let median = heuristic.heuristic_median.approx_median().expect("cannot be None");
+    let median = heuristic.tracker.approx_median().expect("cannot be None");
     assert!(median > 0);
+}
+
+parameterized_test! {can_display_heuristic_info, is_experimental, {
+    can_display_heuristic_info_impl(is_experimental);
+}}
+
+can_display_heuristic_info! {
+    case_01: true,
+    case_02: false,
+}
+
+fn can_display_heuristic_info_impl(is_experimental: bool) {
+    let environment = Environment { is_experimental, ..Environment::default() };
+    let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(vec![], &environment);
+    heuristic.tracker.observation(
+        1,
+        "name1".to_string(),
+        Duration::from_millis(100),
+        SearchState::Stagnated(MedianRatio { ratio: 1. }),
+    );
+    heuristic.tracker.observation(
+        2,
+        "name1".to_string(),
+        Duration::from_millis(101),
+        SearchState::BestMajorImprovement(MedianRatio { ratio: 1. }),
+    );
+    heuristic.tracker.observation(
+        1,
+        "name2".to_string(),
+        Duration::from_millis(102),
+        SearchState::BestKnown(MedianRatio { ratio: 1. }),
+    );
+
+    let formatted = format!("{}", heuristic);
+
+    assert_eq!(!formatted.is_empty(), is_experimental);
 }

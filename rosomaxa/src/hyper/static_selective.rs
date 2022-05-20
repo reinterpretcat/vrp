@@ -1,6 +1,7 @@
 use super::*;
 use crate::utils::{parallel_into_collect, unwrap_from_result};
 use std::cmp::Ordering;
+use std::fmt::Formatter;
 use std::sync::Arc;
 
 /// A type which specifies probability behavior for heuristic selection.
@@ -67,5 +68,17 @@ where
     /// Creates a new instance of `StaticSelective` heuristic.
     pub fn new(heuristic_group: HeuristicGroup<C, O, S>) -> Self {
         Self { heuristic_group }
+    }
+}
+
+impl<C, O, S> Display for StaticSelective<C, O, S>
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
+        // NOTE don't do anything at the moment
+        Ok(())
     }
 }

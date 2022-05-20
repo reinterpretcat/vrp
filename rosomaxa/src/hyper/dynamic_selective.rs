@@ -5,10 +5,11 @@ mod dynamic_selective_test;
 use super::*;
 use crate::algorithms::math::{relative_distance, Remedian};
 use crate::algorithms::mdp::*;
-use crate::utils::{compare_floats, Random};
+use crate::utils::compare_floats;
 use crate::Timer;
 use hashbrown::HashMap;
 use std::cmp::Ordering;
+use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 use std::time::Duration;
@@ -33,7 +34,7 @@ where
     heuristic_simulator: Simulator<SearchState>,
     initial_estimates: HashMap<SearchState, ActionEstimates<SearchState>>,
     action_registry: SearchActionRegistry<C, O, S>,
-    heuristic_median: RemedianUsize,
+    tracker: HeuristicTracker,
 }
 
 impl<C, O, S> HyperHeuristic for DynamicSelective<C, O, S>
@@ -49,7 +50,7 @@ where
     fn search(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
         let registry = &self.action_registry;
         let estimates = &self.initial_estimates;
-        let median = &self.heuristic_median;
+        let tracker = &self.tracker;
 
         let agents = solutions
             .into_iter()
@@ -59,7 +60,7 @@ where
                     original: solution,
                     registry,
                     estimates,
-                    median,
+                    tracker,
                     state: match compare_to_best(heuristic_ctx, solution) {
                         Ordering::Greater => SearchState::Diverse(Default::default()),
                         _ => SearchState::BestKnown(Default::default()),
@@ -92,8 +93,8 @@ where
                 acc
             });
 
-        runtimes.into_iter().for_each(|value| {
-            self.heuristic_median.add_observation(value.as_millis() as usize);
+        runtimes.into_iter().for_each(|(name, duration, state)| {
+            self.tracker.observation(heuristic_ctx.statistics().generation, name, duration, state);
         });
 
         try_exchange_estimates(&mut self.heuristic_simulator);
@@ -109,7 +110,7 @@ where
     S: HeuristicSolution,
 {
     /// Creates a new instance of `DynamicSelective` heuristic.
-    pub fn new(operators: HeuristicOperators<C, O, S>, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(operators: HeuristicOperators<C, O, S>, environment: &Environment) -> Self {
         let operator_estimates = (0..operators.len())
             .map(|heuristic_idx| (SearchAction::Search { heuristic_idx }, 0.))
             .collect::<HashMap<_, _>>();
@@ -119,7 +120,7 @@ where
         Self {
             heuristic_simulator: Simulator::new(
                 Box::new(MonteCarlo::new(0.1)),
-                Box::new(EpsilonWeighted::new(0.1, random)),
+                Box::new(EpsilonWeighted::new(0.1, environment.random.clone())),
             ),
             initial_estimates: vec![
                 (SearchState::BestKnown(Default::default()), operator_estimates.clone()),
@@ -131,8 +132,12 @@ where
             ]
             .into_iter()
             .collect(),
-            heuristic_median: RemedianUsize::new(11, |a, b| a.cmp(b)),
             action_registry: SearchActionRegistry { heuristics: operators },
+            tracker: HeuristicTracker {
+                total_median: RemedianUsize::new(11, |a, b| a.cmp(b)),
+                telemetry: Default::default(),
+                is_experimental: environment.is_experimental,
+            },
         }
     }
 }
@@ -224,11 +229,11 @@ where
     heuristic_ctx: &'a C,
     registry: &'a SearchActionRegistry<C, O, S>,
     estimates: &'a HashMap<SearchState, ActionEstimates<SearchState>>,
-    median: &'a RemedianUsize,
+    tracker: &'a HeuristicTracker,
     state: SearchState,
     original: &'a S,
     solution: Option<S>,
-    runtime: Vec<Duration>,
+    runtime: Vec<(String, Duration, SearchState)>,
 }
 
 impl<'a, C, O, S> Agent<SearchState> for SearchAgent<'a, C, O, S>
@@ -246,12 +251,15 @@ where
     }
 
     fn take_action(&mut self, action: &<SearchState as State>::Action) {
-        let (new_solution, duration) = match action {
+        let (new_solution, duration, name) = match action {
             SearchAction::Search { heuristic_idx } => {
                 let solution = self.solution.as_ref().unwrap();
-                let (heuristic, _) = &self.registry.heuristics[*heuristic_idx];
+                let (heuristic, name) = &self.registry.heuristics[*heuristic_idx];
 
-                Timer::measure_duration(|| heuristic.search(self.heuristic_ctx, solution))
+                let (new_solution, duration) =
+                    Timer::measure_duration(|| heuristic.search(self.heuristic_ctx, solution));
+
+                (new_solution, duration, name)
             }
         };
 
@@ -261,7 +269,7 @@ where
         let compare_to_best = compare_to_best(self.heuristic_ctx, &new_solution);
 
         let ratio = MedianRatio {
-            ratio: self.median.approx_median().map_or(1., |median| {
+            ratio: self.tracker.approx_median().map_or(1., |median| {
                 if median == 0 {
                     1.
                 } else {
@@ -294,7 +302,30 @@ where
         };
 
         self.solution = Some(new_solution);
-        self.runtime.push(duration)
+        self.runtime.push((name.to_string(), duration, self.state.clone()))
+    }
+}
+
+impl<C, O, S> Display for DynamicSelective<C, O, S>
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.tracker.telemetry.iter().try_for_each(|(name, entries)| {
+            entries.iter().try_for_each(|(generation, duration, state)| {
+                let state = match state {
+                    SearchState::BestKnown(_) => "best_known",
+                    SearchState::Diverse(_) => "diverse",
+                    SearchState::BestMajorImprovement(_) => "best_major",
+                    SearchState::BestMinorImprovement(_) => "best_minor",
+                    SearchState::DiverseImprovement(_) => "diverse",
+                    SearchState::Stagnated(_) => "stagnated",
+                };
+                f.write_fmt(format_args!("{},{},{},{}\n", name, generation, duration.as_millis(), state))
+            })
+        })
     }
 }
 
@@ -331,4 +362,24 @@ where
         .next()
         .map(|(best_known, _)| heuristic_ctx.objective().total_order(solution, best_known))
         .unwrap_or(Ordering::Less)
+}
+
+struct HeuristicTracker {
+    total_median: RemedianUsize,
+    telemetry: HashMap<String, Vec<(usize, Duration, SearchState)>>,
+    is_experimental: bool,
+}
+
+impl HeuristicTracker {
+    pub fn observation(&mut self, generation: usize, name: String, duration: Duration, state: SearchState) {
+        self.total_median.add_observation(duration.as_millis() as usize);
+        // NOTE track heuristic telemetry only for experimental mode (performance)
+        if self.is_experimental {
+            self.telemetry.entry(name).or_default().push((generation, duration, state));
+        }
+    }
+
+    pub fn approx_median(&self) -> Option<usize> {
+        self.total_median.approx_median()
+    }
 }

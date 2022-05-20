@@ -163,6 +163,9 @@ where
             heuristic_ctx.on_generation(offspring, termination_estimate, generation_time);
         }
 
+        // NOTE give a chance to report internal state of heuristic
+        heuristic_ctx.environment().logger.deref()(&format!("{}", heuristic));
+
         let (population, telemetry_metrics) = heuristic_ctx.on_result()?;
 
         let solutions =

@@ -388,9 +388,9 @@ impl Solver {
 
         // build instances of implementation types from submitted data
         let heuristic = if self.use_static_heuristic {
-            self.create_static_heuristic(environment.clone())
+            self.create_static_heuristic(environment.as_ref())
         } else {
-            self.create_dynamic_heuristic(environment.clone())
+            self.create_dynamic_heuristic(environment.as_ref())
         };
         let fitness_fn = self.fitness_fn.ok_or_else(|| "objective function must be set".to_string())?;
         let weight_fn = self.weight_fn.unwrap_or_else({
@@ -452,14 +452,14 @@ impl Solver {
         Ok((solutions, metrics))
     }
 
-    fn create_dynamic_heuristic(&self, environment: Arc<Environment>) -> TargetHeuristic {
+    fn create_dynamic_heuristic(&self, environment: &Environment) -> TargetHeuristic {
         Box::new(DynamicSelective::new(
             self.operators.iter().map(|(op, name, _)| (op.clone(), name.clone())).collect(),
-            environment.random.clone(),
+            environment,
         ))
     }
 
-    fn create_static_heuristic(&self, environment: Arc<Environment>) -> TargetHeuristic {
+    fn create_static_heuristic(&self, environment: &Environment) -> TargetHeuristic {
         Box::new(StaticSelective::new(
             self.operators
                 .iter()

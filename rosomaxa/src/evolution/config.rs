@@ -318,7 +318,7 @@ where
             } else {
                 Box::new(DynamicSelective::new(
                     self.heuristic_operators.ok_or_else(|| "missing heuristic operators or heuristic".to_string())?,
-                    context.environment().random.clone(),
+                    context.environment(),
                 ))
             },
             context,

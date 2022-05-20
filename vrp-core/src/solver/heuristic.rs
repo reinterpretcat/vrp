@@ -109,9 +109,11 @@ pub fn get_static_heuristic_from_heuristic_group(heuristic_group: TargetHeuristi
 
 /// Gets dynamic heuristic using default settings.
 pub fn get_dynamic_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
-    let random = environment.random.clone();
-    let operators = dynamic::get_operators(problem, environment);
-    Box::new(DynamicSelective::<RefinementContext, ProblemObjective, InsertionContext>::new(operators, random))
+    let operators = dynamic::get_operators(problem, environment.clone());
+    Box::new(DynamicSelective::<RefinementContext, ProblemObjective, InsertionContext>::new(
+        operators,
+        environment.as_ref(),
+    ))
 }
 
 /// Creates elitism population algorithm.

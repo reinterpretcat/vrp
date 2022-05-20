@@ -460,6 +460,7 @@ fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, String> {
 
 fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<Environment>, String> {
     let quota = Some(create_interruption_quota(max_time));
+    let is_experimental = matches.is_present(EXPERIMENTAL_ARG_NAME);
 
     matches
         .value_of(PARALLELISM_ARG_NAME)
@@ -473,8 +474,6 @@ fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<
                 } else {
                     Arc::new(|_: &str| {})
                 };
-                let is_experimental = matches.is_present(EXPERIMENTAL_ARG_NAME);
-
                 Ok(Arc::new(Environment::new(
                     Arc::new(DefaultRandom::default()),
                     quota.clone(),
@@ -486,7 +485,7 @@ fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<
                 Err("cannot parse parallelism parameter".to_string())
             }
         })
-        .unwrap_or_else(|| Ok(Arc::new(Environment { quota, ..Environment::default() })))
+        .unwrap_or_else(|| Ok(Arc::new(Environment { quota, is_experimental, ..Environment::default() })))
 }
 
 fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {

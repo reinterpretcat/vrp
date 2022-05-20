@@ -7,6 +7,7 @@ mod static_selective;
 pub use self::static_selective::*;
 
 use crate::prelude::*;
+use std::fmt::Display;
 use std::marker::PhantomData;
 
 /// A heuristic operator which is responsible to change passed solution.
@@ -23,7 +24,7 @@ pub trait HeuristicOperator {
 }
 
 /// Represents a hyper heuristic functionality.
-pub trait HyperHeuristic {
+pub trait HyperHeuristic: Display {
     /// A heuristic context type.
     type Context: HeuristicContext<Objective = Self::Objective, Solution = Self::Solution>;
     /// A heuristic objective type.
