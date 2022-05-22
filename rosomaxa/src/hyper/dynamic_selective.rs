@@ -321,8 +321,8 @@ where
         self.tracker.telemetry.iter().try_for_each(|(name, entries)| {
             entries.iter().try_for_each(|(generation, duration, state)| {
                 let state = match state {
-                    SearchState::BestKnown(_) => "best_known",
-                    SearchState::Diverse(_) => "diverse",
+                    SearchState::BestKnown(_) => unreachable!(),
+                    SearchState::Diverse(_) => unreachable!(),
                     SearchState::BestMajorImprovement(_) => "best_major",
                     SearchState::BestMinorImprovement(_) => "best_minor",
                     SearchState::DiverseImprovement(_) => "diverse",

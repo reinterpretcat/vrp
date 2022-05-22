@@ -89,7 +89,7 @@ fn can_display_heuristic_info_impl(is_experimental: bool) {
         1,
         "name2".to_string(),
         Duration::from_millis(102),
-        SearchState::BestKnown(MedianRatio { ratio: 1. }),
+        SearchState::DiverseImprovement(MedianRatio { ratio: 1. }),
     );
 
     let formatted = format!("{}", heuristic);
