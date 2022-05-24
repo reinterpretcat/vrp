@@ -234,6 +234,17 @@ mod builder {
     }
 }
 
+fn create_recreate_with_blinks(
+    problem: &Problem,
+    random: Arc<dyn Random + Send + Sync>,
+) -> Arc<dyn Recreate + Send + Sync> {
+    if has_multi_dim_demand(problem) {
+        Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(random))
+    } else {
+        Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random))
+    }
+}
+
 mod statik {
     use super::*;
 
@@ -252,11 +263,7 @@ mod statik {
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 10),
             (Arc::new(RecreateWithSkipBest::new(3, 4, random.clone())), 5),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 5),
-            if has_multi_dim_demand(problem.as_ref()) {
-                (Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(random.clone())), 5)
-            } else {
-                (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone())), 5)
-            },
+            (create_recreate_with_blinks(problem.as_ref(), random.clone()), 5),
             (Arc::new(RecreateWithFarthest::new(random.clone())), 2),
             (Arc::new(RecreateWithSkipBest::new(4, 8, random.clone())), 2),
             (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), 1),
@@ -342,17 +349,7 @@ mod dynamic {
             (Arc::new(RecreateWithCheapest::new(random.clone())), "cheapest".to_string()),
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), "perturbation".to_string()),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), "gaps".to_string()),
-            if has_multi_dim_demand(problem.as_ref()) {
-                (
-                    Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(random.clone())),
-                    "blinks_multi".to_string(),
-                )
-            } else {
-                (
-                    Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone())),
-                    "blinks_single".to_string(),
-                )
-            },
+            (create_recreate_with_blinks(problem.as_ref(), random.clone()), "blinks".to_string()),
             (Arc::new(RecreateWithFarthest::new(random.clone())), "farthest".to_string()),
             (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), "nearest".to_string()),
             (
@@ -374,7 +371,7 @@ mod dynamic {
             ),
             (Arc::new(WorstJobRemoval::default()), "worst_job".to_string()),
             (Arc::new(RandomJobRemoval::new(RuinLimits::default())), "random_job_removal_1".to_string()),
-            (Arc::new(RandomJobRemoval::new(RuinLimits::new(2, 8, 10., 2))), "random_job_removal_2".to_string()),
+            (Arc::new(RandomJobRemoval::new(RuinLimits::new(2, 8, 0.2, 2))), "random_job_removal_2".to_string()),
             (Arc::new(RandomRouteRemoval::default()), "random_route_removal".to_string()),
             (Arc::new(CloseRouteRemoval::default()), "close_route_removal".to_string()),
             (Arc::new(WorstRouteRemoval::default()), "worst_route_removal".to_string()),
@@ -446,25 +443,18 @@ mod dynamic {
     ) -> TargetHeuristicOperator {
         let random = environment.random.clone();
         // initialize recreate
+        let cheapest = Arc::new(RecreateWithCheapest::new(random.clone()));
         let recreate = Arc::new(WeightedRecreate::new(vec![
             (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 1),
             (Arc::new(RecreateWithRegret::new(2, 3, random.clone())), 1),
-            (Arc::new(RecreateWithCheapest::new(random.clone())), 1),
+            (cheapest.clone(), 1),
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 1),
             (Arc::new(RecreateWithSkipBest::new(3, 4, random.clone())), 1),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 1),
-            // TODO use dimension size from problem
-            (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone())), 1),
+            (create_recreate_with_blinks(problem.as_ref(), random.clone()), 1),
             (Arc::new(RecreateWithFarthest::new(random.clone())), 1),
-            (Arc::new(RecreateWithSkipBest::new(4, 8, random.clone())), 1),
             (Arc::new(RecreateWithSlice::new(random.clone())), 1),
-            (
-                Arc::new(RecreateWithSkipRandom::default_explorative_phased(
-                    Arc::new(RecreateWithCheapest::new(random.clone())),
-                    random.clone(),
-                )),
-                1,
-            ),
+            (Arc::new(RecreateWithSkipRandom::default_explorative_phased(cheapest, random.clone())), 1),
         ]));
 
         // initialize ruin
