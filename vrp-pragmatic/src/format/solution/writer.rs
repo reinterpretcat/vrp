@@ -122,7 +122,7 @@ fn create_tour(
 ) -> Tour {
     // TODO reduce complexity
 
-    let is_multi_dimen = has_multi_dimensional_capacity(problem.extras.as_ref());
+    let is_multi_dimen = has_multi_dim_demand(problem);
     let parking = get_parking_time(problem.extras.as_ref());
 
     let actor = route.actor.as_ref();
@@ -588,18 +588,6 @@ fn get_capacity(dimens: &Dimensions, is_multi_dimen: bool) -> Option<Demand<Mult
             pickup: (create_capacity(demand.pickup.0), create_capacity(demand.pickup.1)),
             delivery: (create_capacity(demand.delivery.0), create_capacity(demand.delivery.1)),
         })
-    }
-}
-
-fn has_multi_dimensional_capacity(extras: &DomainExtras) -> bool {
-    let capacity_type = extras
-        .get("capacity_type")
-        .and_then(|s| s.downcast_ref::<String>())
-        .unwrap_or_else(|| panic!("Cannot get capacity type!"));
-    match capacity_type.as_str() {
-        "multi" => true,
-        "single" => false,
-        _ => panic!("Unknown capacity type: '{}'", capacity_type),
     }
 }
 

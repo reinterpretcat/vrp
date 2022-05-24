@@ -410,10 +410,7 @@ fn create_extras(
     reserved_times_index: ReservedTimesIndex,
 ) -> Result<Extras, String> {
     let mut extras = Extras::default();
-    extras.insert(
-        "capacity_type".to_string(),
-        Arc::new((if props.has_multi_dimen_capacity { "multi" } else { "single" }).to_string()),
-    );
+
     extras.insert("coord_index".to_owned(), coord_index);
     extras.insert("job_index".to_owned(), Arc::new(job_index.clone()));
     extras.insert("reserved_times_index".to_owned(), Arc::new(reserved_times_index));

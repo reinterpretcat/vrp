@@ -3,6 +3,7 @@
 mod load_test;
 
 use crate::models::common::{Dimensions, ValueDimension};
+use crate::models::Problem;
 use std::cmp::Ordering;
 use std::iter::Sum;
 use std::ops::{Add, Mul, Sub};
@@ -344,4 +345,12 @@ impl Sum for MultiDimLoad {
     fn sum<I: Iterator<Item = MultiDimLoad>>(iter: I) -> Self {
         iter.fold(MultiDimLoad::default(), |acc, item| item + acc)
     }
+}
+
+/// Returns true if any of the jobs has multi dimensional demand.
+pub fn has_multi_dim_demand(problem: &Problem) -> bool {
+    problem.jobs.all().any(|job| {
+        let demand: Option<&Demand<MultiDimLoad>> = job.dimens().get_demand();
+        demand.is_some()
+    })
 }

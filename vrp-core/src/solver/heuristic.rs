@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::heuristics::*;
-use crate::models::common::SingleDimLoad;
+use crate::models::common::{has_multi_dim_demand, MultiDimLoad, SingleDimLoad};
 use crate::models::problem::ProblemObjective;
 use crate::rosomaxa::get_default_selection_size;
 use crate::solver::search::*;
@@ -243,6 +243,7 @@ mod statik {
         environment: Arc<Environment>,
     ) -> TargetHeuristicOperator {
         let random = environment.random.clone();
+
         // initialize recreate
         let recreate = Arc::new(WeightedRecreate::new(vec![
             (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 50),
@@ -251,8 +252,11 @@ mod statik {
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 10),
             (Arc::new(RecreateWithSkipBest::new(3, 4, random.clone())), 5),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 5),
-            // TODO use dimension size from problem
-            (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone())), 5),
+            if has_multi_dim_demand(problem.as_ref()) {
+                (Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(random.clone())), 5)
+            } else {
+                (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone())), 5)
+            },
             (Arc::new(RecreateWithFarthest::new(random.clone())), 2),
             (Arc::new(RecreateWithSkipBest::new(4, 8, random.clone())), 2),
             (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), 1),
@@ -326,7 +330,6 @@ mod statik {
 
 mod dynamic {
     use super::*;
-    use crate::models::common::MultiDimLoad;
 
     pub fn get_operators(
         problem: Arc<Problem>,
@@ -334,20 +337,22 @@ mod dynamic {
     ) -> Vec<(TargetHeuristicOperator, String)> {
         let random = environment.random.clone();
         let recreates: Vec<(Arc<dyn Recreate + Send + Sync>, String)> = vec![
-            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best_1".to_string()),
-            (Arc::new(RecreateWithSkipBest::new(1, 4, random.clone())), "skip_best_2".to_string()),
+            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best".to_string()),
             (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), "regret".to_string()),
             (Arc::new(RecreateWithCheapest::new(random.clone())), "cheapest".to_string()),
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), "perturbation".to_string()),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), "gaps".to_string()),
-            (
-                Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone())),
-                "blinks_single".to_string(),
-            ),
-            (
-                Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(random.clone())),
-                "blinks_multi".to_string(),
-            ),
+            if has_multi_dim_demand(problem.as_ref()) {
+                (
+                    Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(random.clone())),
+                    "blinks_multi".to_string(),
+                )
+            } else {
+                (
+                    Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone())),
+                    "blinks_single".to_string(),
+                )
+            },
             (Arc::new(RecreateWithFarthest::new(random.clone())), "farthest".to_string()),
             (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), "nearest".to_string()),
             (
@@ -360,7 +365,7 @@ mod dynamic {
             (Arc::new(RecreateWithSlice::new(random.clone())), "slice".to_string()),
         ];
 
-        let primary_ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String)> = vec![
+        let ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String)> = vec![
             (Arc::new(AdjustedStringRemoval::default()), "asr".to_string()),
             (Arc::new(NeighbourRemoval::default()), "neighbour_removal".to_string()),
             (
@@ -369,27 +374,18 @@ mod dynamic {
             ),
             (Arc::new(WorstJobRemoval::default()), "worst_job".to_string()),
             (Arc::new(RandomJobRemoval::new(RuinLimits::default())), "random_job_removal_1".to_string()),
+            (Arc::new(RandomJobRemoval::new(RuinLimits::new(2, 8, 10., 2))), "random_job_removal_2".to_string()),
             (Arc::new(RandomRouteRemoval::default()), "random_route_removal".to_string()),
             (Arc::new(CloseRouteRemoval::default()), "close_route_removal".to_string()),
             (Arc::new(WorstRouteRemoval::default()), "worst_route_removal".to_string()),
         ];
-        let secondary_ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String)> =
-            vec![(Arc::new(RandomJobRemoval::new(RuinLimits::new(2, 8, 0.1, 2))), "random_job_removal_2".to_string())];
 
         // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
-        let ruins = primary_ruins
-            .iter()
-            .flat_map(|(outer_ruin, outer_name)| {
-                secondary_ruins.iter().map(move |(inner_ruin, inner_name)| {
-                    (outer_ruin.clone(), inner_ruin.clone(), format!("{}+{}", outer_name, inner_name))
-                })
+        let ruins = ruins
+            .into_iter()
+            .map::<(Arc<dyn Ruin + Send + Sync>, String), _>(|(ruin, name)| {
+                (Arc::new(CompositeRuin::new(vec![(ruin, 1.)])), name)
             })
-            .map::<(Arc<dyn Ruin + Send + Sync>, String), _>(|(a, b, name)| {
-                (Arc::new(CompositeRuin::new(vec![(a, 1.), (b, 1.)])), name)
-            })
-            .chain(primary_ruins.iter().chain(secondary_ruins.iter()).map::<(Arc<dyn Ruin + Send + Sync>, String), _>(
-                |(ruin, name)| (Arc::new(CompositeRuin::new(vec![(ruin.clone(), 1.)])), name.clone()),
-            ))
             .collect::<Vec<_>>();
 
         let inner_search = create_inner_heuristic_operator(problem, environment);

@@ -6,7 +6,7 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::models::common::{TimeSpan, TimeWindow};
 use vrp_core::models::examples::create_example_problem;
-use vrp_core::utils::{as_mut, compare_floats};
+use vrp_core::utils::compare_floats;
 
 type DomainProblem = vrp_core::models::Problem;
 type DomainActivity = vrp_core::models::solution::Activity;
@@ -18,10 +18,6 @@ fn create_test_problem_and_coord_index() -> (DomainProblem, CoordIndex) {
     let problem = {
         let mut problem = Arc::try_unwrap(create_example_problem()).unwrap_or_else(|_| unreachable!());
         problem.fleet = Arc::new(test_fleet());
-        unsafe {
-            as_mut(problem.extras.as_ref()).insert("capacity_type".to_string(), Arc::new("single".to_string()));
-        }
-
         problem
     };
     let mut coord_index = CoordIndex::new(&create_empty_problem());
