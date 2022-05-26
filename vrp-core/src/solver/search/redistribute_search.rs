@@ -33,8 +33,8 @@ impl HeuristicSearchOperator for RedistributeSearch {
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
-        let routes_range = 1..4;
-        let per_routes_jobs_range = 4..12;
+        let routes_range = 1..8;
+        let per_routes_jobs_range = 4..8;
 
         let refinement_ctx = heuristic_ctx;
         let insertion_ctx = create_target_insertion_ctx(solution, routes_range, per_routes_jobs_range);
