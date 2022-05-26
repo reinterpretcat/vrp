@@ -14,9 +14,13 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 use std::time::Duration;
 
-/// A collection of heuristic operators.
-pub type HeuristicOperators<C, O, S> =
-    Vec<(Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String)>;
+/// A collection of heuristic search operators.
+pub type HeuristicSearchOperators<C, O, S> =
+    Vec<(Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String)>;
+
+/// A collection of heuristic diversify operators.
+pub type HeuristicDiversifyOperators<C, O, S> =
+    Vec<Arc<dyn HeuristicDiversifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>>;
 
 /// Specifies a median estimator used to track medians of heuristic running time.
 /// Its values can be used to penalize instant heuristic reward.
@@ -34,6 +38,7 @@ where
     heuristic_simulator: Simulator<SearchState>,
     initial_estimates: HashMap<SearchState, ActionEstimates<SearchState>>,
     action_registry: SearchActionRegistry<C, O, S>,
+    diversify_operators: HeuristicDiversifyOperators<C, O, S>,
     tracker: HeuristicTracker,
 }
 
@@ -101,6 +106,10 @@ where
 
         individuals
     }
+
+    fn diversify(&self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
+        diversify_solutions(heuristic_ctx, solutions, self.diversify_operators.as_slice())
+    }
 }
 
 impl<C, O, S> DynamicSelective<C, O, S>
@@ -110,8 +119,12 @@ where
     S: HeuristicSolution,
 {
     /// Creates a new instance of `DynamicSelective` heuristic.
-    pub fn new(operators: HeuristicOperators<C, O, S>, environment: &Environment) -> Self {
-        let operator_estimates = (0..operators.len())
+    pub fn new(
+        search_operators: HeuristicSearchOperators<C, O, S>,
+        diversify_operators: HeuristicDiversifyOperators<C, O, S>,
+        environment: &Environment,
+    ) -> Self {
+        let operator_estimates = (0..search_operators.len())
             .map(|heuristic_idx| (SearchAction::Search { heuristic_idx }, 0.))
             .collect::<HashMap<_, _>>();
 
@@ -132,7 +145,8 @@ where
             ]
             .into_iter()
             .collect(),
-            action_registry: SearchActionRegistry { heuristics: operators },
+            action_registry: SearchActionRegistry { heuristics: search_operators },
+            diversify_operators,
             tracker: HeuristicTracker {
                 total_median: RemedianUsize::new(11, |a, b| a.cmp(b)),
                 telemetry: Default::default(),
@@ -217,7 +231,7 @@ where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    pub heuristics: HeuristicOperators<C, O, S>,
+    pub heuristics: HeuristicSearchOperators<C, O, S>,
 }
 
 struct SearchAgent<'a, C, O, S>

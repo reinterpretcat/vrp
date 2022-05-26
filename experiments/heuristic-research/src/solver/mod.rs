@@ -28,12 +28,14 @@ pub fn run_solver(
 
     let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random));
     let delta_op = VectorHeuristicOperatorMode::JustDelta(-0.1..0.1);
+    let delta_power_op = VectorHeuristicOperatorMode::JustDelta(-0.5..0.5);
 
     let (solutions, _) = Solver::default()
         .with_logger(logger.clone())
         .with_init_solutions(vec![init_solution])
-        .with_operator(noise_op, "noise", 1.)
-        .with_operator(delta_op, "delta", 0.2)
+        .with_search_operator(noise_op, "noise", 1.)
+        .with_search_operator(delta_op, "delta", 0.2)
+        .with_diversify_operator(delta_power_op)
         .with_termination(None, Some(generations), None, None)
         .with_fitness_fn(fitness_fn)
         .with_context_factory(Box::new({

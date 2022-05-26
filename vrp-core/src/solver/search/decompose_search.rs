@@ -14,14 +14,14 @@ use std::sync::RwLock;
 /// A search operator which decomposes original solution into multiple partial solutions,
 /// preforms search independently, and then merges partial solution back into one solution.
 pub struct DecomposeSearch {
-    inner_search: TargetHeuristicOperator,
+    inner_search: TargetSearchOperator,
     max_routes_range: (i32, i32),
     repeat_count: usize,
 }
 
 impl DecomposeSearch {
     /// Create a new instance of `DecomposeSearch`.
-    pub fn new(inner_search: TargetHeuristicOperator, max_routes_range: (usize, usize), repeat_count: usize) -> Self {
+    pub fn new(inner_search: TargetSearchOperator, max_routes_range: (usize, usize), repeat_count: usize) -> Self {
         assert!(max_routes_range.0 > 1);
         let max_routes_range = (max_routes_range.0 as i32, max_routes_range.1 as i32);
 
@@ -29,7 +29,7 @@ impl DecomposeSearch {
     }
 }
 
-impl HeuristicOperator for DecomposeSearch {
+impl HeuristicSearchOperator for DecomposeSearch {
     type Context = RefinementContext;
     type Objective = ProblemObjective;
     type Solution = InsertionContext;

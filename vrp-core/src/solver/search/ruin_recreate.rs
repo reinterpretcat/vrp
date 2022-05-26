@@ -18,7 +18,7 @@ impl RuinAndRecreate {
     }
 }
 
-impl HeuristicOperator for RuinAndRecreate {
+impl HeuristicSearchOperator for RuinAndRecreate {
     type Context = RefinementContext;
     type Objective = ProblemObjective;
     type Solution = InsertionContext;

@@ -30,7 +30,7 @@ fn can_estimate_median() {
         delay_range: Range<i32>,
         random: Arc<dyn Random + Send + Sync>,
     }
-    impl HeuristicOperator for DelayableHeuristicOperator {
+    impl HeuristicSearchOperator for DelayableHeuristicOperator {
         type Context = VectorContext;
         type Objective = VectorObjective;
         type Solution = VectorSolution;
@@ -39,6 +39,15 @@ fn can_estimate_median() {
             let delay = self.random.uniform_int(self.delay_range.start, self.delay_range.end);
             std::thread::sleep(Duration::from_millis(delay as u64));
             solution.deep_copy()
+        }
+    }
+    impl HeuristicDiversifyOperator for DelayableHeuristicOperator {
+        type Context = VectorContext;
+        type Objective = VectorObjective;
+        type Solution = VectorSolution;
+
+        fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
+            vec![self.search(heuristic_ctx, solution)]
         }
     }
     let environment = Environment::default();
@@ -52,6 +61,7 @@ fn can_estimate_median() {
                 "second".to_string(),
             ),
         ],
+        vec![Arc::new(DelayableHeuristicOperator { delay_range: (2..3), random: random.clone() })],
         &environment,
     );
 
@@ -72,7 +82,8 @@ can_display_heuristic_info! {
 
 fn can_display_heuristic_info_impl(is_experimental: bool) {
     let environment = Environment { is_experimental, ..Environment::default() };
-    let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(vec![], &environment);
+    let mut heuristic =
+        DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(vec![], vec![], &environment);
     heuristic.tracker.observation(
         1,
         "name1".to_string(),

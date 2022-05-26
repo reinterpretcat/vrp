@@ -95,8 +95,8 @@ where
     termination: Option<Box<dyn Termination<Context = C, Objective = O>>>,
     strategy: Option<Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>>,
 
-    heuristic_operators: Option<HeuristicOperators<C, O, S>>,
-    heuristic_group: Option<HeuristicGroup<C, O, S>>,
+    search_operators: Option<HeuristicSearchOperators<C, O, S>>,
+    diversify_operators: Option<HeuristicDiversifyOperators<C, O, S>>,
 
     objective: Option<Arc<dyn HeuristicObjective<Solution = S>>>,
 
@@ -121,8 +121,8 @@ where
             context: None,
             termination: None,
             strategy: None,
-            heuristic_operators: None,
-            heuristic_group: None,
+            search_operators: None,
+            diversify_operators: None,
             objective: None,
             initial: InitialConfig { operators: vec![], max_size: 4, quota: 0.05, individuals: vec![] },
             processing: ProcessingConfig { context: vec![], solution: vec![] },
@@ -222,15 +222,15 @@ where
         self
     }
 
-    /// Sets heuristic operators.
-    pub fn with_operators(mut self, heuristic_operators: HeuristicOperators<C, O, S>) -> Self {
-        self.heuristic_operators = Some(heuristic_operators);
+    /// Sets search operators for dynamic heuristic.
+    pub fn with_search_operators(mut self, search_operators: HeuristicSearchOperators<C, O, S>) -> Self {
+        self.search_operators = Some(search_operators);
         self
     }
 
-    /// Sets heuristic group.
-    pub fn with_group(mut self, heuristic_group: HeuristicGroup<C, O, S>) -> Self {
-        self.heuristic_group = Some(heuristic_group);
+    /// Sets diversify operators for dynamic heuristic.
+    pub fn with_diversify_operators(mut self, diversify_operators: HeuristicDiversifyOperators<C, O, S>) -> Self {
+        self.diversify_operators = Some(diversify_operators);
         self
     }
 
@@ -317,7 +317,8 @@ where
                 heuristic
             } else {
                 Box::new(DynamicSelective::new(
-                    self.heuristic_operators.ok_or_else(|| "missing heuristic operators or heuristic".to_string())?,
+                    self.search_operators.ok_or_else(|| "missing search operators or heuristic".to_string())?,
+                    self.diversify_operators.ok_or_else(|| "missing diversify operators or heuristic".to_string())?,
                     context.environment(),
                 ))
             },

@@ -17,7 +17,7 @@ impl LocalSearch {
     }
 }
 
-impl HeuristicOperator for LocalSearch {
+impl HeuristicSearchOperator for LocalSearch {
     type Context = RefinementContext;
     type Objective = ProblemObjective;
     type Solution = InsertionContext;

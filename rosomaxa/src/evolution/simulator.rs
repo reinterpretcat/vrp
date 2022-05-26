@@ -154,9 +154,11 @@ where
 
             let generation_time = Timer::start();
 
-            let parents = heuristic_ctx.population().select().collect();
+            let parents = heuristic_ctx.population().select().collect::<Vec<_>>();
 
-            let offspring = heuristic.search(&heuristic_ctx, parents);
+            let search_offspring = heuristic.search(&heuristic_ctx, parents.clone());
+            let diverse_offspring = heuristic.diversify(&heuristic_ctx, parents);
+            let offspring = search_offspring.into_iter().chain(diverse_offspring).collect::<Vec<_>>();
 
             let termination_estimate = termination.estimate(&heuristic_ctx);
 

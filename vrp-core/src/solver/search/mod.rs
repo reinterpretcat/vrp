@@ -8,8 +8,9 @@
 
 use crate::construction::heuristics::InsertionContext;
 use crate::models::problem::ProblemObjective;
-use crate::solver::{RefinementContext, TargetHeuristicOperator};
-use rosomaxa::prelude::HeuristicOperator;
+use crate::solver::{RefinementContext, TargetSearchOperator};
+use rosomaxa::hyper::HeuristicDiversifyOperator;
+use rosomaxa::prelude::HeuristicSearchOperator;
 
 mod local;
 pub use self::local::*;
@@ -40,18 +41,18 @@ pub use self::ruin_recreate::RuinAndRecreate;
 
 /// Provides the way to pick one heuristic operator from the group.
 pub struct WeightedHeuristicOperator {
-    mutations: Vec<TargetHeuristicOperator>,
+    mutations: Vec<TargetSearchOperator>,
     weights: Vec<usize>,
 }
 
 impl WeightedHeuristicOperator {
     /// Creates a new instance of `WeightedHeuristicOperator`.
-    pub fn new(mutations: Vec<TargetHeuristicOperator>, weights: Vec<usize>) -> Self {
+    pub fn new(mutations: Vec<TargetSearchOperator>, weights: Vec<usize>) -> Self {
         Self { mutations, weights }
     }
 }
 
-impl HeuristicOperator for WeightedHeuristicOperator {
+impl HeuristicSearchOperator for WeightedHeuristicOperator {
     type Context = RefinementContext;
     type Objective = ProblemObjective;
     type Solution = InsertionContext;
@@ -60,5 +61,15 @@ impl HeuristicOperator for WeightedHeuristicOperator {
         let index = solution.environment.random.weighted(self.weights.as_slice());
 
         self.mutations[index].search(heuristic_ctx, solution)
+    }
+}
+
+impl HeuristicDiversifyOperator for WeightedHeuristicOperator {
+    type Context = RefinementContext;
+    type Objective = ProblemObjective;
+    type Solution = InsertionContext;
+
+    fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
+        vec![self.search(heuristic_ctx, solution)]
     }
 }

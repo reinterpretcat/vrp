@@ -27,17 +27,17 @@ impl RedistributeSearch {
     }
 }
 
-impl HeuristicOperator for RedistributeSearch {
+impl HeuristicSearchOperator for RedistributeSearch {
     type Context = RefinementContext;
     type Objective = ProblemObjective;
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
-        let routes_range = 2..3;
-        let jobs_range = 4..12;
+        let routes_range = 1..4;
+        let per_routes_jobs_range = 4..12;
 
         let refinement_ctx = heuristic_ctx;
-        let insertion_ctx = create_target_insertion_ctx(solution, routes_range, jobs_range);
+        let insertion_ctx = create_target_insertion_ctx(solution, routes_range, per_routes_jobs_range);
 
         let mut insertion_ctx = self.recreate.run(refinement_ctx, insertion_ctx);
 

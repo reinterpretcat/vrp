@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 * `RedistributeSearch` heuristic
+* `diversify` method to hyper-heuristics to increase population diversity when search stagnates
 
 ### Changed
 

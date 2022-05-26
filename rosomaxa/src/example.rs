@@ -228,7 +228,7 @@ struct VectorHeuristicOperator {
     mode: VectorHeuristicOperatorMode,
 }
 
-impl HeuristicOperator for VectorHeuristicOperator {
+impl HeuristicSearchOperator for VectorHeuristicOperator {
     type Context = VectorContext;
     type Objective = VectorObjective;
     type Solution = VectorSolution;
@@ -256,12 +256,29 @@ impl HeuristicOperator for VectorHeuristicOperator {
     }
 }
 
+impl HeuristicDiversifyOperator for VectorHeuristicOperator {
+    type Context = VectorContext;
+    type Objective = VectorObjective;
+    type Solution = VectorSolution;
+
+    fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
+        // NOTE: just reuse search operator logic
+        vec![self.search(heuristic_ctx, solution)]
+    }
+}
+
 type TargetInitialOperator = Box<
     dyn InitialOperator<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution> + Send + Sync,
 >;
 
-type TargetHeuristicOperator = Arc<
-    dyn HeuristicOperator<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution>
+type TargetSearchOperator = Arc<
+    dyn HeuristicSearchOperator<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution>
+        + Send
+        + Sync,
+>;
+
+type TargetDiversifyOperator = Arc<
+    dyn HeuristicDiversifyOperator<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution>
         + Send
         + Sync,
 >;
@@ -286,7 +303,8 @@ pub struct Solver {
     max_generations: Option<usize>,
     min_cv: Option<(String, usize, f64, bool)>,
     target_proximity: Option<(Vec<f64>, f64)>,
-    operators: Vec<(TargetHeuristicOperator, String, f64)>,
+    search_operators: Vec<(TargetSearchOperator, String, f64)>,
+    diversify_operators: Vec<TargetDiversifyOperator>,
     context_factory: Option<ContextFactory>,
 }
 
@@ -303,7 +321,8 @@ impl Default for Solver {
             max_generations: Some(100),
             min_cv: None,
             target_proximity: None,
-            operators: vec![],
+            search_operators: vec![],
+            diversify_operators: vec![],
             context_factory: None,
         }
     }
@@ -353,8 +372,14 @@ impl Solver {
     }
 
     /// Sets search operator.
-    pub fn with_operator(mut self, mode: VectorHeuristicOperatorMode, name: &str, probability: f64) -> Self {
-        self.operators.push((Arc::new(VectorHeuristicOperator { mode }), name.to_string(), probability));
+    pub fn with_search_operator(mut self, mode: VectorHeuristicOperatorMode, name: &str, probability: f64) -> Self {
+        self.search_operators.push((Arc::new(VectorHeuristicOperator { mode }), name.to_string(), probability));
+        self
+    }
+
+    /// Sets diversify operator.
+    pub fn with_diversify_operator(mut self, mode: VectorHeuristicOperatorMode) -> Self {
+        self.diversify_operators.push(Arc::new(VectorHeuristicOperator { mode }));
         self
     }
 
@@ -454,14 +479,15 @@ impl Solver {
 
     fn create_dynamic_heuristic(&self, environment: &Environment) -> TargetHeuristic {
         Box::new(DynamicSelective::new(
-            self.operators.iter().map(|(op, name, _)| (op.clone(), name.clone())).collect(),
+            self.search_operators.iter().map(|(op, name, _)| (op.clone(), name.clone())).collect(),
+            self.diversify_operators.clone(),
             environment,
         ))
     }
 
     fn create_static_heuristic(&self, environment: &Environment) -> TargetHeuristic {
         Box::new(StaticSelective::new(
-            self.operators
+            self.search_operators
                 .iter()
                 .map(|(op, _, probability)| {
                     let random = environment.random.clone();
@@ -471,6 +497,7 @@ impl Solver {
                     (op.clone(), probability_fn)
                 })
                 .collect(),
+            self.diversify_operators.clone(),
         ))
     }
 }

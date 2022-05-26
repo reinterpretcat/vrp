@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 /// A mutation operator which performs search in infeasible space.
 pub struct InfeasibleSearch {
-    inner_search: TargetHeuristicOperator,
+    inner_search: TargetSearchOperator,
     repeat_count: usize,
     shuffle_objectives_probability: (f64, f64),
     skip_constraint_check_probability: (f64, f64),
@@ -19,7 +19,7 @@ pub struct InfeasibleSearch {
 impl InfeasibleSearch {
     /// Creates a new instance of `InfeasibleSearch`.
     pub fn new(
-        inner_search: TargetHeuristicOperator,
+        inner_search: TargetSearchOperator,
         repeat_count: usize,
         shuffle_objectives_probability: (f64, f64),
         skip_constraint_check_probability: (f64, f64),
@@ -28,7 +28,7 @@ impl InfeasibleSearch {
     }
 }
 
-impl HeuristicOperator for InfeasibleSearch {
+impl HeuristicSearchOperator for InfeasibleSearch {
     type Context = RefinementContext;
     type Objective = ProblemObjective;
     type Solution = InsertionContext;

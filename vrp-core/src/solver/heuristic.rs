@@ -17,8 +17,8 @@ pub type TargetPopulation =
 pub type TargetHeuristic =
     Box<dyn HyperHeuristic<Context = RefinementContext, Objective = ProblemObjective, Solution = InsertionContext>>;
 /// A type for domain specific heuristic operator.
-pub type TargetHeuristicOperator = Arc<
-    dyn HeuristicOperator<Context = RefinementContext, Objective = ProblemObjective, Solution = InsertionContext>
+pub type TargetSearchOperator = Arc<
+    dyn HeuristicSearchOperator<Context = RefinementContext, Objective = ProblemObjective, Solution = InsertionContext>
         + Send
         + Sync,
 >;
@@ -44,7 +44,7 @@ pub type MinVariationTermination = MinVariation<RefinementContext, ProblemObject
 /// A heuristic probability type alias.
 pub type TargetHeuristicProbability = HeuristicProbability<RefinementContext, ProblemObjective, InsertionContext>;
 /// A heuristic group type alias.
-pub type TargetHeuristicGroup = HeuristicGroup<RefinementContext, ProblemObjective, InsertionContext>;
+pub type TargetHeuristicGroup = HeuristicSearchGroup<RefinementContext, ProblemObjective, InsertionContext>;
 
 /// A type alias for evolution config builder.
 pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, ProblemObjective, InsertionContext, String>;
@@ -99,19 +99,28 @@ pub fn get_static_heuristic(problem: Arc<Problem>, environment: Arc<Environment>
         ),
     ];
 
-    get_static_heuristic_from_heuristic_group(heuristic_group)
+    get_static_heuristic_from_heuristic_group(environment, heuristic_group)
 }
 
 /// Gets static heuristic using heuristic group.
-pub fn get_static_heuristic_from_heuristic_group(heuristic_group: TargetHeuristicGroup) -> TargetHeuristic {
-    Box::new(StaticSelective::<RefinementContext, ProblemObjective, InsertionContext>::new(heuristic_group))
+pub fn get_static_heuristic_from_heuristic_group(
+    environment: Arc<Environment>,
+    heuristic_group: TargetHeuristicGroup,
+) -> TargetHeuristic {
+    Box::new(StaticSelective::<RefinementContext, ProblemObjective, InsertionContext>::new(
+        heuristic_group,
+        create_diversify_operators(environment),
+    ))
 }
 
 /// Gets dynamic heuristic using default settings.
 pub fn get_dynamic_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
-    let operators = dynamic::get_operators(problem, environment.clone());
+    let search_operators = dynamic::get_operators(problem, environment.clone());
+    let diversify_operators = create_diversify_operators(environment.clone());
+
     Box::new(DynamicSelective::<RefinementContext, ProblemObjective, InsertionContext>::new(
-        operators,
+        search_operators,
+        diversify_operators,
         environment.as_ref(),
     ))
 }
@@ -245,6 +254,26 @@ fn create_recreate_with_blinks(
     }
 }
 
+fn create_diversify_operators(
+    environment: Arc<Environment>,
+) -> HeuristicDiversifyOperators<RefinementContext, ProblemObjective, InsertionContext> {
+    let random = environment.random.clone();
+
+    let recreates: Vec<(Arc<dyn Recreate + Send + Sync>, usize)> = vec![
+        (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 1),
+        (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), 1),
+        (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 1),
+        (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 1),
+        (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), 1),
+        (Arc::new(RecreateWithSlice::new(random.clone())), 1),
+    ];
+
+    vec![Arc::new(WeightedHeuristicOperator::new(
+        vec![Arc::new(RedistributeSearch::new(Arc::new(WeightedRecreate::new(recreates))))],
+        vec![1],
+    ))]
+}
+
 mod statik {
     use super::*;
 
@@ -252,7 +281,7 @@ mod statik {
     pub fn create_default_heuristic_operator(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
-    ) -> TargetHeuristicOperator {
+    ) -> TargetSearchOperator {
         let random = environment.random.clone();
 
         // initialize recreate
@@ -317,7 +346,7 @@ mod statik {
     }
 
     /// Creates default local search operator.
-    pub fn create_default_local_search(environment: Arc<Environment>) -> TargetHeuristicOperator {
+    pub fn create_default_local_search(environment: Arc<Environment>) -> TargetSearchOperator {
         let random = environment.random.clone();
 
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
@@ -338,10 +367,7 @@ mod statik {
 mod dynamic {
     use super::*;
 
-    pub fn get_operators(
-        problem: Arc<Problem>,
-        environment: Arc<Environment>,
-    ) -> Vec<(TargetHeuristicOperator, String)> {
+    pub fn get_operators(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<(TargetSearchOperator, String)> {
         let random = environment.random.clone();
         let recreates: Vec<(Arc<dyn Recreate + Send + Sync>, String)> = vec![
             (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best".to_string()),
@@ -387,7 +413,7 @@ mod dynamic {
 
         let inner_search = create_inner_heuristic_operator(problem, environment);
 
-        let mutations: Vec<(TargetHeuristicOperator, String)> = vec![
+        let mutations: Vec<(TargetSearchOperator, String)> = vec![
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
                 "local_exch_inter_route_best".to_string(),
@@ -414,18 +440,12 @@ mod dynamic {
                 Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(random.clone())))),
                 "local_swap_star".to_string(),
             ),
-            (
-                Arc::new(RedistributeSearch::new(Arc::new(WeightedRecreate::new(
-                    recreates.iter().map(|(recreate, _)| (recreate.clone(), 1)).collect(),
-                )))),
-                "redistribute_search".to_string(),
-            ),
         ];
 
         recreates
             .iter()
             .flat_map(|(recreate, recreate_name)| {
-                ruins.iter().map::<(TargetHeuristicOperator, String), _>(move |(ruin, ruin_name)| {
+                ruins.iter().map::<(TargetSearchOperator, String), _>(move |(ruin, ruin_name)| {
                     (
                         Arc::new(RuinAndRecreate::new(ruin.clone(), recreate.clone())),
                         format!("{}+{}", ruin_name, recreate_name),
@@ -440,7 +460,7 @@ mod dynamic {
     pub fn create_inner_heuristic_operator(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
-    ) -> TargetHeuristicOperator {
+    ) -> TargetSearchOperator {
         let random = environment.random.clone();
         // initialize recreate
         let cheapest = Arc::new(RecreateWithCheapest::new(random.clone()));

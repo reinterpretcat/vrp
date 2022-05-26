@@ -23,8 +23,8 @@
 //! let (solutions, _) = Solver::default()
 //!     .with_fitness_fn(create_rosenbrock_function())
 //!     .with_init_solutions(vec![vec![2., 2.]])
-//!     .with_operator(noise_op, "noise", 1.)
-//!     .with_operator(delta_op, "delta", 0.2)
+//!     .with_search_operator(noise_op, "noise", 1.)
+//!     .with_search_operator(delta_op, "delta", 0.2)
 //!     .with_termination(Some(5), Some(1000), None, None)
 //!     .solve()
 //!     .expect("cannot build and use solver");

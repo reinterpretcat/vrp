@@ -18,7 +18,7 @@ pub use crate::population::HeuristicPopulation;
 pub use crate::population::RosomaxaConfig;
 pub use crate::population::SelectionPhase;
 
-pub use crate::hyper::HeuristicOperator;
+pub use crate::hyper::HeuristicSearchOperator;
 pub use crate::hyper::HyperHeuristic;
 
 pub use crate::termination::Termination;
