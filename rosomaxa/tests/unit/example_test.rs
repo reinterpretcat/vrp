@@ -42,6 +42,7 @@ fn can_solve_rosenbrock() {
         .with_search_operator(just_noise(1., (-0.1, 0.), random.clone()), "third", 0.25)
         .with_search_operator(dimen_noise(1., (-0.1, 0.1), 0, random.clone()), "fourth", 0.5)
         .with_search_operator(dimen_noise(1., (-0.1, 0.1), 1, random.clone()), "five", 0.25)
+        .with_diversify_operator(dimen_noise(1., (-0.5, 0.5), 1, random.clone()))
         .with_termination(Some(5), Some(1000), None, None)
         .solve()
         .expect("cannot build and use solver");

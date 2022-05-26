@@ -268,10 +268,14 @@ fn create_diversify_operators(
         (Arc::new(RecreateWithSlice::new(random.clone())), 1),
     ];
 
-    vec![Arc::new(WeightedHeuristicOperator::new(
-        vec![Arc::new(RedistributeSearch::new(Arc::new(WeightedRecreate::new(recreates))))],
-        vec![1],
-    ))]
+    let redistribute_search = Arc::new(RedistributeSearch::new(Arc::new(WeightedRecreate::new(recreates))));
+    let local_search = Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
+        vec![(Arc::new(ExchangeSequence::new(8, 0.25, 0.1)), 1)],
+        2,
+        4,
+    ))));
+
+    vec![Arc::new(WeightedHeuristicOperator::new(vec![redistribute_search, local_search], vec![10, 2]))]
 }
 
 mod statik {
@@ -426,7 +430,6 @@ mod dynamic {
                 Arc::new(LocalSearch::new(Arc::new(ExchangeIntraRouteRandom::default()))),
                 "local_exch_intra_route_random".to_string(),
             ),
-            (Arc::new(LocalSearch::new(Arc::new(ExchangeSequence::default()))), "local_exch_sequence".to_string()),
             (
                 Arc::new(LocalSearch::new(Arc::new(RescheduleDeparture::default()))),
                 "local_reschedule_departure".to_string(),
@@ -505,7 +508,6 @@ mod dynamic {
             vec![
                 (Arc::new(ExchangeSwapStar::new(random)), 1),
                 (Arc::new(ExchangeInterRouteBest::default()), 1),
-                (Arc::new(ExchangeSequence::default()), 1),
                 (Arc::new(ExchangeInterRouteRandom::default()), 1),
                 (Arc::new(ExchangeIntraRouteRandom::default()), 1),
             ],
