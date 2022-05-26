@@ -3,6 +3,7 @@ use crate::construction::heuristics::*;
 use crate::models::common::{has_multi_dim_demand, MultiDimLoad, SingleDimLoad};
 use crate::models::problem::ProblemObjective;
 use crate::rosomaxa::get_default_selection_size;
+use crate::solver::heuristic::dynamic::create_inner_heuristic_operator;
 use crate::solver::search::*;
 use rosomaxa::algorithms::gsom::Input;
 use rosomaxa::hyper::*;
@@ -77,7 +78,7 @@ pub fn get_default_heuristic(problem: Arc<Problem>, environment: Arc<Environment
 
 /// Gets static heuristic using default settings.
 pub fn get_static_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
-    let default_operator = statik::create_default_heuristic_operator(problem, environment.clone());
+    let default_operator = statik::create_default_heuristic_operator(problem.clone(), environment.clone());
     let local_search = statik::create_default_local_search(environment.clone());
 
     let heuristic_group: TargetHeuristicGroup = vec![
@@ -93,30 +94,27 @@ pub fn get_static_heuristic(problem: Arc<Problem>, environment: Arc<Environment>
         (local_search.clone(), create_scalar_operator_probability(0.05, environment.random.clone())),
         (default_operator.clone(), create_scalar_operator_probability(1., environment.random.clone())),
         (local_search, create_scalar_operator_probability(0.05, environment.random.clone())),
-        (
-            Arc::new(InfeasibleSearch::new(default_operator, 4, (0.05, 0.2), (0.05, 0.33))),
-            create_scalar_operator_probability(0.01, environment.random.clone()),
-        ),
     ];
 
-    get_static_heuristic_from_heuristic_group(environment, heuristic_group)
+    get_static_heuristic_from_heuristic_group(problem, environment, heuristic_group)
 }
 
 /// Gets static heuristic using heuristic group.
 pub fn get_static_heuristic_from_heuristic_group(
+    problem: Arc<Problem>,
     environment: Arc<Environment>,
     heuristic_group: TargetHeuristicGroup,
 ) -> TargetHeuristic {
     Box::new(StaticSelective::<RefinementContext, ProblemObjective, InsertionContext>::new(
         heuristic_group,
-        create_diversify_operators(environment),
+        create_diversify_operators(problem, environment),
     ))
 }
 
 /// Gets dynamic heuristic using default settings.
 pub fn get_dynamic_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
-    let search_operators = dynamic::get_operators(problem, environment.clone());
-    let diversify_operators = create_diversify_operators(environment.clone());
+    let search_operators = dynamic::get_operators(problem.clone(), environment.clone());
+    let diversify_operators = create_diversify_operators(problem, environment.clone());
 
     Box::new(DynamicSelective::<RefinementContext, ProblemObjective, InsertionContext>::new(
         search_operators,
@@ -255,9 +253,11 @@ fn create_recreate_with_blinks(
 }
 
 fn create_diversify_operators(
+    problem: Arc<Problem>,
     environment: Arc<Environment>,
 ) -> HeuristicDiversifyOperators<RefinementContext, ProblemObjective, InsertionContext> {
     let random = environment.random.clone();
+    let inner_search = create_inner_heuristic_operator(problem, environment.clone());
 
     let recreates: Vec<(Arc<dyn Recreate + Send + Sync>, usize)> = vec![
         (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 1),
@@ -269,13 +269,17 @@ fn create_diversify_operators(
     ];
 
     let redistribute_search = Arc::new(RedistributeSearch::new(Arc::new(WeightedRecreate::new(recreates))));
+    let infeasible_search = Arc::new(InfeasibleSearch::new(inner_search, 2, (0.05, 0.2), (0.05, 0.33)));
     let local_search = Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
         vec![(Arc::new(ExchangeSequence::new(8, 0.25, 0.1)), 1)],
         2,
         4,
     ))));
 
-    vec![Arc::new(WeightedHeuristicOperator::new(vec![redistribute_search, local_search], vec![10, 2]))]
+    vec![Arc::new(WeightedHeuristicOperator::new(
+        vec![redistribute_search, local_search, infeasible_search],
+        vec![10, 2, 1],
+    ))]
 }
 
 mod statik {
@@ -434,11 +438,7 @@ mod dynamic {
                 Arc::new(LocalSearch::new(Arc::new(RescheduleDeparture::default()))),
                 "local_reschedule_departure".to_string(),
             ),
-            (Arc::new(DecomposeSearch::new(inner_search.clone(), (2, 4), 2)), "decompose_search".to_string()),
-            (
-                Arc::new(InfeasibleSearch::new(inner_search, 2, (0.05, 0.2), (0.05, 0.33))),
-                "infeasible_search".to_string(),
-            ),
+            (Arc::new(DecomposeSearch::new(inner_search, (2, 4), 2)), "decompose_search".to_string()),
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(random.clone())))),
                 "local_swap_star".to_string(),

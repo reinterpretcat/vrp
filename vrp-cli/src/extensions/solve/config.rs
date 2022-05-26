@@ -547,7 +547,7 @@ fn configure_from_hyper(
                         .iter()
                         .map(|operator| create_operator(problem.clone(), environment.clone(), operator))
                         .collect::<Result<Vec<_>, _>>()?;
-                    get_static_heuristic_from_heuristic_group(environment.clone(), heuristic_group)
+                    get_static_heuristic_from_heuristic_group(problem.clone(), environment.clone(), heuristic_group)
                 } else {
                     get_static_heuristic(problem.clone(), environment.clone())
                 };
