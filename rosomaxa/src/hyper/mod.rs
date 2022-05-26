@@ -68,11 +68,14 @@ where
 {
     assert!(!operators.is_empty());
 
-    let x = heuristic_ctx.statistics().improvement_1000_ratio;
-    let probability = match x {
-        _ if x > 0.2 => 0.001,
-        _ if x > 0.1 => 0.01,
-        _ => 0.05,
+    let last = heuristic_ctx.statistics().improvement_1000_ratio;
+    let global = heuristic_ctx.statistics().improvement_all_ratio;
+    let probability = match last {
+        _ if last > 0.2 => 0.001,
+        _ if last > 0.1 => 0.01,
+        _ if last > 0.05 => 0.05,
+        _ if global < 0.001 => 0.25,
+        _ => 0.1,
     };
 
     let random = heuristic_ctx.environment().random.as_ref();
