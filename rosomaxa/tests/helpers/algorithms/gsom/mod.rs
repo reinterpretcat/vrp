@@ -33,6 +33,10 @@ impl Storage for DataStorage {
         self.data.push(input);
     }
 
+    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Item> + 'a> {
+        Box::new(self.data.iter())
+    }
+
     fn drain<R>(&mut self, range: R) -> Vec<Self::Item>
     where
         R: RangeBounds<usize>,

@@ -522,6 +522,10 @@ where
         self.population.add(input);
     }
 
+    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Item> + 'a> {
+        Box::new(self.population.ranked().map(|(r, _)| r))
+    }
+
     fn drain<R>(&mut self, range: R) -> Vec<Self::Item>
     where
         R: RangeBounds<usize>,

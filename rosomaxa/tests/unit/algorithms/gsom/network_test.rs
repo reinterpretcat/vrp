@@ -250,4 +250,15 @@ mod node_growing {
             assert_eq!(actual, weights);
         });
     }
+
+    #[test]
+    fn can_calculate_mse() {
+        let mut network = create_trivial_network(false);
+        let mse = network.mse();
+        assert_eq!(mse, 0.);
+
+        network.smooth(1);
+        let mse = network.mse();
+        assert!((mse - 0.0001138).abs() < 1E7);
+    }
 }

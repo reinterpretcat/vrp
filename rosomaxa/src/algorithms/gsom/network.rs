@@ -186,6 +186,34 @@ where
         self.time
     }
 
+    /// Calculates mean squared error of the whole network.
+    pub fn mse(&self) -> f64 {
+        let n = if self.nodes.is_empty() { 1 } else { self.nodes.len() } as f64;
+
+        self.nodes.iter().fold(0., |acc, (_, node)| {
+            let node = node.read().unwrap();
+
+            let (count, sum) = node
+                .storage
+                .iter()
+                // NOTE try only first item so far
+                .take(1)
+                .fold((0, 0.), |(items, acc), data| {
+                    let err = data
+                        .weights()
+                        .iter()
+                        .zip(node.weights.iter())
+                        .map(|(&w1, &w2)| (w1 - w2) * (w1 - w2))
+                        .sum::<f64>()
+                        / node.weights.len() as f64;
+
+                    (items + 1, acc + err)
+                });
+
+            acc + if count > 0 { sum / count as f64 } else { sum }
+        }) / n
+    }
+
     /// Trains network on an input.
     fn train(&mut self, input: I, is_new_input: bool) {
         debug_assert!(input.weights().len() == self.dimension);
