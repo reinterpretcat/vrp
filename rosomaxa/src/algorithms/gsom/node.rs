@@ -116,4 +116,26 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
             0.
         }
     }
+
+    /// Calculates mean squared error of the node.
+    pub fn mse(&self) -> f64 {
+        let (count, sum) = self
+            .storage
+            .iter()
+            // NOTE try only first item so far
+            .take(1)
+            .fold((0, 0.), |(items, acc), data| {
+                let err =
+                    data.weights().iter().zip(self.weights.iter()).map(|(&w1, &w2)| (w1 - w2) * (w1 - w2)).sum::<f64>()
+                        / self.weights.len() as f64;
+
+                (items + 1, acc + err)
+            });
+
+        if count > 0 {
+            sum / count as f64
+        } else {
+            sum
+        }
+    }
 }
