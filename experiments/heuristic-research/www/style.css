@@ -24,38 +24,8 @@ main {
     align-items: center;
 }
 
-#coord, #status {
-    color: grey;
-    font-size: 10px;
-    height: 15px
-}
-
-#control {
-    margin-top: 1em;
-}
-
-#control label {
-    font-weight: bold;
-    margin-right: 1em;
-}
-
-#control select {
-    padding: 0.25em 0.5em;
-}
-
-#run {
-    display: block;
-    margin-right: auto;
-    margin-left: auto;
-}
-
 footer {
     margin-top: 2em;
     font-size: 12px;
     text-align: center;
-}
-
-.hide {
-    visibility: hidden;
-    height: 0px;
 }
