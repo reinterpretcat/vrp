@@ -141,6 +141,7 @@ impl RosomaxaWeighted for InsertionContext {
             get_distance_gravity_mean(self),
             get_customers_deviation(self),
             get_longest_distance_between_depot_customer_mean(self),
+            self.solution.get_total_cost(),
             self.solution.routes.len() as f64,
             self.solution.unassigned.len() as f64,
         ];
