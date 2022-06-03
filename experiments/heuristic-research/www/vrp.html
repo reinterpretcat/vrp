@@ -1,10 +1,9 @@
-<!-- https://github.com/upphiminn/d3.ForceBundle -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Heuristic Research Playground: 3D vector data</title>
+    <title>Heuristic Research Playground: Vehicle Routing Problem</title>
     <link rel="stylesheet" href="./style.css">
     <link rel="stylesheet" href="./experiment.style.css">
 </head>
@@ -13,7 +12,26 @@
 <script src="./vrp.bootstrap.js"></script>
 <main>
     <h1>Heuristic Research Playground</h1>
-
+    <div id="status">Loading WebAssembly...</div>
+    <!-- use https://github.com/upphiminn/d3.ForceBundle -->
+    <div id="control">
+        <label for="plot-population">Population: </label>
+        <select id="plot-population">
+            <option value="rosomaxa">Rosomaxa</option>
+            <option value="elitism">Elitism</option>
+            <option value="greedy">Greedy</option>
+        </select>
+        <br/>
+        <label for="plot-format">Format type: </label>
+        <select id="plot-format">
+            <option value="tsplib">TSPLIB95</option>
+            <option value="solomon">Solomon</option>
+            <option value="lilim">LiLim</option>
+        </select>
+        <br/>
+        <label for="generations">Gens: </label> <input type="range" min="0" max="1000" id="generations" value="0" class="hide"> <br/>
+        <input type="button" id="run" value="Run experiments" />
+    </div>
 </main>
 <footer>
     <a href="https://github.com/reinterpretcat/vrp" target="a">Repo</a> |
