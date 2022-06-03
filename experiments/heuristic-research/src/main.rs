@@ -1,4 +1,4 @@
-use heuristic_research::{draw_plots, run_solver, Axes};
+use heuristic_research::{draw_plots, solve_function, Axes};
 use plotters::prelude::*;
 use rosomaxa::utils::Environment;
 
@@ -12,7 +12,7 @@ fn main() {
     let population_type = "rosomaxa";
     let logger = Environment::default().logger;
 
-    run_solver(function_name, population_type, selection_size, vec![x, z], generations, logger);
+    solve_function(function_name, population_type, selection_size, vec![x, z], generations, logger);
 
     let area = BitMapBackend::new("rosenbrock.png", (1024, 768)).into_drawing_area();
     let generation = 100;

@@ -1,7 +1,6 @@
 use crate::MatrixData;
 use rosomaxa::algorithms::gsom::{Coordinate, NetworkState};
-use rosomaxa::example::*;
-use rosomaxa::population::Rosomaxa;
+use rosomaxa::population::{DominanceOrdered, Rosomaxa, RosomaxaWeighted, Shuffled};
 use rosomaxa::prelude::*;
 use std::any::TypeId;
 use std::ops::Range;
@@ -43,14 +42,16 @@ impl PopulationState {
 }
 
 /// Parses population state from a string representation.
-pub fn get_population_state<P>(population: &P) -> PopulationState
+pub fn get_population_state<P, O, S>(population: &P) -> PopulationState
 where
-    P: HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + 'static,
+    P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
+    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
 {
     // TODO try parse elitism and greedy
 
-    if TypeId::of::<P>() == TypeId::of::<Rosomaxa<VectorObjective, VectorSolution>>() {
-        let rosomaxa = unsafe { std::mem::transmute::<&P, &Rosomaxa<VectorObjective, VectorSolution>>(population) };
+    if TypeId::of::<P>() == TypeId::of::<Rosomaxa<O, S>>() {
+        let rosomaxa = unsafe { std::mem::transmute::<&P, &Rosomaxa<O, S>>(population) };
         NetworkState::try_from(rosomaxa).map(create_rosomaxa_state).unwrap_or(PopulationState::Unknown)
     } else {
         PopulationState::Unknown

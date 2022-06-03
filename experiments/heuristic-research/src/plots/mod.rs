@@ -74,7 +74,7 @@ pub fn draw_plots<B: DrawingBackend + 'static>(
     axes: Axes,
     name: &str,
 ) -> Result<(), String> {
-    drawing::draw(
+    draw(
         area,
         &SolutionDrawConfig {
             axes,
@@ -100,23 +100,30 @@ fn get_solution_points(generation: usize) -> Vec<ColoredDataPoint3D> {
         .lock()
         .ok()
         .map(|data| {
-            let mut data_points = vec![];
+            let mut data_points: Vec<ColoredDataPoint3D> = vec![];
 
             if let Some((_, points)) = data.on_generation.get(&generation) {
-                data_points.extend(points.iter().map(|point| (point.clone(), PointType::Circle, BLACK)));
+                data_points.extend(to_data_point(points).map(|point| (point.clone(), PointType::Circle, BLACK)));
             }
 
             if let Some(points) = data.on_add.get(&generation) {
-                data_points.extend(points.iter().map(|point| (point.clone(), PointType::Triangle, RED)));
+                data_points.extend(to_data_point(points).map(|point| (point.clone(), PointType::Triangle, RED)));
             }
 
             if let Some(points) = data.on_select.get(&generation) {
-                data_points.extend(points.iter().map(|point| (point.clone(), PointType::Triangle, BLUE)));
+                data_points.extend(to_data_point(points).map(|point| (point.clone(), PointType::Triangle, BLUE)));
             }
 
             data_points
         })
         .unwrap_or_else(Vec::new)
+}
+
+fn to_data_point<'a>(observations: &'a [ObservationData]) -> impl Iterator<Item = &DataPoint3D> + 'a {
+    observations.iter().filter_map(|o| match o {
+        ObservationData::Function(point) => Some(point),
+        _ => None,
+    })
 }
 
 fn get_population_series(generation: usize) -> PopulationSeries {

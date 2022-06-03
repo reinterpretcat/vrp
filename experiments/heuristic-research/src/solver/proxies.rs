@@ -1,6 +1,8 @@
 use crate::*;
-use rosomaxa::example::*;
+use rosomaxa::example::VectorSolution;
+use rosomaxa::population::{DominanceOrdered, RosomaxaWeighted, Shuffled};
 use rosomaxa::prelude::*;
+use std::any::TypeId;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
@@ -12,11 +14,11 @@ pub struct ExperimentData {
     /// Current generation.
     pub generation: usize,
     /// Called on new individuals addition.
-    pub on_add: HashMap<usize, Vec<DataPoint3D>>,
+    pub on_add: HashMap<usize, Vec<ObservationData>>,
     /// Called on individual selection.
-    pub on_select: HashMap<usize, Vec<DataPoint3D>>,
+    pub on_select: HashMap<usize, Vec<ObservationData>>,
     /// Called on generation.
-    pub on_generation: HashMap<usize, (HeuristicStatistics, Vec<DataPoint3D>)>,
+    pub on_generation: HashMap<usize, (HeuristicStatistics, Vec<ObservationData>)>,
     /// Keeps track population state at generation.
     pub population_state: HashMap<usize, PopulationState>,
 }
@@ -31,25 +33,37 @@ impl ExperimentData {
     }
 }
 
-impl From<&VectorSolution> for DataPoint3D {
-    fn from(solution: &VectorSolution) -> Self {
-        assert_eq!(solution.data.len(), 2);
-        DataPoint3D(solution.data[0], solution.fitness(), solution.data[1])
+impl<S> From<&S> for ObservationData
+where
+    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
+{
+    fn from(solution: &S) -> Self {
+        if TypeId::of::<S>() == TypeId::of::<VectorSolution>() {
+            let solution = unsafe { std::mem::transmute::<&S, &VectorSolution>(solution) };
+            assert_eq!(solution.data.len(), 2);
+            return ObservationData::Function(DataPoint3D(solution.data[0], solution.fitness(), solution.data[1]));
+        }
+
+        unimplemented!()
     }
 }
 
 /// A population type which provides way to intercept some of population data.
-pub struct ProxyPopulation<P>
+pub struct ProxyPopulation<P, O, S>
 where
-    P: HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + 'static,
+    P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
+    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
 {
     generation: usize,
     inner: P,
 }
 
-impl<P> ProxyPopulation<P>
+impl<P, O, S> ProxyPopulation<P, O, S>
 where
-    P: HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + 'static,
+    P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
+    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
 {
     /// Creates a new instance of `ProxyPopulation`.
     pub fn new(inner: P) -> Self {
@@ -62,12 +76,14 @@ where
     }
 }
 
-impl<P> HeuristicPopulation for ProxyPopulation<P>
+impl<P, O, S> HeuristicPopulation for ProxyPopulation<P, O, S>
 where
-    P: HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + 'static,
+    P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
+    O: HeuristicObjective<Solution = S> + Shuffled,
+    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
 {
-    type Objective = VectorObjective;
-    type Individual = VectorSolution;
+    type Objective = O;
+    type Individual = S;
 
     fn add_all(&mut self, individuals: Vec<Self::Individual>) -> bool {
         self.acquire()
@@ -126,9 +142,11 @@ where
     }
 }
 
-impl<P> Display for ProxyPopulation<P>
+impl<P, O, S> Display for ProxyPopulation<P, O, S>
 where
-    P: HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + 'static,
+    P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
+    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.inner.fmt(f)

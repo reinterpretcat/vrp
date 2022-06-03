@@ -16,10 +16,10 @@ export function main() {
     setupCanvas();
 }
 
-/** This function is used in `bootstrap.js` to setup imports. */
-export function setup(WasmChart, run_experiment, clear) {
+/** This function is used in `vector.bootstrap.js` to setup imports. */
+export function setup(WasmChart, run_function_experiment, clear) {
     Chart = WasmChart;
-    Chart.run_experiment = run_experiment;
+    Chart.run_experiment = run_function_experiment;
     Chart.clear = clear;
 }
 
