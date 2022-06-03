@@ -1,16 +1,10 @@
+use super::*;
 use rosomaxa::evolution::TelemetryMode;
 use rosomaxa::example::*;
-use rosomaxa::population::*;
-use rosomaxa::prelude::*;
 use std::ops::Deref;
-use std::sync::Arc;
 
 mod objectives;
 pub use self::objectives::*;
-
-pub use crate::solver::proxies::*;
-
-pub use crate::solver::state::*;
 
 /// Runs the solver to minimize objective function with given name.
 pub fn solve_function(
@@ -53,23 +47,4 @@ pub fn solve_function(
     let (individual, fitness) = solutions.first().expect("empty solutions");
 
     logger.deref()(&format!("solution: {:?}, fitness: {}", individual, fitness));
-}
-
-fn get_population(
-    population_type: &str,
-    objective: Arc<VectorObjective>,
-    environment: Arc<Environment>,
-    selection_size: usize,
-) -> Box<VectorPopulation> {
-    match population_type {
-        "greedy" => Box::new(ProxyPopulation::new(Greedy::new(objective, 1, None))),
-        "elitism" => {
-            Box::new(ProxyPopulation::new(Elitism::new(objective, environment.random.clone(), 2, selection_size)))
-        }
-        "rosomaxa" => Box::new(ProxyPopulation::new(
-            Rosomaxa::new(objective, environment, RosomaxaConfig::new_with_defaults(selection_size))
-                .expect("cannot create rosomaxa with default configuration"),
-        )),
-        _ => unreachable!(),
-    }
 }

@@ -43,7 +43,7 @@ lazy_static! {
     static ref EXPERIMENT_DATA: Mutex<ExperimentData> = Mutex::new(ExperimentData::default());
 }
 
-/// Runs experiment.
+/// Runs 3D functions experiment.
 #[wasm_bindgen]
 pub fn run_function_experiment(function_name: &str, population_type: &str, x: f64, z: f64, generations: usize) {
     let selection_size = 8;
@@ -52,6 +52,18 @@ pub fn run_function_experiment(function_name: &str, population_type: &str, x: f6
     });
 
     solve_function(function_name, population_type, selection_size, vec![x, z], generations, logger)
+}
+
+/// Runs VRP experiment.
+#[wasm_bindgen]
+pub fn run_vrp_experiment(format_type: &str, problem: &str, population_type: &str, generations: usize) {
+    let problem = problem.to_string();
+    let selection_size = 8;
+    let logger = Arc::new(|message: &str| {
+        web_sys::console::log_1(&message.into());
+    });
+
+    solve_vrp(format_type, problem, population_type, selection_size, generations, logger)
 }
 
 /// Clears experiment data.

@@ -13,6 +13,7 @@ pub use crate::evolution::EvolutionConfigBuilder;
 pub use crate::evolution::HeuristicContextProcessing;
 pub use crate::evolution::HeuristicSolutionProcessing;
 pub use crate::evolution::InitialOperators;
+pub use crate::evolution::TelemetryMode;
 
 pub use crate::population::HeuristicPopulation;
 pub use crate::population::RosomaxaConfig;
