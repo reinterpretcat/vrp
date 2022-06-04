@@ -24,4 +24,3 @@ pub mod common;
 pub mod lilim;
 pub mod solomon;
 pub mod tsplib;
-

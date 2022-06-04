@@ -1,13 +1,25 @@
 //! Contains common text reading and writing functionality.
 
 mod text_reader;
+
 pub(crate) use self::text_reader::*;
+use std::sync::Arc;
 
 mod text_writer;
 pub(crate) use self::text_writer::*;
 
 mod routing;
 pub use self::routing::CoordIndex;
+
+use vrp_core::models::Extras;
+
+pub(crate) fn get_extras(coord_index: CoordIndex) -> Extras {
+    let mut extras = Extras::default();
+
+    extras.insert("coord_index".to_string(), Arc::new(coord_index));
+
+    extras
+}
 
 /// A trait to get tuple from collection items.
 /// See https://stackoverflow.com/questions/38863781/how-to-create-a-tuple-from-a-vector

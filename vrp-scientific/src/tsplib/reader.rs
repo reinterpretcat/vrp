@@ -77,7 +77,7 @@ impl<R: Read> TextReader for TsplibReader<R> {
     }
 
     fn create_extras(&self) -> Extras {
-        Extras::default()
+        get_extras(self.coord_index.clone())
     }
 }
 

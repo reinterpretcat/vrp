@@ -18,7 +18,7 @@ pub trait LilimProblem {
 
 impl<R: Read> LilimProblem for BufReader<R> {
     fn read_lilim(self, is_rounded: bool) -> Result<Problem, String> {
-        LilimReader { buffer: String::new(), reader: self, matrix: CoordIndex::default() }.read_problem(is_rounded)
+        LilimReader { buffer: String::new(), reader: self, coord_index: CoordIndex::default() }.read_problem(is_rounded)
     }
 }
 
@@ -51,7 +51,7 @@ struct Relation {
 struct LilimReader<R: Read> {
     buffer: String,
     reader: BufReader<R>,
-    matrix: CoordIndex,
+    coord_index: CoordIndex,
 }
 
 impl<R: Read> TextReader for LilimReader<R> {
@@ -63,11 +63,11 @@ impl<R: Read> TextReader for LilimReader<R> {
     }
 
     fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
-        self.matrix.create_transport(is_rounded)
+        self.coord_index.create_transport(is_rounded)
     }
 
     fn create_extras(&self) -> Extras {
-        Extras::default()
+        get_extras(self.coord_index.clone())
     }
 }
 
@@ -79,7 +79,7 @@ impl<R: Read> LilimReader<R> {
         Ok(create_fleet_with_distance_costs(
             vehicle.number,
             vehicle.capacity,
-            self.matrix.collect(depot.location),
+            self.coord_index.collect(depot.location),
             depot.tw,
         ))
     }
@@ -135,7 +135,7 @@ impl<R: Read> LilimReader<R> {
 
         Arc::new(Single {
             places: vec![Place {
-                location: Some(self.matrix.collect(customer.location)),
+                location: Some(self.coord_index.collect(customer.location)),
                 duration: customer.service as f64,
                 times: vec![TimeSpan::Window(customer.tw.clone())],
             }],
