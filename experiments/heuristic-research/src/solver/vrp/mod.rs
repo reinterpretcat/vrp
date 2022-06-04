@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/vrp_test.rs"]
+mod vrp_test;
+
 use super::*;
 use std::io::BufWriter;
 use std::ops::Deref;

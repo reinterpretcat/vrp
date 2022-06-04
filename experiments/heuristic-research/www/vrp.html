@@ -23,8 +23,8 @@
         </select>
         <br/>
 
-        <label for="plot-format">Format type: </label>
-        <select id="plot-format">
+        <label for="vrp-format">Format type: </label>
+        <select id="vrp-format">
             <option value="tsplib">TSPLIB95</option>
             <option value="solomon">Solomon</option>
             <option value="lilim">LiLim</option>
@@ -32,11 +32,11 @@
         <br/>
 
         <label for="file-browser">Select file: </label>
-        <input type='file' id="file-browser" accept='text/plain'><br>
+        <input type='file' id="file-browser" accept='.txt,.vrp'><br>
         <br/>
 
         <label for="generations">Gens: </label> <input type="range" min="0" max="1000" id="generations" value="0" class="hide"> <br/>
-        <input type="button" id="run" value="Run experiments" />
+        <input type="button" id="run" value="Run experiments" class="hide" />
     </div>
 </main>
 <footer>
