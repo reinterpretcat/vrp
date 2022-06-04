@@ -6,6 +6,10 @@ use std::ops::Deref;
 mod objectives;
 pub use self::objectives::*;
 
+/// Specifies a data point type for 3D chart.
+#[derive(Clone)]
+pub struct DataPoint3D(pub f64, pub f64, pub f64);
+
 /// Runs the solver to minimize objective function with given name.
 pub fn solve_function(
     function_name: &str,

@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::sync::MutexGuard;
+use vrp_scientific::core::construction::heuristics::InsertionContext;
 
 /// Keeps track of all experiment data for visualization purposes.
 #[derive(Default)]
@@ -44,7 +45,13 @@ where
             return ObservationData::Function(DataPoint3D(solution.data[0], solution.fitness(), solution.data[1]));
         }
 
-        unimplemented!()
+        if TypeId::of::<S>() == TypeId::of::<InsertionContext>() {
+            let insertion_ctx = unsafe { std::mem::transmute::<&S, &InsertionContext>(solution) };
+
+            return ObservationData::Vrp(insertion_ctx.into());
+        }
+
+        unreachable!()
     }
 }
 

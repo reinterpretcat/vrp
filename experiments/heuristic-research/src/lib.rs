@@ -18,18 +18,6 @@ pub use self::solver::solve_function;
 /// Specifies a matrix data type.
 pub type MatrixData = HashMap<Coordinate, f64>;
 
-/// Specifies a data point type for 3D chart.
-#[derive(Clone)]
-pub struct DataPoint3D(f64, f64, f64);
-
-#[derive(Clone)]
-pub struct DataGraph {
-    /// Nodes data: x and y coordinate.
-    pub nodes: Vec<(f64, f64)>,
-    /// Edges data: source and target nodes.
-    pub edges: Vec<(usize, usize)>,
-}
-
 /// Represents a single experiment observation data.
 pub enum ObservationData {
     /// Observation for benchmarking function experiment.

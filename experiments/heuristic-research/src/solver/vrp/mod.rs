@@ -11,6 +11,16 @@ use vrp_scientific::lilim::{LilimProblem, LilimSolution};
 use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
 use vrp_scientific::tsplib::{TsplibProblem, TsplibSolution};
 
+mod conversion;
+
+#[derive(Clone)]
+pub struct DataGraph {
+    /// Nodes data: x and y coordinate.
+    pub nodes: Vec<(f64, f64)>,
+    /// Edges data: source and target nodes.
+    pub edges: Vec<(usize, usize)>,
+}
+
 /// Solves VRP of the given format type.
 pub fn solve_vrp(
     format_type: &str,
