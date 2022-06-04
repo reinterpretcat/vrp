@@ -6,6 +6,7 @@ extern crate lazy_static;
 use crate::solver::*;
 use rosomaxa::algorithms::gsom::Coordinate;
 use std::collections::HashMap;
+use std::io::BufWriter;
 use std::sync::{Arc, Mutex};
 use wasm_bindgen::prelude::*;
 
@@ -64,4 +65,22 @@ pub fn clear() {
 #[wasm_bindgen]
 pub fn get_generation() -> usize {
     EXPERIMENT_DATA.lock().unwrap().generation
+}
+
+/// Gets data graph for given generation (for vrp experiments only).
+#[wasm_bindgen]
+pub fn get_data_graphs(generation: usize) -> JsValue {
+    let graphs: Vec<DataGraph> = EXPERIMENT_DATA
+        .lock()
+        .unwrap()
+        .on_generation
+        .get(&generation)
+        .map(|(_, data)| data.iter().map(|d| d.into()).collect())
+        .unwrap_or_else(|| Vec::new());
+
+    let mut buffer = String::new();
+    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+    serde_json::to_writer_pretty(writer, &graphs).expect("cannot serialize graphs");
+
+    JsValue::from_str(buffer.as_str())
 }

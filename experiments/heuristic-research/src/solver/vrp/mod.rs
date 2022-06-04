@@ -2,6 +2,9 @@
 #[path = "../../../tests/unit/solver/vrp_test.rs"]
 mod vrp_test;
 
+extern crate serde_json;
+use serde::Serialize;
+
 use super::*;
 use std::io::BufWriter;
 use std::ops::Deref;
@@ -13,12 +16,24 @@ use vrp_scientific::tsplib::{TsplibProblem, TsplibSolution};
 
 mod conversion;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct DataGraph {
     /// Nodes data: x and y coordinate.
-    pub nodes: Vec<(f64, f64)>,
+    pub nodes: Vec<GraphNode>,
     /// Edges data: source and target nodes.
-    pub edges: Vec<(usize, usize)>,
+    pub edges: Vec<GraphEdge>,
+}
+
+#[derive(Clone, Serialize)]
+pub struct GraphNode {
+    pub x: f64,
+    pub y: f64,
+}
+
+#[derive(Clone, Serialize)]
+pub struct GraphEdge {
+    pub source: usize,
+    pub target: usize,
 }
 
 /// Solves VRP of the given format type.

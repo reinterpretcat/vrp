@@ -1,4 +1,4 @@
-use crate::DataGraph;
+use crate::{DataGraph, GraphEdge, GraphNode, ObservationData};
 use vrp_scientific::common::CoordIndex;
 use vrp_scientific::core::construction::heuristics::InsertionContext;
 
@@ -11,19 +11,28 @@ impl From<&InsertionContext> for DataGraph {
             .and_then(|s| s.downcast_ref::<CoordIndex>())
             .expect("cannot get coord index!");
 
-        let nodes = coord_index.locations.iter().map(|(x, y)| (*x as f64, *y as f64)).collect();
+        let nodes = coord_index.locations.iter().map(|(x, y)| GraphNode { x: *x as f64, y: *y as f64 }).collect();
         let edges = insertion_ctx
             .solution
             .routes
             .iter()
             .flat_map(|route_ctx| {
                 route_ctx.route.tour.legs().map(|(activities, _)| match activities {
-                    [from, to] => (from.place.location, to.place.location),
+                    [from, to] => GraphEdge { source: from.place.location, target: to.place.location },
                     _ => unreachable!(),
                 })
             })
             .collect();
 
         DataGraph { nodes, edges }
+    }
+}
+
+impl From<&ObservationData> for DataGraph {
+    fn from(data: &ObservationData) -> Self {
+        match data {
+            ObservationData::Vrp(data_graph) => data_graph.clone(),
+            _ => unreachable!(),
+        }
     }
 }
