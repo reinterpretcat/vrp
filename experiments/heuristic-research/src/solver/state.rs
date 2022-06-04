@@ -59,10 +59,7 @@ where
 }
 
 fn create_rosomaxa_state(network_state: NetworkState) -> PopulationState {
-    let (rows, cols, num_of_weights) = network_state.shape;
-
-    // NOTE: expecting x, y and objective value
-    assert_eq!(num_of_weights, 3);
+    let (rows, cols, _) = network_state.shape;
 
     network_state.nodes.iter().fold(PopulationState::new_rosomaxa_empty(rows, cols), |mut rosomaxa, node| {
         let coordinate = Coordinate(node.coordinate.0, node.coordinate.1);
