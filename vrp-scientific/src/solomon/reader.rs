@@ -3,7 +3,6 @@
 mod reader_test;
 
 use crate::common::*;
-use crate::utils::CoordIndex;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::*;

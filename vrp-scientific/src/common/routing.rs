@@ -1,17 +1,20 @@
 #[cfg(test)]
-#[path = "../../tests/unit/utils/routing_test.rs"]
+#[path = "../../tests/unit/common/routing_test.rs"]
 mod routing_test;
 
 use std::sync::Arc;
 use vrp_core::models::common::Location;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData, TransportCost};
 
+/// Represents a coord index which can be used to analyze customer's locations.
 #[derive(Clone, Default)]
-pub(crate) struct CoordIndex {
-    locations: Vec<(i32, i32)>,
+pub struct CoordIndex {
+    /// Keeps track of locations.
+    pub locations: Vec<(i32, i32)>,
 }
 
 impl CoordIndex {
+    /// Adds location to index.
     pub fn collect(&mut self, location: (i32, i32)) -> Location {
         match self.locations.iter().position(|l| l.0 == location.0 && l.1 == location.1) {
             Some(position) => position,
@@ -22,6 +25,7 @@ impl CoordIndex {
         }
     }
 
+    /// Creates transport.
     pub fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
         let matrix_values = self
             .locations

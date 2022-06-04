@@ -25,4 +25,3 @@ pub mod lilim;
 pub mod solomon;
 pub mod tsplib;
 
-mod utils;

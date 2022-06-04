@@ -6,6 +6,9 @@ pub(crate) use self::text_reader::*;
 mod text_writer;
 pub(crate) use self::text_writer::*;
 
+mod routing;
+pub use self::routing::CoordIndex;
+
 /// A trait to get tuple from collection items.
 /// See https://stackoverflow.com/questions/38863781/how-to-create-a-tuple-from-a-vector
 pub(crate) trait TryCollect<T> {
