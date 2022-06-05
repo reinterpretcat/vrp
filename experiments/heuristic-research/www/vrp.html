@@ -9,11 +9,13 @@
 </head>
 <body>
 <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+<script src="./d3.v3.min.js" charset="utf-8"></script>
+<script src="./d3-ForceEdgeBundling.js"></script>
 <script src="./vrp.bootstrap.js"></script>
 <main>
     <h1>Heuristic Research Playground</h1>
     <div id="status">Loading WebAssembly...</div>
-    <!-- use https://github.com/upphiminn/d3.ForceBundle -->
+    <div id="svg"></div>
     <div id="control">
         <label for="plot-population">Population: </label>
         <select id="plot-population">
@@ -31,8 +33,8 @@
         </select>
         <br/>
 
-        <label for="file-browser">Select file: </label>
-        <input type='file' id="file-browser" accept='.txt,.vrp'><br>
+        <label for="file-selector">Select file: </label>
+        <input type='file' id="file-selector" accept='.txt,.vrp'><br>
         <br/>
 
         <label for="generations">Gens: </label> <input type="range" min="0" max="1000" id="generations" value="0" class="hide"> <br/>

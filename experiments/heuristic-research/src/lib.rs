@@ -78,9 +78,19 @@ pub fn get_data_graphs(generation: usize) -> JsValue {
         .map(|(_, data)| data.iter().map(|d| d.into()).collect())
         .unwrap_or_else(|| Vec::new());
 
+    // NOTE merge all edges into one graph
+    let graph = if let Some(graph) = graphs.first() {
+        DataGraph {
+            nodes: graph.nodes.clone(),
+            edges: graphs.iter().flat_map(|graph| graph.edges.iter()).cloned().collect(),
+        }
+    } else {
+        DataGraph { nodes: vec![], edges: vec![] }
+    };
+
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    serde_json::to_writer_pretty(writer, &graphs).expect("cannot serialize graphs");
+    serde_json::to_writer_pretty(writer, &graph).expect("cannot serialize graph");
 
     JsValue::from_str(buffer.as_str())
 }
