@@ -1,5 +1,4 @@
-class Chart {
-}
+class Chart {}
 
 const fileSelector = document.getElementById("file-selector");
 const plotPopulation = document.getElementById("plot-population");
@@ -8,6 +7,7 @@ const generations = document.getElementById("generations");
 const vrpFormat = document.getElementById("vrp-format");
 const status = document.getElementById("status");
 var svg;
+var bundling_cache = {};
 
 /** Main entry point */
 export function main() {
@@ -15,9 +15,9 @@ export function main() {
 }
 
 /** This function is used in `vrp.bootstrap.js` to setup imports. */
-export function setup(run_vrp_experiment, get_data_graphs, clear) {
+export function setup(run_vrp_experiment, get_bundled_edges, clear) {
     Chart.run_experiment = run_vrp_experiment;
-    Chart.get_data_graphs = get_data_graphs;
+    Chart.get_bundled_edges = get_bundled_edges;
     Chart.clear = clear;
 }
 
@@ -31,17 +31,6 @@ function setupUI() {
 
 function createSvg(nodes) {
     d3.selectAll("svg").remove();
-/*    svg = d3.select("#svg").append("svg")
-        .attr("width", 600)
-        .attr("height", 400);
-
-    svg = svg.append('g');
-    svg.append('rect')
-        .style('fill', '#111155')
-        .style('width', 600)
-        .style('height', 400);
-
-    svg.attr('transform', 'translate(20, 20)');*/
     // set the dimensions and margins of the graph
     let margin = {top: 10, right: 40, bottom: 30, left: 30},
         width = 600 - margin.left - margin.right,
@@ -96,7 +85,7 @@ function openFile(event) {
 
 /** Runs experiment. */
 function runExperiment() {
-    let max_gen = 200
+    let max_gen = 2000;
     let population_type = plotPopulation.selectedOptions[0].value;
     let format_type = vrpFormat.selectedOptions[0].value;
 
@@ -104,21 +93,16 @@ function runExperiment() {
 
     generations.max = max_gen;
     generations.classList.remove("hide");
+    bundling_cache = {};
 
     updatePlot();
 }
 
 function updatePlot() {
     let generation_value = Number(generations.value);
-    let graph = JSON.parse(Chart.get_data_graphs(generation_value));
-
-    let nodes = graph.nodes.reduce((acc, node, index) => Object.assign(acc, {[index]: node}), {});
-    let edges = graph.edges;
-
     const marker1 = performance.now();
-    // run the FDEB algorithm using default values on the data
-    let fbundling = d3.ForceEdgeBundling().nodes(nodes).edges(edges);
-    let results = fbundling();
+    bundling_cache[generation_value] = bundling_cache[generation_value] || JSON.parse(Chart.get_bundled_edges(generation_value));
+    let graph = bundling_cache[generation_value];
     const marker2 = performance.now();
 
     let [xAxis, yAxis] = createSvg(graph.nodes);
@@ -129,9 +113,9 @@ function updatePlot() {
         .curve(d3.curveLinear);
 
     // draw edges
-    for (var i = 0; i < results.length; i++) {
+    for (var i = 0; i < graph.edges.length; i++) {
         svg.append("path")
-            .attr("d", d3line(results[i]))
+            .attr("d", d3line(graph.edges[i]))
             .style("stroke-width", 1)
             .style("stroke", "#ff2222")
             .style("fill", "none")
@@ -140,7 +124,7 @@ function updatePlot() {
 
     // draw nodes
     svg.selectAll('.node')
-        .data(Object.entries(nodes))
+        .data(Object.entries(graph.nodes))
         .enter()
         .append('circle')
         .classed('node', true)

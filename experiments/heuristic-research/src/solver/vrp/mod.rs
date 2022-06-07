@@ -1,11 +1,12 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/solver/vrp_test.rs"]
+#[path = "../../../tests/unit/solver/vrp/vrp_test.rs"]
 mod vrp_test;
 
 extern crate serde_json;
 use serde::Serialize;
 
 use super::*;
+use crate::solver::vrp::fdeb::Fdeb;
 use std::io::BufWriter;
 use std::ops::Deref;
 use vrp_scientific::core::prelude::*;
@@ -15,6 +16,7 @@ use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
 use vrp_scientific::tsplib::{TsplibProblem, TsplibSolution};
 
 mod conversion;
+mod fdeb;
 
 #[derive(Clone, Serialize)]
 pub struct DataGraph {
@@ -57,7 +59,7 @@ pub fn solve_vrp(
 
     let problem = Arc::new(problem);
 
-    let environment = Arc::new(Environment { logger: logger.clone(), ..Environment::new_with_time_quota(Some(10)) });
+    let environment = Arc::new(Environment { logger: logger.clone(), ..Environment::new_with_time_quota(Some(300)) });
     let population = get_population(population_type, problem.objective.clone(), environment.clone(), selection_size);
     let telemetry_mode = TelemetryMode::OnlyLogging {
         logger: logger.clone(),
@@ -85,4 +87,21 @@ pub fn solve_vrp(
     .expect("cannot write solution");
 
     logger.deref()(&buffer);
+}
+
+pub fn get_forced_bundled_edges(graphs: &[DataGraph]) -> (Vec<GraphNode>, Vec<Vec<GraphNode>>) {
+    // NOTE merge all edges into one graph
+    let graph = if let Some(graph) = graphs.first() {
+        DataGraph {
+            nodes: graph.nodes.clone(),
+            edges: graphs.iter().flat_map(|graph| graph.edges.iter()).cloned().collect(),
+        }
+    } else {
+        DataGraph { nodes: vec![], edges: vec![] }
+    };
+
+    let fdeb = Fdeb::new(graph);
+    let edges = fdeb.calculate();
+
+    (fdeb.graph.nodes, edges)
 }
