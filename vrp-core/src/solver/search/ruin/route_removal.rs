@@ -113,7 +113,7 @@ impl Ruin for WorstRouteRemoval {
         route_sizes.truncate(8);
 
         let shuffle_amount = (route_sizes.len() as f64 * 0.25) as usize;
-        route_sizes.partial_shuffle(random.get_rng(), shuffle_amount);
+        route_sizes.partial_shuffle(&mut random.get_rng(), shuffle_amount);
 
         let remove_count = if random.is_hit(0.2) { 2 } else { 1 }.min(route_sizes.len());
 

@@ -3,10 +3,9 @@
 mod random_test;
 
 use rand::prelude::*;
+use rand::Error;
 use std::cell::UnsafeCell;
-
-/// Specifies underlying random generator type.
-pub type RandomGen = SmallRng;
+use std::rc::Rc;
 
 /// Provides the way to use randomized values in generic way.
 pub trait Random {
@@ -28,13 +27,7 @@ pub trait Random {
     fn weighted(&self, weights: &[usize]) -> usize;
 
     /// Returns RNG.
-    /// NOTE: it returns a mutual reference on purpose to allow some performance optimizations.
-    #[allow(clippy::mut_from_ref)]
-    fn get_rng(&self) -> &mut RandomGen;
-}
-
-thread_local! {
-    static DEFAULT_RNG: UnsafeCell<RandomGen> = UnsafeCell::new(SmallRng::from_rng(thread_rng()).expect("cannot get RNG"));
+    fn get_rng(&self) -> RandomGen;
 }
 
 /// A default random implementation.
@@ -78,7 +71,51 @@ impl Random for DefaultRandom {
             .1
     }
 
-    fn get_rng(&self) -> &mut RandomGen {
-        unsafe { &mut *DEFAULT_RNG.with(|cell| cell.get()) }
+    fn get_rng(&self) -> RandomGen {
+        let rng = DEFAULT_RNG.with(|t| t.clone());
+        RandomGen { rng }
     }
 }
+
+thread_local! {
+    static DEFAULT_RNG: Rc<UnsafeCell<SmallRng>> = Rc::new(UnsafeCell::new(SmallRng::from_rng(thread_rng()).expect("cannot get RNG")));
+}
+
+/// Specifies underlying random generator type.
+#[derive(Clone, Debug)]
+pub struct RandomGen {
+    rng: Rc<UnsafeCell<SmallRng>>,
+}
+
+impl RandomGen {
+    /// Creates a new instance of `RandomGen` using given reference to small rng.
+    pub fn with_rng(rng: Rc<UnsafeCell<SmallRng>>) -> Self {
+        Self { rng }
+    }
+}
+
+impl RngCore for RandomGen {
+    #[inline(always)]
+    fn next_u32(&mut self) -> u32 {
+        let rng = unsafe { &mut *self.rng.get() };
+        rng.next_u32()
+    }
+
+    #[inline(always)]
+    fn next_u64(&mut self) -> u64 {
+        let rng = unsafe { &mut *self.rng.get() };
+        rng.next_u64()
+    }
+
+    fn fill_bytes(&mut self, dest: &mut [u8]) {
+        let rng = unsafe { &mut *self.rng.get() };
+        rng.fill_bytes(dest)
+    }
+
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
+        let rng = unsafe { &mut *self.rng.get() };
+        rng.try_fill_bytes(dest)
+    }
+}
+
+impl CryptoRng for RandomGen {}

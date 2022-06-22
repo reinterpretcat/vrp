@@ -172,7 +172,7 @@ mod node_growing {
                 unreachable!()
             }
 
-            fn get_rng(&self) -> &mut RandomGen {
+            fn get_rng(&self) -> RandomGen {
                 unreachable!()
             }
         }

@@ -1,9 +1,11 @@
+use rand::prelude::SmallRng;
 use rand::SeedableRng;
 use rosomaxa::prelude::{Random, RandomGen};
 use std::cell::UnsafeCell;
+use std::rc::Rc;
 
 thread_local! {
-    static DEFAULT_RNG: UnsafeCell<RandomGen> = UnsafeCell::new(RandomGen::seed_from_u64(0));
+    static TEST_RNG: Rc<UnsafeCell<SmallRng>> = Rc::new(UnsafeCell::new(SmallRng::seed_from_u64(0)));
 }
 
 struct FakeDistribution<T> {
@@ -62,7 +64,8 @@ impl Random for FakeRandom {
         todo!()
     }
 
-    fn get_rng(&self) -> &mut RandomGen {
-        unsafe { &mut *DEFAULT_RNG.with(|cell| cell.get()) }
+    fn get_rng(&self) -> RandomGen {
+        let rng = TEST_RNG.with(|t| t.clone());
+        RandomGen::with_rng(rng)
     }
 }
