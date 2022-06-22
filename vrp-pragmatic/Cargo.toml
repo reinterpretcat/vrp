@@ -17,10 +17,10 @@ vrp-core = { path = "../vrp-core", version = "1.18.1" }
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
 
-time = { version = "0.3.9", features = ["parsing", "formatting"] }
+time = { version = "0.3.11", features = ["parsing", "formatting"] }
 rand = { version = "0.8.5", features = ["small_rng"] }
 hashbrown = "0.12.1"
 
 [dev-dependencies]
 proptest = "1.0.0"
-uuid = { version = "1.0.0", features = ["v4"] }
+uuid = { version = "1.1.2", features = ["v4"] }
