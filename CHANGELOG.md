@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * use experimental mode to print dynamic heuristic statistics
+* random trait internals
 
 
 ## [v1.18.1] - 2022-05-13

@@ -119,7 +119,7 @@ pub fn create_objective(
             }
 
             if props.has_order {
-                let (order_module, order_objective) = get_order(false);
+                let (order_module, order_objective) = get_order(true);
                 constraint.add_module(order_module);
                 objectives.insert(if props.max_job_value.is_some() { 2 } else { 1 }, vec![order_objective]);
             }

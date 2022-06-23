@@ -18,23 +18,31 @@ fn create_test_limit() -> Option<VehicleLimits> {
     Some(VehicleLimits { max_distance: Some(15.), shift_time: None, tour_size: None, areas: None })
 }
 
-fn create_prioritized_objective() -> Vec<Vec<Objective>> {
+fn create_order_objective(is_constrained: bool) -> Vec<Vec<Objective>> {
     vec![
         vec![Objective::MinimizeUnassignedJobs { breaks: None }],
         vec![Objective::MinimizeTours {}],
-        vec![Objective::TourOrder { is_constrained: true }],
+        vec![Objective::TourOrder { is_constrained }],
         vec![Objective::MinimizeCost],
     ]
 }
 
+fn create_problem(is_constrained: bool, limits: Option<VehicleLimits>) -> Problem {
+    Problem {
+        plan: create_test_plan_with_three_jobs(),
+        fleet: Fleet {
+            vehicles: vec![VehicleType { limits, ..create_default_vehicle_type() }],
+            profiles: create_default_matrix_profiles(),
+        },
+        objectives: Some(create_order_objective(is_constrained)),
+        ..create_empty_problem()
+    }
+}
+
 #[test]
 fn can_follow_orders() {
-    let problem = Problem {
-        plan: create_test_plan_with_three_jobs(),
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
-        objectives: Some(create_prioritized_objective()),
-        ..create_empty_problem()
-    };
+    let is_constrained = true;
+    let problem = create_problem(is_constrained, None);
     let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
@@ -107,35 +115,32 @@ fn can_follow_orders() {
 }
 
 #[test]
-fn can_assign_more_jobs_ignoring_order_with_default_objective() {
-    let problem = Problem {
-        plan: create_test_plan_with_three_jobs(),
-        fleet: Fleet {
-            vehicles: vec![VehicleType { limits: create_test_limit(), ..create_default_vehicle_type() }],
-            profiles: create_default_matrix_profiles(),
-        },
-        ..create_empty_problem()
-    };
+fn can_assign_more_jobs_ignoring_order_when_is_not_constrained() {
+    let is_constrained = false;
+    let problem = create_problem(is_constrained, create_test_limit());
     let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert!(solution.unassigned.is_none());
-    assert_eq!(solution.tours.len(), 1);
     assert_eq!(solution.statistic.distance, 14);
 }
 
 #[test]
+fn can_follow_order_with_default_objective() {
+    let problem = Problem { objectives: None, ..create_problem(false, create_test_limit()) };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert!(solution.unassigned.is_some());
+    assert_eq!(solution.statistic.distance, 10);
+}
+
+#[test]
 fn can_follow_order_when_prioritized_property_set() {
-    let problem = Problem {
-        plan: create_test_plan_with_three_jobs(),
-        fleet: Fleet {
-            vehicles: vec![VehicleType { limits: create_test_limit(), ..create_default_vehicle_type() }],
-            profiles: create_default_matrix_profiles(),
-        },
-        objectives: Some(create_prioritized_objective()),
-        ..create_empty_problem()
-    };
+    let is_constrained = true;
+    let problem = create_problem(is_constrained, create_test_limit());
     let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
