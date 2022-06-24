@@ -77,7 +77,7 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
         as_single_job(activity, |job| self.is_reload_single(job))
     }
 
-    fn get_reloads<'a>(
+    fn get_all_reloads<'a>(
         &'a self,
         route: &'a Route,
         jobs: &'a [Job],
@@ -99,8 +99,12 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
         )
     }
 
-    /// Removes reloads at the start and end of tour.
+    fn get_reload_intervals(&self, route_ctx: &RouteContext) -> Option<Vec<(usize, usize)>> {
+        route_ctx.state.get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY).cloned()
+    }
+
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
+        // removes reloads at the start and end of tour
         let mut extra_ignored = Vec::new();
         ctx.routes.iter_mut().filter(|ctx| self.has_reloads(ctx)).for_each(|rc| {
             let demands = (0..)

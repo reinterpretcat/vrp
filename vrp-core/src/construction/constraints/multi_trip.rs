@@ -30,17 +30,20 @@ pub trait MultiTrip {
     fn get_reload<'a>(&self, activity: &'a Activity) -> Option<&'a Arc<Single>>;
 
     /// Gets all reloads for specific route from jobs collection.
-    fn get_reloads<'a>(&'a self, route: &'a Route, jobs: &'a [Job])
-        -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync>;
+    fn get_all_reloads<'a>(
+        &'a self,
+        route: &'a Route,
+        jobs: &'a [Job],
+    ) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync>;
+
+    /// Returns reload intervals.
+    fn get_reload_intervals(&self, route_ctx: &RouteContext) -> Option<Vec<(usize, usize)>>;
 
     /// Actualizes intervals for multi trip activities.
-    /// Returns an actualized list of reloads.
-    fn actualize_reload_intervals(&self, route_ctx: &mut RouteContext, intervals_key: i32) -> Vec<(usize, usize)> {
+    fn actualize_reload_intervals(&self, route_ctx: &mut RouteContext, intervals_key: i32) {
         let (route, state) = route_ctx.as_mut();
         let intervals = route_intervals(route, |a| self.get_reload(a).is_some());
-        state.put_route_state(intervals_key, intervals.clone());
-
-        intervals
+        state.put_route_state(intervals_key, intervals);
     }
 
     /// Accepts insertion and promotes unassigned jobs with specific error code to unknown.
@@ -55,7 +58,7 @@ pub trait MultiTrip {
 
         if self.is_reload_job(job) {
             // move all unassigned reloads back to ignored
-            let jobs = self.get_reloads(&route_ctx.route, &solution_ctx.required).collect::<HashSet<_>>();
+            let jobs = self.get_all_reloads(&route_ctx.route, &solution_ctx.required).collect::<HashSet<_>>();
             solution_ctx.required.retain(|job| !jobs.contains(job));
             solution_ctx.unassigned.retain(|job, _| !jobs.contains(job));
             solution_ctx.ignored.extend(jobs.into_iter());
@@ -69,8 +72,8 @@ pub trait MultiTrip {
         } else if self.is_vehicle_full(route_ctx) {
             // move all reloads for this shift to required
             let jobs = self
-                .get_reloads(&route_ctx.route, &solution_ctx.ignored)
-                .chain(self.get_reloads(&route_ctx.route, &solution_ctx.required))
+                .get_all_reloads(&route_ctx.route, &solution_ctx.ignored)
+                .chain(self.get_all_reloads(&route_ctx.route, &solution_ctx.required))
                 .collect::<HashSet<_>>();
 
             solution_ctx.ignored.retain(|job| !jobs.contains(job));
@@ -80,7 +83,7 @@ pub trait MultiTrip {
     }
 
     /// Accepts solution state, e.g. removes trivial reloads.
-    fn accept_solution_state(&self, ctx: &mut SolutionContext);
+    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext);
 }
 
 /// A no multi trip strategy.
@@ -121,9 +124,15 @@ impl<T> MultiTrip for NoMultiTrip<T> {
         None
     }
 
-    fn get_reloads<'a>(&'a self, _: &'a Route, _: &'a [Job]) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync> {
+    fn get_all_reloads<'a>(&'a self, _: &'a Route, _: &'a [Job]) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync> {
         Box::new(empty())
     }
+
+    fn get_reload_intervals(&self, _: &RouteContext) -> Option<Vec<(usize, usize)>> {
+        None
+    }
+
+    fn actualize_reload_intervals(&self, _: &mut RouteContext, _: i32) {}
 
     fn accept_insertion(&self, _: &mut SolutionContext, _: usize, _: &Job, _: i32) {}
 

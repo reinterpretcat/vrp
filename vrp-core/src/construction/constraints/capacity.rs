@@ -58,11 +58,16 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
         }
     }
 
-    fn recalculate_states(&self, ctx: &mut RouteContext) {
-        let (_, max_load) = self.multi_trip.actualize_reload_intervals(ctx, RELOAD_INTERVALS_KEY).into_iter().fold(
-            (T::default(), T::default()),
-            |(acc, max), (start_idx, end_idx)| {
-                let (route, state) = ctx.as_mut();
+    fn recalculate_states(&self, route_ctx: &mut RouteContext) {
+        self.multi_trip.actualize_reload_intervals(route_ctx, RELOAD_INTERVALS_KEY);
+        let reload_intervals = self
+            .multi_trip
+            .get_reload_intervals(route_ctx)
+            .unwrap_or_else(|| vec![(0, route_ctx.route.tour.total() - 1)]);
+
+        let (_, max_load) =
+            reload_intervals.into_iter().fold((T::default(), T::default()), |(acc, max), (start_idx, end_idx)| {
+                let (route, state) = route_ctx.as_mut();
 
                 // determine static deliveries loaded at the begin and static pickups brought to the end
                 let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
@@ -99,11 +104,10 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
                     });
 
                 (current - end_pickup, current_max.max_load(max))
-            },
-        );
+            });
 
-        if let Some(capacity) = ctx.route.actor.clone().vehicle.dimens.get_capacity() {
-            ctx.state_mut().put_route_state(MAX_LOAD_KEY, max_load.ratio(capacity));
+        if let Some(capacity) = route_ctx.route.actor.clone().vehicle.dimens.get_capacity() {
+            route_ctx.state_mut().put_route_state(MAX_LOAD_KEY, max_load.ratio(capacity));
         }
     }
 
@@ -159,6 +163,7 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
 
     fn can_handle_demand_on_intervals(
         ctx: &RouteContext,
+        multi_trip: &(dyn MultiTrip<Capacity = T> + Send + Sync),
         demand: Option<&Demand<T>>,
         insert_idx: Option<usize>,
     ) -> bool {
@@ -172,8 +177,8 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
             )
         };
 
-        ctx.state
-            .get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY)
+        multi_trip
+            .get_reload_intervals(ctx)
             .map(|intervals| {
                 if let Some(insert_idx) = insert_idx {
                     intervals.iter().filter(|(_, end_idx)| insert_idx <= *end_idx).all(|interval| {
@@ -280,11 +285,19 @@ impl<T: LoadOps> HardRouteConstraint for CapacityHardRouteConstraint<T> {
         };
 
         let can_handle = match job {
-            Job::Single(job) => {
-                CapacityConstraintModule::<T>::can_handle_demand_on_intervals(ctx, job.dimens.get_demand(), None)
-            }
+            Job::Single(job) => CapacityConstraintModule::<T>::can_handle_demand_on_intervals(
+                ctx,
+                self.multi_trip.as_ref(),
+                job.dimens.get_demand(),
+                None,
+            ),
             Job::Multi(job) => job.jobs.iter().any(|job| {
-                CapacityConstraintModule::<T>::can_handle_demand_on_intervals(ctx, job.dimens.get_demand(), None)
+                CapacityConstraintModule::<T>::can_handle_demand_on_intervals(
+                    ctx,
+                    self.multi_trip.as_ref(),
+                    job.dimens.get_demand(),
+                    None,
+                )
             }),
         };
 
@@ -325,6 +338,7 @@ impl<T: LoadOps> HardActivityConstraint for CapacityHardActivityConstraint<T> {
             // NOTE multi job has dynamic demand which can go in another interval
             if CapacityConstraintModule::<T>::can_handle_demand_on_intervals(
                 route_ctx,
+                self.multi_trip.as_ref(),
                 demand,
                 Some(activity_ctx.index),
             ) {
