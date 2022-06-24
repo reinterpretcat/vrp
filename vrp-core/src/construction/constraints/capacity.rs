@@ -59,7 +59,7 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
     }
 
     fn recalculate_states(&self, route_ctx: &mut RouteContext) {
-        self.multi_trip.actualize_reload_intervals(route_ctx, RELOAD_INTERVALS_KEY);
+        self.multi_trip.accept_route_state(route_ctx);
         let reload_intervals = self
             .multi_trip
             .get_reload_intervals(route_ctx)

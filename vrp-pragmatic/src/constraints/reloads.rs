@@ -103,6 +103,12 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
         route_ctx.state.get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY).cloned()
     }
 
+    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
+        let (route, state) = route_ctx.as_mut();
+        let intervals = route_intervals(route, |a| self.get_reload(a).is_some());
+        state.put_route_state(RELOAD_INTERVALS_KEY, intervals);
+    }
+
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         // removes reloads at the start and end of tour
         let mut extra_ignored = Vec::new();
@@ -129,7 +135,7 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
                 });
 
             if rc.is_stale() {
-                self.actualize_reload_intervals(rc, RELOAD_INTERVALS_KEY);
+                self.accept_route_state(rc);
                 update_route_schedule(rc, self.activity.as_ref(), self.transport.as_ref());
             }
         });

@@ -39,13 +39,6 @@ pub trait MultiTrip {
     /// Returns reload intervals.
     fn get_reload_intervals(&self, route_ctx: &RouteContext) -> Option<Vec<(usize, usize)>>;
 
-    /// Actualizes intervals for multi trip activities.
-    fn actualize_reload_intervals(&self, route_ctx: &mut RouteContext, intervals_key: i32) {
-        let (route, state) = route_ctx.as_mut();
-        let intervals = route_intervals(route, |a| self.get_reload(a).is_some());
-        state.put_route_state(intervals_key, intervals);
-    }
-
     /// Accepts insertion and promotes unassigned jobs with specific error code to unknown.
     fn accept_insertion(
         &self,
@@ -81,6 +74,9 @@ pub trait MultiTrip {
             solution_ctx.required.extend(jobs.into_iter());
         }
     }
+
+    /// Accepts route state.
+    fn accept_route_state(&self, route_ctx: &mut RouteContext);
 
     /// Accepts solution state, e.g. removes trivial reloads.
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext);
@@ -132,9 +128,9 @@ impl<T> MultiTrip for NoMultiTrip<T> {
         None
     }
 
-    fn actualize_reload_intervals(&self, _: &mut RouteContext, _: i32) {}
-
     fn accept_insertion(&self, _: &mut SolutionContext, _: usize, _: &Job, _: i32) {}
+
+    fn accept_route_state(&self, _: &mut RouteContext) {}
 
     fn accept_solution_state(&self, _: &mut SolutionContext) {}
 }
