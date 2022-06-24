@@ -7,7 +7,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::RouteContext;
-use vrp_core::models::common::{IdDimension, LoadOps, ValueDimension};
+use vrp_core::models::common::{CapacityDimension, IdDimension, LoadOps, ValueDimension};
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::{Activity, Route};
 
@@ -22,7 +22,9 @@ impl<T: LoadOps> ReloadMultiTrip<T> {
     }
 }
 
-impl<T: LoadOps> MultiTrip<T> for ReloadMultiTrip<T> {
+impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
+    type Capacity = T;
+
     fn is_reload_job(&self, job: &Job) -> bool {
         job.as_single().map_or(false, |single| self.is_reload_single(single))
     }
@@ -43,8 +45,17 @@ impl<T: LoadOps> MultiTrip<T> for ReloadMultiTrip<T> {
         }
     }
 
-    fn is_reload_needed(&self, current: &T, max_capacity: &T) -> bool {
-        *current >= self.threshold.deref()(max_capacity)
+    fn is_vehicle_full(&self, ctx: &RouteContext) -> bool {
+        ctx.route
+            .tour
+            .end()
+            .map(|end| {
+                let current: Self::Capacity = ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_default();
+                let max_capacity = ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
+
+                current >= self.threshold.deref()(max_capacity)
+            })
+            .unwrap_or(false)
     }
 
     fn has_reloads(&self, route_ctx: &RouteContext) -> bool {

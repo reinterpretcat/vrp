@@ -7,9 +7,7 @@ use crate::construction::heuristics::*;
 use crate::models::common::*;
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Route};
-use hashbrown::HashSet;
-use std::iter::{empty, once};
-use std::marker::PhantomData;
+use std::iter::once;
 use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
@@ -29,31 +27,6 @@ pub fn route_intervals(route: &Route, is_reload: Box<dyn Fn(&Activity) -> bool +
     })
 }
 
-/// This trait defines multi-trip strategy.
-pub trait MultiTrip<T: LoadOps> {
-    /// Returns true if job is reload.
-    fn is_reload_job(&self, job: &Job) -> bool;
-
-    /// Returns true if single job is reload.
-    fn is_reload_single(&self, single: &Single) -> bool;
-
-    /// Returns true if given job is reload and can be used with given route.
-    fn is_assignable(&self, route: &Route, job: &Job) -> bool;
-
-    /// Returns true when `current` capacity is close `max_capacity`.
-    fn is_reload_needed(&self, current: &T, max_capacity: &T) -> bool;
-
-    /// Returns true if route context has reloads.
-    fn has_reloads(&self, route_ctx: &RouteContext) -> bool;
-
-    /// Returns reload job from activity or None.
-    fn get_reload<'a>(&self, activity: &'a Activity) -> Option<&'a Arc<Single>>;
-
-    /// Gets all reloads for specific route from jobs collection.
-    fn get_reloads<'a>(&'a self, route: &'a Route, jobs: &'a [Job])
-        -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync>;
-}
-
 /// A module which ensures vehicle capacity limitation while serving customer's demand.
 pub struct CapacityConstraintModule<T: LoadOps> {
     code: i32,
@@ -62,7 +35,7 @@ pub struct CapacityConstraintModule<T: LoadOps> {
     activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
     constraints: Vec<ConstraintVariant>,
-    multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>,
 }
 
 impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
@@ -72,7 +45,7 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
         transport: Arc<dyn TransportCost + Send + Sync>,
         code: i32,
     ) -> Self {
-        Self::new_with_multi_trip(activity, transport, code, Arc::new(NoMultiTrip { phantom: PhantomData }))
+        Self::new_with_multi_trip(activity, transport, code, Arc::new(NoMultiTrip::default()))
     }
 
     /// Creates a new instance of `CapacityConstraintModule` with multi trip (reload) functionality
@@ -80,7 +53,7 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
         activity: Arc<dyn ActivityCost + Send + Sync>,
         transport: Arc<dyn TransportCost + Send + Sync>,
         code: i32,
-        multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
+        multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>,
     ) -> Self {
         Self {
             code,
@@ -172,19 +145,6 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
         state.put_route_state(RELOAD_INTERVALS_KEY, intervals.clone());
 
         intervals
-    }
-
-    fn is_vehicle_full(&self, ctx: &RouteContext) -> bool {
-        ctx.route
-            .tour
-            .end()
-            .map(|end| {
-                self.multi_trip.is_reload_needed(
-                    &ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_default(),
-                    ctx.route.actor.vehicle.dimens.get_capacity().unwrap(),
-                )
-            })
-            .unwrap_or(false)
     }
 
     /// Removes reloads at the start and end of tour.
@@ -308,34 +268,8 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
 
 impl<T: LoadOps> ConstraintModule for CapacityConstraintModule<T> {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
-        let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
-        self.accept_route_state(route_ctx);
-
-        if self.multi_trip.is_reload_job(job) {
-            // move all unassigned reloads back to ignored
-            let jobs = self.multi_trip.get_reloads(&route_ctx.route, &solution_ctx.required).collect::<HashSet<_>>();
-            solution_ctx.required.retain(|job| !jobs.contains(job));
-            solution_ctx.unassigned.retain(|job, _| !jobs.contains(job));
-            solution_ctx.ignored.extend(jobs.into_iter());
-            // NOTE reevaluate insertion of unassigned due to capacity constraint jobs
-            solution_ctx.unassigned.iter_mut().for_each(|pair| match pair.1 {
-                UnassignedCode::Simple(code) if *code == self.code => {
-                    *pair.1 = UnassignedCode::Unknown;
-                }
-                _ => {}
-            });
-        } else if self.is_vehicle_full(route_ctx) {
-            // move all reloads for this shift to required
-            let jobs = self
-                .multi_trip
-                .get_reloads(&route_ctx.route, &solution_ctx.ignored)
-                .chain(self.multi_trip.get_reloads(&route_ctx.route, &solution_ctx.required))
-                .collect::<HashSet<_>>();
-
-            solution_ctx.ignored.retain(|job| !jobs.contains(job));
-            solution_ctx.locked.extend(jobs.iter().cloned());
-            solution_ctx.required.extend(jobs.into_iter());
-        }
+        self.accept_route_state(solution_ctx.routes.get_mut(route_index).unwrap());
+        self.multi_trip.accept_insertion(solution_ctx, route_index, job, self.code);
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
@@ -389,7 +323,7 @@ impl<T: LoadOps> ConstraintModule for CapacityConstraintModule<T> {
 }
 
 struct CapacitySoftRouteConstraint<T: LoadOps> {
-    multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>,
 }
 
 impl<T: LoadOps> SoftRouteConstraint for CapacitySoftRouteConstraint<T> {
@@ -405,7 +339,7 @@ impl<T: LoadOps> SoftRouteConstraint for CapacitySoftRouteConstraint<T> {
 /// Locks reload jobs to specific vehicles
 struct CapacityHardRouteConstraint<T: LoadOps> {
     code: i32,
-    multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>,
 }
 
 impl<T: LoadOps> HardRouteConstraint for CapacityHardRouteConstraint<T> {
@@ -437,7 +371,7 @@ impl<T: LoadOps> HardRouteConstraint for CapacityHardRouteConstraint<T> {
 
 struct CapacityHardActivityConstraint<T: LoadOps> {
     code: i32,
-    multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>,
 }
 
 impl<T: LoadOps> HardActivityConstraint for CapacityHardActivityConstraint<T> {
@@ -482,40 +416,5 @@ impl<T: LoadOps> HardActivityConstraint for CapacityHardActivityConstraint<T> {
         };
 
         violation.map(|stopped| ActivityConstraintViolation { code: self.code, stopped })
-    }
-}
-
-/// A no multi trip strategy.
-struct NoMultiTrip<T: LoadOps> {
-    phantom: PhantomData<T>,
-}
-
-impl<T: LoadOps> MultiTrip<T> for NoMultiTrip<T> {
-    fn is_reload_job(&self, _: &Job) -> bool {
-        false
-    }
-
-    fn is_reload_single(&self, _: &Single) -> bool {
-        false
-    }
-
-    fn is_assignable(&self, _: &Route, _: &Job) -> bool {
-        false
-    }
-
-    fn is_reload_needed(&self, _: &T, _: &T) -> bool {
-        false
-    }
-
-    fn has_reloads(&self, _: &RouteContext) -> bool {
-        false
-    }
-
-    fn get_reload<'a>(&self, _: &'a Activity) -> Option<&'a Arc<Single>> {
-        None
-    }
-
-    fn get_reloads<'a>(&'a self, _: &'a Route, _: &'a [Job]) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync> {
-        Box::new(empty())
     }
 }
