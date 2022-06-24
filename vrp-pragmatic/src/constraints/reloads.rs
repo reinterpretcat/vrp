@@ -32,11 +32,7 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
     type Capacity = T;
 
     fn is_reload_job(&self, job: &Job) -> bool {
-        job.as_single().map_or(false, |single| self.is_reload_single(single))
-    }
-
-    fn is_reload_single(&self, single: &Single) -> bool {
-        single.dimens.get_value::<String>("type").map_or(false, |t| t == "reload")
+        job.as_single().map_or(false, |single| is_reload_single(single))
     }
 
     fn is_assignable(&self, route: &Route, job: &Job) -> bool {
@@ -74,7 +70,7 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
     }
 
     fn get_reload<'a>(&self, activity: &'a Activity) -> Option<&'a Arc<Single>> {
-        as_single_job(activity, |job| self.is_reload_single(job))
+        as_single_job(activity, |job| is_reload_single(job))
     }
 
     fn get_all_reloads<'a>(
@@ -89,7 +85,7 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
             jobs.iter()
                 .filter(move |job| match job {
                     Job::Single(job) => {
-                        self.is_reload_single(job)
+                        is_reload_single(job)
                             && get_shift_index(&job.dimens) == shift_index
                             && get_vehicle_id_from_job(job).unwrap() == vehicle_id
                     }
@@ -145,4 +141,8 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
 
 fn get_demand<T: LoadOps>(activity: &Activity) -> Option<&Demand<T>> {
     activity.job.as_ref().and_then(|job| job.dimens.get_demand())
+}
+
+fn is_reload_single(single: &Single) -> bool {
+    single.dimens.get_value::<String>("type").map_or(false, |t| t == "reload")
 }

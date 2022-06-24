@@ -14,9 +14,6 @@ pub trait MultiTrip {
     /// Returns true if job is reload.
     fn is_reload_job(&self, job: &Job) -> bool;
 
-    /// Returns true if single job is reload.
-    fn is_reload_single(&self, single: &Single) -> bool;
-
     /// Returns true if given job is reload and can be used with given route.
     fn is_assignable(&self, route: &Route, job: &Job) -> bool;
 
@@ -97,10 +94,6 @@ impl<T> MultiTrip for NoMultiTrip<T> {
     type Capacity = T;
 
     fn is_reload_job(&self, _: &Job) -> bool {
-        false
-    }
-
-    fn is_reload_single(&self, _: &Single) -> bool {
         false
     }
 
