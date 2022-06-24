@@ -6,19 +6,25 @@ use crate::constraints::*;
 use std::ops::Deref;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::heuristics::RouteContext;
-use vrp_core::models::common::{CapacityDimension, IdDimension, LoadOps, ValueDimension};
-use vrp_core::models::problem::{Job, Single};
+use vrp_core::construction::heuristics::{RouteContext, SolutionContext};
+use vrp_core::models::common::{CapacityDimension, Demand, DemandDimension, IdDimension, LoadOps, ValueDimension};
+use vrp_core::models::problem::{ActivityCost, Job, Single, TransportCost};
 use vrp_core::models::solution::{Activity, Route};
 
 /// A strategy to use multi trip with reload jobs.
 pub struct ReloadMultiTrip<T: LoadOps> {
+    activity: Arc<dyn ActivityCost + Send + Sync>,
+    transport: Arc<dyn TransportCost + Send + Sync>,
     threshold: Box<dyn Fn(&T) -> T + Send + Sync>,
 }
 
 impl<T: LoadOps> ReloadMultiTrip<T> {
-    pub fn new(threshold: Box<dyn Fn(&T) -> T + Send + Sync>) -> Self {
-        Self { threshold }
+    pub fn new(
+        activity: Arc<dyn ActivityCost + Send + Sync>,
+        transport: Arc<dyn TransportCost + Send + Sync>,
+        threshold: Box<dyn Fn(&T) -> T + Send + Sync>,
+    ) -> Self {
+        Self { activity, transport, threshold }
     }
 }
 
@@ -50,7 +56,8 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
             .tour
             .end()
             .map(|end| {
-                let current: Self::Capacity = ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_default();
+                let current: Self::Capacity =
+                    ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_default();
                 let max_capacity = ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
 
                 current >= self.threshold.deref()(max_capacity)
@@ -91,4 +98,41 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
                 .cloned(),
         )
     }
+
+    /// Removes reloads at the start and end of tour.
+    fn remove_trivial_reloads(&self, ctx: &mut SolutionContext) {
+        let mut extra_ignored = Vec::new();
+        ctx.routes.iter_mut().filter(|ctx| self.has_reloads(ctx)).for_each(|rc| {
+            let demands = (0..)
+                .zip(rc.route.tour.all_activities())
+                .filter_map(|(idx, activity)| get_demand::<Self::Capacity>(activity).map(|_| idx))
+                .collect::<Vec<_>>();
+
+            let (start, end) =
+                (demands.first().cloned().unwrap_or(0), demands.last().cloned().unwrap_or(rc.route.tour.total() - 1));
+
+            (0..)
+                .zip(rc.route.tour.all_activities())
+                .filter_map(|(idx, activity)| self.get_reload(activity).map(|reload| (reload.clone(), idx)))
+                .filter(|(_, idx)| *idx < start || *idx > end)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .for_each(|(reload, _)| {
+                    let job = Job::Single(reload);
+                    assert!(rc.route_mut().tour.remove(&job));
+                    extra_ignored.push(job);
+                });
+
+            if rc.is_stale() {
+                self.actualize_reload_intervals(rc, RELOAD_INTERVALS_KEY);
+                update_route_schedule(rc, self.activity.as_ref(), self.transport.as_ref());
+            }
+        });
+        ctx.ignored.extend(extra_ignored.into_iter());
+    }
+}
+
+fn get_demand<T: LoadOps>(activity: &Activity) -> Option<&Demand<T>> {
+    activity.job.as_ref().and_then(|job| job.dimens.get_demand())
 }

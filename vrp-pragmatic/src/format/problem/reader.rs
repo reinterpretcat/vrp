@@ -374,23 +374,19 @@ fn add_capacity_module(
         let threshold = 0.9;
         if props.has_multi_dimen_capacity {
             Arc::new(CapacityConstraintModule::<MultiDimLoad>::new_with_multi_trip(
-                activity,
-                transport,
                 CAPACITY_CONSTRAINT_CODE,
-                Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| *capacity * threshold))),
+                Arc::new(ReloadMultiTrip::new(activity, transport, Box::new(move |capacity| *capacity * threshold))),
             ))
         } else {
             Arc::new(CapacityConstraintModule::<SingleDimLoad>::new_with_multi_trip(
-                activity,
-                transport,
                 CAPACITY_CONSTRAINT_CODE,
-                Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| *capacity * threshold))),
+                Arc::new(ReloadMultiTrip::new(activity, transport, Box::new(move |capacity| *capacity * threshold))),
             ))
         }
     } else if props.has_multi_dimen_capacity {
-        Arc::new(CapacityConstraintModule::<MultiDimLoad>::new(activity, transport, CAPACITY_CONSTRAINT_CODE))
+        Arc::new(CapacityConstraintModule::<MultiDimLoad>::new(CAPACITY_CONSTRAINT_CODE))
     } else {
-        Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(activity, transport, CAPACITY_CONSTRAINT_CODE))
+        Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(CAPACITY_CONSTRAINT_CODE))
     });
 }
 

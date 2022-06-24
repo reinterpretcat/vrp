@@ -6,55 +6,28 @@ use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
 use crate::models::common::*;
 use crate::models::problem::{Job, Single};
-use crate::models::solution::{Activity, Route};
+use crate::models::solution::Activity;
 use std::iter::once;
-use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
-
-/// Returns intervals between vehicle terminal and reload activities.
-pub fn route_intervals(route: &Route, is_reload: Box<dyn Fn(&Activity) -> bool + 'static>) -> Vec<(usize, usize)> {
-    let last_idx = route.tour.total() - 1;
-    (0_usize..).zip(route.tour.all_activities()).fold(Vec::<(usize, usize)>::default(), |mut acc, (idx, a)| {
-        if is_reload.deref()(a) || idx == last_idx {
-            let start_idx = acc.last().map_or(0_usize, |item| item.1 + 1);
-            let end_idx = if idx == last_idx { last_idx } else { idx - 1 };
-
-            acc.push((start_idx, end_idx));
-        }
-
-        acc
-    })
-}
 
 /// A module which ensures vehicle capacity limitation while serving customer's demand.
 pub struct CapacityConstraintModule<T: LoadOps> {
     code: i32,
     state_keys: Vec<i32>,
     conditional: ConditionalJobModule,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
-    transport: Arc<dyn TransportCost + Send + Sync>,
     constraints: Vec<ConstraintVariant>,
     multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>,
 }
 
 impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
     /// Creates a new instance of `CapacityConstraintModule` without multi trip (reload) functionality
-    pub fn new(
-        activity: Arc<dyn ActivityCost + Send + Sync>,
-        transport: Arc<dyn TransportCost + Send + Sync>,
-        code: i32,
-    ) -> Self {
-        Self::new_with_multi_trip(activity, transport, code, Arc::new(NoMultiTrip::default()))
+    pub fn new(code: i32) -> Self {
+        Self::new_with_multi_trip(code, Arc::new(NoMultiTrip::default()))
     }
 
     /// Creates a new instance of `CapacityConstraintModule` with multi trip (reload) functionality
-    pub fn new_with_multi_trip(
-        activity: Arc<dyn ActivityCost + Send + Sync>,
-        transport: Arc<dyn TransportCost + Send + Sync>,
-        code: i32,
-        multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>,
-    ) -> Self {
+    pub fn new_with_multi_trip(code: i32, multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>) -> Self {
         Self {
             code,
             state_keys: vec![CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY],
@@ -70,8 +43,6 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
                     move |_, _, job| multi_trip.is_reload_job(job)
                 },
             })),
-            activity,
-            transport,
             constraints: vec![
                 ConstraintVariant::SoftRoute(Arc::new(CapacitySoftRouteConstraint { multi_trip: multi_trip.clone() })),
                 ConstraintVariant::HardRoute(Arc::new(CapacityHardRouteConstraint::<T> {
@@ -88,7 +59,7 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
     }
 
     fn recalculate_states(&self, ctx: &mut RouteContext) {
-        let (_, max_load) = self.actualize_intervals(ctx).into_iter().fold(
+        let (_, max_load) = self.multi_trip.actualize_reload_intervals(ctx, RELOAD_INTERVALS_KEY).into_iter().fold(
             (T::default(), T::default()),
             |(acc, max), (start_idx, end_idx)| {
                 let (route, state) = ctx.as_mut();
@@ -134,50 +105,6 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
         if let Some(capacity) = ctx.route.actor.clone().vehicle.dimens.get_capacity() {
             ctx.state_mut().put_route_state(MAX_LOAD_KEY, max_load.ratio(capacity));
         }
-    }
-
-    fn actualize_intervals(&self, route_ctx: &mut RouteContext) -> Vec<(usize, usize)> {
-        let (route, state) = route_ctx.as_mut();
-        let intervals = route_intervals(route, {
-            let multi_trip = self.multi_trip.clone();
-            Box::new(move |a| multi_trip.get_reload(a).is_some())
-        });
-        state.put_route_state(RELOAD_INTERVALS_KEY, intervals.clone());
-
-        intervals
-    }
-
-    /// Removes reloads at the start and end of tour.
-    fn remove_trivial_reloads(&self, ctx: &mut SolutionContext) {
-        let mut extra_ignored = Vec::new();
-        ctx.routes.iter_mut().filter(|ctx| self.multi_trip.has_reloads(ctx)).for_each(|rc| {
-            let demands = (0..)
-                .zip(rc.route.tour.all_activities())
-                .filter_map(|(idx, activity)| Self::get_demand(activity).map(|_| idx))
-                .collect::<Vec<_>>();
-
-            let (start, end) =
-                (demands.first().cloned().unwrap_or(0), demands.last().cloned().unwrap_or(rc.route.tour.total() - 1));
-
-            (0..)
-                .zip(rc.route.tour.all_activities())
-                .filter_map(|(idx, activity)| self.multi_trip.get_reload(activity).map(|reload| (reload.clone(), idx)))
-                .filter(|(_, idx)| *idx < start || *idx > end)
-                .collect::<Vec<_>>()
-                .into_iter()
-                .rev()
-                .for_each(|(reload, _)| {
-                    let job = Job::Single(reload);
-                    assert!(rc.route_mut().tour.remove(&job));
-                    extra_ignored.push(job);
-                });
-
-            if rc.is_stale() {
-                self.actualize_intervals(rc);
-                update_route_schedule(rc, self.activity.as_ref(), self.transport.as_ref());
-            }
-        });
-        ctx.ignored.extend(extra_ignored.into_iter());
     }
 
     fn has_demand_violation(
@@ -269,7 +196,7 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
 impl<T: LoadOps> ConstraintModule for CapacityConstraintModule<T> {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
         self.accept_route_state(solution_ctx.routes.get_mut(route_index).unwrap());
-        self.multi_trip.accept_insertion(solution_ctx, route_index, job, self.code);
+        self.multi_trip.promote_reloads(solution_ctx, route_index, job, self.code);
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
@@ -278,7 +205,7 @@ impl<T: LoadOps> ConstraintModule for CapacityConstraintModule<T> {
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.conditional.accept_solution_state(ctx);
-        self.remove_trivial_reloads(ctx);
+        self.multi_trip.remove_trivial_reloads(ctx);
 
         ctx.routes.iter_mut().filter(|route_ctx| route_ctx.is_stale()).for_each(|route_ctx| {
             self.recalculate_states(route_ctx);

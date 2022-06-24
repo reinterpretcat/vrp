@@ -89,11 +89,7 @@ fn create_test_problem(
         3,
     )));
     constraint.add_module(Arc::new(StrictLockingModule::new(&fleet, locks.as_slice(), 4)));
-    constraint.add_module(Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(
-        activity.clone(),
-        transport.clone(),
-        5,
-    )));
+    constraint.add_module(Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(5)));
 
     Problem {
         fleet: fleet.clone(),

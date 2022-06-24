@@ -12,8 +12,8 @@ fn can_handle_reload_jobs_with_merge() {
     };
     let create_job = || Job::Single(Arc::new(create_single_with_location(None)));
     let (transport, activity) = get_costs();
-    let multi_trip = Arc::new(ReloadMultiTrip::new(Box::new(|_| SingleDimLoad::default())));
-    let constraint = CapacityConstraintModule::<SingleDimLoad>::new_with_multi_trip(activity, transport, 2, multi_trip);
+    let multi_trip = Arc::new(ReloadMultiTrip::new(activity, transport, Box::new(|_| SingleDimLoad::default())));
+    let constraint = CapacityConstraintModule::<SingleDimLoad>::new_with_multi_trip(2, multi_trip);
 
     assert_eq!(constraint.merge(create_reload(), create_job()).map(|_| ()), Err(2));
     assert_eq!(constraint.merge(create_job(), create_reload()).map(|_| ()), Err(2));

@@ -20,13 +20,13 @@ use vrp_core::prelude::compare_floats;
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
 use vrp_core::solver::processing::VicinityDimension;
 
-type ApiActivity = crate::format::solution::model::Activity;
-type ApiSolution = crate::format::solution::model::Solution;
-type ApiSchedule = crate::format::solution::model::Schedule;
-type ApiMetrics = crate::format::solution::model::Metrics;
-type ApiGeneration = crate::format::solution::model::Generation;
-type AppPopulation = crate::format::solution::model::Population;
-type ApiIndividual = crate::format::solution::model::Individual;
+type ApiActivity = model::Activity;
+type ApiSolution = model::Solution;
+type ApiSchedule = model::Schedule;
+type ApiMetrics = Metrics;
+type ApiGeneration = Generation;
+type AppPopulation = Population;
+type ApiIndividual = Individual;
 type DomainSchedule = vrp_core::models::common::Schedule;
 type DomainLocation = vrp_core::models::common::Location;
 type DomainExtras = vrp_core::models::Extras;
@@ -137,7 +137,7 @@ fn create_tour(
         statistic: Statistic::default(),
     };
 
-    let intervals = route_intervals(route, Box::new(|a| get_activity_type(a).map_or(false, |t| t == "reload")));
+    let intervals = route_intervals(route, |a| get_activity_type(a).map_or(false, |t| t == "reload"));
 
     let mut leg = intervals.into_iter().fold(Leg::empty(), |leg, (start_idx, end_idx)| {
         let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
