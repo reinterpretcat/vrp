@@ -100,7 +100,7 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
     }
 
     /// Removes reloads at the start and end of tour.
-    fn remove_trivial_reloads(&self, ctx: &mut SolutionContext) {
+    fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         let mut extra_ignored = Vec::new();
         ctx.routes.iter_mut().filter(|ctx| self.has_reloads(ctx)).for_each(|rc| {
             let demands = (0..)

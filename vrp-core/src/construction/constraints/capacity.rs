@@ -196,7 +196,7 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
 impl<T: LoadOps> ConstraintModule for CapacityConstraintModule<T> {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
         self.accept_route_state(solution_ctx.routes.get_mut(route_index).unwrap());
-        self.multi_trip.promote_reloads(solution_ctx, route_index, job, self.code);
+        self.multi_trip.accept_insertion(solution_ctx, route_index, job, self.code);
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
@@ -205,7 +205,7 @@ impl<T: LoadOps> ConstraintModule for CapacityConstraintModule<T> {
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.conditional.accept_solution_state(ctx);
-        self.multi_trip.remove_trivial_reloads(ctx);
+        self.multi_trip.accept_solution_state(ctx);
 
         ctx.routes.iter_mut().filter(|route_ctx| route_ctx.is_stale()).for_each(|route_ctx| {
             self.recalculate_states(route_ctx);

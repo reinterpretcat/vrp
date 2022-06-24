@@ -33,8 +33,24 @@ pub trait MultiTrip {
     fn get_reloads<'a>(&'a self, route: &'a Route, jobs: &'a [Job])
         -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync>;
 
+    /// Actualizes intervals for multi trip activities.
+    /// Returns an actualized list of reloads.
+    fn actualize_reload_intervals(&self, route_ctx: &mut RouteContext, intervals_key: i32) -> Vec<(usize, usize)> {
+        let (route, state) = route_ctx.as_mut();
+        let intervals = route_intervals(route, |a| self.get_reload(a).is_some());
+        state.put_route_state(intervals_key, intervals.clone());
+
+        intervals
+    }
+
     /// Accepts insertion and promotes unassigned jobs with specific error code to unknown.
-    fn promote_reloads(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job, unassigned_code: i32) {
+    fn accept_insertion(
+        &self,
+        solution_ctx: &mut SolutionContext,
+        route_index: usize,
+        job: &Job,
+        unassigned_code: i32,
+    ) {
         let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
 
         if self.is_reload_job(job) {
@@ -63,18 +79,8 @@ pub trait MultiTrip {
         }
     }
 
-    /// Actualizes intervals for multi trip activities.
-    /// Returns an actualized list of reloads.
-    fn actualize_reload_intervals(&self, route_ctx: &mut RouteContext, intervals_key: i32) -> Vec<(usize, usize)> {
-        let (route, state) = route_ctx.as_mut();
-        let intervals = route_intervals(route, |a| self.get_reload(a).is_some());
-        state.put_route_state(intervals_key, intervals.clone());
-
-        intervals
-    }
-
-    /// Removes trivial reloads.
-    fn remove_trivial_reloads(&self, ctx: &mut SolutionContext);
+    /// Accepts solution state, e.g. removes trivial reloads.
+    fn accept_solution_state(&self, ctx: &mut SolutionContext);
 }
 
 /// A no multi trip strategy.
@@ -119,9 +125,9 @@ impl<T> MultiTrip for NoMultiTrip<T> {
         Box::new(empty())
     }
 
-    fn promote_reloads(&self, _: &mut SolutionContext, _: usize, _: &Job, _: i32) {}
+    fn accept_insertion(&self, _: &mut SolutionContext, _: usize, _: &Job, _: i32) {}
 
-    fn remove_trivial_reloads(&self, _: &mut SolutionContext) {}
+    fn accept_solution_state(&self, _: &mut SolutionContext) {}
 }
 
 /// Returns intervals between vehicle terminal and reload activities.
