@@ -21,7 +21,8 @@ split into two groups.
 
 These objectives targeting for some scalar characteristic of solution:
 
-* `minimize-cost`: minimizes total transport cost calculated for all routes
+* `minimize-cost`: minimizes total transport cost calculated for all routes. Here, total transport cost is seen as linear
+combination of total time and distance
 * `minimize-distance`: minimizes total distance of all routes
 * `minimize-duration`: minimizes total duration of all routes
 * `minimize-unassigned`: minimizes amount of unassigned jobs. Although, solver tries to minimize amount of

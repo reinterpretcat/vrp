@@ -17,7 +17,7 @@ pub trait MultiTrip {
     /// Returns true if given job is reload and can be used with given route.
     fn is_assignable(&self, route: &Route, job: &Job) -> bool;
 
-    /// Checks whether vehicle is full
+    /// Checks whether vehicle is full.
     fn is_vehicle_full(&self, ctx: &RouteContext) -> bool;
 
     /// Returns true if route context has reloads.

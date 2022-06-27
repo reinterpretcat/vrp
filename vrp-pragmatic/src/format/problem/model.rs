@@ -532,7 +532,7 @@ pub struct Fleet {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type")]
 pub enum Objective {
-    /// An objective to minimize total cost.
+    /// An objective to minimize total cost as linear combination of total time and distance.
     #[serde(rename(deserialize = "minimize-cost", serialize = "minimize-cost"))]
     MinimizeCost,
 
