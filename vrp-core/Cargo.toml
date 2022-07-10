@@ -16,4 +16,7 @@ rosomaxa = { path = "../rosomaxa", version = "0.2.1" }
 
 rayon = "1.5.3"
 rand = { version = "0.8.5", features = ["small_rng"] }
+
 hashbrown = "0.12.1"
+fnv = "1.0.7"
+nohash-hasher = "0.2.0"

@@ -9,7 +9,9 @@ use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::{Extras, Problem, Solution};
 use crate::utils::as_mut;
+use fnv::FnvBuildHasher;
 use hashbrown::{HashMap, HashSet};
+use nohash_hasher::BuildNoHashHasher;
 use rosomaxa::prelude::*;
 use std::any::Any;
 use std::ops::Deref;
@@ -188,10 +190,10 @@ pub struct RouteContext {
 /// NOTE: do not put any state which is not refreshed after accept_route_state call: it will be
 /// wiped out at some point.
 pub struct RouteState {
-    route_states: HashMap<i32, StateValue>,
-    activity_states: HashMap<ActivityWithKey, StateValue>,
-    route_keys: HashSet<i32>,
-    activity_keys: HashSet<i32>,
+    route_states: HashMap<i32, StateValue, BuildNoHashHasher<i32>>,
+    activity_states: HashMap<ActivityWithKey, StateValue, FnvBuildHasher>,
+    route_keys: HashSet<i32, BuildNoHashHasher<i32>>,
+    activity_keys: HashSet<i32, BuildNoHashHasher<i32>>,
     flags: u8,
 }
 
@@ -296,10 +298,10 @@ impl Eq for RouteContext {}
 impl Default for RouteState {
     fn default() -> RouteState {
         RouteState {
-            route_states: HashMap::with_capacity(2),
-            activity_states: HashMap::with_capacity(4),
-            route_keys: HashSet::with_capacity(2),
-            activity_keys: HashSet::with_capacity(4),
+            route_states: HashMap::with_capacity_and_hasher(2, BuildNoHashHasher::<i32>::default()),
+            activity_states: HashMap::with_capacity_and_hasher(4, FnvBuildHasher::default()),
+            route_keys: HashSet::with_capacity_and_hasher(2, BuildNoHashHasher::<i32>::default()),
+            activity_keys: HashSet::with_capacity_and_hasher(4, BuildNoHashHasher::<i32>::default()),
             flags: state_flags::NO_FLAGS,
         }
     }
@@ -311,7 +313,8 @@ impl RouteState {
         let route_states = other.route_states.clone();
         let route_keys = other.route_keys.clone();
         let activity_keys = other.activity_keys.clone();
-        let mut activity_states = HashMap::with_capacity(other.activity_states.len());
+        let mut activity_states =
+            HashMap::with_capacity_and_hasher(other.activity_states.len(), FnvBuildHasher::default());
 
         old_tour.all_activities().enumerate().for_each(|(index, activity)| {
             other.all_activity_keys().for_each(|key| {

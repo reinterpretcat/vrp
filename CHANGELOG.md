@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
 
 * use experimental mode to print dynamic heuristic statistics
 * random trait internals
+* refactor multi trip functionality
+* use faster hash builders inside `RouteState`
 
 
 ## [v1.18.1] - 2022-05-13
