@@ -9,11 +9,12 @@ use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::{Extras, Problem, Solution};
 use crate::utils::as_mut;
-use fnv::FnvBuildHasher;
 use hashbrown::{HashMap, HashSet};
 use nohash_hasher::BuildNoHashHasher;
 use rosomaxa::prelude::*;
+use rustc_hash::FxHasher;
 use std::any::Any;
+use std::hash::BuildHasherDefault;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -191,7 +192,7 @@ pub struct RouteContext {
 /// wiped out at some point.
 pub struct RouteState {
     route_states: HashMap<i32, StateValue, BuildNoHashHasher<i32>>,
-    activity_states: HashMap<ActivityWithKey, StateValue, FnvBuildHasher>,
+    activity_states: HashMap<ActivityWithKey, StateValue, BuildHasherDefault<FxHasher>>,
     route_keys: HashSet<i32, BuildNoHashHasher<i32>>,
     activity_keys: HashSet<i32, BuildNoHashHasher<i32>>,
     flags: u8,
@@ -299,7 +300,7 @@ impl Default for RouteState {
     fn default() -> RouteState {
         RouteState {
             route_states: HashMap::with_capacity_and_hasher(2, BuildNoHashHasher::<i32>::default()),
-            activity_states: HashMap::with_capacity_and_hasher(4, FnvBuildHasher::default()),
+            activity_states: HashMap::with_capacity_and_hasher(4, BuildHasherDefault::<FxHasher>::default()),
             route_keys: HashSet::with_capacity_and_hasher(2, BuildNoHashHasher::<i32>::default()),
             activity_keys: HashSet::with_capacity_and_hasher(4, BuildNoHashHasher::<i32>::default()),
             flags: state_flags::NO_FLAGS,
@@ -314,7 +315,7 @@ impl RouteState {
         let route_keys = other.route_keys.clone();
         let activity_keys = other.activity_keys.clone();
         let mut activity_states =
-            HashMap::with_capacity_and_hasher(other.activity_states.len(), FnvBuildHasher::default());
+            HashMap::with_capacity_and_hasher(other.activity_states.len(), BuildHasherDefault::<FxHasher>::default());
 
         old_tour.all_activities().enumerate().for_each(|(index, activity)| {
             other.all_activity_keys().for_each(|key| {

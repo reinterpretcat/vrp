@@ -18,5 +18,5 @@ rayon = "1.5.3"
 rand = { version = "0.8.5", features = ["small_rng"] }
 
 hashbrown = "0.12.1"
-fnv = "1.0.7"
+rustc-hash = "1.1.0"
 nohash-hasher = "0.2.0"
