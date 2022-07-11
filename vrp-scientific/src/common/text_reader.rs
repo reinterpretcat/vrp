@@ -82,7 +82,7 @@ pub(crate) fn create_fleet_with_distance_costs(
 }
 
 pub(crate) fn create_dimens_with_id(prefix: &str, id: &str) -> Dimensions {
-    let mut dimens = Dimensions::new();
+    let mut dimens = Dimensions::default();
     dimens.set_id([prefix.to_string(), id.to_string()].concat().as_str());
     dimens
 }

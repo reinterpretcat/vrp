@@ -4,7 +4,6 @@ mod jobs_test;
 
 use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
-use crate::utils::as_mut;
 use hashbrown::HashMap;
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering::Less;
@@ -166,10 +165,13 @@ impl Multi {
     }
 
     /// Wraps given multi job into [`Arc`] adding reference to it from all sub-jobs.
-    fn bind(multi: Self) -> Arc<Self> {
+    fn bind(mut multi: Self) -> Arc<Self> {
         Arc::new_cyclic(|weak_multi| {
-            multi.jobs.iter().for_each(|job| {
-                unsafe { as_mut(job.as_ref()) }.dimens.set_value("rf", weak_multi.clone());
+            multi.jobs.iter_mut().for_each(|single| {
+                Arc::get_mut(single)
+                    .expect("Single from Multi should not be shared before binding")
+                    .dimens
+                    .set_value("rf", weak_multi.clone());
             });
 
             multi

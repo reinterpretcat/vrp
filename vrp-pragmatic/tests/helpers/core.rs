@@ -22,7 +22,7 @@ pub fn test_driver() -> Driver {
 }
 
 pub fn test_vehicle(id: &str) -> Vehicle {
-    let mut dimens = Dimensions::new();
+    let mut dimens = Dimensions::default();
     dimens.set_id(id);
     dimens.set_value("type_id", id.to_owned());
     dimens.set_value("shift_index", 0_usize);

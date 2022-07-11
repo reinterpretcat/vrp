@@ -67,7 +67,7 @@ impl HeuristicContextProcessing for VicinityClustering {
                 problem.jobs.all().filter(|job| !clustered_jobs.contains(job)).chain(clusters.into_iter()).collect();
 
             let mut extras: Extras =
-                problem.extras.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<HashMap<_, _>>();
+                problem.extras.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<HashMap<_, _, _>>();
             extras.insert(ORIG_PROBLEM_KEY.to_string(), problem.clone());
 
             let problem = Arc::new(Problem {

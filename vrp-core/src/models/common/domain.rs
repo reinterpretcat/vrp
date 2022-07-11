@@ -5,9 +5,10 @@ mod domain_test;
 use crate::models::common::{Duration, Timestamp};
 use hashbrown::HashMap;
 use rosomaxa::prelude::compare_floats;
+use rustc_hash::FxHasher;
 use std::any::Any;
 use std::cmp::Ordering;
-use std::hash::{Hash, Hasher};
+use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::sync::Arc;
 
 /// Specifies location type.
@@ -214,7 +215,7 @@ impl Eq for Schedule {}
 /// * unit of measure, e.g. volume, mass, size, etc.
 /// * set of skills
 /// * tag.
-pub type Dimensions = HashMap<String, Arc<dyn Any + Send + Sync>>;
+pub type Dimensions = HashMap<String, Arc<dyn Any + Send + Sync>, BuildHasherDefault<FxHasher>>;
 
 /// A trait to return arbitrary typed value by its key.
 pub trait ValueDimension {

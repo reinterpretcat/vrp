@@ -55,7 +55,7 @@ pub fn test_fleet() -> Fleet {
 }
 
 pub fn test_vehicle_with_id(id: &str) -> Vehicle {
-    let mut dimens = Dimensions::new();
+    let mut dimens = Dimensions::default();
     dimens.set_id(id);
 
     Vehicle { profile: Profile::default(), costs: test_costs(), dimens, details: vec![test_vehicle_detail()] }

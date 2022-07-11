@@ -48,7 +48,7 @@ pub fn test_single_with_locations(locations: Vec<Option<Location>>) -> Arc<Singl
 }
 
 pub fn test_multi_with_id(id: &str, jobs: Vec<Arc<Single>>) -> Arc<Multi> {
-    let mut dimens = Dimensions::new();
+    let mut dimens = Dimensions::default();
     dimens.set_id(id);
 
     Multi::new_shared(jobs, dimens)
@@ -59,7 +59,7 @@ pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> A
 }
 
 pub fn test_multi_with_permutations(id: &str, jobs: Vec<Arc<Single>>, permutations: Vec<Vec<usize>>) -> Arc<Multi> {
-    let mut dimens = Dimensions::new();
+    let mut dimens = Dimensions::default();
     dimens.set_id(id);
 
     Multi::new_shared_with_permutator(jobs, dimens, Box::new(FixedJobPermutation::new(permutations)))

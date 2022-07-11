@@ -48,7 +48,7 @@ fn create_example_fleet() -> Arc<Fleet> {
         dimens: Default::default(),
         details: vec![],
     })];
-    let mut vehicle_dimens = Dimensions::new();
+    let mut vehicle_dimens = Dimensions::default();
     vehicle_dimens.set_id("v1");
     let vehicles = vec![Arc::new(Vehicle {
         profile: Profile::default(),
