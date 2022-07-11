@@ -4,6 +4,7 @@ use std::io::BufReader;
 use std::sync::Arc;
 use vrp_pragmatic::core::models::Solution;
 use vrp_pragmatic::core::prelude::{create_default_config_builder, Solver};
+use vrp_pragmatic::core::rosomaxa::evolution::TelemetryMode;
 use vrp_pragmatic::core::utils::Environment;
 use vrp_pragmatic::format::problem::PragmaticProblem;
 use vrp_pragmatic::format::FormatError;
@@ -15,13 +16,14 @@ fn solve_problem_with_max_generations(problem_path: &str, generations: usize) ->
         panic!("cannot create pragmatic problem: {}", FormatError::format_many(errs.as_slice(), ","))
     }));
 
-    let (solution, _, _) = create_default_config_builder(problem.clone(), Arc::new(Environment::default()))
-        .with_max_generations(Some(generations))
-        .build()
-        .map(|config| Solver::new(problem, config))
-        .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
-        .solve()
-        .unwrap_or_else(|err| panic!("cannot solver problem: {}", err));
+    let (solution, _, _) =
+        create_default_config_builder(problem.clone(), Arc::new(Environment::default()), TelemetryMode::None)
+            .with_max_generations(Some(generations))
+            .build()
+            .map(|config| Solver::new(problem, config))
+            .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
+            .solve()
+            .unwrap_or_else(|err| panic!("cannot solver problem: {}", err));
 
     solution
 }
