@@ -33,7 +33,7 @@ impl Objective for SliceDimensionObjective {
 
 pub struct SliceSumObjective;
 
-impl<'a> Objective for SliceSumObjective {
+impl Objective for SliceSumObjective {
     type Solution = Vec<f64>;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
