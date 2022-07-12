@@ -1,6 +1,6 @@
 [package]
 name = "rosomaxa"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
@@ -14,7 +14,7 @@ description = "A rosomaxa algorithm and other building blocks for creating a sol
 [dependencies]
 rayon = "1.5.3"
 rand = { version = "0.8.5", features = ["small_rng"] }
-hashbrown = "0.12.1"
+hashbrown = "0.12.2"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 num_cpus = "1.13.1"

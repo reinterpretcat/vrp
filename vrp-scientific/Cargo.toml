@@ -1,6 +1,6 @@
 [package]
 name = "vrp-scientific"
-version = "1.18.1"
+version = "1.18.2"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["vrp", "optimization"]
@@ -12,4 +12,4 @@ edition = "2021"
 description = "An extension logic for solving scientific VRP"
 
 [dependencies]
-vrp-core = { path = "../vrp-core", version = "1.18.1" }
+vrp-core = { path = "../vrp-core", version = "1.18.2" }

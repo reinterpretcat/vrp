@@ -1,6 +1,6 @@
 [package]
 name = "vrp-cli"
-version = "1.18.1"
+version = "1.18.2"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["vrp", "optimization"]
@@ -22,16 +22,16 @@ name = "vrp_cli"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-vrp-core = { path = "../vrp-core", version = "1.18.1" }
-vrp-scientific = { path = "../vrp-scientific", optional = true, version = "1.18.1" }
-vrp-pragmatic = { path = "../vrp-pragmatic", version = "1.18.1" }
+vrp-core = { path = "../vrp-core", version = "1.18.2" }
+vrp-scientific = { path = "../vrp-scientific", optional = true, version = "1.18.2" }
+vrp-pragmatic = { path = "../vrp-pragmatic", version = "1.18.2" }
 
 csv = { version = "1.1.6", optional = true }
-serde_json = "1.0.81"
-serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0.82"
+serde = { version = "1.0.139", features = ["derive"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-clap = "3.2.6"
+clap = "3.2.10"
 ctrlc = { version = "3.2.2", features = ["termination"] }
 num_cpus = "1.13.1"
 
