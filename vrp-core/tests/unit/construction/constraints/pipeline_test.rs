@@ -88,7 +88,7 @@ fn can_evaluate_hard_activity_constraints() {
     assert!(result.is_some());
     let result = result.unwrap();
     assert_eq!(result.code, 5);
-    assert_eq!(result.stopped, true);
+    assert!(result.stopped);
 }
 
 #[test]

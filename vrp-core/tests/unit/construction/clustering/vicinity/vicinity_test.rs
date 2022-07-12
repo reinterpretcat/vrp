@@ -31,7 +31,7 @@ pub fn can_create_job_clusters() {
         FilterPolicy { job_filter: Arc::new(|job| get_job_id(job) != "job3"), actor_filter: Arc::new(|_| true) };
     let config = ClusterConfig { filtering, ..create_cluster_config() };
     let fleet = test_fleet();
-    let problem = create_problem_with_constraint_jobs_and_fleet(constraint, jobs.clone(), fleet);
+    let problem = create_problem_with_constraint_jobs_and_fleet(constraint, jobs, fleet);
 
     let clusters = create_job_clusters(problem, Arc::new(Environment::default()), &config);
 

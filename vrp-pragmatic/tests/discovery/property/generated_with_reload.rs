@@ -14,7 +14,7 @@ fn get_reloads() -> impl Strategy<Value = Option<Vec<VehicleReload>>> {
         ),
         1..4,
     )
-    .prop_map(|reloads| Some(reloads))
+    .prop_map(Some)
 }
 
 prop_compose! {

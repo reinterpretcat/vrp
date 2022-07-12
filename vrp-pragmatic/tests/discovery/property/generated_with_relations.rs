@@ -16,10 +16,7 @@ fn vehicle_type_prototype() -> impl Strategy<Value = VehicleType> {
         generate_shifts(
             generate_shift(
                 generate_location(&DEFAULT_BOUNDING_BOX).prop_flat_map(|location| {
-                    Just((
-                        ShiftStart { earliest: default_time_plus_offset(9), latest: None, location: location.clone() },
-                        None,
-                    ))
+                    Just((ShiftStart { earliest: default_time_plus_offset(9), latest: None, location }, None))
                 }),
                 generate_no_dispatch(),
                 default_breaks_prototype(),

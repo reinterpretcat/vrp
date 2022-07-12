@@ -11,7 +11,7 @@ use vrp_core::models::problem::{Fleet, Single};
 const VIOLATION_CODE: i32 = 1;
 const STATE_KEY: i32 = 2;
 
-fn get_total_jobs(routes: &Vec<(&str, Vec<Option<&str>>)>) -> usize {
+fn get_total_jobs(routes: &[(&str, Vec<Option<&str>>)]) -> usize {
     routes.iter().map(|(_, jobs)| jobs.len()).sum::<usize>() + 1
 }
 
@@ -45,15 +45,12 @@ fn create_test_solution_context(
                 let mut state = RouteState::default();
                 state.put_route_state(
                     STATE_KEY,
-                    (
-                        groups.iter().filter_map(|g| g.clone()).map(|g| g.to_string()).collect::<HashSet<_>>(),
-                        groups.len(),
-                    ),
+                    (groups.iter().filter_map(|g| *g).map(|g| g.to_string()).collect::<HashSet<_>>(), groups.len()),
                 );
 
                 RouteContext::new_with_state(
                     Arc::new(create_route_with_activities(
-                        &fleet,
+                        fleet,
                         vehicle,
                         groups
                             .into_iter()

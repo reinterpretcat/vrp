@@ -49,6 +49,7 @@ impl<'a> Objective for SliceSumObjective {
     }
 }
 
+#[derive(Default)]
 pub struct SliceMultiObjective {
     objectives: Vec<SliceObjective>,
 }
@@ -56,12 +57,6 @@ pub struct SliceMultiObjective {
 impl SliceMultiObjective {
     pub fn new(objectives: Vec<SliceObjective>) -> Self {
         Self { objectives }
-    }
-}
-
-impl Default for SliceMultiObjective {
-    fn default() -> Self {
-        SliceMultiObjective { objectives: Default::default() }
     }
 }
 
@@ -73,13 +68,9 @@ impl Objective for SliceMultiObjective {
         assert_eq!(a.len(), 2);
         assert_eq!(a.len(), b.len());
 
-        if a[0] < b[0] && a[1] <= b[1] {
+        if a[0] < b[0] && a[1] <= b[1] || a[0] <= b[0] && a[1] < b[1] {
             Ordering::Less
-        } else if a[0] <= b[0] && a[1] < b[1] {
-            Ordering::Less
-        } else if a[0] > b[0] && a[1] >= b[1] {
-            Ordering::Greater
-        } else if a[0] >= b[0] && a[1] > b[1] {
+        } else if a[0] > b[0] && a[1] >= b[1] || a[0] >= b[0] && a[1] > b[1] {
             Ordering::Greater
         } else {
             Ordering::Equal

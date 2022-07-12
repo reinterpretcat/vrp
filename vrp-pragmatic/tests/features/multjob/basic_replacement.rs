@@ -17,11 +17,7 @@ fn can_assign_replacement_job() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    end: Some(ShiftEnd {
-                        earliest: None,
-                        latest: format_time(1000.).to_string(),
-                        location: (4., 0.).to_loc(),
-                    }),
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (4., 0.).to_loc() }),
                     ..create_default_vehicle_shift()
                 }],
                 ..create_default_vehicle_type()

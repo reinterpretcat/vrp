@@ -116,6 +116,7 @@ check_jobs! {
     ),
 }
 
+#[allow(clippy::type_complexity)]
 fn check_jobs_impl(
     jobs: Vec<(&str, Vec<&str>)>,
     tours: Vec<(&str, usize, Vec<(&str, &str)>)>,

@@ -125,7 +125,7 @@ fn can_search_for_reserved_time_impl(times: Vec<(f64, f64)>, tests: Vec<((f64, f
 
     let reserved_time_func = create_reserved_times_func(reserved_times);
 
-    if let Some(reserved_time_func) = reserved_time_func.ok() {
+    if let Ok(reserved_time_func) = reserved_time_func {
         tests.iter().for_each(|((s, e), expected)| {
             let interval = TimeWindow::new(*s, *e);
             let expected = expected.and_then(|idx| times.get(idx)).map(|(s, e)| TimeWindow::new(*s, *e));

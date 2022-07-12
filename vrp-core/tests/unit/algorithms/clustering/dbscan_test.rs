@@ -3,7 +3,7 @@ use crate::algorithms::geometry::Point;
 use crate::helpers::construction::clustering::p;
 use rosomaxa::prelude::compare_floats;
 
-fn create_index(points: &Vec<Point>) -> HashMap<&Point, Vec<(&Point, f64)>> {
+fn create_index(points: &[Point]) -> HashMap<&Point, Vec<(&Point, f64)>> {
     points.iter().fold(HashMap::new(), |mut acc, point| {
         assert!(acc.get(point).is_none());
 

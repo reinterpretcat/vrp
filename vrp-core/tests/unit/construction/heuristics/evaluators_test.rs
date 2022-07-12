@@ -39,7 +39,7 @@ fn evaluate_job_insertion(
     };
 
     routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
-        evaluate_job_insertion_in_route(&insertion_ctx, &eval_ctx, &route_ctx, insertion_position, acc)
+        evaluate_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, insertion_position, acc)
     })
 }
 

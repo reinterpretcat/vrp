@@ -62,7 +62,7 @@ impl ConstraintModule for VicinityTestModule {
             );
 
             let mut dimens = source.dimens.clone();
-            let mut merged = dimens.get_value::<Vec<Job>>(MERGED_KEY).cloned().unwrap_or_else(Vec::new);
+            let mut merged = dimens.get_value::<Vec<Job>>(MERGED_KEY).cloned().unwrap_or_default();
             merged.push(candidate);
             dimens.set_value(MERGED_KEY, merged);
 

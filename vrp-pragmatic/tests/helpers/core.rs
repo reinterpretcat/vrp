@@ -47,7 +47,7 @@ pub fn test_fleet() -> Fleet {
 }
 
 pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {
-    let actor = fleet.actors.iter().filter(|a| a.vehicle.dimens.get_id().unwrap() == vehicle).next().unwrap().clone();
+    let actor = fleet.actors.iter().find(|a| a.vehicle.dimens.get_id().unwrap() == vehicle).unwrap().clone();
     let mut tour = Tour::new(&actor);
 
     activities.into_iter().enumerate().for_each(|(index, a)| {
@@ -122,7 +122,7 @@ pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
         locked: Default::default(),
         state: Default::default(),
         routes: Default::default(),
-        registry: RegistryContext::new(constraint, Registry::new(&fleet, Arc::new(DefaultRandom::default()))),
+        registry: RegistryContext::new(constraint, Registry::new(fleet, Arc::new(DefaultRandom::default()))),
     }
 }
 

@@ -114,7 +114,7 @@ pub fn create_pickup_job_with_demand(id: &str, location: (f64, f64), demand: Vec
 }
 
 pub fn create_replacement_job(id: &str, location: (f64, f64)) -> Job {
-    Job { replacements: Some(vec![create_task(location.clone(), None)]), ..create_job(id) }
+    Job { replacements: Some(vec![create_task(location, None)]), ..create_job(id) }
 }
 
 pub fn create_service_job(id: &str, location: (f64, f64)) -> Job {
@@ -151,7 +151,7 @@ pub fn create_pickup_delivery_job_with_params(
                 times: convert_times(&delivery.2),
                 ..create_job_place(delivery.0, Some("d1".to_string()))
             }],
-            demand: Some(demand.clone()),
+            demand: Some(demand),
             order: None,
         }]),
 
@@ -216,11 +216,7 @@ pub fn create_default_open_vehicle_shift() -> VehicleShift {
 pub fn create_default_vehicle_shift_with_locations(start: (f64, f64), end: (f64, f64)) -> VehicleShift {
     VehicleShift {
         start: ShiftStart { earliest: format_time(0.), latest: None, location: (start.0, start.1).to_loc() },
-        end: Some(ShiftEnd {
-            earliest: None,
-            latest: format_time(1000.).to_string(),
-            location: (end.0, end.1).to_loc(),
-        }),
+        end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (end.0, end.1).to_loc() }),
         dispatch: None,
         breaks: None,
         reloads: None,
@@ -309,7 +305,7 @@ pub fn create_matrix(data: Vec<i64>) -> Matrix {
         profile: Some("car".to_owned()),
         timestamp: None,
         travel_times: data.clone(),
-        distances: data.clone(),
+        distances: data,
         error_codes: None,
     }
 }

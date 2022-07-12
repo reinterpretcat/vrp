@@ -26,7 +26,7 @@ fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleOptionalBreak
                         start: ShiftStart { earliest: format_time(0.), latest: None, location: (100., 0.).to_loc() },
                         end: Some(ShiftEnd {
                             earliest: None,
-                            latest: format_time(1000.).to_string(),
+                            latest: format_time(1000.),
                             location: (100., 0.).to_loc(),
                         }),
                         dispatch: None,

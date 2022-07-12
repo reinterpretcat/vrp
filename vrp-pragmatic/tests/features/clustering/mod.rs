@@ -17,6 +17,7 @@ struct ActivityData {
 }
 
 impl ActivityData {
+    #[allow(clippy::type_complexity)]
     pub fn new(
         data: (&str, Option<f64>, &str, Option<(Timestamp, Timestamp)>, Option<(CommuteData, CommuteData)>),
     ) -> Self {

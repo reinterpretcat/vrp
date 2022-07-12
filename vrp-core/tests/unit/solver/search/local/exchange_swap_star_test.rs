@@ -12,7 +12,7 @@ fn create_insertion_success(insertion_ctx: &InsertionContext, insertion_data: (u
     let (route_idx, job_id, insertion_idx) = insertion_data;
 
     let context = insertion_ctx.solution.routes.get(route_idx).cloned().unwrap();
-    let job = get_jobs_by_ids(&insertion_ctx, &[job_id]).first().cloned().unwrap();
+    let job = get_jobs_by_ids(insertion_ctx, &[job_id]).first().cloned().unwrap();
     let activity = Activity {
         place: Place { location: 0, duration: 0.0, time: TimeWindow::new(0., 1.) },
         schedule: Schedule { arrival: 0., departure: 0. },
@@ -268,7 +268,7 @@ fn can_create_route_pairs_impl(route_pairs_threshold: usize, is_proximity: bool,
     let matrix = (3, 3);
     let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], reals)));
     let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
-    let insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
+    let insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
 
     let pairs = create_route_pairs(&insertion_ctx, route_pairs_threshold);
 

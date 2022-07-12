@@ -6,7 +6,7 @@ fn can_sample_from_large_range() {
     let random = Arc::new(DefaultRandom::default());
     let amount = 5;
 
-    let numbers = SelectionSamplingIterator::new((0..100).into_iter(), amount, random).collect::<Vec<_>>();
+    let numbers = SelectionSamplingIterator::new(0..100, amount, random).collect::<Vec<_>>();
 
     assert_eq!(numbers.len(), amount);
     numbers.windows(2).for_each(|item| match item {
@@ -24,7 +24,7 @@ fn can_sample_from_same_range() {
     let amount = 5;
     let random = Arc::new(DefaultRandom::default());
 
-    let numbers = SelectionSamplingIterator::new((0..amount).into_iter(), amount, random).collect::<Vec<_>>();
+    let numbers = SelectionSamplingIterator::new(0..amount, amount, random).collect::<Vec<_>>();
 
     assert_eq!(numbers, vec![0, 1, 2, 3, 4])
 }
@@ -34,7 +34,7 @@ fn can_sample_from_smaller_range() {
     let amount = 5;
     let random = Arc::new(DefaultRandom::default());
 
-    let numbers = SelectionSamplingIterator::new((0..3).into_iter(), amount, random).collect::<Vec<_>>();
+    let numbers = SelectionSamplingIterator::new(0..3, amount, random).collect::<Vec<_>>();
 
     assert_eq!(numbers, vec![0, 1, 2])
 }

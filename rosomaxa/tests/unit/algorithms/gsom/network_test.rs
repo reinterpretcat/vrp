@@ -58,7 +58,7 @@ mod common {
         let node = network.nodes.get(&Coordinate(coord.0 + offset.0, coord.1 + offset.1)).unwrap();
         let node = node.read().unwrap();
 
-        let coordinate = node.coordinate.clone();
+        let coordinate = node.coordinate;
         let weights = node.weights.clone();
 
         (coordinate, weights)
@@ -232,9 +232,7 @@ mod node_growing {
     fn can_grow_new_nodes_properly() {
         let w1_coord = Coordinate(1, 2);
         let mut network = create_trivial_network(true);
-        network
-            .nodes
-            .insert(w1_coord.clone(), Arc::new(RwLock::new(network.create_node(w1_coord.clone(), &[3., 6., 10.], 0.))));
+        network.nodes.insert(w1_coord, Arc::new(RwLock::new(network.create_node(w1_coord, &[3., 6., 10.], 0.))));
 
         network.update(&get_node((w1_coord.0, w1_coord.1), &network).unwrap(), &Data::new(2., 2., 2.), 6., true);
 

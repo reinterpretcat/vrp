@@ -137,7 +137,7 @@ fn create_agent(state: GridState, actions_taken: ActionCounter) -> GridAgent {
     let grid = (0..4, 0..4);
     let terminal = (3, 3);
 
-    GridAgent::new(ActionEstimates::from(actions), state, grid.clone(), terminal, actions_taken)
+    GridAgent::new(ActionEstimates::from(actions), state, grid, terminal, actions_taken)
 }
 
 parameterized_test! {can_run_grid_episodes_impl, (agent_count, repeat_count, expected_optimal, visualize, policy_strategy), {
@@ -181,8 +181,8 @@ fn can_run_grid_episodes_impl(
         });
     }
 
-    for ((x, y), (e_dx, e_dy)) in
-        vec![((2, 3), (1, 0)), ((1, 3), (1, 0)), ((0, 3), (1, 0)), ((3, 2), (0, 1)), ((3, 1), (0, 1)), ((3, 0), (0, 1))]
+    for &((x, y), (e_dx, e_dy)) in
+        &[((2, 3), (1, 0)), ((1, 3), (1, 0)), ((0, 3), (1, 0)), ((3, 2), (0, 1)), ((3, 1), (0, 1)), ((3, 0), (0, 1))]
     {
         let (GridAction::Move { dx, dy }, _) = simulator.get_optimal_policy(&GridState::OnGrid { x, y }).unwrap();
         assert_eq!((dx, dy), (e_dx, e_dy));

@@ -10,9 +10,9 @@ fn get_jobs(ids: Vec<&str>) -> Vec<Job> {
     ids.iter().map(|s| Job::Single(test_single_with_id(s))).collect()
 }
 
-fn get_ids(jobs: &Vec<Job>) -> Vec<&str> {
+fn get_ids(jobs: &[Job]) -> Vec<&str> {
     let mut ids: Vec<&str> = jobs.iter().map(|job| get_job_id(job).as_str()).collect();
-    ids.sort();
+    ids.sort_unstable();
     ids
 }
 
@@ -39,8 +39,8 @@ fn can_promote_jobs_between_required_and_ignored_impl(
 
     let mut ctx = SolutionContext { required, ignored, ..create_empty_solution_context() };
     let conditional = ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {
-        remove_required: move |_, _, job| !required_set1.contains(get_job_id(&job)),
-        promote_required: move |_, _, job| required_set2.contains(get_job_id(&job)),
+        remove_required: move |_, _, job| !required_set1.contains(get_job_id(job)),
+        promote_required: move |_, _, job| required_set2.contains(get_job_id(job)),
         remove_locked: |_, _, _| false,
         promote_locked: |_, _, _| false,
     }));
@@ -61,21 +61,21 @@ fn can_promote_locked_jobs() {
 
     let mut ctx = SolutionContext {
         required: jobs.clone(),
-        locked: jobs.iter().filter(move |job| already_locked_jobs.contains(get_job_id(&job))).cloned().collect(),
+        locked: jobs.iter().filter(move |job| already_locked_jobs.contains(get_job_id(job))).cloned().collect(),
         registry: create_registry_context(&test_fleet()),
         ..create_empty_solution_context()
     };
     let conditional = ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {
         remove_required: |_, _, _| false,
         promote_required: |_, _, _| false,
-        remove_locked: move |_, _, job| !expected_locked_jobs1.contains(get_job_id(&job)),
-        promote_locked: move |_, _, job| expected_locked_jobs2.contains(get_job_id(&job)),
+        remove_locked: move |_, _, job| !expected_locked_jobs1.contains(get_job_id(job)),
+        promote_locked: move |_, _, job| expected_locked_jobs2.contains(get_job_id(job)),
     }));
 
     conditional.accept_solution_state(&mut ctx);
 
     let mut result_ids: Vec<String> =
-        get_ids(&ctx.locked.iter().cloned().collect()).iter().map(|s| (*s).to_string()).collect();
+        get_ids(ctx.locked.iter().cloned().collect::<Vec<_>>().as_slice()).iter().map(|s| (*s).to_string()).collect();
     result_ids.sort();
     assert_eq!(result_ids, expected_ids);
 }

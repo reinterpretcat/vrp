@@ -10,7 +10,7 @@ fn can_get_locations_serialized() {
         objectives: None,
     };
 
-    let locations = get_locations_serialized(&problem).unwrap().replace(" ", "").replace("\n", "");
+    let locations = get_locations_serialized(&problem).unwrap().replace(' ', "").replace('\n', "");
 
     assert_eq!(locations, r#"[{"lat":1.0,"lng":1.0},{"lat":1.0,"lng":0.0},{"lat":0.0,"lng":0.0}]"#);
 }
@@ -27,10 +27,10 @@ fn can_get_solution_serialized() {
     };
     let problem = Arc::new(problem.read_pragmatic().unwrap());
 
-    let solution = get_solution_serialized(problem, Config::default()).unwrap().replace(" ", "").replace("\n", "");
+    let solution = get_solution_serialized(problem, Config::default()).unwrap().replace(' ', "").replace('\n', "");
 
-    assert!(solution.starts_with("{"));
-    assert!(solution.ends_with("}"));
+    assert!(solution.starts_with('{'));
+    assert!(solution.ends_with('}'));
     assert!(solution.contains("statistic"));
     assert!(solution.contains("tours"));
     assert!(solution.contains("stops"));
@@ -55,8 +55,8 @@ fn can_get_errors_serialized() {
 fn can_get_config_error() {
     let result = to_config_error("some error");
 
-    assert!(result.starts_with("{"));
-    assert!(result.ends_with("}"));
+    assert!(result.starts_with('{'));
+    assert!(result.ends_with('}'));
     assert!(result.contains("some error"));
     assert!(result.contains("E0004"));
     assert!(result.contains("cannot read config"));

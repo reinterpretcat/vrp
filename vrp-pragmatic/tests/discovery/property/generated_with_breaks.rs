@@ -9,7 +9,7 @@ mod optional {
 
     fn get_optional_breaks() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
         let places_proto = get_optional_break_places(
-            prop_oneof![Just(None), generate_location(&DEFAULT_BOUNDING_BOX).prop_map(|location| Some(location))],
+            prop_oneof![Just(None), generate_location(&DEFAULT_BOUNDING_BOX).prop_map(Some)],
             generate_durations(10..100),
         );
         let break_proto = generate_optional_break(
@@ -18,7 +18,7 @@ mod optional {
             Just(None),
         );
 
-        prop::collection::vec(break_proto, 1..2).prop_map(|break_| Some(break_))
+        prop::collection::vec(break_proto, 1..2).prop_map(Some)
     }
 
     prop_compose! {
@@ -101,7 +101,7 @@ mod required {
     use crate::{format_time, parse_time};
 
     fn from_hours_as_usize(hours: i32) -> i32 {
-        parse_time(&START_DAY) as i32 + from_hours(hours).as_secs() as i32
+        parse_time(START_DAY) as i32 + from_hours(hours).as_secs() as i32
     }
 
     fn get_required_breaks() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
@@ -110,7 +110,7 @@ mod required {
             generate_durations(1..3600),
         );
 
-        prop::collection::vec(break_proto, 1..2).prop_map(|break_| Some(break_))
+        prop::collection::vec(break_proto, 1..2).prop_map(Some)
     }
 
     prop_compose! {

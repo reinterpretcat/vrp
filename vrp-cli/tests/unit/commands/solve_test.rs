@@ -76,8 +76,8 @@ fn can_specify_round_setting() {
 
 #[test]
 fn can_specify_heuristic_setting() {
-    for (mode, result) in
-        vec![("default", Some(())), ("dynamic", Some(())), ("static", Some(())), ("ggg", None), ("multi", None)]
+    for &(mode, result) in
+        &[("default", Some(())), ("dynamic", Some(())), ("static", Some(())), ("ggg", None), ("multi", None)]
     {
         let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--heuristic", mode];
         assert_eq!(get_solve_app().try_get_matches_from(args).ok().map(|_| ()), result);

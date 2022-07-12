@@ -189,7 +189,7 @@ fn can_read_complex_problem() {
 
     let problem = (problem, vec![matrix]).read_pragmatic().ok().unwrap();
 
-    assert_eq!(problem.jobs.all().collect::<Vec<_>>().len(), 3 + 2);
+    assert_eq!(problem.jobs.all().count(), 3 + 2);
 
     // delivery
     let job = get_single_job(0, problem.jobs.as_ref());
@@ -272,7 +272,7 @@ fn can_deserialize_minimal_problem_and_matrix() {
     let problem = (SIMPLE_PROBLEM.to_string(), vec![SIMPLE_MATRIX.to_string()]).read_pragmatic().ok().unwrap();
 
     assert_eq!(problem.fleet.vehicles.len(), 1);
-    assert_eq!(problem.jobs.all().collect::<Vec<_>>().len(), 2);
+    assert_eq!(problem.jobs.all().count(), 2);
     assert!(problem.locks.is_empty());
 
     let detail = problem.fleet.vehicles.first().unwrap().details.first().unwrap();

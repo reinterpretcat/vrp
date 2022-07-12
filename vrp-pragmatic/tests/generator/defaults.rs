@@ -22,7 +22,7 @@ pub fn get_default_bounding_box_radius() -> f64 {
 }
 
 pub fn default_time_plus_offset(offset: i32) -> String {
-    format_time(parse_time(&START_DAY.to_string()) + from_hours(offset).as_secs_f64())
+    format_time(parse_time(START_DAY) + from_hours(offset).as_secs_f64())
 }
 
 pub fn default_job_single_day_time_windows() -> impl Strategy<Value = Option<Vec<Vec<String>>>> {
@@ -32,7 +32,7 @@ pub fn default_job_single_day_time_windows() -> impl Strategy<Value = Option<Vec
         vec![from_hours(2), from_hours(4)],
         1..3,
     )
-    .prop_map(|tw| Some(tw))
+    .prop_map(Some)
 }
 
 pub fn default_job_place_prototype() -> impl Strategy<Value = JobPlace> {

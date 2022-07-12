@@ -105,7 +105,7 @@ can_detect_invalid_dispatch! {
 fn can_detect_invalid_dispatch_impl(dispatch: &[(f64, (f64, f64))], expected: Option<String>) {
     let dispatch = Some(
         dispatch
-            .into_iter()
+            .iter()
             .cloned()
             .map(|(lat, times)| VehicleDispatch {
                 location: Location::Coordinate { lat, lng: 0. },
@@ -117,7 +117,7 @@ fn can_detect_invalid_dispatch_impl(dispatch: &[(f64, (f64, f64))], expected: Op
     let problem = Problem {
         fleet: Fleet {
             vehicles: vec![VehicleType {
-                shifts: vec![VehicleShift { dispatch: dispatch, ..create_default_vehicle_shift() }],
+                shifts: vec![VehicleShift { dispatch, ..create_default_vehicle_shift() }],
                 ..create_default_vehicle_type()
             }],
             profiles: vec![],
@@ -178,7 +178,7 @@ fn can_handle_rescheduling_with_required_break_impl(latest: Option<f64>, expecte
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
                         earliest: format_time(0.),
-                        latest: latest.map(|latest| format_time(latest)),
+                        latest: latest.map(format_time),
                         location: (0., 0.).to_loc(),
                     },
                     breaks: Some(vec![VehicleBreak::Required {

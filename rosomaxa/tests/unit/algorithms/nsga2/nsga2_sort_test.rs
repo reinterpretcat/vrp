@@ -3,7 +3,7 @@ use crate::helpers::algorithms::nsga2::*;
 use std::f64::consts::PI;
 use std::sync::Arc;
 
-fn fitness(individual: &Vec<f64>) -> Vec<f64> {
+fn fitness(individual: &[f64]) -> Vec<f64> {
     const SCALE: f64 = 10.;
 
     let r = individual[0];
@@ -39,7 +39,7 @@ fn can_use_select_and_rank() {
     ]);
 
     // rate population (calculate fitness)
-    let rated_population = population.iter().map(fitness).collect::<Vec<_>>();
+    let rated_population = population.iter().map(|individual| fitness(individual.as_slice())).collect::<Vec<_>>();
     let ranked_population = select_and_rank(&rated_population, 7, &mo);
 
     let results = ranked_population.iter().map(|s| vec![s.index, s.rank]).collect::<Vec<_>>();

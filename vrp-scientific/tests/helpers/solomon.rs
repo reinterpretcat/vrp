@@ -6,11 +6,13 @@ pub struct SolomonBuilder {
     customers: Vec<Customer>,
 }
 
-impl SolomonBuilder {
-    pub fn new() -> Self {
+impl Default for SolomonBuilder {
+    fn default() -> Self {
         Self { title: "My Problem".to_string(), vehicle: (0, 0), customers: vec![] }
     }
+}
 
+impl SolomonBuilder {
     pub fn set_title(&mut self, title: &str) -> &mut Self {
         self.title = title.to_string();
         self

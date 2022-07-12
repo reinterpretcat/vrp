@@ -7,7 +7,7 @@ use std::cmp::Ordering::Equal;
 
 fn create_insertion_ctx(route_amount: usize, route_factory: &(dyn Fn(usize) -> RouteContext)) -> InsertionContext {
     let mut ctx = create_empty_insertion_context();
-    ctx.solution.routes.extend((0..route_amount).map(|idx| route_factory(idx)));
+    ctx.solution.routes.extend((0..route_amount).map(route_factory));
     ctx
 }
 

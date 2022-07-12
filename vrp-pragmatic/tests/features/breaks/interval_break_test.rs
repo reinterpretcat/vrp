@@ -30,7 +30,6 @@ fn can_assign_interval_break_between_jobs() {
             profiles: create_default_matrix_profiles(),
         },
         objectives: create_test_objectives(),
-        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 
@@ -141,11 +140,7 @@ fn can_assign_interval_break_with_reload() {
                         latest: Some(format_time(0.)),
                         location: (0., 0.).to_loc(),
                     },
-                    end: Some(ShiftEnd {
-                        earliest: None,
-                        latest: format_time(1000.).to_string(),
-                        location: (30., 0.).to_loc(),
-                    }),
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (30., 0.).to_loc() }),
                     dispatch: None,
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeOffset(vec![8., 12.]),

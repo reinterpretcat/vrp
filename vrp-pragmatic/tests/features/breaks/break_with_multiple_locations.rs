@@ -14,11 +14,7 @@ fn can_assign_break_using_second_place() {
             vehicles: vec![VehicleType {
                 costs: create_default_vehicle_costs(),
                 shifts: vec![VehicleShift {
-                    end: Some(ShiftEnd {
-                        earliest: None,
-                        latest: format_time(1000.).to_string(),
-                        location: (30., 0.).to_loc(),
-                    }),
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (30., 0.).to_loc() }),
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(10.), format_time(30.)]),
                         places: vec![

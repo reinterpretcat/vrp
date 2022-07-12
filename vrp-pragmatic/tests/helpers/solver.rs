@@ -17,11 +17,11 @@ pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matr
     let environment = Arc::new(Environment::default());
     get_core_solution(problem, matrices, true, |problem: Arc<CoreProblem>| {
         let population = create_elitism_population(problem.objective.clone(), environment.clone());
-        let mut refinement_ctx =
+        let refinement_ctx =
             RefinementContext::new(problem.clone(), population, TelemetryMode::None, environment.clone());
 
         RecreateWithCheapest::new(environment.random.clone())
-            .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), environment.clone()))
+            .run(&refinement_ctx, InsertionContext::new(problem.clone(), environment.clone()))
             .solution
             .to_solution(problem.extras.clone())
     })

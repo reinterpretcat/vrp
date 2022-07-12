@@ -22,7 +22,7 @@ fn can_remove_whole_random_routes_from_context() {
     );
 
     let insertion_ctx = RandomRouteRemoval::new(params.0, params.1, params.2)
-        .run(&mut create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
+        .run(&create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
 
     assert_eq!(insertion_ctx.solution.required.len(), 8);
 }
@@ -54,7 +54,7 @@ fn can_remove_parts_random_routes_from_context() {
     );
 
     let insertion_ctx = RandomRouteRemoval::new(params.0, params.1, params.2)
-        .run(&mut create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
+        .run(&create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
 
     assert_eq!(
         get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required),
@@ -76,8 +76,8 @@ fn can_remove_worst_route() {
         create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], reals))),
     );
 
-    let insertion_ctx = WorstRouteRemoval::default()
-        .run(&mut create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
+    let insertion_ctx =
+        WorstRouteRemoval::default().run(&create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
 
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), vec!["c10", "c11", "c9"]);
     assert_eq!(insertion_ctx.solution.routes.len(), 3);

@@ -13,7 +13,7 @@ fn can_create_ruin_cluster_with_default_params() {
         8,
         1,
         false,
-        |id, location| test_single_with_id_and_location(id, location),
+        test_single_with_id_and_location,
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
     );
@@ -48,7 +48,7 @@ fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
         8,
         1,
         false,
-        |id, location| test_single_with_id_and_location(id, location),
+        test_single_with_id_and_location,
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
     );
@@ -57,7 +57,7 @@ fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
     let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone());
 
     let insertion_ctx = ClusterRemoval::new(problem, environment, min_items, limit)
-        .run(&mut create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
+        .run(&create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
 
     assert_eq!(insertion_ctx.solution.unassigned.len(), 0);
     assert_eq!(insertion_ctx.solution.locked.len(), 0);

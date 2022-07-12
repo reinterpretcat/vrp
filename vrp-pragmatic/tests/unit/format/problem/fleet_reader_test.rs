@@ -11,7 +11,7 @@ use vrp_core::models::solution::Route;
 fn matrix(profile: Option<&str>, timestamp: Option<f64>, fill_value: i64, size: usize) -> Matrix {
     Matrix {
         profile: profile.map(|p| p.to_string()),
-        timestamp: timestamp.map(|t| format_time(t)),
+        timestamp: timestamp.map(format_time),
         travel_times: vec![fill_value; size],
         distances: vec![fill_value; size],
         error_codes: None,

@@ -31,6 +31,7 @@ can_calculate_current_capacity_state_values! {
     case03: (0, 1, 0, 0, 1, 0, 1, 1),
 }
 
+#[allow(clippy::too_many_arguments)]
 fn can_calculate_current_capacity_state_values_impl(
     s1: i32,
     s2: i32,

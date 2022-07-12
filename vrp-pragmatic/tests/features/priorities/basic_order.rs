@@ -177,11 +177,7 @@ fn can_handle_order_between_special_activities() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    end: Some(ShiftEnd {
-                        earliest: None,
-                        latest: format_time(1000.).to_string(),
-                        location: (10., 0.).to_loc(),
-                    }),
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (10., 0.).to_loc() }),
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(100.), format_time(200.)]),
                         places: vec![VehicleOptionalBreakPlace {

@@ -68,7 +68,7 @@ fn create_test_problem(
         .map(|(vehicle_id, order, position, job_ids)| {
             let vehicle_id = vehicle_id.to_string();
             Arc::new(Lock {
-                condition: Arc::new(move |actor| actor.vehicle.dimens.get_id().unwrap().to_string() == vehicle_id),
+                condition: Arc::new(move |actor| *actor.vehicle.dimens.get_id().unwrap() == vehicle_id),
                 details: vec![LockDetail {
                     order,
                     position,
@@ -301,6 +301,7 @@ can_restore_solution! {
     ),
 }
 
+#[allow(clippy::type_complexity)]
 fn can_restore_solution_impl(
     singles: Vec<(&str, JobData)>,
     multies: Vec<(&str, Vec<JobData>)>,

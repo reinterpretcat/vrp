@@ -3,6 +3,7 @@ use crate::helpers::models::problem::*;
 use crate::models::problem::{TravelTime, VehicleDetail, VehiclePlace};
 use crate::models::solution::Route;
 
+#[derive(Default)]
 struct OnlyDistanceCost {}
 
 impl TransportCost for OnlyDistanceCost {
@@ -20,12 +21,6 @@ impl TransportCost for OnlyDistanceCost {
 
     fn distance(&self, _: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         fake_routing(from, to)
-    }
-}
-
-impl Default for OnlyDistanceCost {
-    fn default() -> Self {
-        Self {}
     }
 }
 
@@ -81,7 +76,7 @@ impl TransportCost for FixedTransportCost {
 }
 
 impl FixedTransportCost {
-    pub fn new(duration_cost: f64, distance_cost: f64) -> Arc<dyn TransportCost + Send + Sync> {
+    pub fn new_shared(duration_cost: f64, distance_cost: f64) -> Arc<dyn TransportCost + Send + Sync> {
         Arc::new(Self { duration_cost, distance_cost })
     }
 }
@@ -223,13 +218,13 @@ fn can_use_multi_job_bind_and_roots() {
     let jobs = vec![Job::Multi(job.clone())];
 
     let jobs = Jobs::new(&test_fleet(), jobs, &create_only_distance_transport_cost());
-    let job = Job::Multi(Multi::roots(&job.jobs.first().unwrap()).unwrap());
+    let job = Job::Multi(Multi::roots(job.jobs.first().unwrap()).unwrap());
 
     assert_eq!(jobs.neighbors(&Profile::default(), &job, 0.0).count(), 0);
 }
 
 parameterized_test! {can_handle_negative_distances_durations, (duration_cost, distance_cost), {
-    can_handle_negative_distances_durations_impl(FixedTransportCost::new(duration_cost, distance_cost));
+    can_handle_negative_distances_durations_impl(FixedTransportCost::new_shared(duration_cost, distance_cost));
 }}
 
 can_handle_negative_distances_durations! {

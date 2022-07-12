@@ -7,7 +7,7 @@ use std::sync::RwLock;
 /// Generate relations.
 pub fn generate_relations(
     jobs: &Vec<Job>,
-    vehicles: &Vec<VehicleType>,
+    vehicles: &[VehicleType],
     total_relations: Range<usize>,
     jobs_per_relation: Range<usize>,
 ) -> impl Strategy<Value = Vec<Relation>> {
@@ -19,17 +19,16 @@ pub fn generate_relations(
     let min = max.min(total_relations.start).max(0);
     let max = if min == max { max + 1 } else { max };
 
-    prop::collection::vec(generate_relation(job_ids.clone(), vehicle_ids.clone(), jobs_per_relation.clone()), min..max)
-        .prop_filter_map(
-            "Empty relations in plan",
-            |relations| {
-                if relations.is_empty() {
-                    None
-                } else {
-                    Some(relations)
-                }
-            },
-        )
+    prop::collection::vec(generate_relation(job_ids, vehicle_ids, jobs_per_relation), min..max).prop_filter_map(
+        "Empty relations in plan",
+        |relations| {
+            if relations.is_empty() {
+                None
+            } else {
+                Some(relations)
+            }
+        },
+    )
 }
 
 fn generate_relation(
@@ -68,10 +67,10 @@ fn get_relation_type() -> impl Strategy<Value = RelationType> {
     prop_oneof![Just(RelationType::Strict), Just(RelationType::Sequence), Just(RelationType::Any)]
 }
 
-fn get_job_ids(jobs: &Vec<Job>) -> Vec<String> {
+fn get_job_ids(jobs: &[Job]) -> Vec<String> {
     jobs.iter().map(|job| job.id.clone()).collect()
 }
 
-fn get_vehicle_ids(vehicles: &Vec<VehicleType>) -> Vec<String> {
+fn get_vehicle_ids(vehicles: &[VehicleType]) -> Vec<String> {
     vehicles.iter().flat_map(|vehicle| vehicle.vehicle_ids.iter().cloned()).collect()
 }

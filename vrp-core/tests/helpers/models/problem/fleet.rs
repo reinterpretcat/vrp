@@ -110,15 +110,10 @@ impl VehicleBuilder {
     }
 }
 
+#[derive(Default)]
 pub struct FleetBuilder {
     drivers: Vec<Driver>,
     vehicles: Vec<Vehicle>,
-}
-
-impl Default for FleetBuilder {
-    fn default() -> FleetBuilder {
-        FleetBuilder { drivers: Default::default(), vehicles: Default::default() }
-    }
 }
 
 impl FleetBuilder {
@@ -138,8 +133,8 @@ impl FleetBuilder {
     }
 
     pub fn build(&mut self) -> Fleet {
-        let drivers = std::mem::replace(&mut self.drivers, vec![]);
-        let vehicles = std::mem::replace(&mut self.vehicles, vec![]);
+        let drivers = std::mem::take(&mut self.drivers);
+        let vehicles = std::mem::take(&mut self.vehicles);
 
         let drivers = drivers.into_iter().map(Arc::new).collect();
         let vehicles = vehicles.into_iter().map(Arc::new).collect();

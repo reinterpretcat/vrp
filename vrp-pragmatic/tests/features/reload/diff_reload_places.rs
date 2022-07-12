@@ -50,9 +50,9 @@ fn can_use_reloads_with_different_locations() {
 
     assert!(solution.unassigned.is_none());
     assert_eq!(solution.tours.len(), 1);
-    let ids = get_ids_from_tour(solution.tours.first().unwrap())
+    let has_reload = get_ids_from_tour(solution.tours.first().unwrap())
         .into_iter()
         .flat_map(|stop| stop.into_iter())
-        .collect::<Vec<_>>();
-    assert!(ids.contains(&"reload".to_string()));
+        .any(|stop| stop == "reload");
+    assert!(has_reload);
 }

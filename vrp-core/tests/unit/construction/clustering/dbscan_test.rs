@@ -6,6 +6,8 @@ use crate::helpers::solver::{generate_matrix_distances_from_points, generate_mat
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Location;
 
+type MatrixModFn = fn(Vec<f64>) -> (Vec<f64>, Vec<f64>);
+
 #[test]
 fn can_get_max_curvature() {
     let values =
@@ -32,20 +34,9 @@ can_estimate_epsilon! {
     case_07:  ((8, 1), 3, |_: Vec<f64>| (vec![0.; 64], create_test_distances()), 10.419),
 }
 
-fn can_estimate_epsilon_impl(
-    matrix: (usize, usize),
-    nth_neighbor: usize,
-    matrix_modify: fn(Vec<f64>) -> (Vec<f64>, Vec<f64>),
-    expected: f64,
-) {
-    let (problem, _) = generate_matrix_routes(
-        matrix.0,
-        matrix.1,
-        false,
-        |id, location| test_single_with_id_and_location(id, location),
-        |v| v,
-        matrix_modify,
-    );
+fn can_estimate_epsilon_impl(matrix: (usize, usize), nth_neighbor: usize, matrix_modify: MatrixModFn, expected: f64) {
+    let (problem, _) =
+        generate_matrix_routes(matrix.0, matrix.1, false, test_single_with_id_and_location, |v| v, matrix_modify);
 
     assert_eq!((estimate_epsilon(&problem, nth_neighbor) * 1000.).round() / 1000., expected);
 }
@@ -66,7 +57,7 @@ fn can_estimate_epsilon_having_zero_costs_impl(min_points: usize) {
         8,
         1,
         false,
-        |id, location| test_single_with_id_and_location(id, location),
+        test_single_with_id_and_location,
         |v| v,
         |_| {
             let distances = generate_matrix_distances_from_points(&[
@@ -104,7 +95,7 @@ fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>])
         8,
         1,
         false,
-        |id, location| test_single_with_id_and_location(id, location),
+        test_single_with_id_and_location,
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
     );
@@ -115,7 +106,7 @@ fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>])
         .map(|cluster| {
             let mut cluster =
                 cluster.iter().map(|job| job.as_single().unwrap().places[0].location.unwrap()).collect::<Vec<_>>();
-            cluster.sort();
+            cluster.sort_unstable();
             cluster
         })
         .collect::<Vec<_>>();

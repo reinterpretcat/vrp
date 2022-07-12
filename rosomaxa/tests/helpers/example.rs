@@ -6,7 +6,7 @@ use std::sync::Arc;
 /// Creates an example objective.
 pub fn create_example_objective() -> Arc<VectorObjective> {
     let fitness_fn = create_rosenbrock_function();
-    let weight_fn = Arc::new(|data: &[f64]| data.iter().cloned().collect());
+    let weight_fn = Arc::new(|data: &[f64]| data.to_vec());
 
     Arc::new(VectorObjective::new(fitness_fn, weight_fn))
 }

@@ -2,7 +2,7 @@ use super::*;
 use crate::helpers::*;
 
 fn validate_result(ctx: &ValidationContext) -> Option<FormatError> {
-    let result = validate_relations(&ctx);
+    let result = validate_relations(ctx);
 
     result.err().map(|errors| {
         assert_eq!(errors.len(), 1);

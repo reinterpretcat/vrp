@@ -21,6 +21,7 @@ impl Data {
     }
 }
 
+#[derive(Default)]
 pub struct DataStorage {
     pub data: Vec<Data>,
 }
@@ -50,12 +51,6 @@ impl Storage for DataStorage {
 
     fn size(&self) -> usize {
         self.data.len()
-    }
-}
-
-impl Default for DataStorage {
-    fn default() -> Self {
-        Self { data: Default::default() }
     }
 }
 

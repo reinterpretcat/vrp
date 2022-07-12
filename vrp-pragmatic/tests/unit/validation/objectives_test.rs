@@ -190,7 +190,7 @@ fn can_detect_missing_order_objective_impl(objectives: Option<Vec<Vec<Objective>
     };
     let coord_index = CoordIndex::new(&problem);
     let ctx = ValidationContext::new(&problem, None, &coord_index);
-    let objectives = get_objectives(&ctx).unwrap_or_else(Vec::new);
+    let objectives = get_objectives(&ctx).unwrap_or_default();
 
     let result = check_e1606_jobs_with_order_but_no_objective(&ctx, objectives.as_slice());
 
@@ -229,7 +229,7 @@ fn can_detect_missing_value_objective_impl(objectives: Option<Vec<Vec<Objective>
     };
     let coord_index = CoordIndex::new(&problem);
     let ctx = ValidationContext::new(&problem, None, &coord_index);
-    let objectives = get_objectives(&ctx).unwrap_or_else(Vec::new);
+    let objectives = get_objectives(&ctx).unwrap_or_default();
 
     let result = check_e1607_jobs_with_value_but_no_objective(&ctx, objectives.as_slice());
 

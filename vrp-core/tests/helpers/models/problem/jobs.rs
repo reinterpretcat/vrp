@@ -7,6 +7,8 @@ pub const DEFAULT_JOB_DURATION: Duration = 0.0;
 pub const DEFAULT_JOB_TIME_SPAN: TimeSpan = TimeSpan::Window(TimeWindow { start: 0., end: 1000. });
 pub const DEFAULT_ACTIVITY_TIME_WINDOW: TimeWindow = TimeWindow { start: 0., end: 1000. };
 
+pub type TestPlace = (Option<Location>, Duration, Vec<(f64, f64)>);
+
 pub fn test_place_with_location(location: Option<Location>) -> Place {
     Place { location, duration: DEFAULT_JOB_DURATION, times: vec![DEFAULT_JOB_TIME_SPAN] }
 }
@@ -110,7 +112,7 @@ impl SingleBuilder {
         self
     }
 
-    pub fn places(&mut self, places: Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>) -> &mut Self {
+    pub fn places(&mut self, places: Vec<TestPlace>) -> &mut Self {
         self.single.places = places
             .into_iter()
             .map(|p| Place {

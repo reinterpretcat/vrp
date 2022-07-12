@@ -197,7 +197,7 @@ fn create_problem_with_dispatch_5jobs(vehicle_ids: Vec<&str>, dispatch: Option<V
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 vehicle_ids: vehicle_ids.iter().map(|id| id.to_string()).collect(),
-                shifts: vec![VehicleShift { dispatch: dispatch, ..create_default_vehicle_shift() }],
+                shifts: vec![VehicleShift { dispatch, ..create_default_vehicle_shift() }],
                 capacity: vec![1],
                 ..create_default_vehicle_type()
             }],

@@ -19,20 +19,12 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                 shifts: vec![
                     VehicleShift {
                         start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
-                        end: Some(ShiftEnd {
-                            earliest: None,
-                            latest: format_time(99.).to_string(),
-                            location: (0., 0.).to_loc(),
-                        }),
+                        end: Some(ShiftEnd { earliest: None, latest: format_time(99.), location: (0., 0.).to_loc() }),
                         ..create_default_vehicle_shift()
                     },
                     VehicleShift {
                         start: ShiftStart { earliest: format_time(100.), latest: None, location: (0., 0.).to_loc() },
-                        end: Some(ShiftEnd {
-                            earliest: None,
-                            latest: format_time(200.).to_string(),
-                            location: (0., 0.).to_loc(),
-                        }),
+                        end: Some(ShiftEnd { earliest: None, latest: format_time(200.), location: (0., 0.).to_loc() }),
                         ..create_default_vehicle_shift()
                     },
                 ],

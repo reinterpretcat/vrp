@@ -31,7 +31,7 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
         rows,
         cols,
         is_open_vrp,
-        |id, location| test_single_with_id_and_location(id, location),
+        test_single_with_id_and_location,
         |v| v,
         |data| (data.clone(), data),
     )

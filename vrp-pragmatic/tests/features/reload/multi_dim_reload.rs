@@ -17,11 +17,7 @@ fn can_use_multi_dim_capacity() {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
-                    end: Some(ShiftEnd {
-                        earliest: None,
-                        latest: format_time(100.).to_string(),
-                        location: (0., 0.).to_loc(),
-                    }),
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(100.), location: (0., 0.).to_loc() }),
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {

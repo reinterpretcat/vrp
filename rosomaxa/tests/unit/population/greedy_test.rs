@@ -19,7 +19,7 @@ fn can_keep_best_solution() {
     assert_eq!(population.size(), 1);
     assert_eq!(get_best_fitness(&population), 401.);
 
-    population.add(VectorSolution::new(vec![-2., -2.], objective.clone()));
+    population.add(VectorSolution::new(vec![-2., -2.], objective));
     assert_eq!(population.size(), 1);
     assert_eq!(get_best_fitness(&population), 401.);
 }

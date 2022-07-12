@@ -55,5 +55,5 @@ fn can_get_crowding_distance() {
     assert_eq!(1, solutions.len());
     assert_eq!(&c, solutions[0].0);
 
-    assert_eq!(true, f1.next_front().is_empty());
+    assert!(f1.next_front().is_empty());
 }

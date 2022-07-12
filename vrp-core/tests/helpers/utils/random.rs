@@ -34,6 +34,7 @@ impl FakeRandom {
         Self { ints: FakeDistribution::new(ints), reals: FakeDistribution::new(reals) }
     }
 
+    #[allow(clippy::mut_from_ref)]
     unsafe fn const_cast(&self) -> &mut Self {
         let const_ptr = self as *const Self;
         let mut_ptr = const_ptr as *mut Self;

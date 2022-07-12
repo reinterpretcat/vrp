@@ -71,6 +71,7 @@ can_handle_waiting_time_with_parking! {
     ),
 }
 
+#[allow(clippy::type_complexity)]
 fn can_handle_waiting_time_with_parking_impl(
     jobs: Vec<(&str, (f64, f64), Vec<(i32, i32)>)>,
     threshold: (f64, f64),

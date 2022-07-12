@@ -247,8 +247,8 @@ mod interop {
         fn can_get_locations() {
             extern "C" fn success(locations: *const c_char) {
                 let locations = to_string(locations);
-                assert!(locations.starts_with("["));
-                assert!(locations.ends_with("]"));
+                assert!(locations.starts_with('['));
+                assert!(locations.ends_with(']'));
                 assert!(locations.len() > 2);
             }
             extern "C" fn failure(err: *const c_char) {
@@ -274,7 +274,7 @@ mod interop {
             validate_pragmatic(
                 problem.as_ptr() as *const c_char,
                 matrices.as_ptr() as *const *const c_char,
-                0 as *const i32,
+                std::ptr::null::<i32>(),
                 success,
                 failure,
             );
@@ -287,11 +287,11 @@ mod interop {
             }
             extern "C" fn failure(err: *const c_char) {
                 let err = to_string(err);
-                assert!(err.starts_with("["));
+                assert!(err.starts_with('['));
                 assert!(err.contains("code"));
                 assert!(err.contains("cause"));
                 assert!(err.contains("action"));
-                assert!(err.ends_with("]"));
+                assert!(err.ends_with(']'));
             }
 
             let problem = CString::new("").unwrap();
@@ -300,7 +300,7 @@ mod interop {
             validate_pragmatic(
                 problem.as_ptr() as *const c_char,
                 matrices.as_ptr() as *const *const c_char,
-                0 as *const i32,
+                std::ptr::null::<i32>(),
                 success,
                 failure,
             );
@@ -310,8 +310,8 @@ mod interop {
         fn can_solve_problem() {
             extern "C" fn success(solution: *const c_char) {
                 let solution = to_string(solution);
-                assert!(solution.starts_with("{"));
-                assert!(solution.ends_with("}"));
+                assert!(solution.starts_with('{'));
+                assert!(solution.ends_with('}'));
                 assert!(solution.len() > 2);
             }
             extern "C" fn failure(err: *const c_char) {
@@ -325,7 +325,7 @@ mod interop {
             solve_pragmatic(
                 problem.as_ptr() as *const c_char,
                 matrices.as_ptr() as *const *const c_char,
-                0 as *const i32,
+                std::ptr::null::<i32>(),
                 config.as_ptr() as *const c_char,
                 success,
                 failure,

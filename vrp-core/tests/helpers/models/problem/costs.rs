@@ -3,6 +3,7 @@ use crate::models::problem::{ActivityCost, SimpleActivityCost, TransportCost, Tr
 use crate::models::solution::{Activity, Route};
 use std::sync::Arc;
 
+#[derive(Default)]
 pub struct TestTransportCost {}
 
 impl TransportCost for TestTransportCost {
@@ -26,12 +27,6 @@ impl TransportCost for TestTransportCost {
 impl TestTransportCost {
     pub fn new_shared() -> Arc<dyn TransportCost + Sync + Send> {
         Arc::new(Self::default())
-    }
-}
-
-impl Default for TestTransportCost {
-    fn default() -> Self {
-        Self {}
     }
 }
 

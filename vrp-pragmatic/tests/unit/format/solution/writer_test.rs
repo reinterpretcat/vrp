@@ -159,6 +159,7 @@ can_merge_activities_with_commute_in_one_stop! {
     ),
 }
 
+#[allow(clippy::type_complexity)]
 fn can_merge_activities_with_commute_in_one_stop_impl(
     jobs_data: Vec<(usize, Option<(f64, f64)>)>,
     expected: Vec<(usize, Vec<(Option<usize>, Option<(f64, f64)>)>)>,

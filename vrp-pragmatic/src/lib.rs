@@ -14,6 +14,7 @@ mod generator;
 
 #[cfg(test)]
 #[path = "../tests/features/mod.rs"]
+#[allow(clippy::needless_update)]
 mod features;
 
 #[cfg(test)]
