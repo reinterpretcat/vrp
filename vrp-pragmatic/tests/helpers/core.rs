@@ -46,6 +46,10 @@ pub fn test_fleet() -> Fleet {
     )
 }
 
+pub fn test_fleet_with_vehicles(vehicles: Vec<Arc<Vehicle>>) -> Fleet {
+    Fleet::new(vec![Arc::new(test_driver())], vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
+}
+
 pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {
     let actor = fleet.actors.iter().find(|a| a.vehicle.dimens.get_id().unwrap() == vehicle).unwrap().clone();
     let mut tour = Tour::new(&actor);
