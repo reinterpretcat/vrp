@@ -331,7 +331,7 @@ fn create_constraint_pipeline(
         DURATION_LIMIT_CONSTRAINT_CODE,
     )));
 
-    add_capacity_module(&mut constraint, props, activity.clone(), transport.clone());
+    add_capacity_module(&mut constraint, props);
 
     if props.has_breaks {
         constraint.add_module(Arc::new(BreakModule::new(activity.clone(), transport.clone(), BREAK_CONSTRAINT_CODE)));
@@ -364,23 +364,18 @@ fn create_constraint_pipeline(
     constraint
 }
 
-fn add_capacity_module(
-    constraint: &mut ConstraintPipeline,
-    props: &ProblemProperties,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-) {
+fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
     constraint.add_module(if props.has_reloads {
         let threshold = 0.9;
         if props.has_multi_dimen_capacity {
             Arc::new(CapacityConstraintModule::<MultiDimLoad>::new_with_multi_trip(
                 CAPACITY_CONSTRAINT_CODE,
-                Arc::new(ReloadMultiTrip::new(activity, transport, Box::new(move |capacity| *capacity * threshold))),
+                Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| *capacity * threshold))),
             ))
         } else {
             Arc::new(CapacityConstraintModule::<SingleDimLoad>::new_with_multi_trip(
                 CAPACITY_CONSTRAINT_CODE,
-                Arc::new(ReloadMultiTrip::new(activity, transport, Box::new(move |capacity| *capacity * threshold))),
+                Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| *capacity * threshold))),
             ))
         }
     } else if props.has_multi_dimen_capacity {

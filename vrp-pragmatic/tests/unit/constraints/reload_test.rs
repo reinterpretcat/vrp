@@ -1,6 +1,6 @@
 use super::*;
+use crate::helpers::create_single_with_location;
 use crate::helpers::*;
-use crate::helpers::{create_single_with_location, get_costs};
 use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::{MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::*;
@@ -39,8 +39,7 @@ fn reload(reload_id: &str) -> Activity {
 fn can_handle_reload_jobs_with_merge() {
     let create_reload_job = || Job::Single(reload("reload").job.unwrap());
     let create_job = || Job::Single(Arc::new(create_single_with_location(None)));
-    let (transport, activity) = get_costs();
-    let multi_trip = Arc::new(ReloadMultiTrip::new(activity, transport, Box::new(|_| SingleDimLoad::default())));
+    let multi_trip = Arc::new(ReloadMultiTrip::new(Box::new(|_| SingleDimLoad::default())));
     let constraint = CapacityConstraintModule::<SingleDimLoad>::new_with_multi_trip(2, multi_trip);
 
     assert_eq!(constraint.merge(create_reload_job(), create_job()).map(|_| ()), Err(2));
@@ -71,17 +70,40 @@ can_remove_trivial_reloads_when_used_from_capacity_constraint! {
         2, vec!["d1"]
     ),
 
-    case06_keep_static_capacity: (
+    case06_keep_static_delivery: (
         vec![delivery("d1", (1, 0)), delivery("d2", (1, 0)), reload("r1"), delivery("d3", (1, 0))],
         2, vec!["d1", "d2", "r1", "d3"]
     ),
-    case07_keep_static_capacity: (
+    case07_keep_static_delivery: (
         vec![delivery("d1", (2, 0)), reload("r1"), delivery("d2", (1, 0))],
         2, vec!["d1", "r1", "d2"]
     ),
-    case08_keep_static_capacity: (
+    case08_keep_static_delivery: (
         vec![delivery("d1", (2, 0)), reload("r1"), delivery("d2", (2, 0))],
         3, vec!["d1", "r1", "d2"]
+    ),
+
+    case09_remove_static_delivery: (
+        vec![delivery("d1", (2, 0)), reload("r1"), delivery("d2", (1, 0))],
+        3, vec!["d1", "d2"]
+    ),
+    case10_remove_static_delivery: (
+        vec![delivery("d1", (1, 0)),  delivery("d2", (1, 0)), reload("r1"), delivery("d3", (1, 0))],
+        4, vec!["d1", "d2", "d3"]
+    ),
+
+    // TODO remove pickup only
+
+    // TODO keep pickup
+    case1x_keep_static_mixed: (
+        vec![delivery("d1", (2, 0)), pickup("p1", (1, 0)), reload("r1"), delivery("d2", (1, 0))],
+        3, vec!["d1", "p1", "r1", "d2"]
+    ),
+
+    // TODO remove mixed static pickup delivery
+    case1x_remove_static_mixed: (
+        vec![delivery("d1", (2, 0)), reload("r1"), delivery("d2", (1, 0)), pickup("p1", (1, 0))],
+        3, vec!["d1", "d2", "p1"]
     ),
 }
 
@@ -99,20 +121,27 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
         Arc::new(RouteState::default()),
     );
     let mut solution_ctx = SolutionContext { routes: vec![route_ctx], ..create_solution_context_for_fleet(&fleet) };
-    let (transport, activity) = get_costs();
-    let reload = Arc::new(ReloadMultiTrip::<MultiDimLoad>::new(
-        activity,
-        transport,
-        Box::new(move |capacity| *capacity * threshold),
-    ));
-    let constraint = CapacityConstraintModule::new_with_multi_trip(1, reload);
-    constraint.accept_route_state(&mut solution_ctx.routes.get_mut(0).unwrap());
+    let mut pipeline = ConstraintPipeline::default();
+    pipeline.add_module(Arc::new(CapacityConstraintModule::new_with_multi_trip(
+        1,
+        Arc::new(ReloadMultiTrip::<MultiDimLoad>::new(Box::new(move |capacity| *capacity * threshold))),
+    )));
 
-    constraint.accept_solution_state(&mut solution_ctx);
+    pipeline.accept_route_state(&mut solution_ctx.routes.get_mut(0).unwrap());
 
-    assert_eq!(solution_ctx.routes.get(0).unwrap().route.tour
-        .all_activities().filter_map(|activity| activity.job.as_ref())
-        .filter_map(|job| job.dimens.get_id().map(|id|id.as_str()))
-        .collect::<Vec<_>>(), expected);
+    pipeline.accept_solution_state(&mut solution_ctx);
 
+    assert_eq!(
+        solution_ctx
+            .routes
+            .get(0)
+            .unwrap()
+            .route
+            .tour
+            .all_activities()
+            .filter_map(|activity| activity.job.as_ref())
+            .filter_map(|job| job.dimens.get_id().map(|id| id.as_str()))
+            .collect::<Vec<_>>(),
+        expected
+    );
 }

@@ -7,24 +7,18 @@ use std::ops::Deref;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::{RouteContext, SolutionContext};
-use vrp_core::models::common::{CapacityDimension, Demand, DemandDimension, IdDimension, LoadOps, ValueDimension};
-use vrp_core::models::problem::{ActivityCost, Job, Single, TransportCost};
+use vrp_core::models::common::*;
+use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::{Activity, Route};
 
 /// A strategy to use multi trip with reload jobs.
 pub struct ReloadMultiTrip<T: LoadOps> {
-    activity: Arc<dyn ActivityCost + Send + Sync>,
-    transport: Arc<dyn TransportCost + Send + Sync>,
     threshold: Box<dyn Fn(&T) -> T + Send + Sync>,
 }
 
 impl<T: LoadOps> ReloadMultiTrip<T> {
-    pub fn new(
-        activity: Arc<dyn ActivityCost + Send + Sync>,
-        transport: Arc<dyn TransportCost + Send + Sync>,
-        threshold: Box<dyn Fn(&T) -> T + Send + Sync>,
-    ) -> Self {
-        Self { activity, transport, threshold }
+    pub fn new(threshold: Box<dyn Fn(&T) -> T + Send + Sync>) -> Self {
+        Self { threshold }
     }
 }
 
@@ -52,8 +46,7 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
             .tour
             .end()
             .map(|end| {
-                let current: Self::Capacity =
-                    ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_default();
+                let current: T = ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_default();
                 let max_capacity = ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
 
                 current >= self.threshold.deref()(max_capacity)
@@ -62,11 +55,7 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
     }
 
     fn has_reloads(&self, route_ctx: &RouteContext) -> bool {
-        route_ctx
-            .state
-            .get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY)
-            .map(|intervals| intervals.len() > 1)
-            .unwrap_or(false)
+        get_reloads(route_ctx).map(|intervals| intervals.len() > 1).unwrap_or(false)
     }
 
     fn get_reload<'a>(&self, activity: &'a Activity) -> Option<&'a Arc<Single>> {
@@ -106,35 +95,59 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
-        // removes reloads at the start and end of tour
         let mut extra_ignored = Vec::new();
-        ctx.routes.iter_mut().filter(|ctx| self.has_reloads(ctx)).for_each(|rc| {
-            let demands = (0..)
-                .zip(rc.route.tour.all_activities())
-                .filter_map(|(idx, activity)| get_demand::<Self::Capacity>(activity).map(|_| idx))
-                .collect::<Vec<_>>();
+        ctx.routes.iter_mut().filter(|route_ctx| self.has_reloads(route_ctx)).for_each(|route_ctx| {
+            let reloads = get_reloads(route_ctx).cloned().unwrap_or_default();
+            let capacity: T = route_ctx.route.actor.vehicle.dimens.get_capacity().cloned().unwrap_or_default();
 
-            let (start, end) =
-                (demands.first().cloned().unwrap_or(0), demands.last().cloned().unwrap_or(rc.route.tour.total() - 1));
+            let _ = reloads.windows(2).try_for_each(|item| {
+                let ((left_start, left_end), (right_start, right_end)) = match item {
+                    &[left, right] => (left, right),
+                    _ => unreachable!(),
+                };
 
-            (0..)
-                .zip(rc.route.tour.all_activities())
-                .filter_map(|(idx, activity)| self.get_reload(activity).map(|reload| (reload.clone(), idx)))
-                .filter(|(_, idx)| *idx < start || *idx > end)
-                .collect::<Vec<_>>()
-                .into_iter()
-                .rev()
-                .for_each(|(reload, _)| {
-                    let job = Job::Single(reload);
-                    assert!(rc.route_mut().tour.remove(&job));
-                    extra_ignored.push(job);
-                });
+                assert_eq!(left_end + 1, right_start);
 
-            if rc.is_stale() {
-                self.accept_route_state(rc);
-                update_route_schedule(rc, self.activity.as_ref(), self.transport.as_ref());
-            }
+                let can_remove = {
+                    let get_load = |activity_index: usize, state_key: i32| {
+                        let activity = route_ctx.route.tour.get(activity_index).unwrap();
+                        route_ctx
+                            .state
+                            .get_activity_state::<Self::Capacity>(state_key, activity)
+                            .cloned()
+                            .unwrap_or_default()
+                    };
+
+                    let fold_demand = |range: (usize, usize), demand_fn: fn(&Demand<T>) -> T| {
+                        route_ctx.route.tour.activities_slice(range.0, range.1).iter().fold(
+                            T::default(),
+                            |acc, activity| {
+                                get_demand(activity).map(|demand| acc + demand_fn(demand)).unwrap_or_else(|| acc)
+                            },
+                        )
+                    };
+
+                    let left_pickup = fold_demand((left_start, left_end), |demand| demand.pickup.0);
+                    let right_delivery = fold_demand((right_start, right_end), |demand| demand.delivery.0);
+
+                    let reload_save = left_pickup + right_delivery;
+
+                    let new_max_load_left = get_load(left_start, MAX_FUTURE_CAPACITY_KEY) + reload_save;
+                    let new_max_load_right = get_load(right_start, MAX_FUTURE_CAPACITY_KEY) + left_pickup;
+
+                    capacity >= new_max_load_left && capacity >= new_max_load_right
+                };
+
+                if can_remove {
+                    // NOTE: we remove only one reload per tour, state update should be handled externally
+                    extra_ignored.push(route_ctx.route_mut().tour.remove_activity_at(right_start));
+                    Err(())
+                } else {
+                    Ok(())
+                }
+            });
         });
+
         ctx.ignored.extend(extra_ignored.into_iter());
     }
 }
@@ -145,4 +158,8 @@ fn get_demand<T: LoadOps>(activity: &Activity) -> Option<&Demand<T>> {
 
 fn is_reload_single(single: &Single) -> bool {
     single.dimens.get_value::<String>("type").map_or(false, |t| t == "reload")
+}
+
+fn get_reloads(route_ctx: &RouteContext) -> Option<&Vec<(usize, usize)>> {
+    route_ctx.state.get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY)
 }

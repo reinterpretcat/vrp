@@ -5,6 +5,7 @@ mod load_test;
 use crate::models::common::{Dimensions, ValueDimension};
 use crate::models::Problem;
 use std::cmp::Ordering;
+use std::fmt::Debug;
 use std::iter::Sum;
 use std::ops::{Add, Mul, Sub};
 
@@ -13,7 +14,7 @@ const DEMAND_DIMENSION_KEY: &str = "dmd";
 const LOAD_DIMENSION_SIZE: usize = 8;
 
 /// Represents a load type used to represent customer's demand or vehicle's load.
-pub trait Load: Add + Sub + Ord + Copy + Default + Send + Sync {
+pub trait Load: Add + Sub + Ord + Copy + Default + Debug + Send + Sync {
     /// Returns true if it represents an empty load.
     fn is_not_empty(&self) -> bool;
 
