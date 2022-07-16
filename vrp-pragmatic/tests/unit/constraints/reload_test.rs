@@ -147,8 +147,19 @@ can_remove_trivial_reloads_when_used_from_capacity_constraint! {
         2, vec!["p1", "p2", "d1", "d2"]
     ),
 
-    // TODO dynamic & static mixed
+    case23_remove_mixed: (
+        vec![pickup("p1", (0, 1)), pickup("p2", (1, 0)), reload("r1"), delivery("d1", (0, 1))],
+        2, vec!["p1", "p2", "d1"]
+    ),
+    case24_remove_mixed: (
+        vec![delivery("d1", (1, 0)), pickup("p1", (0, 1)), reload("r1"), delivery("d2", (0, 1))],
+        1, vec!["d1", "p1", "d2"]
+    ),
 
+    case25_keep_mixed: (
+        vec![pickup("p1", (1, 0)), pickup("p2", (0, 1)), reload("r1"), delivery("d1", (1, 0)), delivery("d2", (0, 1))],
+        2, vec!["p1", "p2", "r1", "d1", "d2"]
+    ),
 }
 
 fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
@@ -171,7 +182,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
         Arc::new(ReloadMultiTrip::<MultiDimLoad>::new(Box::new(move |capacity| *capacity * threshold))),
     )));
 
-    pipeline.accept_route_state(&mut solution_ctx.routes.get_mut(0).unwrap());
+    pipeline.accept_route_state(solution_ctx.routes.get_mut(0).unwrap());
 
     pipeline.accept_solution_state(&mut solution_ctx);
 
