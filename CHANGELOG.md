@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* Improve obsolete reload removal logic
+
 
 ## [v1.18.2] - 2022-07-12
 
