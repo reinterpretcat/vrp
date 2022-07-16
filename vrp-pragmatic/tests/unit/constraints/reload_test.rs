@@ -92,33 +92,63 @@ can_remove_trivial_reloads_when_used_from_capacity_constraint! {
         4, vec!["d1", "d2", "d3"]
     ),
 
-    case1x_remove_static_pickup: (
+    case11_remove_static_pickup: (
         vec![pickup("p1", (1, 0)), pickup("p2", (1, 0)), reload("r1"), pickup("p3", (1, 0))],
         3, vec!["p1", "p2", "p3"]
     ),
 
-    case1_keep_static_mixed: (
+    case12_keep_static_mixed: (
         vec![ pickup("p1", (1, 0)), delivery("d1", (2, 0)), reload("r1"), delivery("d2", (1, 0))],
         3, vec!["p1", "d1", "r1", "d2"]
     ),
 
-    case1x_keep_static_pickup: (
+    case13_keep_static_pickup: (
         vec![pickup("p1", (1, 0)), pickup("p2", (1, 0)), reload("r1"), pickup("p3", (1, 0))],
         2, vec!["p1", "p2", "r1", "p3"]
     ),
 
-    case1x_remove_static_mixed: (
+    case14_remove_static_mixed: (
         vec![delivery("d1", (2, 0)), reload("r1"), delivery("d2", (1, 0)), pickup("p1", (1, 0))],
         3, vec!["d1", "d2", "p1"]
     ),
-    case1x1_remove_static_mixed: (
+    case15_remove_static_mixed: (
         vec![delivery("d1", (2, 0)), pickup("p1", (1, 0)), reload("r1"), delivery("d2", (1, 0))],
         3, vec!["d1", "p1", "d2"]
     ),
 
-    // TODO dynamic only
+    case16_keep_multiple: (
+        vec![pickup("p1", (2, 0)), reload("r1"), pickup("p2", (1, 0)), delivery("d2", (1, 0)), reload("r2"), delivery("d3", (2, 0))],
+        3, vec!["p1", "r1", "p2", "d2", "r2", "d3"]
+    ),
+
+    case17_remove_multiple: (
+        vec![delivery("d1", (1, 0)), reload("r1"), delivery("d2", (1, 0)), reload("r2"), delivery("d3", (1, 0)), reload("r3")],
+        3, vec!["d1", "d2", "d3"]
+    ),
+    case18_remove_multiple: (
+        vec![delivery("d1", (1, 0)), reload("r1"),  reload("r2"),  reload("r3"), delivery("d2", (1, 0))],
+        2, vec!["d1", "d2"]
+    ),
+    case19_remove_multiple: (
+        vec![delivery("d1", (1, 0)), delivery("d2", (1, 0)), reload("r1"), reload("r2"), delivery("d3", (1, 0))],
+        2, vec!["d1", "d2", "r2", "d3"]
+    ),
+    case20_remove_multiple: (
+        vec![delivery("d1", (1, 0)), delivery("d2", (1, 0)), reload("r1"), reload("r2"), reload("r3"), delivery("d3", (1, 0))],
+        2, vec!["d1", "d2", "r3", "d3"]
+    ),
+    case21_remove_multiple: (
+        vec![delivery("d1", (2, 0)), reload("r1"), pickup("p1", (1, 0)), delivery("d2", (1, 0)), reload("r2"), delivery("d3", (2, 0))],
+        3, vec!["d1", "p1", "d2", "r2", "d3"]
+    ),
+
+    case22_remove_dynamic: (
+        vec![pickup("p1", (0, 1)), pickup("p2", (0, 1)), reload("r1"), delivery("d1", (0, 1)), delivery("d2", (0, 1))],
+        2, vec!["p1", "p2", "d1", "d2"]
+    ),
 
     // TODO dynamic & static mixed
+
 }
 
 fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
