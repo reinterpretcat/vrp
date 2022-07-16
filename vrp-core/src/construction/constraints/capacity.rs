@@ -210,11 +210,11 @@ impl<T: LoadOps> ConstraintModule for CapacityConstraintModule<T> {
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.conditional.accept_solution_state(ctx);
-        self.multi_trip.accept_solution_state(ctx);
-
         ctx.routes.iter_mut().filter(|route_ctx| route_ctx.is_stale()).for_each(|route_ctx| {
             self.recalculate_states(route_ctx);
-        })
+        });
+
+        self.multi_trip.accept_solution_state(ctx);
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
