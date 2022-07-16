@@ -92,19 +92,33 @@ can_remove_trivial_reloads_when_used_from_capacity_constraint! {
         4, vec!["d1", "d2", "d3"]
     ),
 
-    // TODO remove pickup only
-
-    // TODO keep pickup
-    case1x_keep_static_mixed: (
-        vec![delivery("d1", (2, 0)), pickup("p1", (1, 0)), reload("r1"), delivery("d2", (1, 0))],
-        3, vec!["d1", "p1", "r1", "d2"]
+    case1x_remove_static_pickup: (
+        vec![pickup("p1", (1, 0)), pickup("p2", (1, 0)), reload("r1"), pickup("p3", (1, 0))],
+        3, vec!["p1", "p2", "p3"]
     ),
 
-    // TODO remove mixed static pickup delivery
+    case1_keep_static_mixed: (
+        vec![ pickup("p1", (1, 0)), delivery("d1", (2, 0)), reload("r1"), delivery("d2", (1, 0))],
+        3, vec!["p1", "d1", "r1", "d2"]
+    ),
+
+    case1x_keep_static_pickup: (
+        vec![pickup("p1", (1, 0)), pickup("p2", (1, 0)), reload("r1"), pickup("p3", (1, 0))],
+        2, vec!["p1", "p2", "r1", "p3"]
+    ),
+
     case1x_remove_static_mixed: (
         vec![delivery("d1", (2, 0)), reload("r1"), delivery("d2", (1, 0)), pickup("p1", (1, 0))],
         3, vec!["d1", "d2", "p1"]
     ),
+    case1x1_remove_static_mixed: (
+        vec![delivery("d1", (2, 0)), pickup("p1", (1, 0)), reload("r1"), delivery("d2", (1, 0))],
+        3, vec!["d1", "p1", "d2"]
+    ),
+
+    // TODO dynamic only
+
+    // TODO dynamic & static mixed
 }
 
 fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(

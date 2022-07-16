@@ -108,7 +108,7 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
 
                 assert_eq!(left_end + 1, right_start);
 
-                let can_remove = {
+                let is_obsolete_reload = {
                     let get_load = |activity_index: usize, state_key: i32| {
                         let activity = route_ctx.route.tour.get(activity_index).unwrap();
                         route_ctx
@@ -130,15 +130,15 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
                     let left_pickup = fold_demand((left_start, left_end), |demand| demand.pickup.0);
                     let right_delivery = fold_demand((right_start, right_end), |demand| demand.delivery.0);
 
-                    let reload_save = left_pickup + right_delivery;
-
-                    let new_max_load_left = get_load(left_start, MAX_FUTURE_CAPACITY_KEY) + reload_save;
+                    // static delivery moved to left
+                    let new_max_load_left = get_load(left_start, MAX_FUTURE_CAPACITY_KEY) + right_delivery;
+                    // static pickup moved to right
                     let new_max_load_right = get_load(right_start, MAX_FUTURE_CAPACITY_KEY) + left_pickup;
 
                     capacity >= new_max_load_left && capacity >= new_max_load_right
                 };
 
-                if can_remove {
+                if is_obsolete_reload {
                     // NOTE: we remove only one reload per tour, state update should be handled externally
                     extra_ignored.push(route_ctx.route_mut().tour.remove_activity_at(right_start));
                     Err(())
