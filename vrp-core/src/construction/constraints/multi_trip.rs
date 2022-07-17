@@ -18,7 +18,7 @@ pub trait MultiTrip {
     fn is_assignable(&self, route: &Route, job: &Job) -> bool;
 
     /// Checks whether vehicle is full.
-    fn is_vehicle_full(&self, ctx: &RouteContext) -> bool;
+    fn is_reload_needed(&self, route_ctx: &RouteContext) -> bool;
 
     /// Returns true if route context has reloads.
     fn has_reloads(&self, route_ctx: &RouteContext) -> bool;
@@ -59,7 +59,7 @@ pub trait MultiTrip {
                 }
                 _ => {}
             });
-        } else if self.is_vehicle_full(route_ctx) {
+        } else if self.is_reload_needed(route_ctx) {
             // move all reloads for this shift to required
             let jobs = self
                 .get_all_reloads(&route_ctx.route, &solution_ctx.ignored)
@@ -101,7 +101,7 @@ impl<T> MultiTrip for NoMultiTrip<T> {
         false
     }
 
-    fn is_vehicle_full(&self, _: &RouteContext) -> bool {
+    fn is_reload_needed(&self, _: &RouteContext) -> bool {
         false
     }
 

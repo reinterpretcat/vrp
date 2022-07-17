@@ -41,13 +41,15 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
         }
     }
 
-    fn is_vehicle_full(&self, ctx: &RouteContext) -> bool {
-        ctx.route
+    fn is_reload_needed(&self, route_ctx: &RouteContext) -> bool {
+        route_ctx
+            .route
             .tour
             .end()
             .map(|end| {
-                let current: T = ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_default();
-                let max_capacity = ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
+                let current: T =
+                    route_ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_default();
+                let max_capacity = route_ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
 
                 current >= self.threshold.deref()(max_capacity)
             })
