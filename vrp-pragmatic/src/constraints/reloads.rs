@@ -4,12 +4,11 @@ mod reload_test;
 
 use crate::constraints::*;
 use std::ops::Deref;
-use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::{RouteContext, SolutionContext};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, Single};
-use vrp_core::models::solution::{Activity, Route};
+use vrp_core::models::solution::Route;
 
 /// A strategy to use multi trip with reload jobs.
 pub struct ReloadMultiTrip<T: LoadOps> {
@@ -25,12 +24,12 @@ impl<T: LoadOps> ReloadMultiTrip<T> {
 impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
     type Capacity = T;
 
-    fn is_reload_job(&self, job: &Job) -> bool {
+    fn is_marker_job(&self, job: &Job) -> bool {
         job.as_single().map_or(false, |single| is_reload_single(single))
     }
 
     fn is_assignable(&self, route: &Route, job: &Job) -> bool {
-        if self.is_reload_job(job) {
+        if self.is_marker_job(job) {
             let job = job.to_single();
             let vehicle_id = get_vehicle_id_from_job(job).unwrap();
             let shift_index = get_shift_index(&job.dimens);
@@ -41,7 +40,7 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
         }
     }
 
-    fn is_reload_needed(&self, route_ctx: &RouteContext) -> bool {
+    fn is_multi_trip_needed(&self, route_ctx: &RouteContext) -> bool {
         route_ctx
             .route
             .tour
@@ -56,15 +55,11 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
             .unwrap_or(false)
     }
 
-    fn has_reloads(&self, route_ctx: &RouteContext) -> bool {
-        get_reloads(route_ctx).map(|intervals| intervals.len() > 1).unwrap_or(false)
+    fn get_state_code(&self) -> Option<i32> {
+        Some(RELOAD_INTERVALS_KEY)
     }
 
-    fn get_reload<'a>(&self, activity: &'a Activity) -> Option<&'a Arc<Single>> {
-        as_single_job(activity, |job| is_reload_single(job))
-    }
-
-    fn get_all_reloads<'a>(
+    fn filter_markers<'a>(
         &'a self,
         route: &'a Route,
         jobs: &'a [Job],
@@ -86,20 +81,10 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
         )
     }
 
-    fn get_reload_intervals(&self, route_ctx: &RouteContext) -> Option<Vec<(usize, usize)>> {
-        route_ctx.state.get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY).cloned()
-    }
-
-    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
-        let (route, state) = route_ctx.as_mut();
-        let intervals = route_intervals(route, |a| self.get_reload(a).is_some());
-        state.put_route_state(RELOAD_INTERVALS_KEY, intervals);
-    }
-
-    fn accept_solution_state(&self, ctx: &mut SolutionContext) {
+    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         let mut extra_ignored = Vec::new();
-        ctx.routes.iter_mut().filter(|route_ctx| self.has_reloads(route_ctx)).for_each(|route_ctx| {
-            let reloads = get_reloads(route_ctx).cloned().unwrap_or_default();
+        solution_ctx.routes.iter_mut().filter(|route_ctx| self.has_markers(route_ctx)).for_each(|route_ctx| {
+            let reloads = self.get_marker_intervals(route_ctx).cloned().unwrap_or_default();
             let capacity: T = route_ctx.route.actor.vehicle.dimens.get_capacity().cloned().unwrap_or_default();
 
             let _ = reloads.windows(2).try_for_each(|item| {
@@ -124,7 +109,12 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
                         route_ctx.route.tour.activities_slice(range.0, range.1).iter().fold(
                             T::default(),
                             |acc, activity| {
-                                get_demand(activity).map(|demand| acc + demand_fn(demand)).unwrap_or_else(|| acc)
+                                activity
+                                    .job
+                                    .as_ref()
+                                    .and_then(|job| job.dimens.get_demand())
+                                    .map(|demand| acc + demand_fn(demand))
+                                    .unwrap_or_else(|| acc)
                             },
                         )
                     };
@@ -150,18 +140,10 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
             });
         });
 
-        ctx.ignored.extend(extra_ignored.into_iter());
+        solution_ctx.ignored.extend(extra_ignored.into_iter());
     }
-}
-
-fn get_demand<T: LoadOps>(activity: &Activity) -> Option<&Demand<T>> {
-    activity.job.as_ref().and_then(|job| job.dimens.get_demand())
 }
 
 fn is_reload_single(single: &Single) -> bool {
     single.dimens.get_value::<String>("type").map_or(false, |t| t == "reload")
-}
-
-fn get_reloads(route_ctx: &RouteContext) -> Option<&Vec<(usize, usize)>> {
-    route_ctx.state.get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY)
 }

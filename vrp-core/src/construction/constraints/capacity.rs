@@ -34,13 +34,13 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
             conditional: ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {
                 remove_required: {
                     let multi_trip = multi_trip.clone();
-                    move |_, _, job| multi_trip.is_reload_job(job)
+                    move |_, _, job| multi_trip.is_marker_job(job)
                 },
                 promote_required: |_, _, _| false,
                 remove_locked: |_, _, _| false,
                 promote_locked: {
                     let multi_trip = multi_trip.clone();
-                    move |_, _, job| multi_trip.is_reload_job(job)
+                    move |_, _, job| multi_trip.is_marker_job(job)
                 },
             })),
             constraints: vec![
@@ -62,7 +62,8 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
         self.multi_trip.accept_route_state(route_ctx);
         let reload_intervals = self
             .multi_trip
-            .get_reload_intervals(route_ctx)
+            .get_marker_intervals(route_ctx)
+            .cloned()
             .unwrap_or_else(|| vec![(0, route_ctx.route.tour.total() - 1)]);
 
         let (_, max_load) =
@@ -178,7 +179,7 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
         };
 
         multi_trip
-            .get_reload_intervals(ctx)
+            .get_marker_intervals(ctx)
             .map(|intervals| {
                 if let Some(insert_idx) = insert_idx {
                     intervals.iter().filter(|(_, end_idx)| insert_idx <= *end_idx).all(|interval| {
@@ -218,7 +219,7 @@ impl<T: LoadOps> ConstraintModule for CapacityConstraintModule<T> {
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
-        if once(&source).chain(once(&candidate)).any(|job| self.multi_trip.is_reload_job(job)) {
+        if once(&source).chain(once(&candidate)).any(|job| self.multi_trip.is_marker_job(job)) {
             return Err(self.code);
         }
 
@@ -260,7 +261,7 @@ struct CapacitySoftRouteConstraint<T: LoadOps> {
 
 impl<T: LoadOps> SoftRouteConstraint for CapacitySoftRouteConstraint<T> {
     fn estimate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> f64 {
-        if self.multi_trip.is_reload_job(job) {
+        if self.multi_trip.is_marker_job(job) {
             0. - ctx.route.actor.vehicle.costs.fixed.max(1000.)
         } else {
             0.
@@ -276,7 +277,7 @@ struct CapacityHardRouteConstraint<T: LoadOps> {
 
 impl<T: LoadOps> HardRouteConstraint for CapacityHardRouteConstraint<T> {
     fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
-        if self.multi_trip.is_reload_job(job) {
+        if self.multi_trip.is_marker_job(job) {
             return if self.multi_trip.is_assignable(&ctx.route, job) {
                 None
             } else {
@@ -320,7 +321,12 @@ impl<T: LoadOps> HardActivityConstraint for CapacityHardActivityConstraint<T> {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        if self.multi_trip.get_reload(activity_ctx.target).is_some() {
+        if activity_ctx
+            .target
+            .job
+            .as_ref()
+            .map_or(false, |job| self.multi_trip.is_marker_job(&Job::Single(job.clone())))
+        {
             // NOTE insert reload job in route only as last
             let is_first = activity_ctx.prev.job.is_none();
             let is_not_last = activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some();
@@ -352,7 +358,7 @@ impl<T: LoadOps> HardActivityConstraint for CapacityHardActivityConstraint<T> {
                 activity_ctx.prev,
                 route_ctx.route.actor.vehicle.dimens.get_capacity(),
                 demand,
-                !self.multi_trip.has_reloads(route_ctx),
+                !self.multi_trip.has_markers(route_ctx),
             )
         };
 
