@@ -123,7 +123,7 @@ impl TransportConstraintModule {
         }
     }
 
-    pub(crate) fn update_route_schedules(
+    fn update_route_schedules(
         route_ctx: &mut RouteContext,
         activity: &(dyn ActivityCost + Send + Sync),
         transport: &(dyn TransportCost + Send + Sync),
@@ -143,7 +143,7 @@ impl TransportConstraintModule {
         });
     }
 
-    pub(crate) fn update_route_states(
+    fn update_route_states(
         route_ctx: &mut RouteContext,
         activity: &(dyn ActivityCost + Send + Sync),
         transport: &(dyn TransportCost + Send + Sync),
@@ -182,7 +182,7 @@ impl TransportConstraintModule {
         });
     }
 
-    pub(crate) fn update_statistics(route_ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
+    fn update_statistics(route_ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
         let route = route_ctx.route.as_ref();
         let start = route.tour.start().unwrap();
         let end = route.tour.end().unwrap();

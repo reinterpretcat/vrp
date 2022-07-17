@@ -1,14 +1,8 @@
-use crate::core::models::common::{Distance, Duration};
-use crate::core::models::problem::TravelTime;
-use crate::core::models::solution::Route;
 use crate::format::problem::Objective::{MinimizeCost, MinimizeUnassignedJobs};
 use crate::format::problem::*;
 use crate::format::{CoordIndex, Location};
 use crate::format_time;
 use crate::helpers::ToLocation;
-use std::sync::Arc;
-use vrp_core::models::common::Profile as CoreProfile;
-use vrp_core::models::problem::{ActivityCost, SimpleActivityCost, TransportCost};
 
 pub fn create_job_place(location: (f64, f64), tag: Option<String>) -> JobPlace {
     JobPlace { times: None, location: location.to_loc(), duration: 1., tag }
@@ -270,30 +264,6 @@ pub fn create_empty_plan() -> Plan {
 
 pub fn create_empty_problem() -> Problem {
     Problem { plan: create_empty_plan(), fleet: Fleet { vehicles: vec![], profiles: vec![] }, objectives: None }
-}
-
-pub fn get_costs() -> (Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>) {
-    struct ExampleTransportCost {}
-
-    impl TransportCost for ExampleTransportCost {
-        fn duration_approx(&self, _: &CoreProfile, _: usize, _: usize) -> Duration {
-            42.
-        }
-
-        fn distance_approx(&self, _: &CoreProfile, _: usize, _: usize) -> Distance {
-            42.
-        }
-
-        fn duration(&self, _: &Route, _: usize, _: usize, _: TravelTime) -> Duration {
-            42.
-        }
-
-        fn distance(&self, _: &Route, _: usize, _: usize, _: TravelTime) -> Distance {
-            42.
-        }
-    }
-
-    (Arc::new(ExampleTransportCost {}), Arc::new(SimpleActivityCost::default()))
 }
 
 pub fn create_matrix(data: Vec<i64>) -> Matrix {

@@ -334,7 +334,7 @@ fn create_constraint_pipeline(
     add_capacity_module(&mut constraint, props);
 
     if props.has_breaks {
-        constraint.add_module(Arc::new(BreakModule::new(activity.clone(), transport.clone(), BREAK_CONSTRAINT_CODE)));
+        constraint.add_module(Arc::new(BreakModule::new(BREAK_CONSTRAINT_CODE)));
     }
 
     if props.has_compatibility {
