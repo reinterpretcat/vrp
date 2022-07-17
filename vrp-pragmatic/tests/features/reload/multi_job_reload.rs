@@ -43,7 +43,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+    let solution = solve_with_metaheuristic_and_iterations(problem, Some(vec![matrix]), 1000);
 
     assert_eq!(
         solution,
