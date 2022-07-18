@@ -5,7 +5,7 @@ mod transport_test;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::common::{Cost, Distance, Duration, Timestamp};
-use crate::models::problem::{ActivityCost, Actor, Job, Single, TransportCost, TravelTime};
+use crate::models::problem::{ActivityCost, Job, Single, TransportCost, TravelLimits, TravelTime};
 use crate::models::solution::{Activity, Route};
 use crate::models::OP_START_MSG;
 use rosomaxa::prelude::compare_floats;
@@ -15,9 +15,6 @@ use std::sync::Arc;
 
 // TODO revise rescheduling once routing is sensible to departure time
 
-/// A function which returns travel limits for given actor.
-pub type TravelLimitFunc = Arc<dyn Fn(&Actor) -> (Option<Distance>, Option<Duration>) + Send + Sync>;
-
 /// A module which checks whether vehicle can serve activity taking into account their time windows
 /// and traveling constraints. Also it is responsible for transport cost calculations.
 pub struct TransportConstraintModule {
@@ -25,7 +22,6 @@ pub struct TransportConstraintModule {
     constraints: Vec<ConstraintVariant>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
-    limit_func: TravelLimitFunc,
 }
 
 impl ConstraintModule for TransportConstraintModule {
@@ -42,14 +38,8 @@ impl ConstraintModule for TransportConstraintModule {
         Self::update_route_states(ctx, activity, transport);
         // NOTE Rescheduling during the insertion process makes sense only if the traveling limit
         // is set (for duration limit, not for distance).
-        match (self.limit_func)(&ctx.route.actor) {
-            (None, None) => {}
-            (_, limit_duration) => {
-                Self::advance_departure_time(ctx, activity, transport, false);
-                if let Some(limit_duration) = limit_duration {
-                    ctx.state_mut().put_route_state(LIMIT_DURATION_KEY, limit_duration);
-                }
-            }
+        if transport.limits().get_global_duration(&ctx.route.actor).is_some() {
+            Self::advance_departure_time(ctx, activity, transport, false);
         }
 
         Self::update_statistics(ctx, transport);
@@ -85,19 +75,12 @@ impl TransportConstraintModule {
     pub fn new(
         transport: Arc<dyn TransportCost + Send + Sync>,
         activity: Arc<dyn ActivityCost + Send + Sync>,
-        limit_func: TravelLimitFunc,
         time_window_code: i32,
         distance_code: i32,
         duration_code: i32,
     ) -> Self {
         Self {
-            state_keys: vec![
-                LATEST_ARRIVAL_KEY,
-                WAITING_KEY,
-                TOTAL_DISTANCE_KEY,
-                TOTAL_DURATION_KEY,
-                LIMIT_DURATION_KEY,
-            ],
+            state_keys: vec![LATEST_ARRIVAL_KEY, WAITING_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY],
             constraints: vec![
                 ConstraintVariant::HardRoute(Arc::new(TimeHardRouteConstraint { code: time_window_code })),
                 ConstraintVariant::SoftRoute(Arc::new(RouteCostSoftRouteConstraint {})),
@@ -107,7 +90,6 @@ impl TransportConstraintModule {
                     transport: transport.clone(),
                 })),
                 ConstraintVariant::HardActivity(Arc::new(TravelHardActivityConstraint {
-                    limit_func: limit_func.clone(),
                     distance_code,
                     duration_code,
                     transport: transport.clone(),
@@ -119,7 +101,6 @@ impl TransportConstraintModule {
             ],
             activity,
             transport,
-            limit_func,
         }
     }
 
@@ -217,7 +198,7 @@ impl TransportConstraintModule {
         activity: &(dyn ActivityCost + Send + Sync),
         transport: &(dyn TransportCost + Send + Sync),
     ) {
-        let new_departure_time = try_recede_departure_time(route_ctx);
+        let new_departure_time = try_recede_departure_time(route_ctx, transport.limits());
         Self::try_update_route_departure(route_ctx, activity, transport, new_departure_time);
     }
 
@@ -364,7 +345,6 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
 
 /// A hard activity constraint which allows to limit actor's traveling distance and time.
 struct TravelHardActivityConstraint {
-    limit_func: TravelLimitFunc,
     distance_code: i32,
     duration_code: i32,
     transport: Arc<dyn TransportCost + Send + Sync>,
@@ -376,24 +356,30 @@ impl HardActivityConstraint for TravelHardActivityConstraint {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        let limit = (self.limit_func)(&route_ctx.route.actor);
-        if limit.0.is_some() || limit.1.is_some() {
+        let distance_limit = self.transport.limits().get_global_distance(&route_ctx.route.actor);
+        let duration_limit = self.transport.limits().get_global_duration(&route_ctx.route.actor);
+
+        if distance_limit.is_some() || duration_limit.is_some() {
             let (change_distance, change_duration) = self.calculate_travel(route_ctx.route.as_ref(), activity_ctx);
 
-            let curr_dis = route_ctx.state.get_route_state(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
-            let curr_dur = route_ctx.state.get_route_state(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
-
-            let total_distance = curr_dis + change_distance;
-            let total_duration = curr_dur + change_duration;
-
-            match limit {
-                (Some(max_distance), _) if max_distance < total_distance => stop(self.distance_code),
-                (_, Some(max_duration)) if max_duration < total_duration => stop(self.duration_code),
-                _ => None,
+            if let Some(distance_limit) = distance_limit {
+                let curr_dis = route_ctx.state.get_route_state(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
+                let total_distance = curr_dis + change_distance;
+                if distance_limit < total_distance {
+                    return stop(self.distance_code);
+                }
             }
-        } else {
-            None
+
+            if let Some(duration_limit) = duration_limit {
+                let curr_dur = route_ctx.state.get_route_state(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
+                let total_duration = curr_dur + change_duration;
+                if duration_limit < total_duration {
+                    return stop(self.duration_code);
+                }
+            }
         }
+
+        None
     }
 }
 
@@ -567,7 +553,10 @@ fn try_advance_departure_time(
     }
 }
 
-fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
+fn try_recede_departure_time(
+    route_ctx: &RouteContext,
+    travel_limits: &(dyn TravelLimits + Send + Sync),
+) -> Option<Timestamp> {
     let first = route_ctx.route.tour.get(1)?;
     let start = route_ctx.route.tour.start()?;
 
@@ -581,8 +570,8 @@ fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
     let max_change = route_ctx
         .state
         .get_route_state::<f64>(TOTAL_DURATION_KEY)
-        .zip(route_ctx.state.get_route_state::<f64>(LIMIT_DURATION_KEY))
-        .map(|(&total, &limit)| (limit - total).min(max_change))
+        .zip(travel_limits.get_global_duration(route_ctx.route.actor.as_ref()))
+        .map(|(&total, limit)| (limit - total).min(max_change))
         .unwrap_or(max_change);
 
     match compare_floats(max_change, 0.) {

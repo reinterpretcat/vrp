@@ -185,6 +185,15 @@ impl ActivityCost for DynamicActivityCost {
     }
 }
 
+/// Specifies travel limits.
+pub trait TravelLimits {
+    /// Gets global duration limit for given actor.
+    fn get_global_duration(&self, actor: &Actor) -> Option<Duration>;
+
+    /// Gets global distance limit for given actor.
+    fn get_global_distance(&self, actor: &Actor) -> Option<Distance>;
+}
+
 /// Provides the way to get routing information for specific locations and actor.
 pub trait TransportCost {
     /// Returns time-dependent transport cost between two locations for given actor.
@@ -209,6 +218,9 @@ pub trait TransportCost {
 
     /// Returns time-dependent travel distance between locations specific for given actor.
     fn distance(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Distance;
+
+    /// Return travel limits.
+    fn limits(&self) -> &(dyn TravelLimits + Send + Sync);
 }
 
 /// Provides way to calculate transport costs which might contain reserved time.
@@ -251,6 +263,10 @@ impl TransportCost for DynamicTransportCost {
     fn distance(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Distance {
         self.inner.distance(route, from, to, travel_time)
     }
+
+    fn limits(&self) -> &(dyn TravelLimits + Send + Sync) {
+        self.inner.limits()
+    }
 }
 
 /// Contains matrix routing data for specific profile and, optionally, time.
@@ -273,7 +289,10 @@ impl MatrixData {
 }
 
 /// Creates time agnostic or time aware routing costs based on matrix data passed.
-pub fn create_matrix_transport_cost(costs: Vec<MatrixData>) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+pub fn create_matrix_transport_cost(
+    costs: Vec<MatrixData>,
+    travel_limits: Arc<dyn TravelLimits + Send + Sync>,
+) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
     if costs.is_empty() {
         return Err("no matrix data found".to_string());
     }
@@ -293,9 +312,9 @@ pub fn create_matrix_transport_cost(costs: Vec<MatrixData>) -> Result<Arc<dyn Tr
     }
 
     Ok(if costs.iter().any(|costs| costs.timestamp.is_some()) {
-        Arc::new(TimeAwareMatrixTransportCost::new(costs, size)?)
+        Arc::new(TimeAwareMatrixTransportCost::new(costs, size, travel_limits)?)
     } else {
-        Arc::new(TimeAgnosticMatrixTransportCost::new(costs, size)?)
+        Arc::new(TimeAgnosticMatrixTransportCost::new(costs, size, travel_limits)?)
     })
 }
 
@@ -304,11 +323,16 @@ struct TimeAgnosticMatrixTransportCost {
     durations: Vec<Vec<Duration>>,
     distances: Vec<Vec<Distance>>,
     size: usize,
+    travel_limits: Arc<dyn TravelLimits + Send + Sync>,
 }
 
 impl TimeAgnosticMatrixTransportCost {
     /// Creates an instance of `TimeAgnosticMatrixTransportCost`.
-    pub fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, String> {
+    pub fn new(
+        costs: Vec<MatrixData>,
+        size: usize,
+        travel_limits: Arc<dyn TravelLimits + Send + Sync>,
+    ) -> Result<Self, String> {
         let mut costs = costs;
         costs.sort_by(|a, b| a.index.cmp(&b.index));
 
@@ -327,7 +351,7 @@ impl TimeAgnosticMatrixTransportCost {
             acc
         });
 
-        Ok(Self { durations, distances, size })
+        Ok(Self { durations, distances, size, travel_limits })
     }
 }
 
@@ -347,17 +371,26 @@ impl TransportCost for TimeAgnosticMatrixTransportCost {
     fn distance(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         self.distance_approx(&route.actor.vehicle.profile, from, to)
     }
+
+    fn limits(&self) -> &(dyn TravelLimits + Send + Sync) {
+        self.travel_limits.as_ref()
+    }
 }
 
 /// A time aware matrix costs.
 struct TimeAwareMatrixTransportCost {
     costs: HashMap<usize, (Vec<u64>, Vec<MatrixData>)>,
     size: usize,
+    travel_limits: Arc<dyn TravelLimits + Send + Sync>,
 }
 
 impl TimeAwareMatrixTransportCost {
     /// Creates an instance of `TimeAwareMatrixTransportCost`.
-    fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, String> {
+    fn new(
+        costs: Vec<MatrixData>,
+        size: usize,
+        travel_limits: Arc<dyn TravelLimits + Send + Sync>,
+    ) -> Result<Self, String> {
         if costs.iter().any(|matrix| matrix.timestamp.is_none()) {
             return Err("time-aware routing requires all matrices to have timestamp".to_string());
         }
@@ -378,7 +411,7 @@ impl TimeAwareMatrixTransportCost {
             })
             .collect();
 
-        Ok(Self { costs, size })
+        Ok(Self { costs, size, travel_limits })
     }
 
     fn interpolate_duration(
@@ -460,6 +493,10 @@ impl TransportCost for TimeAwareMatrixTransportCost {
 
     fn distance(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Distance {
         self.interpolate_distance(&route.actor.vehicle.profile, from, to, travel_time)
+    }
+
+    fn limits(&self) -> &(dyn TravelLimits + Send + Sync) {
+        self.travel_limits.as_ref()
     }
 }
 

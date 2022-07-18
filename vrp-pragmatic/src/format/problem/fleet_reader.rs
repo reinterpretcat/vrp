@@ -9,7 +9,7 @@ use crate::format::problem::Matrix;
 use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
-use vrp_core::construction::constraints::TravelLimitFunc;
+use vrp_core::construction::constraints::extensions::{NoTravelLimits, SimpleTravelLimits};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 
@@ -43,6 +43,8 @@ pub(crate) fn create_transport_costs(
             matrices.len()
         ));
     }
+
+    let travel_limits = read_travel_limits(api_problem);
 
     let matrix_data = matrices
         .iter()
@@ -83,7 +85,7 @@ pub(crate) fn create_transport_costs(
         return Err("amount of fleet profiles does not match matrix profiles".to_string());
     }
 
-    create_matrix_transport_cost(matrix_data)
+    create_matrix_transport_cost(matrix_data, travel_limits)
 }
 
 pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> Fleet {
@@ -202,26 +204,35 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
     Fleet::new(drivers, vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
 }
 
-pub fn read_travel_limits(api_problem: &ApiProblem) -> Option<TravelLimitFunc> {
-    let limits = api_problem.fleet.vehicles.iter().filter(|vehicle| vehicle.limits.is_some()).fold(
-        HashMap::new(),
-        |mut acc, vehicle| {
-            let limits = vehicle.limits.as_ref().unwrap().clone();
-            acc.insert(vehicle.type_id.clone(), (limits.max_distance, limits.shift_time));
-            acc
-        },
-    );
+fn read_travel_limits(api_problem: &ApiProblem) -> Arc<dyn TravelLimits + Send + Sync> {
+    let (duration, distance) = api_problem
+        .fleet
+        .vehicles
+        .iter()
+        .filter_map(|vehicle| vehicle.limits.as_ref().map(|limits| (vehicle, limits)))
+        .fold((HashMap::new(), HashMap::new()), |(mut duration, mut distance), (vehicle, limits)| {
+            limits.max_distance.iter().for_each(|max_distance| {
+                distance.insert(vehicle.type_id.clone(), *max_distance);
+            });
 
-    if limits.is_empty() {
-        None
+            limits.shift_time.iter().for_each(|shift_time| {
+                duration.insert(vehicle.type_id.clone(), *shift_time);
+            });
+
+            (duration, distance)
+        });
+
+    if duration.is_empty() && distance.is_empty() {
+        Arc::new(NoTravelLimits::default())
     } else {
-        Some(Arc::new(move |actor: &Actor| {
-            if let Some(limits) = limits.get(actor.vehicle.dimens.get_value::<String>("type_id").unwrap()) {
-                (limits.0, limits.1)
-            } else {
-                (None, None)
-            }
-        }))
+        Arc::new(SimpleTravelLimits::new(
+            Arc::new(move |actor: &Actor| {
+                distance.get(actor.vehicle.dimens.get_value::<String>("type_id").unwrap()).cloned()
+            }),
+            Arc::new(move |actor: &Actor| {
+                duration.get(actor.vehicle.dimens.get_value::<String>("type_id").unwrap()).cloned()
+            }),
+        ))
     }
 }
 

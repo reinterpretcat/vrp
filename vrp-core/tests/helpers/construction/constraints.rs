@@ -41,7 +41,6 @@ pub fn create_constraint_pipeline_with_transport() -> ConstraintPipeline {
     create_constraint_pipeline_with_module(Arc::new(TransportConstraintModule::new(
         TestTransportCost::new_shared(),
         TestActivityCost::new_shared(),
-        Arc::new(|_| (None, None)),
         1,
         2,
         3,

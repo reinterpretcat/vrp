@@ -15,7 +15,7 @@ mod objective_reader;
 mod clustering_reader;
 
 use self::clustering_reader::create_cluster_config;
-use self::fleet_reader::{create_transport_costs, read_fleet, read_travel_limits};
+use self::fleet_reader::{create_transport_costs, read_fleet};
 use self::job_reader::{read_jobs_with_extra_locks, read_locks};
 use self::objective_reader::create_objective;
 use crate::constraints::*;
@@ -228,9 +228,8 @@ fn map_to_problem(
         &random,
     );
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect::<Vec<_>>();
-    let limits = read_travel_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
     let mut constraint =
-        create_constraint_pipeline(&jobs, &fleet, transport.clone(), activity.clone(), &problem_props, &locks, limits);
+        create_constraint_pipeline(&jobs, &fleet, transport.clone(), activity.clone(), &problem_props, &locks);
 
     let objective = create_objective(&api_problem, &mut constraint, &problem_props);
     let constraint = Arc::new(constraint);
@@ -314,7 +313,6 @@ fn create_constraint_pipeline(
     activity: Arc<dyn ActivityCost + Send + Sync>,
     props: &ProblemProperties,
     locks: &[Arc<Lock>],
-    limits: TravelLimitFunc,
 ) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
 
@@ -325,7 +323,6 @@ fn create_constraint_pipeline(
     constraint.add_module(Arc::new(TransportConstraintModule::new(
         transport.clone(),
         activity.clone(),
-        limits,
         TIME_CONSTRAINT_CODE,
         DISTANCE_LIMIT_CONSTRAINT_CODE,
         DURATION_LIMIT_CONSTRAINT_CODE,

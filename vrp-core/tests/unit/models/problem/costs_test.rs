@@ -1,4 +1,5 @@
 use super::*;
+use crate::construction::constraints::extensions::NoTravelLimits;
 use crate::helpers::models::solution::{create_empty_route_ctx, test_actor_with_profile};
 
 fn create_matrix_data(
@@ -15,13 +16,20 @@ fn create_matrix_data(
     }
 }
 
+fn create_no_limits() -> Arc<dyn TravelLimits + Send + Sync> {
+    Arc::new(NoTravelLimits::default())
+}
+
 #[test]
 fn can_detect_dimensions_mismatch() {
     assert_eq!(
-        create_matrix_transport_cost(vec![
-            create_matrix_data(Profile::default(), Some(0.), (0., 2), (0., 2)),
-            create_matrix_data(Profile::default(), Some(1.), (0., 1), (0., 2)),
-        ])
+        create_matrix_transport_cost(
+            vec![
+                create_matrix_data(Profile::default(), Some(0.), (0., 2), (0., 2)),
+                create_matrix_data(Profile::default(), Some(1.), (0., 1), (0., 2)),
+            ],
+            create_no_limits()
+        )
         .err(),
         Some("distance and duration collections have different length".to_string())
     );
@@ -33,8 +41,12 @@ fn can_return_error_when_mixing_timestamps() {
     let p1 = Profile::new(1, None);
 
     assert_eq!(
-        TimeAwareMatrixTransportCost::new(vec![create_matrix_data(Profile::default(), None, (0., 1), (0., 1))], 1)
-            .err(),
+        TimeAwareMatrixTransportCost::new(
+            vec![create_matrix_data(Profile::default(), None, (0., 1), (0., 1))],
+            1,
+            create_no_limits()
+        )
+        .err(),
         Some("time-aware routing requires all matrices to have timestamp".to_string())
     );
 
@@ -45,13 +57,19 @@ fn can_return_error_when_mixing_timestamps() {
                 create_matrix_data(p0.clone(), None, (0., 1), (0., 1))
             ],
             1,
+            create_no_limits()
         )
         .err(),
         Some("time-aware routing requires all matrices to have timestamp".to_string())
     );
 
     assert_eq!(
-        TimeAwareMatrixTransportCost::new(vec![create_matrix_data(p0.clone(), Some(0.), (0., 1), (0., 1))], 1).err(),
+        TimeAwareMatrixTransportCost::new(
+            vec![create_matrix_data(p0.clone(), Some(0.), (0., 1), (0., 1))],
+            1,
+            create_no_limits()
+        )
+        .err(),
         Some("should not use time aware matrix routing with single matrix".to_string())
     );
 
@@ -63,6 +81,7 @@ fn can_return_error_when_mixing_timestamps() {
                 create_matrix_data(p1, Some(0.), (1., 1), (1., 1)),         //
             ],
             1,
+            create_no_limits()
         )
         .err(),
         Some("should not use time aware matrix routing with single matrix".to_string())
@@ -84,6 +103,7 @@ fn can_interpolate_durations() {
             create_matrix_data(p1.clone(), Some(10.), (400., 2), (5., 2)),
         ],
         2,
+        create_no_limits(),
     )
     .unwrap();
 

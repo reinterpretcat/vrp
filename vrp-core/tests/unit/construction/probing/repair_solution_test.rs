@@ -80,14 +80,7 @@ fn create_test_problem(
         .collect::<Vec<_>>();
 
     let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Arc::new(TransportConstraintModule::new(
-        transport.clone(),
-        activity.clone(),
-        Arc::new(|_| (None, None)),
-        1,
-        2,
-        3,
-    )));
+    constraint.add_module(Arc::new(TransportConstraintModule::new(transport.clone(), activity.clone(), 1, 2, 3)));
     constraint.add_module(Arc::new(StrictLockingModule::new(&fleet, locks.as_slice(), 4)));
     constraint.add_module(Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(5)));
 

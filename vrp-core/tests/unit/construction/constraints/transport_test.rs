@@ -29,9 +29,10 @@ fn create_detail(
 mod timing {
     use super::super::{try_advance_departure_time, try_recede_departure_time};
     use super::*;
+    use crate::construction::constraints::extensions::NoTravelLimits;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
     use crate::helpers::models::domain::{create_empty_solution_context, create_registry_context};
-    use crate::models::problem::Vehicle;
+    use crate::models::problem::{Actor, TravelLimits, Vehicle};
     use crate::models::solution::{Activity, Place};
     use rosomaxa::prelude::compare_floats;
     use std::cmp::Ordering;
@@ -324,12 +325,27 @@ mod timing {
         let first = route.tour.get(1).unwrap();
         state.put_activity_state::<f64>(LATEST_ARRIVAL_KEY, first, latest_first_arrival);
 
-        if let Some((total, limit)) = total_duration_limit {
-            state.put_route_state::<f64>(TOTAL_DURATION_KEY, total);
-            state.put_route_state::<f64>(LIMIT_DURATION_KEY, limit);
-        }
+        let travel_limits: Arc<dyn TravelLimits + Send + Sync> = if let Some((total, limit)) = total_duration_limit {
+            struct TestTravelLimits {
+                limit: f64,
+            }
+            impl TravelLimits for TestTravelLimits {
+                fn get_global_duration(&self, _: &Actor) -> Option<Duration> {
+                    Some(self.limit)
+                }
 
-        let departure_time = try_recede_departure_time(&route_ctx);
+                fn get_global_distance(&self, _: &Actor) -> Option<Distance> {
+                    None
+                }
+            }
+
+            state.put_route_state::<f64>(TOTAL_DURATION_KEY, total);
+            Arc::new(TestTravelLimits { limit })
+        } else {
+            Arc::new(NoTravelLimits::default())
+        };
+
+        let departure_time = try_recede_departure_time(&route_ctx, travel_limits.as_ref());
 
         assert_eq!(departure_time, expected);
     }
@@ -339,12 +355,35 @@ mod traveling {
     use super::super::stop;
     use super::*;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
+    use crate::models::problem::{Actor, TravelLimits};
 
     fn create_test_data(
         vehicle: &str,
         target: &str,
         limit: (Option<Distance>, Option<Duration>),
     ) -> (ConstraintPipeline, RouteContext) {
+        struct TestTravelLimits {
+            target: String,
+            limit: (Option<Distance>, Option<Duration>),
+        }
+        impl TravelLimits for TestTravelLimits {
+            fn get_global_duration(&self, actor: &Actor) -> Option<Duration> {
+                if get_vehicle_id(actor.vehicle.as_ref()) == self.target.as_str() {
+                    self.limit.1
+                } else {
+                    None
+                }
+            }
+
+            fn get_global_distance(&self, actor: &Actor) -> Option<Distance> {
+                if get_vehicle_id(actor.vehicle.as_ref()) == self.target.as_str() {
+                    self.limit.0
+                } else {
+                    None
+                }
+            }
+        }
+
         let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
         let mut state = RouteState::default();
         state.put_route_state(TOTAL_DISTANCE_KEY, 50.);
@@ -355,17 +394,8 @@ mod traveling {
             Arc::new(state),
         );
         let pipeline = create_constraint_pipeline_with_module(Arc::new(TransportConstraintModule::new(
-            TestTransportCost::new_shared(),
+            TestTransportCost::new_with_limits(Arc::new(TestTravelLimits { target, limit })),
             Arc::new(TestActivityCost::default()),
-            Arc::new(
-                move |actor| {
-                    if get_vehicle_id(actor.vehicle.as_ref()) == target.as_str() {
-                        limit
-                    } else {
-                        (None, None)
-                    }
-                },
-            ),
             1,
             2,
             3,
@@ -469,7 +499,6 @@ mod time_dependent {
                 DynamicTransportCost::new(reserved_times.clone(), Arc::new(TestTransportCost::default())).unwrap(),
             ),
             Arc::new(DynamicActivityCost::new(reserved_times).unwrap()),
-            Arc::new(|_| (None, None)),
             1,
             2,
             3,
