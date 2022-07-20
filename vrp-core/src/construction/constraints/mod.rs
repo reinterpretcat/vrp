@@ -75,8 +75,6 @@ pub const RELOAD_INTERVALS_KEY: i32 = 14;
 /// A key which tracks max load in tour.
 pub const MAX_LOAD_KEY: i32 = 15;
 
-pub mod extensions;
-
 mod pipeline;
 pub use self::pipeline::*;
 
@@ -100,3 +98,6 @@ pub use self::conditional::*;
 
 mod fleet_usage;
 pub use self::fleet_usage::*;
+
+mod travel_limit;
+pub use self::travel_limit::*;
