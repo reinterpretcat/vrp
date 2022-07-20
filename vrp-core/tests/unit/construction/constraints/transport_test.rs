@@ -330,11 +330,11 @@ mod timing {
                 limit: f64,
             }
             impl TravelLimits for TestTravelLimits {
-                fn get_global_duration(&self, _: &Actor) -> Option<Duration> {
+                fn tour_duration(&self, _: &Actor) -> Option<Duration> {
                     Some(self.limit)
                 }
 
-                fn get_global_distance(&self, _: &Actor) -> Option<Distance> {
+                fn tour_distance(&self, _: &Actor) -> Option<Distance> {
                     None
                 }
             }
@@ -367,7 +367,7 @@ mod traveling {
             limit: (Option<Distance>, Option<Duration>),
         }
         impl TravelLimits for TestTravelLimits {
-            fn get_global_duration(&self, actor: &Actor) -> Option<Duration> {
+            fn tour_duration(&self, actor: &Actor) -> Option<Duration> {
                 if get_vehicle_id(actor.vehicle.as_ref()) == self.target.as_str() {
                     self.limit.1
                 } else {
@@ -375,7 +375,7 @@ mod traveling {
                 }
             }
 
-            fn get_global_distance(&self, actor: &Actor) -> Option<Distance> {
+            fn tour_distance(&self, actor: &Actor) -> Option<Distance> {
                 if get_vehicle_id(actor.vehicle.as_ref()) == self.target.as_str() {
                     self.limit.0
                 } else {

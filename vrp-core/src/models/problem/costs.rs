@@ -187,11 +187,11 @@ impl ActivityCost for DynamicActivityCost {
 
 /// Specifies travel limits.
 pub trait TravelLimits {
-    /// Gets global duration limit for given actor.
-    fn get_global_duration(&self, actor: &Actor) -> Option<Duration>;
+    /// Gets global tour duration limit for given actor.
+    fn tour_duration(&self, actor: &Actor) -> Option<Duration>;
 
-    /// Gets global distance limit for given actor.
-    fn get_global_distance(&self, actor: &Actor) -> Option<Distance>;
+    /// Gets global tour distance limit for given actor.
+    fn tour_distance(&self, actor: &Actor) -> Option<Distance>;
 }
 
 /// Provides the way to get routing information for specific locations and actor.

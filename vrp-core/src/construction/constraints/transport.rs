@@ -38,7 +38,7 @@ impl ConstraintModule for TransportConstraintModule {
         Self::update_route_states(ctx, activity, transport);
         // NOTE Rescheduling during the insertion process makes sense only if the traveling limit
         // is set (for duration limit, not for distance).
-        if transport.limits().get_global_duration(&ctx.route.actor).is_some() {
+        if transport.limits().tour_duration(&ctx.route.actor).is_some() {
             Self::advance_departure_time(ctx, activity, transport, false);
         }
 
@@ -356,8 +356,8 @@ impl HardActivityConstraint for TravelHardActivityConstraint {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        let distance_limit = self.transport.limits().get_global_distance(&route_ctx.route.actor);
-        let duration_limit = self.transport.limits().get_global_duration(&route_ctx.route.actor);
+        let distance_limit = self.transport.limits().tour_distance(&route_ctx.route.actor);
+        let duration_limit = self.transport.limits().tour_duration(&route_ctx.route.actor);
 
         if distance_limit.is_some() || duration_limit.is_some() {
             let (change_distance, change_duration) = self.calculate_travel(route_ctx.route.as_ref(), activity_ctx);
@@ -570,7 +570,7 @@ fn try_recede_departure_time(
     let max_change = route_ctx
         .state
         .get_route_state::<f64>(TOTAL_DURATION_KEY)
-        .zip(travel_limits.get_global_duration(route_ctx.route.actor.as_ref()))
+        .zip(travel_limits.tour_duration(route_ctx.route.actor.as_ref()))
         .map(|(&total, limit)| (limit - total).min(max_change))
         .unwrap_or(max_change);
 

@@ -8,11 +8,11 @@ use std::sync::Arc;
 pub struct NoTravelLimits {}
 
 impl TravelLimits for NoTravelLimits {
-    fn get_global_duration(&self, _: &Actor) -> Option<Duration> {
+    fn tour_duration(&self, _: &Actor) -> Option<Duration> {
         None
     }
 
-    fn get_global_distance(&self, _: &Actor) -> Option<Distance> {
+    fn tour_distance(&self, _: &Actor) -> Option<Distance> {
         None
     }
 }
@@ -34,11 +34,11 @@ impl SimpleTravelLimits {
 }
 
 impl TravelLimits for SimpleTravelLimits {
-    fn get_global_duration(&self, actor: &Actor) -> Option<Duration> {
+    fn tour_duration(&self, actor: &Actor) -> Option<Duration> {
         self.duration.deref()(actor)
     }
 
-    fn get_global_distance(&self, actor: &Actor) -> Option<Distance> {
+    fn tour_distance(&self, actor: &Actor) -> Option<Distance> {
         self.distance.deref()(actor)
     }
 }
