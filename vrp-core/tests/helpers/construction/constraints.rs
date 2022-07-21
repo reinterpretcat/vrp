@@ -31,10 +31,18 @@ pub fn create_simple_dynamic_demand(size: i32) -> Demand<SingleDimLoad> {
     }
 }
 
-pub fn create_constraint_pipeline_with_module(module: Arc<dyn ConstraintModule + Send + Sync>) -> ConstraintPipeline {
+pub fn create_constraint_pipeline_with_modules(
+    modules: Vec<Arc<dyn ConstraintModule + Send + Sync>>,
+) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(module);
+    modules.into_iter().for_each(|module| {
+        constraint.add_module(module);
+    });
     constraint
+}
+
+pub fn create_constraint_pipeline_with_module(module: Arc<dyn ConstraintModule + Send + Sync>) -> ConstraintPipeline {
+    create_constraint_pipeline_with_modules(vec![module])
 }
 
 pub fn create_constraint_pipeline_with_transport() -> ConstraintPipeline {
@@ -42,8 +50,6 @@ pub fn create_constraint_pipeline_with_transport() -> ConstraintPipeline {
         TestTransportCost::new_shared(),
         TestActivityCost::new_shared(),
         1,
-        2,
-        3,
     )))
 }
 

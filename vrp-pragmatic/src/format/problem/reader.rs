@@ -122,6 +122,7 @@ pub struct ProblemProperties {
     has_group: bool,
     has_compatibility: bool,
     has_tour_size_limits: bool,
+    has_tour_travel_limits: bool,
     max_job_value: Option<f64>,
     max_area_value: Option<f64>,
 }
@@ -324,11 +325,17 @@ fn create_constraint_pipeline(
         transport.clone(),
         activity.clone(),
         TIME_CONSTRAINT_CODE,
-        DISTANCE_LIMIT_CONSTRAINT_CODE,
-        DURATION_LIMIT_CONSTRAINT_CODE,
     )));
 
     add_capacity_module(&mut constraint, props);
+
+    if props.has_tour_travel_limits {
+        constraint.add_module(Arc::new(TravelLimitModule::new(
+            transport.clone(),
+            DISTANCE_LIMIT_CONSTRAINT_CODE,
+            DURATION_LIMIT_CONSTRAINT_CODE,
+        )));
+    }
 
     if props.has_breaks {
         constraint.add_module(Arc::new(BreakModule::new(BREAK_CONSTRAINT_CODE)));
@@ -480,6 +487,12 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
     let has_tour_size_limits =
         api_problem.fleet.vehicles.iter().any(|v| v.limits.as_ref().map_or(false, |l| l.tour_size.is_some()));
 
+    let has_tour_travel_limits = api_problem
+        .fleet
+        .vehicles
+        .iter()
+        .any(|v| v.limits.as_ref().map_or(false, |l| l.shift_time.or(l.max_distance).is_some()));
+
     ProblemProperties {
         has_multi_dimen_capacity,
         has_breaks,
@@ -491,6 +504,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_group,
         has_compatibility,
         has_tour_size_limits,
+        has_tour_travel_limits,
         max_job_value,
         max_area_value,
     }

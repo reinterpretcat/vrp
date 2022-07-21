@@ -21,6 +21,7 @@ fn create_problem_props() -> ProblemProperties {
         has_group: false,
         has_compatibility: false,
         has_tour_size_limits: false,
+        has_tour_travel_limits: false,
         max_job_value: None,
         max_area_value: None,
     }

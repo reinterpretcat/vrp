@@ -1,5 +1,5 @@
 use crate::algorithms::geometry::Point;
-use crate::construction::constraints::extensions::NoTravelLimits;
+use crate::construction::constraints::NoTravelLimits;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;

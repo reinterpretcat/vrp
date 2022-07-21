@@ -1,4 +1,4 @@
-use crate::construction::constraints::extensions::NoTravelLimits;
+use crate::construction::constraints::NoTravelLimits;
 use crate::models::common::{Distance, Duration, Location, Profile, Timestamp};
 use crate::models::problem::{ActivityCost, SimpleActivityCost, TransportCost, TravelLimits, TravelTime};
 use crate::models::solution::{Activity, Route};

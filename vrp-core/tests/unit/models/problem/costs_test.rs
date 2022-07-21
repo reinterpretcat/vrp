@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::constraints::extensions::NoTravelLimits;
+use crate::construction::constraints::NoTravelLimits;
 use crate::helpers::models::solution::{create_empty_route_ctx, test_actor_with_profile};
 
 fn create_matrix_data(

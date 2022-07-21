@@ -1,7 +1,7 @@
 use super::*;
 use crate::format::Location;
 use std::sync::Arc;
-use vrp_core::construction::constraints::extensions::NoTravelLimits;
+use vrp_core::construction::constraints::NoTravelLimits;
 use vrp_core::models::common::Profile;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData};
 

@@ -9,7 +9,7 @@ use crate::format::problem::Matrix;
 use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
-use vrp_core::construction::constraints::extensions::{NoTravelLimits, SimpleTravelLimits};
+use vrp_core::construction::constraints::{NoTravelLimits, SimpleTravelLimits};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 

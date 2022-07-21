@@ -4,9 +4,9 @@ mod transport_test;
 
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
-use crate::models::common::{Cost, Distance, Duration, Timestamp};
+use crate::models::common::{Cost, Distance, Timestamp};
 use crate::models::problem::{ActivityCost, Job, Single, TransportCost, TravelLimits, TravelTime};
-use crate::models::solution::{Activity, Route};
+use crate::models::solution::Activity;
 use crate::models::OP_START_MSG;
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
@@ -76,8 +76,6 @@ impl TransportConstraintModule {
         transport: Arc<dyn TransportCost + Send + Sync>,
         activity: Arc<dyn ActivityCost + Send + Sync>,
         time_window_code: i32,
-        distance_code: i32,
-        duration_code: i32,
     ) -> Self {
         Self {
             state_keys: vec![LATEST_ARRIVAL_KEY, WAITING_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY],
@@ -87,11 +85,6 @@ impl TransportConstraintModule {
                 ConstraintVariant::HardActivity(Arc::new(TimeHardActivityConstraint {
                     code: time_window_code,
                     activity: activity.clone(),
-                    transport: transport.clone(),
-                })),
-                ConstraintVariant::HardActivity(Arc::new(TravelHardActivityConstraint {
-                    distance_code,
-                    duration_code,
                     transport: transport.clone(),
                 })),
                 ConstraintVariant::SoftActivity(Arc::new(CostSoftActivityConstraint {
@@ -164,7 +157,7 @@ impl TransportConstraintModule {
     }
 
     fn update_statistics(route_ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
-        let route = route_ctx.route.as_ref();
+        let route = route_ctx.route.clone();
         let start = route.tour.start().unwrap();
         let end = route.tour.end().unwrap();
 
@@ -172,7 +165,12 @@ impl TransportConstraintModule {
 
         let init = (start.place.location, start.schedule.departure, Distance::default());
         let (_, _, total_dist) = route.tour.all_activities().skip(1).fold(init, |(loc, dep, total_dist), a| {
-            let total_dist = total_dist + transport.distance(route, loc, a.place.location, TravelTime::Departure(dep));
+            let total_dist =
+                total_dist + transport.distance(route.as_ref(), loc, a.place.location, TravelTime::Departure(dep));
+            let total_dur = a.schedule.departure - start.schedule.departure;
+
+            route_ctx.state_mut().put_activity_state(TOTAL_DISTANCE_KEY, a, total_dist);
+            route_ctx.state_mut().put_activity_state(TOTAL_DURATION_KEY, a, total_dur);
 
             (a.place.location, a.schedule.departure, total_dist)
         });
@@ -343,96 +341,6 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
     }
 }
 
-/// A hard activity constraint which allows to limit actor's traveling distance and time.
-struct TravelHardActivityConstraint {
-    distance_code: i32,
-    duration_code: i32,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-}
-
-impl HardActivityConstraint for TravelHardActivityConstraint {
-    fn evaluate_activity(
-        &self,
-        route_ctx: &RouteContext,
-        activity_ctx: &ActivityContext,
-    ) -> Option<ActivityConstraintViolation> {
-        let distance_limit = self.transport.limits().tour_distance(&route_ctx.route.actor);
-        let duration_limit = self.transport.limits().tour_duration(&route_ctx.route.actor);
-
-        if distance_limit.is_some() || duration_limit.is_some() {
-            let (change_distance, change_duration) = self.calculate_travel(route_ctx.route.as_ref(), activity_ctx);
-
-            if let Some(distance_limit) = distance_limit {
-                let curr_dis = route_ctx.state.get_route_state(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
-                let total_distance = curr_dis + change_distance;
-                if distance_limit < total_distance {
-                    return stop(self.distance_code);
-                }
-            }
-
-            if let Some(duration_limit) = duration_limit {
-                let curr_dur = route_ctx.state.get_route_state(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
-                let total_duration = curr_dur + change_duration;
-                if duration_limit < total_duration {
-                    return stop(self.duration_code);
-                }
-            }
-        }
-
-        None
-    }
-}
-
-impl TravelHardActivityConstraint {
-    fn calculate_travel(&self, route: &Route, activity_ctx: &ActivityContext) -> (Distance, Duration) {
-        let prev = activity_ctx.prev;
-        let tar = activity_ctx.target;
-        let next = activity_ctx.next;
-
-        let prev_dep = prev.schedule.departure;
-
-        let (prev_to_tar_dis, prev_to_tar_dur) = self.calculate_leg_travel_info(route, prev, tar, prev_dep);
-        if next.is_none() {
-            return (prev_to_tar_dis, prev_to_tar_dur);
-        }
-
-        let next = next.unwrap();
-        let tar_dep = prev_dep + prev_to_tar_dur;
-
-        let (prev_to_next_dis, prev_to_next_dur) = self.calculate_leg_travel_info(route, prev, next, prev_dep);
-        let (tar_to_next_dis, tar_to_next_dur) = self.calculate_leg_travel_info(route, tar, next, tar_dep);
-
-        (prev_to_tar_dis + tar_to_next_dis - prev_to_next_dis, prev_to_tar_dur + tar_to_next_dur - prev_to_next_dur)
-    }
-
-    fn calculate_leg_travel_info(
-        &self,
-        route: &Route,
-        first: &Activity,
-        second: &Activity,
-        departure: Timestamp,
-    ) -> (Distance, Duration) {
-        let first_to_second_dis = self.transport.distance(
-            route,
-            first.place.location,
-            second.place.location,
-            TravelTime::Departure(departure),
-        );
-        let first_to_second_dur = self.transport.duration(
-            route,
-            first.place.location,
-            second.place.location,
-            TravelTime::Departure(departure),
-        );
-
-        let second_arr = departure + first_to_second_dur;
-        let second_wait = (second.place.time.start - second_arr).max(0.);
-        let second_dep = second_arr + second_wait + second.place.duration;
-
-        (first_to_second_dis, second_dep - departure)
-    }
-}
-
 /// Applies fixed cost for actor usage.
 struct RouteCostSoftRouteConstraint {}
 
@@ -578,19 +486,4 @@ fn try_recede_departure_time(
         Ordering::Greater => Some(start.schedule.departure - max_change),
         _ => None,
     }
-}
-
-#[allow(clippy::unnecessary_wraps)]
-fn fail(code: i32) -> Option<ActivityConstraintViolation> {
-    Some(ActivityConstraintViolation { code, stopped: true })
-}
-
-#[allow(clippy::unnecessary_wraps)]
-fn stop(code: i32) -> Option<ActivityConstraintViolation> {
-    Some(ActivityConstraintViolation { code, stopped: false })
-}
-
-#[allow(clippy::unnecessary_wraps)]
-fn success() -> Option<ActivityConstraintViolation> {
-    None
 }

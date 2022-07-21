@@ -1,5 +1,4 @@
-use crate::construction::constraints::extensions::NoTravelLimits;
-use crate::construction::constraints::{ConstraintPipeline, TransportConstraintModule};
+use crate::construction::constraints::*;
 use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Route;
@@ -76,7 +75,7 @@ pub fn create_example_problem() -> Arc<Problem> {
     let fleet = create_example_fleet();
     let jobs = create_example_jobs(&fleet, &transport);
     let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Arc::new(TransportConstraintModule::new(transport.clone(), activity.clone(), 1, 2, 3)));
+    constraint.add_module(Arc::new(TransportConstraintModule::new(transport.clone(), activity.clone(), 1)));
 
     Arc::new(Problem {
         fleet,

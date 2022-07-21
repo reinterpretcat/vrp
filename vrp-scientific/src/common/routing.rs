@@ -3,7 +3,7 @@
 mod routing_test;
 
 use std::sync::Arc;
-use vrp_core::construction::constraints::extensions::NoTravelLimits;
+use vrp_core::construction::constraints::NoTravelLimits;
 use vrp_core::models::common::Location;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData, TransportCost};
 

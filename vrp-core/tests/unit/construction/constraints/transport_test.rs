@@ -29,7 +29,6 @@ fn create_detail(
 mod timing {
     use super::super::{try_advance_departure_time, try_recede_departure_time};
     use super::*;
-    use crate::construction::constraints::extensions::NoTravelLimits;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
     use crate::helpers::models::domain::{create_empty_solution_context, create_registry_context};
     use crate::models::problem::{Actor, TravelLimits, Vehicle};
@@ -354,7 +353,7 @@ mod timing {
 mod traveling {
     use super::super::stop;
     use super::*;
-    use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
+    use crate::helpers::construction::constraints::create_constraint_pipeline_with_modules;
     use crate::models::problem::{Actor, TravelLimits};
 
     fn create_test_data(
@@ -393,13 +392,11 @@ mod traveling {
             Arc::new(create_route_with_activities(&fleet, vehicle, vec![])),
             Arc::new(state),
         );
-        let pipeline = create_constraint_pipeline_with_module(Arc::new(TransportConstraintModule::new(
-            TestTransportCost::new_with_limits(Arc::new(TestTravelLimits { target, limit })),
-            Arc::new(TestActivityCost::default()),
-            1,
-            2,
-            3,
-        )));
+        let transport = TestTransportCost::new_with_limits(Arc::new(TestTravelLimits { target, limit }));
+        let pipeline = create_constraint_pipeline_with_modules(vec![
+            Arc::new(TransportConstraintModule::new(transport.clone(), Arc::new(TestActivityCost::default()), 1)),
+            Arc::new(TravelLimitModule::new(transport, 2, 3)),
+        ]);
 
         (pipeline, route_ctx)
     }
@@ -500,8 +497,6 @@ mod time_dependent {
             ),
             Arc::new(DynamicActivityCost::new(reserved_times).unwrap()),
             1,
-            2,
-            3,
         )));
 
         (pipeline, route_ctx)

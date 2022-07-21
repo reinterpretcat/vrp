@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::constraints::extensions::NoTravelLimits;
+use crate::construction::constraints::NoTravelLimits;
 use crate::helpers::models::problem::*;
 use crate::models::problem::{TravelLimits, TravelTime, VehicleDetail, VehiclePlace};
 use crate::models::solution::Route;

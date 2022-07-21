@@ -75,6 +75,21 @@ pub const RELOAD_INTERVALS_KEY: i32 = 14;
 /// A key which tracks max load in tour.
 pub const MAX_LOAD_KEY: i32 = 15;
 
+#[allow(clippy::unnecessary_wraps)]
+fn fail(code: i32) -> Option<ActivityConstraintViolation> {
+    Some(ActivityConstraintViolation { code, stopped: true })
+}
+
+#[allow(clippy::unnecessary_wraps)]
+fn stop(code: i32) -> Option<ActivityConstraintViolation> {
+    Some(ActivityConstraintViolation { code, stopped: false })
+}
+
+#[allow(clippy::unnecessary_wraps)]
+fn success() -> Option<ActivityConstraintViolation> {
+    None
+}
+
 mod pipeline;
 pub use self::pipeline::*;
 
