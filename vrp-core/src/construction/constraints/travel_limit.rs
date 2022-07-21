@@ -12,11 +12,19 @@ use std::sync::Arc;
 pub struct NoTravelLimits {}
 
 impl TravelLimits for NoTravelLimits {
+    fn tour_distance(&self, _: &Route) -> Option<Distance> {
+        None
+    }
+
     fn tour_duration(&self, _: &Route) -> Option<Duration> {
         None
     }
 
-    fn tour_distance(&self, _: &Route) -> Option<Distance> {
+    fn trip_distance(&self, _: &Route, _: usize) -> Option<Distance> {
+        None
+    }
+
+    fn trip_duration(&self, _: &Route, _: usize) -> Option<Duration> {
         None
     }
 }
@@ -38,12 +46,20 @@ impl SimpleTravelLimits {
 }
 
 impl TravelLimits for SimpleTravelLimits {
+    fn tour_distance(&self, route: &Route) -> Option<Distance> {
+        self.distance.deref()(route.actor.as_ref())
+    }
+
     fn tour_duration(&self, route: &Route) -> Option<Duration> {
         self.duration.deref()(route.actor.as_ref())
     }
 
-    fn tour_distance(&self, route: &Route) -> Option<Distance> {
-        self.distance.deref()(route.actor.as_ref())
+    fn trip_distance(&self, _: &Route, _: usize) -> Option<Distance> {
+        None
+    }
+
+    fn trip_duration(&self, _: &Route, _: usize) -> Option<Duration> {
+        None
     }
 }
 

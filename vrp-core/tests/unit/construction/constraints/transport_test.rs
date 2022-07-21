@@ -329,11 +329,19 @@ mod timing {
                 limit: f64,
             }
             impl TravelLimits for TestTravelLimits {
+                fn tour_distance(&self, _: &Route) -> Option<Distance> {
+                    None
+                }
+
                 fn tour_duration(&self, _: &Route) -> Option<Duration> {
                     Some(self.limit)
                 }
 
-                fn tour_distance(&self, _: &Route) -> Option<Distance> {
+                fn trip_distance(&self, _: &Route, _: usize) -> Option<Distance> {
+                    None
+                }
+
+                fn trip_duration(&self, _: &Route, _: usize) -> Option<Duration> {
                     None
                 }
             }
@@ -367,6 +375,14 @@ mod traveling {
             limit: (Option<Distance>, Option<Duration>),
         }
         impl TravelLimits for TestTravelLimits {
+            fn tour_distance(&self, route: &Route) -> Option<Distance> {
+                if get_vehicle_id(route.actor.vehicle.as_ref()) == self.target.as_str() {
+                    self.limit.0
+                } else {
+                    None
+                }
+            }
+
             fn tour_duration(&self, route: &Route) -> Option<Duration> {
                 if get_vehicle_id(route.actor.vehicle.as_ref()) == self.target.as_str() {
                     self.limit.1
@@ -375,12 +391,12 @@ mod traveling {
                 }
             }
 
-            fn tour_distance(&self, route: &Route) -> Option<Distance> {
-                if get_vehicle_id(route.actor.vehicle.as_ref()) == self.target.as_str() {
-                    self.limit.0
-                } else {
-                    None
-                }
+            fn trip_distance(&self, _: &Route, _: usize) -> Option<Distance> {
+                None
+            }
+
+            fn trip_duration(&self, _: &Route, _: usize) -> Option<Duration> {
+                None
             }
         }
 
