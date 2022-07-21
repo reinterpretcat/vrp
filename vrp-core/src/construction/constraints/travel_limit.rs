@@ -12,11 +12,11 @@ use std::sync::Arc;
 pub struct NoTravelLimits {}
 
 impl TravelLimits for NoTravelLimits {
-    fn tour_duration(&self, _: &Actor) -> Option<Duration> {
+    fn tour_duration(&self, _: &Route) -> Option<Duration> {
         None
     }
 
-    fn tour_distance(&self, _: &Actor) -> Option<Distance> {
+    fn tour_distance(&self, _: &Route) -> Option<Distance> {
         None
     }
 }
@@ -38,12 +38,12 @@ impl SimpleTravelLimits {
 }
 
 impl TravelLimits for SimpleTravelLimits {
-    fn tour_duration(&self, actor: &Actor) -> Option<Duration> {
-        self.duration.deref()(actor)
+    fn tour_duration(&self, route: &Route) -> Option<Duration> {
+        self.duration.deref()(route.actor.as_ref())
     }
 
-    fn tour_distance(&self, actor: &Actor) -> Option<Distance> {
-        self.distance.deref()(actor)
+    fn tour_distance(&self, route: &Route) -> Option<Distance> {
+        self.distance.deref()(route.actor.as_ref())
     }
 }
 
@@ -100,8 +100,8 @@ impl HardActivityConstraint for TravelHardActivityConstraint {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        let tour_distance_limit = self.transport.limits().tour_distance(&route_ctx.route.actor);
-        let tour_duration_limit = self.transport.limits().tour_duration(&route_ctx.route.actor);
+        let tour_distance_limit = self.transport.limits().tour_distance(route_ctx.route.as_ref());
+        let tour_duration_limit = self.transport.limits().tour_duration(route_ctx.route.as_ref());
 
         if tour_distance_limit.is_some() || tour_duration_limit.is_some() {
             let (change_distance, change_duration) = self.calculate_travel(route_ctx.route.as_ref(), activity_ctx);

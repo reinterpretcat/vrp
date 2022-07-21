@@ -31,8 +31,8 @@ mod timing {
     use super::*;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
     use crate::helpers::models::domain::{create_empty_solution_context, create_registry_context};
-    use crate::models::problem::{Actor, TravelLimits, Vehicle};
-    use crate::models::solution::{Activity, Place};
+    use crate::models::problem::{TravelLimits, Vehicle};
+    use crate::models::solution::{Activity, Place, Route};
     use rosomaxa::prelude::compare_floats;
     use std::cmp::Ordering;
 
@@ -329,11 +329,11 @@ mod timing {
                 limit: f64,
             }
             impl TravelLimits for TestTravelLimits {
-                fn tour_duration(&self, _: &Actor) -> Option<Duration> {
+                fn tour_duration(&self, _: &Route) -> Option<Duration> {
                     Some(self.limit)
                 }
 
-                fn tour_distance(&self, _: &Actor) -> Option<Distance> {
+                fn tour_distance(&self, _: &Route) -> Option<Distance> {
                     None
                 }
             }
@@ -354,7 +354,8 @@ mod traveling {
     use super::super::stop;
     use super::*;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_modules;
-    use crate::models::problem::{Actor, TravelLimits};
+    use crate::models::problem::TravelLimits;
+    use crate::models::solution::Route;
 
     fn create_test_data(
         vehicle: &str,
@@ -366,16 +367,16 @@ mod traveling {
             limit: (Option<Distance>, Option<Duration>),
         }
         impl TravelLimits for TestTravelLimits {
-            fn tour_duration(&self, actor: &Actor) -> Option<Duration> {
-                if get_vehicle_id(actor.vehicle.as_ref()) == self.target.as_str() {
+            fn tour_duration(&self, route: &Route) -> Option<Duration> {
+                if get_vehicle_id(route.actor.vehicle.as_ref()) == self.target.as_str() {
                     self.limit.1
                 } else {
                     None
                 }
             }
 
-            fn tour_distance(&self, actor: &Actor) -> Option<Distance> {
-                if get_vehicle_id(actor.vehicle.as_ref()) == self.target.as_str() {
+            fn tour_distance(&self, route: &Route) -> Option<Distance> {
+                if get_vehicle_id(route.actor.vehicle.as_ref()) == self.target.as_str() {
                     self.limit.0
                 } else {
                     None

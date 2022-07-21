@@ -38,7 +38,7 @@ impl ConstraintModule for TransportConstraintModule {
         Self::update_route_states(ctx, activity, transport);
         // NOTE Rescheduling during the insertion process makes sense only if the traveling limit
         // is set (for duration limit, not for distance).
-        if transport.limits().tour_duration(&ctx.route.actor).is_some() {
+        if transport.limits().tour_duration(ctx.route.as_ref()).is_some() {
             Self::advance_departure_time(ctx, activity, transport, false);
         }
 
@@ -478,7 +478,7 @@ fn try_recede_departure_time(
     let max_change = route_ctx
         .state
         .get_route_state::<f64>(TOTAL_DURATION_KEY)
-        .zip(travel_limits.tour_duration(route_ctx.route.actor.as_ref()))
+        .zip(travel_limits.tour_duration(route_ctx.route.as_ref()))
         .map(|(&total, limit)| (limit - total).min(max_change))
         .unwrap_or(max_change);
 
