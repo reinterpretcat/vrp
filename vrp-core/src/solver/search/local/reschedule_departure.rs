@@ -1,4 +1,4 @@
-use crate::construction::constraints::TransportConstraintModule;
+use crate::construction::extensions::{advance_departure_time, recede_departure_time};
 use crate::construction::heuristics::InsertionContext;
 use crate::models::solution::Activity;
 use crate::solver::search::LocalOperator;
@@ -29,9 +29,9 @@ impl LocalOperator for RescheduleDeparture {
 
             match (route_ctx.route.tour.start(), earliest, random.is_head_not_tails()) {
                 (Some(start), Some(earliest), true) if can_recede_departure(start, earliest) => {
-                    TransportConstraintModule::recede_departure_time(route_ctx, activity, transport)
+                    recede_departure_time(route_ctx, activity, transport)
                 }
-                _ => TransportConstraintModule::advance_departure_time(route_ctx, activity, transport, true),
+                _ => advance_departure_time(route_ctx, activity, transport, true),
             };
         });
 

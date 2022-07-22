@@ -1,10 +1,7 @@
 use super::*;
-use crate::construction::constraints::NoTravelLimits;
 use crate::helpers::models::problem::*;
-use crate::models::problem::{TravelLimits, TravelTime, VehicleDetail, VehiclePlace};
+use crate::models::problem::{TravelTime, VehicleDetail, VehiclePlace};
 use crate::models::solution::Route;
-
-static TRAVEL_LIMITS: NoTravelLimits = NoTravelLimits {};
 
 #[derive(Default)]
 struct OnlyDistanceCost {}
@@ -24,10 +21,6 @@ impl TransportCost for OnlyDistanceCost {
 
     fn distance(&self, _: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         fake_routing(from, to)
-    }
-
-    fn limits(&self) -> &(dyn TravelLimits + Send + Sync) {
-        &TRAVEL_LIMITS
     }
 }
 
@@ -57,10 +50,6 @@ impl TransportCost for ProfileAwareTransportCost {
     fn distance(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         (self.func)(&route.actor.vehicle.profile, fake_routing(from, to))
     }
-
-    fn limits(&self) -> &(dyn TravelLimits + Send + Sync) {
-        &TRAVEL_LIMITS
-    }
 }
 
 struct FixedTransportCost {
@@ -83,10 +72,6 @@ impl TransportCost for FixedTransportCost {
 
     fn distance(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Distance {
         self.distance_cost
-    }
-
-    fn limits(&self) -> &(dyn TravelLimits + Send + Sync) {
-        &TRAVEL_LIMITS
     }
 }
 

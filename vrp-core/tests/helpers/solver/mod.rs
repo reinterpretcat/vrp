@@ -1,5 +1,4 @@
 use crate::algorithms::geometry::Point;
-use crate::construction::constraints::NoTravelLimits;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;
@@ -95,8 +94,7 @@ pub fn generate_matrix_routes(
     let (durations, distances) = matrix_modify(generate_matrix_from_sizes(rows, cols));
 
     let matrix_data = MatrixData::new(0, None, durations, distances);
-    let travel_limits = Arc::new(NoTravelLimits::default());
-    let transport = create_matrix_transport_cost(vec![matrix_data], travel_limits).unwrap();
+    let transport = create_matrix_transport_cost(vec![matrix_data]).unwrap();
     let jobs = Jobs::new(&fleet, jobs, &transport);
 
     let problem = Problem {

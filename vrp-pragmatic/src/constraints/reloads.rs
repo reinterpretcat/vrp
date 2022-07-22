@@ -5,6 +5,7 @@ mod reload_test;
 use crate::constraints::*;
 use std::ops::Deref;
 use vrp_core::construction::constraints::*;
+use vrp_core::construction::extensions::MultiTrip;
 use vrp_core::construction::heuristics::{RouteContext, SolutionContext};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, Single};

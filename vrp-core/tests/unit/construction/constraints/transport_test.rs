@@ -27,12 +27,10 @@ fn create_detail(
 }
 
 mod timing {
-    use super::super::{try_advance_departure_time, try_recede_departure_time};
     use super::*;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
     use crate::helpers::models::domain::{create_empty_solution_context, create_registry_context};
-    use crate::models::problem::{TravelLimits, Vehicle};
-    use crate::models::solution::{Activity, Place, Route};
+    use crate::models::solution::{Activity, Place};
     use rosomaxa::prelude::compare_floats;
     use std::cmp::Ordering;
 
@@ -229,177 +227,19 @@ mod timing {
 
         assert_eq!(result, Some(RouteConstraintViolation { code: 1 }));
     }
-
-    parameterized_test! {can_advance_departure_time, (latest, optimize_whole_tour, tws, expected), {
-        let tws = tws.into_iter().map(|(start, end)| TimeWindow::new(start, end)).collect::<Vec<_>>();
-        can_advance_departure_time_impl(latest, optimize_whole_tour, tws, expected);
-    }}
-
-    can_advance_departure_time! {
-        case01: (None, true, vec![(0., 100.), (25., 100.), (0., 100.)], Some(5.)),
-        case02: (Some(3.), true, vec![(0., 100.), (25., 100.), (0., 100.)], Some(3.)),
-        case03: (Some(7.), true, vec![(0., 100.), (25., 100.), (0., 100.)], Some(5.)),
-        case04: (None, true, vec![(0., 100.), (10., 100.), (42., 100.)], Some(12.)),
-
-        case05: (None, false, vec![(12., 100.), (0., 100.), (0., 100.)], Some(2.)),
-        case06: (None, false, vec![(10., 100.), (0., 100.), (0., 100.)], None),
-        case07: (None, false, vec![(0., 100.), (25., 100.), (0., 100.)], None),
-    }
-
-    fn can_advance_departure_time_impl(
-        latest: Option<f64>,
-        optimize_whole_tour: bool,
-        tws: Vec<TimeWindow>,
-        expected: Option<f64>,
-    ) {
-        if let [tw1, tw2, tw3] = tws.as_slice() {
-            let fleet = FleetBuilder::default()
-                .add_driver(test_driver())
-                .add_vehicle(Vehicle {
-                    details: vec![VehicleDetail {
-                        start: Some(VehiclePlace { location: 0, time: TimeInterval { earliest: Some(0.), latest } }),
-                        ..test_vehicle_detail()
-                    }],
-                    ..test_vehicle_with_id("v1")
-                })
-                .build();
-            let route_ctx = create_route_context_with_activities(
-                &fleet,
-                "v1",
-                vec![
-                    test_activity_with_location_and_tw(10, tw1.clone()),
-                    test_activity_with_location_and_tw(20, tw2.clone()),
-                    test_activity_with_location_and_tw(30, tw3.clone()),
-                ],
-            );
-
-            let departure_time =
-                try_advance_departure_time(&route_ctx, &TestTransportCost::default(), optimize_whole_tour);
-
-            assert_eq!(departure_time, expected);
-        } else {
-            unreachable!()
-        }
-    }
-
-    parameterized_test! {can_recede_departure_time, (earliest, start_departure, latest_first_arrival, tw, duration_limit, expected), {
-        can_recede_departure_time_impl(earliest, start_departure, latest_first_arrival, TimeWindow::new(tw.0, tw.1), duration_limit, expected);
-    }}
-
-    can_recede_departure_time! {
-        case01: (Some(0.), 0., 10., (10., 20.), None, None),
-        case02: (Some(0.), 5., 10., (10., 20.), None, None),
-        case03: (Some(5.), 10., 15., (10., 20.), None, Some(5.)),
-        case04: (Some(5.), 10., 20., (10., 20.), None, Some(5.)),
-        case05: (None, 10., 50., (10., 20.), None, Some(0.)),
-        case06: (Some(5.), 10., 11., (10., 20.), None, Some(9.)),
-
-        case07: (Some(0.), 10., 20., (10., 20.), Some((20., 30.)), Some(0.)),
-        case08: (Some(0.), 10., 20., (10., 20.), Some((20., 25.)), Some(5.)),
-        case09: (Some(0.), 10., 20., (10., 20.), Some((20., 20.)), None),
-    }
-
-    fn can_recede_departure_time_impl(
-        earliest: Option<f64>,
-        start_departure: f64,
-        latest_first_arrival: f64,
-        tw: TimeWindow,
-        total_duration_limit: Option<(f64, f64)>,
-        expected: Option<f64>,
-    ) {
-        let fleet = FleetBuilder::default()
-            .add_driver(test_driver())
-            .add_vehicle(Vehicle {
-                details: vec![VehicleDetail {
-                    start: Some(VehiclePlace { location: 0, time: TimeInterval { earliest, latest: None } }),
-                    ..test_vehicle_detail()
-                }],
-                ..test_vehicle_with_id("v1")
-            })
-            .build();
-        let mut route_ctx =
-            create_route_context_with_activities(&fleet, "v1", vec![test_activity_with_location_and_tw(10, tw)]);
-        let (route, state) = route_ctx.as_mut();
-        route.tour.get_mut(0).unwrap().schedule.departure = start_departure;
-        let first = route.tour.get(1).unwrap();
-        state.put_activity_state::<f64>(LATEST_ARRIVAL_KEY, first, latest_first_arrival);
-
-        let travel_limits: Arc<dyn TravelLimits + Send + Sync> = if let Some((total, limit)) = total_duration_limit {
-            struct TestTravelLimits {
-                limit: f64,
-            }
-            impl TravelLimits for TestTravelLimits {
-                fn tour_distance(&self, _: &Route) -> Option<Distance> {
-                    None
-                }
-
-                fn tour_duration(&self, _: &Route) -> Option<Duration> {
-                    Some(self.limit)
-                }
-
-                fn trip_distance(&self, _: &Route, _: usize) -> Option<Distance> {
-                    None
-                }
-
-                fn trip_duration(&self, _: &Route, _: usize) -> Option<Duration> {
-                    None
-                }
-            }
-
-            state.put_route_state::<f64>(TOTAL_DURATION_KEY, total);
-            Arc::new(TestTravelLimits { limit })
-        } else {
-            Arc::new(NoTravelLimits::default())
-        };
-
-        let departure_time = try_recede_departure_time(&route_ctx, travel_limits.as_ref());
-
-        assert_eq!(departure_time, expected);
-    }
 }
 
 mod traveling {
     use super::super::stop;
     use super::*;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_modules;
-    use crate::models::problem::TravelLimits;
-    use crate::models::solution::Route;
+    use crate::models::problem::Actor;
 
     fn create_test_data(
         vehicle: &str,
         target: &str,
         limit: (Option<Distance>, Option<Duration>),
     ) -> (ConstraintPipeline, RouteContext) {
-        struct TestTravelLimits {
-            target: String,
-            limit: (Option<Distance>, Option<Duration>),
-        }
-        impl TravelLimits for TestTravelLimits {
-            fn tour_distance(&self, route: &Route) -> Option<Distance> {
-                if get_vehicle_id(route.actor.vehicle.as_ref()) == self.target.as_str() {
-                    self.limit.0
-                } else {
-                    None
-                }
-            }
-
-            fn tour_duration(&self, route: &Route) -> Option<Duration> {
-                if get_vehicle_id(route.actor.vehicle.as_ref()) == self.target.as_str() {
-                    self.limit.1
-                } else {
-                    None
-                }
-            }
-
-            fn trip_distance(&self, _: &Route, _: usize) -> Option<Distance> {
-                None
-            }
-
-            fn trip_duration(&self, _: &Route, _: usize) -> Option<Duration> {
-                None
-            }
-        }
-
         let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
         let mut state = RouteState::default();
         state.put_route_state(TOTAL_DISTANCE_KEY, 50.);
@@ -409,10 +249,30 @@ mod traveling {
             Arc::new(create_route_with_activities(&fleet, vehicle, vec![])),
             Arc::new(state),
         );
-        let transport = TestTransportCost::new_with_limits(Arc::new(TestTravelLimits { target, limit }));
+        let transport = TestTransportCost::new_shared();
+        let tour_distance_limit = Arc::new({
+            let target = target.clone();
+            move |actor: &Actor| {
+                if get_vehicle_id(actor.vehicle.as_ref()) == target.as_str() {
+                    limit.0
+                } else {
+                    None
+                }
+            }
+        });
+        let tour_duration_limit =
+            Arc::new(
+                move |actor: &Actor| {
+                    if get_vehicle_id(actor.vehicle.as_ref()) == target.as_str() {
+                        limit.1
+                    } else {
+                        None
+                    }
+                },
+            );
         let pipeline = create_constraint_pipeline_with_modules(vec![
             Arc::new(TransportConstraintModule::new(transport.clone(), Arc::new(TestActivityCost::default()), 1)),
-            Arc::new(TravelLimitModule::new(transport, 2, 3)),
+            Arc::new(TravelLimitModule::new(transport, tour_distance_limit, tour_duration_limit, 2, 3)),
         ]);
 
         (pipeline, route_ctx)

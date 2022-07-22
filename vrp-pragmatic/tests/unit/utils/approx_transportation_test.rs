@@ -1,7 +1,5 @@
 use super::*;
 use crate::format::Location;
-use std::sync::Arc;
-use vrp_core::construction::constraints::NoTravelLimits;
 use vrp_core::models::common::Profile;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData};
 
@@ -35,11 +33,8 @@ fn can_use_approximated_with_matrix_costs() {
     let durations = durations.iter().map(|&d| d as f64).collect();
     let distances = distances.iter().map(|&d| d as f64).collect();
 
-    let costs = create_matrix_transport_cost(
-        vec![MatrixData::new(profile.index, None, durations, distances)],
-        Arc::new(NoTravelLimits::default()),
-    )
-    .expect("Cannot create matrix transport costs");
+    let costs = create_matrix_transport_cost(vec![MatrixData::new(profile.index, None, durations, distances)])
+        .expect("Cannot create matrix transport costs");
 
     vec![(0, 1, 3048.), (1, 2, 2056.), (2, 0, 5078.)].into_iter().for_each(|(from, to, expected)| {
         let distance = costs.distance_approx(&profile, from, to);

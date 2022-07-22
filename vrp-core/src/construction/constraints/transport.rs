@@ -5,11 +5,9 @@ mod transport_test;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::common::{Cost, Distance, Timestamp};
-use crate::models::problem::{ActivityCost, Job, Single, TransportCost, TravelLimits, TravelTime};
+use crate::models::problem::{ActivityCost, Job, Single, TransportCost, TravelTime};
 use crate::models::solution::Activity;
 use crate::models::OP_START_MSG;
-use rosomaxa::prelude::compare_floats;
-use std::cmp::Ordering;
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -36,12 +34,6 @@ impl ConstraintModule for TransportConstraintModule {
 
         Self::update_route_schedules(ctx, activity, transport);
         Self::update_route_states(ctx, activity, transport);
-        // NOTE Rescheduling during the insertion process makes sense only if the traveling limit
-        // is set (for duration limit, not for distance).
-        if transport.limits().tour_duration(ctx.route.as_ref()).is_some() {
-            Self::advance_departure_time(ctx, activity, transport, false);
-        }
-
         Self::update_statistics(ctx, transport);
     }
 
@@ -179,39 +171,17 @@ impl TransportConstraintModule {
         route_ctx.state_mut().put_route_state(TOTAL_DURATION_KEY, total_dur);
     }
 
-    /// Tries to move forward route's departure time.
-    pub(crate) fn advance_departure_time(
-        route_ctx: &mut RouteContext,
-        activity: &(dyn ActivityCost + Send + Sync),
-        transport: &(dyn TransportCost + Send + Sync),
-        consider_whole_tour: bool,
-    ) {
-        let new_departure_time = try_advance_departure_time(route_ctx, transport, consider_whole_tour);
-        Self::try_update_route_departure(route_ctx, activity, transport, new_departure_time);
-    }
-
-    /// Tries to move backward route's departure time.
-    pub(crate) fn recede_departure_time(
-        route_ctx: &mut RouteContext,
-        activity: &(dyn ActivityCost + Send + Sync),
-        transport: &(dyn TransportCost + Send + Sync),
-    ) {
-        let new_departure_time = try_recede_departure_time(route_ctx, transport.limits());
-        Self::try_update_route_departure(route_ctx, activity, transport, new_departure_time);
-    }
-
-    fn try_update_route_departure(
+    /// Updates route departure to the new one.
+    pub(crate) fn update_route_departure(
         ctx: &mut RouteContext,
         activity: &(dyn ActivityCost + Send + Sync),
         transport: &(dyn TransportCost + Send + Sync),
-        new_departure_time: Option<f64>,
+        new_departure_time: Timestamp,
     ) {
-        if let Some(new_departure_time) = new_departure_time {
-            let mut start = ctx.route_mut().tour.get_mut(0).unwrap();
-            start.schedule.departure = new_departure_time;
-            Self::update_route_schedules(ctx, activity, transport);
-            Self::update_route_states(ctx, activity, transport);
-        }
+        let mut start = ctx.route_mut().tour.get_mut(0).unwrap();
+        start.schedule.departure = new_departure_time;
+        Self::update_route_schedules(ctx, activity, transport);
+        Self::update_route_states(ctx, activity, transport);
     }
 }
 
@@ -416,74 +386,5 @@ impl SoftActivityConstraint for CostSoftActivityConstraint {
         let old_costs = tp_cost_old + act_cost_old + waiting_cost;
 
         new_costs - old_costs
-    }
-}
-
-fn try_advance_departure_time(
-    route_ctx: &RouteContext,
-    transport: &(dyn TransportCost + Send + Sync),
-    optimize_whole_tour: bool,
-) -> Option<Timestamp> {
-    let route = route_ctx.route.as_ref();
-
-    let first = route.tour.get(1)?;
-    let start = route.tour.start()?;
-
-    let latest_allowed_departure = route.actor.detail.start.as_ref().and_then(|s| s.time.latest).unwrap_or(f64::MAX);
-    let last_departure_time = start.schedule.departure;
-
-    let new_departure_time = if optimize_whole_tour {
-        let (total_waiting_time, max_shift) =
-            route.tour.all_activities().rev().fold((0., f64::MAX), |(total_waiting_time, max_shift), activity| {
-                let waiting_time = (activity.place.time.start - activity.schedule.arrival).max(0.);
-                let remaining_time = (activity.place.time.end - activity.schedule.arrival - waiting_time).max(0.);
-
-                (total_waiting_time + waiting_time, waiting_time + remaining_time.min(max_shift))
-            });
-        let departure_shift = total_waiting_time.min(max_shift);
-
-        (start.schedule.departure + departure_shift).min(latest_allowed_departure)
-    } else {
-        let start_to_first = transport.duration(
-            route,
-            start.place.location,
-            first.place.location,
-            TravelTime::Departure(last_departure_time),
-        );
-
-        last_departure_time.max(first.place.time.start - start_to_first).min(latest_allowed_departure)
-    };
-
-    if new_departure_time > last_departure_time {
-        Some(new_departure_time)
-    } else {
-        None
-    }
-}
-
-fn try_recede_departure_time(
-    route_ctx: &RouteContext,
-    travel_limits: &(dyn TravelLimits + Send + Sync),
-) -> Option<Timestamp> {
-    let first = route_ctx.route.tour.get(1)?;
-    let start = route_ctx.route.tour.start()?;
-
-    let max_change = *route_ctx.state.get_activity_state::<f64>(LATEST_ARRIVAL_KEY, first)? - first.schedule.arrival;
-
-    let earliest_allowed_departure =
-        route_ctx.route.actor.detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(start.place.time.start);
-
-    let max_change = (start.schedule.departure - earliest_allowed_departure).min(max_change);
-
-    let max_change = route_ctx
-        .state
-        .get_route_state::<f64>(TOTAL_DURATION_KEY)
-        .zip(travel_limits.tour_duration(route_ctx.route.as_ref()))
-        .map(|(&total, limit)| (limit - total).min(max_change))
-        .unwrap_or(max_change);
-
-    match compare_floats(max_change, 0.) {
-        Ordering::Greater => Some(start.schedule.departure - max_change),
-        _ => None,
     }
 }

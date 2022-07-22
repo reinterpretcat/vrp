@@ -9,7 +9,6 @@ use crate::format::problem::Matrix;
 use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
-use vrp_core::construction::constraints::{NoTravelLimits, SimpleTravelLimits};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 
@@ -43,8 +42,6 @@ pub(crate) fn create_transport_costs(
             matrices.len()
         ));
     }
-
-    let travel_limits = read_travel_limits(api_problem);
 
     let matrix_data = matrices
         .iter()
@@ -85,7 +82,7 @@ pub(crate) fn create_transport_costs(
         return Err("amount of fleet profiles does not match matrix profiles".to_string());
     }
 
-    create_matrix_transport_cost(matrix_data, travel_limits)
+    create_matrix_transport_cost(matrix_data)
 }
 
 pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> Fleet {
@@ -202,38 +199,6 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
     })];
 
     Fleet::new(drivers, vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
-}
-
-fn read_travel_limits(api_problem: &ApiProblem) -> Arc<dyn TravelLimits + Send + Sync> {
-    let (duration, distance) = api_problem
-        .fleet
-        .vehicles
-        .iter()
-        .filter_map(|vehicle| vehicle.limits.as_ref().map(|limits| (vehicle, limits)))
-        .fold((HashMap::new(), HashMap::new()), |(mut duration, mut distance), (vehicle, limits)| {
-            limits.max_distance.iter().for_each(|max_distance| {
-                distance.insert(vehicle.type_id.clone(), *max_distance);
-            });
-
-            limits.shift_time.iter().for_each(|shift_time| {
-                duration.insert(vehicle.type_id.clone(), *shift_time);
-            });
-
-            (duration, distance)
-        });
-
-    if duration.is_empty() && distance.is_empty() {
-        Arc::new(NoTravelLimits::default())
-    } else {
-        Arc::new(SimpleTravelLimits::new(
-            Arc::new(move |actor: &Actor| {
-                distance.get(actor.vehicle.dimens.get_value::<String>("type_id").unwrap()).cloned()
-            }),
-            Arc::new(move |actor: &Actor| {
-                duration.get(actor.vehicle.dimens.get_value::<String>("type_id").unwrap()).cloned()
-            }),
-        ))
-    }
 }
 
 fn add_vehicle_skills(dimens: &mut Dimensions, skills: &Option<Vec<String>>) {

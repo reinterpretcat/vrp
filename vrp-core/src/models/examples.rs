@@ -23,11 +23,6 @@ impl TransportCost for ExampleTransportCost {
     fn distance(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Distance {
         42.
     }
-
-    fn limits(&self) -> &(dyn TravelLimits + Send + Sync) {
-        static NO_LIMITS: NoTravelLimits = NoTravelLimits {};
-        &NO_LIMITS
-    }
 }
 
 /// Creates an example jobs used in documentation tests.

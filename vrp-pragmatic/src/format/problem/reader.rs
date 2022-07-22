@@ -229,8 +229,15 @@ fn map_to_problem(
         &random,
     );
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect::<Vec<_>>();
-    let mut constraint =
-        create_constraint_pipeline(&jobs, &fleet, transport.clone(), activity.clone(), &problem_props, &locks);
+    let mut constraint = create_constraint_pipeline(
+        &api_problem,
+        &jobs,
+        &fleet,
+        transport.clone(),
+        activity.clone(),
+        &problem_props,
+        &locks,
+    );
 
     let objective = create_objective(&api_problem, &mut constraint, &problem_props);
     let constraint = Arc::new(constraint);
@@ -308,6 +315,7 @@ fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> Res
 
 #[allow(clippy::too_many_arguments)]
 fn create_constraint_pipeline(
+    api_problem: &ApiProblem,
     jobs: &Jobs,
     fleet: &CoreFleet,
     transport: Arc<dyn TransportCost + Send + Sync>,
@@ -330,11 +338,7 @@ fn create_constraint_pipeline(
     add_capacity_module(&mut constraint, props);
 
     if props.has_tour_travel_limits {
-        constraint.add_module(Arc::new(TravelLimitModule::new(
-            transport.clone(),
-            DISTANCE_LIMIT_CONSTRAINT_CODE,
-            DURATION_LIMIT_CONSTRAINT_CODE,
-        )));
+        add_tour_limit_module(&mut constraint, transport.clone(), api_problem);
     }
 
     if props.has_breaks {
@@ -393,6 +397,43 @@ fn add_tour_size_module(constraint: &mut ConstraintPipeline) {
     constraint.add_module(Arc::new(TourSizeModule::new(
         Arc::new(|actor| actor.vehicle.dimens.get_value::<usize>("tour_size").cloned()),
         TOUR_SIZE_CONSTRAINT_CODE,
+    )));
+}
+
+fn add_tour_limit_module(
+    constraint: &mut ConstraintPipeline,
+    transport: Arc<dyn TransportCost + Send + Sync>,
+    api_problem: &ApiProblem,
+) {
+    let (distances, durations) = api_problem
+        .fleet
+        .vehicles
+        .iter()
+        .filter_map(|vehicle| vehicle.limits.as_ref().map(|limits| (vehicle, limits)))
+        .fold((HashMap::new(), HashMap::new()), |(mut distances, mut durations), (vehicle, limits)| {
+            limits.max_distance.iter().for_each(|max_distance| {
+                distances.insert(vehicle.type_id.clone(), *max_distance);
+            });
+
+            limits.shift_time.iter().for_each(|shift_time| {
+                durations.insert(vehicle.type_id.clone(), *shift_time);
+            });
+
+            (distances, durations)
+        });
+
+    let get_limit = |limit_map: HashMap<String, f64>| {
+        Arc::new(move |actor: &Actor| {
+            actor.vehicle.dimens.get_value::<String>("type_id").and_then(|v_type| limit_map.get(v_type)).cloned()
+        })
+    };
+
+    constraint.add_module(Arc::new(TravelLimitModule::new(
+        transport.clone(),
+        get_limit(distances),
+        get_limit(durations),
+        DISTANCE_LIMIT_CONSTRAINT_CODE,
+        DURATION_LIMIT_CONSTRAINT_CODE,
     )));
 }
 

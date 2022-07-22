@@ -1,18 +1,10 @@
-use crate::construction::constraints::NoTravelLimits;
 use crate::models::common::{Distance, Duration, Location, Profile, Timestamp};
-use crate::models::problem::{ActivityCost, SimpleActivityCost, TransportCost, TravelLimits, TravelTime};
+use crate::models::problem::{ActivityCost, SimpleActivityCost, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
 use std::sync::Arc;
 
-pub struct TestTransportCost {
-    travel_limits: Arc<dyn TravelLimits + Send + Sync>,
-}
-
-impl Default for TestTransportCost {
-    fn default() -> Self {
-        Self { travel_limits: Arc::new(NoTravelLimits::default()) }
-    }
-}
+#[derive(Default)]
+pub struct TestTransportCost {}
 
 impl TransportCost for TestTransportCost {
     fn duration_approx(&self, _: &Profile, from: Location, to: Location) -> Duration {
@@ -30,19 +22,11 @@ impl TransportCost for TestTransportCost {
     fn distance(&self, _: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         fake_routing(from, to)
     }
-
-    fn limits(&self) -> &(dyn TravelLimits + Send + Sync) {
-        self.travel_limits.as_ref()
-    }
 }
 
 impl TestTransportCost {
     pub fn new_shared() -> Arc<dyn TransportCost + Sync + Send> {
         Arc::new(Self::default())
-    }
-
-    pub fn new_with_limits(travel_limits: Arc<dyn TravelLimits + Send + Sync>) -> Arc<dyn TransportCost + Sync + Send> {
-        Arc::new(Self { travel_limits })
     }
 }
 

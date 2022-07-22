@@ -3,6 +3,7 @@
 mod capacity_test;
 
 use crate::construction::constraints::*;
+use crate::construction::extensions::{MultiTrip, NoMultiTrip};
 use crate::construction::heuristics::*;
 use crate::models::common::*;
 use crate::models::problem::{Job, Single};

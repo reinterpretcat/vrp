@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::constraints::TransportConstraintModule;
+use crate::construction::extensions::advance_departure_time;
 use crate::construction::heuristics::InsertionContext;
 use rosomaxa::HeuristicSolution;
 
@@ -19,7 +19,7 @@ impl HeuristicSolutionProcessing for AdvanceDeparture {
         let transport = problem.transport.as_ref();
 
         insertion_ctx.solution.routes.iter_mut().for_each(|route_ctx| {
-            TransportConstraintModule::advance_departure_time(route_ctx, activity, transport, true);
+            advance_departure_time(route_ctx, activity, transport, true);
         });
 
         problem.constraint.accept_solution_state(&mut insertion_ctx.solution);

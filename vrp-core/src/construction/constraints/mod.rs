@@ -61,8 +61,10 @@ pub const LATEST_ARRIVAL_KEY: i32 = 1;
 pub const WAITING_KEY: i32 = 2;
 /// A key which tracks total distance.
 pub const TOTAL_DISTANCE_KEY: i32 = 3;
-/// A key which track total duration.
+/// A key which tracks total duration.
 pub const TOTAL_DURATION_KEY: i32 = 4;
+/// A key which tracks global duration limit.
+pub const LIMIT_DURATION_KEY: i32 = 5;
 
 /// A key which tracks current vehicle capacity.
 pub const CURRENT_CAPACITY_KEY: i32 = 11;
@@ -101,9 +103,6 @@ pub use self::capacity::*;
 
 mod locking;
 pub use self::locking::*;
-
-mod multi_trip;
-pub use self::multi_trip::*;
 
 mod tour_size;
 pub use self::tour_size::*;
