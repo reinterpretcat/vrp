@@ -18,7 +18,7 @@ pub struct CapacityConstraintModule<T: LoadOps> {
     state_keys: Vec<i32>,
     conditional: ConditionalJobModule,
     constraints: Vec<ConstraintVariant>,
-    multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>,
 }
 
 impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
@@ -28,7 +28,7 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
     }
 
     /// Creates a new instance of `CapacityConstraintModule` with multi trip (reload) functionality
-    pub fn new_with_multi_trip(code: i32, multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>) -> Self {
+    pub fn new_with_multi_trip(code: i32, multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>) -> Self {
         Self {
             code,
             state_keys: vec![CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY],
@@ -165,7 +165,7 @@ impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
 
     fn can_handle_demand_on_intervals(
         ctx: &RouteContext,
-        multi_trip: &(dyn MultiTrip<Capacity = T> + Send + Sync),
+        multi_trip: &(dyn MultiTrip<Constraint = T> + Send + Sync),
         demand: Option<&Demand<T>>,
         insert_idx: Option<usize>,
     ) -> bool {
@@ -257,7 +257,7 @@ impl<T: LoadOps> ConstraintModule for CapacityConstraintModule<T> {
 }
 
 struct CapacitySoftRouteConstraint<T: LoadOps> {
-    multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>,
 }
 
 impl<T: LoadOps> SoftRouteConstraint for CapacitySoftRouteConstraint<T> {
@@ -273,7 +273,7 @@ impl<T: LoadOps> SoftRouteConstraint for CapacitySoftRouteConstraint<T> {
 /// Locks reload jobs to specific vehicles
 struct CapacityHardRouteConstraint<T: LoadOps> {
     code: i32,
-    multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>,
 }
 
 impl<T: LoadOps> HardRouteConstraint for CapacityHardRouteConstraint<T> {
@@ -313,7 +313,7 @@ impl<T: LoadOps> HardRouteConstraint for CapacityHardRouteConstraint<T> {
 
 struct CapacityHardActivityConstraint<T: LoadOps> {
     code: i32,
-    multi_trip: Arc<dyn MultiTrip<Capacity = T> + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>,
 }
 
 impl<T: LoadOps> HardActivityConstraint for CapacityHardActivityConstraint<T> {

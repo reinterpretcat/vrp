@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 /// This trait defines multi-trip strategy for constraint extension.
 pub trait MultiTrip {
     /// Specifies capacity type.
-    type Capacity;
+    type Constraint;
 
     /// Returns true if job is considered as multi trip marker.
     fn is_marker_job(&self, job: &Job) -> bool;
@@ -103,7 +103,7 @@ impl<T> Default for NoMultiTrip<T> {
 }
 
 impl<T> MultiTrip for NoMultiTrip<T> {
-    type Capacity = T;
+    type Constraint = T;
 
     fn is_marker_job(&self, _: &Job) -> bool {
         false

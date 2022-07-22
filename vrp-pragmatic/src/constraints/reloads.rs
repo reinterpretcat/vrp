@@ -23,7 +23,7 @@ impl<T: LoadOps> ReloadMultiTrip<T> {
 }
 
 impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
-    type Capacity = T;
+    type Constraint = T;
 
     fn is_marker_job(&self, job: &Job) -> bool {
         job.as_single().map_or(false, |single| is_reload_single(single))
@@ -101,7 +101,7 @@ impl<T: LoadOps> MultiTrip for ReloadMultiTrip<T> {
                         let activity = route_ctx.route.tour.get(activity_index).unwrap();
                         route_ctx
                             .state
-                            .get_activity_state::<Self::Capacity>(state_key, activity)
+                            .get_activity_state::<Self::Constraint>(state_key, activity)
                             .cloned()
                             .unwrap_or_default()
                     };
