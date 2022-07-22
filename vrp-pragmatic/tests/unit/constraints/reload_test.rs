@@ -39,7 +39,7 @@ fn reload(reload_id: &str) -> Activity {
 fn can_handle_reload_jobs_with_merge() {
     let create_reload_job = || Job::Single(reload("reload").job.unwrap());
     let create_job = || Job::Single(Arc::new(create_single_with_location(None)));
-    let multi_trip = Arc::new(ReloadMultiTrip::new(Box::new(|_| SingleDimLoad::default())));
+    let multi_trip = Arc::new(create_reload_multi_trip(Box::new(|_| SingleDimLoad::default())));
     let constraint = CapacityConstraintModule::<SingleDimLoad>::new_with_multi_trip(2, multi_trip);
 
     assert_eq!(constraint.merge(create_reload_job(), create_job()).map(|_| ()), Err(2));
@@ -179,7 +179,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
     let mut pipeline = ConstraintPipeline::default();
     pipeline.add_module(Arc::new(CapacityConstraintModule::new_with_multi_trip(
         1,
-        Arc::new(ReloadMultiTrip::<MultiDimLoad>::new(Box::new(move |capacity| *capacity * threshold))),
+        Arc::new(create_reload_multi_trip::<MultiDimLoad>(Box::new(move |capacity| *capacity * threshold))),
     )));
 
     pipeline.accept_route_state(solution_ctx.routes.get_mut(0).unwrap());

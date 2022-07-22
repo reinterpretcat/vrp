@@ -378,12 +378,12 @@ fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemPrope
         if props.has_multi_dimen_capacity {
             Arc::new(CapacityConstraintModule::<MultiDimLoad>::new_with_multi_trip(
                 CAPACITY_CONSTRAINT_CODE,
-                Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| *capacity * threshold))),
+                Arc::new(create_reload_multi_trip(Box::new(move |capacity| *capacity * threshold))),
             ))
         } else {
             Arc::new(CapacityConstraintModule::<SingleDimLoad>::new_with_multi_trip(
                 CAPACITY_CONSTRAINT_CODE,
-                Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| *capacity * threshold))),
+                Arc::new(create_reload_multi_trip(Box::new(move |capacity| *capacity * threshold))),
             ))
         }
     } else if props.has_multi_dimen_capacity {
