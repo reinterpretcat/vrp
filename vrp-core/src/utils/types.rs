@@ -19,12 +19,12 @@ where
     }
 }
 
-impl<Left, Right, Item> Iterator for Either<Left, Right>
+impl<L, R, T> Iterator for Either<L, R>
 where
-    Left: Iterator<Item = Item>,
-    Right: Iterator<Item = Item>,
+    L: Iterator<Item = T>,
+    R: Iterator<Item = T>,
 {
-    type Item = Item;
+    type Item = T;
     fn next(&mut self) -> Option<Self::Item> {
         match self {
             Self::Left(it) => it.next(),
