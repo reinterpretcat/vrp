@@ -162,14 +162,14 @@ fn evaluate_multi(
             let mut shadow = ShadowContext::new(eval_ctx.constraint, route_ctx);
             let perm_res = unwrap_from_result(repeat(0).try_fold(MultiContext::new(None, insertion_idx), |out, _| {
                 if out.is_failure(route_ctx.route.tour.job_activity_count()) {
-                    return Result::Err(out);
+                    return Err(out);
                 }
                 shadow.restore(route_ctx);
 
                 // 2. analyze inner jobs
                 let sq_res = unwrap_from_result(services.iter().try_fold(out.next(), |in1, service| {
                     if in1.violation.is_some() {
-                        return Result::Err(in1);
+                        return Err(in1);
                     }
                     let mut activity = Activity::new_with_job(service.clone());
                     // 3. analyze legs
@@ -305,20 +305,20 @@ impl SingleContext {
         let stopped = violation.stopped;
         let ctx = Self { violation: Some(violation), index: other.index, cost: other.cost, place: other.place };
         if stopped {
-            Result::Err(ctx)
+            Err(ctx)
         } else {
-            Result::Ok(ctx)
+            Ok(ctx)
         }
     }
 
     #[allow(clippy::unnecessary_wraps)]
     fn success(index: usize, cost: Cost, place: Place) -> Result<Self, Self> {
-        Result::Ok(Self { violation: None, index, cost: Some(cost), place: Some(place) })
+        Ok(Self { violation: None, index, cost: Some(cost), place: Some(place) })
     }
 
     #[allow(clippy::unnecessary_wraps)]
     fn skip(other: SingleContext) -> Result<Self, Self> {
-        Result::Ok(other)
+        Ok(other)
     }
 
     fn is_success(&self) -> bool {
@@ -377,9 +377,9 @@ impl MultiContext {
         };
 
         if result.violation.as_ref().map_or_else(|| false, |v| v.stopped) {
-            Result::Err(result)
+            Err(result)
         } else {
-            Result::Ok(result)
+            Ok(result)
         }
     }
 
@@ -388,7 +388,7 @@ impl MultiContext {
         let (code, stopped) =
             err_ctx.violation.map_or((0, false), |v| (v.code, v.stopped && other_ctx.activities.is_none()));
 
-        Result::Err(Self {
+        Err(Self {
             violation: Some(ActivityConstraintViolation { code, stopped }),
             start_index: other_ctx.start_index,
             next_index: other_ctx.start_index,
@@ -400,7 +400,7 @@ impl MultiContext {
     /// Creates successful insertion context.
     #[allow(clippy::unnecessary_wraps)]
     fn success(cost: Cost, activities: Vec<(Activity, usize)>) -> Result<Self, Self> {
-        Result::Ok(Self {
+        Ok(Self {
             violation: None,
             start_index: activities.first().unwrap().1,
             next_index: activities.last().unwrap().1 + 1,
