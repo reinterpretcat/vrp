@@ -104,6 +104,9 @@ pub use self::capacity::*;
 mod locking;
 pub use self::locking::*;
 
+mod shared_resource;
+pub use self::shared_resource::*;
+
 mod tour_size;
 pub use self::tour_size::*;
 
