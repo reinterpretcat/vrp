@@ -119,7 +119,7 @@ impl HardRouteConstraint for GroupHardRouteConstraint {
                 (true, _) => Some(RouteConstraintViolation { code: self.code }),
                 // NOTE handle partial solution context use case (e.g. decompose search)
                 (false, false) => {
-                    let is_full_problem = amount_of_jobs(solution_ctx) == self.total_jobs;
+                    let is_full_problem = solution_ctx.get_jobs_amount() == self.total_jobs;
                     if is_full_problem {
                         None
                     } else {
@@ -138,12 +138,4 @@ fn get_group(job: &Job) -> Option<&String> {
 
 fn get_groups(route_ctx: &RouteContext) -> HashSet<String> {
     route_ctx.route.tour.jobs().filter_map(|job| get_group(&job).cloned()).collect()
-}
-
-fn amount_of_jobs(solution_ctx: &SolutionContext) -> usize {
-    let assigned = solution_ctx.routes.iter().map(|route_ctx| route_ctx.route.tour.job_count()).sum::<usize>();
-
-    let required = solution_ctx.required.iter().filter(|job| !solution_ctx.unassigned.contains_key(job)).count();
-
-    solution_ctx.unassigned.len() + required + solution_ctx.ignored.len() + assigned
 }

@@ -160,6 +160,16 @@ impl SolutionContext {
         }
     }
 
+    /// Returns amount of jobs considered by solution context.
+    /// NOTE: the amount can be different for partially solved problem from original problem.
+    pub fn get_jobs_amount(&self) -> usize {
+        let assigned = self.routes.iter().map(|route_ctx| route_ctx.route.tour.job_count()).sum::<usize>();
+
+        let required = self.required.iter().filter(|job| !self.unassigned.contains_key(job)).count();
+
+        self.unassigned.len() + required + self.ignored.len() + assigned
+    }
+
     /// Creates a deep copy of `SolutionContext`.
     pub fn deep_copy(&self) -> Self {
         Self {
