@@ -18,6 +18,7 @@ use vrp_scientific::tsplib::{TsplibProblem, TsplibSolution};
 mod conversion;
 mod fdeb;
 
+/// Represents VRP solution as directed graph.
 #[derive(Clone, Serialize)]
 pub struct DataGraph {
     /// Nodes data: x and y coordinate.
@@ -26,12 +27,14 @@ pub struct DataGraph {
     pub edges: Vec<GraphEdge>,
 }
 
+/// Node of a graph.
 #[derive(Clone, Serialize)]
 pub struct GraphNode {
     pub x: f64,
     pub y: f64,
 }
 
+/// Edge of a graph.
 #[derive(Clone, Serialize)]
 pub struct GraphEdge {
     pub source: usize,
@@ -89,6 +92,7 @@ pub fn solve_vrp(
     logger.deref()(&buffer);
 }
 
+/// Returns data for forced bundled edges visualization.
 pub fn get_forced_bundled_edges(graphs: &[DataGraph]) -> (Vec<GraphNode>, Vec<Vec<GraphNode>>) {
     // NOTE merge all edges into one graph
     let graph = if let Some(graph) = graphs.first() {

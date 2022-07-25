@@ -22,10 +22,13 @@ pub type MatrixData = HashMap<Coordinate, f64>;
 
 /// Represents a single experiment observation data.
 pub enum ObservationData {
-    /// Observation for benchmarking function experiment.
+    /// Observation for benchmarking 3D function experiment.
     Function(DataPoint3D),
+
     /// Observation for Vehicle Routing Problem experiment.
-    Vrp(DataGraph),
+    /// DataGraph contains solution represented as a directed graph, DataPoint3D represents solution
+    /// as a point in 3D space where meaning of each dimension depends on problem variant.
+    Vrp((DataGraph, DataPoint3D)),
 }
 
 lazy_static! {
@@ -46,7 +49,7 @@ pub fn run_function_experiment(function_name: &str, population_type: &str, x: f6
 
 /// Runs VRP experiment.
 #[wasm_bindgen]
-pub fn run_vrp_experiment(format_type: &str, problem: &str, population_type: &str, generations: usize) {
+pub fn run_vrp_edge_bundling_experiment(format_type: &str, problem: &str, population_type: &str, generations: usize) {
     let problem = problem.to_string();
     let selection_size = 8;
     let logger = Arc::new(|message: &str| {

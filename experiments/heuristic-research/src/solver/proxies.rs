@@ -48,7 +48,8 @@ where
         if TypeId::of::<S>() == TypeId::of::<InsertionContext>() {
             let insertion_ctx = unsafe { std::mem::transmute::<&S, &InsertionContext>(solution) };
 
-            return ObservationData::Vrp(insertion_ctx.into());
+            // TODO provide conversion of VRP solution into a single 3D point
+            return ObservationData::Vrp((insertion_ctx.into(), DataPoint3D(0., 0., 0.)));
         }
 
         unreachable!()

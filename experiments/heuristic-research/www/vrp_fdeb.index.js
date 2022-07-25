@@ -15,8 +15,8 @@ export function main() {
 }
 
 /** This function is used in `vrp.bootstrap.js` to setup imports. */
-export function setup(run_vrp_experiment, get_bundled_edges, clear) {
-    Chart.run_experiment = run_vrp_experiment;
+export function setup(run_vrp_edge_bundling_experiment, get_bundled_edges, clear) {
+    Chart.run_experiment = run_vrp_edge_bundling_experiment;
     Chart.get_bundled_edges = get_bundled_edges;
     Chart.clear = clear;
 }
