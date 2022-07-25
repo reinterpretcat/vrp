@@ -48,8 +48,17 @@ where
         if TypeId::of::<S>() == TypeId::of::<InsertionContext>() {
             let insertion_ctx = unsafe { std::mem::transmute::<&S, &InsertionContext>(solution) };
 
-            // TODO provide conversion of VRP solution into a single 3D point
-            return ObservationData::Vrp((insertion_ctx.into(), DataPoint3D(0., 0., 0.)));
+            // NOTE a naive conversion to 3D point
+            let fitness = insertion_ctx.get_fitness().collect::<Vec<_>>();
+            let (x, y, z) = match fitness.len() {
+                0 => (0., 0., 0.),
+                1 => (fitness[0], 0., 0.),
+                2 => (fitness[0], fitness[1], 0.),
+                len if len >= 3 => (fitness[0], fitness[1], fitness[2]),
+                _ => unreachable!(),
+            };
+
+            return ObservationData::Vrp((insertion_ctx.into(), DataPoint3D(x, y, z)));
         }
 
         unreachable!()
