@@ -1,4 +1,4 @@
-use heuristic_research::{draw_plots, solve_function, Axes};
+use heuristic_research::{draw_function_plots, solve_function, Axes};
 use plotters::prelude::*;
 use rosomaxa::utils::Environment;
 
@@ -20,5 +20,5 @@ fn main() {
     let yaw = 0.;
     let axes = Axes { x: (-2.0..2.0, 0.15), y: (0.0..3610.), z: (-2.0..2.0, 0.15) };
 
-    draw_plots(area, generation, pitch, yaw, axes, function_name).unwrap();
+    draw_function_plots(area, generation, pitch, yaw, axes, function_name).unwrap();
 }

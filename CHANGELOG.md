@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * Improve obsolete reload removal logic
+* Refactor heuristic research crate
 
 
 ## [v1.18.2] - 2022-07-12

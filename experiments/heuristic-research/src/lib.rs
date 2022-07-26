@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use wasm_bindgen::prelude::*;
 
 mod plots;
-pub use self::plots::{draw_plots, Axes};
+pub use self::plots::{draw_function_plots, Axes};
 
 mod solver;
 pub use self::solver::solve_function;
@@ -49,7 +49,7 @@ pub fn run_function_experiment(function_name: &str, population_type: &str, x: f6
 
 /// Runs VRP experiment.
 #[wasm_bindgen]
-pub fn run_vrp_edge_bundling_experiment(format_type: &str, problem: &str, population_type: &str, generations: usize) {
+pub fn run_vrp_experiment(format_type: &str, problem: &str, population_type: &str, generations: usize) {
     let problem = problem.to_string();
     let selection_size = 8;
     let logger = Arc::new(|message: &str| {
@@ -89,11 +89,14 @@ pub fn get_bundled_edges(generation: usize) -> JsValue {
         .unwrap_or_else(Vec::new);
 
     let (nodes, edges) = get_forced_bundled_edges(graphs.as_slice());
-    let result = GraphResult { nodes, edges };
 
+    serialize(GraphResult { nodes, edges })
+}
+
+fn serialize<T: Serialize>(value: T) -> JsValue {
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    serde_json::to_writer_pretty(writer, &result).expect("cannot serialize bundled edges");
+    serde_json::to_writer_pretty(writer, &value).expect("cannot serialize");
 
     JsValue::from_str(buffer.as_str())
 }

@@ -28,35 +28,57 @@ impl Chart {
     /// Draws plot for rosenbrock function.
     pub fn rosenbrock(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-2.0..2.0, 0.15), y: (0.0..3610.), z: (-2.0..2.0, 0.15) };
-        draw_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rosenbrock")?;
+        draw_function_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rosenbrock")?;
         Ok(())
     }
 
     /// Draws plot for rastrigin function.
     pub fn rastrigin(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-5.12..5.12, 0.2), y: (0.0..80.), z: (-5.12..5.12, 0.2) };
-        draw_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rastrigin")?;
+        draw_function_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rastrigin")?;
         Ok(())
     }
 
     /// Draws plot for himmelblau function.
     pub fn himmelblau(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-5.0..5.0, 0.2), y: (0.0..700.), z: (-5.0..5.0, 0.2) };
-        draw_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "himmelblau")?;
+        draw_function_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "himmelblau")?;
         Ok(())
     }
 
     /// Draws plot for ackley function.
     pub fn ackley(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-5.0..5.0, 0.2), y: (0.0..14.), z: (-5.0..5.0, 0.2) };
-        draw_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "ackley")?;
+        draw_function_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "ackley")?;
         Ok(())
     }
 
     /// Draws plot for matyas function.
     pub fn matyas(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-10.0..10.0, 0.4), y: (0.0..100.), z: (-10.0..10.0, 0.4) };
-        draw_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "matyas")?;
+        draw_function_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "matyas")?;
+        Ok(())
+    }
+
+    /// Draws plot for VRP problem.
+    pub fn vrp(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
+        let (max_x, max_y, max_z) = get_axis_sizes();
+        draw(
+            get_canvas_drawing_area(canvas),
+            &SolutionDrawConfig {
+                axes: Axes { x: (0.0..max_x.max(10.), 0.5), y: (0.0..max_y.max(10.)), z: (0.0..max_z.max(10.), 0.5) },
+                projection: Projection { pitch, yaw, scale: 0.8 },
+                series: Series3D {
+                    surface: Box::new(move |_x, _z| 0.),
+                    points: Box::new(move || get_solution_points(generation)),
+                },
+            },
+            &PopulationDrawConfig {
+                axes: Axes { x: (Default::default(), 0.0), y: Default::default(), z: (Default::default(), 0.0) },
+                series: get_population_series(generation),
+            },
+        )
+        .map_err(|err| err.to_string())?;
         Ok(())
     }
 }
@@ -66,7 +88,7 @@ fn get_canvas_drawing_area(canvas: HtmlCanvasElement) -> DrawingArea<CanvasBacke
 }
 
 /// Draws plots on given area.
-pub fn draw_plots<B: DrawingBackend + 'static>(
+pub fn draw_function_plots<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
     generation: usize,
     pitch: f64,
@@ -149,4 +171,23 @@ fn get_population_series(generation: usize) -> PopulationSeries {
             _ => None,
         })
         .unwrap_or(PopulationSeries::Unknown)
+}
+
+fn get_axis_sizes() -> (f64, f64, f64) {
+    #[derive(Serialize)]
+    struct Axis {
+        pub x: f64,
+        pub y: f64,
+        pub z: f64,
+    }
+
+    EXPERIMENT_DATA.lock().unwrap().on_generation.iter().fold((0_f64, 0_f64, 0_f64), |acc, (_, (_, data))| {
+        data.iter().fold(acc, |(max_x, max_y, max_z), data| {
+            let &DataPoint3D(x, y, z) = match data {
+                ObservationData::Function(point) => point,
+                ObservationData::Vrp((_, point)) => point,
+            };
+            (max_x.max(x), max_y.max(y), max_z.max(z))
+        })
+    })
 }
