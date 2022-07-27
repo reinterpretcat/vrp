@@ -8,6 +8,8 @@ use crate::models::solution::{Activity, Place};
 use crate::models::OP_START_MSG;
 use crate::utils::Either;
 use hashbrown::HashSet;
+use rustc_hash::FxHasher;
+use std::hash::BuildHasherDefault;
 use std::iter::once;
 use std::slice::{Iter, IterMut};
 
@@ -21,7 +23,7 @@ pub struct Tour {
     activities: Vec<Activity>,
 
     /// Stores jobs in the order of their activities added.
-    jobs: HashSet<Job>,
+    jobs: HashSet<Job, BuildHasherDefault<FxHasher>>,
 
     /// Keeps track whether tour is set as closed.
     is_closed: bool,
