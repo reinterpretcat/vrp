@@ -153,7 +153,7 @@ fn is_required_job(routes: &[RouteContext], route_index: Option<usize>, job: &Jo
                 if let Some(route_index) = route_index {
                     can_be_scheduled(routes.get(route_index).unwrap(), job)
                 } else {
-                    let vehicle_id = get_vehicle_id_from_job(job).unwrap();
+                    let vehicle_id = get_vehicle_id_from_job(job);
                     let shift_index = get_shift_index(&job.dimens);
                     routes.iter().any(move |rc| {
                         is_correct_vehicle(&rc.route, vehicle_id, shift_index) && can_be_scheduled(rc, job)

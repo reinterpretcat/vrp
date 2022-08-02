@@ -3,6 +3,7 @@
 mod reload_test;
 
 use crate::constraints::*;
+use hashbrown::HashSet;
 use std::marker::PhantomData;
 use std::ops::{Deref, Range};
 use vrp_core::construction::constraints::*;
@@ -93,7 +94,7 @@ impl<T: Send + Sync> MultiTrip for FixedMultiTrip<T> {
     fn is_assignable(&self, route: &Route, job: &Job) -> bool {
         if self.is_marker_job(job) {
             let job = job.to_single();
-            let vehicle_id = get_vehicle_id_from_job(job).unwrap();
+            let vehicle_id = get_vehicle_id_from_job(job);
             let shift_index = get_shift_index(&job.dimens);
 
             is_correct_vehicle(route, vehicle_id, shift_index)
@@ -124,7 +125,7 @@ impl<T: Send + Sync> MultiTrip for FixedMultiTrip<T> {
                     Job::Single(job) => {
                         self.is_marker_single.deref()(job)
                             && get_shift_index(&job.dimens) == shift_index
-                            && get_vehicle_id_from_job(job).unwrap() == vehicle_id
+                            && get_vehicle_id_from_job(job) == vehicle_id
                     }
                     _ => false,
                 })
@@ -133,6 +134,13 @@ impl<T: Send + Sync> MultiTrip for FixedMultiTrip<T> {
     }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
+        self.promote_multi_trips_when_needed(solution_ctx);
+        self.remove_trivial_multi_trips(solution_ctx);
+    }
+}
+
+impl<T: Send + Sync> FixedMultiTrip<T> {
+    fn remove_trivial_multi_trips(&self, solution_ctx: &mut SolutionContext) {
         let mut extra_ignored = Vec::new();
         solution_ctx.routes.iter_mut().filter(|route_ctx| self.has_markers(route_ctx)).for_each(|route_ctx| {
             let reloads = self.get_marker_intervals(route_ctx).cloned().unwrap_or_default();
@@ -156,5 +164,21 @@ impl<T: Send + Sync> MultiTrip for FixedMultiTrip<T> {
         });
 
         solution_ctx.ignored.extend(extra_ignored.into_iter());
+    }
+
+    fn promote_multi_trips_when_needed(&self, solution_ctx: &mut SolutionContext) {
+        let jobs = solution_ctx
+            .routes
+            .iter()
+            .filter(|route_ctx| self.is_multi_trip_needed(route_ctx))
+            .flat_map(|route_ctx| {
+                self.filter_markers(&route_ctx.route, &solution_ctx.ignored)
+                    .chain(self.filter_markers(&route_ctx.route, &solution_ctx.required))
+            })
+            .collect::<HashSet<_>>();
+
+        solution_ctx.ignored.retain(|job| !jobs.contains(job));
+        solution_ctx.locked.extend(jobs.iter().cloned());
+        solution_ctx.required.extend(jobs.into_iter());
     }
 }

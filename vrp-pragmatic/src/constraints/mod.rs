@@ -29,20 +29,20 @@ where
 }
 
 fn get_shift_index(dimens: &Dimensions) -> usize {
-    *dimens.get_value::<usize>("shift_index").unwrap()
+    *dimens.get_value::<usize>("shift_index").expect("cannot get shift index")
 }
 
-fn get_vehicle_id_from_job(job: &Arc<Single>) -> Option<&String> {
-    job.dimens.get_value::<String>("vehicle_id")
+fn get_vehicle_id_from_job(job: &Arc<Single>) -> &String {
+    job.dimens.get_value::<String>("vehicle_id").expect("cannot get vehicle id")
 }
 
 fn is_correct_vehicle(route: &Route, target_id: &str, target_shift: usize) -> bool {
-    route.actor.vehicle.dimens.get_id().unwrap() == target_id
+    route.actor.vehicle.dimens.get_id().expect("cannot get vehicle id") == target_id
         && get_shift_index(&route.actor.vehicle.dimens) == target_shift
 }
 
 fn is_single_belongs_to_route(ctx: &RouteContext, single: &Arc<Single>) -> bool {
-    let vehicle_id = get_vehicle_id_from_job(single).unwrap();
+    let vehicle_id = get_vehicle_id_from_job(single);
     let shift_index = get_shift_index(&single.dimens);
 
     is_correct_vehicle(&ctx.route, vehicle_id, shift_index)

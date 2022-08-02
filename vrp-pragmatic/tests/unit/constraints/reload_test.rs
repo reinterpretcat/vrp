@@ -29,8 +29,8 @@ fn delivery(job_id: &str, demand: (i32, i32)) -> Activity {
 fn reload(reload_id: &str) -> Activity {
     let mut single_shared = create_single_with_type(reload_id, "reload");
     let single_mut = Arc::get_mut(&mut single_shared).unwrap();
-    single_mut.dimens.set_value("shift_index", 0);
-    single_mut.dimens.set_value("vehicle_id", "v1");
+    single_mut.dimens.set_value("shift_index", 0_usize);
+    single_mut.dimens.set_value("vehicle_id", "v1".to_string());
 
     Activity { job: Some(single_shared), ..create_activity_at_location(0) }
 }
