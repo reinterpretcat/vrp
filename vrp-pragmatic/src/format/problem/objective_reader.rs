@@ -144,7 +144,7 @@ fn get_value(
         max_value,
         reduction_factor.unwrap_or(0.1),
         Arc::new(move |solution| {
-            solution.unassigned.iter().map(|(job, _)| get_unassigned_job_estimator(job, break_value, 0.)).sum()
+            solution.unassigned.iter().map(|(job, _)| get_unassigned_job_estimate(job, break_value, 0.)).sum()
         }),
         ValueFn::Left(Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.))),
         Arc::new(|job, value| match job {
@@ -204,7 +204,7 @@ fn get_area(
             .unwrap_or(0.)
     });
     let solution_fn: SolutionValueFn = Arc::new(move |solution| {
-        solution.unassigned.iter().map(|(job, _)| get_unassigned_job_estimator(job, break_value, 0.)).sum()
+        solution.unassigned.iter().map(|(job, _)| get_unassigned_job_estimate(job, break_value, 0.)).sum()
     });
 
     if is_constrained {
@@ -242,10 +242,10 @@ fn get_load_balance(
 }
 
 fn get_unassigned_objective(break_value: f64) -> TotalUnassignedJobs {
-    TotalUnassignedJobs::new(Arc::new(move |_, job, _| get_unassigned_job_estimator(job, break_value, 1.)))
+    TotalUnassignedJobs::new(Arc::new(move |_, job, _| get_unassigned_job_estimate(job, break_value, 1.)))
 }
 
-fn get_unassigned_job_estimator(job: &Job, break_value: f64, default_value: f64) -> f64 {
+fn get_unassigned_job_estimate(job: &Job, break_value: f64, default_value: f64) -> f64 {
     if let Some(clusters) = job.dimens().get_cluster() {
         clusters.len() as f64 * default_value
     } else {

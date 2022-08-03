@@ -1,11 +1,12 @@
 use crate::constraints::{TOTAL_VALUE_KEY, TOUR_ORDER_KEY};
-use crate::format::problem::reader::objective_reader::{create_objective, get_default_order};
+use crate::format::problem::reader::objective_reader::*;
 use crate::format::problem::reader::ProblemProperties;
 use crate::helpers::create_empty_problem;
 use crate::helpers::{create_empty_insertion_context, create_single_with_type};
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::InsertionContext;
+use vrp_core::models::problem::Job;
 use vrp_core::rosomaxa::prelude::MultiObjective;
 use vrp_core::solver::objectives::OrderResult;
 
@@ -73,6 +74,20 @@ fn can_define_proper_places_for_mixed_priority_and_order_objectives_by_default()
 
     assert_eq!(objectives[0].fitness(&insertion_ctx), 123.);
     assert_eq!(objectives[2].fitness(&insertion_ctx), 321.);
+}
+
+#[test]
+fn can_get_default_unassigned_job_estimate() {
+    let estimate_for_type = |activity_type: &str| {
+        get_unassigned_job_estimate(&Job::Single(create_single_with_type("job1", activity_type)), 100., 1.)
+    };
+
+    assert_eq!(estimate_for_type("break"), 100.);
+    assert_eq!(estimate_for_type("reload"), 0.);
+    assert_eq!(estimate_for_type("dispatch"), 1.);
+    assert_eq!(estimate_for_type("pickup"), 1.);
+    assert_eq!(estimate_for_type("delivery"), 1.);
+    assert_eq!(estimate_for_type("service"), 1.);
 }
 
 #[test]
