@@ -7,8 +7,6 @@ use std::ops::{Add, Deref, RangeInclusive, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
 
-// TODO consider interval demand and capacity inside trivial multi trip removal logic
-
 /// Represents a shared unique resource.
 pub trait SharedResource: Add + Sub + Copy + Ord + Sized + Send + Sync + Default + 'static {}
 /// Represents a shared resource id.
@@ -52,7 +50,7 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceModule
     }
 
     fn update_resource_consumption(&self, solution_ctx: &mut SolutionContext) {
-        // get total demand for each shared resource
+        // first pass: get total demand for each shared resource
         let total_demand = solution_ctx.routes.iter().fold(HashMap::<usize, T>::default(), |acc, route_ctx| {
             self.interval_fn.deref()(route_ctx).iter().fold(acc, |mut acc, &(start_idx, end_idx)| {
                 // get total resource demand for given interval
@@ -69,11 +67,10 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceModule
             })
         });
 
-        // second pass to store amount of available resources inside activity state
+        // second pass: store amount of available resources inside activity state
         solution_ctx.routes.iter_mut().for_each(|route_ctx| {
-            let intervals = self.interval_fn.deref()(route_ctx).iter().cloned().collect::<Vec<_>>();
-
-            intervals.into_iter().for_each(|(start_idx, _)| {
+            #[allow(clippy::unnecessary_to_owned)]
+            self.interval_fn.deref()(route_ctx).to_vec().into_iter().for_each(|(start_idx, _)| {
                 let resource_available =
                     self.resource_capacity_fn.deref()(get_activity_by_idx(&route_ctx.route, start_idx)).and_then(
                         |(total_capacity, resource_id)| {
@@ -85,7 +82,7 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceModule
                     let (route, state) = route_ctx.as_mut();
                     state.put_activity_state(
                         self.resource_key,
-                        get_activity_by_idx(&route, start_idx),
+                        get_activity_by_idx(route, start_idx),
                         resource_available,
                     );
                 }

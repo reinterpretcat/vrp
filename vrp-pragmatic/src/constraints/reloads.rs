@@ -17,7 +17,8 @@ use vrp_core::models::solution::Route;
 
 /// Creates a multi trip strategy to use multi trip with reload jobs.
 pub fn create_reload_multi_trip<T: LoadOps>(
-    threshold: Box<dyn Fn(&T) -> T + Send + Sync>,
+    load_schedule_threshold_fn: Box<dyn Fn(&T) -> T + Send + Sync>,
+    place_capacity_threshold: Option<Box<dyn Fn(&Activity, &T) -> bool + Send + Sync>>,
 ) -> impl MultiTrip<Constraint = T> + Send + Sync {
     FixedMultiTrip {
         is_marker_single: Box::new(|single| single.dimens.get_value::<String>("type").map_or(false, |t| t == "reload")),
@@ -31,11 +32,11 @@ pub fn create_reload_multi_trip<T: LoadOps>(
                         route_ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_default();
                     let max_capacity = route_ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
 
-                    current >= threshold.deref()(max_capacity)
+                    current >= load_schedule_threshold_fn.deref()(max_capacity)
                 })
                 .unwrap_or(false)
         }),
-        is_obsolete_interval: Box::new(|route_ctx, left, right| {
+        is_obsolete_interval: Box::new(move |route_ctx, left, right| {
             let capacity: T = route_ctx.route.actor.vehicle.dimens.get_capacity().cloned().unwrap_or_default();
 
             let get_load = |activity_index: usize, state_key: i32| {
@@ -65,7 +66,16 @@ pub fn create_reload_multi_trip<T: LoadOps>(
             // static pickup moved to right
             let new_max_load_right = get_load(right.start, MAX_FUTURE_CAPACITY_KEY) + left_pickup;
 
-            capacity >= new_max_load_left && capacity >= new_max_load_right
+            let has_enough_vehicle_capacity = capacity >= new_max_load_left && capacity >= new_max_load_right;
+
+            has_enough_vehicle_capacity
+                && place_capacity_threshold.as_ref().map_or(true, |place_capacity_threshold| {
+                    // total static delivery at left
+                    let left_delivery = fold_demand(left.start..right.end, |demand| demand.delivery.0);
+                    let activity = route_ctx.route.tour.get(left.start).unwrap();
+
+                    place_capacity_threshold.deref()(activity, &left_delivery)
+                })
         }),
         intervals_key: RELOAD_INTERVALS_KEY,
         phantom: Default::default(),
