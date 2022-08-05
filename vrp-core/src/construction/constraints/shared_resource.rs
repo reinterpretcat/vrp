@@ -4,6 +4,7 @@ mod shared_resource_test;
 
 use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
+use crate::models::common::{MultiDimLoad, SingleDimLoad};
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Route};
 use hashbrown::HashMap;
@@ -12,9 +13,15 @@ use std::slice::Iter;
 use std::sync::Arc;
 
 /// Represents a shared unique resource.
-pub trait SharedResource: Add + Sub + Copy + Ord + Sized + Send + Sync + Default + 'static {}
+pub trait SharedResource: Add + Sub + Ord + Copy + Sized + Send + Sync + Default + 'static {}
 /// Represents a shared resource id.
 pub type SharedResourceId = usize;
+/// Specifies a type for a shared resource interval function.
+pub type SharedResourceIntervalFn = Arc<dyn Fn(&RouteContext) -> Option<&Vec<(usize, usize)>> + Send + Sync>;
+/// Specifies a type for a shared resource capacity function.
+pub type SharedResourceCapacityFn<T> = Arc<dyn Fn(&Activity) -> Option<(T, SharedResourceId)> + Send + Sync>;
+/// Specifies a type for a shared resource demand function.
+pub type SharedResourceDemandFn<T> = Arc<dyn Fn(&Single) -> Option<T> + Send + Sync>;
 
 /// Provides way to define and use shared across multiple routes resource.
 pub struct SharedResourceModule<T>
@@ -23,9 +30,9 @@ where
 {
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
-    interval_fn: Arc<dyn Fn(&RouteContext) -> &[(usize, usize)] + Send + Sync>,
-    resource_capacity_fn: Arc<dyn Fn(&Activity) -> Option<(T, SharedResourceId)> + Send + Sync>,
-    resource_demand_fn: Arc<dyn Fn(&Single) -> Option<T> + Send + Sync>,
+    interval_fn: SharedResourceIntervalFn,
+    resource_capacity_fn: SharedResourceCapacityFn<T>,
+    resource_demand_fn: SharedResourceDemandFn<T>,
     total_jobs: usize,
     resource_key: i32,
 }
@@ -36,9 +43,9 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceModule
         total_jobs: usize,
         code: i32,
         resource_key: i32,
-        interval_fn: Arc<dyn Fn(&RouteContext) -> &[(usize, usize)] + Send + Sync>,
-        resource_capacity_fn: Arc<dyn Fn(&Activity) -> Option<(T, SharedResourceId)> + Send + Sync>,
-        resource_demand_fn: Arc<dyn Fn(&Single) -> Option<T> + Send + Sync>,
+        interval_fn: SharedResourceIntervalFn,
+        resource_capacity_fn: SharedResourceCapacityFn<T>,
+        resource_demand_fn: SharedResourceDemandFn<T>,
     ) -> Self {
         Self {
             constraints: vec![
@@ -72,25 +79,28 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceModule
 
         // first pass: get total demand for each shared resource
         let total_demand = solution_ctx.routes.iter().fold(HashMap::<usize, T>::default(), |acc, route_ctx| {
-            self.interval_fn.deref()(route_ctx).iter().fold(acc, |mut acc, &(start_idx, end_idx)| {
-                // get total resource demand for given interval
-                let activity = get_activity_by_idx(&route_ctx.route, start_idx);
-                let resource_demand_with_id = self.resource_capacity_fn.deref()(activity)
-                    .map(|(_, resource_id)| (self.get_total_demand(route_ctx, start_idx..=end_idx), resource_id));
+            self.interval_fn.deref()(route_ctx).iter().flat_map(|intervals| intervals.iter()).fold(
+                acc,
+                |mut acc, &(start_idx, end_idx)| {
+                    // get total resource demand for given interval
+                    let activity = get_activity_by_idx(&route_ctx.route, start_idx);
+                    let resource_demand_with_id = self.resource_capacity_fn.deref()(activity)
+                        .map(|(_, resource_id)| (self.get_total_demand(route_ctx, start_idx..=end_idx), resource_id));
 
-                if let Some((resource_demand, id)) = resource_demand_with_id {
-                    let entry = acc.entry(id).or_insert_with(T::default);
-                    *entry = *entry + resource_demand;
-                }
+                    if let Some((resource_demand, id)) = resource_demand_with_id {
+                        let entry = acc.entry(id).or_insert_with(T::default);
+                        *entry = *entry + resource_demand;
+                    }
 
-                acc
-            })
+                    acc
+                },
+            )
         });
 
         // second pass: store amount of available resources inside activity state
         solution_ctx.routes.iter_mut().for_each(|route_ctx| {
             #[allow(clippy::unnecessary_to_owned)]
-            self.interval_fn.deref()(route_ctx).to_vec().into_iter().for_each(|(start_idx, _)| {
+            self.interval_fn.deref()(route_ctx).cloned().unwrap_or_default().into_iter().for_each(|(start_idx, _)| {
                 let resource_available =
                     self.resource_capacity_fn.deref()(get_activity_by_idx(&route_ctx.route, start_idx)).and_then(
                         |(total_capacity, resource_id)| {
@@ -147,8 +157,8 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> ConstraintModule for
 struct SharedResourceHardRouteConstraint<T: SharedResource> {
     code: i32,
     total_jobs: usize,
-    interval_fn: Arc<dyn Fn(&RouteContext) -> &[(usize, usize)] + Send + Sync>,
-    resource_demand_fn: Arc<dyn Fn(&Single) -> Option<T> + Send + Sync>,
+    interval_fn: SharedResourceIntervalFn,
+    resource_demand_fn: SharedResourceDemandFn<T>,
 }
 
 impl<T: SharedResource> HardRouteConstraint for SharedResourceHardRouteConstraint<T> {
@@ -159,7 +169,10 @@ impl<T: SharedResource> HardRouteConstraint for SharedResourceHardRouteConstrain
         job: &Job,
     ) -> Option<RouteConstraintViolation> {
         job.as_single()
-            .and_then(|job| self.resource_demand_fn.deref()(job).zip(self.interval_fn.deref()(route_ctx).first()))
+            .and_then(|job| {
+                self.resource_demand_fn.deref()(job)
+                    .zip(self.interval_fn.deref()(route_ctx).and_then(|intervals| intervals.first()))
+            })
             .and_then(|(_, _)| {
                 // NOTE cannot do resource assignment for partial solution
                 if solution_ctx.get_jobs_amount() != self.total_jobs {
@@ -173,8 +186,8 @@ impl<T: SharedResource> HardRouteConstraint for SharedResourceHardRouteConstrain
 
 struct SharedResourceHardActivityConstraint<T: SharedResource> {
     code: i32,
-    interval_fn: Arc<dyn Fn(&RouteContext) -> &[(usize, usize)] + Send + Sync>,
-    resource_demand_fn: Arc<dyn Fn(&Single) -> Option<T> + Send + Sync>,
+    interval_fn: SharedResourceIntervalFn,
+    resource_demand_fn: SharedResourceDemandFn<T>,
     resource_key: i32,
 }
 
@@ -186,6 +199,7 @@ impl<T: SharedResource> HardActivityConstraint for SharedResourceHardActivityCon
     ) -> Option<ActivityConstraintViolation> {
         self.interval_fn.deref()(route_ctx)
             .iter()
+            .flat_map(|intervals| intervals.iter())
             // TODO what's about OVRP?
             .find(|(_, end_idx)| activity_ctx.index <= *end_idx)
             .and_then(|&(start_idx, _)| {
@@ -213,3 +227,9 @@ impl<T: SharedResource> HardActivityConstraint for SharedResourceHardActivityCon
 fn get_activity_by_idx(route: &Route, idx: usize) -> &Activity {
     route.tour.get(idx).expect("cannot get activity by idx")
 }
+
+/// Implement SharedResource for multi dimensional load.
+impl SharedResource for MultiDimLoad {}
+
+/// Implement SharedResource for single dimensional load.
+impl SharedResource for SingleDimLoad {}
