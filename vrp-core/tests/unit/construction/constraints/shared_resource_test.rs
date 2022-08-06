@@ -65,7 +65,7 @@ fn create_route_ctx(
 
     let mut route_ctx = create_route_context_with_activities(&fleet, vehicle_id, activities);
     let intervals = route_intervals(&route_ctx.route, |activity| {
-        activity.job.as_ref().map_or(true, |job| {
+        activity.job.as_ref().map_or(false, |job| {
             let capacity: Option<&SingleDimLoad> = job.dimens.get_capacity();
             capacity.is_some()
         })
@@ -86,7 +86,8 @@ fn can_update_resource_consumption() {
     let resources = [(0, 10), (1, 5)].into_iter().collect::<HashMap<usize, _>>();
     let v1_activities = vec![Usage(2), SharedResource(0), Usage(2)];
     let v2_activities = vec![Usage(2), SharedResource(0), Usage(2)];
-    let expected_resources: Vec<Vec<Option<i32>>> = vec![];
+    let expected_resources: Vec<Vec<Option<i32>>> =
+        vec![vec![None, None, Some(6), None, None], vec![None, None, Some(6), None, None]];
 
     let total_jobs = v1_activities.len() + v2_activities.len();
     let fleet = FleetBuilder::default()
