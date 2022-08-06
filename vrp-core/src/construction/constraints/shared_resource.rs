@@ -200,7 +200,6 @@ impl<T: SharedResource> HardActivityConstraint for SharedResourceHardActivityCon
         self.interval_fn.deref()(route_ctx)
             .iter()
             .flat_map(|intervals| intervals.iter())
-            // TODO what's about OVRP?
             .find(|(_, end_idx)| activity_ctx.index <= *end_idx)
             .and_then(|&(start_idx, _)| {
                 route_ctx

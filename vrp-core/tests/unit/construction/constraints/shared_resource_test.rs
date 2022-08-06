@@ -221,10 +221,18 @@ can_constraint_activity! {
         vec![vec![Usage(2), SharedResource(0), Usage(2), Usage(2)], vec![SharedResource(0), Usage(6)]],
         0, Some(1), None,
     ),
+    case_02_enough_resource: (vec![(0, 10), (1, 10)],
+        vec![vec![SharedResource(0), Usage(2), Usage(2)], vec![SharedResource(1), Usage(6)]],
+        2, Some(1), None,
+    ),
 
-    case_02_not_enough_resource: (vec![(0, 10)],
+    case_03_not_enough_resource: (vec![(0, 10)],
         vec![vec![SharedResource(0), Usage(2), Usage(2)], vec![SharedResource(0), Usage(6)]],
         2, Some(1), Some(CODE),
+    ),
+    case_04_not_enough_resource: (vec![(0, 10)],
+        vec![vec![SharedResource(0), Usage(2), Usage(2)], vec![SharedResource(0), Usage(5)]],
+        2, Some(2), Some(CODE),
     ),
 }
 
@@ -235,7 +243,7 @@ fn can_constraint_activity_impl(
     demand: Option<i32>,
     expected: Option<i32>,
 ) {
-    let target = demand.map_or_else(test_activity, |demand| create_usage_activity(demand));
+    let target = demand.map_or_else(test_activity, create_usage_activity);
     let total_jobs = activities[0].len() + activities[1].len();
     let mut solution_ctx = create_solution_ctx(resources, activities);
     create_shared_resource_model(total_jobs).accept_solution_state(&mut solution_ctx);
