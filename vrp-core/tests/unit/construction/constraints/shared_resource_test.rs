@@ -1,6 +1,7 @@
 use self::ActivityType::*;
 use super::*;
 use crate::construction::extensions::route_intervals;
+use crate::helpers::construction::constraints::create_simple_demand;
 use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_context_with_activities, test_activity};
@@ -12,11 +13,8 @@ const RESOURCE_KEY: i32 = 1;
 const INTERVALS_KEY: i32 = 2;
 
 fn create_usage_activity(demand: i32) -> Activity {
-    let demand = SingleDimLoad::new(demand);
-    let single = test_single_with_simple_demand(Demand::<SingleDimLoad> {
-        pickup: (Default::default(), Default::default()),
-        delivery: (demand, Default::default()),
-    });
+    let demand = create_simple_demand(-demand);
+    let single = test_single_with_simple_demand(demand);
 
     Activity { job: Some(single), ..test_activity() }
 }
@@ -76,22 +74,20 @@ fn create_route_ctx(
 }
 
 fn create_solution_ctx(resources: Vec<(usize, i32)>, activities: Vec<Vec<ActivityType>>) -> SolutionContext {
-    let v1_activities = &activities[0];
-    let v2_activities = &activities[1];
     let resources = resources.into_iter().collect::<HashMap<usize, _>>();
-
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicle(test_vehicle_with_id("v1"))
         .add_vehicle(test_vehicle_with_id("v2"))
         .build();
-    SolutionContext {
-        routes: vec![
-            create_route_ctx(&fleet, "v1", &resources, v1_activities),
-            create_route_ctx(&fleet, "v2", &resources, v2_activities),
-        ],
-        ..create_empty_solution_context()
-    }
+
+    let routes = activities
+        .into_iter()
+        .enumerate()
+        .map(|(idx, activities)| create_route_ctx(&fleet, format!("v{}", idx + 1).as_str(), &resources, &activities))
+        .collect();
+
+    SolutionContext { routes, ..create_empty_solution_context() }
 }
 
 enum ActivityType {
@@ -160,4 +156,50 @@ fn can_update_resource_consumption_impl(
         })
         .collect::<Vec<_>>();
     assert_eq!(actual_resources, expected_resources);
+}
+
+parameterized_test! {can_constraint_route, (resources, activities, total_jobs, job_demand, expected), {
+    can_constraint_route_impl(resources, activities, total_jobs, job_demand, expected);
+}}
+
+can_constraint_route! {
+    case_01_partial_solution: (vec![(0, 10)],
+        vec![Usage(2), SharedResource(0), Usage(2)], 1, Some(1), Some(CODE),
+    ),
+
+    case_02_complete_solution: (vec![(0, 10)],
+        vec![Usage(2), SharedResource(0), Usage(2)], 3, Some(1), None,
+    ),
+
+    case_03_no_demand: (vec![(0, 10)],
+        vec![Usage(2), SharedResource(0), Usage(2)], 3, None, None,
+    ),
+
+    case_04_no_resource: (vec![(0, 10)],
+        vec![Usage(2), Usage(2)], 2, Some(1), None,
+    ),
+}
+
+fn can_constraint_route_impl(
+    resources: Vec<(usize, i32)>,
+    activities: Vec<ActivityType>,
+    total_jobs: usize,
+    job_demand: Option<i32>,
+    expected: Option<i32>,
+) {
+    let job = Job::Single(job_demand.map_or_else(
+        || test_single_with_id("job1"),
+        |demand| test_single_with_simple_demand(create_simple_demand(-demand)),
+    ));
+    let constraint = SharedResourceHardRouteConstraint::<SingleDimLoad> {
+        code: CODE,
+        total_jobs,
+        interval_fn: Arc::new(move |route_ctx| route_ctx.state.get_route_state::<Vec<(usize, usize)>>(INTERVALS_KEY)),
+        resource_demand_fn: Arc::new(|single| single.dimens.get_demand().map(|demand| demand.delivery.0)),
+    };
+    let solution_ctx = create_solution_ctx(resources, vec![activities]);
+
+    let result = constraint.evaluate_job(&solution_ctx, &solution_ctx.routes[0], &job);
+
+    assert_eq!(result.map(|result| result.code), expected);
 }
