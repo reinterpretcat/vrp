@@ -50,20 +50,20 @@ fn create_route_ctx(
     fleet: &Fleet,
     vehicle_id: &str,
     resources: &HashMap<usize, i32>,
-    activities: Vec<ActivityType>,
+    activities: &[ActivityType],
 ) -> RouteContext {
     let activities = activities
-        .into_iter()
+        .iter()
         .map(|activity_type| match activity_type {
             SharedResource(resource_id) => {
-                create_resource_activity(resources.get(&resource_id).unwrap().clone(), Some(resource_id))
+                create_resource_activity(*resources.get(resource_id).unwrap(), Some(*resource_id))
             }
-            NormalResource(capacity) => create_resource_activity(capacity, None),
-            Usage(demand) => create_usage_activity(demand),
+            NormalResource(capacity) => create_resource_activity(*capacity, None),
+            Usage(demand) => create_usage_activity(*demand),
         })
         .collect();
 
-    let mut route_ctx = create_route_context_with_activities(&fleet, vehicle_id, activities);
+    let mut route_ctx = create_route_context_with_activities(fleet, vehicle_id, activities);
     let intervals = route_intervals(&route_ctx.route, |activity| {
         activity.job.as_ref().map_or(false, |job| {
             let capacity: Option<&SingleDimLoad> = job.dimens.get_capacity();
@@ -75,33 +75,69 @@ fn create_route_ctx(
     route_ctx
 }
 
+fn create_solution_ctx(resources: Vec<(usize, i32)>, activities: Vec<Vec<ActivityType>>) -> SolutionContext {
+    let v1_activities = &activities[0];
+    let v2_activities = &activities[1];
+    let resources = resources.into_iter().collect::<HashMap<usize, _>>();
+
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicle(test_vehicle_with_id("v1"))
+        .add_vehicle(test_vehicle_with_id("v2"))
+        .build();
+    SolutionContext {
+        routes: vec![
+            create_route_ctx(&fleet, "v1", &resources, v1_activities),
+            create_route_ctx(&fleet, "v2", &resources, v2_activities),
+        ],
+        ..create_empty_solution_context()
+    }
+}
+
 enum ActivityType {
     Usage(i32),
     NormalResource(i32),
     SharedResource(usize),
 }
 
-#[test]
-fn can_update_resource_consumption() {
-    let resources = [(0, 10), (1, 5)].into_iter().collect::<HashMap<usize, _>>();
-    let v1_activities = vec![Usage(2), SharedResource(0), Usage(2)];
-    let v2_activities = vec![Usage(2), SharedResource(0), Usage(2)];
-    let expected_resources: Vec<Vec<Option<i32>>> =
-        vec![vec![None, None, Some(6), None, None], vec![None, None, Some(6), None, None]];
+parameterized_test! {can_update_resource_consumption, (resources, activities, total_jobs, expected_resources), {
+    can_update_resource_consumption_impl(resources, activities, total_jobs, expected_resources);
+}}
 
-    let total_jobs = v1_activities.len() + v2_activities.len();
-    let fleet = FleetBuilder::default()
-        .add_driver(test_driver())
-        .add_vehicle(test_vehicle_with_id("v1"))
-        .add_vehicle(test_vehicle_with_id("v2"))
-        .build();
-    let mut solution_ctx = SolutionContext {
-        routes: vec![
-            create_route_ctx(&fleet, "v1", &resources, v1_activities),
-            create_route_ctx(&fleet, "v2", &resources, v2_activities),
-        ],
-        ..create_empty_solution_context()
-    };
+can_update_resource_consumption! {
+    case_01_single_shared_resource: (vec![(0, 10)],
+        vec![vec![Usage(2), SharedResource(0), Usage(2)], vec![Usage(2), SharedResource(0), Usage(2)]],
+        None,
+        vec![vec![None, None, Some(6), None, None], vec![None, None, Some(6), None, None]],
+    ),
+
+    case_02_two_shared_resources: (vec![(0, 10), (1, 10)],
+        vec![vec![Usage(2), SharedResource(0), Usage(2)], vec![Usage(2), SharedResource(1), Usage(1)]],
+        None,
+        vec![vec![None, None, Some(8), None, None], vec![None, None, Some(9), None, None]],
+    ),
+
+    case_03_mixed_normal_resource: (vec![(0, 10), (1, 5)],
+        vec![vec![Usage(2), SharedResource(0), Usage(2)], vec![Usage(2), NormalResource(10), Usage(2)]],
+        None,
+        vec![vec![None, None, Some(8), None, None], vec![None, None, None, None, None]],
+    ),
+
+    case_04_partial_solution: (vec![(0, 10)],
+        vec![vec![Usage(2), SharedResource(0), Usage(2)], vec![Usage(2), SharedResource(0), Usage(2)]],
+        Some(100),
+        vec![vec![None, None, None, None, None], vec![None, None, None, None, None]],
+    ),
+}
+
+fn can_update_resource_consumption_impl(
+    resources: Vec<(usize, i32)>,
+    activities: Vec<Vec<ActivityType>>,
+    total_jobs: Option<usize>,
+    expected_resources: Vec<Vec<Option<i32>>>,
+) {
+    let total_jobs = total_jobs.unwrap_or(activities[0].len() + activities[1].len());
+    let mut solution_ctx = create_solution_ctx(resources, activities);
     let shared_resource_module = create_shared_resource_model(total_jobs);
 
     shared_resource_module.accept_solution_state(&mut solution_ctx);
