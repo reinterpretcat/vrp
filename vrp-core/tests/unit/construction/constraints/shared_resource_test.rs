@@ -34,13 +34,13 @@ fn create_shared_resource_model(total_jobs: usize) -> SharedResourceModule<Singl
         total_jobs,
         CODE,
         RESOURCE_KEY,
-        Arc::new(move |route_ctx| route_ctx.state.get_route_state::<Vec<(usize, usize)>>(INTERVALS_KEY)),
+        create_interval_fn(),
         Arc::new(|activity| {
             activity.job.as_ref().and_then(|job| {
                 job.dimens.get_capacity().cloned().zip(job.dimens.get_value::<SharedResourceId>("resource_id").cloned())
             })
         }),
-        Arc::new(|single| single.dimens.get_demand().map(|demand| demand.delivery.0)),
+        create_resource_demand_fn(),
     )
 }
 
@@ -88,6 +88,14 @@ fn create_solution_ctx(resources: Vec<(usize, i32)>, activities: Vec<Vec<Activit
         .collect();
 
     SolutionContext { routes, ..create_empty_solution_context() }
+}
+
+fn create_interval_fn() -> SharedResourceIntervalFn {
+    Arc::new(move |route_ctx| route_ctx.state.get_route_state::<Vec<(usize, usize)>>(INTERVALS_KEY))
+}
+
+fn create_resource_demand_fn() -> SharedResourceDemandFn<SingleDimLoad> {
+    Arc::new(|single| single.dimens.get_demand().map(|demand| demand.delivery.0))
 }
 
 enum ActivityType {
@@ -194,12 +202,53 @@ fn can_constraint_route_impl(
     let constraint = SharedResourceHardRouteConstraint::<SingleDimLoad> {
         code: CODE,
         total_jobs,
-        interval_fn: Arc::new(move |route_ctx| route_ctx.state.get_route_state::<Vec<(usize, usize)>>(INTERVALS_KEY)),
-        resource_demand_fn: Arc::new(|single| single.dimens.get_demand().map(|demand| demand.delivery.0)),
+        interval_fn: create_interval_fn(),
+        resource_demand_fn: create_resource_demand_fn(),
     };
     let solution_ctx = create_solution_ctx(resources, vec![activities]);
 
     let result = constraint.evaluate_job(&solution_ctx, &solution_ctx.routes[0], &job);
 
     assert_eq!(result.map(|result| result.code), expected);
+}
+
+parameterized_test! {can_constraint_activity, (resources, activities, total_jobs, job_demand, expected), {
+    can_constraint_activity_impl(resources, activities, total_jobs, job_demand, expected);
+}}
+
+can_constraint_activity! {
+    case_01_enough_resource: (vec![(0, 10)],
+        vec![vec![Usage(2), SharedResource(0), Usage(2), Usage(2)], vec![SharedResource(0), Usage(6)]],
+        0, Some(1), None,
+    ),
+
+    case_02_not_enough_resource: (vec![(0, 10)],
+        vec![vec![SharedResource(0), Usage(2), Usage(2)], vec![SharedResource(0), Usage(6)]],
+        2, Some(1), Some(CODE),
+    ),
+}
+
+fn can_constraint_activity_impl(
+    resources: Vec<(usize, i32)>,
+    activities: Vec<Vec<ActivityType>>,
+    insertion_idx: usize,
+    demand: Option<i32>,
+    expected: Option<i32>,
+) {
+    let target = demand.map_or_else(test_activity, |demand| create_usage_activity(demand));
+    let total_jobs = activities[0].len() + activities[1].len();
+    let mut solution_ctx = create_solution_ctx(resources, activities);
+    create_shared_resource_model(total_jobs).accept_solution_state(&mut solution_ctx);
+    let activity_ctx =
+        ActivityContext { index: insertion_idx, prev: &create_usage_activity(0), target: &target, next: None };
+    let constraint = SharedResourceHardActivityConstraint::<SingleDimLoad> {
+        code: CODE,
+        interval_fn: create_interval_fn(),
+        resource_demand_fn: create_resource_demand_fn(),
+        resource_key: RESOURCE_KEY,
+    };
+
+    let result = constraint.evaluate_activity(&solution_ctx.routes[0], &activity_ctx);
+
+    assert_eq!(result.map(|result| result.code), expected)
 }

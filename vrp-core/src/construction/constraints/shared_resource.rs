@@ -207,12 +207,12 @@ impl<T: SharedResource> HardActivityConstraint for SharedResourceHardActivityCon
                     .state
                     .get_activity_state::<T>(self.resource_key, get_activity_by_idx(&route_ctx.route, start_idx))
                     .and_then(|resource_available| {
-                        let resource_demand = get_activity_by_idx(&route_ctx.route, activity_ctx.index)
+                        let resource_demand = activity_ctx
+                            .target
                             .job
                             .as_ref()
-                            .map_or(T::default(), |job| {
-                                self.resource_demand_fn.deref()(job.as_ref()).unwrap_or_default()
-                            });
+                            .and_then(|job| self.resource_demand_fn.deref()(job.as_ref()))
+                            .unwrap_or_default();
 
                         if resource_available < &resource_demand {
                             Some(ActivityConstraintViolation { code: self.code, stopped: false })
