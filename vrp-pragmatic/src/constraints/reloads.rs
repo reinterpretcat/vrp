@@ -90,8 +90,6 @@ pub fn create_shared_reload_constraint<T>(
 where
     T: SharedResource + LoadOps,
 {
-    const SHARED_RELOAD_RESOURCE_KEY: i32 = 0;
-
     SharedResourceModule::new(
         total_jobs,
         constraint_code,

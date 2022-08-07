@@ -34,7 +34,7 @@ pub trait MultiTrip {
         jobs: &'a [Job],
     ) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync>;
 
-    /// Returns reload intervals.
+    /// Returns marker intervals.
     fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
         self.get_state_code().and_then(|state_code| route_ctx.state.get_route_state::<Vec<(usize, usize)>>(state_code))
     }
@@ -50,7 +50,7 @@ pub trait MultiTrip {
         let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
 
         if self.is_marker_job(job) {
-            // move all unassigned reloads back to ignored
+            // move all unassigned marker jobs back to ignored
             let jobs = self.filter_markers(&route_ctx.route, &solution_ctx.required).collect::<HashSet<_>>();
             solution_ctx.required.retain(|job| !jobs.contains(job));
             solution_ctx.unassigned.retain(|job, _| !jobs.contains(job));
@@ -63,7 +63,7 @@ pub trait MultiTrip {
                 _ => {}
             });
         } else if self.is_multi_trip_needed(route_ctx) {
-            // move all reloads for this shift to required
+            // move all marker jobs for this shift to required
             let jobs = self
                 .filter_markers(&route_ctx.route, &solution_ctx.ignored)
                 .chain(self.filter_markers(&route_ctx.route, &solution_ctx.required))
@@ -87,7 +87,7 @@ pub trait MultiTrip {
         }
     }
 
-    /// Accepts solution state, e.g. removes trivial reloads.
+    /// Accepts solution state, e.g. removes trivial marker jobs.
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext);
 }
 
