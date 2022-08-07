@@ -13,10 +13,42 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::Route;
 
-/// Creates a multi trip strategy to use multi trip with reload jobs.
-pub fn create_reload_multi_trip<T: LoadOps>(
+/// Creates a multi trip strategy to use multi trip with reload jobs which shared some resources.
+pub fn create_shared_reload_multi_trip<T>(
     load_schedule_threshold_fn: Box<dyn Fn(&T) -> T + Send + Sync>,
-    place_capacity_threshold: Option<Box<dyn Fn(&Activity, &T) -> bool + Send + Sync>>,
+    resource_map: HashMap<Job, (T, SharedResourceId)>,
+    total_jobs: usize,
+    constraint_code: i32,
+    resource_key: i32,
+) -> (impl MultiTrip<Constraint = T> + Send + Sync, SharedResourceModule<T>)
+where
+    T: SharedResource + LoadOps,
+{
+    let multi_trip = create_reload_multi_trip(
+        load_schedule_threshold_fn,
+        Some(Box::new(move |route_ctx, activity, demand| {
+            route_ctx
+                .state
+                .get_activity_state::<T>(resource_key, activity)
+                .map_or(true, |resource_available| resource_available >= demand)
+        })),
+    );
+
+    let shared_resource = create_shared_reload_constraint(resource_map, total_jobs, constraint_code, resource_key);
+
+    (multi_trip, shared_resource)
+}
+
+/// Creates a multi trip strategy to use multi trip with reload jobs.
+pub fn create_simple_reload_multi_trip<T: LoadOps>(
+    load_schedule_threshold_fn: Box<dyn Fn(&T) -> T + Send + Sync>,
+) -> impl MultiTrip<Constraint = T> + Send + Sync {
+    create_reload_multi_trip(load_schedule_threshold_fn, None)
+}
+
+fn create_reload_multi_trip<T: LoadOps>(
+    load_schedule_threshold_fn: Box<dyn Fn(&T) -> T + Send + Sync>,
+    place_capacity_threshold: Option<Box<dyn Fn(&RouteContext, &Activity, &T) -> bool + Send + Sync>>,
 ) -> impl MultiTrip<Constraint = T> + Send + Sync {
     FixedMultiTrip {
         is_marker_single: Box::new(is_reload_single),
@@ -72,7 +104,7 @@ pub fn create_reload_multi_trip<T: LoadOps>(
                     let left_delivery = fold_demand(left.start..right.end, |demand| demand.delivery.0);
                     let activity = route_ctx.route.tour.get(left.start).unwrap();
 
-                    place_capacity_threshold.deref()(activity, &left_delivery)
+                    place_capacity_threshold.deref()(route_ctx, activity, &left_delivery)
                 })
         }),
         intervals_key: RELOAD_INTERVALS_KEY,
@@ -81,7 +113,7 @@ pub fn create_reload_multi_trip<T: LoadOps>(
 }
 
 /// Creates a shared resource constraint module to constraint reload jobs.
-pub fn create_shared_reload_constraint<T>(
+fn create_shared_reload_constraint<T>(
     resource_map: HashMap<Job, (T, SharedResourceId)>,
     total_jobs: usize,
     constraint_code: i32,

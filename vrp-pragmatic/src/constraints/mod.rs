@@ -64,7 +64,7 @@ mod groups;
 pub use self::groups::GroupModule;
 
 mod reloads;
-pub use self::reloads::create_reload_multi_trip;
+pub use self::reloads::*;
 
 mod reachable;
 pub use self::reachable::ReachableModule;
