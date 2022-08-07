@@ -3,7 +3,7 @@
 mod reload_test;
 
 use crate::constraints::*;
-use hashbrown::HashSet;
+use hashbrown::{HashMap, HashSet};
 use std::marker::PhantomData;
 use std::ops::{Deref, Range};
 use vrp_core::construction::constraints::*;
@@ -21,7 +21,7 @@ pub fn create_reload_multi_trip<T: LoadOps>(
     place_capacity_threshold: Option<Box<dyn Fn(&Activity, &T) -> bool + Send + Sync>>,
 ) -> impl MultiTrip<Constraint = T> + Send + Sync {
     FixedMultiTrip {
-        is_marker_single: Box::new(|single| single.dimens.get_value::<String>("type").map_or(false, |t| t == "reload")),
+        is_marker_single: Box::new(is_reload_single),
         is_multi_trip_needed: Box::new(move |route_ctx| {
             route_ctx
                 .route
@@ -80,6 +80,36 @@ pub fn create_reload_multi_trip<T: LoadOps>(
         intervals_key: RELOAD_INTERVALS_KEY,
         phantom: Default::default(),
     }
+}
+
+/// Creates a shared resource constraint module to constraint reload jobs.
+pub fn create_shared_reload_constraint<T>(
+    resource_map: HashMap<Job, (T, SharedResourceId)>,
+    total_jobs: usize,
+    constraint_code: i32,
+    resource_key: i32,
+) -> SharedResourceModule<T>
+where
+    T: SharedResource + LoadOps,
+{
+    const SHARED_RELOAD_RESOURCE_KEY: i32 = 0;
+
+    SharedResourceModule::new(
+        total_jobs,
+        constraint_code,
+        resource_key,
+        Arc::new(move |route_ctx| route_ctx.state.get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY)),
+        Arc::new(move |activity| {
+            activity.job.as_ref().and_then(|job| {
+                if is_reload_single(job.as_ref()) {
+                    resource_map.get(&Job::Single(job.clone())).cloned()
+                } else {
+                    None
+                }
+            })
+        }),
+        Arc::new(|single| single.dimens.get_demand().map(|demand| demand.delivery.0)),
+    )
 }
 
 /// Specifies obsolete interval function which takes left and right interval range. These
@@ -191,4 +221,8 @@ impl<T: Send + Sync> FixedMultiTrip<T> {
         solution_ctx.locked.extend(jobs.iter().cloned());
         solution_ctx.required.extend(jobs.into_iter());
     }
+}
+
+fn is_reload_single(single: &Single) -> bool {
+    single.dimens.get_value::<String>("type").map_or(false, |t| t == "reload")
 }

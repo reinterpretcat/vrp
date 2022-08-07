@@ -23,7 +23,7 @@ pub type SharedResourceCapacityFn<T> = Arc<dyn Fn(&Activity) -> Option<(T, Share
 /// Specifies a type for a shared resource demand function.
 pub type SharedResourceDemandFn<T> = Arc<dyn Fn(&Single) -> Option<T> + Send + Sync>;
 
-/// Provides way to define and use shared across multiple routes resource.
+/// Provides way to define and use time independent, shared across multiple routes resource.
 pub struct SharedResourceModule<T>
 where
     T: SharedResource + Add<Output = T> + Sub<Output = T>,
