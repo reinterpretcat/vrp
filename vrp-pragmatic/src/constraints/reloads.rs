@@ -1,6 +1,6 @@
 #[cfg(test)]
-#[path = "../../tests/unit/constraints/reload_test.rs"]
-mod reload_test;
+#[path = "../../tests/unit/constraints/reloads_test.rs"]
+mod reloads_test;
 
 use crate::constraints::*;
 use hashbrown::{HashMap, HashSet};
@@ -12,8 +12,6 @@ use vrp_core::construction::heuristics::{RouteContext, SolutionContext};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::Route;
-
-// TODO rename to multi_trips
 
 /// Creates a multi trip strategy to use multi trip with reload jobs.
 pub fn create_reload_multi_trip<T: LoadOps>(
