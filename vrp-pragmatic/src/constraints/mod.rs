@@ -21,6 +21,9 @@ pub const AREA_VALUE_KEY: i32 = 1004;
 /// A key which tracks area order state.
 pub const AREA_ORDER_KEY: i32 = 1005;
 
+/// A key which tracks reload resource consumption state.
+pub const RELOAD_RESOURCE_KEY: i32 = 1006;
+
 fn as_single_job<F>(activity: &Activity, condition: F) -> Option<&Arc<Single>>
 where
     F: Fn(&Arc<Single>) -> bool,

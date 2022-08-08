@@ -232,6 +232,7 @@ fn map_to_problem(
     let mut constraint = create_constraint_pipeline(
         &api_problem,
         &jobs,
+        &job_index,
         &fleet,
         transport.clone(),
         activity.clone(),
@@ -317,6 +318,7 @@ fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> Res
 fn create_constraint_pipeline(
     api_problem: &ApiProblem,
     jobs: &Jobs,
+    job_index: &JobIndex,
     fleet: &CoreFleet,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
@@ -335,7 +337,7 @@ fn create_constraint_pipeline(
         TIME_CONSTRAINT_CODE,
     )));
 
-    add_capacity_module(&mut constraint, props);
+    add_capacity_reload_modules(&mut constraint, api_problem, jobs, job_index, props);
 
     if props.has_tour_travel_limits {
         add_tour_limit_module(&mut constraint, transport.clone(), api_problem);
@@ -372,25 +374,73 @@ fn create_constraint_pipeline(
     constraint
 }
 
-fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
-    constraint.add_module(if props.has_reloads {
+fn add_capacity_reload_modules(
+    constraint: &mut ConstraintPipeline,
+    api_problem: &ApiProblem,
+    jobs: &Jobs,
+    job_index: &JobIndex,
+    props: &ProblemProperties,
+) {
+    if props.has_reloads {
         let threshold = 0.9;
+
         if props.has_multi_dimen_capacity {
-            Arc::new(CapacityConstraintModule::<MultiDimLoad>::new_with_multi_trip(
-                CAPACITY_CONSTRAINT_CODE,
-                Arc::new(create_simple_reload_multi_trip(Box::new(move |capacity| *capacity * threshold))),
-            ))
+            add_capacity_with_reload::<MultiDimLoad>(
+                constraint,
+                api_problem,
+                jobs,
+                job_index,
+                MultiDimLoad::new,
+                Box::new(move |capacity| *capacity * threshold),
+            );
         } else {
-            Arc::new(CapacityConstraintModule::<SingleDimLoad>::new_with_multi_trip(
-                CAPACITY_CONSTRAINT_CODE,
-                Arc::new(create_simple_reload_multi_trip(Box::new(move |capacity| *capacity * threshold))),
-            ))
+            add_capacity_with_reload::<SingleDimLoad>(
+                constraint,
+                api_problem,
+                jobs,
+                job_index,
+                |capacity| SingleDimLoad::new(capacity.get(0).cloned().unwrap_or_default()),
+                Box::new(move |capacity| *capacity * threshold),
+            );
         }
-    } else if props.has_multi_dimen_capacity {
-        Arc::new(CapacityConstraintModule::<MultiDimLoad>::new(CAPACITY_CONSTRAINT_CODE))
     } else {
-        Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(CAPACITY_CONSTRAINT_CODE))
-    });
+        constraint.add_module(if props.has_multi_dimen_capacity {
+            Arc::new(CapacityConstraintModule::<MultiDimLoad>::new(CAPACITY_CONSTRAINT_CODE))
+        } else {
+            Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(CAPACITY_CONSTRAINT_CODE))
+        });
+    }
+}
+
+fn add_capacity_with_reload<T: LoadOps + SharedResource>(
+    constraint: &mut ConstraintPipeline,
+    api_problem: &ApiProblem,
+    jobs: &Jobs,
+    job_index: &JobIndex,
+    capacity_map: fn(Vec<i32>) -> T,
+    load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
+) {
+    let reload_resources = get_reload_resources(api_problem, job_index, capacity_map);
+
+    if reload_resources.is_empty() {
+        constraint.add_module(Arc::new(CapacityConstraintModule::<T>::new_with_multi_trip(
+            CAPACITY_CONSTRAINT_CODE,
+            Arc::new(create_simple_reload_multi_trip(load_schedule_threshold_fn)),
+        )));
+    } else {
+        let (multi_trip, shared_resource) = create_shared_reload_multi_trip(
+            load_schedule_threshold_fn,
+            reload_resources,
+            jobs.size(),
+            RELOAD_RESOURCE_CONSTRAINT_CODE,
+            RELOAD_RESOURCE_KEY,
+        );
+        constraint.add_module(Arc::new(CapacityConstraintModule::<T>::new_with_multi_trip(
+            CAPACITY_CONSTRAINT_CODE,
+            Arc::new(multi_trip),
+        )));
+        constraint.add_module(Arc::new(shared_resource));
+    };
 }
 
 fn add_tour_size_module(constraint: &mut ConstraintPipeline) {
@@ -549,4 +599,67 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         max_job_value,
         max_area_value,
     }
+}
+
+fn get_reload_resources<T>(
+    api_problem: &ApiProblem,
+    job_index: &JobIndex,
+    capacity_map: fn(Vec<i32>) -> T,
+) -> HashMap<CoreJob, (T, SharedResourceId)>
+where
+    T: LoadOps + SharedResource,
+{
+    // get available resources
+    let available_resources = api_problem
+        .fleet
+        .resources
+        .as_ref()
+        .iter()
+        .flat_map(|resources| resources.iter())
+        .map(|resource| match resource {
+            VehicleResource::Reload { id, capacity } => (id.clone(), capacity.clone()),
+        })
+        .collect::<Vec<_>>();
+    let total_resources_specified = available_resources.len();
+    let available_resources = available_resources
+        .into_iter()
+        .enumerate()
+        .map(|(idx, (id, capacity))| (id, (idx, capacity)))
+        .collect::<HashMap<_, _>>();
+    assert_eq!(total_resources_specified, available_resources.len());
+
+    // get reload resources
+    api_problem
+        .fleet
+        .vehicles
+        .iter()
+        .flat_map(|vehicle| {
+            vehicle
+                .shifts
+                .iter()
+                .enumerate()
+                .flat_map(|(shift_idx, vehicle_shift)| {
+                    vehicle_shift
+                        .reloads
+                        .iter()
+                        .flatten()
+                        .enumerate()
+                        .map(move |(reload_idx, reload)| (shift_idx, reload_idx + 1, reload))
+                })
+                .filter_map(|(shift_idx, place_idx, reload)| {
+                    reload
+                        .resource_id
+                        .as_ref()
+                        .and_then(|resource_id| available_resources.get(resource_id))
+                        .map(|(resource_id, capacity)| (shift_idx, place_idx, *resource_id, capacity.clone()))
+                })
+                .flat_map(move |(shift_idx, place_idx, resource_id, capacity)| {
+                    vehicle.vehicle_ids.iter().filter_map(move |vehicle_id| {
+                        let job_id = format!("{}_reload_{}_{}", vehicle_id, shift_idx, place_idx);
+                        let capacity = capacity_map(capacity.clone());
+                        job_index.get(&job_id).map(|job| (job.clone(), (capacity, resource_id)))
+                    })
+                })
+        })
+        .collect()
 }

@@ -31,7 +31,7 @@ pub trait Load: Add + Sub + Ord + Copy + Default + Debug + Send + Sync {
 /// Specifies constraints on Load operations.
 pub trait LoadOps: Load + Add<Output = Self> + Sub<Output = Self> + 'static
 where
-    Self: std::marker::Sized,
+    Self: Sized,
 {
 }
 

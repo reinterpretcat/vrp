@@ -309,12 +309,12 @@ fn read_reloads(
 ) {
     (1..)
         .zip(reloads.iter())
-        .flat_map(|(place_idx, place)| {
+        .flat_map(|(reload_idx, place)| {
             vehicle
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let job_id = format!("{}_reload_{}_{}", vehicle_id, shift_index, place_idx);
+                    let job_id = format!("{}_reload_{}_{}", vehicle_id, shift_index, reload_idx);
                     let times = parse_times(&place.times);
 
                     let job = get_conditional_job(
