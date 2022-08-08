@@ -103,9 +103,7 @@ fn can_use_location_index() {
                     times: Timing { driving: 3, serving: 2, ..Timing::default() }
                 }
             }],
-            unassigned: None,
-            violations: None,
-            extras: None
+            ..create_empty_solution()
         }
     );
 }

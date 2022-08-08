@@ -108,7 +108,14 @@ pub fn create_empty_tour() -> Tour {
 }
 
 pub fn create_empty_solution() -> Solution {
-    Solution { statistic: Default::default(), tours: vec![], unassigned: None, violations: None, extras: None }
+    Solution {
+        statistic: Default::default(),
+        tours: vec![],
+        unassigned: None,
+        violations: None,
+        resources: None,
+        extras: None,
+    }
 }
 
 pub fn get_ids_from_tour(tour: &Tour) -> Vec<Vec<String>> {

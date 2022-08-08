@@ -111,7 +111,7 @@ pub fn create_solution(problem: &Problem, solution: &Solution, metrics: Option<&
 
     let extras = create_extras(solution, metrics);
 
-    ApiSolution { statistic, tours, unassigned, violations, extras }
+    ApiSolution { statistic, tours, unassigned, violations, resources: None, extras }
 }
 
 fn create_tour(
