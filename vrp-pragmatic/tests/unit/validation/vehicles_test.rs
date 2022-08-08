@@ -18,7 +18,7 @@ fn can_detect_invalid_break_time() {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: vec![],
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -76,7 +76,7 @@ fn can_detect_invalid_area_impl(
                 }),
                 ..create_default_vehicle_type()
             }],
-            profiles: vec![],
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -120,7 +120,7 @@ fn can_detect_invalid_dispatch_impl(dispatch: &[(f64, (f64, f64))], expected: Op
                 shifts: vec![VehicleShift { dispatch, ..create_default_vehicle_shift() }],
                 ..create_default_vehicle_type()
             }],
-            profiles: vec![],
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -150,7 +150,7 @@ fn can_detect_zero_costs_impl(costs: (f64, f64), expected: Option<String>) {
                 costs: VehicleCosts { fixed: None, distance, time },
                 ..create_default_vehicle_type()
             }],
-            profiles: vec![],
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -189,7 +189,7 @@ fn can_handle_rescheduling_with_required_break_impl(latest: Option<f64>, expecte
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: vec![],
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

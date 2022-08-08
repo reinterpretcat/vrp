@@ -15,7 +15,7 @@ fn can_have_multiple_unassigned_reasons() {
         },
         fleet: Fleet {
             vehicles: vec![create_default_vehicle("vehicle1"), create_default_vehicle("vehicle2")],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

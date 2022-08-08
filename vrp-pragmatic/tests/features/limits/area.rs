@@ -38,7 +38,7 @@ fn can_use_constrained_areas() {
                 }),
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -95,7 +95,7 @@ fn can_use_unconstrained_areas_impl(area1_job_value: f64, expected_job_ids: Vec<
                 }),
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

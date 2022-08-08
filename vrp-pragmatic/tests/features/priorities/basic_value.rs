@@ -24,7 +24,7 @@ fn can_prefer_jobs_with_more_value_impl(objectives: Option<Vec<Vec<Objective>>>)
         },
         fleet: Fleet {
             vehicles: vec![VehicleType { capacity: vec![1], ..create_default_vehicle_type() }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         objectives,
         ..create_empty_problem()

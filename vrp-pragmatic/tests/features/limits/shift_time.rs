@@ -13,10 +13,7 @@ fn create_vehicle_type_with_shift_time_limit(shift_time: f64) -> VehicleType {
 fn can_limit_one_job_by_shift_time() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job("job1", (100., 0.))], ..create_empty_plan() },
-        fleet: Fleet {
-            vehicles: vec![create_vehicle_type_with_shift_time_limit(99.)],
-            profiles: create_default_matrix_profiles(),
-        },
+        fleet: Fleet { vehicles: vec![create_vehicle_type_with_shift_time_limit(99.)], ..create_default_fleet() },
         ..create_empty_problem()
     };
     let matrix = Matrix {
@@ -60,10 +57,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
             ],
             ..create_empty_plan()
         },
-        fleet: Fleet {
-            vehicles: vec![create_vehicle_type_with_shift_time_limit(40.)],
-            profiles: create_default_matrix_profiles(),
-        },
+        fleet: Fleet { vehicles: vec![create_vehicle_type_with_shift_time_limit(40.)], ..create_default_fleet() },
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -164,10 +158,7 @@ fn can_serve_job_when_it_starts_late() {
             jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(100, 200)], 10.)],
             ..create_empty_plan()
         },
-        fleet: Fleet {
-            vehicles: vec![create_vehicle_type_with_shift_time_limit(50.)],
-            profiles: create_default_matrix_profiles(),
-        },
+        fleet: Fleet { vehicles: vec![create_vehicle_type_with_shift_time_limit(50.)], ..create_default_fleet() },
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);

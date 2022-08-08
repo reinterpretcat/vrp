@@ -163,6 +163,7 @@ mod actual {
             fleet: Fleet {
                 vehicles,
                 profiles: matrix_profile_names.into_iter().map(|name| MatrixProfile { name, speed: None }).collect(),
+                resources: None,
             },
             objectives: None,
         })

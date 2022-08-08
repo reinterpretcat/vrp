@@ -31,8 +31,8 @@ fn wrong_matrix(profile: Option<&str>, timestamp: Option<String>) -> Matrix {
 fn create_problem(profiles: &[&str]) -> Problem {
     Problem {
         fleet: Fleet {
-            vehicles: vec![],
             profiles: profiles.iter().map(|p| MatrixProfile { name: p.to_string(), speed: None }).collect(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     }

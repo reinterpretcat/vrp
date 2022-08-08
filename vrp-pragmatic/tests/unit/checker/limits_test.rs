@@ -11,7 +11,7 @@ fn create_test_problem(limits: Option<VehicleLimits>) -> Problem {
                 limits,
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     }
@@ -150,7 +150,7 @@ fn can_check_shift_time() {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

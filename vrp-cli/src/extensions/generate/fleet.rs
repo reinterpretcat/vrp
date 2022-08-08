@@ -37,7 +37,7 @@ pub(crate) fn generate_fleet(problem_proto: &Problem, vehicle_types_size: usize)
         })
         .collect();
 
-    Fleet { vehicles, profiles }
+    Fleet { vehicles, profiles, resources: None }
 }
 
 fn get_from_vehicle<F, T>(problem_proto: &Problem, func: F) -> Vec<T>

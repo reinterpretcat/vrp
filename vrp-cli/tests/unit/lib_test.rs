@@ -6,7 +6,7 @@ use vrp_pragmatic::format::problem::{Fleet, MatrixProfile, Plan};
 fn can_get_locations_serialized() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_test_job(1., 1.), create_test_job(1., 0.)], ..create_empty_plan() },
-        fleet: Fleet { vehicles: vec![create_test_vehicle_type()], profiles: vec![] },
+        fleet: Fleet { vehicles: vec![create_test_vehicle_type()], profiles: vec![], resources: None },
         objectives: None,
     };
 
@@ -22,6 +22,7 @@ fn can_get_solution_serialized() {
         fleet: Fleet {
             vehicles: vec![create_test_vehicle_type()],
             profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
+            resources: None,
         },
         objectives: None,
     };

@@ -54,7 +54,8 @@ prop_compose! {
           times,
           location,
           duration,
-          tag
+          tag,
+          resource_id: None,
         }
     }
 }
@@ -106,7 +107,7 @@ prop_compose! {
      vehicles in vehicles_proto,
      profiles in profiles_proto
     ) -> Fleet {
-        Fleet { vehicles, profiles }
+        Fleet { vehicles, profiles, resources: None }
     }
 }
 

@@ -6,7 +6,7 @@ use crate::helpers::*;
 fn can_use_vehicle_with_open_end() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job("job1", (1., 0.))], ..create_empty_plan() },
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
     let matrix = Matrix {

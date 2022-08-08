@@ -21,7 +21,7 @@ fn can_balance_duration() {
                 capacity: vec![3],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         objectives: Some(vec![
             vec![MinimizeUnassignedJobs { breaks: None }],

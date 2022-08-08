@@ -37,7 +37,7 @@ fn can_use_init_solution_with_dispatch() {
                 capacity: vec![1],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

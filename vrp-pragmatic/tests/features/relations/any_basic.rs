@@ -17,7 +17,7 @@ fn can_skip_constraints_check() {
         },
         fleet: Fleet {
             vehicles: vec![VehicleType { capacity: vec![1], ..create_default_vehicle_type() }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

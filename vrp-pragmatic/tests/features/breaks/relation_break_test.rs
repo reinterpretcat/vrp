@@ -46,7 +46,7 @@ fn get_solution(
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

@@ -24,7 +24,7 @@ fn create_and_solve_problem_with_three_jobs(any_relation_jobs: Vec<String>) -> S
                 capacity: vec![3],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

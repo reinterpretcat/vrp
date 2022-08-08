@@ -28,16 +28,15 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
-                        times: None,
                         location: (0., 0.).to_loc(),
                         duration: 2.0,
-                        tag: None,
+                        ..create_default_reload()
                     }]),
                 }],
                 capacity: vec![2],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -168,16 +167,14 @@ fn can_properly_handle_load_without_capacity_violation() {
                 shifts: vec![VehicleShift {
                     reloads: Some(vec![
                         VehicleReload {
-                            times: None,
                             location: Location::Coordinate { lat: 0.0, lng: 0.0 },
                             duration: 2620.0,
-                            tag: None,
+                            ..create_default_reload()
                         },
                         VehicleReload {
-                            times: None,
                             location: Location::Coordinate { lat: 0.0, lng: 0.0 },
                             duration: 2874.0,
-                            tag: None,
+                            ..create_default_reload()
                         },
                     ]),
                     ..create_default_vehicle_shift()
@@ -185,7 +182,7 @@ fn can_properly_handle_load_without_capacity_violation() {
                 capacity: vec![2],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

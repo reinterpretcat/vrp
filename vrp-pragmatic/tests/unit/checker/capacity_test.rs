@@ -41,16 +41,15 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
-                        times: None,
                         location: (0., 0.).to_loc(),
                         duration: 2.0,
-                        tag: None,
+                        ..create_default_reload()
                     }]),
                 }],
                 capacity: vec![5],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -201,10 +200,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
 fn can_check_load_when_departure_has_other_activity() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_pickup_delivery_job("job1", (0., 0.), (1., 0.))], ..create_empty_plan() },
-        fleet: Fleet {
-            vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],
-            profiles: create_default_matrix_profiles(),
-        },
+        fleet: Fleet { vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])], ..create_default_fleet() },
         ..create_empty_problem()
     };
     let solution = Solution {

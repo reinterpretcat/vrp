@@ -175,7 +175,7 @@ fn can_read_complex_problem() {
                     areas: None,
                 }),
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         objectives: None,
     };
@@ -303,6 +303,7 @@ fn can_create_approximation_matrices() {
                 MatrixProfile { name: "car3".to_string(), speed: Some(5.) },
                 MatrixProfile { name: "car4".to_string(), speed: None },
             ],
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

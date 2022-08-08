@@ -12,7 +12,7 @@ fn can_limit_by_max_distance() {
                 limits: Some(VehicleLimits { max_distance: Some(99.), shift_time: None, tour_size: None, areas: None }),
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -58,7 +58,7 @@ fn can_handle_empty_route() {
                 limits: Some(VehicleLimits { max_distance: Some(9.), shift_time: None, tour_size: None, areas: None }),
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

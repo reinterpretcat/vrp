@@ -14,7 +14,11 @@ fn can_generate_jobs_with_time_windows() {
             ],
             ..create_empty_plan()
         },
-        fleet: Fleet { vehicles: vec![create_test_vehicle_type()], profiles: vec![create_test_vehicle_profile()] },
+        fleet: Fleet {
+            vehicles: vec![create_test_vehicle_type()],
+            profiles: vec![create_test_vehicle_profile()],
+            resources: None,
+        },
         objectives: None,
     };
 

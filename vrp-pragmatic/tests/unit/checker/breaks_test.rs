@@ -91,7 +91,7 @@ fn can_check_breaks_impl(
                 capacity: vec![5],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

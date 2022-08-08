@@ -32,7 +32,7 @@ fn create_problem(is_constrained: bool, limits: Option<VehicleLimits>) -> Proble
         plan: create_test_plan_with_three_jobs(),
         fleet: Fleet {
             vehicles: vec![VehicleType { limits, ..create_default_vehicle_type() }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         objectives: Some(create_order_objective(is_constrained)),
         ..create_empty_problem()
@@ -191,7 +191,7 @@ fn can_handle_order_between_special_activities() {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

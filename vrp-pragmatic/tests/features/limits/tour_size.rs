@@ -19,7 +19,7 @@ fn can_skip_job_from_multiple_because_of_tour_size() {
                 limits: Some(VehicleLimits { max_distance: None, shift_time: None, areas: None, tour_size: Some(2) }),
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

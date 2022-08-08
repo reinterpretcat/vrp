@@ -15,7 +15,7 @@ fn can_use_scale() {
         plan: Plan { jobs: vec![create_delivery_job("job1", (10., 0.))], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![create_vehicle_type("normal", None), create_vehicle_type("slow", Some(0.5))],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

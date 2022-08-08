@@ -96,17 +96,16 @@ mod single {
                             policy: None,
                         }]),
                         reloads: Some(vec![VehicleReload {
-                            times: None,
                             location: (0., 0.).to_loc(),
                             duration: 2.0,
-                            tag: None,
+                            ..create_default_reload()
                         }]),
                     }],
                     capacity: vec![5],
                     skills: None,
                     limits: None,
                 }],
-                profiles: create_default_matrix_profiles(),
+                ..create_default_fleet()
             },
             ..create_empty_problem()
         };

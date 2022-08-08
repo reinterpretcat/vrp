@@ -21,16 +21,15 @@ fn can_use_multi_dim_capacity() {
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
-                        times: None,
                         location: (0., 0.).to_loc(),
                         duration: 2.0,
-                        tag: None,
+                        ..create_default_reload()
                     }]),
                 }],
                 capacity: vec![1, 1],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

@@ -24,23 +24,23 @@ fn can_use_reloads_with_different_locations() {
                     breaks: None,
                     reloads: Some(vec![
                         VehicleReload {
-                            times: None,
                             location: (12., 0.).to_loc(),
                             duration: 2.0,
                             tag: Some("close".to_string()),
+                            ..create_default_reload()
                         },
                         VehicleReload {
-                            times: None,
                             location: (33., 0.).to_loc(),
                             duration: 2.0,
                             tag: Some("far".to_string()),
+                            ..create_default_reload()
                         },
                     ]),
                 }],
                 capacity: vec![2],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

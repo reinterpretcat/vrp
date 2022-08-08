@@ -14,7 +14,7 @@ fn create_problem_with_dispatch(dispatch: Option<Vec<VehicleDispatch>>) -> Probl
                 shifts: vec![VehicleShift { dispatch, ..create_default_vehicle_shift() }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     }
@@ -201,7 +201,7 @@ fn create_problem_with_dispatch_5jobs(vehicle_ids: Vec<&str>, dispatch: Option<V
                 capacity: vec![1],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     }

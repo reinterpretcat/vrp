@@ -5,11 +5,11 @@ use crate::helpers::*;
 fn can_detect_duplicates() {
     let problem = Problem {
         fleet: Fleet {
-            vehicles: vec![],
             profiles: vec![
                 MatrixProfile { name: "my_vehicle".to_string(), speed: None },
                 MatrixProfile { name: "my_vehicle".to_string(), speed: None },
             ],
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -23,7 +23,7 @@ fn can_detect_duplicates() {
 
 #[test]
 fn can_detect_empty_profiles() {
-    let problem = Problem { fleet: Fleet { vehicles: vec![], profiles: vec![] }, ..create_empty_problem() };
+    let problem = Problem { fleet: Fleet { profiles: vec![], ..create_default_fleet() }, ..create_empty_problem() };
     let coord_index = CoordIndex::new(&problem);
     let ctx = ValidationContext::new(&problem, None, &coord_index);
 
@@ -101,6 +101,7 @@ fn can_detect_missing_profile() {
                 VehicleType { profile: create_vehicle_profile_with_name("truck"), ..create_default_vehicle_type() },
             ],
             profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

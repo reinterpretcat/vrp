@@ -18,7 +18,7 @@ fn can_use_two_dimensions() {
                 capacity: vec![1, 1],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -87,7 +87,7 @@ fn can_unassign_due_to_dimension_mismatch() {
                 capacity: vec![1],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

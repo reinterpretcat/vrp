@@ -193,6 +193,10 @@ pub fn create_multi_job(
     Job { pickups: create_tasks(pickups, "p"), deliveries: create_tasks(deliveries, "d"), ..create_job(id) }
 }
 
+pub fn create_default_reload() -> VehicleReload {
+    VehicleReload { times: None, location: (0., 0.).to_loc(), duration: 2.0, tag: None, resource_id: None }
+}
+
 pub fn create_default_vehicle_shift() -> VehicleShift {
     create_default_vehicle_shift_with_locations((0., 0.), (0., 0.))
 }
@@ -250,6 +254,10 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
     }
 }
 
+pub fn create_default_fleet() -> Fleet {
+    Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles(), resources: None }
+}
+
 pub fn create_default_matrix_profiles() -> Vec<MatrixProfile> {
     vec![MatrixProfile { name: "car".to_string(), speed: None }]
 }
@@ -263,7 +271,11 @@ pub fn create_empty_plan() -> Plan {
 }
 
 pub fn create_empty_problem() -> Problem {
-    Problem { plan: create_empty_plan(), fleet: Fleet { vehicles: vec![], profiles: vec![] }, objectives: None }
+    Problem {
+        plan: create_empty_plan(),
+        fleet: Fleet { vehicles: vec![], profiles: vec![], resources: None },
+        objectives: None,
+    }
 }
 
 pub fn create_matrix(data: Vec<i64>) -> Matrix {

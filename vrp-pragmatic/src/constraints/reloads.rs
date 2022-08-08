@@ -13,9 +13,14 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::Route;
 
+/// Specifies load schedule threshold function.
+pub type LoadScheduleThresholdFn<T> = Box<dyn Fn(&T) -> T + Send + Sync>;
+/// Specifies place capacity threshold function.
+type PlaceCapacityThresholdFn<T> = Box<dyn Fn(&RouteContext, &Activity, &T) -> bool + Send + Sync>;
+
 /// Creates a multi trip strategy to use multi trip with reload jobs which shared some resources.
 pub fn create_shared_reload_multi_trip<T>(
-    load_schedule_threshold_fn: Box<dyn Fn(&T) -> T + Send + Sync>,
+    load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
     resource_map: HashMap<Job, (T, SharedResourceId)>,
     total_jobs: usize,
     constraint_code: i32,
@@ -41,14 +46,14 @@ where
 
 /// Creates a multi trip strategy to use multi trip with reload jobs.
 pub fn create_simple_reload_multi_trip<T: LoadOps>(
-    load_schedule_threshold_fn: Box<dyn Fn(&T) -> T + Send + Sync>,
+    load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
 ) -> impl MultiTrip<Constraint = T> + Send + Sync {
     create_reload_multi_trip(load_schedule_threshold_fn, None)
 }
 
 fn create_reload_multi_trip<T: LoadOps>(
-    load_schedule_threshold_fn: Box<dyn Fn(&T) -> T + Send + Sync>,
-    place_capacity_threshold: Option<Box<dyn Fn(&RouteContext, &Activity, &T) -> bool + Send + Sync>>,
+    load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
+    place_capacity_threshold: Option<PlaceCapacityThresholdFn<T>>,
 ) -> impl MultiTrip<Constraint = T> + Send + Sync {
     FixedMultiTrip {
         is_marker_single: Box::new(is_reload_single),
