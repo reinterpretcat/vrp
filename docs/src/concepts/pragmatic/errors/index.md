@@ -512,6 +512,14 @@ You can fix the error by defining a small value (e.g. 0.0000001) for duration or
 set equal to `start.earliest` in the shift.
 
 
+#### E1309
+
+`invalid vehicle reload resource` is returned when:
+
+- `fleet.resources` has vehicle reloads with the same `id`
+- required vehicle reload is used with resource id, which is not specified in `fleet.resources`
+
+
 ### E15xx: Routing profiles
 
 These errors are related to routing locations and `fleet.profiles` property definitions.

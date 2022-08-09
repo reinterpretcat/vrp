@@ -1,6 +1,6 @@
 # Vehicle types
 
-A vehicle types are defined by `fleet.types` property and their schema has the following properties:
+A vehicle types are defined by `fleet.vehicles` property and their schema has the following properties:
 
 - **typeId** (required): a vehicle type id
 ```json
@@ -92,6 +92,12 @@ Each shift can have the following properties:
   See example [here](../../../examples/pragmatic/basics/break.md)
 - **reloads** (optional) a list of vehicle reloads. A reload is a place where vehicle can load new deliveries and unload
     pickups. It can be used to model multi trip routes.
+  Each reload has optional and required fields:
+    - location (required): an actual place where reload activity happens
+    - duration (required): duration of reload activity
+    - times (optional): reload time windows
+    - tag (optional): a tag which will be propagated back within the corresponding reload activity in solution
+    - resourceId (optional): a shared reload resource id. It is used to limit amount of deliveries loaded at this reload.
   See examples [here](../../../examples/pragmatic/basics/reload.md).
 
 
@@ -106,3 +112,4 @@ Each shift can have the following properties:
 * [E1306 invalid dispatch in vehicle shift](../errors/index.md#e1306)
 * [E1307 time and duration costs are zeros](../errors/index.md#e1307)
 * [E1308 required break is used with departure rescheduling](../errors/index.md#e1308)
+* [E1309 invalid vehicle reload resource](../errors/index.md#e1309)

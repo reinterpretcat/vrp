@@ -1,0 +1,182 @@
+{
+  "plan": {
+    "jobs": [
+      {
+        "id": "job1",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.52599,
+                  "lng": 13.45413
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job2",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5225,
+                  "lng": 13.4095
+                },
+                "duration": 240.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job3",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5165,
+                  "lng": 13.3808
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job4",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5145,
+                  "lng": 13.3513
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job5",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.4922,
+                  "lng": 13.4593
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job6",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.4989,
+                  "lng": 13.3917
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "fleet": {
+    "vehicles": [
+      {
+        "typeId": "vehicle",
+        "vehicleIds": [
+          "vehicle_1",
+          "vehicle_2"
+        ],
+        "profile": {
+          "matrix": "normal_car"
+        },
+        "costs": {
+          "fixed": 22.0,
+          "distance": 0.0002,
+          "time": 0.004806
+        },
+        "shifts": [
+          {
+            "start": {
+              "earliest": "2019-07-04T09:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
+            },
+            "end": {
+              "latest": "2019-07-04T18:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
+            },
+            "reloads": [
+              {
+                "location": {
+                  "lat": 52.5103,
+                  "lng": 13.3898
+                },
+                "duration": 600.0,
+                "resourceId": "warehouse_a"
+              }
+            ]
+          }
+        ],
+        "capacity": [
+          2
+        ]
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car"
+      }
+    ],
+    "resources": [
+      {
+        "type": "reload",
+        "id": "warehouse_a",
+        "capacity": [1]
+      }
+    ]
+  }
+}

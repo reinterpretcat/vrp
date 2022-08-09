@@ -1,0 +1,280 @@
+{
+  "statistic": {
+    "cost": 67.17683,
+    "distance": 19644,
+    "duration": 4005,
+    "times": {
+      "driving": 1965,
+      "serving": 2040,
+      "waiting": 0,
+      "break": 0,
+      "commuting": 0,
+      "parking": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5145,
+            "lng": 13.3513
+          },
+          "time": {
+            "arrival": "2019-07-04T09:05:15Z",
+            "departure": "2019-07-04T09:10:15Z"
+          },
+          "distance": 3152,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job4",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4989,
+            "lng": 13.3917
+          },
+          "time": {
+            "arrival": "2019-07-04T09:15:39Z",
+            "departure": "2019-07-04T09:20:39Z"
+          },
+          "distance": 6394,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job6",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5103,
+            "lng": 13.3898
+          },
+          "time": {
+            "arrival": "2019-07-04T09:22:47Z",
+            "departure": "2019-07-04T09:32:47Z"
+          },
+          "distance": 7670,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "reload",
+              "type": "reload"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5165,
+            "lng": 13.3808
+          },
+          "time": {
+            "arrival": "2019-07-04T09:34:19Z",
+            "departure": "2019-07-04T09:39:19Z"
+          },
+          "distance": 8591,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job3",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:42:15Z",
+            "departure": "2019-07-04T09:42:15Z"
+          },
+          "distance": 10349,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 36.25301,
+        "distance": 10349,
+        "duration": 2535,
+        "times": {
+          "driving": 1035,
+          "serving": 1500,
+          "waiting": 0,
+          "break": 0,
+          "commuting": 0,
+          "parking": 0
+        }
+      }
+    },
+    {
+      "vehicleId": "vehicle_2",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52599,
+            "lng": 13.45413
+          },
+          "time": {
+            "arrival": "2019-07-04T09:07:30Z",
+            "departure": "2019-07-04T09:12:30Z"
+          },
+          "distance": 4495,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job1",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5225,
+            "lng": 13.4095
+          },
+          "time": {
+            "arrival": "2019-07-04T09:17:35Z",
+            "departure": "2019-07-04T09:21:35Z"
+          },
+          "distance": 7543,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job2",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:24:30Z",
+            "departure": "2019-07-04T09:24:30Z"
+          },
+          "distance": 9295,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 30.92382,
+        "distance": 9295,
+        "duration": 1470,
+        "times": {
+          "driving": 930,
+          "serving": 540,
+          "waiting": 0,
+          "break": 0,
+          "commuting": 0,
+          "parking": 0
+        }
+      }
+    }
+  ],
+  "unassigned": [
+    {
+      "jobId": "job5",
+      "reasons": [
+        {
+          "code": "RELOAD_RESOURCE_CONSTRAINT",
+          "description": "cannot be assigned due to reload resource constraint",
+          "detail": {
+            "vehicleId": "vehicle_1",
+            "shiftIndex": 0
+          }
+        },
+        {
+          "code": "CAPACITY_CONSTRAINT",
+          "description": "does not fit into any vehicle due to capacity",
+          "detail": {
+            "vehicleId": "vehicle_2",
+            "shiftIndex": 0
+          }
+        }
+      ]
+    }
+  ]
+}

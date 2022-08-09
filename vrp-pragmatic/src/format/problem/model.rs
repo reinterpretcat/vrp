@@ -342,6 +342,7 @@ pub struct VehicleDispatchLimit {
 
 /// Specifies a place where vehicle can load or unload cargo.
 #[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VehicleReload {
     /// A place location.
     pub location: Location,
@@ -357,7 +358,7 @@ pub struct VehicleReload {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tag: Option<String>,
 
-    /// A shared resource id.
+    /// A shared reload resource id.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resource_id: Option<String>,
 }

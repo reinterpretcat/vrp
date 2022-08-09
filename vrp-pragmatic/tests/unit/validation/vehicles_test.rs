@@ -202,3 +202,40 @@ fn can_handle_rescheduling_with_required_break_impl(latest: Option<f64>, expecte
 
     assert_eq!(result.err().map(|err| err.code), expected);
 }
+
+parameterized_test! {can_handle_reload_resources, (resources, expected), {
+    can_handle_reload_resources_impl(resources, expected);
+}}
+
+can_handle_reload_resources! {
+    case01: (Some(vec!["r1"]), None),
+    case02: (Some(vec!["r2"]), Some("E1309".to_string())),
+    case03: (Some(vec!["r1", "r1"]), Some("E1309".to_string())),
+}
+
+fn can_handle_reload_resources_impl(resources: Option<Vec<&str>>, expected: Option<String>) {
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    reloads: Some(vec![VehicleReload {
+                        resource_id: Some("r1".to_string()),
+                        ..create_default_reload()
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            resources: resources.map(|ids| {
+                ids.iter().map(|id| VehicleResource::Reload { id: id.to_string(), capacity: vec![2] }).collect()
+            }),
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+
+    let result =
+        check_e1309_vehicle_reload_resources(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
+
+    assert_eq!(result.err().map(|err| err.code), expected);
+}

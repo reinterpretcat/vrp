@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Add
+
+* add shared resource constraint for vehicle reload. Essentially, it is a limit for amount of deliveries picked from
+  specific reload places.
+
 ### Changed
 
 * Improve obsolete reload removal logic

@@ -16,6 +16,7 @@
     * [Modeling a problem](concepts/pragmatic/problem/index.md)
       * [Jobs](concepts/pragmatic/problem/jobs.md)
       * [Vehicles](concepts/pragmatic/problem/vehicles.md)
+      * [Resources](concepts/pragmatic/problem/resources.md)
       * [Relations](concepts/pragmatic/problem/relations.md)
       * [Clustering](concepts/pragmatic/problem/clustering.md)
       * [Objectives](concepts/pragmatic/problem/objectives.md)

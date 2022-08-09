@@ -30,7 +30,7 @@ job was not added to the existing tours.
 | TOUR_ORDER_CONSTRAINT         | `cannot be assigned due to tour order constraint`              | tour order might be too strict or not vehicles enough   |
 | GROUP_CONSTRAINT              | `cannot be assigned due to group constraint`                   | try to reduce amount of jobs in the group?              |
 | COMPATIBILITY_CONSTRAINT      | `cannot be assigned due to compatibility constraint`           | review job's compatibilities                            |
-
+| RELOAD_RESOURCE_CONSTRAINT    | `cannot be assigned due to reload resource constraint`         | review shared resource allocation for vehicle reloads   |
 
 ## Example
 
