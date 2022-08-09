@@ -71,6 +71,7 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceModule
         }
     }
 
+    /// Calculates available resource based on consumption in the whole solution.
     fn update_resource_consumption(&self, solution_ctx: &mut SolutionContext) {
         // NOTE: we cannot estimate resource consumption in partial solutions
         if solution_ctx.get_jobs_amount() != self.total_jobs {
@@ -120,6 +121,27 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceModule
         });
     }
 
+    /// Prevents resource consumption in given route by setting available to zero (default).
+    fn prevent_resource_consumption(&self, route_ctx: &mut RouteContext) {
+        self.interval_fn.deref()(route_ctx).cloned().unwrap_or_default().into_iter().for_each(
+            |(start_idx, end_idx)| {
+                let activity = get_activity_by_idx(&route_ctx.route, start_idx);
+                let has_resource_demand = self.resource_capacity_fn.deref()(activity).map_or(false, |(_, _)| {
+                    (start_idx..=end_idx)
+                        .into_iter()
+                        .filter_map(|idx| route_ctx.route.tour.get(idx))
+                        .filter_map(|activity| activity.job.as_ref())
+                        .any(|job| self.resource_demand_fn.deref()(job).is_some())
+                });
+
+                if has_resource_demand {
+                    let (route, state) = route_ctx.as_mut();
+                    state.put_activity_state(self.resource_key, get_activity_by_idx(route, start_idx), T::default());
+                }
+            },
+        );
+    }
+
     fn get_total_demand(&self, route_ctx: &RouteContext, range: RangeInclusive<usize>) -> T {
         range
             .into_iter()
@@ -135,7 +157,13 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> ConstraintModule for
         self.update_resource_consumption(solution_ctx);
     }
 
-    fn accept_route_state(&self, _route_ctx: &mut RouteContext) {}
+    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
+        // NOTE: we need to prevent any insertions with resource consumption in modified route.
+        //       This state will be overridden by update_resource_consumption after other accept
+        //       method calls.
+
+        self.prevent_resource_consumption(route_ctx);
+    }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         self.update_resource_consumption(solution_ctx);
