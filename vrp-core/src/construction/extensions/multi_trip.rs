@@ -140,11 +140,19 @@ impl<T> MultiTrip for NoMultiTrip<T> {
 pub fn route_intervals(route: &Route, is_marker_activity: impl Fn(&Activity) -> bool) -> Vec<(usize, usize)> {
     let last_idx = route.tour.total() - 1;
     (0_usize..).zip(route.tour.all_activities()).fold(Vec::<(usize, usize)>::default(), |mut acc, (idx, a)| {
-        if is_marker_activity(a) || idx == last_idx {
-            let start_idx = acc.last().map_or(0_usize, |item| item.1 + 1);
-            let end_idx = if idx == last_idx { last_idx } else { idx - 1 };
+        let is_marker_activity = is_marker_activity(a);
+        let is_last = idx == last_idx;
 
-            acc.push((start_idx, end_idx));
+        if is_marker_activity || is_last {
+            let start_idx = acc.last().map_or(0_usize, |item| item.1 + 1);
+            let end_idx = if is_last { last_idx } else { idx - 1 };
+
+            if is_marker_activity && is_last {
+                acc.push((start_idx, end_idx - 1));
+                acc.push((end_idx, end_idx));
+            } else {
+                acc.push((start_idx, end_idx));
+            }
         }
 
         acc

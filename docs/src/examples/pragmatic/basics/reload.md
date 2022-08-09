@@ -75,7 +75,7 @@ The problem has 6 delivery jobs in total.
 </p></details>
 
 In the end, the solution has 5 jobs assigned and one is unassigned as there is not enough capacity and reload resource
-constraint doesn't allow to load more than 1 delivery in total for all vehicles.
+constraint doesn't allow to load more than 1 delivery from it in total for all vehicles.
 
 <details>
     <summary>Solution</summary><p>

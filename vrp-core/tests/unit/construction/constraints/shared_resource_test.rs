@@ -257,6 +257,15 @@ can_constraint_activity! {
         vec![vec![Usage(1), SharedResource(0), Usage(1)], vec![Usage(6)]],
         3, true, Some(1), Some(CODE),
     ),
+
+    case_08_not_enough_resource_ovrp: (vec![(0, 1)],
+        vec![vec![SharedResource(0)], vec![Usage(1), SharedResource(0), Usage(1)]],
+        0, true, Some(1), None,
+    ),
+    case_09_not_enough_resource_ovrp: (vec![(0, 1)],
+        vec![vec![SharedResource(0)], vec![Usage(1), SharedResource(0), Usage(1)]],
+        1, true, Some(1), Some(CODE),
+    ),
 }
 
 fn can_constraint_activity_impl(
