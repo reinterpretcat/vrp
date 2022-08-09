@@ -6,7 +6,7 @@ use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_context_with_activities, test_activity};
 use crate::models::common::*;
-use crate::models::problem::Fleet;
+use crate::models::problem::{Fleet, Vehicle, VehicleDetail};
 
 const CODE: i32 = 1;
 const RESOURCE_KEY: i32 = 1;
@@ -44,6 +44,10 @@ fn create_shared_resource_model(total_jobs: usize) -> SharedResourceModule<Singl
     )
 }
 
+fn create_ovrp_vehicle(id: &str) -> Vehicle {
+    VehicleBuilder::default().id(id).details(vec![VehicleDetail { end: None, ..test_vehicle_detail() }]).build()
+}
+
 fn create_route_ctx(
     fleet: &Fleet,
     vehicle_id: &str,
@@ -73,13 +77,19 @@ fn create_route_ctx(
     route_ctx
 }
 
-fn create_solution_ctx(resources: Vec<(usize, i32)>, activities: Vec<Vec<ActivityType>>) -> SolutionContext {
+fn create_solution_ctx(
+    resources: Vec<(usize, i32)>,
+    activities: Vec<Vec<ActivityType>>,
+    is_ovrp: bool,
+) -> SolutionContext {
     let resources = resources.into_iter().collect::<HashMap<usize, _>>();
-    let fleet = FleetBuilder::default()
-        .add_driver(test_driver())
-        .add_vehicle(test_vehicle_with_id("v1"))
-        .add_vehicle(test_vehicle_with_id("v2"))
-        .build();
+    let (v1, v2) = if is_ovrp {
+        (create_ovrp_vehicle("v1"), create_ovrp_vehicle("v2"))
+    } else {
+        (test_vehicle_with_id("v1"), test_vehicle_with_id("v2"))
+    };
+
+    let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(v1).add_vehicle(v2).build();
 
     let routes = activities
         .into_iter()
@@ -141,7 +151,7 @@ fn can_update_resource_consumption_impl(
     expected_resources: Vec<Vec<Option<i32>>>,
 ) {
     let total_jobs = total_jobs.unwrap_or(activities[0].len() + activities[1].len());
-    let mut solution_ctx = create_solution_ctx(resources, activities);
+    let mut solution_ctx = create_solution_ctx(resources, activities, false);
     let shared_resource_module = create_shared_resource_model(total_jobs);
 
     shared_resource_module.accept_solution_state(&mut solution_ctx);
@@ -205,34 +215,47 @@ fn can_constraint_route_impl(
         interval_fn: create_interval_fn(),
         resource_demand_fn: create_resource_demand_fn(),
     };
-    let solution_ctx = create_solution_ctx(resources, vec![activities]);
+    let solution_ctx = create_solution_ctx(resources, vec![activities], false);
 
     let result = constraint.evaluate_job(&solution_ctx, &solution_ctx.routes[0], &job);
 
     assert_eq!(result.map(|result| result.code), expected);
 }
 
-parameterized_test! {can_constraint_activity, (resources, activities, total_jobs, job_demand, expected), {
-    can_constraint_activity_impl(resources, activities, total_jobs, job_demand, expected);
+parameterized_test! {can_constraint_activity, (resources, activities, insertion_idx, is_ovrp, job_demand, expected), {
+    can_constraint_activity_impl(resources, activities, insertion_idx, is_ovrp, job_demand, expected);
 }}
 
 can_constraint_activity! {
     case_01_enough_resource: (vec![(0, 10)],
         vec![vec![Usage(2), SharedResource(0), Usage(2), Usage(2)], vec![SharedResource(0), Usage(6)]],
-        0, Some(1), None,
+        0, false, Some(1), None,
     ),
     case_02_enough_resource: (vec![(0, 10), (1, 10)],
         vec![vec![SharedResource(0), Usage(2), Usage(2)], vec![SharedResource(1), Usage(6)]],
-        2, Some(1), None,
+        2, false, Some(1), None,
     ),
 
     case_03_not_enough_resource: (vec![(0, 10)],
         vec![vec![SharedResource(0), Usage(2), Usage(2)], vec![SharedResource(0), Usage(6)]],
-        2, Some(1), Some(CODE),
+        2, false, Some(1), Some(CODE),
     ),
     case_04_not_enough_resource: (vec![(0, 10)],
         vec![vec![SharedResource(0), Usage(2), Usage(2)], vec![SharedResource(0), Usage(5)]],
-        2, Some(2), Some(CODE),
+        2, false, Some(2), Some(CODE),
+    ),
+
+    case_05_enough_resource_ovrp: (vec![(0, 1)],
+        vec![vec![Usage(1), SharedResource(0), Usage(1)], vec![Usage(6)]],
+        1, true, Some(1), None,
+    ),
+    case_06_not_enough_resource_ovrp: (vec![(0, 1)],
+        vec![vec![Usage(1), SharedResource(0), Usage(1)], vec![Usage(6)]],
+        2, true, Some(1), Some(CODE),
+    ),
+    case_07_not_enough_resource_ovrp: (vec![(0, 1)],
+        vec![vec![Usage(1), SharedResource(0), Usage(1)], vec![Usage(6)]],
+        3, true, Some(1), Some(CODE),
     ),
 }
 
@@ -240,12 +263,13 @@ fn can_constraint_activity_impl(
     resources: Vec<(usize, i32)>,
     activities: Vec<Vec<ActivityType>>,
     insertion_idx: usize,
+    is_ovrp: bool,
     demand: Option<i32>,
     expected: Option<i32>,
 ) {
     let target = demand.map_or_else(test_activity, create_usage_activity);
     let total_jobs = activities[0].len() + activities[1].len();
-    let mut solution_ctx = create_solution_ctx(resources, activities);
+    let mut solution_ctx = create_solution_ctx(resources, activities, is_ovrp);
     create_shared_resource_model(total_jobs).accept_solution_state(&mut solution_ctx);
     let activity_ctx =
         ActivityContext { index: insertion_idx, prev: &create_usage_activity(0), target: &target, next: None };
