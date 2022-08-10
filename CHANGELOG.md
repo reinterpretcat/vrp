@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * Improve obsolete reload removal logic
+* Improve groups constraint
 * Refactor heuristic research crate
 
 

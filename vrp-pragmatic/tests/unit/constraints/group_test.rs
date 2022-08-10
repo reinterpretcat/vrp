@@ -76,10 +76,10 @@ fn get_actor_groups(solution_ctx: &mut SolutionContext, state_key: i32) -> HashM
         .filter_map(|route_ctx| {
             route_ctx
                 .state
-                .get_route_state::<(HashSet<String>, usize)>(state_key)
+                .get_route_state::<HashSet<String>>(state_key)
                 .map(|groups| (route_ctx.route.actor.clone(), groups.clone()))
         })
-        .fold(HashMap::default(), |mut acc, (actor, (groups, _))| {
+        .fold(HashMap::default(), |mut acc, (actor, groups)| {
             groups.into_iter().for_each(|group| {
                 acc.insert(group, actor.clone());
             });
@@ -124,9 +124,9 @@ fn can_accept_insertion_impl(
     let fleet = create_test_fleet();
     let module = GroupModule::new(total_jobs, VIOLATION_CODE, STATE_KEY);
     let mut solution = create_test_solution_context(total_jobs, &fleet, routes);
-    let job = Job::Single(create_test_single(job_group));
+    module.accept_solution_state(&mut solution);
 
-    module.accept_insertion(&mut solution, 0, &job);
+    module.accept_insertion(&mut solution, 0, &Job::Single(create_test_single(job_group)));
 
     compare_actor_groups(&fleet, get_actor_groups(&mut solution, STATE_KEY), expected);
 }
