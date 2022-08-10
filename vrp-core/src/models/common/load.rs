@@ -5,7 +5,7 @@ mod load_test;
 use crate::models::common::{Dimensions, ValueDimension};
 use crate::models::Problem;
 use std::cmp::Ordering;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 use std::iter::Sum;
 use std::ops::{Add, Mul, Sub};
 
@@ -192,6 +192,12 @@ impl Mul<f64> for SingleDimLoad {
     }
 }
 
+impl Display for SingleDimLoad {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
 /// Specifies multi dimensional load type.
 #[derive(Clone, Copy, Debug)]
 pub struct MultiDimLoad {
@@ -345,6 +351,12 @@ impl Mul<f64> for MultiDimLoad {
 impl Sum for MultiDimLoad {
     fn sum<I: Iterator<Item = MultiDimLoad>>(iter: I) -> Self {
         iter.fold(MultiDimLoad::default(), |acc, item| item + acc)
+    }
+}
+
+impl Display for MultiDimLoad {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.load)
     }
 }
 
