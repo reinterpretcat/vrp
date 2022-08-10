@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.18.3] - 2022-08-10
+
 ### Add
 
 * add shared resource constraint for vehicle reload. Essentially, it is a limit for amount of deliveries picked from
@@ -11,9 +14,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-* Improve obsolete reload removal logic
-* Improve groups constraint
-* Refactor heuristic research crate
+* improve obsolete reload removal logic
+* improve groups constraint
+* refactor heuristic research crate
 
 
 ## [v1.18.2] - 2022-07-12
@@ -530,7 +533,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.18.2...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.18.3...HEAD
+[v1.18.3]: https://github.com/reinterpretcat/vrp/compare/v1.18.2...v1.18.3
 [v1.18.2]: https://github.com/reinterpretcat/vrp/compare/v1.18.1..v1.18.2
 [v1.18.1]: https://github.com/reinterpretcat/vrp/compare/v1.18.0..v1.18.1
 [v1.18.0]: https://github.com/reinterpretcat/vrp/compare/v1.17.0..v1.18.0
