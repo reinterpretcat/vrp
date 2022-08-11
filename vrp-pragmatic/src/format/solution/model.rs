@@ -209,7 +209,7 @@ pub struct UnassignedJobReason {
     pub description: String,
     /// Optionally, more details.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub detail: Option<UnassignedJobDetail>,
+    pub details: Option<Vec<UnassignedJobDetail>>,
 }
 
 /// Unassigned job details.
@@ -244,21 +244,6 @@ pub enum Violation {
         vehicle_id: String,
         /// Index of the shift.
         shift_index: usize,
-    },
-}
-
-/// Specifies a type of resource.
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
-pub enum Resource {
-    /// Keeps track of shared resource consumption.
-    #[serde(rename(deserialize = "shared", serialize = "shared"))]
-    Shared {
-        /// Resource id.
-        resource_id: String,
-        ///  Amount of consumed resource.
-        consumed: Vec<i32>,
     },
 }
 
@@ -336,10 +321,6 @@ pub struct Solution {
     /// List of constraint violations.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub violations: Option<Vec<Violation>>,
-
-    /// List of consumed resources.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub resources: Option<Vec<Resource>>,
 
     /// An extra information.
     #[serde(skip_serializing_if = "Option::is_none")]

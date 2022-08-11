@@ -81,12 +81,12 @@ can_consume_limited_resource_with_two_vehicles! {
     case01_two_resources:
         (vec![("res1", 1), ("res2", 1)], 4, false, vec![("res1", 1), ("res2", 1)], vec![]),
     case02_one_resource_not_enough:
-        (vec![("res1", 1), ("res1", 1)], 4, false, vec![("res1", 1)], vec![vec![CAPACITY_CODE, CAPACITY_CODE]]),
+        (vec![("res1", 1), ("res1", 1)], 4, false, vec![("res1", 1)], vec![vec![CAPACITY_CODE]]),
     case03_one_resource_enough:
         (vec![("res1", 1), ("res2", 1)], 4, false, vec![("res1", 2), ("res2", 2)], vec![]),
 
     case04_open_shift:
-        (vec![("res1", 1), ("res1", 1)], 4, true, vec![("res1", 1)], vec![vec![CAPACITY_CODE, CAPACITY_CODE]]),
+        (vec![("res1", 1), ("res1", 1)], 4, true, vec![("res1", 1)], vec![vec![CAPACITY_CODE]]),
     case05_open_shift:
         (vec![("res1", 2)], 4, true, vec![("res1", 1)], vec![vec![RESOURCE_CODE]]),
 }

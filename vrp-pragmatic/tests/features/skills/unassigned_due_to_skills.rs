@@ -30,7 +30,7 @@ fn can_have_unassigned_due_to_missing_vehicle_skill() {
                 reasons: vec![UnassignedJobReason {
                     code: "SKILL_CONSTRAINT".to_string(),
                     description: "cannot serve required skill".to_string(),
-                    detail: None
+                    details: None
                 }]
             }]),
             ..create_empty_solution()

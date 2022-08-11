@@ -19,6 +19,7 @@ use vrp_core::models::{Problem, Solution};
 use vrp_core::prelude::compare_floats;
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
 use vrp_core::solver::processing::VicinityDimension;
+use vrp_core::utils::CollectGroupBy;
 
 type ApiActivity = model::Activity;
 type ApiSolution = model::Solution;
@@ -111,7 +112,7 @@ pub fn create_solution(problem: &Problem, solution: &Solution, metrics: Option<&
 
     let extras = create_extras(solution, metrics);
 
-    ApiSolution { statistic, tours, unassigned, violations, resources: None, extras }
+    ApiSolution { statistic, tours, unassigned, violations, extras }
 }
 
 fn create_tour(
@@ -508,7 +509,7 @@ fn calculate_load(current: MultiDimLoad, act: &Activity, is_multi_dimen: bool) -
 fn create_unassigned(solution: &Solution) -> Option<Vec<UnassignedJob>> {
     let create_simple_reasons = |code: i32| {
         let (code, reason) = map_code_reason(code);
-        vec![UnassignedJobReason { code: code.to_string(), description: reason.to_string(), detail: None }]
+        vec![UnassignedJobReason { code: code.to_string(), description: reason.to_string(), details: None }]
     };
 
     let unassigned = solution
@@ -522,15 +523,29 @@ fn create_unassigned(solution: &Solution) -> Option<Vec<UnassignedJob>> {
                 UnassignedCode::Simple(code) => create_simple_reasons(*code),
                 UnassignedCode::Detailed(details) if !details.is_empty() => details
                     .iter()
-                    .map(|(actor, code)| {
-                        let (code, reason) = map_code_reason(*code);
-                        let dimens = &actor.vehicle.dimens;
+                    .collect_group_by_key(|(_, code)| *code)
+                    .into_iter()
+                    .map(|(code, group)| {
+                        let (code, reason) = map_code_reason(code);
+                        let mut vehicle_details = group
+                            .iter()
+                            .map(|(actor, _)| {
+                                let dimens = &actor.vehicle.dimens;
+                                let vehicle_id = dimens.get_id().cloned().unwrap();
+                                let shift_index = dimens.get_value::<usize>("shift_index").cloned().unwrap();
+                                (vehicle_id, shift_index)
+                            })
+                            .collect::<Vec<_>>();
+                        // NOTE sort to have consistent order
+                        vehicle_details.sort();
 
                         UnassignedJobReason {
-                            detail: Some(UnassignedJobDetail {
-                                vehicle_id: dimens.get_id().cloned().unwrap(),
-                                shift_index: dimens.get_value::<usize>("shift_index").cloned().unwrap(),
-                            }),
+                            details: Some(
+                                vehicle_details
+                                    .into_iter()
+                                    .map(|(vehicle_id, shift_index)| UnassignedJobDetail { vehicle_id, shift_index })
+                                    .collect(),
+                            ),
                             code: code.to_string(),
                             description: reason.to_string(),
                         }

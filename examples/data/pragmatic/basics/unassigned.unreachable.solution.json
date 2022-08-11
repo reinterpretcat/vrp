@@ -101,10 +101,12 @@
         {
           "code": "TIME_WINDOW_CONSTRAINT",
           "description": "cannot be visited within time window",
-          "detail": {
-            "vehicle_id": "vehicle_1",
-            "shift_index": 0
-          }
+          "details": [
+            {
+              "vehicle_id": "vehicle_1",
+              "shift_index": 0
+            }
+          ]
         }
       ]
     }

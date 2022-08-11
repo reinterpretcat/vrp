@@ -261,18 +261,22 @@
         {
           "code": "RELOAD_RESOURCE_CONSTRAINT",
           "description": "cannot be assigned due to reload resource constraint",
-          "detail": {
-            "vehicleId": "vehicle_1",
-            "shiftIndex": 0
-          }
+          "details": [
+            {
+              "vehicleId": "vehicle_1",
+              "shiftIndex": 0
+            }
+          ]
         },
         {
           "code": "CAPACITY_CONSTRAINT",
           "description": "does not fit into any vehicle due to capacity",
-          "detail": {
-            "vehicleId": "vehicle_2",
-            "shiftIndex": 0
-          }
+          "details": [
+            {
+              "vehicleId": "vehicle_2",
+              "shiftIndex": 0
+            }
+          ]
         }
       ]
     }

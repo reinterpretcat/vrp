@@ -23,7 +23,7 @@ can_use_vehicle_with_two_tours_and_two_jobs! {
                     reasons: vec![UnassignedJobReason {
                         code: "CAPACITY_CONSTRAINT".to_string(),
                         description: "does not fit into any vehicle due to capacity".to_string(),
-                        detail: Some(UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }),
+                        details: Some(vec![UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }]),
                     }]
                 }
              ])),

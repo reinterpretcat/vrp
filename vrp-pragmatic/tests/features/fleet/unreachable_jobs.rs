@@ -29,7 +29,7 @@ fn can_use_vehicle_with_open_end() {
                 reasons: vec![UnassignedJobReason {
                     code: "REACHABLE_CONSTRAINT".to_string(),
                     description: "location unreachable".to_string(),
-                    detail: None,
+                    details: None,
                 }]
             }]),
             ..create_empty_solution()

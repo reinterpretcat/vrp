@@ -80,7 +80,6 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
                 routes.push(route_ctx);
             }
             (None, false) => {
-                // TODO what reason code to use?
                 unassigned.extend(
                     lock.details.iter().flat_map(|d| d.jobs.iter().cloned().map(|j| (j, UnassignedCode::Unknown))),
                 );

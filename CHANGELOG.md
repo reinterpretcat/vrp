@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* simplify unassigned job reason model
+
 
 ## [v1.18.3] - 2022-08-10
 
