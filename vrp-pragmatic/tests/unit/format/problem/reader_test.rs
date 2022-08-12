@@ -182,9 +182,9 @@ fn can_read_complex_problem() {
     let matrix = Matrix {
         profile: Some("car".to_owned()),
         timestamp: None,
-        travel_times: vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        distances: vec![2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-        error_codes: Option::None,
+        travel_times: vec![1; 25],
+        distances: vec![2; 25],
+        error_codes: None,
     };
 
     let problem = (problem, vec![matrix]).read_pragmatic().ok().unwrap();

@@ -21,7 +21,7 @@ fn can_limit_by_max_distance() {
         timestamp: None,
         travel_times: vec![1, 1, 1, 1],
         distances: vec![1, 100, 100, 1],
-        error_codes: Option::None,
+        error_codes: None,
     };
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));

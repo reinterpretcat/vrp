@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/processing/unassigned_reason_test.rs"]
+mod unassigned_reason_test;
+
 use super::*;
 use crate::construction::heuristics::*;
 use rosomaxa::utils::parallel_into_collect;
