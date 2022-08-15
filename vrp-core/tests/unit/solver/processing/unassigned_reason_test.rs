@@ -74,7 +74,9 @@ fn can_combine_vehicle_details_impl(
     let insertion_ctx = UnassignmentReason::default().post_process(insertion_ctx);
 
     assert_eq!(insertion_ctx.solution.unassigned.len(), expected_details.len());
-    insertion_ctx.solution.unassigned.into_iter().zip(expected_details.into_iter()).for_each(
+    let mut actual_details = insertion_ctx.solution.unassigned.into_iter().collect::<Vec<_>>();
+    actual_details.sort_by(|(a, _), (b, _)| a.dimens().get_id().cmp(&b.dimens().get_id()));
+    actual_details.into_iter().zip(expected_details.into_iter()).for_each(
         |((job, code), (expected_job_id, expected_details))| {
             assert_eq!(job.to_single().dimens.get_id().unwrap(), expected_job_id);
             match code {
