@@ -1,4 +1,4 @@
-use crate::construction::heuristics::{RouteContext, SolutionContext, UnassignedCode};
+use crate::construction::heuristics::{RouteContext, SolutionContext, UnassignmentInfo};
 use crate::models::problem::Job;
 use crate::models::solution::{Activity, Route};
 use hashbrown::HashSet;
@@ -57,8 +57,8 @@ pub trait MultiTrip {
             solution_ctx.ignored.extend(jobs.into_iter());
             // NOTE reevaluate insertion of unassigned due to capacity constraint jobs
             solution_ctx.unassigned.iter_mut().for_each(|pair| match pair.1 {
-                UnassignedCode::Simple(code) if *code == unassigned_code => {
-                    *pair.1 = UnassignedCode::Unknown;
+                UnassignmentInfo::Simple(code) if *code == unassigned_code => {
+                    *pair.1 = UnassignmentInfo::Unknown;
                 }
                 _ => {}
             });

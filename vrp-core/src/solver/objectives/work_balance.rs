@@ -9,6 +9,9 @@ use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::Arc;
 
+/// Specifies load function type.
+pub type LoadFn<T> = Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>;
+
 /// A type which provides functionality needed to balance work across all routes.
 pub struct WorkBalance {}
 
@@ -16,7 +19,7 @@ impl WorkBalance {
     /// Creates _(constraint, objective)_  type pair which balances max load across all tours.
     pub fn new_load_balanced<T: LoadOps>(
         threshold: Option<f64>,
-        load_func: Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>,
+        load_fn: LoadFn<T>,
     ) -> (TargetConstraint, TargetObjective) {
         let default_capacity = T::default();
         let default_intervals = vec![(0_usize, 0_usize)];
@@ -32,7 +35,7 @@ impl WorkBalance {
                 .map(|activity| {
                     ctx.state.get_activity_state::<T>(MAX_FUTURE_CAPACITY_KEY, activity).unwrap_or(&default_capacity)
                 })
-                .map(|max_load| load_func.deref()(max_load, capacity))
+                .map(|max_load| load_fn.deref()(max_load, capacity))
                 .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less))
                 .unwrap_or(0_f64)
         });

@@ -101,7 +101,7 @@ pub type StateValue = Arc<dyn Any + Send + Sync>;
 
 /// Keeps information about unassigned reason code.
 #[derive(Clone)]
-pub enum UnassignedCode {
+pub enum UnassignmentInfo {
     /// No code is available.
     Unknown,
     /// Only single code is available.
@@ -119,7 +119,7 @@ pub struct SolutionContext {
     pub ignored: Vec<Job>,
 
     /// Map of jobs which cannot be assigned and within reason code.
-    pub unassigned: HashMap<Job, UnassignedCode>,
+    pub unassigned: HashMap<Job, UnassignmentInfo>,
 
     /// Specifies jobs which should not be affected by ruin.
     pub locked: HashSet<Job>,
@@ -154,7 +154,7 @@ impl SolutionContext {
                 .unassigned
                 .iter()
                 .map(|(job, code)| (job.clone(), code.clone()))
-                .chain(self.required.iter().map(|job| (job.clone(), UnassignedCode::Unknown)))
+                .chain(self.required.iter().map(|job| (job.clone(), UnassignmentInfo::Unknown)))
                 .collect(),
             extras,
         }

@@ -5,7 +5,7 @@ mod rosomaxa_test;
 use super::*;
 use crate::algorithms::gsom::*;
 use crate::algorithms::math::relative_distance;
-use crate::population::elitism::{DominanceOrdered, Shuffled};
+use crate::population::elitism::{DedupFn, DominanceOrdered, Shuffled};
 use crate::utils::{Environment, Random};
 use rand::prelude::SliceRandom;
 use std::convert::TryInto;
@@ -552,7 +552,7 @@ where
     }
 }
 
-fn create_dedup_fn<O, S>(threshold: f64) -> Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>
+fn create_dedup_fn<O, S>(threshold: f64) -> DedupFn<O, S>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,

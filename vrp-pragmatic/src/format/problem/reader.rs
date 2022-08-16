@@ -399,7 +399,7 @@ fn add_capacity_reload_modules(
                 api_problem,
                 jobs,
                 job_index,
-                |capacity| SingleDimLoad::new(capacity.get(0).cloned().unwrap_or_default()),
+                |capacity| SingleDimLoad::new(capacity.first().cloned().unwrap_or_default()),
                 Box::new(move |capacity| *capacity * threshold),
             );
         }

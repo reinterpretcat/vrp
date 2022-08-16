@@ -10,10 +10,12 @@ use hashbrown::{HashMap, HashSet};
 use std::slice::Iter;
 use std::sync::Arc;
 
+type ConditionMap = HashMap<Job, Arc<dyn Fn(&Actor) -> bool + Sync + Send>>;
+
 /// A module which allows to lock specific actors within specific jobs using different rules.
 pub struct StrictLockingModule {
     code: i32,
-    conditions: HashMap<Job, Arc<dyn Fn(&Actor) -> bool + Sync + Send>>,
+    conditions: ConditionMap,
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
 }
@@ -92,7 +94,7 @@ impl StrictLockingModule {
 
 struct StrictLockingHardRouteConstraint {
     code: i32,
-    conditions: HashMap<Job, Arc<dyn Fn(&Actor) -> bool + Sync + Send>>,
+    conditions: ConditionMap,
 }
 
 impl HardRouteConstraint for StrictLockingHardRouteConstraint {

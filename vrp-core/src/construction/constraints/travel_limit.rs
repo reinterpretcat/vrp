@@ -7,11 +7,13 @@ use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
 
+type LimitFn<T> = Arc<dyn Fn(&Actor) -> Option<T> + Send + Sync>;
+
 /// A module which controls travel limits.
 pub struct TravelLimitModule {
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
-    tour_duration_limit: Arc<dyn Fn(&Actor) -> Option<Duration> + Send + Sync>,
+    tour_duration_limit: LimitFn<Duration>,
 }
 
 impl ConstraintModule for TravelLimitModule {
@@ -42,8 +44,8 @@ impl TravelLimitModule {
     /// Creates a new instance of `TravelLimitModule`.
     pub fn new(
         transport: Arc<dyn TransportCost + Send + Sync>,
-        tour_distance_limit: Arc<dyn Fn(&Actor) -> Option<Distance> + Send + Sync>,
-        tour_duration_limit: Arc<dyn Fn(&Actor) -> Option<Duration> + Send + Sync>,
+        tour_distance_limit: LimitFn<Distance>,
+        tour_duration_limit: LimitFn<Duration>,
         distance_code: i32,
         duration_code: i32,
     ) -> Self {
@@ -66,8 +68,8 @@ struct TravelHardActivityConstraint {
     distance_code: i32,
     duration_code: i32,
     transport: Arc<dyn TransportCost + Send + Sync>,
-    tour_distance_limit: Arc<dyn Fn(&Actor) -> Option<Distance> + Send + Sync>,
-    tour_duration_limit: Arc<dyn Fn(&Actor) -> Option<Duration> + Send + Sync>,
+    tour_distance_limit: LimitFn<Distance>,
+    tour_duration_limit: LimitFn<Duration>,
 }
 
 impl HardActivityConstraint for TravelHardActivityConstraint {

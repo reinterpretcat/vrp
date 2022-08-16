@@ -11,7 +11,7 @@ use crate::{format_time, parse_time};
 use std::cmp::Ordering;
 use std::io::{BufWriter, Write};
 use vrp_core::construction::extensions::route_intervals;
-use vrp_core::construction::heuristics::UnassignedCode;
+use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Multi, TravelTime};
 use vrp_core::models::solution::{Activity, Route};
@@ -520,8 +520,8 @@ fn create_unassigned(solution: &Solution) -> Option<Vec<UnassignedJob>> {
             let job_id = job.dimens().get_id().expect("job id expected").clone();
 
             let reasons = match code {
-                UnassignedCode::Simple(code) => create_simple_reasons(*code),
-                UnassignedCode::Detailed(details) if !details.is_empty() => details
+                UnassignmentInfo::Simple(code) => create_simple_reasons(*code),
+                UnassignmentInfo::Detailed(details) if !details.is_empty() => details
                     .iter()
                     .collect_group_by_key(|(_, code)| *code)
                     .into_iter()

@@ -25,10 +25,12 @@ impl TransportCost for OnlyDistanceCost {
 }
 
 struct ProfileAwareTransportCost {
+    #[allow(clippy::type_complexity)]
     func: Box<dyn Fn(&Profile, f64) -> f64 + Sync + Send>,
 }
 
 impl ProfileAwareTransportCost {
+    #[allow(clippy::type_complexity)]
     pub fn new(func: Box<dyn Fn(&Profile, f64) -> f64 + Sync + Send>) -> ProfileAwareTransportCost {
         ProfileAwareTransportCost { func }
     }

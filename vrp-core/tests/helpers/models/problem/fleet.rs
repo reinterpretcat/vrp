@@ -143,6 +143,7 @@ impl FleetBuilder {
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn create_details_actor_groups(actors: &[Arc<Actor>]) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync> {
     let unique_type_keys: HashSet<_> = actors.iter().map(|a| a.detail.clone()).collect();
 

@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::heuristics::{InsertionContext, UnassignedCode};
+use crate::construction::heuristics::{InsertionContext, UnassignmentInfo};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
 use crate::helpers::models::domain::{create_empty_insertion_context, create_empty_solution_context};
 use crate::helpers::models::problem::{get_job_id, test_single_with_id};
@@ -53,8 +53,8 @@ fn can_estimate_solution_value() {
         1,
     );
     let mut solution = create_empty_solution_context();
-    solution.unassigned.insert(Job::Single(test_single_with_id("job1")), UnassignedCode::Simple(0));
-    solution.unassigned.insert(Job::Single(test_single_with_id("job2")), UnassignedCode::Simple(1));
+    solution.unassigned.insert(Job::Single(test_single_with_id("job1")), UnassignmentInfo::Simple(0));
+    solution.unassigned.insert(Job::Single(test_single_with_id("job2")), UnassignmentInfo::Simple(1));
     let insertion_ctx = InsertionContext { solution, ..create_empty_insertion_context() };
 
     let fitness = objective.fitness(&insertion_ctx);

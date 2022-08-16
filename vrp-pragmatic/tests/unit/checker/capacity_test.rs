@@ -69,7 +69,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                     "departure",
                     "departure",
                     (0., 0.),
-                    *stop_loads.get(0).unwrap(),
+                    *stop_loads.first().unwrap(),
                     ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                     0,
                 ),

@@ -3,14 +3,14 @@
 mod total_unassigned_jobs_test;
 
 use super::*;
-use crate::construction::heuristics::UnassignedCode;
+use crate::construction::heuristics::UnassignmentInfo;
 use crate::models::problem::Job;
 use rosomaxa::prelude::*;
 use std::ops::Deref;
 use std::sync::Arc;
 
 /// A type which allows to control how job is estimated in objective fitness
-pub type UnassignedJobEstimator = Arc<dyn Fn(&InsertionContext, &Job, &UnassignedCode) -> f64 + Send + Sync>;
+pub type UnassignedJobEstimator = Arc<dyn Fn(&InsertionContext, &Job, &UnassignmentInfo) -> f64 + Send + Sync>;
 
 /// An objective function which minimizes amount of unassigned jobs as a target.
 pub struct TotalUnassignedJobs {

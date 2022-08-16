@@ -75,11 +75,13 @@ pub(crate) fn generate_plan(
     Ok(Plan { jobs, relations: None, areas: None, clustering: None })
 }
 
+type LocationFn = Box<dyn Fn(&DefaultRandom) -> Location>;
+
 fn get_location_fn(
     problem_proto: &Problem,
     locations: Option<Vec<Location>>,
     area_size: Option<f64>,
-) -> Result<Box<dyn Fn(&DefaultRandom) -> Location>, String> {
+) -> Result<LocationFn, String> {
     if let Some(locations) = locations {
         Ok(Box::new(move |rnd| get_random_item(locations.as_slice(), rnd).cloned().expect("cannot get any location")))
     } else {

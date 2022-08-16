@@ -347,10 +347,9 @@ fn check_e1309_vehicle_reload_resources(ctx: &ValidationContext) -> Result<(), F
     }
 }
 
-fn get_invalid_type_ids(
-    ctx: &ValidationContext,
-    check_shift: Box<dyn Fn(&VehicleType, &VehicleShift, Option<TimeWindow>) -> bool>,
-) -> Vec<String> {
+type CheckShiftFn = Box<dyn Fn(&VehicleType, &VehicleShift, Option<TimeWindow>) -> bool>;
+
+fn get_invalid_type_ids(ctx: &ValidationContext, check_shift: CheckShiftFn) -> Vec<String> {
     ctx.vehicles()
         .filter_map(|vehicle| {
             let all_correct =

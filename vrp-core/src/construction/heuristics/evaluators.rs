@@ -47,7 +47,9 @@ pub fn evaluate_job_insertion_in_route(
 ) -> InsertionResult {
     // NOTE do not evaluate unassigned job in unmodified route if it has a concrete code
     match (route_ctx.is_stale(), insertion_ctx.solution.unassigned.get(eval_ctx.job)) {
-        (false, Some(UnassignedCode::Simple(_))) | (false, Some(UnassignedCode::Detailed(_))) => return alternative,
+        (false, Some(UnassignmentInfo::Simple(_))) | (false, Some(UnassignmentInfo::Detailed(_))) => {
+            return alternative
+        }
         _ => {}
     }
 

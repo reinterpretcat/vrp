@@ -1,4 +1,4 @@
-use crate::construction::heuristics::{InsertionContext, SolutionContext, UnassignedCode};
+use crate::construction::heuristics::{InsertionContext, SolutionContext, UnassignmentInfo};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
@@ -10,7 +10,7 @@ use rosomaxa::evolution::HeuristicSolutionProcessing;
 
 const UNASSIGNMENT_CODE: i32 = 1;
 
-fn create_test_insertion_ctx(unassigned: Vec<(Job, UnassignedCode)>) -> InsertionContext {
+fn create_test_insertion_ctx(unassigned: Vec<(Job, UnassignmentInfo)>) -> InsertionContext {
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicle(test_vehicle_with_id("v1"))
@@ -51,14 +51,14 @@ parameterized_test! {can_combine_vehicle_details, (unassigned, expected_details)
 }}
 
 can_combine_vehicle_details! {
-    case_01: (
-        vec![(create_early_delivery("job1"), UnassignedCode::Unknown)],
+    case_01_single_job: (
+        vec![(create_early_delivery("job1"), UnassignmentInfo::Unknown)],
         vec![("job1", vec![("v1", UNASSIGNMENT_CODE), ("v2", UNASSIGNMENT_CODE)])]
     ),
-    case_02: (
+    case_02_two_jobs: (
         vec![
-            (create_early_delivery("job1"), UnassignedCode::Simple(UNASSIGNMENT_CODE)),
-            (create_early_delivery("job2"), UnassignedCode::Unknown)
+            (create_early_delivery("job1"), UnassignmentInfo::Simple(UNASSIGNMENT_CODE)),
+            (create_early_delivery("job2"), UnassignmentInfo::Unknown)
         ],
         vec![("job1", vec![("v1", UNASSIGNMENT_CODE), ("v2", UNASSIGNMENT_CODE)]),
              ("job2", vec![("v1", UNASSIGNMENT_CODE), ("v2", UNASSIGNMENT_CODE)])]
@@ -66,7 +66,7 @@ can_combine_vehicle_details! {
 }
 
 fn can_combine_vehicle_details_impl(
-    unassigned: Vec<(Job, UnassignedCode)>,
+    unassigned: Vec<(Job, UnassignmentInfo)>,
     expected_details: Vec<(&str, Vec<(&str, i32)>)>,
 ) {
     let insertion_ctx = create_test_insertion_ctx(unassigned);
@@ -80,7 +80,7 @@ fn can_combine_vehicle_details_impl(
         |((job, code), (expected_job_id, expected_details))| {
             assert_eq!(job.to_single().dimens.get_id().unwrap(), expected_job_id);
             match code {
-                UnassignedCode::Detailed(details) => {
+                UnassignmentInfo::Detailed(details) => {
                     let details = details
                         .iter()
                         .map(|(actor, code)| (actor.vehicle.dimens.get_id().unwrap().as_str(), *code))
@@ -98,12 +98,12 @@ parameterized_test! {can_handle_assignable_job, code, {
 }}
 
 can_handle_assignable_job! {
-    case_01: UnassignedCode::Unknown,
-    case_02: UnassignedCode::Simple(UNASSIGNMENT_CODE),
-    case_03: UnassignedCode::Simple(2),
+    case_01_unknown_code: UnassignmentInfo::Unknown,
+    case_02_same_code: UnassignmentInfo::Simple(UNASSIGNMENT_CODE),
+    case_03_different_code: UnassignmentInfo::Simple(2),
 }
 
-fn can_handle_assignable_job_impl(code: UnassignedCode) {
+fn can_handle_assignable_job_impl(code: UnassignmentInfo) {
     let expected = (create_assignable_delivery("job1"), code);
     let insertion_ctx = create_test_insertion_ctx(vec![expected.clone()]);
 
@@ -115,8 +115,8 @@ fn can_handle_assignable_job_impl(code: UnassignedCode) {
     let (expected_job, expected_code) = expected;
     assert!(actual_job == expected_job);
     match (actual_code, expected_code) {
-        (UnassignedCode::Unknown, UnassignedCode::Unknown) => {}
-        (UnassignedCode::Simple(actual_code), UnassignedCode::Simple(expected_code)) => {
+        (UnassignmentInfo::Unknown, UnassignmentInfo::Unknown) => {}
+        (UnassignmentInfo::Simple(actual_code), UnassignmentInfo::Simple(expected_code)) => {
             assert_eq!(actual_code, expected_code)
         }
         _ => unreachable!(),

@@ -8,7 +8,7 @@ use std::iter::once;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::heuristics::{ActivityContext, RouteContext, SolutionContext, UnassignedCode};
+use vrp_core::construction::heuristics::{ActivityContext, RouteContext, SolutionContext, UnassignmentInfo};
 use vrp_core::models::common::{Schedule, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::Activity;
@@ -216,7 +216,7 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext) {
         })
     });
 
-    ctx.unassigned.extend(breaks_to_remove.into_iter().map(|b| (b, UnassignedCode::Unknown)));
+    ctx.unassigned.extend(breaks_to_remove.into_iter().map(|b| (b, UnassignmentInfo::Unknown)));
 
     // NOTE remove stale breaks from violation list
     ctx.ignored.extend(

@@ -12,7 +12,7 @@ use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::construction::heuristics::UnassignedCode;
+use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Job, Single};
 use vrp_core::models::solution::Tour as CoreTour;
@@ -68,7 +68,7 @@ pub fn read_init_solution<R: Read>(
             let code = unassigned_job
                 .reasons
                 .first()
-                .map(|reason| UnassignedCode::Simple(map_reason_code(&reason.code)))
+                .map(|reason| UnassignmentInfo::Simple(map_reason_code(&reason.code)))
                 .ok_or_else(|| format!("cannot get reason for: {:?}", unassigned_job))?;
 
             added_jobs.insert(job.clone());
@@ -79,7 +79,7 @@ pub fn read_init_solution<R: Read>(
     )?;
 
     unassigned.extend(
-        problem.jobs.all().filter(|job| added_jobs.get(job).is_none()).map(|job| (job, UnassignedCode::Unknown)),
+        problem.jobs.all().filter(|job| added_jobs.get(job).is_none()).map(|job| (job, UnassignmentInfo::Unknown)),
     );
 
     Ok(Solution { registry, routes, unassigned, extras: problem.extras.clone() })

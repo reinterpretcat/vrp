@@ -166,7 +166,7 @@ impl Fleet {
 
 impl PartialEq<Actor> for Actor {
     fn eq(&self, other: &Actor) -> bool {
-        std::ptr::eq(&*self, &*other)
+        std::ptr::eq(self, other)
     }
 }
 
@@ -174,7 +174,7 @@ impl Eq for Actor {}
 
 impl Hash for Actor {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let address = &*self as *const Actor;
+        let address = self as *const Actor;
         address.hash(state);
     }
 }

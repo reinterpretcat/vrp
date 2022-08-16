@@ -117,7 +117,7 @@ fn remove_jobs(
                     SelectionSamplingIterator::new(all_jobs.into_iter(), amount, random.clone()).collect::<Vec<_>>();
                 jobs.iter().for_each(|job| {
                     route_ctx.route_mut().tour.remove(job);
-                    unassigned.insert(job.clone(), UnassignedCode::Unknown);
+                    unassigned.insert(job.clone(), UnassignmentInfo::Unknown);
                 });
 
                 jobs
@@ -142,7 +142,7 @@ fn remove_jobs(
 
                     if let Some(job) = job {
                         route_ctx.route_mut().tour.remove(&job);
-                        unassigned.insert(job.clone(), UnassignedCode::Unknown);
+                        unassigned.insert(job.clone(), UnassignmentInfo::Unknown);
                         acc.push(job)
                     }
 

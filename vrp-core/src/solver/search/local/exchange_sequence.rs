@@ -216,7 +216,7 @@ fn insert_jobs(
     });
 
     insertion_ctx.solution.unassigned.extend(failures.into_iter().map(|(job, failure)| {
-        let code = UnassignedCode::Simple(failure.constraint);
+        let code = UnassignmentInfo::Simple(failure.constraint);
         let job = failure.job.unwrap_or(job);
         (job, code)
     }));

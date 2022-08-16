@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::heuristics::{RouteContext, RouteState, SolutionContext, UnassignedCode};
+use crate::construction::heuristics::{RouteContext, RouteState, SolutionContext, UnassignmentInfo};
 use crate::helpers::construction::clustering::vicinity::*;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
@@ -122,9 +122,12 @@ fn can_unwrap_clusters_in_unassigned_on_post_process() {
     let insertion_ctx = InsertionContext {
         problem: new_problem,
         solution: SolutionContext {
-            unassigned: vec![(clustered_job, UnassignedCode::Simple(1)), (unclustered_job, UnassignedCode::Simple(2))]
-                .into_iter()
-                .collect(),
+            unassigned: vec![
+                (clustered_job, UnassignmentInfo::Simple(1)),
+                (unclustered_job, UnassignmentInfo::Simple(2)),
+            ]
+            .into_iter()
+            .collect(),
             ..create_empty_solution_context()
         },
         ..create_empty_insertion_context()

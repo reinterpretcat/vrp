@@ -16,7 +16,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
     let mut locked: HashSet<Job> = Default::default();
     let mut reserved: HashSet<Job> = Default::default();
     let mut ignored: HashSet<Job> = Default::default();
-    let mut unassigned: HashMap<Job, UnassignedCode> = Default::default();
+    let mut unassigned: HashMap<Job, UnassignmentInfo> = Default::default();
     let mut routes: Vec<RouteContext> = Default::default();
     let mut registry = Registry::new(&problem.fleet, environment.random.clone());
     let state = Default::default();
@@ -81,7 +81,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
             }
             (None, false) => {
                 unassigned.extend(
-                    lock.details.iter().flat_map(|d| d.jobs.iter().cloned().map(|j| (j, UnassignedCode::Unknown))),
+                    lock.details.iter().flat_map(|d| d.jobs.iter().cloned().map(|j| (j, UnassignmentInfo::Unknown))),
                 );
             }
             (_, _) => {
@@ -198,5 +198,5 @@ fn update_insertion_context(insertion_ctx: &mut InsertionContext) {
     insertion_ctx
         .solution
         .unassigned
-        .extend(insertion_ctx.solution.required.drain(0..).map(|job| (job, UnassignedCode::Unknown)));
+        .extend(insertion_ctx.solution.required.drain(0..).map(|job| (job, UnassignmentInfo::Unknown)));
 }

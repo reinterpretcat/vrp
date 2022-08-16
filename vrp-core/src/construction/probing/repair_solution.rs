@@ -207,7 +207,7 @@ fn finalize_synchronization(
         unassigned
             .into_iter()
             .chain(insertion_ctx.solution.required.iter().cloned())
-            .map(|job| (job, UnassignedCode::Unknown)),
+            .map(|job| (job, UnassignmentInfo::Unknown)),
     );
 
     new_insertion_ctx.restore();

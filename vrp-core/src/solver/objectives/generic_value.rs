@@ -23,27 +23,27 @@ impl GenericValue {
     /// Creates a new instance of constraint and related objective.
     pub fn new_constrained_objective(
         threshold: Option<f64>,
-        job_merge_func: JobMergeFn,
-        route_value_func: RouteValueFn,
-        solution_value_func: SolutionValueFn,
-        estimate_value_func: EstimateValueFn,
+        job_merge_fn: JobMergeFn,
+        route_value_fn: RouteValueFn,
+        solution_value_fn: SolutionValueFn,
+        estimate_value_fn: EstimateValueFn,
         state_key: i32,
     ) -> (TargetConstraint, TargetObjective) {
         let objective = GenericValueObjective {
             threshold,
             state_key,
-            route_value_func: route_value_func.clone(),
-            solution_value_func: solution_value_func.clone(),
-            estimate_value_func,
+            route_value_fn: route_value_fn.clone(),
+            solution_value_fn: solution_value_fn.clone(),
+            estimate_value_fn,
         };
 
         let constraint = GenericValueConstraint {
             constraints: vec![ConstraintVariant::SoftRoute(Arc::new(objective.clone()))],
-            job_merge_func,
-            route_value_func,
+            job_merge_fn,
+            route_value_fn,
             state_key,
             keys: vec![state_key],
-            solution_value_func,
+            solution_value_fn,
         };
 
         (Arc::new(constraint), Arc::new(objective))
@@ -52,9 +52,9 @@ impl GenericValue {
 
 struct GenericValueConstraint {
     constraints: Vec<ConstraintVariant>,
-    job_merge_func: Arc<dyn Fn(Job, Job) -> Result<Job, i32> + Send + Sync>,
-    route_value_func: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
-    solution_value_func: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
+    job_merge_fn: JobMergeFn,
+    route_value_fn: RouteValueFn,
+    solution_value_fn: SolutionValueFn,
     state_key: i32,
     keys: Vec<i32>,
 }
@@ -65,19 +65,19 @@ impl ConstraintModule for GenericValueConstraint {
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
-        let value = self.route_value_func.deref()(ctx);
+        let value = self.route_value_fn.deref()(ctx);
 
         ctx.state_mut().put_route_state(self.state_key, value);
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
-        let value = self.solution_value_func.deref()(ctx);
+        let value = self.solution_value_fn.deref()(ctx);
 
         ctx.state.insert(self.state_key, Arc::new(value));
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
-        self.job_merge_func.deref()(source, candidate)
+        self.job_merge_fn.deref()(source, candidate)
     }
 
     fn state_keys(&self) -> Iter<i32> {
@@ -93,9 +93,9 @@ impl ConstraintModule for GenericValueConstraint {
 struct GenericValueObjective {
     threshold: Option<f64>,
     state_key: i32,
-    route_value_func: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
-    solution_value_func: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
-    estimate_value_func: Arc<dyn Fn(&SolutionContext, &RouteContext, &Job, f64) -> f64 + Send + Sync>,
+    route_value_fn: RouteValueFn,
+    solution_value_fn: SolutionValueFn,
+    estimate_value_fn: EstimateValueFn,
 }
 
 impl SoftRouteConstraint for GenericValueObjective {
@@ -104,10 +104,10 @@ impl SoftRouteConstraint for GenericValueObjective {
             .state
             .get_route_state::<f64>(self.state_key)
             .cloned()
-            .unwrap_or_else(|| self.route_value_func.deref()(route_ctx));
+            .unwrap_or_else(|| self.route_value_fn.deref()(route_ctx));
 
         if value.is_finite() && self.threshold.map_or(true, |threshold| value > threshold) {
-            self.estimate_value_func.deref()(solution_ctx, route_ctx, job, value)
+            self.estimate_value_fn.deref()(solution_ctx, route_ctx, job, value)
         } else {
             0.
         }
@@ -152,6 +152,6 @@ impl Objective for GenericValueObjective {
             .get(&self.state_key)
             .and_then(|s| s.downcast_ref::<f64>())
             .cloned()
-            .unwrap_or_else(|| self.solution_value_func.deref()(&solution.solution))
+            .unwrap_or_else(|| self.solution_value_fn.deref()(&solution.solution))
     }
 }
