@@ -1,10 +1,9 @@
 use super::*;
-use crate::extensions::create_typed_actor_groups;
+use crate::extensions::{create_typed_actor_groups, VehicleTie};
 use crate::helpers::*;
 use hashbrown::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::*;
-use vrp_core::models::common::{IdDimension, ValueDimension};
 use vrp_core::models::problem::Actor;
 use vrp_core::models::problem::{Fleet, Single};
 
@@ -25,9 +24,7 @@ fn create_test_fleet() -> Fleet {
 
 fn create_test_single(group: Option<&str>) -> Arc<Single> {
     let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
-    if let Some(group) = group {
-        single.dimens.set_value("group", group.to_string())
-    }
+    single.dimens.set_job_group(group.map(|group| group.to_string()));
 
     Arc::new(single)
 }
@@ -66,7 +63,7 @@ fn create_test_solution_context(
 }
 
 fn get_actor(fleet: &Fleet, vehicle: &str) -> Arc<Actor> {
-    fleet.actors.iter().find(|actor| actor.vehicle.dimens.get_id().unwrap() == vehicle).unwrap().clone()
+    fleet.actors.iter().find(|actor| actor.vehicle.dimens.get_vehicle_id().unwrap() == vehicle).unwrap().clone()
 }
 
 fn get_actor_groups(solution_ctx: &mut SolutionContext, state_key: i32) -> HashMap<String, Arc<Actor>> {

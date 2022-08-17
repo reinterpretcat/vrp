@@ -2,12 +2,12 @@
 #[path = "../../tests/unit/constraints/group_test.rs"]
 mod group_test;
 
+use crate::extensions::JobTie;
 use hashbrown::HashSet;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::{RouteContext, SolutionContext};
-use vrp_core::models::common::ValueDimension;
 use vrp_core::models::problem::Job;
 
 /// A group module provides the way to stick certain jobs to the same tour.
@@ -36,7 +36,7 @@ impl GroupModule {
 
 impl ConstraintModule for GroupModule {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
-        if let Some(group) = get_group(job) {
+        if let Some(group) = job.dimens().get_job_group() {
             let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
 
             let mut groups = get_groups(route_ctx);
@@ -56,7 +56,7 @@ impl ConstraintModule for GroupModule {
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
-        match (get_group(&source), get_group(&candidate)) {
+        match (source.dimens().get_job_group(), candidate.dimens().get_job_group()) {
             (None, None) => Ok(source),
             (Some(s_group), Some(c_group)) if s_group == c_group => Ok(source),
             _ => Err(self.code),
@@ -85,7 +85,7 @@ impl HardRouteConstraint for GroupHardRouteConstraint {
         route_ctx: &RouteContext,
         job: &Job,
     ) -> Option<RouteConstraintViolation> {
-        get_group(job).and_then(|group| {
+        job.dimens().get_job_group().and_then(|group| {
             let is_partial_problem = solution_ctx.get_jobs_amount() != self.total_jobs;
             if is_partial_problem {
                 return Some(RouteConstraintViolation { code: self.code });
@@ -107,10 +107,6 @@ impl HardRouteConstraint for GroupHardRouteConstraint {
     }
 }
 
-fn get_group(job: &Job) -> Option<&String> {
-    job.dimens().get_value::<String>("group")
-}
-
 fn get_groups(route_ctx: &RouteContext) -> HashSet<String> {
-    route_ctx.route.tour.jobs().filter_map(|job| get_group(&job).cloned()).collect()
+    route_ctx.route.tour.jobs().filter_map(|job| job.dimens().get_job_group().cloned()).collect()
 }

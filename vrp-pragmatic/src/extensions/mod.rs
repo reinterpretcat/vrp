@@ -1,5 +1,7 @@
 //! Contains some algorithm extensions.
 
+pub use crate::format::entities::*;
+
 mod only_vehicle_activity_cost;
 pub use self::only_vehicle_activity_cost::OnlyVehicleActivityCost;
 

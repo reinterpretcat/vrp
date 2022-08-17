@@ -1,3 +1,4 @@
+use crate::extensions::JobTie;
 use crate::format::problem::VehicleBreak;
 use crate::format::problem::{Problem as FormatProblem, VehicleRequiredBreakTime};
 use crate::format::solution::{Activity as FormatActivity, Schedule as FormatSchedule, Tour as FormatTour};
@@ -47,7 +48,7 @@ pub(crate) fn try_match_point_job(
                     let tags = multi
                         .jobs
                         .iter()
-                        .filter_map(|single| single.dimens.get_value::<Vec<(usize, String)>>("tags"))
+                        .filter_map(|single| single.dimens.get_place_tags())
                         .flat_map(|tags| tags.iter().map(|(_, tag)| tag))
                         .collect::<HashSet<_>>();
                     if tags.len() < multi.jobs.len() {
@@ -183,26 +184,24 @@ fn match_place<'a>(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &'
 
 pub(crate) fn get_job_tag(single: &Single, place: (Location, (TimeWindow, Timestamp))) -> Option<&String> {
     let (location, (time_window, start_time)) = place;
-    single.dimens.get_value::<Vec<(usize, String)>>("tags").map(|tags| (tags, &single.places)).and_then(
-        |(tags, places)| {
-            tags.iter()
-                .find(|(place_idx, _)| {
-                    let place = places.get(*place_idx).expect("invalid tag place index");
+    single.dimens.get_place_tags().map(|tags| (tags, &single.places)).and_then(|(tags, places)| {
+        tags.iter()
+            .find(|(place_idx, _)| {
+                let place = places.get(*place_idx).expect("invalid tag place index");
 
-                    let is_correct_location = place.location.map_or(true, |l| location == l);
-                    let is_correct_time = place
-                        .times
-                        .iter()
-                        .map(|time| time.to_time_window(start_time))
-                        .any(|time| time.intersects(&time_window));
+                let is_correct_location = place.location.map_or(true, |l| location == l);
+                let is_correct_time = place
+                    .times
+                    .iter()
+                    .map(|time| time.to_time_window(start_time))
+                    .any(|time| time.intersects(&time_window));
 
-                    // TODO check duration too?
+                // TODO check duration too?
 
-                    is_correct_location && is_correct_time
-                })
-                .map(|(_, tag)| tag)
-        },
-    )
+                is_correct_location && is_correct_time
+            })
+            .map(|(_, tag)| tag)
+    })
 }
 
 pub(crate) fn get_extra_time(stop: &PointStop, activity: &FormatActivity, place: &Place) -> Option<f64> {
@@ -236,7 +235,7 @@ fn get_job_id(single: &Arc<Single>) -> String {
     .retrieve_job()
     .unwrap()
     .dimens()
-    .get_id()
+    .get_job_id()
     .cloned()
     .expect("cannot get job id")
 }

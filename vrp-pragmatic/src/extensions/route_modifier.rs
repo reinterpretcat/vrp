@@ -1,8 +1,8 @@
+use crate::extensions::VehicleTie;
 use crate::format::JobIndex;
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::*;
-use vrp_core::models::common::{IdDimension, ValueDimension};
 use vrp_core::prelude::*;
 
 /// Returns route modifier.
@@ -11,8 +11,8 @@ pub fn get_route_modifier(constraint: Arc<ConstraintPipeline>, job_index: JobInd
         let actor = &route_ctx.route.actor;
         let vehicle = &actor.vehicle;
 
-        let shift_index = vehicle.dimens.get_value::<usize>("shift_index").expect("cannot find shift index");
-        let vehicle_id = vehicle.dimens.get_id().expect("cannot get vehicle id");
+        let shift_index = vehicle.dimens.get_shift_index().expect("cannot find shift index");
+        let vehicle_id = vehicle.dimens.get_vehicle_id().expect("cannot get vehicle id");
 
         let candidates = (1..)
             .map(|idx| format!("{}_dispatch_{}_{}", vehicle_id, shift_index, idx))

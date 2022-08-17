@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/format/problem/fleet_reader_test.rs"]
 mod fleet_reader_test;
 
-use crate::extensions::create_typed_actor_groups;
+use crate::extensions::{create_typed_actor_groups, VehicleTie};
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::Matrix;
@@ -157,16 +157,18 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
 
             vehicle.vehicle_ids.iter().for_each(|vehicle_id| {
                 let mut dimens: Dimensions = Default::default();
-                dimens.set_value("type_id", vehicle.type_id.clone());
-                dimens.set_value("shift_index", shift_index);
-                dimens.set_id(vehicle_id);
+
+                dimens
+                    .set_vehicle_type(vehicle.type_id.clone())
+                    .set_shift_index(shift_index)
+                    .set_vehicle_id(vehicle_id.clone());
 
                 if let Some(area_jobs) = area_jobs.take() {
-                    dimens.set_value("areas", area_jobs);
+                    dimens.set_areas(area_jobs);
                 }
 
                 if let Some(tour_size) = tour_size {
-                    dimens.set_value("tour_size", tour_size);
+                    dimens.set_tour_size(tour_size);
                 }
 
                 if props.has_multi_dimen_capacity {
@@ -174,7 +176,10 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                 } else {
                     dimens.set_capacity(SingleDimLoad::new(*vehicle.capacity.first().unwrap()));
                 }
-                add_vehicle_skills(&mut dimens, &vehicle.skills);
+
+                if let Some(skills) = vehicle.skills.as_ref() {
+                    dimens.set_vehicle_skills(skills.iter().cloned().collect::<HashSet<_>>());
+                }
 
                 vehicles.push(Arc::new(Vehicle {
                     profile: profile.clone(),
@@ -199,10 +204,4 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
     })];
 
     Fleet::new(drivers, vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
-}
-
-fn add_vehicle_skills(dimens: &mut Dimensions, skills: &Option<Vec<String>>) {
-    if let Some(skills) = skills {
-        dimens.set_value("skills", skills.iter().cloned().collect::<HashSet<_>>());
-    }
 }

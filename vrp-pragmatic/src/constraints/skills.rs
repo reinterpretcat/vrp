@@ -2,12 +2,12 @@
 #[path = "../../tests/unit/constraints/skills_test.rs"]
 mod skills_test;
 
+use crate::extensions::{JobTie, VehicleTie};
 use hashbrown::HashSet;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::{RouteContext, SolutionContext};
-use vrp_core::models::common::ValueDimension;
 use vrp_core::models::problem::Job;
 
 /// A job skills limitation for a vehicle.
@@ -45,8 +45,8 @@ impl ConstraintModule for SkillsModule {
     fn accept_solution_state(&self, _ctx: &mut SolutionContext) {}
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
-        let source_skills = get_skills(&source);
-        let candidate_skills = get_skills(&candidate);
+        let source_skills = source.dimens().get_job_skills();
+        let candidate_skills = candidate.dimens().get_job_skills();
 
         let check_skill_sets = |source_set: Option<&HashSet<String>>, candidate_set: Option<&HashSet<String>>| match (
             source_set,
@@ -89,8 +89,8 @@ struct SkillsHardRouteConstraint {
 
 impl HardRouteConstraint for SkillsHardRouteConstraint {
     fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
-        if let Some(job_skills) = get_skills(job) {
-            let vehicle_skills = ctx.route.actor.vehicle.dimens.get_value::<HashSet<String>>("skills");
+        if let Some(job_skills) = job.dimens().get_job_skills() {
+            let vehicle_skills = ctx.route.actor.vehicle.dimens.get_vehicle_skills();
             let is_ok = check_all_of(job_skills, &vehicle_skills)
                 && check_one_of(job_skills, &vehicle_skills)
                 && check_none_of(job_skills, &vehicle_skills);
@@ -126,8 +126,4 @@ fn check_none_of(job_skills: &JobSkills, vehicle_skills: &Option<&HashSet<String
         (Some(job_skills), Some(vehicle_skills)) => job_skills.is_disjoint(vehicle_skills),
         _ => true,
     }
-}
-
-fn get_skills(job: &Job) -> Option<&JobSkills> {
-    job.dimens().get_value::<JobSkills>("skills")
 }

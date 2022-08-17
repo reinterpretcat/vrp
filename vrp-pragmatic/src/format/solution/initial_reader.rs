@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/format/solution/initial_reader_test.rs"]
 mod initial_reader_test;
 
+use crate::extensions::VehicleTie;
 use crate::format::solution::activity_matcher::{try_match_point_job, JobInfo};
 use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
@@ -117,9 +118,9 @@ fn try_insert_activity(
 fn get_actor_key(actor: &Actor) -> ActorKey {
     let dimens = &actor.vehicle.dimens;
 
-    let vehicle_id = dimens.get_id().cloned().expect("cannot get vehicle id!");
-    let type_id = dimens.get_value::<String>("type_id").cloned().expect("cannot get type id!");
-    let shift_index = dimens.get_value::<usize>("shift_index").cloned().expect("cannot get shift index!");
+    let vehicle_id = dimens.get_vehicle_id().cloned().expect("cannot get vehicle id!");
+    let type_id = dimens.get_vehicle_type().cloned().expect("cannot get type id!");
+    let shift_index = dimens.get_shift_index().expect("cannot get shift index!");
 
     (vehicle_id, type_id, shift_index)
 }

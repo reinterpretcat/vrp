@@ -8,10 +8,7 @@ const STATE_KEY: i32 = 2;
 
 fn create_test_single(compatibility: Option<String>) -> Arc<Single> {
     let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
-    if let Some(compatibility) = compatibility {
-        single.dimens.set_value("compat", compatibility)
-    }
-
+    single.dimens.set_job_compatibility(compatibility);
     Arc::new(single)
 }
 
@@ -92,7 +89,7 @@ fn can_merge_jobs_impl(
     let candidate = Job::Single(create_test_single(candidate_compat.map(|v| v.to_string())));
     let compatibility = CompatibilityModule::new(VIOLATION_CODE, STATE_KEY);
 
-    let result = compatibility.merge(source, candidate).map(|job| get_job_compatibility(&job).cloned());
+    let result = compatibility.merge(source, candidate).map(|job| job.dimens().get_job_compatibility().cloned());
 
     match (result, expected) {
         (Ok(_), Err(_)) => unreachable!("unexpected err result"),

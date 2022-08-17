@@ -3,17 +3,15 @@
 mod objective_reader_test;
 
 use crate::constraints::{AreaModule, TOTAL_VALUE_KEY, TOUR_ORDER_KEY};
-use crate::core::models::common::IdDimension;
+use crate::extensions::{JobTie, VehicleTie};
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::BalanceOptions;
 use crate::format::problem::Objective::TourOrder as FormatTourOrder;
 use crate::format::problem::Objective::*;
 use crate::format::{AREA_CONSTRAINT_CODE, TOUR_ORDER_CONSTRAINT_CODE};
-use hashbrown::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::constraints::{ConstraintPipeline, FleetUsageConstraintModule};
-use vrp_core::models::common::ValueDimension;
 use vrp_core::models::common::{MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::Job;
 use vrp_core::models::problem::{ProblemObjective, Single, TargetConstraint, TargetObjective};
@@ -146,11 +144,11 @@ fn get_value(
         Arc::new(move |solution| {
             solution.unassigned.iter().map(|(job, _)| get_unassigned_job_estimate(job, break_value, 0.)).sum()
         }),
-        ValueFn::Left(Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.))),
+        ValueFn::Left(Arc::new(|job| job.dimens().get_job_value().unwrap_or(0.))),
         Arc::new(|job, value| match job {
             Job::Single(single) => {
                 let mut dimens = single.dimens.clone();
-                dimens.set_value("value", value);
+                dimens.set_job_value(Some(value));
 
                 Job::Single(Arc::new(Single { places: single.places.clone(), dimens }))
             }
@@ -165,8 +163,8 @@ fn get_order(is_constrained: bool) -> (TargetConstraint, TargetObjective) {
     let order_fn = OrderFn::Left(Arc::new(|single| {
         single
             .dimens
-            .get_value::<i32>("order")
-            .map(|order| OrderResult::Value(*order as f64))
+            .get_job_order()
+            .map(|order| OrderResult::Value(order as f64))
             .unwrap_or_else(|| get_default_order(single))
     }));
 
@@ -189,8 +187,8 @@ fn get_area(
         actor
             .vehicle
             .dimens
-            .get_value::<HashMap<String, (usize, f64)>>("areas")
-            .and_then(|index| single.dimens.get_id().and_then(|id| index.get(id)))
+            .get_areas()
+            .and_then(|index| single.dimens.get_job_id().and_then(|id| index.get(id)))
             .map(|(order, _)| OrderResult::Value(*order as f64))
             .unwrap_or_else(|| get_default_order(single))
     });
@@ -198,8 +196,8 @@ fn get_area(
         actor
             .vehicle
             .dimens
-            .get_value::<HashMap<String, (usize, f64)>>("areas")
-            .and_then(|index| job.dimens().get_id().and_then(|id| index.get(id)))
+            .get_areas()
+            .and_then(|index| job.dimens().get_job_id().and_then(|id| index.get(id)))
             .map(|(_, value)| *value)
             .unwrap_or(0.)
     });
@@ -249,7 +247,7 @@ fn get_unassigned_job_estimate(job: &Job, break_value: f64, default_value: f64) 
     if let Some(clusters) = job.dimens().get_cluster() {
         clusters.len() as f64 * default_value
     } else {
-        job.dimens().get_value::<String>("type").map_or(default_value, |job_type| match job_type.as_str() {
+        job.dimens().get_job_type().map_or(default_value, |job_type| match job_type.as_str() {
             "break" => break_value,
             "reload" => 0.,
             _ => default_value,
@@ -258,7 +256,7 @@ fn get_unassigned_job_estimate(job: &Job, break_value: f64, default_value: f64) 
 }
 
 fn get_default_order(single: &Single) -> OrderResult {
-    match single.dimens.get_value::<String>("type").map(|v| v.as_str()) {
+    match single.dimens.get_job_type().map(|v| v.as_str()) {
         Some("break") | Some("reload") | Some("dispatch") => OrderResult::Ignored,
         _ => OrderResult::Default,
     }

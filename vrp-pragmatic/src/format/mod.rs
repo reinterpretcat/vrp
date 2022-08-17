@@ -15,6 +15,7 @@ use vrp_core::models::Problem as CoreProblem;
 mod coord_index;
 pub use self::coord_index::CoordIndex;
 
+pub mod entities;
 pub mod problem;
 pub mod solution;
 

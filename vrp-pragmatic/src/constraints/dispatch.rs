@@ -3,6 +3,7 @@
 mod dispatch_test;
 
 use crate::constraints::*;
+use crate::extensions::JobTie;
 use std::iter::once;
 use std::slice::Iter;
 use vrp_core::construction::constraints::*;
@@ -135,11 +136,11 @@ fn create_job_transition() -> Box<dyn JobContextTransition + Send + Sync> {
 }
 
 fn is_dispatch_job(job: &Job) -> bool {
-    job.as_single().and_then(|single| single.dimens.get_value::<String>("type")).map_or(false, |t| t == "dispatch")
+    job.as_single().and_then(|single| single.dimens.get_job_type()).map_or(false, |t| t == "dispatch")
 }
 
 fn is_dispatch_single(single: &Arc<Single>) -> bool {
-    single.dimens.get_value::<String>("type").map_or(false, |t| t == "dispatch")
+    single.dimens.get_job_type().map_or(false, |t| t == "dispatch")
 }
 
 fn is_dispatch_activity(activity: &Option<&Activity>) -> bool {

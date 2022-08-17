@@ -1,19 +1,19 @@
+use crate::constraints::{BreakPolicy, JobSkills as ConstraintJobSkills};
+use crate::extensions::{BreakTie, JobTie, VehicleTie};
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::reader::{parse_time_window, ApiProblem, ProblemProperties};
+use crate::format::problem::JobSkills as FormatJobSkills;
 use crate::format::problem::*;
 use crate::format::{JobIndex, Location};
+use crate::parse_time;
 use crate::utils::VariableJobPermutation;
+use hashbrown::HashMap;
+use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
 use vrp_core::prelude::*;
-
-use crate::constraints::{BreakPolicy, JobSkills as ConstraintJobSkills};
-use crate::format::problem::JobSkills as FormatJobSkills;
-use crate::parse_time;
-use hashbrown::HashMap;
-use std::cmp::Ordering;
 
 // TODO configure sample size
 const MULTI_JOB_SAMPLE_SIZE: usize = 3;
@@ -246,7 +246,7 @@ fn read_optional_breaks(
                             VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd => BreakPolicy::SkipIfArrivalBeforeEnd,
                         };
 
-                        job.dimens.set_value("policy", policy);
+                        job.dimens.set_break_policy(policy);
                     }
 
                     (job_id, job)
@@ -342,10 +342,12 @@ fn get_conditional_job(
     places: Vec<PlaceData>,
 ) -> Single {
     let mut single = get_single(places, coord_index);
-    single.dimens.set_id(job_id);
-    single.dimens.set_value("type", job_type.to_string());
-    single.dimens.set_value("shift_index", shift_index);
-    single.dimens.set_value("vehicle_id", vehicle_id);
+    single
+        .dimens
+        .set_job_id(job_id.to_string())
+        .set_job_type(job_type.to_string())
+        .set_shift_index(shift_index)
+        .set_vehicle_id(vehicle_id);
 
     single
 }
@@ -373,9 +375,9 @@ fn get_single(places: Vec<PlaceData>, coord_index: &CoordIndex) -> Single {
         })
         .collect();
 
-    let mut dimens = Default::default();
+    let mut dimens = Dimensions::default();
 
-    add_tags(&mut dimens, tags);
+    dimens.set_place_tags(Some(tags));
 
     Single { places, dimens }
 }
@@ -399,20 +401,20 @@ fn get_single_with_extras(
             delivery: (SingleDimLoad::new(demand.delivery.0.load[0]), SingleDimLoad::new(demand.delivery.1.load[0])),
         });
     }
-    dimens.set_value("type", activity_type.to_string());
-    add_order(dimens, order);
+    dimens.set_job_type(activity_type.to_string()).set_job_order(*order);
 
     single
 }
 
 fn get_single_job(job: &ApiJob, single: Single) -> Job {
     let mut single = single;
-    single.dimens.set_id(&job.id);
-
-    add_value(&mut single.dimens, &job.value);
-    add_group(&mut single.dimens, &job.group);
-    add_compatibility(&mut single.dimens, &job.compatibility);
-    add_job_skills(&mut single.dimens, &job.skills);
+    single
+        .dimens
+        .set_job_id(job.id.clone())
+        .set_job_value(job.value)
+        .set_job_group(job.group.clone())
+        .set_job_compatibility(job.compatibility.clone())
+        .set_job_skills(get_skills(&job.skills));
 
     Job::Single(Arc::new(single))
 }
@@ -424,11 +426,12 @@ fn get_multi_job(
     random: &Arc<dyn Random + Send + Sync>,
 ) -> Job {
     let mut dimens: Dimensions = Default::default();
-    dimens.set_id(&job.id);
-    add_value(&mut dimens, &job.value);
-    add_group(&mut dimens, &job.group);
-    add_compatibility(&mut dimens, &job.compatibility);
-    add_job_skills(&mut dimens, &job.skills);
+    dimens
+        .set_job_id(job.id.clone())
+        .set_job_value(job.value)
+        .set_job_group(job.group.clone())
+        .set_job_compatibility(job.compatibility.clone())
+        .set_job_skills(get_skills(&job.skills));
 
     let singles = singles.into_iter().map(Arc::new).collect::<Vec<_>>();
 
@@ -453,52 +456,17 @@ fn get_multi_job(
 
 fn create_condition(vehicle_id: String, shift_index: usize) -> Arc<dyn Fn(&Actor) -> bool + Sync + Send> {
     Arc::new(move |actor: &Actor| {
-        *actor.vehicle.dimens.get_id().unwrap() == vehicle_id
-            && *actor.vehicle.dimens.get_value::<usize>("shift_index").unwrap() == shift_index
+        *actor.vehicle.dimens.get_vehicle_id().unwrap() == vehicle_id
+            && actor.vehicle.dimens.get_shift_index().unwrap() == shift_index
     })
 }
 
-fn add_tags(dimens: &mut Dimensions, tags: Vec<(usize, String)>) {
-    if !tags.is_empty() {
-        dimens.set_value("tags", tags);
-    }
-}
-
-fn add_order(dimens: &mut Dimensions, order: &Option<i32>) {
-    if let Some(order) = order {
-        dimens.set_value("order", *order);
-    }
-}
-
-fn add_value(dimens: &mut Dimensions, value: &Option<f64>) {
-    if let Some(value) = *value {
-        dimens.set_value("value", value);
-    }
-}
-
-fn add_group(dimens: &mut Dimensions, group: &Option<String>) {
-    if let Some(group) = group {
-        dimens.set_value("group", group.clone());
-    }
-}
-
-fn add_compatibility(dimens: &mut Dimensions, compatibility: &Option<String>) {
-    if let Some(compatibility) = compatibility {
-        dimens.set_value("compat", compatibility.clone());
-    }
-}
-
-fn add_job_skills(dimens: &mut Dimensions, skills: &Option<FormatJobSkills>) {
-    if let Some(skills) = skills {
-        dimens.set_value(
-            "skills",
-            ConstraintJobSkills {
-                all_of: skills.all_of.as_ref().map(|all_of| all_of.iter().cloned().collect()),
-                one_of: skills.one_of.as_ref().map(|any_of| any_of.iter().cloned().collect()),
-                none_of: skills.none_of.as_ref().map(|none_of| none_of.iter().cloned().collect()),
-            },
-        );
-    }
+fn get_skills(skills: &Option<FormatJobSkills>) -> Option<ConstraintJobSkills> {
+    skills.as_ref().map(|skills| ConstraintJobSkills {
+        all_of: skills.all_of.as_ref().map(|all_of| all_of.iter().cloned().collect()),
+        one_of: skills.one_of.as_ref().map(|any_of| any_of.iter().cloned().collect()),
+        none_of: skills.none_of.as_ref().map(|none_of| none_of.iter().cloned().collect()),
+    })
 }
 
 fn empty() -> MultiDimLoad {

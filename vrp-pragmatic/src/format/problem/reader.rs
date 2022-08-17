@@ -19,7 +19,7 @@ use self::fleet_reader::{create_transport_costs, read_fleet};
 use self::job_reader::{read_jobs_with_extra_locks, read_locks};
 use self::objective_reader::create_objective;
 use crate::constraints::*;
-use crate::extensions::{get_route_modifier, OnlyVehicleActivityCost};
+use crate::extensions::{get_route_modifier, OnlyVehicleActivityCost, VehicleTie};
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::*;
 use crate::format::*;
@@ -287,8 +287,8 @@ fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> Res
         .actors
         .iter()
         .filter_map(|actor| {
-            let type_id = actor.vehicle.dimens.get_value::<String>("type_id").unwrap().clone();
-            let shift_idx = *actor.vehicle.dimens.get_value::<usize>("shift_index").unwrap();
+            let type_id = actor.vehicle.dimens.get_vehicle_type().unwrap().clone();
+            let shift_idx = actor.vehicle.dimens.get_shift_index().unwrap();
 
             let times = breaks_map
                 .get(&(type_id, shift_idx))
@@ -445,7 +445,7 @@ fn add_capacity_with_reload<T: LoadOps + SharedResource>(
 
 fn add_tour_size_module(constraint: &mut ConstraintPipeline) {
     constraint.add_module(Arc::new(TourSizeModule::new(
-        Arc::new(|actor| actor.vehicle.dimens.get_value::<usize>("tour_size").cloned()),
+        Arc::new(|actor| actor.vehicle.dimens.get_tour_size()),
         TOUR_SIZE_CONSTRAINT_CODE,
     )));
 }
@@ -474,7 +474,7 @@ fn add_tour_limit_module(
 
     let get_limit = |limit_map: HashMap<String, f64>| {
         Arc::new(move |actor: &Actor| {
-            actor.vehicle.dimens.get_value::<String>("type_id").and_then(|v_type| limit_map.get(v_type)).cloned()
+            actor.vehicle.dimens.get_vehicle_type().and_then(|v_type| limit_map.get(v_type)).cloned()
         })
     };
 

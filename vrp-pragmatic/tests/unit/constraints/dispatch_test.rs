@@ -3,8 +3,7 @@ use crate::helpers::create_single_with_location;
 
 fn create_dispatch() -> Arc<Single> {
     let mut single = create_single_with_location(None);
-    single.dimens.set_id("dispatch");
-    single.dimens.set_value("type", "dispatch".to_string());
+    single.dimens.set_job_id("dispatch".to_string()).set_job_type("dispatch".to_string());
 
     Arc::new(single)
 }

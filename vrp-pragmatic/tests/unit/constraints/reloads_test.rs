@@ -29,8 +29,7 @@ fn delivery(job_id: &str, demand: (i32, i32)) -> Activity {
 fn reload(reload_id: &str) -> Activity {
     let mut single_shared = create_single_with_type(reload_id, "reload");
     let single_mut = Arc::get_mut(&mut single_shared).unwrap();
-    single_mut.dimens.set_value("shift_index", 0_usize);
-    single_mut.dimens.set_value("vehicle_id", "v1".to_string());
+    single_mut.dimens.set_shift_index(0).set_vehicle_id("v1".to_string());
 
     Activity { job: Some(single_shared), ..create_activity_at_location(0) }
 }
@@ -196,7 +195,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
             .tour
             .all_activities()
             .filter_map(|activity| activity.job.as_ref())
-            .filter_map(|job| job.dimens.get_id().map(|id| id.as_str()))
+            .filter_map(|job| job.dimens.get_job_id())
             .collect::<Vec<_>>(),
         expected
     );

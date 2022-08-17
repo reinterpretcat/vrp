@@ -3,6 +3,7 @@
 mod reloads_test;
 
 use crate::constraints::*;
+use crate::extensions::JobTie;
 use hashbrown::{HashMap, HashSet};
 use std::marker::PhantomData;
 use std::ops::{Deref, Range};
@@ -190,7 +191,7 @@ impl<T: Send + Sync> MultiTrip for FixedMultiTrip<T> {
         jobs: &'a [Job],
     ) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync> {
         let shift_index = get_shift_index(&route.actor.vehicle.dimens);
-        let vehicle_id = route.actor.vehicle.dimens.get_id().unwrap();
+        let vehicle_id = route.actor.vehicle.dimens.get_vehicle_id().unwrap();
 
         Box::new(
             jobs.iter()
@@ -257,5 +258,5 @@ impl<T: Send + Sync> FixedMultiTrip<T> {
 }
 
 fn is_reload_single(single: &Single) -> bool {
-    single.dimens.get_value::<String>("type").map_or(false, |t| t == "reload")
+    single.dimens.get_job_type().map_or(false, |t| t == "reload")
 }

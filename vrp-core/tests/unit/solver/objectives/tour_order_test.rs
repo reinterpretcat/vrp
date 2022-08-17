@@ -10,7 +10,7 @@ fn create_single_with_order(id: &str, order: Option<f64>) -> Arc<Single> {
     single.dimens.set_id(id);
 
     if let Some(order) = order {
-        single.dimens.insert("order".to_string(), Arc::new(order));
+        single.dimens.set_value("order", order);
     }
 
     Arc::new(single)

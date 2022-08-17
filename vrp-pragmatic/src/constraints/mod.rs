@@ -1,8 +1,9 @@
 //! Contains implementation of extra constraints.
 
+use crate::extensions::VehicleTie;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::RouteContext;
-use vrp_core::models::common::{Dimensions, IdDimension, ValueDimension};
+use vrp_core::models::common::Dimensions;
 use vrp_core::models::problem::Single;
 use vrp_core::models::solution::{Activity, Route};
 
@@ -32,15 +33,15 @@ where
 }
 
 fn get_shift_index(dimens: &Dimensions) -> usize {
-    *dimens.get_value::<usize>("shift_index").expect("cannot get shift index")
+    dimens.get_shift_index().expect("cannot get shift index")
 }
 
 fn get_vehicle_id_from_job(job: &Arc<Single>) -> &String {
-    job.dimens.get_value::<String>("vehicle_id").expect("cannot get vehicle id")
+    job.dimens.get_vehicle_id().expect("cannot get vehicle id")
 }
 
 fn is_correct_vehicle(route: &Route, target_id: &str, target_shift: usize) -> bool {
-    route.actor.vehicle.dimens.get_id().expect("cannot get vehicle id") == target_id
+    route.actor.vehicle.dimens.get_vehicle_id().expect("cannot get vehicle id") == target_id
         && get_shift_index(&route.actor.vehicle.dimens) == target_shift
 }
 

@@ -3,13 +3,14 @@
 mod breaks_test;
 
 use crate::constraints::*;
+use crate::extensions::{BreakTie, JobTie};
 use hashbrown::HashSet;
 use std::iter::once;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::heuristics::{ActivityContext, RouteContext, SolutionContext, UnassignmentInfo};
-use vrp_core::models::common::{Schedule, TimeWindow, ValueDimension};
+use vrp_core::construction::heuristics::*;
+use vrp_core::models::common::{Schedule, TimeWindow};
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::Activity;
 
@@ -22,6 +23,7 @@ pub struct BreakModule {
 }
 
 /// Specifies break policy.
+#[derive(Clone)]
 pub enum BreakPolicy {
     /// Allows to skip break if actual tour schedule doesn't intersect with vehicle time window.
     SkipIfNoIntersection,
@@ -232,7 +234,7 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext) {
 //region Helpers
 
 fn is_break_single(single: &Arc<Single>) -> bool {
-    single.dimens.get_value::<String>("type").map_or(false, |t| t == "break")
+    single.dimens.get_job_type().map_or(false, |t| t == "break")
 }
 
 fn as_break_job(activity: &Activity) -> Option<&Arc<Single>> {
@@ -248,7 +250,7 @@ fn can_be_scheduled(rc: &RouteContext, break_job: &Arc<Single>) -> bool {
     let departure = rc.route.tour.start().unwrap().schedule.departure;
     let arrival = rc.route.tour.end().map_or(0., |end| end.schedule.arrival);
     let tour_tw = TimeWindow::new(departure, arrival);
-    let policy = break_job.dimens.get_value::<BreakPolicy>("policy").unwrap_or(&BreakPolicy::SkipIfNoIntersection);
+    let policy = break_job.dimens.get_break_policy().unwrap_or(BreakPolicy::SkipIfNoIntersection);
 
     get_break_time_windows(break_job, departure).any(|break_tw| match policy {
         BreakPolicy::SkipIfNoIntersection => break_tw.intersects(&tour_tw),
