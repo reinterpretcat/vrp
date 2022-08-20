@@ -5,6 +5,7 @@ mod reloads_test;
 use crate::constraints::*;
 use crate::extensions::JobTie;
 use hashbrown::{HashMap, HashSet};
+use std::cmp::Ordering;
 use std::marker::PhantomData;
 use std::ops::{Deref, Range};
 use vrp_core::construction::constraints::*;
@@ -36,7 +37,7 @@ where
             route_ctx
                 .state
                 .get_activity_state::<T>(resource_key, activity)
-                .map_or(true, |resource_available| resource_available >= demand)
+                .map_or(true, |resource_available| resource_available.can_fit(demand))
         })),
     );
 
@@ -66,9 +67,11 @@ fn create_reload_multi_trip<T: LoadOps>(
                 .map(|end| {
                     let current: T =
                         route_ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_default();
-                    let max_capacity = route_ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
 
-                    current >= load_schedule_threshold_fn.deref()(max_capacity)
+                    let max_capacity = route_ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
+                    let threshold_capacity = load_schedule_threshold_fn.deref()(max_capacity);
+
+                    current.partial_cmp(&threshold_capacity) != Some(Ordering::Less)
                 })
                 .unwrap_or(false)
         }),
@@ -102,7 +105,8 @@ fn create_reload_multi_trip<T: LoadOps>(
             // static pickup moved to right
             let new_max_load_right = get_load(right.start, MAX_FUTURE_CAPACITY_KEY) + left_pickup;
 
-            let has_enough_vehicle_capacity = capacity >= new_max_load_left && capacity >= new_max_load_right;
+            let has_enough_vehicle_capacity =
+                capacity.can_fit(&new_max_load_left) && capacity.can_fit(&new_max_load_right);
 
             has_enough_vehicle_capacity
                 && place_capacity_threshold.as_ref().map_or(true, |place_capacity_threshold| {

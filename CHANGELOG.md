@@ -6,7 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-* simplify unassigned job reason model
+* `breaking`: simplify unassigned job reason model
+* fix capacity violation issue related to reload feature
 
 
 ## [v1.18.3] - 2022-08-10

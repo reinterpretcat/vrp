@@ -8,12 +8,13 @@ use crate::models::common::{MultiDimLoad, SingleDimLoad};
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Route};
 use hashbrown::HashMap;
+use std::cmp::Ordering;
 use std::ops::{Add, Deref, RangeInclusive, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
 
 /// Represents a shared unique resource.
-pub trait SharedResource: Add + Sub + Ord + Copy + Sized + Send + Sync + Default + 'static {}
+pub trait SharedResource: Add + Sub + PartialOrd + Copy + Sized + Send + Sync + Default + 'static {}
 /// Represents a shared resource id.
 pub type SharedResourceId = usize;
 /// Specifies a type for a shared resource interval function.
@@ -241,7 +242,10 @@ impl<T: SharedResource> HardActivityConstraint for SharedResourceHardActivityCon
                             .and_then(|job| self.resource_demand_fn.deref()(job.as_ref()))
                             .unwrap_or_default();
 
-                        if resource_available < &resource_demand {
+                        if resource_available
+                            .partial_cmp(&resource_demand)
+                            .map_or(false, |ordering| ordering == Ordering::Less)
+                        {
                             Some(ActivityConstraintViolation { code: self.code, stopped: false })
                         } else {
                             None

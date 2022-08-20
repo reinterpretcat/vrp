@@ -34,6 +34,18 @@ fn reload(reload_id: &str) -> Activity {
     Activity { job: Some(single_shared), ..create_activity_at_location(0) }
 }
 
+fn create_route_context_with_fleet(capacity: Vec<i32>, activities: Vec<Activity>) -> (RouteContext, Fleet) {
+    let mut vehicle = test_vehicle("v1");
+    vehicle.dimens.set_capacity(MultiDimLoad::new(capacity));
+    let fleet = test_fleet_with_vehicles(vec![Arc::new(vehicle)]);
+    let route_ctx = RouteContext::new_with_state(
+        Arc::new(create_route_with_activities(&fleet, "v1", activities)),
+        Arc::new(RouteState::default()),
+    );
+
+    (route_ctx, fleet)
+}
+
 #[test]
 fn can_handle_reload_jobs_with_merge() {
     let create_reload_job = || Job::Single(reload("reload").job.unwrap());
@@ -168,13 +180,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
 ) {
     let threshold = 0.9;
 
-    let mut vehicle = test_vehicle("v1");
-    vehicle.dimens.set_capacity(MultiDimLoad::new(vec![capacity]));
-    let fleet = test_fleet_with_vehicles(vec![Arc::new(vehicle)]);
-    let route_ctx = RouteContext::new_with_state(
-        Arc::new(create_route_with_activities(&fleet, "v1", activities)),
-        Arc::new(RouteState::default()),
-    );
+    let (route_ctx, fleet) = create_route_context_with_fleet(vec![capacity], activities);
     let mut solution_ctx = SolutionContext { routes: vec![route_ctx], ..create_solution_context_for_fleet(&fleet) };
     let mut pipeline = ConstraintPipeline::default();
     pipeline.add_module(Arc::new(CapacityConstraintModule::new_with_multi_trip(
@@ -199,4 +205,30 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
             .collect::<Vec<_>>(),
         expected
     );
+}
+
+parameterized_test! {can_handle_multi_trip_needed_for_multi_dim_load, (vehicle_capacity, current_capacity, expected), {
+    can_handle_multi_trip_needed_for_multi_dim_load_impl(vehicle_capacity, current_capacity, expected);
+}}
+
+can_handle_multi_trip_needed_for_multi_dim_load! {
+    case01_all_the_same: (vec![1], vec![1], true),
+    case02_one_the_same: (vec![2, 1], vec![1, 1], true),
+    case03_all_different: (vec![2, 2], vec![1, 1], false),
+}
+
+fn can_handle_multi_trip_needed_for_multi_dim_load_impl(
+    vehicle_capacity: Vec<i32>,
+    current_capacity: Vec<i32>,
+    expected: bool,
+) {
+    let threshold = 1.;
+    let multi_trip = create_simple_reload_multi_trip::<MultiDimLoad>(Box::new(move |capacity| *capacity * threshold));
+    let (mut route_ctx, _) = create_route_context_with_fleet(vehicle_capacity, Vec::default());
+    let (route, state) = route_ctx.as_mut();
+    state.put_activity_state(MAX_PAST_CAPACITY_KEY, route.tour.end().unwrap(), MultiDimLoad::new(current_capacity));
+
+    let result = multi_trip.is_multi_trip_needed(&route_ctx);
+
+    assert_eq!(result, expected);
 }

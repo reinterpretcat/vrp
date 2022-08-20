@@ -4,6 +4,7 @@ mod load_test;
 
 use crate::models::common::{Dimensions, ValueDimension};
 use crate::models::Problem;
+use rosomaxa::utils::unwrap_from_result;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::Sum;
@@ -14,7 +15,7 @@ const DEMAND_DIMENSION_KEY: &str = "dmd";
 const LOAD_DIMENSION_SIZE: usize = 8;
 
 /// Represents a load type used to represent customer's demand or vehicle's load.
-pub trait Load: Add + Sub + Ord + Copy + Default + Debug + Send + Sync {
+pub trait Load: Add + Sub + PartialOrd + Copy + Default + Debug + Send + Sync {
     /// Returns true if it represents an empty load.
     fn is_not_empty(&self) -> bool;
 
@@ -303,26 +304,13 @@ impl Sub for MultiDimLoad {
     }
 }
 
-impl Ord for MultiDimLoad {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let size = self.load.len().max(other.load.len());
-        (0..size).fold(Ordering::Equal, |acc, idx| match acc {
-            Ordering::Greater => Ordering::Greater,
-            Ordering::Equal => self.get(idx).cmp(&other.get(idx)),
-            Ordering::Less => {
-                if self.get(idx) > other.get(idx) {
-                    Ordering::Greater
-                } else {
-                    Ordering::Less
-                }
-            }
-        })
-    }
-}
-
 impl PartialOrd for MultiDimLoad {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+        let size = self.size.max(other.size);
+        unwrap_from_result((0..size).try_fold(None, |acc, idx| {
+            let result = self.get(idx).cmp(&other.get(idx));
+            acc.map_or(Ok(Some(result)), |acc| if acc != result { Err(None) } else { Ok(Some(result)) })
+        }))
     }
 }
 
@@ -330,7 +318,7 @@ impl Eq for MultiDimLoad {}
 
 impl PartialEq for MultiDimLoad {
     fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
+        self.partial_cmp(other).map_or(false, |ordering| ordering == Ordering::Equal)
     }
 }
 

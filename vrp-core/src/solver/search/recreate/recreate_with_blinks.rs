@@ -44,7 +44,7 @@ impl<T: LoadOps> JobSelector for DemandJobSelector<T> {
         ctx.solution.required.sort_by(|a, b| match (Self::get_job_demand(a), Self::get_job_demand(b)) {
             (None, Some(_)) => Ordering::Less,
             (Some(_), None) => Ordering::Greater,
-            (Some(a), Some(b)) => b.cmp(&a),
+            (Some(a), Some(b)) => b.partial_cmp(&a).unwrap_or(Ordering::Equal),
             (None, None) => Ordering::Equal,
         });
 
