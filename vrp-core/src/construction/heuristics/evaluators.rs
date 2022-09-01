@@ -69,7 +69,7 @@ pub fn evaluate_job_insertion_in_route(
     };
 
     if let Some(best_known_cost) = best_known_cost {
-        if best_known_cost < route_costs {
+        if let Either::Left(_) = eval_ctx.result_selector.select_cost(route_ctx, best_known_cost, route_costs) {
             return alternative;
         }
     }
