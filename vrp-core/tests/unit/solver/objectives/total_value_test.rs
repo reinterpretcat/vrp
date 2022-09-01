@@ -15,8 +15,8 @@ can_estimate_job_value! {
     case_01: (100., 1000., -10.),
     case_02: (50., 1000., -5.),
     case_03: (50., 100., -0.5),
-    case_04: (100., 0., -10.),
-    case_05: (50., 0., -5.),
+    case_04: (100., 0., -10. * 1E6),
+    case_05: (50., 0., -5. * 1E6),
 }
 
 fn can_estimate_job_value_impl(value: f64, max_cost: f64, expected: f64) {

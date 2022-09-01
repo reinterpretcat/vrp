@@ -87,7 +87,7 @@ impl TotalValue {
                 if max_cost > 0. {
                     (job_value / max_value) * max_cost * reduction_factor
                 } else {
-                    job_value * reduction_factor
+                    job_value * reduction_factor * 1E6
                 }
             }),
             state_key,
