@@ -11,13 +11,26 @@ use std::sync::Arc;
 
 // TODO add more descriptive documentation
 
-/// An individual feature to build a specific VRP aspect (variant), e.g. capacity restriction, job
-/// priority, etc. Each feature can consist of three optional concepts (but at least one should be defined):
-/// * **constraint**: an invariant which should be hold all the time to make feasible VRP solution,
-/// e.g. capacity/time constraints.
-/// * **objective**: an objective of an optimization such as minimize amount of unassigned jobs or
-///  prefer some specific jobs for assignment.
-/// * **state**: the corresponding cached data for constraint/objective to speedup their evaluations.
+/// An individual feature which is used to build a specific VRP aspect (variant), e.g. capacity restriction,
+/// job priority, etc. Each feature consists of three optional parts (but at least one should be defined):
+/// * **constraint**: an invariant which should be hold to have a feasible VRP solution in the end.
+/// A good examples are hard constraints such as capacity, time, travel limits, etc.
+///
+/// * **objective**: an objective of the optimization such as minimization of unassigned jobs or tours.
+///  All objectives form together a hierarchy which describes a goal of optimization, including
+///  various soft constraints: assignment of preferred jobs, optional breaks, etc. This helps to
+///  guide the search on the global objective level (e.g. comparison of various solutions in order to
+///  find out which one is "better") and local objective level (e.g. which job should be inserted next
+///  into specific solution).
+///
+/// * **state**: the corresponding cached data of constraint/objective to speedup their evaluations.
+///
+/// As mentioned above, at least one part should be defined. Some rules of thumb:
+/// * each soft constraint requires an objective so that goal of optimization is reflected on global
+///   and local levels
+/// * hard constraint can be defined without objective as this is an invariant
+/// * state should be used to avoid expensive calculations during insertion evaluation phase.
+///   `FeatureObjective::estimate` and `FeatureConstraint::evaluate` methods are called during this phase.
 #[derive(Clone)]
 pub struct Feature {
     constraint: Option<Arc<dyn FeatureConstraint + Send + Sync>>,
@@ -25,8 +38,36 @@ pub struct Feature {
     state: Option<Arc<dyn FeatureState + Send + Sync>>,
 }
 
+#[derive(Default)]
 pub struct FeatureBuilder {
-    // TODO
+    feature: Feature,
+}
+
+impl FeatureBuilder {
+    pub fn with_constraint(mut self, constraint: Arc<dyn FeatureConstraint + Send + Sync>) -> Self {
+        self.feature.constraint = Some(constraint);
+        self
+    }
+
+    pub fn with_objective(mut self, objective: Arc<dyn FeatureObjective + Send + Sync>) -> Self {
+        self.feature.objective = Some(objective);
+        self
+    }
+
+    pub fn with_state(mut self, state: Arc<dyn FeatureState + Send + Sync>) -> Self {
+        self.feature.state = Some(state);
+        self
+    }
+
+    pub fn build(self) -> Result<Feature, String> {
+        let feature = self.feature;
+
+        if feature.state.is_none() && feature.constraint.is_none() && feature.objective.is_none() {
+            Err("empty feature is not allowed".to_string())
+        } else {
+            Ok(feature)
+        }
+    }
 }
 
 /// Controls a cached state of the given feature.
@@ -78,7 +119,7 @@ pub struct ConstraintViolation {
     pub stopped: bool,
 }
 
-pub type InsertionCost = tinyvec::TinyVec<[Cost; 6]>;
+pub type InsertionCost = tinyvec::TinyVec<[Cost; 8]>;
 
 pub struct FeatureRegistry {
     constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
@@ -88,7 +129,8 @@ pub struct FeatureRegistry {
 
 impl FeatureRegistry {
     /// Creates a new instance of `FeatureRegistry` from hierarchy of the features.
-    /// Hierarchy of the features should be the same as the desired objective hierarchy.
+    /// Hierarchy of the features could be the same as the desired global objective hierarchy or
+    /// include some extra objectives for soft constraints.
     pub fn new(prioritized_features: &[Vec<Feature>]) -> Result<Self, String> {
         let objectives = prioritized_features
             .iter()
@@ -109,7 +151,6 @@ impl FeatureRegistry {
         )?;
 
         let states = features.iter().filter_map(|feature| feature.state.clone()).collect();
-
         let constraints = features.into_iter().filter_map(|feature| feature.constraint).collect();
 
         Ok(Self { states, constraints, objectives })
