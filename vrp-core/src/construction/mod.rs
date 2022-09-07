@@ -11,5 +11,6 @@
 pub mod clustering;
 pub mod constraints;
 pub mod extensions;
+pub mod features;
 pub mod heuristics;
 pub mod probing;

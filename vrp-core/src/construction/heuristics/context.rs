@@ -547,3 +547,8 @@ pub struct ActivityContext<'a> {
 }
 
 type ActivityWithKey = (usize, i32);
+
+pub enum MoveContext<'a> {
+    Route { solution_ctx: &'a SolutionContext, route_ctx: &'a RouteContext, job: &'a Job },
+    Activity { route_ctx: &'a RouteContext, activity_ctx: &'a ActivityContext<'a> },
+}
