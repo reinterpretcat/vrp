@@ -548,7 +548,22 @@ pub struct ActivityContext<'a> {
 
 type ActivityWithKey = (usize, i32);
 
+/// A local move context.
 pub enum MoveContext<'a> {
-    Route { solution_ctx: &'a SolutionContext, route_ctx: &'a RouteContext, job: &'a Job },
-    Activity { route_ctx: &'a RouteContext, activity_ctx: &'a ActivityContext<'a> },
+    /// Evaluation of job insertion into the given route.
+    Route {
+        /// A solution context.
+        solution_ctx: &'a SolutionContext,
+        /// A route context where job supposed to be inserted.
+        route_ctx: &'a RouteContext,
+        /// A job which being evaluated.
+        job: &'a Job,
+    },
+    /// Evaluation of activity insertion into the given position.
+    Activity {
+        /// A route context where activity supposed to be inserted.
+        route_ctx: &'a RouteContext,
+        /// An activity context.
+        activity_ctx: &'a ActivityContext<'a>,
+    },
 }

@@ -9,7 +9,11 @@ use std::iter::repeat;
 use std::slice::Iter;
 use std::sync::Arc;
 
-// TODO add more descriptive documentation
+pub mod capacity;
+pub mod fleet_usage;
+pub mod locking;
+pub mod shared_resource;
+pub mod tour_limits;
 
 /// An individual feature which is used to build a specific VRP aspect (variant), e.g. capacity restriction,
 /// job priority, etc. Each feature consists of three optional parts (but at least one should be defined):
@@ -31,34 +35,60 @@ use std::sync::Arc;
 /// * hard constraint can be defined without objective as this is an invariant
 /// * state should be used to avoid expensive calculations during insertion evaluation phase.
 ///   `FeatureObjective::estimate` and `FeatureConstraint::evaluate` methods are called during this phase.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Feature {
     constraint: Option<Arc<dyn FeatureConstraint + Send + Sync>>,
     objective: Option<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
     state: Option<Arc<dyn FeatureState + Send + Sync>>,
 }
 
+/// Specifies result of hard route constraint check.
+#[derive(Clone, Debug)]
+pub struct ConstraintViolation {
+    /// Violation code which is used as marker of specific constraint violated.
+    pub code: ViolationCode,
+    /// True if further insertions should not be attempted.
+    pub stopped: bool,
+}
+
+/// Specifies a type for constraint violation code.
+pub type ViolationCode = i32;
+
+/// Specifies a type for state key.
+pub type StateKey = i32;
+
+/// A hierarchical cost of job's insertion.
+pub type InsertionCost = tinyvec::TinyVec<[Cost; 8]>;
+
+/// Provides a way to build feature with some checks.
 #[derive(Default)]
 pub struct FeatureBuilder {
     feature: Feature,
 }
 
 impl FeatureBuilder {
+    /// Adds given constraint.
     pub fn with_constraint(mut self, constraint: Arc<dyn FeatureConstraint + Send + Sync>) -> Self {
         self.feature.constraint = Some(constraint);
         self
     }
 
-    pub fn with_objective(mut self, objective: Arc<dyn FeatureObjective + Send + Sync>) -> Self {
+    /// Adds given objective.
+    pub fn with_objective(
+        mut self,
+        objective: Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>,
+    ) -> Self {
         self.feature.objective = Some(objective);
         self
     }
 
+    /// Adds given state.
     pub fn with_state(mut self, state: Arc<dyn FeatureState + Send + Sync>) -> Self {
         self.feature.state = Some(state);
         self
     }
 
+    /// Tries to builds a feature.
     pub fn build(self) -> Result<Feature, String> {
         let feature = self.feature;
 
@@ -82,19 +112,21 @@ pub trait FeatureState {
 
     /// Accept route and updates its state to allow more efficient constraint checks.
     /// This method should NOT modify amount of job activities in the tour.
-    fn accept_route_state(&self, ctx: &mut RouteContext);
+    fn accept_route_state(&self, route_ctx: &mut RouteContext);
 
     /// Accepts insertion solution context allowing to update job insertion data.
     /// This method called twice: before insertion of all jobs starts and when it ends.
     /// Please note, that it is important to update only stale routes as this allows to avoid
     /// updating non changed route states.
-    fn accept_solution_state(&self, ctx: &mut SolutionContext);
+    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext);
 
-    /// Returns unique constraint state keys.
+    /// Returns unique constraint state keys used to store some state. If the data is only read, then
+    /// it shouldn't be returned.
     /// Used to avoid state key interference.
-    fn state_keys(&self) -> Iter<i32>;
+    fn state_keys(&self) -> Iter<StateKey>;
 }
 
+/// Defines feature constraint behavior.
 pub trait FeatureConstraint {
     /// Evaluates hard constraints violations.
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation>;
@@ -102,25 +134,16 @@ pub trait FeatureConstraint {
     /// Tries to merge two jobs taking into account common constraints.
     /// Returns a new job, if it is possible to merge them together having theoretically assignable
     /// job. Otherwise returns violation error code.
-    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32>;
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode>;
 }
 
+/// Defines feature objective behavior.
 pub trait FeatureObjective: Objective {
     /// Estimates a cost of insertion.
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost;
 }
 
-/// Specifies result of hard route constraint check.
-#[derive(Clone, Debug)]
-pub struct ConstraintViolation {
-    /// Violation code which is used as marker of specific constraint violated.
-    pub code: i32,
-    /// True if further insertions should not be attempted.
-    pub stopped: bool,
-}
-
-pub type InsertionCost = tinyvec::TinyVec<[Cost; 8]>;
-
+/// Provides a way to maintain multiple features according their hierarchical priorities.
 pub struct FeatureRegistry {
     constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
     objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
@@ -140,7 +163,7 @@ impl FeatureRegistry {
         let features: Vec<Feature> = prioritized_features.iter().flatten().cloned().collect();
 
         features.iter().filter_map(|feature| feature.state.as_ref()).flat_map(|state| state.state_keys()).try_fold(
-            HashSet::<i32>::default(),
+            HashSet::<StateKey>::default(),
             |mut acc, key| {
                 if !acc.insert(*key) {
                     Err(format!("attempt to register constraint with key duplication: {}", key))
@@ -220,7 +243,7 @@ impl FeatureRegistry {
     /// Tries to merge two jobs taking into account common constraints.
     /// Returns a new job, if it is possible to merge them together having theoretically assignable
     /// job. Otherwise returns violation error code.
-    pub fn merge_constrained(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+    pub fn merge_constrained(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
         self.constraints.iter().try_fold(source, |acc, constraint| constraint.merge(acc, candidate.clone()))
     }
 
