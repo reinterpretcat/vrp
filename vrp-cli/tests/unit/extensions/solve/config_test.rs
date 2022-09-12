@@ -1,6 +1,7 @@
+use vrp_core::models::examples::create_example_problem;
+
 use super::*;
 use std::fs::File;
-use vrp_core::models::examples::create_example_problem;
 
 #[test]
 fn can_read_full_config() {

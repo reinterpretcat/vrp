@@ -4,6 +4,7 @@ members = [
     "rosomaxa",
     "vrp-core",
     "vrp-cli",
+    "vrp-api",
     "vrp-pragmatic",
     "vrp-scientific",
 
@@ -14,3 +15,4 @@ members = [
 [profile.release]
 lto = "fat"
 codegen-units = 1
+opt-level = 3

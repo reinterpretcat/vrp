@@ -1,0 +1,4 @@
+# PLEASE DO NOT CHANGE THIS. You may be in violation of SOC2.
+# https://github.com/probot/settings
+# Last Synced: 2022-01-19T12:06:51.706Z
+_extends: .github:.github/global-settings.yml

@@ -12,6 +12,10 @@ target
 # IDE
 .idea
 *.iml
+.vscode
+
+# Env
+.venv
 
 # python experiments
 *.pyc

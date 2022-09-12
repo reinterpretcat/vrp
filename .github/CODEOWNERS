@@ -1,0 +1,11 @@
+.github/workflows/semantic-pr.yml       @PeakBI/vrp-workgroup
+.github/workflows/audit.yml             @PeakBI/vrp-workgroup
+.github/workflows/build.yml             @PeakBI/vrp-workgroup
+.github/workflows/coverage.yml          @PeakBI/vrp-workgroup
+.github/workflows/discovery.yml         @PeakBI/vrp-workgroup
+.github/workflows/experiments.yml       @PeakBI/vrp-workgroup
+.github/workflows/publish.yml           @PeakBI/vrp-workgroup
+.github/settings.yml                    @PeakBI/vrp-workgroup
+.github/stale.yml                       @PeakBI/vrp-workgroup
+
+* @PeakBI/vrp-workgroup

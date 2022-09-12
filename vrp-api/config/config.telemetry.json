@@ -1,0 +1,23 @@
+{
+    "termination": {
+        "maxTime": 300
+    },
+    "telemetry": {
+        "progress": {
+            "enabled": true,
+            "logBest": 100,
+            "logPopulation": 1000,
+            "dumpPopulation": false
+        },
+        "metrics": {
+            "enabled": true,
+            "trackPopulation": 1000
+        }
+    },
+    "environment": {
+        "logging": {
+            "enabled": true
+        },
+        "isExperimental": false
+    }
+}

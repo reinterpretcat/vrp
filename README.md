@@ -88,7 +88,7 @@ stored in the folder where a problem definition is located.
 
 # Usage
 
-You can use vrp solver either from command line or from code:
+You can use vrp solver either from command line or from code, or via the http-api:
 
 ## Use from command line
 
@@ -109,6 +109,26 @@ If you're using some other language, e.g java, kotlin, javascript, python, pleas
 [interop](https://reinterpretcat.github.io/vrp/examples/interop/index.html) section in documentation examples to see how
 to call the library from it.
 
+If you're using rust, then you can simply use `vrp-scientific`, `vrp-pragmatic` crates to solve VRP problem
+defined in `pragmatic` or `scientific` format using default metaheuristic. For more complex scenarios, please refer to
+`vrp-core` documentation.
+
+If you're using some other language, e.g java, kotlin, javascript, python, please check
+[interop](https://reinterpretcat.github.io/vrp/examples/interop/index.html) section in documentation examples to see how
+to call the library from it.
+
+## Use from API
+
+The HTTP api is available via a binary `vrp-api`, which by default launches on port `8080`,
+Once running, this instance will accept problems in the `vrp-pragmatic` format, the payload for the http api has an additional parameter for logging.
+
+**payload**:
+```json
+{
+    uuid: string
+    problem: { } // problem in vrp-pragmatic form
+}
+```
 
 # Status
 

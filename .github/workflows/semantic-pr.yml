@@ -1,0 +1,10 @@
+name: Semantic Pull Requests
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  main:
+    uses: peak-platform/.github/.github/workflows/semantic-pr.yml@main
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}

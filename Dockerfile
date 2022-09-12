@@ -20,6 +20,7 @@ COPY vrp-core ./vrp-core
 COPY vrp-scientific ./vrp-scientific
 COPY vrp-pragmatic ./vrp-pragmatic
 COPY vrp-cli ./vrp-cli
+COPY vrp-api ./vrp-api
 
 RUN cargo build --release -p vrp-cli
 
@@ -30,5 +31,8 @@ ENV SOLVER_DIR=/solver
 
 RUN mkdir $SOLVER_DIR
 COPY --from=Builder /src/target/release/vrp-cli $SOLVER_DIR/vrp-cli
+COPY --from=Builder /src/target/release/vrp-api $SOLVER_DIR/vrp-api
 
 WORKDIR $SOLVER_DIR
+
+ENTRYPOINT [ "./vrp-api/vrp-api" ]
