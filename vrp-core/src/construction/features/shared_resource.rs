@@ -74,9 +74,9 @@ impl<T: SharedResource> SharedResourceConstraint<T> {
             .and_then(|(_, _)| {
                 // NOTE cannot do resource assignment for partial solution
                 if solution_ctx.get_jobs_amount() != self.total_jobs {
-                    Some(ConstraintViolation { code: self.code, stopped: true })
+                    ConstraintViolation::fail(self.code)
                 } else {
-                    None
+                    ConstraintViolation::success()
                 }
             })
     }
@@ -106,9 +106,9 @@ impl<T: SharedResource> SharedResourceConstraint<T> {
                             .partial_cmp(&resource_demand)
                             .map_or(false, |ordering| ordering == Ordering::Less)
                         {
-                            Some(ConstraintViolation { code: self.code, stopped: false })
+                            ConstraintViolation::skip(self.code)
                         } else {
-                            None
+                            ConstraintViolation::success()
                         }
                     })
             })

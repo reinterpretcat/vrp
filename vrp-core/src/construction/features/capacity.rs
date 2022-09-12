@@ -8,11 +8,10 @@ use crate::construction::extensions::*;
 use crate::construction::heuristics::{MoveContext, RouteContext, SolutionContext};
 use crate::models::common::{CapacityDimension, Demand, DemandDimension, LoadOps};
 use crate::models::problem::{Job, Single};
+use crate::models::solution::Activity;
 use std::iter::once;
 use std::slice::Iter;
 use std::sync::Arc;
-
-use crate::models::solution::Activity;
 
 /// Creates capacity feature as a hard constraint with multi trip functionality as a soft constraint.
 pub fn create_capacity_limit_with_multi_trip<T: LoadOps>(
@@ -101,9 +100,9 @@ impl<T: LoadOps> CapacityConstraint<T> {
         };
 
         if can_handle {
-            None
+            ConstraintViolation::success()
         } else {
-            Some(ConstraintViolation { code: self.code, stopped: true })
+            ConstraintViolation::fail(self.code)
         }
     }
 
@@ -123,9 +122,9 @@ impl<T: LoadOps> CapacityConstraint<T> {
             let is_not_last = activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some();
 
             return if is_first || is_not_last {
-                Some(ConstraintViolation { code: self.code, stopped: false })
+                ConstraintViolation::skip(self.code)
             } else {
-                None
+                ConstraintViolation::success()
             };
         };
 

@@ -57,12 +57,12 @@ impl FeatureConstraint for ActivityLimitConstraint {
                     };
 
                     if tour_activities + job_activities > limit {
-                        Some(ConstraintViolation { code: self.code, stopped: true })
+                        ConstraintViolation::fail(self.code)
                     } else {
-                        None
+                        ConstraintViolation::success()
                     }
                 }),
-            MoveContext::Activity { .. } => None,
+            MoveContext::Activity { .. } => ConstraintViolation::success(),
         }
     }
 
@@ -145,7 +145,7 @@ impl FeatureConstraint for TravelLimitConstraint {
                         let curr_dis = route_ctx.state.get_route_state(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
                         let total_distance = curr_dis + change_distance;
                         if distance_limit < total_distance {
-                            return Some(ConstraintViolation { code: self.distance_code, stopped: false });
+                            return ConstraintViolation::skip(self.distance_code);
                         }
                     }
 
@@ -153,7 +153,7 @@ impl FeatureConstraint for TravelLimitConstraint {
                         let curr_dur = route_ctx.state.get_route_state(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
                         let total_duration = curr_dur + change_duration;
                         if duration_limit < total_duration {
-                            return Some(ConstraintViolation { code: self.duration_code, stopped: false });
+                            return ConstraintViolation::skip(self.duration_code);
                         }
                     }
                 }

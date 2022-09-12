@@ -9,3 +9,6 @@ pub use self::departure_time::*;
 
 mod multi_trip;
 pub use self::multi_trip::*;
+
+mod schedule_update;
+pub use self::schedule_update::*;

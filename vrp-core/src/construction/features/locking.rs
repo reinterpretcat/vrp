@@ -53,7 +53,7 @@ impl LockingConstraint {
     fn evaluate_route(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
         if let Some(condition) = self.conditions.get(job) {
             if !(condition)(&route_ctx.route.actor) {
-                return Some(ConstraintViolation { code: self.code, stopped: true });
+                return ConstraintViolation::fail(self.code);
             }
         }
 
@@ -75,7 +75,7 @@ impl LockingConstraint {
             });
 
             if !can_insert {
-                return Some(ConstraintViolation { code: self.code, stopped: false });
+                return ConstraintViolation::skip(self.code);
             }
         }
 

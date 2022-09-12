@@ -3,6 +3,7 @@
 mod departure_time_test;
 
 use crate::construction::constraints::*;
+use crate::construction::extensions::{update_route_departure, ScheduleStateKeys};
 use crate::construction::heuristics::RouteContext;
 use crate::models::common::Timestamp;
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
@@ -15,9 +16,10 @@ pub fn advance_departure_time(
     activity: &(dyn ActivityCost + Send + Sync),
     transport: &(dyn TransportCost + Send + Sync),
     consider_whole_tour: bool,
+    state_keys: &ScheduleStateKeys,
 ) {
     if let Some(new_departure_time) = try_advance_departure_time(route_ctx, transport, consider_whole_tour) {
-        TransportConstraintModule::update_route_departure(route_ctx, activity, transport, new_departure_time);
+        update_route_departure(route_ctx, activity, transport, new_departure_time, state_keys);
     }
 }
 
@@ -26,9 +28,10 @@ pub fn recede_departure_time(
     route_ctx: &mut RouteContext,
     activity: &(dyn ActivityCost + Send + Sync),
     transport: &(dyn TransportCost + Send + Sync),
+    state_keys: &ScheduleStateKeys,
 ) {
     if let Some(new_departure_time) = try_recede_departure_time(route_ctx) {
-        TransportConstraintModule::update_route_departure(route_ctx, activity, transport, new_departure_time);
+        update_route_departure(route_ctx, activity, transport, new_departure_time, state_keys);
     }
 }
 

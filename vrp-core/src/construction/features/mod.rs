@@ -11,9 +11,13 @@ use std::sync::Arc;
 
 pub mod capacity;
 pub mod fleet_usage;
+pub mod job_assignment;
 pub mod locking;
 pub mod shared_resource;
 pub mod tour_limits;
+pub mod transport;
+
+// TODO move state keys here
 
 /// An individual feature which is used to build a specific VRP aspect (variant), e.g. capacity restriction,
 /// job priority, etc. Each feature consists of three optional parts (but at least one should be defined):
@@ -49,6 +53,23 @@ pub struct ConstraintViolation {
     pub code: ViolationCode,
     /// True if further insertions should not be attempted.
     pub stopped: bool,
+}
+
+impl ConstraintViolation {
+    /// A constraint violation failure with stopped set to true.
+    pub fn fail(code: ViolationCode) -> Option<Self> {
+        Some(ConstraintViolation { code, stopped: true })
+    }
+
+    /// A constraint violation failure with stopped set to false.
+    pub fn skip(code: ViolationCode) -> Option<Self> {
+        Some(ConstraintViolation { code, stopped: false })
+    }
+
+    /// No constraint violation.
+    pub fn success() -> Option<Self> {
+        None
+    }
 }
 
 /// Specifies a type for constraint violation code.
@@ -92,7 +113,7 @@ impl FeatureBuilder {
     pub fn build(self) -> Result<Feature, String> {
         let feature = self.feature;
 
-        if feature.state.is_none() && feature.constraint.is_none() && feature.objective.is_none() {
+        if feature.constraint.is_none() && feature.objective.is_none() {
             Err("empty feature is not allowed".to_string())
         } else {
             Ok(feature)
@@ -268,7 +289,11 @@ impl FeatureRegistry {
                 .iter()
                 .map(|objective| objective.estimate(move_ctx))
                 .zip(acc.into_iter().chain(repeat(Cost::default())))
-                .map(|(a, b)| a + b)
+                .map(|(a, b)| {
+                    // TODO: merging two values will reintroduce problem with weightning coefficients
+                    //     use a flat structure for insertion cost with priority map and apply total ordering?
+                    a + b
+                })
                 .collect()
         })
     }

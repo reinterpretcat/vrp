@@ -170,19 +170,6 @@ impl TransportConstraintModule {
         route_ctx.state_mut().put_route_state(TOTAL_DISTANCE_KEY, total_dist);
         route_ctx.state_mut().put_route_state(TOTAL_DURATION_KEY, total_dur);
     }
-
-    /// Updates route departure to the new one.
-    pub(crate) fn update_route_departure(
-        ctx: &mut RouteContext,
-        activity: &(dyn ActivityCost + Send + Sync),
-        transport: &(dyn TransportCost + Send + Sync),
-        new_departure_time: Timestamp,
-    ) {
-        let mut start = ctx.route_mut().tour.get_mut(0).unwrap();
-        start.schedule.departure = new_departure_time;
-        Self::update_route_schedules(ctx, activity, transport);
-        Self::update_route_states(ctx, activity, transport);
-    }
 }
 
 struct TimeHardRouteConstraint {
