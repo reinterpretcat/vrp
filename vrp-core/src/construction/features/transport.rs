@@ -71,13 +71,13 @@ fn create_feature(
     fitness_fn: Box<dyn Fn(&InsertionContext) -> f64 + Send + Sync>,
 ) -> Result<Feature, String> {
     FeatureBuilder::default()
-        .with_constraint(Arc::new(TransportConstraint {
+        .with_constraint(TransportConstraint {
             code: time_window_code,
             transport: transport.clone(),
             activity: activity.clone(),
-        }))
-        .with_state(Arc::new(TransportState::new(transport.clone(), activity.clone())))
-        .with_objective(Arc::new(TransportObjective { activity, transport, fitness_fn }))
+        })
+        .with_state(TransportState::new(transport.clone(), activity.clone()))
+        .with_objective(TransportObjective { activity, transport, fitness_fn })
         .build()
 }
 

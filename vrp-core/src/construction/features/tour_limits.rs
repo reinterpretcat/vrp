@@ -15,7 +15,7 @@ pub type TravelLimitFn<T> = Arc<dyn Fn(&Actor) -> Option<T> + Send + Sync>;
 /// Creates a limit for activity amount in a tour.
 /// This is a hard constraint.
 pub fn create_activity_limit(code: ViolationCode, limit_func: ActivitySizeResolver) -> Result<Feature, String> {
-    FeatureBuilder::default().with_constraint(Arc::new(ActivityLimitConstraint { code, limit_func })).build()
+    FeatureBuilder::default().with_constraint(ActivityLimitConstraint { code, limit_func }).build()
 }
 
 /// Creates a travel limits such as distance and/or duration.
@@ -28,14 +28,14 @@ pub fn crete_travel_limit(
     duration_code: ViolationCode,
 ) -> Result<Feature, String> {
     FeatureBuilder::default()
-        .with_constraint(Arc::new(TravelLimitConstraint {
+        .with_constraint(TravelLimitConstraint {
             distance_code,
             duration_code,
             transport,
             tour_distance_limit,
             tour_duration_limit: tour_duration_limit.clone(),
-        }))
-        .with_state(Arc::new(TravelLimitState { tour_duration_limit, state_keys: vec![] }))
+        })
+        .with_state(TravelLimitState { tour_duration_limit, state_keys: vec![] })
         .build()
 }
 

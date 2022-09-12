@@ -6,27 +6,27 @@ use std::ops::Deref;
 /// Creates a feature to minimize used fleet size (affects amount of tours in solution).
 pub fn create_minimize_tours() -> Result<Feature, String> {
     FeatureBuilder::default()
-        .with_objective(Arc::new(FleetUsageObjective {
+        .with_objective(FleetUsageObjective {
             extra_cost_fn: Box::new(|route_ctx| if route_ctx.route.tour.job_count() == 0 { 1. } else { 0. }),
-        }))
+        })
         .build()
 }
 
 /// Creates a feature to maximize used fleet size (affects amount of tours in solution).
 pub fn create_maximize_tours() -> Result<Feature, String> {
     FeatureBuilder::default()
-        .with_objective(Arc::new(FleetUsageObjective {
+        .with_objective(FleetUsageObjective {
             extra_cost_fn: Box::new(|route_ctx| if route_ctx.route.tour.job_count() == 0 { -1. } else { 0. }),
-        }))
+        })
         .build()
 }
 
 /// Creates a feature to prefer early starting actors.
 pub fn create_early_actor_preference() -> Result<Feature, String> {
     FeatureBuilder::default()
-        .with_objective(Arc::new(FleetUsageObjective {
+        .with_objective(FleetUsageObjective {
             extra_cost_fn: Box::new(|route_ctx| route_ctx.route.actor.detail.time.start),
-        }))
+        })
         .build()
 }
 

@@ -40,7 +40,7 @@ pub fn create_locked_jobs(fleet: &Fleet, locks: &[Arc<Lock>], code: ViolationCod
         acc
     });
 
-    FeatureBuilder::default().with_constraint(Arc::new(LockingConstraint { code, conditions, rules })).build()
+    FeatureBuilder::default().with_constraint(LockingConstraint { code, conditions, rules }).build()
 }
 
 struct LockingConstraint {

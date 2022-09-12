@@ -89,23 +89,23 @@ pub struct FeatureBuilder {
 
 impl FeatureBuilder {
     /// Adds given constraint.
-    pub fn with_constraint(mut self, constraint: Arc<dyn FeatureConstraint + Send + Sync>) -> Self {
-        self.feature.constraint = Some(constraint);
+    pub fn with_constraint<T: FeatureConstraint + Send + Sync + 'static>(mut self, constraint: T) -> Self {
+        self.feature.constraint = Some(Arc::new(constraint));
         self
     }
 
     /// Adds given objective.
-    pub fn with_objective(
+    pub fn with_objective<T: FeatureObjective<Solution = InsertionContext> + Send + Sync + 'static>(
         mut self,
-        objective: Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>,
+        objective: T,
     ) -> Self {
-        self.feature.objective = Some(objective);
+        self.feature.objective = Some(Arc::new(objective));
         self
     }
 
     /// Adds given state.
-    pub fn with_state(mut self, state: Arc<dyn FeatureState + Send + Sync>) -> Self {
-        self.feature.state = Some(state);
+    pub fn with_state<T: FeatureState + Send + Sync + 'static>(mut self, state: T) -> Self {
+        self.feature.state = Some(Arc::new(state));
         self
     }
 

@@ -33,21 +33,21 @@ where
     T: SharedResource + Add<Output = T> + Sub<Output = T>,
 {
     FeatureBuilder::default()
-        .with_constraint(Arc::new(SharedResourceConstraint {
+        .with_constraint(SharedResourceConstraint {
             total_jobs,
             code,
             resource_key,
             interval_fn: interval_fn.clone(),
             resource_demand_fn: resource_demand_fn.clone(),
-        }))
-        .with_state(Arc::new(SharedResourceState {
+        })
+        .with_state(SharedResourceState {
             state_keys: vec![resource_key],
             interval_fn,
             resource_capacity_fn,
             resource_demand_fn,
             total_jobs,
             resource_key,
-        }))
+        })
         .build()
 }
 

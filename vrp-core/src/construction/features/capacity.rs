@@ -19,9 +19,9 @@ pub fn create_capacity_limit_with_multi_trip<T: LoadOps>(
     multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>,
 ) -> Result<Feature, String> {
     FeatureBuilder::default()
-        .with_constraint(Arc::new(CapacityConstraint::new(code, multi_trip.clone())))
-        .with_objective(Arc::new(CapacityObjective::new(multi_trip.clone())))
-        .with_state(Arc::new(CapacityState::new(code, multi_trip)))
+        .with_constraint(CapacityConstraint::new(code, multi_trip.clone()))
+        .with_objective(CapacityObjective::new(multi_trip.clone()))
+        .with_state(CapacityState::new(code, multi_trip))
         .build()
 }
 
@@ -29,8 +29,8 @@ pub fn create_capacity_limit_with_multi_trip<T: LoadOps>(
 pub fn create_capacity_limit<T: LoadOps>(code: ViolationCode) -> Result<Feature, String> {
     let multi_trip = Arc::new(NoMultiTrip::<T>::default());
     FeatureBuilder::default()
-        .with_constraint(Arc::new(CapacityConstraint::new(code, multi_trip.clone())))
-        .with_state(Arc::new(CapacityState::new(code, multi_trip)))
+        .with_constraint(CapacityConstraint::new(code, multi_trip.clone()))
+        .with_state(CapacityState::new(code, multi_trip))
         .build()
 }
 
