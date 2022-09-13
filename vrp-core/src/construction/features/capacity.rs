@@ -8,7 +8,7 @@ use super::*;
 use crate::construction::constraints::{
     CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_LOAD_KEY, MAX_PAST_CAPACITY_KEY,
 };
-use crate::construction::extensions::*;
+use crate::construction::enablers::*;
 use crate::construction::heuristics::{MoveContext, RouteContext, SolutionContext};
 use crate::models::common::{CapacityDimension, Demand, DemandDimension, LoadOps};
 use crate::models::problem::{Job, Single};

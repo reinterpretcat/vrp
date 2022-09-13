@@ -9,7 +9,7 @@ use std::cmp::Ordering;
 use std::marker::PhantomData;
 use std::ops::{Deref, Range};
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::extensions::MultiTrip;
+use vrp_core::construction::enablers::MultiTrip;
 use vrp_core::construction::heuristics::{RouteContext, SolutionContext};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, Single};

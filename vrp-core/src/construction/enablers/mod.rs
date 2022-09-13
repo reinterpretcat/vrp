@@ -1,5 +1,5 @@
-//! This module contains extension functionality which can be used to work with some aspects of
-//! different constraints.
+//! This module contains feature extension functionality which can be used to work with the same aspects
+//! from different features.
 
 mod conditional_job;
 pub use self::conditional_job::*;

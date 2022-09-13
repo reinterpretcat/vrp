@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::extensions::{advance_departure_time, ScheduleStateKeys};
+use crate::construction::enablers::{advance_departure_time, ScheduleStateKeys};
 use crate::construction::heuristics::InsertionContext;
 use rosomaxa::HeuristicSolution;
 

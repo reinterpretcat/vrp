@@ -11,7 +11,7 @@ use crate::format::*;
 use crate::{format_time, parse_time};
 use std::cmp::Ordering;
 use std::io::{BufWriter, Write};
-use vrp_core::construction::extensions::route_intervals;
+use vrp_core::construction::enablers::route_intervals;
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Multi, TravelTime};

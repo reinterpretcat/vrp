@@ -1,4 +1,4 @@
-use crate::construction::extensions::{advance_departure_time, recede_departure_time, ScheduleStateKeys};
+use crate::construction::enablers::{advance_departure_time, recede_departure_time, ScheduleStateKeys};
 use crate::construction::heuristics::InsertionContext;
 use crate::models::solution::Activity;
 use crate::solver::search::LocalOperator;

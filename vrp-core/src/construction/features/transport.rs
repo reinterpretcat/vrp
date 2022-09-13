@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::construction::constraints::{LATEST_ARRIVAL_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY, WAITING_KEY};
-use crate::construction::extensions::{update_route_schedule, ScheduleStateKeys};
+use crate::construction::enablers::{update_route_schedule, ScheduleStateKeys};
 use crate::models::common::Timestamp;
 use crate::models::problem::{ActivityCost, Single, TransportCost, TravelTime};
 use crate::models::solution::Activity;
