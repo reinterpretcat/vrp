@@ -1,5 +1,9 @@
 //! Provides feature to add capacity limitation on a vehicle.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/features/capacity_test.rs"]
+mod capacity_test;
+
 use super::*;
 use crate::construction::constraints::{
     CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_LOAD_KEY, MAX_PAST_CAPACITY_KEY,

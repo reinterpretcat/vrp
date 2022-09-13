@@ -21,6 +21,7 @@ pub mod transport;
 pub mod work_balance;
 
 // TODO move state keys here
+// TODO rename registry to feature map?
 
 /// Keys for balancing objectives.
 const BALANCE_MAX_LOAD_KEY: i32 = 20;
@@ -56,7 +57,7 @@ pub struct Feature {
 }
 
 /// Specifies result of hard route constraint check.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConstraintViolation {
     /// Violation code which is used as marker of specific constraint violated.
     pub code: ViolationCode,
