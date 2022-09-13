@@ -1,18 +1,10 @@
-//! Provides the way to control job assignment.
+//! Calculates a total value of the served jobs.
 
 use super::*;
-use crate::models::problem::{Actor, Single};
+use crate::models::problem::Actor;
 use crate::utils::Either;
 use std::cmp::Ordering;
 use std::ops::Deref;
-
-/// A type which allows to control how job is estimated in objective fitness.
-pub type UnassignedJobEstimator = Arc<dyn Fn(&SolutionContext, &Job) -> f64 + Send + Sync>;
-
-/// Creates a feature to minimize amount of unassigned jobs.
-pub fn minimize_unassigned_jobs(unassigned_job_estimator: UnassignedJobEstimator) -> Result<Feature, String> {
-    FeatureBuilder::default().with_objective(MinimizeUnassignedObjective { unassigned_job_estimator }).build()
-}
 
 /// Specifies a job value function which takes into account actor and job.
 pub type ActorValueFn = Arc<dyn Fn(&Actor, &Job) -> f64 + Send + Sync>;
@@ -23,7 +15,7 @@ pub type JobReadValueFn = Either<SimpleValueFn, ActorValueFn>;
 /// Specifies a job write value.
 pub type JobWriteValueFn = Arc<dyn Fn(Job, f64) -> Job + Send + Sync>;
 /// A job value estimation function.
-type EstimateValueFn = Arc<dyn Fn(&SolutionContext, &RouteContext, &Job) -> f64 + Send + Sync>;
+type EstimateValueFn = Arc<dyn Fn(&RouteContext, &Job) -> f64 + Send + Sync>;
 
 /// Maximizes a total value of served jobs.
 pub fn maximize_total_job_value(
@@ -35,7 +27,7 @@ pub fn maximize_total_job_value(
         .with_objective(MaximizeTotalValueObjective {
             estimate_value_fn: Arc::new({
                 let job_read_value_fn = job_read_value_fn.clone();
-                move |solution, route_ctx, job| match &job_read_value_fn {
+                move |route_ctx, job| match &job_read_value_fn {
                     JobReadValueFn::Left(left) => left.deref()(job),
                     JobReadValueFn::Right(right) => right.deref()(route_ctx.route.actor.as_ref(), job),
                 }
@@ -43,34 +35,6 @@ pub fn maximize_total_job_value(
         })
         .with_constraint(MaximizeTotalValueConstraint { merge_code, job_read_value_fn, job_write_value_fn })
         .build()
-}
-
-struct MinimizeUnassignedObjective {
-    unassigned_job_estimator: UnassignedJobEstimator,
-}
-
-impl Objective for MinimizeUnassignedObjective {
-    type Solution = InsertionContext;
-
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution
-            .solution
-            .unassigned
-            .iter()
-            .map(|(job, _)| self.unassigned_job_estimator.deref()(&solution.solution, job))
-            .sum::<f64>()
-    }
-}
-
-impl FeatureObjective for MinimizeUnassignedObjective {
-    fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
-        match move_ctx {
-            MoveContext::Route { solution_ctx, job, .. } => {
-                -1. * self.unassigned_job_estimator.deref()(solution_ctx, job)
-            }
-            MoveContext::Activity { .. } => Cost::default(),
-        }
-    }
 }
 
 struct MaximizeTotalValueObjective {
@@ -81,16 +45,16 @@ impl Objective for MaximizeTotalValueObjective {
     type Solution = InsertionContext;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        todo!()
+        solution.solution.routes.iter().fold(0., |acc, route_ctx| {
+            route_ctx.route.tour.jobs().fold(acc, |acc, job| acc + self.estimate_value_fn.deref()(route_ctx, &job))
+        })
     }
 }
 
 impl FeatureObjective for MaximizeTotalValueObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
-            MoveContext::Route { solution_ctx, route_ctx, job, .. } => {
-                self.estimate_value_fn.deref()(solution_ctx, route_ctx, job)
-            }
+            MoveContext::Route { route_ctx, job, .. } => self.estimate_value_fn.deref()(route_ctx, job),
             MoveContext::Activity { .. } => Cost::default(),
         }
     }
@@ -103,8 +67,8 @@ struct MaximizeTotalValueConstraint {
 }
 
 impl FeatureConstraint for MaximizeTotalValueConstraint {
-    fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
-        unimplemented!()
+    fn evaluate(&self, _: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        None
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
