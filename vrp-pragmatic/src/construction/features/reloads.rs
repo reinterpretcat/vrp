@@ -5,7 +5,7 @@
 mod reloads_test;
 
 use crate::construction::enablers::*;
-use crate::format::entities::{JobTie, VehicleTie};
+use crate::construction::enablers::{JobTie, VehicleTie};
 use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering;
 use std::marker::PhantomData;

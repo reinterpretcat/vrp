@@ -5,7 +5,7 @@
 mod skills_test;
 
 use crate::constraints::JobSkills;
-use crate::format::entities::{JobTie, VehicleTie};
+use crate::construction::enablers::{JobTie, VehicleTie};
 use hashbrown::HashSet;
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::*;

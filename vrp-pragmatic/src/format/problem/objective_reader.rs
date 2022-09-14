@@ -3,7 +3,7 @@
 mod objective_reader_test;
 
 use crate::constraints::{AreaModule, TOTAL_VALUE_KEY, TOUR_ORDER_KEY};
-use crate::format::entities::{JobTie, VehicleTie};
+use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::BalanceOptions;
 use crate::format::problem::Objective::TourOrder as FormatTourOrder;

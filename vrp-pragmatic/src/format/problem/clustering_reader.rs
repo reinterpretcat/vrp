@@ -1,4 +1,4 @@
-use crate::format::entities::JobTie;
+use crate::construction::enablers::JobTie;
 use crate::format::problem::reader::fleet_reader::get_profile_index_map;
 use crate::format::problem::reader::ApiProblem;
 use crate::format::problem::*;

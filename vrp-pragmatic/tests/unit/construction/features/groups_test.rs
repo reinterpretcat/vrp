@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::enablers::create_typed_actor_groups;
-use crate::format::entities::VehicleTie;
+use crate::construction::enablers::VehicleTie;
 use crate::helpers::*;
 use hashbrown::HashMap;
 use std::sync::Arc;

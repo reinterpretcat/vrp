@@ -3,8 +3,8 @@
 mod fleet_reader_test;
 
 use crate::construction::enablers::create_typed_actor_groups;
+use crate::construction::enablers::VehicleTie;
 use crate::format::coord_index::CoordIndex;
-use crate::format::entities::VehicleTie;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::Matrix;
 use crate::parse_time;

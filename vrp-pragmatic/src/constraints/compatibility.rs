@@ -2,7 +2,7 @@
 #[path = "../../tests/unit/constraints/compatibility_test.rs"]
 mod compatibility_test;
 
-use crate::format::entities::JobTie;
+use crate::construction::enablers::JobTie;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;

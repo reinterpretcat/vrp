@@ -1,5 +1,5 @@
 use crate::construction::enablers::create_typed_actor_groups;
-use crate::format::entities::{JobTie, VehicleTie};
+use crate::construction::enablers::{JobTie, VehicleTie};
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::InsertionContext;

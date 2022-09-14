@@ -3,7 +3,7 @@
 mod breaks_test;
 
 use crate::constraints::*;
-use crate::format::entities::{BreakTie, JobTie};
+use crate::construction::enablers::{BreakTie, JobTie};
 use hashbrown::HashSet;
 use std::iter::once;
 use std::slice::Iter;

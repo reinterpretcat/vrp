@@ -1,6 +1,6 @@
 //! Contains implementation of extra constraints.
 
-use crate::format::entities::VehicleTie;
+use crate::construction::enablers::VehicleTie;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::RouteContext;
 use vrp_core::models::common::Dimensions;

@@ -4,7 +4,7 @@
 #[path = "../../../tests/unit/construction/features/compatibility_test.rs"]
 mod compatibility_test;
 
-use crate::format::entities::JobTie;
+use crate::construction::enablers::JobTie;
 use std::slice::Iter;
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::*;

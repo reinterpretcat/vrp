@@ -1,8 +1,10 @@
-use crate::format::entities::*;
 use std::sync::Arc;
 use vrp_core::models::common::Dimensions;
 use vrp_core::models::problem::Single;
 use vrp_core::models::solution::{Activity, Route};
+
+mod entities;
+pub use self::entities::*;
 
 mod only_vehicle_activity_cost;
 pub use self::only_vehicle_activity_cost::*;

@@ -1,7 +1,7 @@
 use crate::constraints::JobSkills;
 use crate::construction::enablers::create_typed_actor_groups;
+use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::skills::create_skills_feature;
-use crate::format::entities::{JobTie, VehicleTie};
 use crate::helpers::*;
 use hashbrown::HashSet;
 use std::iter::FromIterator;

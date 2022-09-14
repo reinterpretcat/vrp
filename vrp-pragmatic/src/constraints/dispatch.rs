@@ -3,7 +3,7 @@
 mod dispatch_test;
 
 use crate::constraints::*;
-use crate::format::entities::JobTie;
+use crate::construction::enablers::JobTie;
 use std::iter::once;
 use std::slice::Iter;
 use vrp_core::construction::constraints::*;
