@@ -1,5 +1,9 @@
 //! A feature to model a shared resource.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/features/shared_resource_test.rs"]
+mod shared_resource_test;
+
 use super::*;
 use crate::models::common::{MultiDimLoad, SingleDimLoad};
 use crate::models::problem::Single;

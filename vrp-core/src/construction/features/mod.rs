@@ -49,11 +49,15 @@ const BALANCE_DURATION_KEY: i32 = 23;
 /// * hard constraint can be defined without objective as this is an invariant
 /// * state should be used to avoid expensive calculations during insertion evaluation phase.
 ///   `FeatureObjective::estimate` and `FeatureConstraint::evaluate` methods are called during this phase.
+///  Additionally, it can be used to do some solution modifications at `FeatureState::accept_solution_state`.
 #[derive(Clone, Default)]
 pub struct Feature {
-    constraint: Option<Arc<dyn FeatureConstraint + Send + Sync>>,
-    objective: Option<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
-    state: Option<Arc<dyn FeatureState + Send + Sync>>,
+    /// A hard constraint.
+    pub constraint: Option<Arc<dyn FeatureConstraint + Send + Sync>>,
+    /// An objective which models soft constraints.
+    pub objective: Option<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
+    /// A state change handler.
+    pub state: Option<Arc<dyn FeatureState + Send + Sync>>,
 }
 
 /// Specifies result of hard route constraint check.

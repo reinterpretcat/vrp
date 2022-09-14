@@ -1,5 +1,9 @@
 //! A features to put some extra limits on tour.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/features/tour_limits_test.rs"]
+mod tour_limits_test;
+
 use super::*;
 use crate::construction::constraints::{LIMIT_DURATION_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::models::common::{Distance, Duration, Timestamp};
@@ -20,7 +24,7 @@ pub fn create_activity_limit(code: ViolationCode, limit_func: ActivitySizeResolv
 
 /// Creates a travel limits such as distance and/or duration.
 /// This is a hard constraint.
-pub fn crete_travel_limit(
+pub fn create_travel_limit(
     transport: Arc<dyn TransportCost + Send + Sync>,
     tour_distance_limit: TravelLimitFn<Distance>,
     tour_duration_limit: TravelLimitFn<Duration>,

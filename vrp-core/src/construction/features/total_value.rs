@@ -1,5 +1,9 @@
 //! Calculates a total value of the served jobs.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/features/total_value_test.rs"]
+mod total_value_test;
+
 use super::*;
 use crate::models::problem::Actor;
 use crate::utils::Either;
@@ -27,9 +31,12 @@ pub fn maximize_total_job_value(
         .with_objective(MaximizeTotalValueObjective {
             estimate_value_fn: Arc::new({
                 let job_read_value_fn = job_read_value_fn.clone();
-                move |route_ctx, job| match &job_read_value_fn {
-                    JobReadValueFn::Left(left) => left.deref()(job),
-                    JobReadValueFn::Right(right) => right.deref()(route_ctx.route.actor.as_ref(), job),
+                let sign = -1.;
+                move |route_ctx, job| {
+                    sign * match &job_read_value_fn {
+                        JobReadValueFn::Left(left) => left.deref()(job),
+                        JobReadValueFn::Right(right) => right.deref()(route_ctx.route.actor.as_ref(), job),
+                    }
                 }
             }),
         })

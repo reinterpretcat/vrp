@@ -567,3 +567,15 @@ pub enum MoveContext<'a> {
         activity_ctx: &'a ActivityContext<'a>,
     },
 }
+
+impl<'a> MoveContext<'a> {
+    /// Creates a route variant for `MoveContext`.
+    pub fn route(solution_ctx: &'a SolutionContext, route_ctx: &'a RouteContext, job: &'a Job) -> MoveContext<'a> {
+        MoveContext::Route { solution_ctx, route_ctx, job }
+    }
+
+    /// Creates a route variant for `MoveContext`.
+    pub fn activity(route_ctx: &'a RouteContext, activity_ctx: &'a ActivityContext) -> MoveContext<'a> {
+        MoveContext::Activity { route_ctx, activity_ctx }
+    }
+}

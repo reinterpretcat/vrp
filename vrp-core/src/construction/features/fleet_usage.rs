@@ -1,5 +1,9 @@
 //! Provides the way to control fleet usage.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/features/fleet_usage_test.rs"]
+mod fleet_usage_test;
+
 use super::*;
 use std::ops::Deref;
 

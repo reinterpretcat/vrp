@@ -1,5 +1,9 @@
 //! Provides way to enforce job activity ordering in the tour.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/features/tour_order_test.rs"]
+mod tour_order_test;
+
 use super::*;
 use crate::models::problem::{Actor, Single};
 use crate::utils::Either;

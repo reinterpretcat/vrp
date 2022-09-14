@@ -1,5 +1,9 @@
 //! A feature to lock specific jobs to specific vehicles.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/features/locked_jobs_test.rs"]
+mod locked_jobs_test;
+
 use super::*;
 use crate::models::problem::{Actor, Fleet};
 use crate::models::{Lock, LockOrder, LockPosition};

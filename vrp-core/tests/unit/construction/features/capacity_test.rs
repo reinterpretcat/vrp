@@ -88,11 +88,7 @@ fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<ConstraintViola
     let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
     let job = Job::Single(test_single_with_simple_demand(create_simple_demand(size)));
 
-    let result = create_feature().constraint.unwrap().evaluate(&MoveContext::Route {
-        solution_ctx: &solution_ctx,
-        route_ctx: &route_ctx,
-        job: &job,
-    });
+    let result = create_feature().constraint.unwrap().evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));
 
     assert_eq!(result, expected);
 }
@@ -140,10 +136,7 @@ fn can_evaluate_demand_on_activity_impl(
         next: route_ctx.route.tour.get(neighbours.1),
     };
 
-    let result = feature
-        .constraint
-        .unwrap()
-        .evaluate(&MoveContext::Activity { route_ctx: &route_ctx, activity_ctx: &activity_ctx });
+    let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(&route_ctx, &activity_ctx));
 
     assert_eq!(result, expected);
 }
