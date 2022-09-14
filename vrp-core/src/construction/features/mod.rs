@@ -102,6 +102,11 @@ pub struct FeatureBuilder {
 }
 
 impl FeatureBuilder {
+    /// Combines multiple features into one.
+    pub fn combine(_: &[Feature]) -> Result<Feature, String> {
+        unimplemented!()
+    }
+
     /// Adds given constraint.
     pub fn with_constraint<T: FeatureConstraint + Send + Sync + 'static>(mut self, constraint: T) -> Self {
         self.feature.constraint = Some(Arc::new(constraint));
