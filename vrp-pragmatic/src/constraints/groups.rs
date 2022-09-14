@@ -2,7 +2,7 @@
 #[path = "../../tests/unit/constraints/group_test.rs"]
 mod group_test;
 
-use crate::extensions::JobTie;
+use crate::format::entities::JobTie;
 use hashbrown::HashSet;
 use std::slice::Iter;
 use std::sync::Arc;

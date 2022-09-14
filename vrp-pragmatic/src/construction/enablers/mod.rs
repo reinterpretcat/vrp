@@ -1,8 +1,17 @@
-use crate::extensions::VehicleTie;
+use crate::format::entities::*;
 use std::sync::Arc;
 use vrp_core::models::common::Dimensions;
 use vrp_core::models::problem::Single;
 use vrp_core::models::solution::{Activity, Route};
+
+mod only_vehicle_activity_cost;
+pub use self::only_vehicle_activity_cost::*;
+
+mod route_modifier;
+pub use self::route_modifier::*;
+
+mod typed_actor_group_key;
+pub use self::typed_actor_group_key::*;
 
 pub(crate) fn as_single_job<F>(activity: &Activity, condition: F) -> Option<&Arc<Single>>
 where

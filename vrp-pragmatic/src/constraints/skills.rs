@@ -2,7 +2,7 @@
 #[path = "../../tests/unit/constraints/skills_test.rs"]
 mod skills_test;
 
-use crate::extensions::{JobTie, VehicleTie};
+use crate::format::entities::{JobTie, VehicleTie};
 use hashbrown::HashSet;
 use std::slice::Iter;
 use std::sync::Arc;

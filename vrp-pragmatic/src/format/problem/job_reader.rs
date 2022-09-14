@@ -1,6 +1,6 @@
 use crate::constraints::{BreakPolicy, JobSkills as ConstraintJobSkills};
-use crate::extensions::{BreakTie, JobTie, VehicleTie};
 use crate::format::coord_index::CoordIndex;
+use crate::format::entities::{BreakTie, JobTie, VehicleTie};
 use crate::format::problem::reader::{parse_time_window, ApiProblem, ProblemProperties};
 use crate::format::problem::JobSkills as FormatJobSkills;
 use crate::format::problem::*;

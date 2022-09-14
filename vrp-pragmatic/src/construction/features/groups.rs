@@ -1,6 +1,6 @@
 //! A feature to model group of jobs.
 
-use crate::extensions::JobTie;
+use crate::format::entities::JobTie;
 use hashbrown::HashSet;
 use std::slice::Iter;
 use vrp_core::construction::features::*;

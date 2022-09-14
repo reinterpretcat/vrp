@@ -3,7 +3,7 @@
 mod reloads_test;
 
 use crate::constraints::*;
-use crate::extensions::JobTie;
+use crate::format::entities::JobTie;
 use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering;
 use std::marker::PhantomData;

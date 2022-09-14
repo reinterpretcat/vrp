@@ -29,7 +29,6 @@ pub use vrp_core as core;
 
 mod constraints;
 mod construction;
-mod extensions;
 mod utils;
 
 pub mod checker;

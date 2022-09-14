@@ -2,8 +2,9 @@
 #[path = "../../../tests/unit/format/problem/fleet_reader_test.rs"]
 mod fleet_reader_test;
 
-use crate::extensions::{create_typed_actor_groups, VehicleTie};
+use crate::construction::enablers::create_typed_actor_groups;
 use crate::format::coord_index::CoordIndex;
+use crate::format::entities::VehicleTie;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::Matrix;
 use crate::parse_time;

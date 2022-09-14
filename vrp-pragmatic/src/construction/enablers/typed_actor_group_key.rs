@@ -1,4 +1,4 @@
-use crate::extensions::VehicleTie;
+use crate::construction::enablers::VehicleTie;
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
 use vrp_core::models::problem::Actor;

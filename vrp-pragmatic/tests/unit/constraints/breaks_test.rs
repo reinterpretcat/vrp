@@ -1,5 +1,5 @@
 use crate::constraints::BreakModule;
-use crate::extensions::{JobTie, VehicleTie};
+use crate::format::entities::{JobTie, VehicleTie};
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintModule;

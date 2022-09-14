@@ -1,4 +1,4 @@
-use crate::extensions::JobTie;
+use crate::format::entities::JobTie;
 use crate::format::problem::VehicleBreak;
 use crate::format::problem::{Problem as FormatProblem, VehicleRequiredBreakTime};
 use crate::format::solution::{Activity as FormatActivity, Schedule as FormatSchedule, Tour as FormatTour};

@@ -5,7 +5,7 @@
 mod dispatch_test;
 
 use crate::construction::enablers::is_single_belongs_to_route;
-use crate::extensions::JobTie;
+use crate::format::entities::JobTie;
 use std::iter::once;
 use std::slice::Iter;
 use std::sync::Arc;

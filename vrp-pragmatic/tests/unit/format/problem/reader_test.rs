@@ -1,5 +1,5 @@
 use super::create_approx_matrices;
-use crate::extensions::{JobTie, VehicleTie};
+use crate::format::entities::{JobTie, VehicleTie};
 use crate::format::problem::*;
 use crate::helpers::*;
 use hashbrown::HashSet;

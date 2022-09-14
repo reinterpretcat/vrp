@@ -1,4 +1,4 @@
-use crate::extensions::VehicleTie;
+use crate::construction::enablers::VehicleTie;
 use crate::format::JobIndex;
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
