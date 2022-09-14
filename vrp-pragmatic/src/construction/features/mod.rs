@@ -4,3 +4,4 @@ pub mod dispatch;
 pub mod groups;
 pub mod reachable;
 pub mod reloads;
+pub mod skills;

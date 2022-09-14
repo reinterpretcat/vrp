@@ -1,3 +1,5 @@
+//! A reloads feature.
+
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/features/reloads_test.rs"]
 mod reloads_test;
