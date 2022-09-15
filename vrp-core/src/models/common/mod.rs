@@ -3,9 +3,6 @@
 mod domain;
 pub use self::domain::*;
 
-mod features;
-pub use self::features::*;
-
 mod load;
 pub use self::load::*;
 

@@ -313,7 +313,7 @@ impl FeatureMap {
     /// Tries to merge two jobs taking into account common constraints.
     /// Returns a new job, if it is possible to merge them together having theoretically assignable
     /// job. Otherwise returns violation error code.
-    pub fn merge_constrained(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
+    pub fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
         self.constraints.iter().try_fold(source, |acc, constraint| constraint.merge(acc, candidate.clone()))
     }
 

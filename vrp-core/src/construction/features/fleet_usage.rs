@@ -4,9 +4,7 @@
 #[path = "../../../tests/unit/construction/features/fleet_usage_test.rs"]
 mod fleet_usage_test;
 
-use crate::construction::heuristics::*;
-use crate::models::common::*;
-use rosomaxa::prelude::Objective;
+use super::*;
 use std::ops::Deref;
 
 /// Creates a feature to minimize used fleet size (affects amount of tours in solution).

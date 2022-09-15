@@ -2,7 +2,7 @@
 
 use crate::construction::heuristics::*;
 use crate::models::common::*;
-use crate::models::problem::Job;
+use crate::models::problem::*;
 use rosomaxa::prelude::*;
 use std::slice::Iter;
 use std::sync::Arc;
