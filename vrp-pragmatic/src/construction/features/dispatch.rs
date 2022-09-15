@@ -4,15 +4,12 @@
 #[path = "../../../tests/unit/construction/features/dispatch_test.rs"]
 mod dispatch_test;
 
+use super::*;
 use crate::construction::enablers::is_single_belongs_to_route;
 use crate::construction::enablers::JobTie;
 use std::iter::once;
-use std::slice::Iter;
-use std::sync::Arc;
 use vrp_core::construction::enablers::*;
-use vrp_core::construction::features::*;
-use vrp_core::construction::heuristics::*;
-use vrp_core::models::problem::{Job, Single};
+use vrp_core::models::problem::Single;
 use vrp_core::models::solution::Activity;
 
 /// Creates a dispatch feature as a hard constraint.

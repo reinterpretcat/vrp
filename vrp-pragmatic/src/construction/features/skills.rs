@@ -4,12 +4,10 @@
 #[path = "../../../tests/unit/construction/features/skills_test.rs"]
 mod skills_test;
 
+use super::*;
 use crate::constraints::JobSkills;
 use crate::construction::enablers::{JobTie, VehicleTie};
 use hashbrown::HashSet;
-use vrp_core::construction::features::*;
-use vrp_core::construction::heuristics::*;
-use vrp_core::models::problem::Job;
 
 // TODO use this type
 /*/// A job skills limitation for a vehicle.

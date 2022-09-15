@@ -7,7 +7,8 @@ mod locked_jobs_test;
 use super::*;
 use crate::models::problem::{Actor, Fleet};
 use crate::models::{Lock, LockOrder, LockPosition};
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
+use std::sync::Arc;
 
 type ConditionMap = HashMap<Job, Arc<dyn Fn(&Actor) -> bool + Sync + Send>>;
 

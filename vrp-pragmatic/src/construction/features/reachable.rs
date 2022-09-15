@@ -1,9 +1,7 @@
 //! Creates a feature to detect filter jobs based on their reachability.
 
-use std::sync::Arc;
-use vrp_core::construction::features::*;
-use vrp_core::construction::heuristics::MoveContext;
-use vrp_core::models::problem::{Job, TransportCost, TravelTime};
+use super::*;
+use vrp_core::models::problem::{TransportCost, TravelTime};
 
 /// Creates a feature to check reachability of the jobs. It is a hard constraint.
 pub fn create_reachable_feature(

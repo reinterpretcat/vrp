@@ -4,11 +4,8 @@
 #[path = "../../../tests/unit/construction/features/compatibility_test.rs"]
 mod compatibility_test;
 
+use super::*;
 use crate::construction::enablers::JobTie;
-use std::slice::Iter;
-use vrp_core::construction::features::*;
-use vrp_core::construction::heuristics::*;
-use vrp_core::models::problem::Job;
 
 /// Creates a compatibility feature as hard constraint.
 pub fn create_compatibility_constraint(code: ViolationCode, state_key: StateKey) -> Result<Feature, String> {

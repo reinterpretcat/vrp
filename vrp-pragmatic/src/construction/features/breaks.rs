@@ -4,18 +4,15 @@
 #[path = "../../../tests/unit/construction/features/breaks_test.rs"]
 mod breaks_test;
 
+use super::*;
 use crate::constraints::BreakPolicy;
 use crate::construction::enablers::*;
 use crate::construction::enablers::{BreakTie, JobTie};
 use hashbrown::HashSet;
 use std::iter::once;
-use std::slice::Iter;
-use std::sync::Arc;
 use vrp_core::construction::enablers::*;
-use vrp_core::construction::features::*;
-use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::{Cost, Schedule, TimeWindow};
-use vrp_core::models::problem::{Job, Single};
+use vrp_core::models::problem::Single;
 use vrp_core::models::solution::Activity;
 use vrp_core::rosomaxa::prelude::Objective;
 

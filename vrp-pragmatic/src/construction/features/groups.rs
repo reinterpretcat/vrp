@@ -1,11 +1,8 @@
 //! A feature to model group of jobs.
 
+use super::*;
 use crate::construction::enablers::JobTie;
 use hashbrown::HashSet;
-use std::slice::Iter;
-use vrp_core::construction::features::*;
-use vrp_core::construction::heuristics::*;
-use vrp_core::models::problem::Job;
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/features/groups_test.rs"]

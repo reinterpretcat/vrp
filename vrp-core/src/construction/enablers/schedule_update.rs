@@ -1,5 +1,5 @@
-use crate::construction::features::StateKey;
 use crate::construction::heuristics::RouteContext;
+use crate::models::common::StateKey;
 use crate::models::common::{Distance, Timestamp};
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
 use crate::models::OP_START_MSG;

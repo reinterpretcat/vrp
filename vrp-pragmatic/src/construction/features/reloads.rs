@@ -4,20 +4,17 @@
 #[path = "../../../tests/unit/construction/features/reloads_test.rs"]
 mod reloads_test;
 
+use super::*;
 use crate::construction::enablers::*;
 use crate::construction::enablers::{JobTie, VehicleTie};
 use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 use std::ops::{Deref, Range};
-use std::sync::Arc;
 use vrp_core::construction::constraints::{MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, RELOAD_INTERVALS_KEY};
 use vrp_core::construction::enablers::MultiTrip;
 use vrp_core::construction::features::shared_resource::*;
-use vrp_core::construction::features::*;
-use vrp_core::construction::heuristics::{RouteContext, SolutionContext};
-use vrp_core::models::common::*;
-use vrp_core::models::problem::{Job, Single};
+use vrp_core::models::problem::Single;
 use vrp_core::models::solution::{Activity, Route};
 
 /// Specifies load schedule threshold function.
