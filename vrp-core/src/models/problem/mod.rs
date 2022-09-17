@@ -14,7 +14,7 @@ pub use self::fleet::*;
 mod jobs;
 pub use self::jobs::*;
 
-pub mod variant;
+mod variant;
 pub use crate::models::problem::variant::*;
 
 /// An actual objective on solution type.

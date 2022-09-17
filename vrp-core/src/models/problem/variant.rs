@@ -1,14 +1,47 @@
+use super::*;
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use hashbrown::{HashMap, HashSet};
+use rand::prelude::SliceRandom;
+use rosomaxa::algorithms::nsga2::dominance_order;
+use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
+use std::cmp::Ordering;
 use std::iter::repeat;
 use std::slice::Iter;
 use std::sync::Arc;
 
-/// An individual feature which is used to build a specific VRP aspect (variant), e.g. capacity restriction,
-/// job priority, etc. Each feature consists of three optional parts (but at least one should be defined):
+/// Defines Vehicle Routing Problem variant by global and local objectives:
+/// A **global objective** defines the way two VRP solutions are compared in order to select better one:
+/// for example, given the same amount of assigned jobs, prefer less tours used instead of total
+/// solution cost.
+///
+/// A **local objective** defines how single VRP solution is created/modified. It specifies hard
+/// constraints such as vehicle capacity, time windows, skills, etc. Also it defines soft constraints
+/// which are used to guide search in preferred by global objective direction: reduce amount of tours
+/// served, maximize total value of assigned jobs, etc.
+///
+/// Both, global and local objectives, are specified by individual **features**. In general, a **Feature**
+/// encapsulates a single VRP aspect, such as capacity constraint for job' demand, time limitations
+/// for vehicles/jobs, etc.
+#[derive(Clone)]
+pub struct VrpVariant {
+    /// A global objective.
+    pub global_objective: GlobalObjective,
+    /// A local objective.
+    pub local_objective: LocalObjective,
+}
+
+impl VrpVariant {
+    /// Creates a new instance of
+    pub fn new() -> Self {
+        unimplemented!()
+    }
+}
+
+/// An individual feature which is used to build a specific VRP variant, e.g. capacity restriction,
+/// job values, etc. Each feature consists of three optional parts (but at least one should be defined):
 /// * **constraint**: an invariant which should be hold to have a feasible VRP solution in the end.
 /// A good examples are hard constraints such as capacity, time, travel limits, etc.
 ///
@@ -173,15 +206,77 @@ pub trait FeatureObjective: Objective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost;
 }
 
+/// A hierarchical multi objective for vehicle routing problem.
+#[derive(Clone)]
+pub struct GlobalObjective {
+    objectives: Vec<Vec<TargetObjective>>,
+}
+
+impl GlobalObjective {
+    /// Creates an instance of `InsertionObjective`.
+    pub fn new(objectives: Vec<Vec<TargetObjective>>) -> Self {
+        Self { objectives }
+    }
+}
+
+impl Objective for GlobalObjective {
+    type Solution = InsertionContext;
+
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        unwrap_from_result(self.objectives.iter().try_fold(Ordering::Equal, |_, objectives| {
+            match dominance_order(a, b, objectives) {
+                Ordering::Equal => Ok(Ordering::Equal),
+                order => Err(order),
+            }
+        }))
+    }
+
+    fn distance(&self, _a: &Self::Solution, _b: &Self::Solution) -> f64 {
+        unreachable!()
+    }
+
+    fn fitness(&self, solution: &Self::Solution) -> f64 {
+        solution.solution.get_total_cost()
+    }
+}
+
+impl MultiObjective for GlobalObjective {
+    fn objectives<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a (dyn Objective<Solution = Self::Solution> + Send + Sync)> + 'a> {
+        Box::new(self.objectives.iter().flatten().map(|o| o.as_ref()))
+    }
+}
+
+impl HeuristicObjective for GlobalObjective {}
+
+impl Shuffled for GlobalObjective {
+    /// Returns a new instance of `ObjectiveCost` with shuffled objectives.
+    fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
+        let mut objectives = self.objectives.clone();
+
+        objectives.shuffle(&mut random.get_rng());
+
+        Self { objectives }
+    }
+}
+
+impl Default for GlobalObjective {
+    fn default() -> Self {
+        unimplemented!()
+    }
+}
+
 /// A feature map provides a way to maintain multiple features according their hierarchical objectives.
-pub struct FeatureMap {
+#[derive(Clone)]
+pub struct LocalObjective {
     constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
     global_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
     local_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
     states: Vec<Arc<dyn FeatureState + Send + Sync>>,
 }
 
-impl FeatureMap {
+impl LocalObjective {
     /// Creates a new instance of `FeatureMap` with features specified using information about
     /// hierarchy of objectives.
     pub fn new(
@@ -341,6 +436,7 @@ impl FeatureMap {
                 .map(|(a, b)| {
                     // TODO: merging two values will reintroduce problem with weightning coefficients
                     //     use a flat structure for insertion cost with priority map and apply total ordering?
+                    //     or use dominance_order fn
                     a + b
                 })
                 .collect()
