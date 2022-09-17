@@ -14,8 +14,7 @@ pub use self::fleet::*;
 mod jobs;
 pub use self::jobs::*;
 
-mod variant;
-pub use crate::models::problem::variant::*;
+pub use crate::models::variant::*;
 
 /// An actual objective on solution type.
 pub type TargetObjective = Arc<dyn Objective<Solution = InsertionContext> + Send + Sync>;
