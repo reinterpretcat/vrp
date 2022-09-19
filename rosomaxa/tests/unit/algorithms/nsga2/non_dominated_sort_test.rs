@@ -1,5 +1,6 @@
 use super::*;
 use crate::helpers::algorithms::nsga2::*;
+use crate::prelude::Objective;
 
 /// Creates `n_fronts` with each having `n` solutions in it.
 pub fn create_solutions_with_n_fronts(n: usize, n_fronts: usize) -> (Vec<Vec<f64>>, Vec<Vec<usize>>) {

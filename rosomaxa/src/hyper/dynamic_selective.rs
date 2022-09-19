@@ -297,10 +297,7 @@ where
                 let is_significant_change = self.heuristic_ctx.population().ranked().next().map_or(
                     self.heuristic_ctx.statistics().improvement_1000_ratio < 0.01,
                     |(best, _)| {
-                        let distance = relative_distance(
-                            objective.objectives().map(|o| o.fitness(best)),
-                            objective.objectives().map(|o| o.fitness(&new_solution)),
-                        );
+                        let distance = relative_distance(objective.fitness(best), objective.fitness(&new_solution));
                         distance > 0.01
                     },
                 );

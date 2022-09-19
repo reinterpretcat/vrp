@@ -49,7 +49,7 @@ where
             let insertion_ctx = unsafe { std::mem::transmute::<&S, &InsertionContext>(solution) };
 
             // NOTE a naive conversion to 3D point
-            let fitness = insertion_ctx.get_fitness().collect::<Vec<_>>();
+            let fitness = insertion_ctx.fitness().collect::<Vec<_>>();
             let (x, y, z) = match fitness.len() {
                 0 => (0., 0., 0.),
                 1 => (fitness[0], 0., 0.),

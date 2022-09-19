@@ -13,6 +13,7 @@ use crate::utils::Noise;
 use crate::*;
 use hashbrown::{HashMap, HashSet};
 use std::any::Any;
+use std::cmp::Ordering;
 use std::iter::once;
 use std::ops::{Deref, Range};
 use std::sync::Arc;
@@ -50,7 +51,7 @@ pub struct VectorSolution {
 impl VectorSolution {
     /// Returns a fitness value of given solution.
     pub fn fitness(&self) -> f64 {
-        self.objective.fitness(self)
+        Objective::fitness(self.objective.as_ref(), self)
     }
 }
 
@@ -137,12 +138,34 @@ impl Objective for VectorObjective {
 }
 
 impl MultiObjective for VectorObjective {
-    fn objectives<'a>(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = &'a (dyn Objective<Solution = Self::Solution> + Send + Sync)> + 'a> {
-        let objective: &(dyn Objective<Solution = Self::Solution> + Send + Sync) = self;
+    type Solution = VectorSolution;
 
-        Box::new(std::iter::once(objective))
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        Objective::total_order(self, a, b)
+    }
+
+    fn fitness<'a>(&self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
+        Box::new(once(self.fitness_fn.deref()(solution.data.as_slice())))
+    }
+
+    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String> {
+        if idx == 0 {
+            Ok(Objective::total_order(self, a, b))
+        } else {
+            Err(format!("objective has only 1 inner, passed index: {}", idx))
+        }
+    }
+
+    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String> {
+        if idx == 0 {
+            Ok(Objective::distance(self, a, b))
+        } else {
+            Err(format!("objective has only 1 inner, passed index: {}", idx))
+        }
+    }
+
+    fn size(&self) -> usize {
+        1
     }
 }
 
@@ -153,8 +176,8 @@ impl Shuffled for VectorObjective {
 }
 
 impl HeuristicSolution for VectorSolution {
-    fn get_fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(self.objective.objectives().map(move |objective| objective.fitness(self)))
+    fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
+        MultiObjective::fitness(self.objective.as_ref(), self)
     }
 
     fn deep_copy(&self) -> Self {
@@ -469,7 +492,7 @@ impl Solver {
         let solutions = solutions
             .into_iter()
             .map(|s| {
-                let fitness = s.get_fitness().next().expect("empty fitness");
+                let fitness = s.fitness();
                 (s.data, fitness)
             })
             .collect();

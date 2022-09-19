@@ -6,7 +6,6 @@ use vrp_core::models::common::IdDimension;
 use vrp_core::models::problem::Job;
 use vrp_core::models::Problem;
 use vrp_core::rosomaxa::evolution::TelemetryMode;
-use vrp_core::rosomaxa::prelude::Objective;
 use vrp_core::solver::create_elitism_population;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::RefinementContext;
@@ -67,7 +66,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     let insertion_ctx = RecreateWithCheapest::new(environment.random.clone())
         .run(&refinement_ctx, InsertionContext::new(problem.clone(), environment));
 
-    let result_cost = problem.objective.fitness(&insertion_ctx);
+    let result_cost = insertion_ctx.solution.get_total_cost();
     assert_eq!(result_cost.round(), cost.round());
     assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected);
 }

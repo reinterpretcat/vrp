@@ -3,11 +3,11 @@ use crate::example::*;
 use crate::helpers::example::create_example_objective;
 
 fn get_best_fitness(population: &Elitism<VectorObjective, VectorSolution>) -> f64 {
-    population.objective.fitness(population.ranked().next().unwrap().0)
+    population.ranked().next().unwrap().0.fitness()
 }
 
 fn get_all_fitness(population: &Elitism<VectorObjective, VectorSolution>) -> Vec<f64> {
-    population.ranked().map(|(s, _)| population.objective.fitness(s)).collect()
+    population.ranked().map(|(s, _)| s.fitness()).collect()
 }
 
 fn create_objective_population(

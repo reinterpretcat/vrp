@@ -2,7 +2,6 @@ use super::*;
 use crate::helpers::create_single_with_location;
 use crate::helpers::*;
 use vrp_core::construction::features::capacity::create_capacity_limit_with_multi_trip;
-use vrp_core::construction::features::LocalObjective;
 use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::{MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::*;
@@ -194,11 +193,11 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
         Box::new(move |capacity| *capacity * threshold),
     )
     .unwrap();
-    let registry = LocalObjective::new(&[vec![feature]]).unwrap();
+    let variant = VrpVariant::new(&[feature], &[], &[]).unwrap();
 
-    registry.accept_route_state(solution_ctx.routes.get_mut(0).unwrap());
+    variant.local_objective.accept_route_state(solution_ctx.routes.get_mut(0).unwrap());
 
-    registry.accept_solution_state(&mut solution_ctx);
+    variant.local_objective.accept_solution_state(&mut solution_ctx);
 
     assert_eq!(
         solution_ctx

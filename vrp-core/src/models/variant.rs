@@ -1,7 +1,6 @@
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
-use crate::models::problem::*;
 use hashbrown::{HashMap, HashSet};
 use rand::prelude::SliceRandom;
 use rosomaxa::algorithms::nsga2::dominance_order;
@@ -34,9 +33,74 @@ pub struct VrpVariant {
 }
 
 impl VrpVariant {
-    /// Creates a new instance of
-    pub fn new() -> Self {
-        unimplemented!()
+    /// Creates a new instance of `VrpVariant` with features specified using information about
+    /// hierarchy of objectives.
+    pub fn new(
+        features: &[Feature],
+        global_objective_map: &[Vec<String>],
+        local_objective_map: &[Vec<String>],
+    ) -> Result<Self, String> {
+        let ids_all = features
+            .iter()
+            .filter_map(|feature| feature.objective.as_ref().map(|_| feature.name.clone()))
+            .collect::<Vec<_>>();
+
+        let ids_unique = ids_all.iter().collect::<HashSet<_>>();
+        if ids_unique.len() == ids_all.len() {
+            return Err(format!(
+                "some of the features are defined more than once, check ids list: {}",
+                ids_all.join(",")
+            ));
+        }
+
+        let check_objective_map = |objective_map: &[Vec<String>]| {
+            let objective_ids_all = objective_map.iter().flat_map(|objective| objective.iter()).collect::<Vec<_>>();
+            let objective_ids_unique = objective_ids_all.iter().cloned().collect::<HashSet<_>>();
+            objective_ids_all.len() == objective_ids_unique.len() && objective_ids_unique.is_subset(&ids_unique)
+        };
+
+        if check_objective_map(global_objective_map) {
+            return Err(
+                "global objective map is invalid: it should contain unique ids of the features specified".to_string()
+            );
+        }
+
+        if check_objective_map(local_objective_map) {
+            return Err(
+                "local objective map is invalid: it should contain unique ids of the features specified".to_string()
+            );
+        }
+
+        let feature_map = features
+            .iter()
+            .filter_map(|feature| feature.objective.as_ref().map(|objective| (feature.name.clone(), objective.clone())))
+            .collect::<HashMap<_, _>>();
+
+        let remap_objectives = |objective_map: &[Vec<String>]| -> Result<Vec<_>, String> {
+            objective_map.iter().try_fold(Vec::default(), |mut acc_outer, ids| {
+                acc_outer.push(ids.iter().try_fold(Vec::default(), |mut acc_inner, id| {
+                    if let Some(objective) = feature_map.get(id) {
+                        acc_inner.push(objective.clone());
+                        Ok(acc_inner)
+                    } else {
+                        Err(format!("cannot find objective for feature with id: {}", id))
+                    }
+                })?);
+
+                Ok(acc_outer)
+            })
+        };
+
+        let global_objectives = remap_objectives(global_objective_map)?;
+        let local_objectives = remap_objectives(local_objective_map)?;
+
+        let states = features.iter().filter_map(|feature| feature.state.clone()).collect();
+        let constraints = features.into_iter().filter_map(|feature| feature.constraint.clone()).collect();
+
+        Ok(Self {
+            global_objective: GlobalObjective::new(global_objectives),
+            local_objective: LocalObjective { constraints, local_objectives, states },
+        })
     }
 }
 
@@ -64,7 +128,7 @@ impl VrpVariant {
 #[derive(Clone, Default)]
 pub struct Feature {
     /// An unique id of the feature.
-    pub id: String,
+    pub name: String,
     /// A hard constraint.
     pub constraint: Option<Arc<dyn FeatureConstraint + Send + Sync>>,
     /// An objective which models soft constraints.
@@ -120,9 +184,9 @@ impl FeatureBuilder {
         unimplemented!()
     }
 
-    /// Sets given id.
-    pub fn with_id(mut self, id: String) -> Self {
-        self.feature.id = id;
+    /// Sets given name.
+    pub fn with_name(mut self, name: String) -> Self {
+        self.feature.name = name;
         self
     }
 
@@ -151,7 +215,7 @@ impl FeatureBuilder {
     pub fn build(self) -> Result<Feature, String> {
         let feature = self.feature;
 
-        if feature.id == String::default() {
+        if feature.name == String::default() {
             return Err("features with default id are not allowed".to_string());
         }
 
@@ -209,42 +273,50 @@ pub trait FeatureObjective: Objective {
 /// A hierarchical multi objective for vehicle routing problem.
 #[derive(Clone)]
 pub struct GlobalObjective {
-    objectives: Vec<Vec<TargetObjective>>,
+    hierarchical_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
+    flat_objectives: Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
 }
 
 impl GlobalObjective {
     /// Creates an instance of `InsertionObjective`.
-    pub fn new(objectives: Vec<Vec<TargetObjective>>) -> Self {
-        Self { objectives }
+    fn new(objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>) -> Self {
+        let flat_objectives = objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
+        Self { hierarchical_objectives: objectives, flat_objectives }
     }
 }
 
-impl Objective for GlobalObjective {
+impl MultiObjective for GlobalObjective {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        unwrap_from_result(self.objectives.iter().try_fold(Ordering::Equal, |_, objectives| {
-            match dominance_order(a, b, objectives) {
+        unwrap_from_result(self.hierarchical_objectives.iter().try_fold(Ordering::Equal, |_, objectives| {
+            match dominance_order(a, b, objectives.iter().map(|o| o.as_ref())) {
                 Ordering::Equal => Ok(Ordering::Equal),
                 order => Err(order),
             }
         }))
     }
 
-    fn distance(&self, _a: &Self::Solution, _b: &Self::Solution) -> f64 {
-        unreachable!()
+    fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
+        Box::new(self.flat_objectives.iter().map(|o| o.fitness(solution)))
     }
 
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution.solution.get_total_cost()
+    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String> {
+        self.flat_objectives
+            .get(idx)
+            .map(|o| o.total_order(a, b))
+            .ok_or_else(|| format!("cannot get total_order with index: {}", idx))
     }
-}
 
-impl MultiObjective for GlobalObjective {
-    fn objectives<'a>(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = &'a (dyn Objective<Solution = Self::Solution> + Send + Sync)> + 'a> {
-        Box::new(self.objectives.iter().flatten().map(|o| o.as_ref()))
+    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String> {
+        self.flat_objectives
+            .get(idx)
+            .map(|o| o.distance(a, b))
+            .ok_or_else(|| format!("cannot get distance with index: {}", idx))
+    }
+
+    fn size(&self) -> usize {
+        self.flat_objectives.len()
     }
 }
 
@@ -253,17 +325,11 @@ impl HeuristicObjective for GlobalObjective {}
 impl Shuffled for GlobalObjective {
     /// Returns a new instance of `ObjectiveCost` with shuffled objectives.
     fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
-        let mut objectives = self.objectives.clone();
+        let mut hierarchical_objectives = self.hierarchical_objectives.clone();
 
-        objectives.shuffle(&mut random.get_rng());
+        hierarchical_objectives.shuffle(&mut random.get_rng());
 
-        Self { objectives }
-    }
-}
-
-impl Default for GlobalObjective {
-    fn default() -> Self {
-        unimplemented!()
+        Self::new(hierarchical_objectives)
     }
 }
 
@@ -271,79 +337,11 @@ impl Default for GlobalObjective {
 #[derive(Clone)]
 pub struct LocalObjective {
     constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
-    global_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
     local_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
     states: Vec<Arc<dyn FeatureState + Send + Sync>>,
 }
 
 impl LocalObjective {
-    /// Creates a new instance of `FeatureMap` with features specified using information about
-    /// hierarchy of objectives.
-    pub fn new(
-        features: &[Feature],
-        global_objective_map: &[Vec<String>],
-        local_objective_map: &[Vec<String>],
-    ) -> Result<Self, String> {
-        let ids_all = features
-            .iter()
-            .filter_map(|feature| feature.objective.as_ref().map(|_| feature.id.clone()))
-            .collect::<Vec<_>>();
-
-        let ids_unique = ids_all.iter().collect::<HashSet<_>>();
-        if ids_unique.len() == ids_all.len() {
-            return Err(format!(
-                "some of the features are defined more than once, check ids list: {}",
-                ids_all.join(",")
-            ));
-        }
-
-        let check_objective_map = |objective_map: &[Vec<String>]| {
-            let objective_ids_all = objective_map.iter().flat_map(|objective| objective.iter()).collect::<Vec<_>>();
-            let objective_ids_unique = objective_ids_all.iter().cloned().collect::<HashSet<_>>();
-            objective_ids_all.len() == objective_ids_unique.len() && objective_ids_unique.is_subset(&ids_unique)
-        };
-
-        if check_objective_map(global_objective_map) {
-            return Err(
-                "global objective map is invalid: it should contain unique ids of the features specified".to_string()
-            );
-        }
-
-        if check_objective_map(local_objective_map) {
-            return Err(
-                "local objective map is invalid: it should contain unique ids of the features specified".to_string()
-            );
-        }
-
-        let feature_map = features
-            .iter()
-            .filter_map(|feature| feature.objective.as_ref().map(|objective| (feature.id.clone(), objective.clone())))
-            .collect::<HashMap<_, _>>();
-
-        let remap_objectives = |objective_map: &[Vec<String>]| -> Result<Vec<_>, String> {
-            objective_map.iter().try_fold(Vec::default(), |mut acc_outer, ids| {
-                acc_outer.push(ids.iter().try_fold(Vec::default(), |mut acc_inner, id| {
-                    if let Some(objective) = feature_map.get(id) {
-                        acc_inner.push(objective.clone());
-                        Ok(acc_inner)
-                    } else {
-                        Err(format!("cannot find objective for feature with id: {}", id))
-                    }
-                })?);
-
-                Ok(acc_outer)
-            })
-        };
-
-        let global_objectives = remap_objectives(global_objective_map)?;
-        let local_objectives = remap_objectives(local_objective_map)?;
-
-        let states = features.iter().filter_map(|feature| feature.state.clone()).collect();
-        let constraints = features.into_iter().filter_map(|feature| feature.constraint.clone()).collect();
-
-        Ok(Self { constraints, global_objectives, local_objectives, states })
-    }
-
     /// Accepts job insertion.
     pub fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
         let activities = solution_ctx.routes.get_mut(route_index).unwrap().route.tour.job_activity_count();

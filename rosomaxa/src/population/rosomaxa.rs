@@ -270,7 +270,7 @@ where
                     *old_selection_size = selection_size;
 
                     let best_individual = self.elite.select().next().expect("expected individuals in elite");
-                    let best_fitness = best_individual.get_fitness().collect::<Vec<_>>();
+                    let best_fitness = best_individual.fitness().collect::<Vec<_>>();
 
                     Self::optimize_network(
                         network,
@@ -352,7 +352,7 @@ where
             let node = node.read().unwrap();
             let individual = node.storage.population.ranked().next();
 
-            individual.map(|(individual, _)| relative_distance(best_fitness.iter().cloned(), individual.get_fitness()))
+            individual.map(|(individual, _)| relative_distance(best_fitness.iter().cloned(), individual.fitness()))
         };
 
         // determine percentile value
@@ -560,8 +560,8 @@ where
     // NOTE custom dedup rule to increase diversity property
     Box::new(move |objective, a, b| match objective.total_order(a, b) {
         Ordering::Equal => {
-            let fitness_a = a.get_fitness();
-            let fitness_b = b.get_fitness();
+            let fitness_a = a.fitness();
+            let fitness_b = b.fitness();
 
             fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
         }

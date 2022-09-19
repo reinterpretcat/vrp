@@ -46,7 +46,7 @@ where
     fn is_termination(&self, heuristic_ctx: &mut Self::Context) -> bool {
         // NOTE ignore pareto front, use the first solution only for comparison
         heuristic_ctx.population().ranked().next().map_or(false, |(solution, _)| {
-            let distance = relative_distance(self.target_fitness.iter().cloned(), solution.get_fitness());
+            let distance = relative_distance(self.target_fitness.iter().cloned(), solution.fitness());
             distance < self.distance_threshold
         })
     }

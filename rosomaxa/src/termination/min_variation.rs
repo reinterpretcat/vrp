@@ -153,7 +153,7 @@ where
         let first_individual = heuristic_ctx.population().ranked().next();
         if let Some((first, _)) = first_individual {
             let objective = heuristic_ctx.objective();
-            let fitness = objective.objectives().map(|o| o.fitness(first)).collect::<Vec<_>>();
+            let fitness = objective.fitness(first).collect::<Vec<_>>();
             let result = self.update_and_check(heuristic_ctx, fitness);
 
             match (self.is_global, heuristic_ctx.population().selection_phase()) {

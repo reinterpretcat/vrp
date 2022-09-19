@@ -9,7 +9,6 @@ use crate::models::solution::{Activity, Route};
 use crate::solver::objectives::{TotalCost, TotalRoutes, TotalUnassignedJobs};
 use hashbrown::HashMap;
 use rand::prelude::SliceRandom;
-use rosomaxa::algorithms::nsga2::dominance_order;
 use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use rosomaxa::utils::CollectGroupBy;
@@ -29,32 +28,27 @@ impl ProblemObjective {
     }
 }
 
-impl Objective for ProblemObjective {
+impl MultiObjective for ProblemObjective {
     type Solution = InsertionContext;
 
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        unwrap_from_result(self.objectives.iter().try_fold(Ordering::Equal, |_, objectives| {
-            match dominance_order(a, b, objectives) {
-                Ordering::Equal => Ok(Ordering::Equal),
-                order => Err(order),
-            }
-        }))
+    fn total_order(&self, _: &Self::Solution, _: &Self::Solution) -> Ordering {
+        todo!()
     }
 
-    fn distance(&self, _a: &Self::Solution, _b: &Self::Solution) -> f64 {
-        unreachable!()
+    fn fitness<'a>(&self, _: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
+        todo!()
     }
 
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution.solution.get_total_cost()
+    fn get_order(&self, _: &Self::Solution, _: &Self::Solution, _: usize) -> Result<Ordering, String> {
+        todo!()
     }
-}
 
-impl MultiObjective for ProblemObjective {
-    fn objectives<'a>(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = &'a (dyn Objective<Solution = Self::Solution> + Send + Sync)> + 'a> {
-        Box::new(self.objectives.iter().flatten().map(|o| o.as_ref()))
+    fn get_distance(&self, _: &Self::Solution, _: &Self::Solution, _: usize) -> Result<f64, String> {
+        todo!()
+    }
+
+    fn size(&self) -> usize {
+        todo!()
     }
 }
 

@@ -67,7 +67,7 @@ use std::sync::Arc;
 /// Represents solution in population defined as actual solution.
 pub trait HeuristicSolution: Send + Sync {
     /// Get fitness values of a given solution.
-    fn get_fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a>;
+    fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a>;
     /// Creates a deep copy of the solution.
     fn deep_copy(&self) -> Self;
 }

@@ -41,10 +41,9 @@ fn can_define_proper_place_for_value_objective_by_default() {
     let mut constraint = ConstraintPipeline::default();
     let props = ProblemProperties { max_job_value: Some(1.), ..create_problem_props() };
 
-    let objective_cost = create_objective(&problem, &mut constraint, &props);
-    let objectives = objective_cost.objectives().collect::<Vec<_>>();
+    let objective = create_objective(&problem, &mut constraint, &props);
 
-    assert_eq!(objectives[0].fitness(&create_solution_with_state_value(TOTAL_VALUE_KEY, 1234.)), 1234.);
+    assert_eq!(objective.fitness(&create_solution_with_state_value(TOTAL_VALUE_KEY, 1234.)).next().unwrap(), 1234.);
 }
 
 #[test]
@@ -53,10 +52,12 @@ fn can_define_proper_place_for_order_objective_by_default() {
     let mut constraint = ConstraintPipeline::default();
     let props = ProblemProperties { has_order: true, ..create_problem_props() };
 
-    let objective_cost = create_objective(&problem, &mut constraint, &props);
-    let objectives = objective_cost.objectives().collect::<Vec<_>>();
+    let objective = create_objective(&problem, &mut constraint, &props);
 
-    assert_eq!(objectives[1].fitness(&create_solution_with_state_value(TOUR_ORDER_KEY, 1234_usize)), 1234.);
+    assert_eq!(
+        objective.fitness(&create_solution_with_state_value(TOUR_ORDER_KEY, 1234_usize)).skip(1).next().unwrap(),
+        1234.
+    );
 }
 
 #[test]
@@ -69,11 +70,10 @@ fn can_define_proper_places_for_mixed_priority_and_order_objectives_by_default()
 
     let props = ProblemProperties { max_job_value: Some(1.), has_order: true, ..create_problem_props() };
 
-    let objective_cost = create_objective(&problem, &mut constraint, &props);
-    let objectives = objective_cost.objectives().collect::<Vec<_>>();
+    let objective = create_objective(&problem, &mut constraint, &props);
 
-    assert_eq!(objectives[0].fitness(&insertion_ctx), 123.);
-    assert_eq!(objectives[2].fitness(&insertion_ctx), 321.);
+    assert_eq!(objective.fitness(&insertion_ctx).next().unwrap(), 123.);
+    assert_eq!(objective.fitness(&insertion_ctx).skip(2).next().unwrap(), 321.);
 }
 
 #[test]

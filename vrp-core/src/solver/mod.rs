@@ -305,8 +305,8 @@ impl Solver {
         let insertion_ctx = if solutions.is_empty() { None } else { solutions.drain(0..1).next() }
             .ok_or_else(|| "cannot find any solution".to_string())?;
 
+        let cost = insertion_ctx.solution.get_total_cost();
         let solution = insertion_ctx.solution.to_solution(self.problem.extras.clone());
-        let cost = self.problem.objective.fitness(&insertion_ctx);
 
         Ok((solution, cost, metrics))
     }

@@ -6,9 +6,9 @@ use crate::helpers::*;
 use hashbrown::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
-use vrp_core::construction::features::{ConstraintViolation, ViolationCode};
 use vrp_core::construction::heuristics::{MoveContext, RouteContext, RouteState};
 use vrp_core::models::problem::{Fleet, Job, Vehicle};
+use vrp_core::models::{ConstraintViolation, ViolationCode};
 
 const VIOLATION_CODE: ViolationCode = 1;
 

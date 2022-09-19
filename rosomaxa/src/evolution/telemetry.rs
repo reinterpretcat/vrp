@@ -4,6 +4,7 @@
 #[path = "../../tests/unit/evolution/telemetry_test.rs"]
 mod telemetry_test;
 
+use crate::algorithms::math::relative_distance;
 use crate::prelude::*;
 use crate::utils::Timer;
 use crate::DynHeuristicPopulation;
@@ -136,7 +137,7 @@ where
                         "[{}s] created initial solution in {}ms, fitness: ({})",
                         self.time.elapsed_secs(),
                         item_time.elapsed_millis(),
-                        format_fitness(solution.get_fitness())
+                        format_fitness(solution.fitness())
                     )
                     .as_str(),
                 );
@@ -317,11 +318,11 @@ where
         solution: &S,
         rank: usize,
     ) -> TelemetryIndividual {
-        let fitness = solution.get_fitness().collect::<Vec<_>>();
+        let fitness = solution.fitness().collect::<Vec<_>>();
 
-        let (_, difference) = get_fitness_value(objective, population, solution);
+        let difference = get_fitness_change(objective, population, solution);
 
-        TelemetryIndividual { rank, difference: difference.abs(), fitness }
+        TelemetryIndividual { rank, difference, fitness }
     }
 
     fn log_individual(&self, metrics: &TelemetryIndividual, gen_info: Option<(usize, Timer)>) {
@@ -435,21 +436,22 @@ impl SpeedTracker {
     }
 }
 
-fn get_fitness_value<O, S>(objective: &O, population: &DynHeuristicPopulation<O, S>, solution: &S) -> (f64, f64)
+fn get_fitness_change<O, S>(objective: &O, population: &DynHeuristicPopulation<O, S>, solution: &S) -> f64
 where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    let fitness_value = objective.fitness(solution);
-
     let fitness_change = population
         .ranked()
         .next()
         .map(|(best_ctx, _)| objective.fitness(best_ctx))
-        .map(|best_fitness| (fitness_value - best_fitness) / best_fitness * 100.)
+        .map(|best_fitness| {
+            let fitness_value = objective.fitness(solution);
+            relative_distance(fitness_value, best_fitness)
+        })
         .unwrap_or(0.);
 
-    (fitness_value, fitness_change)
+    fitness_change
 }
 
 fn format_fitness(fitness: impl Iterator<Item = f64>) -> String {
