@@ -5,10 +5,11 @@ use vrp_core::models::problem::{TransportCost, TravelTime};
 
 /// Creates a feature to check reachability of the jobs. It is a hard constraint.
 pub fn create_reachable_feature(
+    name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
     code: ViolationCode,
 ) -> Result<Feature, String> {
-    FeatureBuilder::default().with_constraint(ReachableConstraint { transport, code }).build()
+    FeatureBuilder::default().with_name(name).with_constraint(ReachableConstraint { transport, code }).build()
 }
 
 struct ReachableConstraint {

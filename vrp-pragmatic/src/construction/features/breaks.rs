@@ -28,8 +28,9 @@ pub enum BreakPolicy {
 
 /// Creates a feature to schedule an optional break. Here, optional means that break sometimes can
 /// be skipped due to constraint violations or suboptimal search path in solution space.
-pub fn create_optional_break(code: ViolationCode) -> Result<Feature, String> {
+pub fn create_optional_break_feature(name: &str, code: ViolationCode) -> Result<Feature, String> {
     FeatureBuilder::default()
+        .with_name(name)
         .with_constraint(OptionalBreakConstraint { code })
         .with_objective(OptionalBreakObjective {})
         .with_state(OptionalBreakState {

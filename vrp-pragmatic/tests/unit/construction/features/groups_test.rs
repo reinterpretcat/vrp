@@ -11,7 +11,7 @@ const VIOLATION_CODE: ViolationCode = 1;
 const STATE_KEY: StateKey = 2;
 
 fn create_group_feature(total_jobs: usize) -> Feature {
-    create_group_constraint(total_jobs, VIOLATION_CODE, STATE_KEY).unwrap()
+    create_group_feature(total_jobs, VIOLATION_CODE, STATE_KEY).unwrap()
 }
 
 fn get_total_jobs(routes: &[(&str, Vec<Option<&str>>)]) -> usize {

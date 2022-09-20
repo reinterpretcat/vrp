@@ -8,7 +8,7 @@ const VIOLATION_CODE: i32 = 1;
 const STATE_KEY: i32 = 2;
 
 fn create_feature() -> Feature {
-    create_compatibility_constraint(VIOLATION_CODE, STATE_KEY).unwrap()
+    create_compatibility_feature(VIOLATION_CODE, STATE_KEY).unwrap()
 }
 
 fn create_test_single(compatibility: Option<String>) -> Arc<Single> {

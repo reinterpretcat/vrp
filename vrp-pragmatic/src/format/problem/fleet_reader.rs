@@ -2,16 +2,7 @@
 #[path = "../../../tests/unit/format/problem/fleet_reader_test.rs"]
 mod fleet_reader_test;
 
-use crate::construction::enablers::create_typed_actor_groups;
-use crate::construction::enablers::VehicleTie;
-use crate::format::coord_index::CoordIndex;
-use crate::format::problem::reader::{ApiProblem, ProblemProperties};
-use crate::format::problem::Matrix;
-use crate::parse_time;
-use hashbrown::{HashMap, HashSet};
-use std::sync::Arc;
-use vrp_core::models::common::*;
-use vrp_core::models::problem::*;
+use super::*;
 
 pub(crate) fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
     api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
@@ -205,4 +196,40 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
     })];
 
     Fleet::new(drivers, vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
+}
+
+/// Creates a matrices using approximation.
+pub fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
+    const DEFAULT_SPEED: f64 = 10.;
+    // get each speed value once
+    let speeds = problem
+        .fleet
+        .profiles
+        .iter()
+        .map(|profile| profile.speed.unwrap_or(DEFAULT_SPEED))
+        .map(|speed| speed.to_bits())
+        .collect::<HashSet<u64>>();
+    let speeds = speeds.into_iter().map(f64::from_bits).collect::<Vec<_>>();
+
+    let locations = get_unique_locations(problem);
+    let approx_data = get_approx_transportation(&locations, speeds.as_slice());
+
+    problem
+        .fleet
+        .profiles
+        .iter()
+        .map(move |profile| {
+            let speed = profile.speed.unwrap_or(DEFAULT_SPEED);
+            let idx =
+                speeds.iter().position(|s| compare_floats(*s, speed) == Equal).expect("Cannot find profile speed");
+
+            Matrix {
+                profile: Some(profile.name.clone()),
+                timestamp: None,
+                travel_times: approx_data[idx].0.clone(),
+                distances: approx_data[idx].1.clone(),
+                error_codes: None,
+            }
+        })
+        .collect()
 }

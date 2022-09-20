@@ -26,7 +26,7 @@ pub type CapacityFeatureFactoryFn<T> =
 type PlaceCapacityThresholdFn<T> = Box<dyn Fn(&RouteContext, &Activity, &T) -> bool + Send + Sync>;
 
 /// Creates a multi trip strategy to use multi trip with reload jobs which shared some resources.
-pub fn create_shared_reload_multi_trip<T>(
+pub fn create_shared_reload_multi_trip_feature<T>(
     capacity_feature_factory: CapacityFeatureFactoryFn<T>,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
     resource_map: HashMap<Job, (T, SharedResourceId)>,
@@ -50,17 +50,17 @@ where
     );
     let capacity = capacity_feature_factory.deref()(Arc::new(multi_trip))?;
 
-    FeatureBuilder::combine(&[capacity, shared_resource])
+    FeatureBuilder::combine(name, &[capacity, shared_resource])
 }
 
 /// Creates a multi trip strategy to use multi trip with reload jobs.
-pub fn create_simple_reload_multi_trip<T: LoadOps>(
+pub fn create_simple_reload_multi_trip_feature<T: LoadOps>(
     capacity_feature_factory: CapacityFeatureFactoryFn<T>,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
 ) -> Result<Feature, String> {
     let multi_trip = create_reload_multi_trip(load_schedule_threshold_fn, None);
 
-    capacity_feature_factory.deref()(Arc::new(multi_trip))
+    capacity_feature_factory.deref()(name, Arc::new(multi_trip))
 }
 
 fn create_reload_multi_trip<T: LoadOps>(

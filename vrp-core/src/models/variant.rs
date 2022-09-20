@@ -180,13 +180,13 @@ pub struct FeatureBuilder {
 
 impl FeatureBuilder {
     /// Combines multiple features into one.
-    pub fn combine(_: &[Feature]) -> Result<Feature, String> {
+    pub fn combine(_: &str, _: &[Feature]) -> Result<Feature, String> {
         unimplemented!()
     }
 
     /// Sets given name.
-    pub fn with_name(mut self, name: String) -> Self {
-        self.feature.name = name;
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.feature.name = name.to_string();
         self
     }
 

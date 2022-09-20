@@ -25,7 +25,7 @@ can_skip_merge_dispatch! {
 }
 
 fn can_skip_merge_dispatch_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
-    let constraint = create_dispatch_constraint(VIOLATION_CODE).unwrap().constraint.unwrap();
+    let constraint = create_dispatch_feature(VIOLATION_CODE).unwrap().constraint.unwrap();
 
     let result = constraint.merge(source, candidate).map(|_| ());
 

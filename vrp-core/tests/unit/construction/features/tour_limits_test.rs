@@ -1,4 +1,4 @@
-use crate::construction::features::tour_limits::create_activity_limit;
+use crate::construction::features::tour_limits::create_activity_limit_feature;
 use crate::construction::features::{ConstraintViolation, ViolationCode};
 use crate::construction::heuristics::MoveContext;
 use crate::helpers::models::domain::create_empty_solution_context;
@@ -44,7 +44,8 @@ mod activity {
             "v1",
             (0..activities).map(|idx| test_activity_with_location(idx as Location)).collect(),
         );
-        let constraint = create_activity_limit(VIOLATION_CODE, Arc::new(move |_| limit)).unwrap().constraint.unwrap();
+        let constraint =
+            create_activity_limit_feature(VIOLATION_CODE, Arc::new(move |_| limit)).unwrap().constraint.unwrap();
 
         let result = constraint.evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));
 
@@ -55,7 +56,7 @@ mod activity {
 mod traveling {
     use super::*;
     use crate::construction::constraints::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
-    use crate::construction::features::tour_limits::create_travel_limit;
+    use crate::construction::features::tour_limits::create_travel_limit_feature;
     use crate::construction::features::Feature;
     use crate::construction::heuristics::*;
     use crate::helpers::models::problem::*;
@@ -102,9 +103,14 @@ mod traveling {
                     }
                 },
             );
-        let feature =
-            create_travel_limit(transport, tour_distance_limit, tour_duration_limit, DISTANCE_CODE, DURATION_CODE)
-                .unwrap();
+        let feature = create_travel_limit_feature(
+            transport,
+            tour_distance_limit,
+            tour_duration_limit,
+            DISTANCE_CODE,
+            DURATION_CODE,
+        )
+        .unwrap();
 
         (feature, route_ctx)
     }

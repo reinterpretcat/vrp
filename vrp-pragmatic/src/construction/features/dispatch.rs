@@ -13,8 +13,9 @@ use vrp_core::models::problem::Single;
 use vrp_core::models::solution::Activity;
 
 /// Creates a dispatch feature as a hard constraint.
-pub fn create_dispatch_constraint(code: ViolationCode) -> Result<Feature, String> {
+pub fn create_dispatch_feature(name: &str, code: ViolationCode) -> Result<Feature, String> {
     FeatureBuilder::default()
+        .with_name(name)
         .with_constraint(DispatchConstraint { code })
         .with_state(DispatchState {
             context_transition: Box::new(ConcreteJobContextTransition {

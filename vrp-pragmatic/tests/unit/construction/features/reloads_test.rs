@@ -1,7 +1,7 @@
 use super::*;
 use crate::helpers::create_single_with_location;
 use crate::helpers::*;
-use vrp_core::construction::features::capacity::create_capacity_limit_with_multi_trip;
+use vrp_core::construction::features::capacity::create_capacity_limit_with_multi_trip_feature;
 use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::{MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::*;
@@ -53,8 +53,8 @@ fn create_route_context_with_fleet(capacity: Vec<i32>, activities: Vec<Activity>
 fn can_handle_reload_jobs_with_merge() {
     let create_reload_job = || Job::Single(reload("reload").job.unwrap());
     let create_job = || Job::Single(Arc::new(create_single_with_location(None)));
-    let feature = create_simple_reload_multi_trip(
-        Box::new(|multi_trip| create_capacity_limit_with_multi_trip(VIOLATION_CODE, multi_trip)),
+    let feature = create_simple_reload_multi_trip_feature(
+        Box::new(|multi_trip| create_capacity_limit_with_multi_trip_feature("capacity", VIOLATION_CODE, multi_trip)),
         Box::new(|_| SingleDimLoad::default()),
     );
     let constraint = feature.unwrap().constraint.unwrap();
@@ -188,8 +188,8 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
 
     let (route_ctx, fleet) = create_route_context_with_fleet(vec![capacity], activities);
     let mut solution_ctx = SolutionContext { routes: vec![route_ctx], ..create_solution_context_for_fleet(&fleet) };
-    let feature = create_simple_reload_multi_trip::<MultiDimLoad>(
-        Box::new(|multi_trip| create_capacity_limit_with_multi_trip(VIOLATION_CODE, multi_trip)),
+    let feature = create_simple_reload_multi_trip_feature::<MultiDimLoad>(
+        Box::new(|multi_trip| create_capacity_limit_with_multi_trip_feature(VIOLATION_CODE, multi_trip)),
         Box::new(move |capacity| *capacity * threshold),
     )
     .unwrap();

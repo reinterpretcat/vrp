@@ -9,8 +9,14 @@ use hashbrown::HashSet;
 mod groups_test;
 
 /// Creates a job group feature as hard constraint.
-pub fn create_group_constraint(total_jobs: usize, code: ViolationCode, state_key: StateKey) -> Result<Feature, String> {
+pub fn create_group_feature(
+    name: &str,
+    total_jobs: usize,
+    code: ViolationCode,
+    state_key: StateKey,
+) -> Result<Feature, String> {
     FeatureBuilder::default()
+        .with_name(name)
         .with_constraint(GroupConstraint { total_jobs, code, state_key })
         .with_state(GroupState { state_key, state_keys: vec![state_key] })
         .build()

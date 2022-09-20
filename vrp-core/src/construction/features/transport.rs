@@ -17,12 +17,14 @@ use std::ops::Deref;
 //  add validation rule which ensures usage of only one of these methods.
 
 /// Creates a travel costs feature which considers distance and duration for minimization.
-pub fn create_minimize_transport_costs(
+pub fn create_minimize_transport_costs_feature(
+    name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     time_window_code: ViolationCode,
 ) -> Result<Feature, String> {
     create_feature(
+        name,
         transport,
         activity,
         time_window_code,
@@ -32,12 +34,14 @@ pub fn create_minimize_transport_costs(
 
 /// Creates a travel costs feature which considers duration for minimization as global objective.
 /// NOTE: distance costs is still considered on local level.
-pub fn create_minimize_duration(
+pub fn create_minimize_duration_feature(
+    name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     time_window_code: ViolationCode,
 ) -> Result<Feature, String> {
     create_feature(
+        name,
         transport,
         activity,
         time_window_code,
@@ -51,12 +55,14 @@ pub fn create_minimize_duration(
 
 /// Creates a travel costs feature which considers distance for minimization as global objective.
 /// NOTE: duration costs is still considered on local level.
-pub fn create_minimize_distance(
+pub fn create_minimize_distance_feature(
+    name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     time_window_code: ViolationCode,
 ) -> Result<Feature, String> {
     create_feature(
+        name,
         transport,
         activity,
         time_window_code,
@@ -69,12 +75,14 @@ pub fn create_minimize_distance(
 }
 
 fn create_feature(
+    name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     time_window_code: ViolationCode,
     fitness_fn: Box<dyn Fn(&InsertionContext) -> f64 + Send + Sync>,
 ) -> Result<Feature, String> {
     FeatureBuilder::default()
+        .with_name(name)
         .with_constraint(TransportConstraint {
             code: time_window_code,
             transport: transport.clone(),

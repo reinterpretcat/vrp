@@ -1,15 +1,5 @@
-use crate::construction::enablers::JobTie;
-use crate::format::problem::reader::fleet_reader::get_profile_index_map;
-use crate::format::problem::reader::ApiProblem;
-use crate::format::problem::*;
-use hashbrown::HashSet;
-use std::cmp::Ordering;
-use std::sync::Arc;
-use vrp_core::construction::clustering::vicinity::ClusterConfig;
+use super::*;
 use vrp_core::construction::clustering::vicinity::*;
-use vrp_core::models::common::Profile;
-use vrp_core::models::problem::Job;
-use vrp_core::prelude::*;
 
 /// Creates cluster config if it is defined on the api problem.
 pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<ClusterConfig>, String> {

@@ -14,7 +14,12 @@ type ConditionMap = HashMap<Job, Arc<dyn Fn(&Actor) -> bool + Sync + Send>>;
 
 /// Creates a feature which allows to lock specific actors within specific jobs using different rules.
 /// It is a hard constraint, so locking cannot be violated.
-pub fn create_locked_jobs(fleet: &Fleet, locks: &[Arc<Lock>], code: ViolationCode) -> Result<Feature, String> {
+pub fn create_locked_jobs_feature(
+    name: &str,
+    fleet: &Fleet,
+    locks: &[Arc<Lock>],
+    code: ViolationCode,
+) -> Result<Feature, String> {
     let (rules, conditions) = locks.iter().fold((Vec::new(), HashMap::new()), |(mut rules, mut conditions), lock| {
         let condition = lock.condition.clone();
         lock.details.iter().for_each(|detail| {
@@ -45,7 +50,7 @@ pub fn create_locked_jobs(fleet: &Fleet, locks: &[Arc<Lock>], code: ViolationCod
         acc
     });
 
-    FeatureBuilder::default().with_constraint(LockingConstraint { code, conditions, rules }).build()
+    FeatureBuilder::default().with_name(name).with_constraint(LockingConstraint { code, conditions, rules }).build()
 }
 
 struct LockingConstraint {
