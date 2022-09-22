@@ -40,7 +40,7 @@ impl LocalOperator for RescheduleDeparture {
 
         // TODO check is_stale flag and return None
 
-        refinement_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+        refinement_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 
         Some(insertion_ctx)
     }

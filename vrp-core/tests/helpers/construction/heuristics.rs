@@ -1,4 +1,3 @@
-use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::{InsertionContext, RegistryContext, RouteContext, SolutionContext};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::domain::{create_empty_problem_with_constraint, create_empty_solution_context};
@@ -12,7 +11,7 @@ pub fn create_insertion_context(
     routes: Vec<RouteContext>,
 ) -> InsertionContext {
     let problem = create_empty_problem_with_constraint(constraint);
-    let registry = RegistryContext::new(problem.constraint.clone(), registry);
+    let registry = RegistryContext::new(problem.goal.clone(), registry);
     InsertionContext {
         problem,
         solution: SolutionContext { routes, registry, ..create_empty_solution_context() },

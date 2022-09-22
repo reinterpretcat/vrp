@@ -162,7 +162,7 @@ pub fn create_job_clusters(
     config: &ClusterConfig,
 ) -> Vec<(Job, Vec<Job>)> {
     let insertion_ctx = InsertionContext::new_empty(problem.clone(), environment);
-    let constraint = insertion_ctx.problem.constraint.clone();
+    let constraint = insertion_ctx.problem.goal.clone();
     let check_insertion = get_check_insertion_fn(insertion_ctx, config.filtering.actor_filter.as_ref());
     let transport = problem.transport.as_ref();
     let jobs = problem
@@ -195,7 +195,7 @@ fn get_check_insertion_fn(
 
     move |job: &Job| -> Result<(), i32> {
         let eval_ctx = EvaluationContext {
-            constraint: &insertion_ctx.problem.constraint,
+            goal: &insertion_ctx.problem.goal,
             job,
             leg_selector: &leg_selector,
             result_selector: &result_selector,

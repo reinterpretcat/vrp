@@ -18,7 +18,7 @@ can_estimate_job_value! {
 }
 
 fn can_estimate_job_value_impl(value: f64, expected: f64) {
-    let objective = maximize_total_job_value(
+    let objective = create_maximize_total_job_value_feature(
         JobReadValueFn::Left(Arc::new(move |_| value)),
         Arc::new(|job, _| job),
         VIOLATION_CODE,
@@ -37,7 +37,7 @@ fn can_estimate_job_value_impl(value: f64, expected: f64) {
 
 #[test]
 fn can_merge_value() {
-    let constraint = maximize_total_job_value(
+    let constraint = create_maximize_total_job_value_feature(
         JobReadValueFn::Left(Arc::new(move |job| match get_job_id(job).as_str() {
             "source" => 10.,
             "candidate" => 2.,

@@ -1,5 +1,4 @@
 use super::*;
-use crate::construction::constraints::*;
 use crate::helpers::construction::constraints::{create_simple_demand, create_simple_dynamic_demand};
 use crate::helpers::models::problem::*;
 use crate::models::common::*;
@@ -88,10 +87,9 @@ fn create_test_problem(
         fleet: fleet.clone(),
         jobs: Arc::new(Jobs::new(&fleet, jobs, &transport)),
         locks,
-        constraint: Arc::new(constraint),
+        goal: Arc::new(constraint),
         activity,
         transport,
-        objective: Arc::new(ProblemObjective::default()),
         extras: Arc::new(Default::default()),
     }
 }
@@ -115,7 +113,7 @@ fn add_new_route(insertion_ctx: &mut InsertionContext, vehicle_id: &str, activit
         });
     });
 
-    insertion_ctx.problem.constraint.accept_route_state(&mut route_ctx);
+    insertion_ctx.problem.goal.accept_route_state(&mut route_ctx);
 
     insertion_ctx.solution.routes.push(route_ctx);
 }
@@ -306,7 +304,7 @@ fn can_restore_solution_impl(
     let problem = Arc::new(create_test_problem(singles, multies, vehicles, locks));
     let mut insertion_ctx = create_test_insertion_ctx(problem.clone());
     add_routes(&mut insertion_ctx, routes);
-    problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+    problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 
     let result = repair_solution_from_unknown(&insertion_ctx, &|| {
         InsertionContext::new(insertion_ctx.problem.clone(), insertion_ctx.environment.clone())

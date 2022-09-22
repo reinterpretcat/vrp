@@ -1,9 +1,6 @@
 //! Provides features to balance work.
 
 use super::*;
-use crate::construction::constraints::{
-    MAX_FUTURE_CAPACITY_KEY, RELOAD_INTERVALS_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY,
-};
 use crate::models::common::{CapacityDimension, LoadOps};
 use rosomaxa::algorithms::math::get_cv_safe;
 use std::cmp::Ordering;
@@ -13,7 +10,11 @@ use std::ops::Deref;
 pub type LoadFn<T> = Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>;
 
 /// Creates a feature which balances max load across all tours.
-pub fn create_load_balanced<T: LoadOps>(threshold: Option<f64>, load_fn: LoadFn<T>) -> Result<Feature, String> {
+pub fn create_load_balanced_feature<T: LoadOps>(
+    name: &str,
+    threshold: Option<f64>,
+    load_fn: LoadFn<T>,
+) -> Result<Feature, String> {
     let default_capacity = T::default();
     let default_intervals = vec![(0_usize, 0_usize)];
 
@@ -38,11 +39,11 @@ pub fn create_load_balanced<T: LoadOps>(threshold: Option<f64>, load_fn: LoadFn<
         get_cv_safe(ctx.routes.iter().map(|route_ctx| get_load_ratio(route_ctx)).collect::<Vec<_>>().as_slice())
     });
 
-    create_feature(threshold, BALANCE_MAX_LOAD_KEY, route_estimate_fn, solution_estimate_fn)
+    create_feature(name, threshold, BALANCE_MAX_LOAD_KEY, route_estimate_fn, solution_estimate_fn)
 }
 
 /// Creates a feature which balances activities across all tours.
-pub fn create_activity_balanced(threshold: Option<f64>) -> Result<Feature, String> {
+pub fn create_activity_balanced(name: &str, threshold: Option<f64>) -> Result<Feature, String> {
     let route_estimate_fn = Arc::new(|route_ctx: &RouteContext| route_ctx.route.tour.job_activity_count() as f64);
     let solution_estimate_fn = Arc::new(|solution_ctx: &SolutionContext| {
         get_cv_safe(
@@ -55,11 +56,11 @@ pub fn create_activity_balanced(threshold: Option<f64>) -> Result<Feature, Strin
         )
     });
 
-    create_feature(threshold, BALANCE_ACTIVITY_KEY, route_estimate_fn, solution_estimate_fn)
+    create_feature(name, threshold, BALANCE_ACTIVITY_KEY, route_estimate_fn, solution_estimate_fn)
 }
 
 /// Creates a feature which which balances travelled durations across all tours.
-pub fn create_duration_balanced(threshold: Option<f64>) -> Result<Feature, String> {
+pub fn create_duration_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, String> {
     let route_estimate_fn =
         Arc::new(move |rc: &RouteContext| rc.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.));
 
@@ -73,11 +74,11 @@ pub fn create_duration_balanced(threshold: Option<f64>) -> Result<Feature, Strin
         )
     });
 
-    create_feature(threshold, BALANCE_DURATION_KEY, route_estimate_fn, solution_estimate_fn)
+    create_feature(name, threshold, BALANCE_DURATION_KEY, route_estimate_fn, solution_estimate_fn)
 }
 
 /// Creates a feature which which balances travelled distances across all tours.
-pub fn create_distance_balanced(threshold: Option<f64>) -> Result<Feature, String> {
+pub fn create_distance_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, String> {
     let route_estimate_fn =
         Arc::new(move |rc: &RouteContext| rc.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.));
 
@@ -91,16 +92,18 @@ pub fn create_distance_balanced(threshold: Option<f64>) -> Result<Feature, Strin
         )
     });
 
-    create_feature(threshold, BALANCE_DISTANCE_KEY, route_estimate_fn, solution_estimate_fn)
+    create_feature(name, threshold, BALANCE_DISTANCE_KEY, route_estimate_fn, solution_estimate_fn)
 }
 
 fn create_feature(
+    name: &str,
     threshold: Option<f64>,
     state_key: StateKey,
     route_estimate_fn: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
     solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
 ) -> Result<Feature, String> {
     FeatureBuilder::default()
+        .with_name(name)
         .with_objective(WorkBalanceObjective {
             threshold,
             state_key,

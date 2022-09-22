@@ -75,7 +75,7 @@ fn get_movable_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) 
 
 fn get_evaluation_context<'a>(search_ctx: &'a SearchContext, job: &'a Job) -> EvaluationContext<'a> {
     EvaluationContext {
-        constraint: search_ctx.0.problem.constraint.as_ref(),
+        goal: search_ctx.0.problem.goal.as_ref(),
         job,
         leg_selector: search_ctx.1,
         result_selector: search_ctx.2,
@@ -251,7 +251,7 @@ fn choose_best_result(
 fn remove_job_with_copy(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -> RouteContext {
     let mut route_ctx = route_ctx.deep_copy();
     route_ctx.route_mut().tour.remove(job);
-    search_ctx.0.problem.constraint.accept_route_state(&mut route_ctx);
+    search_ctx.0.problem.goal.accept_route_state(&mut route_ctx);
 
     route_ctx
 }
@@ -332,7 +332,7 @@ fn try_exchange_jobs(
     result_selector: &(dyn ResultSelector + Send + Sync),
 ) {
     if let (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) = insertion_pair {
-        let constraint = insertion_ctx.problem.constraint.clone();
+        let constraint = insertion_ctx.problem.goal.clone();
 
         let outer_job = outer_success.job.clone();
         let inner_job = inner_success.job.clone();

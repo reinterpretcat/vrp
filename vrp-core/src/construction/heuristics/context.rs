@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/construction/heuristics/context_test.rs"]
 mod context_test;
 
-use crate::construction::constraints::*;
+use crate::construction::features::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::construction::heuristics::factories::*;
 use crate::models::common::Cost;
 use crate::models::problem::*;
@@ -55,7 +55,7 @@ impl InsertionContext {
 
     /// Restores valid context state.
     pub fn restore(&mut self) {
-        let constraint = self.problem.constraint.clone();
+        let constraint = self.problem.goal.clone();
         // NOTE Run first accept solution as it can change existing routes
         // by moving jobs from/to required/ignored jobs.
         // if this happens, accept route state will fix timing/capacity after it
@@ -84,7 +84,7 @@ impl InsertionContext {
 
 impl HeuristicSolution for InsertionContext {
     fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
-        self.problem.objective.fitness(self)
+        self.problem.goal.fitness(self)
     }
 
     fn deep_copy(&self) -> Self {
@@ -464,21 +464,17 @@ pub struct RegistryContext {
 
 impl RegistryContext {
     /// Creates a new instance of `RouteRegistry`.
-    pub fn new(constraint: Arc<ConstraintPipeline>, registry: Registry) -> Self {
-        Self::new_with_modifier(constraint, registry, &RouteModifier::new(move |route_ctx| route_ctx))
+    pub fn new(variant: Arc<GoalContext>, registry: Registry) -> Self {
+        Self::new_with_modifier(variant, registry, &RouteModifier::new(move |route_ctx| route_ctx))
     }
 
     /// Creates a new instance of `RouteRegistry` using route context modifier.
-    pub fn new_with_modifier(
-        constraint: Arc<ConstraintPipeline>,
-        registry: Registry,
-        modifier: &RouteModifier,
-    ) -> Self {
+    pub fn new_with_modifier(variant: Arc<GoalContext>, registry: Registry, modifier: &RouteModifier) -> Self {
         let index = registry
             .all()
             .map(|actor| {
                 let mut route_ctx = RouteContext::new(actor.clone());
-                constraint.accept_route_state(&mut route_ctx);
+                variant.accept_route_state(&mut route_ctx);
 
                 (actor, modifier.modify(route_ctx))
             })

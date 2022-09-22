@@ -1,4 +1,3 @@
-use crate::construction::constraints::*;
 use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Route;
@@ -63,23 +62,26 @@ fn create_example_fleet() -> Arc<Fleet> {
     Arc::new(Fleet::new(drivers, vehicles, Box::new(|_| Box::new(|_| 0))))
 }
 
+/// Creates and example VRP variant: CVRPT.
+pub fn create_example_variant() -> GoalContext {
+    unimplemented!()
+}
+
 /// Creates an example problem used in documentation tests.
 pub fn create_example_problem() -> Arc<Problem> {
     let activity: Arc<dyn ActivityCost + Sync + Send> = Arc::new(SimpleActivityCost::default());
     let transport: Arc<dyn TransportCost + Sync + Send> = Arc::new(ExampleTransportCost {});
     let fleet = create_example_fleet();
     let jobs = create_example_jobs(&fleet, &transport);
-    let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Arc::new(TransportConstraintModule::new(transport.clone(), activity.clone(), 1)));
+    let variant = create_example_variant();
 
     Arc::new(Problem {
         fleet,
         jobs,
         locks: vec![],
-        constraint: Arc::new(constraint),
+        goal: Arc::new(variant),
         activity,
         transport,
-        objective: Arc::new(ProblemObjective::default()),
         extras: Arc::new(Default::default()),
     })
 }

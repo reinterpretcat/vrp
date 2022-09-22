@@ -5,9 +5,6 @@
 mod capacity_test;
 
 use super::*;
-use crate::construction::constraints::{
-    CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_LOAD_KEY, MAX_PAST_CAPACITY_KEY,
-};
 use crate::construction::enablers::*;
 use crate::models::problem::Single;
 use crate::models::solution::Activity;

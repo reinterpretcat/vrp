@@ -8,8 +8,9 @@ use super::*;
 use std::ops::Deref;
 
 /// Creates a feature to minimize used fleet size (affects amount of tours in solution).
-pub fn create_minimize_tours() -> Result<Feature, String> {
+pub fn create_minimize_tours_feature(name: &str) -> Result<Feature, String> {
     FeatureBuilder::default()
+        .with_name(name)
         .with_objective(FleetUsageObjective {
             route_estimate_fn: Box::new(get_minimization_estimate),
             solution_estimate_fn: Box::new(|solution_ctx| {
@@ -20,8 +21,9 @@ pub fn create_minimize_tours() -> Result<Feature, String> {
 }
 
 /// Creates a feature to maximize used fleet size (affects amount of tours in solution).
-pub fn create_maximize_tours() -> Result<Feature, String> {
+pub fn create_maximize_tours_feature(name: &str) -> Result<Feature, String> {
     FeatureBuilder::default()
+        .with_name(name)
         .with_objective(FleetUsageObjective {
             route_estimate_fn: Box::new(get_maximization_estimate),
             solution_estimate_fn: Box::new(|solution_ctx| {
@@ -32,8 +34,9 @@ pub fn create_maximize_tours() -> Result<Feature, String> {
 }
 
 /// Creates a feature to tries to minimize arrival time of used fleet.
-pub fn create_minimize_arrival_time() -> Result<Feature, String> {
+pub fn create_minimize_arrival_time_feature(name: &str) -> Result<Feature, String> {
     FeatureBuilder::default()
+        .with_name(name)
         .with_objective(FleetUsageObjective {
             route_estimate_fn: Box::new(|route_ctx| route_ctx.route.actor.detail.time.start),
             solution_estimate_fn: Box::new(|solution_ctx| {

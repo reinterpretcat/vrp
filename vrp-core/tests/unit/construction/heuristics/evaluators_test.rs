@@ -32,7 +32,7 @@ fn evaluate_job_insertion(
     let routes = route_selector.select(insertion_ctx, &[]).collect::<Vec<_>>();
 
     let eval_ctx = EvaluationContext {
-        constraint: &insertion_ctx.problem.constraint,
+        goal: &insertion_ctx.problem.goal,
         job,
         leg_selector: &leg_selector,
         result_selector: &result_selector,

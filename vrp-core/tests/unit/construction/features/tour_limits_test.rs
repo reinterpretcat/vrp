@@ -1,9 +1,8 @@
-use crate::construction::features::tour_limits::create_activity_limit_feature;
-use crate::construction::features::{ConstraintViolation, ViolationCode};
-use crate::construction::heuristics::MoveContext;
+use crate::construction::features::*;
+use crate::construction::heuristics::*;
 use crate::helpers::models::domain::create_empty_solution_context;
-use crate::helpers::models::problem::{test_fleet, test_multi_job_with_locations, test_single_with_id};
-use crate::helpers::models::solution::{create_route_context_with_activities, test_activity_with_location};
+use crate::helpers::models::problem::*;
+use crate::helpers::models::solution::*;
 use crate::models::common::Location;
 use crate::models::problem::Job;
 use std::sync::Arc;
@@ -55,15 +54,9 @@ mod activity {
 
 mod traveling {
     use super::*;
-    use crate::construction::constraints::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
     use crate::construction::features::tour_limits::create_travel_limit_feature;
-    use crate::construction::features::Feature;
-    use crate::construction::heuristics::*;
-    use crate::helpers::models::problem::*;
-    use crate::helpers::models::solution::*;
     use crate::models::common::*;
     use crate::models::problem::Actor;
-    use std::sync::Arc;
 
     const DISTANCE_CODE: ViolationCode = 2;
     const DURATION_CODE: ViolationCode = 3;
@@ -104,6 +97,7 @@ mod traveling {
                 },
             );
         let feature = create_travel_limit_feature(
+            "travel_limit",
             transport,
             tour_distance_limit,
             tour_duration_limit,

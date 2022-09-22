@@ -33,7 +33,7 @@ fn create_test_insertion_ctx(unassigned: Vec<(Job, UnassignmentInfo)>) -> Insert
         },
         ..create_empty_insertion_context()
     };
-    insertion_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+    insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 
     insertion_ctx
 }

@@ -145,7 +145,7 @@ fn extract_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, sequence
             acc
         });
 
-    insertion_ctx.problem.constraint.accept_route_state(route_ctx);
+    insertion_ctx.problem.goal.accept_route_state(route_ctx);
 
     removed
 }
@@ -177,7 +177,7 @@ fn insert_jobs(
 
     let (failures, _) = jobs.into_iter().fold((Vec::new(), start_index), |(mut unassigned, start_index), job| {
         let eval_ctx = EvaluationContext {
-            constraint: &insertion_ctx.problem.constraint,
+            goal: &insertion_ctx.problem.goal,
             job: &job,
             leg_selector: &leg_selector,
             result_selector: &result_selector,

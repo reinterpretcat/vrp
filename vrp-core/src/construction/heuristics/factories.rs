@@ -75,7 +75,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
                     })
                 });
 
-                problem.constraint.accept_route_state(&mut route_ctx);
+                problem.goal.accept_route_state(&mut route_ctx);
 
                 routes.push(route_ctx);
             }
@@ -182,7 +182,7 @@ pub fn create_empty_insertion_context(problem: Arc<Problem>, environment: Arc<En
 
 fn create_registry_context(problem: &Problem, registry: Registry) -> RegistryContext {
     let modifier = problem.extras.get("route_modifier").and_then(|s| s.downcast_ref::<RouteModifier>());
-    let constraint = problem.constraint.clone();
+    let constraint = problem.goal.clone();
 
     if let Some(modifier) = modifier {
         RegistryContext::new_with_modifier(constraint, registry, modifier)
@@ -193,7 +193,7 @@ fn create_registry_context(problem: &Problem, registry: Registry) -> RegistryCon
 
 fn update_insertion_context(insertion_ctx: &mut InsertionContext) {
     // promote required to ignored when necessary
-    insertion_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+    insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
     // promote all required to unassigned to have a valid statistics
     insertion_ctx
         .solution

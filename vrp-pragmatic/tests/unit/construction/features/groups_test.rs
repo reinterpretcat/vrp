@@ -10,8 +10,8 @@ use vrp_core::models::problem::{Fleet, Single};
 const VIOLATION_CODE: ViolationCode = 1;
 const STATE_KEY: StateKey = 2;
 
-fn create_group_feature(total_jobs: usize) -> Feature {
-    create_group_feature(total_jobs, VIOLATION_CODE, STATE_KEY).unwrap()
+fn create_test_group_feature(total_jobs: usize) -> Feature {
+    create_group_feature("group", total_jobs, VIOLATION_CODE, STATE_KEY).unwrap()
 }
 
 fn get_total_jobs(routes: &[(&str, Vec<Option<&str>>)]) -> usize {
@@ -101,7 +101,7 @@ fn compare_actor_groups(fleet: &Fleet, original: HashMap<String, Arc<Actor>>, ex
 #[test]
 fn can_build_expected_state() {
     let total_jobs = 1;
-    let state = create_group_feature(total_jobs).state.unwrap();
+    let state = create_test_group_feature(total_jobs).state.unwrap();
 
     assert_eq!(state.state_keys().cloned().collect::<Vec<_>>(), vec![STATE_KEY]);
 }
@@ -122,7 +122,7 @@ fn can_accept_insertion_impl(
 ) {
     let total_jobs = get_total_jobs(&routes) + 1;
     let fleet = create_test_fleet();
-    let state = create_group_feature(total_jobs).state.unwrap();
+    let state = create_test_group_feature(total_jobs).state.unwrap();
     let mut solution_ctx = create_test_solution_context(total_jobs, &fleet, routes);
     state.accept_solution_state(&mut solution_ctx);
 
@@ -145,7 +145,7 @@ can_accept_solution_state! {
 fn can_accept_solution_state_impl(routes: Vec<(&str, Vec<Option<&str>>)>, expected: Vec<(&str, &str)>) {
     let total_jobs = get_total_jobs(&routes) + 1;
     let fleet = create_test_fleet();
-    let state = create_group_feature(total_jobs).state.unwrap();
+    let state = create_test_group_feature(total_jobs).state.unwrap();
     let mut solution_ctx = create_test_solution_context(total_jobs, &fleet, routes);
 
     state.accept_solution_state(&mut solution_ctx);
@@ -173,7 +173,7 @@ fn can_evaluate_job_impl(
     let solution_ctx = create_test_solution_context(total_jobs, &fleet, routes);
     let route_ctx = solution_ctx.routes.get(route_idx).unwrap();
     let job = Job::Single(create_test_single(job_group));
-    let constraint = create_group_feature(total_jobs).constraint.unwrap();
+    let constraint = create_test_group_feature(total_jobs).constraint.unwrap();
 
     let result = constraint.evaluate(&MoveContext::route(&solution_ctx, route_ctx, &job));
 
@@ -194,7 +194,7 @@ can_merge_groups! {
 
 fn can_merge_groups_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
     let total_jobs = 1;
-    let constraint = create_group_feature(total_jobs).constraint.unwrap();
+    let constraint = create_test_group_feature(total_jobs).constraint.unwrap();
 
     let result = constraint.merge(source, candidate).map(|_| ());
 

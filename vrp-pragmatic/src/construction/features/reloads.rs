@@ -13,7 +13,7 @@ use std::marker::PhantomData;
 use std::ops::{Deref, Range};
 use vrp_core::construction::constraints::{MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, RELOAD_INTERVALS_KEY};
 use vrp_core::construction::enablers::MultiTrip;
-use vrp_core::construction::features::shared_resource::*;
+use vrp_core::construction::features::*;
 use vrp_core::models::problem::Single;
 use vrp_core::models::solution::{Activity, Route};
 
@@ -21,12 +21,13 @@ use vrp_core::models::solution::{Activity, Route};
 pub type LoadScheduleThresholdFn<T> = Box<dyn Fn(&T) -> T + Send + Sync>;
 /// A factory function to create capacity feature.
 pub type CapacityFeatureFactoryFn<T> =
-    Box<dyn Fn(Arc<dyn MultiTrip<Constraint = T> + Send + Sync>) -> Result<Feature, String>>;
+    Box<dyn Fn(&str, Arc<dyn MultiTrip<Constraint = T> + Send + Sync>) -> Result<Feature, String>>;
 /// Specifies place capacity threshold function.
 type PlaceCapacityThresholdFn<T> = Box<dyn Fn(&RouteContext, &Activity, &T) -> bool + Send + Sync>;
 
 /// Creates a multi trip strategy to use multi trip with reload jobs which shared some resources.
 pub fn create_shared_reload_multi_trip_feature<T>(
+    name: &str,
     capacity_feature_factory: CapacityFeatureFactoryFn<T>,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
     resource_map: HashMap<Job, (T, SharedResourceId)>,
@@ -37,7 +38,8 @@ pub fn create_shared_reload_multi_trip_feature<T>(
 where
     T: SharedResource + LoadOps,
 {
-    let shared_resource = create_shared_reload_constraint(resource_map, total_jobs, constraint_code, resource_key)?;
+    let shared_resource =
+        create_shared_reload_constraint(name, resource_map, total_jobs, constraint_code, resource_key)?;
 
     let multi_trip = create_reload_multi_trip(
         load_schedule_threshold_fn,
@@ -48,13 +50,14 @@ where
                 .map_or(true, |resource_available| resource_available.can_fit(demand))
         })),
     );
-    let capacity = capacity_feature_factory.deref()(Arc::new(multi_trip))?;
+    let capacity = capacity_feature_factory.deref()(name, Arc::new(multi_trip))?;
 
     FeatureBuilder::combine(name, &[capacity, shared_resource])
 }
 
 /// Creates a multi trip strategy to use multi trip with reload jobs.
 pub fn create_simple_reload_multi_trip_feature<T: LoadOps>(
+    name: &str,
     capacity_feature_factory: CapacityFeatureFactoryFn<T>,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
 ) -> Result<Feature, String> {
@@ -134,6 +137,7 @@ fn create_reload_multi_trip<T: LoadOps>(
 
 /// Creates a shared resource constraint module to constraint reload jobs.
 fn create_shared_reload_constraint<T>(
+    name: &str,
     resource_map: HashMap<Job, (T, SharedResourceId)>,
     total_jobs: usize,
     constraint_code: ViolationCode,
@@ -142,7 +146,8 @@ fn create_shared_reload_constraint<T>(
 where
     T: SharedResource + LoadOps,
 {
-    create_shared_resource(
+    create_shared_resource_feature(
+        name,
         total_jobs,
         constraint_code,
         resource_key,

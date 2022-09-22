@@ -9,7 +9,6 @@
 //!
 
 pub mod clustering;
-pub mod constraints;
 pub mod enablers;
 pub mod features;
 pub mod heuristics;

@@ -2,78 +2,15 @@
 #[path = "../../../tests/unit/models/problem/costs_test.rs"]
 mod costs_test;
 
-use crate::construction::heuristics::InsertionContext;
 use crate::models::common::*;
-use crate::models::problem::{Actor, TargetObjective};
+use crate::models::problem::Actor;
 use crate::models::solution::{Activity, Route};
-use crate::solver::objectives::{TotalCost, TotalRoutes, TotalUnassignedJobs};
 use hashbrown::HashMap;
-use rand::prelude::SliceRandom;
-use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use rosomaxa::utils::CollectGroupBy;
 use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::Arc;
-
-/// A hierarchical multi objective for vehicle routing problem.
-pub struct ProblemObjective {
-    objectives: Vec<Vec<TargetObjective>>,
-}
-
-impl ProblemObjective {
-    /// Creates an instance of `InsertionObjective`.
-    pub fn new(objectives: Vec<Vec<TargetObjective>>) -> Self {
-        Self { objectives }
-    }
-}
-
-impl MultiObjective for ProblemObjective {
-    type Solution = InsertionContext;
-
-    fn total_order(&self, _: &Self::Solution, _: &Self::Solution) -> Ordering {
-        todo!()
-    }
-
-    fn fitness<'a>(&self, _: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
-        todo!()
-    }
-
-    fn get_order(&self, _: &Self::Solution, _: &Self::Solution, _: usize) -> Result<Ordering, String> {
-        todo!()
-    }
-
-    fn get_distance(&self, _: &Self::Solution, _: &Self::Solution, _: usize) -> Result<f64, String> {
-        todo!()
-    }
-
-    fn size(&self) -> usize {
-        todo!()
-    }
-}
-
-impl HeuristicObjective for ProblemObjective {}
-
-impl Shuffled for ProblemObjective {
-    /// Returns a new instance of `ObjectiveCost` with shuffled objectives.
-    fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
-        let mut objectives = self.objectives.clone();
-
-        objectives.shuffle(&mut random.get_rng());
-
-        Self { objectives }
-    }
-}
-
-impl Default for ProblemObjective {
-    fn default() -> Self {
-        Self::new(vec![
-            vec![Arc::new(TotalUnassignedJobs::default())],
-            vec![Arc::new(TotalRoutes::default())],
-            vec![TotalCost::minimize()],
-        ])
-    }
-}
 
 /// Specifies travel time type.
 #[derive(Copy, Clone)]

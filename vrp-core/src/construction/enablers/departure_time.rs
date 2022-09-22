@@ -2,8 +2,8 @@
 #[path = "../../../tests/unit/construction/enablers/departure_time_test.rs"]
 mod departure_time_test;
 
-use crate::construction::constraints::*;
 use crate::construction::enablers::{update_route_departure, ScheduleStateKeys};
+use crate::construction::features::*;
 use crate::construction::heuristics::RouteContext;
 use crate::models::common::Timestamp;
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};

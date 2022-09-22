@@ -1,5 +1,4 @@
 use crate::construction::clustering::vicinity::*;
-use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
 use crate::helpers::models::problem::{get_job_id, SingleBuilder};
 use crate::models::common::{Duration, IdDimension, Location, Profile, ValueDimension};

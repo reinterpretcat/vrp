@@ -3,7 +3,7 @@
 mod metrics_test;
 
 use super::InsertionContext;
-use crate::construction::constraints::{MAX_LOAD_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY, WAITING_KEY};
+use crate::construction::features::*;
 use crate::construction::heuristics::RouteContext;
 use crate::models::problem::{TransportCost, TravelTime};
 use rosomaxa::algorithms::math::*;

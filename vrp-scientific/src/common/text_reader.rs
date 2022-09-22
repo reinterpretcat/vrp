@@ -1,7 +1,6 @@
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::construction::constraints::*;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, Problem};
@@ -17,10 +16,9 @@ pub(crate) trait TextReader {
             fleet: Arc::new(fleet),
             jobs: Arc::new(jobs),
             locks: vec![],
-            constraint: Arc::new(create_constraint(activity.clone(), transport.clone())),
+            goal: Arc::new(create_constraint(activity.clone(), transport.clone())),
             activity,
             transport,
-            objective: Arc::new(ProblemObjective::default()),
             extras: Arc::new(self.create_extras()),
         })
     }

@@ -1,13 +1,12 @@
-use crate::construction::constraints::{ConstraintPipeline, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::construction::heuristics::{InsertionContext, RegistryContext, SolutionContext, UnassignmentInfo};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_route_context_with_activities;
 use crate::models::common::IdDimension;
 use crate::models::examples::create_example_problem;
-use crate::models::problem::{Fleet, Job, Jobs, ProblemObjective};
+use crate::models::problem::{Fleet, Job, Jobs};
 use crate::models::solution::Registry;
-use crate::models::{Problem, Solution};
+use crate::models::{GoalContext, Problem, Solution};
 use rosomaxa::utils::{DefaultRandom, Environment, Random};
 use std::sync::Arc;
 
@@ -24,7 +23,7 @@ pub fn create_empty_problem() -> Arc<Problem> {
 }
 
 pub fn create_problem_with_constraint_jobs_and_fleet(
-    constraint: ConstraintPipeline,
+    opt_context: GoalContext,
     jobs: Vec<Job>,
     fleet: Fleet,
 ) -> Arc<Problem> {
@@ -35,10 +34,9 @@ pub fn create_problem_with_constraint_jobs_and_fleet(
         fleet,
         jobs,
         locks: vec![],
-        constraint: Arc::new(constraint),
+        goal: Arc::new(constraint),
         activity: Arc::new(TestActivityCost::default()),
         transport,
-        objective: Arc::new(ProblemObjective::default()),
         extras: Arc::new(Default::default()),
     })
 }

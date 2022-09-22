@@ -39,13 +39,13 @@ impl LocalOperator for ExchangeIntraRouteRandom {
             if let Some(job) = get_shuffled_jobs(insertion_ctx, route_ctx).into_iter().next() {
                 assert!(route_ctx.route_mut().tour.remove(&job));
                 new_insertion_ctx.solution.required.push(job.clone());
-                new_insertion_ctx.problem.constraint.accept_route_state(route_ctx);
+                new_insertion_ctx.problem.goal.accept_route_state(route_ctx);
 
                 let leg_selector = VariableLegSelector::new(random.clone());
                 let result_selector =
                     NoiseResultSelector::new(Noise::new(self.probability, self.noise_range, random.clone()));
                 let eval_ctx = EvaluationContext {
-                    constraint: &new_insertion_ctx.problem.constraint,
+                    goal: &new_insertion_ctx.problem.goal,
                     job: &job,
                     leg_selector: &leg_selector,
                     result_selector: &result_selector,

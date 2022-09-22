@@ -5,9 +5,9 @@ mod vicinity_clustering_test;
 use super::*;
 use crate::construction::clustering::vicinity::*;
 use crate::models::common::{Schedule, ValueDimension};
-use crate::models::problem::{Jobs, ProblemObjective};
+use crate::models::problem::Jobs;
 use crate::models::solution::{Activity, Place};
-use crate::models::{Extras, Problem};
+use crate::models::{Extras, GoalContext, Problem};
 use crate::solver::RefinementContext;
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
@@ -39,7 +39,7 @@ pub struct VicinityClustering {}
 
 impl HeuristicContextProcessing for VicinityClustering {
     type Context = RefinementContext;
-    type Objective = ProblemObjective;
+    type Objective = GoalContext;
     type Solution = InsertionContext;
 
     fn pre_process(&self, context: Self::Context) -> Self::Context {
@@ -74,10 +74,9 @@ impl HeuristicContextProcessing for VicinityClustering {
                 fleet: problem.fleet.clone(),
                 jobs: Arc::new(Jobs::new(problem.fleet.as_ref(), jobs, &problem.transport)),
                 locks: problem.locks.clone(),
-                constraint: problem.constraint.clone(),
+                goal: problem.goal.clone(),
                 activity: problem.activity.clone(),
                 transport: problem.transport.clone(),
-                objective: problem.objective.clone(),
                 extras: Arc::new(extras),
             });
 

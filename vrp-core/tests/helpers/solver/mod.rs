@@ -102,7 +102,7 @@ pub fn generate_matrix_routes(
         jobs: Arc::new(jobs),
         locks: vec![],
         // TODO pass transport costs with constraint
-        constraint: Arc::new(create_constraint_pipeline_with_transport()),
+        goal: Arc::new(create_constraint_pipeline_with_transport()),
         activity: Arc::new(TestActivityCost::default()),
         transport,
         objective: Arc::new(ProblemObjective::default()),

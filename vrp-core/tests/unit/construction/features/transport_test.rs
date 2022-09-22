@@ -36,6 +36,7 @@ mod timing {
 
     fn create_feature() -> Feature {
         create_minimize_transport_costs_feature(
+            "transport",
             TestTransportCost::new_shared(),
             TestActivityCost::new_shared(),
             VIOLATION_CODE,
@@ -274,6 +275,7 @@ mod time_dependent {
             .unwrap();
         let route_ctx = create_route_context_with_activities(&fleet, "v1", activities);
         let feature = create_minimize_transport_costs_feature(
+            "minimize_costs",
             Arc::new(
                 DynamicTransportCost::new(reserved_times.clone(), Arc::new(TestTransportCost::default())).unwrap(),
             ),

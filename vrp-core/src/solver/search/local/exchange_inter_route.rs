@@ -129,7 +129,7 @@ fn find_best_insertion_pair(
                         let mut test_route = test_route.deep_copy();
                         // NOTE would be nice to add job to list of required
                         test_route.route_mut().tour.remove(test_job);
-                        new_insertion_ctx.problem.constraint.accept_route_state(&mut test_route);
+                        new_insertion_ctx.problem.goal.accept_route_state(&mut test_route);
 
                         let test_success = test_job_insertion(
                             &new_insertion_ctx,
@@ -168,8 +168,7 @@ fn test_job_insertion(
     leg_selector: &(dyn LegSelector + Send + Sync),
     result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> Option<InsertionSuccess> {
-    let eval_ctx =
-        EvaluationContext { constraint: &insertion_ctx.problem.constraint, job, leg_selector, result_selector };
+    let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selector, result_selector };
 
     let insertion = evaluate_job_insertion_in_route(
         insertion_ctx,
@@ -223,7 +222,7 @@ fn get_new_insertion_ctx(
     // NOTE removed job is not added to the required list as it will be tried
     // to be reinserted later. If insertion fails, the context is discarded
 
-    new_insertion_ctx.problem.constraint.accept_route_state(route_ctx);
+    new_insertion_ctx.problem.goal.accept_route_state(route_ctx);
 
     Ok(new_insertion_ctx)
 }

@@ -10,6 +10,28 @@ use crate::utils::Either;
 use std::cmp::Ordering;
 use std::ops::Deref;
 
+/// Creates a tour order feature as hard constraint.
+pub fn create_tour_order_hard_feature(
+    name: &str,
+    code: ViolationCode,
+    order_fn: TourOrderFn,
+) -> Result<Feature, String> {
+    FeatureBuilder::default().with_name(name).with_constraint(TourOrderConstraint { code, order_fn }).build()
+}
+
+/// Creates a tour order as soft constraint.
+pub fn create_tour_order_soft_feature(
+    name: &str,
+    state_key: StateKey,
+    order_fn: TourOrderFn,
+) -> Result<Feature, String> {
+    FeatureBuilder::default()
+        .with_name(name)
+        .with_objective(TourOrderObjective { state_key, order_fn: order_fn.clone() })
+        .with_state(TourOrderState { state_key, state_keys: vec![state_key], order_fn })
+        .build()
+}
+
 /// Specifies order result.
 #[derive(Copy, Clone)]
 pub enum OrderResult {
@@ -29,19 +51,6 @@ pub type SingleTourOrderFn = Arc<dyn Fn(&Single) -> OrderResult + Send + Sync>;
 
 /// Specifies an order func as a variant of two functions.
 pub type TourOrderFn = Either<SingleTourOrderFn, ActorTourOrderFn>;
-
-/// Creates a tour order feature as hard constraint.
-pub fn create_tour_order_hard(code: ViolationCode, order_fn: TourOrderFn) -> Result<Feature, String> {
-    FeatureBuilder::default().with_constraint(TourOrderConstraint { code, order_fn }).build()
-}
-
-/// Creates a tour order as soft constraint.
-pub fn create_tour_order_soft(state_key: StateKey, order_fn: TourOrderFn) -> Result<Feature, String> {
-    FeatureBuilder::default()
-        .with_objective(TourOrderObjective { state_key, order_fn: order_fn.clone() })
-        .with_state(TourOrderState { state_key, state_keys: vec![state_key], order_fn })
-        .build()
-}
 
 struct TourOrderConstraint {
     code: ViolationCode,

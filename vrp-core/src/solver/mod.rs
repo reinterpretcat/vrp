@@ -94,8 +94,7 @@ extern crate rand;
 
 use crate::construction::heuristics::InsertionContext;
 use crate::models::common::Cost;
-use crate::models::problem::ProblemObjective;
-use crate::models::{Problem, Solution};
+use crate::models::{GoalContext, Problem, Solution};
 use crate::solver::search::Recreate;
 use hashbrown::HashMap;
 use rosomaxa::evolution::*;
@@ -109,7 +108,6 @@ pub use self::heuristic::*;
 use rosomaxa::population::Rosomaxa;
 use rosomaxa::utils::Timer;
 
-pub mod objectives;
 pub mod processing;
 pub mod search;
 
@@ -135,7 +133,7 @@ pub struct RefinementContext {
     /// A collection of data associated with refinement process.
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
     /// Provides some basic implementation of context functionality.
-    inner_context: TelemetryHeuristicContext<ProblemObjective, InsertionContext>,
+    inner_context: TelemetryHeuristicContext<GoalContext, InsertionContext>,
 }
 
 /// Defines instant refinement speed type.
@@ -157,7 +155,7 @@ impl RefinementContext {
         environment: Arc<Environment>,
     ) -> Self {
         let inner_context =
-            TelemetryHeuristicContext::new(problem.objective.clone(), population, telemetry_mode, environment.clone());
+            TelemetryHeuristicContext::new(problem.goal.clone(), population, telemetry_mode, environment.clone());
         Self { problem, environment, inner_context, state: Default::default() }
     }
 
@@ -168,7 +166,7 @@ impl RefinementContext {
 }
 
 impl HeuristicContext for RefinementContext {
-    type Objective = ProblemObjective;
+    type Objective = GoalContext;
     type Solution = InsertionContext;
 
     fn objective(&self) -> &Self::Objective {
@@ -231,7 +229,7 @@ impl RecreateInitialOperator {
 
 impl InitialOperator for RecreateInitialOperator {
     type Context = RefinementContext;
-    type Objective = ProblemObjective;
+    type Objective = GoalContext;
     type Solution = InsertionContext;
 
     fn create(&self, heuristic_ctx: &Self::Context) -> Self::Solution {
@@ -278,14 +276,14 @@ impl InitialOperator for RecreateInitialOperator {
 /// ```
 pub struct Solver {
     problem: Arc<Problem>,
-    config: EvolutionConfig<RefinementContext, ProblemObjective, InsertionContext>,
+    config: EvolutionConfig<RefinementContext, GoalContext, InsertionContext>,
 }
 
 impl Solver {
     /// Tries to create an instance of `Solver` from provided config.
     pub fn new(
         problem: Arc<Problem>,
-        config: EvolutionConfig<RefinementContext, ProblemObjective, InsertionContext>,
+        config: EvolutionConfig<RefinementContext, GoalContext, InsertionContext>,
     ) -> Self {
         Self { problem, config }
     }

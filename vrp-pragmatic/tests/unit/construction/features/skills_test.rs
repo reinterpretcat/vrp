@@ -90,7 +90,7 @@ fn can_check_skills_impl(
         Arc::new(create_route_with_activities(&fleet, "v1", vec![])),
         Arc::new(RouteState::default()),
     );
-    let constraint = create_skills_feature(VIOLATION_CODE).unwrap().constraint.unwrap();
+    let constraint = create_skills_feature("skills", VIOLATION_CODE).unwrap().constraint.unwrap();
 
     let actual = constraint.evaluate(&MoveContext::route(
         &create_solution_context_for_fleet(&fleet),
@@ -123,7 +123,7 @@ can_merge_skills! {
 }
 
 fn can_merge_skills_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
-    let constraint = create_skills_feature(VIOLATION_CODE).unwrap().constraint.unwrap();
+    let constraint = create_skills_feature("skills", VIOLATION_CODE).unwrap().constraint.unwrap();
 
     let result = constraint.merge(source, candidate).map(|_| ());
 

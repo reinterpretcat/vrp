@@ -1,5 +1,4 @@
 use super::*;
-use crate::construction::constraints::*;
 use crate::construction::heuristics::{ActivityContext, RouteState};
 use crate::helpers::construction::constraints::*;
 use crate::helpers::models::domain::create_empty_solution_context;
@@ -14,7 +13,7 @@ const STATE_KEY: StateKey = 2;
 const VIOLATION_CODE: ViolationCode = 2;
 
 fn create_feature() -> Feature {
-    create_capacity_limit_feature::<SingleDimLoad>(STATE_KEY).unwrap()
+    create_capacity_limit_feature::<SingleDimLoad>("capacity", STATE_KEY).unwrap()
 }
 
 fn create_test_vehicle(capacity: i32) -> Vehicle {

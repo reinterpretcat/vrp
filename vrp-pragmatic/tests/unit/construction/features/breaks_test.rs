@@ -55,7 +55,7 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
         )],
         ..create_solution_context_for_fleet(&fleet)
     };
-    let feature = create_optional_break_feature(VIOLATION_CODE).unwrap();
+    let feature = create_optional_break_feature("break", VIOLATION_CODE).unwrap();
 
     feature.state.unwrap().accept_solution_state(&mut solution_ctx);
 
@@ -84,7 +84,7 @@ can_skip_merge_breaks! {
 }
 
 fn can_skip_merge_breaks_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
-    let constraint = create_optional_break_feature(VIOLATION_CODE).unwrap().constraint.unwrap();
+    let constraint = create_optional_break_feature("break", VIOLATION_CODE).unwrap().constraint.unwrap();
 
     let result = constraint.merge(source, candidate).map(|_| ());
 

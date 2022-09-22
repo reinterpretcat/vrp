@@ -1,4 +1,3 @@
-use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::UnassignmentInfo;
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
@@ -22,17 +21,14 @@ pub struct Problem {
     /// Specifies jobs which preassigned to specific vehicles and/or drivers.
     pub locks: Vec<Arc<Lock>>,
 
-    /// Specifies constraints pipeline.
-    pub constraint: Arc<ConstraintPipeline>,
+    /// Specifies optimization goal with the corresponding global/local objectives and invariants.
+    pub goal: Arc<GoalContext>,
 
     /// Specifies activity costs.
     pub activity: Arc<dyn ActivityCost + Send + Sync>,
 
     /// Specifies transport costs.
     pub transport: Arc<dyn TransportCost + Send + Sync>,
-
-    /// Specifies an objective costs..
-    pub objective: Arc<ProblemObjective>,
 
     /// Specifies index for storing extra parameters of arbitrary type.
     pub extras: Arc<Extras>,

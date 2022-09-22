@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::heuristics::*;
 use crate::models::common::{has_multi_dim_demand, MultiDimLoad, SingleDimLoad};
-use crate::models::problem::ProblemObjective;
+use crate::models::GoalContext;
 use crate::rosomaxa::get_default_selection_size;
 use crate::solver::heuristic::dynamic::create_inner_heuristic_operator;
 use crate::solver::search::*;
@@ -13,42 +13,42 @@ use std::marker::PhantomData;
 
 /// A type alias for domain specific population.
 pub type TargetPopulation =
-    Box<dyn HeuristicPopulation<Objective = ProblemObjective, Individual = InsertionContext> + Send + Sync>;
+    Box<dyn HeuristicPopulation<Objective = GoalContext, Individual = InsertionContext> + Send + Sync>;
 /// A type alias for domain specific heuristic.
 pub type TargetHeuristic =
-    Box<dyn HyperHeuristic<Context = RefinementContext, Objective = ProblemObjective, Solution = InsertionContext>>;
+    Box<dyn HyperHeuristic<Context = RefinementContext, Objective = GoalContext, Solution = InsertionContext>>;
 /// A type for domain specific heuristic operator.
 pub type TargetSearchOperator = Arc<
-    dyn HeuristicSearchOperator<Context = RefinementContext, Objective = ProblemObjective, Solution = InsertionContext>
+    dyn HeuristicSearchOperator<Context = RefinementContext, Objective = GoalContext, Solution = InsertionContext>
         + Send
         + Sync,
 >;
 
 /// A type for greedy population.
-pub type GreedyPopulation = Greedy<ProblemObjective, InsertionContext>;
+pub type GreedyPopulation = Greedy<GoalContext, InsertionContext>;
 /// A type for elitism population.
-pub type ElitismPopulation = Elitism<ProblemObjective, InsertionContext>;
+pub type ElitismPopulation = Elitism<GoalContext, InsertionContext>;
 /// A type for rosomaxa population.
-pub type RosomaxaPopulation = Rosomaxa<ProblemObjective, InsertionContext>;
+pub type RosomaxaPopulation = Rosomaxa<GoalContext, InsertionContext>;
 
 /// A type alias for domain specific termination type.
-pub type DynTermination = dyn Termination<Context = RefinementContext, Objective = ProblemObjective> + Send + Sync;
+pub type DynTermination = dyn Termination<Context = RefinementContext, Objective = GoalContext> + Send + Sync;
 /// A type for composite termination.
-pub type TargetCompositeTermination = CompositeTermination<RefinementContext, ProblemObjective, InsertionContext>;
+pub type TargetCompositeTermination = CompositeTermination<RefinementContext, GoalContext, InsertionContext>;
 /// A type for max time termination.
-pub type MaxTimeTermination = MaxTime<RefinementContext, ProblemObjective, InsertionContext>;
+pub type MaxTimeTermination = MaxTime<RefinementContext, GoalContext, InsertionContext>;
 /// A type for max generation termination.
-pub type MaxGenerationTermination = MaxGeneration<RefinementContext, ProblemObjective, InsertionContext>;
+pub type MaxGenerationTermination = MaxGeneration<RefinementContext, GoalContext, InsertionContext>;
 /// A type for min variation termination.
-pub type MinVariationTermination = MinVariation<RefinementContext, ProblemObjective, InsertionContext, String>;
+pub type MinVariationTermination = MinVariation<RefinementContext, GoalContext, InsertionContext, String>;
 
 /// A heuristic probability type alias.
-pub type TargetHeuristicProbability = HeuristicProbability<RefinementContext, ProblemObjective, InsertionContext>;
+pub type TargetHeuristicProbability = HeuristicProbability<RefinementContext, GoalContext, InsertionContext>;
 /// A heuristic group type alias.
-pub type TargetHeuristicGroup = HeuristicSearchGroup<RefinementContext, ProblemObjective, InsertionContext>;
+pub type TargetHeuristicGroup = HeuristicSearchGroup<RefinementContext, GoalContext, InsertionContext>;
 
 /// A type alias for evolution config builder.
-pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, ProblemObjective, InsertionContext, String>;
+pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, GoalContext, InsertionContext, String>;
 
 /// Creates config builder with default settings.
 pub fn create_default_config_builder(
@@ -57,7 +57,7 @@ pub fn create_default_config_builder(
     telemetry_mode: TelemetryMode,
 ) -> ProblemConfigBuilder {
     let selection_size = get_default_selection_size(environment.as_ref());
-    let population = get_default_population(problem.objective.clone(), environment.clone(), selection_size);
+    let population = get_default_population(problem.goal.clone(), environment.clone(), selection_size);
 
     ProblemConfigBuilder::default()
         .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))
@@ -105,7 +105,7 @@ pub fn get_static_heuristic_from_heuristic_group(
     environment: Arc<Environment>,
     heuristic_group: TargetHeuristicGroup,
 ) -> TargetHeuristic {
-    Box::new(StaticSelective::<RefinementContext, ProblemObjective, InsertionContext>::new(
+    Box::new(StaticSelective::<RefinementContext, GoalContext, InsertionContext>::new(
         heuristic_group,
         create_diversify_operators(problem, environment),
     ))
@@ -116,7 +116,7 @@ pub fn get_dynamic_heuristic(problem: Arc<Problem>, environment: Arc<Environment
     let search_operators = dynamic::get_operators(problem.clone(), environment.clone());
     let diversify_operators = create_diversify_operators(problem, environment.clone());
 
-    Box::new(DynamicSelective::<RefinementContext, ProblemObjective, InsertionContext>::new(
+    Box::new(DynamicSelective::<RefinementContext, GoalContext, InsertionContext>::new(
         search_operators,
         diversify_operators,
         environment.as_ref(),
@@ -124,7 +124,7 @@ pub fn get_dynamic_heuristic(problem: Arc<Problem>, environment: Arc<Environment
 }
 
 /// Creates elitism population algorithm.
-pub fn create_elitism_population(objective: Arc<ProblemObjective>, environment: Arc<Environment>) -> TargetPopulation {
+pub fn create_elitism_population(objective: Arc<GoalContext>, environment: Arc<Environment>) -> TargetPopulation {
     let selection_size = get_default_selection_size(environment.as_ref());
     Box::new(Elitism::new(objective, environment.random.clone(), 4, selection_size))
 }
@@ -213,7 +213,7 @@ mod builder {
     pub fn create_default_init_operators(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
-    ) -> InitialOperators<RefinementContext, ProblemObjective, InsertionContext> {
+    ) -> InitialOperators<RefinementContext, GoalContext, InsertionContext> {
         let random = environment.random.clone();
         let wrap = |recreate: Arc<dyn Recreate + Send + Sync>| Box::new(RecreateInitialOperator::new(recreate));
 
@@ -230,7 +230,7 @@ mod builder {
     }
 
     /// Create default processing.
-    pub fn create_default_processing() -> ProcessingConfig<RefinementContext, ProblemObjective, InsertionContext> {
+    pub fn create_default_processing() -> ProcessingConfig<RefinementContext, GoalContext, InsertionContext> {
         ProcessingConfig {
             context: vec![Box::new(VicinityClustering::default())],
             solution: vec![
@@ -256,7 +256,7 @@ fn create_recreate_with_blinks(
 fn create_diversify_operators(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
-) -> HeuristicDiversifyOperators<RefinementContext, ProblemObjective, InsertionContext> {
+) -> HeuristicDiversifyOperators<RefinementContext, GoalContext, InsertionContext> {
     let random = environment.random.clone();
     let inner_search = create_inner_heuristic_operator(problem, environment.clone());
 

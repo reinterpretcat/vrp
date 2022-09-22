@@ -77,7 +77,7 @@ pub(crate) fn create_transport_costs(
     create_matrix_transport_cost(matrix_data)
 }
 
-pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> Fleet {
+pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> CoreFleet {
     let profile_indices = get_profile_index_map(api_problem);
     let area_index = api_problem
         .plan

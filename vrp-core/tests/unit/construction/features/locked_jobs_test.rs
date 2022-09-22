@@ -11,7 +11,7 @@ use std::sync::Arc;
 const VIOLATION_CODE: ViolationCode = 1;
 
 fn create_feature_constraint(fleet: &Fleet, locks: &[Arc<Lock>]) -> Arc<dyn FeatureConstraint + Send + Sync> {
-    create_locked_jobs_feature(fleet, locks, VIOLATION_CODE).unwrap().constraint.unwrap()
+    create_locked_jobs_feature("locked_jobs", fleet, locks, VIOLATION_CODE).unwrap().constraint.unwrap()
 }
 
 parameterized_test! {can_lock_jobs_to_actor, (used, locked, expected), {

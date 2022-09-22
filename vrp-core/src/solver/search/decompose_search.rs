@@ -3,6 +3,7 @@
 mod decompose_search_test;
 
 use crate::construction::heuristics::*;
+use crate::models::GoalContext;
 use crate::solver::*;
 use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
@@ -31,7 +32,7 @@ impl DecomposeSearch {
 
 impl HeuristicSearchOperator for DecomposeSearch {
     type Context = RefinementContext;
-    type Objective = ProblemObjective;
+    type Objective = GoalContext;
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
@@ -86,7 +87,7 @@ impl DecomposeSearch {
 }
 
 fn create_population(insertion_ctx: InsertionContext) -> TargetPopulation {
-    Box::new(GreedyPopulation::new(insertion_ctx.problem.objective.clone(), 1, Some(insertion_ctx)))
+    Box::new(GreedyPopulation::new(insertion_ctx.problem.goal.clone(), 1, Some(insertion_ctx)))
 }
 
 fn create_multiple_insertion_contexts(
@@ -237,9 +238,9 @@ fn merge_best(
     let (decomposed_insertion_ctx, _) = decomposed_ctx.population().ranked().next().expect(GREEDY_ERROR);
 
     let (partial_insertion_ctx, _) = create_partial_insertion_ctx(original_insertion_ctx, route_indices);
-    let objective = partial_insertion_ctx.problem.objective.as_ref();
+    let goal = partial_insertion_ctx.problem.goal.as_ref();
 
-    let source_solution = if objective.total_order(decomposed_insertion_ctx, &partial_insertion_ctx) == Ordering::Less {
+    let source_solution = if goal.total_order(decomposed_insertion_ctx, &partial_insertion_ctx) == Ordering::Less {
         &decomposed_insertion_ctx.solution
     } else {
         &partial_insertion_ctx.solution

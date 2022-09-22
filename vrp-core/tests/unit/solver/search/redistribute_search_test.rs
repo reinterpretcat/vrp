@@ -9,8 +9,8 @@ fn can_add_extra_constraint() {
     let target_ctx = create_target_insertion_ctx(&original_ctx, 1..3, 4..8);
 
     assert_eq!(
-        original_ctx.problem.constraint.get_constraints().count() + 1,
-        target_ctx.problem.constraint.get_constraints().count()
+        original_ctx.problem.goal.get_constraints().count() + 1,
+        target_ctx.problem.goal.get_constraints().count()
     );
 }
 
@@ -39,8 +39,5 @@ fn can_restore_constraints_in_context() {
 
     let result_ctx = heuristic.search(&create_default_refinement_ctx(original_ctx.problem.clone()), &original_ctx);
 
-    assert_eq!(
-        original_ctx.problem.constraint.get_constraints().count(),
-        result_ctx.problem.constraint.get_constraints().count()
-    );
+    assert_eq!(original_ctx.problem.goal.get_constraints().count(), result_ctx.problem.goal.get_constraints().count());
 }

@@ -22,7 +22,7 @@ impl HeuristicSolutionProcessing for UnassignmentReason {
 
         let unassigned = parallel_into_collect(unassigned, |(job, code)| {
             let eval_ctx = EvaluationContext {
-                constraint: &insertion_ctx.problem.constraint,
+                goal: &insertion_ctx.problem.goal,
                 job: &job,
                 leg_selector: &leg_selector,
                 result_selector: &result_selector,

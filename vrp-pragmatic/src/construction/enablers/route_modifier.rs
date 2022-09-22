@@ -28,7 +28,7 @@ pub fn get_route_modifier(constraint: Arc<ConstraintPipeline>, job_index: JobInd
             .filter_map(|job| {
                 job.map(|job| {
                     let eval_ctx = EvaluationContext {
-                        constraint: &constraint,
+                        goal: &constraint,
                         job,
                         leg_selector: &leg_selector,
                         result_selector: &result_selector,

@@ -158,13 +158,13 @@ impl InsertionResult {
 
 pub(crate) fn prepare_insertion_ctx(insertion_ctx: &mut InsertionContext) {
     insertion_ctx.solution.required.extend(insertion_ctx.solution.unassigned.iter().map(|(job, _)| job.clone()));
-    insertion_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+    insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 }
 
 pub(crate) fn finalize_insertion_ctx(insertion_ctx: &mut InsertionContext) {
     finalize_unassigned(insertion_ctx, UnassignmentInfo::Unknown);
 
-    insertion_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+    insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 }
 
 pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
@@ -185,7 +185,7 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
     let job = success.job;
     insertion_ctx.solution.required.retain(|j| *j != job);
     insertion_ctx.solution.unassigned.remove(&job);
-    insertion_ctx.problem.constraint.accept_insertion(&mut insertion_ctx.solution, route_index, &job);
+    insertion_ctx.problem.goal.accept_insertion(&mut insertion_ctx.solution, route_index, &job);
 }
 
 fn apply_insertion_failure(

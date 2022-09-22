@@ -12,8 +12,14 @@ use std::ops::Deref;
 pub type UnassignedJobEstimator = Arc<dyn Fn(&SolutionContext, &Job) -> f64 + Send + Sync>;
 
 /// Creates a feature to minimize amount of unassigned jobs.
-pub fn minimize_unassigned_jobs(unassigned_job_estimator: UnassignedJobEstimator) -> Result<Feature, String> {
-    FeatureBuilder::default().with_objective(MinimizeUnassignedObjective { unassigned_job_estimator }).build()
+pub fn create_minimize_unassigned_jobs_feature(
+    name: &str,
+    unassigned_job_estimator: UnassignedJobEstimator,
+) -> Result<Feature, String> {
+    FeatureBuilder::default()
+        .with_name(name)
+        .with_objective(MinimizeUnassignedObjective { unassigned_job_estimator })
+        .build()
 }
 
 struct MinimizeUnassignedObjective {

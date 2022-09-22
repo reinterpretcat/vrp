@@ -7,7 +7,7 @@
 //!
 
 use crate::construction::heuristics::InsertionContext;
-use crate::models::problem::ProblemObjective;
+use crate::models::GoalContext;
 use crate::solver::{RefinementContext, TargetSearchOperator};
 use rosomaxa::hyper::HeuristicDiversifyOperator;
 use rosomaxa::prelude::HeuristicSearchOperator;
@@ -54,7 +54,7 @@ impl WeightedHeuristicOperator {
 
 impl HeuristicSearchOperator for WeightedHeuristicOperator {
     type Context = RefinementContext;
-    type Objective = ProblemObjective;
+    type Objective = GoalContext;
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
@@ -66,7 +66,7 @@ impl HeuristicSearchOperator for WeightedHeuristicOperator {
 
 impl HeuristicDiversifyOperator for WeightedHeuristicOperator {
     type Context = RefinementContext;
-    type Objective = ProblemObjective;
+    type Objective = GoalContext;
     type Solution = InsertionContext;
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {

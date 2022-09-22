@@ -1,23 +1,10 @@
 use super::*;
-use crate::construction::features::breaks::create_optional_break_feature;
-use crate::construction::features::compatibility::create_compatibility_feature;
-use crate::construction::features::dispatch::create_dispatch_feature;
-use crate::construction::features::groups::create_group_feature;
-use crate::construction::features::reachable::create_reachable_feature;
-use crate::construction::features::reloads::{
-    create_shared_reload_multi_trip_feature, create_simple_reload_multi_trip_feature,
-};
-use crate::construction::features::skills::create_skills_feature;
-use vrp_core::construction::features::capacity::{
-    create_capacity_limit_feature, create_capacity_limit_with_multi_trip_feature,
-};
-use vrp_core::construction::features::locked_jobs::create_locked_jobs_feature;
-use vrp_core::construction::features::tour_limits::{create_activity_limit_feature, create_travel_limit_feature};
-use vrp_core::construction::features::transport::create_minimize_transport_costs_feature;
-use vrp_core::solver::objectives::OrderResult::Default;
+use crate::construction::features::*;
+use vrp_core::construction::features::*;
+use vrp_core::models::GoalContext;
 
 #[allow(clippy::too_many_arguments)]
-fn create_vrp_variant(
+pub fn create_vrp_variant(
     api_problem: &ApiProblem,
     jobs: &Jobs,
     job_index: &JobIndex,
@@ -26,7 +13,7 @@ fn create_vrp_variant(
     activity: Arc<dyn ActivityCost + Send + Sync>,
     props: &ProblemProperties,
     locks: &[Arc<Lock>],
-) -> Result<VrpVariant, String> {
+) -> Result<GoalContext, String> {
     let mut features = Vec::new();
 
     if props.has_unreachable_locations {
@@ -80,7 +67,7 @@ fn create_vrp_variant(
 
     let (global_objective_map, local_objective_map) = get_objective_maps(api_problem)?;
 
-    VrpVariant::new(features.as_slice(), global_objective_map, local_objective_map)
+    GoalContext::new(features.as_slice(), global_objective_map, local_objective_map)
 }
 
 fn get_capacity_feature(

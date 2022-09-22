@@ -25,14 +25,15 @@ use std::sync::Arc;
 /// encapsulates a single VRP aspect, such as capacity constraint for job' demand, time limitations
 /// for vehicles/jobs, etc.
 #[derive(Clone)]
-pub struct VrpVariant {
-    /// A global objective.
-    pub global_objective: GlobalObjective,
-    /// A local objective.
-    pub local_objective: LocalObjective,
+pub struct GoalContext {
+    pub(crate) hierarchical_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
+    pub(crate) flat_objectives: Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
+    pub(crate) local_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
+    pub(crate) constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
+    pub(crate) states: Vec<Arc<dyn FeatureState + Send + Sync>>,
 }
 
-impl VrpVariant {
+impl GoalContext {
     /// Creates a new instance of `VrpVariant` with features specified using information about
     /// hierarchy of objectives.
     pub fn new(
@@ -91,16 +92,14 @@ impl VrpVariant {
             })
         };
 
-        let global_objectives = remap_objectives(global_objective_map)?;
+        let hierarchical_objectives = remap_objectives(global_objective_map)?;
         let local_objectives = remap_objectives(local_objective_map)?;
 
         let states = features.iter().filter_map(|feature| feature.state.clone()).collect();
         let constraints = features.into_iter().filter_map(|feature| feature.constraint.clone()).collect();
+        let flat_objectives = hierarchical_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
 
-        Ok(Self {
-            global_objective: GlobalObjective::new(global_objectives),
-            local_objective: LocalObjective { constraints, local_objectives, states },
-        })
+        Ok(Self { hierarchical_objectives, flat_objectives, local_objectives, constraints, states })
     }
 }
 
@@ -182,6 +181,11 @@ impl FeatureBuilder {
     /// Combines multiple features into one.
     pub fn combine(_: &str, _: &[Feature]) -> Result<Feature, String> {
         unimplemented!()
+    }
+
+    /// Creates a builder from another feature
+    pub fn from_feature(other: &Feature) -> Self {
+        Self { feature: other.clone() }
     }
 
     /// Sets given name.
@@ -270,22 +274,7 @@ pub trait FeatureObjective: Objective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost;
 }
 
-/// A hierarchical multi objective for vehicle routing problem.
-#[derive(Clone)]
-pub struct GlobalObjective {
-    hierarchical_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
-    flat_objectives: Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
-}
-
-impl GlobalObjective {
-    /// Creates an instance of `InsertionObjective`.
-    fn new(objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>) -> Self {
-        let flat_objectives = objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
-        Self { hierarchical_objectives: objectives, flat_objectives }
-    }
-}
-
-impl MultiObjective for GlobalObjective {
+impl MultiObjective for GoalContext {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -320,28 +309,20 @@ impl MultiObjective for GlobalObjective {
     }
 }
 
-impl HeuristicObjective for GlobalObjective {}
+impl HeuristicObjective for GoalContext {}
 
-impl Shuffled for GlobalObjective {
+impl Shuffled for GoalContext {
     /// Returns a new instance of `ObjectiveCost` with shuffled objectives.
     fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
         let mut hierarchical_objectives = self.hierarchical_objectives.clone();
 
         hierarchical_objectives.shuffle(&mut random.get_rng());
 
-        Self::new(hierarchical_objectives)
+        Self { hierarchical_objectives, ..self.clone() }
     }
 }
 
-/// A feature map provides a way to maintain multiple features according their hierarchical objectives.
-#[derive(Clone)]
-pub struct LocalObjective {
-    constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
-    local_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
-    states: Vec<Arc<dyn FeatureState + Send + Sync>>,
-}
-
-impl LocalObjective {
+impl GoalContext {
     /// Accepts job insertion.
     pub fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
         let activities = solution_ctx.routes.get_mut(route_index).unwrap().route.tour.job_activity_count();
@@ -425,7 +406,7 @@ impl LocalObjective {
     }
 
     /// Estimates insertion cost (penalty) of the refinement move.
-    pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> InsertionCost {
+    pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost { //InsertionCost {
         self.local_objectives.iter().fold(InsertionCost::default(), |acc, objectives| {
             objectives
                 .iter()
@@ -438,6 +419,8 @@ impl LocalObjective {
                     a + b
                 })
                 .collect()
-        })
+        });
+
+        unimplemented!()
     }
 }

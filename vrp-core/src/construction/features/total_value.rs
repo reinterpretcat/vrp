@@ -22,12 +22,14 @@ pub type JobWriteValueFn = Arc<dyn Fn(Job, f64) -> Job + Send + Sync>;
 type EstimateValueFn = Arc<dyn Fn(&RouteContext, &Job) -> f64 + Send + Sync>;
 
 /// Maximizes a total value of served jobs.
-pub fn maximize_total_job_value(
+pub fn create_maximize_total_job_value_feature(
+    name: &str,
     job_read_value_fn: JobReadValueFn,
     job_write_value_fn: JobWriteValueFn,
     merge_code: ViolationCode,
 ) -> Result<Feature, String> {
     FeatureBuilder::default()
+        .with_name(name)
         .with_objective(MaximizeTotalValueObjective {
             estimate_value_fn: Arc::new({
                 let job_read_value_fn = job_read_value_fn.clone();

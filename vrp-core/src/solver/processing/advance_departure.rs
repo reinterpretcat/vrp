@@ -24,7 +24,7 @@ impl HeuristicSolutionProcessing for AdvanceDeparture {
             advance_departure_time(route_ctx, activity, transport, true, &self.state_keys);
         });
 
-        problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+        problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 
         insertion_ctx
     }

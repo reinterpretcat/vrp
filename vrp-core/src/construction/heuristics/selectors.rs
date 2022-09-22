@@ -139,8 +139,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
-        let eval_ctx =
-            EvaluationContext { constraint: &insertion_ctx.problem.constraint, job, leg_selector, result_selector };
+        let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selector, result_selector };
 
         routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
             evaluate_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
@@ -156,8 +155,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
-            let eval_ctx =
-                EvaluationContext { constraint: &insertion_ctx.problem.constraint, job, leg_selector, result_selector };
+            let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selector, result_selector };
             evaluate_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
         })
     }

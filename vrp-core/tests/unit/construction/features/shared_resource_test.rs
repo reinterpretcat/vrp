@@ -30,7 +30,8 @@ fn create_resource_activity(capacity: i32, resource_id: Option<SharedResourceId>
 }
 
 fn create_feature(total_jobs: usize) -> Feature {
-    create_shared_resource::<SingleDimLoad>(
+    create_shared_resource_feature::<SingleDimLoad>(
+        "shared_resource",
         total_jobs,
         VIOLATION_CODE,
         RESOURCE_KEY,

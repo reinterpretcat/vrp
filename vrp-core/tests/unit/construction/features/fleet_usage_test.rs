@@ -22,7 +22,11 @@ fn can_properly_estimate_empty_solution() {
     let empty = create_empty_insertion_context();
     let non_empty = create_test_insertion_ctx(&[10.]);
 
-    let result = create_minimize_arrival_time().unwrap().objective.unwrap().total_order(&empty, &non_empty);
+    let result = create_minimize_arrival_time_feature("minimize_arrival")
+        .unwrap()
+        .objective
+        .unwrap()
+        .total_order(&empty, &non_empty);
 
     assert_eq!(result, Ordering::Less);
 }
@@ -44,7 +48,8 @@ fn can_properly_estimate_solutions_impl(left: &[f64], right: &[f64], expected: O
     let left = create_test_insertion_ctx(left);
     let right = create_test_insertion_ctx(right);
 
-    let result = create_minimize_arrival_time().unwrap().objective.unwrap().total_order(&left, &right);
+    let result =
+        create_minimize_arrival_time_feature("minimize_arrival").unwrap().objective.unwrap().total_order(&left, &right);
 
     assert_eq!(result, expected);
 }

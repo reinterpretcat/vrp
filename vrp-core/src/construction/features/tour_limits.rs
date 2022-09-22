@@ -5,7 +5,6 @@
 mod tour_limits_test;
 
 use super::*;
-use crate::construction::constraints::{LIMIT_DURATION_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::models::common::{Distance, Duration, Timestamp};
 use crate::models::problem::{Actor, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};

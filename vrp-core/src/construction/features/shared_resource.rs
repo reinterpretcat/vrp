@@ -25,7 +25,8 @@ pub type SharedResourceDemandFn<T> = Arc<dyn Fn(&Single) -> Option<T> + Send + S
 
 /// Creates a feature which provides a way to define and use time independent, shared across multiple
 /// routes resource. It is a hard constraint.
-pub fn create_shared_resource<T>(
+pub fn create_shared_resource_feature<T>(
+    name: &str,
     total_jobs: usize,
     code: ViolationCode,
     resource_key: StateKey,
@@ -37,6 +38,7 @@ where
     T: SharedResource + Add<Output = T> + Sub<Output = T>,
 {
     FeatureBuilder::default()
+        .with_name(name)
         .with_constraint(SharedResourceConstraint {
             total_jobs,
             code,

@@ -1,4 +1,3 @@
-use crate::construction::constraints::*;
 use crate::helpers::models::problem::{TestActivityCost, TestTransportCost};
 use crate::models::common::{Demand, SingleDimLoad};
 use std::sync::Arc;
