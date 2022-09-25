@@ -63,7 +63,7 @@ pub fn solve_vrp(
     let problem = Arc::new(problem);
 
     let environment = Arc::new(Environment { logger: logger.clone(), ..Environment::new_with_time_quota(Some(300)) });
-    let population = get_population(population_type, problem.objective.clone(), environment.clone(), selection_size);
+    let population = get_population(population_type, problem.goal.clone(), environment.clone(), selection_size);
     let telemetry_mode = TelemetryMode::OnlyLogging {
         logger: logger.clone(),
         log_best: 100,

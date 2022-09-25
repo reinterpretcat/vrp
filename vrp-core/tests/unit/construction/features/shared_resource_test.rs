@@ -1,7 +1,7 @@
 use self::ActivityType::*;
 use super::*;
 use crate::construction::enablers::route_intervals;
-use crate::helpers::construction::constraints::create_simple_demand;
+use crate::helpers::construction::features::create_simple_demand;
 use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_context_with_activities, test_activity};

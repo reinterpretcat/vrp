@@ -1,6 +1,7 @@
+use crate::construction::features::{create_capacity_limit_feature, create_minimize_transport_costs_feature};
 use crate::helpers::models::problem::{TestActivityCost, TestTransportCost};
 use crate::models::common::{Demand, SingleDimLoad};
-use std::sync::Arc;
+use crate::models::{Feature, GoalContext};
 
 pub fn create_simple_demand(size: i32) -> Demand<SingleDimLoad> {
     if size > 0 {
@@ -30,28 +31,30 @@ pub fn create_simple_dynamic_demand(size: i32) -> Demand<SingleDimLoad> {
     }
 }
 
-pub fn create_constraint_pipeline_with_modules(
-    modules: Vec<Arc<dyn ConstraintModule + Send + Sync>>,
-) -> ConstraintPipeline {
-    let mut constraint = ConstraintPipeline::default();
-    modules.into_iter().for_each(|module| {
-        constraint.add_module(module);
-    });
-    constraint
+pub fn create_goal_ctx_with_features(features: Vec<Feature>, feature_map: Vec<Vec<&str>>) -> GoalContext {
+    let feature_map: Vec<Vec<String>> =
+        feature_map.iter().map(|names| names.iter().map(|name| name.to_string()).collect()).collect();
+
+    GoalContext::new(features.as_slice(), feature_map.as_slice(), feature_map.as_slice()).unwrap()
 }
 
-pub fn create_constraint_pipeline_with_module(module: Arc<dyn ConstraintModule + Send + Sync>) -> ConstraintPipeline {
-    create_constraint_pipeline_with_modules(vec![module])
+pub fn create_goal_ctx_with_feature(feature: Feature) -> GoalContext {
+    let feature_map = vec![vec![feature.name.as_str()]];
+
+    create_goal_ctx_with_features(vec![feature.clone()], feature_map)
 }
 
-pub fn create_constraint_pipeline_with_transport() -> ConstraintPipeline {
-    create_constraint_pipeline_with_module(Arc::new(TransportConstraintModule::new(
+pub fn create_goal_ctx_with_transport() -> GoalContext {
+    create_minimize_transport_costs_feature(
+        "transport",
         TestTransportCost::new_shared(),
         TestActivityCost::new_shared(),
         1,
-    )))
+    )
+    .map(create_goal_ctx_with_feature)
+    .unwrap()
 }
 
-pub fn create_constraint_pipeline_with_simple_capacity() -> ConstraintPipeline {
-    create_constraint_pipeline_with_module(Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(2)))
+pub fn create_goal_ctx_with_simple_capacity() -> GoalContext {
+    create_capacity_limit_feature::<SingleDimLoad>("capacity", 2).map(create_goal_ctx_with_feature).unwrap()
 }

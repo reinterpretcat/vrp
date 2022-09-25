@@ -3,14 +3,12 @@ use crate::construction::enablers::{get_route_modifier, OnlyVehicleActivityCost,
 use crate::format::problem::clustering_reader::create_cluster_config;
 use crate::format::problem::fleet_reader::*;
 use crate::format::problem::job_reader::{read_jobs_with_extra_locks, read_locks};
-use crate::format::problem::variant_reader::create_vrp_variant;
+use crate::format::problem::variant_reader::create_goal_context;
 use crate::format::{FormatError, JobIndex};
 use crate::validation::ValidationContext;
 use crate::{parse_time, CoordIndex};
-use vrp_core::models::common::{TimeSpan, TimeWindow};
-use vrp_core::models::problem::{
-    ActivityCost, DynamicActivityCost, DynamicTransportCost, ReservedTimesIndex, TransportCost,
-};
+use vrp_core::models::common::{TimeOffset, TimeSpan, TimeWindow};
+use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, GoalContext};
 use vrp_core::solver::processing::VicinityDimension;
 
@@ -83,38 +81,39 @@ pub fn map_to_problem(
         &random,
     );
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect::<Vec<_>>();
-    let variant = create_vrp_variant(
-        &api_problem,
-        &jobs,
-        &job_index,
-        &fleet,
-        transport.clone(),
-        activity.clone(),
-        &problem_props,
-        &locks,
-    )
-    .map_err(|err| {
-        vec![FormatError::new(
-            "E0000".to_string(),
-            "cannot create vrp variant".to_string(),
-            format!("need to analyze how features are defined: '{}'", err),
-        )]
-    })?;
-
-    let variant = Arc::new(variant);
-    let extras = Arc::new(
-        create_extras(&api_problem, constraint.clone(), &problem_props, job_index, coord_index, reserved_times_index)
-            .map_err(|err| {
-            // TODO make sure that error matches actual reason
+    let goal = Arc::new(
+        create_goal_context(
+            &api_problem,
+            &jobs,
+            &job_index,
+            &fleet,
+            transport.clone(),
+            activity.clone(),
+            &problem_props,
+            &locks,
+        )
+        .map_err(|err| {
             vec![FormatError::new(
-                "E0002".to_string(),
-                "cannot create transport costs".to_string(),
-                format!("check clustering config: '{}'", err),
+                "E0000".to_string(),
+                "cannot create vrp variant".to_string(),
+                format!("need to analyze how features are defined: '{}'", err),
             )]
         })?,
     );
 
-    Ok(CoreProblem { fleet: Arc::new(fleet), jobs: Arc::new(jobs), locks, goal: variant, activity, transport, extras })
+    let extras = Arc::new(
+        create_extras(&api_problem, goal.clone(), &problem_props, job_index, coord_index, reserved_times_index)
+            .map_err(|err| {
+                // TODO make sure that error matches actual reason
+                vec![FormatError::new(
+                    "E0002".to_string(),
+                    "cannot create transport costs".to_string(),
+                    format!("check clustering config: '{}'", err),
+                )]
+            })?,
+    );
+
+    Ok(CoreProblem { fleet: Arc::new(fleet), jobs: Arc::new(jobs), locks, goal, activity, transport, extras })
 }
 
 fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> ReservedTimesIndex {
@@ -167,7 +166,7 @@ fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> Res
 
 fn create_extras(
     api_problem: &ApiProblem,
-    variant: Arc<GoalContext>,
+    goal: Arc<GoalContext>,
     props: &ProblemProperties,
     job_index: JobIndex,
     coord_index: Arc<CoordIndex>,
@@ -180,7 +179,7 @@ fn create_extras(
     extras.insert("reserved_times_index".to_owned(), Arc::new(reserved_times_index));
 
     if props.has_dispatch {
-        extras.insert("route_modifier".to_owned(), Arc::new(get_route_modifier(variant, job_index)));
+        extras.insert("route_modifier".to_owned(), Arc::new(get_route_modifier(goal, job_index)));
     }
 
     if let Some(config) = create_cluster_config(api_problem)? {

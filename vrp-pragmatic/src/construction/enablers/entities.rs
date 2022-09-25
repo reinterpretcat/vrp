@@ -1,6 +1,6 @@
 //! Specifies different entities as extension points on Dimensions type.
 
-use crate::constraints::{BreakPolicy, JobSkills};
+use crate::construction::features::{BreakPolicy, JobSkills};
 use hashbrown::{HashMap, HashSet};
 use vrp_core::models::common::{Dimensions, ValueDimension};
 

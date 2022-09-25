@@ -5,12 +5,10 @@
 mod skills_test;
 
 use super::*;
-use crate::constraints::JobSkills;
 use crate::construction::enablers::{JobTie, VehicleTie};
 use hashbrown::HashSet;
 
-// TODO use this type
-/*/// A job skills limitation for a vehicle.
+/// A job skills limitation for a vehicle.
 pub struct JobSkills {
     /// Vehicle should have all of these skills defined.
     pub all_of: Option<HashSet<String>>,
@@ -18,7 +16,7 @@ pub struct JobSkills {
     pub one_of: Option<HashSet<String>>,
     /// Vehicle should have none of these skills defined.
     pub none_of: Option<HashSet<String>>,
-}*/
+}
 
 /// Creates a skills feature as hard constraint.
 pub fn create_skills_feature(name: &str, code: ViolationCode) -> Result<Feature, String> {

@@ -28,9 +28,9 @@ fn create_insertion_ctx(
     disallowed_pairs: Vec<(&str, &str)>,
     is_open_vrp: bool,
 ) -> InsertionContext {
-    let (mut problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, is_open_vrp);
+    let (problem, solution) =
+        generate_matrix_routes_with_disallow_list(matrix.0, matrix.1, is_open_vrp, disallowed_pairs);
     let environment = Arc::new(Environment::default());
-    add_leg_constraint(&mut problem, disallowed_pairs);
 
     InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment)
 }

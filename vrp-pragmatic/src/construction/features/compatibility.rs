@@ -10,7 +10,7 @@ use crate::construction::enablers::JobTie;
 /// Creates a compatibility feature as hard constraint.
 pub fn create_compatibility_feature(name: &str, code: ViolationCode, state_key: StateKey) -> Result<Feature, String> {
     FeatureBuilder::default()
-        .with_name("compatibility")
+        .with_name(name)
         .with_constraint(CompatibilityConstraint { code, state_key })
         .with_state(CompatibilityState { state_key, keys: vec![state_key] })
         .build()

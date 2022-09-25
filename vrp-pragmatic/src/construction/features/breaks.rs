@@ -5,7 +5,6 @@
 mod breaks_test;
 
 use super::*;
-use crate::constraints::BreakPolicy;
 use crate::construction::enablers::*;
 use crate::construction::enablers::{BreakTie, JobTie};
 use hashbrown::HashSet;
@@ -16,15 +15,14 @@ use vrp_core::models::problem::Single;
 use vrp_core::models::solution::Activity;
 use vrp_core::rosomaxa::prelude::Objective;
 
-// TODO use this type instead of from constraints
-/*/// Specifies break policy.
+/// Specifies break policy.
 #[derive(Clone)]
 pub enum BreakPolicy {
     /// Allows to skip break if actual tour schedule doesn't intersect with vehicle time window.
     SkipIfNoIntersection,
     /// Allows to skip break if vehicle arrives before break's time window end.
     SkipIfArrivalBeforeEnd,
-}*/
+}
 
 /// Creates a feature to schedule an optional break. Here, optional means that break sometimes can
 /// be skipped due to constraint violations or suboptimal search path in solution space.

@@ -1,5 +1,5 @@
 use crate::construction::heuristics::{InsertionContext, SolutionContext, UnassignmentInfo};
-use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
+use crate::helpers::construction::features::create_goal_ctx_with_transport;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_route_context_with_activities;
@@ -21,8 +21,8 @@ fn create_test_insertion_ctx(unassigned: Vec<(Job, UnassignmentInfo)>) -> Insert
         create_route_context_with_activities(&fleet, "v2", vec![]),
     ];
     let mut insertion_ctx = InsertionContext {
-        problem: create_problem_with_constraint_jobs_and_fleet(
-            create_constraint_pipeline_with_transport(),
+        problem: create_problem_with_goal_ctx_jobs_and_fleet(
+            create_goal_ctx_with_transport(),
             unassigned.iter().map(|(job, _)| job.clone()).collect(),
             fleet,
         ),

@@ -1,6 +1,7 @@
 use super::*;
 use crate::helpers::construction::clustering::dbscan::create_test_distances;
 use crate::helpers::construction::clustering::p;
+use crate::helpers::construction::features::create_goal_ctx_with_transport;
 use crate::helpers::models::problem::test_single_with_id_and_location;
 use crate::helpers::solver::{generate_matrix_distances_from_points, generate_matrix_routes};
 use crate::helpers::utils::random::FakeRandom;
@@ -35,8 +36,15 @@ can_estimate_epsilon! {
 }
 
 fn can_estimate_epsilon_impl(matrix: (usize, usize), nth_neighbor: usize, matrix_modify: MatrixModFn, expected: f64) {
-    let (problem, _) =
-        generate_matrix_routes(matrix.0, matrix.1, false, test_single_with_id_and_location, |v| v, matrix_modify);
+    let (problem, _) = generate_matrix_routes(
+        matrix.0,
+        matrix.1,
+        false,
+        |_, _| create_goal_ctx_with_transport(),
+        test_single_with_id_and_location,
+        |v| v,
+        matrix_modify,
+    );
 
     assert_eq!((estimate_epsilon(&problem, nth_neighbor) * 1000.).round() / 1000., expected);
 }
@@ -57,6 +65,7 @@ fn can_estimate_epsilon_having_zero_costs_impl(min_points: usize) {
         8,
         1,
         false,
+        |_, _| create_goal_ctx_with_transport(),
         test_single_with_id_and_location,
         |v| v,
         |_| {
@@ -95,6 +104,7 @@ fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>])
         8,
         1,
         false,
+        |_, _| create_goal_ctx_with_transport(),
         test_single_with_id_and_location,
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),

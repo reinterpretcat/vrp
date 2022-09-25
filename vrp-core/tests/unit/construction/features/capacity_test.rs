@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::heuristics::{ActivityContext, RouteState};
-use crate::helpers::construction::constraints::*;
+use crate::helpers::construction::features::*;
 use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;

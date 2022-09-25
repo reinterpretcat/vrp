@@ -464,17 +464,17 @@ pub struct RegistryContext {
 
 impl RegistryContext {
     /// Creates a new instance of `RouteRegistry`.
-    pub fn new(variant: Arc<GoalContext>, registry: Registry) -> Self {
-        Self::new_with_modifier(variant, registry, &RouteModifier::new(move |route_ctx| route_ctx))
+    pub fn new(goal: Arc<GoalContext>, registry: Registry) -> Self {
+        Self::new_with_modifier(goal, registry, &RouteModifier::new(move |route_ctx| route_ctx))
     }
 
     /// Creates a new instance of `RouteRegistry` using route context modifier.
-    pub fn new_with_modifier(variant: Arc<GoalContext>, registry: Registry, modifier: &RouteModifier) -> Self {
+    pub fn new_with_modifier(goal: Arc<GoalContext>, registry: Registry, modifier: &RouteModifier) -> Self {
         let index = registry
             .all()
             .map(|actor| {
                 let mut route_ctx = RouteContext::new(actor.clone());
-                variant.accept_route_state(&mut route_ctx);
+                goal.accept_route_state(&mut route_ctx);
 
                 (actor, modifier.modify(route_ctx))
             })

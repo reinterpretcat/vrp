@@ -263,7 +263,7 @@ fn can_add_job_impl(
         (false, true) => (Vec::default(), disallowed_insert),
         (false, false) => (Vec::default(), Vec::default()),
     };
-    let constraint = create_constraint_pipeline(disallow_merge_list);
+    let constraint = create_goal_context(disallow_merge_list);
     let check_insertion = get_check_insertion_fn(disallow_insertion_list);
     let center_commute = |info: &ClusterInfo| info.commute.clone();
     let transport = TestTransportCost::default();
@@ -366,7 +366,7 @@ fn can_build_job_cluster_impl(
 ) {
     let transport = TestTransportCost::default();
     let config = ClusterConfig { visiting, ..create_cluster_config() };
-    let constraint = create_constraint_pipeline(disallow_merge_list);
+    let constraint = create_goal_context(disallow_merge_list);
     let check_insertion = get_check_insertion_fn(disallow_insertion_list);
     let jobs = create_jobs(jobs_places);
     let estimates = get_jobs_dissimilarities(jobs.as_slice(), &transport, &config);
@@ -443,7 +443,7 @@ pub fn can_get_clusters_impl(
     let jobs_places = (0..jobs_amount).map(|idx| vec![(Some(idx), 2., vec![(0., 100.)])]).collect();
     let transport = TestTransportCost::default();
     let config = ClusterConfig { threshold, ..create_cluster_config() };
-    let constraint = create_constraint_pipeline(disallow_merge_list);
+    let constraint = create_goal_context(disallow_merge_list);
     let check_insertion = get_check_insertion_fn(disallow_insertion_list);
     let jobs = create_jobs(jobs_places);
     let estimates = get_jobs_dissimilarities(jobs.as_slice(), &transport, &config);

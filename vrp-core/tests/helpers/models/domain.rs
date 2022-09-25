@@ -1,5 +1,6 @@
+use crate::construction::features::*;
 use crate::construction::heuristics::{InsertionContext, RegistryContext, SolutionContext, UnassignmentInfo};
-use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
+use crate::helpers::construction::features::create_goal_ctx_with_transport;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_route_context_with_activities;
 use crate::models::common::IdDimension;
@@ -14,16 +15,17 @@ pub fn test_random() -> Arc<dyn Random + Send + Sync> {
     Arc::new(DefaultRandom::default())
 }
 
-pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> Arc<Problem> {
-    create_problem_with_constraint_jobs_and_fleet(constraint, vec![], test_fleet())
+pub fn create_empty_problem_with_goal_ctx(goal_ctx: GoalContext) -> Arc<Problem> {
+    create_problem_with_goal_ctx_jobs_and_fleet(goal_ctx, vec![], test_fleet())
 }
 
 pub fn create_empty_problem() -> Arc<Problem> {
-    create_empty_problem_with_constraint(ConstraintPipeline::default())
+    let goal_ctx = GoalContext::new(&[], &[], &[]).unwrap();
+    create_empty_problem_with_goal_ctx(goal_ctx)
 }
 
-pub fn create_problem_with_constraint_jobs_and_fleet(
-    opt_context: GoalContext,
+pub fn create_problem_with_goal_ctx_jobs_and_fleet(
+    goal_ctx: GoalContext,
     jobs: Vec<Job>,
     fleet: Fleet,
 ) -> Arc<Problem> {
@@ -34,7 +36,7 @@ pub fn create_problem_with_constraint_jobs_and_fleet(
         fleet,
         jobs,
         locks: vec![],
-        goal: Arc::new(constraint),
+        goal: Arc::new(goal_ctx),
         activity: Arc::new(TestActivityCost::default()),
         transport,
         extras: Arc::new(Default::default()),
@@ -51,7 +53,7 @@ pub fn create_empty_solution() -> Solution {
 }
 
 pub fn create_registry_context(fleet: &Fleet) -> RegistryContext {
-    let constraint = Arc::new(create_constraint_pipeline_with_transport());
+    let constraint = Arc::new(create_goal_ctx_with_transport());
     RegistryContext::new(constraint, Registry::new(fleet, test_random()))
 }
 

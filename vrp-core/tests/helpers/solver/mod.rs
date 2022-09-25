@@ -1,11 +1,13 @@
 use crate::algorithms::geometry::Point;
-use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
+use crate::construction::features::create_minimize_transport_costs_feature;
+use crate::construction::heuristics::MoveContext;
+use crate::helpers::construction::features::{create_goal_ctx_with_feature, create_goal_ctx_with_features};
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_activity_with_job};
-use crate::models::common::Location;
+use crate::models::common::{IdDimension, Location};
 use crate::models::problem::*;
-use crate::models::solution::{Registry, Route};
+use crate::models::solution::{Activity, Registry, Route};
 use crate::models::{Problem, Solution};
 use crate::solver::{create_elitism_population, RefinementContext};
 use rosomaxa::evolution::TelemetryMode;
@@ -19,7 +21,7 @@ pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext
     let environment = Arc::new(Environment::default());
     RefinementContext::new(
         problem.clone(),
-        create_elitism_population(problem.objective.clone(), environment.clone()),
+        create_elitism_population(problem.goal.clone(), environment.clone()),
         TelemetryMode::None,
         environment,
     )
@@ -31,6 +33,48 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
         rows,
         cols,
         is_open_vrp,
+        |transport, activity| {
+            create_goal_ctx_with_feature(
+                create_minimize_transport_costs_feature("transport", transport, activity, 1).unwrap(),
+            )
+        },
+        test_single_with_id_and_location,
+        |v| v,
+        |data| (data.clone(), data),
+    )
+}
+
+pub fn generate_matrix_distances_from_points(points: &[Point]) -> Vec<f64> {
+    points.iter().cloned().flat_map(|p_a| points.iter().map(move |p_b| p_a.distance_to_point(p_b))).collect()
+}
+
+pub fn generate_matrix_routes_with_disallow_list(
+    rows: usize,
+    cols: usize,
+    is_open_vrp: bool,
+    disallowed_pairs: Vec<(&str, &str)>,
+) -> (Problem, Solution) {
+    let disallowed_pairs =
+        disallowed_pairs.into_iter().map(|(prev, next)| (prev.to_string(), next.to_string())).collect();
+
+    generate_matrix_routes(
+        rows,
+        cols,
+        is_open_vrp,
+        move |transport, activity| {
+            let feature_map = vec![vec!["transport"]];
+            create_goal_ctx_with_features(
+                vec![
+                    create_minimize_transport_costs_feature("transport", transport, activity, 1).unwrap(),
+                    FeatureBuilder::default()
+                        .with_name("leg")
+                        .with_constraint(LegFeatureConstraint { ignore: "cX".to_string(), disallowed_pairs })
+                        .build()
+                        .unwrap(),
+                ],
+                feature_map,
+            )
+        },
         test_single_with_id_and_location,
         |v| v,
         |data| (data.clone(), data),
@@ -48,6 +92,7 @@ pub fn generate_matrix_routes(
     rows: usize,
     cols: usize,
     is_open_vrp: bool,
+    goal_factory: impl FnOnce(Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>) -> GoalContext,
     job_factory: impl Fn(&str, Option<Location>) -> Arc<Single>,
     vehicle_modify: impl Fn(Vehicle) -> Vehicle,
     matrix_modify: impl Fn(Vec<f64>) -> (Vec<f64>, Vec<f64>),
@@ -95,17 +140,16 @@ pub fn generate_matrix_routes(
 
     let matrix_data = MatrixData::new(0, None, durations, distances);
     let transport = create_matrix_transport_cost(vec![matrix_data]).unwrap();
+    let activity = Arc::new(TestActivityCost::default());
     let jobs = Jobs::new(&fleet, jobs, &transport);
 
     let problem = Problem {
         fleet,
         jobs: Arc::new(jobs),
         locks: vec![],
-        // TODO pass transport costs with constraint
-        goal: Arc::new(create_constraint_pipeline_with_transport()),
-        activity: Arc::new(TestActivityCost::default()),
+        goal: Arc::new(goal_factory(transport.clone(), activity.clone())),
+        activity,
         transport,
-        objective: Arc::new(ProblemObjective::default()),
         extras: Arc::new(Default::default()),
     };
 
@@ -137,6 +181,45 @@ fn generate_matrix_from_sizes(rows: usize, cols: usize) -> Vec<f64> {
     data
 }
 
-pub fn generate_matrix_distances_from_points(points: &[Point]) -> Vec<f64> {
-    points.iter().cloned().flat_map(|p_a| points.iter().map(move |p_b| p_a.distance_to_point(p_b))).collect()
+struct LegFeatureConstraint {
+    ignore: String,
+    disallowed_pairs: Vec<(String, String)>,
+}
+
+impl FeatureConstraint for LegFeatureConstraint {
+    fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        match move_ctx {
+            MoveContext::Route { .. } => None,
+            MoveContext::Activity { activity_ctx, .. } => {
+                let retrieve_job_id = |activity: Option<&Activity>| {
+                    activity.as_ref().and_then(|next| {
+                        next.retrieve_job()
+                            .and_then(|job| job.dimens().get_id().cloned())
+                            .or_else(|| Some(self.ignore.clone()))
+                    })
+                };
+
+                retrieve_job_id(Some(activity_ctx.prev)).zip(retrieve_job_id(activity_ctx.next)).and_then(
+                    |(prev, next)| {
+                        let is_disallowed = self.disallowed_pairs.iter().any(|(p_prev, p_next)| {
+                            let is_left_match = p_prev == &prev || p_prev == &self.ignore;
+                            let is_right_match = p_next == &next || p_next == &self.ignore;
+
+                            is_left_match && is_right_match
+                        });
+
+                        if is_disallowed {
+                            ConstraintViolation::skip(7)
+                        } else {
+                            None
+                        }
+                    },
+                )
+            }
+        }
+    }
+
+    fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
+        Ok(source)
+    }
 }

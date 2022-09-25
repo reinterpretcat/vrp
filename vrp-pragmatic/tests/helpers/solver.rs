@@ -16,7 +16,7 @@ use vrp_core::utils::Environment;
 pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matrix>>) -> Solution {
     let environment = Arc::new(Environment::default());
     get_core_solution(problem, matrices, true, |problem: Arc<CoreProblem>| {
-        let population = create_elitism_population(problem.objective.clone(), environment.clone());
+        let population = create_elitism_population(problem.goal.clone(), environment.clone());
         let refinement_ctx =
             RefinementContext::new(problem.clone(), population, TelemetryMode::None, environment.clone());
 

@@ -3,6 +3,13 @@
 mod fleet_reader_test;
 
 use super::*;
+use crate::construction::enablers::{create_typed_actor_groups, VehicleTie};
+use crate::get_unique_locations;
+use crate::utils::get_approx_transportation;
+use hashbrown::HashSet;
+use std::cmp::Ordering;
+use vrp_core::models::common::*;
+use vrp_core::models::problem::*;
 
 pub(crate) fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
     api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
@@ -195,7 +202,7 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
         details: vec![],
     })];
 
-    Fleet::new(drivers, vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
+    CoreFleet::new(drivers, vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
 }
 
 /// Creates a matrices using approximation.
@@ -220,8 +227,10 @@ pub fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
         .iter()
         .map(move |profile| {
             let speed = profile.speed.unwrap_or(DEFAULT_SPEED);
-            let idx =
-                speeds.iter().position(|s| compare_floats(*s, speed) == Equal).expect("Cannot find profile speed");
+            let idx = speeds
+                .iter()
+                .position(|s| compare_floats(*s, speed) == Ordering::Equal)
+                .expect("Cannot find profile speed");
 
             Matrix {
                 profile: Some(profile.name.clone()),

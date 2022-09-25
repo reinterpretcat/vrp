@@ -14,7 +14,7 @@ use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::scientific::tsplib::{TsplibProblem, TsplibSolution};
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::models::problem::ProblemObjective;
+use vrp_core::models::GoalContext;
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::evolution::*;
 use vrp_core::rosomaxa::{get_default_population, get_default_selection_size};
@@ -392,7 +392,7 @@ pub fn run_solve(
                             .with_min_cv(min_cv, "min_cv".to_string())
                             .with_context(RefinementContext::new(
                                 problem.clone(),
-                                get_population(mode, problem.objective.clone(), environment.clone()),
+                                get_population(mode, problem.goal.clone(), environment.clone()),
                                 telemetry_mode,
                                 environment.clone(),
                             ))
@@ -494,11 +494,7 @@ fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {
         .map(|paths: Values| paths.map(|path| open_file(path, "routing matrix")).collect())
 }
 
-fn get_population(
-    mode: Option<&str>,
-    objective: Arc<ProblemObjective>,
-    environment: Arc<Environment>,
-) -> TargetPopulation {
+fn get_population(mode: Option<&str>, objective: Arc<GoalContext>, environment: Arc<Environment>) -> TargetPopulation {
     let selection_size = get_default_selection_size(environment.as_ref());
 
     match mode {

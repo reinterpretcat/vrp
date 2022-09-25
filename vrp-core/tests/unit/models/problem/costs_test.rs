@@ -141,7 +141,9 @@ fn can_search_for_reserved_time_impl(times: Vec<(f64, f64)>, tests: Vec<((f64, f
 
 mod objective {
     use super::*;
+    use crate::construction::heuristics::{InsertionContext, MoveContext};
     use crate::helpers::models::domain::create_empty_insertion_context;
+    use crate::models::{Feature, FeatureBuilder, FeatureObjective, GoalContext};
     use rosomaxa::prelude::compare_floats;
 
     struct TestObjective {
@@ -174,6 +176,20 @@ mod objective {
         }
     }
 
+    impl FeatureObjective for TestObjective {
+        fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
+            Cost::default()
+        }
+    }
+
+    fn create_objective_feature(index: usize) -> Feature {
+        FeatureBuilder::default()
+            .with_name(format!("test_{}", index).as_str())
+            .with_objective(TestObjective { index })
+            .build()
+            .unwrap()
+    }
+
     fn create_individual(data: Vec<f64>) -> InsertionContext {
         let mut individual = create_empty_insertion_context();
         individual.solution.state.insert(1, Arc::new(data));
@@ -194,16 +210,18 @@ mod objective {
     }
 
     fn can_use_total_order_with_hierarchy_impl(data_a: Vec<f64>, data_b: Vec<f64>, expected: Ordering) {
-        let objective = ProblemObjective::new(vec![
-            vec![Arc::new(TestObjective { index: 0 })],
-            vec![Arc::new(TestObjective { index: 1 })],
-            vec![Arc::new(TestObjective { index: 2 })],
-        ]);
+        let objective_map = &[vec!["test_1".to_string()], vec!["test_2".to_string()], vec!["test_3".to_string()]];
+        let goal = GoalContext::new(
+            &[create_objective_feature(0), create_objective_feature(1), create_objective_feature(2)],
+            objective_map,
+            objective_map,
+        )
+        .unwrap();
 
         let a = create_individual(data_a);
         let b = create_individual(data_b);
 
-        let result = objective.total_order(&a, &b);
+        let result = goal.total_order(&a, &b);
 
         assert_eq!(result, expected);
     }
@@ -229,22 +247,19 @@ mod objective {
     }
 
     fn can_use_total_order_with_multi_impl(data_a: Vec<f64>, data_b: Vec<f64>, case: bool, expected: Ordering) {
-        let objective = ProblemObjective::new(if case {
-            vec![
-                vec![Arc::new(TestObjective { index: 0 }), Arc::new(TestObjective { index: 1 })],
-                vec![Arc::new(TestObjective { index: 2 })],
-            ]
+        let features = &[create_objective_feature(0), create_objective_feature(1), create_objective_feature(2)];
+        let objective_map = if case {
+            vec![vec!["test_1".to_string(), "test_2".to_string()], vec!["test_3".to_string()]]
         } else {
-            vec![
-                vec![Arc::new(TestObjective { index: 0 })],
-                vec![Arc::new(TestObjective { index: 1 }), Arc::new(TestObjective { index: 2 })],
-            ]
-        });
+            vec![vec!["test_1".to_string()], vec!["test_2".to_string(), "test_3".to_string()]]
+        };
+
+        let goal = GoalContext::new(features, objective_map.as_slice(), objective_map.as_slice()).unwrap();
 
         let a = create_individual(data_a);
         let b = create_individual(data_b);
 
-        let result = objective.total_order(&a, &b);
+        let result = goal.total_order(&a, &b);
 
         assert_eq!(result, expected);
     }

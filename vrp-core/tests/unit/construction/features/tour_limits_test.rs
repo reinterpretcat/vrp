@@ -1,5 +1,4 @@
 use crate::construction::features::*;
-use crate::construction::heuristics::*;
 use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;

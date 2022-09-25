@@ -33,8 +33,7 @@ pub fn repair_solution_from_unknown(
         .flat_map(|route_ctx| {
             let route_idx = get_new_route_ctx_idx(&mut new_insertion_ctx, route_ctx);
 
-            let synchronized =
-                synchronize_jobs(route_ctx, &mut new_insertion_ctx, route_idx, &assigned_jobs, &goal);
+            let synchronized = synchronize_jobs(route_ctx, &mut new_insertion_ctx, route_idx, &assigned_jobs, &goal);
 
             assigned_jobs.extend(synchronized.keys().cloned());
 

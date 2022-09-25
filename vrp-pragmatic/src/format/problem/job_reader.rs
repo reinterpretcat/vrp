@@ -1,7 +1,7 @@
-use crate::constraints::{BreakPolicy, JobSkills as ConstraintJobSkills};
 use crate::construction::enablers::{BreakTie, JobTie, VehicleTie};
+use crate::construction::features::{BreakPolicy, JobSkills as FeatureJobSkills};
 use crate::format::coord_index::CoordIndex;
-use crate::format::problem::JobSkills as FormatJobSkills;
+use crate::format::problem::JobSkills as ApiJobSkills;
 use crate::format::problem::*;
 use crate::format::{JobIndex, Location};
 use crate::parse_time;
@@ -12,7 +12,6 @@ use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
-use vrp_core::prelude::*;
 
 // TODO configure sample size
 const MULTI_JOB_SAMPLE_SIZE: usize = 3;
@@ -460,8 +459,8 @@ fn create_condition(vehicle_id: String, shift_index: usize) -> Arc<dyn Fn(&Actor
     })
 }
 
-fn get_skills(skills: &Option<FormatJobSkills>) -> Option<ConstraintJobSkills> {
-    skills.as_ref().map(|skills| ConstraintJobSkills {
+fn get_skills(skills: &Option<ApiJobSkills>) -> Option<FeatureJobSkills> {
+    skills.as_ref().map(|skills| FeatureJobSkills {
         all_of: skills.all_of.as_ref().map(|all_of| all_of.iter().cloned().collect()),
         one_of: skills.one_of.as_ref().map(|any_of| any_of.iter().cloned().collect()),
         none_of: skills.none_of.as_ref().map(|none_of| none_of.iter().cloned().collect()),

@@ -1,10 +1,13 @@
 use super::*;
+use crate::construction::enablers::VehicleTie;
 use crate::construction::features::*;
 use vrp_core::construction::features::*;
-use vrp_core::models::GoalContext;
+use vrp_core::models::common::{LoadOps, MultiDimLoad, SingleDimLoad};
+use vrp_core::models::problem::{ActivityCost, Actor, Jobs, TransportCost};
+use vrp_core::models::{Feature, GoalContext, Lock};
 
 #[allow(clippy::too_many_arguments)]
-pub fn create_vrp_variant(
+pub(crate) fn create_goal_context(
     api_problem: &ApiProblem,
     jobs: &Jobs,
     job_index: &JobIndex,
@@ -67,7 +70,7 @@ pub fn create_vrp_variant(
 
     let (global_objective_map, local_objective_map) = get_objective_maps(api_problem)?;
 
-    GoalContext::new(features.as_slice(), global_objective_map, local_objective_map)
+    GoalContext::new(features.as_slice(), global_objective_map.as_slice(), local_objective_map.as_slice())
 }
 
 fn get_capacity_feature(
@@ -117,14 +120,15 @@ fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
 ) -> Result<Feature, String> {
     let reload_resources = get_reload_resources(api_problem, job_index, capacity_map);
-    let capacity_feature_factory = Box::new(|multi_trip| {
+    let capacity_feature_factory: CapacityFeatureFactoryFn<T> = Box::new(|name, multi_trip| {
         create_capacity_limit_with_multi_trip_feature(name, CAPACITY_CONSTRAINT_CODE, multi_trip)
     });
 
     if reload_resources.is_empty() {
-        create_simple_reload_multi_trip_feature(capacity_feature_factory, load_schedule_threshold_fn)
+        create_simple_reload_multi_trip_feature(name, capacity_feature_factory, load_schedule_threshold_fn)
     } else {
         create_shared_reload_multi_trip_feature(
+            name,
             capacity_feature_factory,
             load_schedule_threshold_fn,
             reload_resources,
@@ -236,6 +240,6 @@ where
         .collect()
 }
 
-fn get_objective_maps(api_problem: &ApiProblem) -> Result<(Vec<Vec<String>>, Vec<Vec<String>>), String> {
+fn get_objective_maps(_: &ApiProblem) -> Result<(Vec<Vec<String>>, Vec<Vec<String>>), String> {
     unimplemented!()
 }

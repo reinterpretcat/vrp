@@ -8,8 +8,9 @@ use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::io::BufWriter;
-use vrp_core::models::problem::Job as CoreJob;
+
 use vrp_core::models::problem::ReservedTimesIndex;
+use vrp_core::models::problem::{Fleet as CoreFleet, Job as CoreJob};
 use vrp_core::models::Problem as CoreProblem;
 
 mod coord_index;

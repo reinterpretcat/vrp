@@ -1,5 +1,6 @@
 use super::*;
 use crate::helpers::construction::clustering::dbscan::create_test_distances;
+use crate::helpers::construction::features::create_goal_ctx_with_transport;
 use crate::helpers::models::domain::create_empty_problem;
 use crate::helpers::models::problem::test_single_with_id_and_location;
 use crate::helpers::solver::*;
@@ -13,6 +14,7 @@ fn can_create_ruin_cluster_with_default_params() {
         8,
         1,
         false,
+        |_, _| create_goal_ctx_with_transport(),
         test_single_with_id_and_location,
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
@@ -48,6 +50,7 @@ fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
         8,
         1,
         false,
+        |_, _| create_goal_ctx_with_transport(),
         test_single_with_id_and_location,
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),

@@ -13,7 +13,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::SingleDimLoad;
-use vrp_core::models::problem::ProblemObjective;
+use vrp_core::models::GoalContext;
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::evolution::{InitialOperator, TelemetryMode};
 use vrp_core::rosomaxa::get_default_selection_size;
@@ -455,7 +455,7 @@ fn configure_from_evolution(
                         Box<
                             dyn InitialOperator<
                                     Context = RefinementContext,
-                                    Objective = ProblemObjective,
+                                    Objective = GoalContext,
                                     Solution = InsertionContext,
                                 > + Send
                                 + Sync,
@@ -472,12 +472,12 @@ fn configure_from_evolution(
             let default_selection_size = get_default_selection_size(environment.as_ref());
             let population = match &variation {
                 PopulationType::Greedy { selection_size } => Box::new(GreedyPopulation::new(
-                    problem.objective.clone(),
+                    problem.goal.clone(),
                     selection_size.unwrap_or(default_selection_size),
                     None,
                 )),
                 PopulationType::Elitism { max_size, selection_size } => Box::new(ElitismPopulation::new(
-                    problem.objective.clone(),
+                    problem.goal.clone(),
                     environment.random.clone(),
                     max_size.unwrap_or(4),
                     selection_size.unwrap_or(default_selection_size),
@@ -522,7 +522,7 @@ fn configure_from_evolution(
                         config.exploration_ratio = *exploration_ratio;
                     }
 
-                    Box::new(RosomaxaPopulation::new(problem.objective.clone(), environment.clone(), config)?)
+                    Box::new(RosomaxaPopulation::new(problem.goal.clone(), environment.clone(), config)?)
                 }
             };
 

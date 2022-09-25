@@ -1,5 +1,10 @@
 use super::*;
-use crate::helpers::construction::constraints::{create_simple_demand, create_simple_dynamic_demand};
+use crate::construction::features::{
+    create_capacity_limit_feature, create_locked_jobs_feature, create_minimize_transport_costs_feature,
+};
+use crate::helpers::construction::features::{
+    create_goal_ctx_with_features, create_simple_demand, create_simple_dynamic_demand,
+};
 use crate::helpers::models::problem::*;
 use crate::models::common::*;
 use crate::models::problem::*;
@@ -78,16 +83,20 @@ fn create_test_problem(
         })
         .collect::<Vec<_>>();
 
-    let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Arc::new(TransportConstraintModule::new(transport.clone(), activity.clone(), 1)));
-    constraint.add_module(Arc::new(StrictLockingModule::new(&fleet, locks.as_slice(), 4)));
-    constraint.add_module(Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(5)));
+    let goal = create_goal_ctx_with_features(
+        vec![
+            create_minimize_transport_costs_feature("transport", transport.clone(), activity.clone(), 1).unwrap(),
+            create_locked_jobs_feature("locked_jobs", &fleet, locks.as_slice(), 4).unwrap(),
+            create_capacity_limit_feature::<SingleDimLoad>("capacity", 5).unwrap(),
+        ],
+        vec![vec!["transport"]],
+    );
 
     Problem {
         fleet: fleet.clone(),
         jobs: Arc::new(Jobs::new(&fleet, jobs, &transport)),
         locks,
-        goal: Arc::new(constraint),
+        goal: Arc::new(goal),
         activity,
         transport,
         extras: Arc::new(Default::default()),

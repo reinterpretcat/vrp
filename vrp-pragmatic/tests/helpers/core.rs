@@ -1,14 +1,11 @@
 use crate::construction::enablers::create_typed_actor_groups;
 use crate::construction::enablers::{JobTie, VehicleTie};
 use std::sync::Arc;
-use vrp_core::construction::constraints::ConstraintPipeline;
-use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::construction::heuristics::{RegistryContext, SolutionContext};
 use vrp_core::models::common::*;
-use vrp_core::models::examples::create_example_problem;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::*;
-use vrp_core::utils::{DefaultRandom, Environment};
+use vrp_core::utils::DefaultRandom;
 
 const DEFAULT_VEHICLE_COSTS: Costs =
     Costs { fixed: 100.0, per_distance: 1.0, per_driving_time: 1.0, per_waiting_time: 1.0, per_service_time: 1.0 };
@@ -115,7 +112,7 @@ pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Deman
 }
 
 pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
-    let constraint = Arc::new(ConstraintPipeline::default());
+    let goal = Arc::new(GoalContext::default());
     SolutionContext {
         required: vec![],
         ignored: vec![],
@@ -123,15 +120,6 @@ pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
         locked: Default::default(),
         state: Default::default(),
         routes: Default::default(),
-        registry: RegistryContext::new(constraint, Registry::new(fleet, Arc::new(DefaultRandom::default()))),
-    }
-}
-
-pub fn create_empty_insertion_context() -> InsertionContext {
-    let problem = create_example_problem();
-    InsertionContext {
-        problem: problem.clone(),
-        solution: create_solution_context_for_fleet(problem.fleet.as_ref()),
-        environment: Arc::new(Environment::default()),
+        registry: RegistryContext::new(goal, Registry::new(fleet, Arc::new(DefaultRandom::default()))),
     }
 }

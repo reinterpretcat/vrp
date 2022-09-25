@@ -1,5 +1,10 @@
 use super::*;
+use crate::construction::enablers::JobTie;
+use crate::format::problem::fleet_reader::get_profile_index_map;
+use hashbrown::HashSet;
+use std::cmp::Ordering;
 use vrp_core::construction::clustering::vicinity::*;
+use vrp_core::models::common::Profile;
 
 /// Creates cluster config if it is defined on the api problem.
 pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<ClusterConfig>, String> {
@@ -46,7 +51,7 @@ fn get_profile(api_problem: &ApiProblem, profile: &VehicleProfile) -> Result<Pro
 
 fn get_builder_policy() -> BuilderPolicy {
     // NOTE use ordering rule which is based on job id to make clusters stable
-    let ordering_rule = |result: Ordering, left_job: &Job, right_job: &Job| match result {
+    let ordering_rule = |result: Ordering, left_job: &CoreJob, right_job: &CoreJob| match result {
         Ordering::Equal => match (left_job.dimens().get_job_id(), right_job.dimens().get_job_id()) {
             (Some(left), Some(right)) => left.cmp(right),
             (Some(_), None) => Ordering::Less,

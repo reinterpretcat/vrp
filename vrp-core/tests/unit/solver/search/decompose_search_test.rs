@@ -49,7 +49,7 @@ fn can_mutate() {
     let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
     let problem = Arc::new(problem);
-    let population = Box::new(GreedyPopulation::new(problem.objective.clone(), 1, None));
+    let population = Box::new(GreedyPopulation::new(problem.goal.clone(), 1, None));
 
     let refinement_ctx = RefinementContext::new(problem.clone(), population, TelemetryMode::None, environment.clone());
     let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone());

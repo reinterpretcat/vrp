@@ -7,7 +7,6 @@ use rosomaxa::algorithms::nsga2::dominance_order;
 use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
-use std::iter::repeat;
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -24,7 +23,7 @@ use std::sync::Arc;
 /// Both, global and local objectives, are specified by individual **features**. In general, a **Feature**
 /// encapsulates a single VRP aspect, such as capacity constraint for job' demand, time limitations
 /// for vehicles/jobs, etc.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct GoalContext {
     pub(crate) hierarchical_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
     pub(crate) flat_objectives: Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
@@ -47,7 +46,7 @@ impl GoalContext {
             .collect::<Vec<_>>();
 
         let ids_unique = ids_all.iter().collect::<HashSet<_>>();
-        if ids_unique.len() == ids_all.len() {
+        if ids_unique.len() != ids_all.len() {
             return Err(format!(
                 "some of the features are defined more than once, check ids list: {}",
                 ids_all.join(",")
@@ -60,13 +59,13 @@ impl GoalContext {
             objective_ids_all.len() == objective_ids_unique.len() && objective_ids_unique.is_subset(&ids_unique)
         };
 
-        if check_objective_map(global_objective_map) {
+        if !check_objective_map(global_objective_map) {
             return Err(
                 "global objective map is invalid: it should contain unique ids of the features specified".to_string()
             );
         }
 
-        if check_objective_map(local_objective_map) {
+        if !check_objective_map(local_objective_map) {
             return Err(
                 "local objective map is invalid: it should contain unique ids of the features specified".to_string()
             );
@@ -406,21 +405,25 @@ impl GoalContext {
     }
 
     /// Estimates insertion cost (penalty) of the refinement move.
-    pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost { //InsertionCost {
-        self.local_objectives.iter().fold(InsertionCost::default(), |acc, objectives| {
+    pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
+        // TODO return InsertionCost
+        //InsertionCost {
+        /* self.local_objectives.iter().fold(InsertionCost::default(), |acc, objectives| {
             objectives
                 .iter()
                 .map(|objective| objective.estimate(move_ctx))
-                .zip(acc.into_iter().chain(repeat(Cost::default())))
+                .zip(acc.into_iter().chain(std::iter::repeat(Cost::default())))
                 .map(|(a, b)| {
-                    // TODO: merging two values will reintroduce problem with weightning coefficients
+                    // TODO: merging two values will reintroduce problem with weightning coefficients?
                     //     use a flat structure for insertion cost with priority map and apply total ordering?
                     //     or use dominance_order fn
                     a + b
                 })
                 .collect()
-        });
+        });*/
 
-        unimplemented!()
+        self.local_objectives.iter().fold(Cost::default(), |acc, objectives| {
+            objectives.iter().map(|objective| objective.estimate(move_ctx)).fold(acc, |acc, other| acc + other)
+        })
     }
 }

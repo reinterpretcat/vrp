@@ -24,7 +24,7 @@ fn can_write_solomon_solution() {
 
     let refinement_ctx = RefinementContext::new(
         problem.clone(),
-        Box::new(ElitismPopulation::new(problem.objective.clone(), environment.random.clone(), 1, 1)),
+        Box::new(ElitismPopulation::new(problem.goal.clone(), environment.random.clone(), 1, 1)),
         TelemetryMode::None,
         environment.clone(),
     );

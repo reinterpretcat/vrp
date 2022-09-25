@@ -197,9 +197,9 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
     .unwrap();
     let variant = GoalContext::new(&[feature], &[], &[]).unwrap();
 
-    variant.local_objective.accept_route_state(solution_ctx.routes.get_mut(0).unwrap());
+    variant.accept_route_state(solution_ctx.routes.get_mut(0).unwrap());
 
-    variant.local_objective.accept_solution_state(&mut solution_ctx);
+    variant.accept_solution_state(&mut solution_ctx);
 
     assert_eq!(
         solution_ctx

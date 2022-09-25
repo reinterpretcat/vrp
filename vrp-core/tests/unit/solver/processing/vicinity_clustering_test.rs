@@ -20,10 +20,10 @@ fn create_test_jobs() -> Vec<Job> {
 }
 
 fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<Problem>) {
-    let constraint = create_constraint_pipeline(vec![]);
+    let constraint = create_goal_context(vec![]);
     let environment = Arc::new(Environment::default());
 
-    let orig_problem = Arc::try_unwrap(create_problem_with_constraint_jobs_and_fleet(constraint, jobs, test_fleet()))
+    let orig_problem = Arc::try_unwrap(create_problem_with_goal_ctx_jobs_and_fleet(constraint, jobs, test_fleet()))
         .unwrap_or_else(|_| unreachable!());
     unsafe { as_mut(orig_problem.extras.as_ref()).set_cluster_config(config) };
     let orig_problem = Arc::new(orig_problem);

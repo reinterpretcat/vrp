@@ -59,8 +59,11 @@ pub const RELOAD_INTERVALS_KEY: i32 = 14;
 /// A key which tracks max load in tour.
 pub const MAX_LOAD_KEY: i32 = 15;
 
-/// Keys for balancing objectives.
-const BALANCE_MAX_LOAD_KEY: i32 = 20;
-const BALANCE_ACTIVITY_KEY: i32 = 21;
-const BALANCE_DISTANCE_KEY: i32 = 22;
-const BALANCE_DURATION_KEY: i32 = 23;
+/// A key for balancing max load.
+pub const BALANCE_MAX_LOAD_KEY: i32 = 20;
+/// A key for balancing activities.
+pub const BALANCE_ACTIVITY_KEY: i32 = 21;
+/// A key for balancing distance.
+pub const BALANCE_DISTANCE_KEY: i32 = 22;
+/// A key for balancing duration.
+pub const BALANCE_DURATION_KEY: i32 = 23;

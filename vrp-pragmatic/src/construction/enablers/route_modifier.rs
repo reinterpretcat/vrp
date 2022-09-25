@@ -1,12 +1,12 @@
 use crate::construction::enablers::VehicleTie;
 use crate::format::JobIndex;
 use std::sync::Arc;
-use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::*;
+use vrp_core::models::GoalContext;
 use vrp_core::prelude::*;
 
 /// Returns route modifier.
-pub fn get_route_modifier(constraint: Arc<ConstraintPipeline>, job_index: JobIndex) -> RouteModifier {
+pub fn get_route_modifier(goal: Arc<GoalContext>, job_index: JobIndex) -> RouteModifier {
     RouteModifier::new(move |route_ctx: RouteContext| {
         let actor = &route_ctx.route.actor;
         let vehicle = &actor.vehicle;
@@ -28,7 +28,7 @@ pub fn get_route_modifier(constraint: Arc<ConstraintPipeline>, job_index: JobInd
             .filter_map(|job| {
                 job.map(|job| {
                     let eval_ctx = EvaluationContext {
-                        goal: &constraint,
+                        goal: goal.as_ref(),
                         job,
                         leg_selector: &leg_selector,
                         result_selector: &result_selector,
@@ -49,7 +49,7 @@ pub fn get_route_modifier(constraint: Arc<ConstraintPipeline>, job_index: JobInd
             success.activities.into_iter().for_each(|(activity, index)| {
                 route.tour.insert_at(activity, index + 1);
             });
-            constraint.accept_route_state(&mut route_ctx);
+            goal.accept_route_state(&mut route_ctx);
 
             route_ctx
         } else {

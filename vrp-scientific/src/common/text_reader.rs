@@ -1,6 +1,10 @@
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
+use vrp_core::construction::features::{
+    create_capacity_limit_feature, create_minimize_distance_feature, create_minimize_tours_feature,
+    create_minimize_unassigned_jobs_feature,
+};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, Problem};
@@ -11,12 +15,13 @@ pub(crate) trait TextReader {
         let transport = self.create_transport(is_rounded)?;
         let activity = Arc::new(SimpleActivityCost::default());
         let jobs = Jobs::new(&fleet, jobs, &transport);
+        let goal = create_goal_context(activity.clone(), transport.clone()).expect("cannot create goal context");
 
         Ok(Problem {
             fleet: Arc::new(fleet),
             jobs: Arc::new(jobs),
             locks: vec![],
-            goal: Arc::new(create_constraint(activity.clone(), transport.clone())),
+            goal: Arc::new(goal),
             activity,
             transport,
             extras: Arc::new(self.create_extras()),
@@ -85,16 +90,21 @@ pub(crate) fn create_dimens_with_id(prefix: &str, id: &str) -> Dimensions {
     dimens
 }
 
-pub(crate) fn create_constraint(
+pub(crate) fn create_goal_context(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
-) -> ConstraintPipeline {
-    let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Arc::new(TransportConstraintModule::new(transport, activity, 1)));
-    constraint.add_module(Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(4)));
-    constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
+) -> Result<GoalContext, String> {
+    let features = vec![
+        create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.))?,
+        create_minimize_distance_feature("min_distance", transport, activity, 1)?,
+        create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
+        create_minimize_tours_feature("min_tours")?,
+    ];
 
-    constraint
+    let feature_map =
+        vec![vec!["min_jobs".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]];
+
+    GoalContext::new(features.as_slice(), feature_map.as_slice(), feature_map.as_slice())
 }
 
 pub(crate) fn read_line<R: Read>(reader: &mut BufReader<R>, buffer: &mut String) -> Result<usize, String> {

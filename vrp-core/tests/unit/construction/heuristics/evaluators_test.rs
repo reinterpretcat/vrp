@@ -1,5 +1,5 @@
 use crate::construction::heuristics::*;
-use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
+use crate::helpers::construction::features::create_goal_ctx_with_transport;
 use crate::helpers::construction::heuristics::{create_insertion_context, create_test_insertion_context};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_test_registry;
@@ -118,7 +118,7 @@ mod single {
         let registry = create_test_registry();
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
         route_ctx.route_mut().tour.insert_at(create_activity_at(5), 1).insert_at(create_activity_at(10), 2);
-        let constraint = create_constraint_pipeline_with_transport();
+        let constraint = create_goal_ctx_with_transport();
         let mut ctx = create_insertion_context(registry, constraint, vec![route_ctx]);
 
         let result = evaluate_job_insertion(&mut ctx, &job, insertion_position);
@@ -312,7 +312,7 @@ mod multi {
             route_ctx.route_mut().tour.insert_at(create_activity_at(loc), index);
         });
         let routes = vec![route_ctx];
-        let constraint = create_constraint_pipeline_with_transport();
+        let constraint = create_goal_ctx_with_transport();
         let mut ctx = create_insertion_context(registry, constraint, routes);
         let job = Job::Multi(test_multi_with_id(
             "multi",

@@ -11,7 +11,6 @@ use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 use std::ops::{Deref, Range};
-use vrp_core::construction::constraints::{MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, RELOAD_INTERVALS_KEY};
 use vrp_core::construction::enablers::MultiTrip;
 use vrp_core::construction::features::*;
 use vrp_core::models::problem::Single;
