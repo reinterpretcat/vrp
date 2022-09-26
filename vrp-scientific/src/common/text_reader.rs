@@ -1,10 +1,7 @@
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::construction::features::{
-    create_capacity_limit_feature, create_minimize_distance_feature, create_minimize_tours_feature,
-    create_minimize_unassigned_jobs_feature,
-};
+use vrp_core::construction::features::*;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, Problem};
@@ -96,9 +93,9 @@ pub(crate) fn create_goal_context(
 ) -> Result<GoalContext, String> {
     let features = vec![
         create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.))?,
+        create_minimize_tours_feature("min_tours")?,
         create_minimize_distance_feature("min_distance", transport, activity, 1)?,
         create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
-        create_minimize_tours_feature("min_tours")?,
     ];
 
     let feature_map =

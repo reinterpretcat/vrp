@@ -393,14 +393,7 @@ impl GoalContext {
     /// Evaluates feasibility of the refinement move.
     pub fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         unwrap_from_result(self.constraints.iter().try_fold(None, |_, constraint| {
-            let result = constraint.evaluate(move_ctx);
-            let is_stopped = result.as_ref().map_or(false, |result| result.stopped);
-
-            if is_stopped {
-                Err(result)
-            } else {
-                Ok(result)
-            }
+            constraint.evaluate(move_ctx).map(|violation| Err(Some(violation))).unwrap_or_else(|| Ok(None))
         }))
     }
 
@@ -422,8 +415,9 @@ impl GoalContext {
                 .collect()
         });*/
 
-        self.local_objectives.iter().fold(Cost::default(), |acc, objectives| {
-            objectives.iter().map(|objective| objective.estimate(move_ctx)).fold(acc, |acc, other| acc + other)
-        })
+        self.local_objectives
+            .iter()
+            .flat_map(|objectives| objectives.iter().map(|objective| objective.estimate(move_ctx)))
+            .fold(Cost::default(), |acc, other| acc + other)
     }
 }

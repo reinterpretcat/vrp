@@ -80,6 +80,7 @@ fn can_recede_departure_time_impl(
     total_duration_limit: Option<(f64, f64)>,
     expected: Option<f64>,
 ) {
+    let state_keys = ScheduleStateKeys::default();
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicle(Vehicle {
@@ -95,14 +96,14 @@ fn can_recede_departure_time_impl(
     let (route, state) = route_ctx.as_mut();
     route.tour.get_mut(0).unwrap().schedule.departure = start_departure;
     let first = route.tour.get(1).unwrap();
-    state.put_activity_state::<f64>(LATEST_ARRIVAL_KEY, first, latest_first_arrival);
+    state.put_activity_state::<f64>(state_keys.latest_arrival, first, latest_first_arrival);
 
     if let Some((total, limit)) = total_duration_limit {
-        state.put_route_state::<f64>(TOTAL_DURATION_KEY, total);
+        state.put_route_state::<f64>(state_keys.total_duration, total);
         state.put_route_state(LIMIT_DURATION_KEY, limit);
     }
 
-    let departure_time = try_recede_departure_time(&route_ctx);
+    let departure_time = try_recede_departure_time(&route_ctx, &state_keys, LIMIT_DURATION_KEY);
 
     assert_eq!(departure_time, expected);
 }

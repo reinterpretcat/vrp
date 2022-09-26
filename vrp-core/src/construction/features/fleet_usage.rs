@@ -12,10 +12,8 @@ pub fn create_minimize_tours_feature(name: &str) -> Result<Feature, String> {
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(FleetUsageObjective {
-            route_estimate_fn: Box::new(get_minimization_estimate),
-            solution_estimate_fn: Box::new(|solution_ctx| {
-                solution_ctx.routes.iter().map(get_minimization_estimate).sum::<f64>()
-            }),
+            route_estimate_fn: Box::new(|route_ctx| if route_ctx.route.tour.job_count() == 0 { 1E12 } else { 0. }),
+            solution_estimate_fn: Box::new(|solution_ctx| solution_ctx.routes.iter().len() as Cost),
         })
         .build()
 }
@@ -25,10 +23,8 @@ pub fn create_maximize_tours_feature(name: &str) -> Result<Feature, String> {
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(FleetUsageObjective {
-            route_estimate_fn: Box::new(get_maximization_estimate),
-            solution_estimate_fn: Box::new(|solution_ctx| {
-                solution_ctx.routes.iter().map(get_maximization_estimate).sum::<f64>()
-            }),
+            route_estimate_fn: Box::new(|route_ctx| if route_ctx.route.tour.job_count() == 0 { -1E12 } else { 0. }),
+            solution_estimate_fn: Box::new(|solution_ctx| -1. * solution_ctx.routes.iter().len() as Cost),
         })
         .build()
 }
@@ -55,22 +51,6 @@ pub fn create_minimize_arrival_time_feature(name: &str) -> Result<Feature, Strin
             }),
         })
         .build()
-}
-
-fn get_minimization_estimate(route_ctx: &RouteContext) -> Cost {
-    if route_ctx.route.tour.job_count() == 0 {
-        -1.
-    } else {
-        0.
-    }
-}
-
-fn get_maximization_estimate(route_ctx: &RouteContext) -> Cost {
-    if route_ctx.route.tour.job_count() == 0 {
-        1.
-    } else {
-        0.
-    }
 }
 
 struct FleetUsageObjective {

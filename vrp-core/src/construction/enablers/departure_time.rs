@@ -7,6 +7,7 @@ use crate::construction::features::*;
 use crate::construction::heuristics::RouteContext;
 use crate::models::common::Timestamp;
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
+use crate::models::StateKey;
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 
@@ -30,7 +31,7 @@ pub fn recede_departure_time(
     transport: &(dyn TransportCost + Send + Sync),
     state_keys: &ScheduleStateKeys,
 ) {
-    if let Some(new_departure_time) = try_recede_departure_time(route_ctx) {
+    if let Some(new_departure_time) = try_recede_departure_time(route_ctx, state_keys, LIMIT_DURATION_KEY) {
         update_route_departure(route_ctx, activity, transport, new_departure_time, state_keys);
     }
 }
@@ -77,11 +78,16 @@ fn try_advance_departure_time(
     }
 }
 
-fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
+fn try_recede_departure_time(
+    route_ctx: &RouteContext,
+    state_keys: &ScheduleStateKeys,
+    limit_duration_key: StateKey,
+) -> Option<Timestamp> {
     let first = route_ctx.route.tour.get(1)?;
     let start = route_ctx.route.tour.start()?;
 
-    let max_change = *route_ctx.state.get_activity_state::<f64>(LATEST_ARRIVAL_KEY, first)? - first.schedule.arrival;
+    let max_change =
+        *route_ctx.state.get_activity_state::<f64>(state_keys.latest_arrival, first)? - first.schedule.arrival;
 
     let earliest_allowed_departure =
         route_ctx.route.actor.detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(start.place.time.start);
@@ -90,8 +96,8 @@ fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
 
     let max_change = route_ctx
         .state
-        .get_route_state::<f64>(TOTAL_DURATION_KEY)
-        .zip(route_ctx.state.get_route_state::<f64>(LIMIT_DURATION_KEY))
+        .get_route_state::<f64>(state_keys.total_duration)
+        .zip(route_ctx.state.get_route_state::<f64>(limit_duration_key))
         .map(|(&total, &limit)| (limit - total).min(max_change))
         .unwrap_or(max_change);
 
