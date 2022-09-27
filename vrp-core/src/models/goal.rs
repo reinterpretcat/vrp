@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/models/goal_test.rs"]
+mod goal_test;
+
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;

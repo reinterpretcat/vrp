@@ -1,3 +1,4 @@
+use crate::construction::features::*;
 use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Route;
@@ -62,9 +63,22 @@ fn create_example_fleet() -> Arc<Fleet> {
     Arc::new(Fleet::new(drivers, vehicles, Box::new(|_| Box::new(|_| 0))))
 }
 
-/// Creates and example VRP variant: CVRPT.
-pub fn create_example_variant() -> GoalContext {
-    unimplemented!()
+/// Creates and example VRP goal: CVRPTW.
+fn create_example_goal_ctx(
+    transport: Arc<dyn TransportCost + Sync + Send>,
+    activity: Arc<dyn ActivityCost + Sync + Send>,
+) -> Result<GoalContext, String> {
+    let features = vec![
+        create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.))?,
+        create_minimize_tours_feature("min_tours")?,
+        create_minimize_distance_feature("min_distance", transport, activity, 1)?,
+        create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
+    ];
+
+    let feature_map =
+        vec![vec!["min_jobs".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]];
+
+    GoalContext::new(features.as_slice(), feature_map.as_slice(), feature_map.as_slice())
 }
 
 /// Creates an example problem used in documentation tests.
@@ -73,13 +87,13 @@ pub fn create_example_problem() -> Arc<Problem> {
     let transport: Arc<dyn TransportCost + Sync + Send> = Arc::new(ExampleTransportCost {});
     let fleet = create_example_fleet();
     let jobs = create_example_jobs(&fleet, &transport);
-    let variant = create_example_variant();
+    let goal = create_example_goal_ctx(transport.clone(), activity.clone()).unwrap();
 
     Arc::new(Problem {
         fleet,
         jobs,
         locks: vec![],
-        goal: Arc::new(variant),
+        goal: Arc::new(goal),
         activity,
         transport,
         extras: Arc::new(Default::default()),

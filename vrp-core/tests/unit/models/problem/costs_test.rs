@@ -177,7 +177,7 @@ mod objective {
     }
 
     impl FeatureObjective for TestObjective {
-        fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
+        fn estimate(&self, _: &MoveContext<'_>) -> Cost {
             Cost::default()
         }
     }
@@ -210,7 +210,7 @@ mod objective {
     }
 
     fn can_use_total_order_with_hierarchy_impl(data_a: Vec<f64>, data_b: Vec<f64>, expected: Ordering) {
-        let objective_map = &[vec!["test_1".to_string()], vec!["test_2".to_string()], vec!["test_3".to_string()]];
+        let objective_map = &[vec!["test_0".to_string()], vec!["test_1".to_string()], vec!["test_2".to_string()]];
         let goal = GoalContext::new(
             &[create_objective_feature(0), create_objective_feature(1), create_objective_feature(2)],
             objective_map,
@@ -249,9 +249,9 @@ mod objective {
     fn can_use_total_order_with_multi_impl(data_a: Vec<f64>, data_b: Vec<f64>, case: bool, expected: Ordering) {
         let features = &[create_objective_feature(0), create_objective_feature(1), create_objective_feature(2)];
         let objective_map = if case {
-            vec![vec!["test_1".to_string(), "test_2".to_string()], vec!["test_3".to_string()]]
+            vec![vec!["test_0".to_string(), "test_1".to_string()], vec!["test_2".to_string()]]
         } else {
-            vec![vec!["test_1".to_string()], vec!["test_2".to_string(), "test_3".to_string()]]
+            vec![vec!["test_0".to_string()], vec!["test_1".to_string(), "test_2".to_string()]]
         };
 
         let goal = GoalContext::new(features, objective_map.as_slice(), objective_map.as_slice()).unwrap();

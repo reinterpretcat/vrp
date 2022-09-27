@@ -147,7 +147,8 @@ pub fn generate_matrix_routes(
         fleet,
         jobs: Arc::new(jobs),
         locks: vec![],
-        goal: Arc::new(goal_factory(transport.clone(), activity.clone())),
+        // TODO: we should pass the same transport costs, but the tests were written assuming default one
+        goal: Arc::new(goal_factory(TestTransportCost::new_shared(), activity.clone())),
         activity,
         transport,
         extras: Arc::new(Default::default()),

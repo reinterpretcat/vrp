@@ -42,8 +42,10 @@ mod activity {
             "v1",
             (0..activities).map(|idx| test_activity_with_location(idx as Location)).collect(),
         );
-        let constraint =
-            create_activity_limit_feature(VIOLATION_CODE, Arc::new(move |_| limit)).unwrap().constraint.unwrap();
+        let constraint = create_activity_limit_feature("activity_limit", VIOLATION_CODE, Arc::new(move |_| limit))
+            .unwrap()
+            .constraint
+            .unwrap();
 
         let result = constraint.evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));
 
