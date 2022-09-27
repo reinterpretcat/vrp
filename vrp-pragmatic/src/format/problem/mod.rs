@@ -21,12 +21,11 @@ mod clustering_reader;
 mod fleet_reader;
 pub use self::fleet_reader::create_approx_matrices;
 
+mod goal_reader;
 mod job_reader;
 
 mod problem_reader;
 use self::problem_reader::{map_to_problem_with_approx, map_to_problem_with_matrices};
-
-mod variant_reader;
 
 /// Reads specific problem definition from various sources.
 pub trait PragmaticProblem {

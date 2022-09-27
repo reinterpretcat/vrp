@@ -63,6 +63,7 @@ pub(crate) fn create_goal_context(
 
     if props.has_tour_size_limits {
         features.push(create_activity_limit_feature(
+            "activity_limit",
             TOUR_SIZE_CONSTRAINT_CODE,
             Arc::new(|actor| actor.vehicle.dimens.get_tour_size()),
         )?);
