@@ -123,8 +123,7 @@ impl MultiObjective for SliceHierarchicalObjective {
         self.primary_objectives
             .iter()
             .chain(self.secondary_objectives.iter())
-            .skip(idx)
-            .next()
+            .nth(idx)
             .map(|o| o.total_order(a, b))
             .ok_or_else(|| format!("wrong index: {}", idx))
     }
@@ -133,8 +132,7 @@ impl MultiObjective for SliceHierarchicalObjective {
         self.primary_objectives
             .iter()
             .chain(self.secondary_objectives.iter())
-            .skip(idx)
-            .next()
+            .nth(idx)
             .map(|o| o.distance(a, b))
             .ok_or_else(|| format!("wrong index: {}", idx))
     }

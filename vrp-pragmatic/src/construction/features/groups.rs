@@ -45,7 +45,7 @@ impl FeatureConstraint for GroupConstraint {
                     .any(|groups| groups.contains(group));
 
                 if other_route {
-                    return ConstraintViolation::fail(self.code);
+                    ConstraintViolation::fail(self.code)
                 } else {
                     None
                 }

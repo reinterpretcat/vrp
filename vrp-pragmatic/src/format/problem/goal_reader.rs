@@ -40,9 +40,7 @@ pub(crate) fn create_goal_context(
         features.push(create_optional_break_feature("break", BREAK_CONSTRAINT_CODE)?)
     }
 
-    if props.has_order
-        && global_objective_map.iter().flat_map(|o| o.iter()).find(|name| *name == "tour_order").is_none()
-    {
+    if props.has_order && !global_objective_map.iter().flat_map(|o| o.iter()).any(|name| *name == "tour_order") {
         features.push(create_tour_order_hard_feature("tour_order", TOUR_ORDER_CONSTRAINT_CODE, get_order_fn())?)
     }
 
@@ -122,7 +120,7 @@ fn get_objective_features(
                     Objective::MaximizeValue { breaks } => create_maximize_total_job_value_feature(
                         "max_value",
                         JobReadValueFn::Left(Arc::new({
-                            let break_value = breaks.clone();
+                            let break_value = *breaks;
                             move |job| {
                                 job.dimens().get_job_value().unwrap_or_else(|| {
                                     job.dimens()
@@ -148,7 +146,7 @@ fn get_objective_features(
                     Objective::MinimizeUnassignedJobs { breaks } => create_minimize_unassigned_jobs_feature(
                         "min_unassigned",
                         Arc::new({
-                            let break_value = breaks.clone();
+                            let break_value = *breaks;
                             let default_value = 1.;
                             move |_, job| {
                                 if let Some(clusters) = job.dimens().get_cluster() {
@@ -237,12 +235,10 @@ fn get_capacity_feature(
                 Box::new(move |capacity| *capacity * threshold),
             )
         }
+    } else if props.has_multi_dimen_capacity {
+        create_capacity_limit_feature::<MultiDimLoad>(name, CAPACITY_CONSTRAINT_CODE)
     } else {
-        if props.has_multi_dimen_capacity {
-            create_capacity_limit_feature::<MultiDimLoad>(name, CAPACITY_CONSTRAINT_CODE)
-        } else {
-            create_capacity_limit_feature::<SingleDimLoad>(name, CAPACITY_CONSTRAINT_CODE)
-        }
+        create_capacity_limit_feature::<SingleDimLoad>(name, CAPACITY_CONSTRAINT_CODE)
     }
 }
 
@@ -375,6 +371,7 @@ where
         .collect()
 }
 
+#[allow(clippy::type_complexity)]
 fn extract_feature_map(features: &[Vec<Feature>]) -> Result<(Vec<Vec<String>>, Vec<Vec<String>>), String> {
     let objective_map: Vec<Vec<String>> = features
         .iter()

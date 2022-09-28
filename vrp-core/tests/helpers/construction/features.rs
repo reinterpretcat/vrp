@@ -39,9 +39,10 @@ pub fn create_goal_ctx_with_features(features: Vec<Feature>, feature_map: Vec<Ve
 }
 
 pub fn create_goal_ctx_with_feature(feature: Feature) -> GoalContext {
-    let feature_map = if feature.objective.is_some() { vec![vec![feature.name.as_str()]] } else { vec![] };
-
-    create_goal_ctx_with_features(vec![feature.clone()], feature_map)
+    create_goal_ctx_with_features(
+        vec![feature.clone()],
+        if feature.objective.is_some() { vec![vec![feature.name.as_str()]] } else { vec![] },
+    )
 }
 
 pub fn create_goal_ctx_with_transport() -> GoalContext {

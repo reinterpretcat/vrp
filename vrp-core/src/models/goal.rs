@@ -99,7 +99,7 @@ impl GoalContext {
         let local_objectives = remap_objectives(local_objective_map)?;
 
         let states = features.iter().filter_map(|feature| feature.state.clone()).collect();
-        let constraints = features.into_iter().filter_map(|feature| feature.constraint.clone()).collect();
+        let constraints = features.iter().filter_map(|feature| feature.constraint.clone()).collect();
         let flat_objectives = hierarchical_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
 
         Ok(Self { hierarchical_objectives, flat_objectives, local_objectives, constraints, states })
