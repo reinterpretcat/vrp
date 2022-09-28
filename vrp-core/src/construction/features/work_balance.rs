@@ -7,13 +7,13 @@ use std::cmp::Ordering;
 use std::ops::Deref;
 
 /// Specifies load function type.
-pub type LoadFn<T> = Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>;
+pub type LoadBalanceFn<T> = Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>;
 
 /// Creates a feature which balances max load across all tours.
-pub fn create_load_balanced_feature<T: LoadOps>(
+pub fn create_max_load_balanced_feature<T: LoadOps>(
     name: &str,
     threshold: Option<f64>,
-    load_fn: LoadFn<T>,
+    load_balance_fn: LoadBalanceFn<T>,
 ) -> Result<Feature, String> {
     let default_capacity = T::default();
     let default_intervals = vec![(0_usize, 0_usize)];
@@ -29,7 +29,7 @@ pub fn create_load_balanced_feature<T: LoadOps>(
             .map(|activity| {
                 ctx.state.get_activity_state::<T>(MAX_FUTURE_CAPACITY_KEY, activity).unwrap_or(&default_capacity)
             })
-            .map(|max_load| load_fn.deref()(max_load, capacity))
+            .map(|max_load| load_balance_fn.deref()(max_load, capacity))
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less))
             .unwrap_or(0_f64)
     });
@@ -43,7 +43,7 @@ pub fn create_load_balanced_feature<T: LoadOps>(
 }
 
 /// Creates a feature which balances activities across all tours.
-pub fn create_activity_balanced(name: &str, threshold: Option<f64>) -> Result<Feature, String> {
+pub fn create_activity_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, String> {
     let route_estimate_fn = Arc::new(|route_ctx: &RouteContext| route_ctx.route.tour.job_activity_count() as f64);
     let solution_estimate_fn = Arc::new(|solution_ctx: &SolutionContext| {
         get_cv_safe(

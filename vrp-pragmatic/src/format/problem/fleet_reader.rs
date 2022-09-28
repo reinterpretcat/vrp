@@ -86,12 +86,6 @@ pub(crate) fn create_transport_costs(
 
 pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> CoreFleet {
     let profile_indices = get_profile_index_map(api_problem);
-    let area_index = api_problem
-        .plan
-        .areas
-        .iter()
-        .flat_map(|areas| areas.iter().map(|area| (&area.id, area)))
-        .collect::<HashMap<_, _>>();
     let mut vehicles: Vec<Arc<Vehicle>> = Default::default();
 
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
@@ -107,27 +101,6 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
         let profile = Profile::new(index, vehicle.profile.scale);
 
         let tour_size = vehicle.limits.as_ref().and_then(|l| l.tour_size);
-        let mut area_jobs = vehicle.limits.as_ref().and_then(|l| l.areas.as_ref()).map({
-            let area_index = &area_index;
-            move |areas| {
-                areas
-                    .iter()
-                    .enumerate()
-                    .flat_map(move |(order, area_ids)| {
-                        area_ids.iter().flat_map(move |limit| {
-                            area_index
-                                .get(&limit.area_id)
-                                .iter()
-                                .flat_map(|&&area| {
-                                    area.jobs.iter().map(|job_id| (job_id.clone(), (order, limit.job_value)))
-                                })
-                                .collect::<Vec<_>>()
-                                .into_iter()
-                        })
-                    })
-                    .collect::<HashMap<_, _>>()
-            }
-        });
 
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             let start = {
@@ -161,10 +134,6 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                     .set_vehicle_type(vehicle.type_id.clone())
                     .set_shift_index(shift_index)
                     .set_vehicle_id(vehicle_id.clone());
-
-                if let Some(area_jobs) = area_jobs.take() {
-                    dimens.set_areas(area_jobs);
-                }
 
                 if let Some(tour_size) = tour_size {
                     dimens.set_tour_size(tour_size);

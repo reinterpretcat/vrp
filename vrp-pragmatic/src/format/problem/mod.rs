@@ -113,8 +113,6 @@ pub(crate) struct ProblemProperties {
     has_compatibility: bool,
     has_tour_size_limits: bool,
     has_tour_travel_limits: bool,
-    max_job_value: Option<f64>,
-    max_area_value: Option<f64>,
 }
 
 fn parse_time_window(tw: &[String]) -> TimeWindow {

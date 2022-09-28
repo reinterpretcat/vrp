@@ -381,11 +381,6 @@ pub struct VehicleLimits {
     /// No job activities restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tour_size: Option<usize>,
-
-    /// Specifies a list of area ids where vehicle can serve jobs.
-    /// No area restrictions when omitted.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub areas: Option<Vec<Vec<AreaLimit>>>,
 }
 
 /// An area limit.
@@ -579,15 +574,9 @@ pub enum Objective {
     /// An objective to maximize value of served jobs.
     #[serde(rename(deserialize = "maximize-value", serialize = "maximize-value"))]
     MaximizeValue {
-        /// Specifies a weight of skipped breaks. Default value is 100.
+        /// Specifies a weight of skipped breaks.
         #[serde(skip_serializing_if = "Option::is_none")]
         breaks: Option<f64>,
-
-        /// A factor to reduce value cost compared to max cost.
-        /// Default value is 0.1.
-        #[serde(rename = "reductionFactor")]
-        #[serde(skip_serializing_if = "Option::is_none")]
-        reduction_factor: Option<f64>,
     },
 
     /// An objective to minimize amount of unassigned jobs.
@@ -640,25 +629,7 @@ pub enum Objective {
 
     /// An objective to control order of job activities in the tour.
     #[serde(rename(deserialize = "tour-order", serialize = "tour-order"))]
-    TourOrder {
-        /// If the property is set to true, then order is enforced as hard constraint.
-        #[serde(rename = "isConstrained")]
-        is_constrained: bool,
-    },
-
-    /// An objective to control distribution of the jobs across different areas.
-    #[serde(rename(deserialize = "area-order", serialize = "area-order"))]
-    AreaOrder {
-        /// Specifies a weight of skipped breaks. Default value is 100.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        breaks: Option<f64>,
-        /// If the property is set to true, then order is enforced as hard constraint.
-        #[serde(rename = "isConstrained")]
-        is_constrained: bool,
-        /// If the property is set to true, then value objective is preferred over violations counter.
-        #[serde(rename = "isValuePreferred")]
-        is_value_preferred: Option<bool>,
-    },
+    TourOrder,
 }
 
 /// Specifies balance objective options. At the moment, it uses coefficient of variation as

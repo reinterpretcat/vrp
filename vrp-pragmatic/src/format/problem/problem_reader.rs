@@ -207,24 +207,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .any(|shift| shift.breaks.as_ref().map_or(false, |b| !b.is_empty()));
 
     let has_skills = api_problem.plan.jobs.iter().any(|job| job.skills.is_some());
-    let max_job_value = api_problem
-        .plan
-        .jobs
-        .iter()
-        .filter_map(|job| job.value)
-        .filter(|value| *value > 0.)
-        .max_by(|a, b| compare_floats(*a, *b));
-
-    let max_area_value = api_problem
-        .fleet
-        .vehicles
-        .iter()
-        .flat_map(|vehicle| vehicle.limits.iter())
-        .flat_map(|limits| limits.areas.iter())
-        .flat_map(|areas| areas.iter())
-        .flat_map(|areas| areas.iter())
-        .filter_map(|limit| if limit.job_value > 0. { Some(limit.job_value) } else { None })
-        .max_by(|a, b| compare_floats(*a, *b));
 
     let has_dispatch = api_problem
         .fleet
@@ -268,7 +250,5 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_compatibility,
         has_tour_size_limits,
         has_tour_travel_limits,
-        max_job_value,
-        max_area_value,
     }
 }

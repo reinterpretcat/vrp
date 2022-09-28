@@ -29,64 +29,6 @@ fn can_detect_invalid_break_time() {
     assert_eq!(result.err().map(|err| err.code), Some("E1303".to_string()));
 }
 
-parameterized_test! {can_detect_invalid_area, (areas, area_ids, expected), {
-    can_detect_invalid_area_impl(areas, area_ids, expected);
-}}
-
-can_detect_invalid_area! {
-    case01: (None, None, None),
-    case02: (Some(vec![("1", vec!["job1", "job2"])]), Some(vec!["1"]), None),
-    case03: (Some(vec![("1", vec!["job1", "job2", "job2"])]), Some(vec!["1", "2"]), Some(())),
-    case05: (Some(vec![("1", vec!["job1"]), ("2", vec!["job2"])]), Some(vec!["1", "2"]), None),
-    case06: (Some(vec![("1", vec!["job1"]), ("2", vec!["job1"])]), Some(vec!["1"]), None),
-    case07: (Some(vec![("1", vec!["job1", "job2"]), ("2", vec!["job2"])]), Some(vec!["1", "2"]), Some(())),
-}
-
-fn can_detect_invalid_area_impl(
-    areas: Option<Vec<(&str, Vec<&str>)>>,
-    area_ids: Option<Vec<&str>>,
-    expected: Option<()>,
-) {
-    let problem = Problem {
-        plan: Plan {
-            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job("job2", (2., 0.))],
-            areas: areas.as_ref().map(|areas| {
-                areas
-                    .iter()
-                    .map(|(area_id, job_ids)| Area {
-                        id: area_id.to_string(),
-                        jobs: job_ids.iter().map(|job_id| job_id.to_string()).collect(),
-                    })
-                    .collect()
-            }),
-            ..create_empty_plan()
-        },
-        fleet: Fleet {
-            vehicles: vec![VehicleType {
-                limits: Some(VehicleLimits {
-                    max_distance: None,
-                    shift_time: None,
-                    tour_size: None,
-                    areas: area_ids.map(|area_ids| {
-                        vec![area_ids
-                            .iter()
-                            .map(|area_id| AreaLimit { area_id: area_id.to_string(), job_value: 1. })
-                            .collect()]
-                    }),
-                }),
-                ..create_default_vehicle_type()
-            }],
-            ..create_default_fleet()
-        },
-        ..create_empty_problem()
-    };
-
-    let result =
-        check_e1305_vehicle_limit_area_is_correct(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
-
-    assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1305".to_string()));
-}
-
 parameterized_test! {can_detect_invalid_dispatch, (allowed_areas, expected), {
     can_detect_invalid_dispatch_impl(allowed_areas, expected);
 }}

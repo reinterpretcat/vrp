@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 
+### Removed
+
+* area constraint as it needs rework
+
+
 ## [v1.18.4]
 
 ### Changed

@@ -15,16 +15,24 @@ fn create_test_plan_with_three_jobs() -> Plan {
 }
 
 fn create_test_limit() -> Option<VehicleLimits> {
-    Some(VehicleLimits { max_distance: Some(15.), shift_time: None, tour_size: None, areas: None })
+    Some(VehicleLimits { max_distance: Some(15.), shift_time: None, tour_size: None })
 }
 
 fn create_order_objective(is_constrained: bool) -> Vec<Vec<Objective>> {
-    vec![
-        vec![Objective::MinimizeUnassignedJobs { breaks: None }],
-        vec![Objective::MinimizeTours {}],
-        vec![Objective::TourOrder { is_constrained }],
-        vec![Objective::MinimizeCost],
-    ]
+    if is_constrained {
+        vec![
+            vec![Objective::MinimizeUnassignedJobs { breaks: None }],
+            vec![Objective::MinimizeTours],
+            vec![Objective::MinimizeCost],
+        ]
+    } else {
+        vec![
+            vec![Objective::MinimizeUnassignedJobs { breaks: None }],
+            vec![Objective::MinimizeTours],
+            vec![Objective::TourOrder],
+            vec![Objective::MinimizeCost],
+        ]
+    }
 }
 
 fn create_problem(is_constrained: bool, limits: Option<VehicleLimits>) -> Problem {

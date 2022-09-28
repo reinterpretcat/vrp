@@ -60,7 +60,7 @@ pub fn can_check_shift_and_distance_limit_impl(
     actual: i64,
     expected: Result<(), String>,
 ) {
-    let problem = create_test_problem(Some(VehicleLimits { max_distance, shift_time, tour_size: None, areas: None }));
+    let problem = create_test_problem(Some(VehicleLimits { max_distance, shift_time, tour_size: None }));
     let solution =
         create_test_solution(Statistic { distance: actual, duration: actual, ..Statistic::default() }, vec![]);
     let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
@@ -72,12 +72,7 @@ pub fn can_check_shift_and_distance_limit_impl(
 
 #[test]
 pub fn can_check_tour_size_limit() {
-    let problem = create_test_problem(Some(VehicleLimits {
-        max_distance: None,
-        shift_time: None,
-        tour_size: Some(2),
-        areas: None,
-    }));
+    let problem = create_test_problem(Some(VehicleLimits { max_distance: None, shift_time: None, tour_size: Some(2) }));
     let solution = create_test_solution(
         Statistic::default(),
         vec![

@@ -1,9 +1,10 @@
 use super::*;
-use crate::construction::enablers::VehicleTie;
+use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::*;
+use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::features::*;
 use vrp_core::models::common::{LoadOps, MultiDimLoad, SingleDimLoad};
-use vrp_core::models::problem::{ActivityCost, Actor, Jobs, TransportCost};
+use vrp_core::models::problem::{ActivityCost, Actor, Jobs, Single, TransportCost};
 use vrp_core::models::{Feature, GoalContext, Lock};
 
 #[allow(clippy::too_many_arguments)]
@@ -19,17 +20,15 @@ pub(crate) fn create_goal_context(
 ) -> Result<GoalContext, String> {
     let mut features = Vec::new();
 
+    // TODO what's about performance implications on order of features when they are evaluated?
+
+    let objective_features = get_objective_features(api_problem, props, transport.clone(), activity.clone())?;
+    let (global_objective_map, local_objective_map) = extract_feature_map(objective_features.as_slice())?;
+    features.extend(objective_features.into_iter().flat_map(|features| features.into_iter()));
+
     if props.has_unreachable_locations {
         features.push(create_reachable_feature("reachable", transport.clone(), RELOAD_RESOURCE_CONSTRAINT_CODE)?)
     }
-
-    // TODO pick only one based on objectives
-    features.push(create_minimize_transport_costs_feature(
-        "transport",
-        transport.clone(),
-        activity.clone(),
-        TIME_CONSTRAINT_CODE,
-    )?);
 
     features.push(get_capacity_feature("capacity", api_problem, jobs, job_index, props)?);
 
@@ -39,6 +38,12 @@ pub(crate) fn create_goal_context(
 
     if props.has_breaks {
         features.push(create_optional_break_feature("break", BREAK_CONSTRAINT_CODE)?)
+    }
+
+    if props.has_order
+        && global_objective_map.iter().flat_map(|o| o.iter()).find(|name| *name == "tour_order").is_none()
+    {
+        features.push(create_tour_order_hard_feature("tour_order", TOUR_ORDER_CONSTRAINT_CODE, get_order_fn())?)
     }
 
     if props.has_compatibility {
@@ -69,9 +74,138 @@ pub(crate) fn create_goal_context(
         )?);
     }
 
-    let (global_objective_map, local_objective_map) = get_objective_maps(api_problem)?;
-
     GoalContext::new(features.as_slice(), global_objective_map.as_slice(), local_objective_map.as_slice())
+}
+
+fn get_objective_features(
+    api_problem: &ApiProblem,
+    props: &ProblemProperties,
+    transport: Arc<dyn TransportCost + Send + Sync>,
+    activity: Arc<dyn ActivityCost + Send + Sync>,
+) -> Result<Vec<Vec<Feature>>, String> {
+    let objectives = if let Some(objectives) = api_problem.objectives.clone() {
+        objectives
+    } else {
+        vec![
+            vec![Objective::MinimizeUnassignedJobs { breaks: Some(1.) }],
+            vec![Objective::MinimizeTours],
+            vec![Objective::MinimizeCost],
+        ]
+    };
+
+    objectives
+        .iter()
+        .map(|objectives| {
+            objectives
+                .iter()
+                .map(|objective| match objective {
+                    Objective::MinimizeCost => create_minimize_transport_costs_feature(
+                        "min_cost",
+                        transport.clone(),
+                        activity.clone(),
+                        TIME_CONSTRAINT_CODE,
+                    ),
+                    Objective::MinimizeDistance => create_minimize_distance_feature(
+                        "min_distance",
+                        transport.clone(),
+                        activity.clone(),
+                        TIME_CONSTRAINT_CODE,
+                    ),
+                    Objective::MinimizeDuration => create_minimize_duration_feature(
+                        "min_duration",
+                        transport.clone(),
+                        activity.clone(),
+                        TIME_CONSTRAINT_CODE,
+                    ),
+                    Objective::MinimizeTours => create_minimize_tours_feature("min_tours"),
+                    Objective::MaximizeTours => create_maximize_tours_feature("max_tours"),
+                    Objective::MaximizeValue { breaks } => create_maximize_total_job_value_feature(
+                        "max_value",
+                        JobReadValueFn::Left(Arc::new({
+                            let break_value = breaks.clone();
+                            move |job| {
+                                job.dimens().get_job_value().unwrap_or_else(|| {
+                                    job.dimens()
+                                        .get_job_type()
+                                        .zip(break_value)
+                                        .filter(|(job_type, _)| *job_type == "break")
+                                        .map(|(_, break_value)| break_value)
+                                        .unwrap_or(0.)
+                                })
+                            }
+                        })),
+                        Arc::new(|job, value| match job {
+                            CoreJob::Single(single) => {
+                                let mut dimens = single.dimens.clone();
+                                dimens.set_job_value(Some(value));
+
+                                CoreJob::Single(Arc::new(Single { places: single.places.clone(), dimens }))
+                            }
+                            _ => job.clone(),
+                        }),
+                        -1,
+                    ),
+                    Objective::MinimizeUnassignedJobs { breaks } => create_minimize_unassigned_jobs_feature(
+                        "min_unassigned",
+                        Arc::new({
+                            let break_value = breaks.clone();
+                            let default_value = 1.;
+                            move |_, job| {
+                                if let Some(clusters) = job.dimens().get_cluster() {
+                                    clusters.len() as f64 * default_value
+                                } else {
+                                    job.dimens().get_job_type().map_or(default_value, |job_type| {
+                                        match job_type.as_str() {
+                                            "break" => break_value.unwrap_or(default_value),
+                                            "reload" => 0.,
+                                            _ => default_value,
+                                        }
+                                    })
+                                }
+                            }
+                        }),
+                    ),
+                    Objective::MinimizeArrivalTime => create_minimize_arrival_time_feature("min_arrival_time"),
+                    Objective::BalanceMaxLoad { options } => {
+                        if props.has_multi_dimen_capacity {
+                            create_max_load_balanced_feature::<MultiDimLoad>(
+                                "max_load_balance",
+                                get_threshold(options),
+                                Arc::new(|loaded, capacity| {
+                                    let mut max_ratio = 0_f64;
+
+                                    for (idx, value) in capacity.load.iter().enumerate() {
+                                        let ratio = loaded.load[idx] as f64 / *value as f64;
+                                        max_ratio = max_ratio.max(ratio);
+                                    }
+
+                                    max_ratio
+                                }),
+                            )
+                        } else {
+                            create_max_load_balanced_feature::<SingleDimLoad>(
+                                "max_load_balance",
+                                get_threshold(options),
+                                Arc::new(|loaded, capacity| loaded.value as f64 / capacity.value as f64),
+                            )
+                        }
+                    }
+                    Objective::BalanceActivities { options } => {
+                        create_activity_balanced_feature("activity_balance", get_threshold(options))
+                    }
+                    Objective::BalanceDistance { options } => {
+                        create_distance_balanced_feature("distance_balance", get_threshold(options))
+                    }
+                    Objective::BalanceDuration { options } => {
+                        create_duration_balanced_feature("duration_balance", get_threshold(options))
+                    }
+                    Objective::TourOrder => {
+                        create_tour_order_soft_feature("tour_order", TOUR_ORDER_KEY, get_order_fn())
+                    }
+                })
+                .collect()
+        })
+        .collect()
 }
 
 fn get_capacity_feature(
@@ -241,6 +375,26 @@ where
         .collect()
 }
 
-fn get_objective_maps(_: &ApiProblem) -> Result<(Vec<Vec<String>>, Vec<Vec<String>>), String> {
-    unimplemented!()
+fn extract_feature_map(features: &[Vec<Feature>]) -> Result<(Vec<Vec<String>>, Vec<Vec<String>>), String> {
+    let objective_map: Vec<Vec<String>> = features
+        .iter()
+        .map(|features| features.iter().filter_map(|f| f.objective.as_ref().map(|_| f.name.clone())).collect())
+        .collect();
+
+    Ok((objective_map.clone(), objective_map))
+}
+
+fn get_threshold(options: &Option<BalanceOptions>) -> Option<f64> {
+    options.as_ref().and_then(|o| o.threshold)
+}
+
+fn get_order_fn() -> TourOrderFn {
+    TourOrderFn::Left(Arc::new(|single| {
+        single.dimens.get_job_order().map(|order| OrderResult::Value(order as f64)).unwrap_or_else(|| {
+            match single.dimens.get_job_type().map(|v| v.as_str()) {
+                Some("break") | Some("reload") | Some("dispatch") => OrderResult::Ignored,
+                _ => OrderResult::Default,
+            }
+        })
+    }))
 }

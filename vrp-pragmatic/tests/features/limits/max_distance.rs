@@ -9,7 +9,7 @@ fn can_limit_by_max_distance() {
         plan: Plan { jobs: vec![create_delivery_job("job1", (100., 0.))], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
-                limits: Some(VehicleLimits { max_distance: Some(99.), shift_time: None, tour_size: None, areas: None }),
+                limits: Some(VehicleLimits { max_distance: Some(99.), shift_time: None, tour_size: None }),
                 ..create_default_vehicle_type()
             }],
             ..create_default_fleet()
@@ -55,7 +55,7 @@ fn can_handle_empty_route() {
                     end: Some(ShiftEnd { earliest: None, latest: format_time(100.), location: (10., 0.).to_loc() }),
                     ..create_default_open_vehicle_shift()
                 }],
-                limits: Some(VehicleLimits { max_distance: Some(9.), shift_time: None, tour_size: None, areas: None }),
+                limits: Some(VehicleLimits { max_distance: Some(9.), shift_time: None, tour_size: None }),
                 ..create_default_vehicle_type()
             }],
             ..create_default_fleet()

@@ -8,14 +8,10 @@ use vrp_core::models::problem::*;
 pub const GROUP_KEY: i32 = 1000;
 /// A key which tracks compatibility key.
 pub const COMPATIBILITY_KEY: i32 = 1001;
-
-/// A key which tracks total value.
-pub const TOTAL_VALUE_KEY: i32 = 1002;
 /// A key which tracks tour order state.
-pub const TOUR_ORDER_KEY: i32 = 1003;
-
+pub const TOUR_ORDER_KEY: i32 = 1002;
 /// A key which tracks reload resource consumption state.
-pub const RELOAD_RESOURCE_KEY: i32 = 1005;
+pub const RELOAD_RESOURCE_KEY: i32 = 1003;
 
 mod breaks;
 pub use self::breaks::*;
