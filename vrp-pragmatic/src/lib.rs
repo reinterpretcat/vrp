@@ -27,10 +27,10 @@ pub mod regression;
 
 pub use vrp_core as core;
 
-mod construction;
 mod utils;
 
 pub mod checker;
+pub mod construction;
 pub mod format;
 pub mod validation;
 

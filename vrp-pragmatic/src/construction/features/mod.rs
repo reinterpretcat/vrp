@@ -1,3 +1,5 @@
+//! Provides VRP features.
+
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::*;

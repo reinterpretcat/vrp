@@ -1,3 +1,5 @@
+//! Provides extension logic.
+
 use std::sync::Arc;
 use vrp_core::models::common::Dimensions;
 use vrp_core::models::problem::Single;
