@@ -2,7 +2,7 @@
 #[path = "../../tests/unit/models/goal_test.rs"]
 mod goal_test;
 
-use crate::construction::enablers::combine_features;
+use crate::construction::enablers::*;
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
@@ -329,77 +329,29 @@ impl Shuffled for GoalContext {
 impl GoalContext {
     /// Accepts job insertion.
     pub fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
-        let activities = solution_ctx.routes.get_mut(route_index).unwrap().route.tour.job_activity_count();
-        self.states.iter().for_each(|state| state.accept_insertion(solution_ctx, route_index, job));
-        assert_eq!(activities, solution_ctx.routes.get_mut(route_index).unwrap().route.tour.job_activity_count());
+        accept_insertion_with_states(&self.states, solution_ctx, route_index, job)
     }
 
     /// Accepts route state.
     pub fn accept_route_state(&self, route_ctx: &mut RouteContext) {
-        if route_ctx.is_stale() {
-            route_ctx.state_mut().clear();
-
-            let activities = route_ctx.route.tour.job_activity_count();
-            self.states.iter().for_each(|state| state.accept_route_state(route_ctx));
-            assert_eq!(activities, route_ctx.route.tour.job_activity_count());
-
-            route_ctx.mark_stale(false);
-        }
+        accept_route_state_with_states(&self.states, route_ctx)
     }
 
     /// Accepts solution state.
     pub fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
-        let has_changes = |ctx: &SolutionContext, previous_state: (usize, usize, usize)| {
-            let (required, ignored, unassigned) = previous_state;
-            required != ctx.required.len() || ignored != ctx.ignored.len() || unassigned != ctx.unassigned.len()
-        };
-
-        let _ = (0..).try_fold((usize::MAX, usize::MAX, usize::MAX), |(required, ignored, unassigned), counter| {
-            // NOTE if any job promotion occurs, then we might need to recalculate states.
-            // As it is hard to maintain dependencies between different modules, we reset process to
-            // beginning. However we do not expect recalculation to happen often, so this condition
-            // here is to prevent infinite loops and signalize about error in pipeline configuration
-            assert_ne!(counter, 100);
-
-            if has_changes(solution_ctx, (required, ignored, unassigned)) {
-                let required = solution_ctx.required.len();
-                let ignored = solution_ctx.ignored.len();
-                let unassigned = solution_ctx.unassigned.len();
-
-                self.states
-                    .iter()
-                    .try_for_each(|state| {
-                        state.accept_solution_state(solution_ctx);
-                        if has_changes(solution_ctx, (required, ignored, unassigned)) {
-                            Err(())
-                        } else {
-                            Ok(())
-                        }
-                    })
-                    .map(|_| (required, ignored, unassigned))
-                    .or(Ok((usize::MAX, usize::MAX, usize::MAX)))
-            } else {
-                Err(())
-            }
-        });
-
-        solution_ctx.routes.iter_mut().for_each(|route_ctx| {
-            route_ctx.mark_stale(false);
-        })
+        accept_solution_state_with_states(&self.states, solution_ctx);
     }
 
     /// Tries to merge two jobs taking into account common constraints.
     /// Returns a new job, if it is possible to merge them together having theoretically assignable
     /// job. Otherwise returns violation error code.
     pub fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
-        self.constraints.iter().try_fold(source, |acc, constraint| constraint.merge(acc, candidate.clone()))
+        merge_with_constraints(&self.constraints, source, candidate)
     }
 
     /// Evaluates feasibility of the refinement move.
     pub fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
-        unwrap_from_result(self.constraints.iter().try_fold(None, |_, constraint| {
-            constraint.evaluate(move_ctx).map(|violation| Err(Some(violation))).unwrap_or_else(|| Ok(None))
-        }))
+        evaluate_with_constraints(&self.constraints, move_ctx)
     }
 
     /// Estimates insertion cost (penalty) of the refinement move.
