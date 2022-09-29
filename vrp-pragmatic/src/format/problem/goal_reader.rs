@@ -27,7 +27,7 @@ pub(crate) fn create_goal_context(
     features.extend(objective_features.into_iter().flat_map(|features| features.into_iter()));
 
     if props.has_unreachable_locations {
-        features.push(create_reachable_feature("reachable", transport.clone(), RELOAD_RESOURCE_CONSTRAINT_CODE)?)
+        features.push(create_reachable_feature("reachable", transport.clone(), REACHABLE_CONSTRAINT_CODE)?)
     }
 
     features.push(get_capacity_feature("capacity", api_problem, jobs, job_index, props)?);
@@ -84,11 +84,17 @@ fn get_objective_features(
     let objectives = if let Some(objectives) = api_problem.objectives.clone() {
         objectives
     } else {
-        vec![
+        let mut objectives = vec![
             vec![Objective::MinimizeUnassignedJobs { breaks: Some(1.) }],
             vec![Objective::MinimizeTours],
             vec![Objective::MinimizeCost],
-        ]
+        ];
+
+        if props.has_value {
+            objectives.insert(0, vec![Objective::MaximizeValue { breaks: None }])
+        }
+
+        objectives
     };
 
     objectives

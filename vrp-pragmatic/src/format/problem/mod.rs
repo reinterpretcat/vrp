@@ -110,6 +110,7 @@ pub(crate) struct ProblemProperties {
     has_reloads: bool,
     has_order: bool,
     has_group: bool,
+    has_value: bool,
     has_compatibility: bool,
     has_tour_size_limits: bool,
     has_tour_travel_limits: bool,

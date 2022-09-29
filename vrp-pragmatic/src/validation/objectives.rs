@@ -63,13 +63,14 @@ fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), For
 
 /// Checks that cost objective is specified.
 fn check_e1602_no_cost_objective(objectives: &[&Objective]) -> Result<(), FormatError> {
-    let no_min_cost = !objectives.iter().any(|objective| matches!(objective, MinimizeCost));
+    let no_min_cost =
+        !objectives.iter().any(|objective| matches!(objective, MinimizeCost | MinimizeDistance | MinimizeDuration));
 
     if no_min_cost {
         Err(FormatError::new(
             "E1602".to_string(),
-            "missing cost objective".to_string(),
-            "specify 'minimize-cost' objective".to_string(),
+            "missing one of cost objectives".to_string(),
+            "specify 'minimize-cost', 'minimize-duration' or 'minimize-distance' objective".to_string(),
         ))
     } else {
         Ok(())
@@ -141,6 +142,24 @@ fn check_e1605_check_positive_value_and_order(ctx: &ValidationContext) -> Result
     }
 }
 
+/// Checks that only one cost objective is specified.
+fn check_e1606_check_multiple_cost_objectives(objectives: &[&Objective]) -> Result<(), FormatError> {
+    let cost_objectives = objectives
+        .iter()
+        .filter(|objective| matches!(objective, MinimizeCost | MinimizeDistance | MinimizeDuration))
+        .count();
+
+    if cost_objectives > 1 {
+        Err(FormatError::new(
+            "E1606".to_string(),
+            "multiple cost objectives specified".to_string(),
+            format!("keep only one cost objective: was specified: '{}'", cost_objectives),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 /// Checks that value objective is specified when some jobs have value property set.
 fn check_e1607_jobs_with_value_but_no_objective(
     ctx: &ValidationContext,
@@ -178,6 +197,7 @@ pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<FormatErro
             check_e1603_no_jobs_with_value_objective(ctx, &objectives),
             check_e1604_no_jobs_with_order_objective(ctx, &objectives),
             check_e1605_check_positive_value_and_order(ctx),
+            check_e1606_check_multiple_cost_objectives(&objectives),
             check_e1607_jobs_with_value_but_no_objective(ctx, &objectives),
         ])
     } else {

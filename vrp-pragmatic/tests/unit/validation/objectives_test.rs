@@ -75,8 +75,10 @@ parameterized_test! {can_detect_missing_cost_objective, (objectives, expected), 
 
 can_detect_missing_cost_objective! {
     case01: (Some(vec![vec![min_cost()]]), None),
-    case02: (Some(vec![vec![balance_dist()]]), Some(())),
-    case03: (Some(vec![vec![], vec![balance_dist()]]), Some(())),
+    case02: (Some(vec![vec![MinimizeDuration]]), None),
+    case03: (Some(vec![vec![MinimizeDistance]]), None),
+    case04: (Some(vec![vec![balance_dist()]]), Some(())),
+    case05: (Some(vec![vec![], vec![balance_dist()]]), Some(())),
 }
 
 fn can_detect_missing_cost_objective_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<()>) {
@@ -153,6 +155,29 @@ fn can_detect_invalid_value_or_order_impl(value: Option<f64>, order: Option<i32>
     let result = check_e1605_check_positive_value_and_order(&ctx);
 
     assert_eq!(result.err().map(|e| e.code), expected);
+}
+
+parameterized_test! {can_detect_multiple_cost_objective, (objectives, expected), {
+    can_detect_multiple_cost_objective_impl(objectives, expected);
+}}
+
+can_detect_multiple_cost_objective! {
+    case01: (Some(vec![vec![min_cost()]]), None),
+    case02: (Some(vec![vec![min_cost(), min_cost()]]), Some(())),
+    case03: (Some(vec![vec![min_cost(), MinimizeDuration]]), Some(())),
+    case04: (Some(vec![vec![min_cost(), MinimizeDistance]]), Some(())),
+    case05: (Some(vec![vec![MinimizeDuration, MinimizeDistance]]), Some(())),
+}
+
+fn can_detect_multiple_cost_objective_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<()>) {
+    let problem = Problem { objectives, ..create_empty_problem() };
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
+    let objectives = get_objectives(&ctx).unwrap();
+
+    let result = check_e1606_check_multiple_cost_objectives(&objectives);
+
+    assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1606".to_string()));
 }
 
 parameterized_test! {can_detect_missing_value_objective, (objectives, expected), {

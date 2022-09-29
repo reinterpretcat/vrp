@@ -634,7 +634,7 @@ To fix this issue, just remove one, e.g. `minimize-unassigned`.
 
 #### E1602
 
-`missing cost objective` error is returned when no cost objective specified (at the moment, only `minimize-cost` supported):
+`missing one of cost objectives` error is returned when no cost objective specified:
 
 ```json
 {
@@ -648,7 +648,7 @@ To fix this issue, just remove one, e.g. `minimize-unassigned`.
 }
 ```
 
-This objective is used to calculate final costs, so it is required to be specified.
+To solve it, specify one of the cost objectives: `minimize-cost`, `minimize-distance` or `minimize-duration`.
 
 
 #### E1603
@@ -673,17 +673,11 @@ fix the issue, make sure that value or order of all jobs are greater than zero.
 
 #### E1606
 
-`missing tour order objective` error is returned when plan has jobs with order set, but user defined objective doesn't
-include the `tour-order` objective.
+`multiple cost objectives specified` error is returned when more than one cost objective is specified. To fix the issue,
+keep only one cost objective in the list of objectives.
 
 
 #### E1607
 
 `missing value objective` error is returned when plan has jobs with value set, but user defined objective doesn't
 include the `maximize-value` objective.
-
-
-#### E1608
-
-`missing area order objective` error is returned when plan has areas, but `area-order` objective is not specified. To
-fix the issue, add `tour-order` objective or remove areas.

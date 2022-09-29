@@ -15,16 +15,23 @@ the same inner array have the same priority.
 ## Available objectives
 
 The solver already provides multiple built-in objectives distinguished by their `type`. All these objectives can be
-split into two groups.
+split into the following groups.
+
+### Cost objectives
+
+These objectives specify how "total" cost of job insertion is calculated:
+
+* `minimize-cost`: minimizes total transport cost calculated for all routes. Here, total transport cost is seen as linear
+  combination of total time and distance
+* `minimize-distance`: minimizes total distance of all routes
+* `minimize-duration`: minimizes total duration of all routes
+
+One of these objectives has to be set and only one.
 
 ### Scalar objectives
 
-These objectives targeting for some scalar characteristic of solution:
+Besides cost objectives, there are other objectives which are targeting for some scalar characteristic of solution:
 
-* `minimize-cost`: minimizes total transport cost calculated for all routes. Here, total transport cost is seen as linear
-combination of total time and distance
-* `minimize-distance`: minimizes total distance of all routes
-* `minimize-duration`: minimizes total duration of all routes
 * `minimize-unassigned`: minimizes amount of unassigned jobs. Although, solver tries to minimize amount of
 unassigned jobs all the time, it is possible that solution, discovered during refinement, has more unassigned jobs than
 previously accepted. The reason of that can be conflicting objective (e.g. minimize tours) and restrictive
@@ -130,11 +137,11 @@ If order on job task is specified, then it is also added to the list of objectiv
 
 * [E1600 an empty objective specified](../errors/index.md#e1600)
 * [E1601 duplicate objective specified](../errors/index.md#e1601)
-* [E1602 missing cost objective](../errors/index.md#e1602)
+* [E1602 missing one of cost objectives](../errors/index.md#e1602)
 * [E1603 redundant value objective](../errors/index.md#e1603)
 * [E1604 redundant tour order objective](../errors/index.md#e1604)
 * [E1605 value or order of a job should be greater than zero](../errors/index.md#e1605)
-* [E1606 missing tour order objective](../errors/index.md#e1606)
+* [E1606 multiple cost objectives specified](../errors/index.md#e1606)
 * [E1607 missing value objective](../errors/index.md#e1607)
 
 

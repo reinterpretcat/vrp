@@ -2,6 +2,7 @@
 #[path = "../../tests/unit/models/goal_test.rs"]
 mod goal_test;
 
+use crate::construction::enablers::combine_features;
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
@@ -182,13 +183,13 @@ pub struct FeatureBuilder {
 
 impl FeatureBuilder {
     /// Combines multiple features into one.
-    pub fn combine(_: &str, _: &[Feature]) -> Result<Feature, String> {
-        unimplemented!()
+    pub fn combine(name: &str, features: &[Feature]) -> Result<Feature, String> {
+        combine_features(name, features)
     }
 
     /// Creates a builder from another feature
-    pub fn from_feature(other: &Feature) -> Self {
-        Self { feature: other.clone() }
+    pub fn from_feature(other: Feature) -> Self {
+        Self { feature: other }
     }
 
     /// Sets given name.

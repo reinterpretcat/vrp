@@ -91,7 +91,28 @@ impl FeatureState for DispatchState {
     fn accept_route_state(&self, _: &mut RouteContext) {}
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
+        // NOTE enforce propagation to locked
+        solution_ctx
+            .locked
+            .extend(solution_ctx.routes.iter().flat_map(|route| route.route.tour.jobs().filter(is_dispatch_job)));
+
         process_conditional_jobs(solution_ctx, None, self.context_transition.as_ref());
+
+        // NOTE remove tour with dispatch only
+        let registry = &mut solution_ctx.registry;
+        solution_ctx.routes.retain(|rc| {
+            let tour = &rc.route.tour;
+            if tour.job_count() == 1 {
+                let is_dispatch = tour.jobs().next().unwrap().as_single().map_or(false, is_dispatch_single);
+
+                if is_dispatch {
+                    registry.free_route(rc);
+                    return false;
+                }
+            }
+
+            true
+        });
     }
 
     fn state_keys(&self) -> Iter<StateKey> {
