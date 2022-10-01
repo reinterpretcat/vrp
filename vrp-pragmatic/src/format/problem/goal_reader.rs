@@ -41,7 +41,7 @@ pub(crate) fn create_goal_context(
     }
 
     if props.has_order && !global_objective_map.iter().flat_map(|o| o.iter()).any(|name| *name == "tour_order") {
-        features.push(create_tour_order_hard_feature("tour_order", TOUR_ORDER_CONSTRAINT_CODE, get_order_fn())?)
+        features.push(create_tour_order_hard_feature("tour_order", TOUR_ORDER_CONSTRAINT_CODE, get_tour_order_fn())?)
     }
 
     if props.has_compatibility {
@@ -204,7 +204,7 @@ fn get_objective_features(
                         create_duration_balanced_feature("duration_balance", get_threshold(options))
                     }
                     Objective::TourOrder => {
-                        create_tour_order_soft_feature("tour_order", TOUR_ORDER_KEY, get_order_fn())
+                        create_tour_order_soft_feature("tour_order", TOUR_ORDER_KEY, get_tour_order_fn())
                     }
                 })
                 .collect()
@@ -391,13 +391,23 @@ fn get_threshold(options: &Option<BalanceOptions>) -> Option<f64> {
     options.as_ref().and_then(|o| o.threshold)
 }
 
-fn get_order_fn() -> TourOrderFn {
+fn get_tour_order_fn() -> TourOrderFn {
     TourOrderFn::Left(Arc::new(|single| {
-        single.dimens.get_job_order().map(|order| OrderResult::Value(order as f64)).unwrap_or_else(|| {
-            match single.dimens.get_job_type().map(|v| v.as_str()) {
-                Some("break") | Some("reload") | Some("dispatch") => OrderResult::Ignored,
-                _ => OrderResult::Default,
-            }
-        })
+        single
+            .as_ref()
+            .map(|single| &single.dimens)
+            .map(|dimens| {
+                dimens.get_job_order().map(|order| OrderResult::Value(order as f64)).unwrap_or_else(|| {
+                    dimens.get_job_type().map_or(OrderResult::Default, |v| {
+                        match v.as_str() {
+                            "break" | "reload" | "dispatch" => OrderResult::Ignored,
+                            // job without value
+                            _ => OrderResult::Default,
+                        }
+                    })
+                })
+            })
+            // departure and arrival
+            .unwrap_or(OrderResult::Ignored)
     }))
 }

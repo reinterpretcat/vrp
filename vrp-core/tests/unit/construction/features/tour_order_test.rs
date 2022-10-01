@@ -69,8 +69,10 @@ fn can_merge_order_impl(source: Option<f64>, candidate: Option<f64>, expected: R
 }
 
 fn get_order_fn() -> TourOrderFn {
-    Either::Left(Arc::new(|single| match single.dimens.get_value::<f64>("order") {
-        Some(value) => OrderResult::Value(*value),
-        _ => OrderResult::Default,
+    Either::Left(Arc::new(|single| {
+        single.map_or(OrderResult::Ignored, |single| match single.dimens.get_value::<f64>("order") {
+            Some(value) => OrderResult::Value(*value),
+            _ => OrderResult::Default,
+        })
     }))
 }
