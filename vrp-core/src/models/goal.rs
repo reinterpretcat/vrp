@@ -172,9 +172,6 @@ pub type ViolationCode = i32;
 /// Specifies a type for state key.
 pub type StateKey = i32;
 
-/// A hierarchical cost of job's insertion.
-pub type InsertionCost = tinyvec::TinyVec<[Cost; 8]>;
-
 /// Provides a way to build feature with some checks.
 #[derive(Default)]
 pub struct FeatureBuilder {
@@ -356,22 +353,6 @@ impl GoalContext {
 
     /// Estimates insertion cost (penalty) of the refinement move.
     pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
-        // TODO return InsertionCost
-        //InsertionCost {
-        /* self.local_objectives.iter().fold(InsertionCost::default(), |acc, objectives| {
-            objectives
-                .iter()
-                .map(|objective| objective.estimate(move_ctx))
-                .zip(acc.into_iter().chain(std::iter::repeat(Cost::default())))
-                .map(|(a, b)| {
-                    // TODO: merging two values will reintroduce problem with weightning coefficients?
-                    //     use a flat structure for insertion cost with priority map and apply total ordering?
-                    //     or use dominance_order fn
-                    a + b
-                })
-                .collect()
-        });*/
-
         self.local_objectives
             .iter()
             .flat_map(|objectives| objectives.iter().map(|objective| objective.estimate(move_ctx)))
