@@ -36,12 +36,12 @@ parameterized_test! {can_detect_invalid_dispatch, (allowed_areas, expected), {
 can_detect_invalid_dispatch! {
     case01: (&[(0., (0., 10.))], None),
     case02: (&[(1., (0., 10.))], None),
-    case03: (&[(1., (0., 10.)), (1., (0., 10.))], Some("E1306".to_string())),
+    case03: (&[(1., (0., 10.)), (1., (0., 10.))], Some("E1305".to_string())),
     case04: (&[(1., (0., 10.)), (2., (0., 10.))], None),
 
     case05: (&[(1., (0., 10.))], None),
-    case06: (&[(1., (1001., 1010.))], Some("E1306".to_string())),
-    case07: (&[(1., (10., 1.))], Some("E1306".to_string())),
+    case06: (&[(1., (1001., 1010.))], Some("E1305".to_string())),
+    case07: (&[(1., (10., 1.))], Some("E1305".to_string())),
 }
 
 fn can_detect_invalid_dispatch_impl(dispatch: &[(f64, (f64, f64))], expected: Option<String>) {
@@ -68,7 +68,7 @@ fn can_detect_invalid_dispatch_impl(dispatch: &[(f64, (f64, f64))], expected: Op
     };
 
     let result =
-        check_e1306_vehicle_dispatch_is_correct(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
+        check_e1305_vehicle_dispatch_is_correct(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
 
     assert_eq!(result.err().map(|err| err.code), expected);
 }
@@ -81,7 +81,7 @@ can_detect_zero_costs! {
     case01: ((0.0001, 0.0001), None),
     case02: ((0., 0.0001), None),
     case03: ((0.0001, 0.), None),
-    case04: ((0., 0.), Some("E1307".to_string())),
+    case04: ((0., 0.), Some("E1306".to_string())),
 }
 
 fn can_detect_zero_costs_impl(costs: (f64, f64), expected: Option<String>) {
@@ -98,7 +98,7 @@ fn can_detect_zero_costs_impl(costs: (f64, f64), expected: Option<String>) {
     };
 
     let result =
-        check_e1307_vehicle_has_no_zero_costs(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
+        check_e1306_vehicle_has_no_zero_costs(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
 
     assert_eq!(result.err().map(|err| err.code), expected);
 }
@@ -108,8 +108,8 @@ parameterized_test! {can_handle_rescheduling_with_required_break, (latest, expec
 }}
 
 can_handle_rescheduling_with_required_break! {
-    case01: (None, Some("E1308".to_string())),
-    case02: (Some(1.), Some("E1308".to_string())),
+    case01: (None, Some("E1307".to_string())),
+    case02: (Some(1.), Some("E1307".to_string())),
     case03: (Some(0.), None),
 }
 
@@ -136,7 +136,7 @@ fn can_handle_rescheduling_with_required_break_impl(latest: Option<f64>, expecte
         ..create_empty_problem()
     };
 
-    let result = check_e1308_vehicle_required_break_rescheduling(&ValidationContext::new(
+    let result = check_e1307_vehicle_required_break_rescheduling(&ValidationContext::new(
         &problem,
         None,
         &CoordIndex::new(&problem),
@@ -151,8 +151,8 @@ parameterized_test! {can_handle_reload_resources, (resources, expected), {
 
 can_handle_reload_resources! {
     case01: (Some(vec!["r1"]), None),
-    case02: (Some(vec!["r2"]), Some("E1309".to_string())),
-    case03: (Some(vec!["r1", "r1"]), Some("E1309".to_string())),
+    case02: (Some(vec!["r2"]), Some("E1308".to_string())),
+    case03: (Some(vec!["r1", "r1"]), Some("E1308".to_string())),
 }
 
 fn can_handle_reload_resources_impl(resources: Option<Vec<&str>>, expected: Option<String>) {
@@ -177,7 +177,7 @@ fn can_handle_reload_resources_impl(resources: Option<Vec<&str>>, expected: Opti
     };
 
     let result =
-        check_e1309_vehicle_reload_resources(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
+        check_e1308_vehicle_reload_resources(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
 
     assert_eq!(result.err().map(|err| err.code), expected);
 }

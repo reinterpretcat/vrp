@@ -463,16 +463,6 @@ Additionally, reload time should be inside vehicle shift it is specified:
 
 #### E1305
 
-`invalid allowed area definition in vehicle limits` error is returned when `areas` property in `fleet.vehicles.limits`
-violates one of the following rules:
-
-* no invalid area ids
-* no invalid job ids
-* no job id duplicates in vehicle areas
-
-
-#### E1306
-
 `invalid dispatch in vehicle shift` error is returned when `dispatch` property in `fleet.vehicles` violates one of the
 following rules:
 
@@ -481,7 +471,7 @@ following rules:
 * has time window outside of vehicle shift time
 * has total sum of max not equal to amount of vehicle ids
 
-#### E1307
+#### E1306
 
 `time and duration costs are zeros` is returned when both time and duration costs are zeros in vehicle type definition:
 
@@ -506,13 +496,13 @@ following rules:
 
 You can fix the error by defining a small value (e.g. 0.0000001) for duration or time costs.
 
-#### E1308
+#### E1307
 
 `required break is used with departure rescheduling` is returned when required break is used, but `start.latest` is not
 set equal to `start.earliest` in the shift.
 
 
-#### E1309
+#### E1308
 
 `invalid vehicle reload resource` is returned when:
 

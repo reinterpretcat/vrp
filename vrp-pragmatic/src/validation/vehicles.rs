@@ -142,7 +142,7 @@ fn check_e1304_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result
     }
 }
 
-fn check_e1306_vehicle_dispatch_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1305_vehicle_dispatch_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(move |vehicle, shift, shift_time| {
@@ -173,7 +173,7 @@ fn check_e1306_vehicle_dispatch_is_correct(ctx: &ValidationContext) -> Result<()
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1306".to_string(),
+            "E1305".to_string(),
             "invalid dispatch in vehicle shift".to_string(),
             format!(
                 "ensure that all dispatch have proper dispatch parameters and unique locations. Vehicle type ids: '{}'",
@@ -184,7 +184,7 @@ fn check_e1306_vehicle_dispatch_is_correct(ctx: &ValidationContext) -> Result<()
 }
 
 /// Checks that vehicle area restrictions are valid.
-fn check_e1307_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1306_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = ctx
         .vehicles()
         .filter(|vehicle| {
@@ -198,7 +198,7 @@ fn check_e1307_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), 
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1307".to_string(),
+            "E1306".to_string(),
             "time and duration costs are zeros".to_string(),
             format!(
                 "ensure that either time or distance cost is non-zero, \
@@ -209,7 +209,7 @@ fn check_e1307_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), 
     }
 }
 
-fn check_e1308_vehicle_required_break_rescheduling(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1307_vehicle_required_break_rescheduling(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(|_, shift, _| {
@@ -231,14 +231,14 @@ fn check_e1308_vehicle_required_break_rescheduling(ctx: &ValidationContext) -> R
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1308".to_string(),
+            "E1307".to_string(),
             "required break is used with departure rescheduling".to_string(),
             format!("when required break is used, start.latest should be set equal to start.earliest in the shift, check vehicle type ids: '{}'", type_ids.join(", ")),
         ))
     }
 }
 
-fn check_e1309_vehicle_reload_resources(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1308_vehicle_reload_resources(ctx: &ValidationContext) -> Result<(), FormatError> {
     let reload_resource_ids = ctx
         .problem
         .fleet
@@ -254,7 +254,7 @@ fn check_e1309_vehicle_reload_resources(ctx: &ValidationContext) -> Result<(), F
 
     if reload_resource_ids.len() != unique_resource_ids.len() {
         return Err(FormatError::new(
-            "E1309".to_string(),
+            "E1308".to_string(),
             "invalid vehicle reload resource".to_string(),
             "make sure that fleet reload resource ids are unique".to_string(),
         ));
@@ -277,7 +277,7 @@ fn check_e1309_vehicle_reload_resources(ctx: &ValidationContext) -> Result<(), F
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1309".to_string(),
+            "E1308".to_string(),
             "invalid vehicle reload resource".to_string(),
             format!(
                 "make sure that fleet has all reload resources defined, check vehicle type ids: '{}'",
@@ -331,9 +331,9 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>
         check_e1302_vehicle_shift_time(ctx),
         check_e1303_vehicle_breaks_time_is_correct(ctx),
         check_e1304_vehicle_reload_time_is_correct(ctx),
-        check_e1306_vehicle_dispatch_is_correct(ctx),
-        check_e1307_vehicle_has_no_zero_costs(ctx),
-        check_e1308_vehicle_required_break_rescheduling(ctx),
-        check_e1309_vehicle_reload_resources(ctx),
+        check_e1305_vehicle_dispatch_is_correct(ctx),
+        check_e1306_vehicle_has_no_zero_costs(ctx),
+        check_e1307_vehicle_required_break_rescheduling(ctx),
+        check_e1308_vehicle_reload_resources(ctx),
     ])
 }
