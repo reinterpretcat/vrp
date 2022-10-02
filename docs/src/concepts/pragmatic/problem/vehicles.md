@@ -43,11 +43,6 @@ A vehicle types are defined by `fleet.vehicles` property and their schema has th
     - **maxDistance** (optional): max distance
     - **tourSize** (optional): max amount of activities in the tour (without departure/arrival). Please note, that
       clustered activities are counted as one in case of vicinity clustering.
-    - **areas** (optional): a list of areas where vehicle is allowed/preferred to serve jobs. Each area is defined by:
-        - **area_id** (required): one of area ids specified by `plan.areas`
-        - **job_value** (required): a value added to total value for each job served by the vehicle in given area
-
-        No area restrictions when omitted.
 
 An example:
 

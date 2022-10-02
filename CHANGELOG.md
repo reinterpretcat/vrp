@@ -4,10 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* `breaking`: combine objectives and constraint modules into feature concept
 
 ### Removed
 
-* area constraint as it needs rework
+* `breaking`: area constraint as it needs rework
 
 
 ## [v1.18.4]
