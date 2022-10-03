@@ -43,7 +43,7 @@ fn solve_problem_with_init(problem_path: &str) {
     let environment = Arc::new(Environment::default());
     let refinement_ctx = RefinementContext::new(
         problem.clone(),
-        create_elitism_population(problem.objective.clone(), environment.clone()),
+        create_elitism_population(problem.goal.clone(), environment.clone()),
         TelemetryMode::None,
         environment.clone(),
     );
