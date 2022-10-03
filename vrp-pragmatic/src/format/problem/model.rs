@@ -38,15 +38,6 @@ pub struct Relation {
     pub shift_index: Option<usize>,
 }
 
-/// An area is the way to control job execution order.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct Area {
-    /// An unique id of the area.
-    pub id: String,
-    /// List of job ids.
-    pub jobs: Vec<String>,
-}
-
 /// A job skills limitation for a vehicle.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -230,10 +221,6 @@ pub struct Plan {
     /// List of relations between jobs and vehicles.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relations: Option<Vec<Relation>>,
-
-    /// List of areas.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub areas: Option<Vec<Area>>,
 
     /// Specifies clustering parameters.
     #[serde(skip_serializing_if = "Option::is_none")]

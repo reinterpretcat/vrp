@@ -6,7 +6,6 @@ fn can_generate_bounding_box() {
     let plan = Plan {
         jobs: vec![create_test_job(-1., 1.), create_test_job(1., 0.), create_test_job(3., 1.), create_test_job(1., 2.)],
         relations: None,
-        areas: None,
         clustering: None,
     };
 
@@ -23,7 +22,6 @@ fn can_get_bounding_box_from_size() {
     let plan = Plan {
         jobs: vec![create_test_job(0., 1.), create_test_job(1., 0.), create_test_job(0., 0.), create_test_job(1., 1.)],
         relations: None,
-        areas: None,
         clustering: None,
     };
 

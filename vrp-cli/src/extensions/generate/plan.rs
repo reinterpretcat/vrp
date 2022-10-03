@@ -72,7 +72,7 @@ pub(crate) fn generate_plan(
         })
         .collect();
 
-    Ok(Plan { jobs, relations: None, areas: None, clustering: None })
+    Ok(Plan { jobs, relations: None, clustering: None })
 }
 
 type LocationFn = Box<dyn Fn(&DefaultRandom) -> Location>;

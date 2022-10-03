@@ -267,7 +267,7 @@ pub fn create_min_jobs_cost_objective() -> Option<Vec<Vec<Objective>>> {
 }
 
 pub fn create_empty_plan() -> Plan {
-    Plan { jobs: vec![], relations: None, areas: None, clustering: None }
+    Plan { jobs: vec![], relations: None, clustering: None }
 }
 
 pub fn create_empty_problem() -> Problem {
