@@ -233,7 +233,7 @@ fn get_violations(routes: &[RouteContext], order_fn: &TourOrderFn) -> usize {
 }
 
 fn get_single(activity: &Activity) -> Option<&Single> {
-    activity.job.as_ref().and_then(|single| Some(single.as_ref()))
+    activity.job.as_ref().map(|single| single.as_ref())
 }
 
 fn compare_order_results(left: OrderResult, right: OrderResult) -> Ordering {

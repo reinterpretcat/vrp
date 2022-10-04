@@ -27,17 +27,17 @@ vrp-scientific = { path = "../vrp-scientific", optional = true, version = "1.18.
 vrp-pragmatic = { path = "../vrp-pragmatic", version = "1.18.4" }
 
 csv = { version = "1.1.6", optional = true }
-serde_json = "1.0.83"
-serde = { version = "1.0.143", features = ["derive"] }
+serde_json = "1.0.85"
+serde = { version = "1.0.145", features = ["derive"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-clap = "3.2.17"
+clap = "4.0.9"
 ctrlc = { version = "3.2.3", features = ["termination"] }
 num_cpus = "1.13.1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { version = "0.2.82", features = ["serde-serialize"] }
-js-sys = "0.3.59"
+wasm-bindgen = { version = "0.2.83", features = ["serde-serialize"] }
+js-sys = "0.3.60"
 
 [dev-dependencies]
 tempfile = "3.3.0"

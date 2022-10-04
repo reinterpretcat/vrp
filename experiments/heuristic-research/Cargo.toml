@@ -19,12 +19,12 @@ crate-type = ["cdylib", "rlib"]
 rosomaxa = { path = "../../rosomaxa" }
 vrp-scientific = { path = "../../vrp-scientific"}
 
-serde = { version = "1.0.143", features = ["derive"] }
-serde_json = "1.0.83"
+serde = { version = "1.0.145", features = ["derive"] }
+serde_json = "1.0.85"
 
-plotters = "0.3.3"
+plotters = "0.3.4"
 plotters-canvas = "0.3.0"
-itertools = "0.10.3"
-wasm-bindgen = "0.2.82"
-web-sys = { version = "0.3.59", features = ["HtmlCanvasElement", "console"] }
+itertools = "0.10.5"
+wasm-bindgen = "0.2.83"
+web-sys = { version = "0.3.60", features = ["HtmlCanvasElement", "console"] }
 lazy_static = "1.4.0"

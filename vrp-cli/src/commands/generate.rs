@@ -17,71 +17,59 @@ pub const VEHICLES_SIZE_ARG_NAME: &str = "vehicles-size";
 pub const LOCATIONS_ARG_NAME: &str = "locations";
 pub const AREA_SIZE_ARG_NAME: &str = "area-size";
 
-pub fn get_generate_app() -> Command<'static> {
+pub fn get_generate_app() -> Command {
     Command::new("generate")
         .about("Provides the way to generate meaningful problems for testing")
-        .arg(
-            Arg::new(FORMAT_ARG_NAME)
-                .help("Specifies input type")
-                .required(true)
-                .possible_values(&["pragmatic"])
-                .index(1),
-        )
+        .arg(Arg::new(FORMAT_ARG_NAME).help("Specifies input type").required(true).value_parser(["pragmatic"]).index(1))
         .arg(
             Arg::new(PROTOTYPES_ARG_NAME)
                 .help("Sets input files which contains a VRP definition prototype")
                 .short('p')
                 .long(PROTOTYPES_ARG_NAME)
                 .required(true)
-                .takes_value(true)
-                .multiple_values(true),
+                .num_args(1..),
         )
         .arg(
             Arg::new(OUT_RESULT_ARG_NAME)
                 .help("Specifies path to the file for result output")
                 .short('o')
                 .long(OUT_RESULT_ARG_NAME)
-                .required(false)
-                .takes_value(true),
+                .required(false),
         )
         .arg(
             Arg::new(LOCATIONS_ARG_NAME)
                 .help("Specifies path to the file with a list of job locations")
                 .short('l')
                 .long(LOCATIONS_ARG_NAME)
-                .required(false)
-                .takes_value(true),
+                .required(false),
         )
         .arg(
             Arg::new(JOBS_SIZE_ARG_NAME)
                 .help("Amount of jobs in the plan of generated problem")
                 .short('j')
                 .long(JOBS_SIZE_ARG_NAME)
-                .required(true)
-                .takes_value(true),
+                .required(true),
         )
         .arg(
             Arg::new(VEHICLES_SIZE_ARG_NAME)
                 .help("Amount of vehicle types in the fleet of generated problem")
                 .short('v')
                 .long(VEHICLES_SIZE_ARG_NAME)
-                .required(true)
-                .takes_value(true),
+                .required(true),
         )
         .arg(
             Arg::new(AREA_SIZE_ARG_NAME)
                 .help("Half side size of job distribution bounding box. Center is calculated using prototype locations")
                 .short('a')
                 .long(AREA_SIZE_ARG_NAME)
-                .required(false)
-                .takes_value(true),
+                .required(false),
         )
 }
 
 pub fn run_generate(matches: &ArgMatches) -> Result<(), String> {
     match generate_problem_from_args(matches) {
         Ok((problem, input_format)) => {
-            let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out result"));
+            let out_result = matches.get_one::<String>(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out result"));
             let out_buffer = create_write_buffer(out_result);
 
             match input_format.as_str() {
@@ -95,13 +83,14 @@ pub fn run_generate(matches: &ArgMatches) -> Result<(), String> {
 }
 
 fn generate_problem_from_args(matches: &ArgMatches) -> Result<(Problem, String), String> {
-    let input_format = matches.value_of(FORMAT_ARG_NAME).unwrap();
+    let input_format = matches.get_one::<String>(FORMAT_ARG_NAME).unwrap();
 
     let input_files = matches
-        .values_of(PROTOTYPES_ARG_NAME)
-        .map(|paths: Values| paths.map(|path| BufReader::new(open_file(path, "input"))).collect::<Vec<_>>());
+        .get_many::<String>(PROTOTYPES_ARG_NAME)
+        .map(|paths| paths.map(|path| BufReader::new(open_file(path, "input"))).collect::<Vec<_>>());
 
-    let locations_file = matches.value_of(LOCATIONS_ARG_NAME).map(|path| BufReader::new(open_file(path, "locations")));
+    let locations_file =
+        matches.get_one::<String>(LOCATIONS_ARG_NAME).map(|path| BufReader::new(open_file(path, "locations")));
 
     let jobs_size = parse_int_value::<usize>(matches, JOBS_SIZE_ARG_NAME, "jobs size")?.unwrap();
     let vehicles_size = parse_int_value::<usize>(matches, VEHICLES_SIZE_ARG_NAME, "vehicles size")?.unwrap();

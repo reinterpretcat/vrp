@@ -75,6 +75,24 @@ fn can_specify_round_setting() {
 }
 
 #[test]
+fn can_specify_check_setting() {
+    let args = vec!["solve", "solomon", SOLOMON_PROBLEM_PATH, "--check"];
+    get_solve_app().try_get_matches_from(args).unwrap();
+}
+
+#[test]
+fn can_specify_log_setting() {
+    let args = vec!["solve", "solomon", SOLOMON_PROBLEM_PATH, "--log"];
+    get_solve_app().try_get_matches_from(args).unwrap();
+}
+
+#[test]
+fn can_specify_locations_setting() {
+    let args = vec!["solve", "solomon", SOLOMON_PROBLEM_PATH, "--get-locations"];
+    get_solve_app().try_get_matches_from(args).unwrap();
+}
+
+#[test]
 fn can_specify_heuristic_setting() {
     for &(mode, result) in
         &[("default", Some(())), ("dynamic", Some(())), ("static", Some(())), ("ggg", None), ("multi", None)]

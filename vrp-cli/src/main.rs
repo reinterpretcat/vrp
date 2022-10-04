@@ -27,7 +27,7 @@ mod cli {
         run_subcommand(get_app().get_matches());
     }
 
-    pub fn get_app() -> Command<'static> {
+    pub fn get_app() -> Command {
         Command::new("Vehicle Routing Problem Solver")
             .version("1.18.4")
             .author("Ilya Builuk <ilya.builuk@gmail.com>")
