@@ -9,6 +9,7 @@ This release is focused on internal improvements of core models.
 ### Changed
 
 * `breaking`: combine objectives and constraint modules into feature concept
+* change insertion position evaluation logic to speedup analysis
 
 ### Removed
 

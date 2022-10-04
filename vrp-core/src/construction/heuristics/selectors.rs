@@ -123,10 +123,8 @@ impl PositionInsertionEvaluator {
         }
     }
 
-    fn is_fold_jobs(ctx: &InsertionContext) -> bool {
-        // NOTE can be performance beneficial to use concrete strategy depending on jobs/routes ratio,
-        //      but this approach brings better exploration results
-        ctx.environment.random.is_head_not_tails()
+    fn is_fold_jobs(insertion_ctx: &InsertionContext) -> bool {
+        insertion_ctx.solution.required.len() > insertion_ctx.solution.routes.len()
     }
 }
 
