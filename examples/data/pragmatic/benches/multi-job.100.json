@@ -5444,7 +5444,9 @@
     [
       {
         "type": "minimize-unassigned"
-      },
+      }
+    ],
+    [
       {
         "type": "minimize-tours"
       }
