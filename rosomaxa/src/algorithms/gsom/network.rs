@@ -167,7 +167,7 @@ where
     }
 
     /// Return nodes in arbitrary order.
-    pub fn get_nodes<'a>(&'a self) -> impl Iterator<Item = &NodeLink<I, S>> + 'a {
+    pub fn get_nodes(&self) -> impl Iterator<Item = &NodeLink<I, S>> + '_ {
         self.nodes.values()
     }
 

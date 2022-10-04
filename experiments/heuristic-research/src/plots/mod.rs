@@ -138,7 +138,7 @@ fn get_solution_points(generation: usize) -> Vec<ColoredDataPoint3D> {
         .unwrap_or_else(Vec::new)
 }
 
-fn to_data_point<'a>(observations: &'a [ObservationData]) -> impl Iterator<Item = &DataPoint3D> + 'a {
+fn to_data_point(observations: &[ObservationData]) -> impl Iterator<Item = &DataPoint3D> + '_ {
     observations.iter().filter_map(|o| match o {
         ObservationData::Function(point) => Some(point),
         _ => None,

@@ -44,7 +44,7 @@ fn can_switch_phases() {
     assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
 
     for (idx, (termination_estimate, phase)) in
-        (&[(0.7, SelectionPhase::Exploration), (0.9, SelectionPhase::Exploitation)]).iter().enumerate()
+        ([(0.7, SelectionPhase::Exploration), (0.9, SelectionPhase::Exploitation)]).iter().enumerate()
     {
         rosomaxa.update_phase(&create_statistics(*termination_estimate, idx));
         assert_eq!(rosomaxa.selection_phase(), *phase);

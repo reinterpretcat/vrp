@@ -174,14 +174,7 @@ fn get_break_violation_count(solution: &Solution, tour: &Tour) -> usize {
     solution.violations.as_ref().map_or(0, |violations| {
         violations
             .iter()
-            .filter(|v| match v {
-                Violation::Break { vehicle_id, shift_index, .. }
-                    if *vehicle_id == tour.vehicle_id && *shift_index == tour.shift_index =>
-                {
-                    true
-                }
-                _ => false,
-            })
+            .filter(|v| matches!(v, Violation::Break { vehicle_id, shift_index, .. } if *vehicle_id == tour.vehicle_id && *shift_index == tour.shift_index))
             .count()
     })
 }
