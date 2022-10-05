@@ -56,6 +56,7 @@ pub mod prelude;
 pub mod termination;
 pub mod utils;
 
+use crate::algorithms::math::RemedianUsize;
 use crate::algorithms::nsga2::MultiObjective;
 use crate::evolution::{Telemetry, TelemetryMetrics, TelemetryMode};
 use crate::population::*;
@@ -239,12 +240,16 @@ pub enum HeuristicSpeed {
         ratio: f64,
         /// Average refinement speed in generations per second.
         average: f64,
+        /// Median estimation of running time for each generation (in ms).
+        median: usize,
     },
 
     /// Moderate speed.
     Moderate {
         /// Average refinement speed in generations per second.
         average: f64,
+        /// Median estimation of running time for each generation (in ms).
+        median: usize,
     },
 }
 

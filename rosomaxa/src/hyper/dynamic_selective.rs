@@ -3,7 +3,7 @@
 mod dynamic_selective_test;
 
 use super::*;
-use crate::algorithms::math::{relative_distance, Remedian};
+use crate::algorithms::math::{relative_distance, RemedianUsize};
 use crate::algorithms::mdp::*;
 use crate::utils::compare_floats;
 use crate::Timer;
@@ -21,10 +21,6 @@ pub type HeuristicSearchOperators<C, O, S> =
 /// A collection of heuristic diversify operators.
 pub type HeuristicDiversifyOperators<C, O, S> =
     Vec<Arc<dyn HeuristicDiversifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>>;
-
-/// Specifies a median estimator used to track medians of heuristic running time.
-/// Its values can be used to penalize instant heuristic reward.
-type RemedianUsize = Remedian<usize, fn(&usize, &usize) -> Ordering>;
 
 /// An experimental dynamic selective hyper heuristic which selects inner heuristics
 /// based on how they work during the search. The selection process is modeled by

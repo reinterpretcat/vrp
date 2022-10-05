@@ -4,7 +4,7 @@ mod distance;
 pub use self::distance::*;
 
 mod remedian;
-pub use self::remedian::Remedian;
+pub use self::remedian::{Remedian, RemedianUsize};
 
 mod statistics;
 pub use self::statistics::*;

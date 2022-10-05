@@ -4,6 +4,9 @@ mod remedian_test;
 
 use std::cmp::Ordering;
 
+/// Specifies a median estimator used to track medians of heuristic running time.
+pub type RemedianUsize = Remedian<usize, fn(&usize, &usize) -> Ordering>;
+
 /// A custom implementation of robust median estimator.
 ///
 /// References:

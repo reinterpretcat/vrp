@@ -7,7 +7,7 @@ mod telemetry_test;
 use crate::algorithms::math::relative_distance;
 use crate::prelude::*;
 use crate::utils::Timer;
-use crate::DynHeuristicPopulation;
+use crate::{DynHeuristicPopulation, RemedianUsize};
 use std::cmp::Ordering;
 use std::fmt::Write;
 use std::marker::PhantomData;
@@ -330,10 +330,11 @@ where
 
         let value = if let Some((gen, gen_time)) = gen_info {
             format!(
-                "[{}s] generation {} took {}ms, fitness: ({})",
+                "[{}s] generation {} took {}ms, (re)median: {}ms fitness: ({})",
                 self.time.elapsed_secs(),
                 gen,
                 gen_time.elapsed_millis(),
+                self.speed_tracker.median.approx_median().unwrap_or(0),
                 fitness
             )
         } else {
@@ -384,12 +385,20 @@ impl ImprovementTracker {
 struct SpeedTracker {
     initial_estimate: f64,
     initial_time: f64,
+    last_time: f64,
+    median: RemedianUsize,
     speed: HeuristicSpeed,
 }
 
 impl Default for SpeedTracker {
     fn default() -> Self {
-        Self { initial_estimate: 0., initial_time: 0., speed: HeuristicSpeed::Unknown }
+        Self {
+            initial_estimate: 0.,
+            initial_time: 0.,
+            last_time: 0.,
+            median: RemedianUsize::new(11, |a, b| a.cmp(b)),
+            speed: HeuristicSpeed::Unknown,
+        }
     }
 }
 
@@ -399,7 +408,11 @@ impl SpeedTracker {
         if generation == 0 {
             self.initial_estimate = termination_estimate;
             self.initial_time = elapsed;
+            self.last_time = elapsed;
         } else {
+            self.median.add_observation(((elapsed - self.last_time) / 1000.).round() as usize);
+            self.last_time = elapsed;
+
             // average gen/sec speed excluding initial solutions
             let average = if elapsed > self.initial_time {
                 generation as f64 / ((elapsed - self.initial_time) / 1_000_000.)
@@ -421,12 +434,13 @@ impl SpeedTracker {
             };
 
             let is_slow = compare_floats(ratio, 1.) == Ordering::Less;
+            let median = self.median.approx_median().unwrap_or(0);
 
             self.speed = match &self.speed {
                 HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } if !is_slow => {
-                    HeuristicSpeed::Moderate { average }
+                    HeuristicSpeed::Moderate { average, median }
                 }
-                _ => HeuristicSpeed::Slow { ratio, average },
+                _ => HeuristicSpeed::Slow { ratio, average, median },
             }
         }
     }
