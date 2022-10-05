@@ -330,7 +330,7 @@ where
 
         let value = if let Some((gen, gen_time)) = gen_info {
             format!(
-                "[{}s] generation {} took {}ms, (re)median: {}ms fitness: ({})",
+                "[{}s] generation {} took {}ms, median: {}ms fitness: ({})",
                 self.time.elapsed_secs(),
                 gen,
                 gen_time.elapsed_millis(),
@@ -410,7 +410,8 @@ impl SpeedTracker {
             self.initial_time = elapsed;
             self.last_time = elapsed;
         } else {
-            self.median.add_observation(((elapsed - self.last_time) / 1000.).round() as usize);
+            let duration = ((elapsed - self.last_time) / 1000.).round() as usize;
+            self.median.add_observation(duration);
             self.last_time = elapsed;
 
             // average gen/sec speed excluding initial solutions
