@@ -435,7 +435,7 @@ impl SpeedTracker {
             };
 
             let is_slow = compare_floats(ratio, 1.) == Ordering::Less;
-            let median = self.median.approx_median().unwrap_or(0);
+            let median = self.median.approx_median();
 
             self.speed = match &self.speed {
                 HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } if !is_slow => {

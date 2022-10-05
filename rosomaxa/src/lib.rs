@@ -241,7 +241,7 @@ pub enum HeuristicSpeed {
         /// Average refinement speed in generations per second.
         average: f64,
         /// Median estimation of running time for each generation (in ms).
-        median: usize,
+        median: Option<usize>,
     },
 
     /// Moderate speed.
@@ -249,8 +249,19 @@ pub enum HeuristicSpeed {
         /// Average refinement speed in generations per second.
         average: f64,
         /// Median estimation of running time for each generation (in ms).
-        median: usize,
+        median: Option<usize>,
     },
+}
+
+impl HeuristicSpeed {
+    /// Returns a median estimation of running time for each generation (in ms)
+    pub fn get_median(&self) -> Option<usize> {
+        match self {
+            HeuristicSpeed::Unknown => None,
+            HeuristicSpeed::Slow { median, .. } => *median,
+            HeuristicSpeed::Moderate { median, .. } => *median,
+        }
+    }
 }
 
 /// A trait which specifies object with state behavior.
