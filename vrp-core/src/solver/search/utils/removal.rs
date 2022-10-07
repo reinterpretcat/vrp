@@ -3,9 +3,11 @@
 mod removal_test;
 
 use crate::construction::heuristics::*;
-use crate::models::problem::Job;
+use crate::models::problem::{Actor, Job};
+use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
 use rosomaxa::prelude::Random;
+use std::sync::Arc;
 
 /// Specifies a limit for amount of jobs to be removed.
 pub struct RuinLimitsEx {
@@ -19,14 +21,16 @@ pub struct RuinLimitsEx {
 
 /// A helper logic to keep amount of jobs/routes removed under control.
 #[derive(Clone)]
-pub struct JobRemoval {
+pub struct JobRemovalTracker {
     jobs_left: i32,
     activities_left: i32,
     routes_left: i32,
     has_fully_removed_routes: bool,
+    affected_actors: HashSet<Arc<Actor>>,
+    removed_jobs: HashSet<Job>,
 }
 
-impl JobRemoval {
+impl JobRemovalTracker {
     /// Creates a new instance of `JobRemoval`.
     pub fn new(limits: &RuinLimitsEx) -> Self {
         Self {
@@ -34,7 +38,21 @@ impl JobRemoval {
             activities_left: limits.max_ruined_activities as i32,
             routes_left: limits.max_affected_routes as i32,
             has_fully_removed_routes: false,
+            affected_actors: HashSet::default(),
+            removed_jobs: HashSet::default(),
         }
+    }
+
+    pub fn is_affected_actor(&self, actor: &Actor) -> bool {
+        self.affected_actors.contains(actor)
+    }
+
+    pub fn is_removed_job(&self, job: &Job) -> bool {
+        self.removed_jobs.contains(job)
+    }
+
+    pub fn is_limit(&self) -> bool {
+        self.activities_left == 0 || self.jobs_left == 0 || self.routes_left == 0
     }
 
     /// Tries to remove a job from the route.
@@ -47,6 +65,9 @@ impl JobRemoval {
         self.jobs_left -= 1;
 
         if route_ctx.route_mut().tour.remove(job) {
+            self.removed_jobs.insert(job.clone());
+            self.affected_actors.insert(route_ctx.route.actor.clone());
+
             solution.required.push(job.clone());
             true
         } else {
@@ -115,11 +136,17 @@ impl JobRemoval {
             (self.activities_left - jobs.iter().map(get_total_activities).sum::<usize>() as i32).max(0);
         self.jobs_left = (self.jobs_left - jobs.len() as i32).max(0);
 
+        jobs.iter().for_each(|job| {
+            self.removed_jobs.insert(job.clone());
+        });
+
         solution.required.extend(jobs.into_iter());
         solution.routes.retain(|rc| rc != route_ctx);
         solution.registry.free_route(route_ctx);
 
+        self.affected_actors.insert(route_ctx.route.actor.clone());
         self.routes_left = (self.routes_left - 1).max(0);
+
         self.has_fully_removed_routes = true;
     }
 
