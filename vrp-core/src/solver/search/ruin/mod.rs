@@ -1,8 +1,12 @@
 //! The ruin module contains various strategies to destroy small, medium or large parts of an
 //! existing solution.
 
-use crate::construction::heuristics::InsertionContext;
+use crate::construction::heuristics::*;
+use crate::models::problem::{Actor, Job};
 use crate::solver::RefinementContext;
+use hashbrown::HashSet;
+use rand::prelude::SliceRandom;
+use rosomaxa::prelude::*;
 use std::sync::{Arc, RwLock};
 
 /// A trait which specifies logic to destroy parts of solution.
@@ -28,8 +32,6 @@ pub use self::random_job_removal::RandomJobRemoval;
 
 mod worst_jobs_removal;
 pub use self::worst_jobs_removal::WorstJobRemoval;
-use crate::models::problem::{Actor, Job};
-use hashbrown::HashSet;
 
 /// A type which specifies a group of multiple ruin strategies with their probability.
 pub type RuinGroup = (Vec<(Arc<dyn Ruin + Send + Sync>, f64)>, usize);

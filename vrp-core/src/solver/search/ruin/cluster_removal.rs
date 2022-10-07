@@ -9,8 +9,6 @@ use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::search::get_route_jobs;
 use crate::solver::RefinementContext;
-use rand::prelude::*;
-use rosomaxa::prelude::*;
 use std::sync::Arc;
 
 /// A ruin strategy which removes job clusters using DBSCAN algorithm.

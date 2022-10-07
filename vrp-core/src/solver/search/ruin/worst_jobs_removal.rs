@@ -10,7 +10,6 @@ use crate::models::solution::{Activity, Route};
 use crate::solver::search::get_route_jobs;
 use crate::solver::RefinementContext;
 use hashbrown::HashMap;
-use rand::prelude::*;
 use rosomaxa::utils::parallel_collect;
 use std::cmp::Ordering::Less;
 use std::iter::once;
