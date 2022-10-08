@@ -271,7 +271,7 @@ pub enum RuinMethod {
     /// Clustered jobs removal method.
     #[serde(rename(deserialize = "cluster"))]
     #[serde(rename_all = "camelCase")]
-    Cluster { probability: f64, min: usize, max: usize, threshold: f64, min_items: usize },
+    Cluster { probability: f64, min: usize, max: usize, min_items: usize },
 }
 
 /// Specifies recreate methods with their probability weight and specific parameters.
@@ -692,12 +692,13 @@ fn create_ruin_method(
         RuinMethod::WorstJob { probability, min, max, threshold, skip: worst_skip } => {
             (Arc::new(WorstJobRemoval::new(*worst_skip, RuinLimits::new(*min, *max, *threshold, 8))), *probability)
         }
-        RuinMethod::Cluster { probability, min, max, threshold, min_items } => (
+        RuinMethod::Cluster { probability, min, max, min_items } => (
             Arc::new(ClusterRemoval::new(
                 problem.clone(),
                 environment,
                 *min_items,
-                RuinLimits::new(*min, *max, *threshold, 8),
+                RemovalLimits { removed_activities_range: *min..*max, ..RemovalLimits::new(problem.as_ref()) },
+                //RuinLimits::new(*min, *max, *threshold, 8),
             )),
             *probability,
         ),

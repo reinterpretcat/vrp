@@ -28,8 +28,9 @@ fn can_create_ruin_cluster_with_default_params() {
 #[test]
 fn can_handle_empty_problem() {
     let problem = create_empty_problem();
+    let limits = RemovalLimits::new(&problem);
 
-    let removal = ClusterRemoval::new(problem, Arc::new(Environment::default()), 3, RuinLimits::default());
+    let removal = ClusterRemoval::new(problem, Arc::new(Environment::default()), 3, limits);
 
     assert!(removal.clusters.is_empty());
 }
@@ -45,7 +46,7 @@ can_ruin_jobs! {
 }
 
 fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
-    let limit = RuinLimits::new(limit, limit, 1., 8);
+    let limits = RemovalLimits { removed_activities_range: limit..limit, affected_routes_range: 8..8 };
     let (problem, solution) = generate_matrix_routes(
         8,
         1,
@@ -59,7 +60,7 @@ fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
     let environment = Arc::new(Environment::default());
     let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone());
 
-    let insertion_ctx = ClusterRemoval::new(problem, environment, min_items, limit)
+    let insertion_ctx = ClusterRemoval::new(problem, environment, min_items, limits)
         .run(&create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
 
     assert_eq!(insertion_ctx.solution.unassigned.len(), 0);
