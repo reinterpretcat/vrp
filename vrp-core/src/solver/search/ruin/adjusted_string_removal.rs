@@ -9,7 +9,7 @@ use crate::models::solution::Tour;
 use crate::solver::search::{select_seed_jobs, JobRemovalTracker, RemovalLimits};
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::Random;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 /// _Adjusted string removal_ ruin strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" by Jan Christiaens, Greet Vanden Berghe.
@@ -59,20 +59,20 @@ impl Ruin for AdjustedStringRemoval {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.environment.random.clone();
         let mut routes = insertion_ctx.solution.routes.clone();
+        let tracker = RwLock::new(JobRemovalTracker::new(&self.limits, random.as_ref()));
 
-        let (lsmax, ks) = self.calculate_limits(&insertion_ctx.solution.routes, &random);
+        let (lsmax, ks) = self.calculate_limits(&routes, &random);
 
-        let mut tracker = JobRemovalTracker::new(&self.limits, random.as_ref());
-
-        select_seed_jobs(&problem, &insertion_ctx.solution.routes, &random)
-            .filter(|job| !tracker.is_removed_job(job))
-            .take_while(|_| tracker.get_affected_actors() != ks)
-            .collect::<Vec<_>>()
-            .into_iter()
+        select_seed_jobs(&problem, &routes, &random)
+            .filter(|job| !tracker.read().unwrap().is_removed_job(job))
+            .take_while(|_| tracker.read().unwrap().get_affected_actors() != ks)
             .for_each(|job| {
                 routes
                     .iter_mut()
-                    .find(|rc| !tracker.is_affected_actor(&rc.route.actor) && rc.route.tour.index(&job).is_some())
+                    .find(|route_ctx| {
+                        !tracker.read().unwrap().is_affected_actor(&route_ctx.route.actor)
+                            && route_ctx.route.tour.index(&job).is_some()
+                    })
                     .iter_mut()
                     .for_each(|route_ctx| {
                         // Equations 8, 9: calculate cardinality of the string removed from the tour
@@ -84,7 +84,11 @@ impl Ruin for AdjustedStringRemoval {
                                 .collect::<Vec<Job>>()
                                 .into_iter()
                                 .for_each(|job| {
-                                    tracker.try_remove_job(&mut insertion_ctx.solution, route_ctx, &job);
+                                    tracker.write().unwrap().try_remove_job(
+                                        &mut insertion_ctx.solution,
+                                        route_ctx,
+                                        &job,
+                                    );
                                 });
                         }
                     });
