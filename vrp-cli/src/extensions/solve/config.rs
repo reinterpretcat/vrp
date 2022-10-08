@@ -250,7 +250,7 @@ pub enum RuinMethod {
     AdjustedString { probability: f64, lmax: usize, cavg: usize, alpha: f64 },
     /// Neighbour jobs method
     #[serde(rename(deserialize = "neighbour"))]
-    Neighbour { probability: f64, min: usize, max: usize, threshold: f64 },
+    Neighbour { probability: f64, min: usize, max: usize },
     /// Random job removal method.
     #[serde(rename(deserialize = "random-job"))]
     RandomJob { probability: f64, min: usize, max: usize, threshold: f64 },
@@ -676,12 +676,17 @@ fn create_ruin_method(
     method: &RuinMethod,
 ) -> (Arc<dyn Ruin + Send + Sync>, f64) {
     let limits = RemovalLimits::new(problem.as_ref());
+    let get_limits = |min: usize, max: usize| RemovalLimits {
+        removed_activities_range: min..max,
+        ..RemovalLimits::new(problem.as_ref())
+    };
+
     match method {
         RuinMethod::AdjustedString { probability, lmax, cavg, alpha } => {
             (Arc::new(AdjustedStringRemoval::new(*lmax, *cavg, *alpha, limits)), *probability)
         }
-        RuinMethod::Neighbour { probability, min, max, threshold } => {
-            (Arc::new(NeighbourRemoval::new(RuinLimits::new(*min, *max, *threshold, 8))), *probability)
+        RuinMethod::Neighbour { probability, min, max } => {
+            (Arc::new(NeighbourRemoval::new(get_limits(*min, *max))), *probability)
         }
         RuinMethod::RandomJob { probability, min, max, threshold } => {
             (Arc::new(RandomJobRemoval::new(RuinLimits::new(*min, *max, *threshold, 8))), *probability)
@@ -693,13 +698,7 @@ fn create_ruin_method(
             (Arc::new(WorstJobRemoval::new(*worst_skip, RuinLimits::new(*min, *max, *threshold, 8))), *probability)
         }
         RuinMethod::Cluster { probability, min, max, min_items } => (
-            Arc::new(ClusterRemoval::new(
-                problem.clone(),
-                environment,
-                *min_items,
-                RemovalLimits { removed_activities_range: *min..*max, ..RemovalLimits::new(problem.as_ref()) },
-                //RuinLimits::new(*min, *max, *threshold, 8),
-            )),
+            Arc::new(ClusterRemoval::new(problem.clone(), environment, *min_items, get_limits(*min, *max))),
             *probability,
         ),
         RuinMethod::CloseRoute { probability } => (Arc::new(CloseRouteRemoval::default()), *probability),

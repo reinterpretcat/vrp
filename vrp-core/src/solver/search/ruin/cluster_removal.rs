@@ -52,9 +52,7 @@ impl Ruin for ClusterRemoval {
                 .take_while(|_| !tracker.read().unwrap().is_limit())
                 .for_each(|job| {
                     if let Some(route_ctx) = route_jobs.get_mut(job) {
-                        if route_ctx.route.tour.contains(job) {
-                            tracker.write().unwrap().try_remove_job(&mut insertion_ctx.solution, route_ctx, job);
-                        }
+                        tracker.write().unwrap().try_remove_job(&mut insertion_ctx.solution, route_ctx, job);
                     }
                 });
         });

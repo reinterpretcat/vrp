@@ -331,7 +331,7 @@ mod statik {
                 ],
                 100,
             ),
-            (vec![(Arc::new(NeighbourRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
+            (vec![(Arc::new(NeighbourRemoval::new(limits.clone())), 1.), (random_ruin.clone(), 0.1)], 10),
             (vec![(Arc::new(WorstJobRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
             (
                 vec![
@@ -408,7 +408,7 @@ mod dynamic {
 
         let ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String)> = vec![
             (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), "asr".to_string()),
-            (Arc::new(NeighbourRemoval::default()), "neighbour_removal".to_string()),
+            (Arc::new(NeighbourRemoval::new(limits.clone())), "neighbour_removal".to_string()),
             (
                 Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment.clone())),
                 "cluster_removal".to_string(),
@@ -508,7 +508,7 @@ mod dynamic {
                 ],
                 10,
             ),
-            (vec![(Arc::new(NeighbourRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
+            (vec![(Arc::new(NeighbourRemoval::new(limits)), 1.), (random_ruin.clone(), 0.1)], 10),
             (vec![(Arc::new(WorstJobRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
             (
                 vec![
