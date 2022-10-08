@@ -317,11 +317,11 @@ mod statik {
         ]));
 
         // initialize ruin
-        let close_route = Arc::new(CloseRouteRemoval::default());
-        let worst_route = Arc::new(WorstRouteRemoval::default());
-        let random_route = Arc::new(RandomRouteRemoval::default());
-        let random_job = Arc::new(RandomJobRemoval::new(RuinLimits::default()));
-        let random_ruin = create_default_random_ruin();
+        let close_route = Arc::new(CloseRouteRemoval::new(limits.clone()));
+        let worst_route = Arc::new(WorstRouteRemoval::new(limits.clone()));
+        let random_route = Arc::new(RandomRouteRemoval::new(limits.clone()));
+        let random_job = Arc::new(RandomJobRemoval::new(limits.clone()));
+        let random_ruin = create_default_random_ruin(problem.as_ref());
 
         let ruin = Arc::new(WeightedRuin::new(vec![
             (
@@ -352,12 +352,14 @@ mod statik {
     }
 
     /// Creates default random ruin method.
-    pub fn create_default_random_ruin() -> Arc<dyn Ruin + Send + Sync> {
+    pub fn create_default_random_ruin(problem: &Problem) -> Arc<dyn Ruin + Send + Sync> {
+        let limits = RemovalLimits::new(problem);
+
         Arc::new(WeightedRuin::new(vec![
-            (vec![(Arc::new(CloseRouteRemoval::default()), 1.)], 100),
-            (vec![(Arc::new(RandomRouteRemoval::default()), 1.)], 10),
-            (vec![(Arc::new(WorstRouteRemoval::default()), 1.)], 5),
-            (vec![(Arc::new(RandomJobRemoval::new(RuinLimits::default())), 1.)], 2),
+            (vec![(Arc::new(CloseRouteRemoval::new(limits.clone())), 1.)], 100),
+            (vec![(Arc::new(RandomRouteRemoval::new(limits.clone())), 1.)], 10),
+            (vec![(Arc::new(WorstRouteRemoval::new(limits.clone())), 1.)], 5),
+            (vec![(Arc::new(RandomJobRemoval::new(limits)), 1.)], 2),
         ]))
     }
 
@@ -414,11 +416,12 @@ mod dynamic {
                 "cluster_removal".to_string(),
             ),
             (Arc::new(WorstJobRemoval::default()), "worst_job".to_string()),
-            (Arc::new(RandomJobRemoval::new(RuinLimits::default())), "random_job_removal_1".to_string()),
-            (Arc::new(RandomJobRemoval::new(RuinLimits::new(2, 8, 0.2, 2))), "random_job_removal_2".to_string()),
-            (Arc::new(RandomRouteRemoval::default()), "random_route_removal".to_string()),
-            (Arc::new(CloseRouteRemoval::default()), "close_route_removal".to_string()),
-            (Arc::new(WorstRouteRemoval::default()), "worst_route_removal".to_string()),
+            (Arc::new(RandomJobRemoval::new(limits.clone())), "random_job_removal_1".to_string()),
+            // TODO use different limits
+            (Arc::new(RandomJobRemoval::new(limits.clone())), "random_job_removal_2".to_string()),
+            (Arc::new(RandomRouteRemoval::new(limits.clone())), "random_route_removal".to_string()),
+            (Arc::new(CloseRouteRemoval::new(limits.clone())), "close_route_removal".to_string()),
+            (Arc::new(WorstRouteRemoval::new(limits.clone())), "worst_route_removal".to_string()),
         ];
 
         // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
@@ -493,8 +496,9 @@ mod dynamic {
         ]));
 
         // initialize ruin
-        let random_route = Arc::new(RandomRouteRemoval::new(1, 2, 0.1));
-        let random_job = Arc::new(RandomJobRemoval::new(RuinLimits::new(2, 6, 0.25, 1)));
+        let random_route = Arc::new(RandomRouteRemoval::new(limits.clone()));
+        // TODO use different limits
+        let random_job = Arc::new(RandomJobRemoval::new(limits.clone()));
         let random_ruin = Arc::new(WeightedRuin::new(vec![
             (vec![(random_job.clone(), 1.)], 2),
             (vec![(random_route.clone(), 1.)], 1),

@@ -82,7 +82,7 @@ impl JobRemovalTracker {
         route_ctx: &mut RouteContext,
         random: &(dyn Random + Send + Sync),
     ) -> bool {
-        if self.routes_left == 0 {
+        if self.routes_left == 0 || self.activities_left == 0 {
             return false;
         }
 

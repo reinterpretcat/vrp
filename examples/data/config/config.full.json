@@ -162,8 +162,7 @@
                 "probability": 1,
                 "type": "neighbour",
                 "min": 8,
-                "max": 16,
-                "threshold": 0.1
+                "max": 16
               },
               {
                 "type": "random-ruin",
@@ -179,8 +178,7 @@
                 "type": "worst-job",
                 "skip": 4,
                 "min": 8,
-                "max": 16,
-                "threshold": 0.1
+                "max": 16
               },
               {
                 "type": "random-ruin",
@@ -215,8 +213,7 @@
                 "probability": 0.1,
                 "type": "random-job",
                 "min": 8,
-                "max": 16,
-                "threshold": 0.1
+                "max": 16
               }
             ]
           },
@@ -231,8 +228,7 @@
                 "probability": 0.1,
                 "type": "random-job",
                 "min": 8,
-                "max": 16,
-                "threshold": 0.1
+                "max": 16
               }
             ]
           },
@@ -243,15 +239,13 @@
                 "probability": 1,
                 "type": "random-route",
                 "min": 1,
-                "max": 4,
-                "threshold": 0.1
+                "max": 4
               },
               {
                 "probability": 0.1,
                 "type": "random-job",
                 "min": 8,
-                "max": 16,
-                "threshold": 0.1
+                "max": 16
               }
             ]
           }

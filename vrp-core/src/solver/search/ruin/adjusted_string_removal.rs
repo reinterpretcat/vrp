@@ -55,7 +55,7 @@ impl AdjustedStringRemoval {
 }
 
 impl Ruin for AdjustedStringRemoval {
-    fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.environment.random.clone();
         let mut routes = insertion_ctx.solution.routes.clone();

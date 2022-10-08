@@ -253,10 +253,10 @@ pub enum RuinMethod {
     Neighbour { probability: f64, min: usize, max: usize },
     /// Random job removal method.
     #[serde(rename(deserialize = "random-job"))]
-    RandomJob { probability: f64, min: usize, max: usize, threshold: f64 },
+    RandomJob { probability: f64, min: usize, max: usize },
     /// Random route removal method.
     #[serde(rename(deserialize = "random-route"))]
-    RandomRoute { probability: f64, min: usize, max: usize, threshold: f64 },
+    RandomRoute { probability: f64, min: usize, max: usize },
     /// Close route removal method.
     #[serde(rename(deserialize = "close-route"))]
     CloseRoute { probability: f64 },
@@ -267,7 +267,7 @@ pub enum RuinMethod {
     RandomRuin { probability: f64 },
     /// Worst job removal method.
     #[serde(rename(deserialize = "worst-job"))]
-    WorstJob { probability: f64, min: usize, max: usize, threshold: f64, skip: usize },
+    WorstJob { probability: f64, min: usize, max: usize, skip: usize },
     /// Clustered jobs removal method.
     #[serde(rename(deserialize = "cluster"))]
     #[serde(rename_all = "camelCase")]
@@ -688,22 +688,22 @@ fn create_ruin_method(
         RuinMethod::Neighbour { probability, min, max } => {
             (Arc::new(NeighbourRemoval::new(get_limits(*min, *max))), *probability)
         }
-        RuinMethod::RandomJob { probability, min, max, threshold } => {
-            (Arc::new(RandomJobRemoval::new(RuinLimits::new(*min, *max, *threshold, 8))), *probability)
+        RuinMethod::RandomJob { probability, min, max } => {
+            (Arc::new(RandomJobRemoval::new(get_limits(*min, *max))), *probability)
         }
-        RuinMethod::RandomRoute { probability, min, max, threshold } => {
-            (Arc::new(RandomRouteRemoval::new(*min, *max, *threshold)), *probability)
+        RuinMethod::RandomRoute { probability, min, max } => {
+            (Arc::new(RandomRouteRemoval::new(get_limits(*min, *max))), *probability)
         }
-        RuinMethod::WorstJob { probability, min, max, threshold, skip: worst_skip } => {
-            (Arc::new(WorstJobRemoval::new(*worst_skip, RuinLimits::new(*min, *max, *threshold, 8))), *probability)
+        RuinMethod::WorstJob { probability, min, max, skip: worst_skip } => {
+            (Arc::new(WorstJobRemoval::new(*worst_skip, RuinLimits::new(*min, *max, 0.1, 8))), *probability)
         }
         RuinMethod::Cluster { probability, min, max, min_items } => (
             Arc::new(ClusterRemoval::new(problem.clone(), environment, *min_items, get_limits(*min, *max))),
             *probability,
         ),
-        RuinMethod::CloseRoute { probability } => (Arc::new(CloseRouteRemoval::default()), *probability),
-        RuinMethod::WorstRoute { probability } => (Arc::new(WorstRouteRemoval::default()), *probability),
-        RuinMethod::RandomRuin { probability } => (create_default_random_ruin(), *probability),
+        RuinMethod::CloseRoute { probability } => (Arc::new(CloseRouteRemoval::new(limits)), *probability),
+        RuinMethod::WorstRoute { probability } => (Arc::new(WorstRouteRemoval::new(limits)), *probability),
+        RuinMethod::RandomRuin { probability } => (create_default_random_ruin(problem.as_ref()), *probability),
     }
 }
 

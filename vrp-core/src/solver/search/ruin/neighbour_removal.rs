@@ -17,7 +17,7 @@ impl NeighbourRemoval {
 }
 
 impl Ruin for NeighbourRemoval {
-    fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.environment.random.clone();
 
@@ -26,8 +26,7 @@ impl Ruin for NeighbourRemoval {
 
         select_seed_jobs(&problem, &routes, &random).take_while(|_| !tracker.read().unwrap().is_limit()).for_each(
             |job| {
-                let route_ctx =
-                    insertion_ctx.solution.routes.iter_mut().find(|rc| rc.route.tour.contains(&job)).cloned();
+                let route_ctx = routes.iter().find(|rc| rc.route.tour.contains(&job)).cloned();
                 if let Some(mut route_ctx) = route_ctx {
                     tracker.write().unwrap().try_remove_job(&mut insertion_ctx.solution, &mut route_ctx, &job);
                 }

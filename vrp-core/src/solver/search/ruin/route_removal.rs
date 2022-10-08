@@ -3,47 +3,34 @@
 mod route_removal_test;
 
 use super::*;
-use crate::models::problem::Job;
+use crate::solver::search::JobRemovalTracker;
 use crate::solver::RefinementContext;
 use rand::prelude::SliceRandom;
 
 /// A ruin strategy which removes random route from solution.
 pub struct RandomRouteRemoval {
-    /// Specifies minimum amount of removed routes.
-    min: f64,
-    /// Specifies maximum amount of removed routes.
-    max: f64,
-    /// Specifies threshold ratio of maximum removed routes.
-    threshold: f64,
+    limits: RemovalLimits,
 }
 
 impl RandomRouteRemoval {
     /// Creates a new instance of `RandomRouteRemoval`.
-    pub fn new(rmin: usize, rmax: usize, threshold: f64) -> Self {
-        Self { min: rmin as f64, max: rmax as f64, threshold }
-    }
-}
-
-impl Default for RandomRouteRemoval {
-    fn default() -> Self {
-        Self::new(1, 4, 0.1)
+    pub fn new(limits: RemovalLimits) -> Self {
+        Self { limits }
     }
 }
 
 impl Ruin for RandomRouteRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let random = insertion_ctx.environment.random.clone();
-        let max = (insertion_ctx.solution.routes.len() as f64 * self.threshold).max(self.min).round() as usize;
-        let affected = random
-            .uniform_int(self.min as i32, self.max as i32)
-            .min(insertion_ctx.solution.routes.len().min(max) as i32) as usize;
+        let affected = self.limits.affected_routes_range.end.min(insertion_ctx.solution.routes.len());
+        let mut tracker = JobRemovalTracker::new(&self.limits, random.as_ref());
 
         (0..affected).for_each(|_| {
             let route_index = random.uniform_int(0, (insertion_ctx.solution.routes.len() - 1) as i32) as usize;
             let solution = &mut insertion_ctx.solution;
             let route_ctx = &mut solution.routes.get(route_index).unwrap().clone();
 
-            remove_route(solution, route_ctx, random.as_ref())
+            tracker.try_remove_route(solution, route_ctx, random.as_ref());
         });
 
         insertion_ctx
@@ -51,11 +38,24 @@ impl Ruin for RandomRouteRemoval {
 }
 
 /// Removes a few random, close to each other, routes from solution.
-#[derive(Default)]
-pub struct CloseRouteRemoval {}
+pub struct CloseRouteRemoval {
+    limits: RemovalLimits,
+}
+
+impl CloseRouteRemoval {
+    /// Creates a new instance of `CloseRouteRemoval`.
+    pub fn new(limits: RemovalLimits) -> Self {
+        assert!(limits.affected_routes_range.start > 1);
+        Self { limits }
+    }
+}
 
 impl Ruin for CloseRouteRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
+        if insertion_ctx.solution.routes.is_empty() {
+            return insertion_ctx;
+        }
+
         if let Some(route_groups_distances) = group_routes_by_proximity(&insertion_ctx) {
             let random = insertion_ctx.environment.random.clone();
 
@@ -73,18 +73,13 @@ impl Ruin for CloseRouteRemoval {
                 random.uniform_int(0, (route_groups_distances.len() - 1) as i32) as usize
             };
 
-            let take_count = random.uniform_int(2, 3) as usize;
-
             #[allow(clippy::needless_collect)]
             let routes = route_groups_distances[route_index]
                 .iter()
-                .take(take_count)
                 .filter_map(|(idx, _)| insertion_ctx.solution.routes.get(*idx).cloned())
                 .collect::<Vec<_>>();
 
-            routes.into_iter().for_each(|mut route_ctx| {
-                remove_route(&mut insertion_ctx.solution, &mut route_ctx, random.as_ref());
-            });
+            remove_routes(&mut insertion_ctx.solution, &self.limits, random.as_ref(), routes.into_iter());
         }
 
         insertion_ctx
@@ -92,11 +87,23 @@ impl Ruin for CloseRouteRemoval {
 }
 
 /// Removes a "worst" routes: e.g. the smallest ones.
-#[derive(Default)]
-pub struct WorstRouteRemoval {}
+pub struct WorstRouteRemoval {
+    limits: RemovalLimits,
+}
+
+impl WorstRouteRemoval {
+    /// Creates a new instance of `WorstRouteRemoval`.
+    pub fn new(limits: RemovalLimits) -> Self {
+        Self { limits }
+    }
+}
 
 impl Ruin for WorstRouteRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
+        if insertion_ctx.solution.routes.is_empty() {
+            return insertion_ctx;
+        }
+
         let random = insertion_ctx.environment.random.clone();
 
         let mut route_sizes = insertion_ctx
@@ -113,73 +120,28 @@ impl Ruin for WorstRouteRemoval {
         let shuffle_amount = (route_sizes.len() as f64 * 0.25) as usize;
         route_sizes.partial_shuffle(&mut random.get_rng(), shuffle_amount);
 
-        let remove_count = if random.is_hit(0.2) { 2 } else { 1 }.min(route_sizes.len());
-
         #[allow(clippy::needless_collect)]
         let routes = route_sizes
             .iter()
-            .take(remove_count)
             .filter_map(|(idx, _)| insertion_ctx.solution.routes.get(*idx).cloned())
             .collect::<Vec<_>>();
 
-        routes.into_iter().for_each(|mut route_ctx| {
-            remove_route(&mut insertion_ctx.solution, &mut route_ctx, random.as_ref());
-        });
+        remove_routes(&mut insertion_ctx.solution, &self.limits, random.as_ref(), routes.into_iter());
 
         insertion_ctx
     }
 }
 
-fn remove_route(solution: &mut SolutionContext, route_ctx: &mut RouteContext, random: &(dyn Random + Send + Sync)) {
-    if can_remove_full_route(solution, route_ctx, random) {
-        remove_whole_route(solution, route_ctx);
-    } else {
-        remove_part_route(solution, route_ctx, random);
-    }
-}
-
-fn remove_whole_route(solution: &mut SolutionContext, route_ctx: &RouteContext) {
-    solution.routes.retain(|rc| rc != route_ctx);
-    solution.registry.free_route(route_ctx);
-    solution.required.extend(route_ctx.route.tour.jobs());
-}
-
-fn remove_part_route(
-    solution: &mut SolutionContext,
-    route_ctx: &mut RouteContext,
+fn remove_routes<Iter>(
+    solution_ctx: &mut SolutionContext,
+    limits: &RemovalLimits,
     random: &(dyn Random + Send + Sync),
-) {
-    const JOB_ACTIVITY_THRESHOLD: usize = 16;
-
-    let locked = solution.locked.clone();
-
-    let mut jobs: Vec<Job> = route_ctx.route.tour.jobs().filter(|job| !locked.contains(job)).collect();
-
-    jobs.shuffle(&mut random.get_rng());
-    jobs.truncate(JOB_ACTIVITY_THRESHOLD);
-
-    jobs.iter().for_each(|job| {
-        route_ctx.route_mut().tour.remove(job);
+    routes: Iter,
+) where
+    Iter: Iterator<Item = RouteContext>,
+{
+    let mut tracker = JobRemovalTracker::new(limits, random);
+    routes.for_each(|mut route_ctx| {
+        tracker.try_remove_route(solution_ctx, &mut route_ctx, random);
     });
-    solution.required.extend(jobs);
-}
-
-fn can_remove_full_route(
-    solution: &SolutionContext,
-    route_ctx: &mut RouteContext,
-    random: &(dyn Random + Send + Sync),
-) -> bool {
-    const JOB_ACTIVITY_THRESHOLD: usize = 24;
-    const ROUTES_THRESHOLD: usize = 4;
-    const REMOVAL_PROBABILITY: f64 = 0.25;
-
-    let no_locked_jobs =
-        solution.locked.is_empty() || route_ctx.route.tour.jobs().all(|job| !solution.locked.contains(&job));
-    let job_activities = route_ctx.route.tour.job_activity_count();
-
-    if job_activities > JOB_ACTIVITY_THRESHOLD || solution.routes.len() < ROUTES_THRESHOLD {
-        no_locked_jobs && random.is_hit(REMOVAL_PROBABILITY)
-    } else {
-        no_locked_jobs
-    }
 }
