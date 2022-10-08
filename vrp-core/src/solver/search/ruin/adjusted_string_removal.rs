@@ -2,15 +2,14 @@
 #[path = "../../../../tests/unit/solver/search/ruin/adjusted_string_removal_test.rs"]
 mod adjusted_string_removal_test;
 
-use std::sync::Arc;
-
 use super::Ruin;
 use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::problem::Job;
 use crate::models::solution::Tour;
-use crate::solver::search::{select_seed_jobs, RuinLimits};
+use crate::solver::search::{select_seed_jobs, JobRemovalTracker, RemovalLimits};
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::Random;
+use std::sync::Arc;
 
 /// _Adjusted string removal_ ruin strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" by Jan Christiaens, Greet Vanden Berghe.
@@ -25,12 +24,19 @@ pub struct AdjustedStringRemoval {
     cavg: usize,
     /// Preserved customers ratio.
     alpha: f64,
+    /// Limits.
+    limits: RemovalLimits,
 }
 
 impl AdjustedStringRemoval {
     /// Creates a new instance of [`AdjustedStringRemoval`].
-    pub fn new(lmax: usize, cavg: usize, alpha: f64) -> Self {
-        Self { lmax, cavg, alpha }
+    pub fn new(lmax: usize, cavg: usize, alpha: f64, limits: RemovalLimits) -> Self {
+        Self { lmax, cavg, alpha, limits }
+    }
+
+    /// Creates a new instance of [`AdjustedStringRemoval`] with some defaults.
+    pub fn new_with_defaults(limits: RemovalLimits) -> Self {
+        Self { lmax: 10, cavg: 10, alpha: 0.01, limits }
     }
 
     /// Calculates initial parameters from paper using 5,6,7 equations.
@@ -48,54 +54,41 @@ impl AdjustedStringRemoval {
     }
 }
 
-impl Default for AdjustedStringRemoval {
-    fn default() -> Self {
-        Self::new(10, 10, 0.01)
-    }
-}
-
 impl Ruin for AdjustedStringRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
-        let routes: Vec<RouteContext> = insertion_ctx.solution.routes.clone();
         let problem = insertion_ctx.problem.clone();
-        let locked = insertion_ctx.solution.locked.clone();
         let random = insertion_ctx.environment.random.clone();
+        let mut routes = insertion_ctx.solution.routes.clone();
 
-        let (lsmax, ks) = self.calculate_limits(&routes, &random);
+        let (lsmax, ks) = self.calculate_limits(&insertion_ctx.solution.routes, &random);
 
-        let limits = RuinLimits::default();
-        let tracker = limits.get_tracker();
+        let mut tracker = JobRemovalTracker::new(&self.limits, random.as_ref());
 
-        select_seed_jobs(&problem, &routes, &random)
+        select_seed_jobs(&problem, &insertion_ctx.solution.routes, &random)
             .filter(|job| !tracker.is_removed_job(job))
             .take_while(|_| tracker.get_affected_actors() != ks)
+            .collect::<Vec<_>>()
+            .into_iter()
             .for_each(|job| {
-                insertion_ctx
-                    .solution
-                    .routes
+                routes
                     .iter_mut()
                     .find(|rc| !tracker.is_affected_actor(&rc.route.actor) && rc.route.tour.index(&job).is_some())
                     .iter_mut()
-                    .for_each(|rc| {
+                    .for_each(|route_ctx| {
                         // Equations 8, 9: calculate cardinality of the string removed from the tour
-                        let ltmax = rc.route.tour.job_activity_count().min(lsmax);
+                        let ltmax = route_ctx.route.tour.job_activity_count().min(lsmax);
                         let lt = random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
 
-                        if let Some(index) = rc.route.tour.index(&job) {
-                            tracker.add_actor(rc.route.actor.clone());
-                            select_string((&rc.route.tour, index), lt, self.alpha, &random)
-                                .filter(|job| !locked.contains(job))
+                        if let Some(index) = route_ctx.route.tour.index(&job) {
+                            select_string((&route_ctx.route.tour, index), lt, self.alpha, &random)
                                 .collect::<Vec<Job>>()
                                 .into_iter()
                                 .for_each(|job| {
-                                    rc.route_mut().tour.remove(&job);
-                                    tracker.add_job(job);
+                                    tracker.try_remove_job(&mut insertion_ctx.solution, route_ctx, &job);
                                 });
                         }
                     });
             });
-
-        tracker.iterate_removed_jobs(|job| insertion_ctx.solution.required.push(job.clone()));
 
         insertion_ctx
     }

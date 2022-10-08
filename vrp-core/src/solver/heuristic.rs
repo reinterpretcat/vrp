@@ -291,6 +291,7 @@ mod statik {
         problem: Arc<Problem>,
         environment: Arc<Environment>,
     ) -> TargetSearchOperator {
+        let limits = RemovalLimits::new(problem.as_ref());
         let random = environment.random.clone();
 
         // initialize recreate
@@ -323,7 +324,13 @@ mod statik {
         let random_ruin = create_default_random_ruin();
 
         let ruin = Arc::new(WeightedRuin::new(vec![
-            (vec![(Arc::new(AdjustedStringRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 100),
+            (
+                vec![
+                    (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), 1.),
+                    (random_ruin.clone(), 0.1),
+                ],
+                100,
+            ),
             (vec![(Arc::new(NeighbourRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
             (vec![(Arc::new(WorstJobRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
             (
@@ -377,7 +384,9 @@ mod dynamic {
     use super::*;
 
     pub fn get_operators(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<(TargetSearchOperator, String)> {
+        let limits = RemovalLimits::new(problem.as_ref());
         let random = environment.random.clone();
+
         let recreates: Vec<(Arc<dyn Recreate + Send + Sync>, String)> = vec![
             (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best".to_string()),
             (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), "regret".to_string()),
@@ -398,7 +407,7 @@ mod dynamic {
         ];
 
         let ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String)> = vec![
-            (Arc::new(AdjustedStringRemoval::default()), "asr".to_string()),
+            (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), "asr".to_string()),
             (Arc::new(NeighbourRemoval::default()), "neighbour_removal".to_string()),
             (
                 Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment.clone())),
@@ -465,7 +474,9 @@ mod dynamic {
         problem: Arc<Problem>,
         environment: Arc<Environment>,
     ) -> TargetSearchOperator {
+        let limits = RemovalLimits::new(problem.as_ref());
         let random = environment.random.clone();
+
         // initialize recreate
         let cheapest = Arc::new(RecreateWithCheapest::new(random.clone()));
         let recreate = Arc::new(WeightedRecreate::new(vec![
@@ -490,7 +501,13 @@ mod dynamic {
         ]));
 
         let ruin = Arc::new(WeightedRuin::new(vec![
-            (vec![(Arc::new(AdjustedStringRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
+            (
+                vec![
+                    (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), 1.),
+                    (random_ruin.clone(), 0.1),
+                ],
+                10,
+            ),
             (vec![(Arc::new(NeighbourRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
             (vec![(Arc::new(WorstJobRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
             (

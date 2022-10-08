@@ -675,9 +675,10 @@ fn create_ruin_method(
     environment: Arc<Environment>,
     method: &RuinMethod,
 ) -> (Arc<dyn Ruin + Send + Sync>, f64) {
+    let limits = RemovalLimits::new(problem.as_ref());
     match method {
         RuinMethod::AdjustedString { probability, lmax, cavg, alpha } => {
-            (Arc::new(AdjustedStringRemoval::new(*lmax, *cavg, *alpha)), *probability)
+            (Arc::new(AdjustedStringRemoval::new(*lmax, *cavg, *alpha, limits)), *probability)
         }
         RuinMethod::Neighbour { probability, min, max, threshold } => {
             (Arc::new(NeighbourRemoval::new(RuinLimits::new(*min, *max, *threshold, 8))), *probability)

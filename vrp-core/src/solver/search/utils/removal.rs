@@ -4,25 +4,14 @@ mod removal_test;
 
 use crate::construction::heuristics::*;
 use crate::models::problem::{Actor, Job};
+use crate::solver::search::RemovalLimits;
 use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
 use rosomaxa::prelude::Random;
 use std::sync::Arc;
 
-/// Specifies a limit for amount of jobs to be removed.
-pub struct RuinLimitsEx {
-    /// Specifies maximum amount of ruined (removed) jobs.
-    pub max_ruined_jobs: usize,
-    /// Specifies maximum amount of ruined (removed) jobs.
-    pub max_ruined_activities: usize,
-    /// Specifies maximum amount of affected routes.
-    pub max_affected_routes: usize,
-}
-
 /// A helper logic to keep amount of jobs/routes removed under control.
-#[derive(Clone)]
 pub struct JobRemovalTracker {
-    jobs_left: i32,
     activities_left: i32,
     routes_left: i32,
     has_fully_removed_routes: bool,
@@ -32,11 +21,12 @@ pub struct JobRemovalTracker {
 
 impl JobRemovalTracker {
     /// Creates a new instance of `JobRemoval`.
-    pub fn new(limits: &RuinLimitsEx) -> Self {
+    pub fn new(limits: &RemovalLimits, random: &(dyn Random + Send + Sync)) -> Self {
         Self {
-            jobs_left: limits.max_ruined_jobs as i32,
-            activities_left: limits.max_ruined_activities as i32,
-            routes_left: limits.max_affected_routes as i32,
+            activities_left: random
+                .uniform_int(limits.removed_activities_range.start as i32, limits.removed_activities_range.end as i32),
+            routes_left: random
+                .uniform_int(limits.affected_routes_range.start as i32, limits.affected_routes_range.end as i32),
             has_fully_removed_routes: false,
             affected_actors: HashSet::default(),
             removed_jobs: HashSet::default(),
@@ -52,17 +42,24 @@ impl JobRemovalTracker {
     }
 
     pub fn is_limit(&self) -> bool {
-        self.activities_left == 0 || self.jobs_left == 0 || self.routes_left == 0
+        self.activities_left == 0 || self.routes_left == 0
+    }
+
+    pub fn get_affected_actors(&self) -> usize {
+        self.affected_actors.len()
     }
 
     /// Tries to remove a job from the route.
     pub fn try_remove_job(&mut self, solution: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Job) -> bool {
-        if self.jobs_left == 0 || self.activities_left == 0 {
+        if self.activities_left == 0 {
+            return false;
+        }
+
+        if solution.locked.contains(&job) {
             return false;
         }
 
         self.activities_left = (self.activities_left - get_total_activities(job) as i32).max(0);
-        self.jobs_left -= 1;
 
         if route_ctx.route_mut().tour.remove(job) {
             self.removed_jobs.insert(job.clone());
@@ -111,13 +108,7 @@ impl JobRemovalTracker {
             return false;
         }
 
-        // can still remove activities
         if route_ctx.route.tour.job_activity_count() as i32 <= self.activities_left {
-            return true;
-        }
-
-        // can still remove jobs
-        if route_ctx.route.tour.job_count() as i32 <= self.jobs_left {
             return true;
         }
 
@@ -134,7 +125,6 @@ impl JobRemovalTracker {
 
         self.activities_left =
             (self.activities_left - jobs.iter().map(get_total_activities).sum::<usize>() as i32).max(0);
-        self.jobs_left = (self.jobs_left - jobs.len() as i32).max(0);
 
         jobs.iter().for_each(|job| {
             self.removed_jobs.insert(job.clone());
@@ -160,7 +150,7 @@ impl JobRemovalTracker {
 
         let mut jobs: Vec<Job> = route_ctx.route.tour.jobs().filter(|job| !locked.contains(job)).collect();
         jobs.shuffle(&mut random.get_rng());
-        jobs.truncate(self.jobs_left as usize);
+        jobs.truncate(self.activities_left as usize);
 
         let old_count = solution.required.len();
         jobs.retain(|job| self.try_remove_job(solution, route_ctx, job));

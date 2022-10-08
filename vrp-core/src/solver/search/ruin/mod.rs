@@ -3,10 +3,12 @@
 
 use crate::construction::heuristics::*;
 use crate::models::problem::{Actor, Job};
+use crate::models::Problem;
 use crate::solver::RefinementContext;
 use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
 use rosomaxa::prelude::*;
+use std::ops::Range;
 use std::sync::{Arc, RwLock};
 
 /// A trait which specifies logic to destroy parts of solution.
@@ -40,6 +42,27 @@ pub type RuinGroup = (Vec<(Arc<dyn Ruin + Send + Sync>, f64)>, usize);
 pub struct WeightedRuin {
     ruins: Vec<CompositeRuin>,
     weights: Vec<usize>,
+}
+
+/// Specifies a limit for amount of jobs to be removed.
+#[derive(Clone)]
+pub struct RemovalLimits {
+    /// Specifies maximum amount of removed jobs.
+    pub removed_activities_range: Range<usize>,
+    /// Specifies maximum amount of affected routes.
+    pub affected_routes_range: Range<usize>,
+}
+
+impl RemovalLimits {
+    /// Creates a new instance of `RemovalLimits`.
+    pub fn new(problem: &Problem) -> Self {
+        let jobs_size = problem.jobs.size() as f64;
+
+        let min_activities = (((jobs_size * 0.05) as usize).max(3)).min(20);
+        let max_activities = (((jobs_size * 0.3) as usize).max(5)).min(50);
+
+        Self { removed_activities_range: min_activities..max_activities, affected_routes_range: 2..4 }
+    }
 }
 
 /// Specifies a limit for amount of jobs to be removed.
@@ -114,14 +137,6 @@ impl<'a> AffectedTracker<'a> {
 
     pub fn add_actor(&self, actor: Arc<Actor>) {
         self.affected_actors.write().unwrap().insert(actor);
-    }
-
-    pub fn is_affected_actor(&self, actor: &Actor) -> bool {
-        self.affected_actors.read().unwrap().contains(actor)
-    }
-
-    pub fn is_removed_job(&self, job: &Job) -> bool {
-        self.removed_jobs.read().unwrap().contains(job)
     }
 
     pub fn is_not_limit(&self, max_removed_activities: usize) -> bool {
