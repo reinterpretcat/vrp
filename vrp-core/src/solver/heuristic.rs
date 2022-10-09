@@ -332,7 +332,7 @@ mod statik {
                 100,
             ),
             (vec![(Arc::new(NeighbourRemoval::new(limits.clone())), 1.), (random_ruin.clone(), 0.1)], 10),
-            (vec![(Arc::new(WorstJobRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
+            (vec![(Arc::new(WorstJobRemoval::new(4, limits.clone())), 1.), (random_ruin.clone(), 0.1)], 10),
             (
                 vec![
                     (Arc::new(ClusterRemoval::new_with_defaults(problem, environment.clone())), 1.),
@@ -415,7 +415,7 @@ mod dynamic {
                 Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment.clone())),
                 "cluster_removal".to_string(),
             ),
-            (Arc::new(WorstJobRemoval::default()), "worst_job".to_string()),
+            (Arc::new(WorstJobRemoval::new(4, limits.clone())), "worst_job".to_string()),
             (Arc::new(RandomJobRemoval::new(limits.clone())), "random_job_removal_1".to_string()),
             // TODO use different limits
             (Arc::new(RandomJobRemoval::new(limits.clone())), "random_job_removal_2".to_string()),
@@ -512,8 +512,8 @@ mod dynamic {
                 ],
                 10,
             ),
-            (vec![(Arc::new(NeighbourRemoval::new(limits)), 1.), (random_ruin.clone(), 0.1)], 10),
-            (vec![(Arc::new(WorstJobRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
+            (vec![(Arc::new(NeighbourRemoval::new(limits.clone())), 1.), (random_ruin.clone(), 0.1)], 10),
+            (vec![(Arc::new(WorstJobRemoval::new(4, limits.clone())), 1.), (random_ruin.clone(), 0.1)], 10),
             (
                 vec![
                     (Arc::new(ClusterRemoval::new_with_defaults(problem, environment.clone())), 1.),
