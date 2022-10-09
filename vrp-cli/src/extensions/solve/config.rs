@@ -262,9 +262,6 @@ pub enum RuinMethod {
     CloseRoute { probability: f64 },
     #[serde(rename(deserialize = "worst-route"))]
     WorstRoute { probability: f64 },
-    /// Random ruin removal method.
-    #[serde(rename(deserialize = "random-ruin"))]
-    RandomRuin { probability: f64 },
     /// Worst job removal method.
     #[serde(rename(deserialize = "worst-job"))]
     WorstJob { probability: f64, min: usize, max: usize, skip: usize },
@@ -703,7 +700,6 @@ fn create_ruin_method(
         ),
         RuinMethod::CloseRoute { probability } => (Arc::new(CloseRouteRemoval::new(limits)), *probability),
         RuinMethod::WorstRoute { probability } => (Arc::new(WorstRouteRemoval::new(limits)), *probability),
-        RuinMethod::RandomRuin { probability } => (create_default_random_ruin(problem.as_ref()), *probability),
     }
 }
 

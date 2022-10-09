@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-This release is focused on internal improvements of core models.
+This release is focused on internal design improvements.
 
 ### Changed
 
 * `breaking`: combine objectives and constraint modules into feature concept
+* improve ruin limits logic
 * change insertion position evaluation logic to speedup analysis
 * update dependencies 
 * update rust version used for development (1.64)

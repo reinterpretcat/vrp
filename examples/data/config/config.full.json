@@ -148,10 +148,6 @@
                 "lmax": 10,
                 "cavg": 10,
                 "alpha": 0.01
-              },
-              {
-                "type": "random-ruin",
-                "probability": 0.1
               }
             ]
           },
@@ -163,10 +159,6 @@
                 "type": "neighbour",
                 "min": 8,
                 "max": 16
-              },
-              {
-                "type": "random-ruin",
-                "probability": 0.1
               }
             ]
           },
@@ -179,10 +171,6 @@
                 "skip": 4,
                 "min": 8,
                 "max": 16
-              },
-              {
-                "type": "random-ruin",
-                "probability": 0.1
               }
             ]
           },
@@ -195,10 +183,6 @@
                 "min": 8,
                 "max": 16,
                 "minItems": 4
-              },
-              {
-                "type": "random-ruin",
-                "probability": 0.1
               }
             ]
           },
