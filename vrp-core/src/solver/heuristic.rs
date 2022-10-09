@@ -332,7 +332,7 @@ mod statik {
                 100,
             ),
             (vec![(Arc::new(NeighbourRemoval::new(limits.clone())), 1.), (random_ruin.clone(), 0.1)], 10),
-            (vec![(Arc::new(WorstJobRemoval::new(4, limits.clone())), 1.), (random_ruin.clone(), 0.1)], 10),
+            (vec![(Arc::new(WorstJobRemoval::new(4, limits)), 1.), (random_ruin.clone(), 0.1)], 10),
             (
                 vec![
                     (Arc::new(ClusterRemoval::new_with_defaults(problem, environment.clone())), 1.),
@@ -421,7 +421,7 @@ mod dynamic {
             (Arc::new(RandomJobRemoval::new(limits.clone())), "random_job_removal_2".to_string()),
             (Arc::new(RandomRouteRemoval::new(limits.clone())), "random_route_removal".to_string()),
             (Arc::new(CloseRouteRemoval::new(limits.clone())), "close_route_removal".to_string()),
-            (Arc::new(WorstRouteRemoval::new(limits.clone())), "worst_route_removal".to_string()),
+            (Arc::new(WorstRouteRemoval::new(limits)), "worst_route_removal".to_string()),
         ];
 
         // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
@@ -513,7 +513,7 @@ mod dynamic {
                 10,
             ),
             (vec![(Arc::new(NeighbourRemoval::new(limits.clone())), 1.), (random_ruin.clone(), 0.1)], 10),
-            (vec![(Arc::new(WorstJobRemoval::new(4, limits.clone())), 1.), (random_ruin.clone(), 0.1)], 10),
+            (vec![(Arc::new(WorstJobRemoval::new(4, limits)), 1.), (random_ruin.clone(), 0.1)], 10),
             (
                 vec![
                     (Arc::new(ClusterRemoval::new_with_defaults(problem, environment.clone())), 1.),

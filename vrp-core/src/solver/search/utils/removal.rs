@@ -55,7 +55,7 @@ impl JobRemovalTracker {
             return false;
         }
 
-        if solution.locked.contains(&job) {
+        if solution.locked.contains(job) {
             return false;
         }
 
