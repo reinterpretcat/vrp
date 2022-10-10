@@ -54,7 +54,7 @@ fn can_mutate() {
     let refinement_ctx = RefinementContext::new(problem.clone(), population, TelemetryMode::None, environment.clone());
     let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone());
     let inner_search = create_default_heuristic_operator(problem, environment);
-    let decompose_search = DecomposeSearch::new(inner_search, (2, 2), 10);
+    let decompose_search = DecomposeSearch::new(inner_search, (2, 2), 10, 1000);
 
     let result = decompose_search.search(&refinement_ctx, &insertion_ctx);
 

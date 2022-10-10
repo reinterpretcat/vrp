@@ -4,6 +4,7 @@ mod decompose_search_test;
 
 use crate::construction::heuristics::*;
 use crate::models::GoalContext;
+use crate::solver::search::create_environment_with_custom_quota;
 use crate::solver::*;
 use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
@@ -18,15 +19,21 @@ pub struct DecomposeSearch {
     inner_search: TargetSearchOperator,
     max_routes_range: (i32, i32),
     repeat_count: usize,
+    quota_limit: usize,
 }
 
 impl DecomposeSearch {
     /// Create a new instance of `DecomposeSearch`.
-    pub fn new(inner_search: TargetSearchOperator, max_routes_range: (usize, usize), repeat_count: usize) -> Self {
+    pub fn new(
+        inner_search: TargetSearchOperator,
+        max_routes_range: (usize, usize),
+        repeat_count: usize,
+        quota_limit: usize,
+    ) -> Self {
         assert!(max_routes_range.0 > 1);
         let max_routes_range = (max_routes_range.0 as i32, max_routes_range.1 as i32);
 
-        Self { inner_search, max_routes_range, repeat_count }
+        Self { inner_search, max_routes_range, repeat_count, quota_limit }
     }
 }
 
@@ -39,9 +46,15 @@ impl HeuristicSearchOperator for DecomposeSearch {
         let refinement_ctx = heuristic_ctx;
         let insertion_ctx = solution;
 
-        decompose_insertion_context(refinement_ctx, insertion_ctx, self.max_routes_range)
-            .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx, contexts))
-            .unwrap_or_else(|| self.inner_search.search(heuristic_ctx, insertion_ctx))
+        decompose_insertion_context(
+            refinement_ctx,
+            insertion_ctx,
+            self.max_routes_range,
+            self.repeat_count,
+            self.quota_limit,
+        )
+        .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx, contexts))
+        .unwrap_or_else(|| self.inner_search.search(heuristic_ctx, insertion_ctx))
     }
 }
 
@@ -208,7 +221,13 @@ fn decompose_insertion_context(
     refinement_ctx: &RefinementContext,
     insertion_ctx: &InsertionContext,
     max_routes_range: (i32, i32),
+    repeat: usize,
+    quota_limit: usize,
 ) -> Option<Vec<(RefinementContext, HashSet<usize>)>> {
+    // NOTE make limit a bit higher than median
+    let median = refinement_ctx.statistics().speed.get_median().clone();
+    let limit = median.map(|median| (median * repeat).max(quota_limit));
+
     create_multiple_insertion_contexts(insertion_ctx, max_routes_range)
         .map(|insertion_ctxs| {
             insertion_ctxs
@@ -219,7 +238,7 @@ fn decompose_insertion_context(
                             refinement_ctx.problem.clone(),
                             create_population(insertion_ctx),
                             TelemetryMode::None,
-                            refinement_ctx.environment.clone(),
+                            create_environment_with_custom_quota(limit, refinement_ctx.environment.as_ref()),
                         ),
                         indices,
                     )

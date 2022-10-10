@@ -5,10 +5,11 @@ mod exchange_swap_star_test;
 use super::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
+use crate::solver::search::create_environment_with_custom_quota;
 use crate::utils::Either;
 use hashbrown::{HashMap, HashSet};
 use rand::seq::SliceRandom;
-use rosomaxa::utils::{compare_floats, map_reduce, Random, SelectionSamplingIterator};
+use rosomaxa::utils::*;
 use std::iter::once;
 use std::sync::RwLock;
 
@@ -25,14 +26,16 @@ use std::sync::RwLock;
 pub struct ExchangeSwapStar {
     leg_selector: Box<dyn LegSelector + Send + Sync>,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
+    quota_limit: usize,
 }
 
 impl ExchangeSwapStar {
     /// Creates a new instance of `ExchangeSwapStar`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: Arc<dyn Random + Send + Sync>, quota_limit: usize) -> Self {
         Self {
             leg_selector: Box::new(VariableLegSelector::new(random)),
             result_selector: Box::new(BestResultSelector::default()),
+            quota_limit,
         }
     }
 }
@@ -40,24 +43,37 @@ impl ExchangeSwapStar {
 impl LocalOperator for ExchangeSwapStar {
     fn explore(
         &self,
-        _refinement_ctx: &RefinementContext,
+        refinement_ctx: &RefinementContext,
         insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
         // NOTE higher value affects performance
         const ROUTE_PAIRS_THRESHOLD: usize = 8;
 
-        let mut insertion_ctx = insertion_ctx.deep_copy();
+        let route_pairs = create_route_pairs(&insertion_ctx, ROUTE_PAIRS_THRESHOLD);
 
-        create_route_pairs(&insertion_ctx, ROUTE_PAIRS_THRESHOLD).into_iter().for_each(|route_pair| {
-            try_exchange_jobs_in_routes(
+        // modify environment to include median as an extra quota to prevent long runs
+        let limit = refinement_ctx.statistics().speed.get_median().clone().map(|median| median.max(self.quota_limit));
+        let mut insertion_ctx = InsertionContext {
+            environment: create_environment_with_custom_quota(limit, insertion_ctx.environment.as_ref()),
+            ..insertion_ctx.deep_copy()
+        };
+
+        let _ = route_pairs.into_iter().try_for_each(|route_pair| {
+            let can_continue = try_exchange_jobs_in_routes(
                 &mut insertion_ctx,
                 route_pair,
                 self.leg_selector.as_ref(),
                 self.result_selector.as_ref(),
-            )
+            );
+
+            if can_continue {
+                Ok(())
+            } else {
+                Err(())
+            }
         });
 
-        Some(insertion_ctx)
+        Some(InsertionContext { environment: refinement_ctx.environment.clone(), ..insertion_ctx })
     }
 }
 
@@ -262,7 +278,14 @@ fn try_exchange_jobs_in_routes(
     route_pair: (usize, usize),
     leg_selector: &(dyn LegSelector + Send + Sync),
     result_selector: &(dyn ResultSelector + Send + Sync),
-) {
+) -> bool {
+    let quota = insertion_ctx.environment.quota.clone();
+    let is_quota_reached = move || quota.as_ref().map_or(false, |quota| quota.is_reached());
+
+    if is_quota_reached() {
+        return false;
+    }
+
     let search_ctx: SearchContext = (insertion_ctx, leg_selector, result_selector);
     let (outer_idx, inner_idx) = route_pair;
 
@@ -288,6 +311,10 @@ fn try_exchange_jobs_in_routes(
     let (outer_best, inner_best, _) = map_reduce(
         job_pairs.as_slice(),
         |&(outer_job, inner_job, delta_outer_job_cost)| {
+            if is_quota_reached() {
+                return (InsertionResult::make_failure(), InsertionResult::make_failure(), Cost::default());
+            }
+
             let delta_inner_job_cost = find_insertion_cost(&search_ctx, inner_job, inner_route_ctx);
 
             let outer_in_place_result = find_in_place_result(&search_ctx, inner_route_ctx, outer_job, inner_job);
@@ -322,6 +349,8 @@ fn try_exchange_jobs_in_routes(
     );
 
     try_exchange_jobs(insertion_ctx, (outer_best, inner_best), leg_selector, result_selector);
+
+    is_quota_reached()
 }
 
 /// Tries to apply insertion results to target insertion context.

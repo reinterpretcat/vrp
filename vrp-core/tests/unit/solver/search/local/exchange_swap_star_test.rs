@@ -76,7 +76,7 @@ fn can_use_exchange_swap_star_impl(jobs_order: Vec<Vec<&str>>, expected: Vec<Vec
         .collect::<Vec<_>>();
     assert_eq!(vehicles, vec!["0", "1", "2"]);
 
-    let insertion_ctx = ExchangeSwapStar::new(environment.random.clone())
+    let insertion_ctx = ExchangeSwapStar::new(environment.random.clone(), 1000)
         .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
         .expect("cannot find new solution");
 
@@ -96,7 +96,7 @@ fn can_keep_locked_jobs_in_place() {
     );
     rearrange_jobs_in_routes(&mut insertion_ctx, jobs_order.as_slice());
 
-    let insertion_ctx = ExchangeSwapStar::new(environment.random.clone())
+    let insertion_ctx = ExchangeSwapStar::new(environment.random.clone(), 1000)
         .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
         .expect("cannot find new solution");
 
