@@ -7,9 +7,9 @@ use rosomaxa::prelude::*;
 fn can_create_multiple_insertion_ctxs_without_unassigned() {
     let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
-    let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
+    let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
 
-    let individuals = create_multiple_insertion_contexts(&individual, (2, 2)).unwrap();
+    let individuals = create_multiple_insertion_contexts(&individual, environment, (2, 2)).unwrap();
 
     assert_eq!(individuals.len(), 4);
     assert_eq!(individuals[0].0.solution.routes.len(), 2);
@@ -25,9 +25,9 @@ fn can_create_multiple_insertion_ctxs_with_unassigned() {
     solution.registry.free_actor(&solution.routes[0].actor);
     solution.unassigned.extend(solution.routes[0].tour.jobs().map(|job| (job, UnassignmentInfo::Unknown)));
     solution.routes.remove(0);
-    let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
+    let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
 
-    let individuals = create_multiple_insertion_contexts(&individual, (2, 2)).unwrap();
+    let individuals = create_multiple_insertion_contexts(&individual, environment, (2, 2)).unwrap();
 
     assert_eq!(individuals.len(), 4);
 

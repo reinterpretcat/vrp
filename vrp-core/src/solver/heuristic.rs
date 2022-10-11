@@ -521,7 +521,7 @@ mod dynamic {
                 10,
             ),
             (vec![(Arc::new(NeighbourRemoval::new(small_limits.clone())), 1.), (random_ruin.clone(), 0.1)], 10),
-            (vec![(Arc::new(WorstJobRemoval::new(4, small_limits)), 1.), (random_ruin.clone(), 0.1)], 10),
+            (vec![(Arc::new(WorstJobRemoval::new(4, small_limits)), 1.), (random_ruin, 0.1)], 10),
             (vec![(random_route, 1.), (random_job, 0.1)], 1),
         ]));
         let ruin_recreate = Arc::new(RuinAndRecreate::new(ruin, recreate));

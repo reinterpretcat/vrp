@@ -49,10 +49,10 @@ impl LocalOperator for ExchangeSwapStar {
         // NOTE higher value affects performance
         const ROUTE_PAIRS_THRESHOLD: usize = 8;
 
-        let route_pairs = create_route_pairs(&insertion_ctx, ROUTE_PAIRS_THRESHOLD);
+        let route_pairs = create_route_pairs(insertion_ctx, ROUTE_PAIRS_THRESHOLD);
 
         // modify environment to include median as an extra quota to prevent long runs
-        let limit = refinement_ctx.statistics().speed.get_median().clone().map(|median| median.max(self.quota_limit));
+        let limit = refinement_ctx.statistics().speed.get_median().map(|median| median.max(self.quota_limit));
         let mut insertion_ctx = InsertionContext {
             environment: create_environment_with_custom_quota(limit, insertion_ctx.environment.as_ref()),
             ..insertion_ctx.deep_copy()
