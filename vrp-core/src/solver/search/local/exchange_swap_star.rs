@@ -59,17 +59,17 @@ impl LocalOperator for ExchangeSwapStar {
         };
 
         let _ = route_pairs.into_iter().try_for_each(|route_pair| {
-            let can_continue = try_exchange_jobs_in_routes(
+            let is_quota_reached = try_exchange_jobs_in_routes(
                 &mut insertion_ctx,
                 route_pair,
                 self.leg_selector.as_ref(),
                 self.result_selector.as_ref(),
             );
 
-            if can_continue {
-                Ok(())
-            } else {
+            if is_quota_reached {
                 Err(())
+            } else {
+                Ok(())
             }
         });
 
@@ -283,7 +283,7 @@ fn try_exchange_jobs_in_routes(
     let is_quota_reached = move || quota.as_ref().map_or(false, |quota| quota.is_reached());
 
     if is_quota_reached() {
-        return false;
+        return true;
     }
 
     let search_ctx: SearchContext = (insertion_ctx, leg_selector, result_selector);
