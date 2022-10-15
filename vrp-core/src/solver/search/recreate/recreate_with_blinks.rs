@@ -147,7 +147,12 @@ impl ResultSelector for BlinkResultSelector {
         }
     }
 
-    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either<f64, f64> {
+    fn select_cost(
+        &self,
+        _route_ctx: &RouteContext,
+        left: InsertionCost,
+        right: InsertionCost,
+    ) -> Either<InsertionCost, InsertionCost> {
         let is_blink = self.random.is_hit(self.ratio);
 
         if is_blink || left < right {

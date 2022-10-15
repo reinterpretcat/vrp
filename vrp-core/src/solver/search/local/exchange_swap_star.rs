@@ -5,6 +5,8 @@ mod exchange_swap_star_test;
 use super::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
+use crate::models::solution::Activity;
+use crate::models::GoalContext;
 use crate::solver::search::create_environment_with_custom_quota;
 use crate::utils::Either;
 use hashbrown::{HashMap, HashSet};
@@ -201,9 +203,7 @@ fn find_top_results(
                 (InsertionResult::Success(_), InsertionResult::Failure(_)) => Ordering::Less,
                 (InsertionResult::Failure(_), InsertionResult::Success(_)) => Ordering::Greater,
                 (InsertionResult::Failure(_), InsertionResult::Failure(_)) => Ordering::Equal,
-                (InsertionResult::Success(left), InsertionResult::Success(right)) => {
-                    compare_floats(left.cost, right.cost)
-                }
+                (InsertionResult::Success(left), InsertionResult::Success(right)) => left.cost.cmp(&right.cost),
             });
 
             results.truncate(3);
@@ -240,7 +240,7 @@ fn choose_best_result(
         .enumerate()
         .fold((0, &failure), |(acc_idx, acc_result), (idx, result)| match (acc_result, result) {
             (InsertionResult::Success(acc_success), InsertionResult::Success(success)) => {
-                match search_ctx.2.select_cost(&acc_success.context, acc_success.cost, success.cost) {
+                match search_ctx.2.select_cost(&acc_success.context, acc_success.cost.clone(), success.cost.clone()) {
                     Either::Left(_) => (acc_idx, acc_result),
                     Either::Right(_) => (idx, result),
                 }
@@ -254,7 +254,7 @@ fn choose_best_result(
     } else {
         match result {
             InsertionResult::Success(success) => InsertionResult::Success(InsertionSuccess {
-                cost: success.cost,
+                cost: success.cost.clone(),
                 job: success.job.clone(),
                 activities: success.activities.iter().map(|(activity, idx)| (activity.deep_copy(), *idx)).collect(),
                 context: success.context.deep_copy(),
@@ -332,9 +332,12 @@ fn try_exchange_jobs_in_routes(
                 inner_top_results.get(inner_job).unwrap().as_slice(),
             );
 
+            let goal = search_ctx.0.problem.goal.as_ref();
             let delta_cost = match (&outer_result, &inner_result) {
                 (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) => {
-                    outer_success.cost + inner_success.cost - delta_outer_job_cost - delta_inner_job_cost
+                    as_routing_cost(goal, outer_success) + as_routing_cost(goal, inner_success)
+                        - delta_outer_job_cost
+                        - delta_inner_job_cost
                 }
                 _ => 0.,
             };
@@ -397,4 +400,26 @@ fn try_exchange_jobs(
             finalize_insertion_ctx(insertion_ctx);
         }
     }
+}
+
+fn as_routing_cost(goal: &GoalContext, success: &InsertionSuccess) -> Cost {
+    let mut route_ctx = success.context.deep_copy();
+
+    // NOTE this is a bit workaroundish
+    let route = route_ctx.route_mut();
+    success.activities.iter().for_each(|(a, index)| {
+        route.tour.insert_at(
+            Activity {
+                place: a.place.clone(),
+                schedule: a.schedule.clone(),
+                job: a.job.clone(),
+                commute: a.commute.clone(),
+            },
+            index + 1,
+        );
+    });
+
+    goal.accept_route_state(&mut route_ctx);
+
+    route_ctx.get_route_cost() - success.context.get_route_cost()
 }

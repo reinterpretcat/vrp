@@ -20,7 +20,12 @@ fn create_insertion_success(insertion_ctx: &InsertionContext, insertion_data: (u
         commute: None,
     };
 
-    InsertionResult::Success(InsertionSuccess { cost: 0., job, activities: vec![(activity, insertion_idx)], context })
+    InsertionResult::Success(InsertionSuccess {
+        cost: InsertionCost::default(),
+        job,
+        activities: vec![(activity, insertion_idx)],
+        context,
+    })
 }
 
 fn create_insertion_ctx(
@@ -221,7 +226,7 @@ fn can_find_in_place_result_impl(
         .into_success()
         .map(|success| (success.cost, success.activities.first().unwrap().1));
 
-    assert_eq!(result, expected);
+    assert_eq!(result, expected.map(|(cost, position)| (InsertionCost::new(&[cost]), position)));
 }
 
 parameterized_test! { can_find_top_results, (job_id, disallowed_pairs, expected), {

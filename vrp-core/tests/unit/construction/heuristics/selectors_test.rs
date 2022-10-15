@@ -7,7 +7,12 @@ use crate::models::common::Cost;
 use std::sync::Arc;
 
 fn make_success(cost: Cost) -> InsertionResult {
-    InsertionResult::make_success(cost, Job::Single(test_single_with_id("job1")), vec![], create_empty_route_ctx())
+    InsertionResult::make_success(
+        InsertionCost::new(&[cost]),
+        Job::Single(test_single_with_id("job1")),
+        vec![],
+        create_empty_route_ctx(),
+    )
 }
 
 parameterized_test! {can_compare_insertion_result_with_noise, (left, right, reals, expected_result), {
@@ -39,7 +44,7 @@ fn can_compare_insertion_result_with_noise_impl(
         NoiseResultSelector::new(noise).select_insertion(&create_empty_insertion_context(), left, right);
 
     match (actual_result, expected_result) {
-        (InsertionResult::Success(success), Some(cost)) => assert_eq!(success.cost, cost),
+        (InsertionResult::Success(success), Some(cost)) => assert_eq!(success.cost, InsertionCost::new(&[cost])),
         (InsertionResult::Failure(_), None) => {}
         _ => unreachable!(),
     }

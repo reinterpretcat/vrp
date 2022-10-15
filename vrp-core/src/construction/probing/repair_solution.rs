@@ -121,7 +121,7 @@ fn synchronize_jobs(
                         route_ctx,
                         single,
                         position,
-                        0.,
+                        InsertionCost::default(),
                         None,
                     );
 

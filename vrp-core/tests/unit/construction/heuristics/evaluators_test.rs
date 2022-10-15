@@ -7,8 +7,6 @@ use crate::helpers::models::solution::ActivityBuilder;
 use crate::models::common::{Cost, Location, Schedule, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::{Job, Single, VehicleDetail};
 use crate::models::solution::{Activity, Place, Registry};
-use rosomaxa::prelude::compare_floats;
-use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -191,7 +189,7 @@ mod single {
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
             assert_eq!(get_vehicle_id(success.context.route.actor.vehicle.deref()), &expected_used_vehicle.to_owned());
-            assert_eq!(compare_floats(success.cost, cost), Ordering::Equal);
+            assert_eq!(success.cost, InsertionCost::new(&[cost]));
         } else {
             unreachable!()
         }
@@ -240,7 +238,7 @@ mod multi {
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
-            assert_eq!(success.cost, 28.0);
+            assert_eq!(success.cost, InsertionCost::new(&[28.0]));
             assert_activities(success, vec![(0, 3), (1, 7)]);
         } else {
             unreachable!()
@@ -328,7 +326,7 @@ mod multi {
         let result = evaluate_job_insertion(&mut ctx, &job, position);
 
         if let InsertionResult::Success(success) = result {
-            assert_eq!(success.cost, cost);
+            assert_eq!(success.cost, InsertionCost::new(&[cost]));
             assert_eq!(success.activities.len(), expected.len());
             assert_activities(success, expected);
         } else {
@@ -352,7 +350,7 @@ mod multi {
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
-            assert_eq!(success.cost, 60.0);
+            assert_eq!(success.cost, InsertionCost::new(&[60.0]));
             assert_activities(success, vec![(0, 5), (1, 10), (2, 15)]);
         } else {
             unreachable!()

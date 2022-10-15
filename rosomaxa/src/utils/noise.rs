@@ -17,6 +17,11 @@ impl Noise {
         Self { probability, range, random }
     }
 
+    /// Returns random implementation.
+    pub fn get_random(&self) -> &(dyn Random + Send + Sync) {
+        self.random.as_ref()
+    }
+
     /// Generates an iterator with noise.
     pub fn generate_multi<'a, Iter: Iterator<Item = f64> + 'a>(
         &'a self,

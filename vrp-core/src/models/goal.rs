@@ -358,4 +358,21 @@ impl GoalContext {
             .flat_map(|objectives| objectives.iter().map(|objective| objective.estimate(move_ctx)))
             .fold(Cost::default(), |acc, other| acc + other)
     }
+
+    /// Estimates insertion cost (penalty) of the refinement move.
+    pub fn estimate_ex(&self, move_ctx: &MoveContext<'_>) -> InsertionCost {
+        self.local_objectives.iter().fold(InsertionCost::default(), |acc, objectives| {
+            objectives
+                .iter()
+                .map(|objective| objective.estimate(move_ctx))
+                .zip(acc.into_iter().chain(std::iter::repeat(Cost::default())))
+                .map(|(a, b)| {
+                    // TODO: merging two values will reintroduce problem with weightning coefficients?
+                    //     use a flat structure for insertion cost with priority map and apply total ordering?
+                    //     or use dominance_order fn
+                    a + b
+                })
+                .collect()
+        })
+    }
 }

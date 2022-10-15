@@ -1,7 +1,15 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/heuristics/insertions_test.rs"]
+mod insertions_test;
+
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::models::solution::Activity;
+use rosomaxa::utils::unwrap_from_result;
+use std::cmp::Ordering;
+use std::ops::{Add, Sub};
+use tinyvec::{tiny_vec, TinyVec, TinyVecIterator};
 
 /// Specifies insertion result variant.
 pub enum InsertionResult {
@@ -14,7 +22,7 @@ pub enum InsertionResult {
 /// Specifies insertion success result needed to insert job into tour.
 pub struct InsertionSuccess {
     /// Specifies delta cost change for the insertion.
-    pub cost: Cost,
+    pub cost: InsertionCost,
 
     /// Original job to be inserted.
     pub job: Job,
@@ -34,6 +42,103 @@ pub struct InsertionFailure {
     pub stopped: bool,
     /// Original job failed to be inserted.
     pub job: Option<Job>,
+}
+
+type CostArray = [Cost; 8];
+
+/// A hierarchical cost of job's insertion.
+#[derive(Clone, Debug, Default)]
+pub struct InsertionCost {
+    data: TinyVec<CostArray>,
+}
+
+impl InsertionCost {
+    /// Creates a new instance of `InsertionCost`.
+    pub fn new(data: &[Cost]) -> Self {
+        Self { data: data.into() }
+    }
+
+    /// Returns iterator over cost values.
+    pub fn iter(&self) -> impl Iterator<Item = Cost> + '_ {
+        self.data.iter().cloned()
+    }
+
+    /// Returns highest* possible insertion cost.
+    pub fn max_value() -> Self {
+        Self { data: tiny_vec!(Cost::MAX, Cost::MAX, Cost::MAX, Cost::MAX) }
+    }
+
+    fn operator(self, rhs: Self, op: fn(Cost, Cost) -> Cost) -> Self {
+        let (mut left, right) =
+            if self.data.len() < rhs.data.len() { (self.data, rhs.data) } else { (rhs.data, self.data) };
+
+        left.iter_mut().enumerate().for_each(|(idx, value)| {
+            *value = op(*value, right[idx]);
+        });
+
+        Self { data: left }
+    }
+}
+
+impl FromIterator<Cost> for InsertionCost {
+    fn from_iter<T: IntoIterator<Item = Cost>>(iter: T) -> Self {
+        Self { data: TinyVec::<CostArray>::from_iter(iter) }
+    }
+}
+
+impl IntoIterator for InsertionCost {
+    type Item = Cost;
+    type IntoIter = TinyVecIterator<CostArray>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.into_iter()
+    }
+}
+
+impl Eq for InsertionCost {}
+
+impl PartialEq for InsertionCost {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl PartialOrd for InsertionCost {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for InsertionCost {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let size = self.data.len().max(other.data.len());
+        unwrap_from_result((0..size).try_fold(Ordering::Equal, |acc, idx| {
+            let left = self.data.get(idx).cloned().unwrap_or_default();
+            let right = other.data.get(idx).cloned().unwrap_or_default();
+
+            let result = left.total_cmp(&right);
+            match result {
+                Ordering::Equal => Ok(acc),
+                _ => Err(result),
+            }
+        }))
+    }
+}
+
+impl Add for InsertionCost {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        self.operator(rhs, |a, b| a + b)
+    }
+}
+
+impl Sub for InsertionCost {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.operator(rhs, |a, b| a - b)
+    }
 }
 
 /// Implements generalized insertion heuristic.
@@ -103,7 +208,12 @@ impl InsertionHeuristic {
 
 impl InsertionResult {
     /// Creates result which represents insertion success.
-    pub fn make_success(cost: Cost, job: Job, activities: Vec<(Activity, usize)>, route_ctx: RouteContext) -> Self {
+    pub fn make_success(
+        cost: InsertionCost,
+        job: Job,
+        activities: Vec<(Activity, usize)>,
+        route_ctx: RouteContext,
+    ) -> Self {
         Self::Success(InsertionSuccess { cost, job, activities, context: route_ctx })
     }
 

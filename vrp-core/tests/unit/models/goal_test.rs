@@ -150,8 +150,8 @@ pub fn can_use_objective_estimate() {
     let move_ctx = MoveContext::activity(&route_ctx, &activity_ctx);
 
     assert_eq!(
-        create_goal_ctx_with_feature(create_objective_feature_with_fixed_cost("o_1", 1.)).estimate(&move_ctx),
-        1.
+        create_goal_ctx_with_feature(create_objective_feature_with_fixed_cost("o_1", 1.)).estimate_ex(&move_ctx),
+        InsertionCost::new(&[1.])
     );
 
     assert_eq!(
@@ -162,8 +162,8 @@ pub fn can_use_objective_estimate() {
             ],
             vec![vec!["o_1", "o_2"]],
         )
-        .estimate(&move_ctx),
-        2.
+        .estimate_ex(&move_ctx),
+        InsertionCost::new(&[1., 1.])
     );
 }
 

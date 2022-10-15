@@ -195,7 +195,12 @@ pub trait ResultSelector {
     ) -> InsertionResult;
 
     /// Selects one insertion result from two to promote as best.
-    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either<f64, f64> {
+    fn select_cost(
+        &self,
+        _route_ctx: &RouteContext,
+        left: InsertionCost,
+        right: InsertionCost,
+    ) -> Either<InsertionCost, InsertionCost> {
         if left < right {
             Either::Left(left)
         } else {
@@ -224,30 +229,36 @@ impl NoiseResultSelector {
     pub fn new(noise: Noise) -> Self {
         Self { noise }
     }
+
+    fn with_noise(&self, result: InsertionResult) -> InsertionResult {
+        match result {
+            InsertionResult::Success(success) => InsertionResult::Success(InsertionSuccess {
+                cost: self.noise.generate_multi(success.cost.into_iter()).collect(),
+                ..success
+            }),
+            _ => result,
+        }
+    }
 }
 
 impl ResultSelector for NoiseResultSelector {
-    fn select_insertion(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
-        match (&left, &right) {
-            (InsertionResult::Success(_), InsertionResult::Failure(_)) => left,
-            (InsertionResult::Failure(_), InsertionResult::Success(_)) => right,
-            (InsertionResult::Success(left_success), InsertionResult::Success(right_success)) => {
-                let left_cost = left_success.cost + self.noise.generate(left_success.cost);
-                let right_cost = right_success.cost + self.noise.generate(right_success.cost);
-
-                if left_cost < right_cost {
-                    left
-                } else {
-                    right
-                }
-            }
-            _ => right,
-        }
+    fn select_insertion(
+        &self,
+        _ctx: &InsertionContext,
+        left: InsertionResult,
+        right: InsertionResult,
+    ) -> InsertionResult {
+        InsertionResult::choose_best_result(self.with_noise(left), self.with_noise(right))
     }
 
-    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either<f64, f64> {
-        let left = left + self.noise.generate(left);
-        let right = right + self.noise.generate(right);
+    fn select_cost(
+        &self,
+        _route_ctx: &RouteContext,
+        left: InsertionCost,
+        right: InsertionCost,
+    ) -> Either<InsertionCost, InsertionCost> {
+        let left = self.noise.generate_multi(left.into_iter()).collect();
+        let right = self.noise.generate_multi(right.into_iter()).collect();
 
         if left < right {
             Either::Left(left)
