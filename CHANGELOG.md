@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.19.0]
+
 This release is focused on internal design improvements.
 
 ### Changed
