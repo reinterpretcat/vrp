@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 
 ## [v1.19.0]
 
-This release is focused on internal design improvements.
+This release is focused on internal design improvements with some performance implications.
 
 ### Changed
 
@@ -19,7 +19,7 @@ This release is focused on internal design improvements.
 
 ### Removed
 
-* `breaking`: area constraint as it needs rework
+* `breaking`: remove area constraint as it needs rework
 
 
 ## [v1.18.4]
@@ -558,7 +558,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.18.4...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.19.0...HEAD
+[v1.19.0]: https://github.com/reinterpretcat/vrp/compare/v1.18.4...v1.90.0
 [v1.18.4]: https://github.com/reinterpretcat/vrp/compare/v1.18.3...v1.18.4
 [v1.18.3]: https://github.com/reinterpretcat/vrp/compare/v1.18.2...v1.18.3
 [v1.18.2]: https://github.com/reinterpretcat/vrp/compare/v1.18.1..v1.18.2
