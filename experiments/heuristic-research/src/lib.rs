@@ -7,7 +7,6 @@ use crate::solver::*;
 use rosomaxa::algorithms::gsom::Coordinate;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::io::BufWriter;
 use std::sync::{Arc, Mutex};
 use wasm_bindgen::prelude::*;
 
@@ -69,34 +68,4 @@ pub fn clear() {
 #[wasm_bindgen]
 pub fn get_generation() -> usize {
     EXPERIMENT_DATA.lock().unwrap().generation
-}
-
-/// Gets bundled generations for given generation (for vrp experiments only).
-#[wasm_bindgen]
-pub fn get_bundled_edges(generation: usize) -> JsValue {
-    #[derive(Serialize)]
-    struct GraphResult {
-        nodes: Vec<GraphNode>,
-        edges: Vec<Vec<GraphNode>>,
-    }
-
-    let graphs: Vec<DataGraph> = EXPERIMENT_DATA
-        .lock()
-        .unwrap()
-        .on_generation
-        .get(&generation)
-        .map(|(_, data)| data.iter().map(|d| d.into()).collect())
-        .unwrap_or_else(Vec::new);
-
-    let (nodes, edges) = get_forced_bundled_edges(graphs.as_slice());
-
-    serialize(GraphResult { nodes, edges })
-}
-
-fn serialize<T: Serialize>(value: T) -> JsValue {
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    serde_json::to_writer_pretty(writer, &value).expect("cannot serialize");
-
-    JsValue::from_str(buffer.as_str())
 }
