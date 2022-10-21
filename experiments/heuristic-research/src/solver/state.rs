@@ -67,12 +67,24 @@ fn create_rosomaxa_state(network_state: NetworkState) -> PopulationState {
             PopulationState::Rosomaxa { objective, u_matrix, t_matrix, l_matrix, .. } => {
                 // NOTE get first fitness in assumption of sorted order
                 let fitness = match (node.dump.starts_with("[["), node.dump.find(']')) {
-                    (true, Some(value)) => node.dump[2..value].parse::<f64>().ok(),
+                    (true, Some(value)) => node.dump[2..value]
+                        .split(',')
+                        .map(|value| value.parse::<f64>())
+                        .collect::<Result<Vec<_>, _>>()
+                        .ok(),
                     _ => None,
                 };
 
                 if let Some(fitness) = fitness {
-                    objective.insert(coordinate, fitness);
+                    // NOTE if we have 3 fitness values, than it is most likely a typical vrp scenario
+                    // and we want to visualize a cost which is used to be third.
+                    match fitness.len() {
+                        0 => {}
+                        len @ 3 | len @ 1 => {
+                            objective.insert(coordinate, fitness[len - 1]);
+                        }
+                        _ => unimplemented!(),
+                    }
                 }
                 u_matrix.insert(coordinate, node.unified_distance);
                 t_matrix.insert(coordinate, node.total_hits as f64);

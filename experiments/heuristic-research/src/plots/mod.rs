@@ -100,7 +100,13 @@ pub fn draw_function_plots<B: DrawingBackend + 'static>(
             projection: Projection { pitch, yaw, scale: 0.8 },
             series: Series3D {
                 surface: {
-                    let fitness_fn = get_fitness_fn_by_name(name);
+                    let fitness_fn = {
+                        if name != "vrp" {
+                            get_fitness_fn_by_name(name)
+                        } else {
+                            Arc::new(|_: &[f64]| 0.)
+                        }
+                    };
                     Box::new(move |x, z| fitness_fn.deref()(&[x, z]))
                 },
                 points: Box::new(move || get_solution_points(generation)),

@@ -66,7 +66,7 @@ pub fn solve_vrp(
         logger: logger.clone(),
         log_best: 100,
         log_population: 1000,
-        dump_population: false,
+        dump_population: true,
     };
 
     let config = create_default_config_builder(problem.clone(), environment.clone(), telemetry_mode.clone())

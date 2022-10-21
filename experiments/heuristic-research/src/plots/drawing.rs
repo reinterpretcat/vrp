@@ -114,7 +114,7 @@ fn draw_population<B: DrawingBackend + 'static>(
                     let points = [(x, y), (x + 1, y + 1)];
 
                     if let Some(v) = matrix.get(&Coordinate(x, y)).cloned() {
-                        Rectangle::new(points, HSLColor(240. / 360. - 240. / 360. * v / size, 1., 0.7).filled())
+                        Rectangle::new(points, HSLColor(240. / 360. - 240. / 360. * (v - min) / size, 1., 0.7).filled())
                     } else {
                         Rectangle::new(points, WHITE)
                     }

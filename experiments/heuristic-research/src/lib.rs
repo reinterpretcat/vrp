@@ -14,7 +14,7 @@ mod plots;
 pub use self::plots::{draw_function_plots, Axes};
 
 mod solver;
-pub use self::solver::solve_function;
+pub use self::solver::{solve_function, solve_vrp};
 
 /// Specifies a matrix data type.
 pub type MatrixData = HashMap<Coordinate, f64>;
