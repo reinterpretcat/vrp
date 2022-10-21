@@ -21,9 +21,12 @@ pub fn draw<B: DrawingBackend + 'static>(
             draw_solution(&area, solution_config)?;
         }
         PopulationSeries::Rosomaxa { .. } => {
-            let (left, right) = area.split_horizontally(500);
+            // TODO visualize solution too
+            /*let (left, right) = area.split_horizontally(500);
             draw_solution(&left, solution_config)?;
-            draw_population(&right, population_config)?;
+            draw_population(&right, population_config)?;*/
+
+            draw_population(&area, population_config)?;
         }
     }
 
