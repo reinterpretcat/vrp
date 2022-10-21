@@ -17,7 +17,7 @@ pub enum PopulationState {
         /// Cols range.
         cols: Range<i32>,
         /// Objective values data.
-        objective: MatrixData,
+        objectives: Vec<MatrixData>,
         /// U-matrix values data.
         u_matrix: MatrixData,
         /// T-matrix values data.
@@ -33,7 +33,7 @@ impl PopulationState {
         PopulationState::Rosomaxa {
             rows,
             cols,
-            objective: Default::default(),
+            objectives: Default::default(),
             u_matrix: Default::default(),
             t_matrix: Default::default(),
             l_matrix: Default::default(),
@@ -64,7 +64,7 @@ fn create_rosomaxa_state(network_state: NetworkState) -> PopulationState {
     network_state.nodes.iter().fold(PopulationState::new_rosomaxa_empty(rows, cols), |mut rosomaxa, node| {
         let coordinate = Coordinate(node.coordinate.0, node.coordinate.1);
         match &mut rosomaxa {
-            PopulationState::Rosomaxa { objective, u_matrix, t_matrix, l_matrix, .. } => {
+            PopulationState::Rosomaxa { objectives, u_matrix, t_matrix, l_matrix, .. } => {
                 // NOTE get first fitness in assumption of sorted order
                 let fitness = match (node.dump.starts_with("[["), node.dump.find(']')) {
                     (true, Some(value)) => node.dump[2..value]
@@ -76,15 +76,10 @@ fn create_rosomaxa_state(network_state: NetworkState) -> PopulationState {
                 };
 
                 if let Some(fitness) = fitness {
-                    // NOTE if we have 3 fitness values, than it is most likely a typical vrp scenario
-                    // and we want to visualize a cost which is used to be third.
-                    match fitness.len() {
-                        0 => {}
-                        len @ 3 | len @ 1 => {
-                            objective.insert(coordinate, fitness[len - 1]);
-                        }
-                        _ => unimplemented!(),
-                    }
+                    objectives.resize(fitness.len(), MatrixData::default());
+                    fitness.into_iter().enumerate().for_each(|(idx, fitness)| {
+                        objectives[idx].insert(coordinate, fitness);
+                    });
                 }
                 u_matrix.insert(coordinate, node.unified_distance);
                 t_matrix.insert(coordinate, node.total_hits as f64);

@@ -11,23 +11,21 @@ use std::ops::Deref;
 /// Draws chart on canvas according to the drawing configs.
 pub fn draw<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
-    solution_config: &SolutionDrawConfig,
-    population_config: &PopulationDrawConfig,
+    population_config: PopulationDrawConfig,
+    solution_config: Option<SolutionDrawConfig>,
 ) -> DrawResult<()> {
     area.fill(&WHITE)?;
 
-    match &population_config.series {
-        PopulationSeries::Unknown => {
-            draw_solution(&area, solution_config)?;
+    match (&population_config.series, solution_config) {
+        (PopulationSeries::Unknown, Some(solution_config)) => {
+            draw_solution(&area, &solution_config)?;
         }
-        PopulationSeries::Rosomaxa { .. } => {
-            // TODO visualize solution too
-            /*let (left, right) = area.split_horizontally(500);
-            draw_solution(&left, solution_config)?;
-            draw_population(&right, population_config)?;*/
-
-            draw_population(&area, population_config)?;
+        (PopulationSeries::Rosomaxa { .. }, Some(solution_config)) => {
+            let (left, right) = area.split_horizontally(500);
+            draw_solution(&left, &solution_config)?;
+            draw_population(&right, &population_config)?;
         }
+        _ => draw_population(&area, &population_config)?,
     }
 
     area.present()?;
@@ -83,10 +81,11 @@ fn draw_population<B: DrawingBackend + 'static>(
     population_config: &PopulationDrawConfig,
 ) -> DrawResult<()> {
     match &population_config.series {
-        PopulationSeries::Rosomaxa { rows, cols, objective, u_matrix, t_matrix, l_matrix } => {
-            let mut sub_areas = area.split_evenly((2, 2));
-            assert_eq!(sub_areas.len(), 4);
+        PopulationSeries::Rosomaxa { rows, cols, objectives, u_matrix, t_matrix, l_matrix } => {
+            let plots = objectives.len() + 3;
+            let cols_size = plots / 2 + if plots % 2 == 1 { 1 } else { 0 };
 
+            let mut sub_areas = area.split_evenly((2, cols_size));
             let draw_series2d = |area: &mut DrawingArea<B, Shift>,
                                  caption_fn: &dyn Fn(f64, f64) -> String,
                                  series: &Series2D|
@@ -135,10 +134,15 @@ fn draw_population<B: DrawingBackend + 'static>(
                 move |min: f64, max: f64| format!("{} [{}..{}]", caption, min as usize, max as usize)
             };
 
-            draw_series2d(sub_areas.get_mut(0).unwrap(), &get_caption_float("objective value"), objective)?;
-            draw_series2d(sub_areas.get_mut(1).unwrap(), &get_caption_float("unified distance"), u_matrix)?;
-            draw_series2d(sub_areas.get_mut(2).unwrap(), &get_caption_usize("total hits"), t_matrix)?;
-            draw_series2d(sub_areas.get_mut(3).unwrap(), &get_caption_usize("last hits"), l_matrix)?;
+            let len = objectives.len();
+
+            draw_series2d(sub_areas.get_mut(len).unwrap(), &get_caption_float("unified distance"), u_matrix)?;
+            draw_series2d(sub_areas.get_mut(len + 1).unwrap(), &get_caption_usize("total hits"), t_matrix)?;
+            draw_series2d(sub_areas.get_mut(len + 2).unwrap(), &get_caption_usize("last hits"), l_matrix)?;
+            objectives.iter().enumerate().try_for_each(|(idx, objective)| {
+                let caption = format!("objective {}", idx);
+                draw_series2d(sub_areas.get_mut(idx).unwrap(), &get_caption_float(caption.as_str()), objective)
+            })?;
         }
         PopulationSeries::Unknown => {}
     };

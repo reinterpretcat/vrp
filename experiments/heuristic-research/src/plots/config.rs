@@ -70,7 +70,7 @@ pub enum PopulationSeries {
         /// Columns range.
         cols: Range<i32>,
         /// Objective values chart series.
-        objective: Series2D,
+        objectives: Vec<Series2D>,
         /// U-matrix values chart series.
         u_matrix: Series2D,
         /// T-matrix values chart series.

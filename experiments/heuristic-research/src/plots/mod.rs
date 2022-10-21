@@ -59,20 +59,29 @@ impl Chart {
 
     /// Draws plot for VRP problem.
     pub fn vrp(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
-        let (max_x, max_y, max_z) = get_axis_sizes();
+        // TODO find nice way to visualize vrp solutions in 3D plot
         draw(
             get_canvas_drawing_area(canvas),
-            &SolutionDrawConfig {
-                axes: Axes { x: (0.0..max_x.max(10.), 0.5), y: (0.0..max_y.max(10.)), z: (0.0..max_z.max(10.), 0.5) },
-                projection: Projection { pitch, yaw, scale: 0.8 },
-                series: Series3D {
-                    surface: Box::new(move |_x, _z| 0.),
-                    points: Box::new(move || get_solution_points(generation)),
-                },
-            },
-            &PopulationDrawConfig {
+            PopulationDrawConfig {
                 axes: Axes { x: (Default::default(), 0.0), y: Default::default(), z: (Default::default(), 0.0) },
                 series: get_population_series(generation),
+            },
+            if generation == 0 {
+                let (max_x, max_y, max_z) = get_axis_sizes();
+                Some(SolutionDrawConfig {
+                    axes: Axes {
+                        x: (0.0..max_x.max(10.), 0.5),
+                        y: (0.0..max_y.max(10.)),
+                        z: (0.0..max_z.max(10.), 0.5),
+                    },
+                    projection: Projection { pitch, yaw, scale: 0.8 },
+                    series: Series3D {
+                        surface: Box::new(move |_x, _z| 0.),
+                        points: Box::new(move || get_solution_points(generation)),
+                    },
+                })
+            } else {
+                None
             },
         )
         .map_err(|err| err.to_string())?;
@@ -95,7 +104,11 @@ pub fn draw_function_plots<B: DrawingBackend + 'static>(
 ) -> Result<(), String> {
     draw(
         area,
-        &SolutionDrawConfig {
+        PopulationDrawConfig {
+            axes: Axes { x: (Default::default(), 0.0), y: Default::default(), z: (Default::default(), 0.0) },
+            series: get_population_series(generation),
+        },
+        Some(SolutionDrawConfig {
             axes,
             projection: Projection { pitch, yaw, scale: 0.8 },
             series: Series3D {
@@ -111,11 +124,7 @@ pub fn draw_function_plots<B: DrawingBackend + 'static>(
                 },
                 points: Box::new(move || get_solution_points(generation)),
             },
-        },
-        &PopulationDrawConfig {
-            axes: Axes { x: (Default::default(), 0.0), y: Default::default(), z: (Default::default(), 0.0) },
-            series: get_population_series(generation),
-        },
+        }),
     )
     .map_err(|err| err.to_string())
 }
@@ -156,7 +165,7 @@ fn get_population_series(generation: usize) -> PopulationSeries {
         .lock()
         .ok()
         .and_then(|data| match data.population_state.get(&generation) {
-            Some(PopulationState::Rosomaxa { rows, cols, objective, u_matrix, t_matrix, l_matrix }) => {
+            Some(PopulationState::Rosomaxa { rows, cols, objectives, u_matrix, t_matrix, l_matrix }) => {
                 let get_series = |matrix: &MatrixData| {
                     let matrix = matrix.clone();
                     Series2D { matrix: Box::new(move || matrix.clone()) }
@@ -165,7 +174,7 @@ fn get_population_series(generation: usize) -> PopulationSeries {
                 Some(PopulationSeries::Rosomaxa {
                     rows: rows.clone(),
                     cols: cols.clone(),
-                    objective: get_series(objective),
+                    objectives: objectives.iter().map(get_series).collect(),
                     u_matrix: get_series(u_matrix),
                     t_matrix: get_series(t_matrix),
                     l_matrix: get_series(l_matrix),
