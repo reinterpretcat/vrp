@@ -1,11 +1,14 @@
 #[cfg(test)]
-#[path = "../../tests/unit/population/rosomaxa_test.rs"]
+#[path = "../../../tests/unit/population/rosomaxa/rosomaxa_test.rs"]
 mod rosomaxa_test;
+
+mod optimizations;
 
 use super::*;
 use crate::algorithms::gsom::*;
 use crate::algorithms::math::relative_distance;
 use crate::population::elitism::{DedupFn, DominanceOrdered, Shuffled};
+use crate::population::rosomaxa::optimizations::NetworkOptimization;
 use crate::utils::{Environment, Random};
 use rand::prelude::SliceRandom;
 use std::convert::TryInto;
@@ -248,6 +251,7 @@ where
 
                     self.phase = RosomaxaPhases::Exploration {
                         network,
+                        optimization: NetworkOptimization::new(self.config.rebalance_memory, self.config.learning_rate),
                         coordinates: vec![],
                         statistics: statistics.clone(),
                         selection_size,
@@ -256,6 +260,7 @@ where
             }
             RosomaxaPhases::Exploration {
                 network,
+                optimization,
                 coordinates,
                 statistics: old_statistics,
                 selection_size: old_selection_size,
@@ -272,13 +277,7 @@ where
                     let best_individual = self.elite.select().next().expect("expected individuals in elite");
                     let best_fitness = best_individual.fitness().collect::<Vec<_>>();
 
-                    Self::optimize_network(
-                        network,
-                        statistics,
-                        best_fitness.as_slice(),
-                        self.config.rebalance_memory,
-                        self.config.learning_rate,
-                    );
+                    optimization.optimize_network(network, statistics, best_fitness.as_slice());
 
                     Self::fill_populations(network, coordinates, self.environment.random.as_ref());
                 } else {
@@ -311,68 +310,6 @@ where
         }));
 
         coordinates.shuffle(&mut random.get_rng());
-    }
-
-    fn optimize_network(
-        network: &mut IndividualNetwork<O, S>,
-        statistics: &HeuristicStatistics,
-        best_fitness: &[f64],
-        rebalance_memory: usize,
-        init_learning_rate: f64,
-    ) {
-        // https://www.wolframalpha.com/input?i=plot+2+*+%281+-+1%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
-        let x = match statistics.improvement_1000_ratio {
-            v if v < 0.25 => v,
-            _ => statistics.termination_estimate,
-        }
-        .clamp(0., 1.);
-
-        let ratio = 2. * (1. - 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.5))));
-        let keep_size = rebalance_memory + (rebalance_memory as f64 * ratio) as usize;
-
-        if statistics.generation % rebalance_memory == 0 {
-            network.smooth(1);
-        }
-
-        if network.size() <= keep_size {
-            return;
-        }
-
-        if init_learning_rate < 1. {
-            network.set_learning_rate(statistics.termination_estimate.clamp(init_learning_rate, 1.));
-        }
-
-        let max_unified_distance = network
-            .get_nodes()
-            .map(|node| node.read().unwrap().unified_distance(network, 1))
-            .max_by(|a, b| compare_floats(*a, *b))
-            .unwrap_or(0.);
-
-        let get_distance = |node: &NodeLink<S, IndividualStorage<O, S>>| {
-            let node = node.read().unwrap();
-            let individual = node.storage.population.ranked().next();
-
-            individual.map(|(individual, _)| relative_distance(best_fitness.iter().cloned(), individual.fitness()))
-        };
-
-        // determine percentile value
-        let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
-        distances.sort_by(|a, b| compare_floats(*b, *a));
-
-        const PERCENTILE_THRESHOLD: f64 = 0.1;
-        let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
-
-        if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
-            network.compact(&|node, unified_distance| {
-                // NOTE
-                // unified distance filter improves diversity property
-                // distance filter improves exploitation characteristic by removing old (or empty) nodes
-
-                let is_far_enough = compare_floats(unified_distance, max_unified_distance * 0.1) != Ordering::Less;
-                is_far_enough && get_distance(node).map_or(false, |distance| distance < distance_threshold)
-            });
-            network.smooth(1);
-        }
     }
 
     fn create_network(
@@ -453,6 +390,7 @@ where
     },
     Exploration {
         network: IndividualNetwork<O, S>,
+        optimization: NetworkOptimization<O, S>,
         coordinates: Vec<Coordinate>,
         statistics: HeuristicStatistics,
         selection_size: usize,

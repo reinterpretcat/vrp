@@ -26,6 +26,7 @@ where
     learning_rate: f64,
     time: usize,
     rebalance_memory: usize,
+    can_grow: bool,
     min_max_weights: MinMaxWeights,
     nodes: HashMap<Coordinate, NodeLink<I, S>>,
     storage_factory: F,
@@ -81,6 +82,7 @@ where
             learning_rate: config.learning_rate,
             time: 0,
             rebalance_memory: config.rebalance_memory,
+            can_grow: true,
             min_max_weights,
             nodes,
             storage_factory,
@@ -90,6 +92,11 @@ where
     /// Sets a new learning rate.
     pub fn set_learning_rate(&mut self, learning_rate: f64) {
         self.learning_rate = learning_rate;
+    }
+
+    /// Sets whether network can grow.
+    pub fn set_can_grow(&mut self, can_grow: bool) {
+        self.can_grow = can_grow;
     }
 
     /// Stores input into the network.
@@ -193,6 +200,14 @@ where
         self.nodes.iter().fold(0., |acc, (_, node)| acc + node.read().unwrap().mse()) / n
     }
 
+    /// Returns max unified distance of the network.
+    pub fn max_unified_distance(&self) -> f64 {
+        self.get_nodes()
+            .map(|node| node.read().unwrap().unified_distance(self, 1))
+            .max_by(|a, b| compare_floats(*a, *b))
+            .unwrap_or(0.)
+    }
+
     /// Trains network on an input.
     fn train(&mut self, input: I, is_new_input: bool) {
         debug_assert!(input.weights().len() == self.dimension);
@@ -238,7 +253,7 @@ where
 
             (
                 matches!(compare_floats(node.error, self.growing_threshold), Ordering::Equal | Ordering::Greater),
-                node.is_boundary(self) && is_new_input,
+                node.is_boundary(self) && is_new_input && self.can_grow,
             )
         };
 
