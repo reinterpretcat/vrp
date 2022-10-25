@@ -32,7 +32,7 @@ where
     S: HeuristicSolution,
 {
     heuristic_simulator: Simulator<SearchState>,
-    initial_estimates: HashMap<SearchState, ActionEstimates<SearchState>>,
+    initial_estimates: StateEstimates<SearchState>,
     action_registry: SearchActionRegistry<C, O, S>,
     diversify_operators: HeuristicDiversifyOperators<C, O, S>,
     tracker: HeuristicTracker,
@@ -238,7 +238,7 @@ where
 {
     heuristic_ctx: &'a C,
     registry: &'a SearchActionRegistry<C, O, S>,
-    estimates: &'a HashMap<SearchState, ActionEstimates<SearchState>>,
+    estimates: &'a StateEstimates<SearchState>,
     tracker: &'a HeuristicTracker,
     state: SearchState,
     original: &'a S,
