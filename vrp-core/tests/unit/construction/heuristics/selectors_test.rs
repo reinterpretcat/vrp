@@ -44,3 +44,14 @@ fn can_compare_insertion_result_with_noise_impl(
         _ => unreachable!(),
     }
 }
+
+mod iterators {
+    use crate::helpers::solver::generate_matrix_routes_with_defaults;
+
+    #[test]
+    fn can_get_size_hint_for_tour_legs() {
+        let (_, solution) = generate_matrix_routes_with_defaults(5, 1, false);
+
+        assert_eq!(solution.routes[0].tour.legs().skip(2).size_hint().0, 4);
+    }
+}

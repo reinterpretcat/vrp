@@ -87,3 +87,16 @@ impl<I: Iterator> Iterator for SelectionSamplingIterator<I> {
         }
     }
 }
+
+/// Returns a new iterator which samples some range from existing one.
+pub fn create_range_sampling_iter<I: Iterator>(
+    iterator: I,
+    sample_size: usize,
+    random: &(dyn Random + Send + Sync),
+) -> impl Iterator<Item = I::Item> {
+    let iterator_size = iterator.size_hint().0 as f64;
+    let sample_count = (iterator_size / sample_size as f64).max(1.) - 1.;
+    let offset = random.uniform_int(0, sample_count as i32) as usize * sample_size;
+
+    iterator.skip(offset).take(sample_size as usize)
+}

@@ -322,11 +322,19 @@ impl LegSelector for VariableLegSelector {
                 Job::Multi(_) => 4,
             };
 
-            Box::new(SelectionSamplingIterator::new(
-                route_ctx.route.tour.legs().skip(skip),
-                sample_size,
-                self.random.clone(),
-            ))
+            if self.random.is_head_not_tails() {
+                Box::new(create_range_sampling_iter(
+                    route_ctx.route.tour.legs().skip(skip),
+                    sample_size,
+                    self.random.as_ref(),
+                ))
+            } else {
+                Box::new(SelectionSamplingIterator::new(
+                    route_ctx.route.tour.legs().skip(skip),
+                    sample_size,
+                    self.random.clone(),
+                ))
+            }
         }
     }
 }
