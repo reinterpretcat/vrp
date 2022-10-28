@@ -44,6 +44,16 @@ impl<S: State> Simulator<S> {
         self.q.insert(state, estimates);
     }
 
+    /// Sets a new learning strategy.
+    pub fn set_learning_strategy(&mut self, learning_strategy: Box<dyn LearningStrategy<S> + Send + Sync>) {
+        self.learning_strategy = learning_strategy;
+    }
+
+    /// Sets a new policy strategy.
+    pub fn set_policy_strategy(&mut self, policy_strategy: Box<dyn PolicyStrategy<S> + Send + Sync>) {
+        self.policy_strategy = policy_strategy;
+    }
+
     /// Runs single episode for each of the given agents in parallel.
     pub fn run_episodes<A>(
         &mut self,

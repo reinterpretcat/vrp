@@ -100,6 +100,12 @@ where
 
         try_exchange_estimates(&mut self.heuristic_simulator);
 
+        // update learning and policy strategies to move from more exploration at the beginning to exploitation in the end
+        let termination_estimate = heuristic_ctx.statistics().termination_estimate;
+        let random = heuristic_ctx.environment().random.clone();
+        self.heuristic_simulator.set_learning_strategy(create_learning_strategy(termination_estimate));
+        self.heuristic_simulator.set_policy_strategy(create_policy_strategy(termination_estimate, random));
+
         individuals
     }
 
@@ -128,8 +134,8 @@ where
 
         Self {
             heuristic_simulator: Simulator::new(
-                Box::new(MonteCarlo::new(0.1)),
-                Box::new(EpsilonWeighted::new(0.1, environment.random.clone())),
+                create_learning_strategy(0.),
+                create_policy_strategy(0., environment.random.clone()),
             ),
             initial_estimates: vec![
                 (SearchState::BestKnown(Default::default()), operator_estimates.clone()),
@@ -394,4 +400,23 @@ impl HeuristicTracker {
     pub fn approx_median(&self) -> Option<usize> {
         self.total_median.approx_median()
     }
+}
+
+fn create_learning_strategy(termination_estimate: f64) -> Box<dyn LearningStrategy<SearchState> + Send + Sync> {
+    // https://www.wolframalpha.com/input?i=plot++%281%2F%281%2Be%5E%28-10+*%28x+-+0.25%29%29%29%29%2C+x%3D0+to+1
+    let x = termination_estimate.clamp(0., 1.);
+    let alpha = 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.25)));
+
+    Box::new(MonteCarlo::new(alpha))
+}
+
+fn create_policy_strategy(
+    termination_estimate: f64,
+    random: Arc<dyn Random + Send + Sync>,
+) -> Box<dyn PolicyStrategy<SearchState> + Send + Sync> {
+    // https://www.wolframalpha.com/input?i=plot+0.2+*+%281+-+1%2F%281%2Be%5E%28-10+*%28x+-+0.2%29%29%29%29%2C+x%3D0+to+1
+    let x = termination_estimate.clamp(0., 1.);
+    let epsilon = 0.2 * (1. - 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.2))));
+
+    Box::new(EpsilonWeighted::new(epsilon, random))
 }
