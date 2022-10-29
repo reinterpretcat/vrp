@@ -88,18 +88,21 @@ fn can_display_heuristic_info_impl(is_experimental: bool) {
         1,
         "name1".to_string(),
         Duration::from_millis(100),
+        1.,
         SearchState::Stagnated(MedianRatio { ratio: 1. }),
     );
     heuristic.tracker.observation(
         2,
         "name1".to_string(),
         Duration::from_millis(101),
+        1.,
         SearchState::BestMajorImprovement(MedianRatio { ratio: 1. }),
     );
     heuristic.tracker.observation(
         1,
         "name2".to_string(),
         Duration::from_millis(102),
+        1.,
         SearchState::DiverseImprovement(MedianRatio { ratio: 1. }),
     );
 
