@@ -418,9 +418,9 @@ impl HeuristicTracker {
 }
 
 fn create_learning_strategy(termination_estimate: f64) -> Box<dyn LearningStrategy<SearchState> + Send + Sync> {
-    // https://www.wolframalpha.com/input?i=plot++%281%2F%282%2Be%5E%28-10+*%28x+-+0.25%29%29%29%29%2C+x%3D0+to+1
+    // https://www.wolframalpha.com/input?i=plot++%281%2F%284%2Be%5E%28-4*%28x+-+0.25%29%29%29%29%2C+x%3D0+to+1
     let x = termination_estimate.clamp(0., 1.);
-    let alpha = 1. / (2. + std::f64::consts::E.powf(-10. * (x - 0.25)));
+    let alpha = 1. / (4. + std::f64::consts::E.powf(-4. * (x - 0.25)));
 
     Box::new(MonteCarlo::new(alpha))
 }
@@ -429,9 +429,9 @@ fn create_policy_strategy(
     termination_estimate: f64,
     random: Arc<dyn Random + Send + Sync>,
 ) -> Box<dyn PolicyStrategy<SearchState> + Send + Sync> {
-    // https://www.wolframalpha.com/input?i=plot+0.2+*+%281+-+1%2F%281%2Be%5E%28-10+*%28x+-+0.25%29%29%29%29%2C+x%3D0+to+1
+    // https://www.wolframalpha.com/input?i=plot+0.2*+%281+-+1%2F%281%2Be%5E%28-4+*%28x+-+0.25%29%29%29%29%2C+x%3D0+to+1
     let x = termination_estimate.clamp(0., 1.);
-    let epsilon = 0.2 * (1. - 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.25))));
+    let epsilon = 0.2 * (1. - 1. / (1. + std::f64::consts::E.powf(-4. * (x - 0.25))));
 
     Box::new(EpsilonWeighted::new(epsilon, random))
 }
