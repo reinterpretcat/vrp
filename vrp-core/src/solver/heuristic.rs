@@ -3,7 +3,6 @@ use crate::construction::heuristics::*;
 use crate::models::common::{has_multi_dim_demand, MultiDimLoad, SingleDimLoad};
 use crate::models::GoalContext;
 use crate::rosomaxa::get_default_selection_size;
-use crate::solver::heuristic::dynamic::create_inner_heuristic_operator;
 use crate::solver::search::*;
 use rosomaxa::algorithms::gsom::Input;
 use rosomaxa::hyper::*;
@@ -79,7 +78,7 @@ pub fn get_default_heuristic(problem: Arc<Problem>, environment: Arc<Environment
 /// Gets static heuristic using default settings.
 pub fn get_static_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
     let default_operator = statik::create_default_heuristic_operator(problem.clone(), environment.clone());
-    let local_search = statik::create_default_local_search(environment.clone());
+    let local_search = statik::create_default_local_search(environment.random.clone());
 
     let heuristic_group: TargetHeuristicGroup = vec![
         (
@@ -270,7 +269,6 @@ fn create_diversify_operators(
     environment: Arc<Environment>,
 ) -> HeuristicDiversifyOperators<RefinementContext, GoalContext, InsertionContext> {
     let random = environment.random.clone();
-    let inner_search = create_inner_heuristic_operator(problem, environment.clone());
 
     let recreates: Vec<(Arc<dyn Recreate + Send + Sync>, usize)> = vec![
         (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 1),
@@ -282,7 +280,18 @@ fn create_diversify_operators(
     ];
 
     let redistribute_search = Arc::new(RedistributeSearch::new(Arc::new(WeightedRecreate::new(recreates))));
-    let infeasible_search = Arc::new(InfeasibleSearch::new(inner_search, 2, (0.05, 0.2), (0.05, 0.33)));
+    let infeasible_search = Arc::new(InfeasibleSearch::new(
+        Arc::new(WeightedHeuristicOperator::new(
+            vec![
+                dynamic::create_default_inner_ruin_recreate(problem, environment.clone()),
+                dynamic::create_default_local_search(environment.random.clone()),
+            ],
+            vec![10, 1],
+        )),
+        2,
+        (0.05, 0.2),
+        (0.05, 0.33),
+    ));
     let local_search = Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
         vec![(Arc::new(ExchangeSequence::new(8, 0.25, 0.1)), 1)],
         2,
@@ -360,15 +369,16 @@ mod statik {
         ]));
 
         Arc::new(WeightedHeuristicOperator::new(
-            vec![Arc::new(RuinAndRecreate::new(ruin, recreate)), create_default_local_search(environment)],
+            vec![
+                Arc::new(RuinAndRecreate::new(ruin, recreate)),
+                create_default_local_search(environment.random.clone()),
+            ],
             vec![100, 10],
         ))
     }
 
     /// Creates default local search operator.
-    pub fn create_default_local_search(environment: Arc<Environment>) -> TargetSearchOperator {
-        let random = environment.random.clone();
-
+    pub fn create_default_local_search(random: Arc<dyn Random + Send + Sync>) -> TargetSearchOperator {
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
             vec![
                 (Arc::new(ExchangeSwapStar::new(random, SINGLE_HEURISTIC_QUOTA_LIMIT)), 200),
@@ -436,8 +446,6 @@ mod dynamic {
             })
             .collect::<Vec<_>>();
 
-        let inner_search = create_inner_heuristic_operator(problem, environment);
-
         let mutations: Vec<(TargetSearchOperator, String)> = vec![
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
@@ -456,7 +464,18 @@ mod dynamic {
                 "local_reschedule_departure".to_string(),
             ),
             (
-                Arc::new(DecomposeSearch::new(inner_search, (2, 4), 2, SINGLE_HEURISTIC_QUOTA_LIMIT)),
+                Arc::new(DecomposeSearch::new(
+                    Arc::new(WeightedHeuristicOperator::new(
+                        vec![
+                            create_default_inner_ruin_recreate(problem, environment.clone()),
+                            create_default_local_search(environment.random.clone()),
+                        ],
+                        vec![10, 1],
+                    )),
+                    (2, 4),
+                    2,
+                    SINGLE_HEURISTIC_QUOTA_LIMIT,
+                )),
                 "decompose_search".to_string(),
             ),
             (
@@ -482,19 +501,18 @@ mod dynamic {
             .collect::<Vec<_>>()
     }
 
-    /// Creates inner heuristic operator with default parameters.
-    pub fn create_inner_heuristic_operator(
+    pub fn create_default_inner_ruin_recreate(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
-    ) -> TargetSearchOperator {
+    ) -> Arc<RuinAndRecreate> {
         let (_, small_limits) = get_limits(problem.as_ref());
         let random = environment.random.clone();
 
         // initialize recreate
         let cheapest = Arc::new(RecreateWithCheapest::new(random.clone()));
         let recreate = Arc::new(WeightedRecreate::new(vec![
-            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 1),
             (cheapest.clone(), 1),
+            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 1),
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 1),
             (Arc::new(RecreateWithSkipBest::new(3, 4, random.clone())), 1),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 1),
@@ -508,7 +526,7 @@ mod dynamic {
         let random_route = Arc::new(RandomRouteRemoval::new(small_limits.clone()));
         let random_job = Arc::new(RandomJobRemoval::new(small_limits.clone()));
         let random_ruin = Arc::new(WeightedRuin::new(vec![
-            (vec![(random_job.clone(), 1.)], 2),
+            (vec![(random_job.clone(), 1.)], 10),
             (vec![(random_route.clone(), 1.)], 1),
         ]));
 
@@ -518,26 +536,27 @@ mod dynamic {
                     (Arc::new(AdjustedStringRemoval::new_with_defaults(small_limits.clone())), 1.),
                     (random_ruin.clone(), 0.1),
                 ],
-                10,
+                1,
             ),
-            (vec![(Arc::new(NeighbourRemoval::new(small_limits.clone())), 1.), (random_ruin.clone(), 0.1)], 10),
-            (vec![(Arc::new(WorstJobRemoval::new(4, small_limits)), 1.), (random_ruin, 0.1)], 10),
-            (vec![(random_route, 1.), (random_job, 0.1)], 1),
+            (vec![(Arc::new(NeighbourRemoval::new(small_limits.clone())), 1.), (random_ruin.clone(), 0.1)], 1),
+            (vec![(Arc::new(WorstJobRemoval::new(4, small_limits)), 1.), (random_ruin, 0.1)], 1),
+            (vec![(random_job, 1.), (random_route, 0.1)], 1),
         ]));
-        let ruin_recreate = Arc::new(RuinAndRecreate::new(ruin, recreate));
 
-        // initialize local search
-        let local_search = Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
+        Arc::new(RuinAndRecreate::new(ruin, recreate))
+    }
+
+    pub fn create_default_local_search(random: Arc<dyn Random + Send + Sync>) -> Arc<LocalSearch> {
+        Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
             vec![
-                (Arc::new(ExchangeSwapStar::new(random, SINGLE_HEURISTIC_QUOTA_LIMIT / 4)), 1),
+                (Arc::new(ExchangeSwapStar::new(random, SINGLE_HEURISTIC_QUOTA_LIMIT / 4)), 2),
                 (Arc::new(ExchangeInterRouteBest::default()), 1),
                 (Arc::new(ExchangeInterRouteRandom::default()), 1),
                 (Arc::new(ExchangeIntraRouteRandom::default()), 1),
+                (Arc::new(ExchangeSequence::default()), 1),
             ],
             1,
             1,
-        ))));
-
-        Arc::new(WeightedHeuristicOperator::new(vec![ruin_recreate, local_search], vec![100, 10]))
+        ))))
     }
 }
