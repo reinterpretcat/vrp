@@ -44,11 +44,9 @@ fn can_select_action_with_weights() {
     let mut frequencies = frequencies.into_iter().collect::<Vec<_>>();
     frequencies.sort_by(|(a, _), (b, _)| a.cmp(b));
 
-    let result = frequencies.windows(2).fold(true, |acc, window| {
-        acc && match window {
-            &[(_, a), (_, b)] => a > b,
-            _ => unreachable!(),
-        }
+    let result = frequencies.windows(2).all(|window| match window {
+        &[(_, a), (_, b)] => a > b,
+        _ => unreachable!(),
     });
     assert!(result);
 }
