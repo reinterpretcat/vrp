@@ -158,7 +158,7 @@ fn insert_jobs(
     shuffle_prob: f64,
 ) {
     let random = &insertion_ctx.environment.random;
-    let leg_selector = VariableLegSelector::new(random.clone());
+    let leg_selection = LegSelectionMode::Stochastic(random.clone());
     let result_selector = BestResultSelector::default();
 
     let mut jobs = jobs;
@@ -179,7 +179,7 @@ fn insert_jobs(
         let eval_ctx = EvaluationContext {
             goal: &insertion_ctx.problem.goal,
             job: &job,
-            leg_selector: &leg_selector,
+            leg_selection: &leg_selection,
             result_selector: &result_selector,
         };
 
@@ -189,7 +189,7 @@ fn insert_jobs(
         let (result, start_index) = unwrap_from_result((start_index..=last_index).try_fold(
             (InsertionResult::make_failure(), start_index),
             |_, insertion_idx| {
-                let insertion = evaluate_job_insertion_in_route(
+                let insertion = eval_job_insertion_in_route(
                     insertion_ctx,
                     &eval_ctx,
                     get_route_ctx(insertion_ctx, route_idx),

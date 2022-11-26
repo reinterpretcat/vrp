@@ -100,3 +100,83 @@ pub fn create_range_sampling_iter<I: Iterator>(
 
     iterator.skip(offset).take(sample_size as usize)
 }
+
+/// Provides way to search using selection sampling algorithm on iterator where elements have ordered
+/// index values.
+pub trait SelectionSamplingSearch: Iterator {
+    /// Searches using selection sampling algorithm.
+    fn search_with_sample<'a, T, R, FM, FI, FC>(
+        self,
+        sample_size: usize,
+        random: Arc<dyn Random + Send + Sync>,
+        mut map_fn: FM,
+        index_fn: FI,
+        compare_fn: FC,
+    ) -> Option<R>
+    where
+        Self: Sized + Clone + Iterator<Item = T> + 'a,
+        T: 'a,
+        R: 'a,
+        FM: FnMut(T) -> R,
+        FI: Fn(&T) -> i32,
+        FC: Fn(&R, &R) -> bool,
+    {
+        let last_idx = i32::MAX;
+        let mut state = SelectionSamplingSearchState::<R>::default();
+
+        loop {
+            let best_idx = state.best.as_ref().map_or(-1, |(best_idx, _)| *best_idx);
+            let skip = state.target_left as usize;
+            let take = (state.target_right - state.target_left) as usize + 1;
+
+            state.next_left = last_idx;
+            state.next_right = state.next_right.min(last_idx);
+
+            state = SelectionSamplingIterator::new(self.clone().skip(skip).take(take), sample_size, random.clone())
+                .filter(|item| index_fn(item) != best_idx)
+                .fold(state, |mut acc, item| {
+                    let item_idx = index_fn(&item);
+                    let item_mapped = map_fn(item);
+
+                    if acc.best.as_ref().map_or(false, |(best_idx, _)| *best_idx == acc.target_left) {
+                        acc.next_right = item_idx - 1;
+                    }
+
+                    if acc.best.as_ref().map_or(true, |(_, best)| compare_fn(&item_mapped, best)) {
+                        acc.best = Some((item_idx, item_mapped));
+                        acc.next_left = acc.target_left + 1
+                    }
+
+                    acc.target_left = item_idx;
+
+                    acc
+                });
+
+            state.target_left = state.next_left;
+            state.target_right = state.next_right;
+
+            if state.target_left >= state.target_right {
+                break;
+            }
+        }
+
+        state.best.map(|(_, best)| best)
+    }
+}
+
+impl<T: Iterator> SelectionSamplingSearch for T {}
+
+#[derive(Debug)]
+struct SelectionSamplingSearchState<T> {
+    target_left: i32,
+    target_right: i32,
+    best: Option<(i32, T)>,
+    next_left: i32,
+    next_right: i32,
+}
+
+impl<T> Default for SelectionSamplingSearchState<T> {
+    fn default() -> Self {
+        Self { target_left: 0, target_right: i32::MAX, best: None, next_left: i32::MAX, next_right: i32::MAX }
+    }
+}

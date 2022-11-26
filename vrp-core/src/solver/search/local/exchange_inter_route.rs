@@ -96,7 +96,7 @@ fn find_best_insertion_pair(
 
         let new_insertion_ctx = get_new_insertion_ctx(insertion_ctx, &seed_job, seed_route_idx).unwrap();
         let seed_route = new_insertion_ctx.solution.routes.get(seed_route_idx).unwrap();
-        let leg_selector = VariableLegSelector::new(insertion_ctx.environment.random.clone());
+        let leg_selection = LegSelectionMode::Stochastic(insertion_ctx.environment.random.clone());
         let result_selector = NoiseResultSelector::new(noise.clone());
 
         let insertion_pair = new_insertion_ctx
@@ -121,7 +121,7 @@ fn find_best_insertion_pair(
                             &new_insertion_ctx,
                             seed_route,
                             test_job,
-                            &leg_selector,
+                            &leg_selection,
                             &result_selector,
                         )?;
 
@@ -135,7 +135,7 @@ fn find_best_insertion_pair(
                             &new_insertion_ctx,
                             &test_route,
                             &seed_job,
-                            &leg_selector,
+                            &leg_selection,
                             &result_selector,
                         )?;
 
@@ -165,12 +165,13 @@ fn test_job_insertion(
     insertion_ctx: &InsertionContext,
     route_ctx: &RouteContext,
     job: &Job,
-    leg_selector: &(dyn LegSelector + Send + Sync),
+    leg_selection: &LegSelectionMode,
     result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> Option<InsertionSuccess> {
-    let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selector, result_selector };
+    let eval_ctx =
+        EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection: leg_selection, result_selector };
 
-    let insertion = evaluate_job_insertion_in_route(
+    let insertion = eval_job_insertion_in_route(
         insertion_ctx,
         &eval_ctx,
         route_ctx,

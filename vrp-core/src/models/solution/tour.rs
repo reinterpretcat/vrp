@@ -114,7 +114,7 @@ impl Tour {
     }
 
     /// Returns counted tour legs.
-    pub fn legs(&self) -> impl Iterator<Item = Leg<'_>> + '_ {
+    pub fn legs(&self) -> impl Iterator<Item = Leg<'_>> + '_ + Clone {
         let last_index = if self.activities.is_empty() { 0 } else { self.activities.len() - 1 };
 
         let window_size = if self.activities.len() == 1 { 1 } else { 2 };

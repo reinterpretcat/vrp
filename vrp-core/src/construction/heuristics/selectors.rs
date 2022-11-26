@@ -7,7 +7,7 @@ use crate::models::problem::Job;
 use crate::models::solution::Leg;
 use crate::utils::*;
 use rand::prelude::*;
-use rosomaxa::utils::{map_reduce, parallel_collect, Random, SelectionSamplingIterator};
+use rosomaxa::utils::{map_reduce, parallel_collect, Random};
 use std::sync::Arc;
 
 /// On each insertion step, selects a list of routes where jobs can be inserted.
@@ -63,7 +63,7 @@ pub trait InsertionEvaluator {
         insertion_ctx: &InsertionContext,
         job: &Job,
         routes: &[RouteContext],
-        leg_selector: &(dyn LegSelector + Send + Sync),
+        leg_selection: &LegSelectionMode,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
 
@@ -73,7 +73,7 @@ pub trait InsertionEvaluator {
         insertion_ctx: &InsertionContext,
         route_ctx: &RouteContext,
         jobs: &[Job],
-        leg_selector: &(dyn LegSelector + Send + Sync),
+        leg_selection: &LegSelectionMode,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
 
@@ -83,7 +83,7 @@ pub trait InsertionEvaluator {
         insertion_ctx: &InsertionContext,
         jobs: &[Job],
         routes: &[RouteContext],
-        leg_selector: &(dyn LegSelector + Send + Sync),
+        leg_selection: &LegSelectionMode,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
 }
@@ -111,14 +111,14 @@ impl PositionInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         jobs: &[Job],
         routes: &[RouteContext],
-        leg_selector: &(dyn LegSelector + Send + Sync),
+        leg_selection: &LegSelectionMode,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> Vec<InsertionResult> {
         if Self::is_fold_jobs(insertion_ctx) {
-            parallel_collect(jobs, |job| self.evaluate_job(insertion_ctx, job, routes, leg_selector, result_selector))
+            parallel_collect(jobs, |job| self.evaluate_job(insertion_ctx, job, routes, leg_selection, result_selector))
         } else {
             parallel_collect(routes, |route_ctx| {
-                self.evaluate_route(insertion_ctx, route_ctx, jobs, leg_selector, result_selector)
+                self.evaluate_route(insertion_ctx, route_ctx, jobs, leg_selection, result_selector)
             })
         }
     }
@@ -134,13 +134,14 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         job: &Job,
         routes: &[RouteContext],
-        leg_selector: &(dyn LegSelector + Send + Sync),
+        leg_selection: &LegSelectionMode,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
-        let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selector, result_selector };
+        let eval_ctx =
+            EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection: leg_selection, result_selector };
 
         routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
-            evaluate_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+            eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
         })
     }
 
@@ -149,12 +150,12 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         route_ctx: &RouteContext,
         jobs: &[Job],
-        leg_selector: &(dyn LegSelector + Send + Sync),
+        leg_selection: &LegSelectionMode,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
-            let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selector, result_selector };
-            evaluate_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+            let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
+            eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
         })
     }
 
@@ -163,20 +164,20 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         jobs: &[Job],
         routes: &[RouteContext],
-        leg_selector: &(dyn LegSelector + Send + Sync),
+        leg_selection: &LegSelectionMode,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         if Self::is_fold_jobs(insertion_ctx) {
             map_reduce(
                 jobs,
-                |job| self.evaluate_job(insertion_ctx, job, routes, leg_selector, result_selector),
+                |job| self.evaluate_job(insertion_ctx, job, routes, leg_selection, result_selector),
                 InsertionResult::make_failure,
                 |a, b| result_selector.select_insertion(insertion_ctx, a, b),
             )
         } else {
             map_reduce(
                 routes,
-                |route| self.evaluate_route(insertion_ctx, route, jobs, leg_selector, result_selector),
+                |route| self.evaluate_route(insertion_ctx, route, jobs, leg_selection, result_selector),
                 InsertionResult::make_failure,
                 |a, b| result_selector.select_insertion(insertion_ctx, a, b),
             )
@@ -257,84 +258,81 @@ impl ResultSelector for NoiseResultSelector {
     }
 }
 
-// TODO avoid boxing in interfaces
-/// Provides the way to select legs from the tour which should be used for insertion analysis.
-pub trait LegSelector {
-    /// Returns legs from the tour of given route context while inserting the given job.
-    fn get_legs<'a>(
+/// Provides way to control routing leg selection mode.
+#[derive(Clone)]
+pub enum LegSelectionMode {
+    /// Stochastic mode: depending on route size, not all legs could be selected.
+    Stochastic(Arc<dyn Random + Send + Sync>),
+    /// Exhaustive mode: all legs are selected.
+    Exhaustive,
+}
+
+impl LegSelectionMode {
+    /// Selects a best leg for insertion.
+    pub(crate) fn select_best_leg<R, FM, FC>(
         &self,
-        route_ctx: &'a RouteContext,
+        route_ctx: &RouteContext,
         job: &Job,
         skip: usize,
-    ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a>;
-}
-
-/// Selects all legs.
-#[derive(Default)]
-pub struct AllLegSelector {}
-
-impl LegSelector for AllLegSelector {
-    fn get_legs<'a>(
-        &self,
-        route_ctx: &'a RouteContext,
-        _: &Job,
-        skip: usize,
-    ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a> {
-        Box::new(route_ctx.route.tour.legs().skip(skip))
-    }
-}
-
-/// Selects different legs based on route and job size.
-pub struct VariableLegSelector {
-    random: Arc<dyn Random + Send + Sync>,
-}
-
-impl VariableLegSelector {
-    /// Creates a new instance of `VariableLegSelector`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
-        Self { random }
-    }
-}
-
-impl LegSelector for VariableLegSelector {
-    fn get_legs<'a>(
-        &self,
-        route_ctx: &'a RouteContext,
-        job: &Job,
-        skip: usize,
-    ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a> {
-        let gen_usize = |min: i32, max: i32| self.random.uniform_int(min, max) as usize;
-
-        let greedy_threshold = match job {
-            Job::Single(_) => gen_usize(12, 24),
-            Job::Multi(_) => gen_usize(8, 16),
-        };
-
-        let total_legs = route_ctx.route.tour.legs().size_hint().0;
-        let visit_legs = if total_legs > skip { total_legs - skip } else { 0 };
-
-        if visit_legs < greedy_threshold {
-            Box::new(route_ctx.route.tour.legs().skip(skip))
+        init: R,
+        mut map_fn: FM,
+        compare_fn: FC,
+    ) -> R
+    where
+        R: Default,
+        FM: FnMut(Leg, R) -> Result<R, R>,
+        FC: Fn(&R, &R) -> bool,
+    {
+        if let Some((sample_size, random)) = self.get_sample_data(route_ctx, job, skip) {
+            route_ctx
+                .route
+                .tour
+                .legs()
+                .skip(skip)
+                .search_with_sample(
+                    sample_size,
+                    random.clone(),
+                    &mut |leg: Leg<'_>| unwrap_from_result(map_fn(leg, R::default())),
+                    &|leg: &Leg<'_>| leg.1 as i32,
+                    &compare_fn,
+                )
+                .unwrap_or(init)
         } else {
-            let sample_size = match job {
-                Job::Single(_) => ((greedy_threshold as f64 * 0.8) as usize).min(16),
-                Job::Multi(multi) if multi.jobs.len() == 2 => gen_usize(4, 8),
-                Job::Multi(_) => 4,
-            };
+            unwrap_from_result(route_ctx.route.tour.legs().skip(skip).try_fold(init, |acc, leg| map_fn(leg, acc)))
+        }
+    }
 
-            if self.random.is_head_not_tails() {
-                Box::new(create_range_sampling_iter(
-                    route_ctx.route.tour.legs().skip(skip),
-                    sample_size,
-                    self.random.as_ref(),
-                ))
-            } else {
-                Box::new(SelectionSamplingIterator::new(
-                    route_ctx.route.tour.legs().skip(skip),
-                    sample_size,
-                    self.random.clone(),
-                ))
+    /// Returns a sample data for stochastic mode.
+    fn get_sample_data(
+        &self,
+        route_ctx: &RouteContext,
+        job: &Job,
+        skip: usize,
+    ) -> Option<(usize, Arc<dyn Random + Send + Sync>)> {
+        match self {
+            Self::Stochastic(random) => {
+                let gen_usize = |min: i32, max: i32| random.uniform_int(min, max) as usize;
+                let greedy_threshold = match job {
+                    Job::Single(_) => gen_usize(12, 24),
+                    Job::Multi(_) => gen_usize(8, 16),
+                };
+
+                let total_legs = route_ctx.route.tour.legs().size_hint().0;
+                let visit_legs = if total_legs > skip { total_legs - skip } else { 0 };
+
+                if visit_legs < greedy_threshold {
+                    None
+                } else {
+                    Some((
+                        match job {
+                            Job::Single(_) => 8,
+                            Job::Multi(_) => 4,
+                        },
+                        random.clone(),
+                    ))
+                }
             }
+            Self::Exhaustive => None,
         }
     }
 }

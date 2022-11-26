@@ -183,8 +183,8 @@ fn get_check_insertion_fn(
     insertion_ctx: InsertionContext,
     actor_filter: &(dyn Fn(&Actor) -> bool + Send + Sync),
 ) -> impl Fn(&Job) -> Result<(), i32> {
-    let leg_selector = AllLegSelector::default();
     let result_selector = BestResultSelector::default();
+    let leg_selection = LegSelectionMode::Exhaustive;
 
     let routes = insertion_ctx
         .solution
@@ -197,12 +197,12 @@ fn get_check_insertion_fn(
         let eval_ctx = EvaluationContext {
             goal: &insertion_ctx.problem.goal,
             job,
-            leg_selector: &leg_selector,
+            leg_selection: &leg_selection,
             result_selector: &result_selector,
         };
 
         unwrap_from_result(routes.iter().try_fold(Err(-1), |_, route_ctx| {
-            let result = evaluate_job_insertion_in_route(
+            let result = eval_job_insertion_in_route(
                 &insertion_ctx,
                 &eval_ctx,
                 route_ctx,

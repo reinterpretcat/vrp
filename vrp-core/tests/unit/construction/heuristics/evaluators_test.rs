@@ -27,19 +27,19 @@ fn evaluate_job_insertion(
     insertion_position: InsertionPosition,
 ) -> InsertionResult {
     let route_selector = AllRouteSelector::default();
-    let leg_selector = VariableLegSelector::new(insertion_ctx.environment.random.clone());
+    let leg_selection = LegSelectionMode::Stochastic(insertion_ctx.environment.random.clone());
     let result_selector = BestResultSelector::default();
     let routes = route_selector.select(insertion_ctx, &[]).collect::<Vec<_>>();
 
     let eval_ctx = EvaluationContext {
         goal: &insertion_ctx.problem.goal,
         job,
-        leg_selector: &leg_selector,
+        leg_selection: &leg_selection,
         result_selector: &result_selector,
     };
 
     routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
-        evaluate_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, insertion_position, acc)
+        eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, insertion_position, acc)
     })
 }
 

@@ -24,7 +24,7 @@ use std::sync::RwLock;
 /// A symmetrical argument holds for the new insertion position of v0 in r.
 /// For more details, see https://arxiv.org/abs/2012.10384
 pub struct ExchangeSwapStar {
-    leg_selector: Box<dyn LegSelector + Send + Sync>,
+    leg_selection: LegSelectionMode,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
     quota_limit: usize,
 }
@@ -33,7 +33,7 @@ impl ExchangeSwapStar {
     /// Creates a new instance of `ExchangeSwapStar`.
     pub fn new(random: Arc<dyn Random + Send + Sync>, quota_limit: usize) -> Self {
         Self {
-            leg_selector: Box::new(VariableLegSelector::new(random)),
+            leg_selection: LegSelectionMode::Stochastic(random),
             result_selector: Box::new(BestResultSelector::default()),
             quota_limit,
         }
@@ -62,7 +62,7 @@ impl LocalOperator for ExchangeSwapStar {
             let is_quota_reached = try_exchange_jobs_in_routes(
                 &mut insertion_ctx,
                 route_pair,
-                self.leg_selector.as_ref(),
+                &self.leg_selection,
                 self.result_selector.as_ref(),
             );
 
@@ -78,8 +78,7 @@ impl LocalOperator for ExchangeSwapStar {
 }
 
 /// Encapsulates common data used by search phase.
-type SearchContext<'a> =
-    (&'a InsertionContext, &'a (dyn LegSelector + Send + Sync), &'a (dyn ResultSelector + Send + Sync));
+type SearchContext<'a> = (&'a InsertionContext, &'a LegSelectionMode, &'a (dyn ResultSelector + Send + Sync));
 
 fn get_route_by_idx(insertion_ctx: &InsertionContext, route_idx: usize) -> &RouteContext {
     insertion_ctx.solution.routes.get(route_idx).expect("invalid route index")
@@ -93,7 +92,7 @@ fn get_evaluation_context<'a>(search_ctx: &'a SearchContext, job: &'a Job) -> Ev
     EvaluationContext {
         goal: search_ctx.0.problem.goal.as_ref(),
         job,
-        leg_selector: search_ctx.1,
+        leg_selection: search_ctx.1,
         result_selector: search_ctx.2,
     }
 }
@@ -170,7 +169,7 @@ fn find_in_place_result(
 
     let eval_ctx = get_evaluation_context(search_ctx, insert_job);
 
-    evaluate_job_insertion_in_route(search_ctx.0, &eval_ctx, &route_ctx, position, InsertionResult::make_failure())
+    eval_job_insertion_in_route(search_ctx.0, &eval_ctx, &route_ctx, position, InsertionResult::make_failure())
 }
 
 fn find_top_results(
@@ -187,7 +186,7 @@ fn find_top_results(
             let mut results = (0..legs_count)
                 .map(InsertionPosition::Concrete)
                 .map(|position| {
-                    evaluate_job_insertion_in_route(
+                    eval_job_insertion_in_route(
                         search_ctx.0,
                         &eval_ctx,
                         route_ctx,
@@ -276,7 +275,7 @@ fn remove_job_with_copy(search_ctx: &SearchContext, job: &Job, route_ctx: &Route
 fn try_exchange_jobs_in_routes(
     insertion_ctx: &mut InsertionContext,
     route_pair: (usize, usize),
-    leg_selector: &(dyn LegSelector + Send + Sync),
+    leg_selection: &LegSelectionMode,
     result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> bool {
     let quota = insertion_ctx.environment.quota.clone();
@@ -286,7 +285,7 @@ fn try_exchange_jobs_in_routes(
         return true;
     }
 
-    let search_ctx: SearchContext = (insertion_ctx, leg_selector, result_selector);
+    let search_ctx: SearchContext = (insertion_ctx, leg_selection, result_selector);
     let (outer_idx, inner_idx) = route_pair;
 
     let outer_route_ctx = get_route_by_idx(insertion_ctx, outer_idx);
@@ -348,7 +347,7 @@ fn try_exchange_jobs_in_routes(
         },
     );
 
-    try_exchange_jobs(insertion_ctx, (outer_best, inner_best), leg_selector, result_selector);
+    try_exchange_jobs(insertion_ctx, (outer_best, inner_best), leg_selection, result_selector);
 
     is_quota_reached()
 }
@@ -357,7 +356,7 @@ fn try_exchange_jobs_in_routes(
 fn try_exchange_jobs(
     insertion_ctx: &mut InsertionContext,
     insertion_pair: (InsertionResult, InsertionResult),
-    leg_selector: &(dyn LegSelector + Send + Sync),
+    leg_selection: &LegSelectionMode,
     result_selector: &(dyn ResultSelector + Send + Sync),
 ) {
     if let (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) = insertion_pair {
@@ -382,11 +381,11 @@ fn try_exchange_jobs(
                 let position = if position < removed_idx || position == 0 { position } else { position - 1 };
                 let position = InsertionPosition::Concrete(position);
 
-                let search_ctx: SearchContext = (insertion_ctx, leg_selector, result_selector);
+                let search_ctx: SearchContext = (insertion_ctx, leg_selection, result_selector);
                 let eval_ctx = get_evaluation_context(&search_ctx, &success.job);
                 let alternative = InsertionResult::make_failure();
 
-                evaluate_job_insertion_in_route(insertion_ctx, &eval_ctx, &success.context, position, alternative)
+                eval_job_insertion_in_route(insertion_ctx, &eval_ctx, &success.context, position, alternative)
             })
             .filter_map(|result| result.into_success())
             .collect::<Vec<_>>();

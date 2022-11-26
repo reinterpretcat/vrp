@@ -6,6 +6,13 @@ pub enum Either<L, R> {
     Right(R),
 }
 
+impl<L, R> Either<L, R> {
+    /// Checks whether it is left variant.
+    pub fn is_left(&self) -> bool {
+        matches!(self, Self::Left(_))
+    }
+}
+
 impl<L, R> Clone for Either<L, R>
 where
     L: Clone,

@@ -18,8 +18,8 @@ pub struct EvaluationContext<'a> {
     pub goal: &'a GoalContext,
     /// A job which is about to be inserted.
     pub job: &'a Job,
-    /// A leg selector.
-    pub leg_selector: &'a (dyn LegSelector + Send + Sync),
+    /// A leg selection mode.
+    pub leg_selection: &'a LegSelectionMode,
     /// A result selector.
     pub result_selector: &'a (dyn ResultSelector + Send + Sync),
 }
@@ -37,7 +37,7 @@ pub enum InsertionPosition {
 
 /// Evaluates possibility to preform insertion from given insertion context in given route
 /// at given position constraint.
-pub fn evaluate_job_insertion_in_route(
+pub fn eval_job_insertion_in_route(
     insertion_ctx: &InsertionContext,
     eval_ctx: &EvaluationContext,
     route_ctx: &RouteContext,
@@ -77,13 +77,13 @@ pub fn evaluate_job_insertion_in_route(
     eval_ctx.result_selector.select_insertion(
         insertion_ctx,
         alternative,
-        evaluate_job_constraint_in_route(eval_ctx, route_ctx, position, route_costs, best_known_cost),
+        eval_job_constraint_in_route(eval_ctx, route_ctx, position, route_costs, best_known_cost),
     )
 }
 
 /// Evaluates possibility to preform insertion in route context only.
 /// NOTE: doesn't evaluate constraints on route level.
-pub fn evaluate_job_constraint_in_route(
+pub fn eval_job_constraint_in_route(
     eval_ctx: &EvaluationContext,
     route_ctx: &RouteContext,
     position: InsertionPosition,
@@ -91,12 +91,12 @@ pub fn evaluate_job_constraint_in_route(
     best_known_cost: Option<Cost>,
 ) -> InsertionResult {
     match eval_ctx.job {
-        Job::Single(single) => evaluate_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost),
-        Job::Multi(multi) => evaluate_multi(eval_ctx, route_ctx, multi, position, route_costs, best_known_cost),
+        Job::Single(single) => eval_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost),
+        Job::Multi(multi) => eval_multi(eval_ctx, route_ctx, multi, position, route_costs, best_known_cost),
     }
 }
 
-pub(crate) fn evaluate_single_constraint_in_route(
+pub(crate) fn eval_single_constraint_in_route(
     insertion_ctx: &InsertionContext,
     eval_ctx: &EvaluationContext,
     route_ctx: &RouteContext,
@@ -114,11 +114,11 @@ pub(crate) fn evaluate_single_constraint_in_route(
             job: Some(eval_ctx.job.clone()),
         })
     } else {
-        evaluate_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost)
+        eval_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost)
     }
 }
 
-fn evaluate_single(
+fn eval_single(
     eval_ctx: &EvaluationContext,
     route_ctx: &RouteContext,
     single: &Arc<Single>,
@@ -150,7 +150,7 @@ fn evaluate_single(
     }
 }
 
-fn evaluate_multi(
+fn eval_multi(
     eval_ctx: &EvaluationContext,
     route_ctx: &RouteContext,
     multi: &Arc<Multi>,
@@ -226,18 +226,32 @@ fn analyze_insertion_in_route(
     route_costs: Cost,
     init: SingleContext,
 ) -> SingleContext {
-    unwrap_from_result(match insertion_idx {
+    let mut analyze_leg_insertion = |leg: Leg<'_>, init| {
+        analyze_insertion_in_route_leg(eval_ctx, route_ctx, leg, single, target, route_costs, init)
+    };
+
+    match insertion_idx {
         Some(idx) => {
             if let Some(leg) = route_ctx.route.tour.legs().nth(idx) {
-                analyze_insertion_in_route_leg(eval_ctx, route_ctx, leg, single, target, route_costs, init)
+                unwrap_from_result(analyze_leg_insertion(leg, init))
             } else {
-                Ok(init)
+                init
             }
         }
-        None => eval_ctx.leg_selector.get_legs(route_ctx, eval_ctx.job, init.index).try_fold(init, |acc, leg| {
-            analyze_insertion_in_route_leg(eval_ctx, route_ctx, leg, single, target, route_costs, acc)
-        }),
-    })
+        None => eval_ctx.leg_selection.select_best_leg(
+            route_ctx,
+            eval_ctx.job,
+            init.index,
+            init,
+            &mut |leg: Leg<'_>, init| analyze_leg_insertion(leg, init),
+            &|lhs: &SingleContext, rhs: &SingleContext| {
+                eval_ctx
+                    .result_selector
+                    .select_cost(route_ctx, lhs.cost.unwrap_or(f64::MAX), rhs.cost.unwrap_or(f64::MAX))
+                    .is_left()
+            },
+        ),
+    }
 }
 
 fn analyze_insertion_in_route_leg(
@@ -292,7 +306,7 @@ fn get_insertion_index(route_ctx: &RouteContext, position: InsertionPosition) ->
 }
 
 /// Stores information needed for single insertion.
-#[derive(Debug)]
+#[derive(Clone, Debug, Default)]
 struct SingleContext {
     /// Constraint violation.
     pub violation: Option<ConstraintViolation>,

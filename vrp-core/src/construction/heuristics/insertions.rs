@@ -64,7 +64,7 @@ impl InsertionHeuristic {
         insertion_ctx: InsertionContext,
         job_selector: &(dyn JobSelector + Send + Sync),
         route_selector: &(dyn RouteSelector + Send + Sync),
-        leg_selector: &(dyn LegSelector + Send + Sync),
+        leg_selection: &LegSelectionMode,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
@@ -81,7 +81,7 @@ impl InsertionHeuristic {
                 &insertion_ctx,
                 jobs.as_slice(),
                 routes.as_slice(),
-                leg_selector,
+                leg_selection,
                 result_selector,
             );
 

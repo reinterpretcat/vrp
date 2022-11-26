@@ -20,7 +20,7 @@ pub fn get_route_modifier(goal: Arc<GoalContext>, job_index: JobIndex) -> RouteM
             .take_while(|job| job.is_some())
             .collect::<Vec<_>>();
 
-        let leg_selector = AllLegSelector::default();
+        let leg_selection = LegSelectionMode::Exhaustive;
         let result_selector = BestResultSelector::default();
 
         let result = candidates
@@ -30,11 +30,11 @@ pub fn get_route_modifier(goal: Arc<GoalContext>, job_index: JobIndex) -> RouteM
                     let eval_ctx = EvaluationContext {
                         goal: goal.as_ref(),
                         job,
-                        leg_selector: &leg_selector,
+                        leg_selection: &leg_selection,
                         result_selector: &result_selector,
                     };
 
-                    evaluate_job_constraint_in_route(&eval_ctx, &route_ctx, InsertionPosition::Last, 0., None)
+                    eval_job_constraint_in_route(&eval_ctx, &route_ctx, InsertionPosition::Last, 0., None)
                 })
                 .and_then(|result| match result {
                     InsertionResult::Success(success) => Some(success),

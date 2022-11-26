@@ -41,17 +41,17 @@ impl LocalOperator for ExchangeIntraRouteRandom {
                 new_insertion_ctx.solution.required.push(job.clone());
                 new_insertion_ctx.problem.goal.accept_route_state(route_ctx);
 
-                let leg_selector = VariableLegSelector::new(random.clone());
+                let leg_selection = LegSelectionMode::Stochastic(random.clone());
                 let result_selector =
                     NoiseResultSelector::new(Noise::new(self.probability, self.noise_range, random.clone()));
                 let eval_ctx = EvaluationContext {
                     goal: &new_insertion_ctx.problem.goal,
                     job: &job,
-                    leg_selector: &leg_selector,
+                    leg_selection: &leg_selection,
                     result_selector: &result_selector,
                 };
 
-                let insertion = evaluate_job_insertion_in_route(
+                let insertion = eval_job_insertion_in_route(
                     insertion_ctx,
                     &eval_ctx,
                     route_ctx,

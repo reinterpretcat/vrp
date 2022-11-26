@@ -68,7 +68,7 @@ impl Recreate for WeightedRecreate {
 pub struct ConfigurableRecreate {
     job_selector: Box<dyn JobSelector + Send + Sync>,
     route_selector: Box<dyn RouteSelector + Send + Sync>,
-    leg_selector: Box<dyn LegSelector + Send + Sync>,
+    leg_selection: LegSelectionMode,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
     insertion_heuristic: InsertionHeuristic,
 }
@@ -78,11 +78,11 @@ impl ConfigurableRecreate {
     pub fn new(
         job_selector: Box<dyn JobSelector + Send + Sync>,
         route_selector: Box<dyn RouteSelector + Send + Sync>,
-        leg_selector: Box<dyn LegSelector + Send + Sync>,
+        leg_selection: LegSelectionMode,
         result_selector: Box<dyn ResultSelector + Send + Sync>,
         insertion_heuristic: InsertionHeuristic,
     ) -> Self {
-        Self { job_selector, route_selector, leg_selector, result_selector, insertion_heuristic }
+        Self { job_selector, route_selector, leg_selection, result_selector, insertion_heuristic }
     }
 }
 
@@ -92,7 +92,7 @@ impl Recreate for ConfigurableRecreate {
             insertion_ctx,
             self.job_selector.as_ref(),
             self.route_selector.as_ref(),
-            self.leg_selector.as_ref(),
+            &self.leg_selection,
             self.result_selector.as_ref(),
         )
     }
