@@ -137,8 +137,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         leg_selection: &LegSelectionMode,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
-        let eval_ctx =
-            EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection: leg_selection, result_selector };
+        let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
 
         routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
             eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
