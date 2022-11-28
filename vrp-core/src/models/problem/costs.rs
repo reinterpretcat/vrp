@@ -17,6 +17,13 @@ use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::Arc;
 
+#[derive(Debug, Clone)]
+/// Coordinate
+pub struct Coordinate {
+    pub lat: f64,
+    pub lng: f64,
+}
+
 /// A hierarchical multi objective for vehicle routing problem.
 pub struct ProblemObjective {
     objectives: Vec<Vec<TargetObjective>>,
@@ -209,6 +216,9 @@ pub trait TransportCost {
 
     /// Returns time-dependent travel distance between locations specific for given actor.
     fn distance(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Distance;
+
+    /// Returns coordinates for location.
+    fn coords(&self, route: &Route, from: Location) -> &Coordinate;
 }
 
 /// Provides way to calculate transport costs which might contain reserved time.
@@ -251,6 +261,10 @@ impl TransportCost for DynamicTransportCost {
     fn distance(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Distance {
         self.inner.distance(route, from, to, travel_time)
     }
+
+    fn coords(&self, route: &Route, from: Location) -> &Coordinate {
+        self.inner.coords(route, from)
+    }
 }
 
 /// Contains matrix routing data for specific profile and, optionally, time.
@@ -263,12 +277,20 @@ pub struct MatrixData {
     pub durations: Vec<Duration>,
     /// Travel distances.
     pub distances: Vec<Distance>,
+    /// Location coordinates
+    pub coordinates: Vec<Coordinate>,
 }
 
 impl MatrixData {
     /// Creates `MatrixData` instance.
-    pub fn new(index: usize, timestamp: Option<Timestamp>, durations: Vec<Duration>, distances: Vec<Distance>) -> Self {
-        Self { index, timestamp, durations, distances }
+    pub fn new(
+        index: usize,
+        timestamp: Option<Timestamp>,
+        durations: Vec<Duration>,
+        distances: Vec<Distance>,
+        coordinates: Vec<Coordinate>,
+    ) -> Self {
+        Self { index, timestamp, durations, distances, coordinates }
     }
 }
 
@@ -303,6 +325,7 @@ pub fn create_matrix_transport_cost(costs: Vec<MatrixData>) -> Result<Arc<dyn Tr
 struct TimeAgnosticMatrixTransportCost {
     durations: Vec<Vec<Duration>>,
     distances: Vec<Vec<Distance>>,
+    coordinates: Vec<Coordinate>,
     size: usize,
 }
 
@@ -320,14 +343,17 @@ impl TimeAgnosticMatrixTransportCost {
             return Err("duplicate profiles can be passed only for time aware routing".to_string());
         }
 
-        let (durations, distances) = costs.into_iter().fold((vec![], vec![]), |mut acc, data| {
+        let (durations, distances, coordinates) = costs.into_iter().fold((vec![], vec![], vec![]), |mut acc, data| {
             acc.0.push(data.durations);
             acc.1.push(data.distances);
+            acc.2.push(data.coordinates);
 
             acc
         });
 
-        Ok(Self { durations, distances, size })
+        let coords = coordinates[0].iter().map(|c| Coordinate { lat: c.lat, lng: c.lng }).collect();
+
+        Ok(Self { durations, distances, coordinates: coords, size })
     }
 }
 
@@ -346,6 +372,10 @@ impl TransportCost for TimeAgnosticMatrixTransportCost {
 
     fn distance(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         self.distance_approx(&route.actor.vehicle.profile, from, to)
+    }
+
+    fn coords(&self, route: &Route, from: Location) -> &Coordinate {
+        self.coordinates.get(from).unwrap()
     }
 }
 
@@ -460,6 +490,11 @@ impl TransportCost for TimeAwareMatrixTransportCost {
 
     fn distance(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Distance {
         self.interpolate_distance(&route.actor.vehicle.profile, from, to, travel_time)
+    }
+
+    fn coords(&self, route: &Route, from: Location) -> &Coordinate {
+        let thing = self.costs.iter().next().unwrap();
+        return thing.1 .1[0].coordinates.get(from).unwrap();
     }
 }
 

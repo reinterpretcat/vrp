@@ -3,7 +3,7 @@
 mod total_transport_test;
 
 use super::*;
-use crate::construction::constraints::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
+use crate::construction::constraints::{TOTAL_AREA_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::models::common::Cost;
 use crate::models::problem::TargetObjective;
 use rosomaxa::prelude::*;
@@ -27,6 +27,16 @@ impl TotalDistance {
     /// Creates an objective to minimize total distance.
     pub fn minimize() -> TargetObjective {
         new_with_route_state_key(TOTAL_DISTANCE_KEY)
+    }
+}
+
+/// An objective function for total area minimization as a target.
+pub struct TotalArea;
+
+impl TotalArea {
+    /// Creates an objective to minimize total distance.
+    pub fn minimize() -> TargetObjective {
+        new_with_route_state_key(TOTAL_AREA_KEY)
     }
 }
 

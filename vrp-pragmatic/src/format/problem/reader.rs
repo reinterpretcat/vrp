@@ -157,6 +157,7 @@ pub fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
                 timestamp: None,
                 travel_times: approx_data[idx].0.clone(),
                 distances: approx_data[idx].1.clone(),
+                coordinates: vec![],
                 error_codes: None,
             }
         })

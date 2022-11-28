@@ -65,6 +65,8 @@ pub const TOTAL_DISTANCE_KEY: i32 = 3;
 pub const TOTAL_DURATION_KEY: i32 = 4;
 /// A key which tracks global duration limit.
 pub const LIMIT_DURATION_KEY: i32 = 5;
+/// A key which tracks total area covered by a vehicle.
+pub const TOTAL_AREA_KEY: i32 = 6;
 
 /// A key which tracks current vehicle capacity.
 pub const CURRENT_CAPACITY_KEY: i32 = 11;

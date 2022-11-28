@@ -2,6 +2,8 @@
 #[path = "../../../tests/unit/construction/constraints/transport_test.rs"]
 mod transport_test;
 
+use geo::{coord, polygon, Area, ConvexHull, LineString, Polygon};
+
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::common::{Cost, Distance, Timestamp};
@@ -167,8 +169,18 @@ impl TransportConstraintModule {
             (a.place.location, a.schedule.departure, total_dist)
         });
 
+        let all_coords = route.tour.all_activities().fold(vec![], |mut acc, a| {
+            acc.push(transport.coords(&route, a.place.location));
+            acc
+        });
+
+        let c: Vec<(f64, f64)> = all_coords.iter().map(|c| (c.lat, c.lng)).collect();
+        let polygon = Polygon::new(LineString::from(c), vec![]);
+        let total_area = polygon.convex_hull().unsigned_area() * 1000.;
+
         route_ctx.state_mut().put_route_state(TOTAL_DISTANCE_KEY, total_dist);
         route_ctx.state_mut().put_route_state(TOTAL_DURATION_KEY, total_dur);
+        route_ctx.state_mut().put_route_state(TOTAL_AREA_KEY, total_area);
     }
 
     /// Updates route departure to the new one.

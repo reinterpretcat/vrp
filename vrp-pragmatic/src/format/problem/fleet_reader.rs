@@ -73,7 +73,9 @@ pub(crate) fn create_transport_costs(
                 )
             };
 
-            MatrixData::new(profile, timestamp.map(|t| parse_time(&t)), durations, distances)
+            let coordinates = matrix.coordinates.iter().map(|c| Coordinate { lat: c.lat, lng: c.lng }).collect();
+
+            MatrixData::new(profile, timestamp.map(|t| parse_time(&t)), durations, distances, coordinates)
         })
         .collect::<Vec<_>>();
 

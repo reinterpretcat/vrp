@@ -45,7 +45,7 @@ impl CoordIndex {
             })
             .collect::<Vec<f64>>();
 
-        let matrix_data = MatrixData::new(0, None, matrix_values.clone(), matrix_values);
+        let matrix_data = MatrixData::new(0, None, matrix_values.clone(), matrix_values, vec![]);
 
         create_matrix_transport_cost(vec![matrix_data])
     }

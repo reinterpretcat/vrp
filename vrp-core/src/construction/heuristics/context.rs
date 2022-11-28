@@ -255,6 +255,7 @@ impl RouteContext {
 
         let actor = &self.route.actor;
         let distance = self.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
+        let area = self.state.get_route_state::<f64>(TOTAL_AREA_KEY).cloned().unwrap_or(0.);
         let duration = self.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
 
         get_cost(&actor.vehicle.costs, distance, duration) + get_cost(&actor.driver.costs, distance, duration)

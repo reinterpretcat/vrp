@@ -10,6 +10,12 @@ use std::io::{BufReader, BufWriter, Error, Read, Write};
 
 // region Plan
 
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct Coordinate {
+    pub lat: f64,
+    pub lng: f64,
+}
+
 /// Relation type.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -560,6 +566,9 @@ pub enum Objective {
     #[serde(rename(deserialize = "minimize-cost", serialize = "minimize-cost"))]
     MinimizeCost,
 
+    #[serde(rename(deserialize = "minimize-area", serialize = "minimize-area"))]
+    MinimizeArea,
+
     /// An objective to minimize total distance.
     #[serde(rename(deserialize = "minimize-distance", serialize = "minimize-distance"))]
     MinimizeDistance,
@@ -705,6 +714,8 @@ pub struct Matrix {
 
     /// Travel durations (use to be in meters).
     pub distances: Vec<i64>,
+
+    pub coordinates: Vec<Coordinate>,
 
     /// Error codes to mark unreachable locations.
     #[serde(skip_serializing_if = "Option::is_none")]

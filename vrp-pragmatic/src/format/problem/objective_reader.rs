@@ -32,6 +32,7 @@ pub fn create_objective(
                     let mut core_objectives: Vec<TargetObjective> = vec![];
                     objectives.iter().for_each(|objective| match objective {
                         MinimizeCost => core_objectives.push(TotalCost::minimize()),
+                        MinimizeArea => core_objectives.push(TotalArea::minimize()),
                         MinimizeDistance => core_objectives.push(TotalDistance::minimize()),
                         MinimizeDuration => core_objectives.push(TotalDuration::minimize()),
                         MinimizeTours => {
