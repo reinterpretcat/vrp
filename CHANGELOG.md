@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 * `breaking`: replace `LegSelector` with `LegSelectionMode`
 * use different approach for leg selection: selection sampling search
+* introduce initial weights in dynamic heuristic
 
 
 ## [v1.19.0]

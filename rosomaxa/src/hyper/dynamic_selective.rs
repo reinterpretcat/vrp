@@ -14,9 +14,9 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 use std::time::Duration;
 
-/// A collection of heuristic search operators.
+/// A collection of heuristic search operators with their name and initial weight.
 pub type HeuristicSearchOperators<C, O, S> =
-    Vec<(Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String)>;
+    Vec<(Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String, f64)>;
 
 /// A collection of heuristic diversify operators.
 pub type HeuristicDiversifyOperators<C, O, S> =
@@ -133,10 +133,11 @@ where
         diversify_operators: HeuristicDiversifyOperators<C, O, S>,
         environment: &Environment,
     ) -> Self {
-        let operator_estimates = (0..search_operators.len())
-            .map(|heuristic_idx| (SearchAction::Search { heuristic_idx }, 0.))
+        let operator_estimates = search_operators
+            .iter()
+            .enumerate()
+            .map(|(heuristic_idx, (_, _, weight))| (SearchAction::Search { heuristic_idx }, *weight))
             .collect::<HashMap<_, _>>();
-
         let operator_estimates = ActionEstimates::from(operator_estimates);
 
         Self {
@@ -277,7 +278,7 @@ where
         let (new_solution, duration, name) = match action {
             SearchAction::Search { heuristic_idx } => {
                 let solution = self.solution.as_ref().unwrap();
-                let (heuristic, name) = &self.registry.heuristics[*heuristic_idx];
+                let (heuristic, name, _) = &self.registry.heuristics[*heuristic_idx];
 
                 let (new_solution, duration) =
                     Timer::measure_duration(|| heuristic.search(self.heuristic_ctx, solution));

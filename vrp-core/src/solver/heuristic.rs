@@ -397,7 +397,10 @@ mod statik {
 mod dynamic {
     use super::*;
 
-    pub fn get_operators(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<(TargetSearchOperator, String)> {
+    pub fn get_operators(
+        problem: Arc<Problem>,
+        environment: Arc<Environment>,
+    ) -> Vec<(TargetSearchOperator, String, f64)> {
         let (normal_limits, small_limits) = get_limits(problem.as_ref());
         let random = environment.random.clone();
 
@@ -420,20 +423,21 @@ mod dynamic {
             (Arc::new(RecreateWithSlice::new(random.clone())), "slice".to_string()),
         ];
 
-        let ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String)> = vec![
-            (Arc::new(AdjustedStringRemoval::new_with_defaults(normal_limits.clone())), "asr".to_string()),
-            (Arc::new(NeighbourRemoval::new(normal_limits.clone())), "neighbour_removal".to_string()),
+        let ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String, f64)> = vec![
+            (Arc::new(AdjustedStringRemoval::new_with_defaults(normal_limits.clone())), "asr".to_string(), 2.),
+            (Arc::new(NeighbourRemoval::new(normal_limits.clone())), "neighbour_removal".to_string(), 5.),
             (
                 Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment.clone())),
                 "cluster_removal".to_string(),
+                4.,
             ),
-            (Arc::new(WorstJobRemoval::new(4, normal_limits.clone())), "worst_job".to_string()),
-            (Arc::new(RandomJobRemoval::new(normal_limits.clone())), "random_job_removal_1".to_string()),
+            (Arc::new(WorstJobRemoval::new(4, normal_limits.clone())), "worst_job".to_string(), 4.),
+            (Arc::new(RandomJobRemoval::new(normal_limits.clone())), "random_job_removal_1".to_string(), 2.),
             // TODO use different limits
-            (Arc::new(RandomJobRemoval::new(normal_limits.clone())), "random_job_removal_2".to_string()),
-            (Arc::new(RandomRouteRemoval::new(normal_limits.clone())), "random_route_removal".to_string()),
-            (Arc::new(CloseRouteRemoval::new(normal_limits.clone())), "close_route_removal".to_string()),
-            (Arc::new(WorstRouteRemoval::new(normal_limits)), "worst_route_removal".to_string()),
+            (Arc::new(RandomJobRemoval::new(normal_limits.clone())), "random_job_removal_2".to_string(), 4.),
+            (Arc::new(RandomRouteRemoval::new(normal_limits.clone())), "random_route_removal".to_string(), 2.),
+            (Arc::new(CloseRouteRemoval::new(normal_limits.clone())), "close_route_removal".to_string(), 4.),
+            (Arc::new(WorstRouteRemoval::new(normal_limits)), "worst_route_removal".to_string(), 5.),
         ];
 
         let extra_random_job = Arc::new(RandomJobRemoval::new(small_limits));
@@ -441,27 +445,39 @@ mod dynamic {
         // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
         let ruins = ruins
             .into_iter()
-            .map::<(Arc<dyn Ruin + Send + Sync>, String), _>(|(ruin, name)| {
-                (Arc::new(CompositeRuin::new(vec![(ruin, 1.), (extra_random_job.clone(), 0.1)])), name)
+            .map::<(Arc<dyn Ruin + Send + Sync>, String, f64), _>(|(ruin, name, weight)| {
+                (Arc::new(CompositeRuin::new(vec![(ruin, 1.), (extra_random_job.clone(), 0.1)])), name, weight)
             })
             .collect::<Vec<_>>();
 
-        let mutations: Vec<(TargetSearchOperator, String)> = vec![
+        let mutations: Vec<(TargetSearchOperator, String, f64)> = vec![
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
                 "local_exch_inter_route_best".to_string(),
+                1.,
             ),
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteRandom::default()))),
                 "local_exch_inter_route_random".to_string(),
+                1.,
             ),
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeIntraRouteRandom::default()))),
                 "local_exch_intra_route_random".to_string(),
+                1.,
             ),
             (
                 Arc::new(LocalSearch::new(Arc::new(RescheduleDeparture::default()))),
                 "local_reschedule_departure".to_string(),
+                1.,
+            ),
+            (
+                Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(
+                    random.clone(),
+                    SINGLE_HEURISTIC_QUOTA_LIMIT,
+                )))),
+                "local_swap_star".to_string(),
+                10.,
             ),
             (
                 Arc::new(DecomposeSearch::new(
@@ -477,23 +493,18 @@ mod dynamic {
                     SINGLE_HEURISTIC_QUOTA_LIMIT,
                 )),
                 "decompose_search".to_string(),
-            ),
-            (
-                Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(
-                    random.clone(),
-                    SINGLE_HEURISTIC_QUOTA_LIMIT,
-                )))),
-                "local_swap_star".to_string(),
+                25.,
             ),
         ];
 
         recreates
             .iter()
             .flat_map(|(recreate, recreate_name)| {
-                ruins.iter().map::<(TargetSearchOperator, String), _>(move |(ruin, ruin_name)| {
+                ruins.iter().map::<(TargetSearchOperator, String, f64), _>(move |(ruin, ruin_name, weight)| {
                     (
                         Arc::new(RuinAndRecreate::new(ruin.clone(), recreate.clone())),
                         format!("{}+{}", ruin_name, recreate_name),
+                        *weight,
                     )
                 })
             })

@@ -502,7 +502,7 @@ impl Solver {
 
     fn create_dynamic_heuristic(&self, environment: &Environment) -> TargetHeuristic {
         Box::new(DynamicSelective::new(
-            self.search_operators.iter().map(|(op, name, _)| (op.clone(), name.clone())).collect(),
+            self.search_operators.iter().map(|(op, name, weight)| (op.clone(), name.clone(), *weight)).collect(),
             self.diversify_operators.clone(),
             environment,
         ))

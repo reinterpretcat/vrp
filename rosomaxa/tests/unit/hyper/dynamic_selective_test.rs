@@ -55,10 +55,15 @@ fn can_estimate_median() {
     let solution = VectorSolution::new(vec![0., 0.], create_example_objective());
     let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
         vec![
-            (Arc::new(DelayableHeuristicOperator { delay_range: (2..3), random: random.clone() }), "first".to_string()),
+            (
+                Arc::new(DelayableHeuristicOperator { delay_range: (2..3), random: random.clone() }),
+                "first".to_string(),
+                1.,
+            ),
             (
                 Arc::new(DelayableHeuristicOperator { delay_range: (7..10), random: random.clone() }),
                 "second".to_string(),
+                1.,
             ),
         ],
         vec![Arc::new(DelayableHeuristicOperator { delay_range: (2..3), random: random.clone() })],
