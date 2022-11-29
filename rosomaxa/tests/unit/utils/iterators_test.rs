@@ -111,6 +111,7 @@ mod range_sampling {
 
 mod sampling_search {
     use super::*;
+    use crate::Environment;
     use std::sync::RwLock;
 
     #[derive(Clone, Debug, Default)]
@@ -265,7 +266,6 @@ mod sampling_search {
         let random = Arc::new(DummyRandom::new(sample_size, total_size, target_sequences));
         let map_fn = |item: &DataType| item.clone();
         let compare_fn = get_result_comparer(target);
-
         let data = (0..total_size).map(|idx| DataType { data: idx % 2 == 0, idx: idx as i32 }).collect::<Vec<_>>();
 
         let element = data
@@ -275,5 +275,39 @@ mod sampling_search {
             .unwrap();
 
         assert_eq!(element.idx as usize, expected_idx);
+    }
+
+    #[test]
+    fn can_keep_evaluations_amount_low() {
+        let total_size = 1000;
+        let sample_size = 8;
+        let target = 10;
+        let random = Environment::default().random;
+
+        let mut results = (0..100)
+            .map(|_| {
+                let counter = RwLock::new(0);
+                let map_fn = |item: &DataType| {
+                    *counter.write().unwrap() += 1;
+                    item.clone()
+                };
+                let compare_fn = get_result_comparer(target);
+                let data =
+                    (0..total_size).map(|idx| DataType { data: idx % 2 == 0, idx: idx as i32 }).collect::<Vec<_>>();
+
+                let idx = data
+                    .iter()
+                    .search_with_sample(sample_size, random.clone(), map_fn, |item| item.idx, compare_fn)
+                    .unwrap()
+                    .idx;
+                let count = *counter.read().unwrap();
+                (idx, count)
+            })
+            .collect::<Vec<_>>();
+
+        results.sort_by(|(a, _), (b, _)| a.cmp(b));
+        let median = results[results.len() / 2];
+        assert!(median.0 < 250);
+        assert!(results.iter().all(|(_, count)| *count < 100));
     }
 }
