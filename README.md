@@ -1,6 +1,7 @@
 [![](https://docs.rs/vrp-core/badge.svg)](https://docs.rs/vrp-core)
 [![crates.io](https://img.shields.io/crates/v/vrp-cli.svg)](https://crates.io/crates/vrp-cli)
 ![build](https://github.com/reinterpretcat/vrp/workflows/build/badge.svg)
+[![downloads](https://img.shields.io/crates/d/vrp-core)](https://crates.io/crates/vrp-core)
 [![codecov](https://codecov.io/gh/reinterpretcat/vrp/branch/master/graph/badge.svg)](https://codecov.io/gh/reinterpretcat/vrp)
 [![dependency status](https://deps.rs/crate/vrp-cli/1.19.0/status.svg)](https://deps.rs/crate/vrp-cli/1.19.0)
 [![DOI](https://zenodo.org/badge/238436117.svg)](https://zenodo.org/badge/latestdoi/238436117)
