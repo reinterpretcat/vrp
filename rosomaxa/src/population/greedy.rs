@@ -68,11 +68,7 @@ where
     }
 
     fn size(&self) -> usize {
-        if self.best_known.is_some() {
-            1
-        } else {
-            0
-        }
+        usize::from(self.best_known.is_some())
     }
 
     fn selection_phase(&self) -> SelectionPhase {

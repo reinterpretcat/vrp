@@ -152,7 +152,7 @@ fn preserved_string<'a>(
 
     // NOTE if selected job is in split range we should remove it anyway,
     // this line makes sure that string cardinality is kept as requested.
-    let total = total - if index >= split_start && index < split_end { 1 } else { 0 };
+    let total = total - usize::from(index >= split_start && index < split_end);
 
     Box::new(
         (start_total..(start_total + total))

@@ -83,7 +83,7 @@ fn draw_population<B: DrawingBackend + 'static>(
     match &population_config.series {
         PopulationSeries::Rosomaxa { rows, cols, objectives, u_matrix, t_matrix, l_matrix } => {
             let plots = objectives.len() + 3;
-            let cols_size = plots / 2 + if plots % 2 == 1 { 1 } else { 0 };
+            let cols_size = plots / 2 + usize::from(plots % 2 == 1);
 
             let mut sub_areas = area.split_evenly((2, cols_size));
             let draw_series2d = |area: &mut DrawingArea<B, Shift>,

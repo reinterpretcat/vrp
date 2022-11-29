@@ -30,7 +30,7 @@ pub trait CollectGroupBy: Iterator {
         let mut map = HashMap::new();
 
         for (key, val) in self {
-            let vec = map.entry(key).or_insert(Vec::new());
+            let vec: &mut Vec<_> = map.entry(key).or_default();
             vec.push(val);
         }
 

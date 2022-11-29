@@ -292,7 +292,7 @@ impl LegSelectionMode {
                     sample_size,
                     random.clone(),
                     &mut |leg: Leg<'_>| unwrap_from_result(map_fn(leg, R::default())),
-                    &|leg: &Leg<'_>| leg.1 as i32,
+                    |leg: &Leg<'_>| leg.1 as i32,
                     &compare_fn,
                 )
                 .unwrap_or(init)

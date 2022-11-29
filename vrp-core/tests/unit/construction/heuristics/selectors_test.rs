@@ -93,7 +93,7 @@ mod selections {
                 counter += 1;
                 Ok(leg.1 as i32)
             },
-            &|lhs: &i32, rhs: &i32| {
+            |lhs: &i32, rhs: &i32| {
                 match (*lhs % 2 == 0, *rhs % 2 == 0) {
                     (true, false) => return true,
                     (false, true) => return false,

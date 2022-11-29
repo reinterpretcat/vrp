@@ -263,8 +263,7 @@ can_create_route_pairs! {
 }
 
 fn can_create_route_pairs_impl(route_pairs_threshold: usize, is_proximity: bool, expected_length: usize) {
-    let reals =
-        once(if is_proximity { 1 } else { 0 }).chain(vec![0; 9].into_iter()).map(|value| value as f64).collect();
+    let reals = once(i32::from(is_proximity)).chain(vec![0; 9].into_iter()).map(|value| value as f64).collect();
     let matrix = (3, 3);
     let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], reals)));
     let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);

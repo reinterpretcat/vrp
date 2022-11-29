@@ -244,7 +244,7 @@ fn analyze_insertion_in_route(
             init.index,
             init,
             &mut |leg: Leg<'_>, init| analyze_leg_insertion(leg, init),
-            &|lhs: &SingleContext, rhs: &SingleContext| {
+            |lhs: &SingleContext, rhs: &SingleContext| {
                 eval_ctx
                     .result_selector
                     .select_cost(route_ctx, lhs.cost.unwrap_or(f64::MAX), rhs.cost.unwrap_or(f64::MAX))

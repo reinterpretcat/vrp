@@ -286,7 +286,7 @@ fn build_job_cluster(
                         &cluster,
                         (candidate.0, candidate.1),
                         config,
-                        &center_commute,
+                        center_commute,
                         check_insertion,
                     )
                     .map_or_else(
@@ -315,7 +315,7 @@ fn build_job_cluster(
             }
 
             if count > 1 {
-                cluster = finish_cluster(cluster, config, &center_commute);
+                cluster = finish_cluster(cluster, config, center_commute);
             }
 
             match (&best_cluster, count) {

@@ -270,7 +270,7 @@ fn can_add_job_impl(
     let dissimilarity_info = get_dissimilarities(&cluster, &candidate, &transport, &config);
     let candidate = (&candidate, &dissimilarity_info);
 
-    let result = try_add_job(&constraint, 0, &cluster, candidate, &config, &center_commute, check_insertion.as_ref());
+    let result = try_add_job(&constraint, 0, &cluster, candidate, &config, center_commute, check_insertion.as_ref());
 
     match (result, expected) {
         (Some((_, result_visit_info)), Some(expected_visit_info)) => {
