@@ -10,7 +10,7 @@ fn can_get_locations_serialized() {
         objectives: None,
     };
 
-    let locations = get_locations_serialized(&problem).unwrap().replace(' ', "").replace('\n', "");
+    let locations = get_locations_serialized(&problem).unwrap().replace([' ', '\n'], "");
 
     assert_eq!(locations, r#"[{"lat":1.0,"lng":1.0},{"lat":1.0,"lng":0.0},{"lat":0.0,"lng":0.0}]"#);
 }
@@ -28,7 +28,7 @@ fn can_get_solution_serialized() {
     };
     let problem = Arc::new(problem.read_pragmatic().unwrap());
 
-    let solution = get_solution_serialized(problem, Config::default()).unwrap().replace(' ', "").replace('\n', "");
+    let solution = get_solution_serialized(problem, Config::default()).unwrap().replace([' ', '\n'], "");
 
     assert!(solution.starts_with('{'));
     assert!(solution.ends_with('}'));
