@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 * use different approach for leg selection: selection sampling search
 * introduce initial weights in dynamic heuristic
 * update dependencies
+* update rust version on dev environment to the latest (1.65.0)
 
 
 ## [v1.19.0]
