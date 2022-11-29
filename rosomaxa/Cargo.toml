@@ -12,13 +12,13 @@ repository = "https://github.com/reinterpretcat/vrp"
 description = "A rosomaxa algorithm and other building blocks for creating a solver for optimization problems"
 
 [dependencies]
-rayon = "1.5.3"
+rayon = "1.6.0"
 rand = { version = "0.8.5", features = ["small_rng"] }
-hashbrown = "0.12.3"
+hashbrown = "0.13.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-num_cpus = "1.13.1"
+num_cpus = "1.14.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2.7", features = ["js"] }
+getrandom = { version = "0.2.8", features = ["js"] }
 js-sys = "0.3.60"

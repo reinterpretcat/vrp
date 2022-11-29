@@ -246,7 +246,7 @@ fn build_job_cluster(
             // allow jobs only from reachable candidates
             let mut cluster_candidates = center_estimates
                 .iter()
-                .filter(|(job, ..)| !used_jobs.contains(job))
+                .filter(|(job, ..)| !used_jobs.contains(*job))
                 .filter(|(_, infos)| infos.iter().any(|(reachable, ..)| *reachable))
                 .map(|(candidate, _)| candidate.clone())
                 .collect::<HashSet<_>>();
@@ -265,7 +265,7 @@ fn build_job_cluster(
                 let mut job_estimates = estimates
                     .get(&last_job)
                     .iter()
-                    .flat_map(|index| index.iter().filter(|(job, _)| cluster_candidates.contains(job)))
+                    .flat_map(|index| index.iter().filter(|(job, _)| cluster_candidates.contains(*job)))
                     .flat_map(|estimate| {
                         // embed the first visit info to sort estimates of all candidate jobs later
                         // we allow unreachable from the last job candidates as they must be reachable from the center

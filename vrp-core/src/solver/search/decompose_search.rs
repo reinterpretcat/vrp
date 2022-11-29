@@ -178,10 +178,10 @@ fn create_partial_insertion_ctx(
                 unassigned: if route_indices.is_empty() { solution.unassigned.clone() } else { Default::default() },
                 locked: if route_indices.is_empty() {
                     let jobs = solution.routes.iter().flat_map(|rc| rc.route.tour.jobs()).collect::<HashSet<_>>();
-                    solution.locked.iter().filter(|job| !jobs.contains(job)).cloned().collect()
+                    solution.locked.iter().filter(|job| !jobs.contains(*job)).cloned().collect()
                 } else {
                     let jobs = routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>();
-                    solution.locked.iter().filter(|job| jobs.contains(job)).cloned().collect()
+                    solution.locked.iter().filter(|job| jobs.contains(*job)).cloned().collect()
                 },
                 routes,
                 registry,
