@@ -105,7 +105,7 @@ pub fn create_range_sampling_iter<I: Iterator>(
 /// index values.
 pub trait SelectionSamplingSearch: Iterator {
     /// Searches using selection sampling algorithm.
-    fn search_with_sample<'a, T, R, FM, FI, FC>(
+    fn sample_search<'a, T, R, FM, FI, FC>(
         self,
         sample_size: usize,
         random: Arc<dyn Random + Send + Sync>,

@@ -238,7 +238,7 @@ fn analyze_insertion_in_route(
                 init
             }
         }
-        None => eval_ctx.leg_selection.select_best_leg(
+        None => eval_ctx.leg_selection.sample_best(
             route_ctx,
             eval_ctx.job,
             init.index,

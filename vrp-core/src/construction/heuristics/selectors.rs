@@ -268,7 +268,7 @@ pub enum LegSelectionMode {
 
 impl LegSelectionMode {
     /// Selects a best leg for insertion.
-    pub(crate) fn select_best_leg<R, FM, FC>(
+    pub(crate) fn sample_best<R, FM, FC>(
         &self,
         route_ctx: &RouteContext,
         job: &Job,
@@ -288,7 +288,7 @@ impl LegSelectionMode {
                 .tour
                 .legs()
                 .skip(skip)
-                .search_with_sample(
+                .sample_search(
                     sample_size,
                     random.clone(),
                     &mut |leg: Leg<'_>| unwrap_from_result(map_fn(leg, R::default())),

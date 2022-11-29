@@ -84,7 +84,7 @@ mod selections {
         );
         let mut counter = 0;
 
-        let _ = selection_mode.select_best_leg(
+        let _ = selection_mode.sample_best(
             &route_ctx,
             &SingleBuilder::default().build_as_job_ref(),
             skip,

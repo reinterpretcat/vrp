@@ -268,11 +268,8 @@ mod sampling_search {
         let compare_fn = get_result_comparer(target);
         let data = (0..total_size).map(|idx| DataType { data: idx % 2 == 0, idx: idx as i32 }).collect::<Vec<_>>();
 
-        let element = data
-            .iter()
-            .skip(skip)
-            .search_with_sample(sample_size, random, map_fn, |item| item.idx, compare_fn)
-            .unwrap();
+        let element =
+            data.iter().skip(skip).sample_search(sample_size, random, map_fn, |item| item.idx, compare_fn).unwrap();
 
         assert_eq!(element.idx as usize, expected_idx);
     }
@@ -297,7 +294,7 @@ mod sampling_search {
 
                 let idx = data
                     .iter()
-                    .search_with_sample(sample_size, random.clone(), map_fn, |item| item.idx, compare_fn)
+                    .sample_search(sample_size, random.clone(), map_fn, |item| item.idx, compare_fn)
                     .unwrap()
                     .idx;
                 let count = *counter.read().unwrap();
