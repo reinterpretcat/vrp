@@ -89,7 +89,7 @@ fn synchronize_jobs(
     goal: &GoalContext,
 ) -> HashMap<Job, Vec<Arc<Single>>> {
     let position = InsertionPosition::Last;
-    let leg_selection = LegSelectionMode::Exhaustive;
+    let leg_selection = LegSelection::Exhaustive;
     let result_selector = BestResultSelector::default();
 
     let (synchronized_jobs, _) = route_ctx

@@ -27,7 +27,7 @@ fn evaluate_job_insertion(
     insertion_position: InsertionPosition,
 ) -> InsertionResult {
     let route_selector = AllRouteSelector::default();
-    let leg_selection = LegSelectionMode::Stochastic(insertion_ctx.environment.random.clone());
+    let leg_selection = LegSelection::Stochastic(insertion_ctx.environment.random.clone());
     let result_selector = BestResultSelector::default();
     let routes = route_selector.select(insertion_ctx, &[]).collect::<Vec<_>>();
 

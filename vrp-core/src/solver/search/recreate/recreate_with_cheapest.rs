@@ -18,7 +18,7 @@ impl RecreateWithCheapest {
             recreate: ConfigurableRecreate::new(
                 Box::new(AllJobSelector::default()),
                 Box::new(AllRouteSelector::default()),
-                LegSelectionMode::Stochastic(random),
+                LegSelection::Stochastic(random),
                 Box::new(BestResultSelector::default()),
                 Default::default(),
             ),

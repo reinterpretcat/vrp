@@ -158,7 +158,7 @@ fn insert_jobs(
     shuffle_prob: f64,
 ) {
     let random = &insertion_ctx.environment.random;
-    let leg_selection = LegSelectionMode::Stochastic(random.clone());
+    let leg_selection = LegSelection::Stochastic(random.clone());
     let result_selector = BestResultSelector::default();
 
     let mut jobs = jobs;

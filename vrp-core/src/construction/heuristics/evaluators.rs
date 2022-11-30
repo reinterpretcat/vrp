@@ -19,7 +19,7 @@ pub struct EvaluationContext<'a> {
     /// A job which is about to be inserted.
     pub job: &'a Job,
     /// A leg selection mode.
-    pub leg_selection: &'a LegSelectionMode,
+    pub leg_selection: &'a LegSelection,
     /// A result selector.
     pub result_selector: &'a (dyn ResultSelector + Send + Sync),
 }

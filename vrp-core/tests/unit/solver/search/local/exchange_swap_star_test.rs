@@ -35,8 +35,8 @@ fn create_insertion_ctx(
     InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment)
 }
 
-fn create_default_selectors() -> (LegSelectionMode, BestResultSelector) {
-    let leg_selection = LegSelectionMode::Stochastic(Environment::default().random);
+fn create_default_selectors() -> (LegSelection, BestResultSelector) {
+    let leg_selection = LegSelection::Stochastic(Environment::default().random);
     let result_selector = BestResultSelector::default();
 
     (leg_selection, result_selector)

@@ -17,7 +17,7 @@ impl HeuristicSolutionProcessing for UnassignmentReason {
         let mut insertion_ctx = solution;
 
         let unassigned = insertion_ctx.solution.unassigned.drain().collect::<Vec<_>>();
-        let leg_selection = LegSelectionMode::Stochastic(insertion_ctx.environment.random.clone());
+        let leg_selection = LegSelection::Exhaustive;
         let result_selector = BestResultSelector::default();
 
         let unassigned = parallel_into_collect(unassigned, |(job, code)| {

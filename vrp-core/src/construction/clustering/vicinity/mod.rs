@@ -184,7 +184,7 @@ fn get_check_insertion_fn(
     actor_filter: &(dyn Fn(&Actor) -> bool + Send + Sync),
 ) -> impl Fn(&Job) -> Result<(), i32> {
     let result_selector = BestResultSelector::default();
-    let leg_selection = LegSelectionMode::Exhaustive;
+    let leg_selection = LegSelection::Exhaustive;
 
     let routes = insertion_ctx
         .solution

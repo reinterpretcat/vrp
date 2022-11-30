@@ -20,7 +20,7 @@ pub fn get_route_modifier(goal: Arc<GoalContext>, job_index: JobIndex) -> RouteM
             .take_while(|job| job.is_some())
             .collect::<Vec<_>>();
 
-        let leg_selection = LegSelectionMode::Exhaustive;
+        let leg_selection = LegSelection::Exhaustive;
         let result_selector = BestResultSelector::default();
 
         let result = candidates

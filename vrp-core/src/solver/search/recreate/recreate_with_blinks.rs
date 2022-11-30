@@ -163,7 +163,7 @@ impl ResultSelector for BlinkResultSelector {
 pub struct RecreateWithBlinks<T: LoadOps> {
     job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
     route_selector: Box<dyn RouteSelector + Send + Sync>,
-    leg_selection: LegSelectionMode,
+    leg_selection: LegSelection,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
     insertion_heuristic: InsertionHeuristic,
     weights: Vec<usize>,
@@ -180,7 +180,7 @@ impl<T: LoadOps> RecreateWithBlinks<T> {
         Self {
             job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
             route_selector: Box::new(AllRouteSelector::default()),
-            leg_selection: LegSelectionMode::Stochastic(random.clone()),
+            leg_selection: LegSelection::Stochastic(random.clone()),
             result_selector: Box::new(BlinkResultSelector::new_with_defaults(random)),
             insertion_heuristic: Default::default(),
             weights,

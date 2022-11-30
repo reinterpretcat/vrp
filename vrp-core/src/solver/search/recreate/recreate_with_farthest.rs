@@ -19,7 +19,7 @@ impl RecreateWithFarthest {
             recreate: ConfigurableRecreate::new(
                 Box::new(AllJobSelector::default()),
                 Box::new(AllRouteSelector::default()),
-                LegSelectionMode::Stochastic(random),
+                LegSelection::Stochastic(random),
                 Box::new(FarthestResultSelector {}),
                 Default::default(),
             ),

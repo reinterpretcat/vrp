@@ -27,7 +27,7 @@ impl RecreateWithRegret {
             recreate: ConfigurableRecreate::new(
                 Box::new(AllJobSelector::default()),
                 Box::new(AllRouteSelector::default()),
-                LegSelectionMode::Stochastic(random),
+                LegSelection::Stochastic(random),
                 Box::new(BestResultSelector::default()),
                 InsertionHeuristic::new(Box::new(RegretInsertionEvaluator::new(min, max))),
             ),
@@ -57,7 +57,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         job: &Job,
         routes: &[RouteContext],
-        leg_selection: &LegSelectionMode,
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         self.fallback_evaluator.evaluate_job(insertion_ctx, job, routes, leg_selection, result_selector)
@@ -68,7 +68,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         route_ctx: &RouteContext,
         jobs: &[Job],
-        leg_selection: &LegSelectionMode,
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         self.fallback_evaluator.evaluate_route(insertion_ctx, route_ctx, jobs, leg_selection, result_selector)
@@ -79,7 +79,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         jobs: &[Job],
         routes: &[RouteContext],
-        leg_selection: &LegSelectionMode,
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         let regret_index = insertion_ctx.environment.random.uniform_int(self.min as i32, self.max as i32) as usize;

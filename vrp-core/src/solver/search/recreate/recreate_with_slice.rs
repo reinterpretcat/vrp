@@ -20,7 +20,7 @@ impl RecreateWithSlice {
             recreate: ConfigurableRecreate::new(
                 Box::new(SliceJobSelector::default()),
                 Box::new(SliceRouteSelector::default()),
-                LegSelectionMode::Stochastic(random),
+                LegSelection::Stochastic(random),
                 Box::new(BestResultSelector::default()),
                 Default::default(),
             ),

@@ -57,7 +57,7 @@ mod iterators {
 }
 
 mod selections {
-    use super::LegSelectionMode;
+    use super::LegSelection;
     use crate::construction::heuristics::RouteContext;
     use crate::helpers::models::problem::SingleBuilder;
     use crate::helpers::solver::generate_matrix_routes_with_defaults;
@@ -76,7 +76,7 @@ mod selections {
 
     fn can_use_stochastic_selection_mode_impl(skip: usize, activities: usize, expected_threshold: usize) {
         let target = 10;
-        let selection_mode = LegSelectionMode::Stochastic(Environment::default().random);
+        let selection_mode = LegSelection::Stochastic(Environment::default().random);
         let (_, solution) = generate_matrix_routes_with_defaults(activities, 1, false);
         let route_ctx = RouteContext::new_with_state(
             Arc::new(solution.routes.into_iter().next().unwrap()),

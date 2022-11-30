@@ -63,7 +63,7 @@ pub trait InsertionEvaluator {
         insertion_ctx: &InsertionContext,
         job: &Job,
         routes: &[RouteContext],
-        leg_selection: &LegSelectionMode,
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
 
@@ -73,7 +73,7 @@ pub trait InsertionEvaluator {
         insertion_ctx: &InsertionContext,
         route_ctx: &RouteContext,
         jobs: &[Job],
-        leg_selection: &LegSelectionMode,
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
 
@@ -83,7 +83,7 @@ pub trait InsertionEvaluator {
         insertion_ctx: &InsertionContext,
         jobs: &[Job],
         routes: &[RouteContext],
-        leg_selection: &LegSelectionMode,
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
 }
@@ -111,7 +111,7 @@ impl PositionInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         jobs: &[Job],
         routes: &[RouteContext],
-        leg_selection: &LegSelectionMode,
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> Vec<InsertionResult> {
         if Self::is_fold_jobs(insertion_ctx) {
@@ -134,7 +134,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         job: &Job,
         routes: &[RouteContext],
-        leg_selection: &LegSelectionMode,
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
@@ -149,7 +149,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         route_ctx: &RouteContext,
         jobs: &[Job],
-        leg_selection: &LegSelectionMode,
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
@@ -163,7 +163,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         jobs: &[Job],
         routes: &[RouteContext],
-        leg_selection: &LegSelectionMode,
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         if Self::is_fold_jobs(insertion_ctx) {
@@ -259,14 +259,14 @@ impl ResultSelector for NoiseResultSelector {
 
 /// Provides way to control routing leg selection mode.
 #[derive(Clone)]
-pub enum LegSelectionMode {
+pub enum LegSelection {
     /// Stochastic mode: depending on route size, not all legs could be selected.
     Stochastic(Arc<dyn Random + Send + Sync>),
     /// Exhaustive mode: all legs are selected.
     Exhaustive,
 }
 
-impl LegSelectionMode {
+impl LegSelection {
     /// Selects a best leg for insertion.
     pub(crate) fn sample_best<R, FM, FC>(
         &self,

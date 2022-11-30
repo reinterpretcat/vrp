@@ -41,7 +41,7 @@ impl LocalOperator for ExchangeIntraRouteRandom {
                 new_insertion_ctx.solution.required.push(job.clone());
                 new_insertion_ctx.problem.goal.accept_route_state(route_ctx);
 
-                let leg_selection = LegSelectionMode::Stochastic(random.clone());
+                let leg_selection = LegSelection::Stochastic(random.clone());
                 let result_selector =
                     NoiseResultSelector::new(Noise::new(self.probability, self.noise_range, random.clone()));
                 let eval_ctx = EvaluationContext {
