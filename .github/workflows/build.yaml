@@ -1,4 +1,4 @@
-name: Build source code
+name: build
 
 on:
   push:
