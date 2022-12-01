@@ -1,5 +1,5 @@
 //! An api to interface with *Vehicle Routing Problem* solver.
-use actix_web::{error, middleware, post, web, App, Error, HttpResponse, HttpServer, Responder};
+use actix_web::{middleware, post, web, App, Error, HttpResponse, HttpServer, Responder};
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -13,7 +13,6 @@ use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
 use vrp_pragmatic::format::FormatError;
 
-const MAX_SIZE: usize = 262_144;
 const MAX_ITERATIONS: usize = 100;
 const BASE_CONFIG_PATH: &str = "./vrp-api/config/config.telemetry.json";
 
