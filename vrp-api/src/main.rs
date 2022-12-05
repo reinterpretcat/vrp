@@ -15,8 +15,8 @@ use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, S
 use vrp_pragmatic::format::FormatError;
 
 const MAX_ITERATIONS: usize = 100;
-const BASE_CONFIG_PATH: &str = "./vrp-api/config/config.telemetry.json";
-// const BASE_CONFIG_PATH: &str = "rust/vrp-api/config/config.telemetry.json";
+// const BASE_CONFIG_PATH: &str = "./vrp-api/config/config.telemetry.json";
+const BASE_CONFIG_PATH: &str = "./rust/vrp-api/config/config.telemetry.json";
 
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Welcome to VRP-api!")
