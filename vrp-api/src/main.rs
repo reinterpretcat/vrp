@@ -2,6 +2,7 @@
 use actix_web::{middleware, post, web, App, Error, HttpResponse, HttpServer, Responder};
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
@@ -109,6 +110,8 @@ async fn solve_handler(mut payload: web::Payload) -> Result<HttpResponse, Error>
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let cur_dir = env::current_dir().unwrap();
+    println!("{},{}", String::from("CURRENT DIRECTORY"), cur_dir.to_string_lossy());
     HttpServer::new(|| {
         App::new().wrap(middleware::Logger::default()).service(solve_handler).route("/", web::get().to(hello))
     })
