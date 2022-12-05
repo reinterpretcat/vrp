@@ -37,75 +37,79 @@ mod selection_sampling {
         let sample_size = 5;
         let random = Arc::new(DefaultRandom::default());
 
-        let numbers = create_range_sampling_iter(0..3, sample_size, random.as_ref()).collect::<Vec<_>>();
+        let numbers = SelectionSamplingIterator::new(0..3, sample_size, random).collect::<Vec<_>>();
 
         assert_eq!(numbers, vec![0, 1, 2])
     }
 }
 
-mod range_sampling {
+mod offset_sampling {
     use super::*;
-    use crate::prelude::RandomGen;
 
-    struct DummyRandom {
-        value: i32,
-    }
-    impl Random for DummyRandom {
-        fn uniform_int(&self, min: i32, max: i32) -> i32 {
-            assert!((min..=max).contains(&self.value));
+    #[test]
+    fn can_sample_simple_range1() {
+        let iterator = create_offset_sampling_iter(0..10, 8);
 
-            self.value
-        }
+        let result = iterator.collect::<Vec<_>>();
 
-        fn uniform_real(&self, _: f64, _: f64) -> f64 {
-            unimplemented!()
-        }
-
-        fn is_head_not_tails(&self) -> bool {
-            unimplemented!()
-        }
-
-        fn is_hit(&self, _: f64) -> bool {
-            unimplemented!()
-        }
-
-        fn weighted(&self, _: &[usize]) -> usize {
-            unimplemented!()
-        }
-
-        fn get_rng(&self) -> RandomGen {
-            unimplemented!()
-        }
+        assert_eq!(result, vec![0, 1, 3, 4, 5, 6, 8, 9])
     }
 
     #[test]
-    fn can_sample_from_large_range() {
-        let sample_size = 5;
-        let random = DummyRandom { value: 1 };
+    fn can_sample_simple_range2() {
+        let iterator = create_offset_sampling_iter(0..20, 8);
 
-        let numbers = create_range_sampling_iter(0..100, sample_size, &random).collect::<Vec<_>>();
+        let result = iterator.collect::<Vec<_>>();
 
-        assert_eq!(numbers, vec![5, 6, 7, 8, 9])
+        assert_eq!(result, vec![0, 3, 5, 8, 11, 14, 16, 19])
     }
 
     #[test]
-    fn can_sample_from_same_range() {
-        let sample_size = 5;
-        let random = Arc::new(DefaultRandom::default());
+    fn can_sample_small_range() {
+        let iterator = create_offset_sampling_iter(0..5, 8);
 
-        let numbers = create_range_sampling_iter(0..5, sample_size, random.as_ref()).collect::<Vec<_>>();
+        let result = iterator.collect::<Vec<_>>();
 
-        assert_eq!(numbers, vec![0, 1, 2, 3, 4])
+        assert_eq!(result, vec![0, 1, 2, 3, 4])
     }
 
     #[test]
-    fn can_sample_from_smaller_range() {
-        let sample_size = 5;
-        let random = Arc::new(DefaultRandom::default());
+    fn can_sample_same_range() {
+        let iterator = create_offset_sampling_iter(0..8, 8);
 
-        let numbers = create_range_sampling_iter(0..3, sample_size, random.as_ref()).collect::<Vec<_>>();
+        let result = iterator.collect::<Vec<_>>();
 
-        assert_eq!(numbers, vec![0, 1, 2])
+        assert_eq!(result, vec![0, 1, 2, 3, 4, 5, 6, 7,])
+    }
+
+    #[test]
+    fn can_sample_empty_range() {
+        let iterator = create_offset_sampling_iter(0..0, 8);
+
+        let result = iterator.collect::<Vec<_>>();
+
+        assert_eq!(result, vec![])
+    }
+
+    #[test]
+    fn can_sample_odd_range() {
+        let result = create_offset_sampling_iter(0..9, 8).collect::<Vec<_>>();
+        assert_eq!(result, vec![0, 1, 2, 3, 5, 6, 7, 8]);
+
+        let result = create_offset_sampling_iter(0..11, 3).collect::<Vec<_>>();
+        assert_eq!(result, vec![0, 5, 10]);
+
+        let result = create_offset_sampling_iter(0..10, 3).collect::<Vec<_>>();
+        assert_eq!(result, vec![0, 5, 9]);
+    }
+
+    #[test]
+    fn can_sample_even_range() {
+        let result = create_offset_sampling_iter(0..9, 4).collect::<Vec<_>>();
+        assert_eq!(result, vec![0, 3, 5, 8]);
+
+        let result = create_offset_sampling_iter(0..12, 4).collect::<Vec<_>>();
+        assert_eq!(result, vec![0, 4, 7, 11]);
     }
 }
 
@@ -268,8 +272,11 @@ mod sampling_search {
         let compare_fn = get_result_comparer(target);
         let data = (0..total_size).map(|idx| DataType { data: idx % 2 == 0, idx: idx as i32 }).collect::<Vec<_>>();
 
-        let element =
-            data.iter().skip(skip).sample_search(sample_size, random, map_fn, |item| item.idx, compare_fn).unwrap();
+        let element = data
+            .iter()
+            .skip(skip)
+            .sample_search(sample_size, 1000, random, map_fn, |item| item.idx, compare_fn)
+            .unwrap();
 
         assert_eq!(element.idx as usize, expected_idx);
     }
@@ -294,7 +301,7 @@ mod sampling_search {
 
                 let idx = data
                     .iter()
-                    .sample_search(sample_size, random.clone(), map_fn, |item| item.idx, compare_fn)
+                    .sample_search(sample_size, 1001, random.clone(), map_fn, |item| item.idx, compare_fn)
                     .unwrap()
                     .idx;
                 let count = *counter.read().unwrap();

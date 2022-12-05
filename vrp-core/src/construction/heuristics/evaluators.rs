@@ -9,8 +9,7 @@ use crate::models::common::Cost;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Leg, Place};
 use crate::models::{ConstraintViolation, GoalContext};
-use crate::utils::Either;
-use rosomaxa::utils::unwrap_from_result;
+use rosomaxa::utils::{unwrap_from_result, Either};
 
 /// Specifies an evaluation context data.
 pub struct EvaluationContext<'a> {

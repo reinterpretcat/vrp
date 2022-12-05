@@ -3,8 +3,8 @@ use crate::construction::heuristics::*;
 use crate::solver::search::recreate::Recreate;
 use crate::solver::search::ConfigurableRecreate;
 use crate::solver::RefinementContext;
-use crate::utils::Either;
 use rosomaxa::prelude::Random;
+use rosomaxa::utils::Either;
 use std::sync::Arc;
 
 /// A recreate method which perturbs the cost by a factor to introduce randomization.

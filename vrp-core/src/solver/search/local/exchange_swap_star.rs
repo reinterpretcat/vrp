@@ -6,7 +6,6 @@ use super::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::solver::search::create_environment_with_custom_quota;
-use crate::utils::Either;
 use hashbrown::{HashMap, HashSet};
 use rand::seq::SliceRandom;
 use rosomaxa::utils::*;

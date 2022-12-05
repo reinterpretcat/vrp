@@ -6,7 +6,6 @@ mod total_value_test;
 
 use super::*;
 use crate::models::problem::Actor;
-use crate::utils::Either;
 use std::cmp::Ordering;
 use std::ops::Deref;
 

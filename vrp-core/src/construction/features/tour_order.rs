@@ -7,7 +7,6 @@ mod tour_order_test;
 use super::*;
 use crate::models::problem::{Actor, Single};
 use crate::models::solution::Activity;
-use crate::utils::Either;
 use std::cmp::Ordering;
 use std::ops::Deref;
 

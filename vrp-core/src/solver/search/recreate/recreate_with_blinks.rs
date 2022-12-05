@@ -9,7 +9,6 @@ use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::search::recreate::Recreate;
 use crate::solver::RefinementContext;
-use crate::utils::Either;
 use rand::prelude::*;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;

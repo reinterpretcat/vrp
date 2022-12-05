@@ -7,7 +7,7 @@ use crate::models::problem::Job;
 use crate::models::solution::Leg;
 use crate::utils::*;
 use rand::prelude::*;
-use rosomaxa::utils::{map_reduce, parallel_collect, Random};
+use rosomaxa::utils::{map_reduce, parallel_collect, Either, Random};
 use std::sync::Arc;
 
 /// On each insertion step, selects a list of routes where jobs can be inserted.
@@ -283,6 +283,8 @@ impl LegSelection {
         FC: Fn(&R, &R) -> bool,
     {
         if let Some((sample_size, random)) = self.get_sample_data(route_ctx, job, skip) {
+            const SAMPLE_LIMIT: usize = 100;
+
             route_ctx
                 .route
                 .tour
@@ -290,6 +292,7 @@ impl LegSelection {
                 .skip(skip)
                 .sample_search(
                     sample_size,
+                    SAMPLE_LIMIT,
                     random.clone(),
                     &mut |leg: Leg<'_>| unwrap_from_result(map_fn(leg, R::default())),
                     |leg: &Leg<'_>| leg.1 as i32,

@@ -4,6 +4,7 @@
 #[path = "../../tests/unit/utils/iterators_test.rs"]
 mod iterators_test;
 
+use crate::utils::Either;
 use crate::utils::Random;
 use hashbrown::HashMap;
 use std::hash::Hash;
@@ -88,17 +89,33 @@ impl<I: Iterator> Iterator for SelectionSamplingIterator<I> {
     }
 }
 
-/// Returns a new iterator which samples some range from existing one.
-pub fn create_range_sampling_iter<I: Iterator>(
-    iterator: I,
-    sample_size: usize,
-    random: &(dyn Random + Send + Sync),
-) -> impl Iterator<Item = I::Item> {
-    let iterator_size = iterator.size_hint().0 as f64;
-    let sample_count = (iterator_size / sample_size as f64).max(1.) - 1.;
-    let offset = random.uniform_int(0, sample_count as i32) as usize * sample_size;
+fn create_offset_sampling_iter<I: Iterator>(mut iterator: I, sample_size: usize) -> impl Iterator<Item = I::Item> {
+    let iterator_size = iterator.size_hint().0;
+    if iterator_size <= sample_size {
+        return Either::Left(iterator);
+    }
 
-    iterator.skip(offset).take(sample_size as usize)
+    assert!(sample_size > 2);
+    let step = (iterator_size as f64 - 1.) / (sample_size as f64 - 1.);
+
+    let mut counter = 0;
+    let mut next = 0_f64;
+
+    Either::Right(std::iter::from_fn(move || loop {
+        if counter > iterator_size {
+            return None;
+        }
+
+        let value = iterator.next();
+        let next_idx = next.round() as usize;
+
+        if counter == next_idx {
+            next += step;
+            counter += 1;
+            return value;
+        }
+        counter += 1;
+    }))
 }
 
 /// Provides way to search using selection sampling algorithm on iterator where elements have ordered
@@ -108,6 +125,7 @@ pub trait SelectionSamplingSearch: Iterator {
     fn sample_search<'a, T, R, FM, FI, FC>(
         self,
         sample_size: usize,
+        sample_limit: usize,
         random: Arc<dyn Random + Send + Sync>,
         mut map_fn: FM,
         index_fn: FI,
@@ -122,6 +140,7 @@ pub trait SelectionSamplingSearch: Iterator {
         FC: Fn(&R, &R) -> bool,
     {
         let last_idx = i32::MAX;
+        let marker = i32::MAX as usize + 1;
         let mut state = SelectionSamplingSearchState::<R>::default();
 
         loop {
@@ -132,25 +151,33 @@ pub trait SelectionSamplingSearch: Iterator {
             state.next_left = last_idx;
             state.next_right = state.next_right.min(last_idx);
 
-            state = SelectionSamplingIterator::new(self.clone().skip(skip).take(take), sample_size, random.clone())
-                .filter(|item| index_fn(item) != best_idx)
-                .fold(state, |mut acc, item| {
-                    let item_idx = index_fn(&item);
-                    let item_mapped = map_fn(item);
+            // NOTE: use selection sampling iterator only for small-medium sizes due to performance
+            // implications of calling very often random.is_hit
+            let iterator = self.clone().skip(skip).take(take);
+            let current = if take == marker { self.size_hint().0 } else { take };
+            let iterator = if current < sample_limit {
+                Either::Left(SelectionSamplingIterator::new(iterator, sample_size, random.clone()))
+            } else {
+                Either::Right(create_offset_sampling_iter(iterator, sample_size))
+            };
 
-                    if acc.best.as_ref().map_or(false, |(best_idx, _)| *best_idx == acc.target_left) {
-                        acc.next_right = item_idx - 1;
-                    }
+            state = iterator.filter(|item| index_fn(item) != best_idx).fold(state, |mut acc, item| {
+                let item_idx = index_fn(&item);
+                let item_mapped = map_fn(item);
 
-                    if acc.best.as_ref().map_or(true, |(_, best)| compare_fn(&item_mapped, best)) {
-                        acc.best = Some((item_idx, item_mapped));
-                        acc.next_left = acc.target_left + 1
-                    }
+                if acc.best.as_ref().map_or(false, |(best_idx, _)| *best_idx == acc.target_left) {
+                    acc.next_right = item_idx - 1;
+                }
 
-                    acc.target_left = item_idx;
+                if acc.best.as_ref().map_or(true, |(_, best)| compare_fn(&item_mapped, best)) {
+                    acc.best = Some((item_idx, item_mapped));
+                    acc.next_left = acc.target_left + 1
+                }
 
-                    acc
-                });
+                acc.target_left = item_idx;
+
+                acc
+            });
 
             state.target_left = state.next_left;
             state.target_right = state.next_right;
