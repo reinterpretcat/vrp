@@ -30,7 +30,7 @@ impl ExchangeSequence {
 
 impl Default for ExchangeSequence {
     fn default() -> Self {
-        Self::new(6, 0.01, 0.01)
+        Self::new(6, 0.5, 0.01)
     }
 }
 

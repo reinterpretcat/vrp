@@ -27,10 +27,6 @@ impl Default for ExchangeIntraRouteRandom {
 
 impl LocalOperator for ExchangeIntraRouteRandom {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
-        if !insertion_ctx.solution.required.is_empty() {
-            return None;
-        }
-
         if let Some(route_idx) = get_random_route_idx(insertion_ctx) {
             let random = insertion_ctx.environment.random.clone();
             let mut new_insertion_ctx = insertion_ctx.deep_copy();

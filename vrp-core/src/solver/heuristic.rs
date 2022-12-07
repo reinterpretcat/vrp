@@ -293,7 +293,7 @@ fn create_diversify_operators(
         (0.05, 0.33),
     ));
     let local_search = Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
-        vec![(Arc::new(ExchangeSequence::new(8, 0.25, 0.1)), 1)],
+        vec![(Arc::new(ExchangeSequence::new(8, 0.5, 0.1)), 1)],
         2,
         4,
     ))));
