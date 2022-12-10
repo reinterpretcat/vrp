@@ -6,6 +6,9 @@ use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
+mod exchange_2opt;
+pub use self::exchange_2opt::*;
+
 mod exchange_inter_route;
 pub use self::exchange_inter_route::*;
 
@@ -84,4 +87,20 @@ fn apply_insertion(insertion_ctx: &mut InsertionContext, success: InsertionSucce
         RouteContext::new_with_state(success.context.route.clone(), success.context.state.clone());
 
     apply_insertion_success(insertion_ctx, success)
+}
+
+fn get_random_route_idx(insertion_ctx: &InsertionContext) -> Option<usize> {
+    let routes = insertion_ctx
+        .solution
+        .routes
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, rc)| if rc.route.tour.job_count() > 1 { Some(idx) } else { None })
+        .collect::<Vec<_>>();
+
+    if routes.is_empty() {
+        None
+    } else {
+        Some(routes[insertion_ctx.environment.random.uniform_int(0, (routes.len() - 1) as i32) as usize])
+    }
 }

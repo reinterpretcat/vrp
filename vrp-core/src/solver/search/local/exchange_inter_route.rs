@@ -5,7 +5,6 @@ mod exchange_inter_route_test;
 use super::*;
 use crate::models::problem::Job;
 use crate::solver::search::{select_seed_job, LocalOperator};
-use crate::solver::RefinementContext;
 use crate::utils::Noise;
 use rosomaxa::utils::map_reduce;
 

@@ -451,6 +451,7 @@ mod dynamic {
             .collect::<Vec<_>>();
 
         let mutations: Vec<(TargetSearchOperator, String, f64)> = vec![
+            (Arc::new(LocalSearch::new(Arc::new(ExchangeTwoOpt::default()))), "local_exchange_two_opt".to_string(), 1.),
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
                 "local_exch_inter_route_best".to_string(),

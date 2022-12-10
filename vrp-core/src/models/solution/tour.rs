@@ -144,6 +144,11 @@ impl Tour {
         self.activities.get_mut(index)
     }
 
+    /// Reverses activities of the tour in the given range (inclusive)
+    pub fn reverse(&mut self, start: usize, end: usize) {
+        self.activities[start..=end].reverse()
+    }
+
     /// Returns start activity in tour.
     pub fn start(&self) -> Option<&Activity> {
         self.activities.first()

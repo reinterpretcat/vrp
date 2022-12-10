@@ -6,14 +6,12 @@ use crate::construction::heuristics::*;
 use crate::models::common::TimeSpan;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::Activity;
-use crate::models::GoalContext;
 use hashbrown::{HashMap, HashSet};
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// Repairs a feasible solution from another, potentially infeasible.
-#[allow(clippy::needless_collect)]
 pub fn repair_solution_from_unknown(
     insertion_ctx: &InsertionContext,
     factory: &(dyn Fn() -> InsertionContext),
@@ -23,31 +21,56 @@ pub fn repair_solution_from_unknown(
     prepare_insertion_ctx(&mut new_insertion_ctx);
 
     let mut assigned_jobs = get_assigned_jobs(&new_insertion_ctx);
-    let goal = new_insertion_ctx.problem.goal.clone();
-
     let unassigned = insertion_ctx
         .solution
         .routes
         .iter()
         .filter(|route_ctx| route_ctx.route.tour.has_jobs())
-        .flat_map(|route_ctx| {
-            let route_idx = get_new_route_ctx_idx(&mut new_insertion_ctx, route_ctx);
-
-            let synchronized = synchronize_jobs(route_ctx, &mut new_insertion_ctx, route_idx, &assigned_jobs, &goal);
-
-            assigned_jobs.extend(synchronized.keys().cloned());
-
-            new_insertion_ctx.solution.unassigned.retain(|j, _| !synchronized.contains_key(j));
-            new_insertion_ctx.solution.ignored.retain(|j| !synchronized.contains_key(j));
-            new_insertion_ctx.solution.required.retain(|j| !synchronized.contains_key(j));
-
-            unassign_invalid_multi_jobs(&mut new_insertion_ctx, route_idx, synchronized)
-        })
+        .flat_map(|route_ctx| try_repair_route(&mut new_insertion_ctx, &mut assigned_jobs, route_ctx))
         .collect::<HashSet<_>>();
 
     finalize_synchronization(&mut new_insertion_ctx, insertion_ctx, unassigned);
 
     new_insertion_ctx
+}
+
+pub(crate) fn try_repair_route(
+    new_insertion_ctx: &mut InsertionContext,
+    assigned_jobs: &mut HashSet<Job>,
+    route_ctx: &RouteContext,
+) -> Vec<Job> {
+    let route_idx = get_new_route_ctx_idx(new_insertion_ctx, route_ctx);
+
+    let synchronized = synchronize_jobs(route_ctx, new_insertion_ctx, route_idx, &assigned_jobs);
+
+    assigned_jobs.extend(synchronized.keys().cloned());
+
+    new_insertion_ctx.solution.unassigned.retain(|j, _| !synchronized.contains_key(j));
+    new_insertion_ctx.solution.ignored.retain(|j| !synchronized.contains_key(j));
+    new_insertion_ctx.solution.required.retain(|j| !synchronized.contains_key(j));
+
+    unassign_invalid_multi_jobs(new_insertion_ctx, route_idx, synchronized)
+}
+
+pub(crate) fn get_assigned_jobs(insertion_ctx: &InsertionContext) -> HashSet<Job> {
+    insertion_ctx.solution.routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect()
+}
+
+pub(crate) fn finalize_synchronization(
+    new_insertion_ctx: &mut InsertionContext,
+    insertion_ctx: &InsertionContext,
+    unassigned: HashSet<Job>,
+) {
+    new_insertion_ctx.solution.unassigned.extend(
+        unassigned
+            .into_iter()
+            .chain(insertion_ctx.solution.required.iter().cloned())
+            .map(|job| (job, UnassignmentInfo::Unknown)),
+    );
+
+    new_insertion_ctx.restore();
+
+    finalize_insertion_ctx(new_insertion_ctx);
 }
 
 fn get_new_route_ctx_idx(new_insertion_ctx: &mut InsertionContext, route_ctx: &RouteContext) -> usize {
@@ -77,20 +100,17 @@ fn get_new_route_ctx_idx(new_insertion_ctx: &mut InsertionContext, route_ctx: &R
     }
 }
 
-fn get_assigned_jobs(insertion_ctx: &InsertionContext) -> HashSet<Job> {
-    insertion_ctx.solution.routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect()
-}
-
 fn synchronize_jobs(
     route_ctx: &RouteContext,
     new_insertion_ctx: &mut InsertionContext,
     route_idx: usize,
     assigned_jobs: &HashSet<Job>,
-    goal: &GoalContext,
 ) -> HashMap<Job, Vec<Arc<Single>>> {
     let position = InsertionPosition::Last;
     let leg_selection = LegSelection::Exhaustive;
     let result_selector = BestResultSelector::default();
+
+    let goal = new_insertion_ctx.problem.goal.clone();
 
     let (synchronized_jobs, _) = route_ctx
         .route
@@ -108,7 +128,7 @@ fn synchronize_jobs(
 
                 if !is_already_processed && !is_invalid_multi_job {
                     let eval_ctx = EvaluationContext {
-                        goal,
+                        goal: goal.as_ref(),
                         job: &job,
                         leg_selection: &leg_selection,
                         result_selector: &result_selector,
@@ -195,21 +215,4 @@ fn compare_singles(multi: &Multi, singles: &[Arc<Single>]) -> bool {
         singles.iter().filter_map(|single| job_map.get(&Job::Single(single.clone())).cloned()).collect::<Vec<_>>();
 
     multi.validate(permutation.as_slice())
-}
-
-fn finalize_synchronization(
-    new_insertion_ctx: &mut InsertionContext,
-    insertion_ctx: &InsertionContext,
-    unassigned: HashSet<Job>,
-) {
-    new_insertion_ctx.solution.unassigned.extend(
-        unassigned
-            .into_iter()
-            .chain(insertion_ctx.solution.required.iter().cloned())
-            .map(|job| (job, UnassignmentInfo::Unknown)),
-    );
-
-    new_insertion_ctx.restore();
-
-    finalize_insertion_ctx(new_insertion_ctx);
 }

@@ -1,9 +1,7 @@
-use crate::construction::heuristics::*;
+use super::*;
 use crate::models::problem::Job;
-use crate::solver::search::LocalOperator;
-use crate::solver::RefinementContext;
 use crate::utils::Noise;
-use rand::prelude::SliceRandom;
+use rand::seq::SliceRandom;
 use rosomaxa::HeuristicSolution;
 
 /// A local search operator which tries to exchange jobs in random way inside one route.
@@ -76,20 +74,4 @@ fn get_shuffled_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext)
     jobs.shuffle(&mut insertion_ctx.environment.random.get_rng());
 
     jobs
-}
-
-fn get_random_route_idx(insertion_ctx: &InsertionContext) -> Option<usize> {
-    let routes = insertion_ctx
-        .solution
-        .routes
-        .iter()
-        .enumerate()
-        .filter_map(|(idx, rc)| if rc.route.tour.job_count() > 1 { Some(idx) } else { None })
-        .collect::<Vec<_>>();
-
-    if routes.is_empty() {
-        None
-    } else {
-        Some(routes[insertion_ctx.environment.random.uniform_int(0, (routes.len() - 1) as i32) as usize])
-    }
 }

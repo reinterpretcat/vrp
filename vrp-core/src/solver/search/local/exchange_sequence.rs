@@ -2,13 +2,10 @@
 #[path = "../../../../tests/unit/solver/search/local/exchange_sequence_test.rs"]
 mod exchange_sequence_test;
 
-use crate::construction::heuristics::*;
+use super::*;
 use crate::models::problem::Job;
-use crate::solver::search::LocalOperator;
-use crate::solver::RefinementContext;
 use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
-use rosomaxa::prelude::*;
 
 const MIN_JOBS: usize = 2;
 
