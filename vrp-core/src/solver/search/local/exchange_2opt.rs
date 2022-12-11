@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::probing::*;
 use crate::models::common::Distance;
-use crate::models::problem::{Job, TravelTime};
+use crate::models::problem::TravelTime;
 
 /// Implements a classical TSP's two opt swap operation.
 /// See https://en.wikipedia.org/wiki/2-opt
@@ -69,8 +69,8 @@ impl<'a> OptContext<'a> {
             .tour
             .activities_slice(i, j)
             .iter()
-            .filter_map(|a| a.job.as_ref())
-            .any(|job| self.insertion_ctx.solution.locked.contains(&Job::Single(job.clone())))
+            .filter_map(|a| a.retrieve_job())
+            .any(|job| self.insertion_ctx.solution.locked.contains(&job))
         {
             return;
         }
