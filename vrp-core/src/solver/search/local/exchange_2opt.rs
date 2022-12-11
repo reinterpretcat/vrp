@@ -97,14 +97,16 @@ impl<'a> OptContext<'a> {
             let route_ctx = self.insertion_ctx.solution.routes.get(self.route_idx).unwrap();
             let locked = &new_insertion_ctx.solution.locked;
 
-            let empty_route = new_insertion_ctx.solution.routes.get_mut(self.route_idx).unwrap().route_mut();
+            // NOTE try_repair_route requires an empty route (but locked jobs should stay)
+            let empty_route_ctx = new_insertion_ctx.solution.routes.get_mut(self.route_idx).unwrap();
             let mut unassigned =
                 route_ctx.route.tour.jobs().filter(|job| locked.get(job).is_none()).collect::<HashSet<_>>();
             unassigned.iter().for_each(|job| {
-                empty_route.tour.remove(&job);
+                empty_route_ctx.route_mut().tour.remove(&job);
             });
+            new_insertion_ctx.problem.goal.accept_route_state(empty_route_ctx);
 
-            let mut assigned_jobs = empty_route.tour.jobs().collect::<HashSet<_>>();
+            let mut assigned_jobs = empty_route_ctx.route.tour.jobs().collect::<HashSet<_>>();
             unassigned.extend(try_repair_route(&mut new_insertion_ctx, &mut assigned_jobs, &route_ctx).into_iter());
 
             finalize_synchronization(&mut new_insertion_ctx, self.insertion_ctx, unassigned);
