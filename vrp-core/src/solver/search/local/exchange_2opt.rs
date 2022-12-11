@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../../tests/unit/solver/search/local/exchange_2opt_test.rs"]
+mod exchange_2opt_test;
+
 use super::*;
 use crate::construction::probing::*;
 use crate::models::common::Distance;
@@ -18,15 +22,11 @@ impl LocalOperator for ExchangeTwoOpt {
         };
 
         let mut opt_ctx = OptContext { insertion_ctx, new_insertion_ctx: None, route_idx };
-
-        for i in 1..=(route_size - 2) {
-            for j in (i + 1)..=(route_size - offset) {
-                let i_ofs = (i + 1) % route_size;
-                let j_ofs = (j + 1) % route_size;
-
-                let delta = -opt_ctx.get_distance(i, i_ofs) - opt_ctx.get_distance(j, j_ofs)
+        for i in 0..=(route_size - offset - 2) {
+            for j in (i + 1)..=(route_size - offset - 1) {
+                let delta = -opt_ctx.get_distance(i, i + 1) - opt_ctx.get_distance(j, j + 1)
                     + opt_ctx.get_distance(i, j)
-                    + opt_ctx.get_distance(i_ofs, j_ofs);
+                    + opt_ctx.get_distance(i + 1, j + 1);
 
                 if delta < 0. {
                     opt_ctx.apply_two_opt(i, j);
@@ -66,7 +66,7 @@ impl<'a> OptContext<'a> {
         let i = i as usize + 1;
         let j = j as usize;
 
-        // NOTE do not apply two opt if there is locked jobs
+        // NOTE do not apply two opt if there are locked jobs
         let route_ctx = self.insertion_ctx.solution.routes.get(self.route_idx).unwrap();
         if route_ctx
             .route
@@ -94,7 +94,7 @@ impl<'a> OptContext<'a> {
 
     fn try_restore_solution(self) -> Option<InsertionContext> {
         self.new_insertion_ctx.map(|mut new_insertion_ctx| {
-            let route_ctx = self.insertion_ctx.solution.routes.get(self.route_idx).unwrap();
+            let route_ctx = new_insertion_ctx.solution.routes.get(self.route_idx).unwrap().deep_copy();
             let locked = &new_insertion_ctx.solution.locked;
 
             // NOTE try_repair_route requires an empty route (but locked jobs should stay)
