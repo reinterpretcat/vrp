@@ -12,7 +12,7 @@ pub struct ExchangeTwoOpt {}
 impl LocalOperator for ExchangeTwoOpt {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         let route_idx = get_random_route_idx(insertion_ctx)?;
-        let (route_size, offset_idx) = {
+        let (route_size, offset) = {
             let route = &insertion_ctx.solution.routes.get(route_idx)?.route;
             (route.tour.total() as i32, if route.actor.detail.end.is_some() { 2 } else { 1 })
         };
@@ -20,7 +20,7 @@ impl LocalOperator for ExchangeTwoOpt {
         let mut opt_ctx = OptContext { insertion_ctx, new_insertion_ctx: None, route_idx };
 
         for i in 1..=(route_size - 2) {
-            for j in (i + 1)..=(route_size - offset_idx) {
+            for j in (i + 1)..=(route_size - offset) {
                 let i_ofs = (i + 1) % route_size;
                 let j_ofs = (j + 1) % route_size;
 
@@ -63,7 +63,7 @@ impl<'a> OptContext<'a> {
     }
 
     fn apply_two_opt(&mut self, i: i32, j: i32) {
-        let i = i as usize;
+        let i = i as usize + 1;
         let j = j as usize;
 
         // NOTE do not apply two opt if there is locked jobs
@@ -88,7 +88,7 @@ impl<'a> OptContext<'a> {
 
         let route_ctx = new_insertion_ctx.solution.routes.get_mut(self.route_idx).unwrap();
 
-        route_ctx.route_mut().tour.reverse(i + 1, j);
+        route_ctx.route_mut().tour.reverse(i, j);
         new_insertion_ctx.problem.goal.accept_route_state(route_ctx);
     }
 
