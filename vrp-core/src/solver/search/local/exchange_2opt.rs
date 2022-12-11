@@ -12,12 +12,15 @@ pub struct ExchangeTwoOpt {}
 impl LocalOperator for ExchangeTwoOpt {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         let route_idx = get_random_route_idx(insertion_ctx)?;
-        let route_size = insertion_ctx.solution.routes.get(route_idx)?.route.tour.total() as i32;
+        let (route_size, offset_idx) = {
+            let route = &insertion_ctx.solution.routes.get(route_idx)?.route;
+            (route.tour.total() as i32, if route.actor.detail.end.is_some() { 2 } else { 1 })
+        };
 
         let mut opt_ctx = OptContext { insertion_ctx, new_insertion_ctx: None, route_idx };
 
         for i in 1..=(route_size - 2) {
-            for j in (i + 1)..=(route_size - 1) {
+            for j in (i + 1)..=(route_size - offset_idx) {
                 let i_ofs = (i + 1) % route_size;
                 let j_ofs = (j + 1) % route_size;
 
@@ -94,14 +97,14 @@ impl<'a> OptContext<'a> {
             let route_ctx = self.insertion_ctx.solution.routes.get(self.route_idx).unwrap();
             let locked = &new_insertion_ctx.solution.locked;
 
-            let empty_route_ctx = new_insertion_ctx.solution.routes.get_mut(self.route_idx).unwrap().route_mut();
+            let empty_route = new_insertion_ctx.solution.routes.get_mut(self.route_idx).unwrap().route_mut();
             let mut unassigned =
                 route_ctx.route.tour.jobs().filter(|job| locked.get(job).is_none()).collect::<HashSet<_>>();
             unassigned.iter().for_each(|job| {
-                empty_route_ctx.tour.remove(&job);
+                empty_route.tour.remove(&job);
             });
 
-            let mut assigned_jobs = empty_route_ctx.tour.jobs().collect::<HashSet<_>>();
+            let mut assigned_jobs = empty_route.tour.jobs().collect::<HashSet<_>>();
             unassigned.extend(try_repair_route(&mut new_insertion_ctx, &mut assigned_jobs, &route_ctx).into_iter());
 
             finalize_synchronization(&mut new_insertion_ctx, self.insertion_ctx, unassigned);
