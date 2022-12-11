@@ -52,10 +52,6 @@ pub(crate) fn try_repair_route(
     unassign_invalid_multi_jobs(new_insertion_ctx, route_idx, synchronized)
 }
 
-pub(crate) fn get_assigned_jobs(insertion_ctx: &InsertionContext) -> HashSet<Job> {
-    insertion_ctx.solution.routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect()
-}
-
 pub(crate) fn finalize_synchronization(
     new_insertion_ctx: &mut InsertionContext,
     insertion_ctx: &InsertionContext,
@@ -71,6 +67,10 @@ pub(crate) fn finalize_synchronization(
     new_insertion_ctx.restore();
 
     finalize_insertion_ctx(new_insertion_ctx);
+}
+
+fn get_assigned_jobs(insertion_ctx: &InsertionContext) -> HashSet<Job> {
+    insertion_ctx.solution.routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect()
 }
 
 fn get_new_route_ctx_idx(new_insertion_ctx: &mut InsertionContext, route_ctx: &RouteContext) -> usize {

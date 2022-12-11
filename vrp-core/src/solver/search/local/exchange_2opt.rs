@@ -2,6 +2,7 @@ use super::*;
 use crate::construction::probing::*;
 use crate::models::common::Distance;
 use crate::models::problem::TravelTime;
+use hashbrown::HashSet;
 
 /// Implements a classical TSP's two opt swap operation.
 /// See https://en.wikipedia.org/wiki/2-opt
@@ -91,17 +92,19 @@ impl<'a> OptContext<'a> {
     fn try_restore_solution(self) -> Option<InsertionContext> {
         self.new_insertion_ctx.map(|mut new_insertion_ctx| {
             let route_ctx = self.insertion_ctx.solution.routes.get(self.route_idx).unwrap();
+            let locked = &new_insertion_ctx.solution.locked;
+
             let empty_route_ctx = new_insertion_ctx.solution.routes.get_mut(self.route_idx).unwrap().route_mut();
-            route_ctx.route.tour.jobs().filter(|job| new_insertion_ctx.solution.locked.get(job).is_none()).for_each(
-                |job| {
-                    empty_route_ctx.tour.remove(&job);
-                },
-            );
+            let mut unassigned =
+                route_ctx.route.tour.jobs().filter(|job| locked.get(job).is_none()).collect::<HashSet<_>>();
+            unassigned.iter().for_each(|job| {
+                empty_route_ctx.tour.remove(&job);
+            });
 
-            let mut assigned_jobs = get_assigned_jobs(&new_insertion_ctx);
-            let unassigned = try_repair_route(&mut new_insertion_ctx, &mut assigned_jobs, &route_ctx);
+            let mut assigned_jobs = empty_route_ctx.tour.jobs().collect::<HashSet<_>>();
+            unassigned.extend(try_repair_route(&mut new_insertion_ctx, &mut assigned_jobs, &route_ctx).into_iter());
 
-            finalize_synchronization(&mut new_insertion_ctx, self.insertion_ctx, unassigned.into_iter().collect());
+            finalize_synchronization(&mut new_insertion_ctx, self.insertion_ctx, unassigned);
 
             new_insertion_ctx
         })
