@@ -41,9 +41,9 @@ pub(crate) fn try_repair_route(
 
     assigned_jobs.extend(synchronized.keys().cloned());
 
-    new_insertion_ctx.solution.unassigned.retain(|j, _| !synchronized.contains_key(j));
-    new_insertion_ctx.solution.ignored.retain(|j| !synchronized.contains_key(j));
-    new_insertion_ctx.solution.required.retain(|j| !synchronized.contains_key(j));
+    new_insertion_ctx.solution.unassigned.retain(|j, _| !assigned_jobs.contains(j));
+    new_insertion_ctx.solution.ignored.retain(|j| !assigned_jobs.contains(j));
+    new_insertion_ctx.solution.required.retain(|j| !assigned_jobs.contains(j));
 
     let unassigned_multi_jobs = unassign_invalid_multi_jobs(new_insertion_ctx, route_idx, synchronized);
     new_insertion_ctx

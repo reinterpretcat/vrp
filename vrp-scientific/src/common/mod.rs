@@ -9,6 +9,10 @@ mod text_writer;
 pub(crate) use self::text_writer::*;
 
 mod routing;
+
+mod initial_reader;
+pub use self::initial_reader::*;
+
 pub use self::routing::CoordIndex;
 
 use vrp_core::models::Extras;
