@@ -21,15 +21,11 @@ pub fn repair_solution_from_unknown(
     prepare_insertion_ctx(&mut new_insertion_ctx);
 
     let mut assigned_jobs = get_assigned_jobs(&new_insertion_ctx);
-    let unassigned = insertion_ctx
-        .solution
-        .routes
-        .iter()
-        .filter(|route_ctx| route_ctx.route.tour.has_jobs())
-        .flat_map(|route_ctx| try_repair_route(&mut new_insertion_ctx, &mut assigned_jobs, route_ctx))
-        .collect::<HashSet<_>>();
+    insertion_ctx.solution.routes.iter().filter(|route_ctx| route_ctx.route.tour.has_jobs()).for_each(|route_ctx| {
+        try_repair_route(&mut new_insertion_ctx, &mut assigned_jobs, route_ctx);
+    });
 
-    finalize_synchronization(&mut new_insertion_ctx, insertion_ctx, unassigned);
+    finalize_synchronization(&mut new_insertion_ctx, insertion_ctx);
 
     new_insertion_ctx
 }
@@ -38,7 +34,7 @@ pub(crate) fn try_repair_route(
     new_insertion_ctx: &mut InsertionContext,
     assigned_jobs: &mut HashSet<Job>,
     route_ctx: &RouteContext,
-) -> Vec<Job> {
+) {
     let route_idx = get_new_route_ctx_idx(new_insertion_ctx, route_ctx);
 
     let synchronized = synchronize_jobs(route_ctx, new_insertion_ctx, route_idx, &assigned_jobs);
@@ -49,20 +45,18 @@ pub(crate) fn try_repair_route(
     new_insertion_ctx.solution.ignored.retain(|j| !synchronized.contains_key(j));
     new_insertion_ctx.solution.required.retain(|j| !synchronized.contains_key(j));
 
-    unassign_invalid_multi_jobs(new_insertion_ctx, route_idx, synchronized)
+    let unassigned_multi_jobs = unassign_invalid_multi_jobs(new_insertion_ctx, route_idx, synchronized);
+    new_insertion_ctx
+        .solution
+        .unassigned
+        .extend(unassigned_multi_jobs.into_iter().map(|job| (job, UnassignmentInfo::Unknown)));
 }
 
-pub(crate) fn finalize_synchronization(
-    new_insertion_ctx: &mut InsertionContext,
-    insertion_ctx: &InsertionContext,
-    unassigned: HashSet<Job>,
-) {
-    new_insertion_ctx.solution.unassigned.extend(
-        unassigned
-            .into_iter()
-            .chain(insertion_ctx.solution.required.iter().cloned())
-            .map(|job| (job, UnassignmentInfo::Unknown)),
-    );
+pub(crate) fn finalize_synchronization(new_insertion_ctx: &mut InsertionContext, insertion_ctx: &InsertionContext) {
+    new_insertion_ctx
+        .solution
+        .unassigned
+        .extend(insertion_ctx.solution.required.iter().cloned().map(|job| (job, UnassignmentInfo::Unknown)));
 
     new_insertion_ctx.restore();
 
