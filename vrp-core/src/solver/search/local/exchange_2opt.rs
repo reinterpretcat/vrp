@@ -68,14 +68,15 @@ impl<'a> OptContext<'a> {
 
         // NOTE do not apply two opt if there are locked jobs
         let route_ctx = self.insertion_ctx.solution.routes.get(self.route_idx).unwrap();
-        if route_ctx
+        let has_locked_jobs = route_ctx
             .route
             .tour
             .activities_slice(i, j)
             .iter()
             .filter_map(|a| a.retrieve_job())
-            .any(|job| self.insertion_ctx.solution.locked.contains(&job))
-        {
+            .any(|job| self.insertion_ctx.solution.locked.contains(&job));
+
+        if has_locked_jobs || i == j {
             return;
         }
 
