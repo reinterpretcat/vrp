@@ -21,5 +21,6 @@ fn can_fix_order_impl(activities: usize, is_open_vrp: bool, job_order: Vec<Vec<&
         .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
         .expect("cannot find new solution");
 
+    assert!(insertion_ctx.solution.unassigned.is_empty());
     compare_with_ignore(get_customer_ids_from_routes(&insertion_ctx).as_slice(), expected.as_slice(), "");
 }
