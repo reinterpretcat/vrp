@@ -12,7 +12,7 @@ repository = "https://github.com/reinterpretcat/vrp"
 description = "A rosomaxa algorithm and other building blocks for creating a solver for optimization problems"
 
 [dependencies]
-rayon = "1.6.0"
+rayon = "1.6.1"
 rand = { version = "0.8.5", features = ["small_rng"] }
 hashbrown = "0.13.1"
 
