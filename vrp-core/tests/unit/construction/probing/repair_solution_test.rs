@@ -295,6 +295,20 @@ can_restore_solution! {
         ],
         ((2, 0), vec![("v1", vec!["job1", "job1"])]),
     ),
+    case14_two_routes_and_invalid_multi_job: (
+        vec![("job1", (Some(1), (1., 3.), 1., 1))],
+        vec![("job2", vec![(Some(1), (0., 10.), 1., 1), (Some(2), (0., 10.), 1., 1)])],
+        vec![],
+        vec![
+            ("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.))))),
+            ("v2", (10, (0, Some(0.), None), Some((0, None, Some(10.))))),
+        ],
+        vec![
+            ("v1", vec![ ("job2", 2, 1., (0., 10.), 1), ("job2", 1, 1., (0., 10.), 0)]),
+            ("v2", vec![("job1", 1, 1., (1., 3.), 0)]),
+        ],
+        ((1, 0), vec![("v2", vec!["job1"])]),
+    ),
 }
 
 #[allow(clippy::type_complexity)]

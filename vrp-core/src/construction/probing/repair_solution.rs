@@ -46,6 +46,8 @@ pub(crate) fn try_repair_route(
     new_insertion_ctx.solution.required.retain(|j| !assigned_jobs.contains(j));
 
     let unassigned_multi_jobs = unassign_invalid_multi_jobs(new_insertion_ctx, route_idx, synchronized);
+    assigned_jobs.retain(|j| !unassigned_multi_jobs.contains(j));
+
     new_insertion_ctx
         .solution
         .unassigned
@@ -178,7 +180,7 @@ fn unassign_invalid_multi_jobs(
     new_insertion_ctx: &mut InsertionContext,
     route_idx: usize,
     synchronized: HashMap<Job, Vec<Arc<Single>>>,
-) -> Vec<Job> {
+) -> HashSet<Job> {
     let new_route_ctx = new_insertion_ctx.solution.routes.get_mut(route_idx).unwrap();
 
     synchronized
@@ -187,10 +189,10 @@ fn unassign_invalid_multi_jobs(
             Job::Multi(multi) => Some((job, multi, singles)),
             Job::Single(_) => None,
         })
-        .fold(Vec::default(), |mut unassigned, (job, multi, singles)| {
+        .fold(HashSet::default(), |mut unassigned, (job, multi, singles)| {
             if multi.jobs.len() != singles.len() || !compare_singles(multi, singles.as_slice()) {
                 new_route_ctx.route_mut().tour.remove(job);
-                unassigned.push(job.clone());
+                unassigned.insert(job.clone());
             }
 
             unassigned
