@@ -110,3 +110,32 @@ mod selections {
         assert!(counter < expected_threshold);
     }
 }
+
+mod positions {
+    use super::*;
+    use crate::helpers::models::domain::create_empty_solution_context;
+    use crate::helpers::models::problem::SingleBuilder;
+
+    parameterized_test! {can_decide_how_to_fold, (jobs, routes, expected_result), {
+        can_decide_how_to_fold_impl(jobs, routes, expected_result);
+    }}
+
+    can_decide_how_to_fold! {
+        case01: (8, 2, true),
+        case02: (2, 8, false),
+        case03: (4, 4, false),
+    }
+
+    fn can_decide_how_to_fold_impl(jobs: usize, routes: usize, expected_result: bool) {
+        let insertion_ctx = InsertionContext {
+            solution: SolutionContext {
+                routes: (0..routes).map(|_| create_empty_route_ctx()).collect(),
+                required: (0..jobs).map(|_| SingleBuilder::default().build_as_job_ref()).collect(),
+                ..create_empty_solution_context()
+            },
+            ..create_empty_insertion_context()
+        };
+
+        assert_eq!(PositionInsertionEvaluator::is_fold_jobs(&insertion_ctx), expected_result);
+    }
+}
