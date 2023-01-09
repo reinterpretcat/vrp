@@ -8,7 +8,7 @@ mod config_test;
 
 extern crate serde_json;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
@@ -24,7 +24,7 @@ use vrp_core::solver::RecreateInitialOperator;
 use vrp_core::solver::*;
 
 /// An algorithm configuration.
-#[derive(Clone, Default, Deserialize, Debug)]
+#[derive(Clone, Default, Deserialize, Debug, Serialize)]
 pub struct Config {
     /// Specifies evolution configuration.
     pub evolution: Option<EvolutionConfig>,
@@ -39,14 +39,14 @@ pub struct Config {
 }
 
 /// An evolution configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EvolutionConfig {
     pub initial: Option<InitialConfig>,
     pub population: Option<PopulationType>,
 }
 
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase")]
 pub enum PopulationType {
@@ -95,14 +95,14 @@ pub enum PopulationType {
 }
 
 /// An initial solution configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct InitialConfig {
     pub method: RecreateMethod,
     pub alternatives: InitialAlternativesConfig,
 }
 
 /// An initial solution alternatives configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InitialAlternativesConfig {
     pub methods: Vec<RecreateMethod>,
@@ -111,7 +111,7 @@ pub struct InitialAlternativesConfig {
 }
 
 /// A selection operator configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase")]
 pub enum SelectionType {
@@ -123,7 +123,7 @@ pub enum SelectionType {
 }
 
 /// A hyper heuristic configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type")]
 pub enum HyperType {
     /// A hyper heuristic which selects one operator from the list based on its predefined probability.
@@ -140,7 +140,7 @@ pub enum HyperType {
 }
 
 /// A operator configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type")]
 pub enum SearchOperatorType {
     /// A metaheuristic which splits problem into smaller and solves them independently.
@@ -179,7 +179,7 @@ pub enum SearchOperatorType {
 }
 
 /// A operator probability type
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(untagged)]
 pub enum OperatorProbabilityType {
     /// A scalar probability based type.
@@ -198,7 +198,7 @@ pub enum OperatorProbabilityType {
 }
 
 /// A context condition for `MutationProbabilityType`.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct ContextThreshold {
     /// Min amount of jobs in individual.
     pub jobs: usize,
@@ -207,7 +207,7 @@ pub struct ContextThreshold {
 }
 
 /// A selection phase filter for `MutationProbabilityType`.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type")]
 pub enum ContextPhase {
     /// Initial selection phase.
@@ -233,7 +233,7 @@ pub enum ContextPhase {
 }
 
 /// A ruin method configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct RuinGroupConfig {
     /// Ruin methods.
     methods: Vec<RuinMethod>,
@@ -242,7 +242,7 @@ pub struct RuinGroupConfig {
 }
 
 /// Specifies ruin methods with their probability weight and specific parameters.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type")]
 pub enum RuinMethod {
     /// Adjusted string removal method.
@@ -275,7 +275,7 @@ pub enum RuinMethod {
 }
 
 /// Specifies recreate methods with their probability weight and specific parameters.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type")]
 pub enum RecreateMethod {
     /// Cheapest insertion method.
@@ -311,7 +311,7 @@ pub enum RecreateMethod {
 }
 
 /// A local search configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type")]
 pub enum LocalOperatorType {
     #[serde(rename(deserialize = "swap-star"))]
@@ -330,14 +330,14 @@ pub enum LocalOperatorType {
     Sequence { weight: usize },
 }
 
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct NoiseConfig {
     probability: f64,
     min: f64,
     max: f64,
 }
 
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminationConfig {
     pub max_time: Option<usize>,
@@ -345,7 +345,7 @@ pub struct TerminationConfig {
     pub variation: Option<VariationConfig>,
 }
 
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VariationConfig {
     interval_type: String,
@@ -355,13 +355,13 @@ pub struct VariationConfig {
 }
 
 /// A telemetry config.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct TelemetryConfig {
     progress: Option<ProgressConfig>,
     metrics: Option<MetricsConfig>,
 }
 
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProgressConfig {
     /// Specifies whether logging is enabled. Default is false.
@@ -374,7 +374,7 @@ pub struct ProgressConfig {
     dump_population: Option<bool>,
 }
 
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetricsConfig {
     /// Specifies whether metrics collection is enabled. Default is false.
@@ -384,7 +384,7 @@ pub struct MetricsConfig {
 }
 
 /// An environment specific configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EnvironmentConfig {
     /// Specifies a data parallelism configuration.
@@ -398,7 +398,7 @@ pub struct EnvironmentConfig {
 }
 
 /// Data parallelism configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ParallelismConfig {
     /// Number of thread pools.
@@ -408,7 +408,7 @@ pub struct ParallelismConfig {
 }
 
 /// Global logging configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LoggingConfig {
     /// Specifies whether logging is enabled. Default is false.
@@ -417,13 +417,13 @@ pub struct LoggingConfig {
     prefix: Option<String>,
 }
 
-#[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Clone, Deserialize, Debug, Eq, PartialEq, Serialize)]
 pub struct MinMaxConfig {
     pub min: usize,
     pub max: usize,
 }
 
-#[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Clone, Deserialize, Debug, Eq, PartialEq, Serialize)]
 pub struct NameWeight {
     pub name: String,
     pub weight: usize,
