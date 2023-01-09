@@ -1,7 +1,8 @@
 //! An api to interface with *Vehicle Routing Problem* solver.
-use actix_web::{error, middleware, post, web, App, Error, HttpResponse, HttpServer, Responder};
+use actix_web::{middleware, post, web, App, Error, HttpResponse, HttpServer, Responder};
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 use vrp_cli::extensions::solve::config::{Config, create_builder_from_config};
@@ -103,6 +104,8 @@ async fn solve_handler(mut payload: web::Payload) -> Result<HttpResponse, Error>
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let cur_dir = env::current_dir().unwrap();
+    println!("{},{}", String::from("CURRENT DIRECTORY"), cur_dir.to_string_lossy());
     HttpServer::new(|| {
         App::new().wrap(middleware::Logger::default()).service(solve_handler).route("/", web::get().to(hello))
     })
