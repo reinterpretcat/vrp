@@ -2,10 +2,9 @@
 use actix_web::{error, middleware, post, web, App, Error, HttpResponse, HttpServer, Responder};
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
-use vrp_cli::extensions::solve::config::{create_builder_from_config, read_config};
+use vrp_cli::extensions::solve::config::{Config, create_builder_from_config};
 use vrp_core::prelude::Solver;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::core::models::{Problem as CoreProblem, Solution as CoreSolution};
@@ -15,7 +14,6 @@ use vrp_pragmatic::format::FormatError;
 
 const MAX_SIZE: usize = 262_144;
 const MAX_ITERATIONS: usize = 100;
-const BASE_CONFIG_PATH: &str = "./vrp-api/config/config.telemetry.json";
 
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Welcome to VRP-api!")
@@ -26,6 +24,7 @@ struct SolverRequest {
     uuid: String,
     problem: Problem,
     matrices: Option<Vec<Matrix>>,
+    telemetry_config: Config
 }
 
 #[derive(Serialize, Deserialize)]
@@ -44,7 +43,7 @@ fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution, cost: 
 }
 
 #[inline]
-fn solve_problem(name: String, problem: Problem, matrices: Option<Vec<Matrix>>) -> Solution {
+fn solve_problem(name: String, problem: Problem, matrices: Option<Vec<Matrix>>, telemetry_config: Config) -> Solution {
     let (core_problem, problem, matrices) = if let Some(matrices) = matrices {
         let matrices = matrices;
         ((problem.clone(), matrices.clone()).read_pragmatic(), problem, Some(matrices))
@@ -56,14 +55,8 @@ fn solve_problem(name: String, problem: Problem, matrices: Option<Vec<Matrix>>) 
         panic!("cannot read pragmatic problem: {}", FormatError::format_many(errors.as_slice(), "\t\n"))
     }));
 
-    let reader = BufReader::new(
-        File::open(BASE_CONFIG_PATH)
-            .unwrap_or_else(|err| panic!("Cannot open file on path {}, error: {}", BASE_CONFIG_PATH, err)),
-    );
-
     // config
-    let mut config = read_config(reader)
-        .unwrap_or_else(|err| panic!("Cannot read config from path {}, error: {}", BASE_CONFIG_PATH, err));
+    let mut config = telemetry_config;
     if let Some(initial) = config.evolution.as_mut().and_then(|evolution| evolution.initial.as_mut()) {
         initial.alternatives.max_size = 1;
     }
@@ -104,7 +97,7 @@ async fn solve_handler(mut payload: web::Payload) -> Result<HttpResponse, Error>
 
     // body is loaded, now we can deserialize serde-json
     let obj = serde_json::from_slice::<SolverRequest>(&body)?;
-    let solution = solve_problem(obj.uuid, obj.problem, obj.matrices);
+    let solution = solve_problem(obj.uuid, obj.problem, obj.matrices, obj.telemetry_config);
     Ok(HttpResponse::Ok().json(solution)) // <- send response
 }
 
