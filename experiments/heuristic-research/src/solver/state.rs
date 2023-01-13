@@ -16,8 +16,8 @@ pub enum PopulationState {
         rows: Range<i32>,
         /// Cols range.
         cols: Range<i32>,
-        /// Objective values data.
-        objectives: Vec<MatrixData>,
+        /// Fitness values data split into separate matrices.
+        fitness: Vec<MatrixData>,
         /// U-matrix values data.
         u_matrix: MatrixData,
         /// T-matrix values data.
@@ -33,7 +33,7 @@ impl PopulationState {
         PopulationState::Rosomaxa {
             rows,
             cols,
-            objectives: Default::default(),
+            fitness: Default::default(),
             u_matrix: Default::default(),
             t_matrix: Default::default(),
             l_matrix: Default::default(),
@@ -64,7 +64,7 @@ fn create_rosomaxa_state(network_state: NetworkState) -> PopulationState {
     network_state.nodes.iter().fold(PopulationState::new_rosomaxa_empty(rows, cols), |mut rosomaxa, node| {
         let coordinate = Coordinate(node.coordinate.0, node.coordinate.1);
         match &mut rosomaxa {
-            PopulationState::Rosomaxa { objectives, u_matrix, t_matrix, l_matrix, .. } => {
+            PopulationState::Rosomaxa { fitness: objectives, u_matrix, t_matrix, l_matrix, .. } => {
                 // NOTE get first fitness in assumption of sorted order
                 let fitness = match (node.dump.starts_with("[["), node.dump.find(']')) {
                     (true, Some(value)) => node.dump[2..value]
