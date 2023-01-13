@@ -16,10 +16,10 @@ impl RecreateWithCheapest {
     pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
-                Box::new(AllJobSelector::default()),
-                Box::new(AllRouteSelector::default()),
+                Box::<AllJobSelector>::default(),
+                Box::<AllRouteSelector>::default(),
                 LegSelection::Stochastic(random),
-                Box::new(BestResultSelector::default()),
+                Box::<BestResultSelector>::default(),
                 Default::default(),
             ),
         }

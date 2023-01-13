@@ -301,7 +301,7 @@ impl CheckerContext {
                                 };
 
                                 // NOTE parking correction
-                                let f_duration = if f_duration == 0 { parking as f64 } else { f_duration as f64 };
+                                let f_duration = if f_duration == 0 { parking } else { f_duration as f64 };
 
                                 Ok(Some(DomainCommute {
                                     forward: DomainCommuteInfo {

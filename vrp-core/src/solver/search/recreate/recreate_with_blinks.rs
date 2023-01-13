@@ -179,7 +179,7 @@ impl<T: LoadOps> RecreateWithBlinks<T> {
         let weights = selectors.iter().map(|(_, weight)| *weight).collect();
         Self {
             job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
-            route_selector: Box::new(AllRouteSelector::default()),
+            route_selector: Box::<AllRouteSelector>::default(),
             leg_selection: LegSelection::Stochastic(random.clone()),
             result_selector: Box::new(BlinkResultSelector::new_with_defaults(random)),
             insertion_heuristic: Default::default(),
@@ -192,7 +192,7 @@ impl<T: LoadOps> RecreateWithBlinks<T> {
     pub fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
         Self::new(
             vec![
-                (Box::new(AllJobSelector::default()), 10),
+                (Box::<AllJobSelector>::default(), 10),
                 (Box::new(ChunkJobSelector::new(8)), 10),
                 (Box::new(DemandJobSelector::<T>::new(false)), 10),
                 (Box::new(DemandJobSelector::<T>::new(true)), 1),

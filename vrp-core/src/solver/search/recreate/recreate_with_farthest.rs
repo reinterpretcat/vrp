@@ -17,10 +17,10 @@ impl RecreateWithFarthest {
     pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
-                Box::new(AllJobSelector::default()),
-                Box::new(AllRouteSelector::default()),
+                Box::<AllJobSelector>::default(),
+                Box::<AllRouteSelector>::default(),
                 LegSelection::Stochastic(random),
-                Box::new(FarthestResultSelector {}),
+                Box::<FarthestResultSelector>::default(),
                 Default::default(),
             ),
         }
@@ -33,6 +33,7 @@ impl Recreate for RecreateWithFarthest {
     }
 }
 
+#[derive(Default)]
 struct FarthestResultSelector {}
 
 impl ResultSelector for FarthestResultSelector {

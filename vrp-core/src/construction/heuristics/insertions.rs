@@ -46,7 +46,7 @@ pub struct InsertionHeuristic {
 
 impl Default for InsertionHeuristic {
     fn default() -> Self {
-        InsertionHeuristic::new(Box::new(PositionInsertionEvaluator::default()))
+        InsertionHeuristic::new(Box::<PositionInsertionEvaluator>::default())
     }
 }
 

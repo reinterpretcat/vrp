@@ -68,6 +68,7 @@ fn try_advance_departure_time(
             TravelTime::Departure(last_departure_time),
         );
 
+        #[allow(clippy::manual_clamp)]
         last_departure_time.max(first.place.time.start - start_to_first).min(latest_allowed_departure)
     };
 

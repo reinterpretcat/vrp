@@ -18,10 +18,10 @@ impl RecreateWithSlice {
     pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
-                Box::new(SliceJobSelector::default()),
-                Box::new(SliceRouteSelector::default()),
+                Box::<SliceJobSelector>::default(),
+                Box::<SliceRouteSelector>::default(),
                 LegSelection::Stochastic(random),
-                Box::new(BestResultSelector::default()),
+                Box::<BestResultSelector>::default(),
                 Default::default(),
             ),
         }

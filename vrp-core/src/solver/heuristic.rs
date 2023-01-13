@@ -243,11 +243,11 @@ mod builder {
     /// Create default processing.
     pub fn create_default_processing() -> ProcessingConfig<RefinementContext, GoalContext, InsertionContext> {
         ProcessingConfig {
-            context: vec![Box::new(VicinityClustering::default())],
+            context: vec![Box::<VicinityClustering>::default()],
             solution: vec![
-                Box::new(AdvanceDeparture::default()),
-                Box::new(UnassignmentReason::default()),
-                Box::new(VicinityClustering::default()),
+                Box::<AdvanceDeparture>::default(),
+                Box::<UnassignmentReason>::default(),
+                Box::<VicinityClustering>::default(),
             ],
         }
     }

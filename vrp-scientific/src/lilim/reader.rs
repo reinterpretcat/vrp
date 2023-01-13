@@ -123,13 +123,13 @@ impl<R: Read> LilimReader<R> {
         let mut dimens = create_dimens_with_id("c", &customer.id.to_string());
         dimens.set_demand(if customer.demand > 0 {
             Demand::<SingleDimLoad> {
-                pickup: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand as i32)),
+                pickup: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand)),
                 delivery: (SingleDimLoad::default(), SingleDimLoad::default()),
             }
         } else {
             Demand::<SingleDimLoad> {
                 pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
-                delivery: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand as i32)),
+                delivery: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand)),
             }
         });
 

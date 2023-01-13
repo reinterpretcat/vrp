@@ -98,7 +98,7 @@ pub fn create_range_sampling_iter<I: Iterator>(
     let sample_count = (iterator_size / sample_size as f64).max(1.) - 1.;
     let offset = random.uniform_int(0, sample_count as i32) as usize * sample_size;
 
-    iterator.skip(offset).take(sample_size as usize)
+    iterator.skip(offset).take(sample_size)
 }
 
 /// Provides way to search using selection sampling algorithm on iterator where elements have ordered

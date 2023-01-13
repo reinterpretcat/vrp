@@ -18,10 +18,10 @@ impl RecreateWithSkipRandom {
     pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
-                Box::new(SkipRandomJobSelector::default()),
-                Box::new(SkipRandomRouteSelector::default()),
+                Box::<SkipRandomJobSelector>::default(),
+                Box::<SkipRandomRouteSelector>::default(),
                 LegSelection::Stochastic(random),
-                Box::new(BestResultSelector::default()),
+                Box::<BestResultSelector>::default(),
                 Default::default(),
             ),
         }

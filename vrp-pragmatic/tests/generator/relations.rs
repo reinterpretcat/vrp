@@ -15,8 +15,8 @@ pub fn generate_relations(
     let vehicle_ids = get_vehicle_ids(vehicles);
 
     // NOTE this is done to reduce rejections by proptest
-    let max = total_relations.end.min(jobs.len() / jobs_per_relation.end).max(1);
-    let min = max.min(total_relations.start).max(0);
+    let max = total_relations.end.clamp(1, jobs.len() / jobs_per_relation.end);
+    let min = max.clamp(0, total_relations.start);
     let max = if min == max { max + 1 } else { max };
 
     prop::collection::vec(generate_relation(job_ids, vehicle_ids, jobs_per_relation), min..max).prop_filter_map(

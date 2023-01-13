@@ -124,99 +124,97 @@ fn draw_population<B: DrawingBackend + 'static>(
             };
 
             // draw series like gradients (but these are not gradients)
-            let draw_gradients =
-                |area: &mut DrawingArea<B, Shift>, _caption: &str, series: &Vec<Series2D>| -> DrawResult<()> {
-                    let vertical_offset = 21;
-                    let (w, h) = area.dim_in_pixel();
-                    let h = h - vertical_offset;
+            let draw_gradients = |area: &mut DrawingArea<B, Shift>,
+                                  _caption: &str,
+                                  series: &Vec<Series2D>|
+             -> DrawResult<()> {
+                let vertical_offset = 21;
+                let (w, h) = area.dim_in_pixel();
+                let h = h - vertical_offset;
 
-                    let x_step = (w as f64 / (rows.len()) as f64).round();
-                    let y_step = (h as f64 / (cols.len()) as f64).round();
+                let x_step = (w as f64 / (rows.len()) as f64).round();
+                let y_step = (h as f64 / (cols.len()) as f64).round();
 
-                    area.fill(&WHITE)?;
+                area.fill(&WHITE)?;
 
-                    let get_fitness = |coord: &Coordinate| {
-                        series[0].matrix.deref()().get(&coord).cloned().map(|v| {
-                            std::iter::once(v)
-                                .chain(
-                                    (1..series.len())
-                                        .map(move |idx| series[idx].matrix.deref()().get(&coord).unwrap().clone()),
-                                )
-                                .collect::<Vec<_>>()
-                        })
-                    };
-
-                    let compare_fitness = |left: &[f64], right: &[f64]| {
-                        (left.iter())
-                            .zip(right.iter())
-                            .map(|(left, right)| compare_floats(*left, *right))
-                            .find_or_first(|ord| *ord != Ordering::Equal)
-                            .unwrap_or(Ordering::Equal)
-                    };
-
-                    let to_points =
-                        |left: &Coordinate, right: &Coordinate| -> Option<([(i32, i32); 2], [(i32, i32); 3])> {
-                            get_fitness(left)
-                                .zip(get_fitness(right))
-                                .map(|(left, right)| compare_fitness(left.as_slice(), right.as_slice()))
-                                .filter(|ord| *ord == Ordering::Greater)
-                                .map(|_| {
-                                    let x_step = x_step.round() as i32;
-                                    let y_step = y_step.round() as i32;
-
-                                    let (direction, line) = match (left.0 - right.0, left.1 - right.1) {
-                                        (0, 1) => (ArrowDirection::Bottom, [(0, 0), (0, y_step)]),
-                                        (0, -1) => (ArrowDirection::Top, [(0, 0), (0, -y_step)]),
-                                        (1, 0) => (ArrowDirection::Left, [(0, 0), (-x_step, 0)]),
-                                        (-1, 0) => (ArrowDirection::Right, [(0, 0), (x_step, 0)]),
-                                        _ => unreachable!(),
-                                    };
-                                    (line, direction.get_points(1.))
-                                })
-                        };
-
-                    rows.clone()
-                        .cartesian_product(cols.clone())
-                        .filter_map(|(x, y)| {
-                            let current = Coordinate(x, y);
-
-                            // check top direction
-                            let arrows = [
-                                to_points(&current, &Coordinate(x, y + 1)),
-                                to_points(&current, &Coordinate(x, y - 1)),
-                                to_points(&current, &Coordinate(x + 1, y)),
-                                to_points(&current, &Coordinate(x - 1, y)),
-                            ]
-                            .into_iter()
-                            .filter_map(|p| p)
-                            .collect::<Vec<_>>();
-
-                            if arrows.is_empty() {
-                                None
-                            } else {
-                                Some(((x, y), arrows))
-                            }
-                        })
-                        .flat_map(|(coord, arrows)| arrows.into_iter().map(move |arrow| (coord, arrow)))
-                        .try_for_each(|((x, y), (line, arrow))| {
-                            let x = ((x - rows.start) as f64 * x_step).round() as i32;
-                            let x_offset = (x_step / 2.).round() as i32;
-                            let x = x + x_offset;
-
-                            let y = y - cols.start;
-                            let y = (y as f64 * y_step).round() as i32;
-                            let y_offset = (y_step / 2.).round() as i32;
-                            let y = (vertical_offset + h) as i32 - (y + y_offset);
-
-                            let figure = EmptyElement::at((x, y))
-                                + PathElement::new(line, &BLUE)
-                                + Polygon::new(arrow.map(|(x, y)| (x + line[1].0, y + line[1].1)), &BLUE);
-
-                            area.draw(&figure)
-                        })?;
-
-                    Ok(())
+                let get_fitness = |coord: &Coordinate| {
+                    series[0].matrix.deref()().get(coord).cloned().map(|v| {
+                        std::iter::once(v)
+                            .chain((1..series.len()).map(move |idx| *series[idx].matrix.deref()().get(coord).unwrap()))
+                            .collect::<Vec<_>>()
+                    })
                 };
+
+                let compare_fitness = |left: &[f64], right: &[f64]| {
+                    (left.iter())
+                        .zip(right.iter())
+                        .map(|(left, right)| compare_floats(*left, *right))
+                        .find_or_first(|ord| *ord != Ordering::Equal)
+                        .unwrap_or(Ordering::Equal)
+                };
+
+                let to_points = |left: &Coordinate, right: &Coordinate| {
+                    get_fitness(left)
+                        .zip(get_fitness(right))
+                        .map(|(left, right)| compare_fitness(left.as_slice(), right.as_slice()))
+                        .filter(|ord| *ord == Ordering::Greater)
+                        .map(|_| {
+                            let x_step = x_step.round() as i32;
+                            let y_step = y_step.round() as i32;
+
+                            let (direction, line) = match (left.0 - right.0, left.1 - right.1) {
+                                (0, 1) => (ArrowDirection::Bottom, [(0, 0), (0, y_step)]),
+                                (0, -1) => (ArrowDirection::Top, [(0, 0), (0, -y_step)]),
+                                (1, 0) => (ArrowDirection::Left, [(0, 0), (-x_step, 0)]),
+                                (-1, 0) => (ArrowDirection::Right, [(0, 0), (x_step, 0)]),
+                                _ => unreachable!(),
+                            };
+                            (line, direction.get_points(1.))
+                        })
+                };
+
+                rows.clone()
+                    .cartesian_product(cols.clone())
+                    .filter_map(|(x, y)| {
+                        let current = Coordinate(x, y);
+
+                        // check top direction
+                        let arrows = [
+                            to_points(&current, &Coordinate(x, y + 1)),
+                            to_points(&current, &Coordinate(x, y - 1)),
+                            to_points(&current, &Coordinate(x + 1, y)),
+                            to_points(&current, &Coordinate(x - 1, y)),
+                        ]
+                        .into_iter()
+                        .flatten()
+                        .collect::<Vec<_>>();
+
+                        if arrows.is_empty() {
+                            None
+                        } else {
+                            Some(((x, y), arrows))
+                        }
+                    })
+                    .flat_map(|(coord, arrows)| arrows.into_iter().map(move |arrow| (coord, arrow)))
+                    .try_for_each(|((x, y), (line, arrow))| {
+                        let x = ((x - rows.start) as f64 * x_step).round() as i32;
+                        let x_offset = (x_step / 2.).round() as i32;
+                        let x = x + x_offset;
+
+                        let y = y - cols.start;
+                        let y = (y as f64 * y_step).round() as i32;
+                        let y_offset = (y_step / 2.).round() as i32;
+                        let y = (vertical_offset + h) as i32 - (y + y_offset);
+
+                        let figure = EmptyElement::at((x, y))
+                            + PathElement::new(line, BLUE)
+                            + Polygon::new(arrow.map(|(x, y)| (x + line[1].0, y + line[1].1)), BLUE);
+
+                        area.draw(&figure)
+                    })?;
+
+                Ok(())
+            };
 
             let get_caption_float = |caption: &str| {
                 let caption = caption.to_string();
@@ -265,9 +263,8 @@ impl ArrowDirection {
             (vec.0 * cos - vec.1 * sin, vec.0 * sin + vec.1 * cos)
         };
 
-        let rotate_triangle_fn = |angle: f32| {
-            [rotate_fn(angle, data[0].clone()), rotate_fn(angle, data[1].clone()), rotate_fn(angle, data[2].clone())]
-        };
+        let rotate_triangle_fn =
+            |angle: f32| [rotate_fn(angle, data[0]), rotate_fn(angle, data[1]), rotate_fn(angle, data[2])];
 
         match self {
             ArrowDirection::Top => rotate_triangle_fn(0.),

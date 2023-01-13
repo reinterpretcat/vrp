@@ -27,7 +27,7 @@ impl<S: State> Simulator<S> {
     /// Return a learned optimal policy for given state.
     pub fn get_optimal_policy(&self, state: &S) -> Option<(<S as State>::Action, f64)> {
         self.q.get(state).and_then(|estimates| {
-            let strategy: Box<dyn PolicyStrategy<S>> = Box::new(Greedy::default());
+            let strategy: Box<dyn PolicyStrategy<S>> = Box::<Greedy>::default();
             strategy
                 .select(estimates)
                 .and_then(|action| estimates.data().get(&action).map(|estimate| (action, *estimate)))

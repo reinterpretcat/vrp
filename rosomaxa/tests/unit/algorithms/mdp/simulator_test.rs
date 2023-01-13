@@ -145,13 +145,13 @@ parameterized_test! {can_run_grid_episodes_impl, (agent_count, repeat_count, exp
 }}
 
 can_run_grid_episodes_impl! {
-    case01: (1, 1000, Some(100), false, Box::new(Greedy::default())),
+    case01: (1, 1000, Some(100), false, Box::<Greedy>::default()),
     case02: (1, 1000, None, false, Box::new(EpsilonGreedy::new(0.001, create_test_random()))),
 
-    case03: (2, 1000, Some(100), false, Box::new(Greedy::default())),
+    case03: (2, 1000, Some(100), false, Box::<Greedy>::default()),
     case04: (2, 1000, None, false, Box::new(EpsilonGreedy::new(0.001, create_test_random()))),
 
-    case05: (10, 1000, Some(100), false, Box::new(Greedy::default())),
+    case05: (10, 1000, Some(100), false, Box::<Greedy>::default()),
     case06: (10, 1000, None, false, Box::new(EpsilonGreedy::new(0.001, create_test_random()))),
 }
 

@@ -289,8 +289,7 @@ mod sampling_search {
                     item.clone()
                 };
                 let compare_fn = get_result_comparer(target);
-                let data =
-                    (0..total_size).map(|idx| DataType { data: idx % 2 == 0, idx: idx as i32 }).collect::<Vec<_>>();
+                let data = (0..total_size).map(|idx| DataType { data: idx % 2 == 0, idx }).collect::<Vec<_>>();
 
                 let idx = data
                     .iter()

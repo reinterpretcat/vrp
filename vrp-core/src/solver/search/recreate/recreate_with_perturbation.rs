@@ -17,8 +17,8 @@ impl RecreateWithPerturbation {
     pub fn new(probability: f64, min: f64, max: f64, random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
-                Box::new(AllJobSelector::default()),
-                Box::new(AllRouteSelector::default()),
+                Box::<AllJobSelector>::default(),
+                Box::<AllRouteSelector>::default(),
                 LegSelection::Stochastic(random.clone()),
                 Box::new(CostPerturbationResultSelector::new(probability, min, max, random)),
                 Default::default(),

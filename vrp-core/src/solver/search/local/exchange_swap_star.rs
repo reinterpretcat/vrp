@@ -34,7 +34,7 @@ impl ExchangeSwapStar {
     pub fn new(random: Arc<dyn Random + Send + Sync>, quota_limit: usize) -> Self {
         Self {
             leg_selection: LegSelection::Stochastic(random),
-            result_selector: Box::new(BestResultSelector::default()),
+            result_selector: Box::<BestResultSelector>::default(),
             quota_limit,
         }
     }

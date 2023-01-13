@@ -162,6 +162,7 @@ fn preserved_string<'a>(
 }
 
 /// Returns range of possible lower bounds.
+#[allow(clippy::manual_clamp)]
 fn lower_bounds(string_crd: usize, tour_crd: usize, index: usize) -> (usize, usize) {
     let string_crd = string_crd as i32;
     let tour_crd = tour_crd as i32;
