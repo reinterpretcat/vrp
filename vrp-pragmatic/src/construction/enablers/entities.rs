@@ -1,7 +1,7 @@
 //! Specifies different entities as extension points on Dimensions type.
 
 use crate::construction::features::{BreakPolicy, JobSkills};
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 use vrp_core::models::common::{Dimensions, ValueDimension};
 
 /// Specifies vehicle entity.
@@ -25,11 +25,6 @@ pub trait VehicleTie {
     fn get_vehicle_skills(&self) -> Option<&HashSet<String>>;
     /// Sets vehicle's skills set.
     fn set_vehicle_skills(&mut self, skills: HashSet<String>) -> &mut Self;
-
-    /// Gets vehicle's area.
-    fn get_areas(&self) -> Option<&HashMap<String, (usize, f64)>>;
-    /// Sets vehicle's area.
-    fn set_areas(&mut self, areas: HashMap<String, (usize, f64)>) -> &mut Self;
 
     /// Gets vehicle's tour size.
     fn get_tour_size(&self) -> Option<usize>;
@@ -71,15 +66,6 @@ impl VehicleTie for Dimensions {
 
     fn set_vehicle_skills(&mut self, skills: HashSet<String>) -> &mut Self {
         self.set_value("vehicle_skills", skills);
-        self
-    }
-
-    fn get_areas(&self) -> Option<&HashMap<String, (usize, f64)>> {
-        self.get_value("areas")
-    }
-
-    fn set_areas(&mut self, areas: HashMap<String, (usize, f64)>) -> &mut Self {
-        self.set_value("areas", areas);
         self
     }
 

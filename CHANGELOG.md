@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* python binding with pyo3
+* example how to use library with maturin
+
+### Changed
+
+* cleaned area leftovers
+
+
 ## [v1.19.1]
 
 ### Changed
@@ -42,7 +52,7 @@ This release is focused on internal design improvements with some performance im
 
 ## [v1.18.3] - 2022-08-10
 
-### Add
+### Added
 
 * add shared resource constraint for vehicle reload. Essentially, it is a limit for amount of deliveries picked from
   specific reload places.

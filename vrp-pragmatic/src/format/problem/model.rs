@@ -370,16 +370,6 @@ pub struct VehicleLimits {
     pub tour_size: Option<usize>,
 }
 
-/// An area limit.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AreaLimit {
-    /// An area id.
-    pub area_id: String,
-    /// A value added to the total value once job is served in given area.
-    pub job_value: f64,
-}
-
 /// Vehicle optional break time variant.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(untagged)]

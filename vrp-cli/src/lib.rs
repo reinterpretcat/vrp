@@ -45,7 +45,7 @@ use vrp_pragmatic::get_unique_locations;
 use vrp_pragmatic::validation::ValidationContext;
 
 #[cfg(not(target_arch = "wasm32"))]
-mod interop {
+mod c_interop {
     use super::*;
     use crate::extensions::solve::config::read_config;
     use std::ffi::{CStr, CString};
@@ -331,6 +331,82 @@ mod interop {
                 failure,
             );
         }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+mod py_interop {
+    use super::*;
+    use crate::extensions::solve::config::read_config;
+    use pyo3::exceptions::PyOSError;
+    use pyo3::prelude::*;
+    use std::io::BufReader;
+    use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem};
+    use vrp_pragmatic::format::CoordIndex;
+
+    // TODO avoid duplications between 3 interop approaches
+
+    /// Converts `problem` from format specified by `format` to `pragmatic` format.
+    #[pyfunction]
+    fn convert_to_pragmatic(format: &str, inputs: Vec<String>) -> PyResult<String> {
+        let readers = inputs.iter().map(|p| BufReader::new(p.as_bytes())).collect::<Vec<_>>();
+        import_problem(format, Some(readers))
+            .map(|problem| {
+                let mut buffer = String::new();
+                serialize_problem(unsafe { BufWriter::new(buffer.as_mut_vec()) }, &problem).unwrap();
+
+                buffer
+            })
+            .map_err(PyOSError::new_err)
+    }
+
+    /// Returns a list of unique locations which can be used to request a routing matrix.
+    #[pyfunction]
+    fn get_routing_locations(problem: String) -> PyResult<String> {
+        deserialize_problem(BufReader::new(problem.as_bytes()))
+            .map_err(|errors| get_errors_serialized(&errors))
+            .and_then(|problem| get_locations_serialized(&problem))
+            .map_err(PyOSError::new_err)
+    }
+
+    /// Validates and solves Vehicle Routing Problem.
+    #[pyfunction]
+    fn solve_pragmatic(problem: String, matrices: Vec<String>, config: String) -> PyResult<String> {
+        // validate first
+        deserialize_problem(BufReader::new(problem.as_bytes()))
+            .and_then(|problem| {
+                matrices
+                    .iter()
+                    .map(|m| deserialize_matrix(BufReader::new(m.as_bytes())))
+                    .collect::<Result<Vec<_>, _>>()
+                    .map(|matrices| (problem, matrices))
+            })
+            .and_then(|(problem, matrices)| {
+                let matrices = if matrices.is_empty() { None } else { Some(&matrices) };
+                let coord_index = CoordIndex::new(&problem);
+
+                ValidationContext::new(&problem, matrices, &coord_index).validate()
+            })
+            .map_err(|errs| PyOSError::new_err(FormatError::format_many_to_json(&errs)))?;
+
+        // try solve problem
+        if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
+            .map_err(|errors| get_errors_serialized(&errors))
+            .and_then(|problem| {
+                read_config(BufReader::new(config.as_bytes()))
+                    .map_err(|err| to_config_error(err.as_str()))
+                    .map(|config| (problem, config))
+            })
+            .and_then(|(problem, config)| get_solution_serialized(Arc::new(problem), config))
+            .map_err(PyOSError::new_err)
+    }
+
+    #[pymodule]
+    fn vrp_cli(_py: Python, m: &PyModule) -> PyResult<()> {
+        m.add_function(wrap_pyfunction!(convert_to_pragmatic, m)?)?;
+        m.add_function(wrap_pyfunction!(get_routing_locations, m)?)?;
+        m.add_function(wrap_pyfunction!(solve_pragmatic, m)?)?;
+        Ok(())
     }
 }
 

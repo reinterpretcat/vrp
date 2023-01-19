@@ -16,3 +16,4 @@ target
 # python experiments
 *.pyc
 __pycache__
+.venv
