@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * cleaned area leftovers
+* update dependencies
 
 
 ## [v1.19.1]
