@@ -334,8 +334,7 @@ mod c_interop {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-#[cfg(not(test))]
+#[cfg(all(not(target_arch = "wasm32"), not(tarpaulin)))]
 mod py_interop {
     use super::*;
     use crate::extensions::solve::config::read_config;
