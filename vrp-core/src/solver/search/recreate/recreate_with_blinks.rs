@@ -83,7 +83,7 @@ impl RankedJobSelector {
         Self { asc_order }
     }
 
-    pub fn rank_job(problem: &Arc<Problem>, job: &Job) -> Distance {
+    pub fn rank_job(problem: &Arc<Problem>, job: &Job) -> Cost {
         problem
             .fleet
             .profiles

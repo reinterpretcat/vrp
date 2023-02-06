@@ -179,7 +179,7 @@ impl Multi {
     }
 }
 
-type JobIndex = HashMap<Job, (Vec<(Job, Cost)>, HashMap<Job, Cost>, Cost)>;
+type JobIndex = HashMap<Job, (Vec<(Job, Cost)>, Cost)>;
 
 /// Stores all jobs taking into account their neighborhood.
 pub struct Jobs {
@@ -204,14 +204,9 @@ impl Jobs {
         self.index.get(&profile.index).unwrap().get(job).unwrap().0.iter()
     }
 
-    /// Returns cost distance between two jobs.
-    pub fn distance(&self, profile: &Profile, from: &Job, to: &Job, _: Timestamp) -> Cost {
-        *self.index.get(&profile.index).unwrap().get(from).unwrap().1.get(to).unwrap()
-    }
-
     /// Returns job rank as relative cost from any vehicle's start position.
     pub fn rank(&self, profile: &Profile, job: &Job) -> Cost {
-        self.index.get(&profile.index).unwrap().get(job).unwrap().2
+        self.index.get(&profile.index).unwrap().get(job).unwrap().1
     }
 
     /// Returns amount of jobs.
@@ -295,9 +290,7 @@ fn create_index(
                 .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
                 .unwrap_or(DEFAULT_COST);
 
-            let job_costs_map = sorted_job_costs.iter().cloned().collect::<HashMap<_, _>>();
-
-            acc.insert(job, (sorted_job_costs, job_costs_map, fleet_costs));
+            acc.insert(job, (sorted_job_costs, fleet_costs));
             acc
         });
 

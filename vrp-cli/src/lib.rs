@@ -142,13 +142,13 @@ mod c_interop {
     extern "C" fn validate_pragmatic(
         problem: *const c_char,
         matrices: *const *const c_char,
-        matrices_len: *const i32,
+        matrices_len: usize,
         success: Callback,
         failure: Callback,
     ) {
         catch_panic(failure, || {
             let problem = to_string(problem);
-            let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len as usize).to_vec() };
+            let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len).to_vec() };
             let matrices = matrices.iter().map(|m| to_string(*m)).collect::<Vec<_>>();
 
             let problem = deserialize_problem(BufReader::new(problem.as_bytes()));
@@ -179,14 +179,14 @@ mod c_interop {
     extern "C" fn solve_pragmatic(
         problem: *const c_char,
         matrices: *const *const c_char,
-        matrices_len: *const i32,
+        matrices_len: usize,
         config: *const c_char,
         success: Callback,
         failure: Callback,
     ) {
         catch_panic(failure, || {
             let problem = to_string(problem);
-            let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len as usize).to_vec() };
+            let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len).to_vec() };
             let matrices = matrices.iter().map(|m| to_string(*m)).collect::<Vec<_>>();
 
             let result =
@@ -274,7 +274,7 @@ mod c_interop {
             validate_pragmatic(
                 problem.as_ptr() as *const c_char,
                 matrices.as_ptr() as *const *const c_char,
-                std::ptr::null::<i32>(),
+                0,
                 success,
                 failure,
             );
@@ -300,7 +300,7 @@ mod c_interop {
             validate_pragmatic(
                 problem.as_ptr() as *const c_char,
                 matrices.as_ptr() as *const *const c_char,
-                std::ptr::null::<i32>(),
+                0,
                 success,
                 failure,
             );
@@ -325,7 +325,7 @@ mod c_interop {
             solve_pragmatic(
                 problem.as_ptr() as *const c_char,
                 matrices.as_ptr() as *const *const c_char,
-                std::ptr::null::<i32>(),
+                0,
                 config.as_ptr() as *const c_char,
                 success,
                 failure,
