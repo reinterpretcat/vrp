@@ -152,7 +152,7 @@ impl MultiObjective for VectorObjective {
         if idx == 0 {
             Ok(Objective::total_order(self, a, b))
         } else {
-            Err(format!("objective has only 1 inner, passed index: {}", idx))
+            Err(format!("objective has only 1 inner, passed index: {idx}"))
         }
     }
 
@@ -160,7 +160,7 @@ impl MultiObjective for VectorObjective {
         if idx == 0 {
             Ok(Objective::distance(self, a, b))
         } else {
-            Err(format!("objective has only 1 inner, passed index: {}", idx))
+            Err(format!("objective has only 1 inner, passed index: {idx}"))
         }
     }
 

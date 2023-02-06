@@ -83,12 +83,12 @@ where
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let values = if let Some(best_known) = &self.best_known {
-            best_known.fitness().map(|v| format!("{:.7}", v)).collect::<Vec<_>>().join(",")
+            best_known.fitness().map(|v| format!("{v:.7}")).collect::<Vec<_>>().join(",")
         } else {
             "".to_string()
         };
 
-        write!(f, "[{}]", values)
+        write!(f, "[{values}]")
     }
 }
 

@@ -368,7 +368,7 @@ where
                 })
                 .flat_map(move |(shift_idx, place_idx, resource_id, capacity)| {
                     vehicle.vehicle_ids.iter().filter_map(move |vehicle_id| {
-                        let job_id = format!("{}_reload_{}_{}", vehicle_id, shift_idx, place_idx);
+                        let job_id = format!("{vehicle_id}_reload_{shift_idx}_{place_idx}");
                         let capacity = capacity_map(capacity.clone());
                         job_index.get(&job_id).map(|job| (job.clone(), (capacity, resource_id)))
                     })

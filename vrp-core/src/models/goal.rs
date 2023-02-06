@@ -88,7 +88,7 @@ impl GoalContext {
                         acc_inner.push(objective.clone());
                         Ok(acc_inner)
                     } else {
-                        Err(format!("cannot find objective for feature with id: {}", id))
+                        Err(format!("cannot find objective for feature with id: {id}"))
                     }
                 })?);
 
@@ -295,14 +295,14 @@ impl MultiObjective for GoalContext {
         self.flat_objectives
             .get(idx)
             .map(|o| o.total_order(a, b))
-            .ok_or_else(|| format!("cannot get total_order with index: {}", idx))
+            .ok_or_else(|| format!("cannot get total_order with index: {idx}"))
     }
 
     fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String> {
         self.flat_objectives
             .get(idx)
             .map(|o| o.distance(a, b))
-            .ok_or_else(|| format!("cannot get distance with index: {}", idx))
+            .ok_or_else(|| format!("cannot get distance with index: {idx}"))
     }
 
     fn size(&self) -> usize {

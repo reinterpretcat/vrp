@@ -50,5 +50,5 @@ pub fn solve_function(
 
     let (individual, fitness) = solutions.first().expect("empty solutions");
 
-    logger.deref()(&format!("solution: {:?}, fitness: {}", individual, fitness));
+    logger.deref()(&format!("solution: {individual:?}, fitness: {fitness}"));
 }

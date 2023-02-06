@@ -347,7 +347,7 @@ pub fn run_solve(
             let geo_buffer = out_geojson.map(|geojson| create_write_buffer(Some(geojson)));
 
             if is_get_locations_set {
-                locations_writer.0(problem_file, out_buffer).map_err(|err| format!("cannot get locations '{}'", err))
+                locations_writer.0(problem_file, out_buffer).map_err(|err| format!("cannot get locations '{err}'"))
             } else {
                 match problem_reader.0(problem_file, matrix_files) {
                     Ok(problem) => {
@@ -355,7 +355,7 @@ pub fn run_solve(
                         let solutions = init_solution
                             .map(|file| {
                                 init_reader.0(file, problem.clone())
-                                    .map_err(|err| format!("cannot read initial solution '{}'", err))
+                                    .map_err(|err| format!("cannot read initial solution '{err}'"))
                                     .map(|solution| {
                                         vec![InsertionContext::new_from_solution(
                                             problem.clone(),
@@ -370,7 +370,7 @@ pub fn run_solve(
                             create_builder_from_config_file(problem.clone(), solutions, BufReader::new(config))
                                 .and_then(|builder| builder.build())
                                 .map(|config| Solver::new(problem.clone(), config))
-                                .map_err(|err| format!("cannot read config: '{}'", err))?
+                                .map_err(|err| format!("cannot read config: '{err}'"))?
                         } else {
                             let config = create_default_config_builder(
                                 problem.clone(),
@@ -394,7 +394,7 @@ pub fn run_solve(
                         };
 
                         let (solution, cost, metrics) =
-                            solver.solve().map_err(|err| format!("cannot find any solution: '{}'", err))?;
+                            solver.solve().map_err(|err| format!("cannot find any solution: '{err}'"))?;
 
                         solution_writer.0(&problem, solution, cost, metrics, out_buffer, geo_buffer).unwrap();
 
@@ -405,13 +405,11 @@ pub fn run_solve(
 
                         Ok(())
                     }
-                    Err(error) => {
-                        Err(format!("cannot read {} problem from '{}': '{}'", problem_format, problem_path, error))
-                    }
+                    Err(error) => Err(format!("cannot read {problem_format} problem from '{problem_path}': '{error}'")),
                 }
             }
         }
-        None => Err(format!("unknown format: '{}'", problem_format)),
+        None => Err(format!("unknown format: '{problem_format}'")),
     }
 }
 
@@ -443,7 +441,7 @@ fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, String> {
             {
                 Ok(Some(value))
             } else {
-                Err(format!("init size must be an integer bigger than 0, got '{}'", size))
+                Err(format!("init size must be an integer bigger than 0, got '{size}'"))
             }
         })
         .unwrap_or(Ok(None))
@@ -461,7 +459,7 @@ fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<
             {
                 let parallelism = Parallelism::new(*num_thread_pools, *threads_per_pool);
                 let logger: InfoLogger = if matches.get_one::<bool>(LOG_ARG_NAME).copied().unwrap_or(false) {
-                    Arc::new(|msg: &str| println!("{}", msg))
+                    Arc::new(|msg: &str| println!("{msg}"))
                 } else {
                     Arc::new(|_: &str| {})
                 };
@@ -506,7 +504,7 @@ fn get_heuristic(
     match matches.get_one::<String>(HEURISTIC_ARG_NAME).map(String::as_str) {
         Some("dynamic") => Ok(get_dynamic_heuristic(problem, environment)),
         Some("static") => Ok(get_static_heuristic(problem, environment)),
-        Some(name) if name != "default" => Err(format!("unknown heuristic type name: '{}'", name)),
+        Some(name) if name != "default" => Err(format!("unknown heuristic type name: '{name}'")),
         _ => Ok(get_default_heuristic(problem, environment)),
     }
 }

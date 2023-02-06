@@ -5,7 +5,7 @@ fn create_vehicle_type(type_id: &str, scale: Option<f64>) -> VehicleType {
     VehicleType {
         type_id: type_id.to_string(),
         profile: VehicleProfile { matrix: "car".to_string(), scale },
-        vehicle_ids: vec![format!("{}_1", type_id)],
+        vehicle_ids: vec![format!("{type_id}_1")],
         ..create_default_vehicle_type()
     }
 }

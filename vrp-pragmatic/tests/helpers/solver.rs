@@ -58,9 +58,9 @@ pub fn solve(problem: Problem, matrices: Option<Vec<Matrix>>, generations: usize
             .with_max_generations(Some(generations))
             .build()
             .map(|config| Solver::new(problem, config))
-            .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
+            .unwrap_or_else(|err| panic!("cannot build solver: {err}"))
             .solve()
-            .unwrap_or_else(|err| panic!("cannot solve the problem: {}", err));
+            .unwrap_or_else(|err| panic!("cannot solve the problem: {err}"));
 
         solution
     })

@@ -81,18 +81,11 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> So
 }
 
 fn duration_error_msg(stop_idx: usize, actual: usize, expected: usize) -> String {
-    format!("arrival time mismatch for {} stop in the tour: my_vehicle_1, expected: '1970-01-01T00:00:0{}Z', got: '1970-01-01T00:00:0{}Z'",
-        stop_idx,
-        expected,
-        actual,
-    )
+    format!("arrival time mismatch for {stop_idx} stop in the tour: my_vehicle_1, expected: '1970-01-01T00:00:0{expected}Z', got: '1970-01-01T00:00:0{actual}Z'")
 }
 
 fn distance_error_msg(stop_idx: usize, actual: usize, expected: usize) -> String {
-    format!(
-        "distance mismatch for {} stop in the tour: my_vehicle_1, expected: '{}', got: '{}'",
-        stop_idx, expected, actual,
-    )
+    format!("distance mismatch for {stop_idx} stop in the tour: my_vehicle_1, expected: '{expected}', got: '{actual}'")
 }
 
 parameterized_test! {can_check_stop, (stop_data, expected_result), {

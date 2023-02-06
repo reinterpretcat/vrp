@@ -172,7 +172,7 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
             DomainActivity {
                 schedule: DomainSchedule { arrival, departure },
                 commute,
-                ..create_activity_with_job_at_location(create_single(&format!("job{}", index)), index)
+                ..create_activity_with_job_at_location(create_single(&format!("job{index}")), index)
             }
         })
         .collect();

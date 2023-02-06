@@ -82,7 +82,7 @@ mod c_interop {
                 .downcast_ref::<&str>()
                 .cloned()
                 .or_else(|| err.downcast_ref::<String>().map(|str| str.as_str()))
-                .map(|msg| format!("panic: '{}'", msg))
+                .map(|msg| format!("panic: '{msg}'"))
                 .unwrap_or_else(|| "panic with unknown type".to_string());
 
             let error = CString::new(message.as_bytes()).unwrap();
@@ -512,7 +512,7 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
             FormatError::new(
                 "E0003".to_string(),
                 "cannot find any solution".to_string(),
-                format!("please submit a bug and share original problem and routing matrix. Error: '{}'", err),
+                format!("please submit a bug and share original problem and routing matrix. Error: '{err}'"),
             )
             .to_json()
         })?;
@@ -530,14 +530,14 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
 
 /// Gets errors serialized in free form.
 pub fn get_errors_serialized(errors: &[FormatError]) -> String {
-    errors.iter().map(|err| format!("{}", err)).collect::<Vec<_>>().join("\n")
+    errors.iter().map(|err| format!("{err}")).collect::<Vec<_>>().join("\n")
 }
 
 fn to_config_error(err: &str) -> String {
     FormatError::new(
         "E0004".to_string(),
         "cannot read config".to_string(),
-        format!("check config definition. Error: '{}'", err),
+        format!("check config definition. Error: '{err}'"),
     )
     .to_json()
 }

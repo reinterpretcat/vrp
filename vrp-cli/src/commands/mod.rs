@@ -22,14 +22,14 @@ pub(crate) fn create_write_buffer(out_file: Option<File>) -> BufWriter<Box<dyn W
 
 fn open_file(path: &str, description: &str) -> File {
     File::open(path).unwrap_or_else(|err| {
-        eprintln!("Cannot open {} file '{}': '{}'", description, path, err);
+        eprintln!("cannot open {description} file '{path}': '{err}'");
         process::exit(1);
     })
 }
 
 fn create_file(path: &str, description: &str) -> File {
     File::create(path).unwrap_or_else(|err| {
-        eprintln!("Cannot create {} file '{}': '{}'", description, path, err);
+        eprintln!("cannot create {description} file '{path}': '{err}'");
         process::exit(1);
     })
 }
@@ -42,9 +42,7 @@ fn parse_float_value<T: FromStr<Err = std::num::ParseFloatError>>(
     matches
         .get_one::<String>(arg_name)
         .map(|arg| {
-            arg.parse::<T>()
-                .map_err(|err| format!("cannot get float value, error: '{}': '{}'", err, arg_desc))
-                .map(Some)
+            arg.parse::<T>().map_err(|err| format!("cannot get float value, error: '{err}': '{arg_desc}'")).map(Some)
         })
         .unwrap_or(Ok(None))
 }
@@ -57,9 +55,7 @@ fn parse_int_value<T: FromStr<Err = std::num::ParseIntError>>(
     matches
         .get_one::<String>(arg_name)
         .map(|arg| {
-            arg.parse::<T>()
-                .map_err(|err| format!("cannot get integer value, error: '{}': '{}'", err, arg_desc))
-                .map(Some)
+            arg.parse::<T>().map_err(|err| format!("cannot get integer value, error: '{err}': '{arg_desc}'")).map(Some)
         })
         .unwrap_or(Ok(None))
 }
@@ -87,7 +83,7 @@ fn check_solution(
         ("pragmatic", _, _) => {
             Err(vec!["pragmatic format expects one problem, one solution file, and optionally matrices".to_string()])
         }
-        _ => Err(vec![format!("unknown format: '{}'", input_format)]),
+        _ => Err(vec![format!("unknown format: '{input_format}'")]),
     }
     .map_err(|err| format!("checker found {} errors:\n{}", err.len(), err.join("\n")))
 }

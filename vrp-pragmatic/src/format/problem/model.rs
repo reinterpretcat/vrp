@@ -667,7 +667,7 @@ pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Vec
         vec![FormatError::new(
             "E0000".to_string(),
             "cannot deserialize problem".to_string(),
-            format!("check input json: '{}'", err),
+            format!("check input json: '{err}'"),
         )]
     })
 }
@@ -678,7 +678,7 @@ pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Vec<F
         vec![FormatError::new(
             "E0001".to_string(),
             "cannot deserialize matrix".to_string(),
-            format!("check input json: '{}'", err),
+            format!("check input json: '{err}'"),
         )]
     })
 }
@@ -689,7 +689,7 @@ pub fn deserialize_locations<R: Read>(reader: BufReader<R>) -> Result<Vec<Locati
         vec![FormatError::new(
             "E0000".to_string(),
             "cannot deserialize locations".to_string(),
-            format!("check input json: '{}'", err),
+            format!("check input json: '{err}'"),
         )]
     })
 }

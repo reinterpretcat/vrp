@@ -92,7 +92,7 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
 
     used_jobs.iter().try_for_each(|(id, asgn)| {
         // TODO validate whether each job task is served once
-        let job = all_jobs.get(id).ok_or_else(|| format!("Cannot find job with id {}", id))?;
+        let job = all_jobs.get(id).ok_or_else(|| format!("cannot find job with id {id}"))?;
         let expected_tasks = job.pickups.as_ref().map_or(0, |p| p.len())
             + job.deliveries.as_ref().map_or(0, |d| d.len())
             + job.services.as_ref().map_or(0, |s| s.len())
@@ -101,13 +101,12 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
 
         if expected_tasks != assigned_tasks {
             return Err(format!(
-                "not all tasks served for '{}', expected: {}, assigned: {}",
-                id, expected_tasks, assigned_tasks
+                "not all tasks served for '{id}', expected: {expected_tasks}, assigned: {assigned_tasks}"
             ));
         }
 
         if !asgn.deliveries.is_empty() && asgn.pickups.iter().max() > asgn.deliveries.iter().min() {
-            return Err(format!("found pickup after delivery for '{}'", id));
+            return Err(format!("found pickup after delivery for '{id}'"));
         }
 
         Ok(())
@@ -129,11 +128,11 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
 
     unique_unassigned_jobs.iter().try_for_each(|job_id| {
         if !all_jobs.contains_key(job_id) {
-            return Err(format!("unknown job id in the list of unassigned jobs: '{}'", job_id));
+            return Err(format!("unknown job id in the list of unassigned jobs: '{job_id}'"));
         }
 
         if used_jobs.contains_key(job_id) {
-            return Err(format!("job present as assigned and unassigned: '{}'", job_id));
+            return Err(format!("job present as assigned and unassigned: '{job_id}'"));
         }
 
         Ok(())
@@ -312,8 +311,7 @@ fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
                     if let Some(location) = &dispatch_activity.location {
                         if *location != first_stop_location {
                             return Err(format!(
-                                "invalid dispatch location: {}, expected to match the first stop",
-                                location
+                                "invalid dispatch location: {location}, expected to match the first stop"
                             ));
                         }
                     }
@@ -322,13 +320,12 @@ fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
                     if let Some(location) = &dispatch_activity.location {
                         if *location == first_stop_location {
                             return Err(format!(
-                                "invalid dispatch location: {}, expected not to match the first stop",
-                                location
+                                "invalid dispatch location: {location}, expected not to match the first stop"
                             ));
                         }
                     }
                 }
-                _ => return Err(format!("invalid dispatch activity index, expected: 1, got: '{}'", activity_idx)),
+                _ => return Err(format!("invalid dispatch activity index, expected: 1, got: '{activity_idx}'")),
             }
         }
 
@@ -365,6 +362,6 @@ fn check_groups(ctx: &CheckerContext) -> Result<(), String> {
         Ok(())
     } else {
         let err_info = violations.into_iter().map(|(group, _)| group).collect::<Vec<_>>().join(",");
-        Err(format!("job groups are not respected: '{}'", err_info))
+        Err(format!("job groups are not respected: '{err_info}'"))
     }
 }

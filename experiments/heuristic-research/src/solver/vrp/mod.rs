@@ -54,7 +54,7 @@ pub fn solve_vrp(
         "tsplib" => problem.read_tsplib(is_rounded),
         "solomon" => problem.read_solomon(is_rounded),
         "lilim" => problem.read_lilim(is_rounded),
-        _ => panic!("unknown format: {}", format_type),
+        _ => panic!("unknown format: {format_type}"),
     }
     .unwrap();
 

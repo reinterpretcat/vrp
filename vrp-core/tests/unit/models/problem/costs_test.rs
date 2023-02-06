@@ -184,7 +184,7 @@ mod objective {
 
     fn create_objective_feature(index: usize) -> Feature {
         FeatureBuilder::default()
-            .with_name(format!("test_{}", index).as_str())
+            .with_name(format!("test_{index}").as_str())
             .with_objective(TestObjective { index })
             .build()
             .unwrap()

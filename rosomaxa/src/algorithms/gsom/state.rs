@@ -75,7 +75,7 @@ impl Display for NetworkState {
         // to json as string and then easily parsed.
         let nodes = self.nodes.iter().fold(String::new(), |mut res, n| {
             let (x, y) = n.coordinate;
-            let weights = n.weights.iter().map(|w| format!("{:.7}", w)).collect::<Vec<_>>().join(",");
+            let weights = n.weights.iter().map(|w| format!("{w:.7}")).collect::<Vec<_>>().join(",");
 
             write!(
                 &mut res,

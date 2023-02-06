@@ -22,7 +22,7 @@ pub fn check_pragmatic_solution<F: Read>(
         .map_err(|errs| vec![format!("cannot read problem: '{}'", FormatError::format_many(&errs, ","))])?;
 
     let solution =
-        deserialize_solution(solution_reader).map_err(|err| vec![format!("cannot read solution: '{}'", err)])?;
+        deserialize_solution(solution_reader).map_err(|err| vec![format!("cannot read solution: '{err}'")])?;
 
     let matrices = if let Some(matrices_readers) = matrices_readers {
         Some(

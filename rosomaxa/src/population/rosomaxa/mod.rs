@@ -294,8 +294,8 @@ where
         best_known.map_or(true, |best_known| self.objective.total_order(individual, best_known) != Ordering::Greater)
     }
 
-    fn fill_populations<'a>(
-        network: &'a IndividualNetwork<O, S>,
+    fn fill_populations(
+        network: &IndividualNetwork<O, S>,
         coordinates: &mut Vec<Coordinate>,
         random: &(dyn Random + Send + Sync),
     ) {
@@ -357,7 +357,7 @@ where
         match &self.phase {
             RosomaxaPhases::Exploration { network, .. } => {
                 let state = get_network_state(network);
-                write!(f, "{}", state)
+                write!(f, "{state}")
             }
             _ => write!(f, "{}", self.elite),
         }

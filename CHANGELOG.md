@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 * cleaned area leftovers
 * update dependencies
+* fix clippy warnings
 
 
 ## [v1.19.1]

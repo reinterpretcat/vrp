@@ -111,11 +111,11 @@ fn run_simulator(
 }
 
 fn print_board(simulator: &Simulator<GridState>, episode: usize) {
-    println!("\nepisode {}: ", episode);
+    println!("\nepisode {episode}: ");
     (0..4).for_each(|y| {
         (0..4).for_each(|x| {
             if let Some((_, value)) = simulator.get_optimal_policy(&GridState::OnGrid { x, y }) {
-                print!("|{:>10.7}|", value)
+                print!("|{value:>10.7}|")
             } else {
                 print!("| --none-- |")
             }

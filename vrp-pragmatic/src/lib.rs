@@ -56,5 +56,5 @@ fn parse_time(time: &str) -> f64 {
 fn parse_time_safe(time: &str) -> Result<f64, String> {
     OffsetDateTime::parse(time, &Rfc3339)
         .map(|time| time.unix_timestamp() as f64)
-        .map_err(|err| format!("cannot parse date: {}", err))
+        .map_err(|err| format!("cannot parse date: {err}"))
 }

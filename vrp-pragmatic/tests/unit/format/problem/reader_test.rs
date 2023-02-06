@@ -237,7 +237,7 @@ fn can_read_complex_problem() {
 
     (1..3).for_each(|index| {
         let vehicle = problem.fleet.vehicles.get(index - 1).unwrap();
-        assert_eq!(*vehicle.dimens.get_vehicle_id().unwrap(), format!("my_vehicle_{}", index));
+        assert_eq!(*vehicle.dimens.get_vehicle_id().unwrap(), format!("my_vehicle_{index}"));
         assert_eq!(vehicle.profile.index, 0);
         assert_eq!(vehicle.profile.scale, 1.);
         assert_eq!(vehicle.costs.fixed, 100.0);

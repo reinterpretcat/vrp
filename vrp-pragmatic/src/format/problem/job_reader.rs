@@ -75,14 +75,12 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
                             let entry = indexer.entry(job.clone()).or_insert(1_usize);
                             let job_index = *entry;
                             *entry += 1;
-                            format!("{}_{}_{}_{}", vehicle_id, job, shift_index, job_index)
+                            format!("{vehicle_id}_{job}_{shift_index}_{job_index}")
                         }
                         _ => job.clone(),
                     };
-                    let job = job_index
-                        .get(&job_id)
-                        .cloned()
-                        .unwrap_or_else(|| panic!("cannot find job with id: '{};", job_id));
+                    let job =
+                        job_index.get(&job_id).cloned().unwrap_or_else(|| panic!("cannot find job with id: '{job_id}"));
 
                     jobs.push(job);
 
@@ -120,7 +118,7 @@ fn read_required_jobs(
             "delivery" => Demand { pickup: absent, delivery: demand },
             "replacement" => Demand { pickup: demand, delivery: demand },
             "service" => Demand { pickup: absent, delivery: absent },
-            _ => panic!("Invalid activity type."),
+            _ => panic!("invalid activity type."),
         };
 
         let places = task
@@ -218,10 +216,10 @@ fn read_optional_breaks(
                 .map(|vehicle_id| {
                     let times = match &break_time {
                         VehicleOptionalBreakTime::TimeWindow(time) if time.len() != 2 => {
-                            panic!("Break with invalid time window specified: must have start and end!")
+                            panic!("break with invalid time window specified: must have start and end!")
                         }
                         VehicleOptionalBreakTime::TimeOffset(offsets) if offsets.len() != 2 => {
-                            panic!("Break with invalid offset specified: must have start and end!")
+                            panic!("break with invalid offset specified: must have start and end!")
                         }
                         VehicleOptionalBreakTime::TimeWindow(time) => vec![TimeSpan::Window(parse_time_window(time))],
                         VehicleOptionalBreakTime::TimeOffset(offset) => {
@@ -229,7 +227,7 @@ fn read_optional_breaks(
                         }
                     };
 
-                    let job_id = format!("{}_break_{}_{}", vehicle_id, shift_index, break_idx);
+                    let job_id = format!("{vehicle_id}_break_{shift_index}_{break_idx}");
                     let places = break_places
                         .iter()
                         .map(|place| (place.location.clone(), place.duration, times.clone(), place.tag.clone()))
@@ -312,7 +310,7 @@ fn read_reloads(
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let job_id = format!("{}_reload_{}_{}", vehicle_id, shift_index, reload_idx);
+                    let job_id = format!("{vehicle_id}_reload_{shift_index}_{reload_idx}");
                     let times = parse_times(&place.times);
 
                     let job = get_conditional_job(

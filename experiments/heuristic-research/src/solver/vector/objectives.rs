@@ -15,7 +15,7 @@ pub fn get_fitness_fn_by_name(name: &str) -> FitnessFn {
         "himmelblau" => create_himmelblau_function(),
         "ackley" => create_ackley_function(),
         "matyas" => create_matyas_function(),
-        _ => panic!("unknown objective name: `{}`", name),
+        _ => panic!("unknown objective name: `{name}`"),
     }
 }
 

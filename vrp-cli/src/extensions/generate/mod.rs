@@ -35,7 +35,7 @@ pub fn generate_problem<R: Read>(
         }
         ("pragmatic", Some(mut readers)) if readers.len() == 1 => deserialize_problem(readers.swap_remove(0))
             .map_err(|errors| FormatError::format_many(errors.as_slice(), "\t\n")),
-        _ => Err(format!("unknown format: '{}'", input_format)),
+        _ => Err(format!("unknown format: '{input_format}'")),
     }?;
 
     generate_from_prototype(&problem_proto, locations, job_size, vehicles_size, area_size)

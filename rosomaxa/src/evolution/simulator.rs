@@ -62,8 +62,7 @@ where
             if is_initial_quota_reached || is_overall_termination {
                 logger.deref()(
                     format!(
-                        "stop building initial solutions due to initial quota reached ({}) or overall termination ({}).",
-                        is_initial_quota_reached, is_overall_termination
+                        "stop building initial solutions due to initial quota reached ({is_initial_quota_reached}) or overall termination ({is_overall_termination}).",
                     )
                         .as_str(),
                 );
@@ -166,7 +165,7 @@ where
         }
 
         // NOTE give a chance to report internal state of heuristic
-        heuristic_ctx.environment().logger.deref()(&format!("{}", heuristic));
+        heuristic_ctx.environment().logger.deref()(&format!("{heuristic}"));
 
         let (population, telemetry_metrics) = heuristic_ctx.on_result()?;
 

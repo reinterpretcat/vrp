@@ -137,7 +137,7 @@ struct ActivityContext<'a> {
     tag: Option<&'a String>,
 }
 
-fn match_place<'a>(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &'a ActivityContext) -> Option<Place> {
+fn match_place(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &ActivityContext) -> Option<Place> {
     let job_id = get_job_id(single);
     let job_tag =
         get_job_tag(single, (activity_ctx.location, (activity_ctx.time.clone(), activity_ctx.route_start_time)));

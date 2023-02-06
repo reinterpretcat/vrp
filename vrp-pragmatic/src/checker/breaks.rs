@@ -29,8 +29,7 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
                     let break_time_window = get_break_time_window(tour, &vehicle_break)?;
                     if !visit_time.intersects(&break_time_window) {
                         return Err(format!(
-                            "break visit time '{:?}' is invalid: expected is in '{:?}'",
-                            visit_time, break_time_window
+                            "break visit time '{visit_time:?}' is invalid: expected is in '{break_time_window:?}'",
                         ));
                     }
 
@@ -53,8 +52,7 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
 
                     if !has_match {
                         return Err(format!(
-                            "break location '{:?}' is invalid: cannot match to any break place'",
-                            actual_loc
+                            "break location '{actual_loc:?}' is invalid: cannot match to any break place'"
                         ));
                     }
                     Ok(acc + 1)

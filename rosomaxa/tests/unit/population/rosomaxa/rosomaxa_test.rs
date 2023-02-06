@@ -90,7 +90,7 @@ fn can_format_network() {
     let (objective, mut rosomaxa) = create_rosomaxa(4);
     rosomaxa.add_all(vec![VectorSolution::new(vec![0.5, 0.5], objective)]);
 
-    let str = format!("{}", rosomaxa);
+    let str = format!("{rosomaxa}");
 
     assert_eq!(str, "[[6.5000000],]");
 }

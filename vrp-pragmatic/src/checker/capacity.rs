@@ -72,7 +72,7 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), String>
                     } else {
                         let message = match (is_from_valid, is_to_valid) {
                             (true, false) => format!("at stop {}", idx + 1),
-                            (false, true) => format!("at stop {}", idx),
+                            (false, true) => format!("at stop {idx}"),
                             _ => format!("at stops {}, {}", idx, idx + 1),
                         };
 
@@ -142,10 +142,10 @@ fn check_resource_consumption(context: &CheckerContext) -> Result<(), String> {
     consumption.into_iter().try_for_each(|(resource_id, consumed)| {
         let available = *resources
             .get(&resource_id)
-            .ok_or_else(|| format!("cannot find resource '{}' in list of available resources", resource_id))?;
+            .ok_or_else(|| format!("cannot find resource '{resource_id}' in list of available resources"))?;
 
         if consumed > available {
-            Err(format!("consumed more resource '{}' than available: {} vs {}", resource_id, consumed, available))
+            Err(format!("consumed more resource '{resource_id}' than available: {consumed} vs {available}"))
         } else {
             Ok(())
         }

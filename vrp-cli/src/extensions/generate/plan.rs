@@ -59,7 +59,7 @@ pub(crate) fn generate_plan(
                 && job_proto.deliveries.as_ref().map_or(false, |t| !t.is_empty());
 
             Job {
-                id: format!("job{}", job_idx),
+                id: format!("job{job_idx}"),
                 pickups: generate_tasks(&job_proto.pickups, keep_original_demand),
                 deliveries: generate_tasks(&job_proto.deliveries, keep_original_demand),
                 replacements: generate_tasks(&job_proto.replacements, false),

@@ -12,9 +12,9 @@ pub fn import_problem<R: Read>(input_format: &str, readers: Option<Vec<BufReader
         ("csv", Some(mut readers)) if readers.len() == 2 => {
             let jobs = readers.swap_remove(0);
             let vehicles = readers.swap_remove(0);
-            read_csv_problem(jobs, vehicles).map_err(|err| format!("cannot read csv: {}", err))
+            read_csv_problem(jobs, vehicles).map_err(|err| format!("cannot read csv: {err}"))
         }
         ("csv", _) => Err("csv format expects two files with jobs and vehicles as an input".to_string()),
-        _ => Err(format!("unknown format: '{}'", input_format)),
+        _ => Err(format!("unknown format: '{input_format}'")),
     }
 }

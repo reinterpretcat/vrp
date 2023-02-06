@@ -192,9 +192,9 @@ fn can_use_init_solution_with_dispatch() {
             )
             .build()
             .map(|config| Solver::new(core_problem.clone(), config))
-            .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
+            .unwrap_or_else(|err| panic!("cannot build solver: {err}"))
             .solve()
-            .unwrap_or_else(|err| panic!("cannot solve the problem: {}", err));
+            .unwrap_or_else(|err| panic!("cannot solve the problem: {err}"));
     let result_solution = create_solution(&core_problem, &core_solution, metrics.as_ref());
 
     assert_vehicle_agnostic(result_solution, init_solution);

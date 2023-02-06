@@ -82,11 +82,11 @@ impl MultiObjective for SliceMultiObjective {
     }
 
     fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String> {
-        self.objectives.get(idx).map(|o| o.total_order(a, b)).ok_or_else(|| format!("wrong index: {}", idx))
+        self.objectives.get(idx).map(|o| o.total_order(a, b)).ok_or_else(|| format!("wrong index: {idx}"))
     }
 
     fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String> {
-        self.objectives.get(idx).map(|o| o.distance(a, b)).ok_or_else(|| format!("wrong index: {}", idx))
+        self.objectives.get(idx).map(|o| o.distance(a, b)).ok_or_else(|| format!("wrong index: {idx}"))
     }
 
     fn size(&self) -> usize {
@@ -125,7 +125,7 @@ impl MultiObjective for SliceHierarchicalObjective {
             .chain(self.secondary_objectives.iter())
             .nth(idx)
             .map(|o| o.total_order(a, b))
-            .ok_or_else(|| format!("wrong index: {}", idx))
+            .ok_or_else(|| format!("wrong index: {idx}"))
     }
 
     fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String> {
@@ -134,7 +134,7 @@ impl MultiObjective for SliceHierarchicalObjective {
             .chain(self.secondary_objectives.iter())
             .nth(idx)
             .map(|o| o.distance(a, b))
-            .ok_or_else(|| format!("wrong index: {}", idx))
+            .ok_or_else(|| format!("wrong index: {idx}"))
     }
 
     fn size(&self) -> usize {

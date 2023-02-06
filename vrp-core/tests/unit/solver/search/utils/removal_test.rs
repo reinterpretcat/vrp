@@ -21,7 +21,7 @@ fn create_route_with_jobs_activities(
     let activities_per_job = activities / jobs;
     let left_overs = activities - activities_per_job * jobs;
     let get_activity = |job_idx: usize| {
-        test_activity_with_job(SingleBuilder::default().id(format!("{}", job_idx).as_str()).build_shared())
+        test_activity_with_job(SingleBuilder::default().id(format!("{job_idx}").as_str()).build_shared())
     };
     // NOTE need to keep multi-jobs somewhere to keep weak reference in sub-jobs alive
     let mut multi_jobs = Vec::new();
@@ -31,7 +31,7 @@ fn create_route_with_jobs_activities(
             if activities_per_job > 1 {
                 let singles = (0..activities_per_job)
                     .map(|activity_idx| {
-                        SingleBuilder::default().id(format!("{}_{}", job_idx, activity_idx).as_str()).build_shared()
+                        SingleBuilder::default().id(format!("{job_idx}_{activity_idx}").as_str()).build_shared()
                     })
                     .collect::<Vec<_>>();
                 let multi = Multi::new_shared(singles, Dimensions::default());

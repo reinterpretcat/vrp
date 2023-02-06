@@ -243,62 +243,64 @@ where
         min_cv: Option<(String, usize, f64, bool, K)>,
         target_proximity: Option<(Vec<f64>, f64)>,
     ) -> Result<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>, String> {
-        let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> =
-            match (max_generations, max_time, &min_cv, &target_proximity) {
-                (None, None, None, None) => {
-                    logger.deref()("configured to use default max-generations (3000) and max-time (300secs)");
-                    vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))]
+        let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = match (
+            max_generations,
+            max_time,
+            &min_cv,
+            &target_proximity,
+        ) {
+            (None, None, None, None) => {
+                logger.deref()("configured to use default max-generations (3000) and max-time (300secs)");
+                vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))]
+            }
+            _ => {
+                let mut terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = vec![];
+
+                if let Some(limit) = max_generations {
+                    logger.deref()(format!("configured to use max-generations: {limit}").as_str());
+                    terminations.push(Box::new(MaxGeneration::new(limit)))
                 }
-                _ => {
-                    let mut terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = vec![];
 
-                    if let Some(limit) = max_generations {
-                        logger.deref()(format!("configured to use max-generations: {}", limit).as_str());
-                        terminations.push(Box::new(MaxGeneration::new(limit)))
-                    }
+                if let Some(limit) = max_time {
+                    logger.deref()(format!("configured to use max-time: {limit}s").as_str());
+                    terminations.push(Box::new(MaxTime::new(limit as f64)));
+                }
 
-                    if let Some(limit) = max_time {
-                        logger.deref()(format!("configured to use max-time: {}s", limit).as_str());
-                        terminations.push(Box::new(MaxTime::new(limit as f64)));
-                    }
-
-                    if let Some((interval_type, value, threshold, is_global, key)) = min_cv.clone() {
-                        logger.deref()(
+                if let Some((interval_type, value, threshold, is_global, key)) = min_cv.clone() {
+                    logger.deref()(
                             format!(
-                                "configured to use variation coefficient {} with sample: {}, threshold: {}",
-                                interval_type, value, threshold
+                                "configured to use variation coefficient {interval_type} with sample: {value}, threshold: {threshold}",
                             )
                             .as_str(),
                         );
 
-                        let variation: Box<dyn Termination<Context = C, Objective = O> + Send + Sync> =
-                            match interval_type.as_str() {
-                                "sample" => Box::new(MinVariation::<C, O, S, K>::new_with_sample(
-                                    value, threshold, is_global, key,
-                                )),
-                                "period" => Box::new(MinVariation::<C, O, S, K>::new_with_period(
-                                    value, threshold, is_global, key,
-                                )),
-                                _ => return Err(format!("unknown variation interval type: {}", interval_type)),
-                            };
+                    let variation: Box<dyn Termination<Context = C, Objective = O> + Send + Sync> =
+                        match interval_type.as_str() {
+                            "sample" => {
+                                Box::new(MinVariation::<C, O, S, K>::new_with_sample(value, threshold, is_global, key))
+                            }
+                            "period" => {
+                                Box::new(MinVariation::<C, O, S, K>::new_with_period(value, threshold, is_global, key))
+                            }
+                            _ => return Err(format!("unknown variation interval type: {interval_type}")),
+                        };
 
-                        terminations.push(variation)
-                    }
+                    terminations.push(variation)
+                }
 
-                    if let Some((target_fitness, distance_threshold)) = target_proximity.clone() {
-                        logger.deref()(
+                if let Some((target_fitness, distance_threshold)) = target_proximity.clone() {
+                    logger.deref()(
                             format!(
-                                "configured to use target fitness: {:?}, distance threshold: {}",
-                                target_fitness, distance_threshold
+                                "configured to use target fitness: {target_fitness:?}, distance threshold: {distance_threshold}",
                             )
                             .as_str(),
                         );
-                        terminations.push(Box::new(TargetProximity::new(target_fitness, distance_threshold)));
-                    }
-
-                    terminations
+                    terminations.push(Box::new(TargetProximity::new(target_fitness, distance_threshold)));
                 }
-            };
+
+                terminations
+            }
+        };
 
         Ok(Box::new(CompositeTermination::new(terminations)))
     }

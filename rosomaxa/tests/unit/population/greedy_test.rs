@@ -28,7 +28,7 @@ fn can_keep_best_solution() {
 fn can_format_empty_population() {
     let population = Greedy::<_, _>::new(create_example_objective(), 1, None);
 
-    let formatted = format!("{}", population);
+    let formatted = format!("{population}");
 
     assert_eq!(formatted, "[]")
 }
@@ -39,7 +39,7 @@ fn can_format_filled_population() {
     let solution = VectorSolution::new(vec![-1., -1.], objective.clone());
     let population = Greedy::<_, _>::new(objective, 1, Some(solution));
 
-    let formatted = format!("{}", population);
+    let formatted = format!("{population}");
 
     assert_eq!(formatted, "[404.0000000]")
 }

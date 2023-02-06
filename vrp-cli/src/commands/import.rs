@@ -42,8 +42,8 @@ pub fn run_import(matches: &ArgMatches) -> Result<(), String> {
         Ok(problem) => {
             let out_result = matches.get_one::<String>(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out result"));
             let out_buffer = create_write_buffer(out_result);
-            serialize_problem(out_buffer, &problem).map_err(|err| format!("cannot serialize result problem: '{}'", err))
+            serialize_problem(out_buffer, &problem).map_err(|err| format!("cannot serialize result problem: '{err}'"))
         }
-        Err(err) => Err(format!("cannot import problem: '{}'", err)),
+        Err(err) => Err(format!("cannot import problem: '{err}'")),
     }
 }

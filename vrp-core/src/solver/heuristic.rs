@@ -503,7 +503,7 @@ mod dynamic {
                 ruins.iter().map::<(TargetSearchOperator, String, f64), _>(move |(ruin, ruin_name, weight)| {
                     (
                         Arc::new(RuinAndRecreate::new(ruin.clone(), recreate.clone())),
-                        format!("{}+{}", ruin_name, recreate_name),
+                        format!("{ruin_name}+{recreate_name}"),
                         *weight,
                     )
                 })

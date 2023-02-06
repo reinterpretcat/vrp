@@ -67,7 +67,7 @@ pub fn run_analyze(
             let problem_format = clusters_matches.get_one::<String>(FORMAT_ARG_NAME).unwrap();
 
             if problem_format != "pragmatic" {
-                return Err(format!("unknown problem format: '{}'", problem_format));
+                return Err(format!("unknown problem format: '{problem_format}'"));
             }
 
             let problem_reader = BufReader::new(open_file(problem_path, "problem"));
@@ -80,13 +80,13 @@ pub fn run_analyze(
             let epsilon = parse_float_value::<f64>(clusters_matches, EPSILON_ARG_NAME, "epsilon")?;
 
             let clusters = get_clusters(problem_reader, matrices_readers, min_points, epsilon)
-                .map_err(|err| format!("cannot get clusters: '{}'", err))?;
+                .map_err(|err| format!("cannot get clusters: '{err}'"))?;
 
             let out_geojson =
                 clusters_matches.get_one::<String>(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out geojson"));
             let mut geo_writer = out_writer_func(out_geojson);
 
-            geo_writer.write_all(clusters.as_bytes()).map_err(|err| format!("cannot write result: '{}'", err))
+            geo_writer.write_all(clusters.as_bytes()).map_err(|err| format!("cannot write result: '{err}'"))
         }
         _ => Err("no argument with analyze subcommand was used. Use -h to print help information".to_string()),
     }

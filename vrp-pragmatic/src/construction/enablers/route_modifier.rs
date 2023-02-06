@@ -15,7 +15,7 @@ pub fn get_route_modifier(goal: Arc<GoalContext>, job_index: JobIndex) -> RouteM
         let vehicle_id = vehicle.dimens.get_vehicle_id().expect("cannot get vehicle id");
 
         let candidates = (1..)
-            .map(|idx| format!("{}_dispatch_{}_{}", vehicle_id, shift_index, idx))
+            .map(|idx| format!("{vehicle_id}_dispatch_{shift_index}_{idx}"))
             .map(|job_id| job_index.get(&job_id))
             .take_while(|job| job.is_some())
             .collect::<Vec<_>>();

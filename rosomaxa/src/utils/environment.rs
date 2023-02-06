@@ -59,7 +59,7 @@ impl Default for Environment {
             Arc::new(DefaultRandom::default()),
             None,
             Parallelism::default(),
-            Arc::new(|msg| println!("{}", msg)),
+            Arc::new(|msg| println!("{msg}")),
             false,
         )
     }

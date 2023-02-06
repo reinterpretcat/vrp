@@ -29,7 +29,7 @@ pub fn read_init_solution<R: Read>(
     problem: Arc<Problem>,
     random: Arc<dyn Random + Send + Sync>,
 ) -> Result<Solution, String> {
-    let solution = deserialize_solution(solution).map_err(|err| format!("cannot deserialize solution: {}", err))?;
+    let solution = deserialize_solution(solution).map_err(|err| format!("cannot deserialize solution: {err}"))?;
 
     let mut registry = Registry::new(&problem.fleet, random);
     let mut added_jobs = HashSet::default();
@@ -42,7 +42,7 @@ pub fn read_init_solution<R: Read>(
         solution.tours.iter().try_fold::<_, _, Result<_, String>>(Vec::<_>::default(), |mut routes, tour| {
             let actor_key = (tour.vehicle_id.clone(), tour.type_id.clone(), tour.shift_index);
             let actor =
-                actor_index.get(&actor_key).ok_or_else(|| format!("cannot find vehicle for {:?}", actor_key))?.clone();
+                actor_index.get(&actor_key).ok_or_else(|| format!("cannot find vehicle for {actor_key:?}"))?.clone();
             registry.use_actor(&actor);
 
             let mut core_route = create_core_route(actor, tour)?;
@@ -64,13 +64,13 @@ pub fn read_init_solution<R: Read>(
             let job = job_index
                 .get(&unassigned_job.job_id)
                 .cloned()
-                .ok_or_else(|| format!("cannot get job id for: {:?}", unassigned_job))?;
+                .ok_or_else(|| format!("cannot get job id for: {unassigned_job:?}"))?;
             // NOTE we take the first reason only and map it to simple variant
             let code = unassigned_job
                 .reasons
                 .first()
                 .map(|reason| UnassignmentInfo::Simple(map_reason_code(&reason.code)))
-                .ok_or_else(|| format!("cannot get reason for: {:?}", unassigned_job))?;
+                .ok_or_else(|| format!("cannot get reason for: {unassigned_job:?}"))?;
 
             added_jobs.insert(job.clone());
             acc.push((job, code));

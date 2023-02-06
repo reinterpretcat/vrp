@@ -218,7 +218,7 @@ fn draw_population<B: DrawingBackend + 'static>(
 
             let get_caption_float = |caption: &str| {
                 let caption = caption.to_string();
-                move |min: f64, max: f64| format!("{} [{:.2}..{:.2}]", caption, min, max)
+                move |min: f64, max: f64| format!("{caption} [{min:.2}..{max:.2}]")
             };
             let get_caption_usize = |caption: &str| {
                 let caption = caption.to_string();
@@ -232,7 +232,7 @@ fn draw_population<B: DrawingBackend + 'static>(
             draw_series2d(sub_areas.get_mut(len + 2).unwrap(), &get_caption_usize("total hits"), t_matrix)?;
             draw_series2d(sub_areas.get_mut(len + 3).unwrap(), &get_caption_usize("last hits"), l_matrix)?;
             fitness.iter().enumerate().try_for_each(|(idx, objective)| {
-                let caption = format!("objective {}", idx);
+                let caption = format!("objective {idx}");
                 draw_series2d(sub_areas.get_mut(idx).unwrap(), &get_caption_float(caption.as_str()), objective)
             })?;
         }

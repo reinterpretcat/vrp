@@ -74,11 +74,11 @@ pub fn run_generate(matches: &ArgMatches) -> Result<(), String> {
 
             match input_format.as_str() {
                 "pragmatic" => serialize_problem(out_buffer, &problem)
-                    .map_err(|err| format!("cannot serialize as pragmatic problem: '{}'", err)),
-                _ => Err(format!("unknown output format: '{}'", input_format)),
+                    .map_err(|err| format!("cannot serialize as pragmatic problem: '{err}'")),
+                _ => Err(format!("unknown output format: '{input_format}'")),
             }
         }
-        Err(err) => Err(format!("cannot generate problem: '{}'", err)),
+        Err(err) => Err(format!("cannot generate problem: '{err}'")),
     }
 }
 

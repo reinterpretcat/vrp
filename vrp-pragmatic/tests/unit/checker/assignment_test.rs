@@ -132,7 +132,7 @@ fn check_jobs_impl(
                     location: Location::Coordinate { lat: 0.0, lng: 0.0 },
                     duration: 0.0,
                     times: None,
-                    tag: Some(format!("{}{}", tgt, idx)),
+                    tag: Some(format!("{tgt}{idx}")),
                 }],
                 demand: if tgt != "service" { Some(vec![1]) } else { None },
                 order: None,

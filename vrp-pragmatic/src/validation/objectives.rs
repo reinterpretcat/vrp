@@ -153,7 +153,7 @@ fn check_e1606_check_multiple_cost_objectives(objectives: &[&Objective]) -> Resu
         Err(FormatError::new(
             "E1606".to_string(),
             "multiple cost objectives specified".to_string(),
-            format!("keep only one cost objective: was specified: '{}'", cost_objectives),
+            format!("keep only one cost objective: was specified: '{cost_objectives}'"),
         ))
     } else {
         Ok(())

@@ -626,7 +626,7 @@ fn create_operator(
         }
         SearchOperatorType::Decomposition { routes, repeat, probability } => {
             if *repeat < 1 {
-                return Err(format!("repeat must be greater than 1. Specified: {}", repeat));
+                return Err(format!("repeat must be greater than 1. Specified: {repeat}"));
             }
             if routes.min < 2 {
                 return Err(format!("min routes must be greater than 2. Specified: {}", routes.min));
@@ -783,8 +783,8 @@ fn configure_from_environment(
 
     if let Some(logging) = environment_config.as_ref().and_then(|c| c.logging.as_ref()) {
         environment.logger = match (logging.enabled, logging.prefix.clone()) {
-            (true, Some(prefix)) => Arc::new(move |msg: &str| println!("{}{}", prefix, msg)),
-            (true, None) => Arc::new(|msg: &str| println!("{}", msg)),
+            (true, Some(prefix)) => Arc::new(move |msg: &str| println!("{prefix}{msg}")),
+            (true, None) => Arc::new(|msg: &str| println!("{msg}")),
             _ => Arc::new(|_: &str| {}),
         };
     }
@@ -798,7 +798,7 @@ fn configure_from_environment(
 
 /// Reads config from reader.
 pub fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, String> {
-    serde_json::from_reader(reader).map_err(|err| format!("cannot deserialize config: '{}'", err))
+    serde_json::from_reader(reader).map_err(|err| format!("cannot deserialize config: '{err}'"))
 }
 
 /// Creates a solver `Builder` from config file.

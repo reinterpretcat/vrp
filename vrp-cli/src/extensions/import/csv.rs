@@ -143,9 +143,9 @@ mod actual {
     fn create_format_error(entity: &str, error: Box<dyn Error>) -> FormatError {
         FormatError::new_with_details(
             "E0000".to_string(),
-            format!("cannot read {}", entity),
-            format!("check {} definition", entity),
-            format!("{}", error),
+            format!("cannot read {entity}"),
+            format!("check {entity} definition"),
+            format!("{error}",),
         )
     }
 

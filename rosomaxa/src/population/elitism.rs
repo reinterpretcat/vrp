@@ -236,12 +236,12 @@ where
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let fitness = self.individuals.iter().fold(String::new(), |mut res, individual| {
-            let values = individual.fitness().map(|v| format!("{:.7}", v)).collect::<Vec<_>>().join(",");
-            write!(&mut res, "[{}],", values).unwrap();
+            let values = individual.fitness().map(|v| format!("{v:.7}")).collect::<Vec<_>>().join(",");
+            write!(&mut res, "[{values}],").unwrap();
 
             res
         });
 
-        write!(f, "[{}]", fitness)
+        write!(f, "[{fitness}]")
     }
 }

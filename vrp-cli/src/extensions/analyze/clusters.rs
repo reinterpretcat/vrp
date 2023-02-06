@@ -51,7 +51,7 @@ pub fn get_clusters<F: Read>(
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
 
     serialize_named_locations_as_geojson(writer, locations.as_slice())
-        .map_err(|err| format!("cannot write named locations as geojson: '{}'", err))?;
+        .map_err(|err| format!("cannot write named locations as geojson: '{err}'"))?;
 
     Ok(buffer)
 }

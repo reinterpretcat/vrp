@@ -244,7 +244,7 @@ pub fn create_default_vehicle(id: &str) -> VehicleType {
 pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType {
     VehicleType {
         type_id: id.to_string(),
-        vehicle_ids: vec![format!("{}_1", id)],
+        vehicle_ids: vec![format!("{id}_1")],
         profile: create_default_vehicle_profile(),
         costs: create_default_vehicle_costs(),
         shifts: vec![create_default_vehicle_shift()],

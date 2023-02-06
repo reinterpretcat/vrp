@@ -60,8 +60,8 @@ impl Location {
 impl fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Location::Coordinate { lat, lng } => write!(f, "lat={}, lng={}", lat, lng),
-            Location::Reference { index } => write!(f, "index={}", index),
+            Location::Coordinate { lat, lng } => write!(f, "lat={lat}, lng={lng}"),
+            Location::Reference { index } => write!(f, "index={index}"),
         }
     }
 }

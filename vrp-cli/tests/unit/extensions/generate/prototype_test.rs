@@ -23,7 +23,7 @@ fn can_generate_jobs_with_time_windows() {
     };
 
     let result =
-        generate_from_prototype(&problem, None, 10, 2, None).unwrap_or_else(|err| panic!("cannot generate: '{}'", err));
+        generate_from_prototype(&problem, None, 10, 2, None).unwrap_or_else(|err| panic!("cannot generate: '{err}'"));
 
     assert_eq!(result.plan.jobs.len(), 10);
     assert_eq!(

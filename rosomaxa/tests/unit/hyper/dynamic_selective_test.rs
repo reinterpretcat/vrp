@@ -111,7 +111,7 @@ fn can_display_heuristic_info_impl(is_experimental: bool) {
         SearchState::DiverseImprovement(MedianRatio { ratio: 1. }),
     );
 
-    let formatted = format!("{}", heuristic);
+    let formatted = format!("{heuristic}");
 
     assert_eq!(!formatted.is_empty(), is_experimental);
 }

@@ -26,7 +26,7 @@ prop_compose! {
         let type_id = Uuid::new_v4().to_string();
         VehicleType {
             type_id: type_id.clone(),
-            vehicle_ids: (1..=amount).map(|seq| format!("{}_{}", type_id, seq)).collect(),
+            vehicle_ids: (1..=amount).map(|seq| format!("{type_id}_{seq}")).collect(),
             profile,
             costs,
             shifts,

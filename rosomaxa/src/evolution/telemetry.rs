@@ -250,8 +250,8 @@ where
             individuals.iter().for_each(|metrics| self.log_individual(metrics, None));
             if should_dump_population {
                 let mut state = String::new();
-                write!(state, "{}", population).unwrap();
-                self.log(&format!("\t{}", state));
+                write!(state, "{population}").unwrap();
+                self.log(&format!("\t{state}"));
             }
         }
 
@@ -283,7 +283,7 @@ where
         let elapsed = self.time.elapsed_secs() as usize;
         let speed = generations as f64 / self.time.elapsed_secs_as_f64();
 
-        self.log(format!("[{}s] total generations: {}, speed: {:.2} gen/sec", elapsed, generations, speed).as_str());
+        self.log(format!("[{elapsed}s] total generations: {generations}, speed: {speed:.2} gen/sec",).as_str());
 
         self.metrics.duration = elapsed;
         self.metrics.speed = speed;
@@ -470,5 +470,5 @@ where
 }
 
 fn format_fitness(fitness: impl Iterator<Item = f64>) -> String {
-    fitness.map(|v| format!("{:.3}", v)).collect::<Vec<_>>().join(", ")
+    fitness.map(|v| format!("{v:.3}")).collect::<Vec<_>>().join(", ")
 }

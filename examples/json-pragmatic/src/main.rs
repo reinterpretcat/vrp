@@ -46,7 +46,7 @@ fn run_examples(base_path: &str) {
         let (core_problem, problem, matrices) = if let Some(matrices) = matrices {
             let matrices = matrices
                 .iter()
-                .map(|path| deserialize_matrix(open_file(format!["{}/{}.json", base_path, path].as_str())))
+                .map(|path| deserialize_matrix(open_file(format!["{base_path}/{path}.json"].as_str())))
                 .collect::<Result<Vec<Matrix>, _>>()
                 .unwrap_or_else(|errors| {
                     panic!("cannot read matrix: {}", FormatError::format_many(errors.as_slice(), "\t\n"))
@@ -64,10 +64,10 @@ fn run_examples(base_path: &str) {
         let config = create_default_config_builder(core_problem.clone(), environment, telemetry_mode)
             .with_max_generations(Some(100))
             .build()
-            .unwrap_or_else(|err| panic!("cannot build default solver configuration: {}", err));
+            .unwrap_or_else(|err| panic!("cannot build default solver configuration: {err}"));
         let (solution, cost, _) = Solver::new(core_problem.clone(), config)
             .solve()
-            .unwrap_or_else(|err| panic!("cannot solver problem: {}", err));
+            .unwrap_or_else(|err| panic!("cannot solver problem: {err}"));
 
         let solution = get_pragmatic_solution(&core_problem, &solution, cost);
 
@@ -78,12 +78,12 @@ fn run_examples(base_path: &str) {
 }
 
 fn open_file(path: &str) -> BufReader<File> {
-    println!("Reading '{}'", path);
-    BufReader::new(File::open(path).unwrap_or_else(|err| panic!("cannot open {} file: '{}'", path, err)))
+    println!("reading '{path}'");
+    BufReader::new(File::open(path).unwrap_or_else(|err| panic!("cannot open {path} file: '{err}'")))
 }
 
 fn get_pragmatic_problem(base_path: &str, name: &str) -> Problem {
-    deserialize_problem(open_file(format!["{}/{}.problem.json", base_path, name].as_str())).unwrap()
+    deserialize_problem(open_file(format!["{base_path}/{name}.problem.json"].as_str())).unwrap()
 }
 
 fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution, cost: f64) -> Solution {

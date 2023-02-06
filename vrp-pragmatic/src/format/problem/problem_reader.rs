@@ -43,7 +43,7 @@ pub fn map_to_problem(
         vec![FormatError::new(
             "E0002".to_string(),
             "cannot create transport costs".to_string(),
-            format!("check matrix routing data: '{}'", err),
+            format!("check matrix routing data: '{err}'"),
         )]
     })?;
     let activity: Arc<dyn ActivityCost + Send + Sync> = Arc::new(OnlyVehicleActivityCost::default());
@@ -59,7 +59,7 @@ pub fn map_to_problem(
                 vec![FormatError::new(
                     "E0002".to_string(),
                     "cannot create transport costs".to_string(),
-                    format!("check fleet definition: '{}'", err),
+                    format!("check fleet definition: '{err}'"),
                 )]
             })
             .map::<(Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>), _>(
@@ -96,7 +96,7 @@ pub fn map_to_problem(
             vec![FormatError::new(
                 "E0000".to_string(),
                 "cannot create vrp variant".to_string(),
-                format!("need to analyze how features are defined: '{}'", err),
+                format!("need to analyze how features are defined: '{err}'"),
             )]
         })?,
     );
@@ -108,7 +108,7 @@ pub fn map_to_problem(
                 vec![FormatError::new(
                     "E0002".to_string(),
                     "cannot create transport costs".to_string(),
-                    format!("check clustering config: '{}'", err),
+                    format!("check clustering config: '{err}'"),
                 )]
             })?,
     );
