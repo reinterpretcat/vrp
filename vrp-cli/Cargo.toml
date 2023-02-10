@@ -40,7 +40,8 @@ num_cpus = "1.15.0"
 pyo3 = { version= "0.18.0", features=["extension-module"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { version = "0.2.83", features = ["serde-serialize"] }
+wasm-bindgen = { version = "0.2.83" }
+serde-wasm-bindgen = "0.4"
 js-sys = "0.3.60"
 
 [dev-dependencies]

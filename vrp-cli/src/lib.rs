@@ -423,8 +423,9 @@ mod wasm {
     /// Returns a list of unique locations which can be used to request a routing matrix.
     /// A `problem` should be passed in `pragmatic` format.
     #[wasm_bindgen]
-    pub fn get_routing_locations(problem: &JsValue) -> Result<JsValue, JsValue> {
-        let problem: Problem = problem.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+    pub fn get_routing_locations(problem: JsValue) -> Result<JsValue, JsValue> {
+        let problem: Problem =
+            serde_wasm_bindgen::from_value(problem).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         get_locations_serialized(&problem)
             .map(|locations| JsValue::from_str(locations.as_str()))
@@ -433,9 +434,11 @@ mod wasm {
 
     /// Validates Vehicle Routing Problem passed in `pragmatic` format.
     #[wasm_bindgen]
-    pub fn validate_pragmatic(problem: &JsValue, matrices: &JsValue) -> Result<JsValue, JsValue> {
-        let problem: Problem = problem.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
-        let matrices: Vec<Matrix> = matrices.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+    pub fn validate_pragmatic(problem: JsValue, matrices: JsValue) -> Result<JsValue, JsValue> {
+        let problem: Problem =
+            serde_wasm_bindgen::from_value(problem).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+        let matrices: Vec<Matrix> =
+            serde_wasm_bindgen::from_value(matrices).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
         let coord_index = CoordIndex::new(&problem);
 
         let matrices = if matrices.is_empty() { None } else { Some(&matrices) };
@@ -447,8 +450,9 @@ mod wasm {
 
     /// Converts `problem` from format specified by `format` to `pragmatic` format.
     #[wasm_bindgen]
-    pub fn convert_to_pragmatic(format: &str, inputs: &JsValue) -> Result<JsValue, JsValue> {
-        let inputs: Vec<String> = inputs.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+    pub fn convert_to_pragmatic(format: &str, inputs: JsValue) -> Result<JsValue, JsValue> {
+        let inputs: Vec<String> =
+            serde_wasm_bindgen::from_value(inputs).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         let readers = inputs.iter().map(|input| BufReader::new(input.as_bytes())).collect();
 
@@ -466,10 +470,12 @@ mod wasm {
 
     /// Solves Vehicle Routing Problem passed in `pragmatic` format.
     #[wasm_bindgen]
-    pub fn solve_pragmatic(problem: &JsValue, matrices: &JsValue, config: &JsValue) -> Result<JsValue, JsValue> {
-        let problem: Problem = problem.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+    pub fn solve_pragmatic(problem: JsValue, matrices: JsValue, config: JsValue) -> Result<JsValue, JsValue> {
+        let problem: Problem =
+            serde_wasm_bindgen::from_value(problem).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
-        let matrices: Vec<Matrix> = matrices.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+        let matrices: Vec<Matrix> =
+            serde_wasm_bindgen::from_value(matrices).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         let problem = Arc::new(
             if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }.map_err(
@@ -479,8 +485,7 @@ mod wasm {
             )?,
         );
 
-        let config: Config = config
-            .into_serde()
+        let config: Config = serde_wasm_bindgen::from_value(config)
             .map_err(|err| to_config_error(&err.to_string()))
             .map_err(|err| JsValue::from_str(err.as_str()))?;
 
