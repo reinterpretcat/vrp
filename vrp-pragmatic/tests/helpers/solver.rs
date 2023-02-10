@@ -10,7 +10,7 @@ use vrp_core::rosomaxa::evolution::TelemetryMode;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::{create_default_config_builder, create_elitism_population, Solver};
 use vrp_core::solver::{get_default_telemetry_mode, RefinementContext};
-use vrp_core::utils::Environment;
+use vrp_core::utils::{Environment, Parallelism};
 
 /// Runs solver with cheapest insertion heuristic.
 pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matrix>>) -> Solution {
@@ -51,8 +51,12 @@ pub fn solve_with_metaheuristic_and_iterations_without_check(
 }
 
 pub fn solve(problem: Problem, matrices: Option<Vec<Matrix>>, generations: usize, perform_check: bool) -> Solution {
+    // NOTE: hardcode cpus to guarantee rosomaxa population algorithm is used
+    const AVAILABLE_CPUS: usize = 4;
+
     get_core_solution(problem, matrices, perform_check, |problem: Arc<CoreProblem>| {
-        let environment = Arc::new(Environment::default());
+        let environment =
+            Arc::new(Environment { parallelism: Parallelism::new_with_cpus(AVAILABLE_CPUS), ..Environment::default() });
         let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
         let (solution, _, _) = create_default_config_builder(problem.clone(), environment, telemetry_mode)
             .with_max_generations(Some(generations))

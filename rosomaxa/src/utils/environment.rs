@@ -106,6 +106,11 @@ impl Parallelism {
         Self { available_cpus: get_cpus(), thread_pools: Some(Arc::new(thread_pools)) }
     }
 
+    /// Creates an instance of `Parallelism` using available cpus as given.
+    pub fn new_with_cpus(available_cpus: usize) -> Self {
+        Self { available_cpus, ..Self::default() }
+    }
+
     /// Amount of total available CPUs.
     pub fn available_cpus(&self) -> usize {
         self.available_cpus
