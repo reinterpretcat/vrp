@@ -39,7 +39,9 @@ jobs:
 
     - name: Build WebAssembly
       run: |
-        curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        # curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        # see https://github.com/rustwasm/wasm-pack/issues/823#issuecomment-1242611318
+        cargo install --git https://github.com/frewsxcv/wasm-pack.git --branch patch-2
         cd vrp-cli
         wasm-pack build --target web
 
