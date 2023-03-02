@@ -55,17 +55,9 @@ impl InsertionContext {
 
     /// Restores valid context state.
     pub fn restore(&mut self) {
-        let constraint = self.problem.goal.clone();
-        // NOTE Run first accept solution as it can change existing routes
-        // by moving jobs from/to required/ignored jobs.
-        // if this happens, accept route state will fix timing/capacity after it
-        constraint.accept_solution_state(&mut self.solution);
+        self.problem.goal.accept_solution_state(&mut self.solution);
 
         self.remove_empty_routes();
-
-        self.solution.routes.iter_mut().for_each(|route_ctx| {
-            constraint.accept_route_state(route_ctx);
-        });
     }
 
     /// Removes empty routes from solution context.
