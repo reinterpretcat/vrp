@@ -283,7 +283,6 @@ where
         });
     }
 
-    #[allow(clippy::needless_collect)]
     fn grow_nodes(&self, node: &NodeLink<I, S>) -> Vec<(Coordinate, Vec<f64>)> {
         let node = node.read().unwrap();
         let coord = node.coordinate;
@@ -293,14 +292,9 @@ where
         let get_node = |offset_x: i32, offset_y: i32| self.nodes.get(&get_coord(offset_x, offset_y));
 
         // NOTE insert new nodes only in main directions
-        let offsets = node
-            .neighbours(self, 1)
+        node.neighbours(self, 1)
             .filter(|(_, (x, y))| x.abs() + y.abs() < 2)
             .filter_map(|(node, offset)| if node.is_none() { Some(offset) } else { None })
-            .collect::<Vec<_>>();
-
-        offsets
-            .into_iter()
             .map(|(n_x, n_y)| {
                 let coord = get_coord(n_x, n_y);
                 let offset_abs = (n_x.abs(), n_y.abs());

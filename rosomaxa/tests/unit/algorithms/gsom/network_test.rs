@@ -268,7 +268,7 @@ mod node_growing {
         case01_a_case_left_down: ((0, 0), vec![(Coordinate(-1, 0), vec![-7., 5., 14.]), (Coordinate(0, -1), vec![0., 3., 7.])]),
         case02_a_case_right_top: ((1, 1), vec![(Coordinate(1, 2), vec![-3., 13., 12.]), (Coordinate(2, 1), vec![4., 11., 5.])]),
         case03_ac_cases: ((1, -1), vec![(Coordinate(0, -1), vec![1., -1., 4.]), (Coordinate(1, -2), vec![1., -1., 4.]), (Coordinate(2, -1), vec![1., -1., 4.])]),
-        case04_b_case_left: ((0, 1), vec![(Coordinate(-1, 1), vec![1.5, 4., 11.5]), (Coordinate(0, 2), vec![3., 6., 10.])]),
+        case04_ba_cases_left: ((0, 1), vec![(Coordinate(-1, 1), vec![1.5, 4., 11.5]), (Coordinate(0, 2), vec![3., 6., 10.])]),
         case05_bd_cases: ((-2, 1), vec![(Coordinate(-3, 1), vec![5., 4.5, 8.]), (Coordinate(-2, 0), vec![5., 4.5, 8.]), (Coordinate(-2, 2), vec![5., 4.5, 8.]), (Coordinate(-1, 1), vec![1.5, 4., 11.5])]),
     }
 
