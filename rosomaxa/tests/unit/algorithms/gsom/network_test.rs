@@ -147,7 +147,7 @@ mod node_growing {
     use super::*;
     use crate::algorithms::gsom::{NetworkConfig, NodeLink};
     use crate::prelude::RandomGen;
-    use std::sync::{Arc, RwLock};
+    use std::sync::Arc;
 
     fn create_trivial_network(has_initial_error: bool) -> NetworkType {
         struct DummyRandom {}
@@ -232,7 +232,7 @@ mod node_growing {
     fn can_grow_new_nodes_properly() {
         let w1_coord = Coordinate(1, 2);
         let mut network = create_trivial_network(true);
-        network.nodes.insert(w1_coord, Arc::new(RwLock::new(network.create_node(w1_coord, &[3., 6., 10.], 0.))));
+        network.insert(w1_coord, &[3., 6., 10.]);
 
         network.update(&get_node((w1_coord.0, w1_coord.1), &network).unwrap(), &Data::new(2., 2., 2.), 6., true);
 
@@ -258,5 +258,31 @@ mod node_growing {
         network.smooth(1);
         let mse = network.mse();
         assert!((mse - 0.0001138).abs() < 1E7);
+    }
+
+    parameterized_test! {can_grow_nodes_with_proper_weights, (coord, expected), {
+        can_grow_nodes_with_proper_weights_impl(coord, expected);
+    }}
+
+    can_grow_nodes_with_proper_weights! {
+        case01_a_case_left_down: ((0, 0), vec![(Coordinate(-1, 0), vec![-7., 5., 14.]), (Coordinate(0, -1), vec![0., 3., 7.])]),
+        case02_a_case_right_top: ((1, 1), vec![(Coordinate(1, 2), vec![-3., 13., 12.]), (Coordinate(2, 1), vec![4., 11., 5.])]),
+        case03_ac_cases: ((1, -1), vec![(Coordinate(0, -1), vec![1., -1., 4.]), (Coordinate(1, -2), vec![1., -1., 4.]), (Coordinate(2, -1), vec![1., -1., 4.])]),
+        case04_b_case_left: ((0, 1), vec![(Coordinate(-1, 1), vec![1.5, 4., 11.5]), (Coordinate(0, 2), vec![3., 6., 10.])]),
+        case05_bd_cases: ((-2, 1), vec![(Coordinate(-3, 1), vec![5., 4.5, 8.]), (Coordinate(-2, 0), vec![5., 4.5, 8.]), (Coordinate(-2, 2), vec![5., 4.5, 8.]), (Coordinate(-1, 1), vec![1.5, 4., 11.5])]),
+    }
+
+    fn can_grow_nodes_with_proper_weights_impl(coord: (i32, i32), expected: Vec<(Coordinate, Vec<f64>)>) {
+        // n(-2,1)(1., 3., 14.) xx  n01(2., 5., 9.) n11(3., 8., 7.)
+        //                          n00(1., 4., 8.) n10(9., 3., 2.)
+        //                                         n1-1(5., 1., 3.)
+        let mut network = create_trivial_network(false);
+        network.insert(Coordinate(-2, 1), &[1., 3., 14.]);
+        network.insert(Coordinate(1, -1), &[5., 1., 3.]);
+
+        let mut nodes = network.grow_nodes(&get_node((coord.0, coord.1), &network).unwrap());
+        nodes.sort_by(|a, b| a.0.cmp(&b.0));
+
+        assert_eq!(nodes, expected);
     }
 }
