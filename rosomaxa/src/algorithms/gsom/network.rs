@@ -94,6 +94,11 @@ where
         self.learning_rate = learning_rate;
     }
 
+    /// Gets current learning rate.
+    pub fn get_learning_rate(&self) -> f64 {
+        self.learning_rate
+    }
+
     /// Sets whether network can grow.
     pub fn set_can_grow(&mut self, can_grow: bool) {
         self.can_grow = can_grow;
@@ -135,10 +140,14 @@ where
             });
 
             self.train_batch(nodes_data, false);
+
+            self.nodes.iter_mut().for_each(|(_, node)| {
+                node.write().unwrap().error = 0.;
+            })
         });
     }
 
-    /// Compacts network.
+    /// Compacts network. `node_filter` should return false for nodes to be removed.
     pub fn compact(&mut self, node_filter: &(dyn Fn(&NodeLink<I, S>, f64) -> bool)) {
         let original = self.nodes.len();
         let mut removed = vec![];
