@@ -18,12 +18,16 @@ pub enum PopulationState {
         cols: Range<i32>,
         /// Fitness values data split into separate matrices.
         fitness: Vec<MatrixData>,
+        /// Mean squared error of the entire network.
+        mse: f64,
         /// U-matrix values data.
         u_matrix: MatrixData,
         /// T-matrix values data.
         t_matrix: MatrixData,
         /// L-matrix values data.
         l_matrix: MatrixData,
+        /// MSE values data.
+        m_matrix: MatrixData,
     },
 }
 
@@ -34,9 +38,11 @@ impl PopulationState {
             rows,
             cols,
             fitness: Default::default(),
+            mse: 0.,
             u_matrix: Default::default(),
             t_matrix: Default::default(),
             l_matrix: Default::default(),
+            m_matrix: Default::default(),
         }
     }
 }
@@ -64,7 +70,8 @@ fn create_rosomaxa_state(network_state: NetworkState) -> PopulationState {
     network_state.nodes.iter().fold(PopulationState::new_rosomaxa_empty(rows, cols), |mut rosomaxa, node| {
         let coordinate = Coordinate(node.coordinate.0, node.coordinate.1);
         match &mut rosomaxa {
-            PopulationState::Rosomaxa { fitness: objectives, u_matrix, t_matrix, l_matrix, .. } => {
+            PopulationState::Rosomaxa { fitness, mse, u_matrix, t_matrix, l_matrix, m_matrix, .. } => {
+                let objectives = fitness;
                 // NOTE get first fitness in assumption of sorted order
                 let fitness = match (node.dump.starts_with("[["), node.dump.find(']')) {
                     (true, Some(value)) => node.dump[2..value]
@@ -84,6 +91,8 @@ fn create_rosomaxa_state(network_state: NetworkState) -> PopulationState {
                 u_matrix.insert(coordinate, node.unified_distance);
                 t_matrix.insert(coordinate, node.total_hits as f64);
                 l_matrix.insert(coordinate, node.last_hits as f64);
+                m_matrix.insert(coordinate, node.mse);
+                *mse = network_state.mse;
             }
             _ => unreachable!(),
         }

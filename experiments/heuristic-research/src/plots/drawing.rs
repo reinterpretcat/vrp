@@ -81,8 +81,8 @@ fn draw_population<B: DrawingBackend + 'static>(
     population_config: &PopulationDrawConfig,
 ) -> DrawResult<()> {
     match &population_config.series {
-        PopulationSeries::Rosomaxa { rows, cols, fitness, u_matrix, t_matrix, l_matrix } => {
-            let plots = fitness.len() + 4;
+        PopulationSeries::Rosomaxa { rows, cols, fitness, mse, u_matrix, t_matrix, l_matrix, m_matrix } => {
+            let plots = fitness.len() + 5;
             let cols_size = plots / 2 + usize::from(plots % 2 == 1);
 
             let rows = rows.start..(rows.end + 1);
@@ -231,6 +231,12 @@ fn draw_population<B: DrawingBackend + 'static>(
             draw_gradients(sub_areas.get_mut(len + 1).unwrap(), "grads", fitness)?;
             draw_series2d(sub_areas.get_mut(len + 2).unwrap(), &get_caption_usize("total hits"), t_matrix)?;
             draw_series2d(sub_areas.get_mut(len + 3).unwrap(), &get_caption_usize("last hits"), l_matrix)?;
+            draw_series2d(
+                sub_areas.get_mut(len + 4).unwrap(),
+                &get_caption_usize(format!("mse ({:.2})", *mse).as_str()),
+                m_matrix,
+            )?;
+
             fitness.iter().enumerate().try_for_each(|(idx, objective)| {
                 let caption = format!("objective {idx}");
                 draw_series2d(sub_areas.get_mut(idx).unwrap(), &get_caption_float(caption.as_str()), objective)

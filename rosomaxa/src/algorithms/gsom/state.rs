@@ -11,6 +11,8 @@ use std::ops::Range;
 pub struct NetworkState {
     /// Shape of the network as (rows, cols, num of weights).
     pub shape: (Range<i32>, Range<i32>, usize),
+    /// Mean Squared Error of the entire network.
+    pub mse: f64,
     /// Nodes of the network.
     pub nodes: Vec<NodeState>,
 }
@@ -27,6 +29,8 @@ pub struct NodeState {
     pub total_hits: usize,
     /// Last hits.
     pub last_hits: usize,
+    /// Mean squared error.
+    pub mse: f64,
     /// A dump of underlying node's storage.
     pub dump: String,
 }
@@ -45,6 +49,8 @@ where
         },
     );
 
+    let mse = network.mse();
+
     let nodes = network
         .get_nodes()
         .map(|node| {
@@ -59,6 +65,7 @@ where
                 weights: node.weights.clone(),
                 total_hits: node.total_hits,
                 last_hits: node.get_last_hits(network.get_current_time()),
+                mse: node.mse(),
                 dump,
             }
         })
@@ -66,7 +73,7 @@ where
 
     let dim = nodes.first().map_or(0, |node| node.weights.len());
 
-    NetworkState { shape: (x_min..x_max, y_min..y_max, dim), nodes }
+    NetworkState { shape: (x_min..x_max, y_min..y_max, dim), nodes, mse }
 }
 
 impl Display for NetworkState {

@@ -71,12 +71,16 @@ pub enum PopulationSeries {
         cols: Range<i32>,
         /// Objective values chart series.
         fitness: Vec<Series2D>,
+        /// Mean Squared Error of the entire network.
+        mse: f64,
         /// U-matrix values chart series.
         u_matrix: Series2D,
         /// T-matrix values chart series.
         t_matrix: Series2D,
         /// L-matrix values chart series.
         l_matrix: Series2D,
+        /// MSE values chart series.
+        m_matrix: Series2D,
     },
 }
 
