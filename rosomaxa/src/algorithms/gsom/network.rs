@@ -3,6 +3,7 @@
 mod network_test;
 
 use super::*;
+use crate::algorithms::math::get_mean_iter;
 use crate::utils::{compare_floats, parallel_into_collect, Noise, Random};
 use hashbrown::HashMap;
 use rand::prelude::SliceRandom;
@@ -200,6 +201,11 @@ where
     /// Returns current time.
     pub fn get_current_time(&self) -> usize {
         self.time
+    }
+
+    /// Calculates mean distance of nodes with individuals.
+    pub fn mean_distance(&self) -> f64 {
+        get_mean_iter(self.nodes.iter().filter_map(|(_, node)| node.read().unwrap().node_distance()))
     }
 
     /// Calculates mean squared error of the whole network.

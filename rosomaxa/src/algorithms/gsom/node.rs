@@ -117,6 +117,11 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         }
     }
 
+    /// Returns distance between underlying item (if any) and node weight's.
+    pub fn node_distance(&self) -> Option<f64> {
+        self.storage.iter().next().map(|item| self.storage.distance(self.weights.as_slice(), item.weights()))
+    }
+
     /// Calculates mean squared error of the node.
     pub fn mse(&self) -> f64 {
         let (count, sum) = self

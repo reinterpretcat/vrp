@@ -11,8 +11,8 @@ use std::ops::Range;
 pub struct NetworkState {
     /// Shape of the network as (rows, cols, num of weights).
     pub shape: (Range<i32>, Range<i32>, usize),
-    /// Mean Squared Error of the entire network.
-    pub mse: f64,
+    /// Mean of node distance.
+    pub mean_distance: f64,
     /// Nodes of the network.
     pub nodes: Vec<NodeState>,
 }
@@ -23,14 +23,14 @@ pub struct NodeState {
     pub coordinate: (i32, i32),
     /// Unified distance to neighbors.
     pub unified_distance: f64,
+    /// Distance between weights of individual and node weights.
+    pub node_distance: Option<f64>,
     /// Node weights.
     pub weights: Vec<f64>,
     /// Total hits.
     pub total_hits: usize,
     /// Last hits.
     pub last_hits: usize,
-    /// Mean squared error.
-    pub mse: f64,
     /// A dump of underlying node's storage.
     pub dump: String,
 }
@@ -49,7 +49,7 @@ where
         },
     );
 
-    let mse = network.mse();
+    let mean_distance = network.mean_distance();
 
     let nodes = network
         .get_nodes()
@@ -62,10 +62,10 @@ where
             NodeState {
                 coordinate: (node.coordinate.0, node.coordinate.1),
                 unified_distance: node.unified_distance(network, 1),
+                node_distance: node.node_distance(),
                 weights: node.weights.clone(),
                 total_hits: node.total_hits,
                 last_hits: node.get_last_hits(network.get_current_time()),
-                mse: node.mse(),
                 dump,
             }
         })
@@ -73,7 +73,7 @@ where
 
     let dim = nodes.first().map_or(0, |node| node.weights.len());
 
-    NetworkState { shape: (x_min..x_max, y_min..y_max, dim), nodes, mse }
+    NetworkState { shape: (x_min..x_max, y_min..y_max, dim), nodes, mean_distance }
 }
 
 impl Display for NetworkState {

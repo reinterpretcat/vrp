@@ -165,7 +165,16 @@ fn get_population_series(generation: usize) -> PopulationSeries {
         .lock()
         .ok()
         .and_then(|data| match data.population_state.get(&generation) {
-            Some(PopulationState::Rosomaxa { rows, cols, fitness, mse, u_matrix, t_matrix, l_matrix, m_matrix }) => {
+            Some(PopulationState::Rosomaxa {
+                rows,
+                cols,
+                fitness,
+                mean_distance,
+                u_matrix,
+                t_matrix,
+                l_matrix,
+                n_matrix,
+            }) => {
                 let get_series = |matrix: &MatrixData| {
                     let matrix = matrix.clone();
                     Series2D { matrix: Box::new(move || matrix.clone()) }
@@ -175,11 +184,11 @@ fn get_population_series(generation: usize) -> PopulationSeries {
                     rows: rows.clone(),
                     cols: cols.clone(),
                     fitness: fitness.iter().map(get_series).collect(),
-                    mse: *mse,
+                    mean_distance: *mean_distance,
                     u_matrix: get_series(u_matrix),
                     t_matrix: get_series(t_matrix),
                     l_matrix: get_series(l_matrix),
-                    m_matrix: get_series(m_matrix),
+                    n_matrix: get_series(n_matrix),
                 })
             }
             _ => None,
