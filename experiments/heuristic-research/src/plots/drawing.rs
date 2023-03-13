@@ -153,41 +153,56 @@ fn draw_population<B: DrawingBackend + 'static>(
                         .unwrap_or(Ordering::Equal)
                 };
 
-                let to_points = |left: &Coordinate, right: &Coordinate| {
+                let to_relation = |left: &Coordinate, right: &Coordinate| {
                     get_fitness(left)
                         .zip(get_fitness(right))
                         .map(|(left, right)| compare_fitness(left.as_slice(), right.as_slice()))
-                        .filter(|ord| *ord == Ordering::Greater)
-                        .map(|_| {
-                            let x_step = x_step.round() as i32;
-                            let y_step = y_step.round() as i32;
-
-                            let (direction, line) = match (left.0 - right.0, left.1 - right.1) {
-                                (0, 1) => (ArrowDirection::Bottom, [(0, 0), (0, y_step)]),
-                                (0, -1) => (ArrowDirection::Top, [(0, 0), (0, -y_step)]),
-                                (1, 0) => (ArrowDirection::Left, [(0, 0), (-x_step, 0)]),
-                                (-1, 0) => (ArrowDirection::Right, [(0, 0), (x_step, 0)]),
-                                _ => unreachable!(),
-                            };
-                            (line, direction.get_points(1.))
-                        })
                 };
 
+                let to_points = |left: &Coordinate, right: &Coordinate| {
+                    to_relation(left, right).filter(|ord| *ord == Ordering::Greater).map(|_| {
+                        let x_step = x_step.round() as i32;
+                        let y_step = y_step.round() as i32;
+
+                        let (direction, line) = match (left.0 - right.0, left.1 - right.1) {
+                            (0, 1) => (ArrowDirection::Bottom, [(0, 0), (0, y_step)]),
+                            (0, -1) => (ArrowDirection::Top, [(0, 0), (0, -y_step)]),
+                            (1, 0) => (ArrowDirection::Left, [(0, 0), (-x_step, 0)]),
+                            (-1, 0) => (ArrowDirection::Right, [(0, 0), (x_step, 0)]),
+                            _ => unreachable!(),
+                        };
+                        (line, direction.get_points(1.))
+                    })
+                };
+
+                let get_neighbours = |x: i32, y: i32| {
+                    [Coordinate(x, y + 1), Coordinate(x, y - 1), Coordinate(x + 1, y), Coordinate(x - 1, y)]
+                };
+
+                let translate = |x: i32, y: i32| {
+                    let x = ((x - rows.start) as f64 * x_step).round() as i32;
+                    let x_offset = (x_step / 2.).round() as i32;
+                    let x = x + x_offset;
+
+                    let y = y - cols.start;
+                    let y = (y as f64 * y_step).round() as i32;
+                    let y_offset = (y_step / 2.).round() as i32;
+                    let y = (vertical_offset + h) as i32 - (y + y_offset);
+
+                    (x, y)
+                };
+
+                // draw arrows
                 rows.clone()
                     .cartesian_product(cols.clone())
                     .filter_map(|(x, y)| {
                         let current = Coordinate(x, y);
 
-                        // check top direction
-                        let arrows = [
-                            to_points(&current, &Coordinate(x, y + 1)),
-                            to_points(&current, &Coordinate(x, y - 1)),
-                            to_points(&current, &Coordinate(x + 1, y)),
-                            to_points(&current, &Coordinate(x - 1, y)),
-                        ]
-                        .into_iter()
-                        .flatten()
-                        .collect::<Vec<_>>();
+                        let arrows = get_neighbours(x, y)
+                            .map(|coordinate| to_points(&current, &coordinate))
+                            .into_iter()
+                            .flatten()
+                            .collect::<Vec<_>>();
 
                         if arrows.is_empty() {
                             None
@@ -197,20 +212,33 @@ fn draw_population<B: DrawingBackend + 'static>(
                     })
                     .flat_map(|(coord, arrows)| arrows.into_iter().map(move |arrow| (coord, arrow)))
                     .try_for_each(|((x, y), (line, arrow))| {
-                        let x = ((x - rows.start) as f64 * x_step).round() as i32;
-                        let x_offset = (x_step / 2.).round() as i32;
-                        let x = x + x_offset;
-
-                        let y = y - cols.start;
-                        let y = (y as f64 * y_step).round() as i32;
-                        let y_offset = (y_step / 2.).round() as i32;
-                        let y = (vertical_offset + h) as i32 - (y + y_offset);
+                        let (x, y) = translate(x, y);
 
                         let figure = EmptyElement::at((x, y))
                             + PathElement::new(line, BLUE)
                             + Polygon::new(arrow.map(|(x, y)| (x + line[1].0, y + line[1].1)), BLUE);
 
                         area.draw(&figure)
+                    })?;
+
+                // draw local optimum markers
+                rows.clone()
+                    .cartesian_product(cols.clone())
+                    .filter(|&(x, y)| series[0].matrix.deref()().get(&Coordinate(x, y)).is_some())
+                    .filter(|&(x, y)| {
+                        get_neighbours(x, y)
+                            .map(|coordinate| to_relation(&Coordinate(x, y), &coordinate))
+                            .into_iter()
+                            .flatten()
+                            .all(|ord| ord != Ordering::Greater)
+                    })
+                    .map(|(x, y)| translate(x, y))
+                    .try_for_each(|(x, y)| {
+                        let size = 12;
+                        let coord = (x - size / 2, y - size / 2);
+                        let style = ("sans-serif", size).into_font().color(&RED);
+
+                        area.draw(&Text::new("x", coord, style))
                     })?;
 
                 Ok(())
