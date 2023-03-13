@@ -134,13 +134,7 @@ where
                 .collect::<Vec<_>>();
             data.shuffle(&mut rand::thread_rng());
 
-            let nodes_data = parallel_into_collect(data, |input| {
-                let bmu = self.find_bmu(&input);
-                let error = bmu.read().unwrap().distance(input.weights());
-                (bmu, error, input)
-            });
-
-            self.train_batch(nodes_data, false);
+            self.train_on_data(data, false);
 
             self.nodes.iter_mut().for_each(|(_, node)| {
                 node.write().unwrap().error = 0.;
@@ -152,25 +146,33 @@ where
     pub fn compact(&mut self, node_filter: &(dyn Fn(&NodeLink<I, S>, f64) -> bool)) {
         let original = self.nodes.len();
         let mut removed = vec![];
-        let mut remove_node = |coordinate: &Coordinate| {
+        let mut add_to_removed = |coordinate: &Coordinate| {
             // NOTE: prevent network to be less than 4 nodes
             if (original - removed.len()) > 4 {
                 removed.push(*coordinate);
             }
         };
 
-        // remove user defined nodes
+        // find user defined nodes which should be removed
         self.nodes
             .iter()
             .filter(|(_, node)| {
                 let unified_distance = node.read().unwrap().unified_distance(self, 1);
                 !node_filter.deref()(node, unified_distance)
             })
-            .for_each(|(coordinate, _)| remove_node(coordinate));
+            .for_each(|(coordinate, _)| add_to_removed(coordinate));
 
-        removed.iter().for_each(|coordinate| {
+        // remove nodes with given coordinates, but keep track of their data
+        let data = removed.iter().fold(Vec::new(), |mut data, coordinate| {
+            let node = self.nodes.get(coordinate).unwrap();
+            data.extend(node.write().unwrap().storage.drain(0..));
             self.nodes.remove(coordinate);
+
+            data
         });
+
+        // reintroduce data from deleted notes to the network while network growth is not allowed
+        self.train_on_data(data, false);
     }
 
     /// Finds node by its coordinate.
@@ -241,6 +243,17 @@ where
             self.update(&bmu, &input, error, is_new_input);
             bmu.write().unwrap().storage.add(input);
         });
+    }
+
+    /// Trains network on given input data.
+    fn train_on_data(&mut self, data: Vec<I>, is_new_input: bool) {
+        let nodes_data = parallel_into_collect(data, |input| {
+            let bmu = self.find_bmu(&input);
+            let error = bmu.read().unwrap().distance(input.weights());
+            (bmu, error, input)
+        });
+
+        self.train_batch(nodes_data, is_new_input);
     }
 
     /// Finds the best matching unit within the map for the given input.
