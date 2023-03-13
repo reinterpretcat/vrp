@@ -245,7 +245,7 @@ mod time_dependent {
     use crate::models::problem::{DynamicActivityCost, DynamicTransportCost};
     use hashbrown::HashMap;
 
-    fn create_constraint_pipeline_and_route(
+    fn create_feature_and_route(
         vehicle_detail_data: VehicleData,
         activities: Vec<ActivityData>,
         reserved_time: TimeWindow,
@@ -334,8 +334,7 @@ mod time_dependent {
         late_arrival_expected: Vec<Option<f64>>,
         expected_schedules: Vec<(Timestamp, Timestamp)>,
     ) {
-        let (feature, mut route_ctx) =
-            create_constraint_pipeline_and_route(vehicle_detail_data, activities, reserved_time);
+        let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data, activities, reserved_time);
         feature.state.unwrap().accept_route_state(&mut route_ctx);
 
         let schedules = get_schedules(&route_ctx);
@@ -413,22 +412,22 @@ mod time_dependent {
         activities: Vec<ActivityData>,
         expected_schedules: Vec<(Timestamp, Timestamp)>,
     ) {
-        let (feature, mut route_ctx) =
-            create_constraint_pipeline_and_route(vehicle_detail_data, activities, reserved_time);
-        feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
+        let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data, activities, reserved_time);
+        let feature_constraint = feature.constraint.unwrap();
+        let feature_state = feature.state.unwrap();
+        feature_state.accept_route_state(&mut route_ctx);
         let (loc, (start, end), dur) = target;
         let prev = route_ctx.route.tour.get(0).unwrap();
         let target = test_activity_with_location_tw_and_duration(loc, TimeWindow::new(start, end), dur);
         let next = route_ctx.route.tour.get(1);
         let activity_ctx = ActivityContext { index: 1, prev, target: &target, next };
 
-        let is_violation =
-            feature.constraint.unwrap().evaluate(&MoveContext::activity(&route_ctx, &activity_ctx)).is_some();
+        let is_violation = feature_constraint.evaluate(&MoveContext::activity(&route_ctx, &activity_ctx)).is_some();
 
         assert_eq!(is_violation, expected_schedules.is_empty());
         if !is_violation {
             route_ctx.route_mut().tour.insert_at(target, 1);
-            feature.state.unwrap().accept_route_state(&mut route_ctx);
+            feature_state.accept_route_state(&mut route_ctx);
             assert_eq!(get_schedules(&route_ctx), expected_schedules)
         }
     }

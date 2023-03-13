@@ -7,8 +7,6 @@ extern crate serde_json;
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::io::BufWriter;
-
 use vrp_core::models::problem::ReservedTimesIndex;
 use vrp_core::models::problem::{Fleet as CoreFleet, Job as CoreJob};
 use vrp_core::models::Problem as CoreProblem;
@@ -92,20 +90,12 @@ impl FormatError {
 
     /// Serializes error into json string.
     pub fn to_json(&self) -> String {
-        let mut buffer = String::new();
-        let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-        serde_json::to_writer_pretty(writer, &self).unwrap();
-
-        buffer
+        serde_json::to_string_pretty(&self).unwrap()
     }
 
     /// Formats multiple format errors into json string.
     pub fn format_many_to_json(errors: &[Self]) -> String {
-        let mut buffer = String::new();
-        let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-        serde_json::to_writer_pretty(writer, errors).unwrap();
-
-        buffer
+        serde_json::to_string_pretty(errors).unwrap()
     }
 
     /// Formats multiple format errors into string.

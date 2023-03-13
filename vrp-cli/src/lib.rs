@@ -500,11 +500,7 @@ pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
     // TODO validate the problem?
 
     let locations = get_unique_locations(problem);
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    serde_json::to_writer_pretty(writer, &locations).map_err(|err| err.to_string())?;
-
-    Ok(buffer)
+    serde_json::to_string_pretty(&locations).map_err(|err| err.to_string())
 }
 
 /// Gets solution serialized in json.
