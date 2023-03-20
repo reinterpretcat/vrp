@@ -383,6 +383,11 @@ where
         }));
     }
 
+    /// Returns data (weights) dimension.
+    pub(super) fn dimension(&self) -> usize {
+        self.dimension
+    }
+
     /// Creates a new node for given data.
     fn create_node(&self, coordinate: Coordinate, weights: &[f64], error: f64) -> Node<I, S> {
         Node::new(coordinate, weights, error, self.rebalance_memory, self.storage_factory.eval())

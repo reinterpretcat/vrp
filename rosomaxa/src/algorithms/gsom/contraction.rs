@@ -17,7 +17,7 @@ where
 {
     // determine decimation step
     let (decim_min, decim_max) = decimation;
-    let ((x_min, x_max), (y_min, y_max)) = get_network_shape(&network);
+    let ((x_min, x_max), (y_min, y_max)) = get_network_shape(network);
     let (x_decim, y_decim) = match (x_max - x_min, y_max - y_min) {
         (x, y) if x > y => (decim_min, decim_max),
         (x, y) if x < y => (decim_max, decim_min),
@@ -50,6 +50,23 @@ where
 
         node
     });
+
+    // NOTE: this is unfortunate, probably, compact was called too often on low amount of nodes
+    if network.size() == 0 {
+        let dimension = network.dimension();
+        let get_weights = |idx: usize| -> Vec<f64> {
+            data.get(idx).map_or_else(
+                // NOTE: probably, very bad initialization..
+                || (0..dimension).map(|_| idx as f64).collect(),
+                |data| data.weights().to_vec(),
+            )
+        };
+
+        network.insert((0, 0).into(), get_weights(0).as_slice());
+        network.insert((0, 1).into(), get_weights(1).as_slice());
+        network.insert((1, 0).into(), get_weights(2).as_slice());
+        network.insert((1, 1).into(), get_weights(3).as_slice());
+    }
 
     // reintroduce data from deleted notes to the network while network growth is not allowed.
     network.train_on_data(data, false);
