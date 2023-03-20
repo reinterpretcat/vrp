@@ -8,7 +8,6 @@ use crate::utils::{compare_floats, parallel_into_collect, Noise, Random};
 use hashbrown::HashMap;
 use rand::prelude::SliceRandom;
 use std::cmp::Ordering;
-use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
 /// A customized Growing Self Organizing Map designed to store and retrieve trained input.
@@ -143,36 +142,8 @@ where
     }
 
     /// Compacts network. `node_filter` should return false for nodes to be removed.
-    pub fn compact(&mut self, node_filter: &(dyn Fn(&NodeLink<I, S>, f64) -> bool)) {
-        let original = self.nodes.len();
-        let mut removed = vec![];
-        let mut add_to_removed = |coordinate: &Coordinate| {
-            // NOTE: prevent network to be less than 4 nodes
-            if (original - removed.len()) > 4 {
-                removed.push(*coordinate);
-            }
-        };
-
-        // find user defined nodes which should be removed
-        self.nodes
-            .iter()
-            .filter(|(_, node)| {
-                let unified_distance = node.read().unwrap().unified_distance(self, 1);
-                !node_filter.deref()(node, unified_distance)
-            })
-            .for_each(|(coordinate, _)| add_to_removed(coordinate));
-
-        // remove nodes with given coordinates, but keep track of their data
-        let data = removed.iter().fold(Vec::new(), |mut data, coordinate| {
-            let node = self.nodes.get(coordinate).unwrap();
-            data.extend(node.write().unwrap().storage.drain(0..));
-            self.nodes.remove(coordinate);
-
-            data
-        });
-
-        // reintroduce data from deleted notes to the network while network growth is not allowed
-        self.train_on_data(data, false);
+    pub fn compact(&mut self) {
+        contract_graph(self, (2, 3));
     }
 
     /// Finds node by its coordinate.
@@ -246,7 +217,7 @@ where
     }
 
     /// Trains network on given input data.
-    fn train_on_data(&mut self, data: Vec<I>, is_new_input: bool) {
+    pub(super) fn train_on_data(&mut self, data: Vec<I>, is_new_input: bool) {
         let nodes_data = parallel_into_collect(data, |input| {
             let bmu = self.find_bmu(&input);
             let error = bmu.read().unwrap().distance(input.weights());
@@ -393,9 +364,23 @@ where
     }
 
     /// Inserts new neighbors if necessary.
-    fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) {
+    pub(super) fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) {
         update_min_max(&mut self.min_max_weights, weights);
         self.nodes.insert(coordinate, Arc::new(RwLock::new(self.create_node(coordinate, weights, 0.))));
+    }
+
+    /// Removes node with given coordinate.
+    pub(super) fn remove(&mut self, coordinate: &Coordinate) {
+        self.nodes.remove(coordinate);
+    }
+
+    /// Remaps internal lattice after potential changes in coordinate schema.
+    pub(super) fn remap(&mut self, node_modifier: &(dyn Fn(Coordinate, NodeLink<I, S>) -> NodeLink<I, S>)) {
+        let nodes = self.nodes.drain().map(|(coord, node)| node_modifier(coord, node)).collect::<Vec<_>>();
+        self.nodes.extend(nodes.into_iter().map(|node| {
+            let coordinate = node.read().unwrap().coordinate;
+            (coordinate, node)
+        }));
     }
 
     /// Creates a new node for given data.

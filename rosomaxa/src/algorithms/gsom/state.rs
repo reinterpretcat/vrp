@@ -42,12 +42,7 @@ where
     S: Storage<Item = I>,
     F: StorageFactory<I, S>,
 {
-    let ((x_min, x_max), (y_min, y_max)) = network.get_coordinates().fold(
-        ((i32::MAX, i32::MIN), (i32::MAX, i32::MIN)),
-        |((x_min, x_max), (y_min, y_max)), Coordinate(x, y)| {
-            ((x_min.min(x), x_max.max(x)), (y_min.min(y), y_max.max(y)))
-        },
-    );
+    let ((x_min, x_max), (y_min, y_max)) = get_network_shape(network);
 
     let mean_distance = network.mean_distance();
 
@@ -74,6 +69,21 @@ where
     let dim = nodes.first().map_or(0, |node| node.weights.len());
 
     NetworkState { shape: (x_min..x_max, y_min..y_max, dim), nodes, mean_distance }
+}
+
+/// Gets network's shape: min-max coordinate indices.
+pub fn get_network_shape<I, S, F>(network: &Network<I, S, F>) -> ((i32, i32), (i32, i32))
+where
+    I: Input,
+    S: Storage<Item = I>,
+    F: StorageFactory<I, S>,
+{
+    network.get_coordinates().fold(
+        ((i32::MAX, i32::MIN), (i32::MAX, i32::MIN)),
+        |((x_min, x_max), (y_min, y_max)), Coordinate(x, y)| {
+            ((x_min.min(x), x_max.max(x)), (y_min.min(y), y_max.max(y)))
+        },
+    )
 }
 
 impl Display for NetworkState {

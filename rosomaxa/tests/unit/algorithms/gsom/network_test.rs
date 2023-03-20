@@ -25,7 +25,6 @@ mod common {
 
             network.smooth(4);
         }
-        network.compact(&|node, _| !node.read().unwrap().storage.data.is_empty());
 
         assert!(!network.nodes.len() >= 4);
         samples.iter().for_each(|sample| {

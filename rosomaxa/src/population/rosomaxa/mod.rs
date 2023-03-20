@@ -273,11 +273,7 @@ where
                 if statistics.termination_estimate < exploration_ratio {
                     *old_statistics = statistics.clone();
                     *old_selection_size = selection_size;
-
-                    let best_individual = self.elite.select().next().expect("expected individuals in elite");
-                    let best_fitness = best_individual.fitness().collect::<Vec<_>>();
-
-                    optimization.optimize_network(network, statistics, best_fitness.as_slice());
+                    optimization.optimize_network(network, statistics);
 
                     Self::fill_populations(network, coordinates, self.environment.random.as_ref());
                 } else {

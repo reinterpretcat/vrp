@@ -4,6 +4,7 @@ mod node_test;
 
 use super::*;
 use std::collections::VecDeque;
+use std::fmt::Formatter;
 use std::sync::{Arc, RwLock};
 
 /// Represents a node in network.
@@ -142,5 +143,17 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         } else {
             sum
         }
+    }
+}
+
+impl Display for Coordinate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("({},{})", self.0, self.1))
+    }
+}
+
+impl From<(i32, i32)> for Coordinate {
+    fn from(value: (i32, i32)) -> Self {
+        Coordinate(value.0, value.1)
     }
 }

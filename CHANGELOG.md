@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 * update dependencies
 * fix clippy warnings
 * bug fix in capacity feature
+* change gsom compaction logic
 
 
 ## [v1.19.1]
