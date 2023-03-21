@@ -39,12 +39,12 @@ impl Ruin for ClusterRemoval {
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
         let tracker = RwLock::new(JobRemovalTracker::new(&self.limits, insertion_ctx.environment.random.as_ref()));
 
-        let mut indices = (0..self.clusters.len()).into_iter().collect::<Vec<usize>>();
+        let mut indices = (0..self.clusters.len()).collect::<Vec<usize>>();
         indices.shuffle(&mut insertion_ctx.environment.random.get_rng());
 
         indices.into_iter().take_while(|_| !tracker.read().unwrap().is_limit()).for_each(|idx| {
             let cluster = self.clusters.get(idx).unwrap();
-            let mut indices = (0..cluster.len()).into_iter().collect::<Vec<usize>>();
+            let mut indices = (0..cluster.len()).collect::<Vec<usize>>();
             indices.shuffle(&mut insertion_ctx.environment.random.get_rng());
             indices
                 .iter()

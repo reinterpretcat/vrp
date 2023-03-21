@@ -204,7 +204,6 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
                 let activity = get_activity_by_idx(&route_ctx.route, start_idx);
                 let has_resource_demand = self.resource_capacity_fn.deref()(activity).map_or(false, |(_, _)| {
                     (start_idx..=end_idx)
-                        .into_iter()
                         .filter_map(|idx| route_ctx.route.tour.get(idx))
                         .filter_map(|activity| activity.job.as_ref())
                         .any(|job| self.resource_demand_fn.deref()(job).is_some())

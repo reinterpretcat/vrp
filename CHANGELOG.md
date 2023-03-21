@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+This release introduces improvements in rosomaxa-heuristic.
+
 ### Added
 
 * python binding with pyo3
@@ -13,9 +15,10 @@ All notable changes to this project will be documented in this file.
 
 * cleaned area leftovers
 * update dependencies
+* update rust version on dev environment to 1.68
 * fix clippy warnings
 * bug fix in capacity feature
-* change gsom compaction logic
+* change gsom compaction logic and adapt rosomaxa
 
 
 ## [v1.19.1]
