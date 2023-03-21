@@ -291,16 +291,23 @@ where
         statistics: &HeuristicStatistics,
         config: &RosomaxaConfig,
     ) {
-        if config.learning_rate < 1. {
-            network.set_learning_rate(statistics.termination_estimate.clamp(config.learning_rate, 1.));
-        }
+        // sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
+        let x = statistics.termination_estimate.clamp(0., 0.8);
+        let rate = 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.5)));
+
+        // slowly raise learning rate from initial up to 2*initial
+        let learning_rate =
+            (config.learning_rate * (1. + x)).clamp(config.learning_rate, 0.9_f64.max(config.learning_rate));
+        network.set_learning_rate(learning_rate);
 
         if statistics.generation % config.rebalance_memory == 0 {
             network.smooth(1);
         }
 
-        let ratio = get_network_size_ratio(statistics);
-        let keep_size = config.rebalance_memory + (config.rebalance_memory as f64 * ratio) as usize;
+        // slowly decrease size of network from 3 * rebalance_memory to rebalance_memory
+        let keep_ratio = 2. * (1. - rate);
+        let keep_size = config.rebalance_memory + (config.rebalance_memory as f64 * keep_ratio) as usize;
+
         // no need to shrink network
         if network.size() <= keep_size {
             return;
@@ -526,16 +533,4 @@ where
             distance < threshold
         }
     })
-}
-
-/// Gets a ratio for network size.
-fn get_network_size_ratio(statistics: &HeuristicStatistics) -> f64 {
-    // https://www.wolframalpha.com/input?i=plot+2+*+%281+-+1%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
-    let x = match statistics.improvement_1000_ratio {
-        v if v < 0.25 => v,
-        _ => statistics.termination_estimate,
-    }
-    .clamp(0., 1.);
-
-    2. * (1. - 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.5))))
 }

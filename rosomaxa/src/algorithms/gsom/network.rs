@@ -136,7 +136,7 @@ where
 
     /// Compacts network. `node_filter` should return false for nodes to be removed.
     pub fn compact(&mut self) {
-        contract_graph(self, (2, 3));
+        contract_graph(self, (3, 4));
     }
 
     /// Finds node by its coordinate.
@@ -232,7 +232,7 @@ where
 
     /// Updates network according to the error.
     fn update(&mut self, node: &NodeLink<I, S>, input: &I, error: f64, is_new_input: bool) {
-        let radius = if is_new_input { 2 } else { 1 };
+        let radius = if is_new_input { 2 } else { 3 };
 
         let (exceeds_ae, can_grow) = {
             let mut node = node.write().unwrap();
