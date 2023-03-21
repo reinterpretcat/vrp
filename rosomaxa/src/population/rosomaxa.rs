@@ -291,13 +291,10 @@ where
         statistics: &HeuristicStatistics,
         config: &RosomaxaConfig,
     ) {
-        // sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
-        let x = statistics.termination_estimate.clamp(0., 0.8);
-        let rate = 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.5)));
-
-        // slowly raise learning rate from initial up to 2*initial
+        // increase rate according to termination estimate
+        let rate = statistics.termination_estimate.clamp(config.learning_rate, 0.8);
         let learning_rate =
-            (config.learning_rate * (1. + x)).clamp(config.learning_rate, 0.9_f64.max(config.learning_rate));
+            (config.learning_rate * (1. + rate)).clamp(config.learning_rate, 0.9_f64.max(config.learning_rate));
         network.set_learning_rate(learning_rate);
 
         if statistics.generation % config.rebalance_memory == 0 {
@@ -305,6 +302,7 @@ where
         }
 
         // slowly decrease size of network from 3 * rebalance_memory to rebalance_memory
+        let rate = get_sigmoid_curve(statistics.termination_estimate);
         let keep_ratio = 2. * (1. - rate);
         let keep_size = config.rebalance_memory + (config.rebalance_memory as f64 * keep_ratio) as usize;
 
@@ -533,4 +531,10 @@ where
             distance < threshold
         }
     })
+}
+
+/// Sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
+fn get_sigmoid_curve(value: f64) -> f64 {
+    let x = value.clamp(0., 0.8);
+    1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.5)))
 }
