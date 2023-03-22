@@ -155,8 +155,14 @@ where
 
             let parents = heuristic_ctx.population().select().collect::<Vec<_>>();
 
-            let search_offspring = heuristic.search(&heuristic_ctx, parents.clone());
-            let diverse_offspring = heuristic.diversify(&heuristic_ctx, parents);
+            let diverse_offspring = if heuristic_ctx.population().selection_phase() == SelectionPhase::Exploitation {
+                Vec::default()
+            } else {
+                heuristic.diversify(&heuristic_ctx, parents.clone())
+            };
+
+            let search_offspring = heuristic.search(&heuristic_ctx, parents);
+
             let offspring = search_offspring.into_iter().chain(diverse_offspring).collect::<Vec<_>>();
 
             let termination_estimate = termination.estimate(&heuristic_ctx);
