@@ -5,7 +5,7 @@ authors:
   given-names: "Ilya"
   orcid: "https://orcid.org/0000-0002-7613-7412"
 title: "Rosomaxa, Vehicle Routing Problem Solver"
-version: 1.19.1
+version: 1.19.2
 doi: 10.5281/zenodo.4624037
 date-released: 2022-05-13
 url: "https://github.com/reinterpretcat/vrp"

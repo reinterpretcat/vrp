@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.19.2]
+
 This release introduces improvements in rosomaxa-heuristic.
 
 ### Added
@@ -585,7 +588,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.19.1...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.19.2...HEAD
+[v1.19.2]: https://github.com/reinterpretcat/vrp/compare/v1.19.1...v1.90.2
 [v1.19.1]: https://github.com/reinterpretcat/vrp/compare/v1.19.0...v1.90.1
 [v1.19.0]: https://github.com/reinterpretcat/vrp/compare/v1.18.4...v1.90.0
 [v1.18.4]: https://github.com/reinterpretcat/vrp/compare/v1.18.3...v1.18.4
