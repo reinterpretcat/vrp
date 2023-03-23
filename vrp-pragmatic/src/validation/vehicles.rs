@@ -142,67 +142,7 @@ fn check_e1304_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result
     }
 }
 
-/// Checks that vehicle area restrictions are valid.
-fn check_e1305_vehicle_limit_area_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
-    let area_index = ctx
-        .problem
-        .plan
-        .areas
-        .iter()
-        .flat_map(|areas| areas.iter().map(|area| (&area.id, &area.jobs)))
-        .collect::<HashMap<_, _>>();
-
-    let type_ids = ctx
-        .vehicles()
-        .filter(|vehicle| {
-            let area_ids = vehicle
-                .limits
-                .as_ref()
-                .and_then(|l| l.areas.as_ref())
-                .iter()
-                .flat_map(|areas| areas.iter())
-                .flat_map(|areas| areas.iter())
-                .collect::<Vec<_>>();
-
-            // check area presence
-            if !area_ids.iter().all(|limit| area_index.get(&limit.area_id).is_some()) {
-                return true;
-            }
-
-            let all_jobs = area_ids
-                .iter()
-                .flat_map(|limit| area_index.get(&limit.area_id).iter().cloned().collect::<Vec<_>>().into_iter())
-                .flat_map(|job_ids| job_ids.iter())
-                .collect::<Vec<_>>();
-
-            // check job presence
-            if !all_jobs.iter().all(|&job_id| ctx.job_index.contains_key(job_id)) {
-                return true;
-            }
-
-            // check job uniqueness
-            let unique_jobs = all_jobs.iter().collect::<HashSet<_>>();
-            all_jobs.len() != unique_jobs.len()
-        })
-        .map(|vehicle| vehicle.type_id.to_string())
-        .collect::<Vec<_>>();
-
-    if type_ids.is_empty() {
-        Ok(())
-    } else {
-        Err(FormatError::new(
-            "E1305".to_string(),
-            "invalid allowed area definition in vehicle limits".to_string(),
-            format!(
-                "ensure that areas for the same vehicle contains unique and valid job ids, \
-                 vehicle type ids: '{}'",
-                type_ids.join(", ")
-            ),
-        ))
-    }
-}
-
-fn check_e1306_vehicle_dispatch_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1305_vehicle_dispatch_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(move |vehicle, shift, shift_time| {
@@ -233,7 +173,7 @@ fn check_e1306_vehicle_dispatch_is_correct(ctx: &ValidationContext) -> Result<()
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1306".to_string(),
+            "E1305".to_string(),
             "invalid dispatch in vehicle shift".to_string(),
             format!(
                 "ensure that all dispatch have proper dispatch parameters and unique locations. Vehicle type ids: '{}'",
@@ -244,7 +184,7 @@ fn check_e1306_vehicle_dispatch_is_correct(ctx: &ValidationContext) -> Result<()
 }
 
 /// Checks that vehicle area restrictions are valid.
-fn check_e1307_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1306_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = ctx
         .vehicles()
         .filter(|vehicle| {
@@ -258,7 +198,7 @@ fn check_e1307_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), 
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1307".to_string(),
+            "E1306".to_string(),
             "time and duration costs are zeros".to_string(),
             format!(
                 "ensure that either time or distance cost is non-zero, \
@@ -269,7 +209,7 @@ fn check_e1307_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), 
     }
 }
 
-fn check_e1308_vehicle_required_break_rescheduling(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1307_vehicle_required_break_rescheduling(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(|_, shift, _| {
@@ -291,17 +231,65 @@ fn check_e1308_vehicle_required_break_rescheduling(ctx: &ValidationContext) -> R
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1308".to_string(),
+            "E1307".to_string(),
             "required break is used with departure rescheduling".to_string(),
             format!("when required break is used, start.latest should be set equal to start.earliest in the shift, check vehicle type ids: '{}'", type_ids.join(", ")),
         ))
     }
 }
 
-fn get_invalid_type_ids(
-    ctx: &ValidationContext,
-    check_shift: Box<dyn Fn(&VehicleType, &VehicleShift, Option<TimeWindow>) -> bool>,
-) -> Vec<String> {
+fn check_e1308_vehicle_reload_resources(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let reload_resource_ids = ctx
+        .problem
+        .fleet
+        .resources
+        .iter()
+        .flat_map(|resources| resources.iter())
+        .map(|resource| match resource {
+            VehicleResource::Reload { id, .. } => id.to_string(),
+        })
+        .collect::<Vec<_>>();
+
+    let unique_resource_ids = reload_resource_ids.iter().cloned().collect::<HashSet<_>>();
+
+    if reload_resource_ids.len() != unique_resource_ids.len() {
+        return Err(FormatError::new(
+            "E1308".to_string(),
+            "invalid vehicle reload resource".to_string(),
+            "make sure that fleet reload resource ids are unique".to_string(),
+        ));
+    }
+
+    let type_ids = get_invalid_type_ids(
+        ctx,
+        Box::new(move |_, shift, _| {
+            shift
+                .reloads
+                .as_ref()
+                .iter()
+                .flat_map(|reloads| reloads.iter())
+                .filter_map(|reload| reload.resource_id.as_ref())
+                .all(|resource_id| unique_resource_ids.contains(resource_id))
+        }),
+    );
+
+    if type_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1308".to_string(),
+            "invalid vehicle reload resource".to_string(),
+            format!(
+                "make sure that fleet has all reload resources defined, check vehicle type ids: '{}'",
+                type_ids.join(", ")
+            ),
+        ))
+    }
+}
+
+type CheckShiftFn = Box<dyn Fn(&VehicleType, &VehicleShift, Option<TimeWindow>) -> bool>;
+
+fn get_invalid_type_ids(ctx: &ValidationContext, check_shift: CheckShiftFn) -> Vec<String> {
     ctx.vehicles()
         .filter_map(|vehicle| {
             let all_correct =
@@ -343,9 +331,9 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>
         check_e1302_vehicle_shift_time(ctx),
         check_e1303_vehicle_breaks_time_is_correct(ctx),
         check_e1304_vehicle_reload_time_is_correct(ctx),
-        check_e1305_vehicle_limit_area_is_correct(ctx),
-        check_e1306_vehicle_dispatch_is_correct(ctx),
-        check_e1307_vehicle_has_no_zero_costs(ctx),
-        check_e1308_vehicle_required_break_rescheduling(ctx),
+        check_e1305_vehicle_dispatch_is_correct(ctx),
+        check_e1306_vehicle_has_no_zero_costs(ctx),
+        check_e1307_vehicle_required_break_rescheduling(ctx),
+        check_e1308_vehicle_reload_resources(ctx),
     ])
 }

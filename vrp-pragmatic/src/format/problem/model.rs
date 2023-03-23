@@ -38,15 +38,6 @@ pub struct Relation {
     pub shift_index: Option<usize>,
 }
 
-/// An area is the way to control job execution order.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct Area {
-    /// An unique id of the area.
-    pub id: String,
-    /// List of job ids.
-    pub jobs: Vec<String>,
-}
-
 /// A job skills limitation for a vehicle.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -231,10 +222,6 @@ pub struct Plan {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relations: Option<Vec<Relation>>,
 
-    /// List of areas.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub areas: Option<Vec<Area>>,
-
     /// Specifies clustering parameters.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub clustering: Option<Clustering>,
@@ -342,6 +329,7 @@ pub struct VehicleDispatchLimit {
 
 /// Specifies a place where vehicle can load or unload cargo.
 #[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VehicleReload {
     /// A place location.
     pub location: Location,
@@ -356,6 +344,10 @@ pub struct VehicleReload {
     /// A tag which will be propagated back within corresponding activity in solution.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tag: Option<String>,
+
+    /// A shared reload resource id.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_id: Option<String>,
 }
 
 /// Vehicle limits.
@@ -376,21 +368,6 @@ pub struct VehicleLimits {
     /// No job activities restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tour_size: Option<usize>,
-
-    /// Specifies a list of area ids where vehicle can serve jobs.
-    /// No area restrictions when omitted.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub areas: Option<Vec<Vec<AreaLimit>>>,
-}
-
-/// An area limit.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AreaLimit {
-    /// An area id.
-    pub area_id: String,
-    /// A value added to the total value once job is served in given area.
-    pub job_value: f64,
 }
 
 /// Vehicle optional break time variant.
@@ -515,13 +492,32 @@ pub struct MatrixProfile {
     pub speed: Option<f64>,
 }
 
+/// Specifies vehicle resource type.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(tag = "type")]
+pub enum VehicleResource {
+    /// A shared reload resource.
+    #[serde(rename(deserialize = "reload", serialize = "reload"))]
+    Reload {
+        /// Resource id.
+        id: String,
+        /// A total resource capacity.
+        capacity: Vec<i32>,
+    },
+}
+
 /// Specifies fleet.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Fleet {
     /// Vehicle types.
     pub vehicles: Vec<VehicleType>,
+
     /// Routing profiles.
     pub profiles: Vec<MatrixProfile>,
+
+    /// Specifies vehicle resources.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resources: Option<Vec<VehicleResource>>,
 }
 
 // endregion
@@ -532,7 +528,7 @@ pub struct Fleet {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type")]
 pub enum Objective {
-    /// An objective to minimize total cost.
+    /// An objective to minimize total cost as linear combination of total time and distance.
     #[serde(rename(deserialize = "minimize-cost", serialize = "minimize-cost"))]
     MinimizeCost,
 
@@ -555,15 +551,9 @@ pub enum Objective {
     /// An objective to maximize value of served jobs.
     #[serde(rename(deserialize = "maximize-value", serialize = "maximize-value"))]
     MaximizeValue {
-        /// Specifies a weight of skipped breaks. Default value is 100.
+        /// Specifies a weight of skipped breaks.
         #[serde(skip_serializing_if = "Option::is_none")]
         breaks: Option<f64>,
-
-        /// A factor to reduce value cost compared to max cost.
-        /// Default value is 0.1.
-        #[serde(rename = "reductionFactor")]
-        #[serde(skip_serializing_if = "Option::is_none")]
-        reduction_factor: Option<f64>,
     },
 
     /// An objective to minimize amount of unassigned jobs.
@@ -616,25 +606,7 @@ pub enum Objective {
 
     /// An objective to control order of job activities in the tour.
     #[serde(rename(deserialize = "tour-order", serialize = "tour-order"))]
-    TourOrder {
-        /// If the property is set to true, then order is enforced as hard constraint.
-        #[serde(rename = "isConstrained")]
-        is_constrained: bool,
-    },
-
-    /// An objective to control distribution of the jobs across different areas.
-    #[serde(rename(deserialize = "area-order", serialize = "area-order"))]
-    AreaOrder {
-        /// Specifies a weight of skipped breaks. Default value is 100.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        breaks: Option<f64>,
-        /// If the property is set to true, then order is enforced as hard constraint.
-        #[serde(rename = "isConstrained")]
-        is_constrained: bool,
-        /// If the property is set to true, then value objective is preferred over violations counter.
-        #[serde(rename = "isValuePreferred")]
-        is_value_preferred: Option<bool>,
-    },
+    TourOrder,
 }
 
 /// Specifies balance objective options. At the moment, it uses coefficient of variation as
@@ -695,7 +667,7 @@ pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Vec
         vec![FormatError::new(
             "E0000".to_string(),
             "cannot deserialize problem".to_string(),
-            format!("check input json: '{}'", err),
+            format!("check input json: '{err}'"),
         )]
     })
 }
@@ -706,7 +678,7 @@ pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Vec<F
         vec![FormatError::new(
             "E0001".to_string(),
             "cannot deserialize matrix".to_string(),
-            format!("check input json: '{}'", err),
+            format!("check input json: '{err}'"),
         )]
     })
 }
@@ -717,7 +689,7 @@ pub fn deserialize_locations<R: Read>(reader: BufReader<R>) -> Result<Vec<Locati
         vec![FormatError::new(
             "E0000".to_string(),
             "cannot deserialize locations".to_string(),
-            format!("check input json: '{}'", err),
+            format!("check input json: '{err}'"),
         )]
     })
 }

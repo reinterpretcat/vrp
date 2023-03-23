@@ -1,6 +1,10 @@
 use super::*;
-use crate::construction::constraints::*;
-use crate::helpers::construction::constraints::{create_simple_demand, create_simple_dynamic_demand};
+use crate::construction::features::{
+    create_capacity_limit_feature, create_locked_jobs_feature, create_minimize_transport_costs_feature,
+};
+use crate::helpers::construction::features::{
+    create_goal_ctx_with_features, create_simple_demand, create_simple_dynamic_demand,
+};
 use crate::helpers::models::problem::*;
 use crate::models::common::*;
 use crate::models::problem::*;
@@ -68,7 +72,7 @@ fn create_test_problem(
         .map(|(vehicle_id, order, position, job_ids)| {
             let vehicle_id = vehicle_id.to_string();
             Arc::new(Lock {
-                condition: Arc::new(move |actor| actor.vehicle.dimens.get_id().unwrap().to_string() == vehicle_id),
+                condition: Arc::new(move |actor| *actor.vehicle.dimens.get_id().unwrap() == vehicle_id),
                 details: vec![LockDetail {
                     order,
                     position,
@@ -79,30 +83,22 @@ fn create_test_problem(
         })
         .collect::<Vec<_>>();
 
-    let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Arc::new(TransportConstraintModule::new(
-        transport.clone(),
-        activity.clone(),
-        Arc::new(|_| (None, None)),
-        1,
-        2,
-        3,
-    )));
-    constraint.add_module(Arc::new(StrictLockingModule::new(&fleet, locks.as_slice(), 4)));
-    constraint.add_module(Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(
-        activity.clone(),
-        transport.clone(),
-        5,
-    )));
+    let goal = create_goal_ctx_with_features(
+        vec![
+            create_minimize_transport_costs_feature("transport", transport.clone(), activity.clone(), 1).unwrap(),
+            create_locked_jobs_feature("locked_jobs", &fleet, locks.as_slice(), 4).unwrap(),
+            create_capacity_limit_feature::<SingleDimLoad>("capacity", 5).unwrap(),
+        ],
+        vec![vec!["transport"]],
+    );
 
     Problem {
         fleet: fleet.clone(),
         jobs: Arc::new(Jobs::new(&fleet, jobs, &transport)),
         locks,
-        constraint: Arc::new(constraint),
+        goal: Arc::new(goal),
         activity,
         transport,
-        objective: Arc::new(ProblemObjective::default()),
         extras: Arc::new(Default::default()),
     }
 }
@@ -126,7 +122,7 @@ fn add_new_route(insertion_ctx: &mut InsertionContext, vehicle_id: &str, activit
         });
     });
 
-    insertion_ctx.problem.constraint.accept_route_state(&mut route_ctx);
+    insertion_ctx.problem.goal.accept_route_state(&mut route_ctx);
 
     insertion_ctx.solution.routes.push(route_ctx);
 }
@@ -305,6 +301,7 @@ can_restore_solution! {
     ),
 }
 
+#[allow(clippy::type_complexity)]
 fn can_restore_solution_impl(
     singles: Vec<(&str, JobData)>,
     multies: Vec<(&str, Vec<JobData>)>,
@@ -316,7 +313,7 @@ fn can_restore_solution_impl(
     let problem = Arc::new(create_test_problem(singles, multies, vehicles, locks));
     let mut insertion_ctx = create_test_insertion_ctx(problem.clone());
     add_routes(&mut insertion_ctx, routes);
-    problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+    problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 
     let result = repair_solution_from_unknown(&insertion_ctx, &|| {
         InsertionContext::new(insertion_ctx.problem.clone(), insertion_ctx.environment.clone())

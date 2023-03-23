@@ -125,13 +125,18 @@ pub enum ServingPolicy {
     },
 }
 
+/// A function type which orders visiting clusters based on their estimated size.
+pub type OrderingGlobalFn = Arc<dyn Fn(ClusterCandidate, ClusterCandidate) -> Ordering + Send + Sync>;
+/// A function type which orders visiting jobs in a cluster based on their visit info.
+pub type OrderingLocalFn = Arc<dyn Fn(&ClusterInfo, &ClusterInfo) -> Ordering + Send + Sync>;
+
 /// Allows to control how clusters are built.
 #[derive(Clone)]
 pub struct BuilderPolicy {
     /// Orders visiting clusters based on their estimated size.
-    pub ordering_global: Arc<dyn Fn(ClusterCandidate, ClusterCandidate) -> Ordering + Send + Sync>,
+    pub ordering_global: OrderingGlobalFn,
     /// Orders visiting jobs in a cluster based on their visit info.
-    pub ordering_local: Arc<dyn Fn(&ClusterInfo, &ClusterInfo) -> Ordering + Send + Sync>,
+    pub ordering_local: OrderingLocalFn,
 }
 
 /// Keeps track of information specific for job in the cluster.
@@ -157,7 +162,7 @@ pub fn create_job_clusters(
     config: &ClusterConfig,
 ) -> Vec<(Job, Vec<Job>)> {
     let insertion_ctx = InsertionContext::new_empty(problem.clone(), environment);
-    let constraint = insertion_ctx.problem.constraint.clone();
+    let constraint = insertion_ctx.problem.goal.clone();
     let check_insertion = get_check_insertion_fn(insertion_ctx, config.filtering.actor_filter.as_ref());
     let transport = problem.transport.as_ref();
     let jobs = problem
@@ -178,8 +183,8 @@ fn get_check_insertion_fn(
     insertion_ctx: InsertionContext,
     actor_filter: &(dyn Fn(&Actor) -> bool + Send + Sync),
 ) -> impl Fn(&Job) -> Result<(), i32> {
-    let leg_selector = AllLegSelector::default();
     let result_selector = BestResultSelector::default();
+    let leg_selection = LegSelection::Exhaustive;
 
     let routes = insertion_ctx
         .solution
@@ -190,14 +195,14 @@ fn get_check_insertion_fn(
 
     move |job: &Job| -> Result<(), i32> {
         let eval_ctx = EvaluationContext {
-            constraint: &insertion_ctx.problem.constraint,
+            goal: &insertion_ctx.problem.goal,
             job,
-            leg_selector: &leg_selector,
+            leg_selection: &leg_selection,
             result_selector: &result_selector,
         };
 
         unwrap_from_result(routes.iter().try_fold(Err(-1), |_, route_ctx| {
-            let result = evaluate_job_insertion_in_route(
+            let result = eval_job_insertion_in_route(
                 &insertion_ctx,
                 &eval_ctx,
                 route_ctx,

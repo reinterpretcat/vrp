@@ -1,6 +1,10 @@
 //! This module contains definition of Markov Decision Process (MDP) model and related reinforcement
 //! learning logic.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/algorithms/mdp/mdp_test.rs"]
+mod mdp_test;
+
 mod simulator;
 pub use self::simulator::*;
 

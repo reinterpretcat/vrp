@@ -59,7 +59,7 @@ impl Default for Environment {
             Arc::new(DefaultRandom::default()),
             None,
             Parallelism::default(),
-            Arc::new(|msg| println!("{}", msg)),
+            Arc::new(|msg| println!("{msg}")),
             false,
         )
     }
@@ -104,6 +104,11 @@ impl Parallelism {
     pub fn new(num_thread_pools: usize, threads_per_pool: usize) -> Self {
         let thread_pools = (0..num_thread_pools).map(|_| ThreadPool::new(threads_per_pool)).collect();
         Self { available_cpus: get_cpus(), thread_pools: Some(Arc::new(thread_pools)) }
+    }
+
+    /// Creates an instance of `Parallelism` using available cpus as given.
+    pub fn new_with_cpus(available_cpus: usize) -> Self {
+        Self { available_cpus, ..Self::default() }
     }
 
     /// Amount of total available CPUs.

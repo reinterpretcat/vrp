@@ -1,13 +1,11 @@
-use crate::extensions::create_typed_actor_groups;
+use crate::construction::enablers::create_typed_actor_groups;
+use crate::construction::enablers::{JobTie, VehicleTie};
 use std::sync::Arc;
-use vrp_core::construction::constraints::ConstraintPipeline;
-use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::construction::heuristics::{RegistryContext, SolutionContext};
 use vrp_core::models::common::*;
-use vrp_core::models::examples::create_example_problem;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::*;
-use vrp_core::utils::{DefaultRandom, Environment};
+use vrp_core::utils::DefaultRandom;
 
 const DEFAULT_VEHICLE_COSTS: Costs =
     Costs { fixed: 100.0, per_distance: 1.0, per_driving_time: 1.0, per_waiting_time: 1.0, per_service_time: 1.0 };
@@ -22,10 +20,8 @@ pub fn test_driver() -> Driver {
 }
 
 pub fn test_vehicle(id: &str) -> Vehicle {
-    let mut dimens = Dimensions::new();
-    dimens.set_id(id);
-    dimens.set_value("type_id", id.to_owned());
-    dimens.set_value("shift_index", 0_usize);
+    let mut dimens = Dimensions::default();
+    dimens.set_vehicle_id(id.to_string()).set_vehicle_type(id.to_owned()).set_shift_index(0);
 
     Vehicle {
         profile: Profile::default(),
@@ -46,8 +42,12 @@ pub fn test_fleet() -> Fleet {
     )
 }
 
+pub fn test_fleet_with_vehicles(vehicles: Vec<Arc<Vehicle>>) -> Fleet {
+    Fleet::new(vec![Arc::new(test_driver())], vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
+}
+
 pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {
-    let actor = fleet.actors.iter().filter(|a| a.vehicle.dimens.get_id().unwrap() == vehicle).next().unwrap().clone();
+    let actor = fleet.actors.iter().find(|a| a.vehicle.dimens.get_vehicle_id().unwrap() == vehicle).unwrap().clone();
     let mut tour = Tour::new(&actor);
 
     activities.into_iter().enumerate().for_each(|(index, a)| {
@@ -76,16 +76,14 @@ pub fn create_activity_with_job_at_location(job: Arc<Single>, location: Location
 
 pub fn create_single(id: &str) -> Arc<Single> {
     let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
-    single.dimens.set_id(id);
-    single.dimens.set_value("type", "delivery".to_string());
+    single.dimens.set_job_id(id.to_string()).set_job_type("delivery".to_string());
 
     Arc::new(single)
 }
 
 pub fn create_single_with_type(id: &str, activity_type: &str) -> Arc<Single> {
     let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
-    single.dimens.set_id(id);
-    single.dimens.set_value("type", activity_type.to_string());
+    single.dimens.set_job_id(id.to_string()).set_job_type(activity_type.to_string());
 
     Arc::new(single)
 }
@@ -114,7 +112,7 @@ pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Deman
 }
 
 pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
-    let constraint = Arc::new(ConstraintPipeline::default());
+    let goal = Arc::new(GoalContext::default());
     SolutionContext {
         required: vec![],
         ignored: vec![],
@@ -122,15 +120,6 @@ pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
         locked: Default::default(),
         state: Default::default(),
         routes: Default::default(),
-        registry: RegistryContext::new(constraint, Registry::new(&fleet, Arc::new(DefaultRandom::default()))),
-    }
-}
-
-pub fn create_empty_insertion_context() -> InsertionContext {
-    let problem = create_example_problem();
-    InsertionContext {
-        problem: problem.clone(),
-        solution: create_solution_context_for_fleet(problem.fleet.as_ref()),
-        environment: Arc::new(Environment::default()),
+        registry: RegistryContext::new(goal, Registry::new(fleet, Arc::new(DefaultRandom::default()))),
     }
 }

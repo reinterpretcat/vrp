@@ -2,84 +2,15 @@
 #[path = "../../../tests/unit/models/problem/costs_test.rs"]
 mod costs_test;
 
-use crate::construction::heuristics::InsertionContext;
 use crate::models::common::*;
-use crate::models::problem::{Actor, TargetObjective};
+use crate::models::problem::Actor;
 use crate::models::solution::{Activity, Route};
-use crate::solver::objectives::{TotalCost, TotalRoutes, TotalUnassignedJobs};
 use hashbrown::HashMap;
-use rand::prelude::SliceRandom;
-use rosomaxa::algorithms::nsga2::dominance_order;
-use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use rosomaxa::utils::CollectGroupBy;
 use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::Arc;
-
-/// A hierarchical multi objective for vehicle routing problem.
-pub struct ProblemObjective {
-    objectives: Vec<Vec<TargetObjective>>,
-}
-
-impl ProblemObjective {
-    /// Creates an instance of `InsertionObjective`.
-    pub fn new(objectives: Vec<Vec<TargetObjective>>) -> Self {
-        Self { objectives }
-    }
-}
-
-impl Objective for ProblemObjective {
-    type Solution = InsertionContext;
-
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        unwrap_from_result(self.objectives.iter().try_fold(Ordering::Equal, |_, objectives| {
-            match dominance_order(a, b, objectives) {
-                Ordering::Equal => Ok(Ordering::Equal),
-                order => Err(order),
-            }
-        }))
-    }
-
-    fn distance(&self, _a: &Self::Solution, _b: &Self::Solution) -> f64 {
-        unreachable!()
-    }
-
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution.solution.get_total_cost()
-    }
-}
-
-impl MultiObjective for ProblemObjective {
-    fn objectives<'a>(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = &'a (dyn Objective<Solution = Self::Solution> + Send + Sync)> + 'a> {
-        Box::new(self.objectives.iter().flatten().map(|o| o.as_ref()))
-    }
-}
-
-impl HeuristicObjective for ProblemObjective {}
-
-impl Shuffled for ProblemObjective {
-    /// Returns a new instance of `ObjectiveCost` with shuffled objectives.
-    fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
-        let mut objectives = self.objectives.clone();
-
-        objectives.shuffle(&mut random.get_rng());
-
-        Self { objectives }
-    }
-}
-
-impl Default for ProblemObjective {
-    fn default() -> Self {
-        Self::new(vec![
-            vec![Arc::new(TotalUnassignedJobs::default())],
-            vec![Arc::new(TotalRoutes::default())],
-            vec![TotalCost::minimize()],
-        ])
-    }
-}
 
 /// Specifies travel time type.
 #[derive(Copy, Clone)]

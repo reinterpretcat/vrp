@@ -15,10 +15,10 @@ impl RecreateWithNearestNeighbor {
     pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
-                Box::new(AllJobSelector::default()),
-                Box::new(AllRouteSelector::default()),
-                Box::new(VariableLegSelector::new(random)),
-                Box::new(BestResultSelector::default()),
+                Box::<AllJobSelector>::default(),
+                Box::<AllRouteSelector>::default(),
+                LegSelection::Stochastic(random),
+                Box::<BestResultSelector>::default(),
                 InsertionHeuristic::new(Box::new(PositionInsertionEvaluator::new(InsertionPosition::Last))),
             ),
         }

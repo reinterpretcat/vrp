@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/construction/heuristics/context_test.rs"]
 mod context_test;
 
-use crate::construction::constraints::*;
+use crate::construction::features::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::construction::heuristics::factories::*;
 use crate::models::common::Cost;
 use crate::models::problem::*;
@@ -10,8 +10,11 @@ use crate::models::solution::*;
 use crate::models::{Extras, Problem, Solution};
 use crate::utils::as_mut;
 use hashbrown::{HashMap, HashSet};
+use nohash_hasher::BuildNoHashHasher;
 use rosomaxa::prelude::*;
+use rustc_hash::FxHasher;
 use std::any::Any;
+use std::hash::BuildHasherDefault;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -52,17 +55,9 @@ impl InsertionContext {
 
     /// Restores valid context state.
     pub fn restore(&mut self) {
-        let constraint = self.problem.constraint.clone();
-        // NOTE Run first accept solution as it can change existing routes
-        // by moving jobs from/to required/ignored jobs.
-        // if this happens, accept route state will fix timing/capacity after it
-        constraint.accept_solution_state(&mut self.solution);
+        self.problem.goal.accept_solution_state(&mut self.solution);
 
         self.remove_empty_routes();
-
-        self.solution.routes.iter_mut().for_each(|route_ctx| {
-            constraint.accept_route_state(route_ctx);
-        });
     }
 
     /// Removes empty routes from solution context.
@@ -80,8 +75,8 @@ impl InsertionContext {
 }
 
 impl HeuristicSolution for InsertionContext {
-    fn get_fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(self.problem.objective.objectives().map(move |objective| objective.fitness(self)))
+    fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
+        self.problem.goal.fitness(self)
     }
 
     fn deep_copy(&self) -> Self {
@@ -98,7 +93,7 @@ pub type StateValue = Arc<dyn Any + Send + Sync>;
 
 /// Keeps information about unassigned reason code.
 #[derive(Clone)]
-pub enum UnassignedCode {
+pub enum UnassignmentInfo {
     /// No code is available.
     Unknown,
     /// Only single code is available.
@@ -116,7 +111,7 @@ pub struct SolutionContext {
     pub ignored: Vec<Job>,
 
     /// Map of jobs which cannot be assigned and within reason code.
-    pub unassigned: HashMap<Job, UnassignedCode>,
+    pub unassigned: HashMap<Job, UnassignmentInfo>,
 
     /// Specifies jobs which should not be affected by ruin.
     pub locked: HashSet<Job>,
@@ -151,10 +146,20 @@ impl SolutionContext {
                 .unassigned
                 .iter()
                 .map(|(job, code)| (job.clone(), code.clone()))
-                .chain(self.required.iter().map(|job| (job.clone(), UnassignedCode::Unknown)))
+                .chain(self.required.iter().map(|job| (job.clone(), UnassignmentInfo::Unknown)))
                 .collect(),
             extras,
         }
+    }
+
+    /// Returns amount of jobs considered by solution context.
+    /// NOTE: the amount can be different for partially solved problem from original problem.
+    pub fn get_jobs_amount(&self) -> usize {
+        let assigned = self.routes.iter().map(|route_ctx| route_ctx.route.tour.job_count()).sum::<usize>();
+
+        let required = self.required.iter().filter(|job| !self.unassigned.contains_key(*job)).count();
+
+        self.unassigned.len() + required + self.ignored.len() + assigned
     }
 
     /// Creates a deep copy of `SolutionContext`.
@@ -188,10 +193,10 @@ pub struct RouteContext {
 /// NOTE: do not put any state which is not refreshed after accept_route_state call: it will be
 /// wiped out at some point.
 pub struct RouteState {
-    route_states: HashMap<i32, StateValue>,
-    activity_states: HashMap<ActivityWithKey, StateValue>,
-    route_keys: HashSet<i32>,
-    activity_keys: HashSet<i32>,
+    route_states: HashMap<i32, StateValue, BuildNoHashHasher<i32>>,
+    activity_states: HashMap<ActivityWithKey, StateValue, BuildHasherDefault<FxHasher>>,
+    route_keys: HashSet<i32, BuildNoHashHasher<i32>>,
+    activity_keys: HashSet<i32, BuildNoHashHasher<i32>>,
     flags: u8,
 }
 
@@ -296,10 +301,10 @@ impl Eq for RouteContext {}
 impl Default for RouteState {
     fn default() -> RouteState {
         RouteState {
-            route_states: HashMap::with_capacity(2),
-            activity_states: HashMap::with_capacity(4),
-            route_keys: HashSet::with_capacity(2),
-            activity_keys: HashSet::with_capacity(4),
+            route_states: HashMap::with_capacity_and_hasher(2, BuildNoHashHasher::<i32>::default()),
+            activity_states: HashMap::with_capacity_and_hasher(4, BuildHasherDefault::<FxHasher>::default()),
+            route_keys: HashSet::with_capacity_and_hasher(2, BuildNoHashHasher::<i32>::default()),
+            activity_keys: HashSet::with_capacity_and_hasher(4, BuildNoHashHasher::<i32>::default()),
             flags: state_flags::NO_FLAGS,
         }
     }
@@ -311,7 +316,8 @@ impl RouteState {
         let route_states = other.route_states.clone();
         let route_keys = other.route_keys.clone();
         let activity_keys = other.activity_keys.clone();
-        let mut activity_states = HashMap::with_capacity(other.activity_states.len());
+        let mut activity_states =
+            HashMap::with_capacity_and_hasher(other.activity_states.len(), BuildHasherDefault::<FxHasher>::default());
 
         old_tour.all_activities().enumerate().for_each(|(index, activity)| {
             other.all_activity_keys().for_each(|key| {
@@ -450,21 +456,17 @@ pub struct RegistryContext {
 
 impl RegistryContext {
     /// Creates a new instance of `RouteRegistry`.
-    pub fn new(constraint: Arc<ConstraintPipeline>, registry: Registry) -> Self {
-        Self::new_with_modifier(constraint, registry, &RouteModifier::new(move |route_ctx| route_ctx))
+    pub fn new(goal: Arc<GoalContext>, registry: Registry) -> Self {
+        Self::new_with_modifier(goal, registry, &RouteModifier::new(move |route_ctx| route_ctx))
     }
 
     /// Creates a new instance of `RouteRegistry` using route context modifier.
-    pub fn new_with_modifier(
-        constraint: Arc<ConstraintPipeline>,
-        registry: Registry,
-        modifier: &RouteModifier,
-    ) -> Self {
+    pub fn new_with_modifier(goal: Arc<GoalContext>, registry: Registry, modifier: &RouteModifier) -> Self {
         let index = registry
             .all()
             .map(|actor| {
                 let mut route_ctx = RouteContext::new(actor.clone());
-                constraint.accept_route_state(&mut route_ctx);
+                goal.accept_route_state(&mut route_ctx);
 
                 (actor, modifier.modify(route_ctx))
             })
@@ -533,3 +535,35 @@ pub struct ActivityContext<'a> {
 }
 
 type ActivityWithKey = (usize, i32);
+
+/// A local move context.
+pub enum MoveContext<'a> {
+    /// Evaluation of job insertion into the given route.
+    Route {
+        /// A solution context.
+        solution_ctx: &'a SolutionContext,
+        /// A route context where job supposed to be inserted.
+        route_ctx: &'a RouteContext,
+        /// A job which being evaluated.
+        job: &'a Job,
+    },
+    /// Evaluation of activity insertion into the given position.
+    Activity {
+        /// A route context where activity supposed to be inserted.
+        route_ctx: &'a RouteContext,
+        /// An activity context.
+        activity_ctx: &'a ActivityContext<'a>,
+    },
+}
+
+impl<'a> MoveContext<'a> {
+    /// Creates a route variant for `MoveContext`.
+    pub fn route(solution_ctx: &'a SolutionContext, route_ctx: &'a RouteContext, job: &'a Job) -> MoveContext<'a> {
+        MoveContext::Route { solution_ctx, route_ctx, job }
+    }
+
+    /// Creates a route variant for `MoveContext`.
+    pub fn activity(route_ctx: &'a RouteContext, activity_ctx: &'a ActivityContext) -> MoveContext<'a> {
+        MoveContext::Activity { route_ctx, activity_ctx }
+    }
+}

@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/format/solution/writer_test.rs"]
 mod writer_test;
 
+use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::format::coord_index::CoordIndex;
 use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
@@ -10,8 +11,8 @@ use crate::format::*;
 use crate::{format_time, parse_time};
 use std::cmp::Ordering;
 use std::io::{BufWriter, Write};
-use vrp_core::construction::constraints::route_intervals;
-use vrp_core::construction::heuristics::UnassignedCode;
+use vrp_core::construction::enablers::route_intervals;
+use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Multi, TravelTime};
 use vrp_core::models::solution::{Activity, Route};
@@ -19,14 +20,15 @@ use vrp_core::models::{Problem, Solution};
 use vrp_core::prelude::compare_floats;
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
 use vrp_core::solver::processing::VicinityDimension;
+use vrp_core::utils::CollectGroupBy;
 
-type ApiActivity = crate::format::solution::model::Activity;
-type ApiSolution = crate::format::solution::model::Solution;
-type ApiSchedule = crate::format::solution::model::Schedule;
-type ApiMetrics = crate::format::solution::model::Metrics;
-type ApiGeneration = crate::format::solution::model::Generation;
-type AppPopulation = crate::format::solution::model::Population;
-type ApiIndividual = crate::format::solution::model::Individual;
+type ApiActivity = model::Activity;
+type ApiSolution = model::Solution;
+type ApiSchedule = model::Schedule;
+type ApiMetrics = Metrics;
+type ApiGeneration = Generation;
+type AppPopulation = Population;
+type ApiIndividual = Individual;
 type DomainSchedule = vrp_core::models::common::Schedule;
 type DomainLocation = vrp_core::models::common::Location;
 type DomainExtras = vrp_core::models::Extras;
@@ -130,14 +132,14 @@ fn create_tour(
     let transport = problem.transport.as_ref();
 
     let mut tour = Tour {
-        vehicle_id: vehicle.dimens.get_id().unwrap().clone(),
-        type_id: vehicle.dimens.get_value::<String>("type_id").unwrap().to_string(),
-        shift_index: *vehicle.dimens.get_value::<usize>("shift_index").unwrap(),
+        vehicle_id: vehicle.dimens.get_vehicle_id().unwrap().clone(),
+        type_id: vehicle.dimens.get_vehicle_type().unwrap().clone(),
+        shift_index: vehicle.dimens.get_shift_index().unwrap(),
         stops: vec![],
         statistic: Statistic::default(),
     };
 
-    let intervals = route_intervals(route, Box::new(|a| get_activity_type(a).map_or(false, |t| t == "reload")));
+    let intervals = route_intervals(route, |a| get_activity_type(a).map_or(false, |t| t == "reload"));
 
     let mut leg = intervals.into_iter().fold(Leg::empty(), |leg, (start_idx, end_idx)| {
         let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
@@ -157,7 +159,7 @@ fn create_tour(
             let (has_dispatch, is_same_location) = route.tour.get(1).map_or((false, false), |activity| {
                 let has_dispatch = activity
                     .retrieve_job()
-                    .and_then(|job| job.dimens().get_value::<String>("type").cloned())
+                    .and_then(|job| job.dimens().get_job_type().cloned())
                     .map_or(false, |job_type| job_type == "dispatch");
 
                 let is_same_location = start.place.location == activity.place.location;
@@ -215,8 +217,8 @@ fn create_tour(
                 let job_id = match activity_type.as_str() {
                     "pickup" | "delivery" | "replacement" | "service" => {
                         let single = act.job.as_ref().unwrap();
-                        let id = single.dimens.get_id().cloned();
-                        id.unwrap_or_else(|| Multi::roots(single).unwrap().dimens.get_id().unwrap().clone())
+                        let id = single.dimens.get_job_id().cloned();
+                        id.unwrap_or_else(|| Multi::roots(single).unwrap().dimens.get_job_id().unwrap().clone())
                     }
                     _ => activity_type.clone(),
                 };
@@ -362,8 +364,8 @@ fn create_tour(
             activity.time = None;
         });
 
-    tour.vehicle_id = vehicle.dimens.get_id().unwrap().clone();
-    tour.type_id = vehicle.dimens.get_value::<String>("type_id").unwrap().clone();
+    tour.vehicle_id = vehicle.dimens.get_vehicle_id().unwrap().clone();
+    tour.type_id = vehicle.dimens.get_vehicle_type().unwrap().clone();
 
     tour
 }
@@ -508,29 +510,43 @@ fn calculate_load(current: MultiDimLoad, act: &Activity, is_multi_dimen: bool) -
 fn create_unassigned(solution: &Solution) -> Option<Vec<UnassignedJob>> {
     let create_simple_reasons = |code: i32| {
         let (code, reason) = map_code_reason(code);
-        vec![UnassignedJobReason { code: code.to_string(), description: reason.to_string(), detail: None }]
+        vec![UnassignedJobReason { code: code.to_string(), description: reason.to_string(), details: None }]
     };
 
     let unassigned = solution
         .unassigned
         .iter()
-        .filter(|(job, _)| job.dimens().get_value::<String>("vehicle_id").is_none())
+        .filter(|(job, _)| job.dimens().get_vehicle_id().is_none())
         .map(|(job, code)| {
-            let job_id = job.dimens().get_id().expect("job id expected").clone();
+            let job_id = job.dimens().get_job_id().expect("job id expected").clone();
 
             let reasons = match code {
-                UnassignedCode::Simple(code) => create_simple_reasons(*code),
-                UnassignedCode::Detailed(details) if !details.is_empty() => details
+                UnassignmentInfo::Simple(code) => create_simple_reasons(*code),
+                UnassignmentInfo::Detailed(details) if !details.is_empty() => details
                     .iter()
-                    .map(|(actor, code)| {
-                        let (code, reason) = map_code_reason(*code);
-                        let dimens = &actor.vehicle.dimens;
+                    .collect_group_by_key(|(_, code)| *code)
+                    .into_iter()
+                    .map(|(code, group)| {
+                        let (code, reason) = map_code_reason(code);
+                        let mut vehicle_details = group
+                            .iter()
+                            .map(|(actor, _)| {
+                                let dimens = &actor.vehicle.dimens;
+                                let vehicle_id = dimens.get_vehicle_id().cloned().unwrap();
+                                let shift_index = dimens.get_shift_index().unwrap();
+                                (vehicle_id, shift_index)
+                            })
+                            .collect::<Vec<_>>();
+                        // NOTE sort to have consistent order
+                        vehicle_details.sort();
 
                         UnassignedJobReason {
-                            detail: Some(UnassignedJobDetail {
-                                vehicle_id: dimens.get_id().cloned().unwrap(),
-                                shift_index: dimens.get_value::<usize>("shift_index").cloned().unwrap(),
-                            }),
+                            details: Some(
+                                vehicle_details
+                                    .into_iter()
+                                    .map(|(vehicle_id, shift_index)| UnassignedJobDetail { vehicle_id, shift_index })
+                                    .collect(),
+                            ),
                             code: code.to_string(),
                             description: reason.to_string(),
                         }
@@ -555,10 +571,10 @@ fn create_violations(solution: &Solution) -> Option<Vec<Violation>> {
     let violations = solution
         .unassigned
         .iter()
-        .filter(|(job, _)| job.dimens().get_value::<String>("type").map_or(false, |t| t == "break"))
+        .filter(|(job, _)| job.dimens().get_job_type().map_or(false, |t| t == "break"))
         .map(|(job, _)| Violation::Break {
-            vehicle_id: job.dimens().get_value::<String>("vehicle_id").expect("vehicle id").clone(),
-            shift_index: *job.dimens().get_value::<usize>("shift_index").expect("shift index"),
+            vehicle_id: job.dimens().get_vehicle_id().expect("vehicle id").clone(),
+            shift_index: job.dimens().get_shift_index().expect("shift index"),
         })
         .collect::<Vec<_>>();
 
@@ -570,7 +586,7 @@ fn create_violations(solution: &Solution) -> Option<Vec<Violation>> {
 }
 
 fn get_activity_type(activity: &Activity) -> Option<&String> {
-    activity.job.as_ref().and_then(|single| single.dimens.get_value::<String>("type"))
+    activity.job.as_ref().and_then(|single| single.dimens.get_job_type())
 }
 
 fn get_capacity(dimens: &Dimensions, is_multi_dimen: bool) -> Option<Demand<MultiDimLoad>> {

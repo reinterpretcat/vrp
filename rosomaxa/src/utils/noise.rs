@@ -17,6 +17,14 @@ impl Noise {
         Self { probability, range, random }
     }
 
+    /// Generates an iterator with noise.
+    pub fn generate_multi<'a, Iter: Iterator<Item = f64> + 'a>(
+        &'a self,
+        values: Iter,
+    ) -> impl Iterator<Item = f64> + 'a {
+        values.map(|value| value + self.generate(value))
+    }
+
     /// Generate some noise based on given value.
     pub fn generate(&self, value: f64) -> f64 {
         if self.random.is_hit(self.probability) {

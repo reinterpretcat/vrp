@@ -1,0 +1,3 @@
+experiments/etc/** linguist-vendored
+experiments/gpt/** linguist-vendored
+experiments/heuristic-research/www/** linguist-vendored

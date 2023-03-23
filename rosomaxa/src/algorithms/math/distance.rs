@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/algorithms/math/distance_test.rs"]
+mod distance_test;
+
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
 

@@ -22,7 +22,7 @@ fn create_test_problem() -> Problem {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     }
@@ -103,9 +103,7 @@ fn can_use_location_index() {
                     times: Timing { driving: 3, serving: 2, ..Timing::default() }
                 }
             }],
-            unassigned: None,
-            violations: None,
-            extras: None
+            ..create_empty_solution()
         }
     );
 }

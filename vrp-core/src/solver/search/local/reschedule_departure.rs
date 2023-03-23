@@ -1,4 +1,4 @@
-use crate::construction::constraints::TransportConstraintModule;
+use crate::construction::enablers::{advance_departure_time, recede_departure_time, ScheduleStateKeys};
 use crate::construction::heuristics::InsertionContext;
 use crate::models::solution::Activity;
 use crate::solver::search::LocalOperator;
@@ -8,7 +8,9 @@ use std::cmp::Ordering;
 
 /// Reschedules departure time of the routes in the solution.
 #[derive(Default)]
-pub struct RescheduleDeparture {}
+pub struct RescheduleDeparture {
+    state_keys: ScheduleStateKeys,
+}
 
 impl LocalOperator for RescheduleDeparture {
     fn explore(
@@ -22,6 +24,7 @@ impl LocalOperator for RescheduleDeparture {
         // TODO optionally, optimize only subset of the routes.
 
         let random = insertion_ctx.environment.random.clone();
+        let consider_whole_tour = true;
 
         let mut insertion_ctx = insertion_ctx.deep_copy();
         insertion_ctx.solution.routes.iter_mut().for_each(|route_ctx| {
@@ -29,15 +32,15 @@ impl LocalOperator for RescheduleDeparture {
 
             match (route_ctx.route.tour.start(), earliest, random.is_head_not_tails()) {
                 (Some(start), Some(earliest), true) if can_recede_departure(start, earliest) => {
-                    TransportConstraintModule::recede_departure_time(route_ctx, activity, transport)
+                    recede_departure_time(route_ctx, activity, transport, &self.state_keys)
                 }
-                _ => TransportConstraintModule::advance_departure_time(route_ctx, activity, transport, true),
+                _ => advance_departure_time(route_ctx, activity, transport, consider_whole_tour, &self.state_keys),
             };
         });
 
         // TODO check is_stale flag and return None
 
-        refinement_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+        refinement_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 
         Some(insertion_ctx)
     }

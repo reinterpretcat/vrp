@@ -5,7 +5,7 @@ fn create_vehicle_type(type_id: &str, scale: Option<f64>) -> VehicleType {
     VehicleType {
         type_id: type_id.to_string(),
         profile: VehicleProfile { matrix: "car".to_string(), scale },
-        vehicle_ids: vec![format!("{}_1", type_id)],
+        vehicle_ids: vec![format!("{type_id}_1")],
         ..create_default_vehicle_type()
     }
 }
@@ -15,7 +15,7 @@ fn can_use_scale() {
         plan: Plan { jobs: vec![create_delivery_job("job1", (10., 0.))], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![create_vehicle_type("normal", None), create_vehicle_type("slow", Some(0.5))],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

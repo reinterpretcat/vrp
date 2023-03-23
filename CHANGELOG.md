@@ -4,6 +4,78 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.19.2]
+
+This release introduces improvements in rosomaxa-heuristic.
+
+### Added
+
+* python binding with pyo3
+* example how to use library with maturin
+
+### Changed
+
+* cleaned area leftovers
+* update dependencies
+* update rust version on dev environment to 1.68
+* fix clippy warnings
+* bug fix in capacity feature
+* change gsom compaction logic and adapt rosomaxa
+
+
+## [v1.19.1]
+
+### Changed
+
+* `breaking`: replace `LegSelector` with `LegSelectionMode`
+* use different approach for leg selection: selection sampling search
+* introduce initial weights in dynamic heuristic
+* update dependencies
+* update rust version on dev environment to the latest (1.65.0)
+
+
+## [v1.19.0]
+
+This release is focused on internal design improvements with some performance implications.
+
+### Changed
+
+* `breaking`: combine objectives and constraint modules into feature concept
+* improve ruin limits logic
+* change insertion position evaluation logic to speedup analysis
+* update dependencies 
+* update rust version used for development (1.64)
+
+### Removed
+
+* `breaking`: remove area constraint as it needs rework
+
+
+## [v1.18.4]
+
+### Changed
+
+* `breaking`: simplify unassigned job reason model
+* fix capacity violation issue related to reload feature
+
+
+## [v1.18.3] - 2022-08-10
+
+### Added
+
+* add shared resource constraint for vehicle reload. Essentially, it is a limit for amount of deliveries picked from
+  specific reload places.
+
+### Changed
+
+* improve obsolete reload removal logic
+* improve groups constraint
+* refactor heuristic research crate
+
+
+## [v1.18.2] - 2022-07-12
+
 ### Added
 
 * `RedistributeSearch` heuristic
@@ -13,6 +85,9 @@ All notable changes to this project will be documented in this file.
 
 * use experimental mode to print dynamic heuristic statistics
 * random trait internals
+* refactor multi trip functionality
+* use faster hash builders inside `RouteState` and `Dimensions`
+* update dependencies
 
 
 ## [v1.18.1] - 2022-05-13
@@ -513,7 +588,13 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.18.1...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.19.2...HEAD
+[v1.19.2]: https://github.com/reinterpretcat/vrp/compare/v1.19.1...v1.90.2
+[v1.19.1]: https://github.com/reinterpretcat/vrp/compare/v1.19.0...v1.90.1
+[v1.19.0]: https://github.com/reinterpretcat/vrp/compare/v1.18.4...v1.90.0
+[v1.18.4]: https://github.com/reinterpretcat/vrp/compare/v1.18.3...v1.18.4
+[v1.18.3]: https://github.com/reinterpretcat/vrp/compare/v1.18.2...v1.18.3
+[v1.18.2]: https://github.com/reinterpretcat/vrp/compare/v1.18.1..v1.18.2
 [v1.18.1]: https://github.com/reinterpretcat/vrp/compare/v1.18.0..v1.18.1
 [v1.18.0]: https://github.com/reinterpretcat/vrp/compare/v1.17.0..v1.18.0
 [v1.17.0]: https://github.com/reinterpretcat/vrp/compare/v1.16.1..v1.17.0

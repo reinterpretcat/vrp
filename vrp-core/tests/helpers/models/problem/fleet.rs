@@ -55,7 +55,7 @@ pub fn test_fleet() -> Fleet {
 }
 
 pub fn test_vehicle_with_id(id: &str) -> Vehicle {
-    let mut dimens = Dimensions::new();
+    let mut dimens = Dimensions::default();
     dimens.set_id(id);
 
     Vehicle { profile: Profile::default(), costs: test_costs(), dimens, details: vec![test_vehicle_detail()] }
@@ -110,15 +110,10 @@ impl VehicleBuilder {
     }
 }
 
+#[derive(Default)]
 pub struct FleetBuilder {
     drivers: Vec<Driver>,
     vehicles: Vec<Vehicle>,
-}
-
-impl Default for FleetBuilder {
-    fn default() -> FleetBuilder {
-        FleetBuilder { drivers: Default::default(), vehicles: Default::default() }
-    }
 }
 
 impl FleetBuilder {
@@ -138,8 +133,8 @@ impl FleetBuilder {
     }
 
     pub fn build(&mut self) -> Fleet {
-        let drivers = std::mem::replace(&mut self.drivers, vec![]);
-        let vehicles = std::mem::replace(&mut self.vehicles, vec![]);
+        let drivers = std::mem::take(&mut self.drivers);
+        let vehicles = std::mem::take(&mut self.vehicles);
 
         let drivers = drivers.into_iter().map(Arc::new).collect();
         let vehicles = vehicles.into_iter().map(Arc::new).collect();
@@ -148,6 +143,7 @@ impl FleetBuilder {
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn create_details_actor_groups(actors: &[Arc<Actor>]) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync> {
     let unique_type_keys: HashSet<_> = actors.iter().map(|a| a.detail.clone()).collect();
 

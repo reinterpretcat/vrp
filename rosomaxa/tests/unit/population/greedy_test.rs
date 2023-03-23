@@ -3,7 +3,7 @@ use crate::example::*;
 use crate::helpers::example::create_example_objective;
 
 fn get_best_fitness(population: &Greedy<VectorObjective, VectorSolution>) -> f64 {
-    population.objective.fitness(population.ranked().next().unwrap().0)
+    population.ranked().next().unwrap().0.fitness()
 }
 
 #[test]
@@ -19,7 +19,7 @@ fn can_keep_best_solution() {
     assert_eq!(population.size(), 1);
     assert_eq!(get_best_fitness(&population), 401.);
 
-    population.add(VectorSolution::new(vec![-2., -2.], objective.clone()));
+    population.add(VectorSolution::new(vec![-2., -2.], objective));
     assert_eq!(population.size(), 1);
     assert_eq!(get_best_fitness(&population), 401.);
 }
@@ -28,7 +28,7 @@ fn can_keep_best_solution() {
 fn can_format_empty_population() {
     let population = Greedy::<_, _>::new(create_example_objective(), 1, None);
 
-    let formatted = format!("{}", population);
+    let formatted = format!("{population}");
 
     assert_eq!(formatted, "[]")
 }
@@ -39,7 +39,7 @@ fn can_format_filled_population() {
     let solution = VectorSolution::new(vec![-1., -1.], objective.clone());
     let population = Greedy::<_, _>::new(objective, 1, Some(solution));
 
-    let formatted = format!("{}", population);
+    let formatted = format!("{population}");
 
     assert_eq!(formatted, "[404.0000000]")
 }

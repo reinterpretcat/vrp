@@ -1,14 +1,8 @@
-use crate::core::models::common::{Distance, Duration};
-use crate::core::models::problem::TravelTime;
-use crate::core::models::solution::Route;
 use crate::format::problem::Objective::{MinimizeCost, MinimizeUnassignedJobs};
 use crate::format::problem::*;
 use crate::format::{CoordIndex, Location};
 use crate::format_time;
 use crate::helpers::ToLocation;
-use std::sync::Arc;
-use vrp_core::models::common::Profile as CoreProfile;
-use vrp_core::models::problem::{ActivityCost, SimpleActivityCost, TransportCost};
 
 pub fn create_job_place(location: (f64, f64), tag: Option<String>) -> JobPlace {
     JobPlace { times: None, location: location.to_loc(), duration: 1., tag }
@@ -114,7 +108,7 @@ pub fn create_pickup_job_with_demand(id: &str, location: (f64, f64), demand: Vec
 }
 
 pub fn create_replacement_job(id: &str, location: (f64, f64)) -> Job {
-    Job { replacements: Some(vec![create_task(location.clone(), None)]), ..create_job(id) }
+    Job { replacements: Some(vec![create_task(location, None)]), ..create_job(id) }
 }
 
 pub fn create_service_job(id: &str, location: (f64, f64)) -> Job {
@@ -151,7 +145,7 @@ pub fn create_pickup_delivery_job_with_params(
                 times: convert_times(&delivery.2),
                 ..create_job_place(delivery.0, Some("d1".to_string()))
             }],
-            demand: Some(demand.clone()),
+            demand: Some(demand),
             order: None,
         }]),
 
@@ -199,6 +193,10 @@ pub fn create_multi_job(
     Job { pickups: create_tasks(pickups, "p"), deliveries: create_tasks(deliveries, "d"), ..create_job(id) }
 }
 
+pub fn create_default_reload() -> VehicleReload {
+    VehicleReload { times: None, location: (0., 0.).to_loc(), duration: 2.0, tag: None, resource_id: None }
+}
+
 pub fn create_default_vehicle_shift() -> VehicleShift {
     create_default_vehicle_shift_with_locations((0., 0.), (0., 0.))
 }
@@ -216,11 +214,7 @@ pub fn create_default_open_vehicle_shift() -> VehicleShift {
 pub fn create_default_vehicle_shift_with_locations(start: (f64, f64), end: (f64, f64)) -> VehicleShift {
     VehicleShift {
         start: ShiftStart { earliest: format_time(0.), latest: None, location: (start.0, start.1).to_loc() },
-        end: Some(ShiftEnd {
-            earliest: None,
-            latest: format_time(1000.).to_string(),
-            location: (end.0, end.1).to_loc(),
-        }),
+        end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (end.0, end.1).to_loc() }),
         dispatch: None,
         breaks: None,
         reloads: None,
@@ -250,7 +244,7 @@ pub fn create_default_vehicle(id: &str) -> VehicleType {
 pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType {
     VehicleType {
         type_id: id.to_string(),
-        vehicle_ids: vec![format!("{}_1", id)],
+        vehicle_ids: vec![format!("{id}_1")],
         profile: create_default_vehicle_profile(),
         costs: create_default_vehicle_costs(),
         shifts: vec![create_default_vehicle_shift()],
@@ -258,6 +252,10 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
         skills: None,
         limits: None,
     }
+}
+
+pub fn create_default_fleet() -> Fleet {
+    Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles(), resources: None }
 }
 
 pub fn create_default_matrix_profiles() -> Vec<MatrixProfile> {
@@ -269,35 +267,15 @@ pub fn create_min_jobs_cost_objective() -> Option<Vec<Vec<Objective>>> {
 }
 
 pub fn create_empty_plan() -> Plan {
-    Plan { jobs: vec![], relations: None, areas: None, clustering: None }
+    Plan { jobs: vec![], relations: None, clustering: None }
 }
 
 pub fn create_empty_problem() -> Problem {
-    Problem { plan: create_empty_plan(), fleet: Fleet { vehicles: vec![], profiles: vec![] }, objectives: None }
-}
-
-pub fn get_costs() -> (Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>) {
-    struct ExampleTransportCost {}
-
-    impl TransportCost for ExampleTransportCost {
-        fn duration_approx(&self, _: &CoreProfile, _: usize, _: usize) -> Duration {
-            42.
-        }
-
-        fn distance_approx(&self, _: &CoreProfile, _: usize, _: usize) -> Distance {
-            42.
-        }
-
-        fn duration(&self, _: &Route, _: usize, _: usize, _: TravelTime) -> Duration {
-            42.
-        }
-
-        fn distance(&self, _: &Route, _: usize, _: usize, _: TravelTime) -> Distance {
-            42.
-        }
+    Problem {
+        plan: create_empty_plan(),
+        fleet: Fleet { vehicles: vec![], profiles: vec![], resources: None },
+        objectives: None,
     }
-
-    (Arc::new(ExampleTransportCost {}), Arc::new(SimpleActivityCost::default()))
 }
 
 pub fn create_matrix(data: Vec<i64>) -> Matrix {
@@ -309,7 +287,7 @@ pub fn create_matrix(data: Vec<i64>) -> Matrix {
         profile: Some("car".to_owned()),
         timestamp: None,
         travel_times: data.clone(),
-        distances: data.clone(),
+        distances: data,
         error_codes: None,
     }
 }

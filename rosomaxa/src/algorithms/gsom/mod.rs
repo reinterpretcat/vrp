@@ -3,6 +3,9 @@
 use std::fmt::Display;
 use std::ops::RangeBounds;
 
+mod contraction;
+pub(crate) use self::contraction::*;
+
 mod network;
 pub use self::network::*;
 

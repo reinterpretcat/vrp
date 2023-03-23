@@ -13,7 +13,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::SingleDimLoad;
-use vrp_core::models::problem::ProblemObjective;
+use vrp_core::models::GoalContext;
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::evolution::{InitialOperator, TelemetryMode};
 use vrp_core::rosomaxa::get_default_selection_size;
@@ -250,28 +250,25 @@ pub enum RuinMethod {
     AdjustedString { probability: f64, lmax: usize, cavg: usize, alpha: f64 },
     /// Neighbour jobs method
     #[serde(rename(deserialize = "neighbour"))]
-    Neighbour { probability: f64, min: usize, max: usize, threshold: f64 },
+    Neighbour { probability: f64, min: usize, max: usize },
     /// Random job removal method.
     #[serde(rename(deserialize = "random-job"))]
-    RandomJob { probability: f64, min: usize, max: usize, threshold: f64 },
+    RandomJob { probability: f64, min: usize, max: usize },
     /// Random route removal method.
     #[serde(rename(deserialize = "random-route"))]
-    RandomRoute { probability: f64, min: usize, max: usize, threshold: f64 },
+    RandomRoute { probability: f64, min: usize, max: usize },
     /// Close route removal method.
     #[serde(rename(deserialize = "close-route"))]
     CloseRoute { probability: f64 },
     #[serde(rename(deserialize = "worst-route"))]
     WorstRoute { probability: f64 },
-    /// Random ruin removal method.
-    #[serde(rename(deserialize = "random-ruin"))]
-    RandomRuin { probability: f64 },
     /// Worst job removal method.
     #[serde(rename(deserialize = "worst-job"))]
-    WorstJob { probability: f64, min: usize, max: usize, threshold: f64, skip: usize },
+    WorstJob { probability: f64, min: usize, max: usize, skip: usize },
     /// Clustered jobs removal method.
     #[serde(rename(deserialize = "cluster"))]
     #[serde(rename_all = "camelCase")]
-    Cluster { probability: f64, min: usize, max: usize, threshold: f64, min_items: usize },
+    Cluster { probability: f64, min: usize, max: usize, min_items: usize },
 }
 
 /// Specifies recreate methods with their probability weight and specific parameters.
@@ -455,7 +452,7 @@ fn configure_from_evolution(
                         Box<
                             dyn InitialOperator<
                                     Context = RefinementContext,
-                                    Objective = ProblemObjective,
+                                    Objective = GoalContext,
                                     Solution = InsertionContext,
                                 > + Send
                                 + Sync,
@@ -472,12 +469,12 @@ fn configure_from_evolution(
             let default_selection_size = get_default_selection_size(environment.as_ref());
             let population = match &variation {
                 PopulationType::Greedy { selection_size } => Box::new(GreedyPopulation::new(
-                    problem.objective.clone(),
+                    problem.goal.clone(),
                     selection_size.unwrap_or(default_selection_size),
                     None,
                 )),
                 PopulationType::Elitism { max_size, selection_size } => Box::new(ElitismPopulation::new(
-                    problem.objective.clone(),
+                    problem.goal.clone(),
                     environment.random.clone(),
                     max_size.unwrap_or(4),
                     selection_size.unwrap_or(default_selection_size),
@@ -522,7 +519,7 @@ fn configure_from_evolution(
                         config.exploration_ratio = *exploration_ratio;
                     }
 
-                    Box::new(RosomaxaPopulation::new(problem.objective.clone(), environment.clone(), config)?)
+                    Box::new(RosomaxaPopulation::new(problem.goal.clone(), environment.clone(), config)?)
                 }
             };
 
@@ -629,7 +626,7 @@ fn create_operator(
         }
         SearchOperatorType::Decomposition { routes, repeat, probability } => {
             if *repeat < 1 {
-                return Err(format!("repeat must be greater than 1. Specified: {}", repeat));
+                return Err(format!("repeat must be greater than 1. Specified: {repeat}"));
             }
             if routes.min < 2 {
                 return Err(format!("min routes must be greater than 2. Specified: {}", routes.min));
@@ -637,7 +634,7 @@ fn create_operator(
 
             let operator = create_default_heuristic_operator(problem, environment.clone());
             (
-                Arc::new(DecomposeSearch::new(operator, (routes.min, routes.max), *repeat)),
+                Arc::new(DecomposeSearch::new(operator, (routes.min, routes.max), *repeat, 200)),
                 create_operator_probability(probability, environment.random.clone()),
             )
         }
@@ -675,34 +672,34 @@ fn create_ruin_method(
     environment: Arc<Environment>,
     method: &RuinMethod,
 ) -> (Arc<dyn Ruin + Send + Sync>, f64) {
+    let limits = RemovalLimits::new(problem.as_ref());
+    let get_limits = |min: usize, max: usize| RemovalLimits {
+        removed_activities_range: min..max,
+        ..RemovalLimits::new(problem.as_ref())
+    };
+
     match method {
         RuinMethod::AdjustedString { probability, lmax, cavg, alpha } => {
-            (Arc::new(AdjustedStringRemoval::new(*lmax, *cavg, *alpha)), *probability)
+            (Arc::new(AdjustedStringRemoval::new(*lmax, *cavg, *alpha, limits)), *probability)
         }
-        RuinMethod::Neighbour { probability, min, max, threshold } => {
-            (Arc::new(NeighbourRemoval::new(RuinLimits::new(*min, *max, *threshold, 8))), *probability)
+        RuinMethod::Neighbour { probability, min, max } => {
+            (Arc::new(NeighbourRemoval::new(get_limits(*min, *max))), *probability)
         }
-        RuinMethod::RandomJob { probability, min, max, threshold } => {
-            (Arc::new(RandomJobRemoval::new(RuinLimits::new(*min, *max, *threshold, 8))), *probability)
+        RuinMethod::RandomJob { probability, min, max } => {
+            (Arc::new(RandomJobRemoval::new(get_limits(*min, *max))), *probability)
         }
-        RuinMethod::RandomRoute { probability, min, max, threshold } => {
-            (Arc::new(RandomRouteRemoval::new(*min, *max, *threshold)), *probability)
+        RuinMethod::RandomRoute { probability, min, max } => {
+            (Arc::new(RandomRouteRemoval::new(get_limits(*min, *max))), *probability)
         }
-        RuinMethod::WorstJob { probability, min, max, threshold, skip: worst_skip } => {
-            (Arc::new(WorstJobRemoval::new(*worst_skip, RuinLimits::new(*min, *max, *threshold, 8))), *probability)
+        RuinMethod::WorstJob { probability, min, max, skip: worst_skip } => {
+            (Arc::new(WorstJobRemoval::new(*worst_skip, get_limits(*min, *max))), *probability)
         }
-        RuinMethod::Cluster { probability, min, max, threshold, min_items } => (
-            Arc::new(ClusterRemoval::new(
-                problem.clone(),
-                environment,
-                *min_items,
-                RuinLimits::new(*min, *max, *threshold, 8),
-            )),
+        RuinMethod::Cluster { probability, min, max, min_items } => (
+            Arc::new(ClusterRemoval::new(problem.clone(), environment, *min_items, get_limits(*min, *max))),
             *probability,
         ),
-        RuinMethod::CloseRoute { probability } => (Arc::new(CloseRouteRemoval::default()), *probability),
-        RuinMethod::WorstRoute { probability } => (Arc::new(WorstRouteRemoval::default()), *probability),
-        RuinMethod::RandomRuin { probability } => (create_default_random_ruin(), *probability),
+        RuinMethod::CloseRoute { probability } => (Arc::new(CloseRouteRemoval::new(limits)), *probability),
+        RuinMethod::WorstRoute { probability } => (Arc::new(WorstRouteRemoval::new(limits)), *probability),
     }
 }
 
@@ -714,7 +711,7 @@ fn create_local_search(
     let operators = inners
         .iter()
         .map::<(Arc<dyn LocalOperator + Send + Sync>, usize), _>(|op| match op {
-            LocalOperatorType::SwapStar { weight } => (Arc::new(ExchangeSwapStar::new(random.clone())), *weight),
+            LocalOperatorType::SwapStar { weight } => (Arc::new(ExchangeSwapStar::new(random.clone(), 200)), *weight),
             LocalOperatorType::InterRouteBest { weight, noise } => {
                 (Arc::new(ExchangeInterRouteBest::new(noise.probability, noise.min, noise.max)), *weight)
             }
@@ -786,8 +783,8 @@ fn configure_from_environment(
 
     if let Some(logging) = environment_config.as_ref().and_then(|c| c.logging.as_ref()) {
         environment.logger = match (logging.enabled, logging.prefix.clone()) {
-            (true, Some(prefix)) => Arc::new(move |msg: &str| println!("{}{}", prefix, msg)),
-            (true, None) => Arc::new(|msg: &str| println!("{}", msg)),
+            (true, Some(prefix)) => Arc::new(move |msg: &str| println!("{prefix}{msg}")),
+            (true, None) => Arc::new(|msg: &str| println!("{msg}")),
             _ => Arc::new(|_: &str| {}),
         };
     }
@@ -801,7 +798,7 @@ fn configure_from_environment(
 
 /// Reads config from reader.
 pub fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, String> {
-    serde_json::from_reader(reader).map_err(|err| format!("cannot deserialize config: '{}'", err))
+    serde_json::from_reader(reader).map_err(|err| format!("cannot deserialize config: '{err}'"))
 }
 
 /// Creates a solver `Builder` from config file.

@@ -22,7 +22,7 @@ can_detect_reserved_ids! {
 fn can_detect_reserved_ids_impl(job_id: String, expected: Option<&str>) {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job(job_id.as_str(), (1., 0.))], ..create_empty_plan() },
-        fleet: Fleet { vehicles: vec![create_default_vehicle("vehicle")], profiles: vec![] },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
 

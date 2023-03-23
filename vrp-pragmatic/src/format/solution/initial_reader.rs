@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/format/solution/initial_reader_test.rs"]
 mod initial_reader_test;
 
+use crate::construction::enablers::VehicleTie;
 use crate::format::solution::activity_matcher::{try_match_point_job, JobInfo};
 use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
@@ -12,7 +13,7 @@ use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::construction::heuristics::UnassignedCode;
+use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Job, Single};
 use vrp_core::models::solution::Tour as CoreTour;
@@ -28,7 +29,7 @@ pub fn read_init_solution<R: Read>(
     problem: Arc<Problem>,
     random: Arc<dyn Random + Send + Sync>,
 ) -> Result<Solution, String> {
-    let solution = deserialize_solution(solution).map_err(|err| format!("cannot deserialize solution: {}", err))?;
+    let solution = deserialize_solution(solution).map_err(|err| format!("cannot deserialize solution: {err}"))?;
 
     let mut registry = Registry::new(&problem.fleet, random);
     let mut added_jobs = HashSet::default();
@@ -41,7 +42,7 @@ pub fn read_init_solution<R: Read>(
         solution.tours.iter().try_fold::<_, _, Result<_, String>>(Vec::<_>::default(), |mut routes, tour| {
             let actor_key = (tour.vehicle_id.clone(), tour.type_id.clone(), tour.shift_index);
             let actor =
-                actor_index.get(&actor_key).ok_or_else(|| format!("cannot find vehicle for {:?}", actor_key))?.clone();
+                actor_index.get(&actor_key).ok_or_else(|| format!("cannot find vehicle for {actor_key:?}"))?.clone();
             registry.use_actor(&actor);
 
             let mut core_route = create_core_route(actor, tour)?;
@@ -63,13 +64,13 @@ pub fn read_init_solution<R: Read>(
             let job = job_index
                 .get(&unassigned_job.job_id)
                 .cloned()
-                .ok_or_else(|| format!("cannot get job id for: {:?}", unassigned_job))?;
+                .ok_or_else(|| format!("cannot get job id for: {unassigned_job:?}"))?;
             // NOTE we take the first reason only and map it to simple variant
             let code = unassigned_job
                 .reasons
                 .first()
-                .map(|reason| UnassignedCode::Simple(map_reason_code(&reason.code)))
-                .ok_or_else(|| format!("cannot get reason for: {:?}", unassigned_job))?;
+                .map(|reason| UnassignmentInfo::Simple(map_reason_code(&reason.code)))
+                .ok_or_else(|| format!("cannot get reason for: {unassigned_job:?}"))?;
 
             added_jobs.insert(job.clone());
             acc.push((job, code));
@@ -79,7 +80,7 @@ pub fn read_init_solution<R: Read>(
     )?;
 
     unassigned.extend(
-        problem.jobs.all().filter(|job| added_jobs.get(job).is_none()).map(|job| (job, UnassignedCode::Unknown)),
+        problem.jobs.all().filter(|job| added_jobs.get(job).is_none()).map(|job| (job, UnassignmentInfo::Unknown)),
     );
 
     Ok(Solution { registry, routes, unassigned, extras: problem.extras.clone() })
@@ -117,9 +118,9 @@ fn try_insert_activity(
 fn get_actor_key(actor: &Actor) -> ActorKey {
     let dimens = &actor.vehicle.dimens;
 
-    let vehicle_id = dimens.get_id().cloned().expect("cannot get vehicle id!");
-    let type_id = dimens.get_value::<String>("type_id").cloned().expect("cannot get type id!");
-    let shift_index = dimens.get_value::<usize>("shift_index").cloned().expect("cannot get shift index!");
+    let vehicle_id = dimens.get_vehicle_id().cloned().expect("cannot get vehicle id!");
+    let type_id = dimens.get_vehicle_type().cloned().expect("cannot get type id!");
+    let shift_index = dimens.get_shift_index().expect("cannot get shift index!");
 
     (vehicle_id, type_id, shift_index)
 }

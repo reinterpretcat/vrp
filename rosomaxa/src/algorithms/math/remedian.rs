@@ -4,6 +4,9 @@ mod remedian_test;
 
 use std::cmp::Ordering;
 
+/// Specifies a median estimator used to track medians of heuristic running time.
+pub type RemedianUsize = Remedian<usize, fn(&usize, &usize) -> Ordering>;
+
 /// A custom implementation of robust median estimator.
 ///
 /// References:
@@ -37,11 +40,12 @@ where
 
     /// Adds a new observation.
     pub fn add_observation(&mut self, value: T) {
-        let _ = (0..).try_fold(value, |value, index| {
-            if self.buffers.len() <= index {
+        let _ = (0..).try_fold(value, |value, idx| {
+            if self.buffers.len() <= idx {
                 self.buffers.push(Vec::with_capacity(self.base))
             }
-            let buffer = self.buffers.get_mut(index).unwrap();
+
+            let buffer = self.buffers.get_mut(idx).unwrap();
             buffer.push(value);
 
             if buffer.len() < self.base {
@@ -49,21 +53,28 @@ where
             }
 
             buffer.sort_by(&self.order_fn);
-            let median_idx = self.base / 2;
 
-            let value = buffer.get(median_idx).unwrap().clone();
+            let value = buffer.get(self.base / 2).unwrap().clone();
             buffer.clear();
 
-            Ok(value)
+            // NOTE: use only two buffers, buffer at index 0 should be already clean
+            if idx == 1 {
+                buffer.push(value);
+                debug_assert!(self.buffers[0].is_empty());
+                Err(())
+            } else {
+                Ok(value)
+            }
         });
     }
 
     /// Returns a median approximation if it is there.
     pub fn approx_median(&self) -> Option<T> {
-        if self.buffers.is_empty() {
+        let has_not_enough_observations = self.buffers.len() == 1 && self.buffers[0].len() < self.base;
+        if self.buffers.is_empty() || has_not_enough_observations {
             None
         } else {
-            self.buffers.last().and_then(|buffer| buffer.get(buffer.len() / 2)).cloned()
+            self.buffers.last().and_then(|buffer| buffer.last()).cloned()
         }
     }
 }

@@ -1,5 +1,4 @@
-use super::create_approx_matrices;
-use crate::constraints::JobSkills as ConstraintJobSkills;
+use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::format::problem::*;
 use crate::helpers::*;
 use hashbrown::HashSet;
@@ -44,7 +43,7 @@ fn assert_demand(demand: &Demand<MultiDimLoad>, expected: &Demand<MultiDimLoad>)
 }
 
 fn assert_job_skills(dimens: &Dimensions, expected: Option<Vec<String>>) {
-    let skills = dimens.get("skills").and_then(|any| any.downcast_ref::<ConstraintJobSkills>());
+    let skills = dimens.get_job_skills();
     if let Some(expected) = expected {
         let expected = HashSet::from_iter(expected.iter().cloned());
         assert_eq!(skills.unwrap().all_of, Some(expected));
@@ -54,7 +53,7 @@ fn assert_job_skills(dimens: &Dimensions, expected: Option<Vec<String>>) {
 }
 
 fn assert_vehicle_skills(dimens: &Dimensions, expected: Option<Vec<String>>) {
-    let skills = dimens.get("skills").and_then(|any| any.downcast_ref::<HashSet<String>>());
+    let skills = dimens.get_vehicle_skills();
     if let Some(expected) = expected {
         let expected = HashSet::from_iter(expected.iter().cloned());
         assert_eq!(skills.unwrap().clone(), expected);
@@ -168,33 +167,28 @@ fn can_read_complex_problem() {
                 }],
                 capacity: vec![10, 1],
                 skills: Some(vec!["unique1".to_string(), "unique2".to_string()]),
-                limits: Some(VehicleLimits {
-                    max_distance: Some(123.1),
-                    shift_time: Some(100.),
-                    tour_size: Some(3),
-                    areas: None,
-                }),
+                limits: Some(VehicleLimits { max_distance: Some(123.1), shift_time: Some(100.), tour_size: Some(3) }),
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         objectives: None,
     };
     let matrix = Matrix {
         profile: Some("car".to_owned()),
         timestamp: None,
-        travel_times: vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        distances: vec![2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-        error_codes: Option::None,
+        travel_times: vec![1; 25],
+        distances: vec![2; 25],
+        error_codes: None,
     };
 
     let problem = (problem, vec![matrix]).read_pragmatic().ok().unwrap();
 
-    assert_eq!(problem.jobs.all().collect::<Vec<_>>().len(), 3 + 2);
+    assert_eq!(problem.jobs.all().count(), 3 + 2);
 
     // delivery
     let job = get_single_job(0, problem.jobs.as_ref());
     let place = get_single_place(job.as_ref());
-    assert_eq!(job.dimens.get_id().unwrap(), "delivery_job");
+    assert_eq!(job.dimens.get_job_id().unwrap(), "delivery_job");
     assert_eq!(place.duration, 100.);
     assert_eq!(place.location.unwrap(), 0);
     assert_demand(
@@ -209,7 +203,7 @@ fn can_read_complex_problem() {
 
     // shipment
     let job = get_multi_job(1, problem.jobs.as_ref());
-    assert_eq!(job.dimens.get_id().unwrap(), "pickup_delivery_job");
+    assert_eq!(job.dimens.get_job_id().unwrap(), "pickup_delivery_job");
     assert_job_skills(&job.dimens, None);
 
     let pickup = job.jobs.first().unwrap().clone();
@@ -229,7 +223,7 @@ fn can_read_complex_problem() {
     // pickup
     let job = get_single_job(2, problem.jobs.as_ref());
     let place = get_single_place(job.as_ref());
-    assert_eq!(job.dimens.get_id().unwrap(), "pickup_job");
+    assert_eq!(job.dimens.get_job_id().unwrap(), "pickup_job");
     assert_eq!(place.duration, 90.);
     assert_eq!(place.location.unwrap(), 2);
     assert_demand(job.dimens.get_demand().unwrap(), &single_demand_as_multi((3, 0), (0, 0)));
@@ -243,7 +237,7 @@ fn can_read_complex_problem() {
 
     (1..3).for_each(|index| {
         let vehicle = problem.fleet.vehicles.get(index - 1).unwrap();
-        assert_eq!(*vehicle.dimens.get_id().unwrap(), format!("my_vehicle_{}", index));
+        assert_eq!(*vehicle.dimens.get_vehicle_id().unwrap(), format!("my_vehicle_{index}"));
         assert_eq!(vehicle.profile.index, 0);
         assert_eq!(vehicle.profile.scale, 1.);
         assert_eq!(vehicle.costs.fixed, 100.0);
@@ -272,7 +266,7 @@ fn can_deserialize_minimal_problem_and_matrix() {
     let problem = (SIMPLE_PROBLEM.to_string(), vec![SIMPLE_MATRIX.to_string()]).read_pragmatic().ok().unwrap();
 
     assert_eq!(problem.fleet.vehicles.len(), 1);
-    assert_eq!(problem.jobs.all().collect::<Vec<_>>().len(), 2);
+    assert_eq!(problem.jobs.all().count(), 2);
     assert!(problem.locks.is_empty());
 
     let detail = problem.fleet.vehicles.first().unwrap().details.first().unwrap();
@@ -303,6 +297,7 @@ fn can_create_approximation_matrices() {
                 MatrixProfile { name: "car3".to_string(), speed: Some(5.) },
                 MatrixProfile { name: "car4".to_string(), speed: None },
             ],
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

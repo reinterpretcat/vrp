@@ -3,6 +3,8 @@
 mod decompose_search_test;
 
 use crate::construction::heuristics::*;
+use crate::models::GoalContext;
+use crate::solver::search::create_environment_with_custom_quota;
 use crate::solver::*;
 use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
@@ -17,30 +19,42 @@ pub struct DecomposeSearch {
     inner_search: TargetSearchOperator,
     max_routes_range: (i32, i32),
     repeat_count: usize,
+    quota_limit: usize,
 }
 
 impl DecomposeSearch {
     /// Create a new instance of `DecomposeSearch`.
-    pub fn new(inner_search: TargetSearchOperator, max_routes_range: (usize, usize), repeat_count: usize) -> Self {
+    pub fn new(
+        inner_search: TargetSearchOperator,
+        max_routes_range: (usize, usize),
+        repeat_count: usize,
+        quota_limit: usize,
+    ) -> Self {
         assert!(max_routes_range.0 > 1);
         let max_routes_range = (max_routes_range.0 as i32, max_routes_range.1 as i32);
 
-        Self { inner_search, max_routes_range, repeat_count }
+        Self { inner_search, max_routes_range, repeat_count, quota_limit }
     }
 }
 
 impl HeuristicSearchOperator for DecomposeSearch {
     type Context = RefinementContext;
-    type Objective = ProblemObjective;
+    type Objective = GoalContext;
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
         let refinement_ctx = heuristic_ctx;
         let insertion_ctx = solution;
 
-        decompose_insertion_context(refinement_ctx, insertion_ctx, self.max_routes_range)
-            .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx, contexts))
-            .unwrap_or_else(|| self.inner_search.search(heuristic_ctx, insertion_ctx))
+        decompose_insertion_context(
+            refinement_ctx,
+            insertion_ctx,
+            self.max_routes_range,
+            self.repeat_count,
+            self.quota_limit,
+        )
+        .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx, contexts))
+        .unwrap_or_else(|| self.inner_search.search(heuristic_ctx, insertion_ctx))
     }
 }
 
@@ -63,13 +77,21 @@ impl DecomposeSearch {
         });
 
         // do actual refinement independently for each decomposed context
-        let decomposed = parallel_into_collect(decomposed, |mut decomposed| {
-            (0..self.repeat_count).for_each(|_| {
-                let insertion_ctx = decomposed.0.population().select().next().expect(GREEDY_ERROR);
-                let insertion_ctx = self.inner_search.search(&decomposed.0, insertion_ctx);
-                decomposed.0.add_solution(insertion_ctx);
+        let decomposed = parallel_into_collect(decomposed, |(mut refinement_ctx, route_indices)| {
+            let _ = (0..self.repeat_count).try_for_each(|_| {
+                let insertion_ctx = refinement_ctx.population().select().next().expect(GREEDY_ERROR);
+                let insertion_ctx = self.inner_search.search(&refinement_ctx, insertion_ctx);
+                let is_quota_reached =
+                    refinement_ctx.environment.quota.as_ref().map_or(false, |quota| quota.is_reached());
+                refinement_ctx.add_solution(insertion_ctx);
+
+                if is_quota_reached {
+                    Err(())
+                } else {
+                    Ok(())
+                }
             });
-            decomposed
+            (refinement_ctx, route_indices)
         });
 
         // merge evolution results into one insertion_ctx
@@ -86,16 +108,17 @@ impl DecomposeSearch {
 }
 
 fn create_population(insertion_ctx: InsertionContext) -> TargetPopulation {
-    Box::new(GreedyPopulation::new(insertion_ctx.problem.objective.clone(), 1, Some(insertion_ctx)))
+    Box::new(GreedyPopulation::new(insertion_ctx.problem.goal.clone(), 1, Some(insertion_ctx)))
 }
 
 fn create_multiple_insertion_contexts(
     insertion_ctx: &InsertionContext,
+    environment: Arc<Environment>,
     max_routes_range: (i32, i32),
 ) -> Option<Vec<(InsertionContext, HashSet<usize>)>> {
     let mut route_groups_distances = group_routes_by_proximity(insertion_ctx)?;
     route_groups_distances.iter_mut().for_each(|route_group_distance| {
-        let random = &insertion_ctx.environment.random;
+        let random = &environment.random;
         let shuffle_count = random.uniform_int(2, (route_group_distance.len() as i32 / 5).max(2)) as usize;
         route_group_distance.partial_shuffle(&mut random.get_rng(), shuffle_count);
     });
@@ -110,7 +133,7 @@ fn create_multiple_insertion_contexts(
         .enumerate()
         .filter(|(outer_idx, _)| !used_indices.read().unwrap().contains(outer_idx))
         .map(|(outer_idx, route_group_distance)| {
-            let group_size = insertion_ctx.environment.random.uniform_int(min, max) as usize;
+            let group_size = environment.random.uniform_int(min, max) as usize;
             let route_group = once(outer_idx)
                 .chain(
                     route_group_distance
@@ -126,9 +149,9 @@ fn create_multiple_insertion_contexts(
                 used_indices.write().unwrap().insert(*idx);
             });
 
-            create_partial_insertion_ctx(insertion_ctx, route_group)
+            create_partial_insertion_ctx(insertion_ctx, environment.clone(), route_group)
         })
-        .chain(create_empty_insertion_ctxs(insertion_ctx))
+        .chain(create_empty_insertion_ctxs(insertion_ctx, environment.clone()))
         .collect();
 
     Some(insertion_ctxs)
@@ -136,6 +159,7 @@ fn create_multiple_insertion_contexts(
 
 fn create_partial_insertion_ctx(
     insertion_ctx: &InsertionContext,
+    environment: Arc<Environment>,
     route_indices: HashSet<usize>,
 ) -> (InsertionContext, HashSet<usize>) {
     let solution = &insertion_ctx.solution;
@@ -154,16 +178,16 @@ fn create_partial_insertion_ctx(
                 unassigned: if route_indices.is_empty() { solution.unassigned.clone() } else { Default::default() },
                 locked: if route_indices.is_empty() {
                     let jobs = solution.routes.iter().flat_map(|rc| rc.route.tour.jobs()).collect::<HashSet<_>>();
-                    solution.locked.iter().filter(|job| !jobs.contains(job)).cloned().collect()
+                    solution.locked.iter().filter(|job| !jobs.contains(*job)).cloned().collect()
                 } else {
                     let jobs = routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>();
-                    solution.locked.iter().filter(|job| jobs.contains(job)).cloned().collect()
+                    solution.locked.iter().filter(|job| jobs.contains(*job)).cloned().collect()
                 },
                 routes,
                 registry,
                 state: Default::default(),
             },
-            environment: insertion_ctx.environment.clone(),
+            environment,
         },
         route_indices,
     )
@@ -171,6 +195,7 @@ fn create_partial_insertion_ctx(
 
 fn create_empty_insertion_ctxs(
     insertion_ctx: &InsertionContext,
+    environment: Arc<Environment>,
 ) -> Box<dyn Iterator<Item = (InsertionContext, HashSet<usize>)>> {
     // TODO split into more insertion_ctxs if too many required jobs are present
     //      this might increase overall refinement speed
@@ -196,7 +221,7 @@ fn create_empty_insertion_ctxs(
                     registry: solution.registry.deep_copy(),
                     state: Default::default(),
                 },
-                environment: insertion_ctx.environment.clone(),
+                environment,
             },
             HashSet::default(),
         )))
@@ -207,8 +232,15 @@ fn decompose_insertion_context(
     refinement_ctx: &RefinementContext,
     insertion_ctx: &InsertionContext,
     max_routes_range: (i32, i32),
+    repeat: usize,
+    quota_limit: usize,
 ) -> Option<Vec<(RefinementContext, HashSet<usize>)>> {
-    create_multiple_insertion_contexts(insertion_ctx, max_routes_range)
+    // NOTE make limit a bit higher than median
+    let median = refinement_ctx.statistics().speed.get_median();
+    let limit = median.map(|median| (median * repeat).max(quota_limit));
+    let environment = create_environment_with_custom_quota(limit, refinement_ctx.environment.as_ref());
+
+    create_multiple_insertion_contexts(insertion_ctx, environment.clone(), max_routes_range)
         .map(|insertion_ctxs| {
             insertion_ctxs
                 .into_iter()
@@ -218,7 +250,7 @@ fn decompose_insertion_context(
                             refinement_ctx.problem.clone(),
                             create_population(insertion_ctx),
                             TelemetryMode::None,
-                            refinement_ctx.environment.clone(),
+                            environment.clone(),
                         ),
                         indices,
                     )
@@ -235,11 +267,12 @@ fn merge_best(
 ) -> InsertionContext {
     let (decomposed_ctx, route_indices) = decomposed;
     let (decomposed_insertion_ctx, _) = decomposed_ctx.population().ranked().next().expect(GREEDY_ERROR);
+    let environment = original_insertion_ctx.environment.clone();
 
-    let (partial_insertion_ctx, _) = create_partial_insertion_ctx(original_insertion_ctx, route_indices);
-    let objective = partial_insertion_ctx.problem.objective.as_ref();
+    let (partial_insertion_ctx, _) = create_partial_insertion_ctx(original_insertion_ctx, environment, route_indices);
+    let goal = partial_insertion_ctx.problem.goal.as_ref();
 
-    let source_solution = if objective.total_order(decomposed_insertion_ctx, &partial_insertion_ctx) == Ordering::Less {
+    let source_solution = if goal.total_order(decomposed_insertion_ctx, &partial_insertion_ctx) == Ordering::Less {
         &decomposed_insertion_ctx.solution
     } else {
         &partial_insertion_ctx.solution

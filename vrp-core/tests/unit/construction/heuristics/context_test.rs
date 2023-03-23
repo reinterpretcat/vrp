@@ -82,9 +82,9 @@ fn can_remove_activity_states() {
 fn can_use_stale_flag() {
     let mut route_ctx = create_empty_route_ctx();
 
-    assert_eq!(route_ctx.is_stale(), true);
+    assert!(route_ctx.is_stale());
     route_ctx.mark_stale(false);
-    assert_eq!(route_ctx.is_stale(), false);
+    assert!(!route_ctx.is_stale());
 
     let route_ctx_clone = route_ctx.clone();
     let route_ctx_fork = route_ctx.deep_copy();

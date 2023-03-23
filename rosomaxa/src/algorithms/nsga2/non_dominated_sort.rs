@@ -11,7 +11,8 @@
 #[cfg(test)]
 #[path = "../../../tests/unit/algorithms/nsga2/non_dominated_sort_test.rs"]
 mod non_dominated_sort_test;
-use crate::algorithms::nsga2::Objective;
+
+use crate::MultiObjective;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 
@@ -103,7 +104,7 @@ impl<'f, 's: 'f, S: 's> Iterator for FrontElemIter<'f, 's, S> {
 /// Performs a non-dominated sort of `solutions`. Returns the first Pareto front.
 pub fn non_dominated_sort<'s, S, O>(solutions: &'s [S], objective: &O) -> Front<'s, S>
 where
-    O: Objective<Solution = S>,
+    O: MultiObjective<Solution = S>,
 {
     // the indices of the solutions that are dominated by this `solution`
     let mut dominated_solutions: Vec<Vec<SolutionIdx>> = solutions.iter().map(|_| Vec::new()).collect();

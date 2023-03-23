@@ -1,6 +1,50 @@
 # Python
 
-The easiest way to run the solver from python is to use `subprocess` to run `vrp-cli`:
+## Using pip
+
+This is the easiest way to start using the solver's latest version:
+
+```shell
+pip install vrp-cli
+python examples/python-interop/example.py # test example
+```
+
+See python code example in repo or in next section.
+
+
+## Using maturin
+
+You can use [maturin](https://github.com/PyO3/maturin) tool to build solver locally for you. Here are the steps:
+
+1. Create a virtual environment and install maturin (and pydantic):
+    ```shell
+    cd vrp-cli # directory of the crate where with python bindings are located
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -U pip maturin[patchelf] pydantic
+    pip freeze
+    ```
+
+2. Use maturin to build and install the solver library in your current environment:
+    ```shell
+    maturin develop --release
+    ```
+
+3. Import and use the library in your python code:
+
+```python
+{{#include ../../../../examples/python-interop/example.py}}
+```
+
+You can check the project repository for complete example.
+
+**Please note**, that type wrappers, defined in examples with `pydantic`, are incomplete. However, it should be enough to
+get started, and you can tweak them according to the documentation or rust source code.
+
+
+## Using local build
+
+Another way to run the solver, built locally, from python is to use `subprocess` to run `vrp-cli` directly:
 
 ```python
 import subprocess
@@ -40,3 +84,5 @@ solution = solver.solve_pragmatic(problem_path, solution_path, geojson_solution_
 
 print(f"Total cost is {solution.statistic.cost}, tours: {len(solution.tours)}")
 ```
+
+**Please note**, that the solver expects file paths instead of json strings as input arguments.

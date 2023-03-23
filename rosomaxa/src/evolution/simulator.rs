@@ -62,8 +62,7 @@ where
             if is_initial_quota_reached || is_overall_termination {
                 logger.deref()(
                     format!(
-                        "stop building initial solutions due to initial quota reached ({}) or overall termination ({}).",
-                        is_initial_quota_reached, is_overall_termination
+                        "stop building initial solutions due to initial quota reached ({is_initial_quota_reached}) or overall termination ({is_overall_termination}).",
                     )
                         .as_str(),
                 );
@@ -156,8 +155,14 @@ where
 
             let parents = heuristic_ctx.population().select().collect::<Vec<_>>();
 
-            let search_offspring = heuristic.search(&heuristic_ctx, parents.clone());
-            let diverse_offspring = heuristic.diversify(&heuristic_ctx, parents);
+            let diverse_offspring = if heuristic_ctx.population().selection_phase() == SelectionPhase::Exploitation {
+                Vec::default()
+            } else {
+                heuristic.diversify(&heuristic_ctx, parents.clone())
+            };
+
+            let search_offspring = heuristic.search(&heuristic_ctx, parents);
+
             let offspring = search_offspring.into_iter().chain(diverse_offspring).collect::<Vec<_>>();
 
             let termination_estimate = termination.estimate(&heuristic_ctx);
@@ -166,7 +171,7 @@ where
         }
 
         // NOTE give a chance to report internal state of heuristic
-        heuristic_ctx.environment().logger.deref()(&format!("{}", heuristic));
+        heuristic_ctx.environment().logger.deref()(&format!("{heuristic}"));
 
         let (population, telemetry_metrics) = heuristic_ctx.on_result()?;
 

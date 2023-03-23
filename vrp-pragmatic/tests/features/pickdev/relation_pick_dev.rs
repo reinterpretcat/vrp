@@ -23,7 +23,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                 shifts: vec![create_default_vehicle_shift_with_locations((10., 0.), (10., 0.))],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

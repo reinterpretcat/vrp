@@ -4,7 +4,6 @@ mod jobs_test;
 
 use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
-use crate::utils::as_mut;
 use hashbrown::HashMap;
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering::Less;
@@ -166,10 +165,13 @@ impl Multi {
     }
 
     /// Wraps given multi job into [`Arc`] adding reference to it from all sub-jobs.
-    fn bind(multi: Self) -> Arc<Self> {
+    fn bind(mut multi: Self) -> Arc<Self> {
         Arc::new_cyclic(|weak_multi| {
-            multi.jobs.iter().for_each(|job| {
-                unsafe { as_mut(job.as_ref()) }.dimens.set_value("rf", weak_multi.clone());
+            multi.jobs.iter_mut().for_each(|single| {
+                Arc::get_mut(single)
+                    .expect("Single from Multi should not be shared before binding")
+                    .dimens
+                    .set_value("rf", weak_multi.clone());
             });
 
             multi
@@ -177,7 +179,7 @@ impl Multi {
     }
 }
 
-type JobIndex = HashMap<Job, (Vec<(Job, Cost)>, HashMap<Job, Cost>, Cost)>;
+type JobIndex = HashMap<Job, (Vec<(Job, Cost)>, Cost)>;
 
 /// Stores all jobs taking into account their neighborhood.
 pub struct Jobs {
@@ -202,14 +204,9 @@ impl Jobs {
         self.index.get(&profile.index).unwrap().get(job).unwrap().0.iter()
     }
 
-    /// Returns cost distance between two jobs.
-    pub fn distance(&self, profile: &Profile, from: &Job, to: &Job, _: Timestamp) -> Cost {
-        *self.index.get(&profile.index).unwrap().get(from).unwrap().1.get(to).unwrap()
-    }
-
     /// Returns job rank as relative cost from any vehicle's start position.
     pub fn rank(&self, profile: &Profile, job: &Job) -> Cost {
-        self.index.get(&profile.index).unwrap().get(job).unwrap().2
+        self.index.get(&profile.index).unwrap().get(job).unwrap().1
     }
 
     /// Returns amount of jobs.
@@ -293,9 +290,7 @@ fn create_index(
                 .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
                 .unwrap_or(DEFAULT_COST);
 
-            let job_costs_map = sorted_job_costs.iter().cloned().collect::<HashMap<_, _>>();
-
-            acc.insert(job, (sorted_job_costs, job_costs_map, fleet_costs));
+            acc.insert(job, (sorted_job_costs, fleet_costs));
             acc
         });
 

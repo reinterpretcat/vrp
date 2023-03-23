@@ -3,11 +3,11 @@
 mod network_test;
 
 use super::*;
+use crate::algorithms::math::get_mean_iter;
 use crate::utils::{compare_floats, parallel_into_collect, Noise, Random};
 use hashbrown::HashMap;
 use rand::prelude::SliceRandom;
 use std::cmp::Ordering;
-use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
 /// A customized Growing Self Organizing Map designed to store and retrieve trained input.
@@ -92,6 +92,11 @@ where
         self.learning_rate = learning_rate;
     }
 
+    /// Gets current learning rate.
+    pub fn get_learning_rate(&self) -> f64 {
+        self.learning_rate
+    }
+
     /// Stores input into the network.
     pub fn store(&mut self, input: I, time: usize) {
         debug_assert!(input.weights().len() == self.dimension);
@@ -121,39 +126,17 @@ where
                 .collect::<Vec<_>>();
             data.shuffle(&mut rand::thread_rng());
 
-            let nodes_data = parallel_into_collect(data, |input| {
-                let bmu = self.find_bmu(&input);
-                let error = bmu.read().unwrap().distance(input.weights());
-                (bmu, error, input)
-            });
+            self.train_on_data(data, false);
 
-            self.train_batch(nodes_data, false);
+            self.nodes.iter_mut().for_each(|(_, node)| {
+                node.write().unwrap().error = 0.;
+            })
         });
     }
 
-    /// Compacts network.
-    pub fn compact(&mut self, node_filter: &(dyn Fn(&NodeLink<I, S>, f64) -> bool)) {
-        let original = self.nodes.len();
-        let mut removed = vec![];
-        let mut remove_node = |coordinate: &Coordinate| {
-            // NOTE: prevent network to be less than 4 nodes
-            if (original - removed.len()) > 4 {
-                removed.push(*coordinate);
-            }
-        };
-
-        // remove user defined nodes
-        self.nodes
-            .iter()
-            .filter(|(_, node)| {
-                let unified_distance = node.read().unwrap().unified_distance(self, 1);
-                !node_filter.deref()(node, unified_distance)
-            })
-            .for_each(|(coordinate, _)| remove_node(coordinate));
-
-        removed.iter().for_each(|coordinate| {
-            self.nodes.remove(coordinate);
-        });
+    /// Compacts network. `node_filter` should return false for nodes to be removed.
+    pub fn compact(&mut self) {
+        contract_graph(self, (3, 4));
     }
 
     /// Finds node by its coordinate.
@@ -167,7 +150,7 @@ where
     }
 
     /// Return nodes in arbitrary order.
-    pub fn get_nodes<'a>(&'a self) -> impl Iterator<Item = &NodeLink<I, S>> + 'a {
+    pub fn get_nodes(&self) -> impl Iterator<Item = &NodeLink<I, S>> + '_ {
         self.nodes.values()
     }
 
@@ -186,11 +169,24 @@ where
         self.time
     }
 
+    /// Calculates mean distance of nodes with individuals.
+    pub fn mean_distance(&self) -> f64 {
+        get_mean_iter(self.nodes.iter().filter_map(|(_, node)| node.read().unwrap().node_distance()))
+    }
+
     /// Calculates mean squared error of the whole network.
     pub fn mse(&self) -> f64 {
         let n = if self.nodes.is_empty() { 1 } else { self.nodes.len() } as f64;
 
         self.nodes.iter().fold(0., |acc, (_, node)| acc + node.read().unwrap().mse()) / n
+    }
+
+    /// Returns max unified distance of the network.
+    pub fn max_unified_distance(&self) -> f64 {
+        self.get_nodes()
+            .map(|node| node.read().unwrap().unified_distance(self, 1))
+            .max_by(|a, b| compare_floats(*a, *b))
+            .unwrap_or(0.)
     }
 
     /// Trains network on an input.
@@ -213,6 +209,17 @@ where
         });
     }
 
+    /// Trains network on given input data.
+    pub(super) fn train_on_data(&mut self, data: Vec<I>, is_new_input: bool) {
+        let nodes_data = parallel_into_collect(data, |input| {
+            let bmu = self.find_bmu(&input);
+            let error = bmu.read().unwrap().distance(input.weights());
+            (bmu, error, input)
+        });
+
+        self.train_batch(nodes_data, is_new_input);
+    }
+
     /// Finds the best matching unit within the map for the given input.
     fn find_bmu(&self, input: &I) -> NodeLink<I, S> {
         self.nodes
@@ -225,7 +232,7 @@ where
 
     /// Updates network according to the error.
     fn update(&mut self, node: &NodeLink<I, S>, input: &I, error: f64, is_new_input: bool) {
-        let radius = if is_new_input { 2 } else { 1 };
+        let radius = if is_new_input { 2 } else { 3 };
 
         let (exceeds_ae, can_grow) = {
             let mut node = node.write().unwrap();
@@ -268,7 +275,6 @@ where
         });
     }
 
-    #[allow(clippy::needless_collect)]
     fn grow_nodes(&self, node: &NodeLink<I, S>) -> Vec<(Coordinate, Vec<f64>)> {
         let node = node.read().unwrap();
         let coord = node.coordinate;
@@ -278,14 +284,9 @@ where
         let get_node = |offset_x: i32, offset_y: i32| self.nodes.get(&get_coord(offset_x, offset_y));
 
         // NOTE insert new nodes only in main directions
-        let offsets = node
-            .neighbours(self, 1)
+        node.neighbours(self, 1)
             .filter(|(_, (x, y))| x.abs() + y.abs() < 2)
             .filter_map(|(node, offset)| if node.is_none() { Some(offset) } else { None })
-            .collect::<Vec<_>>();
-
-        offsets
-            .into_iter()
             .map(|(n_x, n_y)| {
                 let coord = get_coord(n_x, n_y);
                 let offset_abs = (n_x.abs(), n_y.abs());
@@ -356,9 +357,28 @@ where
     }
 
     /// Inserts new neighbors if necessary.
-    fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) {
+    pub(super) fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) {
         update_min_max(&mut self.min_max_weights, weights);
         self.nodes.insert(coordinate, Arc::new(RwLock::new(self.create_node(coordinate, weights, 0.))));
+    }
+
+    /// Removes node with given coordinate.
+    pub(super) fn remove(&mut self, coordinate: &Coordinate) {
+        self.nodes.remove(coordinate);
+    }
+
+    /// Remaps internal lattice after potential changes in coordinate schema.
+    pub(super) fn remap(&mut self, node_modifier: &(dyn Fn(Coordinate, NodeLink<I, S>) -> NodeLink<I, S>)) {
+        let nodes = self.nodes.drain().map(|(coord, node)| node_modifier(coord, node)).collect::<Vec<_>>();
+        self.nodes.extend(nodes.into_iter().map(|node| {
+            let coordinate = node.read().unwrap().coordinate;
+            (coordinate, node)
+        }));
+    }
+
+    /// Returns data (weights) dimension.
+    pub(super) fn dimension(&self) -> usize {
+        self.dimension
     }
 
     /// Creates a new node for given data.

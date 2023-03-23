@@ -100,7 +100,7 @@ impl CheckerContext {
             .vehicles
             .iter()
             .find(|v| v.vehicle_ids.contains(&vehicle_id.to_string()))
-            .ok_or_else(|| format!("cannot find vehicle with id '{}'", vehicle_id))
+            .ok_or_else(|| format!("cannot find vehicle with id '{vehicle_id}'"))
     }
 
     fn get_vehicle_profile(&self, vehicle_id: &str) -> Result<Profile, String> {
@@ -301,7 +301,7 @@ impl CheckerContext {
                                 };
 
                                 // NOTE parking correction
-                                let f_duration = if f_duration == 0 { parking as f64 } else { f_duration as f64 };
+                                let f_duration = if f_duration == 0 { parking } else { f_duration as f64 };
 
                                 Ok(Some(DomainCommute {
                                     forward: DomainCommuteInfo {
@@ -363,7 +363,7 @@ impl CheckerContext {
     fn get_location_index(&self, location: &Location) -> Result<usize, String> {
         self.coord_index
             .get_by_loc(location)
-            .ok_or_else(|| format!("cannot find coordinate in coord index: {:?}", location))
+            .ok_or_else(|| format!("cannot find coordinate in coord index: {location:?}"))
     }
 
     fn get_matrix_data(&self, profile: &Profile, from_idx: usize, to_idx: usize) -> Result<(i64, i64), String> {

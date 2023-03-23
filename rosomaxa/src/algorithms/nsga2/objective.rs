@@ -1,6 +1,5 @@
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
-use std::sync::Arc;
 
 /// An *objective* defines a *total ordering relation* and a *distance metric* on a set of
 /// `solutions`. Given any two solutions, an objective answers the following two questions:
@@ -39,19 +38,36 @@ pub trait Objective {
 }
 
 /// A multi objective.
-pub trait MultiObjective: Objective {
-    /// Returns collection of objective functions.
-    fn objectives<'a>(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = &'a (dyn Objective<Solution = Self::Solution> + Send + Sync)> + 'a>;
+pub trait MultiObjective {
+    /// The solution value type that we define the objective on.
+    type Solution;
+
+    /// An objective defines a total ordering between any two solution values.
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering;
+
+    /// An objective fitness values for given `solution`.
+    fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a>;
+
+    /// Get solution order for individual objective.
+    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String>;
+
+    /// Gets solution distance for individual objective.
+    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String>;
+
+    /// Returns total number of inner objectives.
+    fn size(&self) -> usize;
 }
 
 /// Calculates dominance order of two solutions using multiple objectives.
-pub fn dominance_order<T>(a: &T, b: &T, objectives: &[Arc<dyn Objective<Solution = T> + Send + Sync>]) -> Ordering {
+pub fn dominance_order<'a, T, O: Objective<Solution = T> + ?Sized + 'a, Iter: Iterator<Item = &'a O>>(
+    a: &'a T,
+    b: &'a T,
+    objectives: Iter,
+) -> Ordering {
     let mut less_cnt = 0;
     let mut greater_cnt = 0;
 
-    for objective in objectives.iter() {
+    for objective in objectives {
         match objective.total_order(a, b) {
             Ordering::Less => {
                 less_cnt += 1;

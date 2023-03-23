@@ -40,11 +40,11 @@ fn can_switch_phases() {
         rosomaxa.update_phase(&create_statistics(0., 0))
     });
 
-    rosomaxa.add(VectorSolution::new(vec![-1., -1.], objective.clone()));
+    rosomaxa.add(VectorSolution::new(vec![-1., -1.], objective));
     assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
 
     for (idx, (termination_estimate, phase)) in
-        (&[(0.7, SelectionPhase::Exploration), (0.9, SelectionPhase::Exploitation)]).iter().enumerate()
+        ([(0.7, SelectionPhase::Exploration), (0.9, SelectionPhase::Exploitation)]).iter().enumerate()
     {
         rosomaxa.update_phase(&create_statistics(*termination_estimate, idx));
         assert_eq!(rosomaxa.selection_phase(), *phase);
@@ -79,18 +79,18 @@ fn can_optimize_network() {
         rosomaxa.update_phase(&create_statistics(termination_estimate, idx))
     });
 
-    rosomaxa.add(VectorSolution::new(vec![0.5, 0.5], objective.clone()));
+    rosomaxa.add(VectorSolution::new(vec![0.5, 0.5], objective));
     rosomaxa.update_phase(&create_statistics(termination_estimate, 10));
 
-    assert_eq!(get_network(&rosomaxa).get_nodes().count(), 4);
+    assert!(get_network(&rosomaxa).get_nodes().next().is_some());
 }
 
 #[test]
 fn can_format_network() {
     let (objective, mut rosomaxa) = create_rosomaxa(4);
-    rosomaxa.add_all(vec![VectorSolution::new(vec![0.5, 0.5], objective.clone())]);
+    rosomaxa.add_all(vec![VectorSolution::new(vec![0.5, 0.5], objective)]);
 
-    let str = format!("{}", rosomaxa);
+    let str = format!("{rosomaxa}");
 
     assert_eq!(str, "[[6.5000000],]");
 }

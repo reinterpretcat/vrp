@@ -3,10 +3,10 @@
 mod estimations_test;
 
 use super::*;
-use crate::construction::constraints::ConstraintPipeline;
 use crate::models::common::*;
 use crate::models::problem::{Place, Single, TransportCost};
 use crate::models::solution::CommuteInfo;
+use crate::models::GoalContext;
 use hashbrown::{HashMap, HashSet};
 use rosomaxa::utils::parallel_foreach_mut;
 use std::ops::Deref;
@@ -19,7 +19,7 @@ type DissimilarityIndex = HashMap<Job, Vec<DissimilarityInfo>>;
 
 /// Gets job clusters.
 pub(crate) fn get_clusters(
-    constraint: &ConstraintPipeline,
+    variant: &GoalContext,
     estimates: HashMap<Job, DissimilarityIndex>,
     config: &ClusterConfig,
     check_insertion: &CheckInsertionFn,
@@ -48,7 +48,7 @@ pub(crate) fn get_clusters(
     loop {
         parallel_foreach_mut(cluster_estimates.as_mut_slice(), |(center_job, (cluster, _))| {
             if cluster.is_none() {
-                *cluster = build_job_cluster(constraint, center_job, &estimates, &used_jobs, config, check_insertion)
+                *cluster = build_job_cluster(variant, center_job, &estimates, &used_jobs, config, check_insertion)
             }
         });
 
@@ -192,7 +192,7 @@ fn get_dissimilarities(
 }
 
 fn build_job_cluster(
-    constraint: &ConstraintPipeline,
+    variant: &GoalContext,
     center_job: &Job,
     estimates: &HashMap<Job, DissimilarityIndex>,
     used_jobs: &HashSet<Job>,
@@ -246,7 +246,7 @@ fn build_job_cluster(
             // allow jobs only from reachable candidates
             let mut cluster_candidates = center_estimates
                 .iter()
-                .filter(|(job, ..)| !used_jobs.contains(job))
+                .filter(|(job, ..)| !used_jobs.contains(*job))
                 .filter(|(_, infos)| infos.iter().any(|(reachable, ..)| *reachable))
                 .map(|(candidate, _)| candidate.clone())
                 .collect::<HashSet<_>>();
@@ -265,7 +265,7 @@ fn build_job_cluster(
                 let mut job_estimates = estimates
                     .get(&last_job)
                     .iter()
-                    .flat_map(|index| index.iter().filter(|(job, _)| cluster_candidates.contains(job)))
+                    .flat_map(|index| index.iter().filter(|(job, _)| cluster_candidates.contains(*job)))
                     .flat_map(|estimate| {
                         // embed the first visit info to sort estimates of all candidate jobs later
                         // we allow unreachable from the last job candidates as they must be reachable from the center
@@ -281,12 +281,12 @@ fn build_job_cluster(
                 // try to find the first successful addition to the cluster from job estimates
                 let addition_result = unwrap_from_result(job_estimates.iter().try_fold(None, |_, candidate| {
                     try_add_job(
-                        constraint,
+                        variant,
                         last_place_idx,
                         &cluster,
                         (candidate.0, candidate.1),
                         config,
-                        &center_commute,
+                        center_commute,
                         check_insertion,
                     )
                     .map_or_else(
@@ -315,7 +315,7 @@ fn build_job_cluster(
             }
 
             if count > 1 {
-                cluster = finish_cluster(cluster, config, &center_commute);
+                cluster = finish_cluster(cluster, config, center_commute);
             }
 
             match (&best_cluster, count) {
@@ -330,7 +330,7 @@ fn build_job_cluster(
 }
 
 fn try_add_job<F>(
-    constraint: &ConstraintPipeline,
+    variant: &GoalContext,
     center_place_idx: usize,
     cluster: &Job,
     candidate: (&Job, &Vec<DissimilarityInfo>),
@@ -430,8 +430,8 @@ where
         let updated_candidate =
             create_single_job(place.location, new_cluster_duration, &new_cluster_times, &job.dimens);
 
-        constraint
-            .merge_constrained(updated_cluster, updated_candidate)
+        variant
+            .merge(updated_cluster, updated_candidate)
             .and_then(|merged_cluster| check_insertion.deref()(&merged_cluster).map(|_| (merged_cluster, info)))
             .map(Some)
             .map_or_else(|_| Ok(None), Err)

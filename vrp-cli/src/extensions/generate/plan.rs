@@ -59,7 +59,7 @@ pub(crate) fn generate_plan(
                 && job_proto.deliveries.as_ref().map_or(false, |t| !t.is_empty());
 
             Job {
-                id: format!("job{}", job_idx),
+                id: format!("job{job_idx}"),
                 pickups: generate_tasks(&job_proto.pickups, keep_original_demand),
                 deliveries: generate_tasks(&job_proto.deliveries, keep_original_demand),
                 replacements: generate_tasks(&job_proto.replacements, false),
@@ -72,14 +72,16 @@ pub(crate) fn generate_plan(
         })
         .collect();
 
-    Ok(Plan { jobs, relations: None, areas: None, clustering: None })
+    Ok(Plan { jobs, relations: None, clustering: None })
 }
+
+type LocationFn = Box<dyn Fn(&DefaultRandom) -> Location>;
 
 fn get_location_fn(
     problem_proto: &Problem,
     locations: Option<Vec<Location>>,
     area_size: Option<f64>,
-) -> Result<Box<dyn Fn(&DefaultRandom) -> Location>, String> {
+) -> Result<LocationFn, String> {
     if let Some(locations) = locations {
         Ok(Box::new(move |rnd| get_random_item(locations.as_slice(), rnd).cloned().expect("cannot get any location")))
     } else {

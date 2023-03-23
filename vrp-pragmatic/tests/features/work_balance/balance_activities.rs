@@ -49,7 +49,7 @@ fn can_balance_activities_with_threshold_impl(threshold: Option<f64>, expected_l
                     ..create_default_vehicle_type()
                 },
             ],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         objectives: Some(vec![
             vec![MinimizeUnassignedJobs { breaks: None }],

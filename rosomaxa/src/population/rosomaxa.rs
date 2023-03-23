@@ -5,7 +5,7 @@ mod rosomaxa_test;
 use super::*;
 use crate::algorithms::gsom::*;
 use crate::algorithms::math::relative_distance;
-use crate::population::elitism::{DominanceOrdered, Shuffled};
+use crate::population::elitism::{DedupFn, DominanceOrdered, Shuffled};
 use crate::utils::{Environment, Random};
 use rand::prelude::SliceRandom;
 use std::convert::TryInto;
@@ -269,16 +269,7 @@ where
                     *old_statistics = statistics.clone();
                     *old_selection_size = selection_size;
 
-                    let best_individual = self.elite.select().next().expect("expected individuals in elite");
-                    let best_fitness = best_individual.get_fitness().collect::<Vec<_>>();
-
-                    Self::optimize_network(
-                        network,
-                        statistics,
-                        best_fitness.as_slice(),
-                        self.config.rebalance_memory,
-                        self.config.learning_rate,
-                    );
+                    Self::optimize_network(network, statistics, &self.config);
 
                     Self::fill_populations(network, coordinates, self.environment.random.as_ref());
                 } else {
@@ -295,8 +286,37 @@ where
         best_known.map_or(true, |best_known| self.objective.total_order(individual, best_known) != Ordering::Greater)
     }
 
-    fn fill_populations<'a>(
-        network: &'a IndividualNetwork<O, S>,
+    fn optimize_network(
+        network: &mut IndividualNetwork<O, S>,
+        statistics: &HeuristicStatistics,
+        config: &RosomaxaConfig,
+    ) {
+        // increase rate according to termination estimate
+        let rate = statistics.termination_estimate.clamp(config.learning_rate, 0.8);
+        let learning_rate =
+            (config.learning_rate * (1. + rate)).clamp(config.learning_rate, 0.9_f64.max(config.learning_rate));
+        network.set_learning_rate(learning_rate);
+
+        if statistics.generation % config.rebalance_memory == 0 {
+            network.smooth(1);
+        }
+
+        // slowly decrease size of network from 3 * rebalance_memory to rebalance_memory
+        let rate = get_sigmoid_curve(statistics.termination_estimate.clamp(0., 0.8));
+        let keep_ratio = 2. * (1. - rate);
+        let keep_size = config.rebalance_memory + (config.rebalance_memory as f64 * keep_ratio) as usize;
+
+        // no need to shrink network
+        if network.size() <= keep_size {
+            return;
+        }
+
+        network.compact();
+        network.smooth(1);
+    }
+
+    fn fill_populations(
+        network: &IndividualNetwork<O, S>,
         coordinates: &mut Vec<Coordinate>,
         random: &(dyn Random + Send + Sync),
     ) {
@@ -311,68 +331,6 @@ where
         }));
 
         coordinates.shuffle(&mut random.get_rng());
-    }
-
-    fn optimize_network(
-        network: &mut IndividualNetwork<O, S>,
-        statistics: &HeuristicStatistics,
-        best_fitness: &[f64],
-        rebalance_memory: usize,
-        init_learning_rate: f64,
-    ) {
-        // https://www.wolframalpha.com/input?i=plot+2+*+%281+-+1%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
-        let x = match statistics.improvement_1000_ratio {
-            v if v < 0.25 => v,
-            _ => statistics.termination_estimate,
-        }
-        .clamp(0., 1.);
-
-        let ratio = 2. * (1. - 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.5))));
-        let keep_size = rebalance_memory + (rebalance_memory as f64 * ratio) as usize;
-
-        if statistics.generation % rebalance_memory == 0 {
-            network.smooth(1);
-        }
-
-        if network.size() <= keep_size {
-            return;
-        }
-
-        if init_learning_rate < 1. {
-            network.set_learning_rate(statistics.termination_estimate.clamp(init_learning_rate, 1.));
-        }
-
-        let max_unified_distance = network
-            .get_nodes()
-            .map(|node| node.read().unwrap().unified_distance(network, 1))
-            .max_by(|a, b| compare_floats(*a, *b))
-            .unwrap_or(0.);
-
-        let get_distance = |node: &NodeLink<S, IndividualStorage<O, S>>| {
-            let node = node.read().unwrap();
-            let individual = node.storage.population.ranked().next();
-
-            individual.map(|(individual, _)| relative_distance(best_fitness.iter().cloned(), individual.get_fitness()))
-        };
-
-        // determine percentile value
-        let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
-        distances.sort_by(|a, b| compare_floats(*b, *a));
-
-        const PERCENTILE_THRESHOLD: f64 = 0.1;
-        let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
-
-        if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
-            network.compact(&|node, unified_distance| {
-                // NOTE
-                // unified distance filter improves diversity property
-                // distance filter improves exploitation characteristic by removing old (or empty) nodes
-
-                let is_far_enough = compare_floats(unified_distance, max_unified_distance * 0.1) != Ordering::Less;
-                is_far_enough && get_distance(node).map_or(false, |distance| distance < distance_threshold)
-            });
-            network.smooth(1);
-        }
     }
 
     fn create_network(
@@ -420,7 +378,7 @@ where
         match &self.phase {
             RosomaxaPhases::Exploration { network, .. } => {
                 let state = get_network_state(network);
-                write!(f, "{}", state)
+                write!(f, "{state}")
             }
             _ => write!(f, "{}", self.elite),
         }
@@ -552,7 +510,7 @@ where
     }
 }
 
-fn create_dedup_fn<O, S>(threshold: f64) -> Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>
+fn create_dedup_fn<O, S>(threshold: f64) -> DedupFn<O, S>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
@@ -560,8 +518,8 @@ where
     // NOTE custom dedup rule to increase diversity property
     Box::new(move |objective, a, b| match objective.total_order(a, b) {
         Ordering::Equal => {
-            let fitness_a = a.get_fitness();
-            let fitness_b = b.get_fitness();
+            let fitness_a = a.fitness();
+            let fitness_b = b.fitness();
 
             fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
         }
@@ -573,4 +531,9 @@ where
             distance < threshold
         }
     })
+}
+
+/// Sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
+fn get_sigmoid_curve(value: f64) -> f64 {
+    1. / (1. + std::f64::consts::E.powf(-10. * (value - 0.5)))
 }

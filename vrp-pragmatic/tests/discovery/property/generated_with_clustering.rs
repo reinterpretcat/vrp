@@ -53,7 +53,6 @@ prop_compose! {
     ) -> Problem {
         let duration = duration as f64;
         let distance = radius * (radius_fraction as f64 / 1000.);
-        let parking = parking as f64;
 
         Problem {
             plan: Plan {

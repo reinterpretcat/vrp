@@ -11,7 +11,7 @@ use vrp_core::models::solution::Route;
 fn matrix(profile: Option<&str>, timestamp: Option<f64>, fill_value: i64, size: usize) -> Matrix {
     Matrix {
         profile: profile.map(|p| p.to_string()),
-        timestamp: timestamp.map(|t| format_time(t)),
+        timestamp: timestamp.map(format_time),
         travel_times: vec![fill_value; size],
         distances: vec![fill_value; size],
         error_codes: None,
@@ -31,8 +31,8 @@ fn wrong_matrix(profile: Option<&str>, timestamp: Option<String>) -> Matrix {
 fn create_problem(profiles: &[&str]) -> Problem {
     Problem {
         fleet: Fleet {
-            vehicles: vec![],
             profiles: profiles.iter().map(|p| MatrixProfile { name: p.to_string(), speed: None }).collect(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     }

@@ -10,7 +10,7 @@ parameterized_test! {can_prefer_jobs_with_more_value, objectives, {
 can_prefer_jobs_with_more_value! {
     case01: Some(vec![
         vec![MinimizeUnassignedJobs { breaks: None }],
-        vec![MaximizeValue { reduction_factor: Some(0.1), breaks: None }],
+        vec![MaximizeValue { breaks: None }],
         vec![MinimizeCost],
     ]),
     case02: None,
@@ -24,7 +24,7 @@ fn can_prefer_jobs_with_more_value_impl(objectives: Option<Vec<Vec<Objective>>>)
         },
         fleet: Fleet {
             vehicles: vec![VehicleType { capacity: vec![1], ..create_default_vehicle_type() }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         objectives,
         ..create_empty_problem()
@@ -44,7 +44,7 @@ fn can_prefer_jobs_with_more_value_impl(objectives: Option<Vec<Vec<Objective>>>)
             reasons: vec![UnassignedJobReason {
                 code: "CAPACITY_CONSTRAINT".to_string(),
                 description: "does not fit into any vehicle due to capacity".to_string(),
-                detail: Some(UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 })
+                details: Some(vec![UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }])
             }]
         }
     );

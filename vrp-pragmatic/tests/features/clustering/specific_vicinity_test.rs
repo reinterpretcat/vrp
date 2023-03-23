@@ -40,7 +40,7 @@ fn can_handle_parking_with_no_clusters_and_job_time_windows() {
                 }],
                 ..create_default_vehicle("vehicle1")
             }],
-            profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -71,6 +71,7 @@ can_handle_waiting_time_with_parking! {
     ),
 }
 
+#[allow(clippy::type_complexity)]
 fn can_handle_waiting_time_with_parking_impl(
     jobs: Vec<(&str, (f64, f64), Vec<(i32, i32)>)>,
     threshold: (f64, f64),
@@ -114,7 +115,7 @@ fn can_handle_waiting_time_with_parking_impl(
                 }],
                 ..create_default_vehicle("vehicle1")
             }],
-            profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
+            ..create_default_fleet()
         },
         objectives: None,
     };

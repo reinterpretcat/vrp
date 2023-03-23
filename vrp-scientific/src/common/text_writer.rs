@@ -22,10 +22,10 @@ pub(crate) fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Sol
             .map(|job| job.dimens().get_id().unwrap().clone())
             .collect::<Vec<String>>()
             .join(" ");
-        writer.write_all(format!("Route {}: {}\n", i, customers).as_bytes()).unwrap();
+        writer.write_all(format!("Route {i}: {customers}\n").as_bytes()).unwrap();
     });
 
-    writer.write_all(format!("Cost {:.2}", cost).as_bytes())?;
+    writer.write_all(format!("Cost {cost:.2}").as_bytes())?;
 
     Ok(())
 }

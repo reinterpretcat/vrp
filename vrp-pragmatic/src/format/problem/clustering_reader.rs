@@ -1,15 +1,10 @@
-use crate::format::problem::reader::fleet_reader::get_profile_index_map;
-use crate::format::problem::reader::ApiProblem;
-use crate::format::problem::*;
+use super::*;
+use crate::construction::enablers::JobTie;
+use crate::format::problem::fleet_reader::get_profile_index_map;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
-use std::sync::Arc;
-use vrp_core::construction::clustering::vicinity::ClusterConfig;
 use vrp_core::construction::clustering::vicinity::*;
-use vrp_core::models::common::IdDimension;
 use vrp_core::models::common::Profile;
-use vrp_core::models::problem::Job;
-use vrp_core::prelude::*;
 
 /// Creates cluster config if it is defined on the api problem.
 pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<ClusterConfig>, String> {
@@ -56,8 +51,8 @@ fn get_profile(api_problem: &ApiProblem, profile: &VehicleProfile) -> Result<Pro
 
 fn get_builder_policy() -> BuilderPolicy {
     // NOTE use ordering rule which is based on job id to make clusters stable
-    let ordering_rule = |result: Ordering, left_job: &Job, right_job: &Job| match result {
-        Ordering::Equal => match (left_job.dimens().get_id(), right_job.dimens().get_id()) {
+    let ordering_rule = |result: Ordering, left_job: &CoreJob, right_job: &CoreJob| match result {
+        Ordering::Equal => match (left_job.dimens().get_job_id(), right_job.dimens().get_job_id()) {
             (Some(left), Some(right)) => left.cmp(right),
             (Some(_), None) => Ordering::Less,
             (None, Some(_)) => Ordering::Greater,
@@ -86,7 +81,7 @@ fn get_filter_policy(filtering: Option<&VicinityFilteringPolicy>) -> FilterPolic
         let excluded_job_ids = filtering.exclude_job_ids.iter().cloned().collect::<HashSet<_>>();
         FilterPolicy {
             job_filter: Arc::new(move |job| {
-                job.dimens().get_id().map_or(true, |job_id| !excluded_job_ids.contains(job_id))
+                job.dimens().get_job_id().map_or(true, |job_id| !excluded_job_ids.contains(job_id))
             }),
             actor_filter: Arc::new(|_| true),
         }

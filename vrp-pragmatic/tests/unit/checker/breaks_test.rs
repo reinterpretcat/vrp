@@ -9,15 +9,13 @@ fn test_violations() -> Option<Vec<Violation>> {
 
 fn get_matched_break_error_msg(matched: usize, actual: usize) -> Result<(), Vec<String>> {
     Err(vec![format!(
-        "cannot match all breaks, matched: '{}', actual '{}' for vehicle 'my_vehicle_1', shift index '0'",
-        matched, actual
+        "cannot match all breaks, matched: '{matched}', actual '{actual}' for vehicle 'my_vehicle_1', shift index '0'"
     )])
 }
 
 fn get_total_break_error_msg(expected: usize, actual: usize) -> Result<(), Vec<String>> {
     Err(vec![format!(
-        "amount of breaks does not match, expected: '{}', got '{}' for vehicle 'my_vehicle_1', shift index '0'",
-        expected, actual
+        "amount of breaks does not match, expected: '{expected}', got '{actual}' for vehicle 'my_vehicle_1', shift index '0'"
     )])
 }
 
@@ -79,11 +77,7 @@ fn can_check_breaks_impl(
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
-                    end: Some(ShiftEnd {
-                        earliest: None,
-                        latest: format_time(1000.).to_string(),
-                        location: (0., 0.).to_loc(),
-                    }),
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (0., 0.).to_loc() }),
                     dispatch: None,
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: break_times,
@@ -95,7 +89,7 @@ fn can_check_breaks_impl(
                 capacity: vec![5],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

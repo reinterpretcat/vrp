@@ -7,25 +7,27 @@ use crate::solver::*;
 use rosomaxa::algorithms::gsom::Coordinate;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::io::BufWriter;
 use std::sync::{Arc, Mutex};
 use wasm_bindgen::prelude::*;
 
 mod plots;
-pub use self::plots::{draw_plots, Axes};
+pub use self::plots::{draw_function_plots, Axes};
 
 mod solver;
-pub use self::solver::solve_function;
+pub use self::solver::{solve_function, solve_vrp};
 
 /// Specifies a matrix data type.
 pub type MatrixData = HashMap<Coordinate, f64>;
 
 /// Represents a single experiment observation data.
 pub enum ObservationData {
-    /// Observation for benchmarking function experiment.
+    /// Observation for benchmarking 3D function experiment.
     Function(DataPoint3D),
+
     /// Observation for Vehicle Routing Problem experiment.
-    Vrp(DataGraph),
+    /// DataGraph contains solution represented as a directed graph, DataPoint3D represents solution
+    /// as a point in 3D space where meaning of each dimension depends on problem variant.
+    Vrp((DataGraph, DataPoint3D)),
 }
 
 lazy_static! {
@@ -66,31 +68,4 @@ pub fn clear() {
 #[wasm_bindgen]
 pub fn get_generation() -> usize {
     EXPERIMENT_DATA.lock().unwrap().generation
-}
-
-/// Gets bundled generations for given generation (for vrp experiments only).
-#[wasm_bindgen]
-pub fn get_bundled_edges(generation: usize) -> JsValue {
-    #[derive(Serialize)]
-    struct GraphResult {
-        nodes: Vec<GraphNode>,
-        edges: Vec<Vec<GraphNode>>,
-    }
-
-    let graphs: Vec<DataGraph> = EXPERIMENT_DATA
-        .lock()
-        .unwrap()
-        .on_generation
-        .get(&generation)
-        .map(|(_, data)| data.iter().map(|d| d.into()).collect())
-        .unwrap_or_else(Vec::new);
-
-    let (nodes, edges) = get_forced_bundled_edges(graphs.as_slice());
-    let result = GraphResult { nodes, edges };
-
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    serde_json::to_writer_pretty(writer, &result).expect("cannot serialize bundled edges");
-
-    JsValue::from_str(buffer.as_str())
 }

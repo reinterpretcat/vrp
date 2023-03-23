@@ -1,4 +1,4 @@
-name: Build source code
+name: build
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: clippy
-        args: --all-features -- -D warnings
+        args: --all-features --tests -- -D warnings
 
   release-build:
     runs-on: ubuntu-latest
@@ -39,7 +39,9 @@ jobs:
 
     - name: Build WebAssembly
       run: |
-        curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        # curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        # see https://github.com/rustwasm/wasm-pack/issues/823#issuecomment-1242611318
+        cargo install --git https://github.com/frewsxcv/wasm-pack.git --branch patch-2
         cd vrp-cli
         wasm-pack build --target web
 

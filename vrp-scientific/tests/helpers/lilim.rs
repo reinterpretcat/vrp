@@ -1,15 +1,12 @@
 pub type Customer = (usize, usize, usize, i32, usize, usize, usize, usize, usize);
 
+#[derive(Default)]
 pub struct LilimBuilder {
     vehicle: (usize, usize),
     customers: Vec<Customer>,
 }
 
 impl LilimBuilder {
-    pub fn new() -> Self {
-        Self { vehicle: (0, 0), customers: vec![] }
-    }
-
     pub fn set_vehicle(&mut self, vehicle: (usize, usize)) -> &mut Self {
         self.vehicle = vehicle;
         self

@@ -27,9 +27,9 @@ mod cli {
         run_subcommand(get_app().get_matches());
     }
 
-    pub fn get_app() -> Command<'static> {
+    pub fn get_app() -> Command {
         Command::new("Vehicle Routing Problem Solver")
-            .version("1.18.1")
+            .version("1.19.1")
             .author("Ilya Builuk <ilya.builuk@gmail.com>")
             .about("A command line interface to Vehicle Routing Problem solver")
             .subcommand(get_analyze_app())
@@ -51,7 +51,7 @@ mod cli {
                 process::exit(1);
             }
         } {
-            eprintln!("{}", err);
+            eprintln!("{err}");
             process::exit(1)
         }
     }

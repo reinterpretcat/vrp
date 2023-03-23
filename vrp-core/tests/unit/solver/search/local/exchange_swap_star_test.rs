@@ -12,7 +12,7 @@ fn create_insertion_success(insertion_ctx: &InsertionContext, insertion_data: (u
     let (route_idx, job_id, insertion_idx) = insertion_data;
 
     let context = insertion_ctx.solution.routes.get(route_idx).cloned().unwrap();
-    let job = get_jobs_by_ids(&insertion_ctx, &[job_id]).first().cloned().unwrap();
+    let job = get_jobs_by_ids(insertion_ctx, &[job_id]).first().cloned().unwrap();
     let activity = Activity {
         place: Place { location: 0, duration: 0.0, time: TimeWindow::new(0., 1.) },
         schedule: Schedule { arrival: 0., departure: 0. },
@@ -28,18 +28,18 @@ fn create_insertion_ctx(
     disallowed_pairs: Vec<(&str, &str)>,
     is_open_vrp: bool,
 ) -> InsertionContext {
-    let (mut problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, is_open_vrp);
+    let (problem, solution) =
+        generate_matrix_routes_with_disallow_list(matrix.0, matrix.1, is_open_vrp, disallowed_pairs);
     let environment = Arc::new(Environment::default());
-    add_leg_constraint(&mut problem, disallowed_pairs);
 
     InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment)
 }
 
-fn create_default_selectors() -> (VariableLegSelector, BestResultSelector) {
-    let leg_selector = VariableLegSelector::new(Environment::default().random);
+fn create_default_selectors() -> (LegSelection, BestResultSelector) {
+    let leg_selection = LegSelection::Stochastic(Environment::default().random);
     let result_selector = BestResultSelector::default();
 
-    (leg_selector, result_selector)
+    (leg_selection, result_selector)
 }
 
 parameterized_test! { can_use_exchange_swap_star, (jobs_order, expected), {
@@ -76,7 +76,7 @@ fn can_use_exchange_swap_star_impl(jobs_order: Vec<Vec<&str>>, expected: Vec<Vec
         .collect::<Vec<_>>();
     assert_eq!(vehicles, vec!["0", "1", "2"]);
 
-    let insertion_ctx = ExchangeSwapStar::new(environment.random.clone())
+    let insertion_ctx = ExchangeSwapStar::new(environment.random.clone(), 10000)
         .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
         .expect("cannot find new solution");
 
@@ -96,7 +96,7 @@ fn can_keep_locked_jobs_in_place() {
     );
     rearrange_jobs_in_routes(&mut insertion_ctx, jobs_order.as_slice());
 
-    let insertion_ctx = ExchangeSwapStar::new(environment.random.clone())
+    let insertion_ctx = ExchangeSwapStar::new(environment.random.clone(), 1000)
         .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
         .expect("cannot find new solution");
 
@@ -121,9 +121,9 @@ fn can_exchange_jobs_in_routes() {
     let matrix = (3, 2);
     let mut insertion_ctx = create_insertion_ctx(matrix, disallowed_pairs, true);
     rearrange_jobs_in_routes(&mut insertion_ctx, job_order.as_slice());
-    let (leg_selector, result_selector) = create_default_selectors();
+    let (leg_selection, result_selector) = create_default_selectors();
 
-    try_exchange_jobs_in_routes(&mut insertion_ctx, route_pair, &leg_selector, &result_selector);
+    try_exchange_jobs_in_routes(&mut insertion_ctx, route_pair, &leg_selection, &result_selector);
 
     compare_with_ignore(get_customer_ids_from_routes(&insertion_ctx).as_slice(), &expected_route_ids, "");
 }
@@ -154,13 +154,13 @@ fn can_exchange_single_jobs_impl(
 ) {
     let matrix = (3, 2);
     let mut insertion_ctx = create_insertion_ctx(matrix, disallowed_pairs, false);
-    let (leg_selector, result_selector) = create_default_selectors();
+    let (leg_selection, result_selector) = create_default_selectors();
     let insertion_pair = (
         create_insertion_success(&insertion_ctx, outer_insertion),
         create_insertion_success(&insertion_ctx, inner_insertion),
     );
 
-    try_exchange_jobs(&mut insertion_ctx, insertion_pair, &leg_selector, &result_selector);
+    try_exchange_jobs(&mut insertion_ctx, insertion_pair, &leg_selection, &result_selector);
 
     compare_with_ignore(get_customer_ids_from_routes(&insertion_ctx).as_slice(), &expected_route_ids, "");
 }
@@ -178,8 +178,8 @@ can_find_insertion_cost! {
 fn can_find_insertion_cost_impl(job_id: &str, expected: Cost) {
     let matrix = (3, 1);
     let insertion_ctx = create_insertion_ctx(matrix, vec![], false);
-    let (leg_selector, result_selector) = create_default_selectors();
-    let search_ctx: SearchContext = (&insertion_ctx, &leg_selector, &result_selector);
+    let (leg_selection, result_selector) = create_default_selectors();
+    let search_ctx: SearchContext = (&insertion_ctx, &leg_selection, &result_selector);
     let job = get_jobs_by_ids(&insertion_ctx, &[job_id]).first().cloned().unwrap();
     let route_ctx = insertion_ctx.solution.routes.first().unwrap();
 
@@ -210,9 +210,9 @@ fn can_find_in_place_result_impl(
     let matrix = (3, 2);
     let mut insertion_ctx = create_insertion_ctx(matrix, disallowed_pairs, true);
     rearrange_jobs_in_routes(&mut insertion_ctx, job_order.as_slice());
-    let (leg_selector, result_selector) = create_default_selectors();
+    let (leg_selection, result_selector) = create_default_selectors();
     let jobs_map = get_jobs_map_by_ids(&insertion_ctx);
-    let search_ctx: SearchContext = (&insertion_ctx, &leg_selector, &result_selector);
+    let search_ctx: SearchContext = (&insertion_ctx, &leg_selection, &result_selector);
     let route_ctx = insertion_ctx.solution.routes.get(route_idx).unwrap();
     let insert_job = jobs_map.get(insert_job).unwrap();
     let extract_job = jobs_map.get(extract_job).unwrap();
@@ -237,8 +237,8 @@ can_find_top_results! {
 fn can_find_top_results_impl(job_id: &str, disallowed_pairs: Vec<(&str, &str)>, expected: Vec<Option<usize>>) {
     let matrix = (5, 2);
     let insertion_ctx = create_insertion_ctx(matrix, disallowed_pairs, true);
-    let (leg_selector, result_selector) = create_default_selectors();
-    let search_ctx: SearchContext = (&insertion_ctx, &leg_selector, &result_selector);
+    let (leg_selection, result_selector) = create_default_selectors();
+    let search_ctx: SearchContext = (&insertion_ctx, &leg_selection, &result_selector);
     let job_ids = get_jobs_by_ids(&insertion_ctx, &[job_id]);
     let route_ctx = insertion_ctx.solution.routes.first().unwrap();
 
@@ -263,12 +263,11 @@ can_create_route_pairs! {
 }
 
 fn can_create_route_pairs_impl(route_pairs_threshold: usize, is_proximity: bool, expected_length: usize) {
-    let reals =
-        once(if is_proximity { 1 } else { 0 }).chain(vec![0; 9].into_iter()).map(|value| value as f64).collect();
+    let reals = once(i32::from(is_proximity)).chain(vec![0; 9].into_iter()).map(|value| value as f64).collect();
     let matrix = (3, 3);
     let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], reals)));
     let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
-    let insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
+    let insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
 
     let pairs = create_route_pairs(&insertion_ctx, route_pairs_threshold);
 

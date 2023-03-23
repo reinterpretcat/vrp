@@ -55,10 +55,15 @@ fn can_estimate_median() {
     let solution = VectorSolution::new(vec![0., 0.], create_example_objective());
     let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
         vec![
-            (Arc::new(DelayableHeuristicOperator { delay_range: (2..3), random: random.clone() }), "first".to_string()),
+            (
+                Arc::new(DelayableHeuristicOperator { delay_range: (2..3), random: random.clone() }),
+                "first".to_string(),
+                1.,
+            ),
             (
                 Arc::new(DelayableHeuristicOperator { delay_range: (7..10), random: random.clone() }),
                 "second".to_string(),
+                1.,
             ),
         ],
         vec![Arc::new(DelayableHeuristicOperator { delay_range: (2..3), random: random.clone() })],
@@ -88,22 +93,25 @@ fn can_display_heuristic_info_impl(is_experimental: bool) {
         1,
         "name1".to_string(),
         Duration::from_millis(100),
+        1.,
         SearchState::Stagnated(MedianRatio { ratio: 1. }),
     );
     heuristic.tracker.observation(
         2,
         "name1".to_string(),
         Duration::from_millis(101),
+        1.,
         SearchState::BestMajorImprovement(MedianRatio { ratio: 1. }),
     );
     heuristic.tracker.observation(
         1,
         "name2".to_string(),
         Duration::from_millis(102),
+        1.,
         SearchState::DiverseImprovement(MedianRatio { ratio: 1. }),
     );
 
-    let formatted = format!("{}", heuristic);
+    let formatted = format!("{heuristic}");
 
     assert_eq!(!formatted.is_empty(), is_experimental);
 }

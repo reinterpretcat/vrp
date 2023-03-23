@@ -43,6 +43,9 @@ fn map_code_reason(code: i32) -> (&'static str, &'static str) {
         COMPATIBILITY_CONSTRAINT_CODE => {
             ("COMPATIBILITY_CONSTRAINT", "cannot be assigned due to compatibility constraint")
         }
+        RELOAD_RESOURCE_CONSTRAINT_CODE => {
+            ("RELOAD_RESOURCE_CONSTRAINT", "cannot be assigned due to reload resource constraint")
+        }
         _ => ("NO_REASON_FOUND", "unknown"),
     }
 }
@@ -63,6 +66,7 @@ fn map_reason_code(reason: &str) -> i32 {
         "TOUR_ORDER_CONSTRAINT" => TOUR_ORDER_CONSTRAINT_CODE,
         "GROUP_CONSTRAINT" => GROUP_CONSTRAINT_CODE,
         "COMPATIBILITY_CONSTRAINT" => COMPATIBILITY_CONSTRAINT_CODE,
+        "RELOAD_RESOURCE_CONSTRAINT" => RELOAD_RESOURCE_CONSTRAINT_CODE,
         _ => -1,
     }
 }

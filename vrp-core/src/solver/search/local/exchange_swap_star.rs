@@ -5,10 +5,11 @@ mod exchange_swap_star_test;
 use super::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
+use crate::solver::search::create_environment_with_custom_quota;
 use crate::utils::Either;
 use hashbrown::{HashMap, HashSet};
 use rand::seq::SliceRandom;
-use rosomaxa::utils::{compare_floats, map_reduce, Random, SelectionSamplingIterator};
+use rosomaxa::utils::*;
 use std::iter::once;
 use std::sync::RwLock;
 
@@ -23,16 +24,18 @@ use std::sync::RwLock;
 /// A symmetrical argument holds for the new insertion position of v0 in r.
 /// For more details, see https://arxiv.org/abs/2012.10384
 pub struct ExchangeSwapStar {
-    leg_selector: Box<dyn LegSelector + Send + Sync>,
+    leg_selection: LegSelection,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
+    quota_limit: usize,
 }
 
 impl ExchangeSwapStar {
     /// Creates a new instance of `ExchangeSwapStar`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: Arc<dyn Random + Send + Sync>, quota_limit: usize) -> Self {
         Self {
-            leg_selector: Box::new(VariableLegSelector::new(random)),
-            result_selector: Box::new(BestResultSelector::default()),
+            leg_selection: LegSelection::Stochastic(random),
+            result_selector: Box::<BestResultSelector>::default(),
+            quota_limit,
         }
     }
 }
@@ -40,30 +43,42 @@ impl ExchangeSwapStar {
 impl LocalOperator for ExchangeSwapStar {
     fn explore(
         &self,
-        _refinement_ctx: &RefinementContext,
+        refinement_ctx: &RefinementContext,
         insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
         // NOTE higher value affects performance
         const ROUTE_PAIRS_THRESHOLD: usize = 8;
 
-        let mut insertion_ctx = insertion_ctx.deep_copy();
+        let route_pairs = create_route_pairs(insertion_ctx, ROUTE_PAIRS_THRESHOLD);
 
-        create_route_pairs(&insertion_ctx, ROUTE_PAIRS_THRESHOLD).into_iter().for_each(|route_pair| {
-            try_exchange_jobs_in_routes(
+        // modify environment to include median as an extra quota to prevent long runs
+        let limit = refinement_ctx.statistics().speed.get_median().map(|median| median.max(self.quota_limit));
+        let mut insertion_ctx = InsertionContext {
+            environment: create_environment_with_custom_quota(limit, insertion_ctx.environment.as_ref()),
+            ..insertion_ctx.deep_copy()
+        };
+
+        let _ = route_pairs.into_iter().try_for_each(|route_pair| {
+            let is_quota_reached = try_exchange_jobs_in_routes(
                 &mut insertion_ctx,
                 route_pair,
-                self.leg_selector.as_ref(),
+                &self.leg_selection,
                 self.result_selector.as_ref(),
-            )
+            );
+
+            if is_quota_reached {
+                Err(())
+            } else {
+                Ok(())
+            }
         });
 
-        Some(insertion_ctx)
+        Some(InsertionContext { environment: refinement_ctx.environment.clone(), ..insertion_ctx })
     }
 }
 
 /// Encapsulates common data used by search phase.
-type SearchContext<'a> =
-    (&'a InsertionContext, &'a (dyn LegSelector + Send + Sync), &'a (dyn ResultSelector + Send + Sync));
+type SearchContext<'a> = (&'a InsertionContext, &'a LegSelection, &'a (dyn ResultSelector + Send + Sync));
 
 fn get_route_by_idx(insertion_ctx: &InsertionContext, route_idx: usize) -> &RouteContext {
     insertion_ctx.solution.routes.get(route_idx).expect("invalid route index")
@@ -75,9 +90,9 @@ fn get_movable_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) 
 
 fn get_evaluation_context<'a>(search_ctx: &'a SearchContext, job: &'a Job) -> EvaluationContext<'a> {
     EvaluationContext {
-        constraint: search_ctx.0.problem.constraint.as_ref(),
+        goal: search_ctx.0.problem.goal.as_ref(),
         job,
-        leg_selector: search_ctx.1,
+        leg_selection: search_ctx.1,
         result_selector: search_ctx.2,
     }
 }
@@ -154,7 +169,7 @@ fn find_in_place_result(
 
     let eval_ctx = get_evaluation_context(search_ctx, insert_job);
 
-    evaluate_job_insertion_in_route(search_ctx.0, &eval_ctx, &route_ctx, position, InsertionResult::make_failure())
+    eval_job_insertion_in_route(search_ctx.0, &eval_ctx, &route_ctx, position, InsertionResult::make_failure())
 }
 
 fn find_top_results(
@@ -171,7 +186,7 @@ fn find_top_results(
             let mut results = (0..legs_count)
                 .map(InsertionPosition::Concrete)
                 .map(|position| {
-                    evaluate_job_insertion_in_route(
+                    eval_job_insertion_in_route(
                         search_ctx.0,
                         &eval_ctx,
                         route_ctx,
@@ -251,7 +266,7 @@ fn choose_best_result(
 fn remove_job_with_copy(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -> RouteContext {
     let mut route_ctx = route_ctx.deep_copy();
     route_ctx.route_mut().tour.remove(job);
-    search_ctx.0.problem.constraint.accept_route_state(&mut route_ctx);
+    search_ctx.0.problem.goal.accept_route_state(&mut route_ctx);
 
     route_ctx
 }
@@ -260,10 +275,17 @@ fn remove_job_with_copy(search_ctx: &SearchContext, job: &Job, route_ctx: &Route
 fn try_exchange_jobs_in_routes(
     insertion_ctx: &mut InsertionContext,
     route_pair: (usize, usize),
-    leg_selector: &(dyn LegSelector + Send + Sync),
+    leg_selection: &LegSelection,
     result_selector: &(dyn ResultSelector + Send + Sync),
-) {
-    let search_ctx: SearchContext = (insertion_ctx, leg_selector, result_selector);
+) -> bool {
+    let quota = insertion_ctx.environment.quota.clone();
+    let is_quota_reached = move || quota.as_ref().map_or(false, |quota| quota.is_reached());
+
+    if is_quota_reached() {
+        return true;
+    }
+
+    let search_ctx: SearchContext = (insertion_ctx, leg_selection, result_selector);
     let (outer_idx, inner_idx) = route_pair;
 
     let outer_route_ctx = get_route_by_idx(insertion_ctx, outer_idx);
@@ -288,6 +310,10 @@ fn try_exchange_jobs_in_routes(
     let (outer_best, inner_best, _) = map_reduce(
         job_pairs.as_slice(),
         |&(outer_job, inner_job, delta_outer_job_cost)| {
+            if is_quota_reached() {
+                return (InsertionResult::make_failure(), InsertionResult::make_failure(), Cost::default());
+            }
+
             let delta_inner_job_cost = find_insertion_cost(&search_ctx, inner_job, inner_route_ctx);
 
             let outer_in_place_result = find_in_place_result(&search_ctx, inner_route_ctx, outer_job, inner_job);
@@ -321,18 +347,20 @@ fn try_exchange_jobs_in_routes(
         },
     );
 
-    try_exchange_jobs(insertion_ctx, (outer_best, inner_best), leg_selector, result_selector);
+    try_exchange_jobs(insertion_ctx, (outer_best, inner_best), leg_selection, result_selector);
+
+    is_quota_reached()
 }
 
 /// Tries to apply insertion results to target insertion context.
 fn try_exchange_jobs(
     insertion_ctx: &mut InsertionContext,
     insertion_pair: (InsertionResult, InsertionResult),
-    leg_selector: &(dyn LegSelector + Send + Sync),
+    leg_selection: &LegSelection,
     result_selector: &(dyn ResultSelector + Send + Sync),
 ) {
     if let (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) = insertion_pair {
-        let constraint = insertion_ctx.problem.constraint.clone();
+        let constraint = insertion_ctx.problem.goal.clone();
 
         let outer_job = outer_success.job.clone();
         let inner_job = inner_success.job.clone();
@@ -353,11 +381,11 @@ fn try_exchange_jobs(
                 let position = if position < removed_idx || position == 0 { position } else { position - 1 };
                 let position = InsertionPosition::Concrete(position);
 
-                let search_ctx: SearchContext = (insertion_ctx, leg_selector, result_selector);
+                let search_ctx: SearchContext = (insertion_ctx, leg_selection, result_selector);
                 let eval_ctx = get_evaluation_context(&search_ctx, &success.job);
                 let alternative = InsertionResult::make_failure();
 
-                evaluate_job_insertion_in_route(insertion_ctx, &eval_ctx, &success.context, position, alternative)
+                eval_job_insertion_in_route(insertion_ctx, &eval_ctx, &success.context, position, alternative)
             })
             .filter_map(|result| result.into_success())
             .collect::<Vec<_>>();

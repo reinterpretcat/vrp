@@ -33,10 +33,7 @@ fn can_create_solution() {
             jobs: vec![create_delivery_job("job1", (5., 0.)), create_delivery_job("job2", (10., 0.))],
             ..create_empty_plan()
         },
-        fleet: Fleet {
-            vehicles: vec![create_default_vehicle("my_vehicle")],
-            profiles: create_default_matrix_profiles(),
-        },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -109,10 +106,7 @@ fn can_merge_activities_with_same_location_in_one_stop() {
             jobs: vec![create_delivery_job("job1", (5., 0.)), create_delivery_job("job2", (5., 0.))],
             ..create_empty_plan()
         },
-        fleet: Fleet {
-            vehicles: vec![create_default_vehicle("my_vehicle")],
-            profiles: create_default_matrix_profiles(),
-        },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -159,6 +153,7 @@ can_merge_activities_with_commute_in_one_stop! {
     ),
 }
 
+#[allow(clippy::type_complexity)]
 fn can_merge_activities_with_commute_in_one_stop_impl(
     jobs_data: Vec<(usize, Option<(f64, f64)>)>,
     expected: Vec<(usize, Vec<(Option<usize>, Option<(f64, f64)>)>)>,
@@ -177,7 +172,7 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
             DomainActivity {
                 schedule: DomainSchedule { arrival, departure },
                 commute,
-                ..create_activity_with_job_at_location(create_single(&format!("job{}", index)), index)
+                ..create_activity_with_job_at_location(create_single(&format!("job{index}")), index)
             }
         })
         .collect();

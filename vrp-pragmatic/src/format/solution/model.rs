@@ -7,7 +7,7 @@ use vrp_core::models::solution::Commute as DomainCommute;
 use vrp_core::models::solution::CommuteInfo as DomainCommuteInfo;
 
 /// Timing statistic.
-#[derive(Clone, Default, Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Clone, Default, Deserialize, Serialize, PartialEq, Eq, Debug)]
 pub struct Timing {
     /// Driving time.
     pub driving: i64,
@@ -40,7 +40,7 @@ pub struct Statistic {
 }
 
 /// Represents a schedule.
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug)]
 pub struct Schedule {
     /// Arrival time specified in RFC3339 format.
     pub arrival: String,
@@ -49,7 +49,7 @@ pub struct Schedule {
 }
 
 /// Represents time interval.
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug)]
 pub struct Interval {
     /// Start time specified in RFC3339 format.
     pub start: String,
@@ -201,7 +201,7 @@ pub struct Tour {
 }
 
 /// Unassigned job reason.
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug)]
 pub struct UnassignedJobReason {
     /// A reason code.
     pub code: String,
@@ -209,11 +209,11 @@ pub struct UnassignedJobReason {
     pub description: String,
     /// Optionally, more details.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub detail: Option<UnassignedJobDetail>,
+    pub details: Option<Vec<UnassignedJobDetail>>,
 }
 
 /// Unassigned job details.
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct UnassignedJobDetail {
     /// Vehicle id.
@@ -223,7 +223,7 @@ pub struct UnassignedJobDetail {
 }
 
 /// Unassigned job.
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct UnassignedJob {
     /// Job id.
@@ -233,7 +233,7 @@ pub struct UnassignedJob {
 }
 
 /// Specifies a type of violation.
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum Violation {

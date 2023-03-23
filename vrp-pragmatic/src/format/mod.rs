@@ -7,9 +7,8 @@ extern crate serde_json;
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::io::BufWriter;
-use vrp_core::models::problem::Job as CoreJob;
 use vrp_core::models::problem::ReservedTimesIndex;
+use vrp_core::models::problem::{Fleet as CoreFleet, Job as CoreJob};
 use vrp_core::models::Problem as CoreProblem;
 
 mod coord_index;
@@ -59,8 +58,8 @@ impl Location {
 impl fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Location::Coordinate { lat, lng } => write!(f, "lat={}, lng={}", lat, lng),
-            Location::Reference { index } => write!(f, "index={}", index),
+            Location::Coordinate { lat, lng } => write!(f, "lat={lat}, lng={lng}"),
+            Location::Reference { index } => write!(f, "index={index}"),
         }
     }
 }
@@ -91,20 +90,12 @@ impl FormatError {
 
     /// Serializes error into json string.
     pub fn to_json(&self) -> String {
-        let mut buffer = String::new();
-        let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-        serde_json::to_writer_pretty(writer, &self).unwrap();
-
-        buffer
+        serde_json::to_string_pretty(&self).unwrap()
     }
 
     /// Formats multiple format errors into json string.
     pub fn format_many_to_json(errors: &[Self]) -> String {
-        let mut buffer = String::new();
-        let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-        serde_json::to_writer_pretty(writer, errors).unwrap();
-
-        buffer
+        serde_json::to_string_pretty(errors).unwrap()
     }
 
     /// Formats multiple format errors into string.
@@ -133,6 +124,7 @@ const TOUR_SIZE_CONSTRAINT_CODE: i32 = 11;
 const TOUR_ORDER_CONSTRAINT_CODE: i32 = 12;
 const GROUP_CONSTRAINT_CODE: i32 = 13;
 const COMPATIBILITY_CONSTRAINT_CODE: i32 = 14;
+const RELOAD_RESOURCE_CONSTRAINT_CODE: i32 = 15;
 
 /// An job id to job index.
 pub type JobIndex = HashMap<String, CoreJob>;

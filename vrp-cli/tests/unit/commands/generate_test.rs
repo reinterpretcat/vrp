@@ -20,7 +20,7 @@ fn can_generate_problem_from_args() {
     ];
     let matches = get_generate_app().try_get_matches_from(args).unwrap();
 
-    let _ = run_generate(&matches).unwrap();
+    run_generate(&matches).unwrap();
 
     let problem = BufReader::new(tmpfile.as_file()).read_pragmatic().unwrap();
     assert_eq!(problem.jobs.size(), 100);

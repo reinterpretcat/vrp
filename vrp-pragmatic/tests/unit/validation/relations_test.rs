@@ -2,7 +2,7 @@ use super::*;
 use crate::helpers::*;
 
 fn validate_result(ctx: &ValidationContext) -> Option<FormatError> {
-    let result = validate_relations(&ctx);
+    let result = validate_relations(ctx);
 
     result.err().map(|errors| {
         assert_eq!(errors.len(), 1);
@@ -20,19 +20,19 @@ parameterized_test! {can_detect_relation_errors, (job_ids, vehicle_id, shift_ind
 }}
 
 can_detect_relation_errors! {
-    case01: (vec!["job2"], "vehicle_1", None, None),
-    case02: (vec!["job1", "job2", "job3"], "vehicle_1", None, Some(("E1200", "job1, job3"))),
-    case03: (vec!["job2"], "vehicle_2", None, Some(("E1201", "vehicle_2"))),
+    case01: (vec!["job2"], "my_vehicle_1", None, None),
+    case02: (vec!["job1", "job2", "job3"], "my_vehicle_1", None, Some(("E1200", "job1, job3"))),
+    case03: (vec!["job2"], "my_vehicle_2", None, Some(("E1201", "my_vehicle_2"))),
 
-    case04: (Vec::<&str>::default(), "vehicle_1", None, Some(("E1202", "jobs list"))),
-    case05: (vec!["departure", "arrival"], "vehicle_1", None, Some(("E1202", "jobs list"))),
+    case04: (Vec::<&str>::default(), "my_vehicle_1", None, Some(("E1202", "jobs list"))),
+    case05: (vec!["departure", "arrival"], "my_vehicle_1", None, Some(("E1202", "jobs list"))),
 
-    case06: (vec!["job2"], "vehicle_1", Some(0), None),
-    case07: (vec!["job2"], "vehicle_1", Some(1), Some(("E1205", "vehicle_1"))),
+    case06: (vec!["job2"], "my_vehicle_1", Some(0), None),
+    case07: (vec!["job2"], "my_vehicle_1", Some(1), Some(("E1205", "my_vehicle_1"))),
 
-    case08: (vec!["departure", "job2", "break"], "vehicle_1", None, Some(("E1206", "break"))),
-    case09: (vec!["departure", "job2", "dispatch"], "vehicle_1", None, Some(("E1206", "dispatch"))),
-    case10: (vec!["departure", "job2", "reload"], "vehicle_1", None, Some(("E1206", "reload"))),
+    case08: (vec!["departure", "job2", "break"], "my_vehicle_1", None, Some(("E1206", "break"))),
+    case09: (vec!["departure", "job2", "dispatch"], "my_vehicle_1", None, Some(("E1206", "dispatch"))),
+    case10: (vec!["departure", "job2", "reload"], "my_vehicle_1", None, Some(("E1206", "reload"))),
 }
 
 fn can_detect_relation_errors_impl(
@@ -52,7 +52,7 @@ fn can_detect_relation_errors_impl(
             }]),
             ..create_empty_plan()
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle("vehicle")], profiles: vec![] },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
 
@@ -93,12 +93,12 @@ fn can_detect_multi_place_time_window_jobs_impl(relation_type: RelationType, exp
             relations: Some(vec![Relation {
                 type_field: relation_type,
                 jobs: vec!["job1".to_string(), "job2".to_string(), "job3".to_string()],
-                vehicle_id: "vehicle_1".to_string(),
+                vehicle_id: "my_vehicle_1".to_string(),
                 shift_index: None,
             }]),
             ..create_empty_plan()
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle("vehicle")], profiles: vec![] },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
 
@@ -144,7 +144,7 @@ fn can_detect_multi_vehicle_assignment_impl(relations: Vec<(&str, &str)>, expect
         },
         fleet: Fleet {
             vehicles: vec![create_default_vehicle("car"), create_default_vehicle("truck")],
-            profiles: vec![],
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -185,12 +185,12 @@ fn can_detect_incomplete_multi_job_in_relation_impl(
             relations: Some(vec![Relation {
                 type_field: relation_type,
                 jobs,
-                vehicle_id: "car_1".to_string(),
+                vehicle_id: "my_vehicle_1".to_string(),
                 shift_index: None,
             }]),
             ..create_empty_plan()
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle("car")], profiles: vec![] },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
 

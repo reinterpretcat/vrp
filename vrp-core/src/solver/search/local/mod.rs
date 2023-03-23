@@ -62,7 +62,7 @@ impl LocalOperator for CompositeLocalOperator {
             let new_result = self.operators.get(index).unwrap().explore(refinement_ctx, &old_result);
 
             if let Some(new_result) = new_result {
-                if refinement_ctx.problem.objective.total_order(insertion_ctx, &new_result) == Ordering::Greater {
+                if refinement_ctx.problem.goal.total_order(insertion_ctx, &new_result) == Ordering::Greater {
                     return Some(new_result);
                 } else {
                     old_result = new_result;

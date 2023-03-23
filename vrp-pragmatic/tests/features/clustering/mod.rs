@@ -17,6 +17,7 @@ struct ActivityData {
 }
 
 impl ActivityData {
+    #[allow(clippy::type_complexity)]
     pub fn new(
         data: (&str, Option<f64>, &str, Option<(Timestamp, Timestamp)>, Option<(CommuteData, CommuteData)>),
     ) -> Self {
@@ -122,7 +123,7 @@ fn create_test_problem(jobs_data: &[(f64, &str)], capacity: i32, clustering: Clu
                 shifts: vec![create_default_open_vehicle_shift()],
                 ..create_vehicle_with_capacity("my_vehicle", vec![capacity])
             }],
-            profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     }

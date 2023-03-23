@@ -119,7 +119,7 @@ fn can_read_full_config() {
     assert_eq!(parallelism.threads_per_pool, 8);
 
     let logging = environment.logging.expect("no logging config");
-    assert_eq!(logging.enabled, true);
+    assert!(logging.enabled);
     assert_eq!(logging.prefix, Some("[config.full]".to_string()));
 }
 

@@ -66,8 +66,7 @@ fn can_insert_jobs_impl(
     let route_idx = 0;
     let reverse_probability_threshold = 0.01;
 
-    let (mut problem, solution) = generate_matrix_routes_with_defaults(5, 2, false);
-    add_leg_constraint(&mut problem, disallowed_pairs);
+    let (problem, solution) = generate_matrix_routes_with_disallow_list(5, 2, false, disallowed_pairs);
     let mut insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),

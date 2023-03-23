@@ -56,6 +56,7 @@ pub mod prelude;
 pub mod termination;
 pub mod utils;
 
+use crate::algorithms::math::RemedianUsize;
 use crate::algorithms::nsga2::MultiObjective;
 use crate::evolution::{Telemetry, TelemetryMetrics, TelemetryMode};
 use crate::population::*;
@@ -67,7 +68,7 @@ use std::sync::Arc;
 /// Represents solution in population defined as actual solution.
 pub trait HeuristicSolution: Send + Sync {
     /// Get fitness values of a given solution.
-    fn get_fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a>;
+    fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a>;
     /// Creates a deep copy of the solution.
     fn deep_copy(&self) -> Self;
 }
@@ -239,13 +240,28 @@ pub enum HeuristicSpeed {
         ratio: f64,
         /// Average refinement speed in generations per second.
         average: f64,
+        /// Median estimation of running time for each generation (in ms).
+        median: Option<usize>,
     },
 
     /// Moderate speed.
     Moderate {
         /// Average refinement speed in generations per second.
         average: f64,
+        /// Median estimation of running time for each generation (in ms).
+        median: Option<usize>,
     },
+}
+
+impl HeuristicSpeed {
+    /// Returns a median estimation of running time for each generation (in ms)
+    pub fn get_median(&self) -> Option<usize> {
+        match self {
+            HeuristicSpeed::Unknown => None,
+            HeuristicSpeed::Slow { median, .. } => *median,
+            HeuristicSpeed::Moderate { median, .. } => *median,
+        }
+    }
 }
 
 /// A trait which specifies object with state behavior.

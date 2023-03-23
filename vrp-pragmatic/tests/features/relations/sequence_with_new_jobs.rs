@@ -27,7 +27,7 @@ fn can_use_sequence_relation_with_strict_time_windows() {
                 capacity: vec![10],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

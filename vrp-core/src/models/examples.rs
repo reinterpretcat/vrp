@@ -1,4 +1,4 @@
-use crate::construction::constraints::{ConstraintPipeline, TransportConstraintModule};
+use crate::construction::features::*;
 use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Route;
@@ -48,7 +48,7 @@ fn create_example_fleet() -> Arc<Fleet> {
         dimens: Default::default(),
         details: vec![],
     })];
-    let mut vehicle_dimens = Dimensions::new();
+    let mut vehicle_dimens = Dimensions::default();
     vehicle_dimens.set_id("v1");
     let vehicles = vec![Arc::new(Vehicle {
         profile: Profile::default(),
@@ -63,30 +63,39 @@ fn create_example_fleet() -> Arc<Fleet> {
     Arc::new(Fleet::new(drivers, vehicles, Box::new(|_| Box::new(|_| 0))))
 }
 
+/// Creates and example VRP goal: CVRPTW.
+fn create_example_goal_ctx(
+    transport: Arc<dyn TransportCost + Sync + Send>,
+    activity: Arc<dyn ActivityCost + Sync + Send>,
+) -> Result<GoalContext, String> {
+    let features = vec![
+        create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.))?,
+        create_minimize_tours_feature("min_tours")?,
+        create_minimize_distance_feature("min_distance", transport, activity, 1)?,
+        create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
+    ];
+
+    let feature_map =
+        vec![vec!["min_jobs".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]];
+
+    GoalContext::new(features.as_slice(), feature_map.as_slice(), feature_map.as_slice())
+}
+
 /// Creates an example problem used in documentation tests.
 pub fn create_example_problem() -> Arc<Problem> {
     let activity: Arc<dyn ActivityCost + Sync + Send> = Arc::new(SimpleActivityCost::default());
     let transport: Arc<dyn TransportCost + Sync + Send> = Arc::new(ExampleTransportCost {});
     let fleet = create_example_fleet();
     let jobs = create_example_jobs(&fleet, &transport);
-    let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Arc::new(TransportConstraintModule::new(
-        transport.clone(),
-        activity.clone(),
-        Arc::new(|_| (None, None)),
-        1,
-        2,
-        3,
-    )));
+    let goal = create_example_goal_ctx(transport.clone(), activity.clone()).unwrap();
 
     Arc::new(Problem {
         fleet,
         jobs,
         locks: vec![],
-        constraint: Arc::new(constraint),
+        goal: Arc::new(goal),
         activity,
         transport,
-        objective: Arc::new(ProblemObjective::default()),
         extras: Arc::new(Default::default()),
     })
 }

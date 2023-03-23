@@ -4,6 +4,7 @@ mod node_test;
 
 use super::*;
 use std::collections::VecDeque;
+use std::fmt::Formatter;
 use std::sync::{Arc, RwLock};
 
 /// Represents a node in network.
@@ -28,7 +29,7 @@ pub struct Node<I: Input, S: Storage<Item = I>> {
 pub type NodeLink<I, S> = Arc<RwLock<Node<I, S>>>;
 
 /// Coordinate of the node.
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Coordinate(pub i32, pub i32);
 
 impl<I: Input, S: Storage<Item = I>> Node<I, S> {
@@ -117,6 +118,11 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         }
     }
 
+    /// Returns distance between underlying item (if any) and node weight's.
+    pub fn node_distance(&self) -> Option<f64> {
+        self.storage.iter().next().map(|item| self.storage.distance(self.weights.as_slice(), item.weights()))
+    }
+
     /// Calculates mean squared error of the node.
     pub fn mse(&self) -> f64 {
         let (count, sum) = self
@@ -137,5 +143,17 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         } else {
             sum
         }
+    }
+}
+
+impl Display for Coordinate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("({},{})", self.0, self.1))
+    }
+}
+
+impl From<(i32, i32)> for Coordinate {
+    fn from(value: (i32, i32)) -> Self {
+        Coordinate(value.0, value.1)
     }
 }

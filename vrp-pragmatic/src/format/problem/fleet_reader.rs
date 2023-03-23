@@ -2,14 +2,12 @@
 #[path = "../../../tests/unit/format/problem/fleet_reader_test.rs"]
 mod fleet_reader_test;
 
-use crate::extensions::create_typed_actor_groups;
-use crate::format::coord_index::CoordIndex;
-use crate::format::problem::reader::{ApiProblem, ProblemProperties};
-use crate::format::problem::Matrix;
-use crate::parse_time;
-use hashbrown::{HashMap, HashSet};
-use std::sync::Arc;
-use vrp_core::construction::constraints::TravelLimitFunc;
+use super::*;
+use crate::construction::enablers::{create_typed_actor_groups, VehicleTie};
+use crate::get_unique_locations;
+use crate::utils::get_approx_transportation;
+use hashbrown::HashSet;
+use std::cmp::Ordering;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 
@@ -86,14 +84,8 @@ pub(crate) fn create_transport_costs(
     create_matrix_transport_cost(matrix_data)
 }
 
-pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> Fleet {
+pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> CoreFleet {
     let profile_indices = get_profile_index_map(api_problem);
-    let area_index = api_problem
-        .plan
-        .areas
-        .iter()
-        .flat_map(|areas| areas.iter().map(|area| (&area.id, area)))
-        .collect::<HashMap<_, _>>();
     let mut vehicles: Vec<Arc<Vehicle>> = Default::default();
 
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
@@ -109,27 +101,6 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
         let profile = Profile::new(index, vehicle.profile.scale);
 
         let tour_size = vehicle.limits.as_ref().and_then(|l| l.tour_size);
-        let mut area_jobs = vehicle.limits.as_ref().and_then(|l| l.areas.as_ref()).map({
-            let area_index = &area_index;
-            move |areas| {
-                areas
-                    .iter()
-                    .enumerate()
-                    .flat_map(move |(order, area_ids)| {
-                        area_ids.iter().flat_map(move |limit| {
-                            area_index
-                                .get(&limit.area_id)
-                                .iter()
-                                .flat_map(|&&area| {
-                                    area.jobs.iter().map(|job_id| (job_id.clone(), (order, limit.job_value)))
-                                })
-                                .collect::<Vec<_>>()
-                                .into_iter()
-                        })
-                    })
-                    .collect::<HashMap<_, _>>()
-            }
-        });
 
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             let start = {
@@ -158,16 +129,14 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
 
             vehicle.vehicle_ids.iter().for_each(|vehicle_id| {
                 let mut dimens: Dimensions = Default::default();
-                dimens.set_value("type_id", vehicle.type_id.clone());
-                dimens.set_value("shift_index", shift_index);
-                dimens.set_id(vehicle_id);
 
-                if let Some(area_jobs) = area_jobs.take() {
-                    dimens.set_value("areas", area_jobs);
-                }
+                dimens
+                    .set_vehicle_type(vehicle.type_id.clone())
+                    .set_shift_index(shift_index)
+                    .set_vehicle_id(vehicle_id.clone());
 
                 if let Some(tour_size) = tour_size {
-                    dimens.set_value("tour_size", tour_size);
+                    dimens.set_tour_size(tour_size);
                 }
 
                 if props.has_multi_dimen_capacity {
@@ -175,7 +144,10 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                 } else {
                     dimens.set_capacity(SingleDimLoad::new(*vehicle.capacity.first().unwrap()));
                 }
-                add_vehicle_skills(&mut dimens, &vehicle.skills);
+
+                if let Some(skills) = vehicle.skills.as_ref() {
+                    dimens.set_vehicle_skills(skills.iter().cloned().collect::<HashSet<_>>());
+                }
 
                 vehicles.push(Arc::new(Vehicle {
                     profile: profile.clone(),
@@ -199,34 +171,43 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
         details: vec![],
     })];
 
-    Fleet::new(drivers, vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
+    CoreFleet::new(drivers, vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
 }
 
-pub fn read_travel_limits(api_problem: &ApiProblem) -> Option<TravelLimitFunc> {
-    let limits = api_problem.fleet.vehicles.iter().filter(|vehicle| vehicle.limits.is_some()).fold(
-        HashMap::new(),
-        |mut acc, vehicle| {
-            let limits = vehicle.limits.as_ref().unwrap().clone();
-            acc.insert(vehicle.type_id.clone(), (limits.max_distance, limits.shift_time));
-            acc
-        },
-    );
+/// Creates a matrices using approximation.
+pub fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
+    const DEFAULT_SPEED: f64 = 10.;
+    // get each speed value once
+    let speeds = problem
+        .fleet
+        .profiles
+        .iter()
+        .map(|profile| profile.speed.unwrap_or(DEFAULT_SPEED))
+        .map(|speed| speed.to_bits())
+        .collect::<HashSet<u64>>();
+    let speeds = speeds.into_iter().map(f64::from_bits).collect::<Vec<_>>();
 
-    if limits.is_empty() {
-        None
-    } else {
-        Some(Arc::new(move |actor: &Actor| {
-            if let Some(limits) = limits.get(actor.vehicle.dimens.get_value::<String>("type_id").unwrap()) {
-                (limits.0, limits.1)
-            } else {
-                (None, None)
+    let locations = get_unique_locations(problem);
+    let approx_data = get_approx_transportation(&locations, speeds.as_slice());
+
+    problem
+        .fleet
+        .profiles
+        .iter()
+        .map(move |profile| {
+            let speed = profile.speed.unwrap_or(DEFAULT_SPEED);
+            let idx = speeds
+                .iter()
+                .position(|s| compare_floats(*s, speed) == Ordering::Equal)
+                .expect("Cannot find profile speed");
+
+            Matrix {
+                profile: Some(profile.name.clone()),
+                timestamp: None,
+                travel_times: approx_data[idx].0.clone(),
+                distances: approx_data[idx].1.clone(),
+                error_codes: None,
             }
-        }))
-    }
-}
-
-fn add_vehicle_skills(dimens: &mut Dimensions, skills: &Option<Vec<String>>) {
-    if let Some(skills) = skills {
-        dimens.set_value("skills", skills.iter().cloned().collect::<HashSet<_>>());
-    }
+        })
+        .collect()
 }

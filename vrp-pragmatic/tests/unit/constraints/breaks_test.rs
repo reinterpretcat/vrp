@@ -1,26 +1,29 @@
 use crate::constraints::BreakModule;
+use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintModule;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::{RouteContext, RouteState, SolutionContext};
-use vrp_core::models::common::{IdDimension, Location, ValueDimension};
+use vrp_core::models::common::Location;
 use vrp_core::models::problem::Job;
 use vrp_core::models::problem::Single;
 
 fn create_single(id: &str) -> Arc<Single> {
     let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
-    single.dimens.set_id(id);
+    single.dimens.set_job_id(id.to_string());
 
     Arc::new(single)
 }
 
 fn create_break(vehicled_id: &str, location: Option<Location>) -> Arc<Single> {
     let mut single = create_single_with_location(location);
-    single.dimens.set_id("break");
-    single.dimens.set_value("type", "break".to_string());
-    single.dimens.set_value("vehicle_id", vehicled_id.to_string());
-    single.dimens.set_value("shift_index", 0_usize);
+    single
+        .dimens
+        .set_job_id("break".to_string())
+        .set_job_type("break".to_string())
+        .set_vehicle_id(vehicled_id.to_string())
+        .set_shift_index(0);
 
     Arc::new(single)
 }
@@ -36,7 +39,6 @@ can_remove_orphan_break! {
 }
 
 fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_loc: Location, break_removed: bool) {
-    let (transport, activity) = get_costs();
     let fleet = test_fleet();
     let mut solution_ctx = SolutionContext {
         routes: vec![RouteContext::new_with_state(
@@ -54,16 +56,11 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
         ..create_solution_context_for_fleet(&fleet)
     };
 
-    ConstraintPipeline::default()
-        .add_module(Arc::new(BreakModule::new(activity, transport, 0)))
-        .accept_solution_state(&mut solution_ctx);
+    ConstraintPipeline::default().add_module(Arc::new(BreakModule::new(0))).accept_solution_state(&mut solution_ctx);
 
     if break_removed {
         assert_eq!(solution_ctx.unassigned.len(), 1);
-        assert_eq!(
-            solution_ctx.unassigned.iter().next().unwrap().0.to_single().dimens.get_id().unwrap().clone(),
-            "break"
-        );
+        assert_eq!(solution_ctx.unassigned.iter().next().unwrap().0.dimens().get_job_id().unwrap().clone(), "break");
     } else {
         assert!(solution_ctx.unassigned.is_empty());
     }
@@ -86,8 +83,7 @@ can_skip_merge_breaks! {
 }
 
 fn can_skip_merge_breaks_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
-    let (transport, activity) = get_costs();
-    let constraint = BreakModule::new(activity, transport, 0);
+    let constraint = BreakModule::new(0);
 
     let result = constraint.merge(source, candidate).map(|_| ());
 

@@ -6,7 +6,6 @@ extern crate serde_json;
 use serde::Serialize;
 
 use super::*;
-use crate::solver::vrp::fdeb::Fdeb;
 use std::io::BufWriter;
 use std::ops::Deref;
 use vrp_scientific::core::prelude::*;
@@ -16,8 +15,8 @@ use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
 use vrp_scientific::tsplib::{TsplibProblem, TsplibSolution};
 
 mod conversion;
-mod fdeb;
 
+/// Represents VRP solution as directed graph.
 #[derive(Clone, Serialize)]
 pub struct DataGraph {
     /// Nodes data: x and y coordinate.
@@ -26,12 +25,14 @@ pub struct DataGraph {
     pub edges: Vec<GraphEdge>,
 }
 
+/// Node of a graph.
 #[derive(Clone, Serialize)]
 pub struct GraphNode {
     pub x: f64,
     pub y: f64,
 }
 
+/// Edge of a graph.
 #[derive(Clone, Serialize)]
 pub struct GraphEdge {
     pub source: usize,
@@ -53,14 +54,14 @@ pub fn solve_vrp(
         "tsplib" => problem.read_tsplib(is_rounded),
         "solomon" => problem.read_solomon(is_rounded),
         "lilim" => problem.read_lilim(is_rounded),
-        _ => panic!("unknown format: {}", format_type),
+        _ => panic!("unknown format: {format_type}"),
     }
     .unwrap();
 
     let problem = Arc::new(problem);
 
     let environment = Arc::new(Environment { logger: logger.clone(), ..Environment::new_with_time_quota(Some(300)) });
-    let population = get_population(population_type, problem.objective.clone(), environment.clone(), selection_size);
+    let population = get_population(population_type, problem.goal.clone(), environment.clone(), selection_size);
     let telemetry_mode = TelemetryMode::OnlyLogging {
         logger: logger.clone(),
         log_best: 100,
@@ -87,21 +88,4 @@ pub fn solve_vrp(
     .expect("cannot write solution");
 
     logger.deref()(&buffer);
-}
-
-pub fn get_forced_bundled_edges(graphs: &[DataGraph]) -> (Vec<GraphNode>, Vec<Vec<GraphNode>>) {
-    // NOTE merge all edges into one graph
-    let graph = if let Some(graph) = graphs.first() {
-        DataGraph {
-            nodes: graph.nodes.clone(),
-            edges: graphs.iter().flat_map(|graph| graph.edges.iter()).cloned().collect(),
-        }
-    } else {
-        DataGraph { nodes: vec![], edges: vec![] }
-    };
-
-    let fdeb = Fdeb::new(graph);
-    let edges = fdeb.calculate();
-
-    (fdeb.graph.nodes, edges)
 }

@@ -16,7 +16,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
     let mut locked: HashSet<Job> = Default::default();
     let mut reserved: HashSet<Job> = Default::default();
     let mut ignored: HashSet<Job> = Default::default();
-    let mut unassigned: HashMap<Job, UnassignedCode> = Default::default();
+    let mut unassigned: HashMap<Job, UnassignmentInfo> = Default::default();
     let mut routes: Vec<RouteContext> = Default::default();
     let mut registry = Registry::new(&problem.fleet, environment.random.clone());
     let state = Default::default();
@@ -75,14 +75,13 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
                     })
                 });
 
-                problem.constraint.accept_route_state(&mut route_ctx);
+                problem.goal.accept_route_state(&mut route_ctx);
 
                 routes.push(route_ctx);
             }
             (None, false) => {
-                // TODO what reason code to use?
                 unassigned.extend(
-                    lock.details.iter().flat_map(|d| d.jobs.iter().cloned().map(|j| (j, UnassignedCode::Unknown))),
+                    lock.details.iter().flat_map(|d| d.jobs.iter().cloned().map(|j| (j, UnassignmentInfo::Unknown))),
                 );
             }
             (_, _) => {
@@ -183,7 +182,7 @@ pub fn create_empty_insertion_context(problem: Arc<Problem>, environment: Arc<En
 
 fn create_registry_context(problem: &Problem, registry: Registry) -> RegistryContext {
     let modifier = problem.extras.get("route_modifier").and_then(|s| s.downcast_ref::<RouteModifier>());
-    let constraint = problem.constraint.clone();
+    let constraint = problem.goal.clone();
 
     if let Some(modifier) = modifier {
         RegistryContext::new_with_modifier(constraint, registry, modifier)
@@ -194,10 +193,10 @@ fn create_registry_context(problem: &Problem, registry: Registry) -> RegistryCon
 
 fn update_insertion_context(insertion_ctx: &mut InsertionContext) {
     // promote required to ignored when necessary
-    insertion_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+    insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
     // promote all required to unassigned to have a valid statistics
     insertion_ctx
         .solution
         .unassigned
-        .extend(insertion_ctx.solution.required.drain(0..).map(|job| (job, UnassignedCode::Unknown)));
+        .extend(insertion_ctx.solution.required.drain(0..).map(|job| (job, UnassignmentInfo::Unknown)));
 }

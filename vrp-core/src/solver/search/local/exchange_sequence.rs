@@ -30,7 +30,7 @@ impl ExchangeSequence {
 
 impl Default for ExchangeSequence {
     fn default() -> Self {
-        Self::new(6, 0.01, 0.01)
+        Self::new(6, 0.5, 0.01)
     }
 }
 
@@ -145,7 +145,7 @@ fn extract_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, sequence
             acc
         });
 
-    insertion_ctx.problem.constraint.accept_route_state(route_ctx);
+    insertion_ctx.problem.goal.accept_route_state(route_ctx);
 
     removed
 }
@@ -158,7 +158,7 @@ fn insert_jobs(
     shuffle_prob: f64,
 ) {
     let random = &insertion_ctx.environment.random;
-    let leg_selector = VariableLegSelector::new(random.clone());
+    let leg_selection = LegSelection::Stochastic(random.clone());
     let result_selector = BestResultSelector::default();
 
     let mut jobs = jobs;
@@ -177,9 +177,9 @@ fn insert_jobs(
 
     let (failures, _) = jobs.into_iter().fold((Vec::new(), start_index), |(mut unassigned, start_index), job| {
         let eval_ctx = EvaluationContext {
-            constraint: &insertion_ctx.problem.constraint,
+            goal: &insertion_ctx.problem.goal,
             job: &job,
-            leg_selector: &leg_selector,
+            leg_selection: &leg_selection,
             result_selector: &result_selector,
         };
 
@@ -189,7 +189,7 @@ fn insert_jobs(
         let (result, start_index) = unwrap_from_result((start_index..=last_index).try_fold(
             (InsertionResult::make_failure(), start_index),
             |_, insertion_idx| {
-                let insertion = evaluate_job_insertion_in_route(
+                let insertion = eval_job_insertion_in_route(
                     insertion_ctx,
                     &eval_ctx,
                     get_route_ctx(insertion_ctx, route_idx),
@@ -216,7 +216,7 @@ fn insert_jobs(
     });
 
     insertion_ctx.solution.unassigned.extend(failures.into_iter().map(|(job, failure)| {
-        let code = UnassignedCode::Simple(failure.constraint);
+        let code = UnassignmentInfo::Simple(failure.constraint);
         let job = failure.job.unwrap_or(job);
         (job, code)
     }));

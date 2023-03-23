@@ -33,7 +33,7 @@ impl Objective for SliceDimensionObjective {
 
 pub struct SliceSumObjective;
 
-impl<'a> Objective for SliceSumObjective {
+impl Objective for SliceSumObjective {
     type Solution = Vec<f64>;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -49,6 +49,7 @@ impl<'a> Objective for SliceSumObjective {
     }
 }
 
+#[derive(Default)]
 pub struct SliceMultiObjective {
     objectives: Vec<SliceObjective>,
 }
@@ -59,13 +60,7 @@ impl SliceMultiObjective {
     }
 }
 
-impl Default for SliceMultiObjective {
-    fn default() -> Self {
-        SliceMultiObjective { objectives: Default::default() }
-    }
-}
-
-impl Objective for SliceMultiObjective {
+impl MultiObjective for SliceMultiObjective {
     type Solution = Vec<f64>;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -73,33 +68,29 @@ impl Objective for SliceMultiObjective {
         assert_eq!(a.len(), 2);
         assert_eq!(a.len(), b.len());
 
-        if a[0] < b[0] && a[1] <= b[1] {
+        if a[0] < b[0] && a[1] <= b[1] || a[0] <= b[0] && a[1] < b[1] {
             Ordering::Less
-        } else if a[0] <= b[0] && a[1] < b[1] {
-            Ordering::Less
-        } else if a[0] > b[0] && a[1] >= b[1] {
-            Ordering::Greater
-        } else if a[0] >= b[0] && a[1] > b[1] {
+        } else if a[0] > b[0] && a[1] >= b[1] || a[0] >= b[0] && a[1] > b[1] {
             Ordering::Greater
         } else {
             Ordering::Equal
         }
     }
 
-    fn distance(&self, _a: &Self::Solution, _b: &Self::Solution) -> f64 {
-        unimplemented!()
+    fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
+        Box::new(self.objectives.iter().map(|o| o.fitness(solution)))
     }
 
-    fn fitness(&self, _solution: &Self::Solution) -> f64 {
-        unimplemented!()
+    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String> {
+        self.objectives.get(idx).map(|o| o.total_order(a, b)).ok_or_else(|| format!("wrong index: {idx}"))
     }
-}
 
-impl MultiObjective for SliceMultiObjective {
-    fn objectives<'a>(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = &'a (dyn Objective<Solution = Self::Solution> + Send + Sync)> + 'a> {
-        Box::new(self.objectives.iter().map(|o| o.as_ref()))
+    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String> {
+        self.objectives.get(idx).map(|o| o.distance(a, b)).ok_or_else(|| format!("wrong index: {idx}"))
+    }
+
+    fn size(&self) -> usize {
+        self.objectives.len()
     }
 }
 
@@ -114,29 +105,39 @@ impl SliceHierarchicalObjective {
     }
 }
 
-impl Objective for SliceHierarchicalObjective {
+impl MultiObjective for SliceHierarchicalObjective {
     type Solution = Vec<f64>;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        match dominance_order(a, b, &self.primary_objectives) {
-            Ordering::Equal => dominance_order(a, b, &self.secondary_objectives),
+        match dominance_order(a, b, self.primary_objectives.iter().map(|o| o.as_ref())) {
+            Ordering::Equal => dominance_order(a, b, self.secondary_objectives.iter().map(|o| o.as_ref())),
             order => order,
         }
     }
 
-    fn distance(&self, _a: &Self::Solution, _b: &Self::Solution) -> f64 {
-        unimplemented!()
+    fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
+        Box::new(self.primary_objectives.iter().chain(self.secondary_objectives.iter()).map(|o| o.fitness(solution)))
     }
 
-    fn fitness(&self, _solution: &Self::Solution) -> f64 {
-        unimplemented!()
+    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String> {
+        self.primary_objectives
+            .iter()
+            .chain(self.secondary_objectives.iter())
+            .nth(idx)
+            .map(|o| o.total_order(a, b))
+            .ok_or_else(|| format!("wrong index: {idx}"))
     }
-}
 
-impl MultiObjective for SliceHierarchicalObjective {
-    fn objectives<'a>(
-        &'a self,
-    ) -> Box<dyn Iterator<Item = &'a (dyn Objective<Solution = Self::Solution> + Send + Sync)> + 'a> {
-        Box::new(self.primary_objectives.iter().chain(self.secondary_objectives.iter()).map(|o| o.as_ref()))
+    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String> {
+        self.primary_objectives
+            .iter()
+            .chain(self.secondary_objectives.iter())
+            .nth(idx)
+            .map(|o| o.distance(a, b))
+            .ok_or_else(|| format!("wrong index: {idx}"))
+    }
+
+    fn size(&self) -> usize {
+        self.primary_objectives.len() + self.secondary_objectives.len()
     }
 }

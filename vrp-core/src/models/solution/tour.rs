@@ -6,8 +6,11 @@ use crate::models::common::Schedule;
 use crate::models::problem::{Actor, Job};
 use crate::models::solution::{Activity, Place};
 use crate::models::OP_START_MSG;
+use crate::utils::Either;
 use hashbrown::HashSet;
-use std::iter::{empty, once};
+use rustc_hash::FxHasher;
+use std::hash::BuildHasherDefault;
+use std::iter::once;
 use std::slice::{Iter, IterMut};
 
 /// A tour leg.
@@ -20,7 +23,7 @@ pub struct Tour {
     activities: Vec<Activity>,
 
     /// Stores jobs in the order of their activities added.
-    jobs: HashSet<Job>,
+    jobs: HashSet<Job, BuildHasherDefault<FxHasher>>,
 
     /// Keeps track whether tour is set as closed.
     is_closed: bool,
@@ -111,21 +114,18 @@ impl Tour {
     }
 
     /// Returns counted tour legs.
-    pub fn legs<'a>(&'a self) -> Box<dyn Iterator<Item = Leg<'a>> + 'a> {
-        if self.activities.is_empty() {
-            return Box::new(empty());
-        }
+    pub fn legs(&self) -> impl Iterator<Item = Leg<'_>> + '_ + Clone {
+        let last_index = if self.activities.is_empty() { 0 } else { self.activities.len() - 1 };
 
-        let last_index = self.activities.len() - 1;
-        let window_size = if last_index == 0 { 1 } else { 2 };
+        let window_size = if self.activities.len() == 1 { 1 } else { 2 };
         let legs = self.activities.windows(window_size).zip(0_usize..);
 
         let is_open_tour_with_jobs = !self.is_closed && last_index > 0;
 
         if is_open_tour_with_jobs {
-            Box::new(legs.chain(once((&self.activities[last_index..], last_index))))
+            Either::Left(legs.chain(once((&self.activities[last_index..], last_index))))
         } else {
-            Box::new(legs)
+            Either::Right(legs)
         }
     }
 

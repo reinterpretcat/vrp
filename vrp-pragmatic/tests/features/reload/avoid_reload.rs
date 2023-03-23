@@ -29,24 +29,19 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload_impl(generations
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
-                    end: Some(ShiftEnd {
-                        earliest: None,
-                        latest: format_time(100.).to_string(),
-                        location: (0., 0.).to_loc(),
-                    }),
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(100.), location: (0., 0.).to_loc() }),
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
-                        times: None,
                         location: (0., 0.).to_loc(),
                         duration: 2.0,
-                        tag: None,
+                        ..create_default_reload()
                     }]),
                 }],
                 capacity: vec![2],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

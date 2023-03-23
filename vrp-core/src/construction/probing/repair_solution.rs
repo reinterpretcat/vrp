@@ -2,11 +2,11 @@
 #[path = "../../../tests/unit/construction/probing/repair_solution_test.rs"]
 mod repair_solution_test;
 
-use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::*;
 use crate::models::common::TimeSpan;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::Activity;
+use crate::models::GoalContext;
 use hashbrown::{HashMap, HashSet};
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
@@ -23,7 +23,7 @@ pub fn repair_solution_from_unknown(
     prepare_insertion_ctx(&mut new_insertion_ctx);
 
     let mut assigned_jobs = get_assigned_jobs(&new_insertion_ctx);
-    let constraint = new_insertion_ctx.problem.constraint.clone();
+    let goal = new_insertion_ctx.problem.goal.clone();
 
     let unassigned = insertion_ctx
         .solution
@@ -33,8 +33,7 @@ pub fn repair_solution_from_unknown(
         .flat_map(|route_ctx| {
             let route_idx = get_new_route_ctx_idx(&mut new_insertion_ctx, route_ctx);
 
-            let synchronized =
-                synchronize_jobs(route_ctx, &mut new_insertion_ctx, route_idx, &assigned_jobs, &constraint);
+            let synchronized = synchronize_jobs(route_ctx, &mut new_insertion_ctx, route_idx, &assigned_jobs, &goal);
 
             assigned_jobs.extend(synchronized.keys().cloned());
 
@@ -71,7 +70,7 @@ fn get_new_route_ctx_idx(new_insertion_ctx: &mut InsertionContext, route_ctx: &R
         if new_start.place.time.contains(departure) {
             new_start.schedule.departure = departure;
         }
-        new_insertion_ctx.problem.constraint.accept_route_state(&mut new_route_ctx);
+        new_insertion_ctx.problem.goal.accept_route_state(&mut new_route_ctx);
 
         new_insertion_ctx.solution.routes.push(new_route_ctx);
         new_insertion_ctx.solution.routes.len() - 1
@@ -87,10 +86,10 @@ fn synchronize_jobs(
     new_insertion_ctx: &mut InsertionContext,
     route_idx: usize,
     assigned_jobs: &HashSet<Job>,
-    constraint: &ConstraintPipeline,
+    goal: &GoalContext,
 ) -> HashMap<Job, Vec<Arc<Single>>> {
     let position = InsertionPosition::Last;
-    let leg_selector = AllLegSelector::default();
+    let leg_selection = LegSelection::Exhaustive;
     let result_selector = BestResultSelector::default();
 
     let (synchronized_jobs, _) = route_ctx
@@ -109,14 +108,14 @@ fn synchronize_jobs(
 
                 if !is_already_processed && !is_invalid_multi_job {
                     let eval_ctx = EvaluationContext {
-                        constraint,
+                        goal,
                         job: &job,
-                        leg_selector: &leg_selector,
+                        leg_selection: &leg_selection,
                         result_selector: &result_selector,
                     };
                     let route_ctx = new_insertion_ctx.solution.routes.get(route_idx).unwrap();
 
-                    let insertion_result = evaluate_single_constraint_in_route(
+                    let insertion_result = eval_single_constraint_in_route(
                         new_insertion_ctx,
                         &eval_ctx,
                         route_ctx,
@@ -207,7 +206,7 @@ fn finalize_synchronization(
         unassigned
             .into_iter()
             .chain(insertion_ctx.solution.required.iter().cloned())
-            .map(|job| (job, UnassignedCode::Unknown)),
+            .map(|job| (job, UnassignmentInfo::Unknown)),
     );
 
     new_insertion_ctx.restore();

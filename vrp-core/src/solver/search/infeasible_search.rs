@@ -1,8 +1,7 @@
-use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
 use crate::construction::probing::repair_solution_from_unknown;
 use crate::models::problem::Job;
-use crate::models::Problem;
+use crate::models::*;
 use crate::solver::*;
 use rosomaxa::population::Shuffled;
 use std::cmp::Ordering;
@@ -30,7 +29,7 @@ impl InfeasibleSearch {
 
 impl HeuristicSearchOperator for InfeasibleSearch {
     type Context = RefinementContext;
-    type Objective = ProblemObjective;
+    type Objective = GoalContext;
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
@@ -70,7 +69,7 @@ impl HeuristicSearchOperator for InfeasibleSearch {
 fn create_relaxed_refinement_ctx(new_insertion_ctx: &InsertionContext) -> RefinementContext {
     let problem = new_insertion_ctx.problem.clone();
     let environment = new_insertion_ctx.environment.clone();
-    let population = Box::new(ElitismPopulation::new(problem.objective.clone(), environment.random.clone(), 4, 4));
+    let population = Box::new(ElitismPopulation::new(problem.goal.clone(), environment.random.clone(), 4, 4));
 
     // NOTE statistic is reset to default
     RefinementContext::new(problem, population, TelemetryMode::None, environment)
@@ -87,113 +86,48 @@ fn create_relaxed_insertion_ctx(
     let shuffle_prob = random.uniform_real(shuffle_objectives_probability.0, shuffle_objectives_probability.1);
     let skip_prob = random.uniform_real(skip_constraint_check_probability.0, skip_constraint_check_probability.1);
 
-    let constraint = if random.is_hit(skip_prob) {
-        Arc::new(create_modified_constraint(problem.constraint.as_ref(), random.clone(), skip_prob))
-    } else {
-        problem.constraint.clone()
-    };
-
-    let objective = if random.is_hit(shuffle_prob) {
-        Arc::new(problem.objective.get_shuffled(random.as_ref()))
-    } else {
-        problem.objective.clone()
-    };
+    let variant = create_modified_variant(problem.goal.as_ref(), random.clone(), skip_prob, shuffle_prob);
 
     let mut insertion_ctx = insertion_ctx.deep_copy();
     insertion_ctx.problem = Arc::new(Problem {
         fleet: problem.fleet.clone(),
         jobs: problem.jobs.clone(),
         locks: problem.locks.clone(),
-        constraint,
+        goal: variant,
         activity: problem.activity.clone(),
         transport: problem.transport.clone(),
-        objective,
         extras: problem.extras.clone(),
     });
 
     insertion_ctx
 }
 
-fn create_modified_constraint(
-    original: &ConstraintPipeline,
+fn create_modified_variant(
+    original: &GoalContext,
     random: Arc<dyn Random + Send + Sync>,
     skip_probability: f64,
-) -> ConstraintPipeline {
-    let mut pipeline = ConstraintPipeline {
-        modules: original.modules.clone(),
-        state_keys: original.state_keys.clone(),
-        ..ConstraintPipeline::default()
-    };
+    shuffle_probability: f64,
+) -> Arc<GoalContext> {
+    let shuffled =
+        if random.is_hit(shuffle_probability) { original.get_shuffled(random.as_ref()) } else { original.clone() };
 
-    if random.is_head_not_tails() {
-        use_stochastic_rule(original, &mut pipeline, random, skip_probability);
-    } else {
-        use_permissive_rule(original, &mut pipeline, random);
-    }
-
-    pipeline
-}
-
-fn use_stochastic_rule(
-    original: &ConstraintPipeline,
-    modified: &mut ConstraintPipeline,
-    random: Arc<dyn Random + Send + Sync>,
-    skip_probability: f64,
-) {
-    original.get_constraints().for_each(|constraint| {
-        let constraint: ConstraintVariant =
-            match constraint {
-                ConstraintVariant::HardRoute(c) => ConstraintVariant::HardRoute(Arc::new(
-                    StochasticHardConstraint::new(Some(c), None, random.clone(), skip_probability),
-                )),
-                ConstraintVariant::HardActivity(c) => ConstraintVariant::HardActivity(Arc::new(
-                    StochasticHardConstraint::new(None, Some(c), random.clone(), skip_probability),
-                )),
-                _ => constraint,
-            };
-        modified.add_constraint(constraint);
-    });
-}
-
-fn use_permissive_rule(
-    original: &ConstraintPipeline,
-    modified: &mut ConstraintPipeline,
-    random: Arc<dyn Random + Send + Sync>,
-) {
-    let constraints = original
-        .modules
+    let constraints = shuffled
+        .constraints
         .iter()
-        .map(|module| {
-            module
-                .get_constraints()
-                .cloned()
-                .map(|constraint| match &constraint {
-                    ConstraintVariant::HardRoute(_) | ConstraintVariant::HardActivity(_) => (constraint, true),
-                    _ => (constraint, false),
-                })
-                .collect::<Vec<_>>()
+        .map(|constraint| {
+            let skip_probability = if random.is_head_not_tails() { 1. } else { skip_probability };
+
+            let value: Arc<dyn FeatureConstraint + Send + Sync> = Arc::new(StochasticFeatureConstraint {
+                inner: constraint.clone(),
+                random: random.clone(),
+                probability: skip_probability,
+            });
+
+            value
         })
-        .filter(|constraints| !constraints.is_empty())
-        .collect::<Vec<_>>();
+        .collect();
 
-    let indices = constraints
-        .iter()
-        .enumerate()
-        // NOTE as permissive rule, we just skip constraint entirely
-        .filter(|(_, constraints)| constraints.iter().any(|(_, is_hard)| *is_hard))
-        .map(|(idx, _)| idx)
-        .collect::<Vec<_>>();
-
-    assert!(!indices.is_empty());
-
-    let skip_index = random.uniform_int(0, indices.len() as i32 - 1) as usize;
-
-    constraints
-        .iter()
-        .enumerate()
-        .filter(|(index, _)| *index != indices[skip_index])
-        .flat_map(|(_, constraints)| constraints.iter())
-        .for_each(|(constraint, _)| modified.add_constraint(constraint.clone()));
+    Arc::new(GoalContext { constraints, ..shuffled })
 }
 
 fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionContext {
@@ -209,56 +143,29 @@ fn get_best_or_random_individual<'a>(
 ) -> &'a InsertionContext {
     let new_insertion_ctx = new_refinement_ctx.population().select().next().expect("no individual");
 
-    if new_refinement_ctx.problem.objective.total_order(new_insertion_ctx, old_insertion_ctx) == Ordering::Less {
+    if new_refinement_ctx.problem.goal.total_order(new_insertion_ctx, old_insertion_ctx) == Ordering::Less {
         new_insertion_ctx
     } else {
         get_random_individual(new_refinement_ctx)
     }
 }
 
-struct StochasticHardConstraint {
-    hard_route_inner: Option<Arc<dyn HardRouteConstraint + Send + Sync>>,
-    hard_activity_inner: Option<Arc<dyn HardActivityConstraint + Send + Sync>>,
+struct StochasticFeatureConstraint {
+    inner: Arc<dyn FeatureConstraint + Send + Sync>,
     random: Arc<dyn Random + Send + Sync>,
     probability: f64,
 }
 
-impl StochasticHardConstraint {
-    pub fn new(
-        hard_route_inner: Option<Arc<dyn HardRouteConstraint + Send + Sync>>,
-        hard_activity_inner: Option<Arc<dyn HardActivityConstraint + Send + Sync>>,
-        random: Arc<dyn Random + Send + Sync>,
-        probability: f64,
-    ) -> Self {
-        Self { hard_route_inner, hard_activity_inner, random, probability }
-    }
-}
-
-impl HardRouteConstraint for StochasticHardConstraint {
-    fn evaluate_job(
-        &self,
-        solution_ctx: &SolutionContext,
-        ctx: &RouteContext,
-        job: &Job,
-    ) -> Option<RouteConstraintViolation> {
+impl FeatureConstraint for StochasticFeatureConstraint {
+    fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         if self.random.is_hit(self.probability) {
             None
         } else {
-            self.hard_route_inner.as_ref().unwrap().evaluate_job(solution_ctx, ctx, job)
+            self.inner.evaluate(move_ctx)
         }
     }
-}
 
-impl HardActivityConstraint for StochasticHardConstraint {
-    fn evaluate_activity(
-        &self,
-        route_ctx: &RouteContext,
-        activity_ctx: &ActivityContext,
-    ) -> Option<ActivityConstraintViolation> {
-        if self.random.is_hit(self.probability) {
-            None
-        } else {
-            self.hard_activity_inner.as_ref().unwrap().evaluate_activity(route_ctx, activity_ctx)
-        }
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
+        self.inner.merge(source, candidate)
     }
 }

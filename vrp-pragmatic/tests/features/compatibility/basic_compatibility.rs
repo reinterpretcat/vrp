@@ -31,7 +31,7 @@ fn can_separate_jobs_based_on_compatibility() {
                     ..create_default_vehicle_type()
                 },
             ],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -59,7 +59,7 @@ fn can_unassign_job_due_to_compatibility() {
         },
         fleet: Fleet {
             vehicles: vec![VehicleType { capacity: vec![2], ..create_default_vehicle_type() }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -75,7 +75,7 @@ fn can_unassign_job_due_to_compatibility() {
         vec![UnassignedJobReason {
             code: "COMPATIBILITY_CONSTRAINT".to_string(),
             description: "cannot be assigned due to compatibility constraint".to_string(),
-            detail: Some(UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 })
+            details: Some(vec![UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }])
         }]
     );
 }

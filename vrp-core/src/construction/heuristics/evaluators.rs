@@ -4,23 +4,22 @@ mod evaluators_test;
 
 use std::sync::Arc;
 
-use crate::construction::constraints::{ActivityConstraintViolation, ConstraintPipeline};
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Leg, Place};
+use crate::models::{ConstraintViolation, GoalContext};
 use crate::utils::Either;
 use rosomaxa::utils::unwrap_from_result;
-use std::iter::repeat;
 
 /// Specifies an evaluation context data.
 pub struct EvaluationContext<'a> {
-    /// An actual constraint.
-    pub constraint: &'a ConstraintPipeline,
+    /// An actual optimization goal context.
+    pub goal: &'a GoalContext,
     /// A job which is about to be inserted.
     pub job: &'a Job,
-    /// A leg selector.
-    pub leg_selector: &'a (dyn LegSelector + Send + Sync),
+    /// A leg selection mode.
+    pub leg_selection: &'a LegSelection,
     /// A result selector.
     pub result_selector: &'a (dyn ResultSelector + Send + Sync),
 }
@@ -38,7 +37,7 @@ pub enum InsertionPosition {
 
 /// Evaluates possibility to preform insertion from given insertion context in given route
 /// at given position constraint.
-pub fn evaluate_job_insertion_in_route(
+pub fn eval_job_insertion_in_route(
     insertion_ctx: &InsertionContext,
     eval_ctx: &EvaluationContext,
     route_ctx: &RouteContext,
@@ -47,13 +46,15 @@ pub fn evaluate_job_insertion_in_route(
 ) -> InsertionResult {
     // NOTE do not evaluate unassigned job in unmodified route if it has a concrete code
     match (route_ctx.is_stale(), insertion_ctx.solution.unassigned.get(eval_ctx.job)) {
-        (false, Some(UnassignedCode::Simple(_))) | (false, Some(UnassignedCode::Detailed(_))) => return alternative,
+        (false, Some(UnassignmentInfo::Simple(_))) | (false, Some(UnassignmentInfo::Detailed(_))) => {
+            return alternative
+        }
         _ => {}
     }
 
-    let constraint = &insertion_ctx.problem.constraint;
+    let goal = &insertion_ctx.problem.goal;
 
-    if let Some(violation) = constraint.evaluate_hard_route(&insertion_ctx.solution, route_ctx, eval_ctx.job) {
+    if let Some(violation) = goal.evaluate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job)) {
         return eval_ctx.result_selector.select_insertion(
             insertion_ctx,
             alternative,
@@ -61,14 +62,14 @@ pub fn evaluate_job_insertion_in_route(
         );
     }
 
-    let route_costs = constraint.evaluate_soft_route(&insertion_ctx.solution, route_ctx, eval_ctx.job);
+    let route_costs = goal.estimate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job));
     let best_known_cost = match &alternative {
         InsertionResult::Success(success) => Some(success.cost),
         _ => None,
     };
 
     if let Some(best_known_cost) = best_known_cost {
-        if best_known_cost < route_costs {
+        if let Either::Left(_) = eval_ctx.result_selector.select_cost(route_ctx, best_known_cost, route_costs) {
             return alternative;
         }
     }
@@ -76,13 +77,13 @@ pub fn evaluate_job_insertion_in_route(
     eval_ctx.result_selector.select_insertion(
         insertion_ctx,
         alternative,
-        evaluate_job_constraint_in_route(eval_ctx, route_ctx, position, route_costs, best_known_cost),
+        eval_job_constraint_in_route(eval_ctx, route_ctx, position, route_costs, best_known_cost),
     )
 }
 
 /// Evaluates possibility to preform insertion in route context only.
 /// NOTE: doesn't evaluate constraints on route level.
-pub fn evaluate_job_constraint_in_route(
+pub fn eval_job_constraint_in_route(
     eval_ctx: &EvaluationContext,
     route_ctx: &RouteContext,
     position: InsertionPosition,
@@ -90,12 +91,12 @@ pub fn evaluate_job_constraint_in_route(
     best_known_cost: Option<Cost>,
 ) -> InsertionResult {
     match eval_ctx.job {
-        Job::Single(single) => evaluate_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost),
-        Job::Multi(multi) => evaluate_multi(eval_ctx, route_ctx, multi, position, route_costs, best_known_cost),
+        Job::Single(single) => eval_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost),
+        Job::Multi(multi) => eval_multi(eval_ctx, route_ctx, multi, position, route_costs, best_known_cost),
     }
 }
 
-pub(crate) fn evaluate_single_constraint_in_route(
+pub(crate) fn eval_single_constraint_in_route(
     insertion_ctx: &InsertionContext,
     eval_ctx: &EvaluationContext,
     route_ctx: &RouteContext,
@@ -104,18 +105,20 @@ pub(crate) fn evaluate_single_constraint_in_route(
     route_costs: Cost,
     best_known_cost: Option<Cost>,
 ) -> InsertionResult {
-    if let Some(violation) = eval_ctx.constraint.evaluate_hard_route(&insertion_ctx.solution, route_ctx, eval_ctx.job) {
+    if let Some(violation) =
+        eval_ctx.goal.evaluate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job))
+    {
         InsertionResult::Failure(InsertionFailure {
             constraint: violation.code,
             stopped: true,
             job: Some(eval_ctx.job.clone()),
         })
     } else {
-        evaluate_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost)
+        eval_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost)
     }
 }
 
-fn evaluate_single(
+fn eval_single(
     eval_ctx: &EvaluationContext,
     route_ctx: &RouteContext,
     single: &Arc<Single>,
@@ -132,6 +135,7 @@ fn evaluate_single(
         insertion_idx,
         single,
         &mut activity,
+        route_costs,
         SingleContext::new(best_known_cost, 0),
     );
 
@@ -139,14 +143,14 @@ fn evaluate_single(
     if result.is_success() {
         activity.place = result.place.unwrap();
         let activities = vec![(activity, result.index)];
-        InsertionResult::make_success(result.cost.unwrap() + route_costs, job, activities, route_ctx.clone())
+        InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx.clone())
     } else {
         let (code, stopped) = result.violation.map_or((0, false), |v| (v.code, v.stopped));
         InsertionResult::make_failure_with_code(code, stopped, Some(job))
     }
 }
 
-fn evaluate_multi(
+fn eval_multi(
     eval_ctx: &EvaluationContext,
     route_ctx: &RouteContext,
     multi: &Arc<Multi>,
@@ -159,17 +163,17 @@ fn evaluate_multi(
     let result = unwrap_from_result(multi.permutations().into_iter().try_fold(
         MultiContext::new(best_known_cost, insertion_idx),
         |acc_res, services| {
-            let mut shadow = ShadowContext::new(eval_ctx.constraint, route_ctx);
-            let perm_res = unwrap_from_result(repeat(0).try_fold(MultiContext::new(None, insertion_idx), |out, _| {
+            let mut shadow = ShadowContext::new(eval_ctx.goal, route_ctx);
+            let perm_res = unwrap_from_result((0..).try_fold(MultiContext::new(None, insertion_idx), |out, _| {
                 if out.is_failure(route_ctx.route.tour.job_activity_count()) {
-                    return Result::Err(out);
+                    return Err(out);
                 }
                 shadow.restore(route_ctx);
 
                 // 2. analyze inner jobs
                 let sq_res = unwrap_from_result(services.iter().try_fold(out.next(), |in1, service| {
                     if in1.violation.is_some() {
-                        return Result::Err(in1);
+                        return Err(in1);
                     }
                     let mut activity = Activity::new_with_job(service.clone());
                     // 3. analyze legs
@@ -179,6 +183,7 @@ fn evaluate_multi(
                         None,
                         service,
                         &mut activity,
+                        0.,
                         SingleContext::new(None, in1.next_index),
                     );
 
@@ -186,7 +191,10 @@ fn evaluate_multi(
                         activity.place = srv_res.place.unwrap();
                         let activity = shadow.insert(activity, srv_res.index);
                         let activities = concat_activities(in1.activities, (activity, srv_res.index));
-                        return MultiContext::success(in1.cost.unwrap_or(0.) + srv_res.cost.unwrap(), activities);
+                        return MultiContext::success(
+                            in1.cost.unwrap_or(route_costs) + srv_res.cost.unwrap(),
+                            activities,
+                        );
                     }
 
                     MultiContext::fail(srv_res, in1)
@@ -202,7 +210,7 @@ fn evaluate_multi(
     let job = eval_ctx.job.clone();
     if result.is_success() {
         let activities = result.activities.unwrap();
-        InsertionResult::make_success(result.cost.unwrap() + route_costs, job, activities, route_ctx.clone())
+        InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx.clone())
     } else {
         let (code, stopped) = result.violation.map_or((0, false), |v| (v.code, v.stopped));
         InsertionResult::make_failure_with_code(code, stopped, Some(job))
@@ -215,21 +223,35 @@ fn analyze_insertion_in_route(
     insertion_idx: Option<usize>,
     single: &Single,
     target: &mut Activity,
+    route_costs: Cost,
     init: SingleContext,
 ) -> SingleContext {
-    unwrap_from_result(match insertion_idx {
+    let mut analyze_leg_insertion = |leg: Leg<'_>, init| {
+        analyze_insertion_in_route_leg(eval_ctx, route_ctx, leg, single, target, route_costs, init)
+    };
+
+    match insertion_idx {
         Some(idx) => {
             if let Some(leg) = route_ctx.route.tour.legs().nth(idx) {
-                analyze_insertion_in_route_leg(eval_ctx, route_ctx, leg, single, target, init)
+                unwrap_from_result(analyze_leg_insertion(leg, init))
             } else {
-                Ok(init)
+                init
             }
         }
-        None => eval_ctx
-            .leg_selector
-            .get_legs(route_ctx, eval_ctx.job, init.index)
-            .try_fold(init, |out, leg| analyze_insertion_in_route_leg(eval_ctx, route_ctx, leg, single, target, out)),
-    })
+        None => eval_ctx.leg_selection.sample_best(
+            route_ctx,
+            eval_ctx.job,
+            init.index,
+            init,
+            &mut |leg: Leg<'_>, init| analyze_leg_insertion(leg, init),
+            |lhs: &SingleContext, rhs: &SingleContext| {
+                eval_ctx
+                    .result_selector
+                    .select_cost(route_ctx, lhs.cost.unwrap_or(f64::MAX), rhs.cost.unwrap_or(f64::MAX))
+                    .is_left()
+            },
+        ),
+    }
 }
 
 fn analyze_insertion_in_route_leg(
@@ -238,7 +260,8 @@ fn analyze_insertion_in_route_leg(
     leg: Leg,
     single: &Single,
     target: &mut Activity,
-    out: SingleContext,
+    route_costs: Cost,
+    init: SingleContext,
 ) -> Result<SingleContext, SingleContext> {
     let (items, index) = leg;
     let (prev, next) = match items {
@@ -248,9 +271,9 @@ fn analyze_insertion_in_route_leg(
     };
     let start_time = route_ctx.route.tour.start().unwrap().schedule.departure;
     // analyze service details
-    single.places.iter().try_fold(out, |in1, detail| {
+    single.places.iter().try_fold(init, |acc, detail| {
         // analyze detail time windows
-        detail.times.iter().try_fold(in1, |in2, time| {
+        detail.times.iter().try_fold(acc, |acc, time| {
             target.place = Place {
                 location: detail.location.unwrap_or(prev.place.location),
                 duration: detail.duration,
@@ -259,16 +282,16 @@ fn analyze_insertion_in_route_leg(
 
             let activity_ctx = ActivityContext { index, prev, target, next };
 
-            if let Some(violation) = eval_ctx.constraint.evaluate_hard_activity(route_ctx, &activity_ctx) {
-                return SingleContext::fail(violation, in2);
+            if let Some(violation) = eval_ctx.goal.evaluate(&MoveContext::activity(route_ctx, &activity_ctx)) {
+                return SingleContext::fail(violation, acc);
             }
 
-            let costs = eval_ctx.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
-            let other_costs = in2.cost.unwrap_or(f64::MAX);
+            let costs = eval_ctx.goal.estimate(&MoveContext::activity(route_ctx, &activity_ctx)) + route_costs;
+            let other_costs = acc.cost.unwrap_or(f64::MAX);
 
             match eval_ctx.result_selector.select_cost(route_ctx, costs, other_costs) {
                 Either::Left(_) => SingleContext::success(activity_ctx.index, costs, target.place.clone()),
-                Either::Right(_) => SingleContext::skip(in2),
+                Either::Right(_) => SingleContext::skip(acc),
             }
         })
     })
@@ -283,10 +306,10 @@ fn get_insertion_index(route_ctx: &RouteContext, position: InsertionPosition) ->
 }
 
 /// Stores information needed for single insertion.
-#[derive(Debug)]
+#[derive(Clone, Debug, Default)]
 struct SingleContext {
     /// Constraint violation.
-    pub violation: Option<ActivityConstraintViolation>,
+    pub violation: Option<ConstraintViolation>,
     /// Insertion index.
     pub index: usize,
     /// Best cost.
@@ -301,24 +324,24 @@ impl SingleContext {
         Self { violation: None, index, cost, place: None }
     }
 
-    fn fail(violation: ActivityConstraintViolation, other: SingleContext) -> Result<Self, Self> {
+    fn fail(violation: ConstraintViolation, other: SingleContext) -> Result<Self, Self> {
         let stopped = violation.stopped;
         let ctx = Self { violation: Some(violation), index: other.index, cost: other.cost, place: other.place };
         if stopped {
-            Result::Err(ctx)
+            Err(ctx)
         } else {
-            Result::Ok(ctx)
+            Ok(ctx)
         }
     }
 
     #[allow(clippy::unnecessary_wraps)]
     fn success(index: usize, cost: Cost, place: Place) -> Result<Self, Self> {
-        Result::Ok(Self { violation: None, index, cost: Some(cost), place: Some(place) })
+        Ok(Self { violation: None, index, cost: Some(cost), place: Some(place) })
     }
 
     #[allow(clippy::unnecessary_wraps)]
     fn skip(other: SingleContext) -> Result<Self, Self> {
-        Result::Ok(other)
+        Ok(other)
     }
 
     fn is_success(&self) -> bool {
@@ -329,7 +352,7 @@ impl SingleContext {
 /// Stores information needed for multi job insertion.
 struct MultiContext {
     /// Constraint violation.
-    pub violation: Option<ActivityConstraintViolation>,
+    pub violation: Option<ConstraintViolation>,
     /// Insertion index for first service.
     pub start_index: usize,
     /// Insertion index for next service.
@@ -359,7 +382,8 @@ impl MultiContext {
             }
             (Some(_), None) => left,
             (None, Some(_)) => right,
-            _ => {
+            // NOTE: no costs means failure, let's provide one which has violation field populated
+            (None, None) => {
                 if left.violation.is_some() {
                     left
                 } else {
@@ -376,10 +400,10 @@ impl MultiContext {
             activities: best.activities,
         };
 
-        if result.violation.as_ref().map_or_else(|| false, |v| v.stopped) {
-            Result::Err(result)
+        if result.violation.as_ref().map_or(false, |v| v.stopped) {
+            Err(result)
         } else {
-            Result::Ok(result)
+            Ok(result)
         }
     }
 
@@ -388,8 +412,8 @@ impl MultiContext {
         let (code, stopped) =
             err_ctx.violation.map_or((0, false), |v| (v.code, v.stopped && other_ctx.activities.is_none()));
 
-        Result::Err(Self {
-            violation: Some(ActivityConstraintViolation { code, stopped }),
+        Err(Self {
+            violation: Some(ConstraintViolation { code, stopped }),
             start_index: other_ctx.start_index,
             next_index: other_ctx.start_index,
             cost: None,
@@ -400,7 +424,7 @@ impl MultiContext {
     /// Creates successful insertion context.
     #[allow(clippy::unnecessary_wraps)]
     fn success(cost: Cost, activities: Vec<(Activity, usize)>) -> Result<Self, Self> {
-        Result::Ok(Self {
+        Ok(Self {
             violation: None,
             start_index: activities.first().unwrap().1,
             next_index: activities.last().unwrap().1 + 1,
@@ -435,13 +459,13 @@ impl MultiContext {
 struct ShadowContext<'a> {
     is_mutated: bool,
     is_dirty: bool,
-    constraint: &'a ConstraintPipeline,
+    goal: &'a GoalContext,
     ctx: RouteContext,
 }
 
 impl<'a> ShadowContext<'a> {
-    fn new(constraint: &'a ConstraintPipeline, ctx: &RouteContext) -> Self {
-        Self { is_mutated: false, is_dirty: false, constraint, ctx: ctx.clone() }
+    fn new(goal: &'a GoalContext, ctx: &RouteContext) -> Self {
+        Self { is_mutated: false, is_dirty: false, goal, ctx: ctx.clone() }
     }
 
     fn insert(&mut self, activity: Activity, index: usize) -> Activity {
@@ -451,7 +475,7 @@ impl<'a> ShadowContext<'a> {
         }
 
         self.ctx.route_mut().tour.insert_at(activity.deep_copy(), index + 1);
-        self.constraint.accept_route_state(&mut self.ctx);
+        self.goal.accept_route_state(&mut self.ctx);
         self.is_dirty = true;
 
         activity

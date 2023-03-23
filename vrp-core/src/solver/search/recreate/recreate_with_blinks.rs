@@ -44,7 +44,7 @@ impl<T: LoadOps> JobSelector for DemandJobSelector<T> {
         ctx.solution.required.sort_by(|a, b| match (Self::get_job_demand(a), Self::get_job_demand(b)) {
             (None, Some(_)) => Ordering::Less,
             (Some(_), None) => Ordering::Greater,
-            (Some(a), Some(b)) => b.cmp(&a),
+            (Some(a), Some(b)) => b.partial_cmp(&a).unwrap_or(Ordering::Equal),
             (None, None) => Ordering::Equal,
         });
 
@@ -83,7 +83,7 @@ impl RankedJobSelector {
         Self { asc_order }
     }
 
-    pub fn rank_job(problem: &Arc<Problem>, job: &Job) -> Distance {
+    pub fn rank_job(problem: &Arc<Problem>, job: &Job) -> Cost {
         problem
             .fleet
             .profiles
@@ -163,7 +163,7 @@ impl ResultSelector for BlinkResultSelector {
 pub struct RecreateWithBlinks<T: LoadOps> {
     job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
     route_selector: Box<dyn RouteSelector + Send + Sync>,
-    leg_selector: Box<dyn LegSelector + Send + Sync>,
+    leg_selection: LegSelection,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
     insertion_heuristic: InsertionHeuristic,
     weights: Vec<usize>,
@@ -179,8 +179,8 @@ impl<T: LoadOps> RecreateWithBlinks<T> {
         let weights = selectors.iter().map(|(_, weight)| *weight).collect();
         Self {
             job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
-            route_selector: Box::new(AllRouteSelector::default()),
-            leg_selector: Box::new(VariableLegSelector::new(random.clone())),
+            route_selector: Box::<AllRouteSelector>::default(),
+            leg_selection: LegSelection::Stochastic(random.clone()),
             result_selector: Box::new(BlinkResultSelector::new_with_defaults(random)),
             insertion_heuristic: Default::default(),
             weights,
@@ -192,7 +192,7 @@ impl<T: LoadOps> RecreateWithBlinks<T> {
     pub fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
         Self::new(
             vec![
-                (Box::new(AllJobSelector::default()), 10),
+                (Box::<AllJobSelector>::default(), 10),
                 (Box::new(ChunkJobSelector::new(8)), 10),
                 (Box::new(DemandJobSelector::<T>::new(false)), 10),
                 (Box::new(DemandJobSelector::<T>::new(true)), 1),
@@ -213,7 +213,7 @@ impl<T: LoadOps> Recreate for RecreateWithBlinks<T> {
             insertion_ctx,
             job_selector,
             self.route_selector.as_ref(),
-            self.leg_selector.as_ref(),
+            &self.leg_selection,
             self.result_selector.as_ref(),
         )
     }

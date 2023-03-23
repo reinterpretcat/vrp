@@ -1,5 +1,6 @@
 use super::*;
 use crate::helpers::algorithms::nsga2::*;
+use crate::prelude::Objective;
 
 /// Creates `n_fronts` with each having `n` solutions in it.
 pub fn create_solutions_with_n_fronts(n: usize, n_fronts: usize) -> (Vec<Vec<f64>>, Vec<Vec<usize>>) {
@@ -15,7 +16,7 @@ pub fn create_solutions_with_n_fronts(n: usize, n_fronts: usize) -> (Vec<Vec<f64
         expected_fronts.push(current_front);
     }
 
-    return (solutions, expected_fronts);
+    (solutions, expected_fronts)
 }
 
 #[test]
@@ -89,7 +90,7 @@ fn test_non_dominated_sort() {
 
     let f3 = f2.next_front();
     assert_eq!(3, f3.rank());
-    assert_eq!(true, f3.is_empty());
+    assert!(f3.is_empty());
 }
 
 fn test_fronts(n: usize, n_fronts: usize) {
@@ -102,7 +103,7 @@ fn test_fronts(n: usize, n_fronts: usize) {
         assert_eq!(&expected_front[..], f.current_front.as_slice());
         f = f.next_front();
     }
-    assert_eq!(true, f.is_empty());
+    assert!(f.is_empty());
 }
 
 #[test]

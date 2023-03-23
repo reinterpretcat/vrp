@@ -1,6 +1,6 @@
 use super::DemandJobSelector;
 use crate::construction::heuristics::JobSelector;
-use crate::helpers::construction::constraints::create_simple_demand;
+use crate::helpers::construction::features::create_simple_demand;
 use crate::helpers::construction::heuristics::create_test_insertion_context;
 use crate::helpers::models::problem::test_single_with_simple_demand;
 use crate::helpers::models::solution::create_test_registry;

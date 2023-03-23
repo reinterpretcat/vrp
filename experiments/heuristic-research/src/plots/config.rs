@@ -70,13 +70,17 @@ pub enum PopulationSeries {
         /// Columns range.
         cols: Range<i32>,
         /// Objective values chart series.
-        objective: Series2D,
+        fitness: Vec<Series2D>,
+        /// Mean node distance.
+        mean_distance: f64,
         /// U-matrix values chart series.
         u_matrix: Series2D,
         /// T-matrix values chart series.
         t_matrix: Series2D,
         /// L-matrix values chart series.
         l_matrix: Series2D,
+        /// Node distance values chart series.
+        n_matrix: Series2D,
     },
 }
 

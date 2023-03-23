@@ -34,13 +34,16 @@ pub fn assign_crowding_distance<'a, S>(
         })
         .collect();
 
-    let objective_count = multi_objective.objectives().count();
+    let objective_count = multi_objective.size();
 
-    let objective_stat: Vec<_> = multi_objective
-        .objectives()
-        .map(|objective| {
-            // first, sort according to objective
-            a.sort_by(|a, b| objective.total_order(a.solution, b.solution));
+    let objective_stat: Vec<_> = (0..objective_count)
+        .map(|objective_idx| {
+            // first, sort according to the corresponding objective
+            a.sort_by(|a, b| {
+                multi_objective
+                    .get_order(a.solution, b.solution, objective_idx)
+                    .expect("get_order: invalid multi objective")
+            });
 
             // assign infinite crowding distance to the extremes
             {
@@ -49,7 +52,10 @@ pub fn assign_crowding_distance<'a, S>(
             }
 
             // the distance between the "best" and "worst" solution according to "objective"
-            let spread = objective.distance(a.first().unwrap().solution, a.last().unwrap().solution).abs();
+            let spread = multi_objective
+                .get_distance(a.first().unwrap().solution, a.last().unwrap().solution, objective_idx)
+                .expect("get_distance: invalid multi objective")
+                .abs();
             debug_assert!(spread >= 0.0);
 
             if spread > 0.0 {
@@ -59,7 +65,10 @@ pub fn assign_crowding_distance<'a, S>(
                 for i in 1..a.len() - 1 {
                     debug_assert!(i >= 1 && i + 1 < a.len());
 
-                    let distance = objective.distance(a[i + 1].solution, a[i - 1].solution).abs();
+                    let distance = multi_objective
+                        .get_distance(a[i + 1].solution, a[i - 1].solution, objective_idx)
+                        .expect("get_distance: invalid multi objective")
+                        .abs();
                     debug_assert!(distance >= 0.0);
                     a[i].crowding_distance += distance * norm;
                 }

@@ -46,7 +46,7 @@ pub struct InsertionHeuristic {
 
 impl Default for InsertionHeuristic {
     fn default() -> Self {
-        InsertionHeuristic::new(Box::new(PositionInsertionEvaluator::default()))
+        InsertionHeuristic::new(Box::<PositionInsertionEvaluator>::default())
     }
 }
 
@@ -64,7 +64,7 @@ impl InsertionHeuristic {
         insertion_ctx: InsertionContext,
         job_selector: &(dyn JobSelector + Send + Sync),
         route_selector: &(dyn RouteSelector + Send + Sync),
-        leg_selector: &(dyn LegSelector + Send + Sync),
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
@@ -81,7 +81,7 @@ impl InsertionHeuristic {
                 &insertion_ctx,
                 jobs.as_slice(),
                 routes.as_slice(),
-                leg_selector,
+                leg_selection,
                 result_selector,
             );
 
@@ -158,13 +158,13 @@ impl InsertionResult {
 
 pub(crate) fn prepare_insertion_ctx(insertion_ctx: &mut InsertionContext) {
     insertion_ctx.solution.required.extend(insertion_ctx.solution.unassigned.iter().map(|(job, _)| job.clone()));
-    insertion_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+    insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 }
 
 pub(crate) fn finalize_insertion_ctx(insertion_ctx: &mut InsertionContext) {
-    finalize_unassigned(insertion_ctx, UnassignedCode::Unknown);
+    finalize_unassigned(insertion_ctx, UnassignmentInfo::Unknown);
 
-    insertion_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+    insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 }
 
 pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
@@ -185,7 +185,7 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
     let job = success.job;
     insertion_ctx.solution.required.retain(|j| *j != job);
     insertion_ctx.solution.unassigned.remove(&job);
-    insertion_ctx.problem.constraint.accept_insertion(&mut insertion_ctx.solution, route_index, &job);
+    insertion_ctx.problem.goal.accept_insertion(&mut insertion_ctx.solution, route_index, &job);
 }
 
 fn apply_insertion_failure(
@@ -203,17 +203,18 @@ fn apply_insertion_failure(
     let no_routes_available = failure.job.is_none();
 
     if let Some(job) = failure.job {
-        insertion_ctx.solution.unassigned.insert(job.clone(), UnassignedCode::Simple(failure.constraint));
+        insertion_ctx.solution.unassigned.insert(job.clone(), UnassignmentInfo::Simple(failure.constraint));
         insertion_ctx.solution.required.retain(|j| *j != job);
     }
 
     if all_unassignable || no_routes_available {
-        let code = if all_unassignable { UnassignedCode::Unknown } else { UnassignedCode::Simple(failure.constraint) };
+        let code =
+            if all_unassignable { UnassignmentInfo::Unknown } else { UnassignmentInfo::Simple(failure.constraint) };
         finalize_unassigned(insertion_ctx, code);
     }
 }
 
-fn finalize_unassigned(insertion_ctx: &mut InsertionContext, code: UnassignedCode) {
+fn finalize_unassigned(insertion_ctx: &mut InsertionContext, code: UnassignmentInfo) {
     let unassigned = &insertion_ctx.solution.unassigned;
     insertion_ctx.solution.required.retain(|job| !unassigned.contains_key(job));
     insertion_ctx.solution.unassigned.extend(insertion_ctx.solution.required.drain(0..).map(|job| (job, code.clone())));

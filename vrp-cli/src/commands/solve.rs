@@ -4,6 +4,7 @@ mod solve_test;
 
 use super::*;
 
+use clap::ArgAction;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
@@ -14,7 +15,7 @@ use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::scientific::tsplib::{TsplibProblem, TsplibSolution};
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::models::problem::ProblemObjective;
+use vrp_core::models::GoalContext;
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::evolution::*;
 use vrp_core::rosomaxa::{get_default_population, get_default_selection_size};
@@ -73,7 +74,7 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
         use vrp_scientific::solomon::read_init_solution as read_init_solomon;
         use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
 
-        let is_rounded = matches.is_present(ROUNDED_ARG_NAME);
+        let is_rounded = matches.get_one::<bool>(ROUNDED_ARG_NAME).copied().unwrap_or(false);
 
         formats.insert(
             "solomon",
@@ -167,14 +168,14 @@ fn get_formats<'a>(matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) 
     formats
 }
 
-pub fn get_solve_app() -> Command<'static> {
+pub fn get_solve_app() -> Command {
     Command::new("solve")
         .about("Solves variations of Vehicle Routing Problem")
         .arg(
             Arg::new(FORMAT_ARG_NAME)
                 .help("Specifies the problem type")
                 .required(true)
-                .possible_values(&["solomon", "lilim", "tsplib", "pragmatic"])
+                .value_parser(["solomon", "lilim", "tsplib", "pragmatic"])
                 .index(1),
         )
         .arg(Arg::new(PROBLEM_ARG_NAME).help("Sets the problem file to use").required(true).index(2))
@@ -184,7 +185,6 @@ pub fn get_solve_app() -> Command<'static> {
                 .short('n')
                 .long(GENERATIONS_ARG_NAME)
                 .required(false)
-                .takes_value(true),
         )
         .arg(
             Arg::new(TIME_ARG_NAME)
@@ -192,7 +192,6 @@ pub fn get_solve_app() -> Command<'static> {
                 .short('t')
                 .long(TIME_ARG_NAME)
                 .required(false)
-                .takes_value(true),
         )
         .arg(
             Arg::new(MIN_CV_ARG_NAME)
@@ -202,7 +201,6 @@ pub fn get_solve_app() -> Command<'static> {
                 .short('v')
                 .long(MIN_CV_ARG_NAME)
                 .required(false)
-                .takes_value(true),
         )
         .arg(
             Arg::new(INIT_SOLUTION_ARG_NAME)
@@ -210,23 +208,20 @@ pub fn get_solve_app() -> Command<'static> {
                 .short('i')
                 .long(INIT_SOLUTION_ARG_NAME)
                 .required(false)
-                .takes_value(true),
         )
         .arg(
             Arg::new(INIT_SIZE_ARG_NAME)
                 .help("Specifies amount of initial solutions. Min is 1")
                 .long(INIT_SIZE_ARG_NAME)
                 .required(false)
-                .takes_value(true),
         )
         .arg(
             Arg::new(MATRIX_ARG_NAME)
                 .help("Specifies path to file with routing matrix")
                 .short('m')
                 .long(MATRIX_ARG_NAME)
-                .multiple_values(true)
+                .num_args(1..)
                 .required(false)
-                .takes_value(true),
         )
         .arg(
             Arg::new(OUT_RESULT_ARG_NAME)
@@ -234,14 +229,13 @@ pub fn get_solve_app() -> Command<'static> {
                 .short('o')
                 .long(OUT_RESULT_ARG_NAME)
                 .required(false)
-                .takes_value(true),
         )
         .arg(
             Arg::new(GET_LOCATIONS_ARG_NAME)
                 .help("Returns list of unique locations")
                 .short('l')
                 .long(GET_LOCATIONS_ARG_NAME)
-                .required(false),
+                .action(ArgAction::SetTrue)
         )
         .arg(
             Arg::new(GEO_JSON_ARG_NAME)
@@ -249,7 +243,6 @@ pub fn get_solve_app() -> Command<'static> {
                 .short('g')
                 .long(GEO_JSON_ARG_NAME)
                 .required(false)
-                .takes_value(true),
         )
         .arg(
             Arg::new(CONFIG_ARG_NAME)
@@ -257,21 +250,20 @@ pub fn get_solve_app() -> Command<'static> {
                 .short('c')
                 .long(CONFIG_ARG_NAME)
                 .required(false)
-                .takes_value(true),
         )
         .arg(
             Arg::new(LOG_ARG_NAME)
                 .help("Specifies whether default logging is enabled")
                 .long(LOG_ARG_NAME)
                 .required(false)
-                .takes_value(false),
+                .action(ArgAction::SetTrue)
         )
         .arg(
             Arg::new(CHECK_ARG_NAME)
                 .help("Specifies whether final solution should be checked for feasibility")
                 .long(CHECK_ARG_NAME)
                 .required(false)
-                .takes_value(false),
+                .action(ArgAction::SetTrue)
         )
         .arg(
             Arg::new(SEARCH_MODE_ARG_NAME)
@@ -279,7 +271,7 @@ pub fn get_solve_app() -> Command<'static> {
                 .long(SEARCH_MODE_ARG_NAME)
                 .short('s')
                 .required(false)
-                .possible_values(&["broad", "deep"])
+                .value_parser(["broad", "deep"])
                 .default_value("broad"),
         )
         .arg(
@@ -288,7 +280,6 @@ pub fn get_solve_app() -> Command<'static> {
                 .long(PARALLELISM_ARG_NAME)
                 .short('p')
                 .required(false)
-                .takes_value(true),
         )
         .arg(
             Arg::new(HEURISTIC_ARG_NAME)
@@ -296,7 +287,7 @@ pub fn get_solve_app() -> Command<'static> {
                 .long(HEURISTIC_ARG_NAME)
                 .short('e')
                 .required(false)
-                .possible_values(&["default", "dynamic", "static"])
+                .value_parser(["default", "dynamic", "static"])
                 .default_value("default"),
         )
         .arg(
@@ -304,14 +295,14 @@ pub fn get_solve_app() -> Command<'static> {
                 .help("Specifies whether experimental (unstable) features are enabled.")
                 .long(EXPERIMENTAL_ARG_NAME)
                 .required(false)
-                .takes_value(false),
+                .action(ArgAction::SetTrue)
         )
         .arg(
             Arg::new(ROUNDED_ARG_NAME)
                 .help("Specifies whether costs are rounded. Applicable only for scientific formats.")
                 .long(ROUNDED_ARG_NAME)
                 .required(false)
-                .takes_value(false),
+                .action(ArgAction::SetTrue)
         )
 }
 
@@ -327,36 +318,36 @@ pub fn run_solve(
     let formats = get_formats(matches, environment.random.clone());
 
     // required
-    let problem_path = matches.value_of(PROBLEM_ARG_NAME).unwrap();
-    let problem_format = matches.value_of(FORMAT_ARG_NAME).unwrap();
+    let problem_path = matches.get_one::<String>(PROBLEM_ARG_NAME).unwrap();
+    let problem_format = matches.get_one::<String>(FORMAT_ARG_NAME).unwrap();
     let problem_file = open_file(problem_path, "problem");
 
     // optional
     let max_generations = parse_int_value::<usize>(matches, GENERATIONS_ARG_NAME, "max generations")?;
-    let telemetry_mode = if matches.is_present(LOG_ARG_NAME) {
+    let telemetry_mode = if matches.get_one::<bool>(LOG_ARG_NAME).copied().unwrap_or(false) {
         get_default_telemetry_mode(environment.logger.clone())
     } else {
         TelemetryMode::None
     };
 
-    let is_check_requested = matches.is_present(CHECK_ARG_NAME);
+    let is_check_requested = matches.get_one::<bool>(CHECK_ARG_NAME).copied().unwrap_or(false);
     let min_cv = get_min_cv(matches)?;
-    let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
+    let init_solution = matches.get_one::<String>(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
     let init_size = get_init_size(matches)?;
-    let config = matches.value_of(CONFIG_ARG_NAME).map(|path| open_file(path, "config"));
+    let config = matches.get_one::<String>(CONFIG_ARG_NAME).map(|path| open_file(path, "config"));
     let matrix_files = get_matrix_files(matches);
-    let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out solution"));
-    let out_geojson = matches.value_of(GEO_JSON_ARG_NAME).map(|path| create_file(path, "out geojson"));
-    let is_get_locations_set = matches.is_present(GET_LOCATIONS_ARG_NAME);
-    let mode = matches.value_of(SEARCH_MODE_ARG_NAME);
+    let out_result = matches.get_one::<String>(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out solution"));
+    let out_geojson = matches.get_one::<String>(GEO_JSON_ARG_NAME).map(|path| create_file(path, "out geojson"));
+    let is_get_locations_set = matches.get_one::<bool>(GET_LOCATIONS_ARG_NAME).copied().unwrap_or(false);
+    let mode = matches.get_one::<String>(SEARCH_MODE_ARG_NAME);
 
-    match formats.get(problem_format) {
+    match formats.get(problem_format.as_str()) {
         Some((problem_reader, init_reader, solution_writer, locations_writer)) => {
             let out_buffer = out_writer_func(out_result);
             let geo_buffer = out_geojson.map(|geojson| create_write_buffer(Some(geojson)));
 
             if is_get_locations_set {
-                locations_writer.0(problem_file, out_buffer).map_err(|err| format!("cannot get locations '{}'", err))
+                locations_writer.0(problem_file, out_buffer).map_err(|err| format!("cannot get locations '{err}'"))
             } else {
                 match problem_reader.0(problem_file, matrix_files) {
                     Ok(problem) => {
@@ -364,7 +355,7 @@ pub fn run_solve(
                         let solutions = init_solution
                             .map(|file| {
                                 init_reader.0(file, problem.clone())
-                                    .map_err(|err| format!("cannot read initial solution '{}'", err))
+                                    .map_err(|err| format!("cannot read initial solution '{err}'"))
                                     .map(|solution| {
                                         vec![InsertionContext::new_from_solution(
                                             problem.clone(),
@@ -379,7 +370,7 @@ pub fn run_solve(
                             create_builder_from_config_file(problem.clone(), solutions, BufReader::new(config))
                                 .and_then(|builder| builder.build())
                                 .map(|config| Solver::new(problem.clone(), config))
-                                .map_err(|err| format!("cannot read config: '{}'", err))?
+                                .map_err(|err| format!("cannot read config: '{err}'"))?
                         } else {
                             let config = create_default_config_builder(
                                 problem.clone(),
@@ -392,7 +383,7 @@ pub fn run_solve(
                             .with_min_cv(min_cv, "min_cv".to_string())
                             .with_context(RefinementContext::new(
                                 problem.clone(),
-                                get_population(mode, problem.objective.clone(), environment.clone()),
+                                get_population(mode, problem.goal.clone(), environment.clone()),
                                 telemetry_mode,
                                 environment.clone(),
                             ))
@@ -403,7 +394,7 @@ pub fn run_solve(
                         };
 
                         let (solution, cost, metrics) =
-                            solver.solve().map_err(|err| format!("cannot find any solution: '{}'", err))?;
+                            solver.solve().map_err(|err| format!("cannot find any solution: '{err}'"))?;
 
                         solution_writer.0(&problem, solution, cost, metrics, out_buffer, geo_buffer).unwrap();
 
@@ -414,20 +405,18 @@ pub fn run_solve(
 
                         Ok(())
                     }
-                    Err(error) => {
-                        Err(format!("cannot read {} problem from '{}': '{}'", problem_format, problem_path, error))
-                    }
+                    Err(error) => Err(format!("cannot read {problem_format} problem from '{problem_path}': '{error}'")),
                 }
             }
         }
-        None => Err(format!("unknown format: '{}'", problem_format)),
+        None => Err(format!("unknown format: '{problem_format}'")),
     }
 }
 
 fn get_min_cv(matches: &ArgMatches) -> Result<Option<(String, usize, f64, bool)>, String> {
     let err_result = Err("cannot parse min_cv parameter".to_string());
     matches
-        .value_of(MIN_CV_ARG_NAME)
+        .get_one::<String>(MIN_CV_ARG_NAME)
         .map(|arg| match arg.split(',').collect::<Vec<_>>().as_slice() {
             [cv_type, sample, threshold, is_global] => {
                 match (*cv_type, sample.parse::<usize>(), threshold.parse::<f64>(), is_global.parse::<bool>()) {
@@ -446,13 +435,13 @@ fn get_min_cv(matches: &ArgMatches) -> Result<Option<(String, usize, f64, bool)>
 
 fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, String> {
     matches
-        .value_of(INIT_SIZE_ARG_NAME)
+        .get_one::<String>(INIT_SIZE_ARG_NAME)
         .map(|size| {
             if let Some(value) = size.parse::<usize>().ok().and_then(|value| if value < 1 { None } else { Some(value) })
             {
                 Ok(Some(value))
             } else {
-                Err(format!("init size must be an integer bigger than 0, got '{}'", size))
+                Err(format!("init size must be an integer bigger than 0, got '{size}'"))
             }
         })
         .unwrap_or(Ok(None))
@@ -460,17 +449,17 @@ fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, String> {
 
 fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<Environment>, String> {
     let quota = Some(create_interruption_quota(max_time));
-    let is_experimental = matches.is_present(EXPERIMENTAL_ARG_NAME);
+    let is_experimental = matches.get_one::<bool>(EXPERIMENTAL_ARG_NAME).copied().unwrap_or(false);
 
     matches
-        .value_of(PARALLELISM_ARG_NAME)
+        .get_one::<String>(PARALLELISM_ARG_NAME)
         .map(|arg| {
             if let [num_thread_pools, threads_per_pool] =
                 arg.split(',').filter_map(|line| line.parse::<usize>().ok()).collect::<Vec<_>>().as_slice()
             {
                 let parallelism = Parallelism::new(*num_thread_pools, *threads_per_pool);
-                let logger: InfoLogger = if matches.is_present(LOG_ARG_NAME) {
-                    Arc::new(|msg: &str| println!("{}", msg))
+                let logger: InfoLogger = if matches.get_one::<bool>(LOG_ARG_NAME).copied().unwrap_or(false) {
+                    Arc::new(|msg: &str| println!("{msg}"))
                 } else {
                     Arc::new(|_: &str| {})
                 };
@@ -490,18 +479,18 @@ fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<
 
 fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {
     matches
-        .values_of(MATRIX_ARG_NAME)
-        .map(|paths: Values| paths.map(|path| open_file(path, "routing matrix")).collect())
+        .get_many::<String>(MATRIX_ARG_NAME)
+        .map(|paths| paths.map(|path| open_file(path, "routing matrix")).collect())
 }
 
 fn get_population(
-    mode: Option<&str>,
-    objective: Arc<ProblemObjective>,
+    mode: Option<&String>,
+    objective: Arc<GoalContext>,
     environment: Arc<Environment>,
 ) -> TargetPopulation {
     let selection_size = get_default_selection_size(environment.as_ref());
 
-    match mode {
+    match mode.map(String::as_str) {
         Some("deep") => Box::new(ElitismPopulation::new(objective, environment.random.clone(), 4, selection_size)),
         _ => get_default_population(objective, environment, selection_size),
     }
@@ -512,10 +501,10 @@ fn get_heuristic(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
 ) -> Result<TargetHeuristic, String> {
-    match matches.value_of(HEURISTIC_ARG_NAME) {
+    match matches.get_one::<String>(HEURISTIC_ARG_NAME).map(String::as_str) {
         Some("dynamic") => Ok(get_dynamic_heuristic(problem, environment)),
         Some("static") => Ok(get_static_heuristic(problem, environment)),
-        Some(name) if name != "default" => Err(format!("unknown heuristic type name: '{}'", name)),
+        Some(name) if name != "default" => Err(format!("unknown heuristic type name: '{name}'")),
         _ => Ok(get_default_heuristic(problem, environment)),
     }
 }

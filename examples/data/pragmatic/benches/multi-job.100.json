@@ -5444,7 +5444,9 @@
     [
       {
         "type": "minimize-unassigned"
-      },
+      }
+    ],
+    [
       {
         "type": "minimize-tours"
       }
@@ -5454,7 +5456,10 @@
         "type": "minimize-cost"
       },
       {
-        "type": "balance-distance"
+        "type": "balance-distance",
+        "options": {
+          "threshold": 0.1
+        }
       }
     ]
   ]

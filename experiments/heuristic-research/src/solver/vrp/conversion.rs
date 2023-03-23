@@ -19,7 +19,7 @@ impl From<&InsertionContext> for DataGraph {
             .flat_map(|route_ctx| {
                 route_ctx.route.tour.legs().map(|(activities, _)| match activities {
                     [from, to] => GraphEdge { source: from.place.location, target: to.place.location },
-                    _ => unreachable!(),
+                    _ => unreachable!("leg configuration"),
                 })
             })
             .collect();
@@ -31,7 +31,7 @@ impl From<&InsertionContext> for DataGraph {
 impl From<&ObservationData> for DataGraph {
     fn from(data: &ObservationData) -> Self {
         match data {
-            ObservationData::Vrp(data_graph) => data_graph.clone(),
+            ObservationData::Vrp((data_graph, _)) => data_graph.clone(),
             _ => unreachable!(),
         }
     }

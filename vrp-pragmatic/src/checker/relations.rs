@@ -41,7 +41,7 @@ fn check_relations_assignment(context: &CheckerContext) -> Result<(), String> {
                 } else if reserved_ids.contains(job_id.as_str()) {
                     Ok(acc + 1)
                 } else {
-                    Err(format!("relation has unknown job id: {}", job_id))
+                    Err(format!("relation has unknown job id: {job_id}"))
                 }
             })?;
 
@@ -81,7 +81,7 @@ fn check_relations_assignment(context: &CheckerContext) -> Result<(), String> {
                         .any(|tour| get_activity_ids(tour).iter().any(|id| relation_ids.contains(id)));
 
                     if has_wrong_assignment {
-                        Err(format!("relation {} has jobs assigned to another tour", idx))
+                        Err(format!("relation {idx} has jobs assigned to another tour"))
                     } else {
                         Ok(())
                     }
@@ -98,7 +98,7 @@ fn get_tour_by_vehicle_id(vehicle_id: &str, shift_index: Option<usize>, solution
         .iter()
         .find(|tour| tour.vehicle_id == vehicle_id && tour.shift_index == shift_index.unwrap_or(0))
         .cloned()
-        .ok_or_else(|| format!("cannot find tour for '{}'", vehicle_id))
+        .ok_or_else(|| format!("cannot find tour for '{vehicle_id}'"))
 }
 
 fn get_activity_ids(tour: &Tour) -> Vec<String> {

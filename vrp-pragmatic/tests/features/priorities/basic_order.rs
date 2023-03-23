@@ -15,16 +15,24 @@ fn create_test_plan_with_three_jobs() -> Plan {
 }
 
 fn create_test_limit() -> Option<VehicleLimits> {
-    Some(VehicleLimits { max_distance: Some(15.), shift_time: None, tour_size: None, areas: None })
+    Some(VehicleLimits { max_distance: Some(15.), shift_time: None, tour_size: None })
 }
 
 fn create_order_objective(is_constrained: bool) -> Vec<Vec<Objective>> {
-    vec![
-        vec![Objective::MinimizeUnassignedJobs { breaks: None }],
-        vec![Objective::MinimizeTours {}],
-        vec![Objective::TourOrder { is_constrained }],
-        vec![Objective::MinimizeCost],
-    ]
+    if is_constrained {
+        vec![
+            vec![Objective::MinimizeUnassignedJobs { breaks: None }],
+            vec![Objective::MinimizeTours],
+            vec![Objective::MinimizeCost],
+        ]
+    } else {
+        vec![
+            vec![Objective::MinimizeUnassignedJobs { breaks: None }],
+            vec![Objective::MinimizeTours],
+            vec![Objective::TourOrder],
+            vec![Objective::MinimizeCost],
+        ]
+    }
 }
 
 fn create_problem(is_constrained: bool, limits: Option<VehicleLimits>) -> Problem {
@@ -32,7 +40,7 @@ fn create_problem(is_constrained: bool, limits: Option<VehicleLimits>) -> Proble
         plan: create_test_plan_with_three_jobs(),
         fleet: Fleet {
             vehicles: vec![VehicleType { limits, ..create_default_vehicle_type() }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         objectives: Some(create_order_objective(is_constrained)),
         ..create_empty_problem()
@@ -151,9 +159,9 @@ fn can_follow_order_when_prioritized_property_set() {
         Some(vec![UnassignedJob {
             job_id: "job3".to_string(),
             reasons: vec![UnassignedJobReason {
-                code: "MAX_DISTANCE_CONSTRAINT".to_string(),
-                description: "cannot be assigned due to max distance constraint of vehicle".to_string(),
-                detail: Some(UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }),
+                code: "TOUR_ORDER_CONSTRAINT".to_string(),
+                description: "cannot be assigned due to tour order constraint".to_string(),
+                details: Some(vec![UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }]),
             }]
         }])
     );
@@ -177,11 +185,7 @@ fn can_handle_order_between_special_activities() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    end: Some(ShiftEnd {
-                        earliest: None,
-                        latest: format_time(1000.).to_string(),
-                        location: (10., 0.).to_loc(),
-                    }),
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (10., 0.).to_loc() }),
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(100.), format_time(200.)]),
                         places: vec![VehicleOptionalBreakPlace {
@@ -195,7 +199,7 @@ fn can_handle_order_between_special_activities() {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

@@ -4,9 +4,10 @@
 #[path = "../../tests/unit/evolution/telemetry_test.rs"]
 mod telemetry_test;
 
+use crate::algorithms::math::relative_distance;
 use crate::prelude::*;
 use crate::utils::Timer;
-use crate::DynHeuristicPopulation;
+use crate::{DynHeuristicPopulation, RemedianUsize};
 use std::cmp::Ordering;
 use std::fmt::Write;
 use std::marker::PhantomData;
@@ -136,7 +137,7 @@ where
                         "[{}s] created initial solution in {}ms, fitness: ({})",
                         self.time.elapsed_secs(),
                         item_time.elapsed_millis(),
-                        format_fitness(solution.get_fitness())
+                        format_fitness(solution.fitness())
                     )
                     .as_str(),
                 );
@@ -249,8 +250,8 @@ where
             individuals.iter().for_each(|metrics| self.log_individual(metrics, None));
             if should_dump_population {
                 let mut state = String::new();
-                write!(state, "{}", population).unwrap();
-                self.log(&format!("\t{}", state));
+                write!(state, "{population}").unwrap();
+                self.log(&format!("\t{state}"));
             }
         }
 
@@ -282,7 +283,7 @@ where
         let elapsed = self.time.elapsed_secs() as usize;
         let speed = generations as f64 / self.time.elapsed_secs_as_f64();
 
-        self.log(format!("[{}s] total generations: {}, speed: {:.2} gen/sec", elapsed, generations, speed).as_str());
+        self.log(format!("[{elapsed}s] total generations: {generations}, speed: {speed:.2} gen/sec",).as_str());
 
         self.metrics.duration = elapsed;
         self.metrics.speed = speed;
@@ -317,11 +318,11 @@ where
         solution: &S,
         rank: usize,
     ) -> TelemetryIndividual {
-        let fitness = solution.get_fitness().collect::<Vec<_>>();
+        let fitness = solution.fitness().collect::<Vec<_>>();
 
-        let (_, difference) = get_fitness_value(objective, population, solution);
+        let difference = get_fitness_change(objective, population, solution);
 
-        TelemetryIndividual { rank, difference: difference.abs(), fitness }
+        TelemetryIndividual { rank, difference, fitness }
     }
 
     fn log_individual(&self, metrics: &TelemetryIndividual, gen_info: Option<(usize, Timer)>) {
@@ -329,10 +330,11 @@ where
 
         let value = if let Some((gen, gen_time)) = gen_info {
             format!(
-                "[{}s] generation {} took {}ms, fitness: ({})",
+                "[{}s] generation {} took {}ms, median: {}ms fitness: ({})",
                 self.time.elapsed_secs(),
                 gen,
                 gen_time.elapsed_millis(),
+                self.speed_tracker.median.approx_median().unwrap_or(0),
                 fitness
             )
         } else {
@@ -383,12 +385,20 @@ impl ImprovementTracker {
 struct SpeedTracker {
     initial_estimate: f64,
     initial_time: f64,
+    last_time: f64,
+    median: RemedianUsize,
     speed: HeuristicSpeed,
 }
 
 impl Default for SpeedTracker {
     fn default() -> Self {
-        Self { initial_estimate: 0., initial_time: 0., speed: HeuristicSpeed::Unknown }
+        Self {
+            initial_estimate: 0.,
+            initial_time: 0.,
+            last_time: 0.,
+            median: RemedianUsize::new(11, |a, b| a.cmp(b)),
+            speed: HeuristicSpeed::Unknown,
+        }
     }
 }
 
@@ -398,7 +408,12 @@ impl SpeedTracker {
         if generation == 0 {
             self.initial_estimate = termination_estimate;
             self.initial_time = elapsed;
+            self.last_time = elapsed;
         } else {
+            let duration = ((elapsed - self.last_time) / 1000.).round() as usize;
+            self.median.add_observation(duration);
+            self.last_time = elapsed;
+
             // average gen/sec speed excluding initial solutions
             let average = if elapsed > self.initial_time {
                 generation as f64 / ((elapsed - self.initial_time) / 1_000_000.)
@@ -420,12 +435,13 @@ impl SpeedTracker {
             };
 
             let is_slow = compare_floats(ratio, 1.) == Ordering::Less;
+            let median = self.median.approx_median();
 
             self.speed = match &self.speed {
                 HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } if !is_slow => {
-                    HeuristicSpeed::Moderate { average }
+                    HeuristicSpeed::Moderate { average, median }
                 }
-                _ => HeuristicSpeed::Slow { ratio, average },
+                _ => HeuristicSpeed::Slow { ratio, average, median },
             }
         }
     }
@@ -435,23 +451,24 @@ impl SpeedTracker {
     }
 }
 
-fn get_fitness_value<O, S>(objective: &O, population: &DynHeuristicPopulation<O, S>, solution: &S) -> (f64, f64)
+fn get_fitness_change<O, S>(objective: &O, population: &DynHeuristicPopulation<O, S>, solution: &S) -> f64
 where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    let fitness_value = objective.fitness(solution);
-
     let fitness_change = population
         .ranked()
         .next()
         .map(|(best_ctx, _)| objective.fitness(best_ctx))
-        .map(|best_fitness| (fitness_value - best_fitness) / best_fitness * 100.)
+        .map(|best_fitness| {
+            let fitness_value = objective.fitness(solution);
+            relative_distance(fitness_value, best_fitness)
+        })
         .unwrap_or(0.);
 
-    (fitness_value, fitness_change)
+    fitness_change
 }
 
 fn format_fitness(fitness: impl Iterator<Item = f64>) -> String {
-    fitness.map(|v| format!("{:.3}", v)).collect::<Vec<_>>().join(", ")
+    fitness.map(|v| format!("{v:.3}")).collect::<Vec<_>>().join(", ")
 }

@@ -7,9 +7,9 @@ use rosomaxa::prelude::*;
 fn can_create_multiple_insertion_ctxs_without_unassigned() {
     let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
-    let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
+    let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
 
-    let individuals = create_multiple_insertion_contexts(&individual, (2, 2)).unwrap();
+    let individuals = create_multiple_insertion_contexts(&individual, environment, (2, 2)).unwrap();
 
     assert_eq!(individuals.len(), 4);
     assert_eq!(individuals[0].0.solution.routes.len(), 2);
@@ -23,11 +23,11 @@ fn can_create_multiple_insertion_ctxs_with_unassigned() {
     let environment = Arc::new(Environment::default());
     let (problem, mut solution) = generate_matrix_routes_with_defaults(5, 6, false);
     solution.registry.free_actor(&solution.routes[0].actor);
-    solution.unassigned.extend(solution.routes[0].tour.jobs().map(|job| (job, UnassignedCode::Unknown)));
+    solution.unassigned.extend(solution.routes[0].tour.jobs().map(|job| (job, UnassignmentInfo::Unknown)));
     solution.routes.remove(0);
-    let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
+    let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
 
-    let individuals = create_multiple_insertion_contexts(&individual, (2, 2)).unwrap();
+    let individuals = create_multiple_insertion_contexts(&individual, environment, (2, 2)).unwrap();
 
     assert_eq!(individuals.len(), 4);
 
@@ -49,12 +49,12 @@ fn can_mutate() {
     let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
     let problem = Arc::new(problem);
-    let population = Box::new(GreedyPopulation::new(problem.objective.clone(), 1, None));
+    let population = Box::new(GreedyPopulation::new(problem.goal.clone(), 1, None));
 
     let refinement_ctx = RefinementContext::new(problem.clone(), population, TelemetryMode::None, environment.clone());
     let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone());
-    let inner_search = create_default_heuristic_operator(problem.clone(), environment);
-    let decompose_search = DecomposeSearch::new(inner_search, (2, 2), 10);
+    let inner_search = create_default_heuristic_operator(problem, environment);
+    let decompose_search = DecomposeSearch::new(inner_search, (2, 2), 10, 1000);
 
     let result = decompose_search.search(&refinement_ctx, &insertion_ctx);
 

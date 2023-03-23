@@ -13,10 +13,7 @@ fn can_wait_for_job_start() {
             ],
             ..create_empty_plan()
         },
-        fleet: Fleet {
-            vehicles: vec![create_default_vehicle("my_vehicle")],
-            profiles: create_default_matrix_profiles(),
-        },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -89,10 +86,7 @@ fn can_skip_initial_waiting() {
             jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(10, 20)], 10.)],
             ..create_empty_plan()
         },
-        fleet: Fleet {
-            vehicles: vec![create_default_vehicle("my_vehicle")],
-            profiles: create_default_matrix_profiles(),
-        },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -169,7 +163,7 @@ fn can_consider_latest_departure_time() {
                 }],
                 ..create_default_vehicle("my_vehicle")
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

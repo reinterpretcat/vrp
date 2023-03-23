@@ -18,7 +18,7 @@ fn can_import_csv_problem_from_args() {
     ];
     let matches = get_import_app().try_get_matches_from(args).unwrap();
 
-    let _ = run_import(&matches).unwrap();
+    run_import(&matches).unwrap();
 
     let problem = BufReader::new(tmpfile.as_file()).read_pragmatic().unwrap();
     assert_eq!(problem.jobs.size(), 3);

@@ -1,17 +1,17 @@
 use super::*;
-use crate::extensions::create_typed_actor_groups;
+use crate::construction::enablers::create_typed_actor_groups;
+use crate::construction::enablers::VehicleTie;
 use crate::helpers::*;
 use hashbrown::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::*;
-use vrp_core::models::common::{IdDimension, ValueDimension};
 use vrp_core::models::problem::Actor;
 use vrp_core::models::problem::{Fleet, Single};
 
 const VIOLATION_CODE: i32 = 1;
 const STATE_KEY: i32 = 2;
 
-fn get_total_jobs(routes: &Vec<(&str, Vec<Option<&str>>)>) -> usize {
+fn get_total_jobs(routes: &[(&str, Vec<Option<&str>>)]) -> usize {
     routes.iter().map(|(_, jobs)| jobs.len()).sum::<usize>() + 1
 }
 
@@ -25,9 +25,7 @@ fn create_test_fleet() -> Fleet {
 
 fn create_test_single(group: Option<&str>) -> Arc<Single> {
     let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
-    if let Some(group) = group {
-        single.dimens.set_value("group", group.to_string())
-    }
+    single.dimens.set_job_group(group.map(|group| group.to_string()));
 
     Arc::new(single)
 }
@@ -45,15 +43,12 @@ fn create_test_solution_context(
                 let mut state = RouteState::default();
                 state.put_route_state(
                     STATE_KEY,
-                    (
-                        groups.iter().filter_map(|g| g.clone()).map(|g| g.to_string()).collect::<HashSet<_>>(),
-                        groups.len(),
-                    ),
+                    (groups.iter().filter_map(|g| *g).map(|g| g.to_string()).collect::<HashSet<_>>(), groups.len()),
                 );
 
                 RouteContext::new_with_state(
                     Arc::new(create_route_with_activities(
-                        &fleet,
+                        fleet,
                         vehicle,
                         groups
                             .into_iter()
@@ -69,7 +64,7 @@ fn create_test_solution_context(
 }
 
 fn get_actor(fleet: &Fleet, vehicle: &str) -> Arc<Actor> {
-    fleet.actors.iter().find(|actor| actor.vehicle.dimens.get_id().unwrap() == vehicle).unwrap().clone()
+    fleet.actors.iter().find(|actor| actor.vehicle.dimens.get_vehicle_id().unwrap() == vehicle).unwrap().clone()
 }
 
 fn get_actor_groups(solution_ctx: &mut SolutionContext, state_key: i32) -> HashMap<String, Arc<Actor>> {
@@ -79,10 +74,10 @@ fn get_actor_groups(solution_ctx: &mut SolutionContext, state_key: i32) -> HashM
         .filter_map(|route_ctx| {
             route_ctx
                 .state
-                .get_route_state::<(HashSet<String>, usize)>(state_key)
+                .get_route_state::<HashSet<String>>(state_key)
                 .map(|groups| (route_ctx.route.actor.clone(), groups.clone()))
         })
-        .fold(HashMap::default(), |mut acc, (actor, (groups, _))| {
+        .fold(HashMap::default(), |mut acc, (actor, groups)| {
             groups.into_iter().for_each(|group| {
                 acc.insert(group, actor.clone());
             });
@@ -127,9 +122,9 @@ fn can_accept_insertion_impl(
     let fleet = create_test_fleet();
     let module = GroupModule::new(total_jobs, VIOLATION_CODE, STATE_KEY);
     let mut solution = create_test_solution_context(total_jobs, &fleet, routes);
-    let job = Job::Single(create_test_single(job_group));
+    module.accept_solution_state(&mut solution);
 
-    module.accept_insertion(&mut solution, 0, &job);
+    module.accept_insertion(&mut solution, 0, &Job::Single(create_test_single(job_group)));
 
     compare_actor_groups(&fleet, get_actor_groups(&mut solution, STATE_KEY), expected);
 }

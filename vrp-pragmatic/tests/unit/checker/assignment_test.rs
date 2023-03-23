@@ -21,7 +21,7 @@ fn check_vehicles_impl(known_ids: Vec<&str>, tours: Vec<(&str, usize)>, expected
                 vehicle_ids: known_ids.into_iter().map(|id| id.to_string()).collect(),
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -116,6 +116,7 @@ check_jobs! {
     ),
 }
 
+#[allow(clippy::type_complexity)]
 fn check_jobs_impl(
     jobs: Vec<(&str, Vec<&str>)>,
     tours: Vec<(&str, usize, Vec<(&str, &str)>)>,
@@ -131,7 +132,7 @@ fn check_jobs_impl(
                     location: Location::Coordinate { lat: 0.0, lng: 0.0 },
                     duration: 0.0,
                     times: None,
-                    tag: Some(format!("{}{}", tgt, idx)),
+                    tag: Some(format!("{tgt}{idx}")),
                 }],
                 demand: if tgt != "service" { Some(vec![1]) } else { None },
                 order: None,
@@ -155,7 +156,7 @@ fn check_jobs_impl(
                 .collect(),
             ..create_empty_plan()
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
     let solution = Solution {
@@ -189,7 +190,7 @@ fn can_detect_time_window_violation() {
             jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(1, 2)], 1.)],
             ..create_empty_plan()
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
     let solution = Solution {
@@ -253,7 +254,7 @@ fn can_detect_job_duration_violation() {
             jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(5, 10)], 1.)],
             ..create_empty_plan()
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
     let solution = Solution {
@@ -326,7 +327,7 @@ fn can_detect_dispatch_violations() {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
@@ -387,7 +388,7 @@ fn can_detect_group_violations() {
                 vehicle_ids: vec!["v1".to_string(), "v2".to_string()],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

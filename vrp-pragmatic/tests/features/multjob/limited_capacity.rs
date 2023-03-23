@@ -20,10 +20,7 @@ fn can_handle_limited_capacity() {
             ],
             ..create_empty_plan()
         },
-        fleet: Fleet {
-            vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],
-            profiles: create_default_matrix_profiles(),
-        },
+        fleet: Fleet { vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])], ..create_default_fleet() },
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);

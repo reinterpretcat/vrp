@@ -2,6 +2,7 @@
 //! and their combination.
 
 mod breaks;
+mod capacity;
 mod clustering;
 mod compatibility;
 mod dispatch;

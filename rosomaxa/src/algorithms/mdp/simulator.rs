@@ -27,7 +27,7 @@ impl<S: State> Simulator<S> {
     /// Return a learned optimal policy for given state.
     pub fn get_optimal_policy(&self, state: &S) -> Option<(<S as State>::Action, f64)> {
         self.q.get(state).and_then(|estimates| {
-            let strategy: Box<dyn PolicyStrategy<S>> = Box::new(Greedy::default());
+            let strategy: Box<dyn PolicyStrategy<S>> = Box::<Greedy>::default();
             strategy
                 .select(estimates)
                 .and_then(|action| estimates.data().get(&action).map(|estimate| (action, *estimate)))
@@ -42,6 +42,16 @@ impl<S: State> Simulator<S> {
     /// Sets action estimates for given state.
     pub fn set_action_estimates(&mut self, state: S, estimates: ActionEstimates<S>) {
         self.q.insert(state, estimates);
+    }
+
+    /// Sets a new learning strategy.
+    pub fn set_learning_strategy(&mut self, learning_strategy: Box<dyn LearningStrategy<S> + Send + Sync>) {
+        self.learning_strategy = learning_strategy;
+    }
+
+    /// Sets a new policy strategy.
+    pub fn set_policy_strategy(&mut self, policy_strategy: Box<dyn PolicyStrategy<S> + Send + Sync>) {
+        self.policy_strategy = policy_strategy;
     }
 
     /// Runs single episode for each of the given agents in parallel.

@@ -1,5 +1,5 @@
 use crate::construction::heuristics::*;
-use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
+use crate::helpers::construction::features::create_goal_ctx_with_transport;
 use crate::helpers::construction::heuristics::{create_insertion_context, create_test_insertion_context};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_test_registry;
@@ -27,19 +27,19 @@ fn evaluate_job_insertion(
     insertion_position: InsertionPosition,
 ) -> InsertionResult {
     let route_selector = AllRouteSelector::default();
-    let leg_selector = VariableLegSelector::new(insertion_ctx.environment.random.clone());
+    let leg_selection = LegSelection::Stochastic(insertion_ctx.environment.random.clone());
     let result_selector = BestResultSelector::default();
-    let routes = route_selector.select(insertion_ctx, vec![].as_slice()).collect::<Vec<_>>();
+    let routes = route_selector.select(insertion_ctx, &[]).collect::<Vec<_>>();
 
     let eval_ctx = EvaluationContext {
-        constraint: &insertion_ctx.problem.constraint,
+        goal: &insertion_ctx.problem.goal,
         job,
-        leg_selector: &leg_selector,
+        leg_selection: &leg_selection,
         result_selector: &result_selector,
     };
 
     routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
-        evaluate_job_insertion_in_route(&insertion_ctx, &eval_ctx, &route_ctx, insertion_position, acc)
+        eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, insertion_position, acc)
     })
 }
 
@@ -118,7 +118,7 @@ mod single {
         let registry = create_test_registry();
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
         route_ctx.route_mut().tour.insert_at(create_activity_at(5), 1).insert_at(create_activity_at(10), 2);
-        let constraint = create_constraint_pipeline_with_transport();
+        let constraint = create_goal_ctx_with_transport();
         let mut ctx = create_insertion_context(registry, constraint, vec![route_ctx]);
 
         let result = evaluate_job_insertion(&mut ctx, &job, insertion_position);
@@ -255,12 +255,13 @@ mod multi {
         case1: vec![(0, 3), (1, 1111)],
         case2: vec![(0, 1111), (1, 3)],
     }
+
     fn can_handle_activity_constraint_violation_impl(singles: Vec<InsertionData>) {
         let job = Job::Multi(test_multi_with_id(
             "multi",
             singles
                 .iter()
-                .zip(0usize..)
+                .zip(0..)
                 .map(|((_, loc), index)| {
                     SingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build_shared()
                 })
@@ -311,7 +312,7 @@ mod multi {
             route_ctx.route_mut().tour.insert_at(create_activity_at(loc), index);
         });
         let routes = vec![route_ctx];
-        let constraint = create_constraint_pipeline_with_transport();
+        let constraint = create_goal_ctx_with_transport();
         let mut ctx = create_insertion_context(registry, constraint, routes);
         let job = Job::Multi(test_multi_with_id(
             "multi",

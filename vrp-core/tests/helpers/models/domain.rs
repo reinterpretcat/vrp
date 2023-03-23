@@ -1,13 +1,13 @@
-use crate::construction::constraints::{ConstraintPipeline, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
-use crate::construction::heuristics::{InsertionContext, RegistryContext, SolutionContext, UnassignedCode};
-use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
+use crate::construction::features::*;
+use crate::construction::heuristics::{InsertionContext, RegistryContext, SolutionContext, UnassignmentInfo};
+use crate::helpers::construction::features::create_goal_ctx_with_transport;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_route_context_with_activities;
 use crate::models::common::IdDimension;
 use crate::models::examples::create_example_problem;
-use crate::models::problem::{Fleet, Job, Jobs, ProblemObjective};
+use crate::models::problem::{Fleet, Job, Jobs};
 use crate::models::solution::Registry;
-use crate::models::{Problem, Solution};
+use crate::models::{GoalContext, Problem, Solution};
 use rosomaxa::utils::{DefaultRandom, Environment, Random};
 use std::sync::Arc;
 
@@ -15,16 +15,17 @@ pub fn test_random() -> Arc<dyn Random + Send + Sync> {
     Arc::new(DefaultRandom::default())
 }
 
-pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> Arc<Problem> {
-    create_problem_with_constraint_jobs_and_fleet(constraint, vec![], test_fleet())
+pub fn create_empty_problem_with_goal_ctx(goal_ctx: GoalContext) -> Arc<Problem> {
+    create_problem_with_goal_ctx_jobs_and_fleet(goal_ctx, vec![], test_fleet())
 }
 
 pub fn create_empty_problem() -> Arc<Problem> {
-    create_empty_problem_with_constraint(ConstraintPipeline::default())
+    let goal_ctx = GoalContext::new(&[], &[], &[]).unwrap();
+    create_empty_problem_with_goal_ctx(goal_ctx)
 }
 
-pub fn create_problem_with_constraint_jobs_and_fleet(
-    constraint: ConstraintPipeline,
+pub fn create_problem_with_goal_ctx_jobs_and_fleet(
+    goal_ctx: GoalContext,
     jobs: Vec<Job>,
     fleet: Fleet,
 ) -> Arc<Problem> {
@@ -35,10 +36,9 @@ pub fn create_problem_with_constraint_jobs_and_fleet(
         fleet,
         jobs,
         locks: vec![],
-        constraint: Arc::new(constraint),
+        goal: Arc::new(goal_ctx),
         activity: Arc::new(TestActivityCost::default()),
         transport,
-        objective: Arc::new(ProblemObjective::default()),
         extras: Arc::new(Default::default()),
     })
 }
@@ -53,7 +53,7 @@ pub fn create_empty_solution() -> Solution {
 }
 
 pub fn create_registry_context(fleet: &Fleet) -> RegistryContext {
-    let constraint = Arc::new(create_constraint_pipeline_with_transport());
+    let constraint = Arc::new(create_goal_ctx_with_transport());
     RegistryContext::new(constraint, Registry::new(fleet, test_random()))
 }
 
@@ -94,7 +94,7 @@ pub fn create_simple_insertion_ctx(distance: f64, unassigned: usize) -> Insertio
         insertion_ctx
             .solution
             .unassigned
-            .insert(problem.jobs.all().next().clone().expect("at least one job expected"), UnassignedCode::Unknown);
+            .insert(problem.jobs.all().next().expect("at least one job expected"), UnassignmentInfo::Unknown);
     });
 
     insertion_ctx
@@ -113,7 +113,7 @@ pub fn get_sorted_customer_ids_from_jobs(jobs: &[Job]) -> Vec<String> {
 }
 
 pub fn get_customer_ids_from_jobs(jobs: &[Job]) -> Vec<String> {
-    jobs.iter().map(|job| get_customer_id(&job)).collect()
+    jobs.iter().map(get_customer_id).collect()
 }
 
 pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec<String>> {

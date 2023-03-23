@@ -58,3 +58,31 @@ to model _waste collection_ use case.
 </div>
 
 <div id="map"></div>
+
+
+## Shared reload resource
+
+In this scenario, there are two vehicles with limited capacity `[2]` with reload which has shared resource constraint `[1]`.
+The problem has 6 delivery jobs in total.
+
+<details>
+    <summary>Problem</summary><p>
+
+```json
+{{#include ../../../../../examples/data/pragmatic/basics/reload.resource.problem.json}}
+```
+
+</p></details>
+
+As result, the solution has 5 jobs assigned and one is unassigned as there is not enough capacity and reload resource
+constraint doesn't allow to reload more than 1 delivery in total for all vehicles.
+
+<details>
+    <summary>Solution</summary><p>
+
+```json
+{{#include ../../../../../examples/data/pragmatic/basics/reload.resource.solution.json}}
+```
+
+</p></details>
+

@@ -1,7 +1,7 @@
 ///! Contains a mutation operator based on ruin and recreate principle.
 use super::*;
 use crate::construction::heuristics::finalize_insertion_ctx;
-use crate::models::problem::ProblemObjective;
+use crate::models::GoalContext;
 use rosomaxa::HeuristicSolution;
 use std::sync::Arc;
 
@@ -20,7 +20,7 @@ impl RuinAndRecreate {
 
 impl HeuristicSearchOperator for RuinAndRecreate {
     type Context = RefinementContext;
-    type Objective = ProblemObjective;
+    type Objective = GoalContext;
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {

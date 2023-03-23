@@ -12,6 +12,9 @@ use std::iter::{empty, once};
 use std::ops::{Deref, RangeBounds};
 use std::sync::Arc;
 
+/// A function type to deduplicate individuals.
+pub type DedupFn<O, S> = Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>;
+
 /// A simple evolution aware implementation of [`Population`] trait with the the following
 /// characteristics:
 ///
@@ -32,7 +35,7 @@ where
     max_population_size: usize,
     individuals: Vec<S>,
     speed: Option<HeuristicSpeed>,
-    dedup_fn: Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>,
+    dedup_fn: DedupFn<O, S>,
 }
 
 /// Keeps track of dominance order in the population for certain individual.
@@ -157,8 +160,8 @@ where
                 if a.get_order().rank == b.get_order().rank {
                     // NOTE just using crowding distance here does not work
 
-                    let fitness_a = a.get_fitness();
-                    let fitness_b = b.get_fitness();
+                    let fitness_a = a.fitness();
+                    let fitness_b = b.fitness();
 
                     fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
                 } else {
@@ -174,7 +177,7 @@ where
         random: Arc<dyn Random + Send + Sync>,
         max_population_size: usize,
         selection_size: usize,
-        dedup_fn: Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>,
+        dedup_fn: DedupFn<O, S>,
     ) -> Self {
         assert!(max_population_size > 0);
         Self { objective, random, selection_size, max_population_size, individuals: vec![], speed: None, dedup_fn }
@@ -233,12 +236,12 @@ where
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let fitness = self.individuals.iter().fold(String::new(), |mut res, individual| {
-            let values = individual.get_fitness().map(|v| format!("{:.7}", v)).collect::<Vec<_>>().join(",");
-            write!(&mut res, "[{}],", values).unwrap();
+            let values = individual.fitness().map(|v| format!("{v:.7}")).collect::<Vec<_>>().join(",");
+            write!(&mut res, "[{values}],").unwrap();
 
             res
         });
 
-        write!(f, "[{}]", fitness)
+        write!(f, "[{fitness}]")
     }
 }

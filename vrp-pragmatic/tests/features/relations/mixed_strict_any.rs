@@ -31,7 +31,7 @@ fn can_use_strict_and_any_relation_for_one_vehicle() {
             ]),
             ..create_empty_plan()
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);

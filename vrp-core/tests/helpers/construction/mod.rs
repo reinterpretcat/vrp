@@ -1,3 +1,3 @@
 pub mod clustering;
-pub mod constraints;
+pub mod features;
 pub mod heuristics;

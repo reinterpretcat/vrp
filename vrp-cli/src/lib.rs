@@ -45,7 +45,7 @@ use vrp_pragmatic::get_unique_locations;
 use vrp_pragmatic::validation::ValidationContext;
 
 #[cfg(not(target_arch = "wasm32"))]
-mod interop {
+mod c_interop {
     use super::*;
     use crate::extensions::solve::config::read_config;
     use std::ffi::{CStr, CString};
@@ -82,7 +82,7 @@ mod interop {
                 .downcast_ref::<&str>()
                 .cloned()
                 .or_else(|| err.downcast_ref::<String>().map(|str| str.as_str()))
-                .map(|msg| format!("panic: '{}'", msg))
+                .map(|msg| format!("panic: '{msg}'"))
                 .unwrap_or_else(|| "panic with unknown type".to_string());
 
             let error = CString::new(message.as_bytes()).unwrap();
@@ -142,13 +142,13 @@ mod interop {
     extern "C" fn validate_pragmatic(
         problem: *const c_char,
         matrices: *const *const c_char,
-        matrices_len: *const i32,
+        matrices_len: usize,
         success: Callback,
         failure: Callback,
     ) {
         catch_panic(failure, || {
             let problem = to_string(problem);
-            let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len as usize).to_vec() };
+            let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len).to_vec() };
             let matrices = matrices.iter().map(|m| to_string(*m)).collect::<Vec<_>>();
 
             let problem = deserialize_problem(BufReader::new(problem.as_bytes()));
@@ -179,14 +179,14 @@ mod interop {
     extern "C" fn solve_pragmatic(
         problem: *const c_char,
         matrices: *const *const c_char,
-        matrices_len: *const i32,
+        matrices_len: usize,
         config: *const c_char,
         success: Callback,
         failure: Callback,
     ) {
         catch_panic(failure, || {
             let problem = to_string(problem);
-            let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len as usize).to_vec() };
+            let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len).to_vec() };
             let matrices = matrices.iter().map(|m| to_string(*m)).collect::<Vec<_>>();
 
             let result =
@@ -247,8 +247,8 @@ mod interop {
         fn can_get_locations() {
             extern "C" fn success(locations: *const c_char) {
                 let locations = to_string(locations);
-                assert!(locations.starts_with("["));
-                assert!(locations.ends_with("]"));
+                assert!(locations.starts_with('['));
+                assert!(locations.ends_with(']'));
                 assert!(locations.len() > 2);
             }
             extern "C" fn failure(err: *const c_char) {
@@ -274,7 +274,7 @@ mod interop {
             validate_pragmatic(
                 problem.as_ptr() as *const c_char,
                 matrices.as_ptr() as *const *const c_char,
-                0 as *const i32,
+                0,
                 success,
                 failure,
             );
@@ -287,11 +287,11 @@ mod interop {
             }
             extern "C" fn failure(err: *const c_char) {
                 let err = to_string(err);
-                assert!(err.starts_with("["));
+                assert!(err.starts_with('['));
                 assert!(err.contains("code"));
                 assert!(err.contains("cause"));
                 assert!(err.contains("action"));
-                assert!(err.ends_with("]"));
+                assert!(err.ends_with(']'));
             }
 
             let problem = CString::new("").unwrap();
@@ -300,7 +300,7 @@ mod interop {
             validate_pragmatic(
                 problem.as_ptr() as *const c_char,
                 matrices.as_ptr() as *const *const c_char,
-                0 as *const i32,
+                0,
                 success,
                 failure,
             );
@@ -310,8 +310,8 @@ mod interop {
         fn can_solve_problem() {
             extern "C" fn success(solution: *const c_char) {
                 let solution = to_string(solution);
-                assert!(solution.starts_with("{"));
-                assert!(solution.ends_with("}"));
+                assert!(solution.starts_with('{'));
+                assert!(solution.ends_with('}'));
                 assert!(solution.len() > 2);
             }
             extern "C" fn failure(err: *const c_char) {
@@ -325,12 +325,88 @@ mod interop {
             solve_pragmatic(
                 problem.as_ptr() as *const c_char,
                 matrices.as_ptr() as *const *const c_char,
-                0 as *const i32,
+                0,
                 config.as_ptr() as *const c_char,
                 success,
                 failure,
             );
         }
+    }
+}
+
+#[cfg(all(not(target_arch = "wasm32"), not(tarpaulin)))]
+mod py_interop {
+    use super::*;
+    use crate::extensions::solve::config::read_config;
+    use pyo3::exceptions::PyOSError;
+    use pyo3::prelude::*;
+    use std::io::BufReader;
+    use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem};
+    use vrp_pragmatic::format::CoordIndex;
+
+    // TODO avoid duplications between 3 interop approaches
+
+    /// Converts `problem` from format specified by `format` to `pragmatic` format.
+    #[pyfunction]
+    fn convert_to_pragmatic(format: &str, inputs: Vec<String>) -> PyResult<String> {
+        let readers = inputs.iter().map(|p| BufReader::new(p.as_bytes())).collect::<Vec<_>>();
+        import_problem(format, Some(readers))
+            .map(|problem| {
+                let mut buffer = String::new();
+                serialize_problem(unsafe { BufWriter::new(buffer.as_mut_vec()) }, &problem).unwrap();
+
+                buffer
+            })
+            .map_err(PyOSError::new_err)
+    }
+
+    /// Returns a list of unique locations which can be used to request a routing matrix.
+    #[pyfunction]
+    fn get_routing_locations(problem: String) -> PyResult<String> {
+        deserialize_problem(BufReader::new(problem.as_bytes()))
+            .map_err(|errors| get_errors_serialized(&errors))
+            .and_then(|problem| get_locations_serialized(&problem))
+            .map_err(PyOSError::new_err)
+    }
+
+    /// Validates and solves Vehicle Routing Problem.
+    #[pyfunction]
+    fn solve_pragmatic(problem: String, matrices: Vec<String>, config: String) -> PyResult<String> {
+        // validate first
+        deserialize_problem(BufReader::new(problem.as_bytes()))
+            .and_then(|problem| {
+                matrices
+                    .iter()
+                    .map(|m| deserialize_matrix(BufReader::new(m.as_bytes())))
+                    .collect::<Result<Vec<_>, _>>()
+                    .map(|matrices| (problem, matrices))
+            })
+            .and_then(|(problem, matrices)| {
+                let matrices = if matrices.is_empty() { None } else { Some(&matrices) };
+                let coord_index = CoordIndex::new(&problem);
+
+                ValidationContext::new(&problem, matrices, &coord_index).validate()
+            })
+            .map_err(|errs| PyOSError::new_err(FormatError::format_many_to_json(&errs)))?;
+
+        // try solve problem
+        if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
+            .map_err(|errors| get_errors_serialized(&errors))
+            .and_then(|problem| {
+                read_config(BufReader::new(config.as_bytes()))
+                    .map_err(|err| to_config_error(err.as_str()))
+                    .map(|config| (problem, config))
+            })
+            .and_then(|(problem, config)| get_solution_serialized(Arc::new(problem), config))
+            .map_err(PyOSError::new_err)
+    }
+
+    #[pymodule]
+    fn vrp_cli(_py: Python, m: &PyModule) -> PyResult<()> {
+        m.add_function(wrap_pyfunction!(convert_to_pragmatic, m)?)?;
+        m.add_function(wrap_pyfunction!(get_routing_locations, m)?)?;
+        m.add_function(wrap_pyfunction!(solve_pragmatic, m)?)?;
+        Ok(())
     }
 }
 
@@ -347,8 +423,9 @@ mod wasm {
     /// Returns a list of unique locations which can be used to request a routing matrix.
     /// A `problem` should be passed in `pragmatic` format.
     #[wasm_bindgen]
-    pub fn get_routing_locations(problem: &JsValue) -> Result<JsValue, JsValue> {
-        let problem: Problem = problem.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+    pub fn get_routing_locations(problem: JsValue) -> Result<JsValue, JsValue> {
+        let problem: Problem =
+            serde_wasm_bindgen::from_value(problem).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         get_locations_serialized(&problem)
             .map(|locations| JsValue::from_str(locations.as_str()))
@@ -357,9 +434,11 @@ mod wasm {
 
     /// Validates Vehicle Routing Problem passed in `pragmatic` format.
     #[wasm_bindgen]
-    pub fn validate_pragmatic(problem: &JsValue, matrices: &JsValue) -> Result<JsValue, JsValue> {
-        let problem: Problem = problem.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
-        let matrices: Vec<Matrix> = matrices.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+    pub fn validate_pragmatic(problem: JsValue, matrices: JsValue) -> Result<JsValue, JsValue> {
+        let problem: Problem =
+            serde_wasm_bindgen::from_value(problem).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+        let matrices: Vec<Matrix> =
+            serde_wasm_bindgen::from_value(matrices).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
         let coord_index = CoordIndex::new(&problem);
 
         let matrices = if matrices.is_empty() { None } else { Some(&matrices) };
@@ -371,8 +450,9 @@ mod wasm {
 
     /// Converts `problem` from format specified by `format` to `pragmatic` format.
     #[wasm_bindgen]
-    pub fn convert_to_pragmatic(format: &str, inputs: &JsValue) -> Result<JsValue, JsValue> {
-        let inputs: Vec<String> = inputs.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+    pub fn convert_to_pragmatic(format: &str, inputs: JsValue) -> Result<JsValue, JsValue> {
+        let inputs: Vec<String> =
+            serde_wasm_bindgen::from_value(inputs).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         let readers = inputs.iter().map(|input| BufReader::new(input.as_bytes())).collect();
 
@@ -390,10 +470,12 @@ mod wasm {
 
     /// Solves Vehicle Routing Problem passed in `pragmatic` format.
     #[wasm_bindgen]
-    pub fn solve_pragmatic(problem: &JsValue, matrices: &JsValue, config: &JsValue) -> Result<JsValue, JsValue> {
-        let problem: Problem = problem.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+    pub fn solve_pragmatic(problem: JsValue, matrices: JsValue, config: JsValue) -> Result<JsValue, JsValue> {
+        let problem: Problem =
+            serde_wasm_bindgen::from_value(problem).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
-        let matrices: Vec<Matrix> = matrices.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+        let matrices: Vec<Matrix> =
+            serde_wasm_bindgen::from_value(matrices).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         let problem = Arc::new(
             if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }.map_err(
@@ -403,8 +485,7 @@ mod wasm {
             )?,
         );
 
-        let config: Config = config
-            .into_serde()
+        let config: Config = serde_wasm_bindgen::from_value(config)
             .map_err(|err| to_config_error(&err.to_string()))
             .map_err(|err| JsValue::from_str(err.as_str()))?;
 
@@ -419,11 +500,7 @@ pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
     // TODO validate the problem?
 
     let locations = get_unique_locations(problem);
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    serde_json::to_writer_pretty(writer, &locations).map_err(|err| err.to_string())?;
-
-    Ok(buffer)
+    serde_json::to_string_pretty(&locations).map_err(|err| err.to_string())
 }
 
 /// Gets solution serialized in json.
@@ -436,7 +513,7 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
             FormatError::new(
                 "E0003".to_string(),
                 "cannot find any solution".to_string(),
-                format!("please submit a bug and share original problem and routing matrix. Error: '{}'", err),
+                format!("please submit a bug and share original problem and routing matrix. Error: '{err}'"),
             )
             .to_json()
         })?;
@@ -454,14 +531,14 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
 
 /// Gets errors serialized in free form.
 pub fn get_errors_serialized(errors: &[FormatError]) -> String {
-    errors.iter().map(|err| format!("{}", err)).collect::<Vec<_>>().join("\n")
+    errors.iter().map(|err| format!("{err}")).collect::<Vec<_>>().join("\n")
 }
 
 fn to_config_error(err: &str) -> String {
     FormatError::new(
         "E0004".to_string(),
         "cannot read config".to_string(),
-        format!("check config definition. Error: '{}'", err),
+        format!("check config definition. Error: '{err}'"),
     )
     .to_json()
 }

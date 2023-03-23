@@ -143,9 +143,9 @@ mod actual {
     fn create_format_error(entity: &str, error: Box<dyn Error>) -> FormatError {
         FormatError::new_with_details(
             "E0000".to_string(),
-            format!("cannot read {}", entity),
-            format!("check {} definition", entity),
-            format!("{}", error),
+            format!("cannot read {entity}"),
+            format!("check {entity} definition"),
+            format!("{error}",),
         )
     }
 
@@ -159,10 +159,11 @@ mod actual {
         let matrix_profile_names = vehicles.iter().map(|v| v.profile.matrix.clone()).collect::<HashSet<_>>();
 
         Ok(Problem {
-            plan: Plan { jobs, relations: None, areas: None, clustering: None },
+            plan: Plan { jobs, relations: None, clustering: None },
             fleet: Fleet {
                 vehicles,
                 profiles: matrix_profile_names.into_iter().map(|name| MatrixProfile { name, speed: None }).collect(),
+                resources: None,
             },
             objectives: None,
         })

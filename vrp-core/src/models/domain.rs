@@ -1,13 +1,14 @@
-use crate::construction::constraints::ConstraintPipeline;
-use crate::construction::heuristics::UnassignedCode;
+use crate::construction::heuristics::UnassignmentInfo;
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
 use hashbrown::HashMap;
+use rustc_hash::FxHasher;
 use std::any::Any;
+use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
 /// Specifies a type used to store any values regarding problem and solution.
-pub type Extras = HashMap<String, Arc<dyn Any + Send + Sync>>;
+pub type Extras = HashMap<String, Arc<dyn Any + Send + Sync>, BuildHasherDefault<FxHasher>>;
 
 /// Defines VRP problem.
 pub struct Problem {
@@ -20,17 +21,14 @@ pub struct Problem {
     /// Specifies jobs which preassigned to specific vehicles and/or drivers.
     pub locks: Vec<Arc<Lock>>,
 
-    /// Specifies constraints pipeline.
-    pub constraint: Arc<ConstraintPipeline>,
+    /// Specifies optimization goal with the corresponding global/local objectives and invariants.
+    pub goal: Arc<GoalContext>,
 
     /// Specifies activity costs.
     pub activity: Arc<dyn ActivityCost + Send + Sync>,
 
     /// Specifies transport costs.
     pub transport: Arc<dyn TransportCost + Send + Sync>,
-
-    /// Specifies an objective costs..
-    pub objective: Arc<ProblemObjective>,
 
     /// Specifies index for storing extra parameters of arbitrary type.
     pub extras: Arc<Extras>,
@@ -45,7 +43,7 @@ pub struct Solution {
     pub routes: Vec<Route>,
 
     /// List of unassigned jobs within reason code.
-    pub unassigned: Vec<(Job, UnassignedCode)>,
+    pub unassigned: Vec<(Job, UnassignmentInfo)>,
 
     /// Specifies index for storing extra data of arbitrary type.
     pub extras: Arc<Extras>,

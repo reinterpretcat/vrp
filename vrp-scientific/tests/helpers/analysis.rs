@@ -35,7 +35,7 @@ pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec
 }
 
 pub fn get_vehicle_capacity(problem: &Problem) -> i32 {
-    let capacity: &SingleDimLoad = problem.fleet.vehicles.iter().next().unwrap().dimens.get_capacity().unwrap();
+    let capacity: &SingleDimLoad = problem.fleet.vehicles.get(0).unwrap().dimens.get_capacity().unwrap();
     capacity.value
 }
 

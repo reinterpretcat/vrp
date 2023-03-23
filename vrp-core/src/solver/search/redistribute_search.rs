@@ -3,9 +3,9 @@
 mod redistribute_search_test;
 
 use super::*;
-use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
 use crate::models::problem::{Actor, Job};
+use crate::models::*;
 use crate::prelude::Problem;
 use hashbrown::HashMap;
 use rosomaxa::prelude::*;
@@ -29,7 +29,7 @@ impl RedistributeSearch {
 
 impl HeuristicSearchOperator for RedistributeSearch {
     type Context = RefinementContext;
-    type Objective = ProblemObjective;
+    type Objective = GoalContext;
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
@@ -50,24 +50,26 @@ impl HeuristicSearchOperator for RedistributeSearch {
     }
 }
 
-struct RedistributeHardConstraint {
+struct RedistributeFeatureConstraint {
     rules: HashMap<Job, Arc<Actor>>,
 }
 
-impl HardRouteConstraint for RedistributeHardConstraint {
-    fn evaluate_job(
-        &self,
-        _: &SolutionContext,
-        route_ctx: &RouteContext,
-        job: &Job,
-    ) -> Option<RouteConstraintViolation> {
-        self.rules.get(job).and_then(|actor| {
-            if actor == &route_ctx.route.actor {
-                Some(RouteConstraintViolation { code: 0 })
-            } else {
-                None
-            }
-        })
+impl FeatureConstraint for RedistributeFeatureConstraint {
+    fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        match move_ctx {
+            MoveContext::Route { route_ctx, job, .. } => self.rules.get(*job).and_then(|actor| {
+                if actor == &route_ctx.route.actor {
+                    Some(ConstraintViolation { code: 0, stopped: true })
+                } else {
+                    None
+                }
+            }),
+            MoveContext::Activity { .. } => None,
+        }
+    }
+
+    fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
+        Ok(source)
     }
 }
 
@@ -85,10 +87,9 @@ fn create_target_insertion_ctx(
         fleet: problem.fleet.clone(),
         jobs: problem.jobs.clone(),
         locks: problem.locks.clone(),
-        constraint: Arc::new(create_amended_constraint(problem.constraint.as_ref(), rules)),
+        goal: create_amended_variant(problem.goal.as_ref(), rules),
         activity: problem.activity.clone(),
         transport: problem.transport.clone(),
-        objective: problem.objective.clone(),
         extras: problem.extras.clone(),
     });
 
@@ -100,7 +101,7 @@ fn remove_jobs(
     routes_range: Range<i32>,
     jobs_range: Range<i32>,
 ) -> HashMap<Job, Arc<Actor>> {
-    let constraint = insertion_ctx.problem.constraint.clone();
+    let constraint = insertion_ctx.problem.goal.clone();
     let random = insertion_ctx.environment.random.clone();
     let locked = &insertion_ctx.solution.locked;
     let unassigned = &mut insertion_ctx.solution.unassigned;
@@ -117,7 +118,7 @@ fn remove_jobs(
                     SelectionSamplingIterator::new(all_jobs.into_iter(), amount, random.clone()).collect::<Vec<_>>();
                 jobs.iter().for_each(|job| {
                     route_ctx.route_mut().tour.remove(job);
-                    unassigned.insert(job.clone(), UnassignedCode::Unknown);
+                    unassigned.insert(job.clone(), UnassignmentInfo::Unknown);
                 });
 
                 jobs
@@ -142,7 +143,7 @@ fn remove_jobs(
 
                     if let Some(job) = job {
                         route_ctx.route_mut().tour.remove(&job);
-                        unassigned.insert(job.clone(), UnassignedCode::Unknown);
+                        unassigned.insert(job.clone(), UnassignmentInfo::Unknown);
                         acc.push(job)
                     }
 
@@ -157,17 +158,9 @@ fn remove_jobs(
         .collect()
 }
 
-fn create_amended_constraint(original: &ConstraintPipeline, rules: HashMap<Job, Arc<Actor>>) -> ConstraintPipeline {
-    let mut pipeline = ConstraintPipeline {
-        modules: original.modules.clone(),
-        state_keys: original.state_keys.clone(),
-        ..ConstraintPipeline::default()
-    };
+fn create_amended_variant(original: &GoalContext, rules: HashMap<Job, Arc<Actor>>) -> Arc<GoalContext> {
+    let mut constraints = original.constraints.clone();
+    constraints.push(Arc::new(RedistributeFeatureConstraint { rules }));
 
-    pipeline.add_constraint(ConstraintVariant::HardRoute(Arc::new(RedistributeHardConstraint { rules })));
-    original.get_constraints().for_each(|constraint| {
-        pipeline.add_constraint(constraint);
-    });
-
-    pipeline
+    Arc::new(GoalContext { constraints, ..original.clone() })
 }

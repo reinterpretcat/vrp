@@ -3,7 +3,7 @@
 mod dynamic_selective_test;
 
 use super::*;
-use crate::algorithms::math::{relative_distance, Remedian};
+use crate::algorithms::math::{relative_distance, RemedianUsize};
 use crate::algorithms::mdp::*;
 use crate::utils::compare_floats;
 use crate::Timer;
@@ -14,17 +14,13 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 use std::time::Duration;
 
-/// A collection of heuristic search operators.
+/// A collection of heuristic search operators with their name and initial weight.
 pub type HeuristicSearchOperators<C, O, S> =
-    Vec<(Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String)>;
+    Vec<(Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String, f64)>;
 
 /// A collection of heuristic diversify operators.
 pub type HeuristicDiversifyOperators<C, O, S> =
     Vec<Arc<dyn HeuristicDiversifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>>;
-
-/// Specifies a median estimator used to track medians of heuristic running time.
-/// Its values can be used to penalize instant heuristic reward.
-type RemedianUsize = Remedian<usize, fn(&usize, &usize) -> Ordering>;
 
 /// An experimental dynamic selective hyper heuristic which selects inner heuristics
 /// based on how they work during the search. The selection process is modeled by
@@ -36,7 +32,7 @@ where
     S: HeuristicSolution,
 {
     heuristic_simulator: Simulator<SearchState>,
-    initial_estimates: HashMap<SearchState, ActionEstimates<SearchState>>,
+    initial_estimates: StateEstimates<SearchState>,
     action_registry: SearchActionRegistry<C, O, S>,
     diversify_operators: HeuristicDiversifyOperators<C, O, S>,
     tracker: HeuristicTracker,
@@ -98,11 +94,24 @@ where
                 acc
             });
 
-        runtimes.into_iter().for_each(|(name, duration, state)| {
-            self.tracker.observation(heuristic_ctx.statistics().generation, name, duration, state);
+        runtimes.into_iter().for_each(|(name, duration, old_state, action, new_state)| {
+            let estimate = self
+                .heuristic_simulator
+                .get_state_estimates()
+                .get(&old_state)
+                .and_then(|action_estimates| action_estimates.data().get(&action))
+                .cloned()
+                .unwrap_or_default();
+            self.tracker.observation(heuristic_ctx.statistics().generation, name, duration, estimate, new_state);
         });
 
         try_exchange_estimates(&mut self.heuristic_simulator);
+
+        // update learning and policy strategies to move from more exploration at the beginning to exploitation in the end
+        let termination_estimate = heuristic_ctx.statistics().termination_estimate;
+        let random = heuristic_ctx.environment().random.clone();
+        self.heuristic_simulator.set_learning_strategy(create_learning_strategy(termination_estimate));
+        self.heuristic_simulator.set_policy_strategy(create_policy_strategy(termination_estimate, random));
 
         individuals
     }
@@ -124,16 +133,17 @@ where
         diversify_operators: HeuristicDiversifyOperators<C, O, S>,
         environment: &Environment,
     ) -> Self {
-        let operator_estimates = (0..search_operators.len())
-            .map(|heuristic_idx| (SearchAction::Search { heuristic_idx }, 0.))
+        let operator_estimates = search_operators
+            .iter()
+            .enumerate()
+            .map(|(heuristic_idx, (_, _, weight))| (SearchAction::Search { heuristic_idx }, *weight))
             .collect::<HashMap<_, _>>();
-
         let operator_estimates = ActionEstimates::from(operator_estimates);
 
         Self {
             heuristic_simulator: Simulator::new(
-                Box::new(MonteCarlo::new(0.1)),
-                Box::new(EpsilonWeighted::new(0.1, environment.random.clone())),
+                create_learning_strategy(0.),
+                create_policy_strategy(0., environment.random.clone()),
             ),
             initial_estimates: vec![
                 (SearchState::BestKnown(Default::default()), operator_estimates.clone()),
@@ -242,12 +252,12 @@ where
 {
     heuristic_ctx: &'a C,
     registry: &'a SearchActionRegistry<C, O, S>,
-    estimates: &'a HashMap<SearchState, ActionEstimates<SearchState>>,
+    estimates: &'a StateEstimates<SearchState>,
     tracker: &'a HeuristicTracker,
     state: SearchState,
     original: &'a S,
     solution: Option<S>,
-    runtime: Vec<(String, Duration, SearchState)>,
+    runtime: Vec<(String, Duration, SearchState, SearchAction, SearchState)>,
 }
 
 impl<'a, C, O, S> Agent<SearchState> for SearchAgent<'a, C, O, S>
@@ -268,7 +278,7 @@ where
         let (new_solution, duration, name) = match action {
             SearchAction::Search { heuristic_idx } => {
                 let solution = self.solution.as_ref().unwrap();
-                let (heuristic, name) = &self.registry.heuristics[*heuristic_idx];
+                let (heuristic, name, _) = &self.registry.heuristics[*heuristic_idx];
 
                 let (new_solution, duration) =
                     Timer::measure_duration(|| heuristic.search(self.heuristic_ctx, solution));
@@ -292,15 +302,13 @@ where
             }),
         };
 
+        let old_state = self.state.clone();
         self.state = match (compare_to_old, compare_to_best) {
             (_, Ordering::Less) => {
                 let is_significant_change = self.heuristic_ctx.population().ranked().next().map_or(
                     self.heuristic_ctx.statistics().improvement_1000_ratio < 0.01,
                     |(best, _)| {
-                        let distance = relative_distance(
-                            objective.objectives().map(|o| o.fitness(best)),
-                            objective.objectives().map(|o| o.fitness(&new_solution)),
-                        );
+                        let distance = relative_distance(objective.fitness(best), objective.fitness(&new_solution));
                         distance > 0.01
                     },
                 );
@@ -316,7 +324,7 @@ where
         };
 
         self.solution = Some(new_solution);
-        self.runtime.push((name.to_string(), duration, self.state.clone()))
+        self.runtime.push((name.to_string(), duration, old_state, action.clone(), self.state.clone()))
     }
 }
 
@@ -331,9 +339,9 @@ where
             return Ok(());
         }
 
-        f.write_fmt(format_args!("name,generation,duration,state\n"))?;
+        f.write_fmt(format_args!("name,generation,duration,estimation,state\n"))?;
         self.tracker.telemetry.iter().try_for_each(|(name, entries)| {
-            entries.iter().try_for_each(|(generation, duration, state)| {
+            entries.iter().try_for_each(|(generation, duration, estimate, state)| {
                 let state = match state {
                     SearchState::BestKnown(_) => unreachable!(),
                     SearchState::Diverse(_) => unreachable!(),
@@ -342,7 +350,7 @@ where
                     SearchState::DiverseImprovement(_) => "diverse",
                     SearchState::Stagnated(_) => "stagnated",
                 };
-                f.write_fmt(format_args!("{},{},{},{}\n", name, generation, duration.as_millis(), state))
+                f.write_fmt(format_args!("{},{},{},{},{}\n", name, generation, duration.as_millis(), estimate, state))
             })
         })
     }
@@ -385,20 +393,46 @@ where
 
 struct HeuristicTracker {
     total_median: RemedianUsize,
-    telemetry: HashMap<String, Vec<(usize, Duration, SearchState)>>,
+    telemetry: HashMap<String, Vec<(usize, Duration, f64, SearchState)>>,
     is_experimental: bool,
 }
 
 impl HeuristicTracker {
-    pub fn observation(&mut self, generation: usize, name: String, duration: Duration, state: SearchState) {
+    pub fn observation(
+        &mut self,
+        generation: usize,
+        name: String,
+        duration: Duration,
+        estimate: f64,
+        state: SearchState,
+    ) {
         self.total_median.add_observation(duration.as_millis() as usize);
         // NOTE track heuristic telemetry only for experimental mode (performance)
         if self.is_experimental {
-            self.telemetry.entry(name).or_default().push((generation, duration, state));
+            self.telemetry.entry(name).or_default().push((generation, duration, estimate, state));
         }
     }
 
     pub fn approx_median(&self) -> Option<usize> {
         self.total_median.approx_median()
     }
+}
+
+fn create_learning_strategy(termination_estimate: f64) -> Box<dyn LearningStrategy<SearchState> + Send + Sync> {
+    // https://www.wolframalpha.com/input?i=plot++%281%2F%284%2Be%5E%28-4*%28x+-+0.25%29%29%29%29%2C+x%3D0+to+1
+    let x = termination_estimate.clamp(0., 1.);
+    let alpha = 1. / (4. + std::f64::consts::E.powf(-4. * (x - 0.25)));
+
+    Box::new(MonteCarlo::new(alpha))
+}
+
+fn create_policy_strategy(
+    termination_estimate: f64,
+    random: Arc<dyn Random + Send + Sync>,
+) -> Box<dyn PolicyStrategy<SearchState> + Send + Sync> {
+    // https://www.wolframalpha.com/input?i=plot+0.2*+%281+-+1%2F%281%2Be%5E%28-4+*%28x+-+0.25%29%29%29%29%2C+x%3D0+to+1
+    let x = termination_estimate.clamp(0., 1.);
+    let epsilon = 0.2 * (1. - 1. / (1. + std::f64::consts::E.powf(-4. * (x - 0.25))));
+
+    Box::new(EpsilonWeighted::new(epsilon, random))
 }

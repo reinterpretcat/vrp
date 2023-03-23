@@ -24,30 +24,25 @@ fn can_serve_multi_job_and_delivery_with_reload() {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
-                    end: Some(ShiftEnd {
-                        earliest: None,
-                        latest: format_time(100.).to_string(),
-                        location: (10., 0.).to_loc(),
-                    }),
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(100.), location: (10., 0.).to_loc() }),
                     dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
-                        times: None,
                         location: (0., 0.).to_loc(),
                         duration: 2.0,
-                        tag: None,
+                        ..create_default_reload()
                     }]),
                 }],
                 capacity: vec![2],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+    let solution = solve_with_metaheuristic_and_iterations(problem, Some(vec![matrix]), 1000);
 
     assert_eq!(
         solution,
@@ -172,16 +167,14 @@ fn can_properly_handle_load_without_capacity_violation() {
                 shifts: vec![VehicleShift {
                     reloads: Some(vec![
                         VehicleReload {
-                            times: None,
                             location: Location::Coordinate { lat: 0.0, lng: 0.0 },
                             duration: 2620.0,
-                            tag: None,
+                            ..create_default_reload()
                         },
                         VehicleReload {
-                            times: None,
                             location: Location::Coordinate { lat: 0.0, lng: 0.0 },
                             duration: 2874.0,
-                            tag: None,
+                            ..create_default_reload()
                         },
                     ]),
                     ..create_default_vehicle_shift()
@@ -189,7 +182,7 @@ fn can_properly_handle_load_without_capacity_violation() {
                 capacity: vec![2],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     };

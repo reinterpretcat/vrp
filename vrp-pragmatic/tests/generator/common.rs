@@ -26,8 +26,8 @@ prop_compose! {
     /// Generates time window.
     fn generate_time_window_fixed_raw(day: f64, start_offsets: Vec<u64>, durations: Vec<u64>)
     (
-     start_offset in from_uints(start_offsets.clone()),
-     duration in from_uints(durations.clone())
+     start_offset in from_uints(start_offsets),
+     duration in from_uints(durations)
     ) -> TimeWindow {
 
         let start = day + start_offset as f64;
@@ -44,7 +44,7 @@ prop_compose! {
                                            durations: Vec<Duration>,
                                            amount_range: Range<usize>)
     (time_windows in prop::collection::vec(generate_time_window_fixed_raw(
-                                            parse_time(&start_date.to_string()),
+                                            parse_time(start_date),
                                             start_offsets.iter().map(|d| d.as_secs()).collect(),
                                             durations.iter().map(|d| d.as_secs()).collect()),
                                            amount_range)
@@ -53,7 +53,7 @@ prop_compose! {
         let tws = tws.collect::<Vec<_>>();
         tws.iter().all(|(idx, tw)| tws.iter()
             .filter(|(idx_other, _)| *idx != *idx_other)
-            .all(|(_, tw_other)| !tw.intersects(&tw_other)))
+            .all(|(_, tw_other)| !tw.intersects(tw_other)))
 
         }).unwrap_or(false)
     })) -> Vec<Vec<String>> {

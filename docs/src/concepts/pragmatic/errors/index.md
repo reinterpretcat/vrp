@@ -463,16 +463,6 @@ Additionally, reload time should be inside vehicle shift it is specified:
 
 #### E1305
 
-`invalid allowed area definition in vehicle limits` error is returned when `areas` property in `fleet.vehicles.limits`
-violates one of the following rules:
-
-* no invalid area ids
-* no invalid job ids
-* no job id duplicates in vehicle areas
-
-
-#### E1306
-
 `invalid dispatch in vehicle shift` error is returned when `dispatch` property in `fleet.vehicles` violates one of the
 following rules:
 
@@ -481,7 +471,7 @@ following rules:
 * has time window outside of vehicle shift time
 * has total sum of max not equal to amount of vehicle ids
 
-#### E1307
+#### E1306
 
 `time and duration costs are zeros` is returned when both time and duration costs are zeros in vehicle type definition:
 
@@ -506,10 +496,18 @@ following rules:
 
 You can fix the error by defining a small value (e.g. 0.0000001) for duration or time costs.
 
-#### E1308
+#### E1307
 
 `required break is used with departure rescheduling` is returned when required break is used, but `start.latest` is not
 set equal to `start.earliest` in the shift.
+
+
+#### E1308
+
+`invalid vehicle reload resource` is returned when:
+
+- `fleet.resources` has vehicle reloads with the same `id`
+- required vehicle reload is used with resource id, which is not specified in `fleet.resources`
 
 
 ### E15xx: Routing profiles
@@ -626,7 +624,7 @@ To fix this issue, just remove one, e.g. `minimize-unassigned`.
 
 #### E1602
 
-`missing cost objective` error is returned when no cost objective specified (at the moment, only `minimize-cost` supported):
+`missing one of cost objectives` error is returned when no cost objective specified:
 
 ```json
 {
@@ -640,7 +638,7 @@ To fix this issue, just remove one, e.g. `minimize-unassigned`.
 }
 ```
 
-This objective is used to calculate final costs, so it is required to be specified.
+To solve it, specify one of the cost objectives: `minimize-cost`, `minimize-distance` or `minimize-duration`.
 
 
 #### E1603
@@ -665,17 +663,11 @@ fix the issue, make sure that value or order of all jobs are greater than zero.
 
 #### E1606
 
-`missing tour order objective` error is returned when plan has jobs with order set, but user defined objective doesn't
-include the `tour-order` objective.
+`multiple cost objectives specified` error is returned when more than one cost objective is specified. To fix the issue,
+keep only one cost objective in the list of objectives.
 
 
 #### E1607
 
 `missing value objective` error is returned when plan has jobs with value set, but user defined objective doesn't
 include the `maximize-value` objective.
-
-
-#### E1608
-
-`missing area order objective` error is returned when plan has areas, but `area-order` objective is not specified. To
-fix the issue, add `tour-order` objective or remove areas.

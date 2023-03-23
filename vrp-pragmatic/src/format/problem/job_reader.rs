@@ -1,19 +1,17 @@
+use crate::construction::enablers::{BreakTie, JobTie, VehicleTie};
+use crate::construction::features::{BreakPolicy, JobSkills as FeatureJobSkills};
 use crate::format::coord_index::CoordIndex;
-use crate::format::problem::reader::{parse_time_window, ApiProblem, ProblemProperties};
+use crate::format::problem::JobSkills as ApiJobSkills;
 use crate::format::problem::*;
 use crate::format::{JobIndex, Location};
+use crate::parse_time;
 use crate::utils::VariableJobPermutation;
+use hashbrown::HashMap;
+use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
-use vrp_core::prelude::*;
-
-use crate::constraints::{BreakPolicy, JobSkills as ConstraintJobSkills};
-use crate::format::problem::JobSkills as FormatJobSkills;
-use crate::parse_time;
-use hashbrown::HashMap;
-use std::cmp::Ordering;
 
 // TODO configure sample size
 const MULTI_JOB_SAMPLE_SIZE: usize = 3;
@@ -77,14 +75,12 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
                             let entry = indexer.entry(job.clone()).or_insert(1_usize);
                             let job_index = *entry;
                             *entry += 1;
-                            format!("{}_{}_{}_{}", vehicle_id, job, shift_index, job_index)
+                            format!("{vehicle_id}_{job}_{shift_index}_{job_index}")
                         }
                         _ => job.clone(),
                     };
-                    let job = job_index
-                        .get(&job_id)
-                        .cloned()
-                        .unwrap_or_else(|| panic!("cannot find job with id: '{};", job_id));
+                    let job =
+                        job_index.get(&job_id).cloned().unwrap_or_else(|| panic!("cannot find job with id: '{job_id}"));
 
                     jobs.push(job);
 
@@ -122,7 +118,7 @@ fn read_required_jobs(
             "delivery" => Demand { pickup: absent, delivery: demand },
             "replacement" => Demand { pickup: demand, delivery: demand },
             "service" => Demand { pickup: absent, delivery: absent },
-            _ => panic!("Invalid activity type."),
+            _ => panic!("invalid activity type."),
         };
 
         let places = task
@@ -220,10 +216,10 @@ fn read_optional_breaks(
                 .map(|vehicle_id| {
                     let times = match &break_time {
                         VehicleOptionalBreakTime::TimeWindow(time) if time.len() != 2 => {
-                            panic!("Break with invalid time window specified: must have start and end!")
+                            panic!("break with invalid time window specified: must have start and end!")
                         }
                         VehicleOptionalBreakTime::TimeOffset(offsets) if offsets.len() != 2 => {
-                            panic!("Break with invalid offset specified: must have start and end!")
+                            panic!("break with invalid offset specified: must have start and end!")
                         }
                         VehicleOptionalBreakTime::TimeWindow(time) => vec![TimeSpan::Window(parse_time_window(time))],
                         VehicleOptionalBreakTime::TimeOffset(offset) => {
@@ -231,7 +227,7 @@ fn read_optional_breaks(
                         }
                     };
 
-                    let job_id = format!("{}_break_{}_{}", vehicle_id, shift_index, break_idx);
+                    let job_id = format!("{vehicle_id}_break_{shift_index}_{break_idx}");
                     let places = break_places
                         .iter()
                         .map(|place| (place.location.clone(), place.duration, times.clone(), place.tag.clone()))
@@ -246,7 +242,7 @@ fn read_optional_breaks(
                             VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd => BreakPolicy::SkipIfArrivalBeforeEnd,
                         };
 
-                        job.dimens.set_value("policy", policy);
+                        job.dimens.set_break_policy(policy);
                     }
 
                     (job_id, job)
@@ -309,12 +305,12 @@ fn read_reloads(
 ) {
     (1..)
         .zip(reloads.iter())
-        .flat_map(|(place_idx, place)| {
+        .flat_map(|(reload_idx, place)| {
             vehicle
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let job_id = format!("{}_reload_{}_{}", vehicle_id, shift_index, place_idx);
+                    let job_id = format!("{vehicle_id}_reload_{shift_index}_{reload_idx}");
                     let times = parse_times(&place.times);
 
                     let job = get_conditional_job(
@@ -342,10 +338,12 @@ fn get_conditional_job(
     places: Vec<PlaceData>,
 ) -> Single {
     let mut single = get_single(places, coord_index);
-    single.dimens.set_id(job_id);
-    single.dimens.set_value("type", job_type.to_string());
-    single.dimens.set_value("shift_index", shift_index);
-    single.dimens.set_value("vehicle_id", vehicle_id);
+    single
+        .dimens
+        .set_job_id(job_id.to_string())
+        .set_job_type(job_type.to_string())
+        .set_shift_index(shift_index)
+        .set_vehicle_id(vehicle_id);
 
     single
 }
@@ -373,9 +371,9 @@ fn get_single(places: Vec<PlaceData>, coord_index: &CoordIndex) -> Single {
         })
         .collect();
 
-    let mut dimens = Default::default();
+    let mut dimens = Dimensions::default();
 
-    add_tags(&mut dimens, tags);
+    dimens.set_place_tags(Some(tags));
 
     Single { places, dimens }
 }
@@ -399,20 +397,20 @@ fn get_single_with_extras(
             delivery: (SingleDimLoad::new(demand.delivery.0.load[0]), SingleDimLoad::new(demand.delivery.1.load[0])),
         });
     }
-    dimens.set_value("type", activity_type.to_string());
-    add_order(dimens, order);
+    dimens.set_job_type(activity_type.to_string()).set_job_order(*order);
 
     single
 }
 
 fn get_single_job(job: &ApiJob, single: Single) -> Job {
     let mut single = single;
-    single.dimens.set_id(&job.id);
-
-    add_value(&mut single.dimens, &job.value);
-    add_group(&mut single.dimens, &job.group);
-    add_compatibility(&mut single.dimens, &job.compatibility);
-    add_job_skills(&mut single.dimens, &job.skills);
+    single
+        .dimens
+        .set_job_id(job.id.clone())
+        .set_job_value(job.value)
+        .set_job_group(job.group.clone())
+        .set_job_compatibility(job.compatibility.clone())
+        .set_job_skills(get_skills(&job.skills));
 
     Job::Single(Arc::new(single))
 }
@@ -424,11 +422,12 @@ fn get_multi_job(
     random: &Arc<dyn Random + Send + Sync>,
 ) -> Job {
     let mut dimens: Dimensions = Default::default();
-    dimens.set_id(&job.id);
-    add_value(&mut dimens, &job.value);
-    add_group(&mut dimens, &job.group);
-    add_compatibility(&mut dimens, &job.compatibility);
-    add_job_skills(&mut dimens, &job.skills);
+    dimens
+        .set_job_id(job.id.clone())
+        .set_job_value(job.value)
+        .set_job_group(job.group.clone())
+        .set_job_compatibility(job.compatibility.clone())
+        .set_job_skills(get_skills(&job.skills));
 
     let singles = singles.into_iter().map(Arc::new).collect::<Vec<_>>();
 
@@ -453,52 +452,17 @@ fn get_multi_job(
 
 fn create_condition(vehicle_id: String, shift_index: usize) -> Arc<dyn Fn(&Actor) -> bool + Sync + Send> {
     Arc::new(move |actor: &Actor| {
-        *actor.vehicle.dimens.get_id().unwrap() == vehicle_id
-            && *actor.vehicle.dimens.get_value::<usize>("shift_index").unwrap() == shift_index
+        *actor.vehicle.dimens.get_vehicle_id().unwrap() == vehicle_id
+            && actor.vehicle.dimens.get_shift_index().unwrap() == shift_index
     })
 }
 
-fn add_tags(dimens: &mut Dimensions, tags: Vec<(usize, String)>) {
-    if !tags.is_empty() {
-        dimens.set_value("tags", tags);
-    }
-}
-
-fn add_order(dimens: &mut Dimensions, order: &Option<i32>) {
-    if let Some(order) = order {
-        dimens.set_value("order", *order);
-    }
-}
-
-fn add_value(dimens: &mut Dimensions, value: &Option<f64>) {
-    if let Some(value) = *value {
-        dimens.set_value("value", value);
-    }
-}
-
-fn add_group(dimens: &mut Dimensions, group: &Option<String>) {
-    if let Some(group) = group {
-        dimens.set_value("group", group.clone());
-    }
-}
-
-fn add_compatibility(dimens: &mut Dimensions, compatibility: &Option<String>) {
-    if let Some(compatibility) = compatibility {
-        dimens.set_value("compat", compatibility.clone());
-    }
-}
-
-fn add_job_skills(dimens: &mut Dimensions, skills: &Option<FormatJobSkills>) {
-    if let Some(skills) = skills {
-        dimens.set_value(
-            "skills",
-            ConstraintJobSkills {
-                all_of: skills.all_of.as_ref().map(|all_of| all_of.iter().cloned().collect()),
-                one_of: skills.one_of.as_ref().map(|any_of| any_of.iter().cloned().collect()),
-                none_of: skills.none_of.as_ref().map(|none_of| none_of.iter().cloned().collect()),
-            },
-        );
-    }
+fn get_skills(skills: &Option<ApiJobSkills>) -> Option<FeatureJobSkills> {
+    skills.as_ref().map(|skills| FeatureJobSkills {
+        all_of: skills.all_of.as_ref().map(|all_of| all_of.iter().cloned().collect()),
+        one_of: skills.one_of.as_ref().map(|any_of| any_of.iter().cloned().collect()),
+        none_of: skills.none_of.as_ref().map(|none_of| none_of.iter().cloned().collect()),
+    })
 }
 
 fn empty() -> MultiDimLoad {

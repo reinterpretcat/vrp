@@ -23,10 +23,10 @@ impl RecreateWithSkipBest {
     pub fn new(min: usize, max: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
-                Box::new(AllJobSelector::default()),
-                Box::new(AllRouteSelector::default()),
-                Box::new(VariableLegSelector::new(random)),
-                Box::new(BestResultSelector::default()),
+                Box::<AllJobSelector>::default(),
+                Box::<AllRouteSelector>::default(),
+                LegSelection::Stochastic(random),
+                Box::<BestResultSelector>::default(),
                 InsertionHeuristic::new(Box::new(SkipBestInsertionEvaluator::new(min, max))),
             ),
         }
@@ -55,10 +55,10 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         job: &Job,
         routes: &[RouteContext],
-        leg_selector: &(dyn LegSelector + Send + Sync),
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
-        self.fallback_evaluator.evaluate_job(insertion_ctx, job, routes, leg_selector, result_selector)
+        self.fallback_evaluator.evaluate_job(insertion_ctx, job, routes, leg_selection, result_selector)
     }
 
     fn evaluate_route(
@@ -66,10 +66,10 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         route_ctx: &RouteContext,
         jobs: &[Job],
-        leg_selector: &(dyn LegSelector + Send + Sync),
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
-        self.fallback_evaluator.evaluate_route(insertion_ctx, route_ctx, jobs, leg_selector, result_selector)
+        self.fallback_evaluator.evaluate_route(insertion_ctx, route_ctx, jobs, leg_selection, result_selector)
     }
 
     fn evaluate_all(
@@ -77,21 +77,21 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
         insertion_ctx: &InsertionContext,
         jobs: &[Job],
         routes: &[RouteContext],
-        leg_selector: &(dyn LegSelector + Send + Sync),
+        leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         let skip_index = insertion_ctx.environment.random.uniform_int(self.min as i32, self.max as i32);
 
         // NOTE no need to proceed with skip, fallback to more performant reducer
         if skip_index == 1 || jobs.len() == 1 || routes.is_empty() {
-            return self.fallback_evaluator.evaluate_all(insertion_ctx, jobs, routes, leg_selector, result_selector);
+            return self.fallback_evaluator.evaluate_all(insertion_ctx, jobs, routes, leg_selection, result_selector);
         }
 
         let mut results = self.fallback_evaluator.evaluate_and_collect_all(
             insertion_ctx,
             jobs,
             routes,
-            leg_selector,
+            leg_selection,
             result_selector,
         );
 

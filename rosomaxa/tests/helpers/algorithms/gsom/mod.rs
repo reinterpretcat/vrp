@@ -1,4 +1,5 @@
 use crate::algorithms::gsom::{Input, Network, NetworkConfig, Storage, StorageFactory};
+use crate::algorithms::math::relative_distance;
 use crate::utils::DefaultRandom;
 use std::fmt::{Display, Formatter};
 use std::ops::RangeBounds;
@@ -21,6 +22,7 @@ impl Data {
     }
 }
 
+#[derive(Default)]
 pub struct DataStorage {
     pub data: Vec<Data>,
 }
@@ -45,17 +47,11 @@ impl Storage for DataStorage {
     }
 
     fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
-        f64::sqrt((a[0] - b[0]).powf(2.0) + (a[1] - b[1]).powf(2.0) + (a[2] - b[2]).powf(2.0))
+        relative_distance(a.iter().cloned(), b.iter().cloned())
     }
 
     fn size(&self) -> usize {
         self.data.len()
-    }
-}
-
-impl Default for DataStorage {
-    fn default() -> Self {
-        Self { data: Default::default() }
     }
 }
 

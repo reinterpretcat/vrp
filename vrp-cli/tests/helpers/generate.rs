@@ -24,7 +24,7 @@ pub fn create_empty_job_place() -> JobPlace {
 }
 
 pub fn create_empty_plan() -> Plan {
-    Plan { jobs: vec![], relations: None, areas: None, clustering: None }
+    Plan { jobs: vec![], relations: None, clustering: None }
 }
 
 pub fn create_test_vehicle_type() -> VehicleType {

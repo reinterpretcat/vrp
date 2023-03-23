@@ -1,5 +1,6 @@
 use crate::constraints::{JobSkills, SkillsModule};
-use crate::extensions::create_typed_actor_groups;
+use crate::construction::enablers::create_typed_actor_groups;
+use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::helpers::*;
 use hashbrown::HashSet;
 use std::iter::FromIterator;
@@ -7,19 +8,15 @@ use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintModule;
 use vrp_core::construction::constraints::{ConstraintPipeline, RouteConstraintViolation};
 use vrp_core::construction::heuristics::{RouteContext, RouteState};
-use vrp_core::models::common::ValueDimension;
 use vrp_core::models::problem::{Fleet, Job, Vehicle};
 
 fn create_job_with_skills(all_of: Option<Vec<&str>>, one_of: Option<Vec<&str>>, none_of: Option<Vec<&str>>) -> Job {
     let mut single = create_single_with_location(None);
-    single.dimens.set_value(
-        "skills",
-        JobSkills {
-            all_of: all_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
-            one_of: one_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
-            none_of: none_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
-        },
-    );
+    single.dimens.set_job_skills(Some(JobSkills {
+        all_of: all_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
+        one_of: one_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
+        none_of: none_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
+    }));
 
     Job::Single(Arc::new(single))
 }
@@ -28,7 +25,7 @@ fn create_vehicle_with_skills(skills: Option<Vec<&str>>) -> Vehicle {
     let mut vehicle = test_vehicle("v1");
 
     if let Some(skills) = skills {
-        vehicle.dimens.set_value("skills", HashSet::<String>::from_iter(skills.iter().map(|s| s.to_string())));
+        vehicle.dimens.set_vehicle_skills(HashSet::<String>::from_iter(skills.iter().map(|s| s.to_string())));
     }
 
     vehicle

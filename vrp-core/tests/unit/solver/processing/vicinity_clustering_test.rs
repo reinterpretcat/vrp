@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::heuristics::{RouteContext, RouteState, SolutionContext, UnassignedCode};
+use crate::construction::heuristics::{RouteContext, RouteState, SolutionContext, UnassignmentInfo};
 use crate::helpers::construction::clustering::vicinity::*;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
@@ -20,10 +20,10 @@ fn create_test_jobs() -> Vec<Job> {
 }
 
 fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<Problem>) {
-    let constraint = create_constraint_pipeline(vec![]);
+    let constraint = create_goal_context(vec![]);
     let environment = Arc::new(Environment::default());
 
-    let orig_problem = Arc::try_unwrap(create_problem_with_constraint_jobs_and_fleet(constraint, jobs, test_fleet()))
+    let orig_problem = Arc::try_unwrap(create_problem_with_goal_ctx_jobs_and_fleet(constraint, jobs, test_fleet()))
         .unwrap_or_else(|_| unreachable!());
     unsafe { as_mut(orig_problem.extras.as_ref()).set_cluster_config(config) };
     let orig_problem = Arc::new(orig_problem);
@@ -32,7 +32,7 @@ fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<
 
     let new_refinement_cxt = VicinityClustering::default().pre_process(refinement_cxt);
 
-    (orig_problem, new_refinement_cxt.problem.clone())
+    (orig_problem, new_refinement_cxt.problem)
 }
 
 #[test]
@@ -41,7 +41,7 @@ fn can_create_problem_with_clusters_on_pre_process() {
 
     let jobs = problem.jobs.all().collect::<Vec<_>>();
     assert_eq!(jobs.len(), 2);
-    assert!(jobs.iter().find(|job| get_job_id(job) == "job4_outlier").is_some());
+    assert!(jobs.iter().any(|job| get_job_id(job) == "job4_outlier"));
     let jobs = jobs
         .iter()
         .find(|job| get_job_id(job) == "job3")
@@ -117,14 +117,17 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
 #[test]
 fn can_unwrap_clusters_in_unassigned_on_post_process() {
     let (_, new_problem) = create_problems(create_cluster_config(), create_test_jobs());
-    let clustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job3").unwrap().clone();
-    let unclustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job4_outlier").unwrap().clone();
+    let clustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job3").unwrap();
+    let unclustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job4_outlier").unwrap();
     let insertion_ctx = InsertionContext {
-        problem: new_problem.clone(),
+        problem: new_problem,
         solution: SolutionContext {
-            unassigned: vec![(clustered_job, UnassignedCode::Simple(1)), (unclustered_job, UnassignedCode::Simple(2))]
-                .into_iter()
-                .collect(),
+            unassigned: vec![
+                (clustered_job, UnassignmentInfo::Simple(1)),
+                (unclustered_job, UnassignmentInfo::Simple(2)),
+            ]
+            .into_iter()
+            .collect(),
             ..create_empty_solution_context()
         },
         ..create_empty_insertion_context()

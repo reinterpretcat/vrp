@@ -1,6 +1,6 @@
 # Vehicle types
 
-A vehicle types are defined by `fleet.types` property and their schema has the following properties:
+A vehicle types are defined by `fleet.vehicles` property and their schema has the following properties:
 
 - **typeId** (required): a vehicle type id
 ```json
@@ -43,11 +43,6 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
     - **maxDistance** (optional): max distance
     - **tourSize** (optional): max amount of activities in the tour (without departure/arrival). Please note, that
       clustered activities are counted as one in case of vicinity clustering.
-    - **areas** (optional): a list of areas where vehicle is allowed/preferred to serve jobs. Each area is defined by:
-        - **area_id** (required): one of area ids specified by `plan.areas`
-        - **job_value** (required): a value added to total value for each job served by the vehicle in given area
-
-        No area restrictions when omitted.
 
 An example:
 
@@ -92,6 +87,12 @@ Each shift can have the following properties:
   See example [here](../../../examples/pragmatic/basics/break.md)
 - **reloads** (optional) a list of vehicle reloads. A reload is a place where vehicle can load new deliveries and unload
     pickups. It can be used to model multi trip routes.
+  Each reload has optional and required fields:
+    - location (required): an actual place where reload activity happens
+    - duration (required): duration of reload activity
+    - times (optional): reload time windows
+    - tag (optional): a tag which will be propagated back within the corresponding reload activity in solution
+    - resourceId (optional): a shared reload resource id. It is used to limit amount of deliveries loaded at this reload.
   See examples [here](../../../examples/pragmatic/basics/reload.md).
 
 
@@ -102,7 +103,7 @@ Each shift can have the following properties:
 * [E1302 invalid start or end times in vehicle shift](../errors/index.md#e1302)
 * [E1303 invalid break time windows in vehicle shift](../errors/index.md#e1303)
 * [E1304 invalid reload time windows in vehicle shift](../errors/index.md#e1304)
-* [E1305 invalid allowed area definition in vehicle limits](../errors/index.md#e1305)
-* [E1306 invalid dispatch in vehicle shift](../errors/index.md#e1306)
-* [E1307 time and duration costs are zeros](../errors/index.md#e1307)
-* [E1308 required break is used with departure rescheduling](../errors/index.md#e1308)
+* [E1305 invalid dispatch in vehicle shift](../errors/index.md#e1305)
+* [E1306 time and duration costs are zeros](../errors/index.md#e1306)
+* [E1307 required break is used with departure rescheduling](../errors/index.md#e1307)
+* [E1308 invalid vehicle reload resource](../errors/index.md#e1308)

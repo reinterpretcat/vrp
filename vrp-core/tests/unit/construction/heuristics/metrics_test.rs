@@ -1,13 +1,13 @@
-use crate::construction::constraints::*;
+use crate::construction::features::*;
 use crate::construction::heuristics::*;
 use crate::helpers::models::domain::create_empty_insertion_context;
 use crate::helpers::models::solution::create_empty_route_ctx;
 use rosomaxa::prelude::compare_floats;
-use std::cmp::Ordering::Equal;
+use std::cmp::Ordering;
 
 fn create_insertion_ctx(route_amount: usize, route_factory: &(dyn Fn(usize) -> RouteContext)) -> InsertionContext {
     let mut ctx = create_empty_insertion_context();
-    ctx.solution.routes.extend((0..route_amount).map(|idx| route_factory(idx)));
+    ctx.solution.routes.extend((0..route_amount).map(route_factory));
     ctx
 }
 
@@ -31,7 +31,7 @@ fn can_get_max_load_variance() {
 
     let variance = get_max_load_variance(&insertion_ctx);
 
-    assert_eq!(compare_floats(variance, 6.6875), Equal);
+    assert_eq!(compare_floats(variance, 6.6875), Ordering::Equal);
 }
 
 #[test]
@@ -47,7 +47,7 @@ fn can_get_duration_mean() {
 
     let mean = get_duration_mean(&insertion_ctx);
 
-    assert_eq!(compare_floats(mean, 5.), Equal);
+    assert_eq!(compare_floats(mean, 5.), Ordering::Equal);
 }
 
 #[test]
@@ -63,5 +63,5 @@ fn can_get_distance_mean() {
 
     let mean = get_distance_mean(&insertion_ctx);
 
-    assert_eq!(compare_floats(mean, 7.), Equal);
+    assert_eq!(compare_floats(mean, 7.), Ordering::Equal);
 }

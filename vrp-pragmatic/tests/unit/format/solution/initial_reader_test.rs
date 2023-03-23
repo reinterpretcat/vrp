@@ -27,7 +27,7 @@ fn create_basic_problem(breaks: Option<Vec<VehicleBreak>>) -> Problem {
                 shifts: vec![VehicleShift { breaks, ..create_default_vehicle_shift() }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_matrix_profiles(),
+            ..create_default_fleet()
         },
         ..create_empty_problem()
     }
@@ -50,7 +50,7 @@ fn create_unassigned_jobs(job_ids: &[&str]) -> Option<Vec<UnassignedJob>> {
                 reasons: vec![UnassignedJobReason {
                     code: "NO_REASON_FOUND".to_string(),
                     description: "unknown".to_string(),
-                    detail: None,
+                    details: None,
                 }],
             })
             .collect(),
@@ -61,7 +61,7 @@ fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, 
     let environment = Arc::new(Environment::default());
     let matrix = create_matrix_from_problem(&problem);
     let core_problem = Arc::new(
-        (problem, vec![matrix]).read_pragmatic().unwrap_or_else(|err| panic!("cannot read core problem: {:?}", err)),
+        (problem, vec![matrix]).read_pragmatic().unwrap_or_else(|err| panic!("cannot read core problem: {err:?}")),
     );
 
     let core_solution = to_core_solution(solution, core_problem.clone(), create_random())?;
@@ -74,7 +74,7 @@ fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, 
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
     (&core_solution, 0.).write_pragmatic_json(&core_problem, writer).expect("cannot serialize result solution");
 
-    deserialize_solution(BufReader::new(buffer.as_bytes())).map_err(|err| format!("cannot read solution: {}", err))
+    deserialize_solution(BufReader::new(buffer.as_bytes())).map_err(|err| format!("cannot read solution: {err}"))
 }
 
 #[test]
@@ -181,7 +181,7 @@ fn can_read_basic_init_solution() {
     };
 
     let result_solution =
-        get_init_solution(problem, &solution).unwrap_or_else(|err| panic!("cannot get solution: {}", err));
+        get_init_solution(problem, &solution).unwrap_or_else(|err| panic!("cannot get solution: {err}"));
 
     assert_eq!(result_solution, solution);
 }

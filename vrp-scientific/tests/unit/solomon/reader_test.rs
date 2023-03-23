@@ -3,7 +3,7 @@ use crate::solomon::SolomonProblem;
 
 #[test]
 fn can_read_solomon_built_from_builder() {
-    let problem = SolomonBuilder::new()
+    let problem = SolomonBuilder::default()
         .set_title("Three customers")
         .set_vehicle((2, 10))
         .add_customer((0, 0, 0, 0, 0, 1000, 1))

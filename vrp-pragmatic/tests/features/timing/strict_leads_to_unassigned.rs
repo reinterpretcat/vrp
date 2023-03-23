@@ -15,10 +15,7 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
             ],
             ..create_empty_plan()
         },
-        fleet: Fleet {
-            vehicles: vec![create_default_vehicle("my_vehicle")],
-            profiles: create_default_matrix_profiles(),
-        },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -100,7 +97,7 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
                 reasons: vec![UnassignedJobReason {
                     code: "TIME_WINDOW_CONSTRAINT".to_string(),
                     description: "cannot be visited within time window".to_string(),
-                    detail: Some(UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }),
+                    details: Some(vec![UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }]),
                 }]
             }]),
             ..create_empty_solution()

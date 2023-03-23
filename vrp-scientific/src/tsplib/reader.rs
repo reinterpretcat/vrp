@@ -50,7 +50,7 @@ impl<R: Read> TextReader for TsplibReader<R> {
         let jobs = coordinates.iter().filter(|(id, _)| **id != depot_id).try_fold::<_, _, Result<_, String>>(
             Vec::with_capacity(dimension),
             |mut jobs, (id, (x, y))| {
-                let demand = demands.get(id).cloned().ok_or_else(|| format!("cannot find demand for id: '{}'", id))?;
+                let demand = demands.get(id).cloned().ok_or_else(|| format!("cannot find demand for id: '{id}'"))?;
 
                 jobs.push(self.create_job(&(*id - 1).to_string(), (*x, *y), demand));
 
@@ -58,9 +58,8 @@ impl<R: Read> TextReader for TsplibReader<R> {
             },
         )?;
 
-        let depot_coord = *coordinates
-            .get(&depot_id)
-            .ok_or_else(|| format!("cannot find coordinate for depot id: '{}'", depot_id))?;
+        let depot_coord =
+            *coordinates.get(&depot_id).ok_or_else(|| format!("cannot find coordinate for depot id: '{depot_id}'"))?;
 
         let fleet = create_fleet_with_distance_costs(
             dimension,
@@ -99,7 +98,7 @@ impl<R: Read> TsplibReader<R> {
 
         let problem_type = self.read_key_value("TYPE")?;
         if problem_type != "CVRP" {
-            return Err(format!("expecting 'CVRP' as TYPE, got '{}'", problem_type));
+            return Err(format!("expecting 'CVRP' as TYPE, got '{problem_type}'"));
         }
 
         self.dimension = Some(
@@ -109,7 +108,7 @@ impl<R: Read> TsplibReader<R> {
 
         let edge_type = self.read_key_value("EDGE_WEIGHT_TYPE")?;
         if edge_type != "EUC_2D" {
-            return Err(format!("expecting 'EUC_2D' as EDGE_WEIGHT_TYPE, got '{}'", edge_type));
+            return Err(format!("expecting 'EUC_2D' as EDGE_WEIGHT_TYPE, got '{edge_type}'"));
         }
 
         self.vehicle_capacity = Some(
@@ -132,7 +131,7 @@ impl<R: Read> TsplibReader<R> {
             let data = line.split_whitespace().collect::<Vec<_>>();
 
             if data.len() != 3 {
-                return Err(format!("unexpected coord data: '{}'", line));
+                return Err(format!("unexpected coord data: '{line}'"));
             }
 
             let coord = (parse_int(data[1], "cannot parse coord.0")?, parse_int(data[2], "cannot parse coord.1")?);
@@ -149,7 +148,7 @@ impl<R: Read> TsplibReader<R> {
             let data = line.split_whitespace().collect::<Vec<_>>();
 
             if data.len() != 2 {
-                return Err(format!("unexpected demand data: '{}'", line));
+                return Err(format!("unexpected demand data: '{line}'"));
             }
 
             demands.insert(parse_int(data[0], "cannot parse id")?, parse_int(data[1], "cannot parse demand")?);
@@ -171,12 +170,12 @@ impl<R: Read> TsplibReader<R> {
         let key_value = line.split(':').map(|v| v.to_string()).collect::<Vec<_>>();
 
         if key_value.len() != 2 {
-            return Err(format!("expected colon separated string, got: '{}'", line));
+            return Err(format!("expected colon separated string, got: '{line}'"));
         }
 
         let actual_key = key_value[0].trim();
         if actual_key.trim() != expected_key {
-            return Err(format!("unexpected key, expecting: '{}', got: '{}'", expected_key, actual_key));
+            return Err(format!("unexpected key, expecting: '{expected_key}', got: '{actual_key}'"));
         }
 
         Ok(key_value[1].trim().to_string())
@@ -185,7 +184,7 @@ impl<R: Read> TsplibReader<R> {
     fn read_expected_line(&mut self, expected: &str) -> Result<(), String> {
         let line = self.read_line()?.trim();
         if line != expected {
-            Err(format!("expecting {}, got: '{}'", expected, line))
+            Err(format!("expecting {expected}, got: '{line}'"))
         } else {
             Ok(())
         }
@@ -221,5 +220,5 @@ fn parse_int(data: &str, err_msg: &str) -> Result<i32, String> {
     data.parse::<f64>()
         // NOTE observed that some input files might have coordinates like 28.00000
         .map(|value| value.round() as i32)
-        .map_err(|err| format!("{}: '{}'", err_msg, err))
+        .map_err(|err| format!("{err_msg}: '{err}'"))
 }

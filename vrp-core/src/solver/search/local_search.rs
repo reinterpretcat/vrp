@@ -1,5 +1,5 @@
 use crate::construction::heuristics::InsertionContext;
-use crate::models::problem::ProblemObjective;
+use crate::models::GoalContext;
 use crate::solver::search::LocalOperator;
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::*;
@@ -19,7 +19,7 @@ impl LocalSearch {
 
 impl HeuristicSearchOperator for LocalSearch {
     type Context = RefinementContext;
-    type Objective = ProblemObjective;
+    type Objective = GoalContext;
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {

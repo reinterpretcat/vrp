@@ -13,7 +13,7 @@ fn can_have_empty_detail_in_empty_solution() {
             )],
             ..create_empty_plan()
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
+        fleet: create_default_fleet(),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -30,7 +30,7 @@ fn can_have_empty_detail_in_empty_solution() {
                 reasons: vec![UnassignedJobReason {
                     code: "SKILL_CONSTRAINT".to_string(),
                     description: "cannot serve required skill".to_string(),
-                    detail: None
+                    details: None
                 }]
             }]),
             ..create_empty_solution()

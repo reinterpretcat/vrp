@@ -31,8 +31,8 @@ fn can_update_statistic() {
     compare_statistic(telemetry.get_statistics(), (3, 0.25, 0.25));
 
     (0..996).for_each(|_| telemetry.on_generation(objective, population, 0., Timer::start(), false));
-    compare_statistic(&telemetry.get_statistics(), (999, 0.001, 0.001));
+    compare_statistic(telemetry.get_statistics(), (999, 0.001, 0.001));
 
     telemetry.on_generation(objective, population, 0., Timer::start(), true);
-    compare_statistic(&telemetry.get_statistics(), (1000, 2. / 1001., 0.001));
+    compare_statistic(telemetry.get_statistics(), (1000, 2. / 1001., 0.001));
 }

@@ -46,6 +46,7 @@ pub fn pickup_job_prototype(
 }
 
 prop_compose! {
+    #[allow(clippy::too_many_arguments)]
     pub fn pickup_delivery_job_prototype(
         pickup_place: impl Strategy<Value = JobPlace>,
         delivery_place: impl Strategy<Value = JobPlace>,
@@ -82,7 +83,7 @@ prop_compose! {
                         tag: Some("d1".to_owned()),
                         ..delivery
                     }
-                ], demand: demand.clone(), order: None }
+                ], demand, order: None }
             ]),
             replacements: None,
             services: None,
@@ -105,6 +106,7 @@ pub fn generate_plan(jobs_proto: impl Strategy<Value = Vec<Job>>) -> impl Strate
 }
 
 prop_compose! {
+    #[allow(clippy::too_many_arguments)]
    fn job_prototype(
         pickups_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
         deliveries_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
