@@ -5,9 +5,9 @@ mod network_test;
 use super::*;
 use crate::algorithms::math::get_mean_iter;
 use crate::utils::{compare_floats, parallel_into_collect, Noise, Random};
-use hashbrown::HashMap;
 use rand::prelude::SliceRandom;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 /// A customized Growing Self Organizing Map designed to store and retrieve trained input.
@@ -223,8 +223,8 @@ where
     /// Finds the best matching unit within the map for the given input.
     fn find_bmu(&self, input: &I) -> NodeLink<I, S> {
         self.nodes
-            .iter()
-            .map(|(_, node)| (node.clone(), node.read().unwrap().distance(input.weights())))
+            .values()
+            .map(|node| (node.clone(), node.read().unwrap().distance(input.weights())))
             .min_by(|(_, x), (_, y)| x.partial_cmp(y).unwrap_or(Ordering::Less))
             .map(|(node, _)| node)
             .expect("no nodes")

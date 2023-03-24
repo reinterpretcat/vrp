@@ -5,7 +5,7 @@
 mod iterators_test;
 
 use crate::utils::Random;
-use hashbrown::HashMap;
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
 

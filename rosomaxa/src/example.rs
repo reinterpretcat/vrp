@@ -11,9 +11,9 @@ use crate::population::{DominanceOrder, DominanceOrdered, RosomaxaWeighted, Shuf
 use crate::prelude::*;
 use crate::utils::Noise;
 use crate::*;
-use hashbrown::{HashMap, HashSet};
 use std::any::Any;
 use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet};
 use std::iter::once;
 use std::ops::{Deref, Range};
 use std::sync::Arc;
