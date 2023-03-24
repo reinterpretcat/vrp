@@ -122,15 +122,16 @@ mod actual {
     }
 
     /// Performs map reduce operations synchronously.
-    pub fn map_reduce<T, FM, FR, FD, R>(source: &[T], map_op: FM, default_op: FD, reduce_op: FR) -> R
+    pub fn map_reduce<T, S, FM, FR, FD, R>(source: S, map_op: FM, default_op: FD, reduce_op: FR) -> R
     where
         T: Send + Sync,
-        FM: Fn(&T) -> R + Sync + Send,
+        S: IntoIterator<Item = T>,
+        FM: Fn(T) -> R + Sync + Send,
         FR: Fn(R, R) -> R + Sync + Send,
         FD: Fn() -> R + Sync + Send,
         R: Send,
     {
-        source.iter().map(map_op).fold(default_op(), reduce_op)
+        source.into_iter().map(map_op).fold(default_op(), reduce_op)
     }
 
     /// Performs mutable foreach in parallel.
