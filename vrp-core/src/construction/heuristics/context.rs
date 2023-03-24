@@ -257,6 +257,7 @@ impl RouteContext {
     pub fn as_mut(&mut self) -> (&mut Route, &mut RouteState) {
         self.mark_stale(true);
 
+        // SAFETY: it is caller responsibility to ensure that no mutable access occurs from different threads.
         let route: &mut Route = unsafe { as_mut(&self.route) };
         let state: &mut RouteState = unsafe { as_mut(&self.state) };
 
@@ -267,6 +268,7 @@ impl RouteContext {
     /// Marks context as stale.
     pub fn route_mut(&mut self) -> &mut Route {
         self.mark_stale(true);
+        // SAFETY: the caller must ensure that no mutable access occurs on cloned RouteContext from different threads
         unsafe { as_mut(&self.route) }
     }
 
@@ -274,6 +276,7 @@ impl RouteContext {
     /// Marks context as stale.
     pub fn state_mut(&mut self) -> &mut RouteState {
         self.mark_stale(true);
+        // SAFETY: the caller must ensure that no mutable access occurs on cloned RouteContext from different threads
         unsafe { as_mut(&self.state) }
     }
 
@@ -285,6 +288,7 @@ impl RouteContext {
 
     /// Marks context stale or resets the flag.
     pub(crate) fn mark_stale(&mut self, is_stale: bool) {
+        // SAFETY: the caller must ensure that no mutable access occurs on cloned RouteContext from different threads
         let cache: &mut RouteCache = unsafe { as_mut(&self.cache) };
         cache.is_stale = is_stale;
     }
