@@ -127,7 +127,7 @@ impl TransportConstraint {
         activity_ctx: &ActivityContext,
     ) -> Option<ConstraintViolation> {
         let actor = route_ctx.route.actor.as_ref();
-        let route = route_ctx.route.as_ref();
+        let route = &route_ctx.route;
 
         let prev = activity_ctx.prev;
         let target = activity_ctx.target;
@@ -282,7 +282,7 @@ impl TransportObjective {
         end: &Activity,
         time: Timestamp,
     ) -> (Cost, Cost, Timestamp) {
-        let route = route_ctx.route.as_ref();
+        let route = &route_ctx.route;
 
         let arrival = time
             + self.transport.duration(route, start.place.location, end.place.location, TravelTime::Departure(time));

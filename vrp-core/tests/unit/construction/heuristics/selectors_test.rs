@@ -11,7 +11,7 @@ mod noise_checks {
     use super::*;
 
     fn make_success(cost: Cost) -> InsertionResult {
-        InsertionResult::make_success(cost, Job::Single(test_single_with_id("job1")), vec![], create_empty_route_ctx())
+        InsertionResult::make_success(cost, Job::Single(test_single_with_id("job1")), vec![], &create_empty_route_ctx())
     }
 
     parameterized_test! {can_compare_insertion_result_with_noise, (left, right, reals, expected_result), {
@@ -78,10 +78,7 @@ mod selections {
         let target = 10;
         let selection_mode = LegSelection::Stochastic(Environment::default().random);
         let (_, solution) = generate_matrix_routes_with_defaults(activities, 1, false);
-        let route_ctx = RouteContext::new_with_state(
-            Arc::new(solution.routes.into_iter().next().unwrap()),
-            Arc::new(Default::default()),
-        );
+        let route_ctx = RouteContext::new_with_state(solution.routes.into_iter().next().unwrap(), Default::default());
         let mut counter = 0;
 
         let _ = selection_mode.sample_best(

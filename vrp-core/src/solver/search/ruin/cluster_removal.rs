@@ -36,7 +36,7 @@ impl ClusterRemoval {
 
 impl Ruin for ClusterRemoval {
     fn run(&self, _: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
-        let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
+        let route_jobs = get_route_jobs(&insertion_ctx.solution);
         let tracker = RwLock::new(JobRemovalTracker::new(&self.limits, insertion_ctx.environment.random.as_ref()));
 
         let mut indices = (0..self.clusters.len()).collect::<Vec<usize>>();
@@ -51,8 +51,8 @@ impl Ruin for ClusterRemoval {
                 .map(|idx| cluster.get(*idx).expect("invalid cluster index"))
                 .take_while(|_| !tracker.read().unwrap().is_limit())
                 .for_each(|job| {
-                    if let Some(route_ctx) = route_jobs.get_mut(job) {
-                        tracker.write().unwrap().try_remove_job(&mut insertion_ctx.solution, route_ctx, job);
+                    if let Some(route_idx) = route_jobs.get(job) {
+                        tracker.write().unwrap().try_remove_job(&mut insertion_ctx.solution, *route_idx, job);
                     }
                 });
         });

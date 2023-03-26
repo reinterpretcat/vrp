@@ -13,12 +13,19 @@ use std::sync::Arc;
 /// On each insertion step, selects a list of routes where jobs can be inserted.
 /// It is up to implementation to decide whether list consists of all possible routes or just some subset.
 pub trait RouteSelector {
+    /// This method is called before select. It allows to apply some changes on mutable context
+    /// before immutable borrowing could happen within select method.
+    /// Default implementation simply shuffles existing routes.
+    fn prepare(&self, insertion_ctx: &mut InsertionContext) {
+        insertion_ctx.solution.routes.shuffle(&mut insertion_ctx.environment.random.get_rng());
+    }
+
     /// Returns routes for job insertion.
     fn select<'a>(
         &'a self,
-        insertion_ctx: &'a mut InsertionContext,
-        jobs: &[Job],
-    ) -> Box<dyn Iterator<Item = RouteContext> + 'a>;
+        insertion_ctx: &'a InsertionContext,
+        jobs: &[&'a Job],
+    ) -> Box<dyn Iterator<Item = &'a RouteContext> + 'a>;
 }
 
 /// Returns a list of all possible routes for insertion.
@@ -28,32 +35,34 @@ pub struct AllRouteSelector {}
 impl RouteSelector for AllRouteSelector {
     fn select<'a>(
         &'a self,
-        insertion_ctx: &'a mut InsertionContext,
-        _jobs: &[Job],
-    ) -> Box<dyn Iterator<Item = RouteContext> + 'a> {
-        insertion_ctx.solution.routes.shuffle(&mut insertion_ctx.environment.random.get_rng());
-        Box::new(insertion_ctx.solution.routes.iter().cloned().chain(insertion_ctx.solution.registry.next()))
+        insertion_ctx: &'a InsertionContext,
+        _: &[&'a Job],
+    ) -> Box<dyn Iterator<Item = &'a RouteContext> + 'a> {
+        Box::new(insertion_ctx.solution.routes.iter().chain(insertion_ctx.solution.registry.next_route()))
     }
 }
 
 /// On each insertion step, selects a list of jobs to be inserted.
 /// It is up to implementation to decide whether list consists of all jobs or just some subset.
 pub trait JobSelector {
+    /// This method is called before select. It allows to apply some changes on mutable context
+    /// before immutable borrowing could happen within select method.
+    /// Default implementation simply shuffles jobs in required collection.
+    fn prepare(&self, insertion_ctx: &mut InsertionContext) {
+        insertion_ctx.solution.required.shuffle(&mut insertion_ctx.environment.random.get_rng());
+    }
+
     /// Returns a portion of all jobs.
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a>;
+    fn select<'a>(&'a self, insertion_ctx: &'a InsertionContext) -> Box<dyn Iterator<Item = &'a Job> + 'a> {
+        Box::new(insertion_ctx.solution.required.iter())
+    }
 }
 
 /// Returns a list of all jobs to be inserted.
 #[derive(Default)]
 pub struct AllJobSelector {}
 
-impl JobSelector for AllJobSelector {
-    fn select<'a>(&'a self, insertion_ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        insertion_ctx.solution.required.shuffle(&mut insertion_ctx.environment.random.get_rng());
-
-        Box::new(insertion_ctx.solution.required.iter().cloned())
-    }
-}
+impl JobSelector for AllJobSelector {}
 
 /// Evaluates insertion.
 pub trait InsertionEvaluator {
@@ -62,7 +71,7 @@ pub trait InsertionEvaluator {
         &self,
         insertion_ctx: &InsertionContext,
         job: &Job,
-        routes: &[RouteContext],
+        routes: &[&RouteContext],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
@@ -72,7 +81,7 @@ pub trait InsertionEvaluator {
         &self,
         insertion_ctx: &InsertionContext,
         route_ctx: &RouteContext,
-        jobs: &[Job],
+        jobs: &[&Job],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
@@ -81,8 +90,8 @@ pub trait InsertionEvaluator {
     fn evaluate_all(
         &self,
         insertion_ctx: &InsertionContext,
-        jobs: &[Job],
-        routes: &[RouteContext],
+        jobs: &[&Job],
+        routes: &[&RouteContext],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
@@ -109,8 +118,8 @@ impl PositionInsertionEvaluator {
     pub(crate) fn evaluate_and_collect_all(
         &self,
         insertion_ctx: &InsertionContext,
-        jobs: &[Job],
-        routes: &[RouteContext],
+        jobs: &[&Job],
+        routes: &[&RouteContext],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> Vec<InsertionResult> {
@@ -133,7 +142,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         &self,
         insertion_ctx: &InsertionContext,
         job: &Job,
-        routes: &[RouteContext],
+        routes: &[&RouteContext],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
@@ -148,7 +157,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         &self,
         insertion_ctx: &InsertionContext,
         route_ctx: &RouteContext,
-        jobs: &[Job],
+        jobs: &[&Job],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
@@ -161,8 +170,8 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
     fn evaluate_all(
         &self,
         insertion_ctx: &InsertionContext,
-        jobs: &[Job],
-        routes: &[RouteContext],
+        jobs: &[&Job],
+        routes: &[&RouteContext],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
@@ -195,7 +204,7 @@ pub trait ResultSelector {
     ) -> InsertionResult;
 
     /// Selects one insertion result from two to promote as best.
-    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either<f64, f64> {
+    fn select_cost(&self, left: f64, right: f64) -> Either<f64, f64> {
         if left < right {
             Either::Left(left)
         } else {
@@ -245,7 +254,7 @@ impl ResultSelector for NoiseResultSelector {
         }
     }
 
-    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either<f64, f64> {
+    fn select_cost(&self, left: f64, right: f64) -> Either<f64, f64> {
         let left = left + self.noise.generate(left);
         let right = right + self.noise.generate(right);
 

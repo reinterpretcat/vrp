@@ -76,7 +76,7 @@ impl LocalOperator for ExchangeInterRouteRandom {
     }
 }
 
-type InsertionSuccessPair = (InsertionSuccess, InsertionSuccess);
+type InsertionSuccessPair = ((InsertionSuccess, Option<RouteContext>), (InsertionSuccess, Option<RouteContext>));
 
 fn find_best_insertion_pair(
     insertion_ctx: &InsertionContext,
@@ -84,8 +84,8 @@ fn find_best_insertion_pair(
     filter_route_indices: Box<dyn Fn(usize) -> bool + Send + Sync>,
     filter_jobs_indices: Box<dyn Fn(usize) -> bool + Send + Sync>,
 ) -> Option<InsertionContext> {
-    if let Some((seed_route_idx, seed_job)) =
-        select_seed_job(insertion_ctx.solution.routes.as_slice(), &insertion_ctx.environment.random)
+    if let Some((_, seed_route_idx, seed_job)) =
+        select_seed_job(insertion_ctx.solution.routes.as_slice(), insertion_ctx.environment.random.as_ref())
     {
         let locked = &insertion_ctx.solution.locked;
 
@@ -139,7 +139,7 @@ fn find_best_insertion_pair(
                             &result_selector,
                         )?;
 
-                        Some((seed_success, test_success))
+                        Some(((seed_success, None), (test_success, Some(test_route))))
                     },
                     || None,
                     |left, right| reduce_pair_with_noise(left, right, &noise),
@@ -150,8 +150,8 @@ fn find_best_insertion_pair(
 
         if let Some(insertion_pair) = insertion_pair {
             let mut new_insertion_ctx = new_insertion_ctx;
-            apply_insertion(&mut new_insertion_ctx, insertion_pair.0);
-            apply_insertion(&mut new_insertion_ctx, insertion_pair.1);
+            apply_insertion_with_route(&mut new_insertion_ctx, insertion_pair.0);
+            apply_insertion_with_route(&mut new_insertion_ctx, insertion_pair.1);
             finalize_insertion_ctx(&mut new_insertion_ctx);
 
             return Some(new_insertion_ctx);
@@ -191,8 +191,8 @@ fn reduce_pair_with_noise(
 ) -> Option<InsertionSuccessPair> {
     match (&left_result, &right_result) {
         (Some(left), Some(right)) => {
-            let left_cost = noise.generate(left.0.cost + left.1.cost);
-            let right_cost = noise.generate(right.0.cost + right.1.cost);
+            let left_cost = noise.generate(left.0 .0.cost + left.1 .0.cost);
+            let right_cost = noise.generate(right.0 .0.cost + right.1 .0.cost);
 
             if left_cost < right_cost {
                 left_result

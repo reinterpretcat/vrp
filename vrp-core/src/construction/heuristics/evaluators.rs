@@ -69,7 +69,7 @@ pub fn eval_job_insertion_in_route(
     };
 
     if let Some(best_known_cost) = best_known_cost {
-        if let Either::Left(_) = eval_ctx.result_selector.select_cost(route_ctx, best_known_cost, route_costs) {
+        if let Either::Left(_) = eval_ctx.result_selector.select_cost(best_known_cost, route_costs) {
             return alternative;
         }
     }
@@ -143,7 +143,7 @@ fn eval_single(
     if result.is_success() {
         activity.place = result.place.unwrap();
         let activities = vec![(activity, result.index)];
-        InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx.clone())
+        InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx)
     } else {
         let (code, stopped) = result.violation.map_or((0, false), |v| (v.code, v.stopped));
         InsertionResult::make_failure_with_code(code, stopped, Some(job))
@@ -179,7 +179,7 @@ fn eval_multi(
                     // 3. analyze legs
                     let srv_res = analyze_insertion_in_route(
                         eval_ctx,
-                        &shadow.ctx,
+                        shadow.route_ctx(),
                         None,
                         service,
                         &mut activity,
@@ -210,7 +210,7 @@ fn eval_multi(
     let job = eval_ctx.job.clone();
     if result.is_success() {
         let activities = result.activities.unwrap();
-        InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx.clone())
+        InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx)
     } else {
         let (code, stopped) = result.violation.map_or((0, false), |v| (v.code, v.stopped));
         InsertionResult::make_failure_with_code(code, stopped, Some(job))
@@ -247,7 +247,7 @@ fn analyze_insertion_in_route(
             |lhs: &SingleContext, rhs: &SingleContext| {
                 eval_ctx
                     .result_selector
-                    .select_cost(route_ctx, lhs.cost.unwrap_or(f64::MAX), rhs.cost.unwrap_or(f64::MAX))
+                    .select_cost(lhs.cost.unwrap_or(f64::MAX), rhs.cost.unwrap_or(f64::MAX))
                     .is_left()
             },
         ),
@@ -289,7 +289,7 @@ fn analyze_insertion_in_route_leg(
             let costs = eval_ctx.goal.estimate(&MoveContext::activity(route_ctx, &activity_ctx)) + route_costs;
             let other_costs = acc.cost.unwrap_or(f64::MAX);
 
-            match eval_ctx.result_selector.select_cost(route_ctx, costs, other_costs) {
+            match eval_ctx.result_selector.select_cost(costs, other_costs) {
                 Either::Left(_) => SingleContext::success(activity_ctx.index, costs, target.place.clone()),
                 Either::Right(_) => SingleContext::skip(acc),
             }
@@ -457,35 +457,41 @@ impl MultiContext {
 
 /// Provides the way to use copy on write strategy within route state context.
 struct ShadowContext<'a> {
-    is_mutated: bool,
-    is_dirty: bool,
     goal: &'a GoalContext,
-    ctx: RouteContext,
+    // NOTE Cow might be a better fit, but it would require RouteContext to implement Clone trait.
+    //      However we want to avoid this as it might lead to unnecessary clones and, as result,
+    //      performance degradation.
+    ctx: Either<&'a RouteContext, RouteContext>,
 }
 
 impl<'a> ShadowContext<'a> {
-    fn new(goal: &'a GoalContext, ctx: &RouteContext) -> Self {
-        Self { is_mutated: false, is_dirty: false, goal, ctx: ctx.clone() }
+    fn new(goal: &'a GoalContext, ctx: &'a RouteContext) -> Self {
+        Self { goal, ctx: Either::Left(ctx) }
+    }
+
+    fn route_ctx(&self) -> &'_ RouteContext {
+        match &self.ctx {
+            Either::Left(route_ctx) => route_ctx,
+            Either::Right(route_ctx) => route_ctx,
+        }
     }
 
     fn insert(&mut self, activity: Activity, index: usize) -> Activity {
-        if !self.is_mutated {
-            self.ctx = self.ctx.deep_copy();
-            self.is_mutated = true;
+        if let Either::Left(route_ctx) = &self.ctx {
+            self.ctx = Either::Right(route_ctx.deep_copy());
         }
 
-        self.ctx.route_mut().tour.insert_at(activity.deep_copy(), index + 1);
-        self.goal.accept_route_state(&mut self.ctx);
-        self.is_dirty = true;
+        if let Either::Right(ref mut route_ctx) = self.ctx {
+            route_ctx.route_mut().tour.insert_at(activity.deep_copy(), index + 1);
+            self.goal.accept_route_state(route_ctx);
+        }
 
         activity
     }
 
-    fn restore(&mut self, original: &RouteContext) {
-        if self.is_dirty {
-            self.ctx = original.clone();
-            self.is_mutated = false;
-            self.is_dirty = false;
+    fn restore(&mut self, original: &'a RouteContext) {
+        if let Either::Right(_) = &self.ctx {
+            self.ctx = Either::Left(original)
         }
     }
 }

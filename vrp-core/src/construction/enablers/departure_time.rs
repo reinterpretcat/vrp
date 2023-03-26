@@ -41,7 +41,7 @@ fn try_advance_departure_time(
     transport: &(dyn TransportCost + Send + Sync),
     optimize_whole_tour: bool,
 ) -> Option<Timestamp> {
-    let route = route_ctx.route.as_ref();
+    let route = &route_ctx.route;
 
     let first = route.tour.get(1)?;
     let start = route.tour.start()?;

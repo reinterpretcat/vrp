@@ -56,7 +56,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
         &self,
         insertion_ctx: &InsertionContext,
         job: &Job,
-        routes: &[RouteContext],
+        routes: &[&RouteContext],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
@@ -67,7 +67,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
         &self,
         insertion_ctx: &InsertionContext,
         route_ctx: &RouteContext,
-        jobs: &[Job],
+        jobs: &[&Job],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
@@ -77,8 +77,8 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
     fn evaluate_all(
         &self,
         insertion_ctx: &InsertionContext,
-        jobs: &[Job],
-        routes: &[RouteContext],
+        jobs: &[&Job],
+        routes: &[&RouteContext],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
@@ -99,23 +99,23 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
             })
             .collect_group_by_key::<Job, InsertionSuccess, _>(|success| success.job.clone())
             .into_iter()
-            .filter_map(|(_, mut success)| {
-                if success.len() < regret_index {
+            .filter_map(|(_, mut successes)| {
+                if successes.len() < regret_index {
                     return None;
                 }
 
-                success.sort_by(|a, b| compare_floats(a.cost, b.cost));
+                successes.sort_by(|a, b| compare_floats(a.cost, b.cost));
 
-                let (_, mut job_results) = success.into_iter().fold(
+                let (_, mut job_results) = successes.into_iter().fold(
                     (HashSet::with_capacity(insertion_ctx.solution.routes.len()), Vec::default()),
-                    |(mut routes, mut results), result| {
-                        if !routes.contains(&result.context.route.actor) {
+                    |(mut actors, mut results), result| {
+                        if !actors.contains(&result.actor) {
                             results.push(result);
                         } else {
-                            routes.insert(result.context.route.actor.clone());
+                            actors.insert(result.actor);
                         }
 
-                        (routes, results)
+                        (actors, results)
                     },
                 );
 

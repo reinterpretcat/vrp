@@ -133,7 +133,8 @@ pub fn create_insertion_context_from_solution(
 
     solution.0.routes.iter().for_each(|route| {
         if route.tour.has_jobs() {
-            routes.push(RouteContext::new_with_state(Arc::new(route.deep_copy()), Arc::new(RouteState::default())));
+            routes.push(RouteContext::new_with_state(route.deep_copy(), RouteState::default()));
+            registry.use_actor(&route.actor);
         } else {
             registry.free_actor(&route.actor);
         }

@@ -147,8 +147,7 @@ impl FeatureConstraint for TravelLimitConstraint {
                 let tour_duration_limit = self.tour_duration_limit.deref()(route_ctx.route.actor.as_ref());
 
                 if tour_distance_limit.is_some() || tour_duration_limit.is_some() {
-                    let (change_distance, change_duration) =
-                        self.calculate_travel(route_ctx.route.as_ref(), activity_ctx);
+                    let (change_distance, change_duration) = self.calculate_travel(&route_ctx.route, activity_ctx);
 
                     if let Some(distance_limit) = tour_distance_limit {
                         let curr_dis = route_ctx.state.get_route_state(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);

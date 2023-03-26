@@ -45,7 +45,7 @@ fn can_create_multiple_insertion_ctxs_with_unassigned() {
 }
 
 #[test]
-fn can_mutate() {
+fn can_perform_search() {
     let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
     let problem = Arc::new(problem);

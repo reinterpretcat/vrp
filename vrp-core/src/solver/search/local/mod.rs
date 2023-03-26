@@ -75,13 +75,18 @@ impl LocalOperator for CompositeLocalOperator {
 }
 
 /// Applies insertion success by creating a new route context from it.
-fn apply_insertion(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
-    let route_index =
-        insertion_ctx.solution.routes.iter().position(|ctx| ctx.route.actor == success.context.route.actor).unwrap();
+fn apply_insertion_with_route(insertion_ctx: &mut InsertionContext, result: (InsertionSuccess, Option<RouteContext>)) {
+    let (success, route_ctx) = result;
 
-    // NOTE replace existing route context with the different
-    insertion_ctx.solution.routes[route_index] =
-        RouteContext::new_with_state(success.context.route.clone(), success.context.state.clone());
+    if let Some(route_ctx) = route_ctx {
+        debug_assert!(success.actor == route_ctx.route.actor);
+
+        let route_index =
+            insertion_ctx.solution.routes.iter().position(|ctx| ctx.route.actor == success.actor).unwrap();
+
+        // NOTE replace existing route with a new non empty route
+        insertion_ctx.solution.routes[route_index] = route_ctx;
+    }
 
     apply_insertion_success(insertion_ctx, success)
 }

@@ -60,9 +60,7 @@ fn get_new_route_ctx_idx(new_insertion_ctx: &mut InsertionContext, route_ctx: &R
         idx
     } else {
         let mut new_route_ctx =
-            new_insertion_ctx.solution.registry.next_with_actor(route_ctx.route.actor.as_ref()).unwrap().deep_copy();
-
-        new_insertion_ctx.solution.registry.use_route(&new_route_ctx);
+            new_insertion_ctx.solution.registry.get_route(&route_ctx.route.actor).expect("actor is already in use");
 
         // check and set a valid departure shift
         let new_start = new_route_ctx.route_mut().tour.get_mut(0).unwrap();

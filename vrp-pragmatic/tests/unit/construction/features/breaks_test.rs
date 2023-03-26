@@ -42,7 +42,7 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
     let fleet = test_fleet();
     let mut solution_ctx = SolutionContext {
         routes: vec![RouteContext::new_with_state(
-            Arc::new(create_route_with_activities(
+            create_route_with_activities(
                 &fleet,
                 "v1",
                 vec![
@@ -50,8 +50,8 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
                     create_activity_with_job_at_location(create_break("v1", break_job_loc), break_activity_loc),
                     create_activity_with_job_at_location(create_single("job2"), 3),
                 ],
-            )),
-            Arc::new(RouteState::default()),
+            ),
+            RouteState::default(),
         )],
         ..create_solution_context_for_fleet(&fleet)
     };

@@ -3,6 +3,7 @@
 mod route_removal_test;
 
 use super::*;
+use crate::models::problem::Actor;
 use crate::solver::search::JobRemovalTracker;
 use crate::solver::RefinementContext;
 use rand::prelude::SliceRandom;
@@ -26,11 +27,10 @@ impl Ruin for RandomRouteRemoval {
         let mut tracker = JobRemovalTracker::new(&self.limits, random.as_ref());
 
         (0..affected).for_each(|_| {
-            let route_index = random.uniform_int(0, (insertion_ctx.solution.routes.len() - 1) as i32) as usize;
+            let route_idx = random.uniform_int(0, (insertion_ctx.solution.routes.len() - 1) as i32) as usize;
             let solution = &mut insertion_ctx.solution;
-            let route_ctx = &mut solution.routes.get(route_index).unwrap().clone();
 
-            tracker.try_remove_route(solution, route_ctx, random.as_ref());
+            tracker.try_remove_route(solution, route_idx, random.as_ref());
         });
 
         insertion_ctx
@@ -76,10 +76,11 @@ impl Ruin for CloseRouteRemoval {
             #[allow(clippy::needless_collect)]
             let routes = route_groups_distances[route_index]
                 .iter()
-                .filter_map(|(idx, _)| insertion_ctx.solution.routes.get(*idx).cloned())
+                .filter_map(|(idx, _)| insertion_ctx.solution.routes.get(*idx))
+                .map(|route_ctx| route_ctx.route.actor.clone())
                 .collect::<Vec<_>>();
 
-            remove_routes(&mut insertion_ctx.solution, &self.limits, random.as_ref(), routes.into_iter());
+            remove_routes_with_actors(&mut insertion_ctx.solution, &self.limits, random.as_ref(), routes.into_iter());
         }
 
         insertion_ctx
@@ -123,25 +124,28 @@ impl Ruin for WorstRouteRemoval {
         #[allow(clippy::needless_collect)]
         let routes = route_sizes
             .iter()
-            .filter_map(|(idx, _)| insertion_ctx.solution.routes.get(*idx).cloned())
+            .filter_map(|(idx, _)| insertion_ctx.solution.routes.get(*idx))
+            .map(|route_ctx| route_ctx.route.actor.clone())
             .collect::<Vec<_>>();
 
-        remove_routes(&mut insertion_ctx.solution, &self.limits, random.as_ref(), routes.into_iter());
+        remove_routes_with_actors(&mut insertion_ctx.solution, &self.limits, random.as_ref(), routes.into_iter());
 
         insertion_ctx
     }
 }
 
-fn remove_routes<Iter>(
+fn remove_routes_with_actors<Iter>(
     solution_ctx: &mut SolutionContext,
     limits: &RemovalLimits,
     random: &(dyn Random + Send + Sync),
-    routes: Iter,
+    actors: Iter,
 ) where
-    Iter: Iterator<Item = RouteContext>,
+    Iter: Iterator<Item = Arc<Actor>>,
 {
     let mut tracker = JobRemovalTracker::new(limits, random);
-    routes.for_each(|mut route_ctx| {
-        tracker.try_remove_route(solution_ctx, &mut route_ctx, random);
+    actors.for_each(|actor| {
+        if let Some(route_idx) = solution_ctx.routes.iter().position(|route_ctx| route_ctx.route.actor == actor) {
+            tracker.try_remove_route(solution_ctx, route_idx, random);
+        }
     });
 }

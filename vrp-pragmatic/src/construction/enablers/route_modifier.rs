@@ -44,7 +44,7 @@ pub fn get_route_modifier(goal: Arc<GoalContext>, job_index: JobIndex) -> RouteM
             .min_by(|a, b| compare_floats(a.cost, b.cost));
 
         if let Some(success) = result {
-            let mut route_ctx = success.context;
+            let mut route_ctx = route_ctx.deep_copy();
             let route = route_ctx.route_mut();
             success.activities.into_iter().for_each(|(activity, index)| {
                 route.tour.insert_at(activity, index + 1);

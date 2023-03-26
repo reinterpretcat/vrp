@@ -22,12 +22,12 @@ fn create_test_route_ctx(compatibility: Option<String>) -> RouteContext {
     state.put_route_state(STATE_KEY, compatibility.clone());
 
     RouteContext::new_with_state(
-        Arc::new(create_route_with_activities(
+        create_route_with_activities(
             &test_fleet(),
             "v1",
             vec![create_activity_with_job_at_location(create_test_single(compatibility), 1)],
-        )),
-        Arc::new(state),
+        ),
+        state,
     )
 }
 

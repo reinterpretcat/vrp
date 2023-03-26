@@ -22,10 +22,12 @@ fn can_sort_jobs_by_demand_impl(demands: Vec<i32>, is_asc_order: bool, expected:
     demands.into_iter().for_each(|d| {
         insertion_ctx.solution.required.push(Job::Single(test_single_with_simple_demand(create_simple_demand(d))))
     });
+    let selector = DemandJobSelector::<SingleDimLoad>::new(is_asc_order);
 
-    let result = DemandJobSelector::<SingleDimLoad>::new(is_asc_order)
-        .select(&mut insertion_ctx)
-        .map(|job| DemandJobSelector::<SingleDimLoad>::get_job_demand(&job).unwrap())
+    selector.prepare(&mut insertion_ctx);
+    let result = selector
+        .select(&insertion_ctx)
+        .map(|job| DemandJobSelector::<SingleDimLoad>::get_job_demand(job).unwrap())
         .map(|demand| demand.value)
         .collect::<Vec<i32>>();
 

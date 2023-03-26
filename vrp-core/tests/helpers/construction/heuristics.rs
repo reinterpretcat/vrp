@@ -12,7 +12,13 @@ pub fn create_insertion_context(
     routes: Vec<RouteContext>,
 ) -> InsertionContext {
     let problem = create_empty_problem_with_goal_ctx(goal_ctx);
+
+    let mut registry = registry;
+    routes.iter().for_each(|route_ctx| {
+        registry.use_actor(&route_ctx.route.actor);
+    });
     let registry = RegistryContext::new(problem.goal.clone(), registry);
+
     InsertionContext {
         problem,
         solution: SolutionContext { routes, registry, ..create_empty_solution_context() },

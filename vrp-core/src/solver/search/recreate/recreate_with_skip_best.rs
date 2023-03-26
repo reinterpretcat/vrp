@@ -54,7 +54,7 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
         &self,
         insertion_ctx: &InsertionContext,
         job: &Job,
-        routes: &[RouteContext],
+        routes: &[&RouteContext],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
@@ -65,7 +65,7 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
         &self,
         insertion_ctx: &InsertionContext,
         route_ctx: &RouteContext,
-        jobs: &[Job],
+        jobs: &[&Job],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
@@ -75,8 +75,8 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
     fn evaluate_all(
         &self,
         insertion_ctx: &InsertionContext,
-        jobs: &[Job],
-        routes: &[RouteContext],
+        jobs: &[&Job],
+        routes: &[&RouteContext],
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {

@@ -3,7 +3,6 @@ use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::IdDimension;
-use vrp_core::models::problem::Job;
 use vrp_core::models::Problem;
 use vrp_core::rosomaxa::evolution::TelemetryMode;
 use vrp_core::solver::create_elitism_population;
@@ -15,9 +14,8 @@ use vrp_core::utils::Environment;
 struct StableJobSelector {}
 
 impl JobSelector for StableJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        ctx.solution.required.sort_by(|a, b| a.dimens().get_id().unwrap().cmp(b.dimens().get_id().unwrap()));
-        Box::new(ctx.solution.required.iter().cloned())
+    fn prepare(&self, insertion_ctx: &mut InsertionContext) {
+        insertion_ctx.solution.required.sort_by(|a, b| a.dimens().get_id().unwrap().cmp(b.dimens().get_id().unwrap()));
     }
 }
 

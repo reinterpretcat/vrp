@@ -76,7 +76,7 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
         problem: new_problem.clone(),
         solution: SolutionContext {
             routes: vec![RouteContext::new_with_state(
-                Arc::new(create_route_with_start_end_activities(
+                create_route_with_start_end_activities(
                     new_problem.fleet.as_ref(),
                     "v1",
                     test_activity_with_schedule(Schedule::new(0., 0.)),
@@ -90,8 +90,8 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
                             backward: CommuteInfo { location: 3, duration: 0., distance: 0. },
                         }),
                     }],
-                )),
-                Arc::new(RouteState::default()),
+                ),
+                RouteState::default(),
             )],
             ..create_empty_solution_context()
         },

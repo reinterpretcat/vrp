@@ -50,15 +50,15 @@ fn create_test_solution_context(
                 );
 
                 RouteContext::new_with_state(
-                    Arc::new(create_route_with_activities(
+                    create_route_with_activities(
                         fleet,
                         vehicle,
                         groups
                             .into_iter()
                             .map(|group| create_activity_with_job_at_location(create_test_single(group), 1))
                             .collect(),
-                    )),
-                    Arc::new(state),
+                    ),
+                    state,
                 )
             })
             .collect(),

@@ -1,7 +1,8 @@
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
-use crate::models::problem::Job;
+use crate::models::problem::{Actor, Job};
 use crate::models::solution::Activity;
+use std::sync::Arc;
 
 /// Specifies insertion result variant.
 pub enum InsertionResult {
@@ -22,8 +23,8 @@ pub struct InsertionSuccess {
     /// Specifies activities within index where they have to be inserted.
     pub activities: Vec<(Activity, usize)>,
 
-    /// Specifies route context where insertion happens.
-    pub context: RouteContext,
+    /// Specifies actor to be used.
+    pub actor: Arc<Actor>,
 }
 
 /// Specifies insertion failure.
@@ -74,23 +75,30 @@ impl InsertionHeuristic {
         while !insertion_ctx.solution.required.is_empty()
             && !insertion_ctx.environment.quota.as_ref().map_or(false, |q| q.is_reached())
         {
-            let jobs = job_selector.select(&mut insertion_ctx).collect::<Vec<Job>>();
-            let routes = route_selector.select(&mut insertion_ctx, jobs.as_slice()).collect::<Vec<RouteContext>>();
+            let (result, selected_jobs, selected_routes) = {
+                job_selector.prepare(&mut insertion_ctx);
+                route_selector.prepare(&mut insertion_ctx);
 
-            let result = self.insertion_evaluator.evaluate_all(
-                &insertion_ctx,
-                jobs.as_slice(),
-                routes.as_slice(),
-                leg_selection,
-                result_selector,
-            );
+                let jobs = job_selector.select(&insertion_ctx).collect::<Vec<_>>();
+                let routes = route_selector.select(&insertion_ctx, jobs.as_slice()).collect::<Vec<_>>();
+
+                let result = self.insertion_evaluator.evaluate_all(
+                    &insertion_ctx,
+                    jobs.as_slice(),
+                    routes.as_slice(),
+                    leg_selection,
+                    result_selector,
+                );
+
+                (result, jobs.len(), routes.len())
+            };
 
             match result {
                 InsertionResult::Success(success) => {
                     apply_insertion_success(&mut insertion_ctx, success);
                 }
                 InsertionResult::Failure(failure) => {
-                    apply_insertion_failure(&mut insertion_ctx, jobs, routes, failure);
+                    apply_insertion_failure(&mut insertion_ctx, failure, selected_jobs, selected_routes);
                 }
             }
         }
@@ -103,8 +111,8 @@ impl InsertionHeuristic {
 
 impl InsertionResult {
     /// Creates result which represents insertion success.
-    pub fn make_success(cost: Cost, job: Job, activities: Vec<(Activity, usize)>, route_ctx: RouteContext) -> Self {
-        Self::Success(InsertionSuccess { cost, job, activities, context: route_ctx })
+    pub fn make_success(cost: Cost, job: Job, activities: Vec<(Activity, usize)>, route_ctx: &RouteContext) -> Self {
+        Self::Success(InsertionSuccess { cost, job, activities, actor: route_ctx.route.actor.clone() })
     }
 
     /// Creates result which represents insertion failure.
@@ -168,13 +176,17 @@ pub(crate) fn finalize_insertion_ctx(insertion_ctx: &mut InsertionContext) {
 }
 
 pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
-    let is_new_route = insertion_ctx.solution.registry.use_route(&success.context);
-    let route_index =
-        insertion_ctx.solution.routes.iter().position(|ctx| ctx == &success.context).unwrap_or_else(|| {
-            assert!(is_new_route);
-            insertion_ctx.solution.routes.push(success.context.deep_copy());
-            insertion_ctx.solution.routes.len() - 1
-        });
+    let route_index = if let Some(new_route_ctx) = insertion_ctx.solution.registry.get_route(&success.actor) {
+        insertion_ctx.solution.routes.push(new_route_ctx);
+        insertion_ctx.solution.routes.len() - 1
+    } else {
+        insertion_ctx
+            .solution
+            .routes
+            .iter()
+            .position(|route_ctx| route_ctx.route.actor == success.actor)
+            .expect("registry is out of sync with used routes")
+    };
 
     let route_ctx = insertion_ctx.solution.routes.get_mut(route_index).unwrap();
     let route = route_ctx.route_mut();
@@ -190,13 +202,13 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
 
 fn apply_insertion_failure(
     insertion_ctx: &mut InsertionContext,
-    jobs: Vec<Job>,
-    routes: Vec<RouteContext>,
     failure: InsertionFailure,
+    selected_jobs: usize,
+    selected_routes: usize,
 ) {
     // NOTE in most of the cases, it is not needed to reevaluate insertion for all other jobs
-    let all_unassignable =
-        jobs.len() == insertion_ctx.solution.required.len() && routes.len() == insertion_ctx.solution.routes.len();
+    let all_unassignable = selected_jobs == insertion_ctx.solution.required.len()
+        && selected_routes == insertion_ctx.solution.routes.len();
 
     // NOTE this happens when evaluator fails to insert jobs due to lack of routes in registry
     // TODO remove from required only jobs from selected list

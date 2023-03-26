@@ -99,19 +99,13 @@ impl FeatureState for DispatchState {
         process_conditional_jobs(solution_ctx, None, self.context_transition.as_ref());
 
         // NOTE remove tour with dispatch only
-        let registry = &mut solution_ctx.registry;
-        solution_ctx.routes.retain(|rc| {
-            let tour = &rc.route.tour;
+        solution_ctx.keep_routes(&|route_ctx| {
+            let tour = &route_ctx.route.tour;
             if tour.job_count() == 1 {
-                let is_dispatch = tour.jobs().next().unwrap().as_single().map_or(false, is_dispatch_single);
-
-                if is_dispatch {
-                    registry.free_route(rc);
-                    return false;
-                }
+                !tour.jobs().next().unwrap().as_single().map_or(false, is_dispatch_single)
+            } else {
+                true
             }
-
-            true
         });
     }
 

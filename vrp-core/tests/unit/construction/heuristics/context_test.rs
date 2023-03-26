@@ -86,11 +86,8 @@ fn can_use_stale_flag() {
     route_ctx.mark_stale(false);
     assert!(!route_ctx.is_stale());
 
-    let route_ctx_clone = route_ctx.clone();
-    let route_ctx_fork = route_ctx.deep_copy();
-
-    route_ctx.as_mut();
+    let mut route_ctx = create_empty_route_ctx();
+    route_ctx.mark_stale(false);
+    let _ = route_ctx.as_mut();
     assert!(route_ctx.is_stale());
-    assert!(route_ctx_clone.is_stale());
-    assert!(!route_ctx_fork.is_stale());
 }

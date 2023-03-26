@@ -37,12 +37,21 @@ impl Recreate for RecreateWithFarthest {
 struct FarthestResultSelector {}
 
 impl ResultSelector for FarthestResultSelector {
-    fn select_insertion(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
+    fn select_insertion(
+        &self,
+        insertion_ctx: &InsertionContext,
+        left: InsertionResult,
+        right: InsertionResult,
+    ) -> InsertionResult {
         match (&left, &right) {
             (InsertionResult::Success(_), InsertionResult::Failure(_)) => left,
             (InsertionResult::Failure(_), InsertionResult::Success(_)) => right,
             (InsertionResult::Success(lhs), InsertionResult::Success(rhs)) => {
-                let insert_right = match (lhs.context.route.tour.has_jobs(), rhs.context.route.tour.has_jobs()) {
+                let routes = &insertion_ctx.solution.routes;
+                let lhs_route = routes.iter().find(|route_ctx| route_ctx.route.actor == lhs.actor);
+                let rhs_route = routes.iter().find(|route_ctx| route_ctx.route.actor == rhs.actor);
+
+                let insert_right = match (lhs_route.is_some(), rhs_route.is_some()) {
                     (false, false) => lhs.cost < rhs.cost,
                     (true, false) => false,
                     (false, true) => true,

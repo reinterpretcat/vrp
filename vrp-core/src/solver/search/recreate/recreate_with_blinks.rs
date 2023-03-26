@@ -10,7 +10,6 @@ use crate::models::Problem;
 use crate::solver::search::recreate::Recreate;
 use crate::solver::RefinementContext;
 use crate::utils::Either;
-use rand::prelude::*;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
@@ -40,8 +39,8 @@ impl<T: LoadOps> DemandJobSelector<T> {
 }
 
 impl<T: LoadOps> JobSelector for DemandJobSelector<T> {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        ctx.solution.required.sort_by(|a, b| match (Self::get_job_demand(a), Self::get_job_demand(b)) {
+    fn prepare(&self, insertion_ctx: &mut InsertionContext) {
+        insertion_ctx.solution.required.sort_by(|a, b| match (Self::get_job_demand(a), Self::get_job_demand(b)) {
             (None, Some(_)) => Ordering::Less,
             (Some(_), None) => Ordering::Greater,
             (Some(a), Some(b)) => b.partial_cmp(&a).unwrap_or(Ordering::Equal),
@@ -49,10 +48,8 @@ impl<T: LoadOps> JobSelector for DemandJobSelector<T> {
         });
 
         if self.asc_order {
-            ctx.solution.required.reverse();
+            insertion_ctx.solution.required.reverse();
         }
-
-        Box::new(ctx.solution.required.iter().cloned())
     }
 }
 
@@ -67,10 +64,8 @@ impl ChunkJobSelector {
 }
 
 impl JobSelector for ChunkJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        ctx.solution.required.shuffle(&mut ctx.environment.random.get_rng());
-
-        Box::new(ctx.solution.required.iter().take(self.size).cloned())
+    fn select<'a>(&'a self, insertion_ctx: &'a InsertionContext) -> Box<dyn Iterator<Item = &'a Job> + 'a> {
+        Box::new(insertion_ctx.solution.required.iter().take(self.size))
     }
 }
 
@@ -95,18 +90,16 @@ impl RankedJobSelector {
 }
 
 impl JobSelector for RankedJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        let problem = &ctx.problem;
+    fn prepare(&self, insertion_ctx: &mut InsertionContext) {
+        let problem = &insertion_ctx.problem;
 
-        ctx.solution.required.sort_by(|a, b| {
+        insertion_ctx.solution.required.sort_by(|a, b| {
             Self::rank_job(problem, a).partial_cmp(&Self::rank_job(problem, b)).unwrap_or(Ordering::Less)
         });
 
         if self.asc_order {
-            ctx.solution.required.reverse();
+            insertion_ctx.solution.required.reverse();
         }
-
-        Box::new(ctx.solution.required.iter().cloned())
     }
 }
 
@@ -147,7 +140,7 @@ impl ResultSelector for BlinkResultSelector {
         }
     }
 
-    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either<f64, f64> {
+    fn select_cost(&self, left: f64, right: f64) -> Either<f64, f64> {
         let is_blink = self.random.is_hit(self.ratio);
 
         if is_blink || left < right {

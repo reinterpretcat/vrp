@@ -9,7 +9,6 @@ use crate::models::problem::{Job, Single, VehicleDetail};
 use crate::models::solution::{Activity, Place, Registry};
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
-use std::ops::Deref;
 use std::sync::Arc;
 
 type JobPlace = crate::models::problem::Place;
@@ -190,7 +189,7 @@ mod single {
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
-            assert_eq!(get_vehicle_id(success.context.route.actor.vehicle.deref()), &expected_used_vehicle.to_owned());
+            assert_eq!(get_vehicle_id(&success.actor.vehicle), &expected_used_vehicle.to_owned());
             assert_eq!(compare_floats(success.cost, cost), Ordering::Equal);
         } else {
             unreachable!()

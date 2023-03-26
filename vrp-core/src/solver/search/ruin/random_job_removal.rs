@@ -26,11 +26,10 @@ impl Ruin for RandomJobRemoval {
 
         (0..self.limits.removed_activities_range.end).take_while(|_| !tracker.read().unwrap().is_limit()).for_each(
             |_| {
-                if let Some((route_index, job)) =
-                    select_seed_job(&insertion_ctx.solution.routes, &insertion_ctx.environment.random)
+                if let Some((_, route_idx, job)) =
+                    select_seed_job(&insertion_ctx.solution.routes, insertion_ctx.environment.random.as_ref())
                 {
-                    let mut route_ctx = insertion_ctx.solution.routes.get_mut(route_index).unwrap().clone();
-                    tracker.write().unwrap().try_remove_job(&mut insertion_ctx.solution, &mut route_ctx, &job);
+                    tracker.write().unwrap().try_remove_job(&mut insertion_ctx.solution, route_idx, &job);
                 }
             },
         );

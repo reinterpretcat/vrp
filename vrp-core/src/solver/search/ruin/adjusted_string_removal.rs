@@ -6,7 +6,7 @@ use super::Ruin;
 use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::problem::Job;
 use crate::models::solution::Tour;
-use crate::solver::search::{select_seed_jobs, JobRemovalTracker, RemovalLimits};
+use crate::solver::search::{select_neighbors, select_seed_job, JobRemovalTracker, RemovalLimits};
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::Random;
 use std::sync::{Arc, RwLock};
@@ -58,15 +58,38 @@ impl Ruin for AdjustedStringRemoval {
     fn run(&self, _: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.environment.random.clone();
-        let mut routes = insertion_ctx.solution.routes.clone();
         let tracker = RwLock::new(JobRemovalTracker::new(&self.limits, random.as_ref()));
 
-        let (lsmax, ks) = self.calculate_limits(&routes, &random);
+        let (lsmax, ks) = self.calculate_limits(insertion_ctx.solution.routes.as_slice(), &random);
 
-        select_seed_jobs(&problem, &routes, &random)
+        let seed = select_seed_job(insertion_ctx.solution.routes.as_slice(), random.as_ref())
+            .map(|(profile, _, job)| (profile, job));
+        select_neighbors(&problem, seed)
             .filter(|job| !tracker.read().unwrap().is_removed_job(job))
             .take_while(|_| tracker.read().unwrap().get_affected_actors() != ks)
             .for_each(|job| {
+                let route_idx = insertion_ctx.solution.routes.iter().position(|route_ctx| {
+                    !tracker.read().unwrap().is_affected_actor(&route_ctx.route.actor)
+                        && route_ctx.route.tour.index(&job).is_some()
+                });
+
+                route_idx.into_iter().for_each(|route_idx| {
+                    let route_ctx = insertion_ctx.solution.routes.get(route_idx).expect("invalid index");
+
+                    // Equations 8, 9: calculate cardinality of the string removed from the tour
+                    let ltmax = route_ctx.route.tour.job_activity_count().min(lsmax);
+                    let lt = random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
+
+                    if let Some(index) = route_ctx.route.tour.index(&job) {
+                        select_string((&route_ctx.route.tour, index), lt, self.alpha, &random)
+                            .collect::<Vec<Job>>()
+                            .into_iter()
+                            .for_each(|job| {
+                                tracker.write().unwrap().try_remove_job(&mut insertion_ctx.solution, route_idx, &job);
+                            });
+                    }
+                });
+                /*
                 routes
                     .iter_mut()
                     .find(|route_ctx| {
@@ -91,7 +114,7 @@ impl Ruin for AdjustedStringRemoval {
                                     );
                                 });
                         }
-                    });
+                    });*/
             });
 
         insertion_ctx

@@ -11,7 +11,7 @@ use rosomaxa::prelude::Environment;
 fn create_insertion_success(insertion_ctx: &InsertionContext, insertion_data: (usize, &str, usize)) -> InsertionResult {
     let (route_idx, job_id, insertion_idx) = insertion_data;
 
-    let context = insertion_ctx.solution.routes.get(route_idx).cloned().unwrap();
+    let actor = insertion_ctx.solution.routes.get(route_idx).unwrap().route.actor.clone();
     let job = get_jobs_by_ids(insertion_ctx, &[job_id]).first().cloned().unwrap();
     let activity = Activity {
         place: Place { location: 0, duration: 0.0, time: TimeWindow::new(0., 1.) },
@@ -20,7 +20,7 @@ fn create_insertion_success(insertion_ctx: &InsertionContext, insertion_data: (u
         commute: None,
     };
 
-    InsertionResult::Success(InsertionSuccess { cost: 0., job, activities: vec![(activity, insertion_idx)], context })
+    InsertionResult::Success(InsertionSuccess { cost: 0., job, activities: vec![(activity, insertion_idx)], actor })
 }
 
 fn create_insertion_ctx(

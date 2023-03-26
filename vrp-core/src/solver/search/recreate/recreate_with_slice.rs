@@ -4,7 +4,6 @@ use crate::models::problem::Job;
 use crate::solver::search::recreate::Recreate;
 use crate::solver::search::ConfigurableRecreate;
 use crate::solver::RefinementContext;
-use rand::prelude::SliceRandom;
 use rosomaxa::prelude::Random;
 use std::sync::Arc;
 
@@ -38,14 +37,12 @@ impl Recreate for RecreateWithSlice {
 struct SliceJobSelector {}
 
 impl JobSelector for SliceJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        ctx.solution.required.shuffle(&mut ctx.environment.random.get_rng());
+    fn select<'a>(&'a self, insertion_ctx: &'a InsertionContext) -> Box<dyn Iterator<Item = &'a Job> + 'a> {
+        let required = insertion_ctx.solution.required.len() as i32;
 
-        let required = ctx.solution.required.len() as i32;
+        let take = insertion_ctx.environment.random.uniform_int(required / 4, required / 2) as usize;
 
-        let take = ctx.environment.random.uniform_int(required / 4, required / 2) as usize;
-
-        Box::new(ctx.solution.required.iter().take(take).cloned())
+        Box::new(insertion_ctx.solution.required.iter().take(take))
     }
 }
 
@@ -55,15 +52,13 @@ struct SliceRouteSelector {}
 impl RouteSelector for SliceRouteSelector {
     fn select<'a>(
         &'a self,
-        ctx: &'a mut InsertionContext,
-        _jobs: &[Job],
-    ) -> Box<dyn Iterator<Item = RouteContext> + 'a> {
-        ctx.solution.routes.shuffle(&mut ctx.environment.random.get_rng());
+        insertion_ctx: &'a InsertionContext,
+        _jobs: &[&Job],
+    ) -> Box<dyn Iterator<Item = &'a RouteContext> + 'a> {
+        let routes = insertion_ctx.solution.routes.len() as i32;
 
-        let routes = ctx.solution.routes.len() as i32;
+        let take = insertion_ctx.environment.random.uniform_int(routes / 4, routes / 2) as usize;
 
-        let take = ctx.environment.random.uniform_int(routes / 4, routes / 2) as usize;
-
-        Box::new(ctx.solution.routes.iter().take(take).cloned().chain(ctx.solution.registry.next()))
+        Box::new(insertion_ctx.solution.routes.iter().take(take).chain(insertion_ctx.solution.registry.next_route()))
     }
 }

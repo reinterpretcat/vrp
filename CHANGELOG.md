@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+This release is focused on removing unsafe code.
+
+### Changed
+
+* refactor RouteContext to avoid using Arc and unsafe code
+* adapt core api to required safety changes
+
 
 ## [v1.19.2]
 

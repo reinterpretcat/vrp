@@ -8,7 +8,6 @@ use crate::models::common::Cost;
 use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::{Extras, Problem, Solution};
-use crate::utils::as_mut;
 use hashbrown::{HashMap, HashSet};
 use nohash_hasher::BuildNoHashHasher;
 use rosomaxa::prelude::*;
@@ -56,21 +55,7 @@ impl InsertionContext {
     /// Restores valid context state.
     pub fn restore(&mut self) {
         self.problem.goal.accept_solution_state(&mut self.solution);
-
-        self.remove_empty_routes();
-    }
-
-    /// Removes empty routes from solution context.
-    fn remove_empty_routes(&mut self) {
-        let registry = &mut self.solution.registry;
-        self.solution.routes.retain(|rc| {
-            if rc.route.tour.has_jobs() {
-                true
-            } else {
-                registry.free_route(rc);
-                false
-            }
-        });
+        self.solution.remove_empty_routes();
     }
 }
 
@@ -162,6 +147,23 @@ impl SolutionContext {
         self.unassigned.len() + required + self.ignored.len() + assigned
     }
 
+    /// Keep routes for which given predicate returns true.
+    pub fn keep_routes(&mut self, predicate: &dyn Fn(&RouteContext) -> bool) {
+        // as for 1.68, drain_filter is not yet stable (see https://github.com/rust-lang/rust/issues/43244)
+        let (keep, remove): (Vec<_>, Vec<_>) = self.routes.drain(0..).partition(predicate);
+
+        remove.into_iter().for_each(|route_ctx| {
+            assert!(self.registry.free_route(route_ctx));
+        });
+
+        self.routes = keep;
+    }
+
+    /// Removes empty routes from solution context.
+    pub(crate) fn remove_empty_routes(&mut self) {
+        self.keep_routes(&|route_ctx| route_ctx.route.tour.has_jobs())
+    }
+
     /// Creates a deep copy of `SolutionContext`.
     pub fn deep_copy(&self) -> Self {
         Self {
@@ -177,16 +179,15 @@ impl SolutionContext {
 }
 
 /// Specifies insertion context for route.
-#[derive(Clone)]
 pub struct RouteContext {
     /// Used route.
-    pub route: Arc<Route>,
+    pub route: Route,
 
     /// Insertion state.
-    pub state: Arc<RouteState>,
+    pub state: RouteState,
 
     /// A route cache.
-    cache: Arc<RouteCache>,
+    cache: RouteCache,
 }
 
 /// Provides the way to associate arbitrary data within route or/and activity.
@@ -212,24 +213,20 @@ impl RouteContext {
     /// Creates a new instance of `RouteContext`.
     pub fn new(actor: Arc<Actor>) -> Self {
         let tour = Tour::new(&actor);
-        Self::new_with_state(Arc::new(Route { actor, tour }), Arc::new(RouteState::default()))
+        Self::new_with_state(Route { actor, tour }, RouteState::default())
     }
 
     /// Creates a new instance of `RouteContext` with arguments provided.
-    pub fn new_with_state(route: Arc<Route>, state: Arc<RouteState>) -> Self {
-        RouteContext { route, state, cache: Arc::new(RouteCache { is_stale: true }) }
+    pub fn new_with_state(route: Route, state: RouteState) -> Self {
+        RouteContext { route, state, cache: RouteCache { is_stale: true } }
     }
 
     /// Creates a deep copy of `RouteContext`.
     pub fn deep_copy(&self) -> Self {
         let new_route = Route { actor: self.route.actor.clone(), tour: self.route.tour.deep_copy() };
-        let new_state = RouteState::from_other_and_tours(self.state.as_ref(), &self.route.tour, &new_route.tour);
+        let new_state = RouteState::from_other_and_tours(&self.state, &self.route.tour, &new_route.tour);
 
-        RouteContext {
-            route: Arc::new(new_route),
-            state: Arc::new(new_state),
-            cache: Arc::new(RouteCache { is_stale: self.cache.is_stale }),
-        }
+        RouteContext { route: new_route, state: new_state, cache: RouteCache { is_stale: self.cache.is_stale } }
     }
 
     /// Gets route cost.
@@ -256,28 +253,21 @@ impl RouteContext {
     /// Marks context as stale.
     pub fn as_mut(&mut self) -> (&mut Route, &mut RouteState) {
         self.mark_stale(true);
-
-        // SAFETY: it is caller responsibility to ensure that no mutable access occurs from different threads.
-        let route: &mut Route = unsafe { as_mut(&self.route) };
-        let state: &mut RouteState = unsafe { as_mut(&self.state) };
-
-        (route, state)
+        (&mut self.route, &mut self.state)
     }
 
     /// Returns mutable reference to used `Route`.
     /// Marks context as stale.
     pub fn route_mut(&mut self) -> &mut Route {
         self.mark_stale(true);
-        // SAFETY: the caller must ensure that no mutable access occurs on cloned RouteContext from different threads
-        unsafe { as_mut(&self.route) }
+        &mut self.route
     }
 
     /// Returns mutable reference to used `RouteState`.
     /// Marks context as stale.
     pub fn state_mut(&mut self) -> &mut RouteState {
         self.mark_stale(true);
-        // SAFETY: the caller must ensure that no mutable access occurs on cloned RouteContext from different threads
-        unsafe { as_mut(&self.state) }
+        &mut self.state
     }
 
     /// Returns true if context is stale. Context is marked stale when it is accessed by `mut`
@@ -288,15 +278,13 @@ impl RouteContext {
 
     /// Marks context stale or resets the flag.
     pub(crate) fn mark_stale(&mut self, is_stale: bool) {
-        // SAFETY: the caller must ensure that no mutable access occurs on cloned RouteContext from different threads
-        let cache: &mut RouteCache = unsafe { as_mut(&self.cache) };
-        cache.is_stale = is_stale;
+        self.cache.is_stale = is_stale;
     }
 }
 
 impl PartialEq<RouteContext> for RouteContext {
     fn eq(&self, other: &RouteContext) -> bool {
-        std::ptr::eq(self.route.deref(), other.route.deref())
+        std::ptr::eq(self.route.actor.deref(), other.route.actor.deref())
     }
 }
 
@@ -484,31 +472,40 @@ impl RegistryContext {
         &self.registry
     }
 
-    /// Returns next route for insertion.
-    pub fn next(&'_ self) -> impl Iterator<Item = RouteContext> + '_ {
-        self.registry.next().map(move |actor| self.index[&actor].clone())
+    /// Returns next route available for insertion.
+    pub fn next_route(&self) -> impl Iterator<Item = &RouteContext> {
+        self.registry.next().map(move |actor| &self.index[&actor])
     }
 
     /// Returns route for given actor if it is available.
-    pub fn next_with_actor(&self, actor: &Actor) -> Option<RouteContext> {
-        self.registry.available().find(|a| actor == a.as_ref()).and_then(|a| self.index.get(&a).cloned())
+    pub fn next_with_actor(&self, actor: &Actor) -> Option<&'_ RouteContext> {
+        self.registry.available().find(|a| actor == a.as_ref()).and_then(|a| self.index.get(&a))
     }
 
-    /// Sets this route as used.
-    /// Returns whether the route was already marked as used in the registry.
-    pub fn use_route(&mut self, route: &RouteContext) -> bool {
-        self.registry.use_actor(&route.route.actor)
+    /// Gets route for given actor and marks it as used.
+    /// Returns None if actor is already in use.
+    /// NOTE: you need to call free route to make it to be available again.
+    pub fn get_route(&mut self, actor: &Actor) -> Option<RouteContext> {
+        if let Some(route_ctx) = self.next_with_actor(actor).map(|route_ctx| route_ctx.deep_copy()) {
+            assert!(self.registry.use_actor(&route_ctx.route.actor));
+            Some(route_ctx)
+        } else {
+            None
+        }
     }
 
-    /// Sets this route as unused.
-    /// Returns whether the route was already unused in the registry.
-    pub fn free_route(&mut self, route: &RouteContext) {
-        self.registry.free_actor(&route.route.actor);
+    /// Return back route to be reused again.
+    /// Returns whether the route was not present in the registry.
+    pub fn free_route(&mut self, route: RouteContext) -> bool {
+        self.registry.free_actor(&route.route.actor)
     }
 
     /// Creates a deep copy of `RegistryContext`.
     pub fn deep_copy(&self) -> Self {
-        Self { registry: self.registry.deep_copy(), index: self.index.clone() }
+        Self {
+            registry: self.registry.deep_copy(),
+            index: self.index.iter().map(|(actor, route_ctx)| (actor.clone(), route_ctx.deep_copy())).collect(),
+        }
     }
 
     /// Creates a deep sliced copy of RegistryContext` keeping only specific actors data.
@@ -517,7 +514,7 @@ impl RegistryContext {
             .index
             .iter()
             .filter(|(actor, _)| filter(actor.as_ref()))
-            .map(|(actor, route_ctx)| (actor.clone(), route_ctx.clone()))
+            .map(|(actor, route_ctx)| (actor.clone(), route_ctx.deep_copy()))
             .collect();
         Self { registry: self.registry.deep_slice(filter), index }
     }

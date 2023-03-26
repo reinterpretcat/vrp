@@ -289,7 +289,8 @@ fn merge_best(
     dest_solution.unassigned.extend(source_solution.unassigned.iter().map(|(k, v)| (k.clone(), v.clone())));
 
     source_solution.routes.iter().for_each(|route_ctx| {
-        dest_solution.registry.use_route(route_ctx);
+        // NOTE ideally route shouldn't go nowhere, but it is fine in that case
+        assert!(dest_solution.registry.get_route(&route_ctx.route.actor).is_some());
     });
 
     accumulated

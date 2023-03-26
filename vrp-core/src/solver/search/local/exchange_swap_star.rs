@@ -239,7 +239,7 @@ fn choose_best_result(
         .enumerate()
         .fold((0, &failure), |(acc_idx, acc_result), (idx, result)| match (acc_result, result) {
             (InsertionResult::Success(acc_success), InsertionResult::Success(success)) => {
-                match search_ctx.2.select_cost(&acc_success.context, acc_success.cost, success.cost) {
+                match search_ctx.2.select_cost(acc_success.cost, success.cost) {
                     Either::Left(_) => (acc_idx, acc_result),
                     Either::Right(_) => (idx, result),
                 }
@@ -256,7 +256,7 @@ fn choose_best_result(
                 cost: success.cost,
                 job: success.job.clone(),
                 activities: success.activities.iter().map(|(activity, idx)| (activity.deep_copy(), *idx)).collect(),
-                context: success.context.deep_copy(),
+                actor: success.actor.clone(),
             }),
             InsertionResult::Failure(_) => InsertionResult::make_failure(),
         }
@@ -366,16 +366,22 @@ fn try_exchange_jobs(
         let inner_job = inner_success.job.clone();
 
         // remove jobs from results and revaluate them again
-        let mut insertion_results = once((outer_success, inner_job))
+        let mut insertion_successes = once((outer_success, inner_job))
             .chain(once((inner_success, outer_job)))
-            .map(|(mut success, job)| {
-                success.context = success.context.deep_copy();
+            .filter_map(|(success, job)| {
+                let mut route_ctx = insertion_ctx
+                    .solution
+                    .routes
+                    .iter()
+                    .find(|route_ctx| route_ctx.route.actor == success.actor)
+                    .expect("cannot find route for insertion")
+                    .deep_copy();
 
                 // NOTE job can be already removed in in-place case
-                let removed_idx = success.context.route.tour.index(&job).unwrap_or(usize::MAX);
+                let removed_idx = route_ctx.route.tour.index(&job).unwrap_or(usize::MAX);
 
-                success.context.route_mut().tour.remove(&job);
-                constraint.accept_route_state(&mut success.context);
+                route_ctx.route_mut().tour.remove(&job);
+                constraint.accept_route_state(&mut route_ctx);
 
                 let position = success.activities.first().unwrap().1;
                 let position = if position < removed_idx || position == 0 { position } else { position - 1 };
@@ -385,14 +391,15 @@ fn try_exchange_jobs(
                 let eval_ctx = get_evaluation_context(&search_ctx, &success.job);
                 let alternative = InsertionResult::make_failure();
 
-                eval_job_insertion_in_route(insertion_ctx, &eval_ctx, &success.context, position, alternative)
+                eval_job_insertion_in_route(insertion_ctx, &eval_ctx, &route_ctx, position, alternative)
+                    .into_success()
+                    .map(|success| (success, Some(route_ctx)))
             })
-            .filter_map(|result| result.into_success())
             .collect::<Vec<_>>();
 
-        if insertion_results.len() == 2 {
-            apply_insertion(insertion_ctx, insertion_results.pop().unwrap());
-            apply_insertion(insertion_ctx, insertion_results.pop().unwrap());
+        if insertion_successes.len() == 2 {
+            apply_insertion_with_route(insertion_ctx, insertion_successes.pop().unwrap());
+            apply_insertion_with_route(insertion_ctx, insertion_successes.pop().unwrap());
             finalize_insertion_ctx(insertion_ctx);
         }
     }

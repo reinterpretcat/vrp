@@ -4,7 +4,6 @@ use crate::models::problem::Job;
 use crate::solver::search::recreate::Recreate;
 use crate::solver::search::ConfigurableRecreate;
 use crate::solver::RefinementContext;
-use rand::prelude::*;
 use rosomaxa::prelude::Random;
 use std::sync::Arc;
 
@@ -15,15 +14,12 @@ struct GapsJobSelector {
 }
 
 impl JobSelector for GapsJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        // TODO we should prefer to always insert locked jobs
-        ctx.solution.required.shuffle(&mut ctx.environment.random.get_rng());
-
+    fn select<'a>(&'a self, insertion_ctx: &'a InsertionContext) -> Box<dyn Iterator<Item = &'a Job> + 'a> {
         // TODO improve formula
-        let max_jobs = self.min_jobs.max(ctx.solution.required.len().min(self.max_jobs));
-        let take_jobs = ctx.environment.random.uniform_int(self.min_jobs as i32, max_jobs as i32) as usize;
+        let max_jobs = self.min_jobs.max(insertion_ctx.solution.required.len().min(self.max_jobs));
+        let take_jobs = insertion_ctx.environment.random.uniform_int(self.min_jobs as i32, max_jobs as i32) as usize;
 
-        Box::new(ctx.solution.required.iter().take(take_jobs).cloned())
+        Box::new(insertion_ctx.solution.required.iter().take(take_jobs))
     }
 }
 

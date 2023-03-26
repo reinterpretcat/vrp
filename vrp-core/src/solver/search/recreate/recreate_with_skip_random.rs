@@ -4,7 +4,6 @@ use crate::models::problem::Job;
 use crate::solver::search::recreate::Recreate;
 use crate::solver::search::{ConfigurableRecreate, PhasedRecreate};
 use crate::solver::RefinementContext;
-use rand::prelude::SliceRandom;
 use rosomaxa::prelude::*;
 use std::sync::Arc;
 
@@ -54,12 +53,10 @@ impl RecreateWithSkipRandom {
 struct SkipRandomJobSelector {}
 
 impl JobSelector for SkipRandomJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        ctx.solution.required.shuffle(&mut ctx.environment.random.get_rng());
+    fn select<'a>(&'a self, insertion_ctx: &'a InsertionContext) -> Box<dyn Iterator<Item = &'a Job> + 'a> {
+        let skip = insertion_ctx.environment.random.uniform_int(2, 8) as usize;
 
-        let skip = ctx.environment.random.uniform_int(2, 8) as usize;
-
-        Box::new(ctx.solution.required.iter().skip(skip).cloned())
+        Box::new(insertion_ctx.solution.required.iter().skip(skip))
     }
 }
 
@@ -69,19 +66,17 @@ struct SkipRandomRouteSelector {}
 impl RouteSelector for SkipRandomRouteSelector {
     fn select<'a>(
         &'a self,
-        ctx: &'a mut InsertionContext,
-        _jobs: &[Job],
-    ) -> Box<dyn Iterator<Item = RouteContext> + 'a> {
-        ctx.solution.routes.shuffle(&mut ctx.environment.random.get_rng());
+        insertion_ctx: &'a InsertionContext,
+        _: &[&Job],
+    ) -> Box<dyn Iterator<Item = &'a RouteContext> + 'a> {
+        let skip = insertion_ctx.environment.random.uniform_int(0, 4);
 
-        let skip = ctx.environment.random.uniform_int(0, 4);
-
-        let skip = match (skip > ctx.solution.routes.len() as i32, ctx.solution.routes.len() > 1) {
+        let skip = match (skip > insertion_ctx.solution.routes.len() as i32, insertion_ctx.solution.routes.len() > 1) {
             (true, true) => (skip - 1) as usize,
             (false, true) => 1,
             _ => 0,
         };
 
-        Box::new(ctx.solution.routes.iter().skip(skip).cloned().chain(ctx.solution.registry.next()))
+        Box::new(insertion_ctx.solution.routes.iter().skip(skip).chain(insertion_ctx.solution.registry.next_route()))
     }
 }
