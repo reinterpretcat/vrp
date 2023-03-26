@@ -3,8 +3,8 @@
 // Reimport rosomaxa utils
 pub use rosomaxa::utils::*;
 
-pub use self::mutability::*;
+pub use self::comparison::*;
 pub use self::types::Either;
 
-mod mutability;
+mod comparison;
 mod types;

@@ -5,10 +5,10 @@ use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::helpers::solver::create_default_refinement_ctx;
+use crate::helpers::utils::mutability::as_mut;
 use crate::models::common::IdDimension;
 use crate::models::problem::Job;
 use crate::models::solution::{Commute, CommuteInfo};
-use crate::utils::as_mut;
 
 fn create_test_jobs() -> Vec<Job> {
     vec![
