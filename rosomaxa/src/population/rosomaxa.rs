@@ -8,6 +8,7 @@ use crate::algorithms::math::relative_distance;
 use crate::population::elitism::{DedupFn, DominanceOrdered, Shuffled};
 use crate::utils::{Environment, Random};
 use rand::prelude::SliceRandom;
+use rayon::iter::Either;
 use std::convert::TryInto;
 use std::fmt::Formatter;
 use std::ops::RangeBounds;
@@ -153,15 +154,19 @@ where
                                 .find(coordinate)
                                 .map(|node| {
                                     let node = node.read().unwrap();
-                                    // NOTE this is black magic to trick borrow checker, it should be safe to do
+                                    // SAFETY we need to return references from underlying storage, but
+                                    // borrow checker is not happy with that. However, it seems
+                                    // to be safe to do as returned iterator has lifetime of a population
                                     // TODO is there better way to achieve similar result?
-                                    unsafe { &*(&node.storage.population as *const Elitism<O, S>) as &Elitism<O, S> }
+                                    Either::Left(
+                                        unsafe {
+                                            &*(&node.storage.population as *const Elitism<O, S>) as &Elitism<O, S>
+                                        }
                                         .select()
-                                        .take(explore_size)
-                                        .collect::<Vec<_>>()
+                                        .take(explore_size),
+                                    )
                                 })
-                                .unwrap_or_else(Vec::new)
-                                .into_iter()
+                                .unwrap_or_else(|| Either::Right(std::iter::empty()))
                         }))
                         .take(*selection_size),
                 )
