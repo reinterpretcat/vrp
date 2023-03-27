@@ -86,8 +86,8 @@ mod timing {
 
         feature.state.unwrap().accept_route_state(&mut route_ctx);
 
-        let activity = route_ctx.route.tour.get(activity).unwrap();
-        let result = *route_ctx.state.get_activity_state::<Timestamp>(LATEST_ARRIVAL_KEY, activity).unwrap();
+        let activity = route_ctx.route().tour.get(activity).unwrap();
+        let result = *route_ctx.state().get_activity_state::<Timestamp>(LATEST_ARRIVAL_KEY, activity).unwrap();
 
         assert_eq!(result, time);
     }
@@ -119,9 +119,9 @@ mod timing {
         let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data);
         feature.state.unwrap().accept_route_state(&mut route_ctx);
 
-        let prev = route_ctx.route.tour.get(prev_index).unwrap();
+        let prev = route_ctx.route().tour.get(prev_index).unwrap();
         let target = test_activity_with_location(location);
-        let next = route_ctx.route.tour.get(next_index);
+        let next = route_ctx.route().tour.get(next_index);
         let activity_ctx = ActivityContext { index: 0, prev, target: &target, next };
 
         let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(&route_ctx, &activity_ctx));
@@ -157,8 +157,8 @@ mod timing {
         create_feature().state.unwrap().accept_solution_state(&mut solution_ctx);
 
         let route_ctx = solution_ctx.routes.first().unwrap();
-        assert_eq!(route_ctx.route.tour.get(1).unwrap().schedule, Schedule { arrival: 10., departure: 25. });
-        assert_eq!(route_ctx.route.tour.get(2).unwrap().schedule, Schedule { arrival: 35., departure: 60. });
+        assert_eq!(route_ctx.route().tour.get(1).unwrap().schedule, Schedule { arrival: 10., departure: 25. });
+        assert_eq!(route_ctx.route().tour.get(2).unwrap().schedule, Schedule { arrival: 35., departure: 60. });
     }
 
     #[test]
@@ -176,9 +176,9 @@ mod timing {
         });
         let activity_ctx = ActivityContext {
             index: 0,
-            prev: route_ctx.route.tour.get(0).unwrap(),
+            prev: route_ctx.route().tour.get(0).unwrap(),
             target: &target,
-            next: route_ctx.route.tour.get(1),
+            next: route_ctx.route().tour.get(1),
         };
 
         let result = create_feature().objective.unwrap().estimate(&MoveContext::activity(&route_ctx, &activity_ctx));
@@ -213,9 +213,9 @@ mod timing {
         });
         let activity_ctx = ActivityContext {
             index: 0,
-            prev: route_ctx.route.tour.get(1).unwrap(),
+            prev: route_ctx.route().tour.get(1).unwrap(),
             target: &target,
-            next: route_ctx.route.tour.get(2),
+            next: route_ctx.route().tour.get(2),
         };
 
         let result = create_feature().objective.unwrap().estimate(&MoveContext::activity(&route_ctx, &activity_ctx));
@@ -289,15 +289,15 @@ mod time_dependent {
 
     fn get_activity_states(route_ctx: &RouteContext, key: i32) -> Vec<Option<f64>> {
         route_ctx
-            .route
+            .route()
             .tour
             .all_activities()
-            .map(|a| route_ctx.state.get_activity_state::<f64>(key, a).cloned())
+            .map(|a| route_ctx.state().get_activity_state::<f64>(key, a).cloned())
             .collect()
     }
 
     fn get_schedules(route_ctx: &RouteContext) -> Vec<(Timestamp, Timestamp)> {
-        route_ctx.route.tour.all_activities().map(|a| (a.schedule.arrival, a.schedule.departure)).collect()
+        route_ctx.route().tour.all_activities().map(|a| (a.schedule.arrival, a.schedule.departure)).collect()
     }
 
     parameterized_test! {can_update_state_for_reserved_time, (vehicle_detail_data, reserved_time, activities, late_arrival_expected, expected_schedules), {
@@ -417,9 +417,9 @@ mod time_dependent {
         let feature_state = feature.state.unwrap();
         feature_state.accept_route_state(&mut route_ctx);
         let (loc, (start, end), dur) = target;
-        let prev = route_ctx.route.tour.get(0).unwrap();
+        let prev = route_ctx.route().tour.get(0).unwrap();
         let target = test_activity_with_location_tw_and_duration(loc, TimeWindow::new(start, end), dur);
-        let next = route_ctx.route.tour.get(1);
+        let next = route_ctx.route().tour.get(1);
         let activity_ctx = ActivityContext { index: 1, prev, target: &target, next };
 
         let is_violation = feature_constraint.evaluate(&MoveContext::activity(&route_ctx, &activity_ctx)).is_some();

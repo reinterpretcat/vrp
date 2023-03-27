@@ -68,7 +68,7 @@ fn create_route_ctx(
         .collect();
 
     let mut route_ctx = create_route_context_with_activities(fleet, vehicle_id, activities);
-    let intervals = route_intervals(&route_ctx.route, |activity| {
+    let intervals = route_intervals(route_ctx.route(), |activity| {
         activity.job.as_ref().map_or(false, |job| {
             let capacity: Option<&SingleDimLoad> = job.dimens.get_capacity();
             capacity.is_some()
@@ -103,7 +103,7 @@ fn create_solution_ctx(
 }
 
 fn create_interval_fn() -> SharedResourceIntervalFn {
-    Arc::new(move |route_ctx| route_ctx.state.get_route_state::<Vec<(usize, usize)>>(INTERVALS_KEY))
+    Arc::new(move |route_ctx| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(INTERVALS_KEY))
 }
 
 fn create_resource_demand_fn() -> SharedResourceDemandFn<SingleDimLoad> {
@@ -163,12 +163,12 @@ fn can_update_resource_consumption_impl(
         .iter()
         .map(|route_ctx| {
             route_ctx
-                .route
+                .route()
                 .tour
                 .all_activities()
                 .map(|activity| {
                     route_ctx
-                        .state
+                        .state()
                         .get_activity_state::<SingleDimLoad>(RESOURCE_KEY, activity)
                         .map(|resource| resource.value)
                 })

@@ -78,7 +78,7 @@ impl Ruin for WorstJobRemoval {
 
 fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(Profile, Vec<(Job, Cost)>)> {
     parallel_collect(&insertion_ctx.solution.routes, |route_ctx| {
-        let route = &route_ctx.route;
+        let route = route_ctx.route();
         let mut savings: Vec<(Job, Cost)> = route
             .tour
             .all_activities()
@@ -98,7 +98,7 @@ fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(Profile, Ve
             .collect();
         savings.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(Less));
 
-        (route_ctx.route.actor.vehicle.profile.clone(), savings)
+        (route_ctx.route().actor.vehicle.profile.clone(), savings)
     })
 }
 

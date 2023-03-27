@@ -79,10 +79,14 @@ fn apply_insertion_with_route(insertion_ctx: &mut InsertionContext, result: (Ins
     let (success, route_ctx) = result;
 
     if let Some(route_ctx) = route_ctx {
-        debug_assert!(success.actor == route_ctx.route.actor);
+        debug_assert!(success.actor == route_ctx.route().actor);
 
-        let route_index =
-            insertion_ctx.solution.routes.iter().position(|ctx| ctx.route.actor == success.actor).unwrap();
+        let route_index = insertion_ctx
+            .solution
+            .routes
+            .iter()
+            .position(|route_ctx| route_ctx.route().actor == success.actor)
+            .unwrap();
 
         // NOTE replace existing route with a new non empty route
         insertion_ctx.solution.routes[route_index] = route_ctx;

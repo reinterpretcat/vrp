@@ -32,7 +32,7 @@ impl HeuristicSolutionProcessing for UnassignmentReason {
                 .routes
                 .iter()
                 .filter_map(|route_ctx| {
-                    (0..route_ctx.route.tour.legs().count())
+                    (0..route_ctx.route().tour.legs().count())
                         .map(|leg_idx| {
                             eval_job_insertion_in_route(
                                 &insertion_ctx,
@@ -50,7 +50,7 @@ impl HeuristicSolutionProcessing for UnassignmentReason {
                         .into_iter()
                         // NOTE: pick only the most frequent reason
                         .max_by(|(_, a), (_, b)| a.len().cmp(&b.len()))
-                        .map(|(code, _)| (route_ctx.route.actor.clone(), code))
+                        .map(|(code, _)| (route_ctx.route().actor.clone(), code))
                 })
                 .collect::<Vec<_>>();
 

@@ -77,7 +77,7 @@ impl Ruin for CloseRouteRemoval {
             let routes = route_groups_distances[route_index]
                 .iter()
                 .filter_map(|(idx, _)| insertion_ctx.solution.routes.get(*idx))
-                .map(|route_ctx| route_ctx.route.actor.clone())
+                .map(|route_ctx| route_ctx.route().actor.clone())
                 .collect::<Vec<_>>();
 
             remove_routes_with_actors(&mut insertion_ctx.solution, &self.limits, random.as_ref(), routes.into_iter());
@@ -113,7 +113,7 @@ impl Ruin for WorstRouteRemoval {
             .iter()
             .enumerate()
             // TODO exclude locked jobs from calculation
-            .map(|(route_idx, route_ctx)| (route_idx, route_ctx.route.tour.job_count()))
+            .map(|(route_idx, route_ctx)| (route_idx, route_ctx.route().tour.job_count()))
             .collect::<Vec<_>>();
         route_sizes.sort_by(|(_, job_count_left), (_, job_count_right)| job_count_left.cmp(job_count_right));
         route_sizes.truncate(8);
@@ -125,7 +125,7 @@ impl Ruin for WorstRouteRemoval {
         let routes = route_sizes
             .iter()
             .filter_map(|(idx, _)| insertion_ctx.solution.routes.get(*idx))
-            .map(|route_ctx| route_ctx.route.actor.clone())
+            .map(|route_ctx| route_ctx.route().actor.clone())
             .collect::<Vec<_>>();
 
         remove_routes_with_actors(&mut insertion_ctx.solution, &self.limits, random.as_ref(), routes.into_iter());
@@ -144,7 +144,7 @@ fn remove_routes_with_actors<Iter>(
 {
     let mut tracker = JobRemovalTracker::new(limits, random);
     actors.for_each(|actor| {
-        if let Some(route_idx) = solution_ctx.routes.iter().position(|route_ctx| route_ctx.route.actor == actor) {
+        if let Some(route_idx) = solution_ctx.routes.iter().position(|route_ctx| route_ctx.route().actor == actor) {
             tracker.try_remove_route(solution_ctx, route_idx, random);
         }
     });

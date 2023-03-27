@@ -27,7 +27,7 @@ impl FeatureConstraint for ReachableConstraint {
                 let next = activity_ctx.next;
 
                 let prev_to_target = self.transport.distance(
-                    &route_ctx.route,
+                    route_ctx.route(),
                     prev.place.location,
                     target.place.location,
                     TravelTime::Departure(prev.schedule.departure),
@@ -39,7 +39,7 @@ impl FeatureConstraint for ReachableConstraint {
 
                 if let Some(next) = next {
                     let target_to_next = self.transport.distance(
-                        &route_ctx.route,
+                        route_ctx.route(),
                         target.place.location,
                         next.place.location,
                         TravelTime::Departure(target.schedule.departure),

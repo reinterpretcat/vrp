@@ -165,9 +165,9 @@ fn get_routes(insertion_ctx: &InsertionContext) -> Vec<(&str, Vec<&str>)> {
         .iter()
         .map(|route_ctx| {
             (
-                route_ctx.route.actor.vehicle.dimens.get_id().unwrap().as_str(),
+                route_ctx.route().actor.vehicle.dimens.get_id().unwrap().as_str(),
                 route_ctx
-                    .route
+                    .route()
                     .tour
                     .all_activities()
                     .flat_map(|a| a.job.as_ref())

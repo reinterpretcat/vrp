@@ -140,7 +140,7 @@ impl SolutionContext {
     /// Returns amount of jobs considered by solution context.
     /// NOTE: the amount can be different for partially solved problem from original problem.
     pub fn get_jobs_amount(&self) -> usize {
-        let assigned = self.routes.iter().map(|route_ctx| route_ctx.route.tour.job_count()).sum::<usize>();
+        let assigned = self.routes.iter().map(|route_ctx| route_ctx.route().tour.job_count()).sum::<usize>();
 
         let required = self.required.iter().filter(|job| !self.unassigned.contains_key(*job)).count();
 
@@ -161,7 +161,7 @@ impl SolutionContext {
 
     /// Removes empty routes from solution context.
     pub(crate) fn remove_empty_routes(&mut self) {
-        self.keep_routes(&|route_ctx| route_ctx.route.tour.has_jobs())
+        self.keep_routes(&|route_ctx| route_ctx.route().tour.has_jobs())
     }
 
     /// Creates a deep copy of `SolutionContext`.
@@ -180,13 +180,8 @@ impl SolutionContext {
 
 /// Specifies insertion context for route.
 pub struct RouteContext {
-    /// Used route.
-    pub route: Route,
-
-    /// Insertion state.
-    pub state: RouteState,
-
-    /// A route cache.
+    route: Route,
+    state: RouteState,
     cache: RouteCache,
 }
 
@@ -247,6 +242,16 @@ impl RouteContext {
         let duration = self.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
 
         get_cost(&actor.vehicle.costs, distance, duration) + get_cost(&actor.driver.costs, distance, duration)
+    }
+
+    /// Returns a reference to route.
+    pub fn route(&self) -> &Route {
+        &self.route
+    }
+
+    /// Returns a reference to state.
+    pub fn state(&self) -> &RouteState {
+        &self.state
     }
 
     /// Unwraps given `RouteContext` as pair of mutable references.
@@ -487,7 +492,7 @@ impl RegistryContext {
     /// NOTE: you need to call free route to make it to be available again.
     pub fn get_route(&mut self, actor: &Actor) -> Option<RouteContext> {
         if let Some(route_ctx) = self.next_with_actor(actor).map(|route_ctx| route_ctx.deep_copy()) {
-            assert!(self.registry.use_actor(&route_ctx.route.actor));
+            assert!(self.registry.use_actor(&route_ctx.route().actor));
             Some(route_ctx)
         } else {
             None

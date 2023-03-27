@@ -15,7 +15,7 @@ pub fn create_insertion_context(
 
     let mut registry = registry;
     routes.iter().for_each(|route_ctx| {
-        registry.use_actor(&route_ctx.route.actor);
+        registry.use_actor(&route_ctx.route().actor);
     });
     let registry = RegistryContext::new(problem.goal.clone(), registry);
 

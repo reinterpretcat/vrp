@@ -8,7 +8,7 @@ use vrp_core::prelude::*;
 /// Returns route modifier.
 pub fn get_route_modifier(goal: Arc<GoalContext>, job_index: JobIndex) -> RouteModifier {
     RouteModifier::new(move |route_ctx: RouteContext| {
-        let actor = &route_ctx.route.actor;
+        let actor = &route_ctx.route().actor;
         let vehicle = &actor.vehicle;
 
         let shift_index = vehicle.dimens.get_shift_index().expect("cannot find shift index");

@@ -29,7 +29,7 @@ pub fn repair_solution_from_unknown(
         .solution
         .routes
         .iter()
-        .filter(|route_ctx| route_ctx.route.tour.has_jobs())
+        .filter(|route_ctx| route_ctx.route().tour.has_jobs())
         .flat_map(|route_ctx| {
             let route_idx = get_new_route_ctx_idx(&mut new_insertion_ctx, route_ctx);
 
@@ -55,16 +55,16 @@ fn get_new_route_ctx_idx(new_insertion_ctx: &mut InsertionContext, route_ctx: &R
         .solution
         .routes
         .iter()
-        .position(|new_route_ctx| new_route_ctx.route.actor == route_ctx.route.actor)
+        .position(|new_route_ctx| new_route_ctx.route().actor == route_ctx.route().actor)
     {
         idx
     } else {
         let mut new_route_ctx =
-            new_insertion_ctx.solution.registry.get_route(&route_ctx.route.actor).expect("actor is already in use");
+            new_insertion_ctx.solution.registry.get_route(&route_ctx.route().actor).expect("actor is already in use");
 
         // check and set a valid departure shift
         let new_start = new_route_ctx.route_mut().tour.get_mut(0).unwrap();
-        let departure = route_ctx.route.tour.start().unwrap().schedule.departure;
+        let departure = route_ctx.route().tour.start().unwrap().schedule.departure;
         if new_start.place.time.contains(departure) {
             new_start.schedule.departure = departure;
         }
@@ -76,7 +76,7 @@ fn get_new_route_ctx_idx(new_insertion_ctx: &mut InsertionContext, route_ctx: &R
 }
 
 fn get_assigned_jobs(insertion_ctx: &InsertionContext) -> HashSet<Job> {
-    insertion_ctx.solution.routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect()
+    insertion_ctx.solution.routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect()
 }
 
 fn synchronize_jobs(
@@ -91,7 +91,7 @@ fn synchronize_jobs(
     let result_selector = BestResultSelector::default();
 
     let (synchronized_jobs, _) = route_ctx
-        .route
+        .route()
         .tour
         .all_activities()
         .filter_map(|activity| activity.job.as_ref().map(|job| (job, activity)))

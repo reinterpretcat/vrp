@@ -25,7 +25,7 @@ impl FeatureConstraint for CompatibilityConstraint {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => job.dimens().get_job_compatibility().and_then(|job_compat| {
-                match route_ctx.state.get_route_state::<Option<String>>(self.state_key) {
+                match route_ctx.state().get_route_state::<Option<String>>(self.state_key) {
                     None | Some(None) => None,
                     Some(Some(route_compat)) if job_compat == route_compat => None,
                     _ => ConstraintViolation::fail(self.code),
@@ -58,7 +58,7 @@ impl FeatureState for CompatibilityState {
 
     fn accept_route_state(&self, route_ctx: &mut RouteContext) {
         let new_comp = get_route_compatibility(route_ctx);
-        let current_compat = route_ctx.state.get_route_state::<Option<String>>(self.state_key);
+        let current_compat = route_ctx.state().get_route_state::<Option<String>>(self.state_key);
 
         match (new_comp, current_compat) {
             (None, None) => {}
@@ -77,5 +77,5 @@ impl FeatureState for CompatibilityState {
 }
 
 fn get_route_compatibility(route_ctx: &RouteContext) -> Option<String> {
-    route_ctx.route.tour.jobs().filter_map(|job| job.dimens().get_job_compatibility().cloned()).next()
+    route_ctx.route().tour.jobs().filter_map(|job| job.dimens().get_job_compatibility().cloned()).next()
 }

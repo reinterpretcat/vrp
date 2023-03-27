@@ -69,7 +69,7 @@ fn can_accept_route_state_impl(route_compat: Option<&str>, expected: Option<Opti
 
     state.accept_route_state(&mut route_ctx);
 
-    let result = route_ctx.state.get_route_state::<Option<String>>(STATE_KEY).cloned();
+    let result = route_ctx.state().get_route_state::<Option<String>>(STATE_KEY).cloned();
     assert_eq!(result, expected);
 }
 

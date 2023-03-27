@@ -41,7 +41,7 @@ fn try_advance_departure_time(
     transport: &(dyn TransportCost + Send + Sync),
     optimize_whole_tour: bool,
 ) -> Option<Timestamp> {
-    let route = &route_ctx.route;
+    let route = route_ctx.route();
 
     let first = route.tour.get(1)?;
     let start = route.tour.start()?;
@@ -84,21 +84,21 @@ fn try_recede_departure_time(
     state_keys: &ScheduleStateKeys,
     limit_duration_key: StateKey,
 ) -> Option<Timestamp> {
-    let first = route_ctx.route.tour.get(1)?;
-    let start = route_ctx.route.tour.start()?;
+    let first = route_ctx.route().tour.get(1)?;
+    let start = route_ctx.route().tour.start()?;
 
     let max_change =
-        *route_ctx.state.get_activity_state::<f64>(state_keys.latest_arrival, first)? - first.schedule.arrival;
+        *route_ctx.state().get_activity_state::<f64>(state_keys.latest_arrival, first)? - first.schedule.arrival;
 
     let earliest_allowed_departure =
-        route_ctx.route.actor.detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(start.place.time.start);
+        route_ctx.route().actor.detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(start.place.time.start);
 
     let max_change = (start.schedule.departure - earliest_allowed_departure).min(max_change);
 
     let max_change = route_ctx
-        .state
+        .state()
         .get_route_state::<f64>(state_keys.total_duration)
-        .zip(route_ctx.state.get_route_state::<f64>(limit_duration_key))
+        .zip(route_ctx.state().get_route_state::<f64>(limit_duration_key))
         .map(|(&total, &limit)| (limit - total).min(max_change))
         .unwrap_or(max_change);
 

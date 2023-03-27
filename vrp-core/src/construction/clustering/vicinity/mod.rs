@@ -196,7 +196,7 @@ fn get_check_insertion_fn(
                 .solution
                 .registry
                 .next_route()
-                .filter(|route_ctx| actor_filter.deref()(&route_ctx.route.actor))
+                .filter(|route_ctx| actor_filter.deref()(&route_ctx.route().actor))
                 .try_fold(Err(-1), |_, route_ctx| {
                     let result = eval_job_insertion_in_route(
                         &insertion_ctx,

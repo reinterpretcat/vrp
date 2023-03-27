@@ -69,19 +69,19 @@ impl Ruin for AdjustedStringRemoval {
             .take_while(|_| tracker.read().unwrap().get_affected_actors() != ks)
             .for_each(|job| {
                 let route_idx = insertion_ctx.solution.routes.iter().position(|route_ctx| {
-                    !tracker.read().unwrap().is_affected_actor(&route_ctx.route.actor)
-                        && route_ctx.route.tour.index(&job).is_some()
+                    !tracker.read().unwrap().is_affected_actor(&route_ctx.route().actor)
+                        && route_ctx.route().tour.index(&job).is_some()
                 });
 
                 route_idx.into_iter().for_each(|route_idx| {
                     let route_ctx = insertion_ctx.solution.routes.get(route_idx).expect("invalid index");
 
                     // Equations 8, 9: calculate cardinality of the string removed from the tour
-                    let ltmax = route_ctx.route.tour.job_activity_count().min(lsmax);
+                    let ltmax = route_ctx.route().tour.job_activity_count().min(lsmax);
                     let lt = random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
 
-                    if let Some(index) = route_ctx.route.tour.index(&job) {
-                        select_string((&route_ctx.route.tour, index), lt, self.alpha, &random)
+                    if let Some(index) = route_ctx.route().tour.index(&job) {
+                        select_string((&route_ctx.route().tour, index), lt, self.alpha, &random)
                             .collect::<Vec<Job>>()
                             .into_iter()
                             .for_each(|job| {
@@ -93,17 +93,17 @@ impl Ruin for AdjustedStringRemoval {
                 routes
                     .iter_mut()
                     .find(|route_ctx| {
-                        !tracker.read().unwrap().is_affected_actor(&route_ctx.route.actor)
-                            && route_ctx.route.tour.index(&job).is_some()
+                        !tracker.read().unwrap().is_affected_actor(&route_ctx.route().actor)
+                            && route_ctx.route().tour.index(&job).is_some()
                     })
                     .iter_mut()
                     .for_each(|route_ctx| {
                         // Equations 8, 9: calculate cardinality of the string removed from the tour
-                        let ltmax = route_ctx.route.tour.job_activity_count().min(lsmax);
+                        let ltmax = route_ctx.route().tour.job_activity_count().min(lsmax);
                         let lt = random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
 
-                        if let Some(index) = route_ctx.route.tour.index(&job) {
-                            select_string((&route_ctx.route.tour, index), lt, self.alpha, &random)
+                        if let Some(index) = route_ctx.route().tour.index(&job) {
+                            select_string((&route_ctx.route().tour, index), lt, self.alpha, &random)
                                 .collect::<Vec<Job>>()
                                 .into_iter()
                                 .for_each(|job| {
@@ -125,7 +125,9 @@ type JobIter<'a> = Box<dyn Iterator<Item = Job> + 'a>;
 
 /// Calculates average tour cardinality rounded to nearest integral value.
 fn calculate_average_tour_cardinality(routes: &[RouteContext]) -> f64 {
-    (routes.iter().map(|rc| rc.route.tour.job_activity_count() as f64).sum::<f64>() / (routes.len() as f64)).round()
+    (routes.iter().map(|route_ctx| route_ctx.route().tour.job_activity_count() as f64).sum::<f64>()
+        / (routes.len() as f64))
+        .round()
 }
 
 /// Selects string for selected job.

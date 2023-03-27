@@ -58,7 +58,7 @@ impl FeatureConstraint for RedistributeFeatureConstraint {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => self.rules.get(*job).and_then(|actor| {
-                if actor == &route_ctx.route.actor {
+                if actor == &route_ctx.route().actor {
                     Some(ConstraintViolation { code: 0, stopped: true })
                 } else {
                     None
@@ -110,7 +110,7 @@ fn remove_jobs(
     SelectionSamplingIterator::new(insertion_ctx.solution.routes.iter_mut(), sample, random.clone())
         .flat_map(|route_ctx| {
             #[allow(clippy::needless_collect)]
-            let all_jobs = route_ctx.route.tour.jobs().filter(|job| !locked.contains(job)).collect::<Vec<_>>();
+            let all_jobs = route_ctx.route().tour.jobs().filter(|job| !locked.contains(job)).collect::<Vec<_>>();
             let amount = random.uniform_int(jobs_range.start, jobs_range.end) as usize;
 
             let jobs = if random.is_head_not_tails() {
@@ -126,14 +126,14 @@ fn remove_jobs(
                 (0..amount).fold(Vec::new(), |mut acc, _| {
                     let job = if random.is_head_not_tails() {
                         route_ctx
-                            .route
+                            .route()
                             .tour
                             .all_activities()
                             .filter_map(|a| a.retrieve_job())
                             .find(|job| !locked.contains(job))
                     } else {
                         route_ctx
-                            .route
+                            .route()
                             .tour
                             .all_activities()
                             .rev()
@@ -153,7 +153,7 @@ fn remove_jobs(
 
             constraint.accept_route_state(route_ctx);
 
-            jobs.into_iter().map(|job| (job, route_ctx.route.actor.clone()))
+            jobs.into_iter().map(|job| (job, route_ctx.route().actor.clone()))
         })
         .collect()
 }

@@ -18,16 +18,21 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
     let default_capacity = T::default();
     let default_intervals = vec![(0_usize, 0_usize)];
 
-    let get_load_ratio = Arc::new(move |ctx: &RouteContext| {
-        let capacity = ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
-        let intervals =
-            ctx.state.get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY).unwrap_or(&default_intervals);
+    let get_load_ratio = Arc::new(move |route_ctx: &RouteContext| {
+        let capacity = route_ctx.route().actor.vehicle.dimens.get_capacity().unwrap();
+        let intervals = route_ctx
+            .state()
+            .get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY)
+            .unwrap_or(&default_intervals);
 
         intervals
             .iter()
-            .map(|(start, _)| ctx.route.tour.get(*start).unwrap())
+            .map(|(start, _)| route_ctx.route().tour.get(*start).unwrap())
             .map(|activity| {
-                ctx.state.get_activity_state::<T>(MAX_FUTURE_CAPACITY_KEY, activity).unwrap_or(&default_capacity)
+                route_ctx
+                    .state()
+                    .get_activity_state::<T>(MAX_FUTURE_CAPACITY_KEY, activity)
+                    .unwrap_or(&default_capacity)
             })
             .map(|max_load| load_balance_fn.deref()(max_load, capacity))
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less))
@@ -44,13 +49,13 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
 
 /// Creates a feature which balances activities across all tours.
 pub fn create_activity_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, String> {
-    let route_estimate_fn = Arc::new(|route_ctx: &RouteContext| route_ctx.route.tour.job_activity_count() as f64);
+    let route_estimate_fn = Arc::new(|route_ctx: &RouteContext| route_ctx.route().tour.job_activity_count() as f64);
     let solution_estimate_fn = Arc::new(|solution_ctx: &SolutionContext| {
         get_cv_safe(
             solution_ctx
                 .routes
                 .iter()
-                .map(|route_ctx| route_ctx.route.tour.job_activity_count() as f64)
+                .map(|route_ctx| route_ctx.route().tour.job_activity_count() as f64)
                 .collect::<Vec<_>>()
                 .as_slice(),
         )
@@ -61,38 +66,35 @@ pub fn create_activity_balanced_feature(name: &str, threshold: Option<f64>) -> R
 
 /// Creates a feature which which balances travelled durations across all tours.
 pub fn create_duration_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, String> {
-    let route_estimate_fn =
-        Arc::new(move |rc: &RouteContext| rc.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.));
-
-    let solution_estimate_fn = Arc::new(move |ctx: &SolutionContext| {
-        get_cv_safe(
-            ctx.routes
-                .iter()
-                .map(|rc| rc.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.))
-                .collect::<Vec<_>>()
-                .as_slice(),
-        )
-    });
-
-    create_feature(name, threshold, BALANCE_DURATION_KEY, route_estimate_fn, solution_estimate_fn)
+    create_transport_balanced_feature(name, threshold, TOTAL_DURATION_KEY, BALANCE_DURATION_KEY)
 }
 
 /// Creates a feature which which balances travelled distances across all tours.
 pub fn create_distance_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, String> {
-    let route_estimate_fn =
-        Arc::new(move |rc: &RouteContext| rc.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.));
+    create_transport_balanced_feature(name, threshold, TOTAL_DISTANCE_KEY, BALANCE_DISTANCE_KEY)
+}
+
+fn create_transport_balanced_feature(
+    name: &str,
+    threshold: Option<f64>,
+    value_key: i32,
+    state_key: i32,
+) -> Result<Feature, String> {
+    let route_estimate_fn = Arc::new(move |route_ctx: &RouteContext| {
+        route_ctx.state().get_route_state::<f64>(value_key).cloned().unwrap_or(0.)
+    });
 
     let solution_estimate_fn = Arc::new(move |ctx: &SolutionContext| {
         get_cv_safe(
             ctx.routes
                 .iter()
-                .map(|rc| rc.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.))
+                .map(|route_ctx| route_ctx.state().get_route_state::<f64>(value_key).cloned().unwrap_or(0.))
                 .collect::<Vec<_>>()
                 .as_slice(),
         )
     });
 
-    create_feature(name, threshold, BALANCE_DISTANCE_KEY, route_estimate_fn, solution_estimate_fn)
+    create_feature(name, threshold, state_key, route_estimate_fn, solution_estimate_fn)
 }
 
 fn create_feature(
@@ -166,7 +168,7 @@ impl FeatureObjective for WorkBalanceObjective {
         match move_ctx {
             MoveContext::Route { route_ctx, .. } => {
                 let value = route_ctx
-                    .state
+                    .state()
                     .get_route_state::<f64>(self.state_key)
                     .cloned()
                     .unwrap_or_else(|| self.route_estimate_fn.deref()(route_ctx));

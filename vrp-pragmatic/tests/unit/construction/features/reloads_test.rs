@@ -204,7 +204,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
             .routes
             .get(0)
             .unwrap()
-            .route
+            .route()
             .tour
             .all_activities()
             .filter_map(|activity| activity.job.as_ref())

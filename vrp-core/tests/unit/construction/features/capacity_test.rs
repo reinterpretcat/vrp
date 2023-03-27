@@ -62,8 +62,8 @@ fn can_calculate_current_capacity_state_values_impl(
 
     create_feature().state.unwrap().accept_route_state(&mut route_ctx);
 
-    let tour = &route_ctx.route.tour;
-    let state = &route_ctx.state;
+    let tour = &route_ctx.route().tour;
+    let state = route_ctx.state();
     assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.start()), start);
     assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.end()), end);
     assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.get(1)), exp_s1);
@@ -130,9 +130,9 @@ fn can_evaluate_demand_on_activity_impl(
     let target = test_activity_with_job(test_single_with_simple_demand(create_simple_demand(size)));
     let activity_ctx = ActivityContext {
         index: 0,
-        prev: route_ctx.route.tour.get(neighbours.0).unwrap(),
+        prev: route_ctx.route().tour.get(neighbours.0).unwrap(),
         target: &target,
-        next: route_ctx.route.tour.get(neighbours.1),
+        next: route_ctx.route().tour.get(neighbours.1),
     };
 
     let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(&route_ctx, &activity_ctx));

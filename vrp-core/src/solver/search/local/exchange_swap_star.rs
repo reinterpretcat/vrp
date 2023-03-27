@@ -85,7 +85,7 @@ fn get_route_by_idx(insertion_ctx: &InsertionContext, route_idx: usize) -> &Rout
 }
 
 fn get_movable_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) -> Vec<Job> {
-    route_ctx.route.tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(job)).collect()
+    route_ctx.route().tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(job)).collect()
 }
 
 fn get_evaluation_context<'a>(search_ctx: &'a SearchContext, job: &'a Job) -> EvaluationContext<'a> {
@@ -162,7 +162,7 @@ fn find_in_place_result(
     insert_job: &Job,
     extract_job: &Job,
 ) -> InsertionResult {
-    let insertion_index = route_ctx.route.tour.index(extract_job).expect("cannot find job in route");
+    let insertion_index = route_ctx.route().tour.index(extract_job).expect("cannot find job in route");
     let position = InsertionPosition::Concrete(insertion_index - 1);
 
     let route_ctx = remove_job_with_copy(search_ctx, extract_job, route_ctx);
@@ -177,7 +177,7 @@ fn find_top_results(
     route_ctx: &RouteContext,
     jobs: &[Job],
 ) -> HashMap<Job, Vec<InsertionResult>> {
-    let legs_count = route_ctx.route.tour.legs().count();
+    let legs_count = route_ctx.route().tour.legs().count();
 
     jobs.iter()
         .map(|job| {
@@ -373,12 +373,12 @@ fn try_exchange_jobs(
                     .solution
                     .routes
                     .iter()
-                    .find(|route_ctx| route_ctx.route.actor == success.actor)
+                    .find(|route_ctx| route_ctx.route().actor == success.actor)
                     .expect("cannot find route for insertion")
                     .deep_copy();
 
                 // NOTE job can be already removed in in-place case
-                let removed_idx = route_ctx.route.tour.index(&job).unwrap_or(usize::MAX);
+                let removed_idx = route_ctx.route().tour.index(&job).unwrap_or(usize::MAX);
 
                 route_ctx.route_mut().tour.remove(&job);
                 constraint.accept_route_state(&mut route_ctx);

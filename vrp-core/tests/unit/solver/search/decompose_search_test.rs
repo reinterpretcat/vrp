@@ -65,7 +65,7 @@ fn can_perform_search() {
     assert!(solution.required.is_empty());
     assert!(!solution.routes.is_empty());
     assert_eq!(
-        solution.routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>().len(),
+        solution.routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect::<HashSet<_>>().len(),
         35
     );
 }

@@ -29,7 +29,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
             (Some(actor), false) => {
                 registry.use_actor(&actor);
                 let mut route_ctx = RouteContext::new(actor);
-                let start = route_ctx.route.tour.start().unwrap_or_else(|| panic!("{}", OP_START_MSG)).place.location;
+                let start = route_ctx.route().tour.start().unwrap_or_else(|| panic!("{}", OP_START_MSG)).place.location;
 
                 let create_activity = |single: Arc<Single>, previous_location: usize| {
                     assert_eq!(single.places.len(), 1);

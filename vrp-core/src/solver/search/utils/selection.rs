@@ -13,7 +13,7 @@ pub(crate) fn get_route_jobs(solution: &SolutionContext) -> HashMap<Job, usize> 
         .iter()
         .enumerate()
         .flat_map(|(route_idx, route_ctx)| {
-            route_ctx.route.tour.jobs().collect::<Vec<_>>().into_iter().map(move |job| (job, route_idx))
+            route_ctx.route().tour.jobs().collect::<Vec<_>>().into_iter().map(move |job| (job, route_idx))
         })
         .collect()
 }
@@ -45,10 +45,10 @@ pub(crate) fn select_seed_job(
     loop {
         let route_ctx = routes.get(route_idx).unwrap();
 
-        if route_ctx.route.tour.has_jobs() {
+        if route_ctx.route().tour.has_jobs() {
             let job = select_random_job(route_ctx, random);
             if let Some(job) = job {
-                return Some((route_ctx.route.actor.vehicle.profile.clone(), route_idx, job));
+                return Some((route_ctx.route().actor.vehicle.profile.clone(), route_idx, job));
             }
         }
 
@@ -62,7 +62,7 @@ pub(crate) fn select_seed_job(
 }
 
 pub(crate) fn select_random_job(route_ctx: &RouteContext, random: &(dyn Random + Send + Sync)) -> Option<Job> {
-    let size = route_ctx.route.tour.job_activity_count();
+    let size = route_ctx.route().tour.job_activity_count();
     if size == 0 {
         return None;
     }
@@ -71,7 +71,7 @@ pub(crate) fn select_random_job(route_ctx: &RouteContext, random: &(dyn Random +
     let mut ai = activity_index;
 
     loop {
-        let job = route_ctx.route.tour.get(ai).and_then(|a| a.retrieve_job());
+        let job = route_ctx.route().tour.get(ai).and_then(|a| a.retrieve_job());
 
         if job.is_some() {
             return job;

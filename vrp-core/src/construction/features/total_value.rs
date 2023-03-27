@@ -37,7 +37,7 @@ pub fn create_maximize_total_job_value_feature(
                 move |route_ctx, job| {
                     sign * match &job_read_value_fn {
                         JobReadValueFn::Left(left) => left.deref()(job),
-                        JobReadValueFn::Right(right) => right.deref()(route_ctx.route.actor.as_ref(), job),
+                        JobReadValueFn::Right(right) => right.deref()(route_ctx.route().actor.as_ref(), job),
                     }
                 }
             }),
@@ -55,7 +55,7 @@ impl Objective for MaximizeTotalValueObjective {
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         solution.solution.routes.iter().fold(0., |acc, route_ctx| {
-            route_ctx.route.tour.jobs().fold(acc, |acc, job| acc + self.estimate_value_fn.deref()(route_ctx, &job))
+            route_ctx.route().tour.jobs().fold(acc, |acc, job| acc + self.estimate_value_fn.deref()(route_ctx, &job))
         })
     }
 }

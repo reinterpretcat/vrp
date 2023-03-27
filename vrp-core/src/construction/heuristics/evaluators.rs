@@ -165,7 +165,7 @@ fn eval_multi(
         |acc_res, services| {
             let mut shadow = ShadowContext::new(eval_ctx.goal, route_ctx);
             let perm_res = unwrap_from_result((0..).try_fold(MultiContext::new(None, insertion_idx), |out, _| {
-                if out.is_failure(route_ctx.route.tour.job_activity_count()) {
+                if out.is_failure(route_ctx.route().tour.job_activity_count()) {
                     return Err(out);
                 }
                 shadow.restore(route_ctx);
@@ -232,7 +232,7 @@ fn analyze_insertion_in_route(
 
     match insertion_idx {
         Some(idx) => {
-            if let Some(leg) = route_ctx.route.tour.legs().nth(idx) {
+            if let Some(leg) = route_ctx.route().tour.legs().nth(idx) {
                 unwrap_from_result(analyze_leg_insertion(leg, init))
             } else {
                 init
@@ -269,7 +269,7 @@ fn analyze_insertion_in_route_leg(
         [prev, next] => (prev, Some(next)),
         _ => panic!("Unexpected route leg configuration."),
     };
-    let start_time = route_ctx.route.tour.start().unwrap().schedule.departure;
+    let start_time = route_ctx.route().tour.start().unwrap().schedule.departure;
     // analyze service details
     single.places.iter().try_fold(init, |acc, detail| {
         // analyze detail time windows
@@ -301,7 +301,7 @@ fn get_insertion_index(route_ctx: &RouteContext, position: InsertionPosition) ->
     match position {
         InsertionPosition::Any => None,
         InsertionPosition::Concrete(idx) => Some(idx),
-        InsertionPosition::Last => Some(route_ctx.route.tour.legs().count().max(1) - 1),
+        InsertionPosition::Last => Some(route_ctx.route().tour.legs().count().max(1) - 1),
     }
 }
 

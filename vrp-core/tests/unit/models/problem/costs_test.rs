@@ -115,9 +115,9 @@ can_search_for_reserved_time! {
 }
 
 fn can_search_for_reserved_time_impl(times: Vec<(f64, f64)>, tests: Vec<((f64, f64), Option<usize>)>) {
-    let route = create_empty_route_ctx().route;
+    let route_ctx = create_empty_route_ctx();
     let reserved_times = vec![(
-        route.actor.clone(),
+        route_ctx.route().actor.clone(),
         times.iter().cloned().map(|(start, end)| TimeSpan::Window(TimeWindow::new(start, end))).collect::<Vec<_>>(),
     )]
     .into_iter()
@@ -130,7 +130,7 @@ fn can_search_for_reserved_time_impl(times: Vec<(f64, f64)>, tests: Vec<((f64, f
             let interval = TimeWindow::new(*s, *e);
             let expected = expected.and_then(|idx| times.get(idx)).map(|(s, e)| TimeWindow::new(*s, *e));
 
-            let result = reserved_time_func.deref()(&route, &interval);
+            let result = reserved_time_func.deref()(route_ctx.route(), &interval);
 
             assert_eq!(result, expected);
         });

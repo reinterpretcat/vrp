@@ -48,8 +48,8 @@ impl ResultSelector for FarthestResultSelector {
             (InsertionResult::Failure(_), InsertionResult::Success(_)) => right,
             (InsertionResult::Success(lhs), InsertionResult::Success(rhs)) => {
                 let routes = &insertion_ctx.solution.routes;
-                let lhs_route = routes.iter().find(|route_ctx| route_ctx.route.actor == lhs.actor);
-                let rhs_route = routes.iter().find(|route_ctx| route_ctx.route.actor == rhs.actor);
+                let lhs_route = routes.iter().find(|route_ctx| route_ctx.route().actor == lhs.actor);
+                let rhs_route = routes.iter().find(|route_ctx| route_ctx.route().actor == rhs.actor);
 
                 let insert_right = match (lhs_route.is_some(), rhs_route.is_some()) {
                     (false, false) => lhs.cost < rhs.cost,

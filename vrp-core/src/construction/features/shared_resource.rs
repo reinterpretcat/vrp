@@ -98,8 +98,8 @@ impl<T: SharedResource> SharedResourceConstraint<T> {
             .find(|(_, end_idx)| activity_ctx.index <= *end_idx)
             .and_then(|&(start_idx, _)| {
                 route_ctx
-                    .state
-                    .get_activity_state::<T>(self.resource_key, get_activity_by_idx(&route_ctx.route, start_idx))
+                    .state()
+                    .get_activity_state::<T>(self.resource_key, get_activity_by_idx(route_ctx.route(), start_idx))
                     .and_then(|resource_available| {
                         let resource_demand = activity_ctx
                             .target
@@ -160,7 +160,7 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
                 acc,
                 |mut acc, &(start_idx, end_idx)| {
                     // get total resource demand for given interval
-                    let activity = get_activity_by_idx(&route_ctx.route, start_idx);
+                    let activity = get_activity_by_idx(route_ctx.route(), start_idx);
                     let resource_demand_with_id = self.resource_capacity_fn.deref()(activity)
                         .map(|(_, resource_id)| (self.get_total_demand(route_ctx, start_idx..=end_idx), resource_id));
 
@@ -179,7 +179,7 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
             #[allow(clippy::unnecessary_to_owned)]
             self.interval_fn.deref()(route_ctx).cloned().unwrap_or_default().into_iter().for_each(|(start_idx, _)| {
                 let resource_available =
-                    self.resource_capacity_fn.deref()(get_activity_by_idx(&route_ctx.route, start_idx)).and_then(
+                    self.resource_capacity_fn.deref()(get_activity_by_idx(route_ctx.route(), start_idx)).and_then(
                         |(total_capacity, resource_id)| {
                             total_demand.get(&resource_id).map(|total_demand| total_capacity - *total_demand)
                         },
@@ -201,10 +201,10 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
     fn prevent_resource_consumption(&self, route_ctx: &mut RouteContext) {
         self.interval_fn.deref()(route_ctx).cloned().unwrap_or_default().into_iter().for_each(
             |(start_idx, end_idx)| {
-                let activity = get_activity_by_idx(&route_ctx.route, start_idx);
+                let activity = get_activity_by_idx(route_ctx.route(), start_idx);
                 let has_resource_demand = self.resource_capacity_fn.deref()(activity).map_or(false, |(_, _)| {
                     (start_idx..=end_idx)
-                        .filter_map(|idx| route_ctx.route.tour.get(idx))
+                        .filter_map(|idx| route_ctx.route().tour.get(idx))
                         .filter_map(|activity| activity.job.as_ref())
                         .any(|job| self.resource_demand_fn.deref()(job).is_some())
                 });
@@ -220,7 +220,7 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
     fn get_total_demand(&self, route_ctx: &RouteContext, range: RangeInclusive<usize>) -> T {
         range
             .into_iter()
-            .filter_map(|idx| route_ctx.route.tour.get(idx))
+            .filter_map(|idx| route_ctx.route().tour.get(idx))
             .filter_map(|activity| activity.job.as_ref())
             .fold(T::default(), |acc, job| acc + self.resource_demand_fn.deref()(job).unwrap_or_default())
     }

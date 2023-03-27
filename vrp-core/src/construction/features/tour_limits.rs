@@ -56,9 +56,9 @@ struct ActivityLimitConstraint {
 impl FeatureConstraint for ActivityLimitConstraint {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
-            MoveContext::Route { route_ctx, job, .. } => self.limit_func.deref()(route_ctx.route.actor.as_ref())
+            MoveContext::Route { route_ctx, job, .. } => self.limit_func.deref()(route_ctx.route().actor.as_ref())
                 .and_then(|limit| {
-                    let tour_activities = route_ctx.route.tour.job_activity_count();
+                    let tour_activities = route_ctx.route().tour.job_activity_count();
 
                     let job_activities = match job {
                         Job::Single(_) => 1,
@@ -143,14 +143,14 @@ impl FeatureConstraint for TravelLimitConstraint {
         match move_ctx {
             MoveContext::Route { .. } => None,
             MoveContext::Activity { route_ctx, activity_ctx } => {
-                let tour_distance_limit = self.tour_distance_limit.deref()(route_ctx.route.actor.as_ref());
-                let tour_duration_limit = self.tour_duration_limit.deref()(route_ctx.route.actor.as_ref());
+                let tour_distance_limit = self.tour_distance_limit.deref()(route_ctx.route().actor.as_ref());
+                let tour_duration_limit = self.tour_duration_limit.deref()(route_ctx.route().actor.as_ref());
 
                 if tour_distance_limit.is_some() || tour_duration_limit.is_some() {
-                    let (change_distance, change_duration) = self.calculate_travel(&route_ctx.route, activity_ctx);
+                    let (change_distance, change_duration) = self.calculate_travel(route_ctx.route(), activity_ctx);
 
                     if let Some(distance_limit) = tour_distance_limit {
-                        let curr_dis = route_ctx.state.get_route_state(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
+                        let curr_dis = route_ctx.state().get_route_state(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
                         let total_distance = curr_dis + change_distance;
                         if distance_limit < total_distance {
                             return ConstraintViolation::skip(self.distance_code);
@@ -158,7 +158,7 @@ impl FeatureConstraint for TravelLimitConstraint {
                     }
 
                     if let Some(duration_limit) = tour_duration_limit {
-                        let curr_dur = route_ctx.state.get_route_state(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
+                        let curr_dur = route_ctx.state().get_route_state(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
                         let total_duration = curr_dur + change_duration;
                         if duration_limit < total_duration {
                             return ConstraintViolation::skip(self.duration_code);
@@ -185,7 +185,7 @@ impl FeatureState for TravelLimitState {
     fn accept_insertion(&self, _: &mut SolutionContext, _: usize, _: &Job) {}
 
     fn accept_route_state(&self, route_ctx: &mut RouteContext) {
-        if let Some(limit_duration) = self.tour_duration_limit.deref()(route_ctx.route.actor.as_ref()) {
+        if let Some(limit_duration) = self.tour_duration_limit.deref()(route_ctx.route().actor.as_ref()) {
             route_ctx.state_mut().put_route_state(LIMIT_DURATION_KEY, limit_duration);
         }
     }

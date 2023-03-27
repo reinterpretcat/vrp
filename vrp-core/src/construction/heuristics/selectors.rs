@@ -293,7 +293,7 @@ impl LegSelection {
     {
         if let Some((sample_size, random)) = self.get_sample_data(route_ctx, job, skip) {
             route_ctx
-                .route
+                .route()
                 .tour
                 .legs()
                 .skip(skip)
@@ -306,7 +306,7 @@ impl LegSelection {
                 )
                 .unwrap_or(init)
         } else {
-            unwrap_from_result(route_ctx.route.tour.legs().skip(skip).try_fold(init, |acc, leg| map_fn(leg, acc)))
+            unwrap_from_result(route_ctx.route().tour.legs().skip(skip).try_fold(init, |acc, leg| map_fn(leg, acc)))
         }
     }
 
@@ -325,7 +325,7 @@ impl LegSelection {
                     Job::Multi(_) => gen_usize(8, 16),
                 };
 
-                let total_legs = route_ctx.route.tour.legs().size_hint().0;
+                let total_legs = route_ctx.route().tour.legs().size_hint().0;
                 let visit_legs = if total_legs > skip { total_legs - skip } else { 0 };
 
                 if visit_legs < greedy_threshold {

@@ -112,7 +112,7 @@ impl InsertionHeuristic {
 impl InsertionResult {
     /// Creates result which represents insertion success.
     pub fn make_success(cost: Cost, job: Job, activities: Vec<(Activity, usize)>, route_ctx: &RouteContext) -> Self {
-        Self::Success(InsertionSuccess { cost, job, activities, actor: route_ctx.route.actor.clone() })
+        Self::Success(InsertionSuccess { cost, job, activities, actor: route_ctx.route().actor.clone() })
     }
 
     /// Creates result which represents insertion failure.
@@ -184,7 +184,7 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
             .solution
             .routes
             .iter()
-            .position(|route_ctx| route_ctx.route.actor == success.actor)
+            .position(|route_ctx| route_ctx.route().actor == success.actor)
             .expect("registry is out of sync with used routes")
     };
 

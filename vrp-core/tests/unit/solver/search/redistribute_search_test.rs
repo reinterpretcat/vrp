@@ -17,13 +17,13 @@ fn can_remove_jobs() {
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 6, false);
     let mut insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
     let orig_total_jobs: usize =
-        insertion_ctx.solution.routes.iter().map(|route_ctx| route_ctx.route.tour.job_count()).sum();
+        insertion_ctx.solution.routes.iter().map(|route_ctx| route_ctx.route().tour.job_count()).sum();
 
     let jobs = remove_jobs(&mut insertion_ctx, 2..3, 4..8);
 
     assert!(!jobs.is_empty());
     let result_total_jobs: usize =
-        insertion_ctx.solution.routes.iter().map(|route_ctx| route_ctx.route.tour.job_count()).sum();
+        insertion_ctx.solution.routes.iter().map(|route_ctx| route_ctx.route().tour.job_count()).sum();
     assert!(result_total_jobs < orig_total_jobs);
     assert_eq!(insertion_ctx.solution.unassigned.len(), orig_total_jobs - result_total_jobs);
 }

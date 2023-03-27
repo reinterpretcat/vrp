@@ -108,7 +108,7 @@ fn find_best_insertion_pair(
             .fold(Option::<InsertionSuccessPair>::None, |acc, (_, test_route)| {
                 let new_result = map_reduce(
                     test_route
-                        .route
+                        .route()
                         .tour
                         .jobs()
                         .enumerate()

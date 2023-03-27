@@ -64,8 +64,8 @@ fn get_route_indices(insertion_ctx: &InsertionContext) -> Vec<usize> {
         .enumerate()
         .filter_map(|(idx, route_ctx)| {
             let locked_jobs =
-                route_ctx.route.tour.jobs().filter(|job| insertion_ctx.solution.locked.contains(job)).count();
-            let has_enough_jobs = (route_ctx.route.tour.job_count() - locked_jobs) >= MIN_JOBS;
+                route_ctx.route().tour.jobs().filter(|job| insertion_ctx.solution.locked.contains(job)).count();
+            let has_enough_jobs = (route_ctx.route().tour.job_count() - locked_jobs) >= MIN_JOBS;
 
             if has_enough_jobs {
                 Some(idx)
@@ -89,7 +89,7 @@ fn exchange_jobs(
     };
 
     let get_sequence_size = |insertion_ctx: &InsertionContext, route_idx: usize| {
-        let job_count = get_route_ctx(insertion_ctx, route_idx).route.tour.job_count().min(max_sequence_size);
+        let job_count = get_route_ctx(insertion_ctx, route_idx).route().tour.job_count().min(max_sequence_size);
         insertion_ctx.environment.random.uniform_int(MIN_JOBS as i32, job_count as i32) as usize
     };
 
@@ -115,12 +115,12 @@ fn exchange_jobs(
 fn extract_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, sequence_size: usize) -> Vec<Job> {
     let locked = &insertion_ctx.solution.locked;
     let route_ctx = insertion_ctx.solution.routes.get_mut(route_idx).unwrap();
-    let job_count = route_ctx.route.tour.job_count();
+    let job_count = route_ctx.route().tour.job_count();
 
     assert!(job_count >= sequence_size);
 
     // get jobs in the exact order as they appear first time in the tour
-    let (_, jobs) = route_ctx.route.tour.all_activities().filter_map(|activity| activity.retrieve_job()).fold(
+    let (_, jobs) = route_ctx.route().tour.all_activities().filter_map(|activity| activity.retrieve_job()).fold(
         (HashSet::<Job>::default(), Vec::with_capacity(job_count)),
         |(mut set, mut vec), job| {
             if !set.contains(&job) && !locked.contains(&job) {
@@ -172,8 +172,9 @@ fn insert_jobs(
         _ => {}
     };
 
-    let start_index =
-        random.uniform_int(0, get_route_ctx(insertion_ctx, route_idx).route.tour.job_activity_count() as i32) as usize;
+    let start_index = random
+        .uniform_int(0, get_route_ctx(insertion_ctx, route_idx).route().tour.job_activity_count() as i32)
+        as usize;
 
     let (failures, _) = jobs.into_iter().fold((Vec::new(), start_index), |(mut unassigned, start_index), job| {
         let eval_ctx = EvaluationContext {
@@ -184,7 +185,7 @@ fn insert_jobs(
         };
 
         // reevaluate last insertion point
-        let last_index = get_route_ctx(insertion_ctx, route_idx).route.tour.job_activity_count();
+        let last_index = get_route_ctx(insertion_ctx, route_idx).route().tour.job_activity_count();
         // try to find success insertion starting from given point
         let (result, start_index) = unwrap_from_result((start_index..=last_index).try_fold(
             (InsertionResult::make_failure(), start_index),

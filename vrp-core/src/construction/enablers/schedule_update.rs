@@ -48,16 +48,16 @@ fn update_schedules(
     transport: &(dyn TransportCost + Send + Sync),
 ) {
     let init = {
-        let start = route_ctx.route.tour.start().unwrap();
+        let start = route_ctx.route().tour.start().unwrap();
         (start.place.location, start.schedule.departure)
     };
 
-    (1..route_ctx.route.tour.total()).fold(init, |(loc, dep), activity_idx| {
+    (1..route_ctx.route().tour.total()).fold(init, |(loc, dep), activity_idx| {
         let (location, arrival, departure) = {
-            let a = route_ctx.route.tour.get(activity_idx).unwrap();
+            let a = route_ctx.route().tour.get(activity_idx).unwrap();
             let location = a.place.location;
-            let arrival = dep + transport.duration(&route_ctx.route, loc, location, TravelTime::Departure(dep));
-            let departure = activity.estimate_departure(&route_ctx.route, a, arrival);
+            let arrival = dep + transport.duration(route_ctx.route(), loc, location, TravelTime::Departure(dep));
+            let departure = activity.estimate_departure(route_ctx.route(), a, arrival);
 
             (location, arrival, departure)
         };
@@ -75,7 +75,7 @@ fn update_states(
     state_keys: &ScheduleStateKeys,
 ) {
     // update latest arrival and waiting states of non-terminate (jobs) activities
-    let actor = route_ctx.route.actor.clone();
+    let actor = route_ctx.route().actor.clone();
     let init = (
         actor.detail.time.end,
         actor

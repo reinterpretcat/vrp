@@ -26,7 +26,8 @@ impl Ruin for NeighbourRemoval {
             .map(|(profile, _, job)| (profile, job));
 
         select_neighbors(&problem, init_seed).take_while(|_| !tracker.read().unwrap().is_limit()).for_each(|job| {
-            let route_idx = insertion_ctx.solution.routes.iter().position(|rc| rc.route.tour.contains(&job));
+            let route_idx =
+                insertion_ctx.solution.routes.iter().position(|route_ctx| route_ctx.route().tour.contains(&job));
             if let Some(route_idx) = route_idx {
                 tracker.write().unwrap().try_remove_job(&mut insertion_ctx.solution, route_idx, &job);
             }

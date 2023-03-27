@@ -36,7 +36,8 @@ pub trait MultiTrip {
 
     /// Returns marker intervals.
     fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
-        self.get_state_code().and_then(|state_code| route_ctx.state.get_route_state::<Vec<(usize, usize)>>(state_code))
+        self.get_state_code()
+            .and_then(|state_code| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(state_code))
     }
 
     /// Accepts insertion and promotes unassigned jobs with specific error code to unknown.
@@ -51,7 +52,7 @@ pub trait MultiTrip {
 
         if self.is_marker_job(job) {
             // move all unassigned marker jobs back to ignored
-            let jobs = self.filter_markers(&route_ctx.route, &solution_ctx.required).collect::<HashSet<_>>();
+            let jobs = self.filter_markers(route_ctx.route(), &solution_ctx.required).collect::<HashSet<_>>();
             solution_ctx.required.retain(|job| !jobs.contains(job));
             solution_ctx.unassigned.retain(|job, _| !jobs.contains(job));
             solution_ctx.ignored.extend(jobs.into_iter());
@@ -65,8 +66,8 @@ pub trait MultiTrip {
         } else if self.is_multi_trip_needed(route_ctx) {
             // move all marker jobs for this shift to required
             let jobs = self
-                .filter_markers(&route_ctx.route, &solution_ctx.ignored)
-                .chain(self.filter_markers(&route_ctx.route, &solution_ctx.required))
+                .filter_markers(route_ctx.route(), &solution_ctx.ignored)
+                .chain(self.filter_markers(route_ctx.route(), &solution_ctx.required))
                 .collect::<HashSet<_>>();
 
             solution_ctx.ignored.retain(|job| !jobs.contains(job));

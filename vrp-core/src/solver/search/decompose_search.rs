@@ -165,7 +165,7 @@ fn create_partial_insertion_ctx(
     let solution = &insertion_ctx.solution;
 
     let routes = route_indices.iter().map(|idx| solution.routes[*idx].deep_copy()).collect::<Vec<_>>();
-    let actors = routes.iter().map(|route_ctx| route_ctx.route.actor.clone()).collect::<HashSet<_>>();
+    let actors = routes.iter().map(|route_ctx| route_ctx.route().actor.clone()).collect::<HashSet<_>>();
     let registry = solution.registry.deep_slice(|actor| actors.contains(actor));
 
     (
@@ -177,10 +177,15 @@ fn create_partial_insertion_ctx(
                 ignored: if route_indices.is_empty() { solution.ignored.clone() } else { Default::default() },
                 unassigned: if route_indices.is_empty() { solution.unassigned.clone() } else { Default::default() },
                 locked: if route_indices.is_empty() {
-                    let jobs = solution.routes.iter().flat_map(|rc| rc.route.tour.jobs()).collect::<HashSet<_>>();
+                    let jobs = solution
+                        .routes
+                        .iter()
+                        .flat_map(|route_ctx| route_ctx.route().tour.jobs())
+                        .collect::<HashSet<_>>();
                     solution.locked.iter().filter(|job| !jobs.contains(*job)).cloned().collect()
                 } else {
-                    let jobs = routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>();
+                    let jobs =
+                        routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect::<HashSet<_>>();
                     solution.locked.iter().filter(|job| jobs.contains(*job)).cloned().collect()
                 },
                 routes,
@@ -290,7 +295,7 @@ fn merge_best(
 
     source_solution.routes.iter().for_each(|route_ctx| {
         // NOTE ideally route shouldn't go nowhere, but it is fine in that case
-        assert!(dest_solution.registry.get_route(&route_ctx.route.actor).is_some());
+        assert!(dest_solution.registry.get_route(&route_ctx.route().actor).is_some());
     });
 
     accumulated

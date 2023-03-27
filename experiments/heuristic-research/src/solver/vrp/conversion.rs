@@ -17,7 +17,7 @@ impl From<&InsertionContext> for DataGraph {
             .routes
             .iter()
             .flat_map(|route_ctx| {
-                route_ctx.route.tour.legs().map(|(activities, _)| match activities {
+                route_ctx.route().tour.legs().map(|(activities, _)| match activities {
                     [from, to] => GraphEdge { source: from.place.location, target: to.place.location },
                     _ => unreachable!("leg configuration"),
                 })

@@ -75,7 +75,7 @@ fn get_actor_groups(solution_ctx: &mut SolutionContext, state_key: i32) -> HashM
             route_ctx
                 .state
                 .get_route_state::<HashSet<String>>(state_key)
-                .map(|groups| (route_ctx.route.actor.clone(), groups.clone()))
+                .map(|groups| (route_ctx.route().actor.clone(), groups.clone()))
         })
         .fold(HashMap::default(), |mut acc, (actor, groups)| {
             groups.into_iter().for_each(|group| {

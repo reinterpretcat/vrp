@@ -176,9 +176,9 @@ fn evaluate_result<T>(
 ) -> Option<T> {
     let get_order = |single: Option<&Single>| match &order_fn {
         Either::Left(left) => left.deref()(single),
-        Either::Right(right) => right.deref()(route_ctx.route.actor.as_ref(), single),
+        Either::Right(right) => right.deref()(route_ctx.route().actor.as_ref(), single),
     };
-    let get_order_by_idx = |idx: usize| get_order(route_ctx.route.tour.get(idx).and_then(get_single));
+    let get_order_by_idx = |idx: usize| get_order(route_ctx.route().tour.get(idx).and_then(get_single));
     let target = get_order(get_single(activity_ctx.target));
 
     unwrap_from_result(
@@ -186,7 +186,7 @@ fn evaluate_result<T>(
             .map(get_order_by_idx)
             .map(|early| (early, target, true))
             .chain(
-                (activity_ctx.index + 1..route_ctx.route.tour.total())
+                (activity_ctx.index + 1..route_ctx.route().tour.total())
                     .map(get_order_by_idx)
                     .map(|late| (target, late, false)),
             )
@@ -206,13 +206,13 @@ fn get_violations(routes: &[RouteContext], order_fn: &TourOrderFn) -> usize {
         .iter()
         .map(|route_ctx| {
             let orders = route_ctx
-                .route
+                .route()
                 .tour
                 .all_activities()
                 .filter_map(|activity| activity.job.as_ref())
                 .map(|single| match order_fn {
                     Either::Left(left) => left.deref()(Some(single.as_ref())),
-                    Either::Right(right) => right.deref()(route_ctx.route.actor.as_ref(), Some(single.as_ref())),
+                    Either::Right(right) => right.deref()(route_ctx.route().actor.as_ref(), Some(single.as_ref())),
                 })
                 .filter(|order| !matches!(order, OrderResult::Ignored))
                 .collect::<Vec<OrderResult>>();

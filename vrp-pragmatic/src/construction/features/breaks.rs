@@ -54,7 +54,7 @@ struct OptionalBreakConstraint {
 impl OptionalBreakConstraint {
     fn evaluate_route(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
         job.as_single()
-            .filter(|single| is_break_single(single) && !is_single_belongs_to_route(&route_ctx.route, single))
+            .filter(|single| is_break_single(single) && !is_single_belongs_to_route(route_ctx.route(), single))
             .and_then(|_| ConstraintViolation::fail(self.code))
     }
 
@@ -95,7 +95,7 @@ impl Objective for OptionalBreakObjective {
             .solution
             .routes
             .iter()
-            .flat_map(|route_ctx| route_ctx.route.tour.jobs())
+            .flat_map(|route_ctx| route_ctx.route().tour.jobs())
             .filter(|job| job.as_single().filter(|single| is_break_single(single)).is_some())
             .count() as f64
     }
@@ -144,8 +144,9 @@ fn is_required_job(routes: &[RouteContext], route_index: Option<usize>, job: &Jo
                 } else {
                     let vehicle_id = get_vehicle_id_from_job(job);
                     let shift_index = get_shift_index(&job.dimens);
-                    routes.iter().any(move |rc| {
-                        is_correct_vehicle(&rc.route, vehicle_id, shift_index) && can_be_scheduled(rc, job)
+                    routes.iter().any(move |route_ctx| {
+                        is_correct_vehicle(route_ctx.route(), vehicle_id, shift_index)
+                            && can_be_scheduled(route_ctx, job)
                     })
                 }
             } else {
@@ -163,8 +164,9 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext) {
     let breaks_to_remove = ctx
         .routes
         .iter()
-        .flat_map(|rc| {
-            rc.route
+        .flat_map(|route_ctx| {
+            route_ctx
+                .route()
                 .tour
                 .all_activities()
                 .fold((0, HashSet::new()), |(prev, mut breaks), activity| {
@@ -181,9 +183,10 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext) {
 
                             let is_orphan =
                                 prev != current && break_single.places.first().and_then(|p| p.location).is_none();
-                            let is_not_on_time = !is_on_proper_time(rc, break_single, &activity.schedule)
-                                || !can_be_scheduled(rc, break_single);
-                            let is_ovrp_last = rc.route.tour.end().map_or(false, |end| std::ptr::eq(activity, end));
+                            let is_not_on_time = !is_on_proper_time(route_ctx, break_single, &activity.schedule)
+                                || !can_be_scheduled(route_ctx, break_single);
+                            let is_ovrp_last =
+                                route_ctx.route().tour.end().map_or(false, |end| std::ptr::eq(activity, end));
 
                             if is_orphan || is_not_on_time || is_ovrp_last {
                                 // NOTE remove break with removed job location
@@ -200,7 +203,7 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext) {
         .collect::<Vec<_>>();
 
     breaks_to_remove.iter().for_each(|break_job| {
-        ctx.routes.iter_mut().filter(|route_ctx| route_ctx.route.tour.contains(break_job)).for_each(|route_ctx| {
+        ctx.routes.iter_mut().filter(|route_ctx| route_ctx.route().tour.contains(break_job)).for_each(|route_ctx| {
             route_ctx.route_mut().tour.remove(break_job);
         })
     });
@@ -231,9 +234,9 @@ fn get_break_time_windows(break_job: &'_ Arc<Single>, departure: f64) -> impl It
 }
 
 /// Checks whether break can be scheduled in route.
-fn can_be_scheduled(rc: &RouteContext, break_job: &Arc<Single>) -> bool {
-    let departure = rc.route.tour.start().unwrap().schedule.departure;
-    let arrival = rc.route.tour.end().map_or(0., |end| end.schedule.arrival);
+fn can_be_scheduled(route_ctx: &RouteContext, break_job: &Arc<Single>) -> bool {
+    let departure = route_ctx.route().tour.start().unwrap().schedule.departure;
+    let arrival = route_ctx.route().tour.end().map_or(0., |end| end.schedule.arrival);
     let tour_tw = TimeWindow::new(departure, arrival);
     let policy = break_job.dimens.get_break_policy().unwrap_or(BreakPolicy::SkipIfNoIntersection);
 
@@ -244,8 +247,8 @@ fn can_be_scheduled(rc: &RouteContext, break_job: &Arc<Single>) -> bool {
 }
 
 /// Checks whether break is scheduled on time as its time can be invalid due to departure time optimizations.
-fn is_on_proper_time(rc: &RouteContext, break_job: &Arc<Single>, actual_schedule: &Schedule) -> bool {
-    let departure = rc.route.tour.start().unwrap().schedule.departure;
+fn is_on_proper_time(route_ctx: &RouteContext, break_job: &Arc<Single>, actual_schedule: &Schedule) -> bool {
+    let departure = route_ctx.route().tour.start().unwrap().schedule.departure;
     let actual_tw = TimeWindow::new(actual_schedule.arrival, actual_schedule.departure);
 
     get_break_time_windows(break_job, departure).any(|tw| tw.intersects(&actual_tw))
