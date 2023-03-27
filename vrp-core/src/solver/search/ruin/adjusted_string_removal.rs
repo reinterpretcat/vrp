@@ -89,32 +89,6 @@ impl Ruin for AdjustedStringRemoval {
                             });
                     }
                 });
-                /*
-                routes
-                    .iter_mut()
-                    .find(|route_ctx| {
-                        !tracker.read().unwrap().is_affected_actor(&route_ctx.route().actor)
-                            && route_ctx.route().tour.index(&job).is_some()
-                    })
-                    .iter_mut()
-                    .for_each(|route_ctx| {
-                        // Equations 8, 9: calculate cardinality of the string removed from the tour
-                        let ltmax = route_ctx.route().tour.job_activity_count().min(lsmax);
-                        let lt = random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
-
-                        if let Some(index) = route_ctx.route().tour.index(&job) {
-                            select_string((&route_ctx.route().tour, index), lt, self.alpha, &random)
-                                .collect::<Vec<Job>>()
-                                .into_iter()
-                                .for_each(|job| {
-                                    tracker.write().unwrap().try_remove_job(
-                                        &mut insertion_ctx.solution,
-                                        route_ctx,
-                                        &job,
-                                    );
-                                });
-                        }
-                    });*/
             });
 
         insertion_ctx
