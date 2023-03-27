@@ -7,7 +7,7 @@ LABEL maintainer="Ilya Builuk <ilya.builuk@gmail.com>" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.authors="Ilya Builuk <ilya.builuk@gmail.com>"
 
-RUN apk add --no-cache musl-dev
+RUN apk add --no-cache musl-dev python3
 
 WORKDIR /src/
 
