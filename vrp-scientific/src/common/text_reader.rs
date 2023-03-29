@@ -101,7 +101,8 @@ pub(crate) fn create_goal_context(
     let feature_map =
         vec![vec!["min_jobs".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]];
 
-    GoalContext::new(features.as_slice(), feature_map.as_slice(), feature_map.as_slice())
+    // NOTE: exclude min_jobs from local objective
+    GoalContext::new(features.as_slice(), feature_map.as_slice(), &feature_map[1..])
 }
 
 pub(crate) fn read_line<R: Read>(reader: &mut BufReader<R>, buffer: &mut String) -> Result<usize, String> {
