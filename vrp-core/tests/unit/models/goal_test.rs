@@ -151,7 +151,7 @@ pub fn can_use_objective_estimate() {
 
     assert_eq!(
         create_goal_ctx_with_feature(create_objective_feature_with_fixed_cost("o_1", 1.)).estimate(&move_ctx),
-        1.
+        InsertionCost::new(&[1.])
     );
 
     assert_eq!(
@@ -163,7 +163,7 @@ pub fn can_use_objective_estimate() {
             vec![vec!["o_1", "o_2"]],
         )
         .estimate(&move_ctx),
-        2.
+        InsertionCost::new(&[1., 1.])
     );
 }
 

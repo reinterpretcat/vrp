@@ -7,8 +7,6 @@ use crate::helpers::models::solution::ActivityBuilder;
 use crate::models::common::{Cost, Location, Schedule, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::{Job, Single, VehicleDetail};
 use crate::models::solution::{Activity, Place, Registry};
-use rosomaxa::prelude::compare_floats;
-use std::cmp::Ordering;
 use std::sync::Arc;
 
 type JobPlace = crate::models::problem::Place;
@@ -122,13 +120,10 @@ mod single {
 
         let result = evaluate_job_insertion(&mut ctx, &job, insertion_position);
 
-        if let InsertionResult::Success(success) = result {
-            assert_eq!(success.activities.len(), 1);
-            assert_eq!(success.activities.first().unwrap().1, index);
-            assert_eq!(success.activities.first().unwrap().0.place.location, location);
-        } else {
-            unreachable!()
-        }
+        let success = result.into_success().unwrap();
+        assert_eq!(success.activities.len(), 1);
+        assert_eq!(success.activities.first().unwrap().1, index);
+        assert_eq!(success.activities.first().unwrap().0.place.location, location);
     }
 
     parameterized_test! {can_insert_job_with_two_vehicles_and_various_time_constraints, (job_location, v1_end_location, v2_end_location, expected_used_vehicle, cost), {
@@ -187,13 +182,10 @@ mod single {
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
-        if let InsertionResult::Success(success) = result {
-            assert_eq!(success.activities.len(), 1);
-            assert_eq!(get_vehicle_id(&success.actor.vehicle), &expected_used_vehicle.to_owned());
-            assert_eq!(compare_floats(success.cost, cost), Ordering::Equal);
-        } else {
-            unreachable!()
-        }
+        let success = result.into_success().unwrap();
+        assert_eq!(success.activities.len(), 1);
+        assert_eq!(get_vehicle_id(&success.actor.vehicle), &expected_used_vehicle.to_owned());
+        assert_eq!(success.cost, InsertionCost::new(&[cost]));
     }
 
     #[test]
@@ -238,12 +230,9 @@ mod multi {
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
-        if let InsertionResult::Success(success) = result {
-            assert_eq!(success.cost, 28.0);
-            assert_activities(success, vec![(0, 3), (1, 7)]);
-        } else {
-            unreachable!()
-        }
+        let success = result.into_success().unwrap();
+        assert_eq!(success.cost, InsertionCost::new(&[28.0]));
+        assert_activities(success, vec![(0, 3), (1, 7)]);
     }
 
     parameterized_test! {can_handle_activity_constraint_violation, activities, {
@@ -326,13 +315,10 @@ mod multi {
 
         let result = evaluate_job_insertion(&mut ctx, &job, position);
 
-        if let InsertionResult::Success(success) = result {
-            assert_eq!(success.cost, cost);
-            assert_eq!(success.activities.len(), expected.len());
-            assert_activities(success, expected);
-        } else {
-            unreachable!()
-        }
+        let success = result.into_success().unwrap();
+        assert_eq!(success.cost, InsertionCost::new(&[cost]));
+        assert_eq!(success.activities.len(), expected.len());
+        assert_activities(success, expected);
     }
 
     #[test]
@@ -350,11 +336,8 @@ mod multi {
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
-        if let InsertionResult::Success(success) = result {
-            assert_eq!(success.cost, 60.0);
-            assert_activities(success, vec![(0, 5), (1, 10), (2, 15)]);
-        } else {
-            unreachable!()
-        }
+        let success = result.into_success().unwrap();
+        assert_eq!(success.cost, InsertionCost::new(&[60.]));
+        assert_activities(success, vec![(0, 5), (1, 10), (2, 15)]);
     }
 }

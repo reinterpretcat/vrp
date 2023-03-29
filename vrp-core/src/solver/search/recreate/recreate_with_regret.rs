@@ -4,7 +4,7 @@ use crate::models::problem::Job;
 use crate::solver::search::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
 use hashbrown::HashSet;
-use rosomaxa::utils::{compare_floats, CollectGroupBy, Random};
+use rosomaxa::utils::{CollectGroupBy, Random};
 use std::sync::Arc;
 
 /// A recreate strategy which computes the difference in cost of inserting customer in its
@@ -104,7 +104,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
                     return None;
                 }
 
-                successes.sort_by(|a, b| compare_floats(a.cost, b.cost));
+                successes.sort_by(|a, b| a.cost.cmp(&b.cost));
 
                 let (_, mut job_results) = successes.into_iter().fold(
                     (HashSet::with_capacity(insertion_ctx.solution.routes.len()), Vec::default()),
@@ -123,7 +123,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
                     let worst = job_results.swap_remove(regret_index);
                     let best = job_results.swap_remove(0);
 
-                    Some((worst.cost - best.cost, best))
+                    Some((worst.cost - &best.cost, best))
                 } else {
                     None
                 }
@@ -131,7 +131,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
             .collect::<Vec<_>>();
 
         if !results.is_empty() {
-            results.sort_by(|a, b| compare_floats(b.0, a.0));
+            results.sort_by(|a, b| b.0.cmp(&a.0));
 
             let (_, best_success) = results.swap_remove(0);
 

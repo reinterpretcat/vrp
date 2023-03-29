@@ -119,7 +119,7 @@ fn synchronize_jobs(
                         route_ctx,
                         single,
                         position,
-                        0.,
+                        Default::default(),
                         None,
                     );
 

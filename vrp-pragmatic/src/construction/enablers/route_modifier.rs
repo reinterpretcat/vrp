@@ -3,7 +3,6 @@ use crate::format::JobIndex;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::*;
 use vrp_core::models::GoalContext;
-use vrp_core::prelude::*;
 
 /// Returns route modifier.
 pub fn get_route_modifier(goal: Arc<GoalContext>, job_index: JobIndex) -> RouteModifier {
@@ -34,14 +33,20 @@ pub fn get_route_modifier(goal: Arc<GoalContext>, job_index: JobIndex) -> RouteM
                         result_selector: &result_selector,
                     };
 
-                    eval_job_constraint_in_route(&eval_ctx, &route_ctx, InsertionPosition::Last, 0., None)
+                    eval_job_constraint_in_route(
+                        &eval_ctx,
+                        &route_ctx,
+                        InsertionPosition::Last,
+                        InsertionCost::default(),
+                        None,
+                    )
                 })
                 .and_then(|result| match result {
                     InsertionResult::Success(success) => Some(success),
                     _ => None,
                 })
             })
-            .min_by(|a, b| compare_floats(a.cost, b.cost));
+            .min_by(|a, b| a.cost.cmp(&b.cost));
 
         if let Some(success) = result {
             let mut route_ctx = route_ctx.deep_copy();

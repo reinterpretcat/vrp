@@ -11,7 +11,12 @@ mod noise_checks {
     use super::*;
 
     fn make_success(cost: Cost) -> InsertionResult {
-        InsertionResult::make_success(cost, Job::Single(test_single_with_id("job1")), vec![], &create_empty_route_ctx())
+        InsertionResult::make_success(
+            InsertionCost::new(&[cost]),
+            Job::Single(test_single_with_id("job1")),
+            vec![],
+            &create_empty_route_ctx(),
+        )
     }
 
     parameterized_test! {can_compare_insertion_result_with_noise, (left, right, reals, expected_result), {
@@ -43,7 +48,7 @@ mod noise_checks {
             NoiseResultSelector::new(noise).select_insertion(&create_empty_insertion_context(), left, right);
 
         match (actual_result, expected_result) {
-            (InsertionResult::Success(success), Some(cost)) => assert_eq!(success.cost, cost),
+            (InsertionResult::Success(success), Some(cost)) => assert_eq!(success.cost, InsertionCost::new(&[cost])),
             (InsertionResult::Failure(_), None) => {}
             _ => unreachable!(),
         }

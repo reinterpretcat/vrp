@@ -1,8 +1,17 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/heuristics/insertions_test.rs"]
+mod insertions_test;
+
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job};
 use crate::models::solution::Activity;
+use rosomaxa::utils::unwrap_from_result;
+use std::borrow::Borrow;
+use std::cmp::Ordering;
+use std::ops::{Add, Sub};
 use std::sync::Arc;
+use tinyvec::{TinyVec, TinyVecIterator};
 
 /// Specifies insertion result variant.
 pub enum InsertionResult {
@@ -15,7 +24,7 @@ pub enum InsertionResult {
 /// Specifies insertion success result needed to insert job into tour.
 pub struct InsertionSuccess {
     /// Specifies delta cost change for the insertion.
-    pub cost: Cost,
+    pub cost: InsertionCost,
 
     /// Original job to be inserted.
     pub job: Job,
@@ -35,6 +44,141 @@ pub struct InsertionFailure {
     pub stopped: bool,
     /// Original job failed to be inserted.
     pub job: Option<Job>,
+}
+
+/// Specifies a max size of stack allocated array to be used. If data size exceeds it,
+/// then heap allocated vector is used which leads to performance impact.
+const COST_DIMENSION: usize = 6;
+
+/// A size of a cost array used by InsertionCost.
+type CostArray = [Cost; COST_DIMENSION];
+
+/// A hierarchical cost of job's insertion.
+#[derive(Clone, Debug, Default)]
+pub struct InsertionCost {
+    data: TinyVec<CostArray>,
+}
+
+impl InsertionCost {
+    /// Creates a new instance of `InsertionCost`.
+    pub fn new(data: &[Cost]) -> Self {
+        Self { data: data.into() }
+    }
+
+    /// Returns iterator over cost values.
+    pub fn iter(&self) -> impl Iterator<Item = Cost> + '_ {
+        self.data.iter().cloned()
+    }
+
+    /// Returns highest* possible insertion cost.
+    pub fn max_value() -> Self {
+        Self::new(&[Cost::MAX])
+    }
+}
+
+impl FromIterator<Cost> for InsertionCost {
+    fn from_iter<T: IntoIterator<Item = Cost>>(iter: T) -> Self {
+        Self { data: TinyVec::<CostArray>::from_iter(iter) }
+    }
+}
+
+impl IntoIterator for InsertionCost {
+    type Item = Cost;
+    type IntoIter = TinyVecIterator<CostArray>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.into_iter()
+    }
+}
+
+impl Eq for InsertionCost {}
+
+impl PartialEq for InsertionCost {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl PartialOrd for InsertionCost {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for InsertionCost {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let size = self.data.len().max(other.data.len());
+        unwrap_from_result((0..size).try_fold(Ordering::Equal, |acc, idx| {
+            let left = self.data.get(idx).cloned().unwrap_or_default();
+            let right = other.data.get(idx).cloned().unwrap_or_default();
+
+            let result = left.total_cmp(&right);
+            match result {
+                Ordering::Equal => Ok(acc),
+                _ => Err(result),
+            }
+        }))
+    }
+}
+
+impl<'a, B> Add<B> for &'a InsertionCost
+where
+    B: Borrow<InsertionCost>,
+{
+    type Output = InsertionCost;
+
+    fn add(self, rhs: B) -> Self::Output {
+        let rhs = rhs.borrow();
+        let size = self.data.len().max(rhs.data.len());
+
+        (0..size)
+            .map(|idx| {
+                self.data.get(idx).copied().unwrap_or(Cost::default())
+                    + rhs.data.get(idx).copied().unwrap_or(Cost::default())
+            })
+            .collect()
+    }
+}
+
+impl<B> Add<B> for InsertionCost
+where
+    B: Borrow<InsertionCost>,
+{
+    type Output = InsertionCost;
+
+    fn add(self, rhs: B) -> Self::Output {
+        &self + rhs
+    }
+}
+
+impl<'a, B> Sub<B> for &'a InsertionCost
+where
+    B: Borrow<InsertionCost>,
+{
+    type Output = InsertionCost;
+
+    fn sub(self, rhs: B) -> Self::Output {
+        let rhs = rhs.borrow();
+        let size = self.data.len().max(rhs.data.len());
+
+        (0..size)
+            .map(|idx| {
+                self.data.get(idx).copied().unwrap_or(Cost::default())
+                    - rhs.data.get(idx).copied().unwrap_or(Cost::default())
+            })
+            .collect()
+    }
+}
+
+impl<B> Sub<B> for InsertionCost
+where
+    B: Borrow<InsertionCost>,
+{
+    type Output = InsertionCost;
+
+    fn sub(self, rhs: B) -> Self::Output {
+        &self - rhs
+    }
 }
 
 /// Implements generalized insertion heuristic.
@@ -111,7 +255,12 @@ impl InsertionHeuristic {
 
 impl InsertionResult {
     /// Creates result which represents insertion success.
-    pub fn make_success(cost: Cost, job: Job, activities: Vec<(Activity, usize)>, route_ctx: &RouteContext) -> Self {
+    pub fn make_success(
+        cost: InsertionCost,
+        job: Job,
+        activities: Vec<(Activity, usize)>,
+        route_ctx: &RouteContext,
+    ) -> Self {
         Self::Success(InsertionSuccess { cost, job, activities, actor: route_ctx.route().actor.clone() })
     }
 

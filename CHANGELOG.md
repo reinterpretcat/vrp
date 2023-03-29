@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* use hierarchical approach for local objective estimation
+
 
 ## [v1.20.0]
 

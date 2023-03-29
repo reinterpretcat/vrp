@@ -4,7 +4,7 @@ use crate::helpers::models::problem::get_vehicle_id;
 use crate::helpers::solver::*;
 use crate::helpers::utils::create_test_environment_with_random;
 use crate::helpers::utils::random::FakeRandom;
-use crate::models::common::{Schedule, TimeWindow};
+use crate::models::common::{Cost, Schedule, TimeWindow};
 use crate::models::solution::*;
 use rosomaxa::prelude::Environment;
 
@@ -20,7 +20,12 @@ fn create_insertion_success(insertion_ctx: &InsertionContext, insertion_data: (u
         commute: None,
     };
 
-    InsertionResult::Success(InsertionSuccess { cost: 0., job, activities: vec![(activity, insertion_idx)], actor })
+    InsertionResult::Success(InsertionSuccess {
+        cost: InsertionCost::default(),
+        job,
+        activities: vec![(activity, insertion_idx)],
+        actor,
+    })
 }
 
 fn create_insertion_ctx(
@@ -185,7 +190,7 @@ fn can_find_insertion_cost_impl(job_id: &str, expected: Cost) {
 
     let result = find_insertion_cost(&search_ctx, &job, route_ctx);
 
-    assert_eq!(result, expected);
+    assert_eq!(result, InsertionCost::new(&[expected]));
 }
 
 parameterized_test! { can_find_in_place_result, (route_idx, insert_job, extract_job, disallowed_pairs, job_order, expected), {
@@ -221,7 +226,7 @@ fn can_find_in_place_result_impl(
         .into_success()
         .map(|success| (success.cost, success.activities.first().unwrap().1));
 
-    assert_eq!(result, expected);
+    assert_eq!(result, expected.map(|(cost, position)| (InsertionCost::new(&[cost]), position)));
 }
 
 parameterized_test! { can_find_top_results, (job_id, disallowed_pairs, expected), {

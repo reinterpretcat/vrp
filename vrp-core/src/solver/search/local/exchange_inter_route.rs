@@ -184,6 +184,10 @@ fn test_job_insertion(
     }
 }
 
+fn get_insertion_cost_with_noise_from_pair(pair: &InsertionSuccessPair, noise: &Noise) -> InsertionCost {
+    noise.generate_multi((&pair.0 .0.cost + &pair.1 .0.cost).iter()).collect()
+}
+
 fn reduce_pair_with_noise(
     left_result: Option<InsertionSuccessPair>,
     right_result: Option<InsertionSuccessPair>,
@@ -191,8 +195,8 @@ fn reduce_pair_with_noise(
 ) -> Option<InsertionSuccessPair> {
     match (&left_result, &right_result) {
         (Some(left), Some(right)) => {
-            let left_cost = noise.generate(left.0 .0.cost + left.1 .0.cost);
-            let right_cost = noise.generate(right.0 .0.cost + right.1 .0.cost);
+            let left_cost = get_insertion_cost_with_noise_from_pair(left, noise);
+            let right_cost = get_insertion_cost_with_noise_from_pair(right, noise);
 
             if left_cost < right_cost {
                 left_result
