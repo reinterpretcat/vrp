@@ -114,12 +114,24 @@ pub struct SolutionContext {
 impl SolutionContext {
     /// Gets total cost of the solution.
     pub fn get_total_cost(&self) -> Cost {
-        self.routes.iter().fold(Cost::default(), |acc, rc| acc + rc.get_route_cost())
-    }
+        let get_cost = |costs: &Costs, distance: f64, duration: f64| {
+            costs.fixed
+                + costs.per_distance * distance
+                // NOTE this is incorrect when timing costs are different: fitness value will be
+                // different from actual cost. However we accept this so far as it is simpler for
+                // implementation and pragmatic format does not expose this feature
+                // .
+                // TODO calculate actual cost
+                + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
+        };
 
-    /// Gets the most expensive route cost.
-    pub fn get_max_cost(&self) -> Cost {
-        self.routes.iter().map(|rc| rc.get_route_cost()).max_by(|&a, &b| compare_floats(a, b)).unwrap_or(0.)
+        self.routes.iter().fold(Cost::default(), |acc, route_ctx| {
+            let actor = &route_ctx.route.actor;
+            let distance = route_ctx.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
+            let duration = route_ctx.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
+
+            acc + get_cost(&actor.vehicle.costs, distance, duration) + get_cost(&actor.driver.costs, distance, duration)
+        })
     }
 
     /// Converts given `SolutionContext` to Solution model.
@@ -222,26 +234,6 @@ impl RouteContext {
         let new_state = RouteState::from_other_and_tours(&self.state, &self.route.tour, &new_route.tour);
 
         RouteContext { route: new_route, state: new_state, cache: RouteCache { is_stale: self.cache.is_stale } }
-    }
-
-    /// Gets route cost.
-    pub fn get_route_cost(&self) -> Cost {
-        let get_cost = |costs: &Costs, distance: f64, duration: f64| {
-            costs.fixed
-                + costs.per_distance * distance
-                // NOTE this is incorrect when timing costs are different: fitness value will be
-                // different from actual cost. However we accept this so far as it is simpler for
-                // implementation and pragmatic format does not expose this feature
-                // .
-                // TODO calculate actual cost
-                + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
-        };
-
-        let actor = &self.route.actor;
-        let distance = self.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
-        let duration = self.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
-
-        get_cost(&actor.vehicle.costs, distance, duration) + get_cost(&actor.driver.costs, distance, duration)
     }
 
     /// Returns a reference to route.
