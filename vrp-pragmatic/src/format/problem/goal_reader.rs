@@ -1,6 +1,7 @@
 use super::*;
 use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::*;
+use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::features::*;
 use vrp_core::models::common::{LoadOps, MultiDimLoad, SingleDimLoad};
@@ -379,12 +380,34 @@ where
 
 #[allow(clippy::type_complexity)]
 fn extract_feature_map(features: &[Vec<Feature>]) -> Result<(Vec<Vec<String>>, Vec<Vec<String>>), String> {
-    let objective_map: Vec<Vec<String>> = features
+    let global_objective_map: Vec<Vec<String>> = features
         .iter()
         .map(|features| features.iter().filter_map(|f| f.objective.as_ref().map(|_| f.name.clone())).collect())
         .collect();
 
-    Ok((objective_map.clone(), objective_map))
+    // NOTE: this is more performance optimization: we want to minimize the size of InsertionCost
+    //       which has the same size as local_objective_map. So, we exclude some objectives which
+    //       are not really needed to be present here.
+    let exclusion_set = &["min_unassigned"].into_iter().collect::<HashSet<_>>();
+    let local_objective_map: Vec<Vec<String>> = features
+        .iter()
+        .flat_map(|inner| {
+            inner
+                .iter()
+                .filter_map(|f| f.objective.as_ref().map(|_| f.name.clone()))
+                .filter(|name| !exclusion_set.contains(name.as_str()))
+        })
+        // NOTE: there is no mechanism to handle objectives on the same level yet, so simply move
+        //       them to a separate level and rely on non-determenistic behavior of ResultSelector
+        .map(|objective| vec![objective])
+        .collect();
+
+    // NOTE COST_DIMENSION variable in vrp-core is responsible for that
+    if local_objective_map.len() > 6 {
+        println!("WARN: the size of local objectives ({}) exceeds pre-allocated stack size", local_objective_map.len());
+    }
+
+    Ok((global_objective_map, local_objective_map))
 }
 
 fn get_threshold(options: &Option<BalanceOptions>) -> Option<f64> {

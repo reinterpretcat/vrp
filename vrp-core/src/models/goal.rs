@@ -313,13 +313,17 @@ impl MultiObjective for GoalContext {
 impl HeuristicObjective for GoalContext {}
 
 impl Shuffled for GoalContext {
-    /// Returns a new instance of `ObjectiveCost` with shuffled objectives.
+    /// Returns a new instance of `GoalContext` with shuffled objectives.
     fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
         let mut hierarchical_objectives = self.hierarchical_objectives.clone();
+        let mut flat_objectives = self.flat_objectives.clone();
+        let mut local_objectives = self.local_objectives.clone();
 
         hierarchical_objectives.shuffle(&mut random.get_rng());
+        flat_objectives.shuffle(&mut random.get_rng());
+        local_objectives.shuffle(&mut random.get_rng());
 
-        Self { hierarchical_objectives, ..self.clone() }
+        Self { hierarchical_objectives, flat_objectives, local_objectives, ..self.clone() }
     }
 }
 

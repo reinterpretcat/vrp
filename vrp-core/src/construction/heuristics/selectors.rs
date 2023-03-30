@@ -204,7 +204,11 @@ pub trait ResultSelector {
     ) -> InsertionResult;
 
     /// Selects one insertion result from two to promote as best.
-    fn select_cost(&self, left: InsertionCost, right: InsertionCost) -> Either<InsertionCost, InsertionCost> {
+    fn select_cost<'a>(
+        &self,
+        left: &'a InsertionCost,
+        right: &'a InsertionCost,
+    ) -> Either<&'a InsertionCost, &'a InsertionCost> {
         if left < right {
             Either::Left(left)
         } else {
@@ -254,7 +258,11 @@ impl ResultSelector for NoiseResultSelector {
         }
     }
 
-    fn select_cost(&self, left: InsertionCost, right: InsertionCost) -> Either<InsertionCost, InsertionCost> {
+    fn select_cost<'a>(
+        &self,
+        left: &'a InsertionCost,
+        right: &'a InsertionCost,
+    ) -> Either<&'a InsertionCost, &'a InsertionCost> {
         let left_cost: InsertionCost = self.noise.generate_multi(left.iter()).collect();
         let right_cost = self.noise.generate_multi(right.iter()).collect();
 

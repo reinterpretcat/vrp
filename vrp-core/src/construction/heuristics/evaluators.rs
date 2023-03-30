@@ -65,9 +65,9 @@ pub fn eval_job_insertion_in_route(
 
     // analyze alternative and return it if it looks better based on routing cost comparison
     let (route_costs, best_known_cost) = if let Some(success) = alternative.as_success() {
-        match eval_ctx.result_selector.select_cost(success.cost.clone(), route_costs) {
+        match eval_ctx.result_selector.select_cost(&success.cost, &route_costs) {
             Either::Left(_) => return alternative,
-            Either::Right(route_costs) => (route_costs, Some(success.cost.clone())),
+            Either::Right(_) => (route_costs, Some(success.cost.clone())),
         }
     } else {
         (route_costs, None)
@@ -243,14 +243,14 @@ fn analyze_insertion_in_route(
             init.index,
             init,
             &mut |leg: Leg<'_>, init| analyze_leg_insertion(leg, init),
-            |lhs: &SingleContext, rhs: &SingleContext| {
-                eval_ctx
-                    .result_selector
-                    .select_cost(
-                        lhs.cost.clone().unwrap_or_else(InsertionCost::max_value),
-                        rhs.cost.clone().unwrap_or_else(InsertionCost::max_value),
-                    )
-                    .is_left()
+            {
+                let max_value = InsertionCost::max_value();
+                move |lhs: &SingleContext, rhs: &SingleContext| {
+                    eval_ctx
+                        .result_selector
+                        .select_cost(lhs.cost.as_ref().unwrap_or(&max_value), rhs.cost.as_ref().unwrap_or(&max_value))
+                        .is_left()
+                }
             },
         ),
     }
@@ -291,8 +291,8 @@ fn analyze_insertion_in_route_leg(
             let costs = eval_ctx.goal.estimate(&MoveContext::activity(route_ctx, &activity_ctx)) + &route_costs;
             let other_costs = acc.cost.clone().unwrap_or_else(InsertionCost::max_value);
 
-            match eval_ctx.result_selector.select_cost(costs, other_costs) {
-                Either::Left(costs) => SingleContext::success(activity_ctx.index, costs, target.place.clone()),
+            match eval_ctx.result_selector.select_cost(&costs, &other_costs) {
+                Either::Left(_) => SingleContext::success(activity_ctx.index, costs, target.place.clone()),
                 Either::Right(_) => SingleContext::skip(acc),
             }
         })
