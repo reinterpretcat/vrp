@@ -152,20 +152,7 @@ where
 
                             network
                                 .find(coordinate)
-                                .map(|node| {
-                                    let node = node.read().unwrap();
-                                    // SAFETY we need to return references from underlying storage, but
-                                    // borrow checker is not happy with that. However, it seems
-                                    // to be safe to do as returned iterator has lifetime of a population
-                                    // TODO is there better way to achieve similar result?
-                                    Either::Left(
-                                        unsafe {
-                                            &*(&node.storage.population as *const Elitism<O, S>) as &Elitism<O, S>
-                                        }
-                                        .select()
-                                        .take(explore_size),
-                                    )
-                                })
+                                .map(|node| Either::Left(node.storage.population.select().take(explore_size)))
                                 .unwrap_or_else(|| Either::Right(std::iter::empty()))
                         }))
                         .take(*selection_size),
@@ -183,11 +170,7 @@ where
     fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         match &self.phase {
             RosomaxaPhases::Exploration { network, .. } => {
-                Box::new(self.elite.all().chain(network.get_nodes().flat_map(|node| {
-                    // NOTE see above
-                    let node = node.read().unwrap();
-                    unsafe { &*(&node.storage.population as *const Elitism<O, S>) as &Elitism<O, S> }.all()
-                })))
+                Box::new(self.elite.all().chain(network.get_nodes().flat_map(|node| node.storage.population.all())))
             }
             _ => self.elite.all(),
         }
@@ -327,7 +310,6 @@ where
     ) {
         coordinates.clear();
         coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
-            let node = node.read().unwrap();
             if node.storage.population.size() > 0 {
                 Some(*coordinate)
             } else {

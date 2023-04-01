@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-This release is focused on removing unsafe code.
+This release is focused on removing unsafe code from the solver core.
 
 ### Changed
 
 * refactor RouteContext to avoid using Arc and unsafe code
+* refactor Network to avoid using Arc/RwLock and, as result, unsafe code in consumers
 * adapt core api to required safety changes
 
 

@@ -5,7 +5,6 @@ mod node_test;
 use super::*;
 use std::collections::VecDeque;
 use std::fmt::Formatter;
-use std::sync::{Arc, RwLock};
 
 /// Represents a node in network.
 pub struct Node<I: Input, S: Storage<Item = I>> {
@@ -24,9 +23,6 @@ pub struct Node<I: Input, S: Storage<Item = I>> {
     /// How many last hits should be remembered.
     hit_memory_size: usize,
 }
-
-/// A reference to the node.
-pub type NodeLink<I, S> = Arc<RwLock<Node<I, S>>>;
 
 /// Coordinate of the node.
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Ord, PartialOrd)]
@@ -88,28 +84,32 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         self.neighbours(network, 1).filter(|(_, (x, y))| x.abs() + y.abs() < 2).any(|(node, _)| node.is_none())
     }
 
-    /// Gets iterator over nodes in neighbourhood.
+    /// Gets iterator over node coordinates in neighbourhood.
+    /// If neighbour is not found, then None is returned for corresponding coordinate.
     pub fn neighbours<'a, F: StorageFactory<I, S>>(
         &self,
         network: &'a Network<I, S, F>,
         radius: usize,
-    ) -> impl Iterator<Item = (Option<&'a NodeLink<I, S>>, (i32, i32))> {
+    ) -> impl Iterator<Item = (Option<Coordinate>, (i32, i32))> + 'a {
         let radius = radius as i32;
         let Coordinate(node_x, node_y) = self.coordinate;
 
         (-radius..=radius).flat_map(move |x| {
             (-radius..=radius)
                 .filter(move |&y| !(x == 0 && y == 0))
-                .map(move |y| (network.find(&Coordinate(node_x + x, node_y + y)), (x, y)))
+                .map(move |y| (network.find(&Coordinate(node_x + x, node_y + y)).map(|node| node.coordinate), (x, y)))
         })
     }
 
     /// Gets unified distance.
     pub fn unified_distance<F: StorageFactory<I, S>>(&self, network: &Network<I, S, F>, radius: usize) -> f64 {
-        let (sum, count) = self.neighbours(network, radius).filter_map(|(n, _)| n).fold((0., 0), |(sum, count), n| {
-            let distance = self.storage.distance(self.weights.as_slice(), n.read().unwrap().weights.as_slice());
-            (sum + distance, count + 1)
-        });
+        let (sum, count) = self
+            .neighbours(network, radius)
+            .filter_map(|(coord, _)| coord.and_then(|coord| network.find(&coord)))
+            .fold((0., 0), |(sum, count), node| {
+                let distance = self.storage.distance(self.weights.as_slice(), node.weights.as_slice());
+                (sum + distance, count + 1)
+            });
 
         if count > 0 {
             sum / count as f64

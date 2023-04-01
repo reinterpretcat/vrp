@@ -7,7 +7,7 @@ fn insert(coord: (i32, i32), network: &mut Network<Data, DataStorage, DataStorag
 
 fn assert_network(expected: Vec<((i32, i32), (f64, f64))>, network: &Network<Data, DataStorage, DataStorageFactory>) {
     expected.into_iter().for_each(|(new_coord, old_coord)| {
-        let weights = network.find(&new_coord.into()).unwrap().read().unwrap().weights.clone();
+        let weights = network.find(&new_coord.into()).unwrap().weights.clone();
         assert_eq!(weights, vec![old_coord.0, old_coord.1, 0.])
     });
 }
@@ -37,11 +37,6 @@ fn can_contract_small_network_impl(
     coords.into_iter().for_each(|coord| insert(coord, &mut network));
 
     contract_graph(&mut network, decimation);
-
-    network.iter().for_each(|(coord, node)| {
-        let node = node.read().unwrap();
-        println!("{coord} {:?}", node.weights);
-    });
 
     assert_eq!(network.size(), expected.len());
     assert_network(expected, &network);

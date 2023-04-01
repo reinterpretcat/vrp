@@ -29,7 +29,6 @@ mod common {
         assert!(!network.nodes.len() >= 4);
         samples.iter().for_each(|sample| {
             let node = network.find_bmu(sample);
-            let node = node.read().unwrap();
 
             assert_eq!(node.storage.data.first().unwrap().values, sample.values);
             assert_eq!(node.weights.iter().map(|v| v.round()).collect::<Vec<_>>(), sample.values);
@@ -55,8 +54,6 @@ mod common {
 
     fn get_coord_data(coord: (i32, i32), offset: (i32, i32), network: &NetworkType) -> (Coordinate, Vec<f64>) {
         let node = network.nodes.get(&Coordinate(coord.0 + offset.0, coord.1 + offset.1)).unwrap();
-        let node = node.read().unwrap();
-
         let coordinate = node.coordinate;
         let weights = node.weights.clone();
 
@@ -97,20 +94,26 @@ mod common {
     fn can_create_and_update_extended_neighbourhood() {
         let mut network = create_test_network(false);
         update_zero_neighborhood(&mut network);
-        network.nodes.get(&Coordinate(0, 0)).unwrap().read().unwrap().neighbours(&network, 1).for_each(|(node, _)| {
-            let node = node.unwrap();
-            let mut node = node.write().unwrap();
-            node.error = 42.;
-        });
+        network
+            .nodes
+            .get(&Coordinate(0, 0))
+            .unwrap()
+            .neighbours(&network, 1)
+            .filter_map(|(coord, _)| coord)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .for_each(|coord| {
+                let node = network.nodes.get_mut(&coord).unwrap();
+                node.error = 42.;
+            });
 
         // -1+1  0+1  +1+1
         // -1+0  0 0  +1 0
         // -1-1  0-1  +1-1
         assert_eq!(network.nodes.len(), 9);
         network.nodes.iter().filter(|(coord, _)| **coord != Coordinate(0, 0)).for_each(|(coord, node)| {
-            let error = node.read().unwrap().error;
-            if compare_floats(error, 42.) != Ordering::Equal {
-                unreachable!("node is not updated: ({},{}), value: {}", coord.0, coord.1, error);
+            if compare_floats(node.error, 42.) != Ordering::Equal {
+                unreachable!("node is not updated: ({},{}), value: {}", coord.0, coord.1, node.error);
             }
         });
         [
@@ -130,8 +133,6 @@ mod common {
                 .nodes
                 .get(&Coordinate(x, y))
                 .unwrap()
-                .read()
-                .unwrap()
                 .neighbours(&network, radius)
                 .filter(|(node, _)| node.is_some())
                 .count();
@@ -144,7 +145,7 @@ mod common {
 
 mod node_growing {
     use super::*;
-    use crate::algorithms::gsom::{NetworkConfig, NodeLink};
+    use crate::algorithms::gsom::{NetworkConfig, Node};
     use crate::prelude::RandomGen;
     use std::sync::Arc;
 
@@ -194,8 +195,8 @@ mod node_growing {
         )
     }
 
-    fn get_node(coord: (i32, i32), network: &NetworkType) -> Option<NodeLink<Data, DataStorage>> {
-        network.nodes.get(&Coordinate(coord.0, coord.1)).cloned()
+    fn get_node(coord: (i32, i32), network: &NetworkType) -> Option<&Node<Data, DataStorage>> {
+        network.nodes.get(&Coordinate(coord.0, coord.1))
     }
 
     fn round_weights(weights: &[f64]) -> Vec<f64> {
@@ -216,12 +217,11 @@ mod node_growing {
     fn can_grow_initial_nodes_properly_impl(target_coord: (i32, i32), expected_new_nodes: Vec<((i32, i32), Vec<f64>)>) {
         let mut network = create_trivial_network(true);
 
-        network.update(&get_node(target_coord, &network).unwrap(), &Data::new(2., 2., 2.), 2., true);
+        network.update(&Coordinate(target_coord.0, target_coord.1), &Data::new(2., 2., 2.), 2., true);
 
         assert_eq!(network.nodes.len(), 6);
         expected_new_nodes.into_iter().for_each(|((offset_x, offset_y), weights)| {
             let node = get_node((target_coord.0 + offset_x, target_coord.1 + offset_y), &network).unwrap();
-            let node = node.read().unwrap();
             assert_eq!(node.error, 0.);
             assert_eq!(round_weights(node.weights.as_slice()), weights);
         });
@@ -233,7 +233,7 @@ mod node_growing {
         let mut network = create_trivial_network(true);
         network.insert(w1_coord, &[3., 6., 10.]);
 
-        network.update(&get_node((w1_coord.0, w1_coord.1), &network).unwrap(), &Data::new(2., 2., 2.), 6., true);
+        network.update(&Coordinate(w1_coord.0, w1_coord.1), &Data::new(2., 2., 2.), 6., true);
 
         [
             ((2, 2), vec![2.948, 3.895, 12.423]),
@@ -243,7 +243,7 @@ mod node_growing {
         .into_iter()
         .for_each(|(coord, weights)| {
             let node = get_node(coord, &network).unwrap();
-            let actual = round_weights(node.read().unwrap().weights.as_slice());
+            let actual = round_weights(node.weights.as_slice());
             assert_eq!(actual, weights);
         });
     }
@@ -279,7 +279,7 @@ mod node_growing {
         network.insert(Coordinate(-2, 1), &[1., 3., 14.]);
         network.insert(Coordinate(1, -1), &[5., 1., 3.]);
 
-        let mut nodes = network.grow_nodes(&get_node((coord.0, coord.1), &network).unwrap());
+        let mut nodes = network.grow_nodes(&Coordinate(coord.0, coord.1));
         nodes.sort_by(|a, b| a.0.cmp(&b.0));
 
         assert_eq!(nodes, expected);

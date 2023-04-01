@@ -14,6 +14,7 @@ description = "A rosomaxa algorithm and other building blocks for creating a sol
 [dependencies]
 rayon = "1.7.0"
 rand = { version = "0.8.5", features = ["small_rng"] }
+rustc-hash = "1.1.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 num_cpus = "1.15.0"
