@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 * use hierarchical approach for local objective estimation
 
 
-## [v1.20.0]
+## [v1.20.0]- 2023-04-01
 
 This release is focused on removing unsafe code from the solver core.
 
@@ -20,7 +20,7 @@ This release is focused on removing unsafe code from the solver core.
 * adapt core api to required safety changes
 
 
-## [v1.19.2]
+## [v1.19.2] - 2023-03-22
 
 This release introduces improvements in rosomaxa-heuristic.
 
@@ -39,7 +39,7 @@ This release introduces improvements in rosomaxa-heuristic.
 * change gsom compaction logic and adapt rosomaxa
 
 
-## [v1.19.1]
+## [v1.19.1] - 2022-12-14
 
 ### Changed
 
@@ -50,7 +50,7 @@ This release introduces improvements in rosomaxa-heuristic.
 * update rust version on dev environment to the latest (1.65.0)
 
 
-## [v1.19.0]
+## [v1.19.0] - 2022-10-16
 
 This release is focused on internal design improvements with some performance implications.
 
@@ -67,7 +67,7 @@ This release is focused on internal design improvements with some performance im
 * `breaking`: remove area constraint as it needs rework
 
 
-## [v1.18.4]
+## [v1.18.4] - 2022-08-21
 
 ### Changed
 
