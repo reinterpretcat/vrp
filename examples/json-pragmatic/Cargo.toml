@@ -1,6 +1,6 @@
 [package]
 name = "json-pragmatic"
-version = "1.19.2"
+version = "1.20.0"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["vrp", "optimization"]

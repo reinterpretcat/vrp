@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.20.0]
+
 This release is focused on removing unsafe code from the solver core.
 
 ### Changed
@@ -596,7 +599,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.19.2...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.20.0...HEAD
+[v1.20.0]: https://github.com/reinterpretcat/vrp/compare/v1.19.2...v1.20.0
 [v1.19.2]: https://github.com/reinterpretcat/vrp/compare/v1.19.1...v1.90.2
 [v1.19.1]: https://github.com/reinterpretcat/vrp/compare/v1.19.0...v1.90.1
 [v1.19.0]: https://github.com/reinterpretcat/vrp/compare/v1.18.4...v1.90.0
