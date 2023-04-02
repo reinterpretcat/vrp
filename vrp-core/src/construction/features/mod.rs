@@ -25,6 +25,9 @@ pub use self::shared_resource::*;
 mod total_value;
 pub use self::total_value::*;
 
+mod tour_compactness;
+pub use self::tour_compactness::*;
+
 mod tour_limits;
 pub use self::tour_limits::*;
 

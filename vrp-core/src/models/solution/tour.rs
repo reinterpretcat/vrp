@@ -164,6 +164,11 @@ impl Tour {
         self.activities.iter().position(move |a| a.has_same_job(job))
     }
 
+    /// Checks whether job is present in tour.
+    pub fn has_job(&self, job: &Job) -> bool {
+        self.jobs.contains(job)
+    }
+
     /// Checks whether tour has jobs.
     pub fn has_jobs(&self) -> bool {
         !self.jobs.is_empty()

@@ -55,6 +55,11 @@ pub fn get_jobs_by_ids(insertion_ctx: &InsertionContext, job_ids: &[&str]) -> Ve
     jobs
 }
 
+/// Returns a job by its id.
+pub fn get_job_by_id(insertion_ctx: &InsertionContext, job_id: &str) -> Option<Job> {
+    insertion_ctx.problem.jobs.all().find(|job| job.dimens().get_id().map_or(false, |id| id == job_id))
+}
+
 /// Gets all jobs with their id in a map.
 pub fn get_jobs_map_by_ids(insertion_ctx: &InsertionContext) -> HashMap<String, Job> {
     insertion_ctx
