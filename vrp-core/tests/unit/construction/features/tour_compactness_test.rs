@@ -52,16 +52,16 @@ can_count_neighbours_in_route! {
     // c0 c3 c6      c0 c3
     // c1 c4 c7  or  c1 c4
     // c2 c5 c8      c2 c5
-    case_01_far_job:                ((3, 3), 3, (0, "c8"), (3., 15.)),
-    case_02_near_job:               ((3, 2), 3, (0, "c0"), (2., 10.)),
-    case_03_near_job:               ((3, 2), 3, (0, "c1"), (1., 10.)),
+    case_01_far_job:                ((3, 3), 3, (0, "c8"), (3., 15. / 3.)),
+    case_02_near_job:               ((3, 2), 3, (0, "c0"), (2., 10. / 2.)),
+    case_03_near_job:               ((3, 2), 3, (0, "c1"), (1., 10. / 2.)),
 
     // c0 c5
     // c1 c6
     // c2 c7
     // c3 c8
     // c4 c9
-    case_04_near_job_larger_routes: ((5, 2), 5, (0, "c0"), (3., 30.)),
+    case_04_near_job_larger_routes: ((5, 2), 5, (0, "c0"), (3., 30. / 2.)),
 }
 
 fn can_count_neighbours_in_route_impl(

@@ -100,7 +100,7 @@ impl FeatureState for TourCompactnessState {
                 .jobs()
                 .map(|job| count_shared_neighbours((solution_ctx, route_ctx, &job), &self.jobs, self.job_radius))
                 .sum::<usize>() as Cost
-        });
+        }) / solution_ctx.routes.len().max(1) as Cost;
 
         solution_ctx.state.insert(self.state_keys[0], Arc::new(fitness));
     }
