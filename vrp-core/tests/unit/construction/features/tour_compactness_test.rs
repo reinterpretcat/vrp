@@ -52,7 +52,7 @@ can_count_neighbours_in_route! {
     // c0 c3 c6      c0 c3
     // c1 c4 c7  or  c1 c4
     // c2 c5 c8      c2 c5
-    case_01_far_job:                ((3, 3), 3, (0, "c8"), (3., 15. / 3.)),
+    case_01_far_job:                ((3, 3), 3, (0, "c8"), (3., 15. / 2.)),
     case_02_near_job:               ((3, 2), 3, (0, "c0"), (2., 10. / 2.)),
     case_03_near_job:               ((3, 2), 3, (0, "c1"), (1., 10. / 2.)),
 

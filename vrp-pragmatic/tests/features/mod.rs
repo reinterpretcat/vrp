@@ -17,5 +17,6 @@ mod relations;
 mod reload;
 mod skills;
 mod timing;
+mod tour_shape;
 mod unassigned;
 mod work_balance;

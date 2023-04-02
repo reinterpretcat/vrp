@@ -115,6 +115,13 @@ pub fn get_ids_from_tour(tour: &Tour) -> Vec<Vec<String>> {
     tour.stops.iter().map(|stop| stop.activities().iter().map(|a| a.job_id.clone()).collect()).collect()
 }
 
+pub fn get_ids_from_tour_sorted(tour: &Tour) -> Vec<Vec<String>> {
+    let mut ids = get_ids_from_tour(tour);
+    ids.sort();
+
+    ids
+}
+
 pub fn create_random() -> Arc<dyn Random + Send + Sync> {
     Arc::new(DefaultRandom::default())
 }
