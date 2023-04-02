@@ -604,6 +604,13 @@ pub enum Objective {
         options: Option<BalanceOptions>,
     },
 
+    /// An objective to control how tours are built.
+    #[serde(rename(deserialize = "compact-tour", serialize = "compact-tour"))]
+    CompactTour {
+        /// Options used to relax objective's impact.
+        options: CompactOptions,
+    },
+
     /// An objective to control order of job activities in the tour.
     #[serde(rename(deserialize = "tour-order", serialize = "tour-order"))]
     TourOrder,
@@ -617,6 +624,19 @@ pub struct BalanceOptions {
     /// favor of another objective.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub threshold: Option<f64>,
+}
+
+/// Specifies tour compactness options to relax impact of objective.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct CompactOptions {
+    /// Specifies radius of neighbourhood. Min is 1.
+    pub job_radius: usize,
+
+    /// A threshold specifies a minimum shared jobs count per solution.
+    pub threshold: usize,
+
+    /// Distance specifies a minimum relative distance between solutions to consider them different.
+    pub distance: f64,
 }
 
 // endregion

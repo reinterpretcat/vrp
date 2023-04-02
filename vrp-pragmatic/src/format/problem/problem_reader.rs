@@ -80,13 +80,15 @@ pub fn map_to_problem(
         &mut job_index,
         &random,
     );
+    let jobs = Arc::new(jobs);
+    let fleet = Arc::new(fleet);
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect::<Vec<_>>();
     let goal = Arc::new(
         create_goal_context(
             &api_problem,
-            &jobs,
             &job_index,
-            &fleet,
+            jobs.clone(),
+            fleet.clone(),
             transport.clone(),
             activity.clone(),
             &problem_props,
@@ -113,7 +115,7 @@ pub fn map_to_problem(
             })?,
     );
 
-    Ok(CoreProblem { fleet: Arc::new(fleet), jobs: Arc::new(jobs), locks, goal, activity, transport, extras })
+    Ok(CoreProblem { fleet, jobs, locks, goal, activity, transport, extras })
 }
 
 fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> ReservedTimesIndex {

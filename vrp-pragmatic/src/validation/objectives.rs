@@ -37,6 +37,7 @@ fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), For
                 BalanceActivities { .. } => acc.entry("balance-activities"),
                 BalanceDistance { .. } => acc.entry("balance-distance"),
                 BalanceDuration { .. } => acc.entry("balance-duration"),
+                CompactTour { .. } => acc.entry("compact-tour"),
                 TourOrder => acc.entry("tour-order"),
             }
             .and_modify(|count| *count += 1)
