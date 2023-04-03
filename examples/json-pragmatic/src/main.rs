@@ -1,5 +1,7 @@
 //! An examples of **Vehicle Routing Problem** solver usage.
 
+#![forbid(unsafe_code)]
+
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
