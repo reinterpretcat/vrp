@@ -9,6 +9,7 @@ This release brings hierarchical approach for local objective estimation.
 ### Changed
 
 * use hierarchical approach for local objective estimation
+* avoid unsafe code in rosomaxa crate and apply forbid_unsafe_code crate-wise
 
 ### Added
 

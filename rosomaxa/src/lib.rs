@@ -41,6 +41,7 @@
 //!
 
 #![warn(missing_docs)]
+#![forbid(unsafe_code)]
 
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]
