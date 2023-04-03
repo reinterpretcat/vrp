@@ -47,13 +47,15 @@ pub fn get_clusters<F: Read>(
         })
         .collect::<Vec<_>>();
 
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+    let mut writer = BufWriter::new(Vec::new());
 
-    serialize_named_locations_as_geojson(writer, locations.as_slice())
+    serialize_named_locations_as_geojson(locations.as_slice(), &mut writer)
         .map_err(|err| format!("cannot write named locations as geojson: '{err}'"))?;
 
-    Ok(buffer)
+    let bytes = writer.into_inner().map_err(|err| format!("{err}"))?;
+    let result = String::from_utf8(bytes).map_err(|err| format!("{err}"))?;
+
+    Ok(result)
 }
 
 fn get_core_problem<F: Read>(

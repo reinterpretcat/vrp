@@ -84,8 +84,8 @@ pub fn serialize_solution_as_geojson<W: Write>(
 
 /// Serializes named location list with their color index.
 pub fn serialize_named_locations_as_geojson<W: Write>(
-    writer: BufWriter<W>,
     locations: &[(String, Location, usize)],
+    writer: &mut BufWriter<W>,
 ) -> Result<(), Error> {
     let geo_json = create_geojson_named_locations(locations)?;
 

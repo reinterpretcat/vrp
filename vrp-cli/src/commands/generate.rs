@@ -70,10 +70,10 @@ pub fn run_generate(matches: &ArgMatches) -> Result<(), String> {
     match generate_problem_from_args(matches) {
         Ok((problem, input_format)) => {
             let out_result = matches.get_one::<String>(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out result"));
-            let out_buffer = create_write_buffer(out_result);
+            let mut out_buffer = create_write_buffer(out_result);
 
             match input_format.as_str() {
-                "pragmatic" => serialize_problem(out_buffer, &problem)
+                "pragmatic" => serialize_problem(&problem, &mut out_buffer)
                     .map_err(|err| format!("cannot serialize as pragmatic problem: '{err}'")),
                 _ => Err(format!("unknown output format: '{input_format}'")),
             }

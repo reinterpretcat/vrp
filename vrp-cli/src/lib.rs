@@ -10,6 +10,7 @@
 //! - `vrp-core` crate implements default metaheuristic
 
 #![warn(missing_docs)]
+#![deny(unsafe_code)] // NOTE: use deny instead forbid as we need allow unsafe code for c_interop
 
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]
@@ -45,6 +46,7 @@ use vrp_pragmatic::get_unique_locations;
 use vrp_pragmatic::validation::ValidationContext;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[allow(unsafe_code)]
 mod c_interop {
     use super::*;
     use crate::extensions::solve::config::read_config;
@@ -110,22 +112,22 @@ mod c_interop {
     extern "C" fn convert_to_pragmatic(
         format: *const c_char,
         inputs: *const *const c_char,
-        input_len: *const i32,
+        input_len: usize,
         success: Callback,
         failure: Callback,
     ) {
         catch_panic(failure, || {
             let format = to_string(format);
-            let inputs = unsafe { slice::from_raw_parts(inputs, input_len as usize).to_vec() };
+            let inputs = unsafe { slice::from_raw_parts(inputs, input_len).to_vec() };
             let inputs = inputs.iter().map(|p| to_string(*p)).collect::<Vec<_>>();
             let readers = inputs.iter().map(|p| BufReader::new(p.as_bytes())).collect::<Vec<_>>();
 
             match import_problem(format.as_str(), Some(readers)) {
                 Ok(problem) => {
-                    let mut buffer = String::new();
-                    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-                    serialize_problem(writer, &problem).unwrap();
-                    let problem = CString::new(buffer.as_bytes()).unwrap();
+                    let mut writer = BufWriter::new(Vec::new());
+                    serialize_problem(&problem, &mut writer).unwrap();
+                    let bytes = writer.into_inner().expect("cannot use writer");
+                    let problem = CString::new(bytes).unwrap();
 
                     success(problem.as_ptr());
                 }
@@ -351,11 +353,14 @@ mod py_interop {
     fn convert_to_pragmatic(format: &str, inputs: Vec<String>) -> PyResult<String> {
         let readers = inputs.iter().map(|p| BufReader::new(p.as_bytes())).collect::<Vec<_>>();
         import_problem(format, Some(readers))
-            .map(|problem| {
-                let mut buffer = String::new();
-                serialize_problem(unsafe { BufWriter::new(buffer.as_mut_vec()) }, &problem).unwrap();
+            .and_then(|problem| {
+                let mut writer = BufWriter::new(Vec::new());
+                serialize_problem(&problem, &mut writer).unwrap();
 
-                buffer
+                writer
+                    .into_inner()
+                    .map_err(|err| format!("BufWriter: {err}"))
+                    .and_then(|bytes| String::from_utf8(bytes).map_err(|err| format!("StringUTF8: {err}")))
             })
             .map_err(PyOSError::new_err)
     }
@@ -458,11 +463,13 @@ mod wasm {
 
         match import_problem(format, Some(readers)) {
             Ok(problem) => {
-                let mut buffer = String::new();
-                let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-                serialize_problem(writer, &problem).unwrap();
+                let mut writer = BufWriter::new(Vec::new());
+                serialize_problem(&problem, &mut writer).unwrap();
 
-                Ok(JsValue::from_str(buffer.as_str()))
+                let bytes = writer.into_inner().unwrap();
+                let result = String::from_utf8(bytes).unwrap();
+
+                Ok(JsValue::from_str(result.as_str()))
             }
             Err(err) => Err(JsValue::from_str(err.to_string().as_str())),
         }

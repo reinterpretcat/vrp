@@ -6,12 +6,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 This release brings hierarchical approach for local objective estimation. Additionally, it focuses on refactoring
-and forbidding usafe code.
+to avoid usafe code.
 
 ### Changed
 
 * use hierarchical approach for local objective estimation
-* avoid unsafe code in rosomaxa/vrp-core/vrp-pragmatic/vrp-scientific crates and apply forbid_unsafe_code crate-wise
+* avoid unsafe code project-wise:
+  * apply `#![forbid(unsafe_code)]` directive for rosomaxa/vrp-core/vrp-pragmatic/vrp-scientific
+  * apply `#![deny(unsafe_code)]` directive for vrp-cli (due to FFI which is only one exception)
+  * allow unsafe code only when necessary in research crates which are not used anyhow in production code
 
 ### Added
 

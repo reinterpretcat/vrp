@@ -715,6 +715,6 @@ pub fn deserialize_locations<R: Read>(reader: BufReader<R>) -> Result<Vec<Locati
 }
 
 /// Serializes `problem` in json from `writer`.
-pub fn serialize_problem<W: Write>(writer: BufWriter<W>, problem: &Problem) -> Result<(), Error> {
+pub fn serialize_problem<W: Write>(problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), Error> {
     serde_json::to_writer_pretty(writer, problem).map_err(Error::from)
 }
