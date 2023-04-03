@@ -49,6 +49,23 @@ pub type TargetHeuristicGroup = HeuristicSearchGroup<RefinementContext, GoalCont
 /// A type alias for evolution config builder.
 pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, GoalContext, InsertionContext, String>;
 
+/// A wrapper around heuristic filter function.
+pub struct HeuristicFilter {
+    filter: Arc<dyn Fn(&str) -> bool + Send + Sync>,
+}
+
+impl HeuristicFilter {
+    /// Creates a new instance of `HeuristicFilter`.
+    pub fn new<F: Fn(&str) -> bool + Send + Sync + 'static>(filter: F) -> Self {
+        Self { filter: Arc::new(filter) }
+    }
+
+    /// Checks whether heuristic (or method) is enabled.
+    pub fn is_enabled(&self, heuristic_name: &str) -> bool {
+        (self.filter)(heuristic_name)
+    }
+}
+
 /// Creates config builder with default settings.
 pub fn create_default_config_builder(
     problem: Arc<Problem>,
@@ -404,6 +421,8 @@ mod dynamic {
         let (normal_limits, small_limits) = get_limits(problem.as_ref());
         let random = environment.random.clone();
 
+        // NOTE: consider checking usage of names within heuristic filter before changing them
+
         let recreates: Vec<(Arc<dyn Recreate + Send + Sync>, String)> = vec![
             (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best".to_string()),
             (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), "regret".to_string()),
@@ -483,7 +502,7 @@ mod dynamic {
                 Arc::new(DecomposeSearch::new(
                     Arc::new(WeightedHeuristicOperator::new(
                         vec![
-                            create_default_inner_ruin_recreate(problem, environment.clone()),
+                            create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
                             create_default_local_search(environment.random.clone()),
                         ],
                         vec![10, 1],
@@ -497,6 +516,9 @@ mod dynamic {
             ),
         ];
 
+        let heuristic_filter =
+            problem.extras.get(HEURISTIC_FILTER_KEY).and_then(|s| s.downcast_ref::<HeuristicFilter>());
+
         recreates
             .iter()
             .flat_map(|(recreate, recreate_name)| {
@@ -509,6 +531,7 @@ mod dynamic {
                 })
             })
             .chain(mutations.into_iter())
+            .filter(|(_, name, _)| heuristic_filter.map_or(true, |filter| filter.is_enabled(name.as_str())))
             .collect::<Vec<_>>()
     }
 

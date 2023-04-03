@@ -57,6 +57,7 @@ These objectives provide some extra control on job assignment:
    *  `options`: options to relax objective:
      * `threshold`: a minimum shared jobs to count
      * `distance`:  a minimum relative distance between counts when comparing different solutions.
+   This objective is supposed to be on the same level within cost ones.
 
 
 ### Work balance objectives

@@ -4,9 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+This release brings hierarchical approach for local objective estimation.
+
 ### Changed
 
 * use hierarchical approach for local objective estimation
+
+### Added
+
+* experimental `compact-tour` objective which tries to shape routes based on job neighbourhood.
+* heuristic filtering extension
 
 
 ## [v1.20.0]- 2023-04-01
