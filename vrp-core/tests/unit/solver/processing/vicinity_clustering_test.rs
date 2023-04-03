@@ -5,10 +5,10 @@ use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::helpers::solver::create_default_refinement_ctx;
-use crate::helpers::utils::mutability::as_mut;
 use crate::models::common::IdDimension;
 use crate::models::problem::Job;
 use crate::models::solution::{Commute, CommuteInfo};
+use std::ops::Deref;
 
 fn create_test_jobs() -> Vec<Job> {
     vec![
@@ -25,8 +25,14 @@ fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<
 
     let orig_problem = Arc::try_unwrap(create_problem_with_goal_ctx_jobs_and_fleet(constraint, jobs, test_fleet()))
         .unwrap_or_else(|_| unreachable!());
-    unsafe { as_mut(orig_problem.extras.as_ref()).set_cluster_config(config) };
-    let orig_problem = Arc::new(orig_problem);
+    let orig_problem = Arc::new(Problem {
+        extras: Arc::new({
+            let mut extras = orig_problem.extras.deref().clone();
+            extras.set_cluster_config(config);
+            extras
+        }),
+        ..orig_problem
+    });
 
     let refinement_cxt = RefinementContext { environment, ..create_default_refinement_ctx(orig_problem.clone()) };
 

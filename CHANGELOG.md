@@ -2,14 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+
 ## [Unreleased]
 
-This release brings hierarchical approach for local objective estimation.
+This release brings hierarchical approach for local objective estimation. Additionally, it focuses on refactoring
+and forbidding usafe code.
 
 ### Changed
 
 * use hierarchical approach for local objective estimation
 * avoid unsafe code in rosomaxa crate and apply forbid_unsafe_code crate-wise
+* avoid unsafe code in vrp-core crate and apply forbid_unsafe_code crate-wise
 
 ### Added
 
