@@ -53,7 +53,8 @@ pip install vrp-cli
 python examples/python-interop/example.py # run test example
 ```
 
-Alternatively, you can use [maturin](https://github.com/PyO3/maturin) tool to build solver locally.
+Alternatively, you can use [maturin](https://github.com/PyO3/maturin) tool to build solver locally. You need to enable
+`py_bindings` feature which is not enabled by default.
 
 You can find extra information in [python example section](https://reinterpretcat.github.io/vrp/examples/interop/python.html)
 of the docs. The [full source code](./examples/python-interop/example.py) of python example is available in the repo which

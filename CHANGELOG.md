@@ -15,6 +15,7 @@ to avoid usafe code.
   * apply `#![forbid(unsafe_code)]` directive for rosomaxa/vrp-core/vrp-pragmatic/vrp-scientific
   * apply `#![deny(unsafe_code)]` directive for vrp-cli (due to FFI which is only one exception)
   * allow unsafe code only when necessary in research crates which are not used anyhow in production code
+* make pyo3 an optional dependency and wrap python bindings under `py_bindings` feature
 
 ### Added
 

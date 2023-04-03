@@ -336,6 +336,7 @@ mod c_interop {
     }
 }
 
+#[cfg(feature = "py_bindings")]
 #[cfg(all(not(target_arch = "wasm32"), not(tarpaulin)))]
 mod py_interop {
     use super::*;
