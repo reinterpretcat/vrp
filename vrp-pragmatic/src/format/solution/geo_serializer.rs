@@ -73,7 +73,7 @@ impl PartialEq for Feature {
 
 /// Serializes solution into geo json format.
 pub fn serialize_solution_as_geojson<W: Write>(
-    writer: BufWriter<W>,
+    writer: &mut BufWriter<W>,
     problem: &Problem,
     solution: &Solution,
 ) -> Result<(), Error> {

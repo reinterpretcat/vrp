@@ -131,9 +131,9 @@ pub fn to_core_solution(
     core_problem: Arc<CoreProblem>,
     random: Arc<dyn Random + Send + Sync>,
 ) -> Result<CoreSolution, String> {
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    serialize_solution(writer, solution).expect("cannot serialize test solution");
+    let mut writer = BufWriter::new(Vec::new());
+    serialize_solution(solution, &mut writer).expect("cannot serialize test solution");
+    let bytes = writer.into_inner().expect("cannot get bytes from writer");
 
-    read_init_solution(BufReader::new(buffer.as_bytes()), core_problem, random)
+    read_init_solution(BufReader::new(bytes.as_slice()), core_problem, random)
 }

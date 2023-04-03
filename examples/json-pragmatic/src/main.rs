@@ -87,12 +87,12 @@ fn get_pragmatic_problem(base_path: &str, name: &str) -> Problem {
 }
 
 fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution, cost: f64) -> Solution {
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+    let mut writer = BufWriter::new(Vec::new());
 
-    (solution, cost).write_pragmatic_json(problem, writer).expect("cannot write pragmatic solution");
+    (solution, cost).write_pragmatic_json(problem, &mut writer).expect("cannot write pragmatic solution");
+    let bytes = writer.into_inner().expect("cannot get bytes from writer");
 
-    deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
+    deserialize_solution(BufReader::new(bytes.as_slice())).expect("cannot deserialize solution")
 }
 
 #[cfg(test)]

@@ -137,14 +137,14 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
             InitSolutionReader(Box::new(move |file, problem| {
                 read_init_pragmatic(BufReader::new(file), problem, random.clone())
             })),
-            SolutionWriter(Box::new(|problem, solution, cost, metrics, default_writer, geojson_writer| {
+            SolutionWriter(Box::new(|problem, solution, cost, metrics, mut default_writer, geojson_writer| {
                 geojson_writer
-                    .map_or(Ok(()), |geojson_writer| (&solution, cost).write_geo_json(problem, geojson_writer))
+                    .map_or(Ok(()), |mut geojson_writer| (&solution, cost).write_geo_json(problem, &mut geojson_writer))
                     .and_then(|_| {
                         if let Some(metrics) = metrics {
-                            (&solution, cost, &metrics).write_pragmatic_json(problem, default_writer)
+                            (&solution, cost, &metrics).write_pragmatic_json(problem, &mut default_writer)
                         } else {
-                            (&solution, cost).write_pragmatic_json(problem, default_writer)
+                            (&solution, cost).write_pragmatic_json(problem, &mut default_writer)
                         }
                     })
             })),

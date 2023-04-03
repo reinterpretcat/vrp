@@ -518,15 +518,17 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
             .to_json()
         })?;
 
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+    let mut writer = BufWriter::new(Vec::new());
     if let Some(metrics) = metrics {
-        (&solution, cost, &metrics).write_pragmatic_json(&problem, writer)?;
+        (&solution, cost, &metrics).write_pragmatic_json(&problem, &mut writer)?;
     } else {
-        (&solution, cost).write_pragmatic_json(&problem, writer)?;
+        (&solution, cost).write_pragmatic_json(&problem, &mut writer)?;
     }
 
-    Ok(buffer)
+    let bytes = writer.into_inner().map_err(|err| format!("{err}"))?;
+    let result = String::from_utf8(bytes).map_err(|err| format!("{err}"))?;
+
+    Ok(result)
 }
 
 /// Gets errors serialized in free form.
