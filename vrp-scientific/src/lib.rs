@@ -8,6 +8,7 @@
 //! - **lilim**: see [Li&Lim benchmark](https://www.sintef.no/projectweb/top/pdptw/li-lim-benchmark)
 
 #![warn(missing_docs)]
+#![forbid(unsafe_code)]
 
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]

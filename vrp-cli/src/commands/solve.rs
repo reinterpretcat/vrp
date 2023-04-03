@@ -86,7 +86,9 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
                 InitSolutionReader(Box::new(move |file, problem| {
                     read_init_solomon(BufReader::new(file), problem, random.clone())
                 })),
-                SolutionWriter(Box::new(|_, solution, cost, _, writer, _| (&solution, cost).write_solomon(writer))),
+                SolutionWriter(Box::new(|_, solution, cost, _, mut writer, _| {
+                    (&solution, cost).write_solomon(&mut writer)
+                })),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );
@@ -98,7 +100,9 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
                     BufReader::new(problem).read_lilim(is_rounded)
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
-                SolutionWriter(Box::new(|_, solution, cost, _, writer, _| (&solution, cost).write_lilim(writer))),
+                SolutionWriter(Box::new(|_, solution, cost, _, mut writer, _| {
+                    (&solution, cost).write_lilim(&mut writer)
+                })),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );
@@ -110,7 +114,9 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
                     BufReader::new(problem).read_tsplib(is_rounded)
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
-                SolutionWriter(Box::new(|_, solution, cost, _, writer, _| (&solution, cost).write_tsplib(writer))),
+                SolutionWriter(Box::new(|_, solution, cost, _, mut writer, _| {
+                    (&solution, cost).write_tsplib(&mut writer)
+                })),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );

@@ -7,7 +7,6 @@ use serde::Serialize;
 
 use super::*;
 use std::io::BufWriter;
-use std::ops::Deref;
 use vrp_scientific::core::prelude::*;
 use vrp_scientific::core::solver::RefinementContext;
 use vrp_scientific::lilim::{LilimProblem, LilimSolution};
@@ -77,15 +76,16 @@ pub fn solve_vrp(
 
     let (solution, cost, _) = Solver::new(problem, config).solve().expect("cannot solve problem");
 
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+    let mut writer = BufWriter::new(Vec::new());
     match format_type {
-        "tsplib" => (&solution, cost).write_tsplib(writer),
-        "solomon" => (&solution, cost).write_solomon(writer),
-        "lilim" => (&solution, cost).write_lilim(writer),
+        "tsplib" => (&solution, cost).write_tsplib(&mut writer),
+        "solomon" => (&solution, cost).write_solomon(&mut writer),
+        "lilim" => (&solution, cost).write_lilim(&mut writer),
         _ => unreachable!("unknown format: {}", format_type),
     }
     .expect("cannot write solution");
 
-    logger.deref()(&buffer);
+    let result = String::from_utf8(writer.into_inner().expect("cannot use writer")).expect("cannot create string");
+
+    (logger)(&result);
 }

@@ -11,7 +11,7 @@ and forbidding usafe code.
 ### Changed
 
 * use hierarchical approach for local objective estimation
-* avoid unsafe code in rosomaxa/vrp-core/vrp-pragmatic crates and apply forbid_unsafe_code crate-wise
+* avoid unsafe code in rosomaxa/vrp-core/vrp-pragmatic/vrp-scientific crates and apply forbid_unsafe_code crate-wise
 
 ### Added
 
