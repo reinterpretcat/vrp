@@ -1,9 +1,11 @@
 use crate::construction::heuristics::UnassignmentInfo;
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
+use crate::utils::short_type_name;
 use hashbrown::HashMap;
 use rustc_hash::FxHasher;
 use std::any::Any;
+use std::fmt::{Debug, Formatter};
 use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
@@ -32,6 +34,12 @@ pub struct Problem {
 
     /// Specifies index for storing extra parameters of arbitrary type.
     pub extras: Arc<Extras>,
+}
+
+impl Debug for Problem {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>()).field("fleet", &self.fleet).finish_non_exhaustive()
+    }
 }
 
 /// Represents a VRP solution.

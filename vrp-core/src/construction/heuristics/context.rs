@@ -8,11 +8,13 @@ use crate::models::common::Cost;
 use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::{Extras, Problem, Solution};
+use crate::utils::short_type_name;
 use hashbrown::{HashMap, HashSet};
 use nohash_hasher::BuildNoHashHasher;
 use rosomaxa::prelude::*;
 use rustc_hash::FxHasher;
 use std::any::Any;
+use std::fmt::{Debug, Formatter};
 use std::hash::BuildHasherDefault;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -73,11 +75,20 @@ impl HeuristicSolution for InsertionContext {
     }
 }
 
+impl Debug for InsertionContext {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>())
+            .field("problem", &self.problem)
+            .field("solution", &self.solution)
+            .finish_non_exhaustive()
+    }
+}
+
 /// A any state value.
 pub type StateValue = Arc<dyn Any + Send + Sync>;
 
 /// Keeps information about unassigned reason code.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum UnassignmentInfo {
     /// No code is available.
     Unknown,
@@ -190,6 +201,17 @@ impl SolutionContext {
     }
 }
 
+impl Debug for SolutionContext {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>())
+            .field("required", &self.required.len())
+            .field("locked", &self.locked.len())
+            .field("routes", &self.routes)
+            .field("unassigned", &self.unassigned)
+            .finish_non_exhaustive()
+    }
+}
+
 /// Specifies insertion context for route.
 pub struct RouteContext {
     route: Route,
@@ -286,6 +308,15 @@ impl PartialEq<RouteContext> for RouteContext {
 }
 
 impl Eq for RouteContext {}
+
+impl Debug for RouteContext {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>())
+            .field("route", &self.route)
+            .field("is_stale", &self.is_stale())
+            .finish_non_exhaustive()
+    }
+}
 
 impl Default for RouteState {
     fn default() -> RouteState {

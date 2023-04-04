@@ -6,14 +6,17 @@ use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job};
 use crate::models::solution::Activity;
+use crate::utils::short_type_name;
 use rosomaxa::utils::unwrap_from_result;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
+use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Sub};
 use std::sync::Arc;
 use tinyvec::{TinyVec, TinyVecIterator};
 
 /// Specifies insertion result variant.
+#[derive(Debug)]
 pub enum InsertionResult {
     /// Successful insertion result.
     Success(InsertionSuccess),
@@ -36,7 +39,19 @@ pub struct InsertionSuccess {
     pub actor: Arc<Actor>,
 }
 
+impl Debug for InsertionSuccess {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>())
+            .field("cost", &self.cost)
+            .field("job", &self.job)
+            .field("activities", &self.activities.iter().map(|(_, idx)| (("activity"), *idx)).collect::<Vec<_>>())
+            .field("actor", self.actor.as_ref())
+            .finish()
+    }
+}
+
 /// Specifies insertion failure.
+#[derive(Debug)]
 pub struct InsertionFailure {
     /// Failed constraint code.
     pub constraint: i32,
@@ -54,7 +69,7 @@ const COST_DIMENSION: usize = 6;
 type CostArray = [Cost; COST_DIMENSION];
 
 /// A hierarchical cost of job's insertion.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Default)]
 pub struct InsertionCost {
     data: TinyVec<CostArray>,
 }
@@ -178,6 +193,12 @@ where
 
     fn sub(self, rhs: B) -> Self::Output {
         &self - rhs
+    }
+}
+
+impl Debug for InsertionCost {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(&self.data).finish()
     }
 }
 

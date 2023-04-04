@@ -17,6 +17,7 @@ mostly to avoid usafe code.
   * allow unsafe code only when necessary in research crates which are not used anyhow in production code
 * make pyo3 an optional dependency and wrap python bindings under `py_bindings` feature
 * refactor `Deref` trait usage
+* implement `Debug` for essential core type
 
 ### Added
 

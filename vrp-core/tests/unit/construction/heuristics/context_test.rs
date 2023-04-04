@@ -1,5 +1,10 @@
-use crate::construction::heuristics::RouteState;
-use crate::helpers::models::solution::{create_empty_route_ctx, test_activity};
+use crate::construction::heuristics::{RouteState, UnassignmentInfo};
+use crate::helpers::construction::features::create_goal_ctx_with_transport;
+use crate::helpers::construction::heuristics::create_insertion_context;
+use crate::helpers::models::domain::test_random;
+use crate::helpers::models::problem::{test_fleet, SingleBuilder};
+use crate::helpers::models::solution::*;
+use crate::models::solution::Registry;
 
 #[test]
 fn can_put_and_get_activity_state() {
@@ -90,4 +95,27 @@ fn can_use_stale_flag() {
     route_ctx.mark_stale(false);
     let _ = route_ctx.as_mut();
     assert!(route_ctx.is_stale());
+}
+
+#[test]
+fn can_use_debug_fmt_for_insertion_ctx() {
+    let fleet = test_fleet();
+    let mut insertion_ctx = create_insertion_context(
+        Registry::new(&fleet, test_random()),
+        create_goal_ctx_with_transport(),
+        vec![create_route_context_with_activities(&fleet, "v1", vec![test_activity()])],
+    );
+    insertion_ctx.solution.unassigned.insert(SingleBuilder::default().build_as_job_ref(), UnassignmentInfo::Unknown);
+
+    let result = format!("{insertion_ctx:#?}");
+
+    println!("{result}");
+    assert!(!result.contains("::"));
+    assert!(result.contains("tour"));
+    assert!(result.contains("vehicle: \"v1\""));
+    assert!(result.contains("departure"));
+    assert!(result.contains("arrival"));
+
+    assert!(result.contains("unassigned"));
+    assert!(result.contains("id: \"single\""));
 }

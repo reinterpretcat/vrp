@@ -92,3 +92,47 @@ mod costs {
         assert_eq!(make(&[1., 0., 0.]) - &right, make(&[1., -1., 0.]));
     }
 }
+
+mod debug {
+    use super::*;
+    use crate::helpers::models::problem::SingleBuilder;
+    use crate::helpers::models::solution::{create_empty_route_ctx, test_activity};
+
+    #[test]
+    fn can_use_debug_fmt_for_insertion_cost() {
+        let cost = InsertionCost::new(&[1., 2., 3.]);
+
+        let result = format!("{cost:?}");
+
+        assert_eq!(result, "[1.0, 2.0, 3.0]")
+    }
+
+    #[test]
+    fn can_use_debug_fmt_for_insertion_result_with_failure() {
+        let result = InsertionResult::make_failure();
+
+        let result = format!("{result:?}");
+
+        assert!(!result.contains("::"));
+        assert!(result.contains("constraint: -1"));
+        assert!(result.contains("stopped: false"));
+        assert!(result.contains("job: None"));
+    }
+
+    #[test]
+    fn can_use_debug_fmt_for_insertion_result_with_success() {
+        let result = InsertionResult::make_success(
+            InsertionCost::new(&[1., 2., 3.]),
+            SingleBuilder::default().build_as_job_ref(),
+            vec![(test_activity(), 1)],
+            &create_empty_route_ctx(),
+        );
+
+        let result = format!("{result:?}");
+
+        assert!(!result.contains("::"));
+        assert!(result.contains("cost"));
+        assert!(result.contains("activities"));
+        assert!(result.contains("actor"));
+    }
+}

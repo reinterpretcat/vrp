@@ -4,9 +4,11 @@ mod jobs_test;
 
 use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
+use crate::utils::short_type_name;
 use hashbrown::HashMap;
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering::Less;
+use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Weak};
 
@@ -59,6 +61,22 @@ impl Job {
         match &self {
             Job::Single(single) => Box::new(single.places.iter()),
             Job::Multi(multi) => Box::new(multi.jobs.iter().flat_map(|single| single.places.iter())),
+        }
+    }
+}
+
+impl Debug for Job {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Job::Single(single) => f
+                .debug_struct(short_type_name::<Single>())
+                .field("id", &single.dimens.get_id().map(|id| id.as_str()).unwrap_or("undef"))
+                .finish_non_exhaustive(),
+            Job::Multi(multi) => f
+                .debug_struct(short_type_name::<Multi>())
+                .field("id", &multi.dimens.get_id().map(|id| id.as_str()).unwrap_or("undef"))
+                .field("jobs", &multi.jobs.len())
+                .finish_non_exhaustive(),
         }
     }
 }
