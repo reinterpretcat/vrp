@@ -123,14 +123,14 @@ fn can_search_for_reserved_time_impl(times: Vec<(f64, f64)>, tests: Vec<((f64, f
     .into_iter()
     .collect();
 
-    let reserved_time_func = create_reserved_times_func(reserved_times);
+    let reserved_time_fn = create_reserved_times_fn(reserved_times);
 
-    if let Ok(reserved_time_func) = reserved_time_func {
+    if let Ok(reserved_time_fn) = reserved_time_fn {
         tests.iter().for_each(|((s, e), expected)| {
             let interval = TimeWindow::new(*s, *e);
             let expected = expected.and_then(|idx| times.get(idx)).map(|(s, e)| TimeWindow::new(*s, *e));
 
-            let result = reserved_time_func.deref()(route_ctx.route(), &interval);
+            let result = (reserved_time_fn)(route_ctx.route(), &interval);
 
             assert_eq!(result, expected);
         });

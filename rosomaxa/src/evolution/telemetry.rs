@@ -11,7 +11,6 @@ use crate::{DynHeuristicPopulation, RemedianUsize};
 use std::cmp::Ordering;
 use std::fmt::Write;
 use std::marker::PhantomData;
-use std::ops::Deref;
 
 /// Encapsulates different measurements regarding algorithm evaluation.
 pub struct TelemetryMetrics {
@@ -300,8 +299,8 @@ where
     /// Writes log message.
     pub fn log(&self, message: &str) {
         match &self.mode {
-            TelemetryMode::OnlyLogging { logger, .. } => logger.deref()(message),
-            TelemetryMode::All { logger, .. } => logger.deref()(message),
+            TelemetryMode::OnlyLogging { logger, .. } => (logger)(message),
+            TelemetryMode::All { logger, .. } => (logger)(message),
             _ => {}
         }
     }

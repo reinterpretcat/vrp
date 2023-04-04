@@ -433,7 +433,7 @@ impl RouteModifier {
 
     /// Modifies route context if necessary.
     pub fn modify(&self, route_ctx: RouteContext) -> RouteContext {
-        self.modifier.deref()(route_ctx)
+        (self.modifier)(route_ctx)
     }
 }
 

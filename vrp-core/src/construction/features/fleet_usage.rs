@@ -5,7 +5,6 @@
 mod fleet_usage_test;
 
 use super::*;
-use std::ops::Deref;
 
 /// Creates a feature to minimize used fleet size (affects amount of tours in solution).
 pub fn create_minimize_tours_feature(name: &str) -> Result<Feature, String> {
@@ -62,14 +61,14 @@ impl Objective for FleetUsageObjective {
     type Solution = InsertionContext;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        self.solution_estimate_fn.deref()(&solution.solution)
+        (self.solution_estimate_fn)(&solution.solution)
     }
 }
 
 impl FeatureObjective for FleetUsageObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
-            MoveContext::Route { route_ctx, .. } => self.route_estimate_fn.deref()(route_ctx),
+            MoveContext::Route { route_ctx, .. } => (self.route_estimate_fn)(route_ctx),
             _ => Cost::default(),
         }
     }

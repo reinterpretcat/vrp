@@ -4,7 +4,6 @@ use crate::helpers::construction::features::{create_goal_ctx_with_feature, creat
 use crate::helpers::models::domain::create_empty_insertion_context;
 use crate::helpers::models::solution::{test_activity_without_job, test_actor};
 use crate::models::common::SingleDimLoad;
-use std::ops::Deref;
 
 fn create_constraint_feature(name: &str, violation: Option<ConstraintViolation>) -> Feature {
     struct TestFeatureConstraint {
@@ -58,7 +57,7 @@ fn create_objective_feature_with_dynamic_cost(name: &str, fitness_fn: FitnessFn)
         type Solution = InsertionContext;
 
         fn fitness(&self, solution: &Self::Solution) -> f64 {
-            self.fitness_fn.deref()(self.name.as_str(), solution)
+            (self.fitness_fn)(self.name.as_str(), solution)
         }
     }
 

@@ -86,6 +86,6 @@ pub enum PopulationSeries {
 
 /// A series configuration.
 pub struct Series2D {
-    /// A matrix data.
-    pub matrix: Box<dyn Fn() -> MatrixData>,
+    /// A matrix data receiver function.
+    pub matrix_fn: Box<dyn Fn() -> MatrixData>,
 }

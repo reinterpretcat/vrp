@@ -9,7 +9,7 @@ use crate::{HeuristicSpeed, HeuristicStatistics};
 use std::cmp::Ordering;
 use std::fmt::{Formatter, Write};
 use std::iter::{empty, once};
-use std::ops::{Deref, RangeBounds};
+use std::ops::RangeBounds;
 use std::sync::Arc;
 
 /// A function type to deduplicate individuals.
@@ -210,7 +210,7 @@ where
 
         best_order.into_iter().for_each(|order| self.individuals[order.orig_index].set_order(order));
         self.individuals.sort_by(|a, b| a.get_order().seq_index.cmp(&b.get_order().seq_index));
-        self.individuals.dedup_by(|a, b| self.dedup_fn.deref()(&objective, a, b));
+        self.individuals.dedup_by(|a, b| (self.dedup_fn)(&objective, a, b));
     }
 
     fn ensure_max_population_size(&mut self) {

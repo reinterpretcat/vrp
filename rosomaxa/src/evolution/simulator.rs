@@ -2,7 +2,6 @@ use crate::evolution::{EvolutionResult, EvolutionStrategy};
 use crate::prelude::*;
 use crate::utils::Timer;
 use std::marker::PhantomData;
-use std::ops::Deref;
 
 /// An entity which simulates evolution process.
 pub struct EvolutionSimulator<C, O, S>
@@ -42,7 +41,7 @@ where
 
         let mut heuristic_ctx = hooks.context.iter().fold(heuristic_ctx, |ctx, hook| hook.pre_process(ctx));
 
-        logger.deref()("preparing initial solution(-s)");
+        (logger)("preparing initial solution(-s)");
         std::mem::take(&mut config.initial.individuals).into_iter().take(config.initial.max_size).for_each(
             |solution| {
                 heuristic_ctx.on_initial(solution, Timer::start());
@@ -60,7 +59,7 @@ where
             let is_initial_quota_reached = config.termination.estimate(&heuristic_ctx) > config.initial.quota;
 
             if is_initial_quota_reached || is_overall_termination {
-                logger.deref()(
+                (logger)(
                     format!(
                         "stop building initial solutions due to initial quota reached ({is_initial_quota_reached}) or overall termination ({is_overall_termination}).",
                     )
@@ -83,9 +82,9 @@ where
         });
 
         if heuristic_ctx.population().size() > 0 {
-            logger.deref()(&format!("created initial population in {}ms", init_time.elapsed_millis()));
+            (logger)(&format!("created initial population in {}ms", init_time.elapsed_millis()));
         } else {
-            logger.deref()("created an empty population");
+            (logger)("created an empty population");
         }
 
         config.strategy.as_ref().run(heuristic_ctx, config.heuristic, config.termination).map(|(solutions, metrics)| {
@@ -171,7 +170,7 @@ where
         }
 
         // NOTE give a chance to report internal state of heuristic
-        heuristic_ctx.environment().logger.deref()(&format!("{heuristic}"));
+        (heuristic_ctx.environment().logger)(&format!("{heuristic}"));
 
         let (population, telemetry_metrics) = heuristic_ctx.on_result()?;
 

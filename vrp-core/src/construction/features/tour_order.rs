@@ -9,7 +9,6 @@ use crate::models::problem::{Actor, Single};
 use crate::models::solution::Activity;
 use crate::utils::Either;
 use std::cmp::Ordering;
-use std::ops::Deref;
 
 /// Creates a tour order feature as hard constraint.
 pub fn create_tour_order_hard_feature(
@@ -76,11 +75,10 @@ impl FeatureConstraint for TourOrderConstraint {
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
         match &self.order_fn {
-            Either::Left(left) => {
-                let order_fn = left.deref();
+            Either::Left(order_fn) => {
                 let order_fn_cmp = |source: &Single, candidate: &Single| {
-                    let source = order_fn(Some(source));
-                    let candidate = order_fn(Some(candidate));
+                    let source = (order_fn)(Some(source));
+                    let candidate = (order_fn)(Some(candidate));
                     match (source, candidate) {
                         (OrderResult::Value(s), OrderResult::Value(c)) => compare_floats(s, c) == Ordering::Equal,
                         (OrderResult::Default, OrderResult::Default) | (OrderResult::Ignored, OrderResult::Ignored) => {
@@ -175,8 +173,8 @@ fn evaluate_result<T>(
     check_order: &(dyn Fn(OrderResult, OrderResult, bool) -> Option<T>),
 ) -> Option<T> {
     let get_order = |single: Option<&Single>| match &order_fn {
-        Either::Left(left) => left.deref()(single),
-        Either::Right(right) => right.deref()(route_ctx.route().actor.as_ref(), single),
+        Either::Left(left) => (left)(single),
+        Either::Right(right) => (right)(route_ctx.route().actor.as_ref(), single),
     };
     let get_order_by_idx = |idx: usize| get_order(route_ctx.route().tour.get(idx).and_then(get_single));
     let target = get_order(get_single(activity_ctx.target));
@@ -191,7 +189,7 @@ fn evaluate_result<T>(
                     .map(|late| (target, late, false)),
             )
             .try_fold(None, |_, (left, right, stopped)| {
-                let result = check_order.deref()(left, right, stopped);
+                let result = (check_order)(left, right, stopped);
                 if result.is_some() {
                     Err(result)
                 } else {
@@ -211,8 +209,8 @@ fn get_violations(routes: &[RouteContext], order_fn: &TourOrderFn) -> usize {
                 .all_activities()
                 .filter_map(|activity| activity.job.as_ref())
                 .map(|single| match order_fn {
-                    Either::Left(left) => left.deref()(Some(single.as_ref())),
-                    Either::Right(right) => right.deref()(route_ctx.route().actor.as_ref(), Some(single.as_ref())),
+                    Either::Left(left) => (left)(Some(single.as_ref())),
+                    Either::Right(right) => (right)(route_ctx.route().actor.as_ref(), Some(single.as_ref())),
                 })
                 .filter(|order| !matches!(order, OrderResult::Ignored))
                 .collect::<Vec<OrderResult>>();

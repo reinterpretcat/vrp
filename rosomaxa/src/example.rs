@@ -15,7 +15,7 @@ use std::any::Any;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::iter::once;
-use std::ops::{Deref, Range};
+use std::ops::Range;
 use std::sync::Arc;
 
 /// An objective function which calculates a fitness of a vector.
@@ -133,7 +133,7 @@ impl Objective for VectorObjective {
     type Solution = VectorSolution;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        self.fitness_fn.deref()(solution.data.as_slice())
+        (self.fitness_fn)(solution.data.as_slice())
     }
 }
 
@@ -145,7 +145,7 @@ impl MultiObjective for VectorObjective {
     }
 
     fn fitness<'a>(&self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(once(self.fitness_fn.deref()(solution.data.as_slice())))
+        Box::new(once((self.fitness_fn)(solution.data.as_slice())))
     }
 
     fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String> {
@@ -197,7 +197,7 @@ impl DominanceOrdered for VectorSolution {
 
 impl RosomaxaWeighted for VectorSolution {
     fn init_weights(&mut self) {
-        self.weights = self.objective.weight_fn.deref()(self.data.as_slice());
+        self.weights = (self.objective.weight_fn)(self.data.as_slice());
     }
 }
 
@@ -443,7 +443,7 @@ impl Solver {
         let fitness_fn = self.fitness_fn.ok_or_else(|| "objective function must be set".to_string())?;
         let weight_fn = self.weight_fn.unwrap_or_else({
             let fitness_fn = fitness_fn.clone();
-            move || Arc::new(move |data| data.iter().cloned().chain(once(fitness_fn.deref()(data))).collect())
+            move || Arc::new(move |data| data.iter().cloned().chain(once((fitness_fn)(data))).collect())
         });
         let objective = Arc::new(VectorObjective::new(fitness_fn, weight_fn));
         let initial_operators = self

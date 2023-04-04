@@ -4,7 +4,6 @@ use super::*;
 use crate::models::common::{CapacityDimension, LoadOps};
 use rosomaxa::algorithms::math::get_cv_safe;
 use std::cmp::Ordering;
-use std::ops::Deref;
 
 /// Specifies load function type.
 pub type LoadBalanceFn<T> = Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>;
@@ -34,7 +33,7 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
                     .get_activity_state::<T>(MAX_FUTURE_CAPACITY_KEY, activity)
                     .unwrap_or(&default_capacity)
             })
-            .map(|max_load| load_balance_fn.deref()(max_load, capacity))
+            .map(|max_load| (load_balance_fn)(max_load, capacity))
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less))
             .unwrap_or(0_f64)
     });
@@ -159,7 +158,7 @@ impl Objective for WorkBalanceObjective {
             .get(&self.state_key)
             .and_then(|s| s.downcast_ref::<f64>())
             .cloned()
-            .unwrap_or_else(|| self.solution_estimate_fn.deref()(&solution.solution))
+            .unwrap_or_else(|| (self.solution_estimate_fn)(&solution.solution))
     }
 }
 
@@ -171,7 +170,7 @@ impl FeatureObjective for WorkBalanceObjective {
                     .state()
                     .get_route_state::<f64>(self.state_key)
                     .cloned()
-                    .unwrap_or_else(|| self.route_estimate_fn.deref()(route_ctx));
+                    .unwrap_or_else(|| (self.route_estimate_fn)(route_ctx));
 
                 // NOTE: this value doesn't consider a route state after insertion of given job
                 if value.is_finite() && self.threshold.map_or(true, |threshold| value > threshold) {
@@ -198,13 +197,13 @@ impl FeatureState for WorkBalanceState {
     }
 
     fn accept_route_state(&self, route_ctx: &mut RouteContext) {
-        let value = self.route_estimate_fn.deref()(route_ctx);
+        let value = (self.route_estimate_fn)(route_ctx);
 
         route_ctx.state_mut().put_route_state(self.state_key, value);
     }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
-        let value = self.solution_estimate_fn.deref()(solution_ctx);
+        let value = (self.solution_estimate_fn)(solution_ctx);
 
         solution_ctx.state.insert(self.state_key, Arc::new(value));
     }

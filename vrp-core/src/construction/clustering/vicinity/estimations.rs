@@ -9,7 +9,6 @@ use crate::models::solution::CommuteInfo;
 use crate::models::GoalContext;
 use hashbrown::{HashMap, HashSet};
 use rosomaxa::utils::parallel_foreach_mut;
-use std::ops::Deref;
 
 type PlaceInfo = (PlaceIndex, Location, Duration, Vec<TimeWindow>);
 type PlaceIndex = usize;
@@ -53,7 +52,7 @@ pub(crate) fn get_clusters(
         });
 
         cluster_estimates.sort_by(|(a_job, (_, a_can)), (b_job, (_, b_can))| {
-            config.building.ordering_global.deref()((b_job, b_can), (a_job, a_can))
+            (config.building.ordering_global_fn)((b_job, b_can), (a_job, a_can))
         });
 
         let new_cluster = cluster_estimates.first().and_then(|(_, (cluster, _))| cluster.as_ref()).cloned();
@@ -199,7 +198,7 @@ fn build_job_cluster(
     config: &ClusterConfig,
     check_insertion: &CheckInsertionFn,
 ) -> Option<Job> {
-    let ordering = config.building.ordering_local.as_ref();
+    let ordering_fn = config.building.ordering_local_fn.as_ref();
     let center = center_job.to_single();
     let center_estimates = estimates.get(center_job).expect("missing job in estimates");
 
@@ -270,13 +269,13 @@ fn build_job_cluster(
                         // embed the first visit info to sort estimates of all candidate jobs later
                         // we allow unreachable from the last job candidates as they must be reachable from the center
                         let include_unreachable = true;
-                        get_cluster_info_sorted(last_place_idx, estimate, include_unreachable, ordering)
+                        get_cluster_info_sorted(last_place_idx, estimate, include_unreachable, ordering_fn)
                             .into_iter()
                             .next()
                             .map(|visit_info| (estimate.0, estimate.1, visit_info))
                     })
                     .collect::<Vec<_>>();
-                job_estimates.sort_by(|(_, _, a_info), (_, _, b_info)| ordering.deref()(a_info, b_info));
+                job_estimates.sort_by(|(_, _, a_info), (_, _, b_info)| (ordering_fn)(a_info, b_info));
 
                 // try to find the first successful addition to the cluster from job estimates
                 let addition_result = unwrap_from_result(job_estimates.iter().try_fold(None, |_, candidate| {
@@ -336,7 +335,7 @@ fn try_add_job<F>(
     candidate: (&Job, &Vec<DissimilarityInfo>),
     config: &ClusterConfig,
     center_commute: F,
-    check_insertion: &CheckInsertionFn,
+    check_insertion_fn: &CheckInsertionFn,
 ) -> Option<(Job, ClusterInfo)>
 where
     F: Fn(&ClusterInfo) -> Commute,
@@ -361,7 +360,7 @@ where
         });
 
     let job = candidate.0.to_single();
-    let ordering = config.building.ordering_local.as_ref();
+    let ordering = config.building.ordering_local_fn.as_ref();
     let include_unreachable = true;
     let dissimilarities = get_cluster_info_sorted(center_place_idx, candidate, include_unreachable, ordering);
 
@@ -432,7 +431,7 @@ where
 
         variant
             .merge(updated_cluster, updated_candidate)
-            .and_then(|merged_cluster| check_insertion.deref()(&merged_cluster).map(|_| (merged_cluster, info)))
+            .and_then(|merged_cluster| (check_insertion_fn)(&merged_cluster).map(|_| (merged_cluster, info)))
             .map(Some)
             .map_or_else(|_| Ok(None), Err)
     }))
@@ -442,7 +441,7 @@ fn get_cluster_info_sorted(
     center_place_idx: usize,
     estimate: (&Job, &Vec<DissimilarityInfo>),
     include_unreachable: bool,
-    ordering: &(dyn Fn(&ClusterInfo, &ClusterInfo) -> Ordering + Send + Sync),
+    ordering_fn: &(dyn Fn(&ClusterInfo, &ClusterInfo) -> Ordering + Send + Sync),
 ) -> Vec<ClusterInfo> {
     let (_, dissimilarities) = estimate;
     let mut dissimilarities = dissimilarities
@@ -453,7 +452,7 @@ fn get_cluster_info_sorted(
         .collect::<Vec<_>>();
 
     // sort dissimilarities based on user provided ordering function
-    dissimilarities.sort_by(|a, b| ordering.deref()(a, b));
+    dissimilarities.sort_by(|a, b| (ordering_fn)(a, b));
 
     dissimilarities
 }

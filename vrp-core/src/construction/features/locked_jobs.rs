@@ -21,7 +21,7 @@ pub fn create_locked_jobs_feature(
     code: ViolationCode,
 ) -> Result<Feature, String> {
     let (rules, conditions) = locks.iter().fold((Vec::new(), HashMap::new()), |(mut rules, mut conditions), lock| {
-        let condition = lock.condition.clone();
+        let condition = lock.condition_fn.clone();
         lock.details.iter().for_each(|detail| {
             // NOTE create rule only for strict order
             if let LockOrder::Strict = detail.order {

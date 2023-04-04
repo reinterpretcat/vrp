@@ -63,10 +63,10 @@ fn get_builder_policy() -> BuilderPolicy {
     };
 
     BuilderPolicy {
-        ordering_global: Arc::new(move |(left_job, left_candidates), (right_job, right_candidates)| {
+        ordering_global_fn: Arc::new(move |(left_job, left_candidates), (right_job, right_candidates)| {
             ordering_rule(left_candidates.len().cmp(&right_candidates.len()), left_job, right_job)
         }),
-        ordering_local: Arc::new(move |left, right| {
+        ordering_local_fn: Arc::new(move |left, right| {
             ordering_rule(
                 compare_floats(left.commute.forward.duration, right.commute.forward.duration),
                 &left.job,

@@ -85,7 +85,7 @@ pub struct LockDetail {
 /// Contains information about jobs locked to specific actors.
 pub struct Lock {
     /// Specifies condition when locked jobs can be assigned to specific actor
-    pub condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>,
+    pub condition_fn: Arc<dyn Fn(&Actor) -> bool + Sync + Send>,
     /// Specifies lock details.
     pub details: Vec<LockDetail>,
     /// Specifies whether route is created or not in solution from beginning.
@@ -103,6 +103,6 @@ impl LockDetail {
 impl Lock {
     /// Creates a new instance of `Lock`.
     pub fn new(condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>, details: Vec<LockDetail>, is_lazy: bool) -> Self {
-        Self { condition, details, is_lazy }
+        Self { condition_fn: condition, details, is_lazy }
     }
 }

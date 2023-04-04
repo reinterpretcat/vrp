@@ -6,7 +6,6 @@ use crate::models::OP_START_MSG;
 use crate::models::{LockOrder, Problem, Solution};
 use hashbrown::{HashMap, HashSet};
 use rosomaxa::prelude::Environment;
-use std::ops::Deref;
 use std::sync::Arc;
 
 type ActivityPlace = crate::models::solution::Place;
@@ -24,7 +23,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
     let mut sequence_job_usage: HashMap<Job, usize> = Default::default();
 
     problem.locks.iter().for_each(|lock| {
-        let actor = registry.available().find(|a| lock.condition.deref()(a.as_ref()));
+        let actor = registry.available().find(|a| (lock.condition_fn)(a.as_ref()));
         match (actor, lock.is_lazy) {
             (Some(actor), false) => {
                 registry.use_actor(&actor);

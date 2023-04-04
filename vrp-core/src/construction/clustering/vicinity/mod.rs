@@ -12,7 +12,6 @@ use crate::models::Problem;
 use hashbrown::HashSet;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
-use std::ops::Deref;
 use std::sync::Arc;
 
 mod estimations;
@@ -134,9 +133,9 @@ pub type OrderingLocalFn = Arc<dyn Fn(&ClusterInfo, &ClusterInfo) -> Ordering + 
 #[derive(Clone)]
 pub struct BuilderPolicy {
     /// Orders visiting clusters based on their estimated size.
-    pub ordering_global: OrderingGlobalFn,
+    pub ordering_global_fn: OrderingGlobalFn,
     /// Orders visiting jobs in a cluster based on their visit info.
-    pub ordering_local: OrderingLocalFn,
+    pub ordering_local_fn: OrderingLocalFn,
 }
 
 /// Keeps track of information specific for job in the cluster.
@@ -196,7 +195,7 @@ fn get_check_insertion_fn(
                 .solution
                 .registry
                 .next_route()
-                .filter(|route_ctx| actor_filter.deref()(&route_ctx.route().actor))
+                .filter(|route_ctx| (actor_filter)(&route_ctx.route().actor))
                 .try_fold(Err(-1), |_, route_ctx| {
                     let result = eval_job_insertion_in_route(
                         &insertion_ctx,

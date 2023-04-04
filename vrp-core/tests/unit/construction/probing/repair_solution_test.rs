@@ -72,7 +72,7 @@ fn create_test_problem(
         .map(|(vehicle_id, order, position, job_ids)| {
             let vehicle_id = vehicle_id.to_string();
             Arc::new(Lock {
-                condition: Arc::new(move |actor| *actor.vehicle.dimens.get_id().unwrap() == vehicle_id),
+                condition_fn: Arc::new(move |actor| *actor.vehicle.dimens.get_id().unwrap() == vehicle_id),
                 details: vec![LockDetail {
                     order,
                     position,

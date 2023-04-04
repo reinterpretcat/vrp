@@ -6,7 +6,6 @@ mod minimize_unassigned_test;
 
 use super::*;
 use std::cmp::Ordering;
-use std::ops::Deref;
 
 /// A type which allows to control how job is estimated in objective fitness.
 pub type UnassignedJobEstimator = Arc<dyn Fn(&SolutionContext, &Job) -> f64 + Send + Sync>;
@@ -46,7 +45,7 @@ impl Objective for MinimizeUnassignedObjective {
             .solution
             .unassigned
             .iter()
-            .map(|(job, _)| self.unassigned_job_estimator.deref()(&solution.solution, job))
+            .map(|(job, _)| (self.unassigned_job_estimator)(&solution.solution, job))
             .sum::<f64>()
     }
 }
@@ -54,9 +53,7 @@ impl Objective for MinimizeUnassignedObjective {
 impl FeatureObjective for MinimizeUnassignedObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
-            MoveContext::Route { solution_ctx, job, .. } => {
-                -1. * self.unassigned_job_estimator.deref()(solution_ctx, job)
-            }
+            MoveContext::Route { solution_ctx, job, .. } => -1. * (self.unassigned_job_estimator)(solution_ctx, job),
             MoveContext::Activity { .. } => Cost::default(),
         }
     }

@@ -6,7 +6,6 @@ use plotters::coord::Shift;
 use rosomaxa::algorithms::gsom::Coordinate;
 use rosomaxa::utils::compare_floats;
 use std::cmp::Ordering;
-use std::ops::Deref;
 
 /// Draws chart on canvas according to the drawing configs.
 pub fn draw<B: DrawingBackend + 'static>(
@@ -57,7 +56,7 @@ fn draw_solution<B: DrawingBackend + 'static>(
             .style_func(&|&v| (&HSLColor(240. / 360. - 240. / 360. * v / solution_config.axes.y.end, 1., 0.7)).into()),
     )?;
 
-    let data_points = solution_config.series.points.deref()();
+    let data_points = (solution_config.series.points)();
 
     chart.draw_series(
         data_points
@@ -94,7 +93,7 @@ fn draw_population<B: DrawingBackend + 'static>(
                                  caption_fn: &dyn Fn(f64, f64) -> String,
                                  series: &Series2D|
              -> DrawResult<()> {
-                let matrix: MatrixData = series.matrix.deref()();
+                let matrix: MatrixData = (series.matrix_fn)();
                 let (min, max, size) = match matrix.iter().minmax_by(|(_, &a), (_, &b)| compare_floats(a, b)) {
                     MinMaxResult::OneElement((_, &value)) if compare_floats(value, 0.) != Ordering::Equal => {
                         (value, value, value)
@@ -138,9 +137,9 @@ fn draw_population<B: DrawingBackend + 'static>(
                 area.fill(&WHITE)?;
 
                 let get_fitness = |coord: &Coordinate| {
-                    series[0].matrix.deref()().get(coord).cloned().map(|v| {
+                    (series[0].matrix_fn)().get(coord).cloned().map(|v| {
                         std::iter::once(v)
-                            .chain((1..series.len()).map(move |idx| *series[idx].matrix.deref()().get(coord).unwrap()))
+                            .chain((1..series.len()).map(move |idx| *((series[idx].matrix_fn)().get(coord).unwrap())))
                             .collect::<Vec<_>>()
                     })
                 };
@@ -224,7 +223,7 @@ fn draw_population<B: DrawingBackend + 'static>(
                 // draw local optimum markers
                 rows.clone()
                     .cartesian_product(cols.clone())
-                    .filter(|&(x, y)| series[0].matrix.deref()().get(&Coordinate(x, y)).is_some())
+                    .filter(|&(x, y)| (series[0].matrix_fn)().get(&Coordinate(x, y)).is_some())
                     .filter(|&(x, y)| {
                         get_neighbours(x, y)
                             .map(|coordinate| to_relation(&Coordinate(x, y), &coordinate))

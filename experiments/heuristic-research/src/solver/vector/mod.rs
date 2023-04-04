@@ -1,7 +1,6 @@
 use super::*;
 use rosomaxa::evolution::TelemetryMode;
 use rosomaxa::example::*;
-use std::ops::Deref;
 
 mod objectives;
 pub use self::objectives::*;
@@ -50,5 +49,5 @@ pub fn solve_function(
 
     let (individual, fitness) = solutions.first().expect("empty solutions");
 
-    logger.deref()(&format!("solution: {individual:?}, fitness: {fitness}"));
+    (logger)(&format!("solution: {individual:?}, fitness: {fitness}"));
 }

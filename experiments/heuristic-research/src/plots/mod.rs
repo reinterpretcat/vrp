@@ -4,7 +4,6 @@ use super::*;
 use plotters::coord::Shift;
 use plotters::prelude::*;
 use plotters_canvas::CanvasBackend;
-use std::ops::Deref;
 use web_sys::HtmlCanvasElement;
 
 /// Type alias for the result of a drawing function.
@@ -120,7 +119,7 @@ pub fn draw_function_plots<B: DrawingBackend + 'static>(
                             Arc::new(|_: &[f64]| 0.)
                         }
                     };
-                    Box::new(move |x, z| fitness_fn.deref()(&[x, z]))
+                    Box::new(move |x, z| (fitness_fn)(&[x, z]))
                 },
                 points: Box::new(move || get_solution_points(generation)),
             },
@@ -177,7 +176,7 @@ fn get_population_series(generation: usize) -> PopulationSeries {
             }) => {
                 let get_series = |matrix: &MatrixData| {
                     let matrix = matrix.clone();
-                    Series2D { matrix: Box::new(move || matrix.clone()) }
+                    Series2D { matrix_fn: Box::new(move || matrix.clone()) }
                 };
 
                 Some(PopulationSeries::Rosomaxa {

@@ -9,7 +9,6 @@ use crate::construction::enablers::{update_route_schedule, ScheduleStateKeys};
 use crate::models::common::Timestamp;
 use crate::models::problem::{ActivityCost, Single, TransportCost, TravelTime};
 use crate::models::solution::Activity;
-use std::ops::Deref;
 
 // TODO
 //  remove get_total_cost, get_route_costs, get_max_cost methods from contexts
@@ -300,7 +299,7 @@ impl Objective for TransportObjective {
     type Solution = InsertionContext;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        self.fitness_fn.deref()(solution)
+        (self.fitness_fn)(solution)
     }
 }
 

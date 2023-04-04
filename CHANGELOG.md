@@ -5,8 +5,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-This release brings hierarchical approach for local objective estimation. Additionally, it focuses on refactoring
-to avoid usafe code.
+This release brings hierarchical approach for local objective estimation. Additionally, it focuses on refactoring,
+mostly to avoid usafe code.
 
 ### Changed
 
@@ -16,6 +16,7 @@ to avoid usafe code.
   * apply `#![deny(unsafe_code)]` directive for vrp-cli (due to FFI which is only one exception)
   * allow unsafe code only when necessary in research crates which are not used anyhow in production code
 * make pyo3 an optional dependency and wrap python bindings under `py_bindings` feature
+* refactor `Deref` trait usage
 
 ### Added
 

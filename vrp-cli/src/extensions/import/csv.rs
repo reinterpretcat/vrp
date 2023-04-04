@@ -14,7 +14,6 @@ mod actual {
     use std::collections::{HashMap, HashSet};
     use std::error::Error;
     use std::io::{BufReader, Read};
-    use std::ops::Deref;
     use vrp_pragmatic::format::problem::*;
     use vrp_pragmatic::format::{FormatError, Location};
 
@@ -77,7 +76,7 @@ mod actual {
         };
 
         let get_tasks = |jobs: &Vec<&CsvJob>, filter: Box<dyn Fn(&CsvJob) -> bool>| {
-            let tasks = jobs.iter().filter(|j| filter.deref()(j)).map(|job| get_task(job)).collect::<Vec<_>>();
+            let tasks = jobs.iter().filter(|j| (filter)(j)).map(|job| get_task(job)).collect::<Vec<_>>();
             if tasks.is_empty() {
                 None
             } else {
