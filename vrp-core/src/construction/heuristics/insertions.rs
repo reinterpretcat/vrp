@@ -3,7 +3,7 @@
 mod insertions_test;
 
 use crate::construction::heuristics::*;
-use crate::models::common::Cost;
+use crate::models::common::{Cost, IdDimension};
 use crate::models::problem::{Actor, Job};
 use crate::models::solution::Activity;
 use crate::utils::short_type_name;
@@ -44,7 +44,21 @@ impl Debug for InsertionSuccess {
         f.debug_struct(short_type_name::<Self>())
             .field("cost", &self.cost)
             .field("job", &self.job)
-            .field("activities", &self.activities.iter().map(|(_, idx)| (("activity"), *idx)).collect::<Vec<_>>())
+            .field(
+                "activities",
+                &self
+                    .activities
+                    .iter()
+                    .map(|(a, idx)| {
+                        (
+                            a.retrieve_job()
+                                .and_then(|job| job.dimens().get_id().cloned())
+                                .unwrap_or("undef".to_string()),
+                            *idx,
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            )
             .field("actor", self.actor.as_ref())
             .finish()
     }

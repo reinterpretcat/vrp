@@ -130,9 +130,11 @@ mod debug {
 
         let result = format!("{result:?}");
 
+        println!("{result}");
         assert!(!result.contains("::"));
         assert!(result.contains("cost"));
-        assert!(result.contains("activities"));
+        assert!(result.contains("activities: [(\"single\", 1)]"));
         assert!(result.contains("actor"));
+        assert!(result.contains("vehicle: \"undef\""));
     }
 }

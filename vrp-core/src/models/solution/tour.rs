@@ -221,7 +221,7 @@ impl Debug for Tour {
                         _ => activity
                             .retrieve_job()
                             .and_then(|job| job.dimens().get_id().cloned())
-                            .unwrap_or("unknown".to_string()),
+                            .unwrap_or("undef".to_string()),
                     })
                     .collect::<Vec<_>>(),
             )
