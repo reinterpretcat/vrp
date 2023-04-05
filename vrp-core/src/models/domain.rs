@@ -38,7 +38,12 @@ pub struct Problem {
 
 impl Debug for Problem {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(short_type_name::<Self>()).field("fleet", &self.fleet).finish_non_exhaustive()
+        f.debug_struct(short_type_name::<Self>())
+            .field("fleet", &self.fleet)
+            .field("jobs", &self.jobs.size())
+            .field("locks", &self.locks.len())
+            .field("goal", self.goal.as_ref())
+            .finish_non_exhaustive()
     }
 }
 
