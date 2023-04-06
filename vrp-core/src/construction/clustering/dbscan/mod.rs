@@ -63,7 +63,7 @@ fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<f64> {
                 .neighbors(profile, &job, Timestamp::default())
                 .filter(|(j, _)| job_has_locations(j))
                 .take(min_points)
-                .map(|(_, cost)| *cost)
+                .map(|(_, cost)| cost)
                 .fold((0., 1), |(sum, idx), cost| (sum + cost, idx + 1));
 
             acc[idx] += sum / count as f64;

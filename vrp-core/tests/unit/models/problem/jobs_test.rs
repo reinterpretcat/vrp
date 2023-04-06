@@ -248,6 +248,6 @@ fn can_handle_negative_distances_durations_impl(transport_costs: Arc<dyn Transpo
     for job in &species {
         assert!(jobs
             .neighbors(&profile, job, 0.0)
-            .all(|(_, cost)| { (*cost - UNREACHABLE_COST).abs() < std::f64::EPSILON }));
+            .all(|(_, cost)| { (cost as LowPrecisionCost - UNREACHABLE_COST).abs() < f32::EPSILON }));
     }
 }

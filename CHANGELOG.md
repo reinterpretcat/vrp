@@ -18,6 +18,7 @@ mostly to avoid usafe code.
 * make pyo3 an optional dependency and wrap python bindings under `py_bindings` feature
 * refactor `Deref` trait usage
 * implement `Debug` for essential core type
+* refactor job index to lower memory footprint for a large scale VRP (tested on 30k CVRP instance)
 
 ### Added
 
