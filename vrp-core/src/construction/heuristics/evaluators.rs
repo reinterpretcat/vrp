@@ -24,7 +24,7 @@ pub struct EvaluationContext<'a> {
 }
 
 /// Specifies allowed insertion position in route for the job.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum InsertionPosition {
     /// Job can be inserted anywhere in the route.
     Any,

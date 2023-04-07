@@ -147,9 +147,25 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
+        let cache_ctx = CacheContext::from(insertion_ctx);
 
         routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
-            eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+            cache_ctx.evaluate_insertion(
+                insertion_ctx,
+                &eval_ctx,
+                route_ctx,
+                self.insertion_position,
+                acc,
+                |alternative| {
+                    eval_job_insertion_in_route(
+                        insertion_ctx,
+                        &eval_ctx,
+                        route_ctx,
+                        self.insertion_position,
+                        alternative,
+                    )
+                },
+            )
         })
     }
 
@@ -161,9 +177,27 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
+        let cache_ctx = CacheContext::from(insertion_ctx);
+
         jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
             let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
-            eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+
+            cache_ctx.evaluate_insertion(
+                insertion_ctx,
+                &eval_ctx,
+                route_ctx,
+                self.insertion_position,
+                acc,
+                |alternative| {
+                    eval_job_insertion_in_route(
+                        insertion_ctx,
+                        &eval_ctx,
+                        route_ctx,
+                        self.insertion_position,
+                        alternative,
+                    )
+                },
+            )
         })
     }
 

@@ -44,6 +44,7 @@ pub struct Place {
 }
 
 /// Represents activity which is needed to be performed.
+#[derive(Clone)]
 pub struct Activity {
     /// Specifies activity details.
     pub place: Place,

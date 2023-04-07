@@ -16,7 +16,7 @@ use std::sync::Arc;
 use tinyvec::{TinyVec, TinyVecIterator};
 
 /// Specifies insertion result variant.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum InsertionResult {
     /// Successful insertion result.
     Success(InsertionSuccess),
@@ -25,6 +25,7 @@ pub enum InsertionResult {
 }
 
 /// Specifies insertion success result needed to insert job into tour.
+#[derive(Clone)]
 pub struct InsertionSuccess {
     /// Specifies delta cost change for the insertion.
     pub cost: InsertionCost,
@@ -65,7 +66,7 @@ impl Debug for InsertionSuccess {
 }
 
 /// Specifies insertion failure.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InsertionFailure {
     /// Failed constraint code.
     pub constraint: i32,
@@ -248,6 +249,7 @@ impl InsertionHeuristic {
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
+        CacheContext::inject(&mut insertion_ctx);
 
         prepare_insertion_ctx(&mut insertion_ctx);
 
@@ -269,6 +271,8 @@ impl InsertionHeuristic {
                     result_selector,
                 );
 
+                CacheContext::from(&insertion_ctx).clean_routes(&insertion_ctx, routes.as_slice());
+
                 (result, jobs.len(), routes.len())
             };
 
@@ -282,6 +286,7 @@ impl InsertionHeuristic {
             }
         }
 
+        CacheContext::remove(&mut insertion_ctx);
         finalize_insertion_ctx(&mut insertion_ctx);
 
         insertion_ctx
@@ -339,6 +344,14 @@ impl InsertionResult {
         }
     }
 
+    /// Returns insertion result as failure.
+    pub fn as_failure(&self) -> Option<&InsertionFailure> {
+        match self {
+            Self::Success(_) => None,
+            Self::Failure(failure) => Some(failure),
+        }
+    }
+
     /// Returns insertion result as success.
     pub fn into_success(self) -> Option<InsertionSuccess> {
         match self {
@@ -360,7 +373,7 @@ pub(crate) fn finalize_insertion_ctx(insertion_ctx: &mut InsertionContext) {
 }
 
 pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
-    let route_index = if let Some(new_route_ctx) = insertion_ctx.solution.registry.get_route(&success.actor) {
+    let route_idx = if let Some(new_route_ctx) = insertion_ctx.solution.registry.get_route(&success.actor) {
         insertion_ctx.solution.routes.push(new_route_ctx);
         insertion_ctx.solution.routes.len() - 1
     } else {
@@ -372,7 +385,7 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
             .expect("registry is out of sync with used routes")
     };
 
-    let route_ctx = insertion_ctx.solution.routes.get_mut(route_index).unwrap();
+    let route_ctx = insertion_ctx.solution.routes.get_mut(route_idx).unwrap();
     let route = route_ctx.route_mut();
     success.activities.into_iter().for_each(|(a, index)| {
         route.tour.insert_at(a, index + 1);
@@ -381,7 +394,10 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
     let job = success.job;
     insertion_ctx.solution.required.retain(|j| *j != job);
     insertion_ctx.solution.unassigned.remove(&job);
-    insertion_ctx.problem.goal.accept_insertion(&mut insertion_ctx.solution, route_index, &job);
+    insertion_ctx.problem.goal.accept_insertion(&mut insertion_ctx.solution, route_idx, &job);
+
+    let route_ctx = insertion_ctx.solution.routes.get(route_idx).unwrap();
+    CacheContext::from(insertion_ctx as &InsertionContext).accept_insertion(route_ctx, &job);
 }
 
 fn apply_insertion_failure(
@@ -401,6 +417,8 @@ fn apply_insertion_failure(
     if let Some(job) = failure.job {
         insertion_ctx.solution.unassigned.insert(job.clone(), UnassignmentInfo::Simple(failure.constraint));
         insertion_ctx.solution.required.retain(|j| *j != job);
+
+        CacheContext::from(insertion_ctx as &InsertionContext).accept_failure(&job);
     }
 
     if all_unassignable || no_routes_available {

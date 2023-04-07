@@ -130,7 +130,6 @@ mod debug {
 
         let result = format!("{result:?}");
 
-        println!("{result}");
         assert!(!result.contains("::"));
         assert!(result.contains("cost"));
         assert!(result.contains("activities: [(\"single\", 1)]"));

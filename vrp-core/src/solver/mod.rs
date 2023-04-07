@@ -115,10 +115,12 @@ mod heuristic;
 /// A key to store a filter for heuristic methods applied by dynamic hyper-heuristic.
 pub const HEURISTIC_FILTER_KEY: &str = "heuristic_filter";
 
+// NOTE: keys from 0-9 are reserved for construction module
+
 /// A key to store solution order information.
-const SOLUTION_ORDER_KEY: i32 = 1;
+const SOLUTION_ORDER_KEY: i32 = 10;
 /// A key to store solution weights information.
-const SOLUTION_WEIGHTS_KEY: i32 = 2;
+const SOLUTION_WEIGHTS_KEY: i32 = 11;
 
 /// A type which encapsulates information needed to perform solution refinement process.
 pub struct RefinementContext {

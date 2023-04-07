@@ -3,6 +3,9 @@
 //! # Design
 //!
 
+mod cache;
+use self::cache::*;
+
 mod context;
 pub use self::context::*;
 
@@ -19,3 +22,6 @@ pub use self::metrics::*;
 
 mod selectors;
 pub use self::selectors::*;
+
+/// A key to store insertion evaluation cache.
+const INSERTION_CACHE: i32 = 1;

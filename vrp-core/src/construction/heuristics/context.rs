@@ -522,6 +522,11 @@ impl RegistryContext {
         }
     }
 
+    /// Returns true if given actor is already in use.
+    pub fn is_used(&self, actor: &Actor) -> bool {
+        self.next_with_actor(actor).is_none()
+    }
+
     /// Return back route to be reused again.
     /// Returns whether the route was not present in the registry.
     pub fn free_route(&mut self, route: RouteContext) -> bool {
