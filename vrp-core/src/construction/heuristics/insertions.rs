@@ -338,12 +338,15 @@ impl InsertionResult {
             Self::Failure(_) => None,
         }
     }
+}
 
-    /// Returns insertion result as success.
-    pub fn into_success(self) -> Option<InsertionSuccess> {
-        match self {
-            Self::Success(success) => Some(success),
-            Self::Failure(_) => None,
+impl TryFrom<InsertionResult> for InsertionSuccess {
+    type Error = InsertionFailure;
+
+    fn try_from(value: InsertionResult) -> Result<Self, Self::Error> {
+        match value {
+            InsertionResult::Success(success) => Ok(success),
+            InsertionResult::Failure(failure) => Err(failure),
         }
     }
 }

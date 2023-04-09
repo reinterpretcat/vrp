@@ -120,7 +120,7 @@ mod single {
 
         let result = evaluate_job_insertion(&mut ctx, &job, insertion_position);
 
-        let success = result.into_success().unwrap();
+        let success: InsertionSuccess = result.try_into().ok().unwrap();
         assert_eq!(success.activities.len(), 1);
         assert_eq!(success.activities.first().unwrap().1, index);
         assert_eq!(success.activities.first().unwrap().0.place.location, location);
@@ -182,7 +182,7 @@ mod single {
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
-        let success = result.into_success().unwrap();
+        let success: InsertionSuccess = result.try_into().ok().unwrap();
         assert_eq!(success.activities.len(), 1);
         assert_eq!(get_vehicle_id(&success.actor.vehicle), &expected_used_vehicle.to_owned());
         assert_eq!(success.cost, InsertionCost::new(&[cost]));
@@ -230,7 +230,7 @@ mod multi {
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
-        let success = result.into_success().unwrap();
+        let success: InsertionSuccess = result.try_into().ok().unwrap();
         assert_eq!(success.cost, InsertionCost::new(&[28.0]));
         assert_activities(success, vec![(0, 3), (1, 7)]);
     }
@@ -315,7 +315,7 @@ mod multi {
 
         let result = evaluate_job_insertion(&mut ctx, &job, position);
 
-        let success = result.into_success().unwrap();
+        let success: InsertionSuccess = result.try_into().ok().unwrap();
         assert_eq!(success.cost, InsertionCost::new(&[cost]));
         assert_eq!(success.activities.len(), expected.len());
         assert_activities(success, expected);
@@ -336,7 +336,7 @@ mod multi {
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
-        let success = result.into_success().unwrap();
+        let success: InsertionSuccess = result.try_into().ok().unwrap();
         assert_eq!(success.cost, InsertionCost::new(&[60.]));
         assert_activities(success, vec![(0, 5), (1, 10), (2, 15)]);
     }

@@ -223,8 +223,9 @@ fn can_find_in_place_result_impl(
     let extract_job = jobs_map.get(extract_job).unwrap();
 
     let result = find_in_place_result(&search_ctx, route_ctx, insert_job, extract_job)
-        .into_success()
-        .map(|success| (success.cost, success.activities.first().unwrap().1));
+        .try_into()
+        .ok()
+        .map(|success: InsertionSuccess| (success.cost, success.activities.first().unwrap().1));
 
     assert_eq!(result, expected.map(|(cost, position)| (InsertionCost::new(&[cost]), position)));
 }

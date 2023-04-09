@@ -166,8 +166,9 @@ fn find_insertion_cost(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteC
                 InsertionPosition::Concrete(idx - 1),
                 InsertionResult::make_failure(),
             )
-            .into_success()
-            .map(|success| success.cost)
+            .try_into()
+            .ok()
+            .map(|success: InsertionSuccess| success.cost)
         })
         .unwrap_or_default()
 }
@@ -408,8 +409,9 @@ fn try_exchange_jobs(
                 let alternative = InsertionResult::make_failure();
 
                 eval_job_insertion_in_route(insertion_ctx, &eval_ctx, &route_ctx, position, alternative)
-                    .into_success()
-                    .map(|success| (success, Some(route_ctx)))
+                    .try_into()
+                    .ok()
+                    .map(|success: InsertionSuccess| (success, Some(route_ctx)))
             })
             .collect::<Vec<_>>();
 
