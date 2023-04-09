@@ -44,12 +44,7 @@ pub fn create_problem_with_goal_ctx_jobs_and_fleet(
 }
 
 pub fn create_empty_solution() -> Solution {
-    Solution {
-        registry: Registry::new(&test_fleet(), test_random()),
-        routes: vec![],
-        unassigned: Default::default(),
-        extras: Arc::new(Default::default()),
-    }
+    Solution { registry: Registry::new(&test_fleet(), test_random()), routes: vec![], unassigned: Default::default() }
 }
 
 pub fn create_registry_context(fleet: &Fleet) -> RegistryContext {

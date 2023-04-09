@@ -154,7 +154,7 @@ pub fn generate_matrix_routes(
         extras: Arc::new(Default::default()),
     };
 
-    let solution = Solution { registry, routes, unassigned: Default::default(), extras: Arc::new(Default::default()) };
+    let solution = Solution { registry, routes, unassigned: Default::default() };
 
     (problem, solution)
 }

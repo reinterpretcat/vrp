@@ -57,9 +57,6 @@ pub struct Solution {
 
     /// List of unassigned jobs within reason code.
     pub unassigned: Vec<(Job, UnassignmentInfo)>,
-
-    /// Specifies index for storing extra data of arbitrary type.
-    pub extras: Arc<Extras>,
 }
 
 /// An enumeration which specifies how jobs should be ordered in tour.

@@ -98,7 +98,7 @@ impl JobRemovalTracker {
     }
 
     fn can_remove_full_route(
-        &mut self,
+        &self,
         solution: &SolutionContext,
         route_idx: usize,
         random: &(dyn Random + Send + Sync),

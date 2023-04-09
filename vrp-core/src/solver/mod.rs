@@ -300,7 +300,7 @@ impl Solver {
             .ok_or_else(|| "cannot find any solution".to_string())?;
 
         let cost = insertion_ctx.solution.get_total_cost();
-        let solution = insertion_ctx.solution.to_solution(self.problem.extras.clone());
+        let solution = insertion_ctx.solution.to_solution();
 
         Ok((solution, cost, metrics))
     }

@@ -21,9 +21,9 @@ pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matr
             RefinementContext::new(problem.clone(), population, TelemetryMode::None, environment.clone());
 
         RecreateWithCheapest::new(environment.random.clone())
-            .run(&refinement_ctx, InsertionContext::new(problem.clone(), environment.clone()))
+            .run(&refinement_ctx, InsertionContext::new(problem, environment))
             .solution
-            .to_solution(problem.extras.clone())
+            .to_solution()
     })
 }
 
@@ -77,7 +77,7 @@ fn get_core_problem(problem: Problem, matrices: Option<Vec<Matrix>>) -> Arc<Core
     )
 }
 
-fn get_core_solution<F: Fn(Arc<CoreProblem>) -> CoreSolution>(
+fn get_core_solution<F: FnOnce(Arc<CoreProblem>) -> CoreSolution>(
     problem: Problem,
     matrices: Option<Vec<Matrix>>,
     perform_check: bool,

@@ -7,7 +7,7 @@ use crate::construction::heuristics::factories::*;
 use crate::models::common::Cost;
 use crate::models::problem::*;
 use crate::models::solution::*;
-use crate::models::{Extras, Problem, Solution};
+use crate::models::{Problem, Solution};
 use crate::utils::short_type_name;
 use hashbrown::{HashMap, HashSet};
 use nohash_hasher::BuildNoHashHasher;
@@ -146,7 +146,7 @@ impl SolutionContext {
     }
 
     /// Converts given `SolutionContext` to Solution model.
-    pub fn to_solution(&self, extras: Arc<Extras>) -> Solution {
+    pub fn to_solution(&self) -> Solution {
         Solution {
             registry: self.registry.resources().deep_copy(),
             routes: self.routes.iter().map(|rc| rc.route.deep_copy()).collect(),
@@ -156,7 +156,6 @@ impl SolutionContext {
                 .map(|(job, code)| (job.clone(), code.clone()))
                 .chain(self.required.iter().map(|job| (job.clone(), UnassignmentInfo::Unknown)))
                 .collect(),
-            extras,
         }
     }
 
