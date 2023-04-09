@@ -68,7 +68,7 @@ fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, 
 
     // NOTE: get statistic/tours updated
     let insertion_ctx = InsertionContext::new_from_solution(core_problem.clone(), (core_solution, None), environment);
-    let core_solution = insertion_ctx.solution.to_solution();
+    let core_solution = insertion_ctx.solution.into();
 
     let mut writer = BufWriter::new(Vec::new());
     (&core_solution, 0.).write_pragmatic_json(&core_problem, &mut writer).expect("cannot serialize result solution");

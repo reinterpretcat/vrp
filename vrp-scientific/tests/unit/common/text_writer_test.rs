@@ -33,7 +33,7 @@ fn can_write_solomon_solution() {
     let solution = RecreateWithCheapest::new(environment.random.clone())
         .run(&refinement_ctx, InsertionContext::new(problem, environment))
         .solution
-        .to_solution();
+        .into();
     (&solution, 3.123456).write_solomon(&mut writer).unwrap();
     let result = String::from_utf8(writer.into_inner().unwrap()).unwrap();
 

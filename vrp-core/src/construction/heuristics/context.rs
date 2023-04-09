@@ -145,20 +145,6 @@ impl SolutionContext {
         })
     }
 
-    /// Converts given `SolutionContext` to Solution model.
-    pub fn to_solution(&self) -> Solution {
-        Solution {
-            registry: self.registry.resources().deep_copy(),
-            routes: self.routes.iter().map(|rc| rc.route.deep_copy()).collect(),
-            unassigned: self
-                .unassigned
-                .iter()
-                .map(|(job, code)| (job.clone(), code.clone()))
-                .chain(self.required.iter().map(|job| (job.clone(), UnassignmentInfo::Unknown)))
-                .collect(),
-        }
-    }
-
     /// Returns amount of jobs considered by solution context.
     /// NOTE: the amount can be different for partially solved problem from original problem.
     pub fn get_jobs_amount(&self) -> usize {
@@ -208,6 +194,21 @@ impl Debug for SolutionContext {
             .field("routes", &self.routes)
             .field("unassigned", &self.unassigned)
             .finish_non_exhaustive()
+    }
+}
+
+impl From<SolutionContext> for Solution {
+    fn from(solution_ctx: SolutionContext) -> Self {
+        Solution {
+            registry: solution_ctx.registry.resources().deep_copy(),
+            routes: solution_ctx.routes.iter().map(|rc| rc.route.deep_copy()).collect(),
+            unassigned: solution_ctx
+                .unassigned
+                .iter()
+                .map(|(job, code)| (job.clone(), code.clone()))
+                .chain(solution_ctx.required.iter().map(|job| (job.clone(), UnassignmentInfo::Unknown)))
+                .collect(),
+        }
     }
 }
 
