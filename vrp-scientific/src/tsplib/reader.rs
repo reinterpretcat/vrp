@@ -38,6 +38,14 @@ struct TsplibReader<R: Read> {
 }
 
 impl<R: Read> TextReader for TsplibReader<R> {
+    fn create_goal_context(
+        &self,
+        activity: Arc<SimpleActivityCost>,
+        transport: Arc<dyn TransportCost + Send + Sync>,
+    ) -> Result<GoalContext, String> {
+        create_goal_context_prefer_min_distance(activity, transport)
+    }
+
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), String> {
         self.read_meta()?;
 
