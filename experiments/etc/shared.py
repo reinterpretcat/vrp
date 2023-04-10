@@ -64,7 +64,7 @@ class SolverClient:
             # expected:
             # rank: 0, fitness: (0.000, 92.000, 53389.603),
             for best in re.finditer(
-                    r"rank: 0, fitness: \((?P<unassigned>[0-9.]+), (?P<tours>[0-9.]+), (?P<cost>[0-9.]+)\)",
+                    r"rank: 0, fitness: \((?P<unassigned>[\d.]+),?\s*(?P<tours>[\d.]+)?\s*, (?P<cost>[\d.]+)\)",
                     p.stdout):
                 pass
 
@@ -74,9 +74,9 @@ class SolverClient:
                 raise ValueError('cannot get best statistic')
 
             with open(solution_path, 'r') as f:
+                tours = int(float(best.group('tours'))) if best.group('tours') else None
                 return f.read(), float(statistic.group('duration')), int(statistic.group('generations')), \
-                       float(statistic.group('speed')), float(best.group('cost')), int(float(best.group('tours'))), \
-                       int(float(best.group('unassigned')))
+                       float(statistic.group('speed')), float(best.group('cost')), tours, int(float(best.group('unassigned')))
         else:
             raise ValueError("cannot solve problem: {}".format(p.stderr))
             pass
