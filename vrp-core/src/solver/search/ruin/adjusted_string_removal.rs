@@ -6,10 +6,11 @@ use super::Ruin;
 use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::problem::Job;
 use crate::models::solution::Tour;
-use crate::solver::search::{select_neighbors, select_seed_job, JobRemovalTracker, RemovalLimits};
+use crate::solver::search::*;
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::Random;
-use std::sync::{Arc, RwLock};
+use std::cell::RefCell;
+use std::sync::Arc;
 
 /// _Adjusted string removal_ ruin strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" by Jan Christiaens, Greet Vanden Berghe.
@@ -58,18 +59,18 @@ impl Ruin for AdjustedStringRemoval {
     fn run(&self, _: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.environment.random.clone();
-        let tracker = RwLock::new(JobRemovalTracker::new(&self.limits, random.as_ref()));
+        let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, random.as_ref()));
+        let mut tabu_list = TabuList::from(&insertion_ctx);
 
         let (lsmax, ks) = self.calculate_limits(insertion_ctx.solution.routes.as_slice(), &random);
+        let seed = select_seed_job_with_tabu_list(&insertion_ctx, &tabu_list).map(|(profile, _, job)| (profile, job));
 
-        let seed = select_seed_job(insertion_ctx.solution.routes.as_slice(), random.as_ref())
-            .map(|(profile, _, job)| (profile, job));
         select_neighbors(&problem, seed)
-            .filter(|job| !tracker.read().unwrap().is_removed_job(job))
-            .take_while(|_| tracker.read().unwrap().get_affected_actors() != ks)
+            .filter(|job| !tracker.borrow().is_removed_job(job))
+            .take_while(|_| tracker.borrow().get_affected_actors() != ks)
             .for_each(|job| {
                 let route_idx = insertion_ctx.solution.routes.iter().position(|route_ctx| {
-                    !tracker.read().unwrap().is_affected_actor(&route_ctx.route().actor)
+                    !tracker.borrow().is_affected_actor(&route_ctx.route().actor)
                         && route_ctx.route().tour.index(&job).is_some()
                 });
 
@@ -85,11 +86,16 @@ impl Ruin for AdjustedStringRemoval {
                             .collect::<Vec<Job>>()
                             .into_iter()
                             .for_each(|job| {
-                                tracker.write().unwrap().try_remove_job(&mut insertion_ctx.solution, route_idx, &job);
+                                if tracker.borrow_mut().try_remove_job(&mut insertion_ctx.solution, route_idx, &job) {
+                                    tabu_list.add_job(job);
+                                    tabu_list.add_actor(insertion_ctx.solution.routes[route_idx].route().actor.clone());
+                                }
                             });
                     }
                 });
             });
+
+        tabu_list.inject(&mut insertion_ctx);
 
         insertion_ctx
     }

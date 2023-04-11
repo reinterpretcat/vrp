@@ -1,7 +1,8 @@
-use crate::construction::heuristics::{RouteContext, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::common::Profile;
 use crate::models::problem::Job;
 use crate::models::Problem;
+use crate::solver::search::TabuList;
 use crate::utils::Either;
 use hashbrown::HashMap;
 use rosomaxa::prelude::Random;
@@ -30,10 +31,24 @@ pub(crate) fn select_neighbors(problem: &Problem, seed: Option<(Profile, Job)>) 
     }
 }
 
+pub(crate) fn select_seed_job_with_tabu_list(
+    insertion_ctx: &InsertionContext,
+    tabu_list: &TabuList,
+) -> Option<(Profile, usize, Job)> {
+    select_seed_job(
+        insertion_ctx.solution.routes.as_slice(),
+        insertion_ctx.environment.random.as_ref(),
+        &|route_ctx| !tabu_list.is_actor_tabu(route_ctx.route().actor.as_ref()),
+        &|job| !tabu_list.is_job_tabu(job),
+    )
+}
+
 /// Selects seed job from existing solution
 pub(crate) fn select_seed_job(
     routes: &[RouteContext],
     random: &(dyn Random + Send + Sync),
+    route_filter: &(dyn Fn(&RouteContext) -> bool),
+    job_filter: &(dyn Fn(&Job) -> bool),
 ) -> Option<(Profile, usize, Job)> {
     if routes.is_empty() {
         return None;
@@ -45,8 +60,8 @@ pub(crate) fn select_seed_job(
     loop {
         let route_ctx = routes.get(route_idx).unwrap();
 
-        if route_ctx.route().tour.has_jobs() {
-            let job = select_random_job(route_ctx, random);
+        if route_ctx.route().tour.has_jobs() && route_filter(route_ctx) {
+            let job = select_random_job(route_ctx, random, job_filter);
             if let Some(job) = job {
                 return Some((route_ctx.route().actor.vehicle.profile.clone(), route_idx, job));
             }
@@ -61,7 +76,11 @@ pub(crate) fn select_seed_job(
     None
 }
 
-pub(crate) fn select_random_job(route_ctx: &RouteContext, random: &(dyn Random + Send + Sync)) -> Option<Job> {
+fn select_random_job(
+    route_ctx: &RouteContext,
+    random: &(dyn Random + Send + Sync),
+    job_filter: &(dyn Fn(&Job) -> bool),
+) -> Option<Job> {
     let size = route_ctx.route().tour.job_activity_count();
     if size == 0 {
         return None;
@@ -73,7 +92,7 @@ pub(crate) fn select_random_job(route_ctx: &RouteContext, random: &(dyn Random +
     loop {
         let job = route_ctx.route().tour.get(ai).and_then(|a| a.retrieve_job());
 
-        if job.is_some() {
+        if job.as_ref().map_or(false, |job| job_filter(job)) {
             return job;
         }
 

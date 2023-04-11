@@ -4,7 +4,7 @@ mod exchange_inter_route_test;
 
 use super::*;
 use crate::models::problem::Job;
-use crate::solver::search::{select_seed_job, LocalOperator};
+use crate::solver::search::{select_seed_job_with_tabu_list, LocalOperator, TabuList};
 use crate::solver::RefinementContext;
 use crate::utils::Noise;
 use rosomaxa::utils::map_reduce;
@@ -84,9 +84,9 @@ fn find_best_insertion_pair(
     filter_route_indices: Box<dyn Fn(usize) -> bool + Send + Sync>,
     filter_jobs_indices: Box<dyn Fn(usize) -> bool + Send + Sync>,
 ) -> Option<InsertionContext> {
-    if let Some((_, seed_route_idx, seed_job)) =
-        select_seed_job(insertion_ctx.solution.routes.as_slice(), insertion_ctx.environment.random.as_ref())
-    {
+    let mut tabu_list = TabuList::from(insertion_ctx);
+
+    if let Some((_, seed_route_idx, seed_job)) = select_seed_job_with_tabu_list(insertion_ctx, &tabu_list) {
         let locked = &insertion_ctx.solution.locked;
 
         // bad luck: cannot move locked job
@@ -150,9 +150,16 @@ fn find_best_insertion_pair(
 
         if let Some(insertion_pair) = insertion_pair {
             let mut new_insertion_ctx = new_insertion_ctx;
+
+            for (success, _) in [&insertion_pair.0, &insertion_pair.1] {
+                tabu_list.add_job(success.job.clone())
+            }
+
             apply_insertion_with_route(&mut new_insertion_ctx, insertion_pair.0);
             apply_insertion_with_route(&mut new_insertion_ctx, insertion_pair.1);
             finalize_insertion_ctx(&mut new_insertion_ctx);
+
+            tabu_list.inject(&mut new_insertion_ctx);
 
             return Some(new_insertion_ctx);
         }

@@ -17,13 +17,15 @@ mostly to avoid usafe code.
   * allow unsafe code only when necessary in research crates which are not used anyhow in production code
 * make pyo3 an optional dependency and wrap python bindings under `py_bindings` feature
 * refactor `Deref` trait usage
-* implement `Debug` for essential core type
+* implement `Debug` for essential core types
 * refactor job index to lower memory footprint for a large scale VRP (tested on 30k CVRP instance)
+* use proper objective for tsplib format problems (CVRP)
 
 ### Added
 
 * experimental `compact-tour` objective which tries to shape routes based on job neighbourhood.
 * heuristic filtering extension
+* simple tabu list implementation used by some ruin methods
 
 
 ## [v1.20.0]- 2023-04-01

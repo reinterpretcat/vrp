@@ -7,7 +7,7 @@ use crate::solver::RefinementContext;
 use rand::prelude::SliceRandom;
 use rosomaxa::prelude::*;
 use std::ops::Range;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 /// A trait which specifies logic to destroy parts of solution.
 pub trait Ruin {

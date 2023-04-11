@@ -111,7 +111,7 @@ pub(crate) fn create_goal_context_prefer_min_tours(
     GoalContext::new(features.as_slice(), feature_map.as_slice(), &feature_map[1..])
 }
 
-pub(crate) fn create_goal_context_prefer_min_distance(
+pub(crate) fn create_goal_context_distance_only(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
 ) -> Result<GoalContext, String> {

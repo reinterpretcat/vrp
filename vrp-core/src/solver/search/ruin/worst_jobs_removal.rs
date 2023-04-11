@@ -7,10 +7,11 @@ use crate::construction::heuristics::InsertionContext;
 use crate::models::common::{Cost, Profile, Timestamp};
 use crate::models::problem::{Job, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
-use crate::solver::search::{get_route_jobs, JobRemovalTracker};
+use crate::solver::search::{get_route_jobs, JobRemovalTracker, TabuList};
 use crate::solver::RefinementContext;
 use hashbrown::HashMap;
 use rosomaxa::utils::parallel_collect;
+use std::cell::RefCell;
 use std::cmp::Ordering::Less;
 use std::iter::once;
 use std::sync::Arc;
@@ -40,9 +41,10 @@ impl Ruin for WorstJobRemoval {
 
         routes_savings.shuffle(&mut random.get_rng());
 
-        let tracker = RwLock::new(JobRemovalTracker::new(&self.limits, random.as_ref()));
+        let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, random.as_ref()));
+        let mut tabu_list = TabuList::from(&insertion_ctx);
 
-        routes_savings.iter().take_while(|_| !tracker.read().unwrap().is_limit()).for_each(|(profile, savings)| {
+        routes_savings.iter().take_while(|_| !tracker.borrow().is_limit()).for_each(|(profile, savings)| {
             let skip = savings.len().min(random.uniform_int(0, self.worst_skip as i32) as usize);
             let worst = savings
                 .iter()
@@ -62,15 +64,20 @@ impl Ruin for WorstJobRemoval {
                             .map(|(job, _)| job)
                             .cloned(),
                     )
-                    .take_while(|_| !tracker.read().unwrap().is_limit())
+                    .take_while(|_| !tracker.borrow().is_limit())
                     .for_each(|job| {
                         // NOTE job can be absent if it is unassigned
-                        if let Some(route_idx) = route_jobs.get(&job) {
-                            tracker.write().unwrap().try_remove_job(&mut insertion_ctx.solution, *route_idx, &job);
+                        if let Some(&route_idx) = route_jobs.get(&job) {
+                            if tracker.borrow_mut().try_remove_job(&mut insertion_ctx.solution, route_idx, &job) {
+                                tabu_list.add_job(job.clone());
+                                tabu_list.add_actor(insertion_ctx.solution.routes[route_idx].route().actor.clone());
+                            }
                         }
                     });
             }
         });
+
+        tabu_list.inject(&mut insertion_ctx);
 
         insertion_ctx
     }
