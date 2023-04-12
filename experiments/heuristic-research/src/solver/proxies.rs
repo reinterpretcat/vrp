@@ -40,12 +40,14 @@ where
 {
     fn from(solution: &S) -> Self {
         if TypeId::of::<S>() == TypeId::of::<VectorSolution>() {
+            // SAFETY: type id check above ensures that S-type is the right one
             let solution = unsafe { std::mem::transmute::<&S, &VectorSolution>(solution) };
             assert_eq!(solution.data.len(), 2);
             return ObservationData::Function(DataPoint3D(solution.data[0], solution.fitness(), solution.data[1]));
         }
 
         if TypeId::of::<S>() == TypeId::of::<InsertionContext>() {
+            // SAFETY: type id check above ensures that S-type is the right one
             let insertion_ctx = unsafe { std::mem::transmute::<&S, &InsertionContext>(solution) };
 
             // NOTE a naive conversion to 3D point
