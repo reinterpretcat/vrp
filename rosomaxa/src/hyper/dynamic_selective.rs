@@ -55,20 +55,18 @@ where
 
         let agents = solutions
             .into_iter()
-            .map(|solution| {
-                Box::new(SearchAgent {
-                    heuristic_ctx,
-                    original: solution,
-                    registry,
-                    estimates,
-                    tracker,
-                    state: match compare_to_best(heuristic_ctx, solution) {
-                        Ordering::Greater => SearchState::Diverse(Default::default()),
-                        _ => SearchState::BestKnown(Default::default()),
-                    },
-                    solution: Some(solution.deep_copy()),
-                    runtime: Vec::default(),
-                })
+            .map(|solution| SearchAgent {
+                heuristic_ctx,
+                original: solution,
+                registry,
+                estimates,
+                tracker,
+                state: match compare_to_best(heuristic_ctx, solution) {
+                    Ordering::Greater => SearchState::Diverse(Default::default()),
+                    _ => SearchState::BestKnown(Default::default()),
+                },
+                solution: Some(solution.deep_copy()),
+                runtime: Vec::default(),
             })
             .collect();
 
@@ -81,13 +79,7 @@ where
                 _ => values.iter().sum::<f64>() / values.len() as f64,
             })
             .into_iter()
-            .filter_map(|agent| {
-                #[allow(clippy::manual_map)]
-                match agent.solution {
-                    Some(solution) => Some((solution, agent.runtime)),
-                    _ => None,
-                }
-            })
+            .filter_map(|agent| agent.solution.map(|solution| (solution, agent.runtime)))
             .fold((Vec::new(), Vec::new()), |mut acc, (solution, runtime)| {
                 acc.0.push(solution);
                 acc.1.extend(runtime.into_iter());

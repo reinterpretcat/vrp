@@ -57,19 +57,18 @@ impl<S: State> Simulator<S> {
     /// Runs single episode for each of the given agents in parallel.
     pub fn run_episodes<A>(
         &mut self,
-        agents: Vec<Box<A>>,
+        agents: Vec<A>,
         parallelism: Parallelism,
         reducer: impl Fn(&S, &[f64]) -> f64,
-    ) -> Vec<Box<A>>
+    ) -> Vec<A>
     where
         A: Agent<S> + Send + Sync,
     {
         let (agents, qs): (Vec<_>, Vec<_>) =
-            parallel_into_collect(agents.into_iter().enumerate().collect(), |(idx, agent)| {
-                let mut agent = agent;
+            parallel_into_collect(agents.into_iter().enumerate().collect(), |(idx, mut agent)| {
                 parallelism.thread_pool_execute(idx, || {
                     let qs = Self::run_episode(
-                        agent.as_mut(),
+                        &mut agent,
                         self.learning_strategy.as_ref(),
                         self.policy_strategy.as_ref(),
                         &self.q,
@@ -92,12 +91,15 @@ impl<S: State> Simulator<S> {
         agents
     }
 
-    fn run_episode(
-        agent: &mut dyn Agent<S>,
+    fn run_episode<A>(
+        agent: &mut A,
         learning_strategy: &(dyn LearningStrategy<S> + Send + Sync),
         policy_strategy: &(dyn PolicyStrategy<S> + Send + Sync),
         q: &StateEstimates<S>,
-    ) -> StateEstimates<S> {
+    ) -> StateEstimates<S>
+    where
+        A: Agent<S> + Send + Sync,
+    {
         let mut q_new = StateEstimates::new();
 
         loop {
@@ -105,12 +107,8 @@ impl<S: State> Simulator<S> {
             Self::ensure_actions(&mut q_new, q, &old_state, agent);
             let old_estimates = q_new.get(&old_state).unwrap();
 
-            let action = policy_strategy.select(old_estimates);
-            if action.is_none() {
-                break;
-            }
+            let action = if let Some(action) = policy_strategy.select(old_estimates) { action } else { return q_new };
 
-            let action = action.unwrap();
             agent.take_action(&action);
             let old_value = *old_estimates.data().get(&action).unwrap();
 
@@ -126,8 +124,6 @@ impl<S: State> Simulator<S> {
                 estimates.recalculate_min_max();
             });
         }
-
-        q_new
     }
 
     fn ensure_actions(q_new: &mut StateEstimates<S>, q: &StateEstimates<S>, state: &S, agent: &dyn Agent<S>) {
