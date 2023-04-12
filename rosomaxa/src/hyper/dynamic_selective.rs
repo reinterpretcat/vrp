@@ -94,7 +94,7 @@ where
                 .and_then(|action_estimates| action_estimates.data().get(&action))
                 .cloned()
                 .unwrap_or_default();
-            self.tracker.observation(heuristic_ctx.statistics().generation, name, duration, estimate, new_state);
+            self.tracker.observe(heuristic_ctx.statistics().generation, name, duration, estimate, new_state);
         });
 
         try_exchange_estimates(&mut self.heuristic_simulator);
@@ -390,14 +390,7 @@ struct HeuristicTracker {
 }
 
 impl HeuristicTracker {
-    pub fn observation(
-        &mut self,
-        generation: usize,
-        name: String,
-        duration: Duration,
-        estimate: f64,
-        state: SearchState,
-    ) {
+    pub fn observe(&mut self, generation: usize, name: String, duration: Duration, estimate: f64, state: SearchState) {
         self.total_median.add_observation(duration.as_millis() as usize);
         // NOTE track heuristic telemetry only for experimental mode (performance)
         if self.is_experimental {
