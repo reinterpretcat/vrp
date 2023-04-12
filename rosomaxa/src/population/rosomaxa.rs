@@ -134,12 +134,17 @@ where
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         match &self.phase {
             RosomaxaPhases::Exploration { network, coordinates, selection_size, .. } => {
+                let random = self.environment.random.as_ref();
+
                 let (elite_explore_size, node_explore_size) = match *selection_size {
                     value if value > 6 => {
-                        let elite_size = self.environment.random.uniform_int(1, 2) as usize;
-                        (elite_size, 2)
+                        const EXPLORE_PROBABILITY: f64 = 0.1;
+
+                        let elite_size = if random.is_hit(EXPLORE_PROBABILITY) { 2 } else { 1 };
+                        let node_size = if random.is_hit(EXPLORE_PROBABILITY) { 2 } else { 1 };
+
+                        (elite_size, node_size)
                     }
-                    value if value > 4 => (1, 2),
                     _ => (1, 1),
                 };
 
@@ -148,11 +153,9 @@ where
                         .select()
                         .take(elite_explore_size)
                         .chain(coordinates.iter().flat_map(move |coordinate| {
-                            let explore_size = self.environment.random.uniform_int(1, node_explore_size) as usize;
-
                             network
                                 .find(coordinate)
-                                .map(|node| Either::Left(node.storage.population.select().take(explore_size)))
+                                .map(|node| Either::Left(node.storage.population.select().take(node_explore_size)))
                                 .unwrap_or_else(|| Either::Right(std::iter::empty()))
                         }))
                         .take(*selection_size),
