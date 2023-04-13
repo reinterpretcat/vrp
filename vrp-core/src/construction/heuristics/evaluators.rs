@@ -283,12 +283,13 @@ fn analyze_insertion_in_route_leg(
             };
 
             let activity_ctx = ActivityContext { index, prev, target, next };
+            let move_ctx = MoveContext::activity(route_ctx, &activity_ctx);
 
-            if let Some(violation) = eval_ctx.goal.evaluate(&MoveContext::activity(route_ctx, &activity_ctx)) {
+            if let Some(violation) = eval_ctx.goal.evaluate(&move_ctx) {
                 return SingleContext::fail(violation, acc);
             }
 
-            let costs = eval_ctx.goal.estimate(&MoveContext::activity(route_ctx, &activity_ctx)) + &route_costs;
+            let costs = eval_ctx.goal.estimate(&move_ctx) + &route_costs;
             let other_costs = acc.cost.clone().unwrap_or_else(InsertionCost::max_value);
 
             match eval_ctx.result_selector.select_cost(&costs, &other_costs) {
