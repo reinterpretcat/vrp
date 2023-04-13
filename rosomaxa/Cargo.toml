@@ -20,5 +20,5 @@ rustc-hash = "1.1.0"
 num_cpus = "1.15.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2.8", features = ["js"] }
+getrandom = { version = "0.2.9", features = ["js"] }
 js-sys = "0.3.61"
