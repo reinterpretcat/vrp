@@ -10,7 +10,6 @@ use vrp_pragmatic::format::solution::deserialize_solution;
 
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_pragmatic::format::FormatError;
 
 /// Checks pragmatic solution feasibility.
 pub fn check_pragmatic_solution<F: Read>(
@@ -18,8 +17,7 @@ pub fn check_pragmatic_solution<F: Read>(
     solution_reader: BufReader<F>,
     matrices_readers: Option<Vec<BufReader<F>>>,
 ) -> Result<(), Vec<String>> {
-    let problem = deserialize_problem(problem_reader)
-        .map_err(|errs| vec![format!("cannot read problem: '{}'", FormatError::format_many(&errs, ","))])?;
+    let problem = deserialize_problem(problem_reader).map_err(|errs| vec![format!("cannot read problem: '{errs}'")])?;
 
     let solution =
         deserialize_solution(solution_reader).map_err(|err| vec![format!("cannot read solution: '{err}'")])?;
@@ -30,7 +28,7 @@ pub fn check_pragmatic_solution<F: Read>(
                 .into_iter()
                 .map(|file| {
                     deserialize_matrix(BufReader::new(file))
-                        .map_err(|errs| vec![format!("cannot read matrix: '{}'", FormatError::format_many(&errs, ","))])
+                        .map_err(|errs| vec![format!("cannot read matrix: '{errs}'")])
                 })
                 .collect::<Result<Vec<_>, _>>()?,
         )
@@ -41,7 +39,7 @@ pub fn check_pragmatic_solution<F: Read>(
     let core_problem = Arc::new(
         (problem.clone(), matrices.clone())
             .read_pragmatic()
-            .map_err(|err| vec![format!("cannot read pragmatic problem: {}", FormatError::format_many(&err, ","))])?,
+            .map_err(|errs| vec![format!("cannot read pragmatic problem: '{errs}'")])?,
     );
 
     CheckerContext::new(core_problem, problem, matrices, solution).and_then(|ctx| ctx.check())

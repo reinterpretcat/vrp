@@ -6,7 +6,6 @@ extern crate serde_json;
 
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
-use std::fmt;
 use vrp_core::models::problem::ReservedTimesIndex;
 use vrp_core::models::problem::{Fleet as CoreFleet, Job as CoreJob};
 use vrp_core::models::Problem as CoreProblem;
@@ -55,8 +54,8 @@ impl Location {
     }
 }
 
-impl fmt::Display for Location {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for Location {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Location::Coordinate { lat, lng } => write!(f, "lat={lat}, lng={lng}"),
             Location::Reference { index } => write!(f, "index={index}"),
@@ -92,21 +91,50 @@ impl FormatError {
     pub fn to_json(&self) -> String {
         serde_json::to_string_pretty(&self).unwrap()
     }
-
-    /// Formats multiple format errors into json string.
-    pub fn format_many_to_json(errors: &[Self]) -> String {
-        serde_json::to_string_pretty(errors).unwrap()
-    }
-
-    /// Formats multiple format errors into string.
-    pub fn format_many(errors: &[Self], separator: &str) -> String {
-        errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join(separator)
-    }
 }
+
+impl std::error::Error for FormatError {}
 
 impl std::fmt::Display for FormatError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}, cause: '{}', action: '{}'.", self.code, self.cause, self.action)
+    }
+}
+
+/// Keeps track of multiple `FormatError`.
+#[derive(Debug)]
+pub struct MultiFormatError {
+    /// Inner errors.
+    pub errors: Vec<FormatError>,
+}
+
+impl MultiFormatError {
+    /// Formats multiple format errors into json string.
+    pub fn to_json(&self) -> String {
+        serde_json::to_string_pretty(&self.errors).unwrap()
+    }
+}
+
+impl std::error::Error for MultiFormatError {}
+
+impl std::fmt::Display for MultiFormatError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\n"))
+    }
+}
+
+impl From<Vec<FormatError>> for MultiFormatError {
+    fn from(errors: Vec<FormatError>) -> Self {
+        MultiFormatError { errors }
+    }
+}
+
+impl IntoIterator for MultiFormatError {
+    type Item = FormatError;
+    type IntoIter = <Vec<FormatError> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.errors.into_iter()
     }
 }
 

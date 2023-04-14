@@ -1,7 +1,7 @@
 //! This module provides functionality to validate problem definition for logical correctness.
 
 use crate::format::problem::*;
-use crate::format::{CoordIndex, FormatError};
+use crate::format::{CoordIndex, FormatError, MultiFormatError};
 
 /// A validation context which keeps essential information.
 pub struct ValidationContext<'a> {
@@ -45,8 +45,8 @@ impl<'a> ValidationContext<'a> {
     }
 
     /// Validates problem on set of rules.
-    pub fn validate(&self) -> Result<(), Vec<FormatError>> {
-        let errors = validate_jobs(self)
+    pub fn validate(&self) -> Result<(), MultiFormatError> {
+        let multi_err: MultiFormatError = validate_jobs(self)
             .err()
             .into_iter()
             .chain(validate_vehicles(self).err().into_iter())
@@ -54,12 +54,13 @@ impl<'a> ValidationContext<'a> {
             .chain(validate_routing(self).err().into_iter())
             .chain(validate_relations(self).err().into_iter())
             .flatten()
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .into();
 
-        if errors.is_empty() {
+        if multi_err.errors.is_empty() {
             Ok(())
         } else {
-            Err(errors)
+            Err(multi_err)
         }
     }
 

@@ -323,7 +323,7 @@ fn get_shift_time_window(shift: &VehicleShift) -> Option<TimeWindow> {
 }
 
 /// Validates vehicles from the fleet.
-pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
+pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
     combine_error_results(&[
         check_e1300_no_vehicle_types_with_duplicate_type_ids(ctx),
         check_e1301_no_vehicle_types_with_duplicate_ids(ctx),
@@ -335,4 +335,5 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>
         check_e1307_vehicle_required_break_rescheduling(ctx),
         check_e1308_vehicle_reload_resources(ctx),
     ])
+    .map_err(|errors| errors.into())
 }

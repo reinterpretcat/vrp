@@ -9,10 +9,9 @@ use vrp_core::models::problem::get_job_locations;
 use vrp_core::models::Problem;
 use vrp_core::utils::Environment;
 use vrp_pragmatic::construction::enablers::JobTie;
-use vrp_pragmatic::format::get_coord_index;
 use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, PragmaticProblem};
 use vrp_pragmatic::format::solution::serialize_named_locations_as_geojson;
-use vrp_pragmatic::format::FormatError;
+use vrp_pragmatic::format::{get_coord_index, MultiFormatError};
 
 /// Gets job clusters.
 pub fn get_clusters<F: Read>(
@@ -21,9 +20,7 @@ pub fn get_clusters<F: Read>(
     min_points: Option<usize>,
     epsilon: Option<f64>,
 ) -> Result<String, String> {
-    let problem = Arc::new(
-        get_core_problem(problem_reader, matrices_readers).map_err(|errs| FormatError::format_many(&errs, ","))?,
-    );
+    let problem = Arc::new(get_core_problem(problem_reader, matrices_readers).map_err(|errs| errs.to_string())?);
 
     let coord_index = get_coord_index(&problem);
     let environment = Arc::new(Environment::default());
@@ -61,7 +58,7 @@ pub fn get_clusters<F: Read>(
 fn get_core_problem<F: Read>(
     problem_reader: BufReader<F>,
     matrices_readers: Option<Vec<BufReader<F>>>,
-) -> Result<Problem, Vec<FormatError>> {
+) -> Result<Problem, MultiFormatError> {
     let problem = deserialize_problem(problem_reader)?;
 
     let matrices = matrices_readers.map(|matrices| {

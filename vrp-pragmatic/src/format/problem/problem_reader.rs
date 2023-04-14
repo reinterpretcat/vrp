@@ -12,7 +12,7 @@ use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, GoalContext};
 use vrp_core::solver::processing::VicinityDimension;
 
-pub fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, Vec<FormatError>> {
+pub fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
     let coord_index = CoordIndex::new(&problem);
     let matrices = if coord_index.get_used_types().1 { vec![] } else { create_approx_matrices(&problem) };
     map_to_problem(problem, matrices, coord_index)
@@ -21,7 +21,7 @@ pub fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, Ve
 pub fn map_to_problem_with_matrices(
     problem: ApiProblem,
     matrices: Vec<Matrix>,
-) -> Result<CoreProblem, Vec<FormatError>> {
+) -> Result<CoreProblem, MultiFormatError> {
     let coord_index = CoordIndex::new(&problem);
     map_to_problem(problem, matrices, coord_index)
 }
@@ -30,7 +30,7 @@ pub fn map_to_problem(
     api_problem: ApiProblem,
     matrices: Vec<Matrix>,
     coord_index: CoordIndex,
-) -> Result<CoreProblem, Vec<FormatError>> {
+) -> Result<CoreProblem, MultiFormatError> {
     ValidationContext::new(&api_problem, Some(&matrices), &coord_index).validate()?;
 
     let problem_props = get_problem_properties(&api_problem, &matrices);

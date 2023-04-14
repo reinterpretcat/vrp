@@ -4,9 +4,9 @@ use crate::helpers::*;
 fn validate_result(ctx: &ValidationContext) -> Option<FormatError> {
     let result = validate_relations(ctx);
 
-    result.err().map(|errors| {
-        assert_eq!(errors.len(), 1);
-        errors.first().cloned().unwrap()
+    result.err().map(|result| {
+        assert_eq!(result.errors.len(), 1);
+        result.errors.first().cloned().unwrap()
     })
 }
 

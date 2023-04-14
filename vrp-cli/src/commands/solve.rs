@@ -12,8 +12,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use vrp_cli::core::solver::TargetHeuristic;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
+use vrp_cli::get_locations_serialized;
 use vrp_cli::scientific::tsplib::{TsplibProblem, TsplibSolution};
-use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::GoalContext;
 use vrp_core::prelude::*;
@@ -138,7 +138,7 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
                 } else {
                     BufReader::new(problem).read_pragmatic()
                 }
-                .map_err(|errors| errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n"))
+                .map_err(|errs| errs.to_string())
             })),
             InitSolutionReader(Box::new(move |file, problem| {
                 read_init_pragmatic(BufReader::new(file), problem, random.clone())
@@ -157,7 +157,7 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
             LocationWriter(Box::new(|problem, writer| {
                 let mut writer = writer;
                 deserialize_problem(BufReader::new(problem))
-                    .map_err(|errors| get_errors_serialized(&errors))
+                    .map_err(|errs| errs.to_string())
                     .and_then(|problem| get_locations_serialized(&problem))
                     .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(|err| err.to_string()))
             })),

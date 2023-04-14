@@ -121,7 +121,7 @@ fn check_e1505_profiles_exist(ctx: &ValidationContext) -> Result<(), FormatError
 }
 
 /// Validates routing rules.
-pub fn validate_routing(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
+pub fn validate_routing(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
     let location_types = ctx.coord_index.get_used_types();
 
     combine_error_results(&[
@@ -132,4 +132,5 @@ pub fn validate_routing(ctx: &ValidationContext) -> Result<(), Vec<FormatError>>
         check_e1504_index_size_mismatch(ctx),
         check_e1505_profiles_exist(ctx),
     ])
+    .map_err(|errors| errors.into())
 }

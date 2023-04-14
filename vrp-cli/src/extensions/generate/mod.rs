@@ -12,7 +12,6 @@ use self::prototype::generate_from_prototype;
 use std::io::{BufReader, Read};
 use vrp_core::utils::{DefaultRandom, Random};
 use vrp_pragmatic::format::problem::*;
-use vrp_pragmatic::format::FormatError;
 
 /// Generates a pragmatic problem.
 pub fn generate_problem<R: Read>(
@@ -24,7 +23,7 @@ pub fn generate_problem<R: Read>(
     area_size: Option<f64>,
 ) -> Result<Problem, String> {
     let locations = if let Some(locations_reader) = locations_reader {
-        Some(deserialize_locations(locations_reader).map_err(|err| FormatError::format_many(err.as_slice(), "\n"))?)
+        Some(deserialize_locations(locations_reader).map_err(|errs| errs.to_string())?)
     } else {
         None
     };
@@ -33,8 +32,9 @@ pub fn generate_problem<R: Read>(
         (_, Some(readers)) if readers.len() != 1 => {
             Err(format!("expecting one input file, specified: '{}'", readers.len()))
         }
-        ("pragmatic", Some(mut readers)) if readers.len() == 1 => deserialize_problem(readers.swap_remove(0))
-            .map_err(|errors| FormatError::format_many(errors.as_slice(), "\t\n")),
+        ("pragmatic", Some(mut readers)) if readers.len() == 1 => {
+            deserialize_problem(readers.swap_remove(0)).map_err(|errs| errs.to_string())
+        }
         _ => Err(format!("unknown format: '{input_format}'")),
     }?;
 

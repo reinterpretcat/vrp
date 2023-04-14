@@ -1,6 +1,7 @@
 use super::*;
 use crate::helpers::generate::{create_empty_plan, create_test_job, create_test_vehicle_type};
 use vrp_pragmatic::format::problem::{Fleet, MatrixProfile, Plan};
+use vrp_pragmatic::format::MultiFormatError;
 
 #[test]
 fn can_get_locations_serialized() {
@@ -44,7 +45,7 @@ fn can_get_errors_serialized() {
         FormatError::new("code1".to_string(), "cause1".to_string(), "action1".to_string()),
     ];
 
-    let result = get_errors_serialized(errors.as_slice());
+    let result = MultiFormatError::from(errors).to_string();
 
     assert_eq!(
         "code0, cause: \'cause0\', action: \'action0\'.\ncode1, cause: \'cause1\', action: \'action1\'.",

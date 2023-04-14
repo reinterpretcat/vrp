@@ -180,7 +180,7 @@ fn check_e1107_negative_demand(ctx: &ValidationContext) -> Result<(), FormatErro
 }
 
 /// Validates jobs from the plan.
-pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
+pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
     combine_error_results(&[
         check_e1100_no_jobs_with_duplicate_ids(ctx),
         check_e1101_correct_job_types_demand(ctx),
@@ -191,4 +191,5 @@ pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
         check_e1106_negative_duration(ctx),
         check_e1107_negative_demand(ctx),
     ])
+    .map_err(|errors| errors.into())
 }

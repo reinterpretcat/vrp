@@ -56,7 +56,7 @@ mod c_interop {
     use std::panic::UnwindSafe;
     use std::slice;
     use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem};
-    use vrp_pragmatic::format::CoordIndex;
+    use vrp_pragmatic::format::{CoordIndex, MultiFormatError};
 
     type Callback = extern "C" fn(*const c_char);
 
@@ -100,7 +100,7 @@ mod c_interop {
             let problem = to_string(problem);
             let problem = BufReader::new(problem.as_bytes());
             let result = deserialize_problem(problem)
-                .map_err(|errors| get_errors_serialized(&errors))
+                .map_err(|errs| errs.to_string())
                 .and_then(|problem| get_locations_serialized(&problem));
 
             call_back(result, success, failure);
@@ -166,10 +166,12 @@ mod c_interop {
 
                     ValidationContext::new(&problem, matrices, &coord_index).validate()
                 }
-                (Err(errors), Ok(_)) | (Ok(_), Err(errors)) => Err(errors.into_iter().collect()),
-                (Err(errors1), Err(errors2)) => Err(errors1.into_iter().chain(errors2.into_iter()).collect()),
+                (Err(errors), Ok(_)) | (Ok(_), Err(errors)) => Err(errors),
+                (Err(errors1), Err(errors2)) => {
+                    Err(MultiFormatError::from(errors1.into_iter().chain(errors2.into_iter()).collect::<Vec<_>>()))
+                }
             }
-            .map_err(|err| FormatError::format_many_to_json(&err))
+            .map_err(|errs| errs.to_string())
             .map(|_| "[]".to_string());
 
             call_back(result, success, failure);
@@ -193,7 +195,7 @@ mod c_interop {
 
             let result =
                 if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
-                    .map_err(|errors| get_errors_serialized(&errors))
+                    .map_err(|errs| errs.to_string())
                     .and_then(|problem| {
                         read_config(BufReader::new(to_string(config).as_bytes()))
                             .map_err(|err| to_config_error(err.as_str()))
@@ -289,11 +291,9 @@ mod c_interop {
             }
             extern "C" fn failure(err: *const c_char) {
                 let err = to_string(err);
-                assert!(err.starts_with('['));
-                assert!(err.contains("code"));
+                assert!(err.contains("E0000"));
                 assert!(err.contains("cause"));
                 assert!(err.contains("action"));
-                assert!(err.ends_with(']'));
             }
 
             let problem = CString::new("").unwrap();
@@ -370,7 +370,7 @@ mod py_interop {
     #[pyfunction]
     fn get_routing_locations(problem: String) -> PyResult<String> {
         deserialize_problem(BufReader::new(problem.as_bytes()))
-            .map_err(|errors| get_errors_serialized(&errors))
+            .map_err(|errs| errs.to_string())
             .and_then(|problem| get_locations_serialized(&problem))
             .map_err(PyOSError::new_err)
     }
@@ -393,11 +393,11 @@ mod py_interop {
 
                 ValidationContext::new(&problem, matrices, &coord_index).validate()
             })
-            .map_err(|errs| PyOSError::new_err(FormatError::format_many_to_json(&errs)))?;
+            .map_err(|errs| PyOSError::new_err(errs.to_string()))?;
 
         // try solve problem
         if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
-            .map_err(|errors| get_errors_serialized(&errors))
+            .map_err(|errs| errs.to_string())
             .and_then(|problem| {
                 read_config(BufReader::new(config.as_bytes()))
                     .map_err(|err| to_config_error(err.as_str()))
@@ -450,7 +450,7 @@ mod wasm {
         let matrices = if matrices.is_empty() { None } else { Some(&matrices) };
         ValidationContext::new(&problem, matrices, &coord_index)
             .validate()
-            .map_err(|err| JsValue::from_str(FormatError::format_many_to_json(&err).as_str()))
+            .map_err(|errs| JsValue::from_str(errs.to_json().as_str()))
             .map(|_| JsValue::from_str("[]"))
     }
 
@@ -486,11 +486,8 @@ mod wasm {
             serde_wasm_bindgen::from_value(matrices).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         let problem = Arc::new(
-            if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }.map_err(
-                |errors| {
-                    JsValue::from_str(errors.iter().map(|err| err.to_json()).collect::<Vec<_>>().join("\n").as_str())
-                },
-            )?,
+            if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
+                .map_err(|errs| JsValue::from_str(errs.to_json().as_str()))?,
         );
 
         let config: Config = serde_wasm_bindgen::from_value(config)
@@ -537,11 +534,6 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
     let result = String::from_utf8(bytes).map_err(|err| format!("{err}"))?;
 
     Ok(result)
-}
-
-/// Gets errors serialized in free form.
-pub fn get_errors_serialized(errors: &[FormatError]) -> String {
-    errors.iter().map(|err| format!("{err}")).collect::<Vec<_>>().join("\n")
 }
 
 fn to_config_error(err: &str) -> String {

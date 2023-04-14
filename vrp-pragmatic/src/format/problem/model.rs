@@ -4,7 +4,7 @@ mod model_test;
 
 extern crate serde_json;
 
-use crate::format::{FormatError, Location};
+use crate::format::{FormatError, Location, MultiFormatError};
 use serde::{Deserialize, Serialize};
 use std::io::{BufReader, BufWriter, Error, Read, Write};
 
@@ -682,35 +682,38 @@ pub struct Matrix {
 // endregion
 
 /// Deserializes problem in json format from `BufReader`.
-pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Vec<FormatError>> {
+pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, MultiFormatError> {
     serde_json::from_reader(reader).map_err(|err| {
         vec![FormatError::new(
             "E0000".to_string(),
             "cannot deserialize problem".to_string(),
             format!("check input json: '{err}'"),
         )]
+        .into()
     })
 }
 
 /// Deserializes routing matrix in json format from `BufReader`.
-pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Vec<FormatError>> {
+pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, MultiFormatError> {
     serde_json::from_reader(reader).map_err(|err| {
         vec![FormatError::new(
             "E0001".to_string(),
             "cannot deserialize matrix".to_string(),
             format!("check input json: '{err}'"),
         )]
+        .into()
     })
 }
 
 /// Deserializes json list of locations from `BufReader`.
-pub fn deserialize_locations<R: Read>(reader: BufReader<R>) -> Result<Vec<Location>, Vec<FormatError>> {
+pub fn deserialize_locations<R: Read>(reader: BufReader<R>) -> Result<Vec<Location>, MultiFormatError> {
     serde_json::from_reader(reader).map_err(|err| {
         vec![FormatError::new(
             "E0000".to_string(),
             "cannot deserialize locations".to_string(),
             format!("check input json: '{err}'"),
         )]
+        .into()
     })
 }
 

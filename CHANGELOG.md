@@ -20,6 +20,7 @@ mostly to avoid usafe code.
 * implement `Debug` for essential core types
 * refactor job index to lower memory footprint for a large scale VRP (tested on 30k CVRP instance)
 * use proper objective for tsplib format problems (CVRP)
+* error handling types
 
 ### Added
 
