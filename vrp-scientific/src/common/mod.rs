@@ -8,6 +8,9 @@ use std::sync::Arc;
 mod text_writer;
 pub(crate) use self::text_writer::*;
 
+mod initial_reader;
+pub use self::initial_reader::read_init_solution;
+
 mod routing;
 pub use self::routing::CoordIndex;
 

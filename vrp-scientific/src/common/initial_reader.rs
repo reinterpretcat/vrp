@@ -1,5 +1,5 @@
 #[cfg(test)]
-#[path = "../../tests/unit/solomon/init_solution_reader_test.rs"]
+#[path = "../../tests/unit/common/init_solution_reader_test.rs"]
 mod init_solution_reader_test;
 
 use crate::common::read_line;

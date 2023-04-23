@@ -70,8 +70,8 @@ type FormatMap<'a> = HashMap<&'a str, (ProblemReader, InitSolutionReader, Soluti
 
 fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) {
     if cfg!(feature = "scientific-format") {
+        use vrp_scientific::common::read_init_solution;
         use vrp_scientific::lilim::{LilimProblem, LilimSolution};
-        use vrp_scientific::solomon::read_init_solution as read_init_solomon;
         use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
 
         let is_rounded = matches.get_one::<bool>(ROUNDED_ARG_NAME).copied().unwrap_or(false);
@@ -83,8 +83,9 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
                     assert!(matrices.is_none());
                     BufReader::new(problem).read_solomon(is_rounded)
                 })),
-                InitSolutionReader(Box::new(move |file, problem| {
-                    read_init_solomon(BufReader::new(file), problem, random.clone())
+                InitSolutionReader(Box::new({
+                    let random = random.clone();
+                    move |file, problem| read_init_solution(BufReader::new(file), problem, random.clone())
                 })),
                 SolutionWriter(Box::new(|_, solution, cost, _, mut writer, _| {
                     (&solution, cost).write_solomon(&mut writer)
@@ -113,7 +114,9 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
                     assert!(matrices.is_none());
                     BufReader::new(problem).read_tsplib(is_rounded)
                 })),
-                InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
+                InitSolutionReader(Box::new(move |file, problem| {
+                    read_init_solution(BufReader::new(file), problem, random.clone())
+                })),
                 SolutionWriter(Box::new(|_, solution, cost, _, mut writer, _| {
                     (&solution, cost).write_tsplib(&mut writer)
                 })),
