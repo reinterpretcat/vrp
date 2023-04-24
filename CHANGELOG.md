@@ -21,6 +21,7 @@ mostly to avoid usafe code.
 * refactor job index to lower memory footprint for a large scale VRP (tested on 30k CVRP instance)
 * use proper objective for tsplib format problems (CVRP)
 * error handling types
+* fix sort stability issue in elitism's improvement detection method
 
 ### Added
 
