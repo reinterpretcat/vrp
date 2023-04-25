@@ -28,8 +28,6 @@ pub struct RosomaxaConfig {
     pub distribution_factor: f64,
     /// Objective reshuffling probability.
     pub objective_reshuffling: f64,
-    /// Learning rate of GSOM.
-    pub learning_rate: f64,
     /// A node rebalance memory of GSOM.
     pub rebalance_memory: usize,
     /// A ratio of exploration phase.
@@ -47,7 +45,6 @@ impl RosomaxaConfig {
             spread_factor: 0.75,
             distribution_factor: 0.75,
             objective_reshuffling: 0.01,
-            learning_rate: 0.1,
             rebalance_memory: 100,
             exploration_ratio: 0.9,
         }
@@ -282,21 +279,13 @@ where
         statistics: &HeuristicStatistics,
         config: &RosomaxaConfig,
     ) {
-        // increase rate according to termination estimate
-        let rate = statistics.termination_estimate.clamp(config.learning_rate, 0.8);
-        let learning_rate =
-            (config.learning_rate * (1. + rate)).clamp(config.learning_rate, 0.9_f64.max(config.learning_rate));
-        network.set_learning_rate(learning_rate);
+        network.set_learning_rate(get_learning_rate(statistics.termination_estimate));
 
         if statistics.generation % config.rebalance_memory == 0 {
             network.smooth(1);
         }
 
-        // slowly decrease size of network from 3 * rebalance_memory to rebalance_memory
-        let rate = get_sigmoid_curve(statistics.termination_estimate.clamp(0., 0.8));
-        let keep_ratio = 2. * (1. - rate);
-        let keep_size = config.rebalance_memory + (config.rebalance_memory as f64 * keep_ratio) as usize;
-
+        let keep_size = get_keep_size(config.rebalance_memory, statistics.termination_estimate);
         // no need to shrink network
         if network.size() <= keep_size {
             return;
@@ -349,7 +338,7 @@ where
             NetworkConfig {
                 spread_factor: config.spread_factor,
                 distribution_factor: config.distribution_factor,
-                learning_rate: config.learning_rate,
+                learning_rate: 0.1,
                 rebalance_memory: config.rebalance_memory,
                 has_initial_error: true,
             },
@@ -523,7 +512,26 @@ where
     })
 }
 
-/// Sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
-fn get_sigmoid_curve(value: f64) -> f64 {
-    1. / (1. + std::f64::consts::E.powf(-10. * (value - 0.5)))
+/// Gets network size to keep.
+/// Slowly decrease size of network from 3 * rebalance_memory to rebalance_memory.
+fn get_keep_size(rebalance_memory: usize, termination_estimate: f64) -> usize {
+    let termination_estimate = termination_estimate.clamp(0., 0.8);
+    // Sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
+    let rate = 1. / (1. + std::f64::consts::E.powf(-10. * (termination_estimate - 0.5)));
+    let keep_ratio = 2. * (1. - rate);
+
+    rebalance_memory + (rebalance_memory as f64 * keep_ratio) as usize
+}
+
+/// Gets learning rate decay using cosine annealing.
+fn get_learning_rate(termination_estimate: f64) -> f64 {
+    const PERIOD: f64 = 2.;
+    const MIN_LEARNING_RATE: f64 = 0.1;
+    const MAX_LEARNING_RATE: f64 = 0.9;
+
+    let min_lr = MIN_LEARNING_RATE;
+    let max_lr = MAX_LEARNING_RATE.max(min_lr + 0.05);
+    let progress = termination_estimate * PERIOD;
+
+    min_lr + 0.5 * (max_lr - min_lr) * (1. + (progress * std::f64::consts::PI).cos())
 }

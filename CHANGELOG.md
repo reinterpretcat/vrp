@@ -22,6 +22,7 @@ mostly to avoid usafe code.
 * use proper objective for tsplib format problems (CVRP)
 * error handling types
 * fix sort stability issue in elitism's improvement detection method
+* switch rosomaxa learning rate to cosine annealing
 
 ### Added
 

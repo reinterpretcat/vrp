@@ -85,8 +85,6 @@ pub enum PopulationType {
         distribution_factor: Option<f64>,
         /// Objective reshuffling. Default is 0.01.
         objective_reshuffling: Option<f64>,
-        /// Learning rate. Default is 0.1.
-        learning_rate: Option<f64>,
         /// A rebalance memory. Default is 100.
         rebalance_memory: Option<usize>,
         /// An exploration phase ratio. Default is 0.9.
@@ -485,7 +483,6 @@ fn configure_from_evolution(
                     spread_factor,
                     distribution_factor,
                     objective_reshuffling,
-                    learning_rate,
                     selection_size,
                     rebalance_memory,
                     exploration_ratio,
@@ -508,9 +505,6 @@ fn configure_from_evolution(
                     }
                     if let Some(objective_reshuffling) = objective_reshuffling {
                         config.objective_reshuffling = *objective_reshuffling;
-                    }
-                    if let Some(learning_rate) = learning_rate {
-                        config.learning_rate = *learning_rate;
                     }
                     if let Some(rebalance_memory) = rebalance_memory {
                         config.rebalance_memory = *rebalance_memory;

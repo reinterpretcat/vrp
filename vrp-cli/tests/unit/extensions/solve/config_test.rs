@@ -38,7 +38,6 @@ fn can_read_full_config() {
             spread_factor,
             distribution_factor,
             objective_reshuffling,
-            learning_rate,
             rebalance_memory,
             exploration_ratio,
         } => {
@@ -48,7 +47,6 @@ fn can_read_full_config() {
             assert_eq!(spread_factor, Some(0.75));
             assert_eq!(distribution_factor, Some(0.75));
             assert_eq!(objective_reshuffling, Some(0.01));
-            assert_eq!(learning_rate, Some(0.1));
             assert_eq!(rebalance_memory, Some(100));
             assert_eq!(exploration_ratio, Some(0.9));
         }
