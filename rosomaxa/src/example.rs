@@ -181,7 +181,12 @@ impl HeuristicSolution for VectorSolution {
     }
 
     fn deep_copy(&self) -> Self {
-        Self::new(self.data.clone(), self.objective.clone())
+        Self {
+            data: self.data.clone(),
+            weights: self.weights.clone(),
+            objective: self.objective.clone(),
+            order: self.order.clone(),
+        }
     }
 }
 

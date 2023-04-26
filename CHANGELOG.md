@@ -30,6 +30,7 @@ mostly to avoid usafe code.
 * experimental `compact-tour` objective which tries to shape routes based on job neighbourhood.
 * heuristic filtering extension
 * simple tabu list implementation used by some ruin methods
+* gene pool in rosomaxa to reintroduce some genes while search progresses
 
 
 ## [v1.20.0]- 2023-04-01

@@ -232,10 +232,26 @@ where
                         &self.config,
                         individuals.drain(0..4).collect(),
                     );
-                    individuals.drain(0..).for_each(|individual| network.store(init_individual(individual), 0));
+
+                    let initial = individuals.drain(0..).collect::<Vec<_>>();
+                    let initial = initial.into_iter().map(init_individual).collect::<Vec<_>>();
+                    initial.iter().for_each(|individual| network.store(individual.deep_copy(), 0));
+
+                    // create gene pool to keep track of population progress
+                    let gene_pool_size = self.config.selection_size.min(8).max(4);
+                    let gene_pool_selection_size = (gene_pool_size / 2).max(4);
+                    let mut gene_pool = Elitism::new_with_dedup(
+                        self.objective.clone(),
+                        self.environment.random.clone(),
+                        gene_pool_size,
+                        gene_pool_selection_size,
+                        create_dedup_fn(0.05),
+                    );
+                    gene_pool.add_all(initial);
 
                     self.phase = RosomaxaPhases::Exploration {
                         network,
+                        gene_pool,
                         coordinates: vec![],
                         statistics: statistics.clone(),
                         selection_size,
@@ -244,6 +260,7 @@ where
             }
             RosomaxaPhases::Exploration {
                 network,
+                gene_pool,
                 coordinates,
                 statistics: old_statistics,
                 selection_size: old_selection_size,
@@ -256,6 +273,8 @@ where
                 if statistics.termination_estimate < exploration_ratio {
                     *old_statistics = statistics.clone();
                     *old_selection_size = selection_size;
+
+                    Self::reintroduce_gene_pool(network, &self.elite, gene_pool, statistics, &self.config);
 
                     Self::optimize_network(network, statistics, &self.config);
 
@@ -272,6 +291,31 @@ where
 
     fn is_comparable_with_best_known(&self, individual: &S, best_known: Option<&S>) -> bool {
         best_known.map_or(true, |best_known| self.objective.total_order(individual, best_known) != Ordering::Greater)
+    }
+
+    fn reintroduce_gene_pool(
+        network: &mut IndividualNetwork<O, S>,
+        elite: &Elitism<O, S>,
+        gene_pool: &mut Elitism<O, S>,
+        statistics: &HeuristicStatistics,
+        config: &RosomaxaConfig,
+    ) {
+        let frequency = match statistics.speed {
+            HeuristicSpeed::Slow { .. } => config.rebalance_memory.min(10),
+            _ => (config.rebalance_memory / 2).max(20),
+        };
+
+        if statistics.generation > 0 && statistics.generation % frequency == 0 {
+            network.store_batch(
+                gene_pool.select().map(|i| i.deep_copy()).collect(),
+                statistics.generation,
+                init_individual,
+            );
+
+            if let Some(best_known) = elite.select().next() {
+                gene_pool.add(best_known.deep_copy());
+            }
+        }
     }
 
     fn optimize_network(
@@ -390,6 +434,7 @@ where
     },
     Exploration {
         network: IndividualNetwork<O, S>,
+        gene_pool: Elitism<O, S>,
         coordinates: Vec<Coordinate>,
         statistics: HeuristicStatistics,
         selection_size: usize,
