@@ -2,18 +2,18 @@ use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::helpers::*;
 
-fn create_vehicle_type_with_shift_time_limit(shift_time: f64) -> VehicleType {
+fn create_vehicle_type_with_max_duration_limit(max_duration: f64) -> VehicleType {
     VehicleType {
-        limits: Some(VehicleLimits { max_distance: None, shift_time: Some(shift_time), tour_size: None }),
+        limits: Some(VehicleLimits { max_distance: None, max_duration: Some(max_duration), tour_size: None }),
         ..create_default_vehicle_type()
     }
 }
 
 #[test]
-fn can_limit_one_job_by_shift_time() {
+fn can_limit_one_job_by_max_duration() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job("job1", (100., 0.))], ..create_empty_plan() },
-        fleet: Fleet { vehicles: vec![create_vehicle_type_with_shift_time_limit(99.)], ..create_default_fleet() },
+        fleet: Fleet { vehicles: vec![create_vehicle_type_with_max_duration_limit(99.)], ..create_default_fleet() },
         ..create_empty_problem()
     };
     let matrix = Matrix {
@@ -34,8 +34,8 @@ fn can_limit_one_job_by_shift_time() {
             unassigned: Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
-                    code: "SHIFT_TIME_CONSTRAINT".to_string(),
-                    description: "cannot be assigned due to shift time constraint of vehicle".to_string(),
+                    code: "MAX_DURATION_CONSTRAINT".to_string(),
+                    description: "cannot be assigned due to max duration constraint of vehicle".to_string(),
                     details: None,
                 }]
             }]),
@@ -45,7 +45,7 @@ fn can_limit_one_job_by_shift_time() {
 }
 
 #[test]
-fn can_skip_job_from_multiple_because_of_shift_time() {
+fn can_skip_job_from_multiple_because_of_max_duration() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -57,7 +57,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
             ],
             ..create_empty_plan()
         },
-        fleet: Fleet { vehicles: vec![create_vehicle_type_with_shift_time_limit(40.)], ..create_default_fleet() },
+        fleet: Fleet { vehicles: vec![create_vehicle_type_with_max_duration_limit(40.)], ..create_default_fleet() },
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -130,8 +130,8 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                 UnassignedJob {
                     job_id: "job4".to_string(),
                     reasons: vec![UnassignedJobReason {
-                        code: "SHIFT_TIME_CONSTRAINT".to_string(),
-                        description: "cannot be assigned due to shift time constraint of vehicle".to_string(),
+                        code: "MAX_DURATION_CONSTRAINT".to_string(),
+                        description: "cannot be assigned due to max duration constraint of vehicle".to_string(),
                         details: Some(vec![UnassignedJobDetail {
                             vehicle_id: "my_vehicle_1".to_string(),
                             shift_index: 0
@@ -141,8 +141,8 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                 UnassignedJob {
                     job_id: "job5".to_string(),
                     reasons: vec![UnassignedJobReason {
-                        code: "SHIFT_TIME_CONSTRAINT".to_string(),
-                        description: "cannot be assigned due to shift time constraint of vehicle".to_string(),
+                        code: "MAX_DURATION_CONSTRAINT".to_string(),
+                        description: "cannot be assigned due to max duration constraint of vehicle".to_string(),
                         details: Some(vec![UnassignedJobDetail {
                             vehicle_id: "my_vehicle_1".to_string(),
                             shift_index: 0
@@ -164,7 +164,7 @@ fn can_serve_job_when_it_starts_late() {
             jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(100, 200)], 10.)],
             ..create_empty_plan()
         },
-        fleet: Fleet { vehicles: vec![create_vehicle_type_with_shift_time_limit(50.)], ..create_default_fleet() },
+        fleet: Fleet { vehicles: vec![create_vehicle_type_with_max_duration_limit(50.)], ..create_default_fleet() },
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);

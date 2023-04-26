@@ -359,10 +359,10 @@ pub struct VehicleLimits {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_distance: Option<f64>,
 
-    /// Max time per shift/tour.
+    /// Max duration per tour.
     /// No time restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub shift_time: Option<f64>,
+    pub max_duration: Option<f64>,
 
     /// Max amount job activities.
     /// No job activities restrictions when omitted.

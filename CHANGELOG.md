@@ -23,6 +23,7 @@ mostly to avoid usafe code.
 * error handling types
 * fix sort stability issue in elitism's improvement detection method
 * switch rosomaxa learning rate to cosine annealing
+* rename `shiftTime` limit to `maxDuration`
 
 ### Added
 

@@ -1,3 +1,3 @@
 mod max_distance;
-mod shift_time;
+mod max_duration;
 mod tour_size;

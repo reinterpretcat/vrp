@@ -304,8 +304,8 @@ fn get_tour_limit_feature(
                 distances.insert(vehicle.type_id.clone(), *max_distance);
             });
 
-            limits.shift_time.iter().for_each(|shift_time| {
-                durations.insert(vehicle.type_id.clone(), *shift_time);
+            limits.max_duration.iter().for_each(|max_duration| {
+                durations.insert(vehicle.type_id.clone(), *max_duration);
             });
 
             (distances, durations)

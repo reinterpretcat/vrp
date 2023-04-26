@@ -39,8 +39,8 @@ A vehicle types are defined by `fleet.vehicles` property and their schema has th
 
 - **limits** (optional): vehicle limits. There are two:
     
-    - **shiftTime** (optional): max shift time
-    - **maxDistance** (optional): max distance
+    - **maxDuration** (optional): max tour duration
+    - **maxDistance** (optional): max tour distance
     - **tourSize** (optional): max amount of activities in the tour (without departure/arrival). Please note, that
       clustered activities are counted as one in case of vicinity clustering.
 
