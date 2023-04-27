@@ -1,6 +1,6 @@
 [package]
 name = "vrp-core"
-version = "1.20.0"
+version = "1.21.0"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["vrp", "optimization"]
@@ -12,7 +12,7 @@ edition = "2021"
 description = "A core algorithms to solve a Vehicle Routing Problem"
 
 [dependencies]
-rosomaxa = { path = "../rosomaxa", version = "0.4.0" }
+rosomaxa = { path = "../rosomaxa", version = "0.5.0" }
 
 rayon = "1.7.0"
 rand = { version = "0.8.5", features = ["small_rng"] }

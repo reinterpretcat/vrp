@@ -5,8 +5,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.21.0]- 2023-04-27
+
 This release brings hierarchical approach for local objective estimation. Additionally, it focuses on refactoring,
-mostly to avoid usafe code.
+mostly to avoid usafe code. In memory of..
 
 ### Changed
 
@@ -627,7 +630,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.20.0...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.21.0...HEAD
+[v1.21.0]: https://github.com/reinterpretcat/vrp/compare/v1.20.0...v1.21.0
 [v1.20.0]: https://github.com/reinterpretcat/vrp/compare/v1.19.2...v1.20.0
 [v1.19.2]: https://github.com/reinterpretcat/vrp/compare/v1.19.1...v1.90.2
 [v1.19.1]: https://github.com/reinterpretcat/vrp/compare/v1.19.0...v1.90.1
