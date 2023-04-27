@@ -362,6 +362,7 @@ pub struct VehicleLimits {
     /// Max duration per tour.
     /// No time restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "shiftTime")]
     pub max_duration: Option<f64>,
 
     /// Max amount job activities.

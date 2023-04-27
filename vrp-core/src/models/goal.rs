@@ -372,16 +372,13 @@ impl GoalContext {
 
     /// Estimates insertion cost (penalty) of the refinement move.
     pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> InsertionCost {
-        self.local_objectives.iter().fold(InsertionCost::default(), |acc, objectives| {
-            objectives
-                .iter()
-                .map(|objective| objective.estimate(move_ctx))
-                .zip(acc.into_iter().chain(std::iter::repeat(Cost::default())))
-                .map(|(a, b)| {
-                    // NOTE we simply add cost values of two
-                    a + b
-                })
-                .collect()
-        })
+        self.local_objectives
+            .iter()
+            .map(|same_level_objectives| {
+                // NOTE simply sum objective values on the same level
+                // TODO: it would be nice to scale them according to their importance
+                same_level_objectives.iter().map(|objective| objective.estimate(move_ctx)).sum::<Cost>()
+            })
+            .collect()
     }
 }
