@@ -249,8 +249,8 @@ fn get_activity_by_idx(route: &Route, idx: usize) -> &Activity {
     route.tour.get(idx).expect("cannot get activity by idx")
 }
 
-/// Implement SharedResource for multi dimensional load.
+/// Implement `SharedResource` for multi dimensional load.
 impl SharedResource for MultiDimLoad {}
 
-/// Implement SharedResource for single dimensional load.
+/// Implement `SharedResource` for single dimensional load.
 impl SharedResource for SingleDimLoad {}

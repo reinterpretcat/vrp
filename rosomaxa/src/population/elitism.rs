@@ -15,14 +15,11 @@ use std::sync::Arc;
 /// A function type to deduplicate individuals.
 pub type DedupFn<O, S> = Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>;
 
-/// A simple evolution aware implementation of [`Population`] trait with the the following
+/// A simple evolution aware implementation of `Population` trait with the the following
 /// characteristics:
 ///
-/// - sorting of individuals in population according their objective fitness using [`NSGA-II`] algorithm
+/// - sorting of individuals in population according their objective fitness using `NSGA-II` algorithm
 /// - maintaining diversity of population based on their crowding distance
-///
-/// [`Population`]: ./trait.Population.html
-/// [`NSGA-II`]: ../algorithms/nsga2/index.html
 ///
 pub struct Elitism<O, S>
 where

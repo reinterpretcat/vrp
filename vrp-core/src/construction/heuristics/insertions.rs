@@ -79,7 +79,7 @@ pub struct InsertionFailure {
 /// then heap allocated vector is used which leads to performance impact.
 const COST_DIMENSION: usize = 6;
 
-/// A size of a cost array used by InsertionCost.
+/// A size of a cost array used by `InsertionCost`.
 type CostArray = [Cost; COST_DIMENSION];
 
 /// A hierarchical cost of job's insertion.

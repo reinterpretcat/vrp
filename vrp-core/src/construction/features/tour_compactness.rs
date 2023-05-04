@@ -10,7 +10,7 @@ use std::cmp::Ordering;
 ///
 /// `job_radius` controls amount of jobs checked in neighbourhood of a tested one.
 ///
-/// `thresholds` parameter specifies (min_threshold, min_distance) pair of thresholds used to relax
+/// `thresholds` parameter specifies (`min_threshold`, `min_distance`) pair of thresholds used to relax
 /// objective in favor of less prioritized ones.
 pub fn create_tour_compactness_feature(
     name: &str,

@@ -8,8 +8,6 @@
 //! algorithms, tabu search, simulated annealing, variable neighborhood search, (adaptive) large
 //! neighborhood search, ant colony optimization, etc.
 //!
-//! The default implementation can be roughly described as "*Multi-objective Parthenogenesis based
-//! Evolutionary Algorithm with Ruin and Recreate Mutation Operator*".
 //!
 //! # Multi-objective decision maker
 //!
@@ -40,10 +38,6 @@
 //! guaranteed: it is only known that none of the generated solutions dominates the others.
 //! In the end, the top ranked individual is returned as best known solution.
 //!
-//! This crate contains NSGA-II buildings blocks which can be found in [`nsga2`] module.
-//!
-//! [`nsga2`]: ../algorithms/nsga2/index.html
-//!
 //! # Evolutionary algorithm
 //!
 //! An evolutionary algorithm (EA) is a generic population-based metaheuristic optimization algorithm.
@@ -59,14 +53,18 @@
 //!     - **population adjustments**: new individual is added to population, then the population is
 //!       sorted and shrinked to keep it under specific size limits with best-fit individuals and
 //!       some intermediate.
-//! - **main loop end**: exit evolution loop when one of termination criteria are met. See [`termination`]
+//! - **main loop end**: exit evolution loop when one of termination criteria are met. See `termination`
 //!       module for details.
 //!
 //! As there is no crossover operator involved and offspring is produced from one parent, this algorithm
 //! can be characterized as parthenogenesis based EA. This approach eliminates design of feasible
 //! crossover operator which is a challenging task in case of VRP.
 //!
-//!  [`termination`]: termination/index.html
+//! # Population
+//!
+//! A custom algorithm is implemented to maintain diversity and guide the search maintaining trade
+//! of between exploration and exploitation of solution space. See `rosomaxa` crate for details.
+//!
 //!
 //! # Ruin and Recreate principle
 //!
@@ -77,17 +75,14 @@
 //! threshold-accepting algorithms, but this crate only reuses ruin/recreate idea as a mutation
 //! operator.
 //!
-//! Implementation blocks can be found in [`mutation`] module.
-//!
 //! [`Schrimpf et al. (2000)`]: https://www.sciencedirect.com/science/article/pii/S0021999199964136
-//! [`mutation`]: mutation/index.html
 //!
-//! # Solver usage
 //!
-//! Check [`Builder`] and [`Solver`] documentation to see how to run VRP solver.
+//! # Additionally..
 //!
-//! [`Builder`]: ./struct.Builder.html
-//! [`Solver`]: ./struct.Solver.html
+//! The solver is not limited by R&R principle, additionally it utilizes some other heuristics
+//! and their combinations. They are picked based on their performance in terms of search quality and
+//! latency introduced. Reinforcement technics are used here (Markov Decision Process).
 //!
 
 extern crate rand;

@@ -30,7 +30,7 @@ pub(crate) fn get_extras(coord_index: CoordIndex) -> Extras {
 }
 
 /// A trait to get tuple from collection items.
-/// See https://stackoverflow.com/questions/38863781/how-to-create-a-tuple-from-a-vector
+/// See `<https://stackoverflow.com/questions/38863781/how-to-create-a-tuple-from-a-vector>`
 pub(crate) trait TryCollect<T> {
     fn try_collect_tuple(&mut self) -> Option<T>;
 }

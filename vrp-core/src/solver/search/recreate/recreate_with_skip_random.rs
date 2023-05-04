@@ -34,7 +34,7 @@ impl Recreate for RecreateWithSkipRandom {
 }
 
 impl RecreateWithSkipRandom {
-    /// Creates `RecreateWithSkipRandom` as PhasedRecreate which runs only in exploration phase.
+    /// Creates `RecreateWithSkipRandom` as `PhasedRecreate` which runs only in exploration phase.
     pub fn default_explorative_phased(
         default_recreate: Arc<dyn Recreate + Send + Sync>,
         random: Arc<dyn Random + Send + Sync>,

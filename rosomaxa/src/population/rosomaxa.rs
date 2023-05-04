@@ -58,7 +58,7 @@ pub trait RosomaxaWeighted: Input {
 }
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
-/// MAps and eXtrAs (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
+/// `MAps` and `eXtrAs` (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
 pub struct Rosomaxa<O, S>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
@@ -558,7 +558,7 @@ where
 }
 
 /// Gets network size to keep.
-/// Slowly decrease size of network from 3 * rebalance_memory to rebalance_memory.
+/// Slowly decrease size of network from `3 * rebalance_memory` to `rebalance_memory`.
 fn get_keep_size(rebalance_memory: usize, termination_estimate: f64) -> usize {
     let termination_estimate = termination_estimate.clamp(0., 0.8);
     // Sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1

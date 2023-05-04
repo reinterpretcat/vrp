@@ -220,7 +220,7 @@ pub struct RouteContext {
 }
 
 /// Provides the way to associate arbitrary data within route or/and activity.
-/// NOTE: do not put any state which is not refreshed after accept_route_state call: it will be
+/// NOTE: do not put any state which is not refreshed after `accept_route_state` call: it will be
 /// wiped out at some point.
 pub struct RouteState {
     route_states: HashMap<i32, StateValue, BuildNoHashHasher<i32>>,
@@ -536,7 +536,7 @@ impl RegistryContext {
         }
     }
 
-    /// Creates a deep sliced copy of RegistryContext` keeping only specific actors data.
+    /// Creates a deep sliced copy of `RegistryContext` keeping only specific actors data.
     pub fn deep_slice(&self, filter: impl Fn(&Actor) -> bool) -> Self {
         let index = self
             .index

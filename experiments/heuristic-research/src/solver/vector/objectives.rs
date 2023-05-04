@@ -1,4 +1,4 @@
-//! Specifies benchmark functions for metaheuristic testing, see https://en.wikipedia.org/wiki/Test_functions_for_optimization.
+//! Specifies benchmark functions for metaheuristic testing, see `<https://en.wikipedia.org/wiki/Test_functions_for_optimization>`.
 
 #[cfg(test)]
 #[path = "../../../tests/unit/solver/vector/objectives_test.rs"]

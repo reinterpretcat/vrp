@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * Update dependencies
+* Fix documentation issues
 
 
 ## [v1.21.0]- 2023-04-27

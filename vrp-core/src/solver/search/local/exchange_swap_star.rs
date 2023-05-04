@@ -21,7 +21,7 @@ use std::sync::RwLock;
 /// i) in place of v0 , or
 /// ii) among the three best insertion positions in r0 as evaluated prior to the removal of v0.
 /// A symmetrical argument holds for the new insertion position of v0 in r.
-/// For more details, see https://arxiv.org/abs/2012.10384
+/// For more details, see `<https://arxiv.org/abs/2012.10384>`
 pub struct ExchangeSwapStar {
     leg_selection: LegSelection,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
