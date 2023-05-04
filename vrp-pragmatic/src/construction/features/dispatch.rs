@@ -9,7 +9,6 @@ use crate::construction::enablers::is_single_belongs_to_route;
 use crate::construction::enablers::JobTie;
 use std::iter::once;
 use vrp_core::construction::enablers::*;
-use vrp_core::models::problem::Single;
 use vrp_core::models::solution::Activity;
 
 /// Creates a dispatch feature as a hard constraint.

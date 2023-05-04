@@ -7,6 +7,7 @@ use crate::construction::heuristics::factories::*;
 use crate::models::common::Cost;
 use crate::models::problem::*;
 use crate::models::solution::*;
+use crate::models::GoalContext;
 use crate::models::{Problem, Solution};
 use crate::utils::short_type_name;
 use hashbrown::{HashMap, HashSet};

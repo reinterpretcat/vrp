@@ -6,10 +6,9 @@ use crate::common::*;
 use std::collections::HashMap;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::models::common::TimeWindow;
-use vrp_core::models::common::{Demand, DemandDimension, SingleDimLoad, TimeSpan};
+use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
-use vrp_core::models::{Extras, Problem};
+use vrp_core::models::*;
 
 /// A trait to read tsplib95 problem. Please note that it is very basic implementation of the format specification.
 pub trait TsplibProblem {

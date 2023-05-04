@@ -1,6 +1,7 @@
 use crate::construction::heuristics::UnassignmentInfo;
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
+use crate::models::*;
 use crate::utils::short_type_name;
 use hashbrown::HashMap;
 use rustc_hash::FxHasher;

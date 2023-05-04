@@ -8,6 +8,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
+use vrp_core::models::*;
 use vrp_core::models::{Extras, Problem};
 
 /// A trait to read lilim problem.

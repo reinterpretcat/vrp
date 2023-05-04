@@ -10,8 +10,6 @@ use crate::construction::enablers::{BreakTie, JobTie};
 use hashbrown::HashSet;
 use std::iter::once;
 use vrp_core::construction::enablers::*;
-use vrp_core::models::common::{Cost, Schedule, TimeWindow};
-use vrp_core::models::problem::Single;
 use vrp_core::models::solution::Activity;
 use vrp_core::rosomaxa::prelude::Objective;
 

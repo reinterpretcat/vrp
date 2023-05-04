@@ -1,7 +1,7 @@
 use crate::construction::heuristics::RouteContext;
 use crate::models::common::{Distance, Schedule, Timestamp};
-use crate::models::problem::StateKey;
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
+use crate::models::StateKey;
 use crate::models::OP_START_MSG;
 
 /// Contains state keys ids used by route schedule updating logic.
