@@ -325,10 +325,10 @@ where
             },
             context,
             strategy: if let Some(strategy) = self.strategy {
-                (logger)("configured to use custom strategy");
+                (logger)("configured to use a custom strategy");
                 strategy
             } else {
-                Box::new(RunSimple::new(1))
+                Box::new(strategies::Iterative::new(1))
             },
             termination,
             processing: self.processing,

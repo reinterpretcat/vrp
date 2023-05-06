@@ -11,28 +11,10 @@ pub use self::simulator::*;
 pub mod telemetry;
 pub use self::telemetry::*;
 
+pub mod strategies;
+
 /// Defines evolution result type.
 pub type EvolutionResult<S> = Result<(Vec<S>, Option<TelemetryMetrics>), String>;
-
-/// An evolution algorithm strategy.
-pub trait EvolutionStrategy {
-    /// A heuristic context type.
-    type Context: HeuristicContext<Objective = Self::Objective, Solution = Self::Solution>;
-    /// A heuristic objective type.
-    type Objective: HeuristicObjective<Solution = Self::Solution>;
-    /// A solution type.
-    type Solution: HeuristicSolution;
-
-    /// Runs evolution and returns a population with solution(-s).
-    fn run(
-        &self,
-        heuristic_ctx: Self::Context,
-        heuristic: Box<
-            dyn HyperHeuristic<Context = Self::Context, Objective = Self::Objective, Solution = Self::Solution>,
-        >,
-        termination: Box<dyn Termination<Context = Self::Context, Objective = Self::Objective>>,
-    ) -> EvolutionResult<Self::Solution>;
-}
 
 /// Provides the way to preprocess context before using it.
 pub trait HeuristicContextProcessing {

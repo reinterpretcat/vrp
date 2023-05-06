@@ -8,6 +8,7 @@ pub use crate::HeuristicSpeed;
 pub use crate::HeuristicStatistics;
 pub use crate::Stateful;
 
+pub use crate::evolution::strategies::EvolutionStrategy;
 pub use crate::evolution::EvolutionConfig;
 pub use crate::evolution::EvolutionConfigBuilder;
 pub use crate::evolution::HeuristicContextProcessing;
