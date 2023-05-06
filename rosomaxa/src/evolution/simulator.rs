@@ -86,7 +86,7 @@ where
             (logger)("created an empty population");
         }
 
-        config.strategy.as_ref().run(heuristic_ctx, config.heuristic, config.termination).map(|(solutions, metrics)| {
+        config.strategy.run(heuristic_ctx, config.termination).map(|(solutions, metrics)| {
             let solutions = solutions
                 .into_iter()
                 .map(|solution| hooks.solution.iter().fold(solution, |s, hook| hook.post_process(s)))

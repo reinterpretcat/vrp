@@ -16,11 +16,8 @@ pub trait EvolutionStrategy {
 
     /// Runs evolution and returns a population with solution(-s).
     fn run(
-        &self,
+        &mut self,
         heuristic_ctx: Self::Context,
-        heuristic: Box<
-            dyn HyperHeuristic<Context = Self::Context, Objective = Self::Objective, Solution = Self::Solution>,
-        >,
         termination: Box<dyn Termination<Context = Self::Context, Objective = Self::Objective>>,
     ) -> EvolutionResult<Self::Solution>;
 }

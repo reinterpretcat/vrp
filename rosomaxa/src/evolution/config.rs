@@ -20,9 +20,6 @@ where
     /// A heuristic context.
     pub context: C,
 
-    /// A hyper heuristic.
-    pub heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
-
     /// An evolution strategy.
     pub strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>,
 
@@ -308,27 +305,27 @@ where
     pub fn build(self) -> Result<EvolutionConfig<C, O, S>, String> {
         let context = self.context.ok_or_else(|| "missing heuristic context".to_string())?;
         let logger = context.environment().logger.clone();
+        let heuristic = if let Some(heuristic) = self.heuristic {
+            (logger)("configured to use custom heuristic");
+            heuristic
+        } else {
+            Box::new(DynamicSelective::new(
+                self.search_operators.ok_or_else(|| "missing search operators or heuristic".to_string())?,
+                self.diversify_operators.ok_or_else(|| "missing diversify operators or heuristic".to_string())?,
+                context.environment(),
+            ))
+        };
         let termination =
             Self::get_termination(&logger, self.max_generations, self.max_time, self.min_cv, self.target_proximity)?;
 
         Ok(EvolutionConfig {
             initial: self.initial,
-            heuristic: if let Some(heuristic) = self.heuristic {
-                (logger)("configured to use custom heuristic");
-                heuristic
-            } else {
-                Box::new(DynamicSelective::new(
-                    self.search_operators.ok_or_else(|| "missing search operators or heuristic".to_string())?,
-                    self.diversify_operators.ok_or_else(|| "missing diversify operators or heuristic".to_string())?,
-                    context.environment(),
-                ))
-            },
             context,
             strategy: if let Some(strategy) = self.strategy {
                 (logger)("configured to use a custom strategy");
                 strategy
             } else {
-                Box::new(strategies::Iterative::new(1))
+                Box::new(strategies::Iterative::new(heuristic, 1))
             },
             termination,
             processing: self.processing,

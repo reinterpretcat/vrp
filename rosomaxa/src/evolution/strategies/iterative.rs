@@ -1,6 +1,5 @@
 use super::*;
 use crate::utils::Timer;
-use std::marker::PhantomData;
 
 /// A simple evolution algorithm which maintains a single population and improves it iteratively.
 pub struct Iterative<C, O, S>
@@ -10,7 +9,7 @@ where
     S: HeuristicSolution,
 {
     desired_solutions_amount: usize,
-    _marker: (PhantomData<C>, PhantomData<O>, PhantomData<S>),
+    heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
 }
 
 impl<C, O, S> Iterative<C, O, S>
@@ -20,8 +19,11 @@ where
     S: HeuristicSolution,
 {
     /// Creates a new instance of `RunSimple`.
-    pub fn new(desired_solutions_amount: usize) -> Self {
-        Self { desired_solutions_amount, _marker: (Default::default(), Default::default(), Default::default()) }
+    pub fn new(
+        heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
+        desired_solutions_amount: usize,
+    ) -> Self {
+        Self { heuristic, desired_solutions_amount }
     }
 }
 
@@ -36,15 +38,12 @@ where
     type Solution = S;
 
     fn run(
-        &self,
+        &mut self,
         heuristic_ctx: Self::Context,
-        heuristic: Box<
-            dyn HyperHeuristic<Context = Self::Context, Objective = Self::Objective, Solution = Self::Solution>,
-        >,
         termination: Box<dyn Termination<Context = Self::Context, Objective = Self::Objective>>,
     ) -> EvolutionResult<Self::Solution> {
         let mut heuristic_ctx = heuristic_ctx;
-        let mut heuristic = heuristic;
+        let heuristic = &mut self.heuristic;
 
         loop {
             let is_terminated = termination.is_termination(&mut heuristic_ctx);
@@ -82,16 +81,5 @@ where
             population.ranked().map(|(solution, _)| solution.deep_copy()).take(self.desired_solutions_amount).collect();
 
         Ok((solutions, telemetry_metrics))
-    }
-}
-
-impl<C, O, S> Default for Iterative<C, O, S>
-where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-{
-    fn default() -> Self {
-        Self::new(1)
     }
 }
