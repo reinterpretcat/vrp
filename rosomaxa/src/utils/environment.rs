@@ -88,8 +88,6 @@ impl Quota for TimeQuota {
 #[derive(Clone)]
 pub struct Parallelism {
     available_cpus: usize,
-    // NOTE seems falls positive.
-    #[allow(clippy::rc_buffer)]
     thread_pools: Option<Arc<Vec<ThreadPool>>>,
 }
 
