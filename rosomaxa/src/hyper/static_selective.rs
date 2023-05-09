@@ -38,32 +38,29 @@ where
     type Objective = O;
     type Solution = S;
 
-    fn search(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
-        parallel_into_collect(solutions.iter().enumerate().collect(), |(idx, solution)| {
-            heuristic_ctx.environment().parallelism.thread_pool_execute(idx, || {
-                unwrap_from_result(
-                    self.search_group
-                        .iter()
-                        .filter(|(_, (probability, _))| probability(heuristic_ctx, solution))
-                        // NOTE not more than two search runs in a row
-                        .take(2)
-                        .try_fold(solution.deep_copy(), |base_solution, (heuristic, _)| {
-                            let new_solution = heuristic.search(heuristic_ctx, &base_solution);
+    fn search(&mut self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
+        vec![self.search_once(heuristic_ctx, solution)]
+    }
 
-                            if heuristic_ctx.objective().total_order(&base_solution, &new_solution) == Ordering::Greater
-                            {
-                                // NOTE exit immediately as we don't want to lose improvement from original solution
-                                Err(new_solution)
-                            } else {
-                                Ok(new_solution)
-                            }
-                        }),
-                )
-            })
+    fn search_many(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
+        parallel_into_collect(solutions.iter().enumerate().collect(), |(idx, solution)| {
+            heuristic_ctx
+                .environment()
+                .parallelism
+                .thread_pool_execute(idx, || self.search_once(heuristic_ctx, solution))
         })
     }
 
-    fn diversify(&self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
+    fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
+        let probability = get_diversify_probability(heuristic_ctx);
+        if heuristic_ctx.environment().random.is_hit(probability) {
+            diversify_solution(heuristic_ctx, solution, self.diversify_group.as_slice())
+        } else {
+            Vec::default()
+        }
+    }
+
+    fn diversify_many(&self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
         diversify_solutions(heuristic_ctx, solutions, self.diversify_group.as_slice())
     }
 }
@@ -80,6 +77,26 @@ where
         assert!(!diversify_group.is_empty());
 
         Self { search_group, diversify_group }
+    }
+
+    fn search_once(&self, heuristic_ctx: &C, solution: &S) -> S {
+        unwrap_from_result(
+            self.search_group
+                .iter()
+                .filter(|(_, (probability, _))| probability(heuristic_ctx, solution))
+                // NOTE not more than two search runs in a row
+                .take(2)
+                .try_fold(solution.deep_copy(), |base_solution, (heuristic, _)| {
+                    let new_solution = heuristic.search(heuristic_ctx, &base_solution);
+
+                    if heuristic_ctx.objective().total_order(&base_solution, &new_solution) == Ordering::Greater {
+                        // NOTE exit immediately as we don't want to lose improvement from original solution
+                        Err(new_solution)
+                    } else {
+                        Ok(new_solution)
+                    }
+                }),
+        )
     }
 }
 

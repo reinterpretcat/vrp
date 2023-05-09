@@ -60,10 +60,10 @@ where
             let diverse_offspring = if heuristic_ctx.population().selection_phase() == SelectionPhase::Exploitation {
                 Vec::default()
             } else {
-                heuristic.diversify(&heuristic_ctx, parents.clone())
+                heuristic.diversify_many(&heuristic_ctx, parents.clone())
             };
 
-            let search_offspring = heuristic.search(&heuristic_ctx, parents);
+            let search_offspring = heuristic.search_many(&heuristic_ctx, parents);
 
             let offspring = search_offspring.into_iter().chain(diverse_offspring).collect::<Vec<_>>();
 

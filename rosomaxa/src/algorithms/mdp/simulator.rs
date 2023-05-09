@@ -55,6 +55,23 @@ impl<S: State> Simulator<S> {
     }
 
     /// Runs single episode for each of the given agents in parallel.
+    pub fn run_episode<A>(&mut self, mut agent: A, reducer: impl Fn(&S, &[f64]) -> f64) -> A
+    where
+        A: Agent<S> + Send + Sync,
+    {
+        let qs = Self::run_episode_isolated(
+            &mut agent,
+            self.learning_strategy.as_ref(),
+            self.policy_strategy.as_ref(),
+            &self.q,
+        );
+
+        self.merge_state_estimates(vec![qs], reducer);
+
+        agent
+    }
+
+    /// Runs single episode for each of the given agents in parallel.
     pub fn run_episodes<A>(
         &mut self,
         agents: Vec<A>,
@@ -67,7 +84,7 @@ impl<S: State> Simulator<S> {
         let (agents, qs): (Vec<_>, Vec<_>) =
             parallel_into_collect(agents.into_iter().enumerate().collect(), |(idx, mut agent)| {
                 parallelism.thread_pool_execute(idx, || {
-                    let qs = Self::run_episode(
+                    let qs = Self::run_episode_isolated(
                         &mut agent,
                         self.learning_strategy.as_ref(),
                         self.policy_strategy.as_ref(),
@@ -79,19 +96,13 @@ impl<S: State> Simulator<S> {
             .into_iter()
             .unzip();
 
-        merge_vec_maps(qs, |(state, values)| {
-            let action_values = self.q.entry(state.clone()).or_insert_with(ActionEstimates::default);
-            let vec_map = values.into_iter().map(|estimates| estimates.into()).collect();
-            merge_vec_maps(vec_map, |(action, values)| {
-                action_values.insert(action, reducer(&state, values.as_slice()));
-            });
-            action_values.recalculate_min_max();
-        });
+        self.merge_state_estimates(qs, reducer);
 
         agents
     }
 
-    fn run_episode<A>(
+    /// Runs episode for given agent without changing any state of a simulator.
+    fn run_episode_isolated<A>(
         agent: &mut A,
         learning_strategy: &(dyn LearningStrategy<S> + Send + Sync),
         policy_strategy: &(dyn PolicyStrategy<S> + Send + Sync),
@@ -124,6 +135,17 @@ impl<S: State> Simulator<S> {
                 estimates.recalculate_min_max();
             });
         }
+    }
+
+    fn merge_state_estimates(&mut self, qs: Vec<StateEstimates<S>>, reducer: impl Fn(&S, &[f64]) -> f64) {
+        merge_vec_maps(qs, |(state, values)| {
+            let action_values = self.q.entry(state.clone()).or_insert_with(ActionEstimates::default);
+            let vec_map = values.into_iter().map(|estimates| estimates.into()).collect();
+            merge_vec_maps(vec_map, |(action, values)| {
+                action_values.insert(action, reducer(&state, values.as_slice()));
+            });
+            action_values.recalculate_min_max();
+        });
     }
 
     fn ensure_actions(q_new: &mut StateEstimates<S>, q: &StateEstimates<S>, state: &S, agent: &dyn Agent<S>) {
