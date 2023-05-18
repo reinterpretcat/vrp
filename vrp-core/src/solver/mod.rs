@@ -94,7 +94,7 @@ use crate::solver::search::Recreate;
 use hashbrown::HashMap;
 use rosomaxa::evolution::*;
 use rosomaxa::prelude::*;
-use rosomaxa::{get_default_population, DynHeuristicPopulation, TelemetryHeuristicContext};
+use rosomaxa::{get_default_population, TelemetryHeuristicContext};
 use std::any::Any;
 use std::sync::Arc;
 
@@ -166,12 +166,20 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.objective()
     }
 
-    fn population(&self) -> &DynHeuristicPopulation<Self::Objective, Self::Solution> {
-        self.inner_context.population()
+    fn selected<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
+        self.inner_context.selected()
+    }
+
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a> {
+        self.inner_context.ranked()
     }
 
     fn statistics(&self) -> &HeuristicStatistics {
         self.inner_context.statistics()
+    }
+
+    fn selection_phase(&self) -> SelectionPhase {
+        self.inner_context.selection_phase()
     }
 
     fn environment(&self) -> &Environment {

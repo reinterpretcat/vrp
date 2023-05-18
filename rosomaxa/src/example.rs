@@ -79,12 +79,20 @@ impl HeuristicContext for VectorContext {
         self.inner_context.objective()
     }
 
-    fn population(&self) -> &DynHeuristicPopulation<Self::Objective, Self::Solution> {
-        self.inner_context.population()
+    fn selected<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
+        self.inner_context.population.select()
+    }
+
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a> {
+        self.inner_context.population.ranked()
     }
 
     fn statistics(&self) -> &HeuristicStatistics {
         self.inner_context.statistics()
+    }
+
+    fn selection_phase(&self) -> SelectionPhase {
+        self.inner_context.population.selection_phase()
     }
 
     fn environment(&self) -> &Environment {

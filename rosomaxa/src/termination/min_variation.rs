@@ -150,13 +150,13 @@ where
     type Objective = O;
 
     fn is_termination(&self, heuristic_ctx: &mut Self::Context) -> bool {
-        let first_individual = heuristic_ctx.population().ranked().next();
+        let first_individual = heuristic_ctx.ranked().next();
         if let Some((first, _)) = first_individual {
             let objective = heuristic_ctx.objective();
             let fitness = objective.fitness(first).collect::<Vec<_>>();
             let result = self.update_and_check(heuristic_ctx, fitness);
 
-            match (self.is_global, heuristic_ctx.population().selection_phase()) {
+            match (self.is_global, heuristic_ctx.selection_phase()) {
                 (true, _) => result,
                 (false, SelectionPhase::Exploitation) => result,
                 _ => false,

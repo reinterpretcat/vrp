@@ -41,15 +41,15 @@ where
         let mut heuristic_ctx = hooks.context.iter().fold(heuristic_ctx, |ctx, hook| hook.pre_process(ctx));
 
         (logger)("preparing initial solution(-s)");
-        std::mem::take(&mut config.initial.individuals).into_iter().take(config.initial.max_size).for_each(
-            |solution| {
+        let init_size = std::mem::take(&mut config.initial.individuals).into_iter().take(config.initial.max_size).fold(
+            0,
+            |acc, solution| {
                 heuristic_ctx.on_initial(solution, Timer::start());
+                acc + 1
             },
         );
 
         let weights = config.initial.operators.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
-
-        let init_size = heuristic_ctx.population().size();
         let init_time = Timer::start();
         let _ = (init_size..config.initial.max_size).try_for_each(|idx| {
             let item_time = Timer::start();
@@ -60,18 +60,16 @@ where
             if is_initial_quota_reached || is_overall_termination {
                 (logger)(
                     format!(
-                        "stop building initial solutions due to initial quota reached ({is_initial_quota_reached}) or overall termination ({is_overall_termination}).",
+                        "stop building initial solutions due to initial quota reached ({is_initial_quota_reached})\
+                         or overall termination ({is_overall_termination}).",
                     )
-                        .as_str(),
+                    .as_str(),
                 );
                 return Err(());
             }
 
-            let operator_idx = if idx < config.initial.operators.len() {
-                idx
-            } else {
-                random.weighted(weights.as_slice())
-            };
+            let operator_idx =
+                if idx < config.initial.operators.len() { idx } else { random.weighted(weights.as_slice()) };
 
             // TODO consider initial quota limit
             let solution = config.initial.operators[operator_idx].0.create(&heuristic_ctx);
@@ -80,11 +78,7 @@ where
             Ok(())
         });
 
-        if heuristic_ctx.population().size() > 0 {
-            (logger)(&format!("created initial population in {}ms", init_time.elapsed_millis()));
-        } else {
-            (logger)("created an empty population");
-        }
+        (logger)(&format!("created initial population in {}ms", init_time.elapsed_millis()));
 
         config.strategy.run(heuristic_ctx, config.termination).map(|(solutions, metrics)| {
             let solutions = solutions

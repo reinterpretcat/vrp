@@ -7,8 +7,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-* Update dependencies
-* Fix documentation issues
+* update dependencies
+* fix documentation issues
+* refactor `HeuristicContext` trait to avoid using `HeuristicPopulation` directly from it
 
 
 ## [v1.21.0]- 2023-04-27

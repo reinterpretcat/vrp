@@ -91,11 +91,17 @@ pub trait HeuristicContext: Send + Sync {
     /// Returns objective function used by the population.
     fn objective(&self) -> &Self::Objective;
 
-    /// Returns current population.
-    fn population(&self) -> &DynHeuristicPopulation<Self::Objective, Self::Solution>;
+    /// Returns selected solutions base on current context.
+    fn selected<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a>;
+
+    /// Returns subset of solutions within their rank sorted according their quality.
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a>;
 
     /// Returns current statistic used to track the search progress.
     fn statistics(&self) -> &HeuristicStatistics;
+
+    /// Returns selection phase.
+    fn selection_phase(&self) -> SelectionPhase;
 
     /// Returns environment.
     fn environment(&self) -> &Environment;
@@ -191,12 +197,20 @@ where
         &self.objective
     }
 
-    fn population(&self) -> &DynHeuristicPopulation<Self::Objective, Self::Solution> {
-        self.population.as_ref()
+    fn selected<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
+        self.population.select()
+    }
+
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a> {
+        self.population.ranked()
     }
 
     fn statistics(&self) -> &HeuristicStatistics {
         self.telemetry.get_statistics()
+    }
+
+    fn selection_phase(&self) -> SelectionPhase {
+        self.population.selection_phase()
     }
 
     fn environment(&self) -> &Environment {

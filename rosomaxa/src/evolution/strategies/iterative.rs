@@ -55,9 +55,9 @@ where
 
             let generation_time = Timer::start();
 
-            let parents = heuristic_ctx.population().select().collect::<Vec<_>>();
+            let parents = heuristic_ctx.selected().collect::<Vec<_>>();
 
-            let diverse_offspring = if heuristic_ctx.population().selection_phase() == SelectionPhase::Exploitation {
+            let diverse_offspring = if heuristic_ctx.selection_phase() == SelectionPhase::Exploitation {
                 Vec::default()
             } else {
                 heuristic.diversify_many(&heuristic_ctx, parents.clone())

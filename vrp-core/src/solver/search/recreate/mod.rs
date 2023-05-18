@@ -116,6 +116,6 @@ impl PhasedRecreate {
 
 impl Recreate for PhasedRecreate {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        self.recreates.get(&refinement_ctx.population().selection_phase()).unwrap().run(refinement_ctx, insertion_ctx)
+        self.recreates.get(&refinement_ctx.selection_phase()).unwrap().run(refinement_ctx, insertion_ctx)
     }
 }

@@ -206,7 +206,7 @@ pub fn create_context_operator_probability(
                 return false;
             }
 
-            let phase_probability = phases.get(&refinement_ctx.population().selection_phase()).cloned().unwrap_or(0.);
+            let phase_probability = phases.get(&refinement_ctx.selection_phase()).cloned().unwrap_or(0.);
             random.is_hit(phase_probability)
         }),
         PhantomData::default(),

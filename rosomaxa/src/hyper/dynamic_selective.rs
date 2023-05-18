@@ -342,7 +342,7 @@ where
         let old_state = self.state.clone();
         self.state = match (compare_to_old, compare_to_best) {
             (_, Ordering::Less) => {
-                let is_significant_change = self.heuristic_ctx.population().ranked().next().map_or(
+                let is_significant_change = self.heuristic_ctx.ranked().next().map_or(
                     self.heuristic_ctx.statistics().improvement_1000_ratio < 0.01,
                     |(best, _)| {
                         let distance = relative_distance(objective.fitness(best), objective.fitness(&new_solution));
@@ -427,7 +427,6 @@ where
     S: HeuristicSolution,
 {
     heuristic_ctx
-        .population()
         .ranked()
         .next()
         .map(|(best_known, _)| heuristic_ctx.objective().total_order(solution, best_known))
