@@ -533,7 +533,7 @@ fn get_async_evolution(
     let selection_size = get_default_selection_size(environment.as_ref());
     let actors_size = (selection_size * 2).max(2);
 
-    return Ok(Box::new(AsyncIterative::new(
+    Ok(Box::new(AsyncIterative::new(
         AsyncParams { actors_size, channel_buffer: 4, selection_size },
         1,
         problem.goal.clone(),
@@ -545,7 +545,7 @@ fn get_async_evolution(
         Box::new(move |_, population| {
             RefinementContext::new(problem.clone(), population, TelemetryMode::None, environment.clone())
         }),
-    )));
+    )))
 }
 
 #[cfg(not(feature = "async-evolution"))]

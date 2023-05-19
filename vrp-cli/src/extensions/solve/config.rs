@@ -540,7 +540,7 @@ fn configure_from_hyper(
                         .collect::<Result<Vec<_>, _>>()?;
                     get_static_heuristic_from_heuristic_group(problem.clone(), environment.clone(), heuristic_group)
                 } else {
-                    get_static_heuristic(problem.clone(), environment.clone())
+                    get_static_heuristic(problem, environment)
                 };
 
                 builder = builder.with_heuristic(Box::new(static_selective));
