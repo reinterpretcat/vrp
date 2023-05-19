@@ -10,6 +10,9 @@ use rosomaxa::population::*;
 use rosomaxa::termination::*;
 use std::marker::PhantomData;
 
+/// A type alias for domain specific evolution strategy.
+pub type TargetEvolutionStrategy =
+    Box<dyn EvolutionStrategy<Context = RefinementContext, Objective = GoalContext, Solution = InsertionContext>>;
 /// A type alias for domain specific population.
 pub type TargetPopulation =
     Box<dyn HeuristicPopulation<Objective = GoalContext, Individual = InsertionContext> + Send + Sync>;
@@ -89,11 +92,14 @@ pub fn get_default_telemetry_mode(logger: InfoLogger) -> TelemetryMode {
 
 /// Gets default heuristic.
 pub fn get_default_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
-    get_dynamic_heuristic(problem, environment)
+    Box::new(get_dynamic_heuristic(problem, environment))
 }
 
 /// Gets static heuristic using default settings.
-pub fn get_static_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
+pub fn get_static_heuristic(
+    problem: Arc<Problem>,
+    environment: Arc<Environment>,
+) -> StaticSelective<RefinementContext, GoalContext, InsertionContext> {
     let default_operator = statik::create_default_heuristic_operator(problem.clone(), environment.clone());
     let local_search = statik::create_default_local_search(environment.random.clone());
 
@@ -120,29 +126,35 @@ pub fn get_static_heuristic_from_heuristic_group(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
     heuristic_group: TargetHeuristicGroup,
-) -> TargetHeuristic {
-    Box::new(StaticSelective::<RefinementContext, GoalContext, InsertionContext>::new(
+) -> StaticSelective<RefinementContext, GoalContext, InsertionContext> {
+    StaticSelective::<RefinementContext, GoalContext, InsertionContext>::new(
         heuristic_group,
         create_diversify_operators(problem, environment),
-    ))
+    )
 }
 
 /// Gets dynamic heuristic using default settings.
-pub fn get_dynamic_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
+pub fn get_dynamic_heuristic(
+    problem: Arc<Problem>,
+    environment: Arc<Environment>,
+) -> DynamicSelective<RefinementContext, GoalContext, InsertionContext> {
     let search_operators = dynamic::get_operators(problem.clone(), environment.clone());
     let diversify_operators = create_diversify_operators(problem, environment.clone());
 
-    Box::new(DynamicSelective::<RefinementContext, GoalContext, InsertionContext>::new(
+    DynamicSelective::<RefinementContext, GoalContext, InsertionContext>::new(
         search_operators,
         diversify_operators,
         environment.as_ref(),
-    ))
+    )
 }
 
 /// Creates elitism population algorithm.
-pub fn create_elitism_population(objective: Arc<GoalContext>, environment: Arc<Environment>) -> TargetPopulation {
+pub fn create_elitism_population(
+    objective: Arc<GoalContext>,
+    environment: Arc<Environment>,
+) -> Elitism<GoalContext, InsertionContext> {
     let selection_size = get_default_selection_size(environment.as_ref());
-    Box::new(Elitism::new(objective, environment.random.clone(), 4, selection_size))
+    Elitism::new(objective, environment.random.clone(), 4, selection_size)
 }
 
 impl RosomaxaWeighted for InsertionContext {

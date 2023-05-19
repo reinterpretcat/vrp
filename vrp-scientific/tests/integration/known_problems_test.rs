@@ -57,7 +57,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     let environment = Arc::new(Environment::default());
     let refinement_ctx = RefinementContext::new(
         problem.clone(),
-        create_elitism_population(problem.goal.clone(), environment.clone()),
+        Box::new(create_elitism_population(problem.goal.clone(), environment.clone())),
         TelemetryMode::None,
         environment.clone(),
     );

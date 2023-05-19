@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 * fix documentation issues
 * refactor `HeuristicContext` trait to avoid using `HeuristicPopulation` directly from it
 
+### Added
+
+* add experimental feature `async-evolution`
+
 
 ## [v1.21.0]- 2023-04-27
 

@@ -543,11 +543,11 @@ fn configure_from_hyper(
                     get_static_heuristic(problem.clone(), environment.clone())
                 };
 
-                builder = builder.with_heuristic(static_selective);
+                builder = builder.with_heuristic(Box::new(static_selective));
             }
             HyperType::DynamicSelective => {
                 let dynamic_selective = get_dynamic_heuristic(problem, environment);
-                builder = builder.with_heuristic(dynamic_selective);
+                builder = builder.with_heuristic(Box::new(dynamic_selective));
             }
         }
     }

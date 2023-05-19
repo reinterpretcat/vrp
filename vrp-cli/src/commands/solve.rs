@@ -381,7 +381,7 @@ pub fn run_solve(
                                 .map(|config| Solver::new(problem.clone(), config))
                                 .map_err(|err| format!("cannot read config: '{err}'"))?
                         } else {
-                            let config = create_default_config_builder(
+                            let builder = create_default_config_builder(
                                 problem.clone(),
                                 environment.clone(),
                                 telemetry_mode.clone(),
@@ -395,8 +395,13 @@ pub fn run_solve(
                                 get_population(mode, problem.goal.clone(), environment.clone()),
                                 telemetry_mode,
                                 environment.clone(),
-                            ))
-                            .with_heuristic(get_heuristic(matches, problem.clone(), environment)?)
+                            ));
+
+                            let config = if cfg!(feature = "async-evolution") && environment.is_experimental {
+                                builder.with_strategy(get_async_evolution(problem.clone(), environment.clone())?)
+                            } else {
+                                builder.with_heuristic(get_heuristic(matches, problem.clone(), environment)?)
+                            }
                             .build()?;
 
                             Solver::new(problem.clone(), config)
@@ -511,11 +516,44 @@ fn get_heuristic(
     environment: Arc<Environment>,
 ) -> Result<TargetHeuristic, String> {
     match matches.get_one::<String>(HEURISTIC_ARG_NAME).map(String::as_str) {
-        Some("dynamic") => Ok(get_dynamic_heuristic(problem, environment)),
-        Some("static") => Ok(get_static_heuristic(problem, environment)),
+        Some("dynamic") => Ok(Box::new(get_dynamic_heuristic(problem, environment))),
+        Some("static") => Ok(Box::new(get_static_heuristic(problem, environment))),
         Some(name) if name != "default" => Err(format!("unknown heuristic type name: '{name}'")),
         _ => Ok(get_default_heuristic(problem, environment)),
     }
+}
+
+#[cfg(feature = "async-evolution")]
+fn get_async_evolution(
+    problem: Arc<Problem>,
+    environment: Arc<Environment>,
+) -> Result<TargetEvolutionStrategy, String> {
+    use vrp_core::rosomaxa::evolution::strategies::{AsyncIterative, AsyncParams};
+
+    let selection_size = get_default_selection_size(environment.as_ref());
+    let actors_size = (selection_size * 2).max(2);
+
+    return Ok(Box::new(AsyncIterative::new(
+        AsyncParams { actors_size, channel_buffer: 4, selection_size },
+        1,
+        problem.goal.clone(),
+        Box::new({
+            let problem = problem.clone();
+            let environment = environment.clone();
+            move || get_dynamic_heuristic(problem.clone(), environment.clone())
+        }),
+        Box::new(move |_, population| {
+            RefinementContext::new(problem.clone(), population, TelemetryMode::None, environment.clone())
+        }),
+    )));
+}
+
+#[cfg(not(feature = "async-evolution"))]
+fn get_async_evolution(
+    _problem: Arc<Problem>,
+    _environment: Arc<Environment>,
+) -> Result<TargetEvolutionStrategy, String> {
+    unreachable!()
 }
 
 fn check_pragmatic_solution_with_args(matches: &ArgMatches) -> Result<(), String> {

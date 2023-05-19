@@ -11,8 +11,12 @@ repository = "https://github.com/reinterpretcat/vrp"
 edition = "2021"
 description = "A core algorithms to solve a Vehicle Routing Problem"
 
+[features]
+default = ["rosomaxa"]
+async-evolution = ["rosomaxa/async-evolution"]
+
 [dependencies]
-rosomaxa = { path = "../rosomaxa", version = "0.5.0" }
+rosomaxa = { path = "../rosomaxa", version = "0.5.0", optional = true }
 
 rayon = "1.7.0"
 rand = { version = "0.8.5", features = ["small_rng"] }
