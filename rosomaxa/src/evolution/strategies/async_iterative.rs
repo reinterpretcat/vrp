@@ -3,7 +3,8 @@ use crate::population::Greedy;
 use crate::utils::Timer;
 use crate::DynHeuristicPopulation;
 use std::marker::PhantomData;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
+use tokio::runtime::Builder;
 use tokio::sync::{mpsc, oneshot};
 
 // TODO this is an experimental implementation
@@ -34,7 +35,7 @@ pub struct AsyncIterative<H, C, O, S> {
 
 impl<H, C, O, S> EvolutionStrategy for AsyncIterative<H, C, O, S>
 where
-    H: HyperHeuristic<Context = C, Objective = O, Solution = S> + Send + 'static,
+    H: HyperHeuristic<Context = C, Objective = O, Solution = S> + Send + Sync + 'static,
     C: HeuristicContext<Objective = O, Solution = S> + Send + 'static,
     O: HeuristicObjective<Solution = S> + Send + 'static,
     S: HeuristicSolution + Send + 'static,
@@ -49,17 +50,13 @@ where
         termination: Box<dyn Termination<Context = Self::Context, Objective = Self::Objective>>,
     ) -> EvolutionResult<Self::Solution> {
         let (host_sender, mut host_receiver) = mpsc::channel(self.params.channel_buffer);
-
-        // NOTE we use multi-thread runtime as calling heuristic search method could be expensive.
-        let runtime = tokio::runtime::Builder::new_multi_thread().build().unwrap();
+        let runtime = Builder::new_current_thread().build().unwrap();
 
         runtime.block_on(async {
             let actors = (0..self.params.actors_size)
                 .map(|_| {
                     let heuristic = (self.heuristic_factory)();
-                    let context = self.fork_context(&heuristic_ctx);
-
-                    HeuristicActorHandle::new(heuristic, context)
+                    HeuristicActorHandle::new(heuristic, self.params.channel_buffer)
                 })
                 .collect::<Vec<_>>();
 
@@ -88,7 +85,13 @@ where
                     selected_solutions.extend(heuristic_ctx.selected().map(|solution| solution.deep_copy()));
                 }
 
-                actors.search(selected_solutions.drain(0..take.min(selected_solutions.len()))).await;
+                actors
+                    .search(
+                        selected_solutions
+                            .drain(0..take.min(selected_solutions.len()))
+                            .map(|solution| (self.fork_context(&heuristic_ctx), solution)),
+                    )
+                    .await;
 
                 if let Some((solutions, idx)) = host_receiver.recv().await {
                     actors.free_actor(idx);
@@ -103,9 +106,6 @@ where
                         generation_time.clone(),
                     );
                     generation_time = Timer::start();
-                    actors
-                        .new_generation((0..self.params.actors_size).map(|_| self.fork_context(&heuristic_ctx)))
-                        .await;
                 }
             }
         });
@@ -147,8 +147,7 @@ where
 
 /// Defines messages which can be set to actors.
 enum EvolutionMessage<C, S> {
-    Search { solution: S, respond_to: oneshot::Sender<Vec<S>> },
-    NewGeneration { context: C, respond_to: oneshot::Sender<()> },
+    Search { context: C, solution: S, respond_to: oneshot::Sender<Vec<S>> },
 }
 
 /// A heuristic actor which doing an actual refinement.
@@ -159,37 +158,43 @@ where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    heuristic: H,
-    context: C,
+    heuristic: Arc<RwLock<H>>,
     receiver: mpsc::Receiver<EvolutionMessage<C, S>>,
 }
 
 impl<H, C, O, S> HeuristicActor<H, C, O, S>
 where
-    H: HyperHeuristic<Context = C, Objective = O, Solution = S>,
-    C: HeuristicContext<Objective = O, Solution = S>,
+    H: HyperHeuristic<Context = C, Objective = O, Solution = S> + Send + Sync + 'static,
+    C: HeuristicContext<Objective = O, Solution = S> + 'static,
     O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    S: HeuristicSolution + 'static,
 {
-    fn new(heuristic: H, context: C, receiver: mpsc::Receiver<EvolutionMessage<C, S>>) -> Self {
-        HeuristicActor { heuristic, context, receiver }
+    fn new(heuristic: H, receiver: mpsc::Receiver<EvolutionMessage<C, S>>) -> Self {
+        HeuristicActor { heuristic: Arc::new(RwLock::new(heuristic)), receiver }
     }
 
-    fn handle_message(&mut self, msg: EvolutionMessage<C, S>) {
+    // NOTE don't have to be &mut self as we spawn CPU extensive logic on rayon scheduler,
+    // therefore, we're forced to use owned or lock-guarded object inside closure.
+    // that's why context and solution are passed as references (two extra deep copies required)
+    async fn handle_message(&mut self, msg: EvolutionMessage<C, S>) {
         match msg {
-            EvolutionMessage::Search { solution, respond_to } => {
-                let mut solutions = self.heuristic.search(&self.context, &solution);
+            EvolutionMessage::Search { context, solution, respond_to } => {
+                let heuristic = self.heuristic.clone();
+                let (send, recv) = oneshot::channel();
 
-                if self.context.selection_phase() == SelectionPhase::Exploration {
-                    let diversified = self.heuristic.diversify(&self.context, &solution);
-                    solutions.extend(diversified.into_iter());
-                }
+                rayon::spawn(move || {
+                    let mut solutions = { heuristic.write().unwrap().search(&context, &solution) };
 
-                let _ = respond_to.send(solutions);
-            }
-            EvolutionMessage::NewGeneration { context, respond_to } => {
-                self.context = context;
-                let _ = respond_to.send(());
+                    if context.selection_phase() == SelectionPhase::Exploration {
+                        let diversified = { heuristic.read().unwrap().diversify(&context, &solution) };
+                        solutions.extend(diversified.into_iter());
+                    }
+
+                    let _ = send.send(());
+                    let _ = respond_to.send(solutions);
+                });
+
+                recv.await.expect("panic in actor handle_message's rayon::spawn")
             }
         }
     }
@@ -212,32 +217,24 @@ where
     O: HeuristicObjective<Solution = S> + Send + 'static,
     S: HeuristicSolution + Send + 'static,
 {
-    pub fn new<H>(heuristic: H, context: C) -> Self
+    pub fn new<H>(heuristic: H, channel_buffer: usize) -> Self
     where
-        H: HyperHeuristic<Context = C, Objective = O, Solution = S> + Send + 'static,
+        H: HyperHeuristic<Context = C, Objective = O, Solution = S> + Send + Sync + 'static,
     {
-        let (sender, receiver) = mpsc::channel(8);
-        let mut actor = HeuristicActor::new(heuristic, context, receiver);
+        let (sender, receiver) = mpsc::channel(channel_buffer);
+        let mut actor = HeuristicActor::new(heuristic, receiver);
         tokio::spawn(async move {
             while let Some(msg) = actor.receiver.recv().await {
-                actor.handle_message(msg);
+                actor.handle_message(msg).await;
             }
         });
 
         Self { sender, phantom: Default::default() }
     }
 
-    pub async fn search(self, solution: S) -> Vec<S> {
+    pub async fn search(self, context: C, solution: S) -> Vec<S> {
         let (send, recv) = oneshot::channel();
-        let message = EvolutionMessage::Search { solution, respond_to: send };
-
-        let _ = self.sender.send(message).await;
-        recv.await.expect("actor task has been killed")
-    }
-
-    pub async fn new_generation(self, context: C) {
-        let (send, recv) = oneshot::channel();
-        let message = EvolutionMessage::NewGeneration { context, respond_to: send };
+        let message = EvolutionMessage::Search { context, solution, respond_to: send };
 
         let _ = self.sender.send(message).await;
         recv.await.expect("actor task has been killed")
@@ -261,27 +258,18 @@ where
         Self { actors, usage: vec![0; size], host_sender }
     }
 
-    pub async fn search<I>(&mut self, solutions: I)
+    pub async fn search<I>(&mut self, spaces: I)
     where
-        I: IntoIterator<Item = S>,
+        I: IntoIterator<Item = (C, S)>,
     {
-        solutions.into_iter().zip((0..).map(|_| (self.get_actor(), self.host_sender.clone()))).for_each(
-            |(solution, ((actor, idx), host_sender))| {
+        spaces.into_iter().zip((0..).map(|_| (self.get_actor(), self.host_sender.clone()))).for_each(
+            |((context, solution), ((actor, idx), host_sender))| {
                 tokio::spawn(async move {
-                    let solutions = actor.search(solution).await;
+                    let solutions = actor.search(context, solution).await;
                     host_sender.send((solutions, idx)).await
                 });
             },
         )
-    }
-
-    pub async fn new_generation<I>(&mut self, contexts: I)
-    where
-        I: IntoIterator<Item = C>,
-    {
-        self.actors.iter().cloned().zip(contexts.into_iter()).for_each(|(actor, context)| {
-            tokio::spawn(async move { actor.new_generation(context).await });
-        })
     }
 
     fn get_actor(&mut self) -> (HeuristicActorHandle<C, O, S>, usize) {
