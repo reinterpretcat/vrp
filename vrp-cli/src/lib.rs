@@ -185,6 +185,7 @@ mod c_interop {
         matrices: *const *const c_char,
         matrices_len: usize,
         config: *const c_char,
+        geojson: bool,
         success: Callback,
         failure: Callback,
     ) {
@@ -201,7 +202,7 @@ mod c_interop {
                             .map_err(|err| to_config_error(err.as_str()))
                             .map(|config| (problem, config))
                     })
-                    .and_then(|(problem, config)| get_solution_serialized(Arc::new(problem), config));
+                    .and_then(|(problem, config)| get_solution_serialized(Arc::new(problem), config, geojson));
 
             call_back(result, success, failure);
         });
@@ -329,6 +330,7 @@ mod c_interop {
                 matrices.as_ptr() as *const *const c_char,
                 0,
                 config.as_ptr() as *const c_char,
+                false,
                 success,
                 failure,
             );
@@ -377,7 +379,7 @@ mod py_interop {
 
     /// Validates and solves Vehicle Routing Problem.
     #[pyfunction]
-    fn solve_pragmatic(problem: String, matrices: Vec<String>, config: String) -> PyResult<String> {
+    fn solve_pragmatic(problem: String, matrices: Vec<String>, config: String, geojson: bool) -> PyResult<String> {
         // validate first
         deserialize_problem(BufReader::new(problem.as_bytes()))
             .and_then(|problem| {
@@ -403,7 +405,7 @@ mod py_interop {
                     .map_err(|err| to_config_error(err.as_str()))
                     .map(|config| (problem, config))
             })
-            .and_then(|(problem, config)| get_solution_serialized(Arc::new(problem), config))
+            .and_then(|(problem, config)| get_solution_serialized(Arc::new(problem), config, geojson))
             .map_err(PyOSError::new_err)
     }
 
@@ -478,7 +480,12 @@ mod wasm {
 
     /// Solves Vehicle Routing Problem passed in `pragmatic` format.
     #[wasm_bindgen]
-    pub fn solve_pragmatic(problem: JsValue, matrices: JsValue, config: JsValue) -> Result<JsValue, JsValue> {
+    pub fn solve_pragmatic(
+        problem: JsValue,
+        matrices: JsValue,
+        config: JsValue,
+        geojson: JsValue,
+    ) -> Result<JsValue, JsValue> {
         let problem: Problem =
             serde_wasm_bindgen::from_value(problem).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
@@ -494,7 +501,9 @@ mod wasm {
             .map_err(|err| to_config_error(&err.to_string()))
             .map_err(|err| JsValue::from_str(err.as_str()))?;
 
-        get_solution_serialized(problem, config)
+        let geojson: bool = serde_wasm_bindgen::from_value(geojson).map_err(|err| JsValue::from_str(err.as_str()))?;
+
+        get_solution_serialized(problem, config, geojson)
             .map(|problem| JsValue::from_str(problem.as_str()))
             .map_err(|err| JsValue::from_str(err.as_str()))
     }
@@ -509,7 +518,7 @@ pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
 }
 
 /// Gets solution serialized in json.
-pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Result<String, String> {
+pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config, geojson: bool) -> Result<String, String> {
     let (solution, cost, metrics) = create_builder_from_config(problem.clone(), Default::default(), &config)
         .and_then(|builder| builder.build())
         .map(|config| Solver::new(problem.clone(), config))
@@ -525,7 +534,13 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
 
     let mut writer = BufWriter::new(Vec::new());
     if let Some(metrics) = metrics {
-        (&solution, cost, &metrics).write_pragmatic_json(&problem, &mut writer)?;
+        if geojson {
+            (&solution, cost, &metrics).write_pragmatic_and_geo_json(&problem, &mut writer)?;
+        } else {
+            (&solution, cost, &metrics).write_pragmatic_json(&problem, &mut writer)?;
+        }
+    } else if geojson {
+            (&solution, cost).write_pragmatic_and_geo_json(&problem, &mut writer)?;
     } else {
         (&solution, cost).write_pragmatic_json(&problem, &mut writer)?;
     }

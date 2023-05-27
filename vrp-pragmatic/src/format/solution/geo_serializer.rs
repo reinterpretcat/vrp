@@ -32,6 +32,12 @@ struct FeatureCollection {
     pub features: Vec<Feature>,
 }
 
+#[derive(Clone, Debug, Serialize, PartialEq)]
+struct FeatureCollectionWithSolution {
+    geo: FeatureCollection,
+    pragmatic: Solution,
+}
+
 impl Eq for Geometry {}
 
 impl PartialEq for Geometry {
@@ -80,6 +86,18 @@ pub fn serialize_solution_as_geojson<W: Write>(
     let geo_json = create_geojson_solution(problem, solution)?;
 
     serde_json::to_writer_pretty(writer, &geo_json).map_err(Error::from)
+}
+
+/// Serializes solution into pragmatic and geo json format.
+pub fn serialize_solution_with_geojson<W: Write>(
+    writer: &mut BufWriter<W>,
+    problem: &Problem,
+    solution: &Solution,
+) -> Result<(), Error> {
+    let geo = create_geojson_solution(problem, solution)?;
+    let combined = FeatureCollectionWithSolution { geo, pragmatic: solution.clone() };
+
+    serde_json::to_writer_pretty(writer, &combined).map_err(Error::from)
 }
 
 /// Serializes named location list with their color index.

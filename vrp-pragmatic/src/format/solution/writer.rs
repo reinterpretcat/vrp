@@ -40,6 +40,9 @@ pub trait PragmaticSolution<W: Write> {
 
     /// Serializes solution in pragmatic geo json format.
     fn write_geo_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String>;
+
+    /// Serializes solution in, both, pragmatic and geo json format.
+    fn write_pragmatic_and_geo_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String>;
 }
 
 impl<W: Write> PragmaticSolution<W> for (&Solution, f64) {
@@ -50,6 +53,10 @@ impl<W: Write> PragmaticSolution<W> for (&Solution, f64) {
     fn write_geo_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String> {
         write_geo_json(problem, self.0, writer)
     }
+
+    fn write_pragmatic_and_geo_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String> {
+        write_pragmatic_and_geo_json(problem, self.0, None, writer)
+    }
 }
 
 impl<W: Write> PragmaticSolution<W> for (&Solution, f64, &TelemetryMetrics) {
@@ -59,6 +66,10 @@ impl<W: Write> PragmaticSolution<W> for (&Solution, f64, &TelemetryMetrics) {
 
     fn write_geo_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String> {
         write_geo_json(problem, self.0, writer)
+    }
+
+    fn write_pragmatic_and_geo_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String> {
+        write_pragmatic_and_geo_json(problem, self.0, Some(self.2), writer)
     }
 }
 
@@ -76,6 +87,17 @@ fn write_pragmatic_json<W: Write>(
 fn write_geo_json<W: Write>(problem: &Problem, solution: &Solution, writer: &mut BufWriter<W>) -> Result<(), String> {
     let solution = create_solution(problem, solution, None);
     serialize_solution_as_geojson(writer, problem, &solution).map_err(|err| err.to_string())?;
+    Ok(())
+}
+
+fn write_pragmatic_and_geo_json<W: Write>(
+    problem: &Problem,
+    solution: &Solution,
+    metrics: Option<&TelemetryMetrics>,
+    writer: &mut BufWriter<W>,
+) -> Result<(), String> {
+    let solution = create_solution(problem, solution, metrics);
+    serialize_solution_with_geojson(writer, problem, &solution).map_err(|err| err.to_string())?;
     Ok(())
 }
 
@@ -287,7 +309,7 @@ fn create_tour(
                 let load = calculate_load(prev_load, act, is_multi_dimen);
 
                 let last = tour.stops.len() - 1;
-                let mut last = match tour.stops.get_mut(last).unwrap() {
+                let last = match tour.stops.get_mut(last).unwrap() {
                     Stop::Point(point) => point,
                     Stop::Transit(_) => unreachable!(),
                 };

@@ -29,7 +29,7 @@ fn can_get_solution_serialized() {
     };
     let problem = Arc::new(problem.read_pragmatic().unwrap());
 
-    let solution = get_solution_serialized(problem, Config::default()).unwrap().replace([' ', '\n'], "");
+    let solution = get_solution_serialized(problem, Config::default(), false).unwrap().replace([' ', '\n'], "");
 
     assert!(solution.starts_with('{'));
     assert!(solution.ends_with('}'));

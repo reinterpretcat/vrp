@@ -198,7 +198,7 @@ pub fn create_scalar_operator_probability(
     scalar_probability: f64,
     random: Arc<dyn Random + Send + Sync>,
 ) -> TargetHeuristicProbability {
-    (Box::new(move |_, _| random.is_hit(scalar_probability)), PhantomData::default())
+    (Box::new(move |_, _| random.is_hit(scalar_probability)), PhantomData)
 }
 
 /// Creates a heuristic operator probability which uses context state.
@@ -221,7 +221,7 @@ pub fn create_context_operator_probability(
             let phase_probability = phases.get(&refinement_ctx.selection_phase()).cloned().unwrap_or(0.);
             random.is_hit(phase_probability)
         }),
-        PhantomData::default(),
+        PhantomData,
     )
 }
 
