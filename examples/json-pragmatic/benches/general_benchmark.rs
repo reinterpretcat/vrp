@@ -10,14 +10,15 @@ use vrp_pragmatic::core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_pragmatic::core::solver::{create_elitism_population, RefinementContext};
 use vrp_pragmatic::core::utils::Environment;
 use vrp_pragmatic::format::problem::PragmaticProblem;
-use vrp_pragmatic::format::FormatError;
 
 fn get_problem(problem_path: &str) -> Arc<Problem> {
     let file = File::open(problem_path)
         .unwrap_or_else(|err| panic!("cannot open {} file: '{}'", problem_path, err.to_string()));
-    Arc::new(BufReader::new(file).read_pragmatic().unwrap_or_else(|errs| {
-        panic!("cannot create pragmatic problem: {}", FormatError::format_many(errs.as_slice(), ","))
-    }))
+    Arc::new(
+        BufReader::new(file)
+            .read_pragmatic()
+            .unwrap_or_else(|errs| panic!("cannot create pragmatic problem: {}", errs)),
+    )
 }
 
 /// Runs solver with specific amount of generations. It involves some non-determenism.
@@ -43,7 +44,7 @@ fn solve_problem_with_init(problem_path: &str) {
     let environment = Arc::new(Environment::default());
     let refinement_ctx = RefinementContext::new(
         problem.clone(),
-        create_elitism_population(problem.goal.clone(), environment.clone()),
+        Box::new(create_elitism_population(problem.goal.clone(), environment.clone())),
         TelemetryMode::None,
         environment.clone(),
     );
