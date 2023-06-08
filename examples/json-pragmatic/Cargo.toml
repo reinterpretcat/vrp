@@ -16,7 +16,7 @@ publish = false
 vrp-pragmatic = { path = "../../vrp-pragmatic" }
 
 [dev-dependencies]
-criterion = "0.4.0"
+criterion = "0.5.1"
 
 [[bench]]
 name = "general_benchmark"

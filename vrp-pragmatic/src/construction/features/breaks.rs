@@ -211,7 +211,7 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext) {
     // NOTE remove stale breaks from violation list
     ctx.ignored.extend(
         ctx.unassigned
-            .drain_filter({
+            .extract_if({
                 let routes = ctx.routes.as_slice();
                 move |job, _| !is_required_job(routes, None, job, true)
             })

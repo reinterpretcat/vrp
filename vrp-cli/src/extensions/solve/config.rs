@@ -433,8 +433,6 @@ fn configure_from_evolution(
 ) -> Result<ProblemConfigBuilder, String> {
     if let Some(config) = population_config {
         if let Some(initial) = &config.initial {
-            let environment = environment.clone();
-
             builder = builder.with_initial(
                 initial.alternatives.max_size,
                 initial.alternatives.quota,

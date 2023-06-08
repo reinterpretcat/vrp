@@ -21,7 +21,7 @@ rosomaxa = { path = "../rosomaxa", version = "0.5.0", optional = true }
 rayon = "1.7.0"
 rand = { version = "0.8.5", features = ["small_rng"] }
 
-hashbrown = "0.13.2"
+hashbrown = "0.14.0"
 rustc-hash = "1.1.0"
 nohash-hasher = "0.2.0"
 tinyvec = { version = "1.6.0", features = ["alloc"] }
