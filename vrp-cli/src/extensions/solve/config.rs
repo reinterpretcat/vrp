@@ -591,7 +591,7 @@ fn create_recreate_method(
             (Arc::new(RecreateWithRegret::new(*start, *end, random)), *weight)
         }
         RecreateMethod::Perturbation { weight, probability, min, max } => {
-            let noise = Noise::new(*probability, (*min, *max), random.clone());
+            let noise = Noise::new_with_addition(*probability, (*min, *max), random.clone());
             (Arc::new(RecreateWithPerturbation::new(noise, random.clone())), *weight)
         }
     }

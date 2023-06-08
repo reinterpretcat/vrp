@@ -2,14 +2,13 @@
 #[path = "../../../../tests/unit/solver/search/recreate/recreate_with_blinks_test.rs"]
 mod recreate_with_blinks_test;
 
+use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
-use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::common::*;
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::search::recreate::Recreate;
 use crate::solver::RefinementContext;
-use crate::utils::Either;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
@@ -99,58 +98,6 @@ impl JobSelector for RankedJobSelector {
 
         if self.asc_order {
             insertion_ctx.solution.required.reverse();
-        }
-    }
-}
-
-/// A recreate strategy with blinks inspired by "Slack Induction by String Removals for Vehicle
-/// Routing Problems", Jan Christiaens, Greet Vanden Berghe.
-struct BlinkResultSelector {
-    random: Arc<dyn Random + Send + Sync>,
-    ratio: f64,
-}
-
-impl BlinkResultSelector {
-    /// Creates an instance of `BlinkResultSelector`.
-    fn new(ratio: f64, random: Arc<dyn Random + Send + Sync>) -> Self {
-        Self { random, ratio }
-    }
-
-    /// Creates an instance of `BlinkResultSelector` with default values.
-    fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
-        Self::new(0.01, random)
-    }
-}
-
-impl ResultSelector for BlinkResultSelector {
-    fn select_insertion(
-        &self,
-        ctx: &InsertionContext,
-        left: InsertionResult,
-        right: InsertionResult,
-    ) -> InsertionResult {
-        let is_blink = self.random.is_hit(self.ratio);
-        let is_locked = match &right {
-            InsertionResult::Success(success) => ctx.solution.locked.contains(&success.job),
-            _ => false,
-        };
-        match (&left, is_blink, is_locked) {
-            (InsertionResult::Success(_), true, false) => left,
-            _ => InsertionResult::choose_best_result(left, right),
-        }
-    }
-
-    fn select_cost<'a>(
-        &self,
-        left: &'a InsertionCost,
-        right: &'a InsertionCost,
-    ) -> Either<&'a InsertionCost, &'a InsertionCost> {
-        let is_blink = self.random.is_hit(self.ratio);
-
-        if is_blink || left < right {
-            Either::Left(left)
-        } else {
-            Either::Right(right)
         }
     }
 }

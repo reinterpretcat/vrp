@@ -11,7 +11,7 @@ use rosomaxa::utils::unwrap_from_result;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
-use std::ops::{Add, Sub};
+use std::ops::{Add, Index, Sub};
 use std::sync::Arc;
 use tinyvec::{TinyVec, TinyVecIterator};
 
@@ -213,6 +213,18 @@ where
 impl Debug for InsertionCost {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_list().entries(&self.data).finish()
+    }
+}
+
+impl Index<usize> for InsertionCost {
+    type Output = Cost;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        if index < self.data.len() {
+            &self.data[index]
+        } else {
+            panic!("index out of range: {index}, size is {}", self.data.len())
+        }
     }
 }
 

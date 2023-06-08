@@ -74,7 +74,7 @@ where
 
         let growing_threshold = -1. * dimension as f64 * config.spread_factor.log2();
         let initial_error = if config.has_initial_error { growing_threshold } else { 0. };
-        let noise = Noise::new(1., (0.75, 1.25), random);
+        let noise = Noise::new_with_ratio(1., (0.75, 1.25), random);
 
         let (nodes, min_max_weights) =
             Self::create_initial_nodes(roots, initial_error, config.rebalance_memory, &noise, &storage_factory);

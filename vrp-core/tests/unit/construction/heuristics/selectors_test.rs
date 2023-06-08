@@ -41,8 +41,8 @@ mod noise_checks {
     ) {
         let noise_probability = 0.1;
         let noise_range = (0.9, 1.2);
-        let random = Arc::new(FakeRandom::new(vec![], reals));
-        let noise = Noise::new(noise_probability, noise_range, random);
+        let random = Arc::new(FakeRandom::new(vec![2], reals));
+        let noise = Noise::new_with_ratio(noise_probability, noise_range, random);
 
         let actual_result =
             NoiseResultSelector::new(noise).select_insertion(&create_empty_insertion_context(), left, right);

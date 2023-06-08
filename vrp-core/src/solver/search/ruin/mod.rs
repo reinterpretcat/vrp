@@ -56,8 +56,8 @@ impl RemovalLimits {
     pub fn new(problem: &Problem) -> Self {
         let jobs_size = problem.jobs.size() as f64;
 
-        let min_activities = ((jobs_size * 0.05) as usize).clamp(3, 8);
-        let max_activities = ((jobs_size * 0.3) as usize).clamp(5, 24);
+        let min_activities = ((jobs_size * 0.05) as usize).clamp(1, 8);
+        let max_activities = ((jobs_size * 0.3) as usize).clamp(2, 24);
 
         Self { removed_activities_range: min_activities..max_activities, affected_routes_range: 2..4 }
     }

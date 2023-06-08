@@ -27,8 +27,8 @@ impl RecreateWithRegret {
             recreate: ConfigurableRecreate::new(
                 Box::<AllJobSelector>::default(),
                 Box::<AllRouteSelector>::default(),
-                LegSelection::Stochastic(random),
-                Box::<BestResultSelector>::default(),
+                LegSelection::Stochastic(random.clone()),
+                ResultSelection::Stochastic(ResultSelectorProvider::new_default(random)),
                 InsertionHeuristic::new(Box::new(RegretInsertionEvaluator::new(min, max))),
             ),
         }

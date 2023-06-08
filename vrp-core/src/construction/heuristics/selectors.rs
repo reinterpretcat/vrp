@@ -8,6 +8,7 @@ use crate::models::solution::Leg;
 use crate::utils::*;
 use rand::prelude::*;
 use rosomaxa::utils::{map_reduce, parallel_collect, Random};
+use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// On each insertion step, selects a list of routes where jobs can be inserted.
@@ -248,10 +249,11 @@ impl ResultSelector for NoiseResultSelector {
                 let left_cost: InsertionCost = self.noise.generate_multi(left_success.cost.iter()).collect();
                 let right_cost = self.noise.generate_multi(right_success.cost.iter()).collect();
 
-                if left_cost < right_cost {
-                    left
-                } else {
-                    right
+                match left_cost.cmp(&right_cost) {
+                    Ordering::Less => left,
+                    Ordering::Greater => right,
+                    Ordering::Equal if self.noise.random().is_head_not_tails() => left,
+                    _ => right,
                 }
             }
             _ => right,
@@ -264,13 +266,138 @@ impl ResultSelector for NoiseResultSelector {
         right: &'a InsertionCost,
     ) -> Either<&'a InsertionCost, &'a InsertionCost> {
         let left_cost: InsertionCost = self.noise.generate_multi(left.iter()).collect();
-        let right_cost = self.noise.generate_multi(right.iter()).collect();
+        let right_cost: InsertionCost = self.noise.generate_multi(right.iter()).collect();
 
-        if left_cost < right_cost {
-            Either::Left(left)
-        } else {
-            Either::Right(right)
+        match left_cost.cmp(&right_cost) {
+            Ordering::Less => Either::Left(left),
+            Ordering::Greater => Either::Right(right),
+            Ordering::Equal if self.noise.random().is_head_not_tails() => Either::Left(left),
+            _ => Either::Right(right),
         }
+    }
+}
+
+/// Selects a job with the highest cost insertion occurs into a new route.
+#[derive(Default)]
+pub struct FarthestResultSelector {}
+
+impl ResultSelector for FarthestResultSelector {
+    fn select_insertion(
+        &self,
+        insertion_ctx: &InsertionContext,
+        left: InsertionResult,
+        right: InsertionResult,
+    ) -> InsertionResult {
+        match (&left, &right) {
+            (InsertionResult::Success(_), InsertionResult::Failure(_)) => left,
+            (InsertionResult::Failure(_), InsertionResult::Success(_)) => right,
+            (InsertionResult::Success(lhs), InsertionResult::Success(rhs)) => {
+                let routes = &insertion_ctx.solution.routes;
+                let lhs_route = routes.iter().find(|route_ctx| route_ctx.route().actor == lhs.actor);
+                let rhs_route = routes.iter().find(|route_ctx| route_ctx.route().actor == rhs.actor);
+
+                let insert_right = match (lhs_route.is_some(), rhs_route.is_some()) {
+                    (false, false) => lhs.cost < rhs.cost,
+                    (true, false) => false,
+                    (false, true) => true,
+                    (true, true) => lhs.cost > rhs.cost,
+                };
+
+                if insert_right {
+                    right
+                } else {
+                    left
+                }
+            }
+            _ => right,
+        }
+    }
+}
+
+/// A result selector strategy inspired by "Slack Induction by String Removals for Vehicle
+/// Routing Problems", Jan Christiaens, Greet Vanden Berghe.
+pub struct BlinkResultSelector {
+    random: Arc<dyn Random + Send + Sync>,
+    ratio: f64,
+}
+
+impl BlinkResultSelector {
+    /// Creates an instance of `BlinkResultSelector`.
+    pub fn new(ratio: f64, random: Arc<dyn Random + Send + Sync>) -> Self {
+        Self { random, ratio }
+    }
+
+    /// Creates an instance of `BlinkResultSelector` with default values.
+    pub fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
+        Self::new(0.01, random)
+    }
+}
+
+impl ResultSelector for BlinkResultSelector {
+    fn select_insertion(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
+        let is_blink = self.random.is_hit(self.ratio);
+
+        if is_blink {
+            return if self.random.is_head_not_tails() { left } else { right };
+        }
+
+        InsertionResult::choose_best_result(left, right)
+    }
+
+    fn select_cost<'a>(
+        &self,
+        left: &'a InsertionCost,
+        right: &'a InsertionCost,
+    ) -> Either<&'a InsertionCost, &'a InsertionCost> {
+        let is_blink = self.random.is_hit(self.ratio);
+
+        if is_blink {
+            return if self.random.is_head_not_tails() { Either::Left(left) } else { Either::Right(right) };
+        }
+
+        match left.cmp(right) {
+            Ordering::Less => Either::Left(left),
+            Ordering::Greater => Either::Right(right),
+            Ordering::Equal if self.random.is_head_not_tails() => Either::Left(left),
+            _ => Either::Right(right),
+        }
+    }
+}
+
+/// Keeps either specific result selector implementation or multiple implementations.
+pub enum ResultSelection {
+    /// Returns a provider which returns one of built-in result selectors non-deterministically.
+    Stochastic(ResultSelectorProvider),
+
+    /// Returns concrete instance of result selector to be used.
+    Concrete(Box<dyn ResultSelector + Send + Sync>),
+}
+
+/// Provides way to access one of built-in result selectors non-deterministically.
+pub struct ResultSelectorProvider {
+    inners: Vec<Box<dyn ResultSelector + Send + Sync>>,
+    weights: Vec<usize>,
+    random: Arc<dyn Random + Send + Sync>,
+}
+
+impl ResultSelectorProvider {
+    /// Creates a new instance of `StochasticResultSelectorFn`
+    pub fn new_default(random: Arc<dyn Random + Send + Sync>) -> Self {
+        Self {
+            inners: vec![
+                Box::<BestResultSelector>::default(),
+                Box::new(NoiseResultSelector::new(Noise::new_with_addition(0.05, (-0.25, 0.25), random.clone()))),
+                Box::new(BlinkResultSelector::new_with_defaults(random.clone())),
+                Box::<FarthestResultSelector>::default(),
+            ],
+            weights: vec![60, 10, 10, 20],
+            random,
+        }
+    }
+
+    /// Returns random result selector from the list.
+    pub fn pick(&self) -> &(dyn ResultSelector + Send + Sync) {
+        self.inners[self.random.weighted(self.weights.as_slice())].as_ref()
     }
 }
 

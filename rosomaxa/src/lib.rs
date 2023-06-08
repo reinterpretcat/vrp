@@ -16,7 +16,7 @@
 //! let random = Arc::new(DefaultRandom::default());
 //! // examples of heuristic operator, they are domain specific. Essentially, heuristic operator
 //! // is responsible to produce a new, potentially better solution from the given one.
-//! let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random));
+//! let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new_with_ratio(1., (-0.1, 0.1), random));
 //! let delta_op = VectorHeuristicOperatorMode::JustDelta(-0.1..0.1);
 //! let delta_power_op = VectorHeuristicOperatorMode::JustDelta(-0.5..0.5);
 //!

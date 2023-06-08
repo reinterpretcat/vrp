@@ -21,7 +21,7 @@ pub fn solve_function(
     let fitness_fn = get_fitness_fn_by_name(function_name);
     let random = Arc::new(DefaultRandom::default());
 
-    let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random));
+    let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new_with_ratio(1., (-0.1, 0.1), random));
     let delta_op = VectorHeuristicOperatorMode::JustDelta(-0.1..0.1);
     let delta_power_op = VectorHeuristicOperatorMode::JustDelta(-0.5..0.5);
 

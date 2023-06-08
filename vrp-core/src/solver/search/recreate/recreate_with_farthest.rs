@@ -20,7 +20,7 @@ impl RecreateWithFarthest {
                 Box::<AllJobSelector>::default(),
                 Box::<AllRouteSelector>::default(),
                 LegSelection::Stochastic(random),
-                Box::<FarthestResultSelector>::default(),
+                ResultSelection::Concrete(Box::<FarthestResultSelector>::default()),
                 Default::default(),
             ),
         }
@@ -30,41 +30,5 @@ impl RecreateWithFarthest {
 impl Recreate for RecreateWithFarthest {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         self.recreate.run(refinement_ctx, insertion_ctx)
-    }
-}
-
-#[derive(Default)]
-struct FarthestResultSelector {}
-
-impl ResultSelector for FarthestResultSelector {
-    fn select_insertion(
-        &self,
-        insertion_ctx: &InsertionContext,
-        left: InsertionResult,
-        right: InsertionResult,
-    ) -> InsertionResult {
-        match (&left, &right) {
-            (InsertionResult::Success(_), InsertionResult::Failure(_)) => left,
-            (InsertionResult::Failure(_), InsertionResult::Success(_)) => right,
-            (InsertionResult::Success(lhs), InsertionResult::Success(rhs)) => {
-                let routes = &insertion_ctx.solution.routes;
-                let lhs_route = routes.iter().find(|route_ctx| route_ctx.route().actor == lhs.actor);
-                let rhs_route = routes.iter().find(|route_ctx| route_ctx.route().actor == rhs.actor);
-
-                let insert_right = match (lhs_route.is_some(), rhs_route.is_some()) {
-                    (false, false) => lhs.cost < rhs.cost,
-                    (true, false) => false,
-                    (false, true) => true,
-                    (true, true) => lhs.cost > rhs.cost,
-                };
-
-                if insert_right {
-                    right
-                } else {
-                    left
-                }
-            }
-            _ => right,
-        }
     }
 }

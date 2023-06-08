@@ -19,7 +19,7 @@ impl RecreateWithPerturbation {
                 Box::<AllJobSelector>::default(),
                 Box::<AllRouteSelector>::default(),
                 LegSelection::Stochastic(random.clone()),
-                Box::new(NoiseResultSelector::new(noise)),
+                ResultSelection::Concrete(Box::new(NoiseResultSelector::new(noise))),
                 Default::default(),
             ),
         }
@@ -27,7 +27,7 @@ impl RecreateWithPerturbation {
 
     /// Creates a new instance of `RecreateWithPerturbation` with default values.
     pub fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
-        Self::new(Noise::new(0.05, (0.75, 1.25), random.clone()), random)
+        Self::new(Noise::new_with_ratio(0.05, (-0.25, 0.25), random.clone()), random)
     }
 }
 

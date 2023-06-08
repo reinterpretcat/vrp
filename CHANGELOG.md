@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 * update dependencies
 * fix documentation issues
 * refactor `HeuristicContext` trait to avoid using `HeuristicPopulation` directly from it
+* improve non-determinism based selectors logic
 
 ### Added
 

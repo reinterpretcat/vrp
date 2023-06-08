@@ -35,8 +35,8 @@ impl RecreateWithGaps {
             recreate: ConfigurableRecreate::new(
                 Box::new(GapsJobSelector { min_jobs, max_jobs }),
                 Box::<AllRouteSelector>::default(),
-                LegSelection::Stochastic(random),
-                Box::<BestResultSelector>::default(),
+                LegSelection::Stochastic(random.clone()),
+                ResultSelection::Stochastic(ResultSelectorProvider::new_default(random)),
                 Default::default(),
             ),
         }

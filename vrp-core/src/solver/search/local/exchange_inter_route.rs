@@ -30,7 +30,7 @@ impl ExchangeInterRouteBest {
 
 impl Default for ExchangeInterRouteBest {
     fn default() -> Self {
-        Self::new(0.05, 0.75, 1.25)
+        Self::new(0.05, -0.25, 0.25)
     }
 }
 
@@ -38,7 +38,11 @@ impl LocalOperator for ExchangeInterRouteBest {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         find_best_insertion_pair(
             insertion_ctx,
-            Noise::new(self.noise_probability, self.noise_range, insertion_ctx.environment.random.clone()),
+            Noise::new_with_addition(
+                self.noise_probability,
+                self.noise_range,
+                insertion_ctx.environment.random.clone(),
+            ),
             Box::new(|_| true),
             Box::new(|_| true),
         )
@@ -54,7 +58,7 @@ impl ExchangeInterRouteRandom {
 
 impl Default for ExchangeInterRouteRandom {
     fn default() -> Self {
-        Self::new(0.1, 0.75, 1.25)
+        Self::new(0.1, -0.25, 0.25)
     }
 }
 
@@ -63,7 +67,7 @@ impl LocalOperator for ExchangeInterRouteRandom {
         let random = &insertion_ctx.environment.random;
         find_best_insertion_pair(
             insertion_ctx,
-            Noise::new(self.noise_probability, self.noise_range, random.clone()),
+            Noise::new_with_addition(self.noise_probability, self.noise_range, random.clone()),
             {
                 let random = random.clone();
                 Box::new(move |_idx| random.is_head_not_tails())

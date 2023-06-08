@@ -59,12 +59,11 @@ impl JobRemovalTracker {
             return false;
         }
 
-        self.activities_left = (self.activities_left - get_total_activities(job) as i32).max(0);
-
         if let Some(route_ctx) = solution.routes.get_mut(route_idx) {
             if route_ctx.route_mut().tour.remove(job) {
                 self.removed_jobs.insert(job.clone());
                 self.affected_actors.insert(route_ctx.route().actor.clone());
+                self.activities_left = (self.activities_left - get_total_activities(job) as i32).max(0);
 
                 solution.required.push(job.clone());
                 return true;

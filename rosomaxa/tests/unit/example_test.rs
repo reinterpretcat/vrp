@@ -5,7 +5,7 @@ fn just_noise(
     range: (f64, f64),
     random: Arc<dyn Random + Send + Sync>,
 ) -> VectorHeuristicOperatorMode {
-    VectorHeuristicOperatorMode::JustNoise(Noise::new(probability, range, random))
+    VectorHeuristicOperatorMode::JustNoise(Noise::new_with_ratio(probability, range, random))
 }
 
 fn dimen_noise(
@@ -15,7 +15,7 @@ fn dimen_noise(
     random: Arc<dyn Random + Send + Sync>,
 ) -> VectorHeuristicOperatorMode {
     let dimen = vec![dimen].into_iter().collect();
-    VectorHeuristicOperatorMode::DimensionNoise(Noise::new(probability, range, random), dimen)
+    VectorHeuristicOperatorMode::DimensionNoise(Noise::new_with_ratio(probability, range, random), dimen)
 }
 
 #[test]

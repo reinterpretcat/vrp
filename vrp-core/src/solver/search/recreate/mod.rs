@@ -69,7 +69,7 @@ pub struct ConfigurableRecreate {
     job_selector: Box<dyn JobSelector + Send + Sync>,
     route_selector: Box<dyn RouteSelector + Send + Sync>,
     leg_selection: LegSelection,
-    result_selector: Box<dyn ResultSelector + Send + Sync>,
+    result_selection: ResultSelection,
     insertion_heuristic: InsertionHeuristic,
 }
 
@@ -79,21 +79,26 @@ impl ConfigurableRecreate {
         job_selector: Box<dyn JobSelector + Send + Sync>,
         route_selector: Box<dyn RouteSelector + Send + Sync>,
         leg_selection: LegSelection,
-        result_selector: Box<dyn ResultSelector + Send + Sync>,
+        result_selection: ResultSelection,
         insertion_heuristic: InsertionHeuristic,
     ) -> Self {
-        Self { job_selector, route_selector, leg_selection, result_selector, insertion_heuristic }
+        Self { job_selector, route_selector, leg_selection, result_selection, insertion_heuristic }
     }
 }
 
 impl Recreate for ConfigurableRecreate {
     fn run(&self, _: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+        let result_selector = match &self.result_selection {
+            ResultSelection::Concrete(concrete) => concrete.as_ref(),
+            ResultSelection::Stochastic(provider) => provider.pick(),
+        };
+
         self.insertion_heuristic.process(
             insertion_ctx,
             self.job_selector.as_ref(),
             self.route_selector.as_ref(),
             &self.leg_selection,
-            self.result_selector.as_ref(),
+            result_selector,
         )
     }
 }
