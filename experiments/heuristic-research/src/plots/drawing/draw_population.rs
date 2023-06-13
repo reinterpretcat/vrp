@@ -1,81 +1,9 @@
-use super::DrawResult;
-use crate::plots::*;
-use crate::DataPoint3D;
+use super::*;
 use itertools::{Itertools, MinMaxResult};
-use plotters::coord::Shift;
-use rosomaxa::algorithms::gsom::Coordinate;
 use rosomaxa::utils::compare_floats;
 use std::cmp::Ordering;
 
-/// Draws chart on canvas according to the drawing configs.
-pub fn draw<B: DrawingBackend + 'static>(
-    area: DrawingArea<B, Shift>,
-    population_config: PopulationDrawConfig,
-    solution_config: Option<SolutionDrawConfig>,
-) -> DrawResult<()> {
-    area.fill(&WHITE)?;
-
-    match (&population_config.series, solution_config) {
-        (PopulationSeries::Unknown, Some(solution_config)) => {
-            draw_solution(&area, &solution_config)?;
-        }
-        (PopulationSeries::Rosomaxa { .. }, Some(solution_config)) => {
-            let (left, right) = area.split_horizontally(50.percent_width());
-            draw_solution(&left, &solution_config)?;
-            draw_population(&right, &population_config)?;
-        }
-        _ => draw_population(&area, &population_config)?,
-    }
-
-    area.present()?;
-
-    Ok(())
-}
-
-fn draw_solution<B: DrawingBackend + 'static>(
-    area: &DrawingArea<B, Shift>,
-    solution_config: &SolutionDrawConfig,
-) -> DrawResult<()> {
-    let x_axis = (solution_config.axes.x.0.start..solution_config.axes.x.0.end).step(solution_config.axes.x.1);
-    let z_axis = (solution_config.axes.z.0.start..solution_config.axes.z.0.end).step(solution_config.axes.z.1);
-    let y_axis = solution_config.axes.y.start..solution_config.axes.y.end;
-
-    let mut chart = ChartBuilder::on(area).build_cartesian_3d(x_axis.clone(), y_axis, z_axis.clone())?;
-
-    chart.with_projection(|mut pb| {
-        pb.yaw = solution_config.projection.yaw;
-        pb.pitch = solution_config.projection.pitch;
-        pb.scale = solution_config.projection.scale;
-        pb.into_matrix()
-    });
-
-    chart.configure_axes().draw()?;
-
-    chart.draw_series(
-        SurfaceSeries::xoz(x_axis.values(), z_axis.values(), &solution_config.series.surface)
-            .style_func(&|&v| (&HSLColor(240. / 360. - 240. / 360. * v / solution_config.axes.y.end, 1., 0.7)).into()),
-    )?;
-
-    let data_points = (solution_config.series.points)();
-
-    chart.draw_series(
-        data_points
-            .iter()
-            .filter(|(_, point_type, _)| matches!(point_type, PointType::Circle))
-            .map(|(DataPoint3D(x, y, z), _, color)| Circle::new((*x, *y, *z), 3, color)),
-    )?;
-
-    chart.draw_series(
-        data_points
-            .iter()
-            .filter(|(_, point_type, _)| matches!(point_type, PointType::Triangle))
-            .map(|(DataPoint3D(x, y, z), _, color)| TriangleMarker::new((*x, *y, *z), 5, color)),
-    )?;
-
-    Ok(())
-}
-
-fn draw_population<B: DrawingBackend + 'static>(
+pub fn draw_population<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
     population_config: &PopulationDrawConfig,
 ) -> DrawResult<()> {
