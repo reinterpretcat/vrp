@@ -69,10 +69,12 @@ pub enum PopulationSeries {
         rows: Range<i32>,
         /// Columns range.
         cols: Range<i32>,
-        /// Objective values chart series.
-        fitness: Vec<Series2D>,
         /// Mean node distance.
         mean_distance: f64,
+        /// Best fitness values.
+        fitness_values: Vec<f64>,
+        /// Objective values chart series.
+        fitness_matrices: Vec<Series2D>,
         /// U-matrix values chart series.
         u_matrix: Series2D,
         /// T-matrix values chart series.
@@ -82,6 +84,17 @@ pub enum PopulationSeries {
         /// Node distance values chart series.
         n_matrix: Series2D,
     },
+}
+
+/// Specifies drawing configuration for best fitness.
+pub struct FitnessDrawConfig {
+    /// Fitness labels.
+    pub labels: Vec<String>,
+    /// Objective values for each generation.
+    pub fitness: Vec<(usize, Vec<f64>)>,
+    /// The most variable objective to be used to initialize axis.
+    /// Typically it is the cost (or distance/duration) minimization.
+    pub target_idx: usize,
 }
 
 /// A series configuration.

@@ -1,6 +1,8 @@
 class Chart {}
 
-const canvas = document.getElementById("canvas");
+const canvas1 = document.getElementById("canvas1");
+const canvas2 = document.getElementById("canvas2");
+
 const coord = document.getElementById("coord");
 const fileSelector = document.getElementById("file-selector");
 const plotPopulation = document.getElementById("plot-population");
@@ -14,7 +16,10 @@ const generations = document.getElementById("generations");
 /** Main entry point */
 export function main() {
     setupUI();
-    setupCanvas();
+    setupCanvas(canvas1);
+    setupCanvas(canvas2);
+    updateDynamicPlot();
+    updateStaticPlot();
 }
 
 /** This function is used in `vector.bootstrap.js` to setup imports. */
@@ -30,34 +35,34 @@ function setupUI() {
     fileSelector.addEventListener("change", openFile);
     plotPopulation.addEventListener("change", changePlot);
 
-    yaw.addEventListener("change", updatePlot);
-    pitch.addEventListener("change", updatePlot);
-    generations.addEventListener("change", updatePlot);
+    yaw.addEventListener("change", updateDynamicPlot);
+    pitch.addEventListener("change", updateDynamicPlot);
+    generations.addEventListener("change", updateDynamicPlot);
 
-    yaw.addEventListener("input", updatePlot);
-    pitch.addEventListener("input", updatePlot);
-    generations.addEventListener("input", updatePlot);
+    yaw.addEventListener("input", updateDynamicPlot);
+    pitch.addEventListener("input", updateDynamicPlot);
+    generations.addEventListener("input", updateDynamicPlot);
 
     run.addEventListener("click", runExperiment)
     window.addEventListener("resize", setupCanvas);
 }
 
 /** Setup canvas to properly handle high DPI and redraw current plot. */
-function setupCanvas() {
+function setupCanvas(canvas) {
     const aspectRatio = canvas.width / canvas.height;
     const size = canvas.parentNode.offsetWidth * 1.2;
     canvas.style.width = size + "px";
     canvas.style.height = size / aspectRatio + "px";
     canvas.width = size;
     canvas.height = size / aspectRatio;
-    updatePlot();
 }
 
 /** Changes plot **/
 function changePlot() {
     Chart.clear()
     generations.classList.add("hide");
-    updatePlot()
+    updateDynamicPlot()
+    updateStaticPlot();
 }
 
 function openFile(event) {
@@ -76,19 +81,23 @@ function openFile(event) {
 }
 
 /** Redraw currently selected plot. */
-function updatePlot() {
+function updateDynamicPlot() {
     let yaw_value = Number(yaw.value) / 100.0;
     let pitch_value = Number(pitch.value) / 100.0;
     let generation_value = Number(generations.value);
 
     const start = performance.now();
 
-    Chart.vrp(canvas, generation_value, pitch_value, yaw_value);
+    Chart.vrp(canvas1, generation_value, pitch_value, yaw_value);
     
     const end = performance.now();
 
     coord.innerText = `Pitch:${pitch_value}, Yaw:${yaw_value}`
     status.innerText = `Generation: ${generation_value} in ${Math.ceil(end - start)}ms`;
+}
+
+function updateStaticPlot() {
+    Chart.fitness_vrp(canvas2)
 }
 
 /** Runs experiment. */
@@ -99,7 +108,9 @@ function runExperiment() {
     let format_type = vrpFormat.selectedOptions[0].value;
 
     Chart.run_experiment(format_type, Chart.problem, population_type, max_gen);
-    updatePlot();
+
+    updateDynamicPlot();
+    updateStaticPlot();
     generations.max = max_gen;
     generations.classList.remove("hide");
 }

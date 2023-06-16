@@ -3,13 +3,23 @@ use itertools::{Itertools, MinMaxResult};
 use rosomaxa::utils::compare_floats;
 use std::cmp::Ordering;
 
-pub fn draw_population<B: DrawingBackend + 'static>(
+pub(crate) fn draw_population<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
-    population_config: &PopulationDrawConfig,
+    config: &PopulationDrawConfig,
 ) -> DrawResult<()> {
-    match &population_config.series {
-        PopulationSeries::Rosomaxa { rows, cols, fitness, mean_distance, u_matrix, t_matrix, l_matrix, n_matrix } => {
-            let plots = fitness.len() + 5;
+    match &config.series {
+        PopulationSeries::Rosomaxa {
+            rows,
+            cols,
+            fitness_matrices,
+            mean_distance,
+            u_matrix,
+            t_matrix,
+            l_matrix,
+            n_matrix,
+            ..
+        } => {
+            let plots = fitness_matrices.len() + 5;
             let cols_size = plots / 2 + usize::from(plots % 2 == 1);
 
             let rows = rows.start..(rows.end + 1);
@@ -180,10 +190,10 @@ pub fn draw_population<B: DrawingBackend + 'static>(
                 move |min: f64, max: f64| format!("{} [{}..{}]", caption, min as usize, max as usize)
             };
 
-            let len = fitness.len();
+            let len = fitness_matrices.len();
 
             draw_series2d(sub_areas.get_mut(len).unwrap(), &get_caption_float("u dist"), u_matrix)?;
-            draw_gradients(sub_areas.get_mut(len + 1).unwrap(), "grads", fitness)?;
+            draw_gradients(sub_areas.get_mut(len + 1).unwrap(), "grads", fitness_matrices)?;
             draw_series2d(sub_areas.get_mut(len + 2).unwrap(), &get_caption_usize("total hits"), t_matrix)?;
             draw_series2d(sub_areas.get_mut(len + 3).unwrap(), &get_caption_usize("last hits"), l_matrix)?;
             draw_series2d(
@@ -192,7 +202,7 @@ pub fn draw_population<B: DrawingBackend + 'static>(
                 n_matrix,
             )?;
 
-            fitness.iter().enumerate().try_for_each(|(idx, objective)| {
+            fitness_matrices.iter().enumerate().try_for_each(|(idx, objective)| {
                 let caption = format!("objective {idx}");
                 draw_series2d(sub_areas.get_mut(idx).unwrap(), &get_caption_float(caption.as_str()), objective)
             })?;

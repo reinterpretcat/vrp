@@ -21,111 +21,143 @@ pub struct Chart {}
 
 #[wasm_bindgen]
 impl Chart {
+    /// Draws best known fitness progression for benchmark functions.
+    pub fn fitness_func(canvas: HtmlCanvasElement) -> Result<(), JsValue> {
+        draw_fitness_plots(get_canvas_drawing_area(canvas), "func").map_err(|err| JsValue::from_str(&err))
+    }
+
+    /// Draws best known fitness progression for vrp problem.
+    pub fn fitness_vrp(canvas: HtmlCanvasElement) -> Result<(), JsValue> {
+        draw_fitness_plots(get_canvas_drawing_area(canvas), "vrp").map_err(|err| JsValue::from_str(&err))
+    }
+
     /// Draws plot for rosenbrock function.
     pub fn rosenbrock(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-2.0..2.0, 0.15), y: (0.0..3610.), z: (-2.0..2.0, 0.15) };
-        draw_function_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rosenbrock")?;
+        draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rosenbrock")?;
         Ok(())
     }
 
     /// Draws plot for rastrigin function.
     pub fn rastrigin(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-5.12..5.12, 0.2), y: (0.0..80.), z: (-5.12..5.12, 0.2) };
-        draw_function_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rastrigin")?;
+        draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rastrigin")?;
         Ok(())
     }
 
     /// Draws plot for himmelblau function.
     pub fn himmelblau(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-5.0..5.0, 0.2), y: (0.0..700.), z: (-5.0..5.0, 0.2) };
-        draw_function_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "himmelblau")?;
+        draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "himmelblau")?;
         Ok(())
     }
 
     /// Draws plot for ackley function.
     pub fn ackley(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-5.0..5.0, 0.2), y: (0.0..14.), z: (-5.0..5.0, 0.2) };
-        draw_function_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "ackley")?;
+        draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "ackley")?;
         Ok(())
     }
 
     /// Draws plot for matyas function.
     pub fn matyas(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         let axes = Axes { x: (-10.0..10.0, 0.4), y: (0.0..100.), z: (-10.0..10.0, 0.4) };
-        draw_function_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "matyas")?;
+        draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "matyas")?;
         Ok(())
     }
 
     /// Draws plot for VRP problem.
     pub fn vrp(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
-        // TODO find nice way to visualize vrp solutions in 3D plot
-        draw(
-            get_canvas_drawing_area(canvas),
-            PopulationDrawConfig {
-                axes: Axes { x: (Default::default(), 0.0), y: Default::default(), z: (Default::default(), 0.0) },
-                series: get_population_series(generation),
-            },
-            if generation == 0 {
-                let (max_x, max_y, max_z) = get_axis_sizes();
-                Some(SolutionDrawConfig {
-                    axes: Axes {
-                        x: (0.0..max_x.max(10.), 0.5),
-                        y: (0.0..max_y.max(10.)),
-                        z: (0.0..max_z.max(10.), 0.5),
-                    },
-                    projection: Projection { pitch, yaw, scale: 0.8 },
-                    series: Series3D {
-                        surface: Box::new(move |_x, _z| 0.),
-                        points: Box::new(move || get_solution_points(generation)),
-                    },
-                })
-            } else {
-                None
-            },
-        )
-        .map_err(|err| err.to_string())?;
+        let (max_x, max_y, max_z) = get_axis_sizes();
+        let axes = Axes { x: (0.0..max_x.max(10.), 0.5), y: (0.0..max_y.max(10.)), z: (0.0..max_z.max(10.), 0.5) };
+        draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "vrp")?;
         Ok(())
     }
+}
+
+/// Draws fitness plot on given area.
+pub fn draw_fitness_plots<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
+    function_name: &str,
+) -> Result<(), String> {
+    let fitness = get_best_known_fitness();
+    let fitness_size = if fitness.is_empty() { return Ok(()) } else { fitness[0].1.len() };
+
+    let (labels, target_idx) = if function_name == "vrp" {
+        let labels = if fitness_size == 2 {
+            vec!["min-unassigned".to_string(), "cost".to_string()]
+        } else {
+            vec!["min-unassigned".to_string(), "min-tours".to_string(), "cost".to_string()]
+        };
+
+        (labels, fitness_size - 1)
+    } else {
+        (vec!["y".to_string()], 0)
+    };
+
+    draw_fitness(area, FitnessDrawConfig { labels, fitness, target_idx }).map_err(|err| err.to_string())
+}
+
+/// Draws population plots on given area.
+pub fn draw_population_plots<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
+    generation: usize,
+    pitch: f64,
+    yaw: f64,
+    axes: Axes,
+    function_name: &str,
+) -> Result<(), String> {
+    let is_vrp = function_name == "vrp";
+    draw_population(
+        area,
+        PopulationDrawConfig {
+            axes: Axes { x: (Default::default(), 0.0), y: Default::default(), z: (Default::default(), 0.0) },
+            series: get_population_series(generation),
+        },
+        if is_vrp && generation != 0 {
+            // TODO find a nice way to visualize vrp solutions in 3D plot
+            None
+        } else {
+            Some(SolutionDrawConfig {
+                axes,
+                projection: Projection { pitch, yaw, scale: 0.8 },
+                series: Series3D {
+                    surface: {
+                        let fitness_fn = {
+                            if function_name == "vrp" {
+                                Arc::new(|_: &[f64]| 0.)
+                            } else {
+                                get_fitness_fn_by_name(function_name)
+                            }
+                        };
+                        Box::new(move |x, z| (fitness_fn)(&[x, z]))
+                    },
+                    points: Box::new(move || get_solution_points(generation)),
+                },
+            })
+        },
+    )
+    .map_err(|err| err.to_string())
 }
 
 fn get_canvas_drawing_area(canvas: HtmlCanvasElement) -> DrawingArea<CanvasBackend, Shift> {
     CanvasBackend::with_canvas_object(canvas).unwrap().into_drawing_area()
 }
 
-/// Draws plots on given area.
-pub fn draw_function_plots<B: DrawingBackend + 'static>(
-    area: DrawingArea<B, Shift>,
-    generation: usize,
-    pitch: f64,
-    yaw: f64,
-    axes: Axes,
-    name: &str,
-) -> Result<(), String> {
-    draw(
-        area,
-        PopulationDrawConfig {
-            axes: Axes { x: (Default::default(), 0.0), y: Default::default(), z: (Default::default(), 0.0) },
-            series: get_population_series(generation),
-        },
-        Some(SolutionDrawConfig {
-            axes,
-            projection: Projection { pitch, yaw, scale: 0.8 },
-            series: Series3D {
-                surface: {
-                    let fitness_fn = {
-                        if name != "vrp" {
-                            get_fitness_fn_by_name(name)
-                        } else {
-                            Arc::new(|_: &[f64]| 0.)
-                        }
-                    };
-                    Box::new(move |x, z| (fitness_fn)(&[x, z]))
-                },
-                points: Box::new(move || get_solution_points(generation)),
-            },
-        }),
-    )
-    .map_err(|err| err.to_string())
+fn get_best_known_fitness() -> Vec<(usize, Vec<f64>)> {
+    EXPERIMENT_DATA
+        .lock()
+        .ok()
+        .map(|data| {
+            (0..=data.generation)
+                .filter_map(|generation| match data.population_state.get(&generation) {
+                    Some(PopulationState::Rosomaxa { fitness_values, .. })
+                    | Some(PopulationState::Unknown { fitness_values }) => Some((generation, fitness_values.clone())),
+                    _ => None,
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn get_solution_points(generation: usize) -> Vec<ColoredDataPoint3D> {
@@ -167,8 +199,9 @@ fn get_population_series(generation: usize) -> PopulationSeries {
             Some(PopulationState::Rosomaxa {
                 rows,
                 cols,
-                fitness,
                 mean_distance,
+                fitness_values,
+                fitness_matrices,
                 u_matrix,
                 t_matrix,
                 l_matrix,
@@ -182,8 +215,9 @@ fn get_population_series(generation: usize) -> PopulationSeries {
                 Some(PopulationSeries::Rosomaxa {
                     rows: rows.clone(),
                     cols: cols.clone(),
-                    fitness: fitness.iter().map(get_series).collect(),
                     mean_distance: *mean_distance,
+                    fitness_values: fitness_values.clone(),
+                    fitness_matrices: fitness_matrices.iter().map(get_series).collect(),
                     u_matrix: get_series(u_matrix),
                     t_matrix: get_series(t_matrix),
                     l_matrix: get_series(l_matrix),

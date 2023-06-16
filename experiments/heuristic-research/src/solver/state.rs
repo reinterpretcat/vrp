@@ -9,17 +9,22 @@ use std::ops::Range;
 #[allow(clippy::large_enum_variant)]
 pub enum PopulationState {
     /// Unknown (or unimplemented) population type.
-    Unknown,
+    Unknown {
+        /// Best fitness values.
+        fitness_values: Vec<f64>,
+    },
     /// Rosomaxa type.
     Rosomaxa {
         /// Rows range.
         rows: Range<i32>,
         /// Cols range.
         cols: Range<i32>,
-        /// Fitness values data split into separate matrices.
-        fitness: Vec<MatrixData>,
         /// Mean distance.
         mean_distance: f64,
+        /// Best fitness values.
+        fitness_values: Vec<f64>,
+        /// Overall fitness values data split into separate matrices.
+        fitness_matrices: Vec<MatrixData>,
         /// U-matrix values data.
         u_matrix: MatrixData,
         /// T-matrix values data.
@@ -31,22 +36,6 @@ pub enum PopulationState {
     },
 }
 
-impl PopulationState {
-    /// Creates a new instance of `PopulationState::Rosomaxa` with empty fields.
-    fn new_rosomaxa_empty(rows: Range<i32>, cols: Range<i32>) -> PopulationState {
-        PopulationState::Rosomaxa {
-            rows,
-            cols,
-            fitness: Default::default(),
-            mean_distance: 0.,
-            u_matrix: Default::default(),
-            t_matrix: Default::default(),
-            l_matrix: Default::default(),
-            n_matrix: Default::default(),
-        }
-    }
-}
-
 /// Parses population state from a string representation.
 pub fn get_population_state<P, O, S>(population: &P) -> PopulationState
 where
@@ -54,24 +43,46 @@ where
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
 {
-    // TODO try parse elitism and greedy
+    let fitness_values =
+        population.ranked().next().map(|(solution, _)| solution.fitness().collect::<Vec<_>>()).unwrap_or_default();
 
     if TypeId::of::<P>() == TypeId::of::<Rosomaxa<O, S>>() {
         let rosomaxa = unsafe { std::mem::transmute::<&P, &Rosomaxa<O, S>>(population) };
-        NetworkState::try_from(rosomaxa).map(create_rosomaxa_state).unwrap_or(PopulationState::Unknown)
+        NetworkState::try_from(rosomaxa)
+            .map(|state| create_rosomaxa_state(state, fitness_values.clone()))
+            .unwrap_or_else(move |_| PopulationState::Unknown { fitness_values })
     } else {
-        PopulationState::Unknown
+        PopulationState::Unknown { fitness_values }
     }
 }
 
-fn create_rosomaxa_state(network_state: NetworkState) -> PopulationState {
+fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<f64>) -> PopulationState {
     let (rows, cols, _) = network_state.shape;
 
-    network_state.nodes.iter().fold(PopulationState::new_rosomaxa_empty(rows, cols), |mut rosomaxa, node| {
+    let rosomaxa = PopulationState::Rosomaxa {
+        rows,
+        cols,
+        mean_distance: 0.,
+        fitness_values,
+        fitness_matrices: Default::default(),
+        u_matrix: Default::default(),
+        t_matrix: Default::default(),
+        l_matrix: Default::default(),
+        n_matrix: Default::default(),
+    };
+
+    network_state.nodes.iter().fold(rosomaxa, |mut rosomaxa, node| {
         let coordinate = Coordinate(node.coordinate.0, node.coordinate.1);
         match &mut rosomaxa {
-            PopulationState::Rosomaxa { fitness, mean_distance, u_matrix, t_matrix, l_matrix, n_matrix, .. } => {
-                let objectives = fitness;
+            PopulationState::Rosomaxa {
+                fitness_matrices,
+                mean_distance,
+                u_matrix,
+                t_matrix,
+                l_matrix,
+                n_matrix,
+                ..
+            } => {
                 // NOTE get first fitness in assumption of sorted order
                 let fitness = match (node.dump.starts_with("[["), node.dump.find(']')) {
                     (true, Some(value)) => node.dump[2..value]
@@ -83,9 +94,9 @@ fn create_rosomaxa_state(network_state: NetworkState) -> PopulationState {
                 };
 
                 if let Some(fitness) = fitness {
-                    objectives.resize(fitness.len(), MatrixData::default());
+                    fitness_matrices.resize(fitness.len(), MatrixData::default());
                     fitness.into_iter().enumerate().for_each(|(idx, fitness)| {
-                        objectives[idx].insert(coordinate, fitness);
+                        fitness_matrices[idx].insert(coordinate, fitness);
                     });
                 }
 

@@ -12,33 +12,52 @@
 <script src="./vector.bootstrap.js"></script>
 <main>
     <h1>Heuristic Research Playground</h1>
-    <div id="coord"></div>
-    <canvas id="canvas" width="600" height="400"></canvas>
-    <div id="status">Loading WebAssembly...</div>
-    <div id="control">
-        <label for="plot-population">Population: </label>
-        <select id="plot-population">
-            <option value="rosomaxa">Rosomaxa</option>
-            <option value="elitism">Elitism</option>
-            <option value="greedy">Greedy</option>
-        </select>
-        <br/>
-        <label for="plot-function">Function: </label>
-        <select id="plot-function">
-            <option value="rosenbrock">Rosenbrock</option>
-            <option value="rastrigin">Rastrigin</option>
-            <option value="himmelblau">Himmelblau</option>
-            <option value="ackley">Ackley</option>
-            <option value="matyas">Matyas</option>
-        </select>
-
-        <div id="3d-control">
-            <label for="pitch">Pitch: </label> <input type="range" min="0" max="157" id="pitch" value="10"> <br/>
-            <label for="yaw">Yaw: </label> <input type="range" min="0" max="314" id="yaw" value="50">
+    <div class="row">
+        <!-- experiment params -->
+        <div class="column">
+            <span style="white-space: nowrap">
+                <label for="plot-population">Population: </label>
+                <select id="plot-population">
+                    <option value="rosomaxa">Rosomaxa</option>
+                    <option value="elitism">Elitism</option>
+                    <option value="greedy">Greedy</option>
+                </select>
+            </span>
+            <span style="white-space: nowrap">
+                <label for="plot-function">Function: </label>
+                <select id="plot-function">
+                    <option value="rosenbrock">Rosenbrock</option>
+                    <option value="rastrigin">Rastrigin</option>
+                    <option value="himmelblau">Himmelblau</option>
+                    <option value="ackley">Ackley</option>
+                    <option value="matyas">Matyas</option>
+                </select>
+            </span>
         </div>
-        <label for="generations">Gens: </label> <input type="range" min="0" max="1000" id="generations" value="0" class="hide"> <br/>
-        <input type="button" id="run" value="Run experiments" />
+        <!-- controls -->
+        <div class="column">
+            <span style="white-space: nowrap">
+                <label for="pitch">Pitch: </label>
+                <input type="range" min="0" max="157" id="pitch" value="10" />
+            </span>
+            <span style="white-space: nowrap">
+                <label for="yaw">Yaw: </label>
+                <input type="range" min="0" max="314" id="yaw" value="50" />
+            </span>
+
+        </div>
+        <div class="column">
+            <div id="coord"></div>
+            <div id="status">Loading WebAssembly...</div>
+            <input type="range" min="0" max="1000" id="generations" value="0" class="hide" />
+        </div>
+        <div class="column">
+            <input type="button" id="run" value="Run experiments" />
+        </div>
     </div>
+
+    <canvas id="canvas1" width="600" height="400"></canvas>
+    <canvas id="canvas2" width="600" height="400"></canvas>
 </main>
 <footer>
     <a href="https://github.com/reinterpretcat/vrp" target="a">Repo</a> |
