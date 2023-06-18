@@ -2,6 +2,7 @@ class Chart {}
 
 const canvas1 = document.getElementById("canvas1");
 const canvas2 = document.getElementById("canvas2");
+const canvas3 = document.getElementById("canvas3");
 
 const coord = document.getElementById("coord");
 const plotFunction = document.getElementById("plot-function");
@@ -17,8 +18,9 @@ export function main() {
     setupUI();
     setupCanvas(canvas1);
     setupCanvas(canvas2);
-    updateDynamicPlot();
-    updateStaticPlot();
+    setupCanvas(canvas3);
+    updateDynamicPlots();
+    updateStaticPlots();
 }
 
 /** This function is used in `vector.bootstrap.js` to setup imports. */
@@ -34,13 +36,13 @@ function setupUI() {
     plotFunction.addEventListener("change", changePlot);
     plotPopulation.addEventListener("change", changePlot);
 
-    yaw.addEventListener("change", updateDynamicPlot);
-    pitch.addEventListener("change", updateDynamicPlot);
-    generations.addEventListener("change", updateDynamicPlot);
+    yaw.addEventListener("change", updateDynamicPlots);
+    pitch.addEventListener("change", updateDynamicPlots);
+    generations.addEventListener("change", updateDynamicPlots);
 
-    yaw.addEventListener("input", updateDynamicPlot);
-    pitch.addEventListener("input", updateDynamicPlot);
-    generations.addEventListener("input", updateDynamicPlot);
+    yaw.addEventListener("input", updateDynamicPlots);
+    pitch.addEventListener("input", updateDynamicPlots);
+    generations.addEventListener("input", updateDynamicPlots);
 
     run.addEventListener("click", runExperiment)
     window.addEventListener("resize", setupCanvas);
@@ -60,12 +62,12 @@ function setupCanvas(canvas) {
 function changePlot() {
     Chart.clear()
     generations.classList.add("hide");
-    updateDynamicPlot()
-    updateStaticPlot();
+    updateDynamicPlots()
+    updateStaticPlots();
 }
 
 /** Redraw currently selected plot. */
-function updateDynamicPlot() {
+function updateDynamicPlots() {
     const selected = plotFunction.selectedOptions[0];
 
     let yaw_value = Number(yaw.value) / 100.0;
@@ -95,6 +97,8 @@ function updateDynamicPlot() {
         default:
             break;
     }
+
+    Chart.heuristic_estimations(canvas2, generation_value);
     
     const end = performance.now();
 
@@ -102,8 +106,8 @@ function updateDynamicPlot() {
     status.innerText = `Gen: ${generation_value}, ${selected.innerText}, ${Math.ceil(end - start)}ms`;
 }
 
-function updateStaticPlot() {
-    Chart.fitness_func(canvas2)
+function updateStaticPlots() {
+    Chart.fitness_func(canvas3)
 }
 
 /** Runs experiment. */
@@ -147,8 +151,8 @@ function runExperiment() {
 
     // NOTE: a blocking call here
     Chart.run_experiment(function_name, population_type, x, z, max_gen);
-    updateDynamicPlot();
-    updateStaticPlot();
+    updateDynamicPlots();
+    updateStaticPlots();
     generations.max = max_gen;
     generations.classList.remove("hide");
 }

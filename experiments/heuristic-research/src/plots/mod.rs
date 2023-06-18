@@ -73,6 +73,11 @@ impl Chart {
         draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "vrp")?;
         Ok(())
     }
+
+    /// Draws plot for heuristic estimations.
+    pub fn heuristic_estimations(canvas: HtmlCanvasElement, generation: usize) -> Result<(), JsValue> {
+        draw_heuristic_plots(get_canvas_drawing_area(canvas), generation).map_err(|err| JsValue::from_str(&err))
+    }
 }
 
 /// Draws fitness plot on given area.
@@ -85,9 +90,9 @@ pub fn draw_fitness_plots<B: DrawingBackend + 'static>(
 
     let (labels, target_idx) = if function_name == "vrp" {
         let labels = if fitness_size == 2 {
-            vec!["min-unassigned".to_string(), "cost".to_string()]
+            vec!["min-unassigned".to_string(), "min-cost".to_string()]
         } else {
-            vec!["min-unassigned".to_string(), "min-tours".to_string(), "cost".to_string()]
+            vec!["min-unassigned".to_string(), "min-tours".to_string(), "min-cost".to_string()]
         };
 
         (labels, fitness_size - 1)
