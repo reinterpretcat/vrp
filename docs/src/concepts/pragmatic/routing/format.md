@@ -14,7 +14,7 @@ list, locations are specified in the order they defined. For example, if you hav
 vehicle type with depot location C, then you have the following location list: A,B,C. It corresponds to the matrix (durations
 or distances):
 
-|    |    |    |
+| <!-- --> | <!-- --> | <!-- --> |
 |----|----|----|
 |  0 | AB | AC |
 | BA |  0 | BC |
