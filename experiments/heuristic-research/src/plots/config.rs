@@ -97,6 +97,15 @@ pub struct FitnessDrawConfig {
     pub target_idx: usize,
 }
 
+/// /// Specifies drawing configuration for heuristic.
+#[derive(Default)]
+pub struct HeuristicDrawConfig {
+    /// Heuristic labels.
+    pub labels: Vec<String>,
+    /// Actual estimations.
+    pub estimations: Vec<f64>,
+}
+
 /// A series configuration.
 pub struct Series2D {
     /// A matrix data receiver function.

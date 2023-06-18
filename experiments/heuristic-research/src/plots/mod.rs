@@ -98,6 +98,14 @@ pub fn draw_fitness_plots<B: DrawingBackend + 'static>(
     draw_fitness(area, FitnessDrawConfig { labels, fitness, target_idx }).map_err(|err| err.to_string())
 }
 
+pub fn draw_heuristic_plots<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
+    generation: usize,
+) -> Result<(), String> {
+    let config = get_heuristic_state(generation);
+    draw_heuristic(area, config).map_err(|err| err.to_string())
+}
+
 /// Draws population plots on given area.
 pub fn draw_population_plots<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
@@ -182,6 +190,19 @@ fn get_solution_points(generation: usize) -> Vec<ColoredDataPoint3D> {
             data_points
         })
         .unwrap_or_else(Vec::new)
+}
+
+fn get_heuristic_state(generation: usize) -> HeuristicDrawConfig {
+    EXPERIMENT_DATA
+        .lock()
+        .ok()
+        .and_then(|data| {
+            data.heuristic_state.states.get(&generation).map(|states| {
+                let (labels, estimations) = states.iter().map(|state| (state.name.clone(), state.estimation)).unzip();
+                HeuristicDrawConfig { labels, estimations }
+            })
+        })
+        .unwrap_or_default()
 }
 
 fn to_data_point(observations: &[ObservationData]) -> impl Iterator<Item = &DataPoint3D> + '_ {

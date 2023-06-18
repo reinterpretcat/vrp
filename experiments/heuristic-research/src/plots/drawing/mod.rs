@@ -1,6 +1,7 @@
 use crate::plots::*;
 
 mod draw_fitness;
+mod draw_heuristic;
 mod draw_population;
 mod draw_solution;
 
@@ -34,4 +35,11 @@ pub fn draw_fitness<B: DrawingBackend + 'static>(
     fitness_config: FitnessDrawConfig,
 ) -> DrawResult<()> {
     self::draw_fitness::draw_fitness(&area, &fitness_config)
+}
+
+pub fn draw_heuristic<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
+    heuristic_config: HeuristicDrawConfig,
+) -> DrawResult<()> {
+    self::draw_heuristic::draw_heuristic(&area, &heuristic_config)
 }
