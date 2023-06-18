@@ -18,6 +18,7 @@ pub fn solve_function(
     generations: usize,
     logger: InfoLogger,
 ) {
+    let logger = create_info_logger_proxy(logger);
     let fitness_fn = get_fitness_fn_by_name(function_name);
     let random = Arc::new(DefaultRandom::default());
 
@@ -26,6 +27,7 @@ pub fn solve_function(
     let delta_power_op = VectorHeuristicOperatorMode::JustDelta(-0.5..0.5);
 
     let (solutions, _) = Solver::default()
+        .set_experimental()
         .with_logger(logger.clone())
         .with_init_solutions(vec![init_solution])
         .with_search_operator(noise_op, "noise", 1.)

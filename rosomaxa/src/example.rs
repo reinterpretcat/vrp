@@ -329,6 +329,7 @@ pub type ContextFactory = Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>)
 
 /// An example of the optimization solver to solve trivial problems.
 pub struct Solver {
+    is_experimental: bool,
     logger: Option<InfoLogger>,
     use_static_heuristic: bool,
     initial_solutions: Vec<Vec<f64>>,
@@ -347,6 +348,7 @@ pub struct Solver {
 impl Default for Solver {
     fn default() -> Self {
         Self {
+            is_experimental: false,
             logger: None,
             use_static_heuristic: false,
             initial_solutions: vec![],
@@ -365,15 +367,21 @@ impl Default for Solver {
 }
 
 impl Solver {
-    /// Use dynamic selective only
-    pub fn use_static_heuristic(mut self) -> Self {
-        self.use_static_heuristic = true;
+    /// Sets experimental flag to true (false is default).
+    pub fn set_experimental(mut self) -> Self {
+        self.is_experimental = true;
         self
     }
 
     /// Sets logger.
     pub fn with_logger(mut self, logger: InfoLogger) -> Self {
         self.logger = Some(logger);
+        self
+    }
+
+    /// Use dynamic selective only
+    pub fn use_static_heuristic(mut self) -> Self {
+        self.use_static_heuristic = true;
         self
     }
 
@@ -440,7 +448,8 @@ impl Solver {
     /// Runs the solver using configuration provided through fluent interface methods.
     pub fn solve(self) -> Result<(SolverSolutions, Option<TelemetryMetrics>), String> {
         // create an environment based on max_time and logger parameters supplied
-        let environment = Environment::new_with_time_quota(self.max_time);
+        let environment =
+            Environment { is_experimental: self.is_experimental, ..Environment::new_with_time_quota(self.max_time) };
         let environment = Arc::new(if let Some(logger) = self.logger.clone() {
             Environment { logger, ..environment }
         } else {

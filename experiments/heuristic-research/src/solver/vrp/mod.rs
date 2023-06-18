@@ -48,6 +48,8 @@ pub fn solve_vrp(
     logger: InfoLogger,
 ) {
     let is_rounded = true;
+    let is_experimental = true;
+    let logger = create_info_logger_proxy(logger);
 
     let problem = match format_type {
         "tsplib" => problem.read_tsplib(is_rounded),
@@ -59,7 +61,11 @@ pub fn solve_vrp(
 
     let problem = Arc::new(problem);
 
-    let environment = Arc::new(Environment { logger: logger.clone(), ..Environment::new_with_time_quota(Some(300)) });
+    let environment = Arc::new(Environment {
+        logger: logger.clone(),
+        is_experimental,
+        ..Environment::new_with_time_quota(Some(300))
+    });
     let population = get_population(population_type, problem.goal.clone(), environment.clone(), selection_size);
     let telemetry_mode = TelemetryMode::OnlyLogging {
         logger: logger.clone(),
