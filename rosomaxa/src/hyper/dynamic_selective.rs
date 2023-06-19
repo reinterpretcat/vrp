@@ -472,6 +472,7 @@ impl HeuristicTracker {
         cfg!(feature = "heuristic-telemetry")
     }
 
+    /// Returns median approximation.
     pub fn approx_median(&self) -> Option<usize> {
         self.total_median.approx_median()
     }
