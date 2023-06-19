@@ -96,13 +96,17 @@ fn can_display_heuristic_info_impl(is_experimental: bool) {
     let environment = Environment { is_experimental, ..Environment::default() };
     let mut heuristic =
         DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(vec![], vec![], &environment);
-    heuristic.tracker.observe(1, 1., create_sample("name1", 100, SearchState::Stagnated(MedianRatio { ratio: 1. })));
-    heuristic.tracker.observe(
+    heuristic.tracker.observe_sample(
+        1,
+        1.,
+        create_sample("name1", 100, SearchState::Stagnated(MedianRatio { ratio: 1. })),
+    );
+    heuristic.tracker.observe_sample(
         2,
         1.,
         create_sample("name1", 101, SearchState::BestMajorImprovement(MedianRatio { ratio: 1. })),
     );
-    heuristic.tracker.observe(
+    heuristic.tracker.observe_sample(
         1,
         1.,
         create_sample("name2", 102, SearchState::DiverseImprovement(MedianRatio { ratio: 1. })),

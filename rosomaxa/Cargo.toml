@@ -13,7 +13,10 @@ description = "A rosomaxa algorithm and other building blocks for creating a sol
 
 [features]
 default = []
+# an experimental asynchronous evolution targeting better performance on multiple CPUs
 async-evolution = ["tokio"]
+# enables dynamic heuristic telemetry on each generation for further analysis
+heuristic-telemetry = []
 
 [dependencies]
 rayon = "1.7.0"

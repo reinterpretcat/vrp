@@ -16,7 +16,7 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-rosomaxa = { path = "../../rosomaxa" }
+rosomaxa = { path = "../../rosomaxa", features = ["heuristic-telemetry"] }
 vrp-scientific = { path = "../../vrp-scientific"}
 
 serde = { version = "1.0.164", features = ["derive"] }

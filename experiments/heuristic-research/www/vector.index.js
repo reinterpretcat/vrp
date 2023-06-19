@@ -73,6 +73,7 @@ function updateDynamicPlots() {
     let yaw_value = Number(yaw.value) / 100.0;
     let pitch_value = Number(pitch.value) / 100.0;
     let generation_value = Number(generations.value);
+    let heuristic_kind = "best";
 
     status.innerText = `Rendering ${selected.innerText}...`;
 
@@ -98,7 +99,7 @@ function updateDynamicPlots() {
             break;
     }
 
-    Chart.heuristic_estimations(canvas2, generation_value);
+    Chart.heuristic_estimations(canvas2, generation_value, heuristic_kind);
     
     const end = performance.now();
 

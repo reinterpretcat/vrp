@@ -75,8 +75,8 @@ impl Chart {
     }
 
     /// Draws plot for heuristic estimations.
-    pub fn heuristic_estimations(canvas: HtmlCanvasElement, generation: usize) -> Result<(), JsValue> {
-        draw_heuristic_plots(get_canvas_drawing_area(canvas), generation).map_err(|err| JsValue::from_str(&err))
+    pub fn heuristic_estimations(canvas: HtmlCanvasElement, generation: usize, kind: &str) -> Result<(), JsValue> {
+        draw_heuristic_plots(get_canvas_drawing_area(canvas), generation, kind).map_err(|err| JsValue::from_str(&err))
     }
 }
 
@@ -106,8 +106,9 @@ pub fn draw_fitness_plots<B: DrawingBackend + 'static>(
 pub fn draw_heuristic_plots<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
     generation: usize,
+    kind: &str,
 ) -> Result<(), String> {
-    let config = get_heuristic_state(generation);
+    let config = get_heuristic_state(generation, kind);
     draw_heuristic(area, config).map_err(|err| err.to_string())
 }
 
@@ -197,15 +198,26 @@ fn get_solution_points(generation: usize) -> Vec<ColoredDataPoint3D> {
         .unwrap_or_else(Vec::new)
 }
 
-fn get_heuristic_state(generation: usize) -> HeuristicDrawConfig {
+fn get_heuristic_state(generation: usize, kind: &str) -> HeuristicDrawConfig {
     EXPERIMENT_DATA
         .lock()
         .ok()
         .and_then(|data| {
-            data.heuristic_state.states.get(&generation).map(|states| {
-                let (labels, estimations) = states.iter().map(|state| (state.name.clone(), state.estimation)).unzip();
-                HeuristicDrawConfig { labels, estimations }
-            })
+            match kind {
+                "selection" => data.heuristic_state.selection_states.get(&generation).map(|states| {
+                    let (labels, estimations) = states.iter().map(|state| (state.0.clone(), state.1)).unzip();
+                    HeuristicDrawConfig { labels, estimations }
+                }),
+                // NOTE: expected best, diverse, see DynamicSelective::Display implementation
+                _ => data.heuristic_state.overall_states.get(&generation).map(|states| {
+                    let (labels, estimations) = states
+                        .iter()
+                        .filter(|(_, _, state_name)| state_name == kind)
+                        .map(|(heuristic_name, estimate, _)| (heuristic_name.clone(), estimate))
+                        .unzip();
+                    HeuristicDrawConfig { labels, estimations }
+                }),
+            }
         })
         .unwrap_or_default()
 }

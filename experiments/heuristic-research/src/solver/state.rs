@@ -122,53 +122,57 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<f64>) 
 pub struct HyperHeuristicState {
     /// Unique heuristic names.
     pub names: Vec<String>,
-    /// Heuristic states at specific generations.
-    pub states: HashMap<usize, Vec<MetaHeuristicState>>,
-}
-
-/// Keeps track of meta heuristic state.
-#[derive(Default)]
-pub struct MetaHeuristicState {
-    /// Name of heuristic method.
-    pub name: String,
-    /// Execution duration in ms.
-    pub duration: f64,
-    /// Current weight estimation.
-    pub estimation: f64,
-    /// Improvement state.
-    pub state: String,
+    /// Heuristic states at specific generations as (name, estimation, state, duration).
+    pub selection_states: HashMap<usize, Vec<(String, f64, String, f64)>>,
+    /// Heuristic states at specific generations as (name, estimation, state)
+    pub overall_states: HashMap<usize, Vec<(String, f64, String)>>,
 }
 
 impl HyperHeuristicState {
     /// Parses multiple heuristic states for all generations at once from raw output.
     pub(crate) fn try_parse_all(data: &str) -> Option<Self> {
-        if data.starts_with("name,generation") {
+        // f.write_fmt(format_args!("name,generation,estimation,state,duration\n"))?;
+        if data.starts_with("TELEMETRY") {
             let mut names = HashSet::new();
-            let states = data.lines().skip(1).fold(HashMap::new(), |mut data, line| {
-                let fields: Vec<&str> = line.split(',').collect();
 
-                let name = fields[0].to_owned();
-                let generation = fields[1].parse().unwrap();
-                let duration = fields[2].parse().unwrap();
-                let estimation = fields[3].parse().unwrap();
-                let state = fields[4].to_owned();
+            let selection_states =
+                data.lines().skip(3).take_while(|line| *line != "overall").fold(HashMap::new(), |mut data, line| {
+                    let fields: Vec<&str> = line.split(',').collect();
+                    let name = fields[0].to_owned();
+                    let generation = fields[1].parse().unwrap();
 
-                names.insert(name.clone());
+                    names.insert(name.clone());
 
-                data.entry(generation).or_insert_with(Vec::default).push(MetaHeuristicState {
-                    name,
-                    duration,
-                    estimation,
-                    state,
+                    data.entry(generation).or_insert_with(Vec::default).push((
+                        name,
+                        fields[2].parse().unwrap(),
+                        fields[3].to_owned(),
+                        fields[4].parse().unwrap(),
+                    ));
+
+                    data
                 });
 
-                data
-            });
+            let overall_states =
+                data.lines().skip_while(|line| *line != "overall").skip(2).fold(HashMap::new(), |mut data, line| {
+                    let fields: Vec<&str> = line.split(',').collect();
+                    let name = fields[0].to_owned();
+                    let generation = fields[1].parse().unwrap();
+                    names.insert(name.clone());
+
+                    data.entry(generation).or_insert_with(Vec::default).push((
+                        name,
+                        fields[2].parse().unwrap(),
+                        fields[3].to_owned(),
+                    ));
+
+                    data
+                });
 
             let mut names = names.into_iter().collect::<Vec<_>>();
             names.sort();
 
-            Some(Self { names, states })
+            Some(Self { names, selection_states, overall_states })
         } else {
             None
         }

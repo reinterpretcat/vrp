@@ -87,11 +87,12 @@ function updateDynamicPlots() {
     let yaw_value = Number(yaw.value) / 100.0;
     let pitch_value = Number(pitch.value) / 100.0;
     let generation_value = Number(generations.value);
+    let heuristic_kind = "best";
 
     const start = performance.now();
 
     Chart.vrp(canvas1, generation_value, pitch_value, yaw_value);
-    Chart.heuristic_estimations(canvas2, generation_value);
+    Chart.heuristic_estimations(canvas2, generation_value, heuristic_kind);
     
     const end = performance.now();
 

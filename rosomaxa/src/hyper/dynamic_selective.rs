@@ -155,8 +155,8 @@ where
             diversify_operators,
             tracker: HeuristicTracker {
                 total_median: RemedianUsize::new(11, |a, b| a.cmp(b)),
-                telemetry: Default::default(),
-                is_experimental: environment.is_experimental,
+                overall_telemetry: Default::default(),
+                selection_telemetry: Default::default(),
             },
         }
     }
@@ -178,6 +178,7 @@ where
         self.heuristic_simulator.set_policy_strategy(create_policy_strategy(termination_estimate, random));
 
         samples.into_iter().for_each(|sample| {
+            let generation = heuristic_ctx.statistics().generation;
             let estimate = self
                 .heuristic_simulator
                 .get_state_estimates()
@@ -185,7 +186,12 @@ where
                 .and_then(|action_estimates| action_estimates.data().get(&sample.action))
                 .cloned()
                 .unwrap_or_default();
-            self.tracker.observe(heuristic_ctx.statistics().generation, estimate, sample);
+            self.tracker.observe_sample(generation, estimate, sample);
+            self.tracker.observe_all_states(
+                generation,
+                self.heuristic_simulator.get_state_estimates(),
+                |heuristic_idx| self.action_registry.heuristics[heuristic_idx].1.clone(),
+            );
         });
     }
 }
@@ -378,12 +384,14 @@ where
     S: HeuristicSolution,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if self.tracker.telemetry.is_empty() {
+        if !self.tracker.telemetry_enabled() {
             return Ok(());
         }
 
-        f.write_fmt(format_args!("name,generation,duration,estimation,state\n"))?;
-        self.tracker.telemetry.iter().try_for_each(|(name, entries)| {
+        f.write_fmt(format_args!("TELEMETRY\n"))?;
+        f.write_fmt(format_args!("selection\n"))?;
+        f.write_fmt(format_args!("name,generation,estimation,state,duration\n"))?;
+        self.tracker.selection_telemetry.iter().try_for_each(|(name, entries)| {
             entries.iter().try_for_each(|(generation, duration, estimate, state)| {
                 let state = match state {
                     SearchState::BestKnown(_) => unreachable!(),
@@ -393,9 +401,24 @@ where
                     SearchState::DiverseImprovement(_) => "diverse",
                     SearchState::Stagnated(_) => "stagnated",
                 };
-                f.write_fmt(format_args!("{},{},{},{},{}\n", name, generation, duration.as_millis(), estimate, state))
+                f.write_fmt(format_args!("{name},{generation},{estimate},{state},{}\n", duration.as_millis()))
             })
-        })
+        })?;
+
+        f.write_fmt(format_args!("overall\n"))?;
+        f.write_fmt(format_args!("name,generation,estimation,state\n"))?;
+        self.tracker.overall_telemetry.iter().try_for_each(|(state, estimations)| {
+            let state = match state {
+                SearchState::BestKnown(_) => "best",
+                SearchState::Diverse(_) => "diverse",
+                _ => unreachable!(),
+            };
+            estimations.iter().try_for_each(|(generation, name, estimation)| {
+                f.write_fmt(format_args!("{name},{generation},{estimation},{state}\n"))
+            })
+        })?;
+
+        Ok(())
     }
 }
 
@@ -433,18 +456,31 @@ where
         .unwrap_or(Ordering::Less)
 }
 
+/// Provides way to track heuristic's telemetry and duration median estimation.
 struct HeuristicTracker {
+    /// An estimation of median (remedian) of heuristic duration.
     total_median: RemedianUsize,
-    telemetry: HashMap<String, Vec<(usize, Duration, f64, SearchState)>>,
-    is_experimental: bool,
+    /// Keeps track of all heuristics and their estimations.
+    overall_telemetry: HashMap<SearchState, Vec<(usize, String, f64)>>,
+    /// Keeps track of selected heuristics and their results at each generation.
+    selection_telemetry: HashMap<String, Vec<(usize, Duration, f64, SearchState)>>,
 }
 
 impl HeuristicTracker {
-    pub fn observe(&mut self, generation: usize, estimate: f64, sample: SearchSample) {
+    /// Returns true if telemetry is enabled.
+    pub fn telemetry_enabled(&self) -> bool {
+        cfg!(feature = "heuristic-telemetry")
+    }
+
+    pub fn approx_median(&self) -> Option<usize> {
+        self.total_median.approx_median()
+    }
+
+    /// Observes a current sample. Updates total duration median.
+    pub fn observe_sample(&mut self, generation: usize, estimate: f64, sample: SearchSample) {
         self.total_median.add_observation(sample.duration.as_millis() as usize);
-        // NOTE track heuristic telemetry only for experimental mode (performance)
-        if self.is_experimental {
-            self.telemetry.entry(sample.name).or_default().push((
+        if self.telemetry_enabled() {
+            self.selection_telemetry.entry(sample.name).or_default().push((
                 generation,
                 sample.duration,
                 estimate,
@@ -453,8 +489,29 @@ impl HeuristicTracker {
         }
     }
 
-    pub fn approx_median(&self) -> Option<usize> {
-        self.total_median.approx_median()
+    /// Observes all search states.
+    pub fn observe_all_states(
+        &mut self,
+        generation: usize,
+        states: &StateEstimates<SearchState>,
+        name_resolution_fn: impl Fn(usize) -> String,
+    ) {
+        if self.telemetry_enabled() {
+            states
+                .iter()
+                // NOTE we interested only in best_known and diverse states
+                .filter(|(state, _)| matches!(state, SearchState::BestKnown(_) | SearchState::Diverse(_)))
+                .for_each(|(s, estimates)| {
+                    self.overall_telemetry.entry(s.clone()).or_insert_with(Vec::default).extend(
+                        estimates.data().iter().map(|(action, &estimate)| {
+                            let heuristic_idx = match action {
+                                SearchAction::Search { heuristic_idx } => *heuristic_idx,
+                            };
+                            (generation, (name_resolution_fn)(heuristic_idx), estimate)
+                        }),
+                    )
+                });
+        }
     }
 }
 
