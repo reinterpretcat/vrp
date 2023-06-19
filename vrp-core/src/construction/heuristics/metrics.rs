@@ -7,7 +7,7 @@ use crate::construction::features::*;
 use crate::construction::heuristics::RouteContext;
 use crate::models::problem::{TransportCost, TravelTime};
 use rosomaxa::algorithms::math::*;
-use rosomaxa::prelude::compare_floats;
+use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 
 /// Gets max load variance in tours.
@@ -107,7 +107,7 @@ pub fn get_longest_distance_between_depot_customer_mean(insertion_ctx: &Insertio
                     TravelTime::Departure(depot.schedule.departure),
                 )
             })
-            .max_by(|a, b| compare_floats(*a, *b))
+            .max_by(compare_floats_refs)
             .unwrap_or(0.)
     }))
 }

@@ -4,7 +4,7 @@ mod network_test;
 
 use super::*;
 use crate::algorithms::math::get_mean_iter;
-use crate::utils::{compare_floats, parallel_into_collect, Noise, Random};
+use crate::utils::*;
 use rand::prelude::SliceRandom;
 use rustc_hash::FxHasher;
 use std::cmp::Ordering;
@@ -184,7 +184,7 @@ where
 
     /// Returns max unified distance of the network.
     pub fn max_unified_distance(&self) -> f64 {
-        self.get_nodes().map(|node| node.unified_distance(self, 1)).max_by(|a, b| compare_floats(*a, *b)).unwrap_or(0.)
+        self.get_nodes().map(|node| node.unified_distance(self, 1)).max_by(compare_floats_refs).unwrap_or(0.)
     }
 
     /// Trains network on an input.

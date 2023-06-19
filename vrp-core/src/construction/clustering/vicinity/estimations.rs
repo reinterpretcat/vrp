@@ -141,7 +141,7 @@ fn get_dissimilarities(
                                 outer_time.overlapping(inner_time).map(|tw| tw.duration())
                             })
                         })
-                        .max_by(|a, b| compare_floats(*a, *b))
+                        .max_by(compare_floats_refs)
                         .unwrap_or(0.);
 
                     if shared_time > min_shared_time {

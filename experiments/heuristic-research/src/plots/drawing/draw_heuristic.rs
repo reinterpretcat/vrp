@@ -1,5 +1,4 @@
 use super::*;
-use rosomaxa::utils::compare_floats_refs;
 
 /// Draws heuristic state as bar plot.
 pub fn draw_heuristic<B: DrawingBackend + 'static>(
@@ -11,7 +10,7 @@ pub fn draw_heuristic<B: DrawingBackend + 'static>(
     let labels = &fitness_config.labels;
     let data = &fitness_config.estimations;
 
-    let max_x = data.iter().cloned().max_by(compare_floats_refs).unwrap_or_default();
+    let max_x = fitness_config.max_estimate;
     let max_y = data.len() - 1;
     let font_size = 14;
 
