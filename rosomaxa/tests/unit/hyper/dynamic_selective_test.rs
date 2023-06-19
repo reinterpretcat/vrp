@@ -76,16 +76,9 @@ fn can_estimate_median() {
     assert!(median > 0);
 }
 
-parameterized_test! {can_display_heuristic_info, is_experimental, {
-    can_display_heuristic_info_impl(is_experimental);
-}}
-
-can_display_heuristic_info! {
-    case_01: true,
-    case_02: false,
-}
-
-fn can_display_heuristic_info_impl(is_experimental: bool) {
+#[test]
+#[cfg(feature = "heuristic-telemetry")]
+fn can_display_heuristic_info() {
     let create_sample = |name: &str, duration: u64, new_state: SearchState| SearchSample {
         name: name.to_string(),
         duration: Duration::from_millis(duration),
@@ -93,7 +86,7 @@ fn can_display_heuristic_info_impl(is_experimental: bool) {
         new_state,
         action: SearchAction::Search { heuristic_idx: 0 },
     };
-    let environment = Environment { is_experimental, ..Environment::default() };
+    let environment = Environment::default();
     let mut heuristic =
         DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(vec![], vec![], &environment);
     heuristic.tracker.observe_sample(
@@ -114,5 +107,5 @@ fn can_display_heuristic_info_impl(is_experimental: bool) {
 
     let formatted = format!("{heuristic}");
 
-    assert_eq!(!formatted.is_empty(), is_experimental);
+    assert!(!formatted.is_empty());
 }
