@@ -102,6 +102,8 @@ pub struct FitnessDrawConfig {
 pub struct HeuristicDrawConfig {
     /// Heuristic labels.
     pub labels: Vec<String>,
+    /// Heuristic max estimate.
+    pub max_estimate: f64,
     /// Actual estimations.
     pub estimations: Vec<f64>,
 }

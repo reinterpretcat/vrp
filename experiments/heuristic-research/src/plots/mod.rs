@@ -203,10 +203,11 @@ fn get_heuristic_state(generation: usize, kind: &str) -> HeuristicDrawConfig {
         .lock()
         .ok()
         .and_then(|data| {
+            let max_estimate = data.heuristic_state.max_estimate;
             match kind {
                 "selection" => data.heuristic_state.selection_states.get(&generation).map(|states| {
                     let (labels, estimations) = states.iter().map(|state| (state.0.clone(), state.1)).unzip();
-                    HeuristicDrawConfig { labels, estimations }
+                    HeuristicDrawConfig { labels, max_estimate, estimations }
                 }),
                 // NOTE: expected best, diverse, see DynamicSelective::Display implementation
                 _ => data.heuristic_state.overall_states.get(&generation).map(|states| {
@@ -215,7 +216,7 @@ fn get_heuristic_state(generation: usize, kind: &str) -> HeuristicDrawConfig {
                         .filter(|(_, _, state_name)| state_name == kind)
                         .map(|(heuristic_name, estimate, _)| (heuristic_name.clone(), estimate))
                         .unzip();
-                    HeuristicDrawConfig { labels, estimations }
+                    HeuristicDrawConfig { labels, max_estimate, estimations }
                 }),
             }
         })
