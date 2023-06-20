@@ -150,7 +150,9 @@ impl HyperHeuristicState {
                 (fields, (name, generation, estimate, state))
             };
 
-            let selection_states =
+            // TODO sort by name?
+
+            let mut selection_states =
                 data.lines().skip(3).take_while(|line| *line != "overall").fold(HashMap::new(), |mut data, line| {
                     let (fields, (name, generation, estimate, state)) = get_data(line);
                     let duration = fields[4].parse().unwrap();
@@ -159,8 +161,9 @@ impl HyperHeuristicState {
 
                     data
                 });
+            selection_states.values_mut().for_each(|states| states.sort_by(|(a, ..), (b, ..)| a.cmp(b)));
 
-            let overall_states =
+            let mut overall_states =
                 data.lines().skip_while(|line| *line != "overall").skip(2).fold(HashMap::new(), |mut data, line| {
                     let (_, (name, generation, estimate, state)) = get_data(line);
 
@@ -168,6 +171,7 @@ impl HyperHeuristicState {
 
                     data
                 });
+            overall_states.values_mut().for_each(|states| states.sort_by(|(a, ..), (b, ..)| a.cmp(b)));
 
             let mut names = names.into_iter().collect::<Vec<_>>();
             names.sort();

@@ -12,12 +12,13 @@ pub fn draw_heuristic<B: DrawingBackend + 'static>(
 
     let max_x = fitness_config.max_estimate;
     let max_y = data.len() - 1;
-    let font_size = 14;
+    // TODO: improve font size detection
+    let font_size = if max_y < 20 { 16 } else { 8 };
 
     let mut chart = ChartBuilder::on(area)
         .set_label_area_size(LabelAreaPosition::Left, 40)
         .set_label_area_size(LabelAreaPosition::Bottom, 40)
-        .caption("Heuristic probabilities", ("sans-serif", 40))
+        .caption("Heuristic probabilities", ("sans-serif", 16))
         .build_cartesian_2d(0.0..max_x, (0..max_y).into_segmented())?;
 
     chart.configure_mesh().draw()?;

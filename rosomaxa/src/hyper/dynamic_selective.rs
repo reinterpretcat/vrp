@@ -174,11 +174,12 @@ where
         // update learning and policy strategies to move from more exploration at the beginning to exploitation in the end
         let termination_estimate = heuristic_ctx.statistics().termination_estimate;
         let random = heuristic_ctx.environment().random.clone();
+        let generation = heuristic_ctx.statistics().generation;
+
         self.heuristic_simulator.set_learning_strategy(create_learning_strategy(termination_estimate));
         self.heuristic_simulator.set_policy_strategy(create_policy_strategy(termination_estimate, random));
 
         samples.into_iter().for_each(|sample| {
-            let generation = heuristic_ctx.statistics().generation;
             let estimate = self
                 .heuristic_simulator
                 .get_state_estimates()
@@ -187,11 +188,10 @@ where
                 .cloned()
                 .unwrap_or_default();
             self.tracker.observe_sample(generation, estimate, sample);
-            self.tracker.observe_all_states(
-                generation,
-                self.heuristic_simulator.get_state_estimates(),
-                |heuristic_idx| self.action_registry.heuristics[heuristic_idx].1.clone(),
-            );
+        });
+
+        self.tracker.observe_all_states(generation, self.heuristic_simulator.get_state_estimates(), |heuristic_idx| {
+            self.action_registry.heuristics[heuristic_idx].1.clone()
         });
     }
 }
