@@ -197,27 +197,27 @@ where
 }
 
 #[derive(Default, Clone)]
-struct MedianRatio {
-    pub ratio: f64,
+struct Feedback {
+    pub median_ratio: f64,
 }
 
-impl Hash for MedianRatio {
+impl Hash for Feedback {
     fn hash<H: Hasher>(&self, state: &mut H) {
         0.hash(state)
     }
 }
 
-impl PartialEq for MedianRatio {
+impl PartialEq for Feedback {
     fn eq(&self, _: &Self) -> bool {
         true
     }
 }
 
-impl Eq for MedianRatio {}
+impl Eq for Feedback {}
 
-impl MedianRatio {
+impl Feedback {
     pub fn eval(&self, value: f64) -> f64 {
-        let ratio = self.ratio.clamp(0.5, 2.);
+        let ratio = self.median_ratio.clamp(0.5, 2.);
 
         match (ratio, compare_floats(value, 0.)) {
             (ratio, _) if ratio < 1.001 => value,
@@ -231,17 +231,17 @@ impl MedianRatio {
 #[derive(PartialEq, Eq, Hash, Clone)]
 enum SearchState {
     /// A state with the best known solution.
-    BestKnown(MedianRatio),
+    BestKnown(Feedback),
     /// A state with diverse (not the best known) solution.
-    Diverse(MedianRatio),
+    Diverse(Feedback),
     /// A state with new best known solution found (major improvement).
-    BestMajorImprovement(MedianRatio),
+    BestMajorImprovement(Feedback),
     /// A state with new best known solution found (minor improvement).
-    BestMinorImprovement(MedianRatio),
+    BestMinorImprovement(Feedback),
     /// A state with improved diverse solution.
-    DiverseImprovement(MedianRatio),
+    DiverseImprovement(Feedback),
     /// A state with equal or degraded solution.
-    Stagnated(MedianRatio),
+    Stagnated(Feedback),
 }
 
 impl State for SearchState {
@@ -335,8 +335,8 @@ where
         let compare_to_old = objective.total_order(&new_solution, self.original);
         let compare_to_best = compare_to_best(self.heuristic_ctx, &new_solution);
 
-        let ratio = MedianRatio {
-            ratio: self.tracker.approx_median().map_or(1., |median| {
+        let ratio = Feedback {
+            median_ratio: self.tracker.approx_median().map_or(1., |median| {
                 if median == 0 {
                     1.
                 } else {

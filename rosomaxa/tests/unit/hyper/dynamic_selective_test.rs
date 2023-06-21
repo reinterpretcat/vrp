@@ -17,9 +17,9 @@ can_evaluate_state_reward! {
 }
 
 fn can_evaluate_state_reward_impl(ratio: f64, value: f64, expected: f64) {
-    let median = MedianRatio { ratio };
+    let feedback = Feedback { median_ratio: ratio };
 
-    let result = median.eval(value);
+    let result = feedback.eval(value);
 
     assert_eq!(result, expected);
 }
@@ -82,7 +82,7 @@ fn can_display_heuristic_info() {
     let create_sample = |name: &str, duration: u64, new_state: SearchState| SearchSample {
         name: name.to_string(),
         duration: Duration::from_millis(duration),
-        old_state: SearchState::Diverse(MedianRatio::default()),
+        old_state: SearchState::Diverse(Feedback::default()),
         new_state,
         action: SearchAction::Search { heuristic_idx: 0 },
     };
@@ -92,17 +92,17 @@ fn can_display_heuristic_info() {
     heuristic.tracker.observe_sample(
         1,
         1.,
-        create_sample("name1", 100, SearchState::Stagnated(MedianRatio { ratio: 1. })),
+        create_sample("name1", 100, SearchState::Stagnated(Feedback { median_ratio: 1. })),
     );
     heuristic.tracker.observe_sample(
         2,
         1.,
-        create_sample("name1", 101, SearchState::BestMajorImprovement(MedianRatio { ratio: 1. })),
+        create_sample("name1", 101, SearchState::BestMajorImprovement(Feedback { median_ratio: 1. })),
     );
     heuristic.tracker.observe_sample(
         1,
         1.,
-        create_sample("name2", 102, SearchState::DiverseImprovement(MedianRatio { ratio: 1. })),
+        create_sample("name2", 102, SearchState::DiverseImprovement(Feedback { median_ratio: 1. })),
     );
 
     let formatted = format!("{heuristic}");
