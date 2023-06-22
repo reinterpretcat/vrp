@@ -203,19 +203,34 @@ fn get_heuristic_state(generation: usize, kind: &str) -> HeuristicDrawConfig {
         .lock()
         .ok()
         .and_then(|data| {
+            let names_rev = data.heuristic_state.names.iter().map(|(k, v)| (*v, k)).collect::<HashMap<_, _>>();
+            let states_rev = data.heuristic_state.states.iter().map(|(k, v)| (*v, k)).collect::<HashMap<_, _>>();
             let max_estimate = data.heuristic_state.max_estimate;
+
+            let unzip_sorted = |mut data: Vec<(String, f64)>| -> (Vec<String>, Vec<f64>) {
+                data.sort_by(|a, b| a.0.cmp(&b.0));
+                data.into_iter().unzip()
+            };
+
             match kind {
                 "selection" => data.heuristic_state.selection_states.get(&generation).map(|states| {
-                    let (labels, estimations) = states.iter().map(|state| (state.0.clone(), state.1)).unzip();
+                    let data = states
+                        .iter()
+                        .map(|(name_idx, estimate, ..)| (names_rev.get(name_idx).unwrap().to_string(), *estimate))
+                        .collect::<Vec<_>>();
+                    let (labels, estimations) = unzip_sorted(data);
+
                     HeuristicDrawConfig { labels, max_estimate, estimations }
                 }),
                 // NOTE: expected best, diverse, see DynamicSelective::Display implementation
                 _ => data.heuristic_state.overall_states.get(&generation).map(|states| {
-                    let (labels, estimations) = states
+                    let data = states
                         .iter()
-                        .filter(|(_, _, state_name)| state_name == kind)
-                        .map(|(heuristic_name, estimate, _)| (heuristic_name.clone(), estimate))
-                        .unzip();
+                        .filter(|(_, _, state_idx)| states_rev.get(state_idx).unwrap().as_str() == kind)
+                        .map(|(name_idx, estimate, _)| (names_rev.get(name_idx).unwrap().to_string(), *estimate))
+                        .collect::<Vec<_>>();
+                    let (labels, estimations) = unzip_sorted(data);
+
                     HeuristicDrawConfig { labels, max_estimate, estimations }
                 }),
             }
@@ -280,7 +295,7 @@ fn get_axis_sizes() -> (f64, f64, f64) {
         data.iter().fold(acc, |(max_x, max_y, max_z), data| {
             let &DataPoint3D(x, y, z) = match data {
                 ObservationData::Function(point) => point,
-                ObservationData::Vrp((_, point)) => point,
+                ObservationData::Vrp { point, .. } => point,
             };
             (max_x.max(x), max_y.max(y), max_z.max(z))
         })

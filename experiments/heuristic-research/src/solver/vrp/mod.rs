@@ -3,7 +3,7 @@
 mod vrp_test;
 
 extern crate serde_json;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::*;
 use std::io::BufWriter;
@@ -16,7 +16,7 @@ use vrp_scientific::tsplib::{TsplibProblem, TsplibSolution};
 mod conversion;
 
 /// Represents VRP solution as directed graph.
-#[derive(Clone, Serialize)]
+#[derive(Clone, Default, Deserialize, Serialize)]
 pub struct DataGraph {
     /// Nodes data: x and y coordinate.
     pub nodes: Vec<GraphNode>,
@@ -25,14 +25,14 @@ pub struct DataGraph {
 }
 
 /// Node of a graph.
-#[derive(Clone, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct GraphNode {
     pub x: f64,
     pub y: f64,
 }
 
 /// Edge of a graph.
-#[derive(Clone, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct GraphEdge {
     pub source: usize,
     pub target: usize,

@@ -25,9 +25,10 @@ export function main() {
 }
 
 /** This function is used in `vector.bootstrap.js` to setup imports. */
-export function setup(WasmChart, run_function_experiment, clear) {
+export function setup(WasmChart, run_function_experiment, load_state, clear) {
     Chart = WasmChart;
     Chart.run_experiment = run_function_experiment;
+    Chart.load_state = load_state;
     Chart.clear = clear;
 }
 
@@ -75,7 +76,7 @@ function openFile(event) {
         let content = reader.result;
         console.log(content.substring(0, 300));
 
-        Chart.problem = content;
+        Chart.data = content;
 
         run.classList.remove("hide");
     };
@@ -108,10 +109,15 @@ function updateStaticPlots() {
 function runExperiment() {
     // TODO configure parameters from outside
     let max_gen = 2000
-    let population_type = plotPopulation.selectedOptions[0].value;
     let format_type = vrpFormat.selectedOptions[0].value;
 
-    Chart.run_experiment(format_type, Chart.problem, population_type, max_gen);
+    if (format_type === "state") {
+        max_gen = Chart.load_state(Chart.data);
+    } else {
+        let population_type = plotPopulation.selectedOptions[0].value;
+        Chart.run_experiment(format_type, Chart.data, population_type, max_gen);
+    }
+
 
     updateDynamicPlots();
     updateStaticPlots();

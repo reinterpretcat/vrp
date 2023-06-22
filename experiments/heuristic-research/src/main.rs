@@ -4,17 +4,19 @@ use rosomaxa::utils::Environment;
 
 fn main() {
     // TODO make this more configurable
-    let vrp_file_path = std::env::args().nth(1);
+    let generations = std::env::args().nth(1).and_then(|gen_str| gen_str.parse().ok()).unwrap_or(200);
+    let vrp_file_path = std::env::args().nth(2);
+    let vrp_type = std::env::args().nth(3);
 
-    let generations = 200;
     let selection_size = 8;
     let population_type = "rosomaxa";
     let logger = Environment::default().logger;
 
     let (axes, function_name) = if let Some(vrp_file_path) = vrp_file_path {
         let function_name = "vrp";
+        let vrp_type = vrp_type.unwrap_or("tsplib".to_string());
         let problem = std::fs::read_to_string(vrp_file_path).expect("cannot read a test file");
-        solve_vrp("tsplib", problem, population_type, selection_size, generations, logger);
+        solve_vrp(&vrp_type, problem, population_type, selection_size, generations, logger);
 
         (Axes { x: (0.0..2.0, 0.15), y: (0.0..800.), z: (0.0..2.0, 0.15) }, function_name)
     } else {
@@ -37,4 +39,6 @@ fn main() {
 
     let area = BitMapBackend::new("heuristic_plot.png", (1024, 768)).into_drawing_area();
     draw_heuristic_plots(area, generation, "best").unwrap();
+
+    save_state("heuristic_state.json");
 }

@@ -10,7 +10,7 @@ use std::sync::MutexGuard;
 use vrp_scientific::core::construction::heuristics::InsertionContext;
 
 /// Keeps track of all experiment data for visualization purposes.
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct ExperimentData {
     /// Current generation.
     pub generation: usize,
@@ -19,7 +19,7 @@ pub struct ExperimentData {
     /// Called on individual selection.
     pub on_select: HashMap<usize, Vec<ObservationData>>,
     /// Called on generation.
-    pub on_generation: HashMap<usize, (HeuristicStatistics, Vec<ObservationData>)>,
+    pub on_generation: HashMap<usize, ((), Vec<ObservationData>)>,
     /// Keeps track of population state at specific generation.
     pub population_state: HashMap<usize, PopulationState>,
     /// Keeps track of heuristic state at specific generation.
@@ -33,6 +33,14 @@ impl ExperimentData {
         self.on_add.clear();
         self.on_select.clear();
         self.on_generation.clear();
+    }
+}
+
+impl<'a> TryFrom<&'a str> for ExperimentData {
+    type Error = String;
+
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        serde_json::from_str(value).map_err(|err| format!("cannot deserialize experiment data: {err}"))
     }
 }
 
@@ -62,7 +70,10 @@ where
                 _ => unreachable!(),
             };
 
-            return ObservationData::Vrp((insertion_ctx.into(), DataPoint3D(x, y, z)));
+            // NOTE temporarily disable graph as it is not really used, but consumes resources
+            let graph = Default::default(); // insertion_ctx.into()
+
+            return ObservationData::Vrp { graph, point: DataPoint3D(x, y, z) };
         }
 
         unreachable!()
@@ -127,7 +138,7 @@ where
         self.acquire().generation = statistics.generation;
 
         let individuals = self.inner.all().map(|individual| individual.into()).collect();
-        self.acquire().on_generation.insert(self.generation, (statistics.clone(), individuals));
+        self.acquire().on_generation.insert(self.generation, ((), individuals));
 
         self.acquire().population_state.insert(self.generation, get_population_state(&self.inner));
 

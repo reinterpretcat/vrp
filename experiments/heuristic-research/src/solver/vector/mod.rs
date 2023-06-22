@@ -1,12 +1,13 @@
 use super::*;
 use rosomaxa::evolution::TelemetryMode;
 use rosomaxa::example::*;
+use serde::{Deserialize, Serialize};
 
 mod objectives;
 pub use self::objectives::*;
 
 /// Specifies a data point type for 3D chart.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DataPoint3D(pub f64, pub f64, pub f64);
 
 /// Runs the solver to minimize objective function with given name.

@@ -29,13 +29,15 @@ impl LocalOperator for ExchangeIntraRouteRandom {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         if let Some(route_idx) = get_random_route_idx(insertion_ctx) {
             let random = insertion_ctx.environment.random.clone();
-            let mut new_insertion_ctx = insertion_ctx.deep_copy();
-            let route_ctx = new_insertion_ctx.solution.routes.get_mut(route_idx).unwrap();
+            let route_ctx = insertion_ctx.solution.routes.get(route_idx).unwrap();
 
             if let Some(job) = get_shuffled_jobs(insertion_ctx, route_ctx).into_iter().next() {
-                assert!(route_ctx.route_mut().tour.remove(&job));
+                let mut new_insertion_ctx = insertion_ctx.deep_copy();
+                let new_route_ctx = new_insertion_ctx.solution.routes.get_mut(route_idx).unwrap();
+
+                assert!(new_route_ctx.route_mut().tour.remove(&job));
                 new_insertion_ctx.solution.required.push(job.clone());
-                new_insertion_ctx.problem.goal.accept_route_state(route_ctx);
+                new_insertion_ctx.problem.goal.accept_route_state(new_route_ctx);
 
                 let leg_selection = LegSelection::Stochastic(random.clone());
                 let result_selector = NoiseResultSelector::new(Noise::new_with_addition(
@@ -44,16 +46,17 @@ impl LocalOperator for ExchangeIntraRouteRandom {
                     random.clone(),
                 ));
                 let eval_ctx = EvaluationContext {
-                    goal: &new_insertion_ctx.problem.goal,
+                    goal: &insertion_ctx.problem.goal,
                     job: &job,
                     leg_selection: &leg_selection,
                     result_selector: &result_selector,
                 };
 
+                let new_route_ctx = new_insertion_ctx.solution.routes.get(route_idx).unwrap();
                 let insertion = eval_job_insertion_in_route(
-                    insertion_ctx,
+                    &new_insertion_ctx,
                     &eval_ctx,
-                    route_ctx,
+                    new_route_ctx,
                     InsertionPosition::Any,
                     InsertionResult::make_failure(),
                 );

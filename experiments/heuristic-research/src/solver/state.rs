@@ -1,13 +1,15 @@
-use crate::MatrixData;
-use rosomaxa::algorithms::gsom::{Coordinate, NetworkState};
+use crate::{Coordinate, MatrixData};
+use rosomaxa::algorithms::gsom::NetworkState;
 use rosomaxa::population::{DominanceOrdered, Rosomaxa, RosomaxaWeighted, Shuffled};
 use rosomaxa::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::any::TypeId;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ops::Range;
 
 /// Represents population state specific for supported types.
 #[allow(clippy::large_enum_variant)]
+#[derive(Serialize, Deserialize)]
 pub enum PopulationState {
     /// Unknown (or unimplemented) population type.
     Unknown {
@@ -118,24 +120,32 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<f64>) 
 }
 
 /// Keeps track of dynamic selective hyper heuristic state.
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct HyperHeuristicState {
     /// Unique heuristic names.
-    pub names: Vec<String>,
+    pub names: HashMap<String, usize>,
+    /// Unique state names.
+    pub states: HashMap<String, usize>,
     /// Heuristic max estimate
     pub max_estimate: f64,
-    /// Heuristic states at specific generations as (name, estimation, state, duration).
-    pub selection_states: HashMap<usize, Vec<(String, f64, String, f64)>>,
-    /// Heuristic states at specific generations as (name, estimation, state)
-    pub overall_states: HashMap<usize, Vec<(String, f64, String)>>,
+    /// Heuristic states at specific generations as (name idx, estimation, state idx, duration).
+    pub selection_states: HashMap<usize, Vec<(usize, f64, usize, f64)>>,
+    /// Heuristic states at specific generations as (name idx, estimation, state idx)
+    pub overall_states: HashMap<usize, Vec<(usize, f64, usize)>>,
 }
 
 impl HyperHeuristicState {
     /// Parses multiple heuristic states for all generations at once from raw output.
     pub(crate) fn try_parse_all(data: &str) -> Option<Self> {
         if data.starts_with("TELEMETRY") {
-            let mut names = HashSet::new();
+            let mut names = HashMap::new();
+            let mut states = HashMap::new();
             let mut max_estimate = 0_f64;
+
+            let insert_to_map = |map: &mut HashMap<String, usize>, key: String| {
+                let length = map.len();
+                map.entry(key).or_insert_with(|| length);
+            };
 
             let mut get_data = |line: &str| {
                 let fields: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
@@ -144,10 +154,15 @@ impl HyperHeuristicState {
                 let estimate = fields[2].parse().unwrap();
                 let state = fields[3].clone();
 
-                names.insert(name.clone());
+                insert_to_map(&mut names, name.clone());
+                insert_to_map(&mut states, state.clone());
+
                 max_estimate = max_estimate.max(estimate);
 
-                (fields, (name, generation, estimate, state))
+                (
+                    fields,
+                    (names.get(&name).copied().unwrap(), generation, estimate, states.get(&state).copied().unwrap()),
+                )
             };
 
             // TODO sort by name?
@@ -173,10 +188,7 @@ impl HyperHeuristicState {
                 });
             overall_states.values_mut().for_each(|states| states.sort_by(|(a, ..), (b, ..)| a.cmp(b)));
 
-            let mut names = names.into_iter().collect::<Vec<_>>();
-            names.sort();
-
-            Some(Self { names, max_estimate, selection_states, overall_states })
+            Some(Self { names, states, max_estimate, selection_states, overall_states })
         } else {
             None
         }

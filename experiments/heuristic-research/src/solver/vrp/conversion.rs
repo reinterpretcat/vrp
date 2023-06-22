@@ -31,7 +31,7 @@ impl From<&InsertionContext> for DataGraph {
 impl From<&ObservationData> for DataGraph {
     fn from(data: &ObservationData) -> Self {
         match data {
-            ObservationData::Vrp((data_graph, _)) => data_graph.clone(),
+            ObservationData::Vrp { graph, .. } => graph.clone(),
             _ => unreachable!(),
         }
     }
