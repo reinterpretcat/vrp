@@ -54,8 +54,8 @@ pub fn draw_fitness<B: DrawingBackend + 'static>(
                     } else {
                         // normalize and scale values inside target objective range
                         let (min_value, max_value) = (min_values[dim_idx], max_values[dim_idx]);
-                        let (new_min, new_max) = (max_values[target_idx], min_values[target_idx]);
-                        (value - min_value) / (max_value - min_value) * ((new_max - new_min) + new_min)
+                        let (new_min, new_max) = (min_values[target_idx], max_values[target_idx]);
+                        (value - min_value) / (max_value - min_value) * (new_max - new_min) + new_min
                     };
 
                     (*generation as f64, fitness)
