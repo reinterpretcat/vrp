@@ -199,6 +199,7 @@ where
 #[derive(Default, Clone)]
 struct Feedback {
     pub median_ratio: f64,
+    pub improvement_ratio: f64,
 }
 
 impl Hash for Feedback {
@@ -216,15 +217,33 @@ impl PartialEq for Feedback {
 impl Eq for Feedback {}
 
 impl Feedback {
-    pub fn eval(&self, value: f64) -> f64 {
-        let ratio = self.median_ratio.clamp(0.5, 2.);
-
-        match (ratio, compare_floats(value, 0.)) {
-            (ratio, _) if ratio < 1.001 => value,
-            (ratio, Ordering::Equal) => -2. * ratio,
-            (ratio, Ordering::Less) => value * ratio,
-            (ratio, Ordering::Greater) => value / ratio,
+    /// Evaluates reward value according to environment state.
+    pub fn eval_reward(&self, reward: f64) -> f64 {
+        if reward == 0. {
+            return 0.;
         }
+
+        let reward_to_zero = compare_floats(reward, 0.);
+
+        let median_ratio = match (self.median_ratio.clamp(0.5, 2.), reward_to_zero) {
+            (ratio, _) if ratio < 1.001 => 1.,
+            (ratio, Ordering::Less) => ratio,
+            (ratio, Ordering::Greater) => 1. / ratio,
+            _ => unreachable!("zero case is trivially handled"),
+        };
+
+        let improvement_ratio = match (self.improvement_ratio, reward_to_zero) {
+            // stagnation: reduce negative reward and increase positive
+            (ratio, Ordering::Greater) if ratio < 0.05 => 10.,
+            (ratio, Ordering::Less) if ratio < 0.05 => 0.1,
+            // fast convergence: reduce positive reward and increase negative
+            (ratio, Ordering::Greater) if ratio > 0.150 => 0.5,
+            (ratio, Ordering::Less) if ratio < 0.10 => 2.,
+            // moderate convergence: keep the same
+            _ => 1.,
+        };
+
+        median_ratio * improvement_ratio * reward
     }
 }
 
@@ -249,12 +268,12 @@ impl State for SearchState {
 
     fn reward(&self) -> f64 {
         match &self {
-            SearchState::BestKnown(median_ratio) => median_ratio.eval(0.),
-            SearchState::Diverse(median_ratio) => median_ratio.eval(0.),
-            SearchState::BestMajorImprovement(median_ratio) => median_ratio.eval(1000.),
-            SearchState::BestMinorImprovement(median_ratio) => median_ratio.eval(100.),
-            SearchState::DiverseImprovement(median_ratio) => median_ratio.eval(10.),
-            SearchState::Stagnated(median_ratio) => median_ratio.eval(-1.),
+            SearchState::BestKnown(feedback) => feedback.eval_reward(0.),
+            SearchState::Diverse(feedback) => feedback.eval_reward(0.),
+            SearchState::BestMajorImprovement(feedback) => feedback.eval_reward(100.),
+            SearchState::BestMinorImprovement(feedback) => feedback.eval_reward(20.),
+            SearchState::DiverseImprovement(feedback) => feedback.eval_reward(5.),
+            SearchState::Stagnated(feedback) => feedback.eval_reward(-1.),
         }
     }
 }
@@ -331,6 +350,7 @@ where
         };
 
         let objective = self.heuristic_ctx.objective();
+        let statistics = self.heuristic_ctx.statistics();
 
         let compare_to_old = objective.total_order(&new_solution, self.original);
         let compare_to_best = compare_to_best(self.heuristic_ctx, &new_solution);
@@ -343,18 +363,18 @@ where
                     duration.as_millis() as f64 / median as f64
                 }
             }),
+            // NOTE consider "instant" improvement ratio only to react quicker on a change
+            improvement_ratio: statistics.improvement_1000_ratio,
         };
 
         let old_state = self.state.clone();
         self.state = match (compare_to_old, compare_to_best) {
             (_, Ordering::Less) => {
-                let is_significant_change = self.heuristic_ctx.ranked().next().map_or(
-                    self.heuristic_ctx.statistics().improvement_1000_ratio < 0.01,
-                    |(best, _)| {
+                let is_significant_change =
+                    self.heuristic_ctx.ranked().next().map_or(statistics.improvement_1000_ratio < 0.01, |(best, _)| {
                         let distance = relative_distance(objective.fitness(best), objective.fitness(&new_solution));
                         distance > 0.01
-                    },
-                );
+                    });
 
                 if is_significant_change {
                     SearchState::BestMajorImprovement(ratio)
@@ -536,8 +556,13 @@ fn create_policy_strategy(
 }
 
 fn get_state_reducer() -> impl Fn(&SearchState, &[f64]) -> f64 {
-    |state, values| match state {
-        SearchState::BestKnown { .. } => values.iter().max_by(|a, b| compare_floats(**a, **b)).cloned().unwrap_or(0.),
-        _ => values.iter().sum::<f64>() / values.len() as f64,
+    |state, values| {
+        match state {
+            SearchState::BestKnown { .. } => {
+                values.iter().max_by(|a, b| compare_floats(**a, **b)).cloned().unwrap_or(0.)
+            }
+            _ => values.iter().sum::<f64>() / values.len() as f64,
+        }
+        .max(1.)
     }
 }

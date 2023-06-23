@@ -19,7 +19,7 @@ can_evaluate_state_reward! {
 fn can_evaluate_state_reward_impl(ratio: f64, value: f64, expected: f64) {
     let feedback = Feedback { median_ratio: ratio };
 
-    let result = feedback.eval(value);
+    let result = feedback.eval_reward(value);
 
     assert_eq!(result, expected);
 }
