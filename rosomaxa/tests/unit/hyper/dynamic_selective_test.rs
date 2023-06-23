@@ -10,14 +10,14 @@ parameterized_test! {can_evaluate_state_reward, (ratio, value, expected), {
 can_evaluate_state_reward! {
     case_01: (1.0, 1000., 1000.),
     case_02: (1.0, 0., 0.),
-    case_03: (1.5, 0., -3.),
+    case_03: (1.5, 0., 0.),
     case_04: (1.5, -10., -15.),
     case_05: (1.5, 30., 20.),
     case_06: (3., 30., 15.),
 }
 
 fn can_evaluate_state_reward_impl(ratio: f64, value: f64, expected: f64) {
-    let feedback = Feedback { median_ratio: ratio };
+    let feedback = Feedback { median_ratio: ratio, improvement_ratio: 0.1 };
 
     let result = feedback.eval_reward(value);
 
@@ -82,27 +82,24 @@ fn can_display_heuristic_info() {
     let create_sample = |name: &str, duration: u64, new_state: SearchState| SearchSample {
         name: name.to_string(),
         duration: Duration::from_millis(duration),
-        old_state: SearchState::Diverse(Feedback::default()),
+        old_state: SearchState::Diverse,
         new_state,
         action: SearchAction::Search { heuristic_idx: 0 },
     };
     let environment = Environment::default();
+    let create_feedback = || Feedback { median_ratio: 1., improvement_ratio: 1. };
     let mut heuristic =
         DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(vec![], vec![], &environment);
-    heuristic.tracker.observe_sample(
-        1,
-        1.,
-        create_sample("name1", 100, SearchState::Stagnated(Feedback { median_ratio: 1. })),
-    );
+    heuristic.tracker.observe_sample(1, 1., create_sample("name1", 100, SearchState::Stagnated(create_feedback())));
     heuristic.tracker.observe_sample(
         2,
         1.,
-        create_sample("name1", 101, SearchState::BestMajorImprovement(Feedback { median_ratio: 1. })),
+        create_sample("name1", 101, SearchState::BestMajorImprovement(create_feedback())),
     );
     heuristic.tracker.observe_sample(
         1,
         1.,
-        create_sample("name2", 102, SearchState::DiverseImprovement(Feedback { median_ratio: 1. })),
+        create_sample("name2", 102, SearchState::DiverseImprovement(create_feedback())),
     );
 
     let formatted = format!("{heuristic}");

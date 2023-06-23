@@ -142,8 +142,8 @@ where
                 create_policy_strategy(0., environment.random.clone()),
             ),
             initial_estimates: vec![
-                (SearchState::BestKnown(Default::default()), operator_estimates.clone()),
-                (SearchState::Diverse(Default::default()), operator_estimates),
+                (SearchState::BestKnown, operator_estimates.clone()),
+                (SearchState::Diverse, operator_estimates),
                 (SearchState::BestMajorImprovement(Default::default()), Default::default()),
                 (SearchState::BestMinorImprovement(Default::default()), Default::default()),
                 (SearchState::DiverseImprovement(Default::default()), Default::default()),
@@ -163,8 +163,8 @@ where
 
     fn compare_solution(heuristic_ctx: &C, solution: &S) -> SearchState {
         match compare_to_best(heuristic_ctx, solution) {
-            Ordering::Greater => SearchState::Diverse(Default::default()),
-            _ => SearchState::BestKnown(Default::default()),
+            Ordering::Greater => SearchState::Diverse,
+            _ => SearchState::BestKnown,
         }
     }
 
@@ -250,9 +250,9 @@ impl Feedback {
 #[derive(PartialEq, Eq, Hash, Clone)]
 enum SearchState {
     /// A state with the best known solution.
-    BestKnown(Feedback),
+    BestKnown,
     /// A state with diverse (not the best known) solution.
-    Diverse(Feedback),
+    Diverse,
     /// A state with new best known solution found (major improvement).
     BestMajorImprovement(Feedback),
     /// A state with new best known solution found (minor improvement).
@@ -268,12 +268,13 @@ impl State for SearchState {
 
     fn reward(&self) -> f64 {
         match &self {
-            SearchState::BestKnown(feedback) => feedback.eval_reward(0.),
-            SearchState::Diverse(feedback) => feedback.eval_reward(0.),
             SearchState::BestMajorImprovement(feedback) => feedback.eval_reward(100.),
             SearchState::BestMinorImprovement(feedback) => feedback.eval_reward(20.),
             SearchState::DiverseImprovement(feedback) => feedback.eval_reward(5.),
             SearchState::Stagnated(feedback) => feedback.eval_reward(-1.),
+            SearchState::BestKnown | SearchState::Diverse => {
+                unreachable!("no reward as no transition to initial state")
+            }
         }
     }
 }
@@ -414,12 +415,11 @@ where
         self.tracker.selection_telemetry.iter().try_for_each(|(name, entries)| {
             entries.iter().try_for_each(|(generation, duration, estimate, state)| {
                 let state = match state {
-                    SearchState::BestKnown(_) => unreachable!(),
-                    SearchState::Diverse(_) => unreachable!(),
                     SearchState::BestMajorImprovement(_) => "best_major",
                     SearchState::BestMinorImprovement(_) => "best_minor",
                     SearchState::DiverseImprovement(_) => "diverse",
                     SearchState::Stagnated(_) => "stagnated",
+                    SearchState::BestKnown | SearchState::Diverse => unreachable!(),
                 };
                 f.write_fmt(format_args!("{name},{generation},{estimate},{state},{}\n", duration.as_millis()))
             })
@@ -429,8 +429,8 @@ where
         f.write_fmt(format_args!("name,generation,estimation,state\n"))?;
         self.tracker.overall_telemetry.iter().try_for_each(|(state, estimations)| {
             let state = match state {
-                SearchState::BestKnown(_) => "best",
-                SearchState::Diverse(_) => "diverse",
+                SearchState::BestKnown => "best",
+                SearchState::Diverse => "diverse",
                 _ => unreachable!(),
             };
             estimations.iter().try_for_each(|(generation, name, estimation)| {
@@ -446,8 +446,8 @@ fn try_exchange_estimates(heuristic_simulator: &mut Simulator<SearchState>) {
     let (best_known_max, diverse_state_max) = {
         let state_estimates = heuristic_simulator.get_state_estimates();
         (
-            state_estimates.get(&SearchState::BestKnown(Default::default())).and_then(|state| state.max_estimate()),
-            state_estimates.get(&SearchState::Diverse(Default::default())).and_then(|state| state.max_estimate()),
+            state_estimates.get(&SearchState::BestKnown).and_then(|state| state.max_estimate()),
+            state_estimates.get(&SearchState::Diverse).and_then(|state| state.max_estimate()),
         )
     };
 
@@ -457,9 +457,8 @@ fn try_exchange_estimates(heuristic_simulator: &mut Simulator<SearchState>) {
         diverse_state_max.map_or(false, |(_, max)| compare_floats(max, 0.) == Ordering::Greater);
 
     if is_best_known_stagnation && is_diverse_improvement {
-        let estimates =
-            heuristic_simulator.get_state_estimates().get(&SearchState::Diverse(Default::default())).unwrap().clone();
-        heuristic_simulator.set_action_estimates(SearchState::BestKnown(Default::default()), estimates);
+        let estimates = heuristic_simulator.get_state_estimates().get(&SearchState::Diverse).unwrap().clone();
+        heuristic_simulator.set_action_estimates(SearchState::BestKnown, estimates);
     }
 }
 
@@ -521,7 +520,7 @@ impl HeuristicTracker {
             states
                 .iter()
                 // NOTE we interested only in best_known and diverse states
-                .filter(|(state, _)| matches!(state, SearchState::BestKnown(_) | SearchState::Diverse(_)))
+                .filter(|(state, _)| matches!(state, SearchState::BestKnown | SearchState::Diverse))
                 .for_each(|(s, estimates)| {
                     self.overall_telemetry.entry(s.clone()).or_insert_with(Vec::default).extend(
                         estimates.data().iter().map(|(action, &estimate)| {
