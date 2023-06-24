@@ -557,9 +557,7 @@ fn create_policy_strategy(
 fn get_state_reducer() -> impl Fn(&SearchState, &[f64]) -> f64 {
     |state, values| {
         match state {
-            SearchState::BestKnown { .. } => {
-                values.iter().max_by(|a, b| compare_floats(**a, **b)).cloned().unwrap_or(0.)
-            }
+            SearchState::BestKnown { .. } => values.iter().copied().max_by(compare_floats_refs).unwrap_or(0.),
             _ => values.iter().sum::<f64>() / values.len() as f64,
         }
         .max(1.)
