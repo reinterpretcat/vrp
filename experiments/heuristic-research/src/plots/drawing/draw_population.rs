@@ -1,6 +1,6 @@
 use super::*;
 use itertools::{Itertools, MinMaxResult};
-use rosomaxa::utils::compare_floats;
+use rosomaxa::prelude::{compare_floats, compare_floats_refs};
 use std::cmp::Ordering;
 
 pub(crate) fn draw_population<B: DrawingBackend + 'static>(
@@ -85,7 +85,7 @@ pub(crate) fn draw_population<B: DrawingBackend + 'static>(
                 let compare_fitness = |left: &[f64], right: &[f64]| {
                     (left.iter())
                         .zip(right.iter())
-                        .map(|(left, right)| compare_floats(*left, *right))
+                        .map(|(lhs, rhs)| compare_floats_refs(lhs, rhs))
                         .find_or_first(|ord| *ord != Ordering::Equal)
                         .unwrap_or(Ordering::Equal)
                 };

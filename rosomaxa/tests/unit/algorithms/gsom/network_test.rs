@@ -18,12 +18,12 @@ mod common {
         // train
         let random = DefaultRandom::default();
         for j in 1..4 {
+            network.smooth(4);
+
             for i in 1..500 {
                 let idx = random.uniform_int(0, samples.len() as i32 - 1) as usize;
                 network.store(samples[idx].clone(), j * i + i);
             }
-
-            network.smooth(4);
         }
 
         assert!(!network.nodes.len() >= 4);

@@ -34,6 +34,7 @@ where
     min_max_weights: MinMaxWeights,
     nodes: NodeHashMap<I, S>,
     storage_factory: F,
+    random: Arc<dyn Random + Send + Sync>,
 }
 
 /// GSOM network configuration.
@@ -74,7 +75,7 @@ where
 
         let growing_threshold = -1. * dimension as f64 * config.spread_factor.log2();
         let initial_error = if config.has_initial_error { growing_threshold } else { 0. };
-        let noise = Noise::new_with_ratio(1., (0.75, 1.25), random);
+        let noise = Noise::new_with_ratio(1., (0.75, 1.25), random.clone());
 
         let (nodes, min_max_weights) =
             Self::create_initial_nodes(roots, initial_error, config.rebalance_memory, &noise, &storage_factory);
@@ -89,6 +90,7 @@ where
             min_max_weights,
             nodes,
             storage_factory,
+            random,
         }
     }
 
@@ -125,7 +127,9 @@ where
     pub fn smooth(&mut self, rebalance_count: usize) {
         (0..rebalance_count).for_each(|_| {
             let mut data = self.nodes.iter_mut().flat_map(|(_, node)| node.storage.drain(0..)).collect::<Vec<_>>();
-            data.shuffle(&mut rand::thread_rng());
+            data.sort_by(compare_input);
+            data.dedup_by(|a, b| compare_input(a, b) == Ordering::Equal);
+            data.shuffle(&mut self.random.get_rng());
 
             self.train_on_data(data, false);
 
@@ -440,6 +444,14 @@ where
 
         (nodes, min_max_weights)
     }
+}
+
+fn compare_input<I: Input>(left: &I, right: &I) -> Ordering {
+    (left.weights().iter())
+        .zip(right.weights().iter())
+        .map(|(lhs, rhs)| compare_floats_refs(lhs, rhs))
+        .find(|ord| *ord != Ordering::Equal)
+        .unwrap_or(Ordering::Equal)
 }
 
 fn update_min_max(min_max_weights: &mut (Vec<f64>, Vec<f64>), weights: &[f64]) {
