@@ -173,7 +173,7 @@ mod node_growing {
             }
 
             fn get_rng(&self) -> RandomGen {
-                unreachable!()
+                RandomGen::new_repeatable()
             }
         }
         Network::new(
