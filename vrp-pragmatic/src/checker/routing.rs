@@ -19,8 +19,6 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
 
     context.solution.tours.iter().try_for_each::<_, Result<_, String>>(|tour| {
         let profile = context.get_vehicle_profile(&tour.vehicle_id)?;
-        let time_offset =
-            parse_time(&tour.stops.first().ok_or_else(|| "empty tour".to_string())?.schedule().departure) as i64;
 
         let get_matrix_data = |from: &PointStop, to: &PointStop| -> Result<(i64, i64), String> {
             let from_idx = context.get_location_index(&from.location)?;
@@ -28,9 +26,19 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
             context.get_matrix_data(&profile, from_idx, to_idx)
         };
 
-        //let stops = tour.stops.iter().filter_map(|stop| stop.as_point()).collect::<Vec<_>>();
+        let first_stop = tour.stops.first().ok_or_else(|| "empty tour".to_string())?;
+        let first_activity =
+            first_stop.activities().first().ok_or_else(|| "no activities in first stop".to_string())?;
+        let time_offset = parse_time(
+            first_activity
+                .time
+                .as_ref()
+                .map(|interval| &interval.end)
+                .unwrap_or_else(|| &first_stop.schedule().departure),
+        ) as i64;
+
         let (departure_time, total_distance) = tour.stops.windows(2).enumerate().try_fold::<_, _, Result<_, String>>(
-            (time_offset, 0),
+            (parse_time(&first_stop.schedule().departure) as i64, 0),
             |(arrival_time, total_distance), (leg_idx, stops)| {
                 let (from, to) = match stops {
                     [from, to] => (from, to),
@@ -125,24 +133,7 @@ fn check_tour_statistic(
         ));
     }
 
-    let dispatch_at_start_correction =
-        tour.stops
-            .first()
-            .and_then(|stop| stop.activities().get(1))
-            .and_then(|activity| {
-                if activity.activity_type == "dispatch" {
-                    Some(
-                        activity.time.as_ref().map_or(0, |interval| {
-                            parse_time(&interval.end) as i64 - parse_time(&interval.start) as i64
-                        }),
-                    )
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(0);
-
-    let total_duration = departure_time - time_offset + dispatch_at_start_correction;
+    let total_duration = departure_time - time_offset;
     if (total_duration - tour.statistic.duration).abs() > 1 {
         return Err(format!(
             "duration mismatch for tour statistic: {}, expected: '{}', got: '{}'",

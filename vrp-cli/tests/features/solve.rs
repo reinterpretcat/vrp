@@ -20,6 +20,8 @@ fn can_solve_problem_using_full_config() {
     }
     if let Some(termination) = config.termination.as_mut() {
         termination.max_generations = Some(1);
+        termination.max_time = None;
+        termination.variation = None;
     }
 
     let (solution, _, _) = create_builder_from_config(problem.clone(), Default::default(), &config)
