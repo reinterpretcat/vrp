@@ -198,7 +198,7 @@ To test it, use the following index.html file:
             }
         };
 
-        const solution = solve_pragmatic(pragmatic_problem, matrix_data, config);
+        const solution = solve_pragmatic(pragmatic_problem, matrix_data, config, false);
         console.log(`solution is:\n ${solution}`);
     }
 

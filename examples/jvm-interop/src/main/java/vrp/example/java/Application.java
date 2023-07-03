@@ -18,6 +18,7 @@ interface Solver extends Library {
     void solve_pragmatic(String problem, String[] matrices,
                          int matricesSize,
                          String config,
+                         boolean geojson,
                          OnSuccess onSuccess, OnError onError);
 }
 
@@ -56,7 +57,7 @@ class Application {
                     }
                 });
 
-        solver.solve_pragmatic(problem, matrices, matrices.length, "{}",
+        solver.solve_pragmatic(problem, matrices, matrices.length, "{}", false
                 new OnSuccess() {
                     @Override
                     public void result(String json) {

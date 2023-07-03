@@ -117,6 +117,7 @@ solution = prg.Solution(**json.loads(vrp_cli.solve_pragmatic(
     problem=json.dumps(problem, default=pydantic_encoder),
     matrices=[json.dumps(matrix, default=pydantic_encoder)],
     config=json.dumps(config, default=pydantic_encoder),
+    False # If True returns { "pragmatic": <...>, "geo": <...> }
 )))
 
 print(solution)

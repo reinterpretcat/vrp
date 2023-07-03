@@ -17,6 +17,7 @@ private interface Solver : Library {
                         matrices: Array<String>,
                         matricesLen: Int,
                         config: String,
+                        geojson: Boolean,
                         onSuccess: OnSuccess, onError: OnError)
 }
 
@@ -51,7 +52,7 @@ fun main(args: Array<String>) {
             }
     )
 
-    solver.solve_pragmatic(problem, matrices, matrices.size, "{}",
+    solver.solve_pragmatic(problem, matrices, matrices.size, "{}", false
             onSuccess = object : OnSuccess {
                 override fun result(json: String) {
                     println("solution: $json")
