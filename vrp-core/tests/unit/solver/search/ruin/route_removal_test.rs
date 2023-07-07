@@ -37,7 +37,7 @@ fn can_remove_parts_random_routes_from_context() {
     let problem = Problem {
         jobs: problem.jobs.clone(),
         locks: vec![Arc::new(Lock {
-            condition: Arc::new(|_| false),
+            condition_fn: Arc::new(|_| false),
             details: vec![LockDetail {
                 order: LockOrder::Any,
                 position: LockPosition::Any,

@@ -5,7 +5,6 @@ mod evaluators_test;
 use std::sync::Arc;
 
 use crate::construction::heuristics::*;
-use crate::models::common::Cost;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Leg, Place};
 use crate::models::{ConstraintViolation, GoalContext};
@@ -63,16 +62,16 @@ pub fn eval_job_insertion_in_route(
     }
 
     let route_costs = goal.estimate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job));
-    let best_known_cost = match &alternative {
-        InsertionResult::Success(success) => Some(success.cost),
-        _ => None,
-    };
 
-    if let Some(best_known_cost) = best_known_cost {
-        if let Either::Left(_) = eval_ctx.result_selector.select_cost(route_ctx, best_known_cost, route_costs) {
-            return alternative;
+    // analyze alternative and return it if it looks better based on routing cost comparison
+    let (route_costs, best_known_cost) = if let Some(success) = alternative.as_success() {
+        match eval_ctx.result_selector.select_cost(&success.cost, &route_costs) {
+            Either::Left(_) => return alternative,
+            Either::Right(_) => (route_costs, Some(success.cost.clone())),
         }
-    }
+    } else {
+        (route_costs, None)
+    };
 
     eval_ctx.result_selector.select_insertion(
         insertion_ctx,
@@ -87,8 +86,8 @@ pub fn eval_job_constraint_in_route(
     eval_ctx: &EvaluationContext,
     route_ctx: &RouteContext,
     position: InsertionPosition,
-    route_costs: Cost,
-    best_known_cost: Option<Cost>,
+    route_costs: InsertionCost,
+    best_known_cost: Option<InsertionCost>,
 ) -> InsertionResult {
     match eval_ctx.job {
         Job::Single(single) => eval_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost),
@@ -102,8 +101,8 @@ pub(crate) fn eval_single_constraint_in_route(
     route_ctx: &RouteContext,
     single: &Arc<Single>,
     position: InsertionPosition,
-    route_costs: Cost,
-    best_known_cost: Option<Cost>,
+    route_costs: InsertionCost,
+    best_known_cost: Option<InsertionCost>,
 ) -> InsertionResult {
     if let Some(violation) =
         eval_ctx.goal.evaluate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job))
@@ -123,8 +122,8 @@ fn eval_single(
     route_ctx: &RouteContext,
     single: &Arc<Single>,
     position: InsertionPosition,
-    route_costs: Cost,
-    best_known_cost: Option<Cost>,
+    route_costs: InsertionCost,
+    best_known_cost: Option<InsertionCost>,
 ) -> InsertionResult {
     let insertion_idx = get_insertion_index(route_ctx, position);
     let mut activity = Activity::new_with_job(single.clone());
@@ -143,7 +142,7 @@ fn eval_single(
     if result.is_success() {
         activity.place = result.place.unwrap();
         let activities = vec![(activity, result.index)];
-        InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx.clone())
+        InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx)
     } else {
         let (code, stopped) = result.violation.map_or((0, false), |v| (v.code, v.stopped));
         InsertionResult::make_failure_with_code(code, stopped, Some(job))
@@ -155,8 +154,8 @@ fn eval_multi(
     route_ctx: &RouteContext,
     multi: &Arc<Multi>,
     position: InsertionPosition,
-    route_costs: Cost,
-    best_known_cost: Option<Cost>,
+    route_costs: InsertionCost,
+    best_known_cost: Option<InsertionCost>,
 ) -> InsertionResult {
     let insertion_idx = get_insertion_index(route_ctx, position).unwrap_or(0);
     // 1. analyze permutations
@@ -165,7 +164,7 @@ fn eval_multi(
         |acc_res, services| {
             let mut shadow = ShadowContext::new(eval_ctx.goal, route_ctx);
             let perm_res = unwrap_from_result((0..).try_fold(MultiContext::new(None, insertion_idx), |out, _| {
-                if out.is_failure(route_ctx.route.tour.job_activity_count()) {
+                if out.is_failure(route_ctx.route().tour.job_activity_count()) {
                     return Err(out);
                 }
                 shadow.restore(route_ctx);
@@ -179,11 +178,11 @@ fn eval_multi(
                     // 3. analyze legs
                     let srv_res = analyze_insertion_in_route(
                         eval_ctx,
-                        &shadow.ctx,
+                        shadow.route_ctx(),
                         None,
                         service,
                         &mut activity,
-                        0.,
+                        Default::default(),
                         SingleContext::new(None, in1.next_index),
                     );
 
@@ -192,7 +191,7 @@ fn eval_multi(
                         let activity = shadow.insert(activity, srv_res.index);
                         let activities = concat_activities(in1.activities, (activity, srv_res.index));
                         return MultiContext::success(
-                            in1.cost.unwrap_or(route_costs) + srv_res.cost.unwrap(),
+                            in1.cost.unwrap_or_else(|| route_costs.clone()) + srv_res.cost.unwrap(),
                             activities,
                         );
                     }
@@ -210,7 +209,7 @@ fn eval_multi(
     let job = eval_ctx.job.clone();
     if result.is_success() {
         let activities = result.activities.unwrap();
-        InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx.clone())
+        InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx)
     } else {
         let (code, stopped) = result.violation.map_or((0, false), |v| (v.code, v.stopped));
         InsertionResult::make_failure_with_code(code, stopped, Some(job))
@@ -223,16 +222,16 @@ fn analyze_insertion_in_route(
     insertion_idx: Option<usize>,
     single: &Single,
     target: &mut Activity,
-    route_costs: Cost,
+    route_costs: InsertionCost,
     init: SingleContext,
 ) -> SingleContext {
     let mut analyze_leg_insertion = |leg: Leg<'_>, init| {
-        analyze_insertion_in_route_leg(eval_ctx, route_ctx, leg, single, target, route_costs, init)
+        analyze_insertion_in_route_leg(eval_ctx, route_ctx, leg, single, target, route_costs.clone(), init)
     };
 
     match insertion_idx {
         Some(idx) => {
-            if let Some(leg) = route_ctx.route.tour.legs().nth(idx) {
+            if let Some(leg) = route_ctx.route().tour.legs().nth(idx) {
                 unwrap_from_result(analyze_leg_insertion(leg, init))
             } else {
                 init
@@ -244,11 +243,14 @@ fn analyze_insertion_in_route(
             init.index,
             init,
             &mut |leg: Leg<'_>, init| analyze_leg_insertion(leg, init),
-            |lhs: &SingleContext, rhs: &SingleContext| {
-                eval_ctx
-                    .result_selector
-                    .select_cost(route_ctx, lhs.cost.unwrap_or(f64::MAX), rhs.cost.unwrap_or(f64::MAX))
-                    .is_left()
+            {
+                let max_value = InsertionCost::max_value();
+                move |lhs: &SingleContext, rhs: &SingleContext| {
+                    eval_ctx
+                        .result_selector
+                        .select_cost(lhs.cost.as_ref().unwrap_or(&max_value), rhs.cost.as_ref().unwrap_or(&max_value))
+                        .is_left()
+                }
             },
         ),
     }
@@ -260,7 +262,7 @@ fn analyze_insertion_in_route_leg(
     leg: Leg,
     single: &Single,
     target: &mut Activity,
-    route_costs: Cost,
+    route_costs: InsertionCost,
     init: SingleContext,
 ) -> Result<SingleContext, SingleContext> {
     let (items, index) = leg;
@@ -269,7 +271,7 @@ fn analyze_insertion_in_route_leg(
         [prev, next] => (prev, Some(next)),
         _ => panic!("Unexpected route leg configuration."),
     };
-    let start_time = route_ctx.route.tour.start().unwrap().schedule.departure;
+    let start_time = route_ctx.route().tour.start().unwrap().schedule.departure;
     // analyze service details
     single.places.iter().try_fold(init, |acc, detail| {
         // analyze detail time windows
@@ -281,15 +283,16 @@ fn analyze_insertion_in_route_leg(
             };
 
             let activity_ctx = ActivityContext { index, prev, target, next };
+            let move_ctx = MoveContext::activity(route_ctx, &activity_ctx);
 
-            if let Some(violation) = eval_ctx.goal.evaluate(&MoveContext::activity(route_ctx, &activity_ctx)) {
+            if let Some(violation) = eval_ctx.goal.evaluate(&move_ctx) {
                 return SingleContext::fail(violation, acc);
             }
 
-            let costs = eval_ctx.goal.estimate(&MoveContext::activity(route_ctx, &activity_ctx)) + route_costs;
-            let other_costs = acc.cost.unwrap_or(f64::MAX);
+            let costs = eval_ctx.goal.estimate(&move_ctx) + &route_costs;
+            let other_costs = acc.cost.clone().unwrap_or_else(InsertionCost::max_value);
 
-            match eval_ctx.result_selector.select_cost(route_ctx, costs, other_costs) {
+            match eval_ctx.result_selector.select_cost(&costs, &other_costs) {
                 Either::Left(_) => SingleContext::success(activity_ctx.index, costs, target.place.clone()),
                 Either::Right(_) => SingleContext::skip(acc),
             }
@@ -301,7 +304,7 @@ fn get_insertion_index(route_ctx: &RouteContext, position: InsertionPosition) ->
     match position {
         InsertionPosition::Any => None,
         InsertionPosition::Concrete(idx) => Some(idx),
-        InsertionPosition::Last => Some(route_ctx.route.tour.legs().count().max(1) - 1),
+        InsertionPosition::Last => Some(route_ctx.route().tour.legs().count().max(1) - 1),
     }
 }
 
@@ -313,14 +316,14 @@ struct SingleContext {
     /// Insertion index.
     pub index: usize,
     /// Best cost.
-    pub cost: Option<Cost>,
+    pub cost: Option<InsertionCost>,
     /// Activity place.
     pub place: Option<Place>,
 }
 
 impl SingleContext {
     /// Creates a new empty context with given cost.
-    fn new(cost: Option<Cost>, index: usize) -> Self {
+    fn new(cost: Option<InsertionCost>, index: usize) -> Self {
         Self { violation: None, index, cost, place: None }
     }
 
@@ -335,7 +338,7 @@ impl SingleContext {
     }
 
     #[allow(clippy::unnecessary_wraps)]
-    fn success(index: usize, cost: Cost, place: Place) -> Result<Self, Self> {
+    fn success(index: usize, cost: InsertionCost, place: Place) -> Result<Self, Self> {
         Ok(Self { violation: None, index, cost: Some(cost), place: Some(place) })
     }
 
@@ -358,21 +361,21 @@ struct MultiContext {
     /// Insertion index for next service.
     pub next_index: usize,
     /// Cost accumulator.
-    pub cost: Option<Cost>,
+    pub cost: Option<InsertionCost>,
     /// Activities with their indices.
     pub activities: Option<Vec<(Activity, usize)>>,
 }
 
 impl MultiContext {
     /// Creates new empty insertion context.
-    fn new(cost: Option<Cost>, index: usize) -> Self {
+    fn new(cost: Option<InsertionCost>, index: usize) -> Self {
         Self { violation: None, start_index: index, next_index: index, cost, activities: None }
     }
 
     /// Promotes insertion context by best price.
     fn promote(left: Self, right: Self) -> Result<Self, Self> {
         let index = left.start_index.max(right.start_index) + 1;
-        let best = match (left.cost, right.cost) {
+        let best = match (&left.cost, &right.cost) {
             (Some(left_cost), Some(right_cost)) => {
                 if left_cost < right_cost {
                     left
@@ -423,7 +426,7 @@ impl MultiContext {
 
     /// Creates successful insertion context.
     #[allow(clippy::unnecessary_wraps)]
-    fn success(cost: Cost, activities: Vec<(Activity, usize)>) -> Result<Self, Self> {
+    fn success(cost: InsertionCost, activities: Vec<(Activity, usize)>) -> Result<Self, Self> {
         Ok(Self {
             violation: None,
             start_index: activities.first().unwrap().1,
@@ -457,35 +460,41 @@ impl MultiContext {
 
 /// Provides the way to use copy on write strategy within route state context.
 struct ShadowContext<'a> {
-    is_mutated: bool,
-    is_dirty: bool,
     goal: &'a GoalContext,
-    ctx: RouteContext,
+    // NOTE Cow might be a better fit, but it would require RouteContext to implement Clone trait.
+    //      However we want to avoid this as it might lead to unnecessary clones and, as result,
+    //      performance degradation.
+    ctx: Either<&'a RouteContext, RouteContext>,
 }
 
 impl<'a> ShadowContext<'a> {
-    fn new(goal: &'a GoalContext, ctx: &RouteContext) -> Self {
-        Self { is_mutated: false, is_dirty: false, goal, ctx: ctx.clone() }
+    fn new(goal: &'a GoalContext, ctx: &'a RouteContext) -> Self {
+        Self { goal, ctx: Either::Left(ctx) }
+    }
+
+    fn route_ctx(&self) -> &'_ RouteContext {
+        match &self.ctx {
+            Either::Left(route_ctx) => route_ctx,
+            Either::Right(route_ctx) => route_ctx,
+        }
     }
 
     fn insert(&mut self, activity: Activity, index: usize) -> Activity {
-        if !self.is_mutated {
-            self.ctx = self.ctx.deep_copy();
-            self.is_mutated = true;
+        if let Either::Left(route_ctx) = &self.ctx {
+            self.ctx = Either::Right(route_ctx.deep_copy());
         }
 
-        self.ctx.route_mut().tour.insert_at(activity.deep_copy(), index + 1);
-        self.goal.accept_route_state(&mut self.ctx);
-        self.is_dirty = true;
+        if let Either::Right(ref mut route_ctx) = self.ctx {
+            route_ctx.route_mut().tour.insert_at(activity.deep_copy(), index + 1);
+            self.goal.accept_route_state(route_ctx);
+        }
 
         activity
     }
 
-    fn restore(&mut self, original: &RouteContext) {
-        if self.is_dirty {
-            self.ctx = original.clone();
-            self.is_mutated = false;
-            self.is_dirty = false;
+    fn restore(&mut self, original: &'a RouteContext) {
+        if let Either::Right(_) = &self.ctx {
+            self.ctx = Either::Left(original)
         }
     }
 }

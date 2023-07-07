@@ -3,6 +3,7 @@ use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Route;
 use crate::models::Problem;
+use crate::models::*;
 use std::sync::Arc;
 
 struct ExampleTransportCost {}

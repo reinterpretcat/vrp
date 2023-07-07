@@ -65,36 +65,35 @@ fn create_solution_ctx(fleet: &Fleet, routes: Vec<(usize, usize)>) -> SolutionCo
         .map(|(idx, (jobs, activities))| create_route_with_jobs_activities(fleet, idx, jobs, activities))
         .collect::<Vec<_>>();
     routes.iter().for_each(|route_ctx| {
-        registry.use_route(route_ctx);
+        let _ = registry.get_route(route_ctx.route().actor.as_ref());
     });
 
     SolutionContext { routes, registry, ..create_empty_solution_context() }
 }
 
 fn get_job_from_solution_ctx(solution_ctx: &SolutionContext, route_idx: usize, activity_idx: usize) -> Job {
-    solution_ctx.routes.get(route_idx).unwrap().route.tour.get(activity_idx).unwrap().retrieve_job().unwrap()
+    solution_ctx.routes.get(route_idx).unwrap().route().tour.get(activity_idx).unwrap().retrieve_job().unwrap()
 }
 
-parameterized_test! {can_try_remove_job_with_job_limit, (jobs_activities, route_activity_idx, limits, expected_removed_activities), {
-    can_try_remove_job_with_job_limit_impl(jobs_activities, route_activity_idx, limits, expected_removed_activities);
+parameterized_test! {can_try_remove_job_with_job_limit, (jobs_activities, limits, expected_removed_activities), {
+    can_try_remove_job_with_job_limit_impl(jobs_activities, limits, expected_removed_activities);
 }}
 
 can_try_remove_job_with_job_limit! {
-    case_01: ((10, 10), (0, 1), (20, 2), 1),
-    case_02: ((10, 20), (0, 1), (20, 2), 2),
-    case_03: ((10, 30), (0, 1), (20, 2), 3),
-    case_04: ((10, 10), (0, 1), (1, 1), 1),
-    case_05: ((10, 10), (0, 1), (0, 0), 0),
+    case_01: ((10, 10), (20, 2), 1),
+    case_02: ((10, 20), (20, 2), 2),
+    case_03: ((10, 30), (20, 2), 3),
+    case_04: ((10, 10), (1, 1), 1),
+    case_05: ((10, 10), (0, 0), 0),
 }
 
 fn can_try_remove_job_with_job_limit_impl(
     jobs_activities: (usize, usize),
-    route_activity_idx: (usize, usize),
     limits: (usize, usize),
     expected_removed_activities: usize,
 ) {
     let (jobs, activities) = jobs_activities;
-    let (route_idx, activity_idx) = route_activity_idx;
+    let (route_idx, activity_idx) = (0, 1);
     let (ruined_activities, affected_routes) = limits;
     let limits = RemovalLimits {
         removed_activities_range: ruined_activities..ruined_activities,
@@ -103,27 +102,26 @@ fn can_try_remove_job_with_job_limit_impl(
 
     let fleet = create_fleet(1);
     let mut solution_ctx = create_solution_ctx(&fleet, vec![(jobs, activities)]);
-    let mut route_ctx = solution_ctx.routes.get_mut(0).cloned().unwrap();
     let job = get_job_from_solution_ctx(&solution_ctx, route_idx, activity_idx);
     let mut removal = JobRemovalTracker::new(&limits, &DefaultRandom::default());
 
-    let result = removal.try_remove_job(&mut solution_ctx, &mut route_ctx, &job);
+    let result = removal.try_remove_job(&mut solution_ctx, route_idx, &job);
 
     if expected_removed_activities > 0 {
         assert!(result);
         assert_eq!(solution_ctx.required.len(), 1);
         assert!(solution_ctx.required[0] == job);
-        assert_eq!(solution_ctx.routes[0].route.tour.job_activity_count(), activities - expected_removed_activities);
+        assert_eq!(solution_ctx.routes[0].route().tour.job_activity_count(), activities - expected_removed_activities);
         assert_eq!(removal.activities_left, (ruined_activities - expected_removed_activities) as i32);
         assert!(removal.removed_jobs.contains(&job));
-        assert!(removal.affected_actors.contains(&route_ctx.route.actor));
+        assert!(removal.affected_actors.contains(&solution_ctx.routes[0].route().actor));
     } else {
         assert!(!result);
         assert!(solution_ctx.required.is_empty());
-        assert_eq!(solution_ctx.routes[0].route.tour.job_activity_count(), activities);
+        assert_eq!(solution_ctx.routes[0].route().tour.job_activity_count(), activities);
         assert_eq!(removal.activities_left, ruined_activities as i32);
         assert!(!removal.removed_jobs.contains(&job));
-        assert!(!removal.affected_actors.contains(&route_ctx.route.actor));
+        assert!(!removal.affected_actors.contains(&solution_ctx.routes[0].route().actor));
     }
 }
 
@@ -150,13 +148,14 @@ fn can_try_remove_route_with_limit_impl(
         removed_activities_range: ruined_activities..ruined_activities,
         affected_routes_range: affected_routes..affected_routes,
     };
+    let route_idx = 0;
     let fleet = create_fleet(1);
     let mut solution_ctx = create_solution_ctx(&fleet, vec![(jobs, activities)]);
-    let mut route_ctx = solution_ctx.routes.get_mut(0).cloned().unwrap();
+    let actor = solution_ctx.routes[0].route().actor.clone();
     let random = FakeRandom::new(vec![], vec![if is_random_hit { 0. } else { 10. }]);
     let mut removal = JobRemovalTracker::new(&limits, &DefaultRandom::default());
 
-    let result = removal.try_remove_route(&mut solution_ctx, &mut route_ctx, &random);
+    let result = removal.try_remove_route(&mut solution_ctx, route_idx, &random);
 
     let (expected_affected_activities, expected_affected_jobs, expected_affected_routes, expected_result_routes) =
         expected_affected;
@@ -166,16 +165,16 @@ fn can_try_remove_route_with_limit_impl(
         assert_eq!(removal.routes_left, (affected_routes - expected_affected_routes) as i32);
         assert_eq!(solution_ctx.required.len(), expected_affected_jobs);
         assert_eq!(solution_ctx.routes.len(), expected_result_routes);
-        assert_eq!(solution_ctx.registry.next().count(), 1 - expected_result_routes);
+        assert_eq!(solution_ctx.registry.next_route().count(), 1 - expected_result_routes);
         assert_eq!(removal.removed_jobs.len(), solution_ctx.required.len());
-        assert!(removal.affected_actors.contains(&route_ctx.route.actor));
+        assert!(removal.affected_actors.contains(&actor));
     } else {
         assert!(!result);
         assert!(solution_ctx.required.is_empty());
         assert_eq!(solution_ctx.routes.len(), 1);
-        assert_eq!(solution_ctx.routes[0].route.tour.jobs().count(), jobs);
-        assert_eq!(solution_ctx.registry.next().count(), 0);
-        assert!(!removal.affected_actors.contains(&route_ctx.route.actor));
+        assert_eq!(solution_ctx.routes[0].route().tour.jobs().count(), jobs);
+        assert_eq!(solution_ctx.registry.next_route().count(), 0);
+        assert!(!removal.affected_actors.contains(&actor));
     }
 }
 

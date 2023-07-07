@@ -12,8 +12,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use vrp_cli::core::solver::TargetHeuristic;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
+use vrp_cli::get_locations_serialized;
 use vrp_cli::scientific::tsplib::{TsplibProblem, TsplibSolution};
-use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::GoalContext;
 use vrp_core::prelude::*;
@@ -70,8 +70,8 @@ type FormatMap<'a> = HashMap<&'a str, (ProblemReader, InitSolutionReader, Soluti
 
 fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) {
     if cfg!(feature = "scientific-format") {
+        use vrp_scientific::common::read_init_solution;
         use vrp_scientific::lilim::{LilimProblem, LilimSolution};
-        use vrp_scientific::solomon::read_init_solution as read_init_solomon;
         use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
 
         let is_rounded = matches.get_one::<bool>(ROUNDED_ARG_NAME).copied().unwrap_or(false);
@@ -83,10 +83,13 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
                     assert!(matrices.is_none());
                     BufReader::new(problem).read_solomon(is_rounded)
                 })),
-                InitSolutionReader(Box::new(move |file, problem| {
-                    read_init_solomon(BufReader::new(file), problem, random.clone())
+                InitSolutionReader(Box::new({
+                    let random = random.clone();
+                    move |file, problem| read_init_solution(BufReader::new(file), problem, random.clone())
                 })),
-                SolutionWriter(Box::new(|_, solution, cost, _, writer, _| (&solution, cost).write_solomon(writer))),
+                SolutionWriter(Box::new(|_, solution, cost, _, mut writer, _| {
+                    (&solution, cost).write_solomon(&mut writer)
+                })),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );
@@ -98,7 +101,9 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
                     BufReader::new(problem).read_lilim(is_rounded)
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
-                SolutionWriter(Box::new(|_, solution, cost, _, writer, _| (&solution, cost).write_lilim(writer))),
+                SolutionWriter(Box::new(|_, solution, cost, _, mut writer, _| {
+                    (&solution, cost).write_lilim(&mut writer)
+                })),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );
@@ -109,8 +114,12 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
                     assert!(matrices.is_none());
                     BufReader::new(problem).read_tsplib(is_rounded)
                 })),
-                InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
-                SolutionWriter(Box::new(|_, solution, cost, _, writer, _| (&solution, cost).write_tsplib(writer))),
+                InitSolutionReader(Box::new(move |file, problem| {
+                    read_init_solution(BufReader::new(file), problem, random.clone())
+                })),
+                SolutionWriter(Box::new(|_, solution, cost, _, mut writer, _| {
+                    (&solution, cost).write_tsplib(&mut writer)
+                })),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );
@@ -132,26 +141,26 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
                 } else {
                     BufReader::new(problem).read_pragmatic()
                 }
-                .map_err(|errors| errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n"))
+                .map_err(|errs| errs.to_string())
             })),
             InitSolutionReader(Box::new(move |file, problem| {
                 read_init_pragmatic(BufReader::new(file), problem, random.clone())
             })),
-            SolutionWriter(Box::new(|problem, solution, cost, metrics, default_writer, geojson_writer| {
+            SolutionWriter(Box::new(|problem, solution, cost, metrics, mut default_writer, geojson_writer| {
                 geojson_writer
-                    .map_or(Ok(()), |geojson_writer| (&solution, cost).write_geo_json(problem, geojson_writer))
+                    .map_or(Ok(()), |mut geojson_writer| (&solution, cost).write_geo_json(problem, &mut geojson_writer))
                     .and_then(|_| {
                         if let Some(metrics) = metrics {
-                            (&solution, cost, &metrics).write_pragmatic_json(problem, default_writer)
+                            (&solution, cost, &metrics).write_pragmatic_json(problem, &mut default_writer)
                         } else {
-                            (&solution, cost).write_pragmatic_json(problem, default_writer)
+                            (&solution, cost).write_pragmatic_json(problem, &mut default_writer)
                         }
                     })
             })),
             LocationWriter(Box::new(|problem, writer| {
                 let mut writer = writer;
                 deserialize_problem(BufReader::new(problem))
-                    .map_err(|errors| get_errors_serialized(&errors))
+                    .map_err(|errs| errs.to_string())
                     .and_then(|problem| get_locations_serialized(&problem))
                     .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(|err| err.to_string()))
             })),
@@ -372,7 +381,7 @@ pub fn run_solve(
                                 .map(|config| Solver::new(problem.clone(), config))
                                 .map_err(|err| format!("cannot read config: '{err}'"))?
                         } else {
-                            let config = create_default_config_builder(
+                            let builder = create_default_config_builder(
                                 problem.clone(),
                                 environment.clone(),
                                 telemetry_mode.clone(),
@@ -386,8 +395,13 @@ pub fn run_solve(
                                 get_population(mode, problem.goal.clone(), environment.clone()),
                                 telemetry_mode,
                                 environment.clone(),
-                            ))
-                            .with_heuristic(get_heuristic(matches, problem.clone(), environment)?)
+                            ));
+
+                            let config = if cfg!(feature = "async-evolution") && environment.is_experimental {
+                                builder.with_strategy(get_async_evolution(problem.clone(), environment.clone())?)
+                            } else {
+                                builder.with_heuristic(get_heuristic(matches, problem.clone(), environment)?)
+                            }
                             .build()?;
 
                             Solver::new(problem.clone(), config)
@@ -502,11 +516,44 @@ fn get_heuristic(
     environment: Arc<Environment>,
 ) -> Result<TargetHeuristic, String> {
     match matches.get_one::<String>(HEURISTIC_ARG_NAME).map(String::as_str) {
-        Some("dynamic") => Ok(get_dynamic_heuristic(problem, environment)),
-        Some("static") => Ok(get_static_heuristic(problem, environment)),
+        Some("dynamic") => Ok(Box::new(get_dynamic_heuristic(problem, environment))),
+        Some("static") => Ok(Box::new(get_static_heuristic(problem, environment))),
         Some(name) if name != "default" => Err(format!("unknown heuristic type name: '{name}'")),
         _ => Ok(get_default_heuristic(problem, environment)),
     }
+}
+
+#[cfg(feature = "async-evolution")]
+fn get_async_evolution(
+    problem: Arc<Problem>,
+    environment: Arc<Environment>,
+) -> Result<TargetEvolutionStrategy, String> {
+    use vrp_core::rosomaxa::evolution::strategies::{AsyncIterative, AsyncParams};
+
+    let selection_size = get_default_selection_size(environment.as_ref());
+    let actors_size = (selection_size * 2).max(2);
+
+    Ok(Box::new(AsyncIterative::new(
+        AsyncParams { actors_size, channel_buffer: 4, selection_size },
+        1,
+        problem.goal.clone(),
+        Box::new({
+            let problem = problem.clone();
+            let environment = environment.clone();
+            move || get_dynamic_heuristic(problem.clone(), environment.clone())
+        }),
+        Box::new(move |_, population| {
+            RefinementContext::new(problem.clone(), population, TelemetryMode::None, environment.clone())
+        }),
+    )))
+}
+
+#[cfg(not(feature = "async-evolution"))]
+fn get_async_evolution(
+    _problem: Arc<Problem>,
+    _environment: Arc<Environment>,
+) -> Result<TargetEvolutionStrategy, String> {
+    unreachable!()
 }
 
 fn check_pragmatic_solution_with_args(matches: &ArgMatches) -> Result<(), String> {

@@ -1,12 +1,5 @@
-use rand::prelude::SmallRng;
-use rand::SeedableRng;
 use rosomaxa::prelude::{Random, RandomGen};
-use std::cell::UnsafeCell;
-use std::rc::Rc;
-
-thread_local! {
-    static TEST_RNG: Rc<UnsafeCell<SmallRng>> = Rc::new(UnsafeCell::new(SmallRng::seed_from_u64(0)));
-}
+use std::sync::RwLock;
 
 struct FakeDistribution<T> {
     values: Vec<T>,
@@ -25,32 +18,25 @@ impl<T> FakeDistribution<T> {
 }
 
 pub struct FakeRandom {
-    ints: FakeDistribution<i32>,
-    reals: FakeDistribution<f64>,
+    ints: RwLock<FakeDistribution<i32>>,
+    reals: RwLock<FakeDistribution<f64>>,
 }
 
 impl FakeRandom {
     pub fn new(ints: Vec<i32>, reals: Vec<f64>) -> Self {
-        Self { ints: FakeDistribution::new(ints), reals: FakeDistribution::new(reals) }
-    }
-
-    #[allow(clippy::mut_from_ref)]
-    unsafe fn const_cast(&self) -> &mut Self {
-        let const_ptr = self as *const Self;
-        let mut_ptr = const_ptr as *mut Self;
-        &mut *mut_ptr
+        Self { ints: RwLock::new(FakeDistribution::new(ints)), reals: RwLock::new(FakeDistribution::new(reals)) }
     }
 }
 
 impl Random for FakeRandom {
     fn uniform_int(&self, min: i32, max: i32) -> i32 {
         assert!(min <= max);
-        unsafe { self.const_cast().ints.next() }
+        self.ints.write().unwrap().next()
     }
 
     fn uniform_real(&self, min: f64, max: f64) -> f64 {
         assert!(min < max);
-        unsafe { self.const_cast().reals.next() }
+        self.reals.write().unwrap().next()
     }
 
     fn is_head_not_tails(&self) -> bool {
@@ -66,7 +52,6 @@ impl Random for FakeRandom {
     }
 
     fn get_rng(&self) -> RandomGen {
-        let rng = TEST_RNG.with(|t| t.clone());
-        RandomGen::with_rng(rng)
+        RandomGen::new_repeatable()
     }
 }

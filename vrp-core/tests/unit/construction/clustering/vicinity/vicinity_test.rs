@@ -11,9 +11,9 @@ fn can_get_check_insertion() {
     let fleet = test_fleet();
     let problem = create_problem_with_goal_ctx_jobs_and_fleet(constraint, jobs.clone(), fleet);
     let insertion_ctx = InsertionContext { problem, ..create_empty_insertion_context() };
-    let actor_filter = |_: &Actor| true;
+    let actor_filter = Arc::new(|_: &Actor| true);
 
-    let check_insertion = get_check_insertion_fn(insertion_ctx, &actor_filter);
+    let check_insertion = get_check_insertion_fn(insertion_ctx, actor_filter);
 
     assert_eq!(check_insertion(jobs.get(0).unwrap()), Ok(()));
     assert_eq!(check_insertion(jobs.get(1).unwrap()), Err(1));

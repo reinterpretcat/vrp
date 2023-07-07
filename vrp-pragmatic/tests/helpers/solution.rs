@@ -115,6 +115,13 @@ pub fn get_ids_from_tour(tour: &Tour) -> Vec<Vec<String>> {
     tour.stops.iter().map(|stop| stop.activities().iter().map(|a| a.job_id.clone()).collect()).collect()
 }
 
+pub fn get_ids_from_tour_sorted(tour: &Tour) -> Vec<Vec<String>> {
+    let mut ids = get_ids_from_tour(tour);
+    ids.sort();
+
+    ids
+}
+
 pub fn create_random() -> Arc<dyn Random + Send + Sync> {
     Arc::new(DefaultRandom::default())
 }
@@ -124,9 +131,9 @@ pub fn to_core_solution(
     core_problem: Arc<CoreProblem>,
     random: Arc<dyn Random + Send + Sync>,
 ) -> Result<CoreSolution, String> {
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    serialize_solution(writer, solution).expect("cannot serialize test solution");
+    let mut writer = BufWriter::new(Vec::new());
+    serialize_solution(solution, &mut writer).expect("cannot serialize test solution");
+    let bytes = writer.into_inner().expect("cannot get bytes from writer");
 
-    read_init_solution(BufReader::new(buffer.as_bytes()), core_problem, random)
+    read_init_solution(BufReader::new(bytes.as_slice()), core_problem, random)
 }

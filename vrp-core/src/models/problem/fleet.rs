@@ -2,9 +2,11 @@
 #[path = "../../../tests/unit/models/problem/fleet_test.rs"]
 mod fleet_test;
 
-use crate::models::common::{Dimensions, Location, Profile, TimeInterval, TimeWindow};
+use crate::models::common::*;
+use crate::utils::short_type_name;
 use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering::Less;
+use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
@@ -103,6 +105,14 @@ pub struct Actor {
     pub detail: ActorDetail,
 }
 
+impl Debug for Actor {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>())
+            .field("vehicle", &self.vehicle.dimens.get_id().map(|id| id.as_str()).unwrap_or("undef"))
+            .finish_non_exhaustive()
+    }
+}
+
 /// A grouping function for collection of actors.
 pub type ActorGroupKeyFn = Box<dyn Fn(&[Arc<Actor>]) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync>>;
 
@@ -136,23 +146,25 @@ impl Fleet {
         profiles.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap_or(Less));
         let (_, profiles): (Vec<_>, Vec<_>) = profiles.into_iter().unzip();
 
-        let mut actors: Vec<Arc<Actor>> = Default::default();
-        vehicles.iter().for_each(|vehicle| {
-            vehicle.details.iter().for_each(|detail| {
-                actors.push(Arc::new(Actor {
-                    vehicle: vehicle.clone(),
-                    driver: drivers.first().unwrap().clone(),
-                    detail: ActorDetail {
-                        start: detail.start.clone(),
-                        end: detail.end.clone(),
-                        time: TimeWindow {
-                            start: detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(0.),
-                            end: detail.end.as_ref().and_then(|e| e.time.latest).unwrap_or(f64::MAX),
+        let actors = vehicles
+            .iter()
+            .flat_map(|vehicle| {
+                vehicle.details.iter().map(|detail| {
+                    Arc::new(Actor {
+                        vehicle: vehicle.clone(),
+                        driver: drivers.first().unwrap().clone(),
+                        detail: ActorDetail {
+                            start: detail.start.clone(),
+                            end: detail.end.clone(),
+                            time: TimeWindow {
+                                start: detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(0.),
+                                end: detail.end.as_ref().and_then(|e| e.time.latest).unwrap_or(f64::MAX),
+                            },
                         },
-                    },
-                }));
-            });
-        });
+                    })
+                })
+            })
+            .collect::<Vec<_>>();
 
         let group_key = (*group_key)(&actors);
         let groups = actors.iter().cloned().fold(HashMap::new(), |mut acc, actor| {
@@ -161,6 +173,18 @@ impl Fleet {
         });
 
         Fleet { drivers, vehicles, profiles, actors, groups }
+    }
+}
+
+impl Debug for Fleet {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>())
+            .field("vehicles", &self.vehicles.len())
+            .field("drivers", &self.drivers.len())
+            .field("profiles", &self.profiles.len())
+            .field("actors", &self.actors.len())
+            .field("groups", &self.groups.len())
+            .finish()
     }
 }
 

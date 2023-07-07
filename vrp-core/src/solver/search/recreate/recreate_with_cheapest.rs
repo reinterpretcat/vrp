@@ -19,7 +19,7 @@ impl RecreateWithCheapest {
                 Box::<AllJobSelector>::default(),
                 Box::<AllRouteSelector>::default(),
                 LegSelection::Stochastic(random),
-                Box::<BestResultSelector>::default(),
+                ResultSelection::Concrete(Box::<BestResultSelector>::default()),
                 Default::default(),
             ),
         }

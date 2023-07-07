@@ -1,7 +1,6 @@
 use super::*;
 use rosomaxa::evolution::TelemetryMode;
 use rosomaxa::example::*;
-use std::ops::Deref;
 
 mod objectives;
 pub use self::objectives::*;
@@ -19,14 +18,16 @@ pub fn solve_function(
     generations: usize,
     logger: InfoLogger,
 ) {
+    let logger = create_info_logger_proxy(logger);
     let fitness_fn = get_fitness_fn_by_name(function_name);
     let random = Arc::new(DefaultRandom::default());
 
-    let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random));
+    let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new_with_ratio(1., (-0.1, 0.1), random));
     let delta_op = VectorHeuristicOperatorMode::JustDelta(-0.1..0.1);
     let delta_power_op = VectorHeuristicOperatorMode::JustDelta(-0.5..0.5);
 
     let (solutions, _) = Solver::default()
+        .set_experimental()
         .with_logger(logger.clone())
         .with_init_solutions(vec![init_solution])
         .with_search_operator(noise_op, "noise", 1.)
@@ -50,5 +51,5 @@ pub fn solve_function(
 
     let (individual, fitness) = solutions.first().expect("empty solutions");
 
-    logger.deref()(&format!("solution: {individual:?}, fitness: {fitness}"));
+    (logger)(&format!("solution: {individual:?}, fitness: {fitness}"));
 }

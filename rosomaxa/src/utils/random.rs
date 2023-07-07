@@ -4,8 +4,7 @@ mod random_test;
 
 use rand::prelude::*;
 use rand::Error;
-use std::cell::UnsafeCell;
-use std::rc::Rc;
+use std::cell::RefCell;
 
 /// Provides the way to use randomized values in generic way.
 pub trait Random {
@@ -72,49 +71,68 @@ impl Random for DefaultRandom {
     }
 
     fn get_rng(&self) -> RandomGen {
-        let rng = DEFAULT_RNG.with(|t| t.clone());
-        RandomGen { rng }
+        RandomGen::new_randomized()
     }
 }
 
 thread_local! {
-    static DEFAULT_RNG: Rc<UnsafeCell<SmallRng>> = Rc::new(UnsafeCell::new(SmallRng::from_rng(thread_rng()).expect("cannot get RNG")));
+    /// Random generator seeded from thread_rng to make runs non-repeatable.
+    static RANDOMIZED_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(thread_rng()).expect("cannot get RNG from thread rng"));
+
+    /// Random generator seeded with 0 SmallRng to make runs repeatable.
+    static REPEATABLE_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::seed_from_u64(0));
 }
 
-/// Specifies underlying random generator type.
+/// Provides underlying random generator API.
 #[derive(Clone, Debug)]
 pub struct RandomGen {
-    rng: Rc<UnsafeCell<SmallRng>>,
+    use_repeatable: bool,
 }
 
 impl RandomGen {
-    /// Creates a new instance of `RandomGen` using given reference to small rng.
-    pub fn with_rng(rng: Rc<UnsafeCell<SmallRng>>) -> Self {
-        Self { rng }
+    /// Creates an instance of `RandomGen` using random generator with fixed seed.
+    pub fn new_repeatable() -> Self {
+        Self { use_repeatable: true }
+    }
+
+    /// Creates an instance of `RandomGen` using random generator with randomized seed.
+    pub fn new_randomized() -> Self {
+        Self { use_repeatable: false }
     }
 }
 
 impl RngCore for RandomGen {
-    #[inline(always)]
     fn next_u32(&mut self) -> u32 {
-        let rng = unsafe { &mut *self.rng.get() };
-        rng.next_u32()
+        // NOTE use 'likely!' macro for better branch prediction once it is stabilized?
+        if self.use_repeatable {
+            REPEATABLE_RNG.with(|t| t.borrow_mut().next_u32())
+        } else {
+            RANDOMIZED_RNG.with(|t| t.borrow_mut().next_u32())
+        }
     }
 
-    #[inline(always)]
     fn next_u64(&mut self) -> u64 {
-        let rng = unsafe { &mut *self.rng.get() };
-        rng.next_u64()
+        if self.use_repeatable {
+            REPEATABLE_RNG.with(|t| t.borrow_mut().next_u64())
+        } else {
+            RANDOMIZED_RNG.with(|t| t.borrow_mut().next_u64())
+        }
     }
 
     fn fill_bytes(&mut self, dest: &mut [u8]) {
-        let rng = unsafe { &mut *self.rng.get() };
-        rng.fill_bytes(dest)
+        if self.use_repeatable {
+            REPEATABLE_RNG.with(|t| t.borrow_mut().fill_bytes(dest))
+        } else {
+            RANDOMIZED_RNG.with(|t| t.borrow_mut().fill_bytes(dest))
+        }
     }
 
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
-        let rng = unsafe { &mut *self.rng.get() };
-        rng.try_fill_bytes(dest)
+        if self.use_repeatable {
+            REPEATABLE_RNG.with(|t| t.borrow_mut().try_fill_bytes(dest))
+        } else {
+            RANDOMIZED_RNG.with(|t| t.borrow_mut().try_fill_bytes(dest))
+        }
     }
 }
 

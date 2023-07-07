@@ -21,7 +21,7 @@ impl ExchangeIntraRouteRandom {
 
 impl Default for ExchangeIntraRouteRandom {
     fn default() -> Self {
-        Self::new(0.05, 0.75, 1.25)
+        Self::new(0.05, -0.25, 0.25)
     }
 }
 
@@ -38,8 +38,11 @@ impl LocalOperator for ExchangeIntraRouteRandom {
                 new_insertion_ctx.problem.goal.accept_route_state(route_ctx);
 
                 let leg_selection = LegSelection::Stochastic(random.clone());
-                let result_selector =
-                    NoiseResultSelector::new(Noise::new(self.probability, self.noise_range, random.clone()));
+                let result_selector = NoiseResultSelector::new(Noise::new_with_addition(
+                    self.probability,
+                    self.noise_range,
+                    random.clone(),
+                ));
                 let eval_ctx = EvaluationContext {
                     goal: &new_insertion_ctx.problem.goal,
                     job: &job,
@@ -72,7 +75,7 @@ impl LocalOperator for ExchangeIntraRouteRandom {
 
 fn get_shuffled_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) -> Vec<Job> {
     let mut jobs =
-        route_ctx.route.tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(job)).collect::<Vec<_>>();
+        route_ctx.route().tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(job)).collect::<Vec<_>>();
     jobs.shuffle(&mut insertion_ctx.environment.random.get_rng());
 
     jobs
@@ -84,7 +87,7 @@ fn get_random_route_idx(insertion_ctx: &InsertionContext) -> Option<usize> {
         .routes
         .iter()
         .enumerate()
-        .filter_map(|(idx, rc)| if rc.route.tour.job_count() > 1 { Some(idx) } else { None })
+        .filter_map(|(idx, route_ctx)| if route_ctx.route().tour.job_count() > 1 { Some(idx) } else { None })
         .collect::<Vec<_>>();
 
     if routes.is_empty() {

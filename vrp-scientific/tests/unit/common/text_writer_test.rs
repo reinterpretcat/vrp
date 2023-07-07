@@ -29,13 +29,13 @@ fn can_write_solomon_solution() {
         environment.clone(),
     );
 
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+    let mut writer = BufWriter::new(Vec::new());
     let solution = RecreateWithCheapest::new(environment.random.clone())
-        .run(&refinement_ctx, InsertionContext::new(problem.clone(), environment))
+        .run(&refinement_ctx, InsertionContext::new(problem, environment))
         .solution
-        .to_solution(problem.extras.clone());
-    (&solution, 3.123456).write_solomon(writer).unwrap();
+        .into();
+    (&solution, 3.123456).write_solomon(&mut writer).unwrap();
+    let result = String::from_utf8(writer.into_inner().unwrap()).unwrap();
 
-    assert_eq!(buffer, "Route 1: 1\nCost 3.12");
+    assert_eq!(result, "Route 1: 1\nCost 3.12");
 }

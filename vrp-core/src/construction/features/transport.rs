@@ -9,7 +9,6 @@ use crate::construction::enablers::{update_route_schedule, ScheduleStateKeys};
 use crate::models::common::Timestamp;
 use crate::models::problem::{ActivityCost, Single, TransportCost, TravelTime};
 use crate::models::solution::Activity;
-use std::ops::Deref;
 
 // TODO
 //  remove get_total_cost, get_route_costs, get_max_cost methods from contexts
@@ -46,7 +45,7 @@ pub fn create_minimize_duration_feature(
         time_window_code,
         Box::new(|insertion_ctx| {
             insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
-                acc + route_ctx.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.)
+                acc + route_ctx.state().get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.)
             })
         }),
     )
@@ -67,7 +66,7 @@ pub fn create_minimize_distance_feature(
         time_window_code,
         Box::new(|insertion_ctx| {
             insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
-                acc + route_ctx.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.)
+                acc + route_ctx.state().get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.)
             })
         }),
     )
@@ -100,13 +99,13 @@ struct TransportConstraint {
 
 impl TransportConstraint {
     fn evaluate_job(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
-        let date = route_ctx.route.tour.start().unwrap().schedule.departure;
+        let date = route_ctx.route().tour.start().unwrap().schedule.departure;
         let check_single = |single: &Arc<Single>| {
             single
                 .places
                 .iter()
                 .flat_map(|place| place.times.iter())
-                .any(|time| time.intersects(date, &route_ctx.route.actor.detail.time))
+                .any(|time| time.intersects(date, &route_ctx.route().actor.detail.time))
         };
 
         let has_time_intersection = match job {
@@ -126,8 +125,8 @@ impl TransportConstraint {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ConstraintViolation> {
-        let actor = route_ctx.route.actor.as_ref();
-        let route = route_ctx.route.as_ref();
+        let actor = route_ctx.route().actor.as_ref();
+        let route = route_ctx.route();
 
         let prev = activity_ctx.prev;
         let target = activity_ctx.target;
@@ -149,7 +148,7 @@ impl TransportConstraint {
             }
             (
                 next.place.location,
-                *route_ctx.state.get_activity_state(LATEST_ARRIVAL_KEY, next).unwrap_or(&next.place.time.end),
+                *route_ctx.state().get_activity_state(LATEST_ARRIVAL_KEY, next).unwrap_or(&next.place.time.end),
             )
         } else {
             // open vrp
@@ -233,10 +232,10 @@ struct TransportObjective {
 
 impl TransportObjective {
     fn estimate_route(&self, route_ctx: &RouteContext) -> f64 {
-        if route_ctx.route.tour.has_jobs() {
+        if route_ctx.route().tour.has_jobs() {
             0.
         } else {
-            route_ctx.route.actor.driver.costs.fixed + route_ctx.route.actor.vehicle.costs.fixed
+            route_ctx.route().actor.driver.costs.fixed + route_ctx.route().actor.vehicle.costs.fixed
         }
     }
 
@@ -257,18 +256,18 @@ impl TransportObjective {
         let new_costs = tp_cost_left + tp_cost_right + act_cost_left + act_cost_right;
 
         // no jobs yet or open vrp.
-        if !route_ctx.route.tour.has_jobs() || next.is_none() {
+        if !route_ctx.route().tour.has_jobs() || next.is_none() {
             return new_costs;
         }
 
         let next = next.unwrap();
-        let waiting_time = *route_ctx.state.get_activity_state(WAITING_KEY, next).unwrap_or(&0_f64);
+        let waiting_time = *route_ctx.state().get_activity_state(WAITING_KEY, next).unwrap_or(&0_f64);
 
         let (tp_cost_old, act_cost_old, dep_time_old) =
             self.analyze_route_leg(route_ctx, prev, next, prev.schedule.departure);
 
         let waiting_cost = waiting_time.min(0.0_f64.max(dep_time_right - dep_time_old))
-            * route_ctx.route.actor.vehicle.costs.per_waiting_time;
+            * route_ctx.route().actor.vehicle.costs.per_waiting_time;
 
         let old_costs = tp_cost_old + act_cost_old + waiting_cost;
 
@@ -282,7 +281,7 @@ impl TransportObjective {
         end: &Activity,
         time: Timestamp,
     ) -> (Cost, Cost, Timestamp) {
-        let route = route_ctx.route.as_ref();
+        let route = route_ctx.route();
 
         let arrival = time
             + self.transport.duration(route, start.place.location, end.place.location, TravelTime::Departure(time));
@@ -300,7 +299,7 @@ impl Objective for TransportObjective {
     type Solution = InsertionContext;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        self.fitness_fn.deref()(solution)
+        (self.fitness_fn)(solution)
     }
 }
 

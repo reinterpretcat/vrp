@@ -27,7 +27,7 @@ fn can_get_violations() {
     let fleet = test_fleet();
 
     let route = RouteContext::new_with_state(
-        Arc::new(create_route_with_activities(
+        create_route_with_activities(
             &fleet,
             "v1",
             vec![
@@ -35,8 +35,8 @@ fn can_get_violations() {
                 create_activity_for_job_with_order("job2", None),
                 create_activity_for_job_with_order("job3", Some(1.)),
             ],
-        )),
-        Arc::new(RouteState::default()),
+        ),
+        RouteState::default(),
     );
 
     let violations = get_violations(&[route], &get_order_fn());

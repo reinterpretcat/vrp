@@ -6,9 +6,11 @@ use std::io::{BufWriter, Error, ErrorKind, Write};
 use vrp_core::models::common::IdDimension;
 use vrp_core::models::Solution;
 
-pub(crate) fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution, cost: f64) -> Result<(), Error> {
-    let mut writer = writer;
-
+pub(crate) fn write_text_solution<W: Write>(
+    solution: &Solution,
+    cost: f64,
+    writer: &mut BufWriter<W>,
+) -> Result<(), Error> {
     if !solution.unassigned.is_empty() {
         return Err(Error::new(ErrorKind::Other, "cannot write text solution with unassigned jobs."));
     }

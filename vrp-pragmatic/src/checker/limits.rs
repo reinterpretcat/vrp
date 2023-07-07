@@ -27,11 +27,11 @@ fn check_shift_limits(context: &CheckerContext) -> Result<(), String> {
                 }
             }
 
-            if let Some(shift_time) = limits.shift_time {
-                if tour.statistic.duration as f64 > shift_time {
+            if let Some(max_duration) = limits.max_duration {
+                if tour.statistic.duration as f64 > max_duration {
                     return Err(format!(
                         "shift time limit violation, expected: not more than {}, got: {}, vehicle id '{}', shift index: {}",
-                        shift_time, tour.statistic.duration, tour.vehicle_id, tour.shift_index
+                        max_duration, tour.statistic.duration, tour.vehicle_id, tour.shift_index
                     ));
                 }
             }

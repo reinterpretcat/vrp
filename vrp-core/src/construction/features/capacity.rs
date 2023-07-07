@@ -86,7 +86,7 @@ impl<T: LoadOps> CapacityConstraint<T> {
 
     fn evaluate_route(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
         if self.multi_trip.is_marker_job(job) {
-            return if self.multi_trip.is_assignable(&route_ctx.route, job) {
+            return if self.multi_trip.is_assignable(route_ctx.route(), job) {
                 None
             } else {
                 Some(ConstraintViolation { code: self.code, stopped: true })
@@ -142,9 +142,9 @@ impl<T: LoadOps> CapacityConstraint<T> {
             }
         } else {
             has_demand_violation(
-                &route_ctx.state,
+                route_ctx.state(),
                 activity_ctx.prev,
-                route_ctx.route.actor.vehicle.dimens.get_capacity(),
+                route_ctx.route().actor.vehicle.dimens.get_capacity(),
                 demand,
                 !self.multi_trip.has_markers(route_ctx),
             )
@@ -180,7 +180,7 @@ impl<T: LoadOps> Objective for CapacityObjective<T> {
             .solution
             .routes
             .iter()
-            .flat_map(|route_ctx| route_ctx.route.tour.jobs())
+            .flat_map(|route_ctx| route_ctx.route().tour.jobs())
             .map(|job| self.estimate_job(&job))
             .sum()
     }
@@ -231,7 +231,7 @@ impl<T: LoadOps> CapacityState<T> {
             .multi_trip
             .get_marker_intervals(route_ctx)
             .cloned()
-            .unwrap_or_else(|| vec![(0, route_ctx.route.tour.total() - 1)]);
+            .unwrap_or_else(|| vec![(0, route_ctx.route().tour.total() - 1)]);
 
         let (_, max_load) =
             reload_intervals.into_iter().fold((T::default(), T::default()), |(acc, max), (start_idx, end_idx)| {
@@ -273,7 +273,7 @@ impl<T: LoadOps> CapacityState<T> {
                 (current - end_pickup, current_max.max_load(max))
             });
 
-        if let Some(capacity) = route_ctx.route.actor.clone().vehicle.dimens.get_capacity() {
+        if let Some(capacity) = route_ctx.route().actor.clone().vehicle.dimens.get_capacity() {
             route_ctx.state_mut().put_route_state(MAX_LOAD_KEY, max_load.ratio(capacity));
         }
     }
@@ -355,26 +355,32 @@ fn has_demand_violation<T: LoadOps>(
 }
 
 fn can_handle_demand_on_intervals<T: LoadOps>(
-    ctx: &RouteContext,
+    route_ctx: &RouteContext,
     multi_trip: &(dyn MultiTrip<Constraint = T> + Send + Sync),
     demand: Option<&Demand<T>>,
     insert_idx: Option<usize>,
 ) -> bool {
     let has_demand_violation = |activity: &Activity| {
-        has_demand_violation(&ctx.state, activity, ctx.route.actor.vehicle.dimens.get_capacity(), demand, true)
+        has_demand_violation(
+            route_ctx.state(),
+            activity,
+            route_ctx.route().actor.vehicle.dimens.get_capacity(),
+            demand,
+            true,
+        )
     };
 
     let has_demand_violation_on_borders = |start_idx: usize, end_idx: usize| {
-        has_demand_violation(ctx.route.tour.get(start_idx).unwrap()).is_none()
-            || has_demand_violation(ctx.route.tour.get(end_idx).unwrap()).is_none()
+        has_demand_violation(route_ctx.route().tour.get(start_idx).unwrap()).is_none()
+            || has_demand_violation(route_ctx.route().tour.get(end_idx).unwrap()).is_none()
     };
 
     multi_trip
-        .get_marker_intervals(ctx)
+        .get_marker_intervals(route_ctx)
         .map(|intervals| {
             if let Some(insert_idx) = insert_idx {
                 intervals.iter().filter(|(_, end_idx)| insert_idx <= *end_idx).all(|interval| {
-                    has_demand_violation(ctx.route.tour.get(insert_idx.max(interval.0)).unwrap()).is_none()
+                    has_demand_violation(route_ctx.route().tour.get(insert_idx.max(interval.0)).unwrap()).is_none()
                 })
             } else {
                 intervals.iter().any(|(start_idx, end_idx)| has_demand_violation_on_borders(*start_idx, *end_idx))
@@ -382,9 +388,9 @@ fn can_handle_demand_on_intervals<T: LoadOps>(
         })
         .unwrap_or_else(|| {
             if let Some(insert_idx) = insert_idx {
-                has_demand_violation(ctx.route.tour.get(insert_idx).unwrap()).is_none()
+                has_demand_violation(route_ctx.route().tour.get(insert_idx).unwrap()).is_none()
             } else {
-                has_demand_violation_on_borders(0, ctx.route.tour.total().max(1) - 1)
+                has_demand_violation_on_borders(0, route_ctx.route().tour.total().max(1) - 1)
             }
         })
 }

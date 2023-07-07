@@ -69,10 +69,12 @@ pub enum PopulationSeries {
         rows: Range<i32>,
         /// Columns range.
         cols: Range<i32>,
-        /// Objective values chart series.
-        fitness: Vec<Series2D>,
         /// Mean node distance.
         mean_distance: f64,
+        /// Best fitness values.
+        fitness_values: Vec<f64>,
+        /// Objective values chart series.
+        fitness_matrices: Vec<Series2D>,
         /// U-matrix values chart series.
         u_matrix: Series2D,
         /// T-matrix values chart series.
@@ -84,8 +86,30 @@ pub enum PopulationSeries {
     },
 }
 
+/// Specifies drawing configuration for best fitness.
+pub struct FitnessDrawConfig {
+    /// Fitness labels.
+    pub labels: Vec<String>,
+    /// Objective values for each generation.
+    pub fitness: Vec<(usize, Vec<f64>)>,
+    /// The most variable objective to be used to initialize axis.
+    /// Typically it is the cost (or distance/duration) minimization.
+    pub target_idx: usize,
+}
+
+/// /// Specifies drawing configuration for heuristic.
+#[derive(Default)]
+pub struct HeuristicDrawConfig {
+    /// Heuristic labels.
+    pub labels: Vec<String>,
+    /// Heuristic max estimate.
+    pub max_estimate: f64,
+    /// Actual estimations.
+    pub estimations: Vec<f64>,
+}
+
 /// A series configuration.
 pub struct Series2D {
-    /// A matrix data.
-    pub matrix: Box<dyn Fn() -> MatrixData>,
+    /// A matrix data receiver function.
+    pub matrix_fn: Box<dyn Fn() -> MatrixData>,
 }

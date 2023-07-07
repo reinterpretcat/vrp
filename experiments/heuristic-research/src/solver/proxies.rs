@@ -20,8 +20,10 @@ pub struct ExperimentData {
     pub on_select: HashMap<usize, Vec<ObservationData>>,
     /// Called on generation.
     pub on_generation: HashMap<usize, (HeuristicStatistics, Vec<ObservationData>)>,
-    /// Keeps track population state at generation.
+    /// Keeps track of population state at specific generation.
     pub population_state: HashMap<usize, PopulationState>,
+    /// Keeps track of heuristic state at specific generation.
+    pub heuristic_state: HyperHeuristicState,
 }
 
 impl ExperimentData {
@@ -40,12 +42,14 @@ where
 {
     fn from(solution: &S) -> Self {
         if TypeId::of::<S>() == TypeId::of::<VectorSolution>() {
+            // SAFETY: type id check above ensures that S-type is the right one
             let solution = unsafe { std::mem::transmute::<&S, &VectorSolution>(solution) };
             assert_eq!(solution.data.len(), 2);
             return ObservationData::Function(DataPoint3D(solution.data[0], solution.fitness(), solution.data[1]));
         }
 
         if TypeId::of::<S>() == TypeId::of::<InsertionContext>() {
+            // SAFETY: type id check above ensures that S-type is the right one
             let insertion_ctx = unsafe { std::mem::transmute::<&S, &InsertionContext>(solution) };
 
             // NOTE a naive conversion to 3D point
@@ -168,4 +172,15 @@ where
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.inner.fmt(f)
     }
+}
+
+/// Creates info logger proxy to catch dynamic heuristic state.
+pub fn create_info_logger_proxy(inner: InfoLogger) -> InfoLogger {
+    Arc::new(move |msg| {
+        if let Some(state) = HyperHeuristicState::try_parse_all(msg) {
+            EXPERIMENT_DATA.lock().unwrap().heuristic_state = state;
+        } else {
+            (inner)(msg)
+        }
+    })
 }

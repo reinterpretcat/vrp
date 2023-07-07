@@ -79,7 +79,7 @@ impl DecomposeSearch {
         // do actual refinement independently for each decomposed context
         let decomposed = parallel_into_collect(decomposed, |(mut refinement_ctx, route_indices)| {
             let _ = (0..self.repeat_count).try_for_each(|_| {
-                let insertion_ctx = refinement_ctx.population().select().next().expect(GREEDY_ERROR);
+                let insertion_ctx = refinement_ctx.selected().next().expect(GREEDY_ERROR);
                 let insertion_ctx = self.inner_search.search(&refinement_ctx, insertion_ctx);
                 let is_quota_reached =
                     refinement_ctx.environment.quota.as_ref().map_or(false, |quota| quota.is_reached());
@@ -165,7 +165,7 @@ fn create_partial_insertion_ctx(
     let solution = &insertion_ctx.solution;
 
     let routes = route_indices.iter().map(|idx| solution.routes[*idx].deep_copy()).collect::<Vec<_>>();
-    let actors = routes.iter().map(|route_ctx| route_ctx.route.actor.clone()).collect::<HashSet<_>>();
+    let actors = routes.iter().map(|route_ctx| route_ctx.route().actor.clone()).collect::<HashSet<_>>();
     let registry = solution.registry.deep_slice(|actor| actors.contains(actor));
 
     (
@@ -177,10 +177,15 @@ fn create_partial_insertion_ctx(
                 ignored: if route_indices.is_empty() { solution.ignored.clone() } else { Default::default() },
                 unassigned: if route_indices.is_empty() { solution.unassigned.clone() } else { Default::default() },
                 locked: if route_indices.is_empty() {
-                    let jobs = solution.routes.iter().flat_map(|rc| rc.route.tour.jobs()).collect::<HashSet<_>>();
+                    let jobs = solution
+                        .routes
+                        .iter()
+                        .flat_map(|route_ctx| route_ctx.route().tour.jobs())
+                        .collect::<HashSet<_>>();
                     solution.locked.iter().filter(|job| !jobs.contains(*job)).cloned().collect()
                 } else {
-                    let jobs = routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>();
+                    let jobs =
+                        routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect::<HashSet<_>>();
                     solution.locked.iter().filter(|job| jobs.contains(*job)).cloned().collect()
                 },
                 routes,
@@ -266,7 +271,7 @@ fn merge_best(
     accumulated: InsertionContext,
 ) -> InsertionContext {
     let (decomposed_ctx, route_indices) = decomposed;
-    let (decomposed_insertion_ctx, _) = decomposed_ctx.population().ranked().next().expect(GREEDY_ERROR);
+    let (decomposed_insertion_ctx, _) = decomposed_ctx.ranked().next().expect(GREEDY_ERROR);
     let environment = original_insertion_ctx.environment.clone();
 
     let (partial_insertion_ctx, _) = create_partial_insertion_ctx(original_insertion_ctx, environment, route_indices);
@@ -289,7 +294,8 @@ fn merge_best(
     dest_solution.unassigned.extend(source_solution.unassigned.iter().map(|(k, v)| (k.clone(), v.clone())));
 
     source_solution.routes.iter().for_each(|route_ctx| {
-        dest_solution.registry.use_route(route_ctx);
+        // NOTE ideally route shouldn't go nowhere, but it is fine in that case
+        assert!(dest_solution.registry.get_route(&route_ctx.route().actor).is_some());
     });
 
     accumulated

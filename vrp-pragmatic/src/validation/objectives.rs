@@ -37,6 +37,7 @@ fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), For
                 BalanceActivities { .. } => acc.entry("balance-activities"),
                 BalanceDistance { .. } => acc.entry("balance-distance"),
                 BalanceDuration { .. } => acc.entry("balance-duration"),
+                CompactTour { .. } => acc.entry("compact-tour"),
                 TourOrder => acc.entry("tour-order"),
             }
             .and_modify(|count| *count += 1)
@@ -188,7 +189,7 @@ fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> 
     ctx.problem.objectives.as_ref().map(|objectives| objectives.iter().flatten().collect())
 }
 
-pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
+pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
     if let Some(objectives) = get_objectives(ctx) {
         combine_error_results(&[
             check_e1600_empty_objective(&objectives),
@@ -200,6 +201,7 @@ pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<FormatErro
             check_e1606_check_multiple_cost_objectives(&objectives),
             check_e1607_jobs_with_value_but_no_objective(ctx, &objectives),
         ])
+        .map_err(|errors| errors.into())
     } else {
         Ok(())
     }

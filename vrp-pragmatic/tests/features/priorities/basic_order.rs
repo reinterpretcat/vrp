@@ -15,7 +15,7 @@ fn create_test_plan_with_three_jobs() -> Plan {
 }
 
 fn create_test_limit() -> Option<VehicleLimits> {
-    Some(VehicleLimits { max_distance: Some(15.), shift_time: None, tour_size: None })
+    Some(VehicleLimits { max_distance: Some(15.), max_duration: None, tour_size: None })
 }
 
 fn create_order_objective(is_constrained: bool) -> Vec<Vec<Objective>> {

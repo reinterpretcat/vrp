@@ -2,13 +2,14 @@
 #[path = "../../../tests/unit/models/solution/tour_test.rs"]
 mod tour_test;
 
-use crate::models::common::Schedule;
+use crate::models::common::{IdDimension, Schedule};
 use crate::models::problem::{Actor, Job};
 use crate::models::solution::{Activity, Place};
 use crate::models::OP_START_MSG;
-use crate::utils::Either;
+use crate::utils::{short_type_name, Either};
 use hashbrown::HashSet;
 use rustc_hash::FxHasher;
+use std::fmt::{Debug, Formatter};
 use std::hash::BuildHasherDefault;
 use std::iter::once;
 use std::slice::{Iter, IterMut};
@@ -164,6 +165,11 @@ impl Tour {
         self.activities.iter().position(move |a| a.has_same_job(job))
     }
 
+    /// Checks whether job is present in tour.
+    pub fn has_job(&self, job: &Job) -> bool {
+        self.jobs.contains(job)
+    }
+
     /// Checks whether tour has jobs.
     pub fn has_jobs(&self) -> bool {
         !self.jobs.is_empty()
@@ -195,6 +201,31 @@ impl Tour {
             jobs: self.jobs.clone(),
             is_closed: self.is_closed,
         }
+    }
+}
+
+impl Debug for Tour {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>())
+            .field("is_closed", &self.is_closed)
+            .field("jobs", &self.jobs.len())
+            .field(
+                "activities",
+                &self
+                    .activities
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, activity)| match idx {
+                        0 => "departure".to_string(),
+                        idx if self.is_closed && idx == self.activities.len() - 1 => "arrival".to_string(),
+                        _ => activity
+                            .retrieve_job()
+                            .and_then(|job| job.dimens().get_id().cloned())
+                            .unwrap_or("undef".to_string()),
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .finish()
     }
 }
 

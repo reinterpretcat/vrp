@@ -9,7 +9,6 @@ use hashbrown::HashMap;
 use rosomaxa::prelude::*;
 use rosomaxa::utils::CollectGroupBy;
 use std::cmp::Ordering;
-use std::ops::Deref;
 use std::sync::Arc;
 
 /// Specifies travel time type.
@@ -64,13 +63,13 @@ type ReservedTimesFunc = Arc<dyn Fn(&Route, &TimeWindow) -> Option<TimeWindow> +
 
 /// Provides way to calculate activity costs which might contain reserved time.
 pub struct DynamicActivityCost {
-    reserved_times_func: ReservedTimesFunc,
+    reserved_times_fn: ReservedTimesFunc,
 }
 
 impl DynamicActivityCost {
     /// Creates a new instance of `DynamicActivityCost` with given reserved time function.
     pub fn new(reserved_times_index: ReservedTimesIndex) -> Result<Self, String> {
-        Ok(Self { reserved_times_func: create_reserved_times_func(reserved_times_index)? })
+        Ok(Self { reserved_times_fn: create_reserved_times_fn(reserved_times_index)? })
     }
 }
 
@@ -80,7 +79,7 @@ impl ActivityCost for DynamicActivityCost {
         let departure = activity_start + activity.place.duration;
         let schedule = TimeWindow::new(arrival, departure);
 
-        self.reserved_times_func.deref()(route, &schedule).map_or(departure, |reserved_time: TimeWindow| {
+        (self.reserved_times_fn)(route, &schedule).map_or(departure, |reserved_time: TimeWindow| {
             assert!(reserved_time.intersects(&schedule));
 
             let time_window = &activity.place.time;
@@ -109,7 +108,7 @@ impl ActivityCost for DynamicActivityCost {
         let arrival = activity.place.time.end.min(departure - activity.place.duration);
         let schedule = TimeWindow::new(arrival, departure);
 
-        self.reserved_times_func.deref()(route, &schedule).map_or(arrival, |reserved_time: TimeWindow| {
+        (self.reserved_times_fn)(route, &schedule).map_or(arrival, |reserved_time: TimeWindow| {
             // TODO consider overlapping break with waiting time?
             arrival - reserved_time.duration()
         })
@@ -144,7 +143,7 @@ pub trait TransportCost {
 
 /// Provides way to calculate transport costs which might contain reserved time.
 pub struct DynamicTransportCost {
-    reserved_times_func: ReservedTimesFunc,
+    reserved_times_fn: ReservedTimesFunc,
     inner: Arc<dyn TransportCost + Send + Sync>,
 }
 
@@ -154,7 +153,7 @@ impl DynamicTransportCost {
         reserved_times_index: ReservedTimesIndex,
         inner: Arc<dyn TransportCost + Send + Sync>,
     ) -> Result<Self, String> {
-        Ok(Self { reserved_times_func: create_reserved_times_func(reserved_times_index)?, inner })
+        Ok(Self { reserved_times_fn: create_reserved_times_fn(reserved_times_index)?, inner })
     }
 }
 
@@ -175,7 +174,7 @@ impl TransportCost for DynamicTransportCost {
             TravelTime::Departure(departure) => TimeWindow::new(departure, departure + duration),
         };
 
-        self.reserved_times_func.deref()(route, &time_window)
+        (self.reserved_times_fn)(route, &time_window)
             .map_or(duration, |reserved_time: TimeWindow| duration + reserved_time.duration())
     }
 
@@ -394,7 +393,7 @@ impl TransportCost for TimeAwareMatrixTransportCost {
     }
 }
 
-fn create_reserved_times_func(reserved_times_index: ReservedTimesIndex) -> Result<ReservedTimesFunc, String> {
+fn create_reserved_times_fn(reserved_times_index: ReservedTimesIndex) -> Result<ReservedTimesFunc, String> {
     if reserved_times_index.is_empty() {
         return Ok(Arc::new(|_, _| None));
     }

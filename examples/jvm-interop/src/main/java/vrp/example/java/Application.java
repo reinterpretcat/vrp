@@ -38,7 +38,7 @@ class Application {
         String problem = new String(Files.readAllBytes(Paths.get(args[0])));
         String[] matrices = new String[args.length - 1];
         for (int i = 1; i < args.length; i++) {
-            matrices[i] = new String(Files.readAllBytes(Paths.get(args[i])));
+            matrices[i - 1] = new String(Files.readAllBytes(Paths.get(args[i])));
         }
 
         Solver solver = Native.load("vrp_cli", Solver.class);

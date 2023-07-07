@@ -1,6 +1,7 @@
 use super::*;
 use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::*;
+use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::features::*;
 use vrp_core::models::common::{LoadOps, MultiDimLoad, SingleDimLoad};
@@ -10,9 +11,9 @@ use vrp_core::models::{Feature, GoalContext, Lock};
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn create_goal_context(
     api_problem: &ApiProblem,
-    jobs: &Jobs,
     job_index: &JobIndex,
-    fleet: &CoreFleet,
+    jobs: Arc<Jobs>,
+    fleet: Arc<CoreFleet>,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     props: &ProblemProperties,
@@ -22,7 +23,8 @@ pub(crate) fn create_goal_context(
 
     // TODO what's about performance implications on order of features when they are evaluated?
 
-    let objective_features = get_objective_features(api_problem, props, transport.clone(), activity.clone())?;
+    let objective_features =
+        get_objective_features(api_problem, props, jobs.clone(), transport.clone(), activity.clone())?;
     let (global_objective_map, local_objective_map) = extract_feature_map(objective_features.as_slice())?;
     features.extend(objective_features.into_iter().flat_map(|features| features.into_iter()));
 
@@ -30,7 +32,7 @@ pub(crate) fn create_goal_context(
         features.push(create_reachable_feature("reachable", transport.clone(), REACHABLE_CONSTRAINT_CODE)?)
     }
 
-    features.push(get_capacity_feature("capacity", api_problem, jobs, job_index, props)?);
+    features.push(get_capacity_feature("capacity", api_problem, jobs.as_ref(), job_index, props)?);
 
     if props.has_tour_travel_limits {
         features.push(get_tour_limit_feature("tour_limit", api_problem, transport.clone())?)
@@ -61,7 +63,7 @@ pub(crate) fn create_goal_context(
     }
 
     if !locks.is_empty() {
-        features.push(create_locked_jobs_feature("locked_jobs", fleet, locks, LOCKING_CONSTRAINT_CODE)?);
+        features.push(create_locked_jobs_feature("locked_jobs", fleet.as_ref(), locks, LOCKING_CONSTRAINT_CODE)?);
     }
 
     if props.has_tour_size_limits {
@@ -78,6 +80,7 @@ pub(crate) fn create_goal_context(
 fn get_objective_features(
     api_problem: &ApiProblem,
     props: &ProblemProperties,
+    jobs: Arc<Jobs>,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
 ) -> Result<Vec<Vec<Feature>>, String> {
@@ -203,6 +206,16 @@ fn get_objective_features(
                     Objective::BalanceDuration { options } => {
                         create_duration_balanced_feature("duration_balance", get_threshold(options))
                     }
+                    Objective::CompactTour { options } => {
+                        let thresholds = Some((options.threshold, options.distance));
+                        create_tour_compactness_feature(
+                            "tour_compact",
+                            jobs.clone(),
+                            options.job_radius,
+                            TOUR_COMPACTNESS_KEY,
+                            thresholds,
+                        )
+                    }
                     Objective::TourOrder => {
                         create_tour_order_soft_feature("tour_order", TOUR_ORDER_KEY, get_tour_order_fn())
                     }
@@ -291,8 +304,8 @@ fn get_tour_limit_feature(
                 distances.insert(vehicle.type_id.clone(), *max_distance);
             });
 
-            limits.shift_time.iter().for_each(|shift_time| {
-                durations.insert(vehicle.type_id.clone(), *shift_time);
+            limits.max_duration.iter().for_each(|max_duration| {
+                durations.insert(vehicle.type_id.clone(), *max_duration);
             });
 
             (distances, durations)
@@ -379,12 +392,34 @@ where
 
 #[allow(clippy::type_complexity)]
 fn extract_feature_map(features: &[Vec<Feature>]) -> Result<(Vec<Vec<String>>, Vec<Vec<String>>), String> {
-    let objective_map: Vec<Vec<String>> = features
+    let global_objective_map: Vec<Vec<String>> = features
         .iter()
         .map(|features| features.iter().filter_map(|f| f.objective.as_ref().map(|_| f.name.clone())).collect())
         .collect();
 
-    Ok((objective_map.clone(), objective_map))
+    // NOTE: this is more performance optimization: we want to minimize the size of InsertionCost
+    //       which has the same size as local_objective_map. So, we exclude some objectives which
+    //       are not really needed to be present here.
+    let exclusion_set = &["min_unassigned"].into_iter().collect::<HashSet<_>>();
+    let local_objective_map: Vec<Vec<String>> = features
+        .iter()
+        .flat_map(|inner| {
+            inner
+                .iter()
+                .filter_map(|f| f.objective.as_ref().map(|_| f.name.clone()))
+                .filter(|name| !exclusion_set.contains(name.as_str()))
+        })
+        // NOTE: there is no mechanism to handle objectives on the same level yet, so simply move
+        //       them to a separate level and rely on non-determenistic behavior of ResultSelector
+        .map(|objective| vec![objective])
+        .collect();
+
+    // NOTE COST_DIMENSION variable in vrp-core is responsible for that
+    if local_objective_map.len() > 6 {
+        println!("WARN: the size of local objectives ({}) exceeds pre-allocated stack size", local_objective_map.len());
+    }
+
+    Ok((global_objective_map, local_objective_map))
 }
 
 fn get_threshold(options: &Option<BalanceOptions>) -> Option<f64> {

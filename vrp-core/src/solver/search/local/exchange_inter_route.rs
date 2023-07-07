@@ -4,7 +4,7 @@ mod exchange_inter_route_test;
 
 use super::*;
 use crate::models::problem::Job;
-use crate::solver::search::{select_seed_job, LocalOperator};
+use crate::solver::search::{select_seed_job_with_tabu_list, LocalOperator, TabuList};
 use crate::solver::RefinementContext;
 use crate::utils::Noise;
 use rosomaxa::utils::map_reduce;
@@ -30,7 +30,7 @@ impl ExchangeInterRouteBest {
 
 impl Default for ExchangeInterRouteBest {
     fn default() -> Self {
-        Self::new(0.05, 0.75, 1.25)
+        Self::new(0.05, -0.25, 0.25)
     }
 }
 
@@ -38,7 +38,11 @@ impl LocalOperator for ExchangeInterRouteBest {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         find_best_insertion_pair(
             insertion_ctx,
-            Noise::new(self.noise_probability, self.noise_range, insertion_ctx.environment.random.clone()),
+            Noise::new_with_addition(
+                self.noise_probability,
+                self.noise_range,
+                insertion_ctx.environment.random.clone(),
+            ),
             Box::new(|_| true),
             Box::new(|_| true),
         )
@@ -54,7 +58,7 @@ impl ExchangeInterRouteRandom {
 
 impl Default for ExchangeInterRouteRandom {
     fn default() -> Self {
-        Self::new(0.1, 0.75, 1.25)
+        Self::new(0.1, -0.25, 0.25)
     }
 }
 
@@ -63,7 +67,7 @@ impl LocalOperator for ExchangeInterRouteRandom {
         let random = &insertion_ctx.environment.random;
         find_best_insertion_pair(
             insertion_ctx,
-            Noise::new(self.noise_probability, self.noise_range, random.clone()),
+            Noise::new_with_addition(self.noise_probability, self.noise_range, random.clone()),
             {
                 let random = random.clone();
                 Box::new(move |_idx| random.is_head_not_tails())
@@ -76,7 +80,7 @@ impl LocalOperator for ExchangeInterRouteRandom {
     }
 }
 
-type InsertionSuccessPair = (InsertionSuccess, InsertionSuccess);
+type InsertionSuccessPair = ((InsertionSuccess, Option<RouteContext>), (InsertionSuccess, Option<RouteContext>));
 
 fn find_best_insertion_pair(
     insertion_ctx: &InsertionContext,
@@ -84,9 +88,9 @@ fn find_best_insertion_pair(
     filter_route_indices: Box<dyn Fn(usize) -> bool + Send + Sync>,
     filter_jobs_indices: Box<dyn Fn(usize) -> bool + Send + Sync>,
 ) -> Option<InsertionContext> {
-    if let Some((seed_route_idx, seed_job)) =
-        select_seed_job(insertion_ctx.solution.routes.as_slice(), &insertion_ctx.environment.random)
-    {
+    let mut tabu_list = TabuList::from(insertion_ctx);
+
+    if let Some((_, seed_route_idx, seed_job)) = select_seed_job_with_tabu_list(insertion_ctx, &tabu_list) {
         let locked = &insertion_ctx.solution.locked;
 
         // bad luck: cannot move locked job
@@ -108,7 +112,7 @@ fn find_best_insertion_pair(
             .fold(Option::<InsertionSuccessPair>::None, |acc, (_, test_route)| {
                 let new_result = map_reduce(
                     test_route
-                        .route
+                        .route()
                         .tour
                         .jobs()
                         .enumerate()
@@ -139,7 +143,7 @@ fn find_best_insertion_pair(
                             &result_selector,
                         )?;
 
-                        Some((seed_success, test_success))
+                        Some(((seed_success, None), (test_success, Some(test_route))))
                     },
                     || None,
                     |left, right| reduce_pair_with_noise(left, right, &noise),
@@ -150,9 +154,16 @@ fn find_best_insertion_pair(
 
         if let Some(insertion_pair) = insertion_pair {
             let mut new_insertion_ctx = new_insertion_ctx;
-            apply_insertion(&mut new_insertion_ctx, insertion_pair.0);
-            apply_insertion(&mut new_insertion_ctx, insertion_pair.1);
+
+            for (success, _) in [&insertion_pair.0, &insertion_pair.1] {
+                tabu_list.add_job(success.job.clone())
+            }
+
+            apply_insertion_with_route(&mut new_insertion_ctx, insertion_pair.0);
+            apply_insertion_with_route(&mut new_insertion_ctx, insertion_pair.1);
             finalize_insertion_ctx(&mut new_insertion_ctx);
+
+            tabu_list.inject(&mut new_insertion_ctx);
 
             return Some(new_insertion_ctx);
         }
@@ -184,6 +195,10 @@ fn test_job_insertion(
     }
 }
 
+fn get_insertion_cost_with_noise_from_pair(pair: &InsertionSuccessPair, noise: &Noise) -> InsertionCost {
+    noise.generate_multi((&pair.0 .0.cost + &pair.1 .0.cost).iter()).collect()
+}
+
 fn reduce_pair_with_noise(
     left_result: Option<InsertionSuccessPair>,
     right_result: Option<InsertionSuccessPair>,
@@ -191,8 +206,8 @@ fn reduce_pair_with_noise(
 ) -> Option<InsertionSuccessPair> {
     match (&left_result, &right_result) {
         (Some(left), Some(right)) => {
-            let left_cost = noise.generate(left.0.cost + left.1.cost);
-            let right_cost = noise.generate(right.0.cost + right.1.cost);
+            let left_cost = get_insertion_cost_with_noise_from_pair(left, noise);
+            let right_cost = get_insertion_cost_with_noise_from_pair(right, noise);
 
             if left_cost < right_cost {
                 left_result

@@ -328,7 +328,7 @@ pub struct Solution {
 }
 
 /// Serializes solution into json format.
-pub fn serialize_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) -> Result<(), Error> {
+pub fn serialize_solution<W: Write>(solution: &Solution, writer: &mut BufWriter<W>) -> Result<(), Error> {
     serde_json::to_writer_pretty(writer, solution).map_err(Error::from)
 }
 

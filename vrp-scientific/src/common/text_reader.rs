@@ -4,6 +4,7 @@ use std::sync::Arc;
 use vrp_core::construction::features::*;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
+use vrp_core::models::*;
 use vrp_core::models::{Extras, Problem};
 
 pub(crate) trait TextReader {
@@ -12,7 +13,7 @@ pub(crate) trait TextReader {
         let transport = self.create_transport(is_rounded)?;
         let activity = Arc::new(SimpleActivityCost::default());
         let jobs = Jobs::new(&fleet, jobs, &transport);
-        let goal = create_goal_context(activity.clone(), transport.clone()).expect("cannot create goal context");
+        let goal = self.create_goal_context(activity.clone(), transport.clone()).expect("cannot create goal context");
 
         Ok(Problem {
             fleet: Arc::new(fleet),
@@ -24,6 +25,12 @@ pub(crate) trait TextReader {
             extras: Arc::new(self.create_extras()),
         })
     }
+
+    fn create_goal_context(
+        &self,
+        activity: Arc<SimpleActivityCost>,
+        transport: Arc<dyn TransportCost + Send + Sync>,
+    ) -> Result<GoalContext, String>;
 
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), String>;
 
@@ -87,21 +94,38 @@ pub(crate) fn create_dimens_with_id(prefix: &str, id: &str) -> Dimensions {
     dimens
 }
 
-pub(crate) fn create_goal_context(
+pub(crate) fn create_goal_context_prefer_min_tours(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
 ) -> Result<GoalContext, String> {
     let features = vec![
-        create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.))?,
+        create_minimize_unassigned_jobs_feature("min_unassigned", Arc::new(|_, _| 1.))?,
         create_minimize_tours_feature("min_tours")?,
         create_minimize_distance_feature("min_distance", transport, activity, 1)?,
         create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
     ];
 
     let feature_map =
-        vec![vec!["min_jobs".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]];
+        vec![vec!["min_unassigned".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]];
 
-    GoalContext::new(features.as_slice(), feature_map.as_slice(), feature_map.as_slice())
+    // NOTE: exclude min_unassigned from local objective
+    GoalContext::new(features.as_slice(), feature_map.as_slice(), &feature_map[1..])
+}
+
+pub(crate) fn create_goal_context_distance_only(
+    activity: Arc<SimpleActivityCost>,
+    transport: Arc<dyn TransportCost + Send + Sync>,
+) -> Result<GoalContext, String> {
+    let features = vec![
+        create_minimize_unassigned_jobs_feature("min_unassigned", Arc::new(|_, _| 1.))?,
+        create_minimize_distance_feature("min_distance", transport, activity, 1)?,
+        create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
+    ];
+
+    let feature_map = vec![vec!["min_unassigned".to_string()], vec!["min_distance".to_string()]];
+
+    // NOTE: exclude min_unassigned from local objective
+    GoalContext::new(features.as_slice(), feature_map.as_slice(), &feature_map[1..])
 }
 
 pub(crate) fn read_line<R: Read>(reader: &mut BufReader<R>, buffer: &mut String) -> Result<usize, String> {

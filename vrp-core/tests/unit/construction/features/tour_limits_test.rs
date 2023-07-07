@@ -72,10 +72,7 @@ mod traveling {
         state.put_route_state(TOTAL_DISTANCE_KEY, 50.);
         state.put_route_state(TOTAL_DURATION_KEY, 50.);
         let target = target.to_owned();
-        let route_ctx = RouteContext::new_with_state(
-            Arc::new(create_route_with_activities(&fleet, vehicle, vec![])),
-            Arc::new(state),
-        );
+        let route_ctx = RouteContext::new_with_state(create_route_with_activities(&fleet, vehicle, vec![]), state);
         let transport = TestTransportCost::new_shared();
         let tour_distance_limit = Arc::new({
             let target = target.clone();

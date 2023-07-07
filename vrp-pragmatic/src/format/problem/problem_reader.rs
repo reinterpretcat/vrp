@@ -12,7 +12,7 @@ use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, GoalContext};
 use vrp_core::solver::processing::VicinityDimension;
 
-pub fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, Vec<FormatError>> {
+pub fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
     let coord_index = CoordIndex::new(&problem);
     let matrices = if coord_index.get_used_types().1 { vec![] } else { create_approx_matrices(&problem) };
     map_to_problem(problem, matrices, coord_index)
@@ -21,7 +21,7 @@ pub fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, Ve
 pub fn map_to_problem_with_matrices(
     problem: ApiProblem,
     matrices: Vec<Matrix>,
-) -> Result<CoreProblem, Vec<FormatError>> {
+) -> Result<CoreProblem, MultiFormatError> {
     let coord_index = CoordIndex::new(&problem);
     map_to_problem(problem, matrices, coord_index)
 }
@@ -30,7 +30,7 @@ pub fn map_to_problem(
     api_problem: ApiProblem,
     matrices: Vec<Matrix>,
     coord_index: CoordIndex,
-) -> Result<CoreProblem, Vec<FormatError>> {
+) -> Result<CoreProblem, MultiFormatError> {
     ValidationContext::new(&api_problem, Some(&matrices), &coord_index).validate()?;
 
     let problem_props = get_problem_properties(&api_problem, &matrices);
@@ -80,13 +80,15 @@ pub fn map_to_problem(
         &mut job_index,
         &random,
     );
+    let jobs = Arc::new(jobs);
+    let fleet = Arc::new(fleet);
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect::<Vec<_>>();
     let goal = Arc::new(
         create_goal_context(
             &api_problem,
-            &jobs,
             &job_index,
-            &fleet,
+            jobs.clone(),
+            fleet.clone(),
             transport.clone(),
             activity.clone(),
             &problem_props,
@@ -113,7 +115,7 @@ pub fn map_to_problem(
             })?,
     );
 
-    Ok(CoreProblem { fleet: Arc::new(fleet), jobs: Arc::new(jobs), locks, goal, activity, transport, extras })
+    Ok(CoreProblem { fleet, jobs, locks, goal, activity, transport, extras })
 }
 
 fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> ReservedTimesIndex {
@@ -237,7 +239,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .fleet
         .vehicles
         .iter()
-        .any(|v| v.limits.as_ref().map_or(false, |l| l.shift_time.or(l.max_distance).is_some()));
+        .any(|v| v.limits.as_ref().map_or(false, |l| l.max_duration.or(l.max_distance).is_some()));
 
     ProblemProperties {
         has_multi_dimen_capacity,

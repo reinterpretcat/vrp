@@ -6,7 +6,6 @@ use crate::models::OP_START_MSG;
 use crate::models::{LockOrder, Problem, Solution};
 use hashbrown::{HashMap, HashSet};
 use rosomaxa::prelude::Environment;
-use std::ops::Deref;
 use std::sync::Arc;
 
 type ActivityPlace = crate::models::solution::Place;
@@ -24,12 +23,12 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
     let mut sequence_job_usage: HashMap<Job, usize> = Default::default();
 
     problem.locks.iter().for_each(|lock| {
-        let actor = registry.available().find(|a| lock.condition.deref()(a.as_ref()));
+        let actor = registry.available().find(|a| (lock.condition_fn)(a.as_ref()));
         match (actor, lock.is_lazy) {
             (Some(actor), false) => {
                 registry.use_actor(&actor);
                 let mut route_ctx = RouteContext::new(actor);
-                let start = route_ctx.route.tour.start().unwrap_or_else(|| panic!("{}", OP_START_MSG)).place.location;
+                let start = route_ctx.route().tour.start().unwrap_or_else(|| panic!("{}", OP_START_MSG)).place.location;
 
                 let create_activity = |single: Arc<Single>, previous_location: usize| {
                     assert_eq!(single.places.len(), 1);
@@ -133,7 +132,8 @@ pub fn create_insertion_context_from_solution(
 
     solution.0.routes.iter().for_each(|route| {
         if route.tour.has_jobs() {
-            routes.push(RouteContext::new_with_state(Arc::new(route.deep_copy()), Arc::new(RouteState::default())));
+            routes.push(RouteContext::new_with_state(route.deep_copy(), RouteState::default()));
+            registry.use_actor(&route.actor);
         } else {
             registry.free_actor(&route.actor);
         }

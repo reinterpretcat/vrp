@@ -88,8 +88,6 @@ impl Quota for TimeQuota {
 #[derive(Clone)]
 pub struct Parallelism {
     available_cpus: usize,
-    // NOTE seems falls positive.
-    #[allow(clippy::rc_buffer)]
     thread_pools: Option<Arc<Vec<ThreadPool>>>,
 }
 
@@ -123,7 +121,7 @@ impl Parallelism {
         OP: FnOnce() -> R + Send,
         R: Send,
     {
-        if let Some(thread_pool) = self.thread_pools.as_ref().and_then(|tps| tps.get(idx)) {
+        if let Some(thread_pool) = self.thread_pools.as_ref().and_then(|tps| tps.get(idx % tps.len())) {
             thread_pool.execute(op)
         } else {
             op()

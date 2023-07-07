@@ -1,5 +1,7 @@
 //! An examples of **Vehicle Routing Problem** solver usage.
 
+#![forbid(unsafe_code)]
+
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
@@ -9,7 +11,6 @@ use vrp_pragmatic::core::prelude::*;
 use vrp_pragmatic::core::solver::get_default_telemetry_mode;
 use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, Matrix, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
-use vrp_pragmatic::format::FormatError;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -48,17 +49,14 @@ fn run_examples(base_path: &str) {
                 .iter()
                 .map(|path| deserialize_matrix(open_file(format!["{base_path}/{path}.json"].as_str())))
                 .collect::<Result<Vec<Matrix>, _>>()
-                .unwrap_or_else(|errors| {
-                    panic!("cannot read matrix: {}", FormatError::format_many(errors.as_slice(), "\t\n"))
-                });
+                .unwrap_or_else(|errors| panic!("cannot read matrix: {errors}"));
             ((problem.clone(), matrices.clone()).read_pragmatic(), problem, Some(matrices))
         } else {
             (problem.clone().read_pragmatic(), problem, None)
         };
 
-        let core_problem = Arc::new(core_problem.unwrap_or_else(|errors| {
-            panic!("cannot read pragmatic problem: {}", FormatError::format_many(errors.as_slice(), "\t\n"))
-        }));
+        let core_problem =
+            Arc::new(core_problem.unwrap_or_else(|errors| panic!("cannot read pragmatic problem: {errors}")));
 
         let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
         let config = create_default_config_builder(core_problem.clone(), environment, telemetry_mode)
@@ -87,12 +85,12 @@ fn get_pragmatic_problem(base_path: &str, name: &str) -> Problem {
 }
 
 fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution, cost: f64) -> Solution {
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+    let mut writer = BufWriter::new(Vec::new());
 
-    (solution, cost).write_pragmatic_json(problem, writer).expect("cannot write pragmatic solution");
+    (solution, cost).write_pragmatic_json(problem, &mut writer).expect("cannot write pragmatic solution");
+    let bytes = writer.into_inner().expect("cannot get bytes from writer");
 
-    deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
+    deserialize_solution(BufReader::new(bytes.as_slice())).expect("cannot deserialize solution")
 }
 
 #[cfg(test)]

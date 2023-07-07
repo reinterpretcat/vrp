@@ -3,6 +3,7 @@
 use crate::construction::heuristics::*;
 use crate::models::common::*;
 use crate::models::problem::*;
+use crate::models::*;
 use rosomaxa::prelude::*;
 use std::slice::Iter;
 use std::sync::Arc;
@@ -24,6 +25,9 @@ pub use self::shared_resource::*;
 
 mod total_value;
 pub use self::total_value::*;
+
+mod tour_compactness;
+pub use self::tour_compactness::*;
 
 mod tour_limits;
 pub use self::tour_limits::*;

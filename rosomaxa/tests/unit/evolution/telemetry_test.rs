@@ -1,8 +1,10 @@
 use super::*;
 use crate::example::*;
-use crate::helpers::example::{create_default_heuristic_context, create_example_objective};
+use crate::helpers::example::create_example_objective;
 use crate::utils::compare_floats;
+use crate::{get_default_population, get_default_selection_size};
 use std::cmp::Ordering;
+use std::sync::Arc;
 
 fn compare_statistic(statistics: &HeuristicStatistics, expected: (usize, f64, f64)) {
     assert_eq!(statistics.generation, expected.0);
@@ -12,11 +14,14 @@ fn compare_statistic(statistics: &HeuristicStatistics, expected: (usize, f64, f6
 
 #[test]
 fn can_update_statistic() {
-    let heuristic_ctx = create_default_heuristic_context();
-    let objective = heuristic_ctx.objective();
-    let population = heuristic_ctx.population();
-    let mut telemetry = Telemetry::new(TelemetryMode::None);
+    let environment = Arc::new(Environment::default());
+    let objective = create_example_objective();
+    let selection_size = get_default_selection_size(environment.as_ref());
+    let population = get_default_population(objective.clone(), environment, selection_size);
+    let objective = objective.as_ref();
+    let population = population.as_ref();
 
+    let mut telemetry = Telemetry::new(TelemetryMode::None);
     let solution = VectorSolution::new(vec![], create_example_objective());
     telemetry.on_initial(&solution, Timer::start());
 

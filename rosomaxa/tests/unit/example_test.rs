@@ -5,7 +5,7 @@ fn just_noise(
     range: (f64, f64),
     random: Arc<dyn Random + Send + Sync>,
 ) -> VectorHeuristicOperatorMode {
-    VectorHeuristicOperatorMode::JustNoise(Noise::new(probability, range, random))
+    VectorHeuristicOperatorMode::JustNoise(Noise::new_with_ratio(probability, range, random))
 }
 
 fn dimen_noise(
@@ -15,20 +15,20 @@ fn dimen_noise(
     random: Arc<dyn Random + Send + Sync>,
 ) -> VectorHeuristicOperatorMode {
     let dimen = vec![dimen].into_iter().collect();
-    VectorHeuristicOperatorMode::DimensionNoise(Noise::new(probability, range, random), dimen)
+    VectorHeuristicOperatorMode::DimensionNoise(Noise::new_with_ratio(probability, range, random), dimen)
 }
 
 #[test]
 pub fn can_create_and_use_rosenbrock_function_2d() {
-    let function = create_rosenbrock_function();
+    let function_fn = create_rosenbrock_function();
 
-    assert_eq!(function.deref()(&[2., 2.]), 401.);
-    assert_eq!(function.deref()(&[1., 1.]), 0.);
-    assert_eq!(function.deref()(&[0.5, 0.5]), 6.5);
-    assert_eq!(function.deref()(&[0., 0.]), 1.);
-    assert_eq!(function.deref()(&[-0.5, -0.5]), 58.5);
-    assert_eq!(function.deref()(&[-1., -1.]), 404.);
-    assert_eq!(function.deref()(&[-2., -2.]), 3609.);
+    assert_eq!((function_fn)(&[2., 2.]), 401.);
+    assert_eq!((function_fn)(&[1., 1.]), 0.);
+    assert_eq!((function_fn)(&[0.5, 0.5]), 6.5);
+    assert_eq!((function_fn)(&[0., 0.]), 1.);
+    assert_eq!((function_fn)(&[-0.5, -0.5]), 58.5);
+    assert_eq!((function_fn)(&[-1., -1.]), 404.);
+    assert_eq!((function_fn)(&[-2., -2.]), 3609.);
 }
 
 #[test]

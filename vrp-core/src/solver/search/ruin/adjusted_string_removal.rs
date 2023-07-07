@@ -6,10 +6,11 @@ use super::Ruin;
 use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::problem::Job;
 use crate::models::solution::Tour;
-use crate::solver::search::{select_seed_jobs, JobRemovalTracker, RemovalLimits};
+use crate::solver::search::*;
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::Random;
-use std::sync::{Arc, RwLock};
+use std::cell::RefCell;
+use std::sync::Arc;
 
 /// _Adjusted string removal_ ruin strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" by Jan Christiaens, Greet Vanden Berghe.
@@ -58,41 +59,43 @@ impl Ruin for AdjustedStringRemoval {
     fn run(&self, _: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.environment.random.clone();
-        let mut routes = insertion_ctx.solution.routes.clone();
-        let tracker = RwLock::new(JobRemovalTracker::new(&self.limits, random.as_ref()));
+        let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, random.as_ref()));
+        let mut tabu_list = TabuList::from(&insertion_ctx);
 
-        let (lsmax, ks) = self.calculate_limits(&routes, &random);
+        let (lsmax, ks) = self.calculate_limits(insertion_ctx.solution.routes.as_slice(), &random);
+        let seed = select_seed_job_with_tabu_list(&insertion_ctx, &tabu_list).map(|(profile, _, job)| (profile, job));
 
-        select_seed_jobs(&problem, &routes, &random)
-            .filter(|job| !tracker.read().unwrap().is_removed_job(job))
-            .take_while(|_| tracker.read().unwrap().get_affected_actors() != ks)
+        select_neighbors(&problem, seed)
+            .filter(|job| !tracker.borrow().is_removed_job(job))
+            .take_while(|_| tracker.borrow().get_affected_actors() != ks)
             .for_each(|job| {
-                routes
-                    .iter_mut()
-                    .find(|route_ctx| {
-                        !tracker.read().unwrap().is_affected_actor(&route_ctx.route.actor)
-                            && route_ctx.route.tour.index(&job).is_some()
-                    })
-                    .iter_mut()
-                    .for_each(|route_ctx| {
-                        // Equations 8, 9: calculate cardinality of the string removed from the tour
-                        let ltmax = route_ctx.route.tour.job_activity_count().min(lsmax);
-                        let lt = random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
+                let route_idx = insertion_ctx.solution.routes.iter().position(|route_ctx| {
+                    !tracker.borrow().is_affected_actor(&route_ctx.route().actor)
+                        && route_ctx.route().tour.index(&job).is_some()
+                });
 
-                        if let Some(index) = route_ctx.route.tour.index(&job) {
-                            select_string((&route_ctx.route.tour, index), lt, self.alpha, &random)
-                                .collect::<Vec<Job>>()
-                                .into_iter()
-                                .for_each(|job| {
-                                    tracker.write().unwrap().try_remove_job(
-                                        &mut insertion_ctx.solution,
-                                        route_ctx,
-                                        &job,
-                                    );
-                                });
-                        }
-                    });
+                route_idx.into_iter().for_each(|route_idx| {
+                    let route_ctx = insertion_ctx.solution.routes.get(route_idx).expect("invalid index");
+
+                    // Equations 8, 9: calculate cardinality of the string removed from the tour
+                    let ltmax = route_ctx.route().tour.job_activity_count().min(lsmax);
+                    let lt = random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
+
+                    if let Some(index) = route_ctx.route().tour.index(&job) {
+                        select_string((&route_ctx.route().tour, index), lt, self.alpha, &random)
+                            .collect::<Vec<Job>>()
+                            .into_iter()
+                            .for_each(|job| {
+                                if tracker.borrow_mut().try_remove_job(&mut insertion_ctx.solution, route_idx, &job) {
+                                    tabu_list.add_job(job);
+                                    tabu_list.add_actor(insertion_ctx.solution.routes[route_idx].route().actor.clone());
+                                }
+                            });
+                    }
+                });
             });
+
+        tabu_list.inject(&mut insertion_ctx);
 
         insertion_ctx
     }
@@ -102,7 +105,9 @@ type JobIter<'a> = Box<dyn Iterator<Item = Job> + 'a>;
 
 /// Calculates average tour cardinality rounded to nearest integral value.
 fn calculate_average_tour_cardinality(routes: &[RouteContext]) -> f64 {
-    (routes.iter().map(|rc| rc.route.tour.job_activity_count() as f64).sum::<f64>() / (routes.len() as f64)).round()
+    (routes.iter().map(|route_ctx| route_ctx.route().tour.job_activity_count() as f64).sum::<f64>()
+        / (routes.len() as f64))
+        .round()
 }
 
 /// Selects string for selected job.

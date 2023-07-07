@@ -6,10 +6,9 @@ use crate::common::*;
 use std::collections::HashMap;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::models::common::TimeWindow;
-use vrp_core::models::common::{Demand, DemandDimension, SingleDimLoad, TimeSpan};
+use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
-use vrp_core::models::{Extras, Problem};
+use vrp_core::models::*;
 
 /// A trait to read tsplib95 problem. Please note that it is very basic implementation of the format specification.
 pub trait TsplibProblem {
@@ -38,6 +37,14 @@ struct TsplibReader<R: Read> {
 }
 
 impl<R: Read> TextReader for TsplibReader<R> {
+    fn create_goal_context(
+        &self,
+        activity: Arc<SimpleActivityCost>,
+        transport: Arc<dyn TransportCost + Send + Sync>,
+    ) -> Result<GoalContext, String> {
+        create_goal_context_distance_only(activity, transport)
+    }
+
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), String> {
         self.read_meta()?;
 

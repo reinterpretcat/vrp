@@ -1,5 +1,5 @@
 #[cfg(test)]
-#[path = "../../tests/unit/solomon/init_solution_reader_test.rs"]
+#[path = "../../tests/unit/common/init_solution_reader_test.rs"]
 mod init_solution_reader_test;
 
 use crate::common::read_line;
@@ -20,12 +20,8 @@ pub fn read_init_solution<R: Read>(
 ) -> Result<Solution, String> {
     let mut buffer = String::new();
 
-    let mut solution = Solution {
-        registry: Registry::new(&problem.fleet, random),
-        routes: vec![],
-        unassigned: Default::default(),
-        extras: problem.extras.clone(),
-    };
+    let mut solution =
+        Solution { registry: Registry::new(&problem.fleet, random), routes: vec![], unassigned: Default::default() };
 
     loop {
         match read_line(&mut reader, &mut buffer) {

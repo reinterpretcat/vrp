@@ -8,7 +8,6 @@ use super::*;
 use crate::models::problem::Actor;
 use crate::utils::Either;
 use std::cmp::Ordering;
-use std::ops::Deref;
 
 /// Specifies a job value function which takes into account actor and job.
 pub type ActorValueFn = Arc<dyn Fn(&Actor, &Job) -> f64 + Send + Sync>;
@@ -36,8 +35,8 @@ pub fn create_maximize_total_job_value_feature(
                 let sign = -1.;
                 move |route_ctx, job| {
                     sign * match &job_read_value_fn {
-                        JobReadValueFn::Left(left) => left.deref()(job),
-                        JobReadValueFn::Right(right) => right.deref()(route_ctx.route.actor.as_ref(), job),
+                        JobReadValueFn::Left(left_fn) => (left_fn)(job),
+                        JobReadValueFn::Right(right_fn) => (right_fn)(route_ctx.route().actor.as_ref(), job),
                     }
                 }
             }),
@@ -55,7 +54,7 @@ impl Objective for MaximizeTotalValueObjective {
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         solution.solution.routes.iter().fold(0., |acc, route_ctx| {
-            route_ctx.route.tour.jobs().fold(acc, |acc, job| acc + self.estimate_value_fn.deref()(route_ctx, &job))
+            route_ctx.route().tour.jobs().fold(acc, |acc, job| acc + (self.estimate_value_fn)(route_ctx, &job))
         })
     }
 }
@@ -63,7 +62,7 @@ impl Objective for MaximizeTotalValueObjective {
 impl FeatureObjective for MaximizeTotalValueObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
-            MoveContext::Route { route_ctx, job, .. } => self.estimate_value_fn.deref()(route_ctx, job),
+            MoveContext::Route { route_ctx, job, .. } => (self.estimate_value_fn)(route_ctx, job),
             MoveContext::Activity { .. } => Cost::default(),
         }
     }
@@ -82,13 +81,13 @@ impl FeatureConstraint for MaximizeTotalValueConstraint {
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
         match &self.job_read_value_fn {
-            JobReadValueFn::Left(left) => {
-                let source_value = left.deref()(&source);
-                let candidate_value = left.deref()(&candidate);
+            JobReadValueFn::Left(left_fn) => {
+                let source_value = (left_fn)(&source);
+                let candidate_value = (left_fn)(&candidate);
                 let new_value = source_value + candidate_value;
 
                 Ok(if compare_floats(new_value, source_value) != Ordering::Equal {
-                    self.job_write_value_fn.deref()(source, new_value)
+                    (self.job_write_value_fn)(source, new_value)
                 } else {
                     source
                 })

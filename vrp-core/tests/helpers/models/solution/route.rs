@@ -102,10 +102,7 @@ pub fn create_route_with_start_end_activities(
 }
 
 pub fn create_empty_route_ctx() -> RouteContext {
-    RouteContext::new_with_state(
-        Arc::new(create_route(test_actor(), Tour::default(), vec![])),
-        Arc::new(RouteState::default()),
-    )
+    RouteContext::new_with_state(create_route(test_actor(), Tour::default(), vec![]), RouteState::default())
 }
 
 pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {
@@ -118,7 +115,7 @@ pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Ve
 pub fn create_route_context_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> RouteContext {
     let route = create_route_with_activities(fleet, vehicle, activities);
 
-    RouteContext::new_with_state(Arc::new(route), Arc::new(RouteState::default()))
+    RouteContext::new_with_state(route, RouteState::default())
 }
 
 fn create_route(actor: Arc<Actor>, mut tour: Tour, activities: Vec<Activity>) -> Route {

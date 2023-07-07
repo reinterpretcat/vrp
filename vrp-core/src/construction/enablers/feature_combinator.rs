@@ -85,9 +85,9 @@ pub(crate) fn accept_insertion_with_states(
     route_index: usize,
     job: &Job,
 ) {
-    let activities = solution_ctx.routes.get_mut(route_index).unwrap().route.tour.job_activity_count();
+    let activities = solution_ctx.routes.get_mut(route_index).unwrap().route().tour.job_activity_count();
     states.iter().for_each(|state| state.accept_insertion(solution_ctx, route_index, job));
-    assert_eq!(activities, solution_ctx.routes.get_mut(route_index).unwrap().route.tour.job_activity_count());
+    assert_eq!(activities, solution_ctx.routes.get_mut(route_index).unwrap().route().tour.job_activity_count());
 }
 
 pub(crate) fn accept_route_state_with_states(
@@ -97,9 +97,9 @@ pub(crate) fn accept_route_state_with_states(
     if route_ctx.is_stale() {
         route_ctx.state_mut().clear();
 
-        let activities = route_ctx.route.tour.job_activity_count();
+        let activities = route_ctx.route().tour.job_activity_count();
         states.iter().for_each(|state| state.accept_route_state(route_ctx));
-        assert_eq!(activities, route_ctx.route.tour.job_activity_count());
+        assert_eq!(activities, route_ctx.route().tour.job_activity_count());
 
         route_ctx.mark_stale(false);
     }

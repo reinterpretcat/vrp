@@ -44,12 +44,7 @@ pub fn create_problem_with_goal_ctx_jobs_and_fleet(
 }
 
 pub fn create_empty_solution() -> Solution {
-    Solution {
-        registry: Registry::new(&test_fleet(), test_random()),
-        routes: vec![],
-        unassigned: Default::default(),
-        extras: Arc::new(Default::default()),
-    }
+    Solution { registry: Registry::new(&test_fleet(), test_random()), routes: vec![], unassigned: Default::default() }
 }
 
 pub fn create_registry_context(fleet: &Fleet) -> RegistryContext {
@@ -121,8 +116,9 @@ pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec
         .solution
         .routes
         .iter()
-        .map(|rc| {
-            rc.route
+        .map(|route_ctx| {
+            route_ctx
+                .route()
                 .tour
                 .all_activities()
                 .filter(|a| a.job.is_some())

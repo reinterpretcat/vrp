@@ -50,15 +50,15 @@ fn create_test_solution_context(
                 );
 
                 RouteContext::new_with_state(
-                    Arc::new(create_route_with_activities(
+                    create_route_with_activities(
                         fleet,
                         vehicle,
                         groups
                             .into_iter()
                             .map(|group| create_activity_with_job_at_location(create_test_single(group), 1))
                             .collect(),
-                    )),
-                    Arc::new(state),
+                    ),
+                    state,
                 )
             })
             .collect(),
@@ -76,9 +76,9 @@ fn get_actor_groups(solution_ctx: &mut SolutionContext, state_key: i32) -> HashM
         .iter()
         .filter_map(|route_ctx| {
             route_ctx
-                .state
+                .state()
                 .get_route_state::<HashSet<String>>(state_key)
-                .map(|groups| (route_ctx.route.actor.clone(), groups.clone()))
+                .map(|groups| (route_ctx.route().actor.clone(), groups.clone()))
         })
         .fold(HashMap::default(), |mut acc, (actor, groups)| {
             groups.into_iter().for_each(|group| {

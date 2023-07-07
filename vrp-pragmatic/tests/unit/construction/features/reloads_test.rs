@@ -41,10 +41,8 @@ fn create_route_context_with_fleet(capacity: Vec<i32>, activities: Vec<Activity>
     let mut vehicle = test_vehicle("v1");
     vehicle.dimens.set_capacity(MultiDimLoad::new(capacity));
     let fleet = test_fleet_with_vehicles(vec![Arc::new(vehicle)]);
-    let route_ctx = RouteContext::new_with_state(
-        Arc::new(create_route_with_activities(&fleet, "v1", activities)),
-        Arc::new(RouteState::default()),
-    );
+    let route_ctx =
+        RouteContext::new_with_state(create_route_with_activities(&fleet, "v1", activities), RouteState::default());
 
     (route_ctx, fleet)
 }
@@ -206,7 +204,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
             .routes
             .get(0)
             .unwrap()
-            .route
+            .route()
             .tour
             .all_activities()
             .filter_map(|activity| activity.job.as_ref())

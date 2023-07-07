@@ -4,11 +4,16 @@ mod network_test;
 
 use super::*;
 use crate::algorithms::math::get_mean_iter;
-use crate::utils::{compare_floats, parallel_into_collect, Noise, Random};
-use hashbrown::HashMap;
+use crate::utils::*;
 use rand::prelude::SliceRandom;
+use rustc_hash::FxHasher;
 use std::cmp::Ordering;
-use std::sync::{Arc, RwLock};
+use std::collections::HashMap;
+use std::hash::BuildHasherDefault;
+use std::iter::once;
+use std::sync::Arc;
+
+type NodeHashMap<I, S> = HashMap<Coordinate, Node<I, S>, BuildHasherDefault<FxHasher>>;
 
 /// A customized Growing Self Organizing Map designed to store and retrieve trained input.
 pub struct Network<I, S, F>
@@ -27,7 +32,7 @@ where
     time: usize,
     rebalance_memory: usize,
     min_max_weights: MinMaxWeights,
-    nodes: HashMap<Coordinate, NodeLink<I, S>>,
+    nodes: NodeHashMap<I, S>,
     storage_factory: F,
 }
 
@@ -69,7 +74,7 @@ where
 
         let growing_threshold = -1. * dimension as f64 * config.spread_factor.log2();
         let initial_error = if config.has_initial_error { growing_threshold } else { 0. };
-        let noise = Noise::new(1., (0.75, 1.25), random);
+        let noise = Noise::new_with_ratio(1., (0.75, 1.25), random);
 
         let (nodes, min_max_weights) =
             Self::create_initial_nodes(roots, initial_error, config.rebalance_memory, &noise, &storage_factory);
@@ -110,8 +115,8 @@ where
         let nodes_data = parallel_into_collect(item_data, |item| {
             let input = map_func(item);
             let bmu = self.find_bmu(&input);
-            let error = bmu.read().unwrap().distance(input.weights());
-            (bmu, error, input)
+            let error = bmu.distance(input.weights());
+            (bmu.coordinate, error, input)
         });
         self.train_batch(nodes_data, true);
     }
@@ -119,17 +124,13 @@ where
     /// Performs smoothing phase.
     pub fn smooth(&mut self, rebalance_count: usize) {
         (0..rebalance_count).for_each(|_| {
-            let mut data = self
-                .nodes
-                .iter_mut()
-                .flat_map(|(_, node)| node.write().unwrap().storage.drain(0..))
-                .collect::<Vec<_>>();
+            let mut data = self.nodes.iter_mut().flat_map(|(_, node)| node.storage.drain(0..)).collect::<Vec<_>>();
             data.shuffle(&mut rand::thread_rng());
 
             self.train_on_data(data, false);
 
             self.nodes.iter_mut().for_each(|(_, node)| {
-                node.write().unwrap().error = 0.;
+                node.error = 0.;
             })
         });
     }
@@ -140,8 +141,8 @@ where
     }
 
     /// Finds node by its coordinate.
-    pub fn find(&self, coordinate: &Coordinate) -> Option<&NodeLink<I, S>> {
-        self.nodes.get(coordinate)
+    pub fn find(&self, coord: &Coordinate) -> Option<&Node<I, S>> {
+        self.nodes.get(coord)
     }
 
     /// Returns node coordinates in arbitrary order.
@@ -150,12 +151,12 @@ where
     }
 
     /// Return nodes in arbitrary order.
-    pub fn get_nodes(&self) -> impl Iterator<Item = &NodeLink<I, S>> + '_ {
+    pub fn get_nodes(&self) -> impl Iterator<Item = &Node<I, S>> + '_ {
         self.nodes.values()
     }
 
     /// Iterates over coordinates and their nodes.
-    pub fn iter(&self) -> impl Iterator<Item = (&Coordinate, &NodeLink<I, S>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&Coordinate, &Node<I, S>)> {
         self.nodes.iter()
     }
 
@@ -171,41 +172,40 @@ where
 
     /// Calculates mean distance of nodes with individuals.
     pub fn mean_distance(&self) -> f64 {
-        get_mean_iter(self.nodes.iter().filter_map(|(_, node)| node.read().unwrap().node_distance()))
+        get_mean_iter(self.nodes.iter().filter_map(|(_, node)| node.node_distance()))
     }
 
     /// Calculates mean squared error of the whole network.
     pub fn mse(&self) -> f64 {
         let n = if self.nodes.is_empty() { 1 } else { self.nodes.len() } as f64;
 
-        self.nodes.iter().fold(0., |acc, (_, node)| acc + node.read().unwrap().mse()) / n
+        self.nodes.iter().fold(0., |acc, (_, node)| acc + node.mse()) / n
     }
 
     /// Returns max unified distance of the network.
     pub fn max_unified_distance(&self) -> f64 {
-        self.get_nodes()
-            .map(|node| node.read().unwrap().unified_distance(self, 1))
-            .max_by(|a, b| compare_floats(*a, *b))
-            .unwrap_or(0.)
+        self.get_nodes().map(|node| node.unified_distance(self, 1)).max_by(compare_floats_refs).unwrap_or(0.)
     }
 
     /// Trains network on an input.
     fn train(&mut self, input: I, is_new_input: bool) {
         debug_assert!(input.weights().len() == self.dimension);
 
-        let bmu = self.find_bmu(&input);
-        let error = bmu.read().unwrap().distance(input.weights());
+        let (bmu_coord, error) = {
+            let bmu = self.find_bmu(&input);
+            let error = bmu.distance(input.weights());
+            (bmu.coordinate, error)
+        };
 
-        self.update(&bmu, &input, error, is_new_input);
-
-        bmu.write().unwrap().storage.add(input);
+        self.update(&bmu_coord, &input, error, is_new_input);
+        self.nodes.get_mut(&bmu_coord).unwrap().storage.add(input);
     }
 
     /// Trains network on inputs.
-    fn train_batch(&mut self, nodes_data: Vec<(NodeLink<I, S>, f64, I)>, is_new_input: bool) {
-        nodes_data.into_iter().for_each(|(bmu, error, input)| {
-            self.update(&bmu, &input, error, is_new_input);
-            bmu.write().unwrap().storage.add(input);
+    fn train_batch(&mut self, nodes_data: Vec<(Coordinate, f64, I)>, is_new_input: bool) {
+        nodes_data.into_iter().for_each(|(bmu_coord, error, input)| {
+            self.update(&bmu_coord, &input, error, is_new_input);
+            self.nodes.get_mut(&bmu_coord).unwrap().storage.add(input);
         });
     }
 
@@ -213,29 +213,29 @@ where
     pub(super) fn train_on_data(&mut self, data: Vec<I>, is_new_input: bool) {
         let nodes_data = parallel_into_collect(data, |input| {
             let bmu = self.find_bmu(&input);
-            let error = bmu.read().unwrap().distance(input.weights());
-            (bmu, error, input)
+            let error = bmu.distance(input.weights());
+            (bmu.coordinate, error, input)
         });
 
         self.train_batch(nodes_data, is_new_input);
     }
 
     /// Finds the best matching unit within the map for the given input.
-    fn find_bmu(&self, input: &I) -> NodeLink<I, S> {
+    fn find_bmu(&self, input: &I) -> &Node<I, S> {
         self.nodes
-            .iter()
-            .map(|(_, node)| (node.clone(), node.read().unwrap().distance(input.weights())))
+            .values()
+            .map(|node| (node, node.distance(input.weights())))
             .min_by(|(_, x), (_, y)| x.partial_cmp(y).unwrap_or(Ordering::Less))
             .map(|(node, _)| node)
             .expect("no nodes")
     }
 
     /// Updates network according to the error.
-    fn update(&mut self, node: &NodeLink<I, S>, input: &I, error: f64, is_new_input: bool) {
+    fn update(&mut self, coord: &Coordinate, input: &I, error: f64, is_new_input: bool) {
         let radius = if is_new_input { 2 } else { 3 };
 
         let (exceeds_ae, can_grow) = {
-            let mut node = node.write().unwrap();
+            let node = self.nodes.get_mut(coord).expect("invalid coordinate");
             node.error += error;
 
             // NOTE update usage statistics only for a new input
@@ -243,6 +243,7 @@ where
                 node.new_hit(self.time);
             }
 
+            let node = self.nodes.get(coord).unwrap();
             (
                 matches!(compare_floats(node.error, self.growing_threshold), Ordering::Equal | Ordering::Greater),
                 node.is_boundary(self) && is_new_input,
@@ -250,33 +251,44 @@ where
         };
 
         match (exceeds_ae, can_grow) {
-            (true, false) => self.distribute_error(node, radius),
+            (true, false) => self.distribute_error(coord, radius),
             (true, true) => {
-                self.grow_nodes(node).into_iter().for_each(|(coordinate, weights)| {
-                    self.insert(coordinate, weights.as_slice());
-                    let new_node = self.nodes.get(&coordinate).unwrap();
-                    self.adjust_weights(new_node, input.weights(), radius, is_new_input);
+                self.grow_nodes(coord).into_iter().for_each(|(coord, weights)| {
+                    self.insert(coord, weights.as_slice());
+                    self.adjust_weights(&coord, input.weights(), radius, is_new_input);
                 });
             }
-            _ => self.adjust_weights(node, input.weights(), radius, is_new_input),
+            _ => self.adjust_weights(coord, input.weights(), radius, is_new_input),
         }
     }
 
-    fn distribute_error(&self, node: &NodeLink<I, S>, radius: usize) {
-        let mut node = node.write().unwrap();
-        node.error = 0.5 * self.growing_threshold;
+    fn distribute_error(&mut self, coord: &Coordinate, radius: usize) {
+        let nodes = once((*coord, None))
+            .chain(
+                self.nodes
+                    .get(coord)
+                    .unwrap()
+                    .neighbours(self, radius)
+                    .filter_map(|(coord, offset)| coord.map(|coord| (coord, offset)))
+                    .map(|(coord, (x, y))| {
+                        let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as f64;
+                        (coord, Some(distribution_factor))
+                    }),
+            )
+            .collect::<Vec<_>>();
 
-        node.neighbours(self, radius).for_each(|(n, (x, y))| {
-            if let Some(n) = n {
-                let mut node = n.write().unwrap();
-                let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as f64;
-                node.error += distribution_factor * node.error;
+        nodes.into_iter().for_each(|(coord, distribution_factor)| {
+            let node = self.nodes.get_mut(&coord).unwrap();
+            if let Some(distribution_factor) = distribution_factor {
+                node.error += distribution_factor * node.error
+            } else {
+                node.error = 0.5 * self.growing_threshold
             }
         });
     }
 
-    fn grow_nodes(&self, node: &NodeLink<I, S>) -> Vec<(Coordinate, Vec<f64>)> {
-        let node = node.read().unwrap();
+    fn grow_nodes(&self, coord: &Coordinate) -> Vec<(Coordinate, Vec<f64>)> {
+        let node = self.nodes.get(coord).unwrap();
         let coord = node.coordinate;
         let weights = node.weights.clone();
 
@@ -286,7 +298,7 @@ where
         // NOTE insert new nodes only in main directions
         node.neighbours(self, 1)
             .filter(|(_, (x, y))| x.abs() + y.abs() < 2)
-            .filter_map(|(node, offset)| if node.is_none() { Some(offset) } else { None })
+            .filter_map(|(coord, offset)| if coord.is_none() { Some(offset) } else { None })
             .map(|(n_x, n_y)| {
                 let coord = get_coord(n_x, n_y);
                 let offset_abs = (n_x.abs(), n_y.abs());
@@ -298,12 +310,7 @@ where
                 }
                 .map(|w2| {
                     // case b
-                    weights
-                        .as_slice()
-                        .iter()
-                        .zip(w2.read().unwrap().weights.iter())
-                        .map(|(&w1, &w2)| (w1 + w2) / 2.)
-                        .collect()
+                    weights.as_slice().iter().zip(w2.weights.iter()).map(|(&w1, &w2)| (w1 + w2) / 2.).collect()
                 })
                 .unwrap_or_else(|| {
                     // case a
@@ -323,7 +330,7 @@ where
                         weights
                             .as_slice()
                             .iter()
-                            .zip(w2.read().unwrap().weights.iter())
+                            .zip(w2.weights.iter())
                             .map(|(&w1, &w2)| if w2 > w1 { w1 - (w2 - w1) } else { w1 + (w1 - w2) })
                             .collect()
                     })
@@ -343,37 +350,46 @@ where
             .collect()
     }
 
-    fn adjust_weights(&self, node: &NodeLink<I, S>, weights: &[f64], radius: usize, is_new_input: bool) {
-        let mut node = node.write().unwrap();
+    fn adjust_weights(&mut self, coord: &Coordinate, weights: &[f64], radius: usize, is_new_input: bool) {
+        let node = self.nodes.get(coord).expect("invalid coordinate");
         let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
         let learning_rate = if is_new_input { learning_rate } else { 0.25 * learning_rate };
 
-        node.adjust(weights, learning_rate);
-        node.neighbours(self, radius).filter_map(|(n, offset)| n.map(|n| (n, offset))).for_each(|(n, offset)| {
-            let distance = offset.0.abs() + offset.1.abs();
-            let learning_rate = learning_rate / distance as f64;
-            n.write().unwrap().adjust(weights, learning_rate);
-        });
+        let nodes = once((*coord, weights, learning_rate))
+            .chain(node.neighbours(self, radius).filter_map(|(coord, offset)| coord.map(|coord| (coord, offset))).map(
+                |(coord, offset)| {
+                    let distance = offset.0.abs() + offset.1.abs();
+                    let learning_rate = learning_rate / distance as f64;
+                    (coord, weights, learning_rate)
+                },
+            ))
+            .collect::<Vec<_>>();
+
+        nodes.into_iter().for_each(|(coord, weights, learning_rate)| {
+            self.nodes.get_mut(&coord).unwrap().adjust(weights, learning_rate);
+        })
+    }
+
+    /// Gets a mutable reference for node with given coordinate.
+    pub(super) fn get_mut(&mut self, coord: &Coordinate) -> Option<&mut Node<I, S>> {
+        self.nodes.get_mut(coord)
     }
 
     /// Inserts new neighbors if necessary.
-    pub(super) fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) {
+    pub(super) fn insert(&mut self, coord: Coordinate, weights: &[f64]) {
         update_min_max(&mut self.min_max_weights, weights);
-        self.nodes.insert(coordinate, Arc::new(RwLock::new(self.create_node(coordinate, weights, 0.))));
+        self.nodes.insert(coord, self.create_node(coord, weights, 0.));
     }
 
     /// Removes node with given coordinate.
-    pub(super) fn remove(&mut self, coordinate: &Coordinate) {
-        self.nodes.remove(coordinate);
+    pub(super) fn remove(&mut self, coord: &Coordinate) {
+        self.nodes.remove(coord);
     }
 
     /// Remaps internal lattice after potential changes in coordinate schema.
-    pub(super) fn remap(&mut self, node_modifier: &(dyn Fn(Coordinate, NodeLink<I, S>) -> NodeLink<I, S>)) {
+    pub(super) fn remap(&mut self, node_modifier: &(dyn Fn(Coordinate, Node<I, S>) -> Node<I, S>)) {
         let nodes = self.nodes.drain().map(|(coord, node)| node_modifier(coord, node)).collect::<Vec<_>>();
-        self.nodes.extend(nodes.into_iter().map(|node| {
-            let coordinate = node.read().unwrap().coordinate;
-            (coordinate, node)
-        }));
+        self.nodes.extend(nodes.into_iter().map(|node| (node.coordinate, node)));
     }
 
     /// Returns data (weights) dimension.
@@ -382,8 +398,8 @@ where
     }
 
     /// Creates a new node for given data.
-    fn create_node(&self, coordinate: Coordinate, weights: &[f64], error: f64) -> Node<I, S> {
-        Node::new(coordinate, weights, error, self.rebalance_memory, self.storage_factory.eval())
+    fn create_node(&self, coord: Coordinate, weights: &[f64], error: f64) -> Node<I, S> {
+        Node::new(coord, weights, error, self.rebalance_memory, self.storage_factory.eval())
     }
 
     /// Creates nodes for initial topology.
@@ -393,43 +409,34 @@ where
         rebalance_memory: usize,
         noise: &Noise,
         storage_factory: &F,
-    ) -> (HashMap<Coordinate, NodeLink<I, S>>, MinMaxWeights) {
-        let create_node_link = |coordinate: Coordinate, input: I| {
+    ) -> (NodeHashMap<I, S>, MinMaxWeights) {
+        let create_node = |coord: Coordinate, input: I| {
             let weights = input.weights().iter().map(|&value| noise.generate(value)).collect::<Vec<_>>();
-            let mut node = Node::<I, S>::new(
-                coordinate,
-                weights.as_slice(),
-                initial_error,
-                rebalance_memory,
-                storage_factory.eval(),
-            );
+            let mut node =
+                Node::<I, S>::new(coord, weights.as_slice(), initial_error, rebalance_memory, storage_factory.eval());
             node.storage.add(input);
-            Arc::new(RwLock::new(node))
+
+            node
         };
 
         let dimension = roots[0].weights().len();
         let [n00, n01, n11, n10] = roots;
 
-        let n00 = create_node_link(Coordinate(0, 0), n00);
-        let n01 = create_node_link(Coordinate(0, 1), n01);
-        let n11 = create_node_link(Coordinate(1, 1), n11);
-        let n10 = create_node_link(Coordinate(1, 0), n10);
+        let n00 = create_node(Coordinate(0, 0), n00);
+        let n01 = create_node(Coordinate(0, 1), n01);
+        let n11 = create_node(Coordinate(1, 1), n11);
+        let n10 = create_node(Coordinate(1, 0), n10);
 
-        let nodes =
-            [(Coordinate(0, 0), n00), (Coordinate(0, 1), n01), (Coordinate(1, 1), n11), (Coordinate(1, 0), n10)]
-                .iter()
-                .cloned()
-                .collect::<HashMap<_, _>>();
-
-        let min_max_weights = nodes.iter().fold(
+        let min_max_weights = [&n00, &n01, &n11, &n10].into_iter().fold(
             (vec![f64::MAX; dimension], vec![f64::MIN; dimension]),
-            |mut min_max_weights, (_, node)| {
-                let weights = node.read().unwrap().weights.clone();
-                update_min_max(&mut min_max_weights, weights.as_slice());
+            |mut min_max_weights, node| {
+                update_min_max(&mut min_max_weights, node.weights.as_slice());
 
                 min_max_weights
             },
         );
+
+        let nodes = [n00, n01, n11, n10].into_iter().map(|node| (node.coordinate, node)).collect::<HashMap<_, _, _>>();
 
         (nodes, min_max_weights)
     }

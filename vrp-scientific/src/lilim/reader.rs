@@ -8,6 +8,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
+use vrp_core::models::*;
 use vrp_core::models::{Extras, Problem};
 
 /// A trait to read lilim problem.
@@ -55,6 +56,14 @@ struct LilimReader<R: Read> {
 }
 
 impl<R: Read> TextReader for LilimReader<R> {
+    fn create_goal_context(
+        &self,
+        activity: Arc<SimpleActivityCost>,
+        transport: Arc<dyn TransportCost + Send + Sync>,
+    ) -> Result<GoalContext, String> {
+        create_goal_context_prefer_min_tours(activity, transport)
+    }
+
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), String> {
         let fleet = self.read_fleet()?;
         let jobs = self.read_jobs()?;

@@ -21,7 +21,7 @@ job was not added to the existing tours.
 | CAPACITY_CONSTRAINT           | `does not fit into any vehicle due to capacity`                | allocate more vehicles?                                 |
 | REACHABLE_CONSTRAINT          | `location unreachable`                                         | change job location to routable place?                  |
 | MAX_DISTANCE_CONSTRAINT       | `cannot be assigned due to max distance constraint of vehicle` | allocate more vehicles?                                 |
-| SHIFT_TIME_CONSTRAINT         | `cannot be assigned due to shift time constraint of vehicle`   | allocate more vehicles?                                 |
+| MAX_DURATION_CONSTRAINT       | `cannot be assigned due to max duration constraint of vehicle` | allocate more vehicles?                                 |
 | BREAK_CONSTRAINT              | `break is not assignable`                                      | correct break location or/and time window?              |
 | LOCKING_CONSTRAINT            | `cannot be served due to relation lock`                        | review relations?                                       |
 | AREA_CONSTRAINT               | `cannot be assigned due to area constraint`                    | make sure that jobs inside allowed areas                |

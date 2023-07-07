@@ -49,8 +49,6 @@ where
     let nodes = network
         .get_nodes()
         .map(|node| {
-            let node = node.read().unwrap();
-
             let mut dump = String::new();
             write!(dump, "{}", node.storage).unwrap();
 

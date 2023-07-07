@@ -6,7 +6,7 @@ use super::*;
 use std::io::BufReader;
 use vrp_cli::extensions::generate::generate_problem;
 use vrp_pragmatic::format::problem::{serialize_problem, Problem};
-use vrp_pragmatic::format::{CoordIndex, FormatError};
+use vrp_pragmatic::format::CoordIndex;
 use vrp_pragmatic::validation::ValidationContext;
 
 pub const FORMAT_ARG_NAME: &str = "FORMAT";
@@ -70,10 +70,10 @@ pub fn run_generate(matches: &ArgMatches) -> Result<(), String> {
     match generate_problem_from_args(matches) {
         Ok((problem, input_format)) => {
             let out_result = matches.get_one::<String>(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out result"));
-            let out_buffer = create_write_buffer(out_result);
+            let mut out_buffer = create_write_buffer(out_result);
 
             match input_format.as_str() {
-                "pragmatic" => serialize_problem(out_buffer, &problem)
+                "pragmatic" => serialize_problem(&problem, &mut out_buffer)
                     .map_err(|err| format!("cannot serialize as pragmatic problem: '{err}'")),
                 _ => Err(format!("unknown output format: '{input_format}'")),
             }
@@ -101,12 +101,7 @@ fn generate_problem_from_args(matches: &ArgMatches) -> Result<(Problem, String),
             let coord_index = CoordIndex::new(&problem);
             ValidationContext::new(&problem, None, &coord_index)
                 .validate()
-                .map_err(|errors| {
-                    format!(
-                        "generated problem has some validation errors:\n{}",
-                        FormatError::format_many(errors.as_slice(), "\n")
-                    )
-                })
+                .map_err(|errs| format!("generated problem has some validation errors:\n{errs}",))
                 .map(|_| (problem, input_format.to_owned()))
         },
     )

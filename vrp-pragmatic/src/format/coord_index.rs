@@ -99,7 +99,7 @@ impl CoordIndex {
         self.reverse_index.keys().max().cloned()
     }
 
-    /// Returns types of locations in form (has_coordinates, has_indices).
+    /// Returns types of locations in form (`has_coordinates`, `has_indices`).
     pub fn get_used_types(&self) -> (bool, bool) {
         self.direct_index.iter().fold((false, false), |(has_coordinates, has_indices), (location, _)| match location {
             Location::Coordinate { lat: _, lng: _ } => (true, has_indices),

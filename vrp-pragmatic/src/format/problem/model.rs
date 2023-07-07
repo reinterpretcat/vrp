@@ -4,7 +4,7 @@ mod model_test;
 
 extern crate serde_json;
 
-use crate::format::{FormatError, Location};
+use crate::format::{FormatError, Location, MultiFormatError};
 use serde::{Deserialize, Serialize};
 use std::io::{BufReader, BufWriter, Error, Read, Write};
 
@@ -359,10 +359,11 @@ pub struct VehicleLimits {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_distance: Option<f64>,
 
-    /// Max time per shift/tour.
+    /// Max duration per tour.
     /// No time restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub shift_time: Option<f64>,
+    #[serde(alias = "shiftTime")]
+    pub max_duration: Option<f64>,
 
     /// Max amount job activities.
     /// No job activities restrictions when omitted.
@@ -604,6 +605,13 @@ pub enum Objective {
         options: Option<BalanceOptions>,
     },
 
+    /// An objective to control how tours are built.
+    #[serde(rename(deserialize = "compact-tour", serialize = "compact-tour"))]
+    CompactTour {
+        /// Options used to relax objective's impact.
+        options: CompactOptions,
+    },
+
     /// An objective to control order of job activities in the tour.
     #[serde(rename(deserialize = "tour-order", serialize = "tour-order"))]
     TourOrder,
@@ -617,6 +625,19 @@ pub struct BalanceOptions {
     /// favor of another objective.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub threshold: Option<f64>,
+}
+
+/// Specifies tour compactness options to relax impact of objective.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct CompactOptions {
+    /// Specifies radius of neighbourhood. Min is 1.
+    pub job_radius: usize,
+
+    /// A threshold specifies a minimum shared jobs count per solution.
+    pub threshold: usize,
+
+    /// Distance specifies a minimum relative distance between solutions to consider them different.
+    pub distance: f64,
 }
 
 // endregion
@@ -662,39 +683,42 @@ pub struct Matrix {
 // endregion
 
 /// Deserializes problem in json format from `BufReader`.
-pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Vec<FormatError>> {
+pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, MultiFormatError> {
     serde_json::from_reader(reader).map_err(|err| {
         vec![FormatError::new(
             "E0000".to_string(),
             "cannot deserialize problem".to_string(),
             format!("check input json: '{err}'"),
         )]
+        .into()
     })
 }
 
 /// Deserializes routing matrix in json format from `BufReader`.
-pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Vec<FormatError>> {
+pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, MultiFormatError> {
     serde_json::from_reader(reader).map_err(|err| {
         vec![FormatError::new(
             "E0001".to_string(),
             "cannot deserialize matrix".to_string(),
             format!("check input json: '{err}'"),
         )]
+        .into()
     })
 }
 
 /// Deserializes json list of locations from `BufReader`.
-pub fn deserialize_locations<R: Read>(reader: BufReader<R>) -> Result<Vec<Location>, Vec<FormatError>> {
+pub fn deserialize_locations<R: Read>(reader: BufReader<R>) -> Result<Vec<Location>, MultiFormatError> {
     serde_json::from_reader(reader).map_err(|err| {
         vec![FormatError::new(
             "E0000".to_string(),
             "cannot deserialize locations".to_string(),
             format!("check input json: '{err}'"),
         )]
+        .into()
     })
 }
 
 /// Serializes `problem` in json from `writer`.
-pub fn serialize_problem<W: Write>(writer: BufWriter<W>, problem: &Problem) -> Result<(), Error> {
+pub fn serialize_problem<W: Write>(problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), Error> {
     serde_json::to_writer_pretty(writer, problem).map_err(Error::from)
 }

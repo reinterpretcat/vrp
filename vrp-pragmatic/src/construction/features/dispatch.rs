@@ -9,7 +9,6 @@ use crate::construction::enablers::is_single_belongs_to_route;
 use crate::construction::enablers::JobTie;
 use std::iter::once;
 use vrp_core::construction::enablers::*;
-use vrp_core::models::problem::Single;
 use vrp_core::models::solution::Activity;
 
 /// Creates a dispatch feature as a hard constraint.
@@ -37,12 +36,12 @@ impl DispatchConstraint {
     fn evaluate_route(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
         if let Some(single) = job.as_single() {
             if is_dispatch_single(single) {
-                return if !is_single_belongs_to_route(&route_ctx.route, single) {
+                return if !is_single_belongs_to_route(route_ctx.route(), single) {
                     ConstraintViolation::fail(self.code)
                 } else {
                     None
                 };
-            } else if route_ctx.state.has_flag(state_flags::UNASSIGNABLE) {
+            } else if route_ctx.state().has_flag(state_flags::UNASSIGNABLE) {
                 return ConstraintViolation::fail(self.code);
             }
         }
@@ -92,26 +91,20 @@ impl FeatureState for DispatchState {
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         // NOTE enforce propagation to locked
-        solution_ctx
-            .locked
-            .extend(solution_ctx.routes.iter().flat_map(|route| route.route.tour.jobs().filter(is_dispatch_job)));
+        solution_ctx.locked.extend(
+            solution_ctx.routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs().filter(is_dispatch_job)),
+        );
 
         process_conditional_jobs(solution_ctx, None, self.context_transition.as_ref());
 
         // NOTE remove tour with dispatch only
-        let registry = &mut solution_ctx.registry;
-        solution_ctx.routes.retain(|rc| {
-            let tour = &rc.route.tour;
+        solution_ctx.keep_routes(&|route_ctx| {
+            let tour = &route_ctx.route().tour;
             if tour.job_count() == 1 {
-                let is_dispatch = tour.jobs().next().unwrap().as_single().map_or(false, is_dispatch_single);
-
-                if is_dispatch {
-                    registry.free_route(rc);
-                    return false;
-                }
+                !tour.jobs().next().unwrap().as_single().map_or(false, is_dispatch_single)
+            } else {
+                true
             }
-
-            true
         });
     }
 

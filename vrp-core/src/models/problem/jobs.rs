@@ -4,9 +4,11 @@ mod jobs_test;
 
 use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
+use crate::utils::short_type_name;
 use hashbrown::HashMap;
-use rosomaxa::prelude::compare_floats;
+use rosomaxa::utils::compare_floats_f32;
 use std::cmp::Ordering::Less;
+use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Weak};
 
@@ -59,6 +61,22 @@ impl Job {
         match &self {
             Job::Single(single) => Box::new(single.places.iter()),
             Job::Multi(multi) => Box::new(multi.jobs.iter().flat_map(|single| single.places.iter())),
+        }
+    }
+}
+
+impl Debug for Job {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Job::Single(single) => f
+                .debug_struct(short_type_name::<Single>())
+                .field("id", &single.dimens.get_id().map(|id| id.as_str()).unwrap_or("undef"))
+                .finish_non_exhaustive(),
+            Job::Multi(multi) => f
+                .debug_struct(short_type_name::<Multi>())
+                .field("id", &multi.dimens.get_id().map(|id| id.as_str()).unwrap_or("undef"))
+                .field("jobs", &multi.jobs.len())
+                .finish_non_exhaustive(),
         }
     }
 }
@@ -179,7 +197,20 @@ impl Multi {
     }
 }
 
-type JobIndex = HashMap<Job, (Vec<(Job, Cost)>, Cost)>;
+/// Floating type wit less precision, but lower impact on memory footprint.
+type LowPrecisionCost = f32;
+type JobIndex = HashMap<Job, (Vec<(Job, LowPrecisionCost)>, LowPrecisionCost)>;
+
+// TODO: we don't know actual departure and zero-cost when we create job index.
+const DEFAULT_COST: LowPrecisionCost = 0.;
+
+/// A big enough value to mark unreachable cost.
+const UNREACHABLE_COST: LowPrecisionCost = f32::MAX;
+
+/// Maximum amount of job's neighbours stored in index. We restrict this side to lower impact on
+/// memory footprint. It is unlikely that more than 1000 neighbours needed to be processed in reality,
+/// but we keep it 5x times more.
+const MAX_NEIGHBOURS: usize = 5000;
 
 /// Stores all jobs taking into account their neighborhood.
 pub struct Jobs {
@@ -200,13 +231,13 @@ impl Jobs {
 
     /// Returns range of jobs "near" to given one. Near is defined by costs with relation
     /// transport profile and departure time.
-    pub fn neighbors(&self, profile: &Profile, job: &Job, _: Timestamp) -> impl Iterator<Item = &(Job, Cost)> {
-        self.index.get(&profile.index).unwrap().get(job).unwrap().0.iter()
+    pub fn neighbors(&self, profile: &Profile, job: &Job, _: Timestamp) -> impl Iterator<Item = (&Job, Cost)> {
+        self.index.get(&profile.index).unwrap().get(job).unwrap().0.iter().map(|(job, cost)| (job, *cost as f64))
     }
 
     /// Returns job rank as relative cost from any vehicle's start position.
     pub fn rank(&self, profile: &Profile, job: &Job) -> Cost {
-        self.index.get(&profile.index).unwrap().get(job).unwrap().1
+        self.index.get(&profile.index).unwrap().get(job).unwrap().1 as f64
     }
 
     /// Returns amount of jobs.
@@ -251,10 +282,6 @@ pub fn get_job_locations<'a>(job: &'a Job) -> Box<dyn Iterator<Item = Option<Loc
     }
 }
 
-// TODO: we don't know actual departure and zero-cost when we create job index.
-const DEFAULT_COST: Cost = 0.;
-const UNREACHABLE_COST: Cost = f64::MAX;
-
 /// Creates job index.
 fn create_index(
     fleet: &Fleet,
@@ -276,10 +303,11 @@ fn create_index(
 
         // create job index
         let item = jobs.iter().cloned().fold(HashMap::new(), |mut acc, job| {
-            let mut sorted_job_costs: Vec<(Job, Cost)> = jobs
+            let mut sorted_job_costs: Vec<(Job, LowPrecisionCost)> = jobs
                 .iter()
                 .filter(|j| **j != job)
                 .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport.as_ref(), &job, j)))
+                .take(MAX_NEIGHBOURS)
                 .collect();
             sorted_job_costs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Less));
 
@@ -305,7 +333,7 @@ fn get_cost_between_locations(
     transport: &(dyn TransportCost + Send + Sync),
     from: Location,
     to: Location,
-) -> f64 {
+) -> LowPrecisionCost {
     let distance = transport.distance_approx(profile, from, to);
     let duration = transport.duration_approx(profile, from, to);
 
@@ -313,7 +341,7 @@ fn get_cost_between_locations(
         // NOTE this happens if matrix uses negative values as a marker of unreachable location
         UNREACHABLE_COST
     } else {
-        distance * costs.per_distance + duration * costs.per_driving_time
+        (distance * costs.per_distance + duration * costs.per_driving_time) as f32
     }
 }
 
@@ -324,7 +352,7 @@ fn get_cost_between_job_and_location(
     transport: &(dyn TransportCost + Send + Sync),
     job: &Job,
     to: Location,
-) -> Cost {
+) -> LowPrecisionCost {
     get_job_locations(job)
         .map(|from| match from {
             Some(from) => get_cost_between_locations(profile, costs, transport, from, to),
@@ -341,7 +369,7 @@ fn get_cost_between_jobs(
     transport: &(dyn TransportCost + Send + Sync),
     lhs: &Job,
     rhs: &Job,
-) -> f64 {
+) -> LowPrecisionCost {
     let outer: Vec<Option<Location>> = get_job_locations(lhs).collect();
     let inner: Vec<Option<Location>> = get_job_locations(rhs).collect();
 
@@ -356,7 +384,7 @@ fn get_cost_between_jobs(
             }
             _ => (DEFAULT_COST, 0.),
         })
-        .min_by(|(a, _), (b, _)| compare_floats(*a, *b))
+        .min_by(|(a, _), (b, _)| compare_floats_f32(*a, *b))
         .unwrap_or((DEFAULT_COST, 0.));
 
     let time_cost = lhs
@@ -371,9 +399,10 @@ fn get_cost_between_jobs(
                 _ => 0.,
             })
         })
-        .min_by(|a, b| compare_floats(*a, *b))
+        .map(|cost| cost as LowPrecisionCost)
+        .min_by(|a, b| compare_floats_f32(*a, *b))
         .unwrap_or(0.)
-        * costs.per_waiting_time;
+        * costs.per_waiting_time as LowPrecisionCost;
 
     location_cost + time_cost
 }

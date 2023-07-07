@@ -45,7 +45,7 @@ fn can_create_multiple_insertion_ctxs_with_unassigned() {
 }
 
 #[test]
-fn can_mutate() {
+fn can_perform_search() {
     let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
     let problem = Arc::new(problem);
@@ -65,7 +65,7 @@ fn can_mutate() {
     assert!(solution.required.is_empty());
     assert!(!solution.routes.is_empty());
     assert_eq!(
-        solution.routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>().len(),
+        solution.routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect::<HashSet<_>>().len(),
         35
     );
 }

@@ -55,6 +55,11 @@ pub fn get_jobs_by_ids(insertion_ctx: &InsertionContext, job_ids: &[&str]) -> Ve
     jobs
 }
 
+/// Returns a job by its id.
+pub fn get_job_by_id(insertion_ctx: &InsertionContext, job_id: &str) -> Option<Job> {
+    insertion_ctx.problem.jobs.all().find(|job| job.dimens().get_id().map_or(false, |id| id == job_id))
+}
+
 /// Gets all jobs with their id in a map.
 pub fn get_jobs_map_by_ids(insertion_ctx: &InsertionContext) -> HashMap<String, Job> {
     insertion_ctx
@@ -74,11 +79,11 @@ pub fn rearrange_jobs_in_routes(insertion_ctx: &mut InsertionContext, job_order:
     let jobs_map = get_jobs_map_by_ids(insertion_ctx);
 
     insertion_ctx.solution.routes.iter_mut().zip(job_order.iter()).for_each(|(route_ctx, order)| {
-        let jobs = route_ctx.route.tour.jobs().collect::<Vec<_>>();
+        let jobs = route_ctx.route().tour.jobs().collect::<Vec<_>>();
         jobs.iter().for_each(|job| {
             route_ctx.route_mut().tour.remove(job);
         });
-        assert_eq!(route_ctx.route.tour.job_count(), 0);
+        assert_eq!(route_ctx.route().tour.job_count(), 0);
 
         order.iter().for_each(|job_id| {
             let job = jobs_map.get(&job_id.to_string()).unwrap().to_single().clone();

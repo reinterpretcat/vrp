@@ -1,88 +1,25 @@
-use super::DrawResult;
-use crate::plots::*;
-use crate::DataPoint3D;
+use super::*;
 use itertools::{Itertools, MinMaxResult};
-use plotters::coord::Shift;
-use rosomaxa::algorithms::gsom::Coordinate;
 use rosomaxa::utils::compare_floats;
 use std::cmp::Ordering;
-use std::ops::Deref;
 
-/// Draws chart on canvas according to the drawing configs.
-pub fn draw<B: DrawingBackend + 'static>(
-    area: DrawingArea<B, Shift>,
-    population_config: PopulationDrawConfig,
-    solution_config: Option<SolutionDrawConfig>,
-) -> DrawResult<()> {
-    area.fill(&WHITE)?;
-
-    match (&population_config.series, solution_config) {
-        (PopulationSeries::Unknown, Some(solution_config)) => {
-            draw_solution(&area, &solution_config)?;
-        }
-        (PopulationSeries::Rosomaxa { .. }, Some(solution_config)) => {
-            let (left, right) = area.split_horizontally(50.percent_width());
-            draw_solution(&left, &solution_config)?;
-            draw_population(&right, &population_config)?;
-        }
-        _ => draw_population(&area, &population_config)?,
-    }
-
-    area.present()?;
-
-    Ok(())
-}
-
-fn draw_solution<B: DrawingBackend + 'static>(
+pub(crate) fn draw_population<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
-    solution_config: &SolutionDrawConfig,
+    config: &PopulationDrawConfig,
 ) -> DrawResult<()> {
-    let x_axis = (solution_config.axes.x.0.start..solution_config.axes.x.0.end).step(solution_config.axes.x.1);
-    let z_axis = (solution_config.axes.z.0.start..solution_config.axes.z.0.end).step(solution_config.axes.z.1);
-    let y_axis = solution_config.axes.y.start..solution_config.axes.y.end;
-
-    let mut chart = ChartBuilder::on(area).build_cartesian_3d(x_axis.clone(), y_axis, z_axis.clone())?;
-
-    chart.with_projection(|mut pb| {
-        pb.yaw = solution_config.projection.yaw;
-        pb.pitch = solution_config.projection.pitch;
-        pb.scale = solution_config.projection.scale;
-        pb.into_matrix()
-    });
-
-    chart.configure_axes().draw()?;
-
-    chart.draw_series(
-        SurfaceSeries::xoz(x_axis.values(), z_axis.values(), &solution_config.series.surface)
-            .style_func(&|&v| (&HSLColor(240. / 360. - 240. / 360. * v / solution_config.axes.y.end, 1., 0.7)).into()),
-    )?;
-
-    let data_points = solution_config.series.points.deref()();
-
-    chart.draw_series(
-        data_points
-            .iter()
-            .filter(|(_, point_type, _)| matches!(point_type, PointType::Circle))
-            .map(|(DataPoint3D(x, y, z), _, color)| Circle::new((*x, *y, *z), 3, color)),
-    )?;
-
-    chart.draw_series(
-        data_points
-            .iter()
-            .filter(|(_, point_type, _)| matches!(point_type, PointType::Triangle))
-            .map(|(DataPoint3D(x, y, z), _, color)| TriangleMarker::new((*x, *y, *z), 5, color)),
-    )?;
-
-    Ok(())
-}
-
-fn draw_population<B: DrawingBackend + 'static>(
-    area: &DrawingArea<B, Shift>,
-    population_config: &PopulationDrawConfig,
-) -> DrawResult<()> {
-    match &population_config.series {
-        PopulationSeries::Rosomaxa { rows, cols, fitness, mean_distance, u_matrix, t_matrix, l_matrix, n_matrix } => {
-            let plots = fitness.len() + 5;
+    match &config.series {
+        PopulationSeries::Rosomaxa {
+            rows,
+            cols,
+            fitness_matrices,
+            mean_distance,
+            u_matrix,
+            t_matrix,
+            l_matrix,
+            n_matrix,
+            ..
+        } => {
+            let plots = fitness_matrices.len() + 5;
             let cols_size = plots / 2 + usize::from(plots % 2 == 1);
 
             let rows = rows.start..(rows.end + 1);
@@ -94,7 +31,7 @@ fn draw_population<B: DrawingBackend + 'static>(
                                  caption_fn: &dyn Fn(f64, f64) -> String,
                                  series: &Series2D|
              -> DrawResult<()> {
-                let matrix: MatrixData = series.matrix.deref()();
+                let matrix: MatrixData = (series.matrix_fn)();
                 let (min, max, size) = match matrix.iter().minmax_by(|(_, &a), (_, &b)| compare_floats(a, b)) {
                     MinMaxResult::OneElement((_, &value)) if compare_floats(value, 0.) != Ordering::Equal => {
                         (value, value, value)
@@ -138,9 +75,9 @@ fn draw_population<B: DrawingBackend + 'static>(
                 area.fill(&WHITE)?;
 
                 let get_fitness = |coord: &Coordinate| {
-                    series[0].matrix.deref()().get(coord).cloned().map(|v| {
+                    (series[0].matrix_fn)().get(coord).cloned().map(|v| {
                         std::iter::once(v)
-                            .chain((1..series.len()).map(move |idx| *series[idx].matrix.deref()().get(coord).unwrap()))
+                            .chain((1..series.len()).map(move |idx| *((series[idx].matrix_fn)().get(coord).unwrap())))
                             .collect::<Vec<_>>()
                     })
                 };
@@ -224,7 +161,7 @@ fn draw_population<B: DrawingBackend + 'static>(
                 // draw local optimum markers
                 rows.clone()
                     .cartesian_product(cols.clone())
-                    .filter(|&(x, y)| series[0].matrix.deref()().get(&Coordinate(x, y)).is_some())
+                    .filter(|&(x, y)| (series[0].matrix_fn)().get(&Coordinate(x, y)).is_some())
                     .filter(|&(x, y)| {
                         get_neighbours(x, y)
                             .map(|coordinate| to_relation(&Coordinate(x, y), &coordinate))
@@ -253,10 +190,10 @@ fn draw_population<B: DrawingBackend + 'static>(
                 move |min: f64, max: f64| format!("{} [{}..{}]", caption, min as usize, max as usize)
             };
 
-            let len = fitness.len();
+            let len = fitness_matrices.len();
 
             draw_series2d(sub_areas.get_mut(len).unwrap(), &get_caption_float("u dist"), u_matrix)?;
-            draw_gradients(sub_areas.get_mut(len + 1).unwrap(), "grads", fitness)?;
+            draw_gradients(sub_areas.get_mut(len + 1).unwrap(), "grads", fitness_matrices)?;
             draw_series2d(sub_areas.get_mut(len + 2).unwrap(), &get_caption_usize("total hits"), t_matrix)?;
             draw_series2d(sub_areas.get_mut(len + 3).unwrap(), &get_caption_usize("last hits"), l_matrix)?;
             draw_series2d(
@@ -265,7 +202,7 @@ fn draw_population<B: DrawingBackend + 'static>(
                 n_matrix,
             )?;
 
-            fitness.iter().enumerate().try_for_each(|(idx, objective)| {
+            fitness_matrices.iter().enumerate().try_for_each(|(idx, objective)| {
                 let caption = format!("objective {idx}");
                 draw_series2d(sub_areas.get_mut(idx).unwrap(), &get_caption_float(caption.as_str()), objective)
             })?;

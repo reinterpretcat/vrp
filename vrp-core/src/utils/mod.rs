@@ -3,8 +3,9 @@
 // Reimport rosomaxa utils
 pub use rosomaxa::utils::*;
 
-pub use self::mutability::*;
-pub use self::types::Either;
+mod comparison;
+pub use self::comparison::*;
 
-mod mutability;
 mod types;
+pub(crate) use self::types::short_type_name;
+pub use self::types::Either;

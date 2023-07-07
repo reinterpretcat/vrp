@@ -22,8 +22,9 @@ pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec
         .solution
         .routes
         .iter()
-        .map(|rc| {
-            rc.route
+        .map(|route_ctx| {
+            route_ctx
+                .route()
                 .tour
                 .all_activities()
                 .filter(|a| a.job.is_some())

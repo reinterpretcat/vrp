@@ -8,6 +8,7 @@ use crate::helpers::models::solution::{create_route_with_activities, test_activi
 use crate::models::common::{IdDimension, Location};
 use crate::models::problem::*;
 use crate::models::solution::{Activity, Registry, Route};
+use crate::models::*;
 use crate::models::{Problem, Solution};
 use crate::solver::{create_elitism_population, RefinementContext};
 use rosomaxa::evolution::TelemetryMode;
@@ -21,7 +22,7 @@ pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext
     let environment = Arc::new(Environment::default());
     RefinementContext::new(
         problem.clone(),
-        create_elitism_population(problem.goal.clone(), environment.clone()),
+        Box::new(create_elitism_population(problem.goal.clone(), environment.clone())),
         TelemetryMode::None,
         environment,
     )
@@ -154,7 +155,7 @@ pub fn generate_matrix_routes(
         extras: Arc::new(Default::default()),
     };
 
-    let solution = Solution { registry, routes, unassigned: Default::default(), extras: Arc::new(Default::default()) };
+    let solution = Solution { registry, routes, unassigned: Default::default() };
 
     (problem, solution)
 }

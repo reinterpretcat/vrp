@@ -28,9 +28,9 @@ impl LocalOperator for RescheduleDeparture {
 
         let mut insertion_ctx = insertion_ctx.deep_copy();
         insertion_ctx.solution.routes.iter_mut().for_each(|route_ctx| {
-            let earliest = route_ctx.route.actor.detail.start.as_ref().and_then(|start| start.time.earliest);
+            let earliest = route_ctx.route().actor.detail.start.as_ref().and_then(|start| start.time.earliest);
 
-            match (route_ctx.route.tour.start(), earliest, random.is_head_not_tails()) {
+            match (route_ctx.route().tour.start(), earliest, random.is_head_not_tails()) {
                 (Some(start), Some(earliest), true) if can_recede_departure(start, earliest) => {
                     recede_departure_time(route_ctx, activity, transport, &self.state_keys)
                 }

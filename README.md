@@ -3,7 +3,7 @@
 ![build](https://github.com/reinterpretcat/vrp/actions/workflows/build.yaml/badge.svg)
 [![downloads](https://img.shields.io/crates/d/vrp-core)](https://crates.io/crates/vrp-core)
 [![codecov](https://codecov.io/gh/reinterpretcat/vrp/branch/master/graph/badge.svg)](https://codecov.io/gh/reinterpretcat/vrp)
-[![dependency status](https://deps.rs/crate/vrp-cli/1.19.2/status.svg)](https://deps.rs/crate/vrp-cli/1.19.2)
+[![dependency status](https://deps.rs/crate/vrp-cli/1.21.1/status.svg)](https://deps.rs/crate/vrp-cli/1.21.1)
 [![DOI](https://zenodo.org/badge/238436117.svg)](https://zenodo.org/badge/latestdoi/238436117)
 
 ![VRP example](docs/resources/vrp-example.png "VRP with Route Balance")
@@ -53,7 +53,8 @@ pip install vrp-cli
 python examples/python-interop/example.py # run test example
 ```
 
-Alternatively, you can use [maturin](https://github.com/PyO3/maturin) tool to build solver locally.
+Alternatively, you can use [maturin](https://github.com/PyO3/maturin) tool to build solver locally. You need to enable
+`py_bindings` feature which is not enabled by default.
 
 You can find extra information in [python example section](https://reinterpretcat.github.io/vrp/examples/interop/python.html)
 of the docs. The [full source code](./examples/python-interop/example.py) of python example is available in the repo which
@@ -67,7 +68,7 @@ Another fast way to try vrp solver on your environment is to use `docker` image 
 * **run public image** from `Github Container Registry`:
 
 ```bash
-    docker run -it -v $(pwd):/repo --name vrp-cli --rm ghcr.io/reinterpretcat/vrp/vrp-cli:1.19.2
+    docker run -it -v $(pwd):/repo --name vrp-cli --rm ghcr.io/reinterpretcat/vrp/vrp-cli:1.21.1
 ```
 
 * **build image locally** using `Dockerfile` provided:

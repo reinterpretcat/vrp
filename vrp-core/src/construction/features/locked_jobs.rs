@@ -21,7 +21,7 @@ pub fn create_locked_jobs_feature(
     code: ViolationCode,
 ) -> Result<Feature, String> {
     let (rules, conditions) = locks.iter().fold((Vec::new(), HashMap::new()), |(mut rules, mut conditions), lock| {
-        let condition = lock.condition.clone();
+        let condition = lock.condition_fn.clone();
         lock.details.iter().for_each(|detail| {
             // NOTE create rule only for strict order
             if let LockOrder::Strict = detail.order {
@@ -62,7 +62,7 @@ struct LockingConstraint {
 impl LockingConstraint {
     fn evaluate_route(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
         if let Some(condition) = self.conditions.get(job) {
-            if !(condition)(&route_ctx.route.actor) {
+            if !(condition)(&route_ctx.route().actor) {
                 return ConstraintViolation::fail(self.code);
             }
         }
@@ -75,7 +75,7 @@ impl LockingConstraint {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ConstraintViolation> {
-        if let Some(rules) = self.rules.get(&route_ctx.route.actor) {
+        if let Some(rules) = self.rules.get(&route_ctx.route().actor) {
             let can_insert = rules.iter().all(|rule| {
                 rule.can_insert(
                     &activity_ctx.target.retrieve_job(),

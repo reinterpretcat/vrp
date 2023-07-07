@@ -104,7 +104,7 @@ impl HeuristicSolutionProcessing for VicinityClustering {
         insertion_ctx.solution.routes.iter_mut().for_each(|route_ctx| {
             #[allow(clippy::needless_collect)]
             let clusters = route_ctx
-                .route
+                .route()
                 .tour
                 .all_activities()
                 .enumerate()
@@ -117,7 +117,7 @@ impl HeuristicSolutionProcessing for VicinityClustering {
                 .collect::<Vec<_>>();
 
             clusters.into_iter().rev().for_each(|(activity_idx, cluster)| {
-                let cluster_activity = route_ctx.route.tour.get(activity_idx).unwrap();
+                let cluster_activity = route_ctx.route().tour.get(activity_idx).unwrap();
                 let cluster_time = cluster_activity.place.time.clone();
                 let cluster_arrival = cluster_activity.schedule.arrival;
                 let last_job = cluster.last().unwrap().job.clone();

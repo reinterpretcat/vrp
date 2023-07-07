@@ -1,4 +1,4 @@
-use heuristic_research::{draw_function_plots, solve_function, solve_vrp, Axes};
+use heuristic_research::*;
 use plotters::prelude::*;
 use rosomaxa::utils::Environment;
 
@@ -6,7 +6,7 @@ fn main() {
     // TODO make this more configurable
     let vrp_file_path = std::env::args().nth(1);
 
-    let generations = 2000;
+    let generations = 200;
     let selection_size = 8;
     let population_type = "rosomaxa";
     let logger = Environment::default().logger;
@@ -26,10 +26,15 @@ fn main() {
         (Axes { x: (-2.0..2.0, 0.15), y: (0.0..3610.), z: (-2.0..2.0, 0.15) }, function_name)
     };
 
-    let area = BitMapBackend::new("plot.png", (1024, 768)).into_drawing_area();
     let generation = 100;
     let pitch = 0.;
     let yaw = 0.;
+    let area = BitMapBackend::new("population_plots.png", (1024, 768)).into_drawing_area();
+    draw_population_plots(area, generation, pitch, yaw, axes, function_name).unwrap();
 
-    draw_function_plots(area, generation, pitch, yaw, axes, function_name).unwrap();
+    let area = BitMapBackend::new("fitness_plot.png", (1024, 768)).into_drawing_area();
+    draw_fitness_plots(area, function_name).unwrap();
+
+    let area = BitMapBackend::new("heuristic_plot.png", (1024, 768)).into_drawing_area();
+    draw_heuristic_plots(area, generation, "best").unwrap();
 }

@@ -1,4 +1,4 @@
-///! Contains a mutation operator based on ruin and recreate principle.
+//! Contains a mutation operator based on ruin and recreate principle.
 use super::*;
 use crate::construction::heuristics::finalize_insertion_ctx;
 use crate::models::GoalContext;

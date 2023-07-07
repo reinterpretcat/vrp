@@ -38,7 +38,9 @@ impl VehicleTie for Dimensions {
     }
 
     fn set_vehicle_id(&mut self, id: String) -> &mut Self {
-        self.set_value("vehicle_id", id);
+        self.set_value("vehicle_id", id.clone());
+        // NOTE: core internally uses `id` to provide debug output
+        self.set_value("id", id);
         self
     }
 
@@ -128,7 +130,9 @@ impl JobTie for Dimensions {
     }
 
     fn set_job_id(&mut self, id: String) -> &mut Self {
-        self.set_value("job_id", id);
+        self.set_value("job_id", id.clone());
+        // NOTE: core internally uses `id` to provide debug output
+        self.set_value("id", id);
         self
     }
 

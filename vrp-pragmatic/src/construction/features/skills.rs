@@ -32,7 +32,7 @@ impl FeatureConstraint for SkillsConstraint {
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => {
                 if let Some(job_skills) = job.dimens().get_job_skills() {
-                    let vehicle_skills = route_ctx.route.actor.vehicle.dimens.get_vehicle_skills();
+                    let vehicle_skills = route_ctx.route().actor.vehicle.dimens.get_vehicle_skills();
                     let is_ok = check_all_of(job_skills, &vehicle_skills)
                         && check_one_of(job_skills, &vehicle_skills)
                         && check_none_of(job_skills, &vehicle_skills);

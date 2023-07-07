@@ -11,11 +11,11 @@ use crate::population::{DominanceOrder, DominanceOrdered, RosomaxaWeighted, Shuf
 use crate::prelude::*;
 use crate::utils::Noise;
 use crate::*;
-use hashbrown::{HashMap, HashSet};
 use std::any::Any;
 use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet};
 use std::iter::once;
-use std::ops::{Deref, Range};
+use std::ops::Range;
 use std::sync::Arc;
 
 /// An objective function which calculates a fitness of a vector.
@@ -79,12 +79,20 @@ impl HeuristicContext for VectorContext {
         self.inner_context.objective()
     }
 
-    fn population(&self) -> &DynHeuristicPopulation<Self::Objective, Self::Solution> {
-        self.inner_context.population()
+    fn selected<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
+        self.inner_context.population.select()
+    }
+
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a> {
+        self.inner_context.population.ranked()
     }
 
     fn statistics(&self) -> &HeuristicStatistics {
         self.inner_context.statistics()
+    }
+
+    fn selection_phase(&self) -> SelectionPhase {
+        self.inner_context.population.selection_phase()
     }
 
     fn environment(&self) -> &Environment {
@@ -133,7 +141,7 @@ impl Objective for VectorObjective {
     type Solution = VectorSolution;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        self.fitness_fn.deref()(solution.data.as_slice())
+        (self.fitness_fn)(solution.data.as_slice())
     }
 }
 
@@ -145,7 +153,7 @@ impl MultiObjective for VectorObjective {
     }
 
     fn fitness<'a>(&self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(once(self.fitness_fn.deref()(solution.data.as_slice())))
+        Box::new(once((self.fitness_fn)(solution.data.as_slice())))
     }
 
     fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String> {
@@ -181,7 +189,12 @@ impl HeuristicSolution for VectorSolution {
     }
 
     fn deep_copy(&self) -> Self {
-        Self::new(self.data.clone(), self.objective.clone())
+        Self {
+            data: self.data.clone(),
+            weights: self.weights.clone(),
+            objective: self.objective.clone(),
+            order: self.order.clone(),
+        }
     }
 }
 
@@ -197,7 +210,7 @@ impl DominanceOrdered for VectorSolution {
 
 impl RosomaxaWeighted for VectorSolution {
     fn init_weights(&mut self) {
-        self.weights = self.objective.weight_fn.deref()(self.data.as_slice());
+        self.weights = (self.objective.weight_fn)(self.data.as_slice());
     }
 }
 
@@ -316,6 +329,7 @@ pub type ContextFactory = Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>)
 
 /// An example of the optimization solver to solve trivial problems.
 pub struct Solver {
+    is_experimental: bool,
     logger: Option<InfoLogger>,
     use_static_heuristic: bool,
     initial_solutions: Vec<Vec<f64>>,
@@ -334,6 +348,7 @@ pub struct Solver {
 impl Default for Solver {
     fn default() -> Self {
         Self {
+            is_experimental: false,
             logger: None,
             use_static_heuristic: false,
             initial_solutions: vec![],
@@ -352,15 +367,21 @@ impl Default for Solver {
 }
 
 impl Solver {
-    /// Use dynamic selective only
-    pub fn use_static_heuristic(mut self) -> Self {
-        self.use_static_heuristic = true;
+    /// Sets experimental flag to true (false is default).
+    pub fn set_experimental(mut self) -> Self {
+        self.is_experimental = true;
         self
     }
 
     /// Sets logger.
     pub fn with_logger(mut self, logger: InfoLogger) -> Self {
         self.logger = Some(logger);
+        self
+    }
+
+    /// Use dynamic selective only
+    pub fn use_static_heuristic(mut self) -> Self {
+        self.use_static_heuristic = true;
         self
     }
 
@@ -427,7 +448,8 @@ impl Solver {
     /// Runs the solver using configuration provided through fluent interface methods.
     pub fn solve(self) -> Result<(SolverSolutions, Option<TelemetryMetrics>), String> {
         // create an environment based on max_time and logger parameters supplied
-        let environment = Environment::new_with_time_quota(self.max_time);
+        let environment =
+            Environment { is_experimental: self.is_experimental, ..Environment::new_with_time_quota(self.max_time) };
         let environment = Arc::new(if let Some(logger) = self.logger.clone() {
             Environment { logger, ..environment }
         } else {
@@ -443,7 +465,7 @@ impl Solver {
         let fitness_fn = self.fitness_fn.ok_or_else(|| "objective function must be set".to_string())?;
         let weight_fn = self.weight_fn.unwrap_or_else({
             let fitness_fn = fitness_fn.clone();
-            move || Arc::new(move |data| data.iter().cloned().chain(once(fitness_fn.deref()(data))).collect())
+            move || Arc::new(move |data| data.iter().cloned().chain(once((fitness_fn)(data))).collect())
         });
         let objective = Arc::new(VectorObjective::new(fitness_fn, weight_fn));
         let initial_operators = self

@@ -1,9 +1,12 @@
 use crate::construction::heuristics::UnassignmentInfo;
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
+use crate::models::*;
+use crate::utils::short_type_name;
 use hashbrown::HashMap;
 use rustc_hash::FxHasher;
 use std::any::Any;
+use std::fmt::{Debug, Formatter};
 use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
@@ -34,6 +37,17 @@ pub struct Problem {
     pub extras: Arc<Extras>,
 }
 
+impl Debug for Problem {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>())
+            .field("fleet", &self.fleet)
+            .field("jobs", &self.jobs.size())
+            .field("locks", &self.locks.len())
+            .field("goal", self.goal.as_ref())
+            .finish_non_exhaustive()
+    }
+}
+
 /// Represents a VRP solution.
 pub struct Solution {
     /// Actor's registry.
@@ -44,9 +58,6 @@ pub struct Solution {
 
     /// List of unassigned jobs within reason code.
     pub unassigned: Vec<(Job, UnassignmentInfo)>,
-
-    /// Specifies index for storing extra data of arbitrary type.
-    pub extras: Arc<Extras>,
 }
 
 /// An enumeration which specifies how jobs should be ordered in tour.
@@ -85,7 +96,7 @@ pub struct LockDetail {
 /// Contains information about jobs locked to specific actors.
 pub struct Lock {
     /// Specifies condition when locked jobs can be assigned to specific actor
-    pub condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>,
+    pub condition_fn: Arc<dyn Fn(&Actor) -> bool + Sync + Send>,
     /// Specifies lock details.
     pub details: Vec<LockDetail>,
     /// Specifies whether route is created or not in solution from beginning.
@@ -103,6 +114,6 @@ impl LockDetail {
 impl Lock {
     /// Creates a new instance of `Lock`.
     pub fn new(condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>, details: Vec<LockDetail>, is_lazy: bool) -> Self {
-        Self { condition, details, is_lazy }
+        Self { condition_fn: condition, details, is_lazy }
     }
 }

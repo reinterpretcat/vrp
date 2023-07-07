@@ -8,21 +8,29 @@ use std::sync::Arc;
 mod text_writer;
 pub(crate) use self::text_writer::*;
 
+mod initial_reader;
+pub use self::initial_reader::read_init_solution;
+
 mod routing;
 pub use self::routing::CoordIndex;
 
 use vrp_core::models::Extras;
+use vrp_core::solver::{HeuristicFilter, HEURISTIC_FILTER_KEY};
 
 pub(crate) fn get_extras(coord_index: CoordIndex) -> Extras {
     let mut extras = Extras::default();
 
     extras.insert("coord_index".to_string(), Arc::new(coord_index));
+    extras.insert(
+        HEURISTIC_FILTER_KEY.to_string(),
+        Arc::new(HeuristicFilter::new(|name| name != "local_reschedule_departure")),
+    );
 
     extras
 }
 
 /// A trait to get tuple from collection items.
-/// See https://stackoverflow.com/questions/38863781/how-to-create-a-tuple-from-a-vector
+/// See `<https://stackoverflow.com/questions/38863781/how-to-create-a-tuple-from-a-vector>`
 pub(crate) trait TryCollect<T> {
     fn try_collect_tuple(&mut self) -> Option<T>;
 }

@@ -72,7 +72,7 @@ fn create_test_problem(
         .map(|(vehicle_id, order, position, job_ids)| {
             let vehicle_id = vehicle_id.to_string();
             Arc::new(Lock {
-                condition: Arc::new(move |actor| *actor.vehicle.dimens.get_id().unwrap() == vehicle_id),
+                condition_fn: Arc::new(move |actor| *actor.vehicle.dimens.get_id().unwrap() == vehicle_id),
                 details: vec![LockDetail {
                     order,
                     position,
@@ -165,9 +165,9 @@ fn get_routes(insertion_ctx: &InsertionContext) -> Vec<(&str, Vec<&str>)> {
         .iter()
         .map(|route_ctx| {
             (
-                route_ctx.route.actor.vehicle.dimens.get_id().unwrap().as_str(),
+                route_ctx.route().actor.vehicle.dimens.get_id().unwrap().as_str(),
                 route_ctx
-                    .route
+                    .route()
                     .tour
                     .all_activities()
                     .flat_map(|a| a.job.as_ref())

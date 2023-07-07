@@ -255,7 +255,7 @@ fn check_e1207_no_incomplete_relation(ctx: &ValidationContext, relations: &[Rela
 }
 
 /// Validates relations in the plan.
-pub fn validate_relations(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
+pub fn validate_relations(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
     let vehicle_map = ctx
         .vehicles()
         .flat_map(|v_type| v_type.vehicle_ids.iter().map(move |id| (id.clone(), v_type)))
@@ -272,6 +272,7 @@ pub fn validate_relations(ctx: &ValidationContext) -> Result<(), Vec<FormatError
             check_e1206_relation_has_no_missing_shift_properties(relations, &vehicle_map),
             check_e1207_no_incomplete_relation(ctx, relations),
         ])
+        .map_err(|errors| errors.into())
     } else {
         Ok(())
     }

@@ -62,15 +62,13 @@
 //! to develop heuristic optimization algorithms. One of its goals is to guide the search process towards
 //! optimal solution.
 //!
-//! See more details about it in [`solver`] module.
-//!
-//! [`solver`]: ./solver/index.html
+//! See more details about it in `solver` module.
 //!
 //!
 //! # Examples
 //!
-//! The most simple way to run solver is to use [`Builder`](./struct.Builder.html). You can tweak
-//! metaheuristic parameters by calling corresponding methods of the builder instance:
+//! The most simple way to run solver is to use `Builder`. You can tweak metaheuristic parameters by
+//! calling corresponding methods of the builder instance:
 //!
 //! ```
 //! # use vrp_core::models::examples::create_example_problem;
@@ -98,6 +96,7 @@
 //!
 
 #![warn(missing_docs)]
+#![forbid(unsafe_code)]
 
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]

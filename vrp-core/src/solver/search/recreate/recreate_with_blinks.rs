@@ -2,15 +2,13 @@
 #[path = "../../../../tests/unit/solver/search/recreate/recreate_with_blinks_test.rs"]
 mod recreate_with_blinks_test;
 
+use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
-use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::common::*;
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::search::recreate::Recreate;
 use crate::solver::RefinementContext;
-use crate::utils::Either;
-use rand::prelude::*;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
@@ -40,8 +38,8 @@ impl<T: LoadOps> DemandJobSelector<T> {
 }
 
 impl<T: LoadOps> JobSelector for DemandJobSelector<T> {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        ctx.solution.required.sort_by(|a, b| match (Self::get_job_demand(a), Self::get_job_demand(b)) {
+    fn prepare(&self, insertion_ctx: &mut InsertionContext) {
+        insertion_ctx.solution.required.sort_by(|a, b| match (Self::get_job_demand(a), Self::get_job_demand(b)) {
             (None, Some(_)) => Ordering::Less,
             (Some(_), None) => Ordering::Greater,
             (Some(a), Some(b)) => b.partial_cmp(&a).unwrap_or(Ordering::Equal),
@@ -49,10 +47,8 @@ impl<T: LoadOps> JobSelector for DemandJobSelector<T> {
         });
 
         if self.asc_order {
-            ctx.solution.required.reverse();
+            insertion_ctx.solution.required.reverse();
         }
-
-        Box::new(ctx.solution.required.iter().cloned())
     }
 }
 
@@ -67,10 +63,8 @@ impl ChunkJobSelector {
 }
 
 impl JobSelector for ChunkJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        ctx.solution.required.shuffle(&mut ctx.environment.random.get_rng());
-
-        Box::new(ctx.solution.required.iter().take(self.size).cloned())
+    fn select<'a>(&'a self, insertion_ctx: &'a InsertionContext) -> Box<dyn Iterator<Item = &'a Job> + 'a> {
+        Box::new(insertion_ctx.solution.required.iter().take(self.size))
     }
 }
 
@@ -95,65 +89,15 @@ impl RankedJobSelector {
 }
 
 impl JobSelector for RankedJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        let problem = &ctx.problem;
+    fn prepare(&self, insertion_ctx: &mut InsertionContext) {
+        let problem = &insertion_ctx.problem;
 
-        ctx.solution.required.sort_by(|a, b| {
+        insertion_ctx.solution.required.sort_by(|a, b| {
             Self::rank_job(problem, a).partial_cmp(&Self::rank_job(problem, b)).unwrap_or(Ordering::Less)
         });
 
         if self.asc_order {
-            ctx.solution.required.reverse();
-        }
-
-        Box::new(ctx.solution.required.iter().cloned())
-    }
-}
-
-/// A recreate strategy with blinks inspired by "Slack Induction by String Removals for Vehicle
-/// Routing Problems", Jan Christiaens, Greet Vanden Berghe.
-struct BlinkResultSelector {
-    random: Arc<dyn Random + Send + Sync>,
-    ratio: f64,
-}
-
-impl BlinkResultSelector {
-    /// Creates an instance of `BlinkResultSelector`.
-    fn new(ratio: f64, random: Arc<dyn Random + Send + Sync>) -> Self {
-        Self { random, ratio }
-    }
-
-    /// Creates an instance of `BlinkResultSelector` with default values.
-    fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
-        Self::new(0.01, random)
-    }
-}
-
-impl ResultSelector for BlinkResultSelector {
-    fn select_insertion(
-        &self,
-        ctx: &InsertionContext,
-        left: InsertionResult,
-        right: InsertionResult,
-    ) -> InsertionResult {
-        let is_blink = self.random.is_hit(self.ratio);
-        let is_locked = match &right {
-            InsertionResult::Success(success) => ctx.solution.locked.contains(&success.job),
-            _ => false,
-        };
-        match (&left, is_blink, is_locked) {
-            (InsertionResult::Success(_), true, false) => left,
-            _ => InsertionResult::choose_best_result(left, right),
-        }
-    }
-
-    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either<f64, f64> {
-        let is_blink = self.random.is_hit(self.ratio);
-
-        if is_blink || left < right {
-            Either::Left(left)
-        } else {
-            Either::Right(right)
+            insertion_ctx.solution.required.reverse();
         }
     }
 }

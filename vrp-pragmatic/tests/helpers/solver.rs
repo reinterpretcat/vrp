@@ -18,12 +18,12 @@ pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matr
     get_core_solution(problem, matrices, true, |problem: Arc<CoreProblem>| {
         let population = create_elitism_population(problem.goal.clone(), environment.clone());
         let refinement_ctx =
-            RefinementContext::new(problem.clone(), population, TelemetryMode::None, environment.clone());
+            RefinementContext::new(problem.clone(), Box::new(population), TelemetryMode::None, environment.clone());
 
         RecreateWithCheapest::new(environment.random.clone())
-            .run(&refinement_ctx, InsertionContext::new(problem.clone(), environment.clone()))
+            .run(&refinement_ctx, InsertionContext::new(problem, environment))
             .solution
-            .to_solution(problem.extras.clone())
+            .into()
     })
 }
 
@@ -77,7 +77,7 @@ fn get_core_problem(problem: Problem, matrices: Option<Vec<Matrix>>) -> Arc<Core
     )
 }
 
-fn get_core_solution<F: Fn(Arc<CoreProblem>) -> CoreSolution>(
+fn get_core_solution<F: FnOnce(Arc<CoreProblem>) -> CoreSolution>(
     problem: Problem,
     matrices: Option<Vec<Matrix>>,
     perform_check: bool,

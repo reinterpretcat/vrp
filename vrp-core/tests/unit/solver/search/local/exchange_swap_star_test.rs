@@ -4,14 +4,14 @@ use crate::helpers::models::problem::get_vehicle_id;
 use crate::helpers::solver::*;
 use crate::helpers::utils::create_test_environment_with_random;
 use crate::helpers::utils::random::FakeRandom;
-use crate::models::common::{Schedule, TimeWindow};
+use crate::models::common::{Cost, Schedule, TimeWindow};
 use crate::models::solution::*;
 use rosomaxa::prelude::Environment;
 
 fn create_insertion_success(insertion_ctx: &InsertionContext, insertion_data: (usize, &str, usize)) -> InsertionResult {
     let (route_idx, job_id, insertion_idx) = insertion_data;
 
-    let context = insertion_ctx.solution.routes.get(route_idx).cloned().unwrap();
+    let actor = insertion_ctx.solution.routes.get(route_idx).unwrap().route().actor.clone();
     let job = get_jobs_by_ids(insertion_ctx, &[job_id]).first().cloned().unwrap();
     let activity = Activity {
         place: Place { location: 0, duration: 0.0, time: TimeWindow::new(0., 1.) },
@@ -20,7 +20,12 @@ fn create_insertion_success(insertion_ctx: &InsertionContext, insertion_data: (u
         commute: None,
     };
 
-    InsertionResult::Success(InsertionSuccess { cost: 0., job, activities: vec![(activity, insertion_idx)], context })
+    InsertionResult::Success(InsertionSuccess {
+        cost: InsertionCost::default(),
+        job,
+        activities: vec![(activity, insertion_idx)],
+        actor,
+    })
 }
 
 fn create_insertion_ctx(
@@ -72,7 +77,7 @@ fn can_use_exchange_swap_star_impl(jobs_order: Vec<Vec<&str>>, expected: Vec<Vec
         .solution
         .routes
         .iter()
-        .map(|route_ctx| get_vehicle_id(&route_ctx.route.actor.vehicle).clone())
+        .map(|route_ctx| get_vehicle_id(&route_ctx.route().actor.vehicle).clone())
         .collect::<Vec<_>>();
     assert_eq!(vehicles, vec!["0", "1", "2"]);
 
@@ -185,7 +190,7 @@ fn can_find_insertion_cost_impl(job_id: &str, expected: Cost) {
 
     let result = find_insertion_cost(&search_ctx, &job, route_ctx);
 
-    assert_eq!(result, expected);
+    assert_eq!(result, InsertionCost::new(&[expected]));
 }
 
 parameterized_test! { can_find_in_place_result, (route_idx, insert_job, extract_job, disallowed_pairs, job_order, expected), {
@@ -218,10 +223,11 @@ fn can_find_in_place_result_impl(
     let extract_job = jobs_map.get(extract_job).unwrap();
 
     let result = find_in_place_result(&search_ctx, route_ctx, insert_job, extract_job)
-        .into_success()
-        .map(|success| (success.cost, success.activities.first().unwrap().1));
+        .try_into()
+        .ok()
+        .map(|success: InsertionSuccess| (success.cost, success.activities.first().unwrap().1));
 
-    assert_eq!(result, expected);
+    assert_eq!(result, expected.map(|(cost, position)| (InsertionCost::new(&[cost]), position)));
 }
 
 parameterized_test! { can_find_top_results, (job_id, disallowed_pairs, expected), {

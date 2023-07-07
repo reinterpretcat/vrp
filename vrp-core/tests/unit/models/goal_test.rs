@@ -1,10 +1,9 @@
 use super::*;
 use crate::construction::features::*;
-use crate::helpers::construction::features::{create_goal_ctx_with_feature, create_goal_ctx_with_features};
+use crate::helpers::construction::features::create_goal_ctx_with_features;
 use crate::helpers::models::domain::create_empty_insertion_context;
 use crate::helpers::models::solution::{test_activity_without_job, test_actor};
 use crate::models::common::SingleDimLoad;
-use std::ops::Deref;
 
 fn create_constraint_feature(name: &str, violation: Option<ConstraintViolation>) -> Feature {
     struct TestFeatureConstraint {
@@ -58,7 +57,7 @@ fn create_objective_feature_with_dynamic_cost(name: &str, fitness_fn: FitnessFn)
         type Solution = InsertionContext;
 
         fn fitness(&self, solution: &Self::Solution) -> f64 {
-            self.fitness_fn.deref()(self.name.as_str(), solution)
+            (self.fitness_fn)(self.name.as_str(), solution)
         }
     }
 
@@ -138,8 +137,26 @@ pub fn can_evaluate_constraints() {
     );
 }
 
-#[test]
-pub fn can_use_objective_estimate() {
+parameterized_test! {can_use_objective_estimate, (feature_names, feature_map, expected_cost), {
+    can_use_objective_estimate_impl(feature_names, feature_map, expected_cost);
+}}
+
+can_use_objective_estimate! {
+    case01_in_one_dimen_one: (
+        &["o_1"], &[vec!["o_1"]], &[1.],
+    ),
+    case02_in_one_dimen_two: (
+        &["o_1", "o_2"], &[vec!["o_1", "o_2"]], &[2.],
+    ),
+    case03_in_two_dimen_one: (
+        &["o_1", "o_2"], &[vec!["o_1"], vec!["o_2"]], &[1., 1.],
+    ),
+    case04_in_two_dimen_mixed: (
+        &["o_1", "o_2", "o_3"], &[vec!["o_1", "o_2"], vec!["o_3"]], &[2., 1.],
+    ),
+}
+
+fn can_use_objective_estimate_impl(feature_names: &[&str], feature_map: &[Vec<&str>], expected_cost: &[Cost]) {
     let route_ctx = RouteContext::new(test_actor());
     let activity_ctx = ActivityContext {
         index: 0,
@@ -148,23 +165,11 @@ pub fn can_use_objective_estimate() {
         next: None,
     };
     let move_ctx = MoveContext::activity(&route_ctx, &activity_ctx);
+    let features = feature_names.iter().map(|name| create_objective_feature_with_fixed_cost(name, 1.)).collect();
 
-    assert_eq!(
-        create_goal_ctx_with_feature(create_objective_feature_with_fixed_cost("o_1", 1.)).estimate(&move_ctx),
-        1.
-    );
+    let result = create_goal_ctx_with_features(features, feature_map.to_vec()).estimate(&move_ctx);
 
-    assert_eq!(
-        create_goal_ctx_with_features(
-            vec![
-                create_objective_feature_with_fixed_cost("o_1", 1.),
-                create_objective_feature_with_fixed_cost("o_2", 1.)
-            ],
-            vec![vec!["o_1", "o_2"]],
-        )
-        .estimate(&move_ctx),
-        2.
-    );
+    assert_eq!(result, InsertionCost::new(expected_cost));
 }
 
 parameterized_test! {can_use_objective_total_order, (feature_map, left_fitness, right_fitness, expected), {

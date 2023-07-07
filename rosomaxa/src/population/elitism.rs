@@ -9,20 +9,17 @@ use crate::{HeuristicSpeed, HeuristicStatistics};
 use std::cmp::Ordering;
 use std::fmt::{Formatter, Write};
 use std::iter::{empty, once};
-use std::ops::{Deref, RangeBounds};
+use std::ops::RangeBounds;
 use std::sync::Arc;
 
 /// A function type to deduplicate individuals.
 pub type DedupFn<O, S> = Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>;
 
-/// A simple evolution aware implementation of [`Population`] trait with the the following
+/// A simple evolution aware implementation of `Population` trait with the the following
 /// characteristics:
 ///
-/// - sorting of individuals in population according their objective fitness using [`NSGA-II`] algorithm
+/// - sorting of individuals in population according their objective fitness using `NSGA-II` algorithm
 /// - maintaining diversity of population based on their crowding distance
-///
-/// [`Population`]: ./trait.Population.html
-/// [`NSGA-II`]: ../algorithms/nsga2/index.html
 ///
 pub struct Elitism<O, S>
 where
@@ -73,25 +70,11 @@ where
             return false;
         }
 
-        let was_empty = self.size() == 0;
-
-        individuals.into_iter().for_each(|individual| {
-            self.individuals.push(individual);
-        });
-
-        self.sort();
-        self.ensure_max_population_size();
-        self.is_improved(was_empty)
+        self.add_with_iter(individuals.into_iter())
     }
 
     fn add(&mut self, individual: Self::Individual) -> bool {
-        let was_empty = self.size() == 0;
-
-        self.individuals.push(individual);
-
-        self.sort();
-        self.ensure_max_population_size();
-        self.is_improved(was_empty)
+        self.add_with_iter(once(individual))
     }
 
     fn on_generation(&mut self, statistics: &HeuristicStatistics) {
@@ -171,6 +154,19 @@ where
         )
     }
 
+    fn add_with_iter<I>(&mut self, iter: I) -> bool
+    where
+        I: Iterator<Item = S>,
+    {
+        let best_known_fitness = self.individuals.first().map(|i| i.fitness().collect());
+
+        self.individuals.extend(iter);
+
+        self.sort();
+        self.ensure_max_population_size();
+        self.is_improved(best_known_fitness)
+    }
+
     /// Creates a new instance of `Elitism` with custom deduplication function.
     pub fn new_with_dedup(
         objective: Arc<O>,
@@ -210,7 +206,7 @@ where
 
         best_order.into_iter().for_each(|order| self.individuals[order.orig_index].set_order(order));
         self.individuals.sort_by(|a, b| a.get_order().seq_index.cmp(&b.get_order().seq_index));
-        self.individuals.dedup_by(|a, b| self.dedup_fn.deref()(&objective, a, b));
+        self.individuals.dedup_by(|a, b| (self.dedup_fn)(&objective, a, b));
     }
 
     fn ensure_max_population_size(&mut self) {
@@ -219,13 +215,19 @@ where
         }
     }
 
-    fn is_improved(&self, was_empty: bool) -> bool {
-        was_empty
-            || self
-                .individuals
-                .first()
-                .map(|individual| individual.get_order())
-                .map_or(false, |dominance_order| dominance_order.orig_index != dominance_order.seq_index)
+    fn is_improved(&self, best_known_fitness: Option<Vec<f64>>) -> bool {
+        best_known_fitness.zip(self.individuals.first()).map_or(true, |(best_known_fitness, new_best_known)| {
+            let dominance_order = new_best_known.get_order();
+            if dominance_order.orig_index != dominance_order.seq_index {
+                // NOTE: search is unstable, need to check fitness values
+                best_known_fitness
+                    .into_iter()
+                    .zip(new_best_known.fitness())
+                    .any(|(a, b)| compare_floats(a, b) != Ordering::Equal)
+            } else {
+                false
+            }
+        })
     }
 }
 

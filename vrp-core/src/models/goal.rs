@@ -6,12 +6,14 @@ use crate::construction::enablers::*;
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
+use crate::utils::short_type_name;
 use hashbrown::{HashMap, HashSet};
 use rand::prelude::SliceRandom;
 use rosomaxa::algorithms::nsga2::dominance_order;
 use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
+use std::fmt::{Debug, Formatter};
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -30,8 +32,8 @@ use std::sync::Arc;
 /// for vehicles/jobs, etc.
 #[derive(Clone, Default)]
 pub struct GoalContext {
-    pub(crate) hierarchical_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
-    pub(crate) flat_objectives: Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
+    pub(crate) global_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
+    pub(crate) flatten_objectives: Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
     pub(crate) local_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
     pub(crate) constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
     pub(crate) states: Vec<Arc<dyn FeatureState + Send + Sync>>,
@@ -96,14 +98,26 @@ impl GoalContext {
             })
         };
 
-        let hierarchical_objectives = remap_objectives(global_objective_map)?;
+        let global_objectives = remap_objectives(global_objective_map)?;
         let local_objectives = remap_objectives(local_objective_map)?;
 
         let states = features.iter().filter_map(|feature| feature.state.clone()).collect();
         let constraints = features.iter().filter_map(|feature| feature.constraint.clone()).collect();
-        let flat_objectives = hierarchical_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
+        let flatten_objectives = global_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
 
-        Ok(Self { hierarchical_objectives, flat_objectives, local_objectives, constraints, states })
+        Ok(Self { global_objectives, flatten_objectives, local_objectives, constraints, states })
+    }
+}
+
+impl Debug for GoalContext {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>())
+            .field("global", &self.global_objectives.len())
+            .field("flatten", &self.flatten_objectives.len())
+            .field("local", &self.local_objectives.len())
+            .field("constraints", &self.constraints.len())
+            .field("states", &self.states.len())
+            .finish()
     }
 }
 
@@ -279,47 +293,52 @@ impl MultiObjective for GoalContext {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        unwrap_from_result(self.hierarchical_objectives.iter().try_fold(Ordering::Equal, |_, objectives| {
-            match dominance_order(a, b, objectives.iter().map(|o| o.as_ref())) {
+        unwrap_from_result(self.global_objectives.iter().try_fold(
+            Ordering::Equal,
+            |_, objectives| match dominance_order(a, b, objectives.iter().map(|o| o.as_ref())) {
                 Ordering::Equal => Ok(Ordering::Equal),
                 order => Err(order),
-            }
-        }))
+            },
+        ))
     }
 
     fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(self.flat_objectives.iter().map(|o| o.fitness(solution)))
+        Box::new(self.flatten_objectives.iter().map(|o| o.fitness(solution)))
     }
 
     fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String> {
-        self.flat_objectives
+        self.flatten_objectives
             .get(idx)
             .map(|o| o.total_order(a, b))
             .ok_or_else(|| format!("cannot get total_order with index: {idx}"))
     }
 
     fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String> {
-        self.flat_objectives
+        self.flatten_objectives
             .get(idx)
             .map(|o| o.distance(a, b))
             .ok_or_else(|| format!("cannot get distance with index: {idx}"))
     }
 
     fn size(&self) -> usize {
-        self.flat_objectives.len()
+        self.flatten_objectives.len()
     }
 }
 
 impl HeuristicObjective for GoalContext {}
 
 impl Shuffled for GoalContext {
-    /// Returns a new instance of `ObjectiveCost` with shuffled objectives.
+    /// Returns a new instance of `GoalContext` with shuffled objectives.
     fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
-        let mut hierarchical_objectives = self.hierarchical_objectives.clone();
+        let mut global_objectives = self.global_objectives.clone();
+        let mut flatten_objectives = self.flatten_objectives.clone();
+        let mut local_objectives = self.local_objectives.clone();
 
-        hierarchical_objectives.shuffle(&mut random.get_rng());
+        global_objectives.shuffle(&mut random.get_rng());
+        flatten_objectives.shuffle(&mut random.get_rng());
+        local_objectives.shuffle(&mut random.get_rng());
 
-        Self { hierarchical_objectives, ..self.clone() }
+        Self { global_objectives, flatten_objectives, local_objectives, ..self.clone() }
     }
 }
 
@@ -352,10 +371,14 @@ impl GoalContext {
     }
 
     /// Estimates insertion cost (penalty) of the refinement move.
-    pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
+    pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> InsertionCost {
         self.local_objectives
             .iter()
-            .flat_map(|objectives| objectives.iter().map(|objective| objective.estimate(move_ctx)))
-            .fold(Cost::default(), |acc, other| acc + other)
+            .map(|same_level_objectives| {
+                // NOTE simply sum objective values on the same level
+                // TODO: it would be nice to scale them according to their importance
+                same_level_objectives.iter().map(|objective| objective.estimate(move_ctx)).sum::<Cost>()
+            })
+            .collect()
     }
 }

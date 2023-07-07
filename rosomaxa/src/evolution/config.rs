@@ -2,7 +2,6 @@ use crate::evolution::*;
 use crate::hyper::*;
 use crate::termination::*;
 use std::hash::Hash;
-use std::ops::Deref;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
@@ -20,9 +19,6 @@ where
 
     /// A heuristic context.
     pub context: C,
-
-    /// A hyper heuristic.
-    pub heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
 
     /// An evolution strategy.
     pub strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>,
@@ -250,24 +246,24 @@ where
             &target_proximity,
         ) {
             (None, None, None, None) => {
-                logger.deref()("configured to use default max-generations (3000) and max-time (300secs)");
+                (logger)("configured to use default max-generations (3000) and max-time (300secs)");
                 vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))]
             }
             _ => {
                 let mut terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = vec![];
 
                 if let Some(limit) = max_generations {
-                    logger.deref()(format!("configured to use max-generations: {limit}").as_str());
+                    (logger)(format!("configured to use max-generations: {limit}").as_str());
                     terminations.push(Box::new(MaxGeneration::new(limit)))
                 }
 
                 if let Some(limit) = max_time {
-                    logger.deref()(format!("configured to use max-time: {limit}s").as_str());
+                    (logger)(format!("configured to use max-time: {limit}s").as_str());
                     terminations.push(Box::new(MaxTime::new(limit as f64)));
                 }
 
                 if let Some((interval_type, value, threshold, is_global, key)) = min_cv.clone() {
-                    logger.deref()(
+                    (logger)(
                             format!(
                                 "configured to use variation coefficient {interval_type} with sample: {value}, threshold: {threshold}",
                             )
@@ -289,7 +285,7 @@ where
                 }
 
                 if let Some((target_fitness, distance_threshold)) = target_proximity.clone() {
-                    logger.deref()(
+                    (logger)(
                             format!(
                                 "configured to use target fitness: {target_fitness:?}, distance threshold: {distance_threshold}",
                             )
@@ -314,23 +310,24 @@ where
 
         Ok(EvolutionConfig {
             initial: self.initial,
-            heuristic: if let Some(heuristic) = self.heuristic {
-                logger.deref()("configured to use custom heuristic");
-                heuristic
-            } else {
-                Box::new(DynamicSelective::new(
-                    self.search_operators.ok_or_else(|| "missing search operators or heuristic".to_string())?,
-                    self.diversify_operators.ok_or_else(|| "missing diversify operators or heuristic".to_string())?,
-                    context.environment(),
-                ))
-            },
-            context,
             strategy: if let Some(strategy) = self.strategy {
-                logger.deref()("configured to use custom strategy");
+                (logger)("configured to use a custom strategy");
                 strategy
             } else {
-                Box::new(RunSimple::new(1))
+                let heuristic = if let Some(heuristic) = self.heuristic {
+                    (logger)("configured to use custom heuristic");
+                    heuristic
+                } else {
+                    Box::new(DynamicSelective::new(
+                        self.search_operators.ok_or_else(|| "missing search operators or heuristic".to_string())?,
+                        self.diversify_operators
+                            .ok_or_else(|| "missing diversify operators or heuristic".to_string())?,
+                        context.environment(),
+                    ))
+                };
+                Box::new(strategies::Iterative::new(heuristic, 1))
             },
+            context,
             termination,
             processing: self.processing,
         })

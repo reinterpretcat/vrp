@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufReader;
 use vrp_pragmatic::format::problem::deserialize_locations;
-use vrp_pragmatic::format::{CoordIndex, FormatError};
+use vrp_pragmatic::format::CoordIndex;
 use vrp_pragmatic::validation::ValidationContext;
 
 #[test]
@@ -13,10 +13,7 @@ fn can_generate_problem_from_simple_prototype() {
         generate_problem("pragmatic", Some(vec![reader]), None, 50, 4, None).map_err(|err| panic!("{}", err)).unwrap();
     let coord_index = CoordIndex::new(&problem);
 
-    ValidationContext::new(&problem, None, &coord_index)
-        .validate()
-        .map_err(|err| panic!("{}", FormatError::format_many(&err, "\t\n")))
-        .unwrap();
+    ValidationContext::new(&problem, None, &coord_index).validate().map_err(|errs| panic!("{errs}")).unwrap();
 
     // TODO add more checks
     assert_eq!(problem.plan.jobs.len(), 50);

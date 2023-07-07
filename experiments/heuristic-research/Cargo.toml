@@ -16,11 +16,11 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-rosomaxa = { path = "../../rosomaxa" }
+rosomaxa = { path = "../../rosomaxa", features = ["heuristic-telemetry"] }
 vrp-scientific = { path = "../../vrp-scientific"}
 
-serde = { version = "1.0.158", features = ["derive"] }
-serde_json = "1.0.94"
+serde = { version = "1.0.164", features = ["derive"] }
+serde_json = "1.0.96"
 
 plotters = { version = "0.3.4", default-features = false, features = [
     "bitmap_backend",
@@ -30,6 +30,6 @@ plotters = { version = "0.3.4", default-features = false, features = [
 ] }
 plotters-canvas = "0.3.0"
 itertools = "0.10.5"
-wasm-bindgen = "0.2.84"
-web-sys = { version = "0.3.61", features = ["HtmlCanvasElement", "console"] }
+wasm-bindgen = "0.2.86"
+web-sys = { version = "0.3.63", features = ["HtmlCanvasElement", "console"] }
 lazy_static = "1.4.0"

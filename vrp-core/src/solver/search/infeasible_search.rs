@@ -131,17 +131,17 @@ fn create_modified_variant(
 }
 
 fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionContext {
-    let size = new_refinement_ctx.population().size();
-    let skip = new_refinement_ctx.environment.random.uniform_int(0, size as i32 - 1) as usize;
+    let selected = new_refinement_ctx.selected().collect::<Vec<_>>();
+    let skip = new_refinement_ctx.environment.random.uniform_int(0, selected.len() as i32 - 1) as usize;
 
-    new_refinement_ctx.population().select().nth(skip).expect("no individual")
+    selected.get(skip).expect("no individual")
 }
 
 fn get_best_or_random_individual<'a>(
     new_refinement_ctx: &'a RefinementContext,
     old_insertion_ctx: &InsertionContext,
 ) -> &'a InsertionContext {
-    let new_insertion_ctx = new_refinement_ctx.population().select().next().expect("no individual");
+    let new_insertion_ctx = new_refinement_ctx.selected().next().expect("no individual");
 
     if new_refinement_ctx.problem.goal.total_order(new_insertion_ctx, old_insertion_ctx) == Ordering::Less {
         new_insertion_ctx

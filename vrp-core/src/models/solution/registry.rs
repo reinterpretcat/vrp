@@ -30,13 +30,13 @@ impl Registry {
     /// Removes an actor from the list of available actors.
     /// Returns whether the actor was present in the registry.
     pub fn use_actor(&mut self, actor: &Arc<Actor>) -> bool {
-        self.available.get_mut(self.index.get(actor).unwrap()).unwrap().remove(actor)
+        self.available.get_mut(self.index.get(actor).expect("unknown actor")).unwrap().remove(actor)
     }
 
     /// Adds actor to the list of available actors.
     /// Returns whether the actor was not present in the registry.
     pub fn free_actor(&mut self, actor: &Arc<Actor>) -> bool {
-        self.available.get_mut(self.index.get(actor).unwrap()).unwrap().insert(actor.clone())
+        self.available.get_mut(self.index.get(actor).expect("unknown actor")).unwrap().insert(actor.clone())
     }
 
     /// Returns all actors.

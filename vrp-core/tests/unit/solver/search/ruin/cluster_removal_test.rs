@@ -67,7 +67,7 @@ fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
     assert_eq!(insertion_ctx.solution.locked.len(), 0);
     assert_eq!(insertion_ctx.solution.required.len(), expected);
     assert_eq!(
-        insertion_ctx.solution.routes.iter().map(|route| route.route.tour.job_count()).sum::<usize>(),
+        insertion_ctx.solution.routes.iter().map(|route_ctx| route_ctx.route().tour.job_count()).sum::<usize>(),
         8 - expected
     );
 }

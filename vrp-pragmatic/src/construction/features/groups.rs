@@ -40,8 +40,8 @@ impl FeatureConstraint for GroupConstraint {
                 let other_route = solution_ctx
                     .routes
                     .iter()
-                    .filter(|rc| rc.route.actor != route_ctx.route.actor)
-                    .filter_map(|rc| rc.state.get_route_state::<HashSet<String>>(self.state_key))
+                    .filter(|rc| rc.route().actor != route_ctx.route().actor)
+                    .filter_map(|rc| rc.state().get_route_state::<HashSet<String>>(self.state_key))
                     .any(|groups| groups.contains(group));
 
                 if other_route {
@@ -95,5 +95,5 @@ impl FeatureState for GroupState {
 }
 
 fn get_groups(route_ctx: &RouteContext) -> HashSet<String> {
-    route_ctx.route.tour.jobs().filter_map(|job| job.dimens().get_job_group().cloned()).collect()
+    route_ctx.route().tour.jobs().filter_map(|job| job.dimens().get_job_group().cloned()).collect()
 }

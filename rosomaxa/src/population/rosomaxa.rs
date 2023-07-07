@@ -8,6 +8,7 @@ use crate::algorithms::math::relative_distance;
 use crate::population::elitism::{DedupFn, DominanceOrdered, Shuffled};
 use crate::utils::{Environment, Random};
 use rand::prelude::SliceRandom;
+use rayon::iter::Either;
 use std::convert::TryInto;
 use std::fmt::Formatter;
 use std::ops::RangeBounds;
@@ -27,8 +28,6 @@ pub struct RosomaxaConfig {
     pub distribution_factor: f64,
     /// Objective reshuffling probability.
     pub objective_reshuffling: f64,
-    /// Learning rate of GSOM.
-    pub learning_rate: f64,
     /// A node rebalance memory of GSOM.
     pub rebalance_memory: usize,
     /// A ratio of exploration phase.
@@ -46,7 +45,6 @@ impl RosomaxaConfig {
             spread_factor: 0.75,
             distribution_factor: 0.75,
             objective_reshuffling: 0.01,
-            learning_rate: 0.1,
             rebalance_memory: 100,
             exploration_ratio: 0.9,
         }
@@ -60,7 +58,7 @@ pub trait RosomaxaWeighted: Input {
 }
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
-/// MAps and eXtrAs (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
+/// `MAps` and `eXtrAs` (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
 pub struct Rosomaxa<O, S>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
@@ -133,12 +131,17 @@ where
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         match &self.phase {
             RosomaxaPhases::Exploration { network, coordinates, selection_size, .. } => {
+                let random = self.environment.random.as_ref();
+
                 let (elite_explore_size, node_explore_size) = match *selection_size {
                     value if value > 6 => {
-                        let elite_size = self.environment.random.uniform_int(1, 2) as usize;
-                        (elite_size, 2)
+                        const EXPLORE_PROBABILITY: f64 = 0.1;
+
+                        let elite_size = if random.is_hit(EXPLORE_PROBABILITY) { 2 } else { 1 };
+                        let node_size = if random.is_hit(EXPLORE_PROBABILITY) { 2 } else { 1 };
+
+                        (elite_size, node_size)
                     }
-                    value if value > 4 => (1, 2),
                     _ => (1, 1),
                 };
 
@@ -147,21 +150,10 @@ where
                         .select()
                         .take(elite_explore_size)
                         .chain(coordinates.iter().flat_map(move |coordinate| {
-                            let explore_size = self.environment.random.uniform_int(1, node_explore_size) as usize;
-
                             network
                                 .find(coordinate)
-                                .map(|node| {
-                                    let node = node.read().unwrap();
-                                    // NOTE this is black magic to trick borrow checker, it should be safe to do
-                                    // TODO is there better way to achieve similar result?
-                                    unsafe { &*(&node.storage.population as *const Elitism<O, S>) as &Elitism<O, S> }
-                                        .select()
-                                        .take(explore_size)
-                                        .collect::<Vec<_>>()
-                                })
-                                .unwrap_or_else(Vec::new)
-                                .into_iter()
+                                .map(|node| Either::Left(node.storage.population.select().take(node_explore_size)))
+                                .unwrap_or_else(|| Either::Right(std::iter::empty()))
                         }))
                         .take(*selection_size),
                 )
@@ -178,11 +170,7 @@ where
     fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         match &self.phase {
             RosomaxaPhases::Exploration { network, .. } => {
-                Box::new(self.elite.all().chain(network.get_nodes().flat_map(|node| {
-                    // NOTE see above
-                    let node = node.read().unwrap();
-                    unsafe { &*(&node.storage.population as *const Elitism<O, S>) as &Elitism<O, S> }.all()
-                })))
+                Box::new(self.elite.all().chain(network.get_nodes().flat_map(|node| node.storage.population.all())))
             }
             _ => self.elite.all(),
         }
@@ -244,10 +232,26 @@ where
                         &self.config,
                         individuals.drain(0..4).collect(),
                     );
-                    individuals.drain(0..).for_each(|individual| network.store(init_individual(individual), 0));
+
+                    let initial = individuals.drain(0..).collect::<Vec<_>>();
+                    let initial = initial.into_iter().map(init_individual).collect::<Vec<_>>();
+                    initial.iter().for_each(|individual| network.store(individual.deep_copy(), 0));
+
+                    // create gene pool to keep track of population progress
+                    let gene_pool_size = self.config.selection_size.min(8).max(4);
+                    let gene_pool_selection_size = (gene_pool_size / 2).max(4);
+                    let mut gene_pool = Elitism::new_with_dedup(
+                        self.objective.clone(),
+                        self.environment.random.clone(),
+                        gene_pool_size,
+                        gene_pool_selection_size,
+                        create_dedup_fn(0.05),
+                    );
+                    gene_pool.add_all(initial);
 
                     self.phase = RosomaxaPhases::Exploration {
                         network,
+                        gene_pool,
                         coordinates: vec![],
                         statistics: statistics.clone(),
                         selection_size,
@@ -256,6 +260,7 @@ where
             }
             RosomaxaPhases::Exploration {
                 network,
+                gene_pool,
                 coordinates,
                 statistics: old_statistics,
                 selection_size: old_selection_size,
@@ -268,6 +273,8 @@ where
                 if statistics.termination_estimate < exploration_ratio {
                     *old_statistics = statistics.clone();
                     *old_selection_size = selection_size;
+
+                    Self::reintroduce_gene_pool(network, &self.elite, gene_pool, statistics, &self.config);
 
                     Self::optimize_network(network, statistics, &self.config);
 
@@ -286,26 +293,43 @@ where
         best_known.map_or(true, |best_known| self.objective.total_order(individual, best_known) != Ordering::Greater)
     }
 
+    fn reintroduce_gene_pool(
+        network: &mut IndividualNetwork<O, S>,
+        elite: &Elitism<O, S>,
+        gene_pool: &mut Elitism<O, S>,
+        statistics: &HeuristicStatistics,
+        config: &RosomaxaConfig,
+    ) {
+        let frequency = match statistics.speed {
+            HeuristicSpeed::Slow { .. } => config.rebalance_memory.min(10),
+            _ => (config.rebalance_memory / 2).max(20),
+        };
+
+        if statistics.generation > 0 && statistics.generation % frequency == 0 {
+            network.store_batch(
+                gene_pool.select().map(|i| i.deep_copy()).collect(),
+                statistics.generation,
+                init_individual,
+            );
+
+            if let Some(best_known) = elite.select().next() {
+                gene_pool.add(best_known.deep_copy());
+            }
+        }
+    }
+
     fn optimize_network(
         network: &mut IndividualNetwork<O, S>,
         statistics: &HeuristicStatistics,
         config: &RosomaxaConfig,
     ) {
-        // increase rate according to termination estimate
-        let rate = statistics.termination_estimate.clamp(config.learning_rate, 0.8);
-        let learning_rate =
-            (config.learning_rate * (1. + rate)).clamp(config.learning_rate, 0.9_f64.max(config.learning_rate));
-        network.set_learning_rate(learning_rate);
+        network.set_learning_rate(get_learning_rate(statistics.termination_estimate));
 
         if statistics.generation % config.rebalance_memory == 0 {
             network.smooth(1);
         }
 
-        // slowly decrease size of network from 3 * rebalance_memory to rebalance_memory
-        let rate = get_sigmoid_curve(statistics.termination_estimate.clamp(0., 0.8));
-        let keep_ratio = 2. * (1. - rate);
-        let keep_size = config.rebalance_memory + (config.rebalance_memory as f64 * keep_ratio) as usize;
-
+        let keep_size = get_keep_size(config.rebalance_memory, statistics.termination_estimate);
         // no need to shrink network
         if network.size() <= keep_size {
             return;
@@ -322,7 +346,6 @@ where
     ) {
         coordinates.clear();
         coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
-            let node = node.read().unwrap();
             if node.storage.population.size() > 0 {
                 Some(*coordinate)
             } else {
@@ -359,7 +382,7 @@ where
             NetworkConfig {
                 spread_factor: config.spread_factor,
                 distribution_factor: config.distribution_factor,
-                learning_rate: config.learning_rate,
+                learning_rate: 0.1,
                 rebalance_memory: config.rebalance_memory,
                 has_initial_error: true,
             },
@@ -411,6 +434,7 @@ where
     },
     Exploration {
         network: IndividualNetwork<O, S>,
+        gene_pool: Elitism<O, S>,
         coordinates: Vec<Coordinate>,
         statistics: HeuristicStatistics,
         selection_size: usize,
@@ -533,7 +557,26 @@ where
     })
 }
 
-/// Sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
-fn get_sigmoid_curve(value: f64) -> f64 {
-    1. / (1. + std::f64::consts::E.powf(-10. * (value - 0.5)))
+/// Gets network size to keep.
+/// Slowly decrease size of network from `3 * rebalance_memory` to `rebalance_memory`.
+fn get_keep_size(rebalance_memory: usize, termination_estimate: f64) -> usize {
+    let termination_estimate = termination_estimate.clamp(0., 0.8);
+    // Sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
+    let rate = 1. / (1. + std::f64::consts::E.powf(-10. * (termination_estimate - 0.5)));
+    let keep_ratio = 2. * (1. - rate);
+
+    rebalance_memory + (rebalance_memory as f64 * keep_ratio) as usize
+}
+
+/// Gets learning rate decay using cosine annealing.
+fn get_learning_rate(termination_estimate: f64) -> f64 {
+    const PERIOD: f64 = 2.;
+    const MIN_LEARNING_RATE: f64 = 0.1;
+    const MAX_LEARNING_RATE: f64 = 0.9;
+
+    let min_lr = MIN_LEARNING_RATE;
+    let max_lr = MAX_LEARNING_RATE.max(min_lr + 0.05);
+    let progress = termination_estimate * PERIOD;
+
+    min_lr + 0.5 * (max_lr - min_lr) * (1. + (progress * std::f64::consts::PI).cos())
 }

@@ -1,9 +1,10 @@
 use crate::models::common::{Distance, Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Job, Multi, Single};
 use crate::models::solution::Tour;
-use crate::utils::compare_shared;
+use crate::utils::{compare_shared, short_type_name};
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
+use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
 /// Specifies an extra commute information to reach the actual place.
@@ -71,6 +72,12 @@ impl Route {
     /// Returns a deep copy of `Route`.
     pub fn deep_copy(&self) -> Self {
         Self { actor: self.actor.clone(), tour: self.tour.deep_copy() }
+    }
+}
+
+impl Debug for Route {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>()).field("actor", self.actor.as_ref()).field("tour", &self.tour).finish()
     }
 }
 

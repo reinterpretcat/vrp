@@ -2,10 +2,68 @@
 
 All notable changes to this project will be documented in this file.
 
+
 ## [Unreleased]
 
 
-## [v1.19.2]
+## [v1.21.1]- 2023-06-09
+
+This release brings experimental `async-evolution` with other improvements.
+
+### Changed
+
+* update dependencies
+* fix documentation issues
+* refactor `HeuristicContext` trait to avoid using `HeuristicPopulation` directly from it
+* improve non-determinism based selectors logic
+
+### Added
+
+* add experimental feature `async-evolution`
+
+
+## [v1.21.0]- 2023-04-27
+
+This release brings hierarchical approach for local objective estimation. Additionally, it focuses on refactoring,
+mostly to avoid usafe code. In memory of..
+
+### Changed
+
+* use hierarchical approach for local objective estimation
+* avoid unsafe code project-wise:
+  * apply `#![forbid(unsafe_code)]` directive for rosomaxa/vrp-core/vrp-pragmatic/vrp-scientific
+  * apply `#![deny(unsafe_code)]` directive for vrp-cli (due to FFI which is only one exception)
+  * allow unsafe code only when necessary in research crates which are not used anyhow in production code
+* make pyo3 an optional dependency and wrap python bindings under `py_bindings` feature
+* refactor `Deref` trait usage
+* implement `Debug` for essential core types
+* refactor job index to lower memory footprint for a large scale VRP (tested on 30k CVRP instance)
+* use proper objective for tsplib format problems (CVRP)
+* error handling types
+* fix sort stability issue in elitism's improvement detection method
+* switch rosomaxa learning rate to cosine annealing
+* rename `shiftTime` limit to `maxDuration`
+
+### Added
+
+* experimental `compact-tour` objective which tries to shape routes based on job neighbourhood.
+* heuristic filtering extension
+* simple tabu list implementation used by some ruin methods
+* gene pool in rosomaxa to reintroduce some genes while search progresses
+
+
+## [v1.20.0]- 2023-04-01
+
+This release is focused on removing unsafe code from the solver core.
+
+### Changed
+
+* refactor RouteContext to avoid using Arc and unsafe code
+* refactor Network to avoid using Arc/RwLock and, as result, unsafe code in consumers
+* adapt core api to required safety changes
+
+
+## [v1.19.2] - 2023-03-22
 
 This release introduces improvements in rosomaxa-heuristic.
 
@@ -24,7 +82,7 @@ This release introduces improvements in rosomaxa-heuristic.
 * change gsom compaction logic and adapt rosomaxa
 
 
-## [v1.19.1]
+## [v1.19.1] - 2022-12-14
 
 ### Changed
 
@@ -35,7 +93,7 @@ This release introduces improvements in rosomaxa-heuristic.
 * update rust version on dev environment to the latest (1.65.0)
 
 
-## [v1.19.0]
+## [v1.19.0] - 2022-10-16
 
 This release is focused on internal design improvements with some performance implications.
 
@@ -52,7 +110,7 @@ This release is focused on internal design improvements with some performance im
 * `breaking`: remove area constraint as it needs rework
 
 
-## [v1.18.4]
+## [v1.18.4] - 2022-08-21
 
 ### Changed
 
@@ -588,7 +646,10 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.19.2...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.21.1...HEAD
+[v1.21.1]: https://github.com/reinterpretcat/vrp/compare/v1.21.0...v1.21.1
+[v1.21.0]: https://github.com/reinterpretcat/vrp/compare/v1.20.0...v1.21.0
+[v1.20.0]: https://github.com/reinterpretcat/vrp/compare/v1.19.2...v1.20.0
 [v1.19.2]: https://github.com/reinterpretcat/vrp/compare/v1.19.1...v1.90.2
 [v1.19.1]: https://github.com/reinterpretcat/vrp/compare/v1.19.0...v1.90.1
 [v1.19.0]: https://github.com/reinterpretcat/vrp/compare/v1.18.4...v1.90.0

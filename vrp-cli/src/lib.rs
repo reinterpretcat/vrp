@@ -10,6 +10,7 @@
 //! - `vrp-core` crate implements default metaheuristic
 
 #![warn(missing_docs)]
+#![deny(unsafe_code)] // NOTE: use deny instead forbid as we need allow unsafe code for c_interop
 
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]
@@ -45,6 +46,7 @@ use vrp_pragmatic::get_unique_locations;
 use vrp_pragmatic::validation::ValidationContext;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[allow(unsafe_code)]
 mod c_interop {
     use super::*;
     use crate::extensions::solve::config::read_config;
@@ -54,7 +56,7 @@ mod c_interop {
     use std::panic::UnwindSafe;
     use std::slice;
     use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem};
-    use vrp_pragmatic::format::CoordIndex;
+    use vrp_pragmatic::format::{CoordIndex, MultiFormatError};
 
     type Callback = extern "C" fn(*const c_char);
 
@@ -98,7 +100,7 @@ mod c_interop {
             let problem = to_string(problem);
             let problem = BufReader::new(problem.as_bytes());
             let result = deserialize_problem(problem)
-                .map_err(|errors| get_errors_serialized(&errors))
+                .map_err(|errs| errs.to_string())
                 .and_then(|problem| get_locations_serialized(&problem));
 
             call_back(result, success, failure);
@@ -110,22 +112,22 @@ mod c_interop {
     extern "C" fn convert_to_pragmatic(
         format: *const c_char,
         inputs: *const *const c_char,
-        input_len: *const i32,
+        input_len: usize,
         success: Callback,
         failure: Callback,
     ) {
         catch_panic(failure, || {
             let format = to_string(format);
-            let inputs = unsafe { slice::from_raw_parts(inputs, input_len as usize).to_vec() };
+            let inputs = unsafe { slice::from_raw_parts(inputs, input_len).to_vec() };
             let inputs = inputs.iter().map(|p| to_string(*p)).collect::<Vec<_>>();
             let readers = inputs.iter().map(|p| BufReader::new(p.as_bytes())).collect::<Vec<_>>();
 
             match import_problem(format.as_str(), Some(readers)) {
                 Ok(problem) => {
-                    let mut buffer = String::new();
-                    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-                    serialize_problem(writer, &problem).unwrap();
-                    let problem = CString::new(buffer.as_bytes()).unwrap();
+                    let mut writer = BufWriter::new(Vec::new());
+                    serialize_problem(&problem, &mut writer).unwrap();
+                    let bytes = writer.into_inner().expect("cannot use writer");
+                    let problem = CString::new(bytes).unwrap();
 
                     success(problem.as_ptr());
                 }
@@ -164,10 +166,12 @@ mod c_interop {
 
                     ValidationContext::new(&problem, matrices, &coord_index).validate()
                 }
-                (Err(errors), Ok(_)) | (Ok(_), Err(errors)) => Err(errors.into_iter().collect()),
-                (Err(errors1), Err(errors2)) => Err(errors1.into_iter().chain(errors2.into_iter()).collect()),
+                (Err(errors), Ok(_)) | (Ok(_), Err(errors)) => Err(errors),
+                (Err(errors1), Err(errors2)) => {
+                    Err(MultiFormatError::from(errors1.into_iter().chain(errors2.into_iter()).collect::<Vec<_>>()))
+                }
             }
-            .map_err(|err| FormatError::format_many_to_json(&err))
+            .map_err(|errs| errs.to_string())
             .map(|_| "[]".to_string());
 
             call_back(result, success, failure);
@@ -191,7 +195,7 @@ mod c_interop {
 
             let result =
                 if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
-                    .map_err(|errors| get_errors_serialized(&errors))
+                    .map_err(|errs| errs.to_string())
                     .and_then(|problem| {
                         read_config(BufReader::new(to_string(config).as_bytes()))
                             .map_err(|err| to_config_error(err.as_str()))
@@ -287,11 +291,9 @@ mod c_interop {
             }
             extern "C" fn failure(err: *const c_char) {
                 let err = to_string(err);
-                assert!(err.starts_with('['));
-                assert!(err.contains("code"));
+                assert!(err.contains("E0000"));
                 assert!(err.contains("cause"));
                 assert!(err.contains("action"));
-                assert!(err.ends_with(']'));
             }
 
             let problem = CString::new("").unwrap();
@@ -334,6 +336,7 @@ mod c_interop {
     }
 }
 
+#[cfg(feature = "py_bindings")]
 #[cfg(all(not(target_arch = "wasm32"), not(tarpaulin)))]
 mod py_interop {
     use super::*;
@@ -351,11 +354,14 @@ mod py_interop {
     fn convert_to_pragmatic(format: &str, inputs: Vec<String>) -> PyResult<String> {
         let readers = inputs.iter().map(|p| BufReader::new(p.as_bytes())).collect::<Vec<_>>();
         import_problem(format, Some(readers))
-            .map(|problem| {
-                let mut buffer = String::new();
-                serialize_problem(unsafe { BufWriter::new(buffer.as_mut_vec()) }, &problem).unwrap();
+            .and_then(|problem| {
+                let mut writer = BufWriter::new(Vec::new());
+                serialize_problem(&problem, &mut writer).unwrap();
 
-                buffer
+                writer
+                    .into_inner()
+                    .map_err(|err| format!("BufWriter: {err}"))
+                    .and_then(|bytes| String::from_utf8(bytes).map_err(|err| format!("StringUTF8: {err}")))
             })
             .map_err(PyOSError::new_err)
     }
@@ -364,7 +370,7 @@ mod py_interop {
     #[pyfunction]
     fn get_routing_locations(problem: String) -> PyResult<String> {
         deserialize_problem(BufReader::new(problem.as_bytes()))
-            .map_err(|errors| get_errors_serialized(&errors))
+            .map_err(|errs| errs.to_string())
             .and_then(|problem| get_locations_serialized(&problem))
             .map_err(PyOSError::new_err)
     }
@@ -387,11 +393,11 @@ mod py_interop {
 
                 ValidationContext::new(&problem, matrices, &coord_index).validate()
             })
-            .map_err(|errs| PyOSError::new_err(FormatError::format_many_to_json(&errs)))?;
+            .map_err(|errs| PyOSError::new_err(errs.to_string()))?;
 
         // try solve problem
         if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
-            .map_err(|errors| get_errors_serialized(&errors))
+            .map_err(|errs| errs.to_string())
             .and_then(|problem| {
                 read_config(BufReader::new(config.as_bytes()))
                     .map_err(|err| to_config_error(err.as_str()))
@@ -444,7 +450,7 @@ mod wasm {
         let matrices = if matrices.is_empty() { None } else { Some(&matrices) };
         ValidationContext::new(&problem, matrices, &coord_index)
             .validate()
-            .map_err(|err| JsValue::from_str(FormatError::format_many_to_json(&err).as_str()))
+            .map_err(|errs| JsValue::from_str(errs.to_json().as_str()))
             .map(|_| JsValue::from_str("[]"))
     }
 
@@ -458,11 +464,13 @@ mod wasm {
 
         match import_problem(format, Some(readers)) {
             Ok(problem) => {
-                let mut buffer = String::new();
-                let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-                serialize_problem(writer, &problem).unwrap();
+                let mut writer = BufWriter::new(Vec::new());
+                serialize_problem(&problem, &mut writer).unwrap();
 
-                Ok(JsValue::from_str(buffer.as_str()))
+                let bytes = writer.into_inner().unwrap();
+                let result = String::from_utf8(bytes).unwrap();
+
+                Ok(JsValue::from_str(result.as_str()))
             }
             Err(err) => Err(JsValue::from_str(err.to_string().as_str())),
         }
@@ -478,11 +486,8 @@ mod wasm {
             serde_wasm_bindgen::from_value(matrices).map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         let problem = Arc::new(
-            if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }.map_err(
-                |errors| {
-                    JsValue::from_str(errors.iter().map(|err| err.to_json()).collect::<Vec<_>>().join("\n").as_str())
-                },
-            )?,
+            if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
+                .map_err(|errs| JsValue::from_str(errs.to_json().as_str()))?,
         );
 
         let config: Config = serde_wasm_bindgen::from_value(config)
@@ -518,20 +523,17 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
             .to_json()
         })?;
 
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+    let mut writer = BufWriter::new(Vec::new());
     if let Some(metrics) = metrics {
-        (&solution, cost, &metrics).write_pragmatic_json(&problem, writer)?;
+        (&solution, cost, &metrics).write_pragmatic_json(&problem, &mut writer)?;
     } else {
-        (&solution, cost).write_pragmatic_json(&problem, writer)?;
+        (&solution, cost).write_pragmatic_json(&problem, &mut writer)?;
     }
 
-    Ok(buffer)
-}
+    let bytes = writer.into_inner().map_err(|err| format!("{err}"))?;
+    let result = String::from_utf8(bytes).map_err(|err| format!("{err}"))?;
 
-/// Gets errors serialized in free form.
-pub fn get_errors_serialized(errors: &[FormatError]) -> String {
-    errors.iter().map(|err| format!("{err}")).collect::<Vec<_>>().join("\n")
+    Ok(result)
 }
 
 fn to_config_error(err: &str) -> String {

@@ -3,14 +3,15 @@
 mod worst_jobs_removal_test;
 
 use super::*;
-use crate::construction::heuristics::{InsertionContext, RouteContext};
-use crate::models::common::{Cost, Timestamp};
+use crate::construction::heuristics::InsertionContext;
+use crate::models::common::{Cost, Profile, Timestamp};
 use crate::models::problem::{Job, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
-use crate::solver::search::{get_route_jobs, JobRemovalTracker};
+use crate::solver::search::{get_route_jobs, JobRemovalTracker, TabuList};
 use crate::solver::RefinementContext;
 use hashbrown::HashMap;
 use rosomaxa::utils::parallel_collect;
+use std::cell::RefCell;
 use std::cmp::Ordering::Less;
 use std::iter::once;
 use std::sync::Arc;
@@ -35,14 +36,15 @@ impl Ruin for WorstJobRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.environment.random.clone();
-        let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
+        let route_jobs = get_route_jobs(&insertion_ctx.solution);
         let mut routes_savings = get_routes_cost_savings(&insertion_ctx);
 
         routes_savings.shuffle(&mut random.get_rng());
 
-        let tracker = RwLock::new(JobRemovalTracker::new(&self.limits, random.as_ref()));
+        let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, random.as_ref()));
+        let mut tabu_list = TabuList::from(&insertion_ctx);
 
-        routes_savings.iter().take_while(|_| !tracker.read().unwrap().is_limit()).for_each(|(route_ctx, savings)| {
+        routes_savings.iter().take_while(|_| !tracker.borrow().is_limit()).for_each(|(profile, savings)| {
             let skip = savings.len().min(random.uniform_int(0, self.worst_skip as i32) as usize);
             let worst = savings
                 .iter()
@@ -57,28 +59,33 @@ impl Ruin for WorstJobRemoval {
                     .chain(
                         problem
                             .jobs
-                            .neighbors(&route_ctx.route.actor.vehicle.profile, job, Timestamp::default())
+                            .neighbors(profile, job, Timestamp::default())
                             .filter(|(_, cost)| *cost > 0.)
                             .map(|(job, _)| job)
                             .cloned(),
                     )
-                    .take_while(|_| !tracker.read().unwrap().is_limit())
+                    .take_while(|_| !tracker.borrow().is_limit())
                     .for_each(|job| {
                         // NOTE job can be absent if it is unassigned
-                        if let Some(route_ctx) = route_jobs.get_mut(&job) {
-                            tracker.write().unwrap().try_remove_job(&mut insertion_ctx.solution, route_ctx, &job);
+                        if let Some(&route_idx) = route_jobs.get(&job) {
+                            if tracker.borrow_mut().try_remove_job(&mut insertion_ctx.solution, route_idx, &job) {
+                                tabu_list.add_job(job.clone());
+                                tabu_list.add_actor(insertion_ctx.solution.routes[route_idx].route().actor.clone());
+                            }
                         }
                     });
             }
         });
 
+        tabu_list.inject(&mut insertion_ctx);
+
         insertion_ctx
     }
 }
 
-fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContext, Vec<(Job, Cost)>)> {
+fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(Profile, Vec<(Job, Cost)>)> {
     parallel_collect(&insertion_ctx.solution.routes, |route_ctx| {
-        let route = route_ctx.route.as_ref();
+        let route = route_ctx.route();
         let mut savings: Vec<(Job, Cost)> = route
             .tour
             .all_activities()
@@ -98,7 +105,7 @@ fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContex
             .collect();
         savings.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(Less));
 
-        (route_ctx.clone(), savings)
+        (route_ctx.route().actor.vehicle.profile.clone(), savings)
     })
 }
 

@@ -8,8 +8,6 @@
 //! algorithms, tabu search, simulated annealing, variable neighborhood search, (adaptive) large
 //! neighborhood search, ant colony optimization, etc.
 //!
-//! The default implementation can be roughly described as "*Multi-objective Parthenogenesis based
-//! Evolutionary Algorithm with Ruin and Recreate Mutation Operator*".
 //!
 //! # Multi-objective decision maker
 //!
@@ -40,10 +38,6 @@
 //! guaranteed: it is only known that none of the generated solutions dominates the others.
 //! In the end, the top ranked individual is returned as best known solution.
 //!
-//! This crate contains NSGA-II buildings blocks which can be found in [`nsga2`] module.
-//!
-//! [`nsga2`]: ../algorithms/nsga2/index.html
-//!
 //! # Evolutionary algorithm
 //!
 //! An evolutionary algorithm (EA) is a generic population-based metaheuristic optimization algorithm.
@@ -59,14 +53,18 @@
 //!     - **population adjustments**: new individual is added to population, then the population is
 //!       sorted and shrinked to keep it under specific size limits with best-fit individuals and
 //!       some intermediate.
-//! - **main loop end**: exit evolution loop when one of termination criteria are met. See [`termination`]
+//! - **main loop end**: exit evolution loop when one of termination criteria are met. See `termination`
 //!       module for details.
 //!
 //! As there is no crossover operator involved and offspring is produced from one parent, this algorithm
 //! can be characterized as parthenogenesis based EA. This approach eliminates design of feasible
 //! crossover operator which is a challenging task in case of VRP.
 //!
-//!  [`termination`]: termination/index.html
+//! # Population
+//!
+//! A custom algorithm is implemented to maintain diversity and guide the search maintaining trade
+//! of between exploration and exploitation of solution space. See `rosomaxa` crate for details.
+//!
 //!
 //! # Ruin and Recreate principle
 //!
@@ -77,17 +75,14 @@
 //! threshold-accepting algorithms, but this crate only reuses ruin/recreate idea as a mutation
 //! operator.
 //!
-//! Implementation blocks can be found in [`mutation`] module.
-//!
 //! [`Schrimpf et al. (2000)`]: https://www.sciencedirect.com/science/article/pii/S0021999199964136
-//! [`mutation`]: mutation/index.html
 //!
-//! # Solver usage
 //!
-//! Check [`Builder`] and [`Solver`] documentation to see how to run VRP solver.
+//! # Additionally..
 //!
-//! [`Builder`]: ./struct.Builder.html
-//! [`Solver`]: ./struct.Solver.html
+//! The solver is not limited by R&R principle, additionally it utilizes some other heuristics
+//! and their combinations. They are picked based on their performance in terms of search quality and
+//! latency introduced. Reinforcement technics are used here (Markov Decision Process).
 //!
 
 extern crate rand;
@@ -99,9 +94,8 @@ use crate::solver::search::Recreate;
 use hashbrown::HashMap;
 use rosomaxa::evolution::*;
 use rosomaxa::prelude::*;
-use rosomaxa::{get_default_population, DynHeuristicPopulation, TelemetryHeuristicContext};
+use rosomaxa::{get_default_population, TelemetryHeuristicContext};
 use std::any::Any;
-use std::ops::Deref;
 use std::sync::Arc;
 
 pub use self::heuristic::*;
@@ -113,10 +107,15 @@ pub mod search;
 
 mod heuristic;
 
+/// A key to store a filter for heuristic methods applied by dynamic hyper-heuristic.
+pub const HEURISTIC_FILTER_KEY: &str = "heuristic_filter";
+
+/// A key to store tabu list.
+const TABU_LIST_KEY: i32 = 1;
 /// A key to store solution order information.
-const SOLUTION_ORDER_KEY: i32 = 1;
+const SOLUTION_ORDER_KEY: i32 = 2;
 /// A key to store solution weights information.
-const SOLUTION_WEIGHTS_KEY: i32 = 2;
+const SOLUTION_WEIGHTS_KEY: i32 = 3;
 
 /// A type which encapsulates information needed to perform solution refinement process.
 pub struct RefinementContext {
@@ -167,12 +166,20 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.objective()
     }
 
-    fn population(&self) -> &DynHeuristicPopulation<Self::Objective, Self::Solution> {
-        self.inner_context.population()
+    fn selected<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
+        self.inner_context.selected()
+    }
+
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a> {
+        self.inner_context.ranked()
     }
 
     fn statistics(&self) -> &HeuristicStatistics {
         self.inner_context.statistics()
+    }
+
+    fn selection_phase(&self) -> SelectionPhase {
+        self.inner_context.selection_phase()
     }
 
     fn environment(&self) -> &Environment {
@@ -285,7 +292,7 @@ impl Solver {
     /// Solves a Vehicle Routing Problem and returns a _(solution, its cost)_ pair in case of success
     /// or error description, if solution cannot be found.
     pub fn solve(self) -> Result<(Solution, Cost, Option<TelemetryMetrics>), String> {
-        self.config.context.environment.logger.deref()(&format!(
+        (self.config.context.environment.logger)(&format!(
             "total jobs: {}, actors: {}",
             self.problem.jobs.size(),
             self.problem.fleet.actors.len()
@@ -298,7 +305,7 @@ impl Solver {
             .ok_or_else(|| "cannot find any solution".to_string())?;
 
         let cost = insertion_ctx.solution.get_total_cost();
-        let solution = insertion_ctx.solution.to_solution(self.problem.extras.clone());
+        let solution = insertion_ctx.solution.into();
 
         Ok((solution, cost, metrics))
     }

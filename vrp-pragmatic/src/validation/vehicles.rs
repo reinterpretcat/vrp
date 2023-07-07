@@ -8,7 +8,6 @@ use crate::validation::common::get_time_windows;
 use crate::{parse_time, parse_time_safe};
 use hashbrown::HashSet;
 use std::cmp::Ordering;
-use std::ops::Deref;
 use vrp_core::models::common::TimeWindow;
 use vrp_core::utils::compare_floats;
 
@@ -289,11 +288,11 @@ fn check_e1308_vehicle_reload_resources(ctx: &ValidationContext) -> Result<(), F
 
 type CheckShiftFn = Box<dyn Fn(&VehicleType, &VehicleShift, Option<TimeWindow>) -> bool>;
 
-fn get_invalid_type_ids(ctx: &ValidationContext, check_shift: CheckShiftFn) -> Vec<String> {
+fn get_invalid_type_ids(ctx: &ValidationContext, check_shift_fn: CheckShiftFn) -> Vec<String> {
     ctx.vehicles()
         .filter_map(|vehicle| {
             let all_correct =
-                vehicle.shifts.iter().all(|shift| check_shift.deref()(vehicle, shift, get_shift_time_window(shift)));
+                vehicle.shifts.iter().all(|shift| (check_shift_fn)(vehicle, shift, get_shift_time_window(shift)));
 
             if all_correct {
                 None
@@ -324,7 +323,7 @@ fn get_shift_time_window(shift: &VehicleShift) -> Option<TimeWindow> {
 }
 
 /// Validates vehicles from the fleet.
-pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
+pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
     combine_error_results(&[
         check_e1300_no_vehicle_types_with_duplicate_type_ids(ctx),
         check_e1301_no_vehicle_types_with_duplicate_ids(ctx),
@@ -336,4 +335,5 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>
         check_e1307_vehicle_required_break_rescheduling(ctx),
         check_e1308_vehicle_reload_resources(ctx),
     ])
+    .map_err(|errors| errors.into())
 }

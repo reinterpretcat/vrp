@@ -12,8 +12,8 @@ mod strategies;
 pub use self::strategies::*;
 
 use crate::utils::{compare_floats, Random};
-use hashbrown::HashMap;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::hash::Hash;
 
 /// Represents a state in MDP.

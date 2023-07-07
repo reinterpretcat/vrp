@@ -27,7 +27,7 @@ You can use [maturin](https://github.com/PyO3/maturin) tool to build solver loca
 
 2. Use maturin to build and install the solver library in your current environment:
     ```shell
-    maturin develop --release
+    maturin develop --release --features "py_bindings"
     ```
 
 3. Import and use the library in your python code:

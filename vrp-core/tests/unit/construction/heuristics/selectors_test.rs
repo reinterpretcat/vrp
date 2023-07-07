@@ -11,7 +11,12 @@ mod noise_checks {
     use super::*;
 
     fn make_success(cost: Cost) -> InsertionResult {
-        InsertionResult::make_success(cost, Job::Single(test_single_with_id("job1")), vec![], create_empty_route_ctx())
+        InsertionResult::make_success(
+            InsertionCost::new(&[cost]),
+            Job::Single(test_single_with_id("job1")),
+            vec![],
+            &create_empty_route_ctx(),
+        )
     }
 
     parameterized_test! {can_compare_insertion_result_with_noise, (left, right, reals, expected_result), {
@@ -36,14 +41,14 @@ mod noise_checks {
     ) {
         let noise_probability = 0.1;
         let noise_range = (0.9, 1.2);
-        let random = Arc::new(FakeRandom::new(vec![], reals));
-        let noise = Noise::new(noise_probability, noise_range, random);
+        let random = Arc::new(FakeRandom::new(vec![2], reals));
+        let noise = Noise::new_with_ratio(noise_probability, noise_range, random);
 
         let actual_result =
             NoiseResultSelector::new(noise).select_insertion(&create_empty_insertion_context(), left, right);
 
         match (actual_result, expected_result) {
-            (InsertionResult::Success(success), Some(cost)) => assert_eq!(success.cost, cost),
+            (InsertionResult::Success(success), Some(cost)) => assert_eq!(success.cost, InsertionCost::new(&[cost])),
             (InsertionResult::Failure(_), None) => {}
             _ => unreachable!(),
         }
@@ -78,10 +83,7 @@ mod selections {
         let target = 10;
         let selection_mode = LegSelection::Stochastic(Environment::default().random);
         let (_, solution) = generate_matrix_routes_with_defaults(activities, 1, false);
-        let route_ctx = RouteContext::new_with_state(
-            Arc::new(solution.routes.into_iter().next().unwrap()),
-            Arc::new(Default::default()),
-        );
+        let route_ctx = RouteContext::new_with_state(solution.routes.into_iter().next().unwrap(), Default::default());
         let mut counter = 0;
 
         let _ = selection_mode.sample_best(

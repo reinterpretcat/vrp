@@ -13,8 +13,8 @@
 mod non_dominated_sort_test;
 
 use crate::MultiObjective;
-use hashbrown::HashSet;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 
 type SolutionIdx = usize;
 

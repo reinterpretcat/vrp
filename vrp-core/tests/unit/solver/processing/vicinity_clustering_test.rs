@@ -8,7 +8,7 @@ use crate::helpers::solver::create_default_refinement_ctx;
 use crate::models::common::IdDimension;
 use crate::models::problem::Job;
 use crate::models::solution::{Commute, CommuteInfo};
-use crate::utils::as_mut;
+use std::ops::Deref;
 
 fn create_test_jobs() -> Vec<Job> {
     vec![
@@ -25,8 +25,14 @@ fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<
 
     let orig_problem = Arc::try_unwrap(create_problem_with_goal_ctx_jobs_and_fleet(constraint, jobs, test_fleet()))
         .unwrap_or_else(|_| unreachable!());
-    unsafe { as_mut(orig_problem.extras.as_ref()).set_cluster_config(config) };
-    let orig_problem = Arc::new(orig_problem);
+    let orig_problem = Arc::new(Problem {
+        extras: Arc::new({
+            let mut extras = orig_problem.extras.deref().clone();
+            extras.set_cluster_config(config);
+            extras
+        }),
+        ..orig_problem
+    });
 
     let refinement_cxt = RefinementContext { environment, ..create_default_refinement_ctx(orig_problem.clone()) };
 
@@ -76,7 +82,7 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
         problem: new_problem.clone(),
         solution: SolutionContext {
             routes: vec![RouteContext::new_with_state(
-                Arc::new(create_route_with_start_end_activities(
+                create_route_with_start_end_activities(
                     new_problem.fleet.as_ref(),
                     "v1",
                     test_activity_with_schedule(Schedule::new(0., 0.)),
@@ -90,8 +96,8 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
                             backward: CommuteInfo { location: 3, duration: 0., distance: 0. },
                         }),
                     }],
-                )),
-                Arc::new(RouteState::default()),
+                ),
+                RouteState::default(),
             )],
             ..create_empty_solution_context()
         },
@@ -103,9 +109,9 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
     assert_eq!(insertion_ctx.problem.jobs.size(), 4);
     assert_eq!(insertion_ctx.solution.routes.len(), 1);
     let route_ctx = insertion_ctx.solution.routes.first().unwrap();
-    assert_eq!(route_ctx.route.tour.job_activity_count(), 3);
-    assert_eq!(route_ctx.route.tour.total(), 5);
-    let job_activities = route_ctx.route.tour.all_activities().skip(1).take(3).collect::<Vec<_>>();
+    assert_eq!(route_ctx.route().tour.job_activity_count(), 3);
+    assert_eq!(route_ctx.route().tour.total(), 5);
+    let job_activities = route_ctx.route().tour.all_activities().skip(1).take(3).collect::<Vec<_>>();
     assert_eq!(job_activities.len(), expected.len());
     job_activities.into_iter().zip(expected.into_iter()).for_each(|(activity, (id, (arrival, departure)))| {
         assert_eq!(activity.job.as_ref().unwrap().dimens.get_id().unwrap(), id);

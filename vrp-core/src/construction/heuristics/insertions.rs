@@ -1,9 +1,22 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/heuristics/insertions_test.rs"]
+mod insertions_test;
+
 use crate::construction::heuristics::*;
-use crate::models::common::Cost;
-use crate::models::problem::Job;
+use crate::models::common::{Cost, IdDimension};
+use crate::models::problem::{Actor, Job};
 use crate::models::solution::Activity;
+use crate::utils::short_type_name;
+use rosomaxa::utils::unwrap_from_result;
+use std::borrow::Borrow;
+use std::cmp::Ordering;
+use std::fmt::{Debug, Formatter};
+use std::ops::{Add, Index, Sub};
+use std::sync::Arc;
+use tinyvec::{TinyVec, TinyVecIterator};
 
 /// Specifies insertion result variant.
+#[derive(Debug)]
 pub enum InsertionResult {
     /// Successful insertion result.
     Success(InsertionSuccess),
@@ -14,7 +27,7 @@ pub enum InsertionResult {
 /// Specifies insertion success result needed to insert job into tour.
 pub struct InsertionSuccess {
     /// Specifies delta cost change for the insertion.
-    pub cost: Cost,
+    pub cost: InsertionCost,
 
     /// Original job to be inserted.
     pub job: Job,
@@ -22,11 +35,37 @@ pub struct InsertionSuccess {
     /// Specifies activities within index where they have to be inserted.
     pub activities: Vec<(Activity, usize)>,
 
-    /// Specifies route context where insertion happens.
-    pub context: RouteContext,
+    /// Specifies actor to be used.
+    pub actor: Arc<Actor>,
+}
+
+impl Debug for InsertionSuccess {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>())
+            .field("cost", &self.cost)
+            .field("job", &self.job)
+            .field(
+                "activities",
+                &self
+                    .activities
+                    .iter()
+                    .map(|(a, idx)| {
+                        (
+                            a.retrieve_job()
+                                .and_then(|job| job.dimens().get_id().cloned())
+                                .unwrap_or("undef".to_string()),
+                            *idx,
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .field("actor", self.actor.as_ref())
+            .finish()
+    }
 }
 
 /// Specifies insertion failure.
+#[derive(Debug)]
 pub struct InsertionFailure {
     /// Failed constraint code.
     pub constraint: i32,
@@ -34,6 +73,159 @@ pub struct InsertionFailure {
     pub stopped: bool,
     /// Original job failed to be inserted.
     pub job: Option<Job>,
+}
+
+/// Specifies a max size of stack allocated array to be used. If data size exceeds it,
+/// then heap allocated vector is used which leads to performance impact.
+const COST_DIMENSION: usize = 6;
+
+/// A size of a cost array used by `InsertionCost`.
+type CostArray = [Cost; COST_DIMENSION];
+
+/// A hierarchical cost of job's insertion.
+#[derive(Clone, Default)]
+pub struct InsertionCost {
+    data: TinyVec<CostArray>,
+}
+
+impl InsertionCost {
+    /// Creates a new instance of `InsertionCost`.
+    pub fn new(data: &[Cost]) -> Self {
+        Self { data: data.into() }
+    }
+
+    /// Returns iterator over cost values.
+    pub fn iter(&self) -> impl Iterator<Item = Cost> + '_ {
+        self.data.iter().cloned()
+    }
+
+    /// Returns highest* possible insertion cost.
+    pub fn max_value() -> Self {
+        Self::new(&[Cost::MAX])
+    }
+}
+
+impl FromIterator<Cost> for InsertionCost {
+    fn from_iter<T: IntoIterator<Item = Cost>>(iter: T) -> Self {
+        Self { data: TinyVec::<CostArray>::from_iter(iter) }
+    }
+}
+
+impl IntoIterator for InsertionCost {
+    type Item = Cost;
+    type IntoIter = TinyVecIterator<CostArray>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.into_iter()
+    }
+}
+
+impl Eq for InsertionCost {}
+
+impl PartialEq for InsertionCost {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl PartialOrd for InsertionCost {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for InsertionCost {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let size = self.data.len().max(other.data.len());
+        unwrap_from_result((0..size).try_fold(Ordering::Equal, |acc, idx| {
+            let left = self.data.get(idx).cloned().unwrap_or_default();
+            let right = other.data.get(idx).cloned().unwrap_or_default();
+
+            let result = left.total_cmp(&right);
+            match result {
+                Ordering::Equal => Ok(acc),
+                _ => Err(result),
+            }
+        }))
+    }
+}
+
+impl<'a, B> Add<B> for &'a InsertionCost
+where
+    B: Borrow<InsertionCost>,
+{
+    type Output = InsertionCost;
+
+    fn add(self, rhs: B) -> Self::Output {
+        let rhs = rhs.borrow();
+        let size = self.data.len().max(rhs.data.len());
+
+        (0..size)
+            .map(|idx| {
+                self.data.get(idx).copied().unwrap_or(Cost::default())
+                    + rhs.data.get(idx).copied().unwrap_or(Cost::default())
+            })
+            .collect()
+    }
+}
+
+impl<B> Add<B> for InsertionCost
+where
+    B: Borrow<InsertionCost>,
+{
+    type Output = InsertionCost;
+
+    fn add(self, rhs: B) -> Self::Output {
+        &self + rhs
+    }
+}
+
+impl<'a, B> Sub<B> for &'a InsertionCost
+where
+    B: Borrow<InsertionCost>,
+{
+    type Output = InsertionCost;
+
+    fn sub(self, rhs: B) -> Self::Output {
+        let rhs = rhs.borrow();
+        let size = self.data.len().max(rhs.data.len());
+
+        (0..size)
+            .map(|idx| {
+                self.data.get(idx).copied().unwrap_or(Cost::default())
+                    - rhs.data.get(idx).copied().unwrap_or(Cost::default())
+            })
+            .collect()
+    }
+}
+
+impl<B> Sub<B> for InsertionCost
+where
+    B: Borrow<InsertionCost>,
+{
+    type Output = InsertionCost;
+
+    fn sub(self, rhs: B) -> Self::Output {
+        &self - rhs
+    }
+}
+
+impl Debug for InsertionCost {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(&self.data).finish()
+    }
+}
+
+impl Index<usize> for InsertionCost {
+    type Output = Cost;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        if index < self.data.len() {
+            &self.data[index]
+        } else {
+            panic!("index out of range: {index}, size is {}", self.data.len())
+        }
+    }
 }
 
 /// Implements generalized insertion heuristic.
@@ -74,23 +266,30 @@ impl InsertionHeuristic {
         while !insertion_ctx.solution.required.is_empty()
             && !insertion_ctx.environment.quota.as_ref().map_or(false, |q| q.is_reached())
         {
-            let jobs = job_selector.select(&mut insertion_ctx).collect::<Vec<Job>>();
-            let routes = route_selector.select(&mut insertion_ctx, jobs.as_slice()).collect::<Vec<RouteContext>>();
+            let (result, selected_jobs, selected_routes) = {
+                job_selector.prepare(&mut insertion_ctx);
+                route_selector.prepare(&mut insertion_ctx);
 
-            let result = self.insertion_evaluator.evaluate_all(
-                &insertion_ctx,
-                jobs.as_slice(),
-                routes.as_slice(),
-                leg_selection,
-                result_selector,
-            );
+                let jobs = job_selector.select(&insertion_ctx).collect::<Vec<_>>();
+                let routes = route_selector.select(&insertion_ctx, jobs.as_slice()).collect::<Vec<_>>();
+
+                let result = self.insertion_evaluator.evaluate_all(
+                    &insertion_ctx,
+                    jobs.as_slice(),
+                    routes.as_slice(),
+                    leg_selection,
+                    result_selector,
+                );
+
+                (result, jobs.len(), routes.len())
+            };
 
             match result {
                 InsertionResult::Success(success) => {
                     apply_insertion_success(&mut insertion_ctx, success);
                 }
                 InsertionResult::Failure(failure) => {
-                    apply_insertion_failure(&mut insertion_ctx, jobs, routes, failure);
+                    apply_insertion_failure(&mut insertion_ctx, failure, selected_jobs, selected_routes);
                 }
             }
         }
@@ -103,8 +302,13 @@ impl InsertionHeuristic {
 
 impl InsertionResult {
     /// Creates result which represents insertion success.
-    pub fn make_success(cost: Cost, job: Job, activities: Vec<(Activity, usize)>, route_ctx: RouteContext) -> Self {
-        Self::Success(InsertionSuccess { cost, job, activities, context: route_ctx })
+    pub fn make_success(
+        cost: InsertionCost,
+        job: Job,
+        activities: Vec<(Activity, usize)>,
+        route_ctx: &RouteContext,
+    ) -> Self {
+        Self::Success(InsertionSuccess { cost, job, activities, actor: route_ctx.route().actor.clone() })
     }
 
     /// Creates result which represents insertion failure.
@@ -146,12 +350,15 @@ impl InsertionResult {
             Self::Failure(_) => None,
         }
     }
+}
 
-    /// Returns insertion result as success.
-    pub fn into_success(self) -> Option<InsertionSuccess> {
-        match self {
-            Self::Success(success) => Some(success),
-            Self::Failure(_) => None,
+impl TryFrom<InsertionResult> for InsertionSuccess {
+    type Error = InsertionFailure;
+
+    fn try_from(value: InsertionResult) -> Result<Self, Self::Error> {
+        match value {
+            InsertionResult::Success(success) => Ok(success),
+            InsertionResult::Failure(failure) => Err(failure),
         }
     }
 }
@@ -168,13 +375,17 @@ pub(crate) fn finalize_insertion_ctx(insertion_ctx: &mut InsertionContext) {
 }
 
 pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
-    let is_new_route = insertion_ctx.solution.registry.use_route(&success.context);
-    let route_index =
-        insertion_ctx.solution.routes.iter().position(|ctx| ctx == &success.context).unwrap_or_else(|| {
-            assert!(is_new_route);
-            insertion_ctx.solution.routes.push(success.context.deep_copy());
-            insertion_ctx.solution.routes.len() - 1
-        });
+    let route_index = if let Some(new_route_ctx) = insertion_ctx.solution.registry.get_route(&success.actor) {
+        insertion_ctx.solution.routes.push(new_route_ctx);
+        insertion_ctx.solution.routes.len() - 1
+    } else {
+        insertion_ctx
+            .solution
+            .routes
+            .iter()
+            .position(|route_ctx| route_ctx.route().actor == success.actor)
+            .expect("registry is out of sync with used routes")
+    };
 
     let route_ctx = insertion_ctx.solution.routes.get_mut(route_index).unwrap();
     let route = route_ctx.route_mut();
@@ -190,13 +401,13 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
 
 fn apply_insertion_failure(
     insertion_ctx: &mut InsertionContext,
-    jobs: Vec<Job>,
-    routes: Vec<RouteContext>,
     failure: InsertionFailure,
+    selected_jobs: usize,
+    selected_routes: usize,
 ) {
     // NOTE in most of the cases, it is not needed to reevaluate insertion for all other jobs
-    let all_unassignable =
-        jobs.len() == insertion_ctx.solution.required.len() && routes.len() == insertion_ctx.solution.routes.len();
+    let all_unassignable = selected_jobs == insertion_ctx.solution.required.len()
+        && selected_routes == insertion_ctx.solution.routes.len();
 
     // NOTE this happens when evaluator fails to insert jobs due to lack of routes in registry
     // TODO remove from required only jobs from selected list

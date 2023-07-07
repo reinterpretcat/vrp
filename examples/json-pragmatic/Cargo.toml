@@ -1,6 +1,6 @@
 [package]
 name = "json-pragmatic"
-version = "1.19.2"
+version = "1.21.1"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["vrp", "optimization"]
@@ -16,7 +16,7 @@ publish = false
 vrp-pragmatic = { path = "../../vrp-pragmatic" }
 
 [dev-dependencies]
-criterion = "0.4.0"
+criterion = "0.5.1"
 
 [[bench]]
 name = "general_benchmark"

@@ -10,6 +10,9 @@ use rosomaxa::population::*;
 use rosomaxa::termination::*;
 use std::marker::PhantomData;
 
+/// A type alias for domain specific evolution strategy.
+pub type TargetEvolutionStrategy =
+    Box<dyn EvolutionStrategy<Context = RefinementContext, Objective = GoalContext, Solution = InsertionContext>>;
 /// A type alias for domain specific population.
 pub type TargetPopulation =
     Box<dyn HeuristicPopulation<Objective = GoalContext, Individual = InsertionContext> + Send + Sync>;
@@ -49,6 +52,23 @@ pub type TargetHeuristicGroup = HeuristicSearchGroup<RefinementContext, GoalCont
 /// A type alias for evolution config builder.
 pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, GoalContext, InsertionContext, String>;
 
+/// A wrapper around heuristic filter function.
+pub struct HeuristicFilter {
+    filter: Arc<dyn Fn(&str) -> bool + Send + Sync>,
+}
+
+impl HeuristicFilter {
+    /// Creates a new instance of `HeuristicFilter`.
+    pub fn new<F: Fn(&str) -> bool + Send + Sync + 'static>(filter: F) -> Self {
+        Self { filter: Arc::new(filter) }
+    }
+
+    /// Checks whether heuristic (or method) is enabled.
+    pub fn is_enabled(&self, heuristic_name: &str) -> bool {
+        (self.filter)(heuristic_name)
+    }
+}
+
 /// Creates config builder with default settings.
 pub fn create_default_config_builder(
     problem: Arc<Problem>,
@@ -72,11 +92,14 @@ pub fn get_default_telemetry_mode(logger: InfoLogger) -> TelemetryMode {
 
 /// Gets default heuristic.
 pub fn get_default_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
-    get_dynamic_heuristic(problem, environment)
+    Box::new(get_dynamic_heuristic(problem, environment))
 }
 
 /// Gets static heuristic using default settings.
-pub fn get_static_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
+pub fn get_static_heuristic(
+    problem: Arc<Problem>,
+    environment: Arc<Environment>,
+) -> StaticSelective<RefinementContext, GoalContext, InsertionContext> {
     let default_operator = statik::create_default_heuristic_operator(problem.clone(), environment.clone());
     let local_search = statik::create_default_local_search(environment.random.clone());
 
@@ -103,29 +126,35 @@ pub fn get_static_heuristic_from_heuristic_group(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
     heuristic_group: TargetHeuristicGroup,
-) -> TargetHeuristic {
-    Box::new(StaticSelective::<RefinementContext, GoalContext, InsertionContext>::new(
+) -> StaticSelective<RefinementContext, GoalContext, InsertionContext> {
+    StaticSelective::<RefinementContext, GoalContext, InsertionContext>::new(
         heuristic_group,
         create_diversify_operators(problem, environment),
-    ))
+    )
 }
 
 /// Gets dynamic heuristic using default settings.
-pub fn get_dynamic_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
+pub fn get_dynamic_heuristic(
+    problem: Arc<Problem>,
+    environment: Arc<Environment>,
+) -> DynamicSelective<RefinementContext, GoalContext, InsertionContext> {
     let search_operators = dynamic::get_operators(problem.clone(), environment.clone());
     let diversify_operators = create_diversify_operators(problem, environment.clone());
 
-    Box::new(DynamicSelective::<RefinementContext, GoalContext, InsertionContext>::new(
+    DynamicSelective::<RefinementContext, GoalContext, InsertionContext>::new(
         search_operators,
         diversify_operators,
         environment.as_ref(),
-    ))
+    )
 }
 
 /// Creates elitism population algorithm.
-pub fn create_elitism_population(objective: Arc<GoalContext>, environment: Arc<Environment>) -> TargetPopulation {
+pub fn create_elitism_population(
+    objective: Arc<GoalContext>,
+    environment: Arc<Environment>,
+) -> Elitism<GoalContext, InsertionContext> {
     let selection_size = get_default_selection_size(environment.as_ref());
-    Box::new(Elitism::new(objective, environment.random.clone(), 4, selection_size))
+    Elitism::new(objective, environment.random.clone(), 4, selection_size)
 }
 
 impl RosomaxaWeighted for InsertionContext {
@@ -189,7 +218,7 @@ pub fn create_context_operator_probability(
                 return false;
             }
 
-            let phase_probability = phases.get(&refinement_ctx.population().selection_phase()).cloned().unwrap_or(0.);
+            let phase_probability = phases.get(&refinement_ctx.selection_phase()).cloned().unwrap_or(0.);
             random.is_hit(phase_probability)
         }),
         PhantomData::default(),
@@ -404,6 +433,8 @@ mod dynamic {
         let (normal_limits, small_limits) = get_limits(problem.as_ref());
         let random = environment.random.clone();
 
+        // NOTE: consider checking usage of names within heuristic filter before changing them
+
         let recreates: Vec<(Arc<dyn Recreate + Send + Sync>, String)> = vec![
             (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best".to_string()),
             (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), "regret".to_string()),
@@ -483,7 +514,7 @@ mod dynamic {
                 Arc::new(DecomposeSearch::new(
                     Arc::new(WeightedHeuristicOperator::new(
                         vec![
-                            create_default_inner_ruin_recreate(problem, environment.clone()),
+                            create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
                             create_default_local_search(environment.random.clone()),
                         ],
                         vec![10, 1],
@@ -497,6 +528,9 @@ mod dynamic {
             ),
         ];
 
+        let heuristic_filter =
+            problem.extras.get(HEURISTIC_FILTER_KEY).and_then(|s| s.downcast_ref::<HeuristicFilter>());
+
         recreates
             .iter()
             .flat_map(|(recreate, recreate_name)| {
@@ -509,6 +543,7 @@ mod dynamic {
                 })
             })
             .chain(mutations.into_iter())
+            .filter(|(_, name, _)| heuristic_filter.map_or(true, |filter| filter.is_enabled(name.as_str())))
             .collect::<Vec<_>>()
     }
 

@@ -5,14 +5,13 @@
 mod fleet_usage_test;
 
 use super::*;
-use std::ops::Deref;
 
 /// Creates a feature to minimize used fleet size (affects amount of tours in solution).
 pub fn create_minimize_tours_feature(name: &str) -> Result<Feature, String> {
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(FleetUsageObjective {
-            route_estimate_fn: Box::new(|route_ctx| if route_ctx.route.tour.job_count() == 0 { 1E12 } else { 0. }),
+            route_estimate_fn: Box::new(|route_ctx| if route_ctx.route().tour.job_count() == 0 { 1. } else { 0. }),
             solution_estimate_fn: Box::new(|solution_ctx| solution_ctx.routes.iter().len() as Cost),
         })
         .build()
@@ -23,7 +22,7 @@ pub fn create_maximize_tours_feature(name: &str) -> Result<Feature, String> {
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(FleetUsageObjective {
-            route_estimate_fn: Box::new(|route_ctx| if route_ctx.route.tour.job_count() == 0 { -1E12 } else { 0. }),
+            route_estimate_fn: Box::new(|route_ctx| if route_ctx.route().tour.job_count() == 0 { -1. } else { 0. }),
             solution_estimate_fn: Box::new(|solution_ctx| -1. * solution_ctx.routes.iter().len() as Cost),
         })
         .build()
@@ -34,7 +33,7 @@ pub fn create_minimize_arrival_time_feature(name: &str) -> Result<Feature, Strin
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(FleetUsageObjective {
-            route_estimate_fn: Box::new(|route_ctx| route_ctx.route.actor.detail.time.start),
+            route_estimate_fn: Box::new(|route_ctx| route_ctx.route().actor.detail.time.start),
             solution_estimate_fn: Box::new(|solution_ctx| {
                 if solution_ctx.routes.is_empty() {
                     0.
@@ -42,7 +41,7 @@ pub fn create_minimize_arrival_time_feature(name: &str) -> Result<Feature, Strin
                     let total: f64 = solution_ctx
                         .routes
                         .iter()
-                        .filter_map(|route_ctx| route_ctx.route.tour.end())
+                        .filter_map(|route_ctx| route_ctx.route().tour.end())
                         .map(|end| end.schedule.arrival)
                         .sum();
 
@@ -62,14 +61,14 @@ impl Objective for FleetUsageObjective {
     type Solution = InsertionContext;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        self.solution_estimate_fn.deref()(&solution.solution)
+        (self.solution_estimate_fn)(&solution.solution)
     }
 }
 
 impl FeatureObjective for FleetUsageObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
-            MoveContext::Route { route_ctx, .. } => self.route_estimate_fn.deref()(route_ctx),
+            MoveContext::Route { route_ctx, .. } => (self.route_estimate_fn)(route_ctx),
             _ => Cost::default(),
         }
     }

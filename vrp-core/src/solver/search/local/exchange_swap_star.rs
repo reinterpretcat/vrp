@@ -3,7 +3,6 @@
 mod exchange_swap_star_test;
 
 use super::*;
-use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::solver::search::create_environment_with_custom_quota;
 use crate::utils::Either;
@@ -22,7 +21,7 @@ use std::sync::RwLock;
 /// i) in place of v0 , or
 /// ii) among the three best insertion positions in r0 as evaluated prior to the removal of v0.
 /// A symmetrical argument holds for the new insertion position of v0 in r.
-/// For more details, see https://arxiv.org/abs/2012.10384
+/// For more details, see `<https://arxiv.org/abs/2012.10384>`
 pub struct ExchangeSwapStar {
     leg_selection: LegSelection,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
@@ -85,7 +84,7 @@ fn get_route_by_idx(insertion_ctx: &InsertionContext, route_idx: usize) -> &Rout
 }
 
 fn get_movable_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) -> Vec<Job> {
-    route_ctx.route.tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(job)).collect()
+    route_ctx.route().tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(job)).collect()
 }
 
 fn get_evaluation_context<'a>(search_ctx: &'a SearchContext, job: &'a Job) -> EvaluationContext<'a> {
@@ -146,12 +145,32 @@ fn create_route_pairs(insertion_ctx: &InsertionContext, route_pairs_threshold: u
 }
 
 /// Finds insertion cost of the existing job in the route.
-fn find_insertion_cost(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -> Cost {
-    let original_costs = route_ctx.get_route_cost();
+fn find_insertion_cost(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -> InsertionCost {
+    route_ctx
+        .route()
+        .tour
+        .index(job)
+        .and_then(|idx| {
+            assert_ne!(idx, 0);
 
-    let route_ctx = remove_job_with_copy(search_ctx, job, route_ctx);
+            let mut route_ctx = route_ctx.deep_copy();
+            route_ctx.route_mut().tour.remove(job);
+            search_ctx.0.problem.goal.accept_route_state(&mut route_ctx);
 
-    original_costs - route_ctx.get_route_cost()
+            // NOTE This is not the best approach for multi-jobs
+            let &(insertion_ctx, leg_selection, result_selector) = search_ctx;
+            eval_job_insertion_in_route(
+                insertion_ctx,
+                &EvaluationContext { goal: insertion_ctx.problem.goal.as_ref(), job, leg_selection, result_selector },
+                &route_ctx,
+                InsertionPosition::Concrete(idx - 1),
+                InsertionResult::make_failure(),
+            )
+            .try_into()
+            .ok()
+            .map(|success: InsertionSuccess| success.cost)
+        })
+        .unwrap_or_default()
 }
 
 /// Tries to find insertion cost for `insert_job` in place of `extract_job`.
@@ -162,7 +181,7 @@ fn find_in_place_result(
     insert_job: &Job,
     extract_job: &Job,
 ) -> InsertionResult {
-    let insertion_index = route_ctx.route.tour.index(extract_job).expect("cannot find job in route");
+    let insertion_index = route_ctx.route().tour.index(extract_job).expect("cannot find job in route");
     let position = InsertionPosition::Concrete(insertion_index - 1);
 
     let route_ctx = remove_job_with_copy(search_ctx, extract_job, route_ctx);
@@ -177,7 +196,7 @@ fn find_top_results(
     route_ctx: &RouteContext,
     jobs: &[Job],
 ) -> HashMap<Job, Vec<InsertionResult>> {
-    let legs_count = route_ctx.route.tour.legs().count();
+    let legs_count = route_ctx.route().tour.legs().count();
 
     jobs.iter()
         .map(|job| {
@@ -200,9 +219,7 @@ fn find_top_results(
                 (InsertionResult::Success(_), InsertionResult::Failure(_)) => Ordering::Less,
                 (InsertionResult::Failure(_), InsertionResult::Success(_)) => Ordering::Greater,
                 (InsertionResult::Failure(_), InsertionResult::Failure(_)) => Ordering::Equal,
-                (InsertionResult::Success(left), InsertionResult::Success(right)) => {
-                    compare_floats(left.cost, right.cost)
-                }
+                (InsertionResult::Success(left), InsertionResult::Success(right)) => left.cost.cmp(&right.cost),
             });
 
             results.truncate(3);
@@ -239,7 +256,7 @@ fn choose_best_result(
         .enumerate()
         .fold((0, &failure), |(acc_idx, acc_result), (idx, result)| match (acc_result, result) {
             (InsertionResult::Success(acc_success), InsertionResult::Success(success)) => {
-                match search_ctx.2.select_cost(&acc_success.context, acc_success.cost, success.cost) {
+                match search_ctx.2.select_cost(&acc_success.cost, &success.cost) {
                     Either::Left(_) => (acc_idx, acc_result),
                     Either::Right(_) => (idx, result),
                 }
@@ -253,10 +270,10 @@ fn choose_best_result(
     } else {
         match result {
             InsertionResult::Success(success) => InsertionResult::Success(InsertionSuccess {
-                cost: success.cost,
+                cost: success.cost.clone(),
                 job: success.job.clone(),
                 activities: success.activities.iter().map(|(activity, idx)| (activity.deep_copy(), *idx)).collect(),
-                context: success.context.deep_copy(),
+                actor: success.actor.clone(),
             }),
             InsertionResult::Failure(_) => InsertionResult::make_failure(),
         }
@@ -302,16 +319,16 @@ fn try_exchange_jobs_in_routes(
         .iter()
         .flat_map(|outer_job| {
             let delta_outer_job_cost = find_insertion_cost(&search_ctx, outer_job, outer_route_ctx);
-            inner_jobs.iter().map(move |inner_job| (outer_job, inner_job, delta_outer_job_cost))
+            inner_jobs.iter().map(move |inner_job| (outer_job, inner_job, delta_outer_job_cost.clone()))
         })
         .collect::<Vec<_>>();
 
     // search phase
     let (outer_best, inner_best, _) = map_reduce(
         job_pairs.as_slice(),
-        |&(outer_job, inner_job, delta_outer_job_cost)| {
+        |(outer_job, inner_job, delta_outer_job_cost)| {
             if is_quota_reached() {
-                return (InsertionResult::make_failure(), InsertionResult::make_failure(), Cost::default());
+                return (InsertionResult::make_failure(), InsertionResult::make_failure(), InsertionCost::default());
             }
 
             let delta_inner_job_cost = find_insertion_cost(&search_ctx, inner_job, inner_route_ctx);
@@ -322,26 +339,26 @@ fn try_exchange_jobs_in_routes(
             let outer_result = choose_best_result(
                 &search_ctx,
                 outer_in_place_result,
-                outer_top_results.get(outer_job).unwrap().as_slice(),
+                outer_top_results.get(*outer_job).unwrap().as_slice(),
             );
 
             let inner_result = choose_best_result(
                 &search_ctx,
                 inner_in_place_result,
-                inner_top_results.get(inner_job).unwrap().as_slice(),
+                inner_top_results.get(*inner_job).unwrap().as_slice(),
             );
 
             let delta_cost = match (&outer_result, &inner_result) {
                 (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) => {
-                    outer_success.cost + inner_success.cost - delta_outer_job_cost - delta_inner_job_cost
+                    &outer_success.cost + &inner_success.cost - delta_outer_job_cost - delta_inner_job_cost
                 }
-                _ => 0.,
+                _ => InsertionCost::default(),
             };
 
             (outer_result, inner_result, delta_cost)
         },
-        || (InsertionResult::make_failure(), InsertionResult::make_failure(), 0.),
-        |left, right| match compare_floats(left.2, right.2) {
+        || (InsertionResult::make_failure(), InsertionResult::make_failure(), InsertionCost::default()),
+        |left, right| match left.2.cmp(&right.2) {
             Ordering::Less => left,
             _ => right,
         },
@@ -366,16 +383,22 @@ fn try_exchange_jobs(
         let inner_job = inner_success.job.clone();
 
         // remove jobs from results and revaluate them again
-        let mut insertion_results = once((outer_success, inner_job))
+        let mut insertion_successes = once((outer_success, inner_job))
             .chain(once((inner_success, outer_job)))
-            .map(|(mut success, job)| {
-                success.context = success.context.deep_copy();
+            .filter_map(|(success, job)| {
+                let mut route_ctx = insertion_ctx
+                    .solution
+                    .routes
+                    .iter()
+                    .find(|route_ctx| route_ctx.route().actor == success.actor)
+                    .expect("cannot find route for insertion")
+                    .deep_copy();
 
                 // NOTE job can be already removed in in-place case
-                let removed_idx = success.context.route.tour.index(&job).unwrap_or(usize::MAX);
+                let removed_idx = route_ctx.route().tour.index(&job).unwrap_or(usize::MAX);
 
-                success.context.route_mut().tour.remove(&job);
-                constraint.accept_route_state(&mut success.context);
+                route_ctx.route_mut().tour.remove(&job);
+                constraint.accept_route_state(&mut route_ctx);
 
                 let position = success.activities.first().unwrap().1;
                 let position = if position < removed_idx || position == 0 { position } else { position - 1 };
@@ -385,14 +408,16 @@ fn try_exchange_jobs(
                 let eval_ctx = get_evaluation_context(&search_ctx, &success.job);
                 let alternative = InsertionResult::make_failure();
 
-                eval_job_insertion_in_route(insertion_ctx, &eval_ctx, &success.context, position, alternative)
+                eval_job_insertion_in_route(insertion_ctx, &eval_ctx, &route_ctx, position, alternative)
+                    .try_into()
+                    .ok()
+                    .map(|success: InsertionSuccess| (success, Some(route_ctx)))
             })
-            .filter_map(|result| result.into_success())
             .collect::<Vec<_>>();
 
-        if insertion_results.len() == 2 {
-            apply_insertion(insertion_ctx, insertion_results.pop().unwrap());
-            apply_insertion(insertion_ctx, insertion_results.pop().unwrap());
+        if insertion_successes.len() == 2 {
+            apply_insertion_with_route(insertion_ctx, insertion_successes.pop().unwrap());
+            apply_insertion_with_route(insertion_ctx, insertion_successes.pop().unwrap());
             finalize_insertion_ctx(insertion_ctx);
         }
     }

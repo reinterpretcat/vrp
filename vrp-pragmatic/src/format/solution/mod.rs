@@ -29,7 +29,7 @@ fn map_code_reason(code: i32) -> (&'static str, &'static str) {
             ("MAX_DISTANCE_CONSTRAINT", "cannot be assigned due to max distance constraint of vehicle")
         }
         DURATION_LIMIT_CONSTRAINT_CODE => {
-            ("SHIFT_TIME_CONSTRAINT", "cannot be assigned due to shift time constraint of vehicle")
+            ("MAX_DURATION_CONSTRAINT", "cannot be assigned due to max duration constraint of vehicle")
         }
         BREAK_CONSTRAINT_CODE => ("BREAK_CONSTRAINT", "break is not assignable"),
         LOCKING_CONSTRAINT_CODE => ("LOCKING_CONSTRAINT", "cannot be served due to relation lock"),
@@ -57,7 +57,7 @@ fn map_reason_code(reason: &str) -> i32 {
         "CAPACITY_CONSTRAINT" => CAPACITY_CONSTRAINT_CODE,
         "REACHABLE_CONSTRAINT" => REACHABLE_CONSTRAINT_CODE,
         "MAX_DISTANCE_CONSTRAINT" => DISTANCE_LIMIT_CONSTRAINT_CODE,
-        "SHIFT_TIME_CONSTRAINT" => DURATION_LIMIT_CONSTRAINT_CODE,
+        "MAX_DURATION_CONSTRAINT" => DURATION_LIMIT_CONSTRAINT_CODE,
         "BREAK_CONSTRAINT" => BREAK_CONSTRAINT_CODE,
         "LOCKING_CONSTRAINT" => LOCKING_CONSTRAINT_CODE,
         "AREA_CONSTRAINT" => AREA_CONSTRAINT_CODE,

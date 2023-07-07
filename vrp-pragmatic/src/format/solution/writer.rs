@@ -36,28 +36,28 @@ type DomainExtras = vrp_core::models::Extras;
 /// A trait to serialize solution in pragmatic format.
 pub trait PragmaticSolution<W: Write> {
     /// Serializes solution in pragmatic json format.
-    fn write_pragmatic_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String>;
+    fn write_pragmatic_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String>;
 
     /// Serializes solution in pragmatic geo json format.
-    fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String>;
+    fn write_geo_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String>;
 }
 
 impl<W: Write> PragmaticSolution<W> for (&Solution, f64) {
-    fn write_pragmatic_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
+    fn write_pragmatic_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String> {
         write_pragmatic_json(problem, self.0, None, writer)
     }
 
-    fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
+    fn write_geo_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String> {
         write_geo_json(problem, self.0, writer)
     }
 }
 
 impl<W: Write> PragmaticSolution<W> for (&Solution, f64, &TelemetryMetrics) {
-    fn write_pragmatic_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
+    fn write_pragmatic_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String> {
         write_pragmatic_json(problem, self.0, Some(self.2), writer)
     }
 
-    fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
+    fn write_geo_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String> {
         write_geo_json(problem, self.0, writer)
     }
 }
@@ -66,14 +66,14 @@ fn write_pragmatic_json<W: Write>(
     problem: &Problem,
     solution: &Solution,
     metrics: Option<&TelemetryMetrics>,
-    writer: BufWriter<W>,
+    writer: &mut BufWriter<W>,
 ) -> Result<(), String> {
     let solution = create_solution(problem, solution, metrics);
-    serialize_solution(writer, &solution).map_err(|err| err.to_string())?;
+    serialize_solution(&solution, writer).map_err(|err| err.to_string())?;
     Ok(())
 }
 
-fn write_geo_json<W: Write>(problem: &Problem, solution: &Solution, writer: BufWriter<W>) -> Result<(), String> {
+fn write_geo_json<W: Write>(problem: &Problem, solution: &Solution, writer: &mut BufWriter<W>) -> Result<(), String> {
     let solution = create_solution(problem, solution, None);
     serialize_solution_as_geojson(writer, problem, &solution).map_err(|err| err.to_string())?;
     Ok(())
