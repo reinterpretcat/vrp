@@ -120,7 +120,7 @@ impl<T: LoadOps> CapacityConstraint<T> {
             .as_ref()
             .map_or(false, |job| self.multi_trip.is_marker_job(&Job::Single(job.clone())))
         {
-            // NOTE insert reload job in route only as last
+            // NOTE insert marker job in route only as last
             let is_first = activity_ctx.prev.job.is_none();
             let is_not_last = activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some();
 
@@ -227,14 +227,14 @@ impl<T: LoadOps> CapacityState<T> {
 
     fn recalculate_states(&self, route_ctx: &mut RouteContext) {
         self.multi_trip.accept_route_state(route_ctx);
-        let reload_intervals = self
+        let marker_intervals = self
             .multi_trip
             .get_marker_intervals(route_ctx)
             .cloned()
             .unwrap_or_else(|| vec![(0, route_ctx.route().tour.total() - 1)]);
 
         let (_, max_load) =
-            reload_intervals.into_iter().fold((T::default(), T::default()), |(acc, max), (start_idx, end_idx)| {
+            marker_intervals.into_iter().fold((T::default(), T::default()), |(acc, max), (start_idx, end_idx)| {
                 let (route, state) = route_ctx.as_mut();
 
                 // determine static deliveries loaded at the begin and static pickups brought to the end
