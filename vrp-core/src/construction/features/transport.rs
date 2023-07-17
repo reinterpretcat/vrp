@@ -142,14 +142,8 @@ impl TransportConstraint {
         }
 
         let (next_act_location, latest_arr_time_at_next) = if let Some(next) = next {
-            // closed vrp
-            if actor.detail.time.end < next.place.time.start {
-                return ConstraintViolation::fail(self.code);
-            }
-            (
-                next.place.location,
-                *route_ctx.state().get_activity_state(LATEST_ARRIVAL_KEY, next).unwrap_or(&next.place.time.end),
-            )
+            let latest_arrival = route_ctx.state().get_activity_state(LATEST_ARRIVAL_KEY, next).copied();
+            (next.place.location, latest_arrival.unwrap_or(next.place.time.end))
         } else {
             // open vrp
             (target.place.location, target.place.time.end.min(actor.detail.time.end))
