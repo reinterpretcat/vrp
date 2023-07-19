@@ -50,12 +50,13 @@ fn can_wait_for_job_start() {
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:01Z"),
                         1
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_time(
                         "job2",
                         "delivery",
                         (2., 0.),
                         0,
                         ("1970-01-01T00:00:02Z", "1970-01-01T00:00:10Z"),
+                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:10Z"),
                         2
                     ),
                     create_stop_with_activity(
@@ -193,12 +194,13 @@ fn can_consider_latest_departure_time() {
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:05Z"),
                         0
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_time(
                         "job1",
                         "delivery",
                         (1., 0.),
                         0,
                         ("1970-01-01T00:00:06Z", "1970-01-01T00:00:20Z"),
+                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:20Z"),
                         1
                     ),
                     create_stop_with_activity(

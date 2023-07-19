@@ -89,12 +89,13 @@ fn can_use_sequence_relation_with_strict_time_windows() {
                         ("1970-01-01T00:01:40Z", "1970-01-01T00:01:50Z"),
                         60
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_time(
                         "job1",
                         "delivery",
                         (10., 0.),
                         0,
                         ("1970-01-01T00:02:20Z", "1970-01-01T00:02:40Z"),
+                        ("1970-01-01T00:02:30Z", "1970-01-01T00:02:40Z"),
                         90
                     ),
                     create_stop_with_activity(

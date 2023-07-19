@@ -4,6 +4,7 @@ mod breaks_test;
 
 use super::*;
 use crate::utils::combine_error_results;
+use std::iter::once;
 
 /// Checks that breaks are properly assigned.
 pub fn check_breaks(context: &CheckerContext) -> Result<(), Vec<String>> {
@@ -23,9 +24,9 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
             stop.activities()
                 .windows(stop.activities().len().min(2))
                 .flat_map(|leg| as_leg_info_with_break(context, tour, stop, leg))
-                .try_fold(acc, |acc, (from_loc, from, to, vehicle_break)| {
+                .try_fold(acc, |acc, (from_loc, (from, to), (break_activity, vehicle_break))| {
                     // check time
-                    let visit_time = get_time_window(stop, to);
+                    let visit_time = get_time_window(stop, break_activity);
                     let break_time_window = get_break_time_window(tour, &vehicle_break)?;
                     if !visit_time.intersects(&break_time_window) {
                         return Err(format!(
@@ -117,12 +118,15 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
     })
 }
 
+/// Represents information about break and neighbour activity.
+type LegBreakInfo<'a> = (Option<Location>, (Option<&'a Activity>, &'a Activity), (&'a Activity, VehicleBreak));
+
 fn as_leg_info_with_break<'a>(
     context: &CheckerContext,
     tour: &Tour,
     stop: &'a Stop,
     leg: &'a [Activity],
-) -> Option<(Option<Location>, Option<&'a Activity>, &'a Activity, VehicleBreak)> {
+) -> Option<LegBreakInfo<'a>> {
     let leg = match leg {
         [from, to] => Some((Some(from), to)),
         [to] => Some((None, to)),
@@ -130,12 +134,20 @@ fn as_leg_info_with_break<'a>(
     };
 
     if let Some((from, to)) = leg {
-        if let Ok(ActivityType::Break(vehicle_break)) = context.get_activity_type(tour, stop, to) {
+        if let Some((break_activity, vehicle_break)) = once(to)
+            .chain(from.iter().cloned())
+            .flat_map(|activity| context.get_activity_type(tour, stop, activity).map(|at| (activity, at)))
+            .filter_map(|(activity, activity_type)| match activity_type {
+                ActivityType::Break(vehicle_break) => Some((activity, vehicle_break)),
+                _ => None,
+            })
+            .next()
+        {
             let from_loc = leg.and_then(|(from, _)| from).and_then(|action| action.location.as_ref()).or(match stop {
                 Stop::Point(point) => Some(&point.location),
                 Stop::Transit(_) => None,
             });
-            return Some((from_loc.cloned(), from, to, vehicle_break));
+            return Some((from_loc.cloned(), (from, to), (break_activity, vehicle_break)));
         }
     }
     None

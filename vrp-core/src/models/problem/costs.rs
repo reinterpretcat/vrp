@@ -109,8 +109,7 @@ impl ActivityCost for DynamicActivityCost {
         let schedule = TimeWindow::new(arrival, departure);
 
         (self.reserved_times_fn)(route, &schedule).map_or(arrival, |reserved_time: TimeWindow| {
-            // TODO consider overlapping break with waiting time?
-            arrival - reserved_time.duration()
+            (arrival - reserved_time.duration()).max(activity.place.time.start)
         })
     }
 }

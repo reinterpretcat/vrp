@@ -302,7 +302,10 @@ fn create_tour(
                     } else {
                         Some(coord_index.get_by_idx(act.place.location).unwrap())
                     },
-                    time: Some(Interval { start: format_time(activity_arrival), end: format_time(activity_departure) }),
+                    time: Some(Interval {
+                        start: format_time(activity_arrival.max(act.place.time.start)),
+                        end: format_time(activity_departure),
+                    }),
                     job_tag,
                     commute: act
                         .commute
@@ -351,17 +354,26 @@ fn create_tour(
 
     insert_reserved_times(route, &mut tour, reserved_times_index);
 
-    // NOTE remove redundant info
+    // NOTE remove redundant info from single activity on the stop
     tour.stops
         .iter_mut()
         .filter(|stop| stop.activities().len() == 1)
-        .flat_map(|stop| match stop {
-            Stop::Point(point) => point.activities.iter_mut(),
-            Stop::Transit(transit) => transit.activities.iter_mut(),
+        .flat_map(|stop| {
+            let schedule = stop.schedule().clone();
+            let location = stop.location().cloned();
+            stop.activities_mut().first_mut().map(|activity| (location, schedule, activity))
         })
-        .for_each(|activity| {
-            activity.location = None;
-            activity.time = None;
+        .for_each(|(location, schedule, activity)| {
+            let is_same_schedule = activity.time.as_ref().map_or(true, |time| schedule.arrival == time.start);
+            let is_same_location = activity.location.clone().zip(location).map_or(true, |(lhs, rhs)| lhs == rhs);
+
+            if is_same_schedule {
+                activity.time = None;
+            }
+
+            if is_same_location {
+                activity.location = None;
+            }
         });
 
     tour.vehicle_id = vehicle.dimens.get_vehicle_id().unwrap().clone();
@@ -388,7 +400,7 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
         })
         .filter(|time| shift_time.intersects(time))
         .for_each(|reserved_time| {
-            // NOTE scan and insert new stop if necessary
+            // NOTE scan and insert a new stop if necessary
             if let Some((leg_idx, load)) = tour
                 .stops
                 .windows(2)
@@ -431,7 +443,7 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                 let stop_tw =
                     TimeWindow::new(parse_time(&stop.schedule().arrival), parse_time(&stop.schedule().departure));
                 if stop_tw.intersects(&reserved_time) {
-                    let idx = stop
+                    let break_idx = stop
                         .activities()
                         .iter()
                         .enumerate()
@@ -462,7 +474,7 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                     };
 
                     activities.insert(
-                        idx,
+                        break_idx,
                         ApiActivity {
                             job_id: "break".to_string(),
                             activity_type: "break".to_string(),
@@ -476,9 +488,7 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                         },
                     );
 
-                    let activity_count = activities.len() - 1;
-
-                    activities.iter_mut().take(activity_count).for_each(|activity| {
+                    activities.iter_mut().enumerate().filter(|(idx, _)| *idx != break_idx).for_each(|(_, activity)| {
                         if let Some(time) = &mut activity.time {
                             let start = parse_time(&time.start);
                             let end = parse_time(&time.end);

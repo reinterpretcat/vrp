@@ -76,12 +76,13 @@ fn can_use_multiple_times() {
                         ("1970-01-01T00:00:50Z", "1970-01-01T00:00:50Z"),
                         50
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_time(
                         "job3",
                         "delivery",
                         (30., 0.),
                         0,
                         ("1970-01-01T00:01:10Z", "1970-01-01T00:01:40Z"),
+                        ("1970-01-01T00:01:40Z", "1970-01-01T00:01:40Z"),
                         70
                     ),
                     create_stop_with_activity(

@@ -8,6 +8,7 @@ use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
 use vrp_core::utils::{DefaultRandom, Random};
 
+/// Creates stop with single activity using common schema.
 pub fn create_stop_with_activity(
     id: &str,
     activity_type: &str,
@@ -16,9 +17,32 @@ pub fn create_stop_with_activity(
     time: (&str, &str),
     distance: i64,
 ) -> Stop {
-    create_stop_with_activity_impl(id, activity_type, location, vec![load], time, distance, None)
+    create_stop_with_activity_impl(id, activity_type, location, vec![load], time, None, distance, None)
 }
 
+/// Creates stop with single activity using specific activity time.
+pub fn create_stop_with_activity_time(
+    id: &str,
+    activity_type: &str,
+    location: (f64, f64),
+    load: i32,
+    stop_time: (&str, &str),
+    activity_time: (&str, &str),
+    distance: i64,
+) -> Stop {
+    create_stop_with_activity_impl(
+        id,
+        activity_type,
+        location,
+        vec![load],
+        stop_time,
+        Some(activity_time),
+        distance,
+        None,
+    )
+}
+
+/// Creates stop with single activity using multiple demand.
 pub fn create_stop_with_activity_md(
     id: &str,
     activity_type: &str,
@@ -27,9 +51,10 @@ pub fn create_stop_with_activity_md(
     time: (&str, &str),
     distance: i64,
 ) -> Stop {
-    create_stop_with_activity_impl(id, activity_type, location, load, time, distance, None)
+    create_stop_with_activity_impl(id, activity_type, location, load, time, None, distance, None)
 }
 
+/// Creates stop with single activity using tag.
 pub fn create_stop_with_activity_with_tag(
     id: &str,
     activity_type: &str,
@@ -39,28 +64,39 @@ pub fn create_stop_with_activity_with_tag(
     distance: i64,
     job_tag: &str,
 ) -> Stop {
-    create_stop_with_activity_impl(id, activity_type, location, vec![load], time, distance, Some(job_tag.to_string()))
+    create_stop_with_activity_impl(
+        id,
+        activity_type,
+        location,
+        vec![load],
+        time,
+        None,
+        distance,
+        Some(job_tag.to_string()),
+    )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn create_stop_with_activity_impl(
     id: &str,
     activity_type: &str,
     location: (f64, f64),
     load: Vec<i32>,
-    time: (&str, &str),
+    stop_time: (&str, &str),
+    activity_time: Option<(&str, &str)>,
     distance: i64,
     job_tag: Option<String>,
 ) -> Stop {
     Stop::Point(PointStop {
         location: (location.0, location.1).to_loc(),
-        time: Schedule { arrival: time.0.to_string(), departure: time.1.to_string() },
+        time: Schedule { arrival: stop_time.0.to_string(), departure: stop_time.1.to_string() },
         load,
         distance,
         activities: vec![Activity {
             job_id: id.to_string(),
             activity_type: activity_type.to_string(),
             location: None,
-            time: None,
+            time: activity_time.map(|(start, end)| Interval { start: start.to_string(), end: end.to_string() }),
             job_tag,
             commute: None,
         }],

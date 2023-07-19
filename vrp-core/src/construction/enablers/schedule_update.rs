@@ -95,9 +95,13 @@ fn update_states(
         }
 
         let (end_time, prev_loc, waiting) = acc;
-        let latest_departure =
-            end_time - transport.duration(route, act.place.location, prev_loc, TravelTime::Arrival(end_time));
-        let latest_arrival_time = activity.estimate_arrival(route, act, latest_departure);
+        let latest_arrival_time = if end_time == f64::MAX {
+            act.place.time.end
+        } else {
+            let latest_departure =
+                end_time - transport.duration(route, act.place.location, prev_loc, TravelTime::Arrival(end_time));
+            activity.estimate_arrival(route, act, latest_departure)
+        };
         let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0.);
 
         state.put_activity_state(state_keys.latest_arrival, act, latest_arrival_time);

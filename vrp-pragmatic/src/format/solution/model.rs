@@ -137,6 +137,22 @@ impl Stop {
         }
     }
 
+    /// Returns stop activities as mutable vector.
+    pub fn activities_mut(&mut self) -> &mut Vec<Activity> {
+        match self {
+            Stop::Transit(transit) => &mut transit.activities,
+            Stop::Point(point) => &mut point.activities,
+        }
+    }
+
+    /// Returns stop's location if there is any.
+    pub fn location(&self) -> Option<&Location> {
+        match self {
+            Self::Transit(_) => None,
+            Self::Point(point) => Some(&point.location),
+        }
+    }
+
     /// A helper method used to get stop point variant safely.
     pub fn as_point(&self) -> Option<&PointStop> {
         match self {

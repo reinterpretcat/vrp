@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* change `stops.activity.time.start` not to include waiting time
+* improve required break functionality
+* MDP adjustments
+
+### Added
+
+* more experimental plots in `heuristic-research` playground
+
 
 ## [v1.21.1]- 2023-06-09
 
