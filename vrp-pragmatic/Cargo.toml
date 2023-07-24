@@ -1,25 +1,25 @@
 [package]
 name = "vrp-pragmatic"
-version = "1.21.1"
-authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
-license = "Apache-2.0"
-keywords = ["vrp", "optimization"]
-categories = ["algorithms", "science"]
-readme = "README.md"
-homepage = "https://github.com/reinterpretcat/vrp"
-repository = "https://github.com/reinterpretcat/vrp"
-edition = "2021"
 description = "An extension logic for solving rich VRP"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
 
 [dependencies]
 vrp-core = { path = "../vrp-core", version = "1.21.1" }
 
-serde = { version = "1.0.164", features = ["derive"] }
-serde_json = "1.0.96"
+hashbrown = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+rand = { workspace = true }
 
 time = { version = "0.3.22", features = ["parsing", "formatting"] }
-rand = { version = "0.8.5", features = ["small_rng"] }
-hashbrown = "0.14.0"
 
 [dev-dependencies]
 proptest = "1.2.0"

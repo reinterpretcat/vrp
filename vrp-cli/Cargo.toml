@@ -1,15 +1,15 @@
 [package]
 name = "vrp-cli"
-version = "1.21.1"
-authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
-license = "Apache-2.0"
-keywords = ["vrp", "optimization"]
-categories = ["algorithms", "science"]
-readme = "../README.md"
-homepage = "https://github.com/reinterpretcat/vrp"
-repository = "https://github.com/reinterpretcat/vrp"
-edition = "2021"
 description = "A command line interface for VRP solver"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
 
 [features]
 default = ["vrp-core", "csv-format", "scientific-format"]
@@ -28,9 +28,10 @@ vrp-core = { path = "../vrp-core", version = "1.21.1", optional = true }
 vrp-scientific = { path = "../vrp-scientific", optional = true, version = "1.21.1" }
 vrp-pragmatic = { path = "../vrp-pragmatic", version = "1.21.1" }
 
+serde = { workspace = true }
+serde_json = { workspace = true }
+
 csv = { version = "1.2.2", optional = true }
-serde_json = "1.0.96"
-serde = { version = "1.0.164", features = ["derive"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 clap = "4.3.2"
