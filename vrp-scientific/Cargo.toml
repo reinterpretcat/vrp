@@ -12,4 +12,4 @@ repository.workspace = true
 edition.workspace = true
 
 [dependencies]
-vrp-core = { path = "../vrp-core", version = "1.21.1" }
+vrp-core.workspace = true

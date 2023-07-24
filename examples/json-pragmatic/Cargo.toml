@@ -13,7 +13,7 @@ repository.workspace = true
 edition.workspace = true
 
 [dependencies]
-vrp-pragmatic = { path = "../../vrp-pragmatic" }
+vrp-pragmatic.workspace = true
 
 [dev-dependencies]
 criterion = "0.5.1"

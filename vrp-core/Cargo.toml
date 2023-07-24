@@ -17,12 +17,12 @@ async-evolution = ["rosomaxa/async-evolution"]
 heuristic-telemetry = ["rosomaxa/heuristic-telemetry"]
 
 [dependencies]
-rosomaxa = { path = "../rosomaxa", version = "0.6.0", optional = true }
+rosomaxa = { workspace = true, optional = true }
 
-rand = { workspace = true }
-rayon = { workspace = true }
-hashbrown = { workspace = true }
-rustc-hash = { workspace = true }
+rand.workspace = true
+rayon.workspace = true
+hashbrown.workspace = true
+rustc-hash.workspace = true
 
 nohash-hasher = "0.2.0"
 tinyvec = { version = "1.6.0", features = ["alloc"] }

@@ -19,9 +19,9 @@ async-evolution = ["tokio"]
 heuristic-telemetry = []
 
 [dependencies]
-rand = { workspace = true }
-rayon = { workspace = true }
-rustc-hash = { workspace = true }
+rand.workspace = true
+rayon.workspace = true
+rustc-hash.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 num_cpus = "1.16.0"

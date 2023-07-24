@@ -16,11 +16,11 @@ edition.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-rosomaxa = { path = "../../rosomaxa", features = ["heuristic-telemetry"] }
-vrp-scientific = { path = "../../vrp-scientific"}
+rosomaxa = { workspace = true, features = ["heuristic-telemetry"] }
+vrp-scientific.workspace = true
 
-serde = { workspace = true }
-serde_json = { workspace = true }
+serde.workspace = true
+serde_json.workspace = true
 
 plotters = { version = "0.3.5", default-features = false, features = [
     "bitmap_backend",

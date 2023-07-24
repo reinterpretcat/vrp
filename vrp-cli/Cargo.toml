@@ -24,12 +24,12 @@ name = "vrp_cli"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-vrp-core = { path = "../vrp-core", version = "1.21.1", optional = true }
-vrp-scientific = { path = "../vrp-scientific", optional = true, version = "1.21.1" }
-vrp-pragmatic = { path = "../vrp-pragmatic", version = "1.21.1" }
+vrp-core = { workspace = true, optional = true }
+vrp-scientific = { workspace = true, optional = true}
+vrp-pragmatic.workspace = true
 
-serde = { workspace = true }
-serde_json = { workspace = true }
+serde.workspace = true
+serde_json.workspace = true
 
 csv = { version = "1.2.2", optional = true }
 
