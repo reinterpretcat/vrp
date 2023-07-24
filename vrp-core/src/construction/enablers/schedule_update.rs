@@ -36,7 +36,7 @@ pub fn update_route_departure(
     new_departure_time: Timestamp,
     state_keys: &ScheduleStateKeys,
 ) {
-    let mut start = route_ctx.route_mut().tour.get_mut(0).unwrap();
+    let start = route_ctx.route_mut().tour.get_mut(0).unwrap();
     start.schedule.departure = new_departure_time;
 
     update_route_schedule(route_ctx, activity, transport, state_keys);

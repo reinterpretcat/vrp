@@ -11,6 +11,7 @@
 
 #![warn(missing_docs)]
 #![deny(unsafe_code)] // NOTE: use deny instead forbid as we need allow unsafe code for c_interop
+#![allow(clippy::items_after_test_module)]
 
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]

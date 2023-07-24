@@ -287,7 +287,7 @@ fn create_tour(
                 let load = calculate_load(prev_load, act, is_multi_dimen);
 
                 let last = tour.stops.len() - 1;
-                let mut last = match tour.stops.get_mut(last).unwrap() {
+                let last = match tour.stops.get_mut(last).unwrap() {
                     Stop::Point(point) => point,
                     Stop::Transit(_) => unreachable!(),
                 };

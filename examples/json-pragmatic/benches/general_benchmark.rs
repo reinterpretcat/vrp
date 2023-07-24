@@ -12,8 +12,7 @@ use vrp_pragmatic::core::utils::Environment;
 use vrp_pragmatic::format::problem::PragmaticProblem;
 
 fn get_problem(problem_path: &str) -> Arc<Problem> {
-    let file = File::open(problem_path)
-        .unwrap_or_else(|err| panic!("cannot open {} file: '{}'", problem_path, err.to_string()));
+    let file = File::open(problem_path).unwrap_or_else(|err| panic!("cannot open {} file: '{}'", problem_path, err));
     Arc::new(
         BufReader::new(file)
             .read_pragmatic()
@@ -77,13 +76,19 @@ fn simple_multi_job_100_benchmark(c: &mut Criterion) {
 
 fn init_deliveries_100_benchmark(c: &mut Criterion) {
     c.bench_function("init solution for a problem with 100 trivial deliveries", |b| {
-        b.iter(|| black_box(solve_problem_with_init("../data/pragmatic/benches/simple.deliveries.100.json")))
+        b.iter(|| {
+            solve_problem_with_init("../data/pragmatic/benches/simple.deliveries.100.json");
+            black_box(())
+        })
     });
 }
 
 fn init_multi_job_100_benchmark(c: &mut Criterion) {
     c.bench_function("init solution for a problem with 50 multi jobs", |b| {
-        b.iter(|| black_box(solve_problem_with_init("../data/pragmatic/benches/multi-job.100.json")))
+        b.iter(|| {
+            solve_problem_with_init("../data/pragmatic/benches/multi-job.100.json");
+            black_box(())
+        })
     });
 }
 
