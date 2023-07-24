@@ -31,5 +31,12 @@ rayon = "1.7.0"
 rustc-hash = "1.1.0"
 
 [profile.release]
-lto = "fat"
-codegen-units = 1
+lto = "fat"       # enables "fat" LTO, for faster release builds
+codegen-units = 1 # makes sure that all code is compiled together, for LTO
+
+[profile.test]
+opt-level = 1     # enables thin local LTO and some optimizations.
+
+[profile.bench]
+lto = "fat"       # enables "fat" LTO, for faster becnhmark builds
+codegen-units = 1 # makes sure that all code is compiled together, for LTO
