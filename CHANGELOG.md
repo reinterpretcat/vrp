@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 * improve required break functionality
 * MDP adjustments
 * improve managing packages with cargo's workspace
+* update dependencies
 
 ### Added
 

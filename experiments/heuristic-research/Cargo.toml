@@ -19,10 +19,10 @@ crate-type = ["cdylib", "rlib"]
 rosomaxa = { path = "../../rosomaxa", features = ["heuristic-telemetry"] }
 vrp-scientific = { path = "../../vrp-scientific"}
 
-serde = { version = "1.0.164", features = ["derive"] }
-serde_json = "1.0.96"
+serde = { workspace = true }
+serde_json = { workspace = true }
 
-plotters = { version = "0.3.4", default-features = false, features = [
+plotters = { version = "0.3.5", default-features = false, features = [
     "bitmap_backend",
     "bitmap_encoder",
     "image",
@@ -30,6 +30,6 @@ plotters = { version = "0.3.4", default-features = false, features = [
 ] }
 plotters-canvas = "0.3.0"
 itertools = "0.10.5"
-wasm-bindgen = "0.2.86"
-web-sys = { version = "0.3.63", features = ["HtmlCanvasElement", "console"] }
+wasm-bindgen = "0.2.87"
+web-sys = { version = "0.3.64", features = ["HtmlCanvasElement", "console"] }
 lazy_static = "1.4.0"
