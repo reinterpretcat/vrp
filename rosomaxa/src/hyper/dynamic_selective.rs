@@ -268,9 +268,9 @@ impl State for SearchState {
 
     fn reward(&self) -> f64 {
         match &self {
-            SearchState::BestMajorImprovement(feedback) => feedback.eval_reward(100.),
-            SearchState::BestMinorImprovement(feedback) => feedback.eval_reward(20.),
-            SearchState::DiverseImprovement(feedback) => feedback.eval_reward(5.),
+            SearchState::BestMajorImprovement(feedback) => feedback.eval_reward(1000.),
+            SearchState::BestMinorImprovement(feedback) => feedback.eval_reward(100.),
+            SearchState::DiverseImprovement(feedback) => feedback.eval_reward(10.),
             SearchState::Stagnated(feedback) => feedback.eval_reward(-1.),
             SearchState::BestKnown | SearchState::Diverse => {
                 unreachable!("no reward as no transition to initial state")
