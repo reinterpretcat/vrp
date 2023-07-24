@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ master ]
 
+# we set `opt-level = 1` in profile.test globally, but this affects code coverage, so we reset it here
+env:
+  CARGO_PROFILE_TEST_OPT_LEVEL: 0
+
 jobs:
   measure-test-coverage:
     runs-on: ubuntu-latest
