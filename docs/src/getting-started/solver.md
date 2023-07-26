@@ -127,4 +127,17 @@ overridden using `init-size` option.
 Writing solution into file is controlled by `-o` or `--out-result` setting. When it is omitted, then solution is written
 in std out.
 
+#### Geojson
+
 Pragmatic format supports option `-g` or `--geo-json` which writes solution in separate file in geojson format.
+If the library iw used from the interop api (e.g. python or c), then solution in geojson can be returned inside `extras.features`
+with the config option specified:
+s
+```json
+{
+  "output": {
+    "includeGeojson": true
+  }
+}
+```
+s

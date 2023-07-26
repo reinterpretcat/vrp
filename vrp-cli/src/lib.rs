@@ -41,7 +41,7 @@ use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::prelude::Solver;
 use vrp_pragmatic::format::problem::{serialize_problem, PragmaticProblem, Problem};
-use vrp_pragmatic::format::solution::write_pragmatic;
+use vrp_pragmatic::format::solution::{write_pragmatic, PragmaticOutputType};
 use vrp_pragmatic::format::FormatError;
 use vrp_pragmatic::get_unique_locations;
 use vrp_pragmatic::validation::ValidationContext;
@@ -524,8 +524,14 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
             .to_json()
         })?;
 
+    let output_type = if config.output.and_then(|output_cfg| output_cfg.include_geojson).unwrap_or(false) {
+        PragmaticOutputType::Combined
+    } else {
+        Default::default()
+    };
+
     let mut writer = BufWriter::new(Vec::new());
-    write_pragmatic(problem.as_ref(), &solution, Default::default(), &mut writer)?;
+    write_pragmatic(problem.as_ref(), &solution, output_type, &mut writer)?;
 
     let bytes = writer.into_inner().map_err(|err| format!("{err}"))?;
     let result = String::from_utf8(bytes).map_err(|err| format!("{err}"))?;

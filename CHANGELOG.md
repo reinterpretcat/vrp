@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 * more experimental plots in `heuristic-research` playground
+* geojson output if the library is used from interop api
 
 
 ## [v1.21.1]- 2023-06-09

@@ -119,6 +119,9 @@ fn can_read_full_config() {
     let logging = environment.logging.expect("no logging config");
     assert!(logging.enabled);
     assert_eq!(logging.prefix, Some("[config.full]".to_string()));
+
+    let output_cfg = config.output.expect("cannot read output config");
+    assert_eq!(output_cfg.include_geojson, Some(true));
 }
 
 #[test]
@@ -142,6 +145,7 @@ fn can_configure_telemetry_metrics() {
             progress: None,
             metrics: Some(MetricsConfig { enabled: true, track_population: Some(10) }),
         }),
+        output: None,
     };
 
     let solution = create_builder_from_config(create_example_problem(), Vec::default(), &config)

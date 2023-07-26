@@ -36,6 +36,8 @@ pub struct Config {
     pub environment: Option<EnvironmentConfig>,
     /// Specifies telemetry configuration.
     pub telemetry: Option<TelemetryConfig>,
+    /// Specifies output configuration.
+    pub output: Option<OutputConfig>,
 }
 
 /// An evolution configuration.
@@ -422,6 +424,14 @@ pub struct MinMaxConfig {
 pub struct NameWeight {
     pub name: String,
     pub weight: usize,
+}
+
+/// Specifies output configuration.
+#[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct OutputConfig {
+    /// True if the solution, serialized as geojson features, should be included in solution.extras.
+    pub include_geojson: Option<bool>,
 }
 
 fn configure_from_evolution(

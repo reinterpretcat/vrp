@@ -374,5 +374,8 @@
       "prefix": "[config.full]"
     },
     "isExperimental": false
+  },
+  "output": {
+    "includeGeojson": true
   }
 }
