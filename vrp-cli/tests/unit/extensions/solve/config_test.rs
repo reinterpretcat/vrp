@@ -144,13 +144,13 @@ fn can_configure_telemetry_metrics() {
         }),
     };
 
-    let (_, _, metrics) = create_builder_from_config(create_example_problem(), Vec::default(), &config)
+    let solution = create_builder_from_config(create_example_problem(), Vec::default(), &config)
         .and_then(|config_builder| config_builder.build())
         .map(|evolution_config| Solver::new(create_example_problem(), evolution_config))
         .and_then(|solver| solver.solve())
         .unwrap();
 
-    let metrics = metrics.expect("no metrics");
+    let metrics = solution.telemetry.expect("no metrics");
     assert_eq!(metrics.generations, 100);
     assert_eq!(metrics.evolution.len(), 10 + 1);
 }

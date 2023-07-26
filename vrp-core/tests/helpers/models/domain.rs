@@ -3,7 +3,7 @@ use crate::construction::heuristics::{InsertionContext, RegistryContext, Solutio
 use crate::helpers::construction::features::create_goal_ctx_with_transport;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_route_context_with_activities;
-use crate::models::common::IdDimension;
+use crate::models::common::{Cost, IdDimension};
 use crate::models::examples::create_example_problem;
 use crate::models::problem::{Fleet, Job, Jobs};
 use crate::models::solution::Registry;
@@ -44,7 +44,13 @@ pub fn create_problem_with_goal_ctx_jobs_and_fleet(
 }
 
 pub fn create_empty_solution() -> Solution {
-    Solution { registry: Registry::new(&test_fleet(), test_random()), routes: vec![], unassigned: Default::default() }
+    Solution {
+        cost: Cost::default(),
+        registry: Registry::new(&test_fleet(), test_random()),
+        routes: vec![],
+        unassigned: Default::default(),
+        telemetry: None,
+    }
 }
 
 pub fn create_registry_context(fleet: &Fleet) -> RegistryContext {

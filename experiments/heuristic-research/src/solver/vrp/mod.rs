@@ -80,13 +80,13 @@ pub fn solve_vrp(
         .build()
         .expect("cannot build config");
 
-    let (solution, cost, _) = Solver::new(problem, config).solve().expect("cannot solve problem");
+    let solution = Solver::new(problem, config).solve().expect("cannot solve problem");
 
     let mut writer = BufWriter::new(Vec::new());
     match format_type {
-        "tsplib" => (&solution, cost).write_tsplib(&mut writer),
-        "solomon" => (&solution, cost).write_solomon(&mut writer),
-        "lilim" => (&solution, cost).write_lilim(&mut writer),
+        "tsplib" => solution.write_tsplib(&mut writer),
+        "solomon" => solution.write_solomon(&mut writer),
+        "lilim" => solution.write_lilim(&mut writer),
         _ => unreachable!("unknown format: {}", format_type),
     }
     .expect("cannot write solution");

@@ -10,7 +10,7 @@ use vrp_pragmatic::core::models::{Problem as CoreProblem, Solution as CoreSoluti
 use vrp_pragmatic::core::prelude::*;
 use vrp_pragmatic::core::solver::get_default_telemetry_mode;
 use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, Matrix, PragmaticProblem, Problem};
-use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
+use vrp_pragmatic::format::solution::{deserialize_solution, write_pragmatic, Solution};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -63,11 +63,11 @@ fn run_examples(base_path: &str) {
             .with_max_generations(Some(100))
             .build()
             .unwrap_or_else(|err| panic!("cannot build default solver configuration: {err}"));
-        let (solution, cost, _) = Solver::new(core_problem.clone(), config)
+        let solution = Solver::new(core_problem.clone(), config)
             .solve()
             .unwrap_or_else(|err| panic!("cannot solver problem: {err}"));
 
-        let solution = get_pragmatic_solution(&core_problem, &solution, cost);
+        let solution = get_pragmatic_solution(&core_problem, &solution);
 
         if let Err(err) = CheckerContext::new(core_problem, problem, matrices, solution).and_then(|ctx| ctx.check()) {
             panic!("unfeasible solution in '{}':\n'{}'", name, err.join("\n"));
@@ -84,10 +84,11 @@ fn get_pragmatic_problem(base_path: &str, name: &str) -> Problem {
     deserialize_problem(open_file(format!["{base_path}/{name}.problem.json"].as_str())).unwrap()
 }
 
-fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution, cost: f64) -> Solution {
+fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Solution {
+    let output_type = Default::default();
     let mut writer = BufWriter::new(Vec::new());
 
-    (solution, cost).write_pragmatic_json(problem, &mut writer).expect("cannot write pragmatic solution");
+    write_pragmatic(problem, solution, output_type, &mut writer).expect("cannot write pragmatic solution");
     let bytes = writer.into_inner().expect("cannot get bytes from writer");
 
     deserialize_solution(BufReader::new(bytes.as_slice())).expect("cannot deserialize solution")

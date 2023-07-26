@@ -12,6 +12,7 @@ use crate::models::{Problem, Solution};
 use crate::utils::short_type_name;
 use hashbrown::{HashMap, HashSet};
 use nohash_hasher::BuildNoHashHasher;
+use rosomaxa::evolution::TelemetryMetrics;
 use rosomaxa::prelude::*;
 use rustc_hash::FxHasher;
 use std::any::Any;
@@ -200,7 +201,15 @@ impl Debug for SolutionContext {
 
 impl From<SolutionContext> for Solution {
     fn from(solution_ctx: SolutionContext) -> Self {
+        (solution_ctx, None).into()
+    }
+}
+
+impl From<(SolutionContext, Option<TelemetryMetrics>)> for Solution {
+    fn from(value: (SolutionContext, Option<TelemetryMetrics>)) -> Self {
+        let (solution_ctx, telemetry) = value;
         Solution {
+            cost: solution_ctx.get_total_cost(),
             registry: solution_ctx.registry.resources().deep_copy(),
             routes: solution_ctx.routes.iter().map(|rc| rc.route.deep_copy()).collect(),
             unassigned: solution_ctx
@@ -209,6 +218,7 @@ impl From<SolutionContext> for Solution {
                 .map(|(job, code)| (job.clone(), code.clone()))
                 .chain(solution_ctx.required.iter().map(|job| (job.clone(), UnassignmentInfo::Unknown)))
                 .collect(),
+            telemetry,
         }
     }
 }

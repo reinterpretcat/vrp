@@ -183,19 +183,18 @@ fn can_use_init_solution_with_dispatch() {
     let core_problem = Arc::new((problem, vec![matrix]).read_pragmatic().unwrap());
     let core_solution = to_core_solution(&init_solution, core_problem.clone(), environment.random.clone()).unwrap();
 
-    let (core_solution, _, metrics) =
-        create_default_config_builder(core_problem.clone(), environment.clone(), TelemetryMode::None)
-            .with_max_generations(Some(100))
-            .with_init_solutions(
-                vec![InsertionContext::new_from_solution(core_problem.clone(), (core_solution, None), environment)],
-                None,
-            )
-            .build()
-            .map(|config| Solver::new(core_problem.clone(), config))
-            .unwrap_or_else(|err| panic!("cannot build solver: {err}"))
-            .solve()
-            .unwrap_or_else(|err| panic!("cannot solve the problem: {err}"));
-    let result_solution = create_solution(&core_problem, &core_solution, metrics.as_ref());
+    let core_solution = create_default_config_builder(core_problem.clone(), environment.clone(), TelemetryMode::None)
+        .with_max_generations(Some(100))
+        .with_init_solutions(
+            vec![InsertionContext::new_from_solution(core_problem.clone(), (core_solution, None), environment)],
+            None,
+        )
+        .build()
+        .map(|config| Solver::new(core_problem.clone(), config))
+        .unwrap_or_else(|err| panic!("cannot build solver: {err}"))
+        .solve()
+        .unwrap_or_else(|err| panic!("cannot solve the problem: {err}"));
+    let result_solution = create_solution(&core_problem, &core_solution, &Default::default());
 
     assert_vehicle_agnostic(result_solution, init_solution);
 }

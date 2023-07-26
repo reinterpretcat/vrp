@@ -71,7 +71,9 @@ fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, 
     let core_solution = insertion_ctx.solution.into();
 
     let mut writer = BufWriter::new(Vec::new());
-    (&core_solution, 0.).write_pragmatic_json(&core_problem, &mut writer).expect("cannot serialize result solution");
+    write_pragmatic(&core_problem, &core_solution, Default::default(), &mut writer)
+        .expect("cannot serialize result solution");
+
     let bytes = writer.into_inner().expect("cannot get bytes from writer");
 
     deserialize_solution(BufReader::new(bytes.as_slice())).map_err(|err| format!("cannot read solution: {err}"))

@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 * MDP adjustments
 * improve managing packages with cargo's workspace
 * update dependencies
+* `breaking`: refactor internal models to simplify cost/telemetry handling
 
 ### Added
 

@@ -20,8 +20,13 @@ pub fn read_init_solution<R: Read>(
 ) -> Result<Solution, String> {
     let mut buffer = String::new();
 
-    let mut solution =
-        Solution { registry: Registry::new(&problem.fleet, random), routes: vec![], unassigned: Default::default() };
+    let mut solution = Solution {
+        cost: Cost::default(),
+        registry: Registry::new(&problem.fleet, random),
+        routes: vec![],
+        unassigned: Default::default(),
+        telemetry: None,
+    };
 
     loop {
         match read_line(&mut reader, &mut buffer) {

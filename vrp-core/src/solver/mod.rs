@@ -88,7 +88,6 @@
 extern crate rand;
 
 use crate::construction::heuristics::InsertionContext;
-use crate::models::common::Cost;
 use crate::models::{GoalContext, Problem, Solution};
 use crate::solver::search::Recreate;
 use hashbrown::HashMap;
@@ -267,10 +266,10 @@ impl InitialOperator for RecreateInitialOperator {
 ///     .with_max_generations(Some(100))
 ///     .build()?;
 ///
-/// // run solver and get the best known solution within its cost. Telemetry metrics are ignored.
-/// let (solution, cost, _) = Solver::new(problem, config).solve()?;
+/// // run solver and get the best known solution.
+/// let solution = Solver::new(problem, config).solve()?;
 ///
-/// assert_eq!(cost, 42.);
+/// assert_eq!(solution.cost, 42.);
 /// assert_eq!(solution.routes.len(), 1);
 /// assert_eq!(solution.unassigned.len(), 0);
 /// # Ok::<(), String>(())
@@ -289,9 +288,9 @@ impl Solver {
         Self { problem, config }
     }
 
-    /// Solves a Vehicle Routing Problem and returns a _(solution, its cost)_ pair in case of success
+    /// Solves a Vehicle Routing Problem and returns a feasible solution in case of success
     /// or error description, if solution cannot be found.
-    pub fn solve(self) -> Result<(Solution, Cost, Option<TelemetryMetrics>), String> {
+    pub fn solve(self) -> Result<Solution, String> {
         (self.config.context.environment.logger)(&format!(
             "total jobs: {}, actors: {}",
             self.problem.jobs.size(),
@@ -304,9 +303,8 @@ impl Solver {
         let insertion_ctx = if solutions.is_empty() { None } else { solutions.drain(0..1).next() }
             .ok_or_else(|| "cannot find any solution".to_string())?;
 
-        let cost = insertion_ctx.solution.get_total_cost();
-        let solution = insertion_ctx.solution.into();
+        let solution = (insertion_ctx.solution, metrics).into();
 
-        Ok((solution, cost, metrics))
+        Ok(solution)
     }
 }

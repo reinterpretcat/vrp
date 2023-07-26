@@ -1,3 +1,4 @@
+use super::FeatureCollection;
 use crate::format::{CoordIndex, Location};
 use crate::{format_time, parse_time};
 use serde::{Deserialize, Serialize};
@@ -318,6 +319,10 @@ pub struct Extras {
     /// A telemetry metrics.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metrics: Option<Metrics>,
+
+    /// Represents solution as a collection of geo json features.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub features: Option<FeatureCollection>,
 }
 
 /// A VRP solution.

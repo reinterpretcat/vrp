@@ -83,7 +83,7 @@ pub fn read_init_solution<R: Read>(
         problem.jobs.all().filter(|job| added_jobs.get(job).is_none()).map(|job| (job, UnassignmentInfo::Unknown)),
     );
 
-    Ok(Solution { registry, routes, unassigned })
+    Ok(Solution { cost: Cost::default(), registry, routes, unassigned, telemetry: None })
 }
 
 fn try_insert_activity(

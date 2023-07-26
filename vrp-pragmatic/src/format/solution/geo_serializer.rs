@@ -5,30 +5,44 @@ mod geo_serializer_test;
 use super::Solution;
 use crate::format::solution::{Activity, PointStop, Tour, UnassignedJob};
 use crate::format::{get_coord_index, get_job_index, CoordIndex, Location};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::{BufWriter, Error, ErrorKind, Write};
 use vrp_core::models::problem::Job;
 use vrp_core::prelude::*;
 
-#[derive(Clone, Debug, Serialize)]
+/// Represents geometry of the feature.
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "type")]
-enum Geometry {
-    Point { coordinates: (f64, f64) },
-    LineString { coordinates: Vec<(f64, f64)> },
+pub enum Geometry {
+    /// A point.
+    Point {
+        /// Point's longitude and latitude.
+        coordinates: (f64, f64),
+    },
+    /// A line string.
+    LineString {
+        /// List of longitude and latitude pairs.
+        coordinates: Vec<(f64, f64)>,
+    },
 }
 
-#[derive(Clone, Debug, Serialize)]
+/// Represents geo json feature.
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "type")]
-struct Feature {
+pub struct Feature {
+    /// Feature properties.
     pub properties: HashMap<String, String>,
+    /// Feature geometry.
     pub geometry: Geometry,
 }
 
-#[derive(Clone, Debug, Serialize, Eq, PartialEq)]
+/// Represents a feature collection.
+#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
 #[serde(tag = "type")]
-struct FeatureCollection {
+pub struct FeatureCollection {
+    /// List of features.
     pub features: Vec<Feature>,
 }
 
@@ -73,11 +87,11 @@ impl PartialEq for Feature {
 
 /// Serializes solution into geo json format.
 pub fn serialize_solution_as_geojson<W: Write>(
-    writer: &mut BufWriter<W>,
     problem: &Problem,
     solution: &Solution,
+    writer: &mut BufWriter<W>,
 ) -> Result<(), Error> {
-    let geo_json = create_geojson_solution(problem, solution)?;
+    let geo_json = create_feature_collection(problem, solution)?;
 
     serde_json::to_writer_pretty(writer, &geo_json).map_err(Error::from)
 }
@@ -269,7 +283,7 @@ fn get_tour_line(tour_idx: usize, tour: &Tour, color: &str) -> Result<Feature, E
 }
 
 /// Creates solution as geo json.
-fn create_geojson_solution(problem: &Problem, solution: &Solution) -> Result<FeatureCollection, Error> {
+pub(crate) fn create_feature_collection(problem: &Problem, solution: &Solution) -> Result<FeatureCollection, Error> {
     let stop_markers = solution
         .tours
         .iter()

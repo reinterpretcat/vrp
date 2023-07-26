@@ -24,7 +24,7 @@ fn can_solve_problem_using_full_config() {
         termination.variation = None;
     }
 
-    let (solution, _, _) = create_builder_from_config(problem.clone(), Default::default(), &config)
+    let solution = create_builder_from_config(problem.clone(), Default::default(), &config)
         .unwrap()
         .build()
         .map(|config| Solver::new(problem.clone(), config))

@@ -22,7 +22,7 @@ fn can_create_geo_json_from_solution() {
     let matrix = create_matrix_from_problem(&problem);
     let core_problem = (problem.clone(), vec![matrix.clone()]).read_pragmatic().unwrap();
     let solution = solve_with_cheapest_insertion(problem, Some(vec![matrix]));
-    let geo_json = create_geojson_solution(&core_problem, &solution).unwrap();
+    let geo_json = create_feature_collection(&core_problem, &solution).unwrap();
 
     assert_eq!(geo_json.features.len(), 6);
 }

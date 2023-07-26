@@ -85,10 +85,10 @@
 //!     .with_max_time(Some(10))
 //!     .with_max_generations(Some(10))
 //!     .build()?;
-//! // run solver and get the best known solution within its cost. Telemetry metrics are ignored.
-//! let (solution, cost, _) = Solver::new(problem, config).solve()?;
+//! // run solver and get the best known solution.
+//! let solution = Solver::new(problem, config).solve()?;
 //!
-//! assert_eq!(cost, 42.);
+//! assert_eq!(solution.cost, 42.);
 //! assert_eq!(solution.routes.len(), 1);
 //! assert_eq!(solution.unassigned.len(), 0);
 //! # Ok::<(), String>(())

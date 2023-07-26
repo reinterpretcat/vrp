@@ -21,6 +21,7 @@ use vrp_core::rosomaxa::evolution::*;
 use vrp_core::rosomaxa::{get_default_population, get_default_selection_size};
 use vrp_core::solver::*;
 use vrp_core::utils::*;
+use vrp_pragmatic::format::solution::{write_pragmatic, PragmaticOutputType};
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -51,14 +52,7 @@ struct InitSolutionReader(pub Box<dyn Fn(File, Arc<Problem>) -> Result<Solution,
 #[allow(clippy::type_complexity)]
 struct SolutionWriter(
     pub  Box<
-        dyn Fn(
-            &Problem,
-            Solution,
-            f64,
-            Option<TelemetryMetrics>,
-            BufWriter<Box<dyn Write>>,
-            Option<BufWriter<Box<dyn Write>>>,
-        ) -> Result<(), String>,
+        dyn Fn(&Problem, Solution, BufWriter<Box<dyn Write>>, Option<BufWriter<Box<dyn Write>>>) -> Result<(), String>,
     >,
 );
 
@@ -87,9 +81,7 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
                     let random = random.clone();
                     move |file, problem| read_init_solution(BufReader::new(file), problem, random.clone())
                 })),
-                SolutionWriter(Box::new(|_, solution, cost, _, mut writer, _| {
-                    (&solution, cost).write_solomon(&mut writer)
-                })),
+                SolutionWriter(Box::new(|_, solution, mut writer, _| solution.write_solomon(&mut writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );
@@ -101,9 +93,7 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
                     BufReader::new(problem).read_lilim(is_rounded)
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
-                SolutionWriter(Box::new(|_, solution, cost, _, mut writer, _| {
-                    (&solution, cost).write_lilim(&mut writer)
-                })),
+                SolutionWriter(Box::new(|_, solution, mut writer, _| solution.write_lilim(&mut writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );
@@ -117,9 +107,7 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
                 InitSolutionReader(Box::new(move |file, problem| {
                     read_init_solution(BufReader::new(file), problem, random.clone())
                 })),
-                SolutionWriter(Box::new(|_, solution, cost, _, mut writer, _| {
-                    (&solution, cost).write_tsplib(&mut writer)
-                })),
+                SolutionWriter(Box::new(|_, solution, mut writer, _| solution.write_tsplib(&mut writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );
@@ -129,7 +117,6 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
 fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>) {
     use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
     use vrp_pragmatic::format::solution::read_init_solution as read_init_pragmatic;
-    use vrp_pragmatic::format::solution::PragmaticSolution;
 
     formats.insert(
         "pragmatic",
@@ -146,16 +133,12 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
             InitSolutionReader(Box::new(move |file, problem| {
                 read_init_pragmatic(BufReader::new(file), problem, random.clone())
             })),
-            SolutionWriter(Box::new(|problem, solution, cost, metrics, mut default_writer, geojson_writer| {
+            SolutionWriter(Box::new(|problem, solution, mut default_writer, geojson_writer| {
                 geojson_writer
-                    .map_or(Ok(()), |mut geojson_writer| (&solution, cost).write_geo_json(problem, &mut geojson_writer))
-                    .and_then(|_| {
-                        if let Some(metrics) = metrics {
-                            (&solution, cost, &metrics).write_pragmatic_json(problem, &mut default_writer)
-                        } else {
-                            (&solution, cost).write_pragmatic_json(problem, &mut default_writer)
-                        }
+                    .map_or(Ok(()), |mut geojson_writer| {
+                        write_pragmatic(problem, &solution, PragmaticOutputType::OnlyGeoJson, &mut geojson_writer)
                     })
+                    .and_then(|_| write_pragmatic(problem, &solution, Default::default(), &mut default_writer))
             })),
             LocationWriter(Box::new(|problem, writer| {
                 let mut writer = writer;
@@ -407,10 +390,9 @@ pub fn run_solve(
                             Solver::new(problem.clone(), config)
                         };
 
-                        let (solution, cost, metrics) =
-                            solver.solve().map_err(|err| format!("cannot find any solution: '{err}'"))?;
+                        let solution = solver.solve().map_err(|err| format!("cannot find any solution: '{err}'"))?;
 
-                        solution_writer.0(&problem, solution, cost, metrics, out_buffer, geo_buffer).unwrap();
+                        solution_writer.0(&problem, solution, out_buffer, geo_buffer).unwrap();
 
                         if is_check_requested {
                             check_pragmatic_solution_with_args(matches)?;

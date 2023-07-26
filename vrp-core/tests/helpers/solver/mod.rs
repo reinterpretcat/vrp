@@ -5,7 +5,7 @@ use crate::helpers::construction::features::{create_goal_ctx_with_feature, creat
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_activity_with_job};
-use crate::models::common::{IdDimension, Location};
+use crate::models::common::{Cost, IdDimension, Location};
 use crate::models::problem::*;
 use crate::models::solution::{Activity, Registry, Route};
 use crate::models::*;
@@ -155,7 +155,8 @@ pub fn generate_matrix_routes(
         extras: Arc::new(Default::default()),
     };
 
-    let solution = Solution { registry, routes, unassigned: Default::default() };
+    let solution =
+        Solution { cost: Cost::default(), registry, routes, unassigned: Default::default(), telemetry: None };
 
     (problem, solution)
 }

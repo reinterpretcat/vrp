@@ -58,15 +58,14 @@ pub fn solve(problem: Problem, matrices: Option<Vec<Matrix>>, generations: usize
         let environment =
             Arc::new(Environment { parallelism: Parallelism::new_with_cpus(AVAILABLE_CPUS), ..Environment::default() });
         let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
-        let (solution, _, _) = create_default_config_builder(problem.clone(), environment, telemetry_mode)
+
+        create_default_config_builder(problem.clone(), environment, telemetry_mode)
             .with_max_generations(Some(generations))
             .build()
             .map(|config| Solver::new(problem, config))
             .unwrap_or_else(|err| panic!("cannot build solver: {err}"))
             .solve()
-            .unwrap_or_else(|err| panic!("cannot solve the problem: {err}"));
-
-        solution
+            .unwrap_or_else(|err| panic!("cannot solve the problem: {err}"))
     })
 }
 
@@ -90,7 +89,7 @@ fn get_core_solution<F: FnOnce(Arc<CoreProblem>) -> CoreSolution>(
 
     let core_solution = solve_func(core_problem.clone());
 
-    let format_solution = sort_all_data(create_solution(&core_problem, &core_solution, None));
+    let format_solution = sort_all_data(create_solution(&core_problem, &core_solution, &Default::default()));
 
     if perform_check {
         if let Some(err) =

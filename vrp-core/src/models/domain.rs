@@ -1,9 +1,11 @@
 use crate::construction::heuristics::UnassignmentInfo;
+use crate::models::common::Cost;
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
 use crate::models::*;
 use crate::utils::short_type_name;
 use hashbrown::HashMap;
+use rosomaxa::evolution::TelemetryMetrics;
 use rustc_hash::FxHasher;
 use std::any::Any;
 use std::fmt::{Debug, Formatter};
@@ -50,6 +52,10 @@ impl Debug for Problem {
 
 /// Represents a VRP solution.
 pub struct Solution {
+    /// A total solution cost.
+    /// Definition of the cost depends on VRP variant.
+    pub cost: Cost,
+
     /// Actor's registry.
     pub registry: Registry,
 
@@ -58,6 +64,9 @@ pub struct Solution {
 
     /// List of unassigned jobs within reason code.
     pub unassigned: Vec<(Job, UnassignmentInfo)>,
+
+    /// An optional telemetry metrics if available.
+    pub telemetry: Option<TelemetryMetrics>,
 }
 
 /// An enumeration which specifies how jobs should be ordered in tour.

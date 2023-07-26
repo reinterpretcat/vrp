@@ -33,49 +33,40 @@ type DomainSchedule = vrp_core::models::common::Schedule;
 type DomainLocation = vrp_core::models::common::Location;
 type DomainExtras = vrp_core::models::Extras;
 
-/// A trait to serialize solution in pragmatic format.
-pub trait PragmaticSolution<W: Write> {
-    /// Serializes solution in pragmatic json format.
-    fn write_pragmatic_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String>;
-
-    /// Serializes solution in pragmatic geo json format.
-    fn write_geo_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String>;
+/// Specifies possible options for solution output.
+pub enum PragmaticOutputType {
+    /// Only pragmatic is needed.
+    OnlyPragmatic,
+    /// Only geojson is needed.
+    OnlyGeoJson,
+    /// Pragmatic and geojson is returned. Geojson features are embedded inside extras property.
+    Combined,
 }
 
-impl<W: Write> PragmaticSolution<W> for (&Solution, f64) {
-    fn write_pragmatic_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String> {
-        write_pragmatic_json(problem, self.0, None, writer)
-    }
-
-    fn write_geo_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String> {
-        write_geo_json(problem, self.0, writer)
+impl Default for PragmaticOutputType {
+    fn default() -> Self {
+        Self::OnlyPragmatic
     }
 }
 
-impl<W: Write> PragmaticSolution<W> for (&Solution, f64, &TelemetryMetrics) {
-    fn write_pragmatic_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String> {
-        write_pragmatic_json(problem, self.0, Some(self.2), writer)
-    }
-
-    fn write_geo_json(&self, problem: &Problem, writer: &mut BufWriter<W>) -> Result<(), String> {
-        write_geo_json(problem, self.0, writer)
-    }
-}
-
-fn write_pragmatic_json<W: Write>(
+/// Writes solution in pragmatic format variation defined by output type argument.
+pub fn write_pragmatic<W: Write>(
     problem: &Problem,
     solution: &Solution,
-    metrics: Option<&TelemetryMetrics>,
+    output_type: PragmaticOutputType,
     writer: &mut BufWriter<W>,
 ) -> Result<(), String> {
-    let solution = create_solution(problem, solution, metrics);
-    serialize_solution(&solution, writer).map_err(|err| err.to_string())?;
-    Ok(())
-}
+    let solution = create_solution(problem, solution, &output_type);
 
-fn write_geo_json<W: Write>(problem: &Problem, solution: &Solution, writer: &mut BufWriter<W>) -> Result<(), String> {
-    let solution = create_solution(problem, solution, None);
-    serialize_solution_as_geojson(writer, problem, &solution).map_err(|err| err.to_string())?;
+    match output_type {
+        PragmaticOutputType::OnlyPragmatic { .. } | PragmaticOutputType::Combined { .. } => {
+            serialize_solution(&solution, writer).map_err(|err| err.to_string())?;
+        }
+        PragmaticOutputType::OnlyGeoJson => {
+            serialize_solution_as_geojson(problem, &solution, writer).map_err(|err| err.to_string())?;
+        }
+    }
+
     Ok(())
 }
 
@@ -96,7 +87,7 @@ impl Leg {
 }
 
 /// Creates solution.
-pub fn create_solution(problem: &Problem, solution: &Solution, metrics: Option<&TelemetryMetrics>) -> ApiSolution {
+pub fn create_solution(problem: &Problem, solution: &Solution, output_type: &PragmaticOutputType) -> ApiSolution {
     let coord_index = get_coord_index(problem);
     let reserved_times_index = get_reserved_times_index(problem);
 
@@ -111,9 +102,11 @@ pub fn create_solution(problem: &Problem, solution: &Solution, metrics: Option<&
     let unassigned = create_unassigned(solution);
     let violations = create_violations(solution);
 
-    let extras = create_extras(solution, metrics);
+    let api_solution = ApiSolution { statistic, tours, unassigned, violations, extras: None };
 
-    ApiSolution { statistic, tours, unassigned, violations, extras }
+    let extras = create_extras(problem, &api_solution, solution.telemetry.as_ref(), output_type);
+
+    ApiSolution { extras, ..api_solution }
 }
 
 fn create_tour(
@@ -621,31 +614,50 @@ fn get_parking_time(extras: &DomainExtras) -> f64 {
     extras.get_cluster_config().map_or(0., |config| config.serving.get_parking())
 }
 
-fn create_extras(_solution: &Solution, metrics: Option<&TelemetryMetrics>) -> Option<Extras> {
-    metrics.map(|metrics| Extras {
-        metrics: Some(ApiMetrics {
-            duration: metrics.duration,
-            generations: metrics.generations,
-            speed: metrics.speed,
-            evolution: metrics
-                .evolution
-                .iter()
-                .map(|g| ApiGeneration {
-                    number: g.number,
-                    timestamp: g.timestamp,
-                    i_all_ratio: g.i_all_ratio,
-                    i_1000_ratio: g.i_1000_ratio,
-                    is_improvement: g.is_improvement,
-                    population: AppPopulation {
-                        individuals: g
-                            .population
-                            .individuals
-                            .iter()
-                            .map(|i| ApiIndividual { difference: i.difference, fitness: i.fitness.clone() })
-                            .collect(),
-                    },
-                })
-                .collect(),
-        }),
+fn create_extras(
+    problem: &Problem,
+    solution: &ApiSolution,
+    metrics: Option<&TelemetryMetrics>,
+    output_type: &PragmaticOutputType,
+) -> Option<Extras> {
+    match output_type {
+        PragmaticOutputType::OnlyPragmatic => {
+            get_api_metrics(metrics).map(|metrics| Extras { metrics: Some(metrics), features: None })
+        }
+        PragmaticOutputType::OnlyGeoJson => None,
+        PragmaticOutputType::Combined => {
+            Some(Extras {
+                metrics: get_api_metrics(metrics),
+                // TODO do not hide error here, propagate it to the caller
+                features: create_feature_collection(problem, solution).ok(),
+            })
+        }
+    }
+}
+
+fn get_api_metrics(metrics: Option<&TelemetryMetrics>) -> Option<ApiMetrics> {
+    metrics.as_ref().map(|metrics| ApiMetrics {
+        duration: metrics.duration,
+        generations: metrics.generations,
+        speed: metrics.speed,
+        evolution: metrics
+            .evolution
+            .iter()
+            .map(|g| ApiGeneration {
+                number: g.number,
+                timestamp: g.timestamp,
+                i_all_ratio: g.i_all_ratio,
+                i_1000_ratio: g.i_1000_ratio,
+                is_improvement: g.is_improvement,
+                population: AppPopulation {
+                    individuals: g
+                        .population
+                        .individuals
+                        .iter()
+                        .map(|i| ApiIndividual { difference: i.difference, fitness: i.fitness.clone() })
+                        .collect(),
+                },
+            })
+            .collect(),
     })
 }

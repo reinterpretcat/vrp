@@ -30,12 +30,12 @@ fn can_write_solomon_solution() {
     );
 
     let mut writer = BufWriter::new(Vec::new());
-    let solution = RecreateWithCheapest::new(environment.random.clone())
+    let solution: Solution = RecreateWithCheapest::new(environment.random.clone())
         .run(&refinement_ctx, InsertionContext::new(problem, environment))
         .solution
         .into();
-    (&solution, 3.123456).write_solomon(&mut writer).unwrap();
+    solution.write_solomon(&mut writer).unwrap();
     let result = String::from_utf8(writer.into_inner().unwrap()).unwrap();
 
-    assert_eq!(result, "Route 1: 1\nCost 3.12");
+    assert_eq!(result, "Route 1: 1\nCost 2.00");
 }

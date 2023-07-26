@@ -41,7 +41,7 @@ use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::prelude::Solver;
 use vrp_pragmatic::format::problem::{serialize_problem, PragmaticProblem, Problem};
-use vrp_pragmatic::format::solution::PragmaticSolution;
+use vrp_pragmatic::format::solution::write_pragmatic;
 use vrp_pragmatic::format::FormatError;
 use vrp_pragmatic::get_unique_locations;
 use vrp_pragmatic::validation::ValidationContext;
@@ -511,7 +511,7 @@ pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
 
 /// Gets solution serialized in json.
 pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Result<String, String> {
-    let (solution, cost, metrics) = create_builder_from_config(problem.clone(), Default::default(), &config)
+    let solution = create_builder_from_config(problem.clone(), Default::default(), &config)
         .and_then(|builder| builder.build())
         .map(|config| Solver::new(problem.clone(), config))
         .and_then(|solver| solver.solve())
@@ -525,11 +525,7 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
         })?;
 
     let mut writer = BufWriter::new(Vec::new());
-    if let Some(metrics) = metrics {
-        (&solution, cost, &metrics).write_pragmatic_json(&problem, &mut writer)?;
-    } else {
-        (&solution, cost).write_pragmatic_json(&problem, &mut writer)?;
-    }
+    write_pragmatic(problem.as_ref(), &solution, Default::default(), &mut writer)?;
 
     let bytes = writer.into_inner().map_err(|err| format!("{err}"))?;
     let result = String::from_utf8(bytes).map_err(|err| format!("{err}"))?;

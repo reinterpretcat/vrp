@@ -14,8 +14,7 @@ pub use self::initial_reader::read_init_solution;
 mod extensions;
 
 mod writer;
-pub use self::writer::create_solution;
-pub use self::writer::PragmaticSolution;
+pub use self::writer::{create_solution, write_pragmatic, PragmaticOutputType};
 
 use super::*;
 
