@@ -130,6 +130,14 @@ If you're using some other language, e.g. java, kotlin, javascript, python, plea
 [interop](https://reinterpretcat.github.io/vrp/examples/interop/index.html) section in documentation examples to see how
 to call the library from it.
 
+# Contribution policy
+
+*open source, limited contribution*
+
+The goal is to reduce burnout by limiting the maintenance overhead of reviewing and validating third-party code.
+
+Please submit an [issue](https://github.com/reinterpretcat/vrp/issues/new) or [discussion](https://github.com/reinterpretcat/vrp/discussions/new/choose)
+if you have a MR proposal.
 
 # Status
 
