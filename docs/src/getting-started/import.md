@@ -28,7 +28,7 @@ Jobs csv defines a `plan` of the problem and should have the following columns:
     * positive: `pickup`
     * negative: `delivery`
     * zero: `service`
-* `DURATION` __(integer)__: job duration in minutes
+* `DURATION` __(integer)__: job duration in seconds
 * `TW_START` __(date in RFC3999)__: earliest time when job can be served
 * `TW_END` __(date in RFC3999)__: latest time when job can be served
 

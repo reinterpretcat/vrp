@@ -67,7 +67,7 @@ mod actual {
         let get_task = |job: &CsvJob| JobTask {
             places: vec![JobPlace {
                 location: Location::Coordinate { lat: job.lat, lng: job.lng },
-                duration: job.duration as f64 * 60.,
+                duration: job.duration as f64,
                 times: parse_tw(job.tw_start.clone(), job.tw_end.clone()).map(|tw| vec![tw]),
                 tag: None,
             }],

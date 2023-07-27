@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 * improve managing packages with cargo's workspace
 * update dependencies
 * `breaking`: refactor internal models to simplify cost/telemetry handling
+* change duration in csv import command from minutes to seconds
 
 ### Added
 

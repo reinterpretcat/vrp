@@ -40,7 +40,7 @@ defined. Each task has the following properties:
 Each `place` consists of the following properties:
 
 - **location** (required): a place location
-- **duration** (required): service (operational) time to serve task here
+- **duration** (required): service (operational) time to serve task here (in seconds)
 - **times** (optional): time windows
 - **tag** (optional): a job place tag which will be returned within job's activity in result solution.
 
