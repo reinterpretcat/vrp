@@ -182,36 +182,10 @@ impl CheckerContext {
                 .breaks
                 .as_ref()
                 .and_then(|breaks| {
-                    breaks.iter().find(|b| {
-                        match b {
-                            VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeWindow(tw), .. } => {
-                                parse_time_window(tw).intersects(&time)
-                            }
-                            VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeOffset(offset), .. } => {
-                                assert_eq!(offset.len(), 2);
-                                // NOTE make expected time window wider due to reschedule departure
-                                let stops = &tour.stops;
-                                let schedule = &stops.first().unwrap().schedule();
-                                let start = parse_time(&schedule.arrival) + *offset.first().unwrap();
-                                let end = parse_time(&schedule.departure) + *offset.last().unwrap();
-
-                                TimeWindow::new(start, end).intersects(&time)
-                            }
-                            VehicleBreak::Required { time: VehicleRequiredBreakTime::ExactTime(b_time), duration } => {
-                                let start = parse_time(b_time);
-                                let end = start + *duration;
-
-                                TimeWindow::new(start, end).intersects(&time)
-                            }
-                            VehicleBreak::Required { time: VehicleRequiredBreakTime::OffsetTime(offset), duration } => {
-                                let departure = parse_time(&tour.stops.first().unwrap().schedule().departure);
-                                let start = departure + *offset;
-                                let end = start + *duration;
-
-                                TimeWindow::new(start, end).intersects(&time)
-                            }
-                        }
-                    })
+                    breaks
+                        .iter()
+                        // TODO: would be nice to propagate the error
+                        .find(|b| get_break_time_window(tour, b).map(|tw| tw.intersects(&time)).unwrap_or(false))
                 })
                 .map(|b| ActivityType::Break(b.clone()))
                 .ok_or_else(|| format!("cannot find break for tour '{}'", tour.vehicle_id)),
@@ -466,7 +440,7 @@ mod limits;
 use crate::checker::limits::check_limits;
 
 mod breaks;
-use crate::checker::breaks::check_breaks;
+use crate::checker::breaks::{check_breaks, get_break_time_window};
 
 mod relations;
 use crate::checker::relations::check_relations;

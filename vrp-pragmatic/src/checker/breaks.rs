@@ -153,7 +153,8 @@ fn as_leg_info_with_break<'a>(
     None
 }
 
-fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<TimeWindow, String> {
+/// Gets break time window.
+pub(crate) fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<TimeWindow, String> {
     let departure = tour
         .stops
         .first()
@@ -170,12 +171,14 @@ fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<Ti
             Ok(TimeWindow::new(departure + *offset.first().unwrap(), departure + *offset.last().unwrap()))
         }
         VehicleBreak::Required { time, duration } => {
-            let start = match time {
-                VehicleRequiredBreakTime::OffsetTime(offset) => departure + *offset,
-                VehicleRequiredBreakTime::ExactTime(time) => parse_time(time),
+            let (start, end) = match time {
+                VehicleRequiredBreakTime::OffsetTime { earliest, latest } => {
+                    (departure + *earliest, departure + *latest)
+                }
+                VehicleRequiredBreakTime::ExactTime { earliest, latest } => (parse_time(earliest), parse_time(latest)),
             };
 
-            Ok(TimeWindow::new(start, start + duration))
+            Ok(TimeWindow::new(start, end + duration))
         }
     }
 }

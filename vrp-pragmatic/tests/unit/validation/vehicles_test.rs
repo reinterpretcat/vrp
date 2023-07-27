@@ -124,7 +124,7 @@ fn can_handle_rescheduling_with_required_break_impl(latest: Option<f64>, expecte
                         location: (0., 0.).to_loc(),
                     },
                     breaks: Some(vec![VehicleBreak::Required {
-                        time: VehicleRequiredBreakTime::OffsetTime(10.),
+                        time: VehicleRequiredBreakTime::OffsetTime { earliest: 10., latest: 10. },
                         duration: 2.,
                     }]),
                     ..create_default_vehicle_shift()

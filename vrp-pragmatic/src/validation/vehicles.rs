@@ -85,9 +85,22 @@ fn check_e1303_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result
                             VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeWindow(tw), .. } => {
                                 Some(get_time_window_from_vec(tw))
                             }
-                            VehicleBreak::Required { time: VehicleRequiredBreakTime::ExactTime(time), duration } => {
-                                Some(parse_time_safe(time).ok().map(|start| TimeWindow::new(start, start + *duration)))
+                            VehicleBreak::Required {
+                                time: VehicleRequiredBreakTime::OffsetTime { earliest, latest },
+                                duration,
+                            } => {
+                                let departure = parse_time(&shift.start.earliest);
+                                Some(Some(TimeWindow::new(departure + *earliest, departure + *latest + *duration)))
                             }
+                            VehicleBreak::Required {
+                                time: VehicleRequiredBreakTime::ExactTime { earliest, latest },
+                                duration,
+                            } => Some(
+                                parse_time_safe(earliest)
+                                    .ok()
+                                    .zip(parse_time_safe(latest).ok())
+                                    .map(|(start, end)| TimeWindow::new(start, end + *duration)),
+                            ),
                             _ => None,
                         })
                         .collect::<Vec<_>>();

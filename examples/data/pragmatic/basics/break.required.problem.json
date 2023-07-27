@@ -49,7 +49,10 @@
             },
             "breaks": [
               {
-                "time": 7200,
+                "time": {
+                  "earliest": 7200,
+                  "latest": 7200
+                },
                 "duration": 1800
               }
             ]

@@ -386,9 +386,21 @@ pub enum VehicleOptionalBreakTime {
 #[serde(untagged)]
 pub enum VehicleRequiredBreakTime {
     /// Break time is defined by exact time in RFC3339 format.
-    ExactTime(String),
+    /// Break should be taken not earlier and not later than time range specified.
+    ExactTime {
+        /// Start of the range.
+        earliest: String,
+        /// End of the range.
+        latest: String,
+    },
     /// Break time is defined by amount of seconds since driving time.
-    OffsetTime(f64),
+    /// Break should be taken not earlier and not later than time range specified.
+    OffsetTime {
+        /// Start of the range.
+        earliest: f64,
+        /// End of the range.
+        latest: f64,
+    },
 }
 
 /// Vehicle break place.

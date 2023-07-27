@@ -129,18 +129,20 @@ mod required {
     prop_compose! {
         fn get_required_break_offset_time()
         (
-         start in 3600..14400,
+         time in 3600..14400,
         ) -> VehicleRequiredBreakTime {
-            VehicleRequiredBreakTime::OffsetTime(start as f64)
+            let time = time as f64;
+            VehicleRequiredBreakTime::OffsetTime { earliest: time - 10., latest : time}
         }
     }
 
     prop_compose! {
         fn get_required_break_exact_time()
         (
-         start in from_hours_as_usize(10)..from_hours_as_usize(13),
+         time in from_hours_as_usize(10)..from_hours_as_usize(13),
         ) -> VehicleRequiredBreakTime {
-            VehicleRequiredBreakTime::ExactTime(format_time(start as f64))
+            let time = time as f64;
+            VehicleRequiredBreakTime::ExactTime{ earliest: format_time(time - 1.), latest: format_time(time) }
         }
     }
 

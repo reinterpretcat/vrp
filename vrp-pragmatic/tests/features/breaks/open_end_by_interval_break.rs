@@ -13,8 +13,8 @@ fn create_optional_break(time_window: (Timestamp, Timestamp), duration: Duration
     }
 }
 
-fn create_required_break(offset: Timestamp, duration: Duration) -> VehicleBreak {
-    VehicleBreak::Required { time: VehicleRequiredBreakTime::OffsetTime(offset), duration }
+fn create_required_break(earliest: Timestamp, latest: Timestamp, duration: Duration) -> VehicleBreak {
+    VehicleBreak::Required { time: VehicleRequiredBreakTime::OffsetTime { earliest, latest }, duration }
 }
 
 fn create_vehicle_shift_with_breaks(breaks: Vec<VehicleBreak>) -> VehicleShift {
@@ -43,7 +43,7 @@ can_simulate_two_open_shifts_with_different_breaks! {
              create_delivery_job_with_times("job2_2", (4., 0.), vec![(140, 140)], 1.),
         ],
         vec![create_optional_break((25., 30.), 5.),
-             create_required_break(50., 50.),
+             create_required_break(50., 50., 50.),
         ],
         vec![vec!["departure"], vec!["job1_1", "break"], vec!["job1_2"], vec!["break", "job2_1"], vec!["job2_2"]]
     ),
@@ -55,7 +55,7 @@ can_simulate_two_open_shifts_with_different_breaks! {
              create_delivery_job_with_duration("job2_2", (4., 0.), 20.),
         ],
         vec![create_optional_break((25., 30.), 5.),
-             create_required_break(50., 50.),
+             create_required_break(50., 50., 50.),
         ],
         vec![vec!["departure"], vec!["job1_1", "break"], vec!["job1_2", "break"], vec!["job2_1"], vec!["job2_2"]]
     ),

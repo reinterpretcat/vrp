@@ -20,7 +20,10 @@ fn can_assign_break_during_travel() {
                 shifts: vec![VehicleShift {
                     start: create_shift_start(),
                     breaks: Some(vec![VehicleBreak::Required {
-                        time: VehicleRequiredBreakTime::ExactTime(format_time(7.)),
+                        time: VehicleRequiredBreakTime::ExactTime {
+                            earliest: format_time(7.),
+                            latest: format_time(7.),
+                        },
                         duration: 2.,
                     }]),
                     ..create_default_vehicle_shift()
@@ -119,7 +122,10 @@ fn can_assign_break_during_activity() {
                 shifts: vec![VehicleShift {
                     start: create_shift_start(),
                     breaks: Some(vec![VehicleBreak::Required {
-                        time: VehicleRequiredBreakTime::ExactTime(format_time(7.)),
+                        time: VehicleRequiredBreakTime::ExactTime {
+                            earliest: format_time(7.),
+                            latest: format_time(7.),
+                        },
                         duration: 2.,
                     }]),
                     ..create_default_vehicle_shift()

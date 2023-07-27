@@ -112,15 +112,14 @@ pub(crate) fn try_match_break_activity(
         .flat_map(|shift| shift.breaks.iter())
         .flat_map(|brs| brs.iter())
         .filter_map(|br| match br {
-            VehicleBreak::Required { time: VehicleRequiredBreakTime::ExactTime(time), duration } => {
-                Some((parse_time(time), *duration))
+            VehicleBreak::Required { time: VehicleRequiredBreakTime::ExactTime { earliest, latest }, duration } => {
+                Some(TimeWindow::new(parse_time(earliest), parse_time(latest) + *duration))
             }
-            VehicleBreak::Required { time: VehicleRequiredBreakTime::OffsetTime(offset), duration } => {
-                Some((route_start_time + *offset, *duration))
+            VehicleBreak::Required { time: VehicleRequiredBreakTime::OffsetTime { earliest, latest }, duration } => {
+                Some(TimeWindow::new(route_start_time + *earliest, route_start_time + *latest + *duration))
             }
             VehicleBreak::Optional { .. } => None,
         })
-        .map(|(start, duration)| TimeWindow::new(start, start + duration))
         .find(|time| {
             compare_floats(activity_time.start, time.start) == Ordering::Equal
                 && compare_floats(activity_time.end, time.end) == Ordering::Equal
