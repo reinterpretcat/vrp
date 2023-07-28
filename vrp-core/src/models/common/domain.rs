@@ -92,6 +92,12 @@ impl TimeWindow {
             && compare_floats(other.start, self.end) != Ordering::Greater
     }
 
+    /// Checks whether time window has intersection with another one (exclusive).
+    pub fn intersects_exclusive(&self, other: &Self) -> bool {
+        compare_floats(self.start, other.end) == Ordering::Less
+            && compare_floats(other.start, self.end) == Ordering::Less
+    }
+
     /// Checks whether time window contains given time.
     pub fn contains(&self, time: Timestamp) -> bool {
         compare_floats(time, self.start) != Ordering::Less && compare_floats(time, self.end) != Ordering::Greater

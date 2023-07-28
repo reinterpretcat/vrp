@@ -6,6 +6,7 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::models::common::{TimeSpan, TimeWindow};
 use vrp_core::models::examples::create_example_problem;
+use vrp_core::models::problem::ReservedTimeSpan;
 use vrp_core::utils::compare_floats;
 
 type DomainProblem = vrp_core::models::Problem;
@@ -219,8 +220,12 @@ fn can_merge_required_break_on_stop_arrival_time_properly() {
     }];
     let mut route = create_route_with_activities(&problem.fleet, "v1", activities);
     route.tour.all_activities_mut().last().unwrap().schedule.arrival = 6.;
-    let reserved_times_index =
-        vec![(route.actor.clone(), vec![TimeSpan::Window(TimeWindow::new(4., 5.))])].into_iter().collect();
+    let reserved_times_index = vec![(
+        route.actor.clone(),
+        vec![ReservedTimeSpan { time: TimeSpan::Window(TimeWindow::new(4., 4.)), duration: 1. }],
+    )]
+    .into_iter()
+    .collect();
 
     let tour = create_tour(&problem, &route, &coord_index, &reserved_times_index);
 

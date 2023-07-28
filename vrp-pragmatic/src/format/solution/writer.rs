@@ -9,7 +9,6 @@ use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::*;
 use crate::{format_time, parse_time};
-use std::cmp::Ordering;
 use std::io::{BufWriter, Write};
 use vrp_core::construction::enablers::route_intervals;
 use vrp_core::construction::heuristics::UnassignmentInfo;
@@ -17,7 +16,6 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::{Multi, TravelTime};
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::models::{Problem, Solution};
-use vrp_core::prelude::compare_floats;
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
 use vrp_core::solver::processing::VicinityDimension;
 use vrp_core::utils::CollectGroupBy;
@@ -387,12 +385,11 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
         .get(&route.actor)
         .iter()
         .flat_map(|times| times.iter())
-        .map(|time| match time {
-            TimeSpan::Offset(offset) => TimeWindow::new(offset.start + shift_time.start, offset.end + shift_time.start),
-            TimeSpan::Window(tw) => tw.clone(),
-        })
-        .filter(|time| shift_time.intersects(time))
-        .for_each(|reserved_time| {
+        .map(|reserved_time| reserved_time.to_reserved_time_window(shift_time.start))
+        // NOTE: we ignore reserved.time.start here as it is ignored in core implementation
+        .map(|rt| (TimeWindow::new(rt.time.end, rt.time.end + rt.duration), rt))
+        .filter(|(reserved_tw, _)| shift_time.intersects(&reserved_tw))
+        .for_each(|(reserved_tw, reserved_time)| {
             // NOTE scan and insert a new stop if necessary
             if let Some((leg_idx, load)) = tour
                 .stops
@@ -405,9 +402,7 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                             parse_time(&next.schedule().arrival),
                         );
 
-                        if compare_floats(travel_tw.start, reserved_time.end) == Ordering::Less
-                            && compare_floats(reserved_time.start, travel_tw.end) == Ordering::Less
-                        {
+                        if travel_tw.intersects_exclusive(&reserved_tw) {
                             return Some((leg_idx, prev.load().clone()));
                         }
                     }
@@ -420,8 +415,8 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                     leg_idx + 1,
                     Stop::Transit(TransitStop {
                         time: ApiSchedule {
-                            arrival: format_time(reserved_time.start),
-                            departure: format_time(reserved_time.end),
+                            arrival: format_time(reserved_tw.start),
+                            departure: format_time(reserved_tw.end),
                         },
                         load,
                         activities: vec![],
@@ -429,13 +424,14 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                 )
             }
 
-            let break_time = reserved_time.duration() as i64;
+            let break_time = reserved_time.duration as i64;
 
             // NOTE insert activity
             tour.stops.iter_mut().for_each(|stop| {
                 let stop_tw =
                     TimeWindow::new(parse_time(&stop.schedule().arrival), parse_time(&stop.schedule().departure));
-                if stop_tw.intersects(&reserved_time) {
+
+                if stop_tw.intersects_exclusive(&reserved_tw) {
                     let break_idx = stop
                         .activities()
                         .iter()
@@ -445,7 +441,7 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                                 TimeWindow::new(parse_time(&interval.start), parse_time(&interval.end))
                             });
 
-                            if activity_tw.intersects(&reserved_time) {
+                            if activity_tw.intersects(&reserved_tw) {
                                 Some(activity_idx + 1)
                             } else {
                                 None
@@ -473,8 +469,8 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                             activity_type: "break".to_string(),
                             location: None,
                             time: Some(Interval {
-                                start: format_time(reserved_time.start),
-                                end: format_time(reserved_time.end),
+                                start: format_time(reserved_tw.start),
+                                end: format_time(reserved_tw.end),
                             }),
                             job_tag: None,
                             commute: None,
@@ -485,10 +481,10 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                         if let Some(time) = &mut activity.time {
                             let start = parse_time(&time.start);
                             let end = parse_time(&time.end);
-                            let overlap = TimeWindow::new(start, end).overlapping(&reserved_time);
+                            let overlap = TimeWindow::new(start, end).overlapping(&reserved_tw);
 
                             if let Some(overlap) = overlap {
-                                let extra_time = reserved_time.end - overlap.end + overlap.duration();
+                                let extra_time = reserved_tw.end - overlap.end + overlap.duration();
                                 time.end = format_time(end + extra_time);
                             }
                         }

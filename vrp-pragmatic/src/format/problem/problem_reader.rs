@@ -146,13 +146,18 @@ fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> Res
                 .get(&(type_id, shift_idx))
                 .iter()
                 .flat_map(|data| data.iter())
-                .map(|(_, _, time, duration)| match time {
-                    VehicleRequiredBreakTime::ExactTime { earliest, latest } => {
-                        TimeSpan::Window(TimeWindow::new(parse_time(earliest), parse_time(latest) + duration))
-                    }
-                    VehicleRequiredBreakTime::OffsetTime { earliest, latest } => {
-                        TimeSpan::Offset(TimeOffset::new(*earliest, *latest + duration))
-                    }
+                .map(|(_, _, time, duration)| {
+                    let time = match &time {
+                        VehicleRequiredBreakTime::ExactTime { earliest, latest } => {
+                            TimeSpan::Window(TimeWindow::new(parse_time(earliest), parse_time(latest)))
+                        }
+                        VehicleRequiredBreakTime::OffsetTime { earliest, latest } => {
+                            TimeSpan::Offset(TimeOffset::new(*earliest, *latest))
+                        }
+                    };
+                    let duration = *duration;
+
+                    ReservedTimeSpan { time, duration }
                 })
                 .collect::<Vec<_>>();
 

@@ -120,10 +120,7 @@ pub(crate) fn try_match_break_activity(
             }
             VehicleBreak::Optional { .. } => None,
         })
-        .find(|time| {
-            compare_floats(activity_time.start, time.start) == Ordering::Equal
-                && compare_floats(activity_time.end, time.end) == Ordering::Equal
-        })
+        .find(|time| activity_time.intersects(time))
         .ok_or_else(|| "cannot match activity to required break".to_string())
 }
 

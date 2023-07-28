@@ -248,7 +248,7 @@ mod time_dependent {
     fn create_feature_and_route(
         vehicle_detail_data: VehicleData,
         activities: Vec<ActivityData>,
-        reserved_time: TimeWindow,
+        reserved_time: ReservedTimeSpan,
     ) -> (Feature, RouteContext) {
         let (location_start, location_end, time_start, time_end) = vehicle_detail_data;
 
@@ -269,9 +269,7 @@ mod time_dependent {
         let reserved_times = fleet
             .actors
             .first()
-            .map(|actor| {
-                vec![(actor.clone(), vec![TimeSpan::Window(reserved_time)])].into_iter().collect::<HashMap<_, _>>()
-            })
+            .map(|actor| vec![(actor.clone(), vec![reserved_time])].into_iter().collect::<HashMap<_, _>>())
             .unwrap();
         let route_ctx = create_route_context_with_activities(&fleet, "v1", activities);
         let feature = create_minimize_transport_costs_feature(
@@ -301,7 +299,10 @@ mod time_dependent {
     }
 
     parameterized_test! {can_update_state_for_reserved_time, (vehicle_detail_data, reserved_time, activities, late_arrival_expected, expected_schedules), {
-        let reserved_time =  TimeWindow::new(reserved_time.0, reserved_time.1);
+        let reserved_time = ReservedTimeSpan {
+            time: TimeSpan::Window(TimeWindow::new(reserved_time.0, reserved_time.0)),
+            duration: reserved_time.1 - reserved_time.0,
+        };
         can_update_state_for_reserved_time_impl(vehicle_detail_data, reserved_time, activities, late_arrival_expected, expected_schedules);
     }}
 
@@ -329,7 +330,7 @@ mod time_dependent {
 
     fn can_update_state_for_reserved_time_impl(
         vehicle_detail_data: VehicleData,
-        reserved_time: TimeWindow,
+        reserved_time: ReservedTimeSpan,
         activities: Vec<ActivityData>,
         late_arrival_expected: Vec<Option<f64>>,
         expected_schedules: Vec<(Timestamp, Timestamp)>,
@@ -345,7 +346,10 @@ mod time_dependent {
     }
 
     parameterized_test! {can_evaluate_activity, (vehicle_detail_data, reserved_time, target, activities, expected_schedules), {
-        let reserved_time =  TimeWindow::new(reserved_time.0, reserved_time.1);
+        let reserved_time = ReservedTimeSpan {
+            time: TimeSpan::Window(TimeWindow::new(reserved_time.0, reserved_time.0)),
+            duration: reserved_time.1 - reserved_time.0,
+        };
         can_evaluate_activity_impl(vehicle_detail_data, reserved_time, target, activities, expected_schedules);
     }}
 
@@ -407,7 +411,7 @@ mod time_dependent {
 
     fn can_evaluate_activity_impl(
         vehicle_detail_data: VehicleData,
-        reserved_time: TimeWindow,
+        reserved_time: ReservedTimeSpan,
         target: ActivityData,
         activities: Vec<ActivityData>,
         expected_schedules: Vec<(Timestamp, Timestamp)>,

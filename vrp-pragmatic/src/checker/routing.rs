@@ -50,8 +50,15 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
                         let (distance, duration) = get_matrix_data(from, to)?;
                         (distance, duration, to.distance)
                     }
-                    (_, Stop::Transit(transit)) => {
-                        let duration = parse_time(&transit.time.departure) - parse_time(&transit.time.arrival);
+                    (prev, Stop::Transit(transit)) => {
+                        let prev_departure = parse_time(&prev.schedule().departure);
+                        let next_arrival = parse_time(&transit.time.arrival);
+                        // NOTE an edge case: duration of break will be counted in transit stop
+                        let duration = if next_arrival == prev_departure {
+                            0.
+                        } else {
+                            parse_time(&transit.time.departure) - next_arrival
+                        };
                         (0_i64, duration as i64, total_distance)
                     }
                     (Stop::Transit(_), Stop::Point(to)) => {
@@ -101,8 +108,7 @@ fn check_stop_statistic(
 ) -> Result<(), String> {
     if (arrival_time - parse_time(&schedule.arrival) as i64).abs() > 1 {
         return Err(format!(
-            "arrival time mismatch for {} stop in the tour: {}, expected: '{}', got: '{}'",
-            stop_idx,
+            "arrival time mismatch for {stop_idx} stop in the tour: {}, expected: '{}', got: '{}'",
             tour.vehicle_id,
             format_time(arrival_time as f64),
             schedule.arrival
@@ -111,8 +117,8 @@ fn check_stop_statistic(
 
     if !skip_distance_check && (total_distance - distance).abs() > 1 {
         return Err(format!(
-            "distance mismatch for {} stop in the tour: {}, expected: '{}', got: '{}'",
-            stop_idx, tour.vehicle_id, total_distance, distance,
+            "distance mismatch for {stop_idx} stop in the tour: {}, expected: '{total_distance}', got: '{distance}'",
+            tour.vehicle_id
         ));
     }
 
