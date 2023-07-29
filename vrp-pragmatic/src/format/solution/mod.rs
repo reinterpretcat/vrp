@@ -1,9 +1,11 @@
 //! Specifies logic to create a "pragmatic" solution and write it into json format.
 
-mod model;
-pub use self::model::*;
-
 pub(crate) mod activity_matcher;
+
+mod break_writer;
+pub(crate) use self::break_writer::insert_reserved_times_as_breaks;
+
+mod extensions;
 
 mod geo_serializer;
 pub use self::geo_serializer::*;
@@ -11,12 +13,24 @@ pub use self::geo_serializer::*;
 mod initial_reader;
 pub use self::initial_reader::read_init_solution;
 
-mod extensions;
+mod model;
+pub use self::model::*;
 
 mod problem_writer;
 pub use self::problem_writer::{create_solution, write_pragmatic, PragmaticOutputType};
 
 use super::*;
+use crate::{format_time, parse_time};
+type ApiActivity = model::Activity;
+type ApiSolution = model::Solution;
+type ApiSchedule = model::Schedule;
+type ApiMetrics = model::Metrics;
+type ApiGeneration = model::Generation;
+type AppPopulation = model::Population;
+type ApiIndividual = model::Individual;
+type DomainSchedule = vrp_core::models::common::Schedule;
+type DomainLocation = vrp_core::models::common::Location;
+type DomainExtras = vrp_core::models::Extras;
 
 fn map_code_reason(code: i32) -> (&'static str, &'static str) {
     match code {
