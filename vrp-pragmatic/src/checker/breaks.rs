@@ -95,7 +95,10 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
                             VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd => arrival > break_tw.end,
                         }
                     }
-                    VehicleBreak::Required { .. } => break_tw.intersects(&tour_tw),
+                    VehicleBreak::Required { .. } => {
+                        // NOTE: skip break if its end time is after tour end
+                        break_tw.intersects(&tour_tw) && break_tw.end < tour_tw.end
+                    }
                 };
 
                 if should_assign {

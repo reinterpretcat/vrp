@@ -132,7 +132,7 @@ mod required {
          time in 3600..14400,
         ) -> VehicleRequiredBreakTime {
             let time = time as f64;
-            VehicleRequiredBreakTime::OffsetTime { earliest: time, latest : time}
+            VehicleRequiredBreakTime::OffsetTime { earliest: time - 10., latest : time}
         }
     }
 
@@ -142,7 +142,7 @@ mod required {
          time in from_hours_as_usize(10)..from_hours_as_usize(13),
         ) -> VehicleRequiredBreakTime {
             let time = time as f64;
-            VehicleRequiredBreakTime::ExactTime{ earliest: format_time(time), latest: format_time(time) }
+            VehicleRequiredBreakTime::ExactTime{ earliest: format_time(time - 1.), latest: format_time(time) }
         }
     }
 

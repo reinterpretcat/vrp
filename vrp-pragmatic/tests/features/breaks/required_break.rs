@@ -289,6 +289,24 @@ fn can_handle_required_break_when_its_start_falls_at_activity_end() {
     );
 }
 
+#[test]
+fn can_skip_break_if_it_is_after_start_before_end_range() {
+    let is_open = true;
+    let problem = create_problem(
+        vec![create_delivery_job("job1", (5., 0.))],
+        VehicleBreak::Required {
+            time: VehicleRequiredBreakTime::ExactTime { earliest: format_time(5.), latest: format_time(7.) },
+            duration: 2.,
+        },
+        is_open,
+    );
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert!(get_ids_from_tour(&solution.tours[0]).iter().flatten().all(|id| id != "break"));
+}
+
 // TODO check exact and offset use cases
 #[test]
 #[ignore]
