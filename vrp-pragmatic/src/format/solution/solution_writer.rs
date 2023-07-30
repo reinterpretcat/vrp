@@ -8,53 +8,14 @@ use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::*;
-use std::io::{BufWriter, Write};
 use vrp_core::construction::enablers::route_intervals;
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Multi, TravelTime};
 use vrp_core::models::solution::{Activity, Route};
-use vrp_core::models::{Problem, Solution};
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
 use vrp_core::solver::processing::VicinityDimension;
 use vrp_core::utils::CollectGroupBy;
-
-/// Specifies possible options for solution output.
-pub enum PragmaticOutputType {
-    /// Only pragmatic is needed.
-    OnlyPragmatic,
-    /// Only geojson is needed.
-    OnlyGeoJson,
-    /// Pragmatic and geojson is returned. Geojson features are embedded inside extras property.
-    Combined,
-}
-
-impl Default for PragmaticOutputType {
-    fn default() -> Self {
-        Self::OnlyPragmatic
-    }
-}
-
-/// Writes solution in pragmatic format variation defined by output type argument.
-pub fn write_pragmatic<W: Write>(
-    problem: &Problem,
-    solution: &Solution,
-    output_type: PragmaticOutputType,
-    writer: &mut BufWriter<W>,
-) -> Result<(), String> {
-    let solution = create_solution(problem, solution, &output_type);
-
-    match output_type {
-        PragmaticOutputType::OnlyPragmatic { .. } | PragmaticOutputType::Combined { .. } => {
-            serialize_solution(&solution, writer).map_err(|err| err.to_string())?;
-        }
-        PragmaticOutputType::OnlyGeoJson => {
-            serialize_solution_as_geojson(problem, &solution, writer).map_err(|err| err.to_string())?;
-        }
-    }
-
-    Ok(())
-}
 
 struct Leg {
     pub last_detail: Option<(DomainLocation, Timestamp)>,
@@ -73,7 +34,11 @@ impl Leg {
 }
 
 /// Creates solution.
-pub fn create_solution(problem: &Problem, solution: &Solution, output_type: &PragmaticOutputType) -> ApiSolution {
+pub(crate) fn create_solution(
+    problem: &DomainProblem,
+    solution: &DomainSolution,
+    output_type: &PragmaticOutputType,
+) -> ApiSolution {
     let coord_index = get_coord_index(problem);
     let reserved_times_index = get_reserved_times_index(problem);
 
@@ -96,7 +61,7 @@ pub fn create_solution(problem: &Problem, solution: &Solution, output_type: &Pra
 }
 
 fn create_tour(
-    problem: &Problem,
+    problem: &DomainProblem,
     route: &Route,
     coord_index: &CoordIndex,
     reserved_times_index: &ReservedTimesIndex,
@@ -371,7 +336,7 @@ fn calculate_load(current: MultiDimLoad, act: &Activity, is_multi_dimen: bool) -
     current - demand.delivery.0 - demand.delivery.1 + demand.pickup.0 + demand.pickup.1
 }
 
-fn create_unassigned(solution: &Solution) -> Option<Vec<UnassignedJob>> {
+fn create_unassigned(solution: &DomainSolution) -> Option<Vec<UnassignedJob>> {
     let create_simple_reasons = |code: i32| {
         let (code, reason) = map_code_reason(code);
         vec![UnassignedJobReason { code: code.to_string(), description: reason.to_string(), details: None }]
@@ -430,7 +395,7 @@ fn create_unassigned(solution: &Solution) -> Option<Vec<UnassignedJob>> {
     }
 }
 
-fn create_violations(solution: &Solution) -> Option<Vec<Violation>> {
+fn create_violations(solution: &DomainSolution) -> Option<Vec<Violation>> {
     // NOTE at the moment only break violation is mapped
     let violations = solution
         .unassigned
@@ -476,7 +441,7 @@ fn get_parking_time(extras: &DomainExtras) -> f64 {
 }
 
 fn create_extras(
-    problem: &Problem,
+    problem: &DomainProblem,
     solution: &ApiSolution,
     metrics: Option<&TelemetryMetrics>,
     output_type: &PragmaticOutputType,

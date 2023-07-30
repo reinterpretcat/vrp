@@ -16,11 +16,12 @@ pub use self::initial_reader::read_init_solution;
 mod model;
 pub use self::model::*;
 
-mod problem_writer;
-pub use self::problem_writer::{create_solution, write_pragmatic, PragmaticOutputType};
+mod solution_writer;
+pub(crate) use self::solution_writer::create_solution;
 
 use super::*;
 use crate::{format_time, parse_time};
+use std::io::{BufWriter, Write};
 type ApiActivity = model::Activity;
 type ApiSolution = model::Solution;
 type ApiSchedule = model::Schedule;
@@ -28,9 +29,48 @@ type ApiMetrics = model::Metrics;
 type ApiGeneration = model::Generation;
 type AppPopulation = model::Population;
 type ApiIndividual = model::Individual;
+type DomainProblem = vrp_core::models::Problem;
+type DomainSolution = vrp_core::models::Solution;
 type DomainSchedule = vrp_core::models::common::Schedule;
 type DomainLocation = vrp_core::models::common::Location;
 type DomainExtras = vrp_core::models::Extras;
+
+/// Specifies possible options for solution output.
+pub enum PragmaticOutputType {
+    /// Only pragmatic is needed.
+    OnlyPragmatic,
+    /// Only geojson is needed.
+    OnlyGeoJson,
+    /// Pragmatic and geojson is returned. Geojson features are embedded inside extras property.
+    Combined,
+}
+
+impl Default for PragmaticOutputType {
+    fn default() -> Self {
+        Self::OnlyPragmatic
+    }
+}
+
+/// Writes solution in pragmatic format variation defined by output type argument.
+pub fn write_pragmatic<W: Write>(
+    problem: &DomainProblem,
+    solution: &DomainSolution,
+    output_type: PragmaticOutputType,
+    writer: &mut BufWriter<W>,
+) -> Result<(), String> {
+    let solution = create_solution(problem, solution, &output_type);
+
+    match output_type {
+        PragmaticOutputType::OnlyPragmatic { .. } | PragmaticOutputType::Combined { .. } => {
+            serialize_solution(&solution, writer).map_err(|err| err.to_string())?;
+        }
+        PragmaticOutputType::OnlyGeoJson => {
+            serialize_solution_as_geojson(problem, &solution, writer).map_err(|err| err.to_string())?;
+        }
+    }
+
+    Ok(())
+}
 
 fn map_code_reason(code: i32) -> (&'static str, &'static str) {
     match code {

@@ -1,5 +1,5 @@
 use crate::format::problem::*;
-use crate::format::solution::problem_writer::create_tour;
+use crate::format::solution::solution_writer::create_tour;
 use crate::format::solution::*;
 use crate::helpers::*;
 use std::cmp::Ordering;
