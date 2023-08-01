@@ -8,7 +8,7 @@ use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::*;
-use vrp_core::construction::enablers::route_intervals;
+use vrp_core::construction::enablers::{route_intervals, ReservedTimesIndex};
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Multi, TravelTime};

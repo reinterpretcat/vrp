@@ -1,5 +1,5 @@
 use super::*;
-use crate::helpers::models::solution::{create_empty_route_ctx, test_actor_with_profile};
+use crate::helpers::models::solution::test_actor_with_profile;
 
 fn create_matrix_data(
     profile: Profile,
@@ -102,59 +102,13 @@ fn can_interpolate_durations() {
     assert_eq!(costs.distance_approx(&p1, 0, 1), 5.);
 }
 
-parameterized_test! {can_search_for_reserved_time, (times, tests), {
-    can_search_for_reserved_time_impl(times, tests);
-}}
-
-can_search_for_reserved_time! {
-    case01: (vec![((5., 5.), 5.), ((20., 20.), 10.)],
-        vec![((6., 6.), Some(0)), ((2., 6.), Some(0)), ((10., 11.), None), ((2., 4.), None),
-             ((10., 21.), Some(1)), ((25., 27.), Some(1)), ((29., 31.), Some(1)),
-             ((0., 3.), None), ((31., 33.), None)]),
-    case02: (vec![((0.,0.), 10.), ((5., 5.), 10.)], vec![]),
-}
-
-fn can_search_for_reserved_time_impl(
-    times: Vec<((Timestamp, Timestamp), Duration)>,
-    tests: Vec<((Timestamp, Timestamp), Option<usize>)>,
-) {
-    let route_ctx = create_empty_route_ctx();
-    let reserved_times = vec![(
-        route_ctx.route().actor.clone(),
-        times
-            .iter()
-            .cloned()
-            .map(|((start, end), duration)| ReservedTimeSpan {
-                time: TimeSpan::Window(TimeWindow::new(start, end)),
-                duration,
-            })
-            .collect::<Vec<_>>(),
-    )]
-    .into_iter()
-    .collect();
-
-    let reserved_time_fn = create_reserved_times_fn(reserved_times);
-
-    if let Ok(reserved_time_fn) = reserved_time_fn {
-        tests.iter().enumerate().for_each(|(test_idx, ((s, e), expected))| {
-            let interval = TimeWindow::new(*s, *e);
-            let expected = expected.and_then(|idx| times.get(idx)).map(|((s, e), _)| TimeWindow::new(*s, *e));
-
-            let result = (reserved_time_fn)(route_ctx.route(), &interval);
-
-            assert_eq!(result.map(|r| r.time), expected, "test {test_idx} is failed");
-        });
-    } else {
-        assert!(tests.is_empty())
-    }
-}
-
 mod objective {
     use super::*;
     use crate::construction::heuristics::{InsertionContext, MoveContext};
     use crate::helpers::models::domain::create_empty_insertion_context;
     use crate::models::{Feature, FeatureBuilder, FeatureObjective, GoalContext};
-    use rosomaxa::prelude::compare_floats;
+    use rosomaxa::prelude::{compare_floats, MultiObjective, Objective};
+    use std::cmp::Ordering;
 
     struct TestObjective {
         index: usize,

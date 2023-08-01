@@ -6,7 +6,7 @@ extern crate serde_json;
 
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
-use vrp_core::models::problem::ReservedTimesIndex;
+use vrp_core::construction::enablers::ReservedTimesIndex;
 use vrp_core::models::problem::{Fleet as CoreFleet, Job as CoreJob};
 use vrp_core::models::Problem as CoreProblem;
 

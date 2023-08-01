@@ -4,9 +4,9 @@ use crate::format::solution::*;
 use crate::helpers::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
+use vrp_core::construction::enablers::ReservedTimeSpan;
 use vrp_core::models::common::{TimeSpan, TimeWindow};
 use vrp_core::models::examples::create_example_problem;
-use vrp_core::models::problem::ReservedTimeSpan;
 use vrp_core::utils::compare_floats;
 
 type DomainProblem = vrp_core::models::Problem;

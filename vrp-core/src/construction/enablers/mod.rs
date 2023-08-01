@@ -13,5 +13,8 @@ pub(crate) use self::feature_combinator::*;
 mod multi_trip;
 pub use self::multi_trip::*;
 
+mod reserved_time;
+pub use self::reserved_time::*;
+
 mod schedule_update;
 pub use self::schedule_update::*;

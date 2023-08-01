@@ -7,6 +7,7 @@ use crate::format::problem::job_reader::{read_jobs_with_extra_locks, read_locks}
 use crate::format::{FormatError, JobIndex};
 use crate::validation::ValidationContext;
 use crate::{parse_time, CoordIndex};
+use vrp_core::construction::enablers::*;
 use vrp_core::models::common::{TimeOffset, TimeSpan, TimeWindow};
 use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, GoalContext};
