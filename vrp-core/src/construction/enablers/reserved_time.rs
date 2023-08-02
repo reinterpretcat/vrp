@@ -168,6 +168,7 @@ fn avoid_reserved_time_when_driving(route: &mut Route, reserved_times_fn: &Reser
 }
 
 fn reduce_waiting_by_reserved_time(_route: &mut Route, _reserved_times_fn: &ReservedTimesFn) {
+    // NOTE disable this optimization if time-dependent VRP is enabled?..
     todo!()
 }
 
@@ -236,37 +237,35 @@ pub(crate) fn create_reserved_times_fn(reserved_times_index: ReservedTimesIndex)
     // NOTE: this function considers only latest time from reserved time
     //       reserved_time.time.start is ignored and should be handled by post processing
     Ok(Arc::new(move |route: &Route, time_window: &TimeWindow| {
-        let offset = route.tour.start().map(|a| a.schedule.departure).unwrap_or(0.);
+        reserved_times.get(&route.actor).and_then(|(indices, intervals)| {
+            let offset = route.tour.start().map(|a| a.schedule.departure).unwrap_or(0.);
 
-        reserved_times
-            .get(&route.actor)
-            .and_then(|(indices, intervals)| {
-                // NOTE map external absolute time window to time span's start/end
-                let (interval_start, interval_end) = match intervals.first().map(|rt| &rt.time) {
-                    Some(TimeSpan::Offset(_)) => (time_window.start - offset, time_window.end - offset),
-                    Some(TimeSpan::Window(_)) => (time_window.start, time_window.end),
-                    _ => unreachable!(),
-                };
+            // NOTE map external absolute time window to time span's start/end
+            let (interval_start, interval_end) = match intervals.first().map(|rt| &rt.time) {
+                Some(TimeSpan::Offset(_)) => (time_window.start - offset, time_window.end - offset),
+                Some(TimeSpan::Window(_)) => (time_window.start, time_window.end),
+                _ => unreachable!(),
+            };
 
-                match indices.binary_search(&(interval_start as u64)) {
-                    Ok(idx) => intervals.get(idx),
-                    Err(idx) => (idx.max(1) - 1..=idx) // NOTE left (earliest) wins
-                        .map(|idx| intervals.get(idx))
-                        .find(|reserved_time| {
-                            reserved_time.map_or(false, |reserved_time| {
-                                let (reserved_start, reserved_end) = match &reserved_time.time {
-                                    TimeSpan::Offset(to) => (to.end, to.end + reserved_time.duration),
-                                    TimeSpan::Window(tw) => (tw.end, tw.end + reserved_time.duration),
-                                };
+            match indices.binary_search(&(interval_start as u64)) {
+                Ok(idx) => intervals.get(idx),
+                Err(idx) => (idx.max(1) - 1..=idx) // NOTE left (earliest) wins
+                    .map(|idx| intervals.get(idx))
+                    .find(|reserved_time| {
+                        reserved_time.map_or(false, |reserved_time| {
+                            let (reserved_start, reserved_end) = match &reserved_time.time {
+                                TimeSpan::Offset(to) => (to.end, to.end + reserved_time.duration),
+                                TimeSpan::Window(tw) => (tw.end, tw.end + reserved_time.duration),
+                            };
 
-                                // NOTE use exclusive intersection
-                                compare_floats(interval_start, reserved_end) == Ordering::Less
-                                    && compare_floats(reserved_start, interval_end) == Ordering::Less
-                            })
+                            // NOTE use exclusive intersection
+                            compare_floats(interval_start, reserved_end) == Ordering::Less
+                                && compare_floats(reserved_start, interval_end) == Ordering::Less
                         })
-                        .flatten(),
-                }
-            })
+                    })
+                    .flatten(),
+            }
             .map(|reserved_time| reserved_time.to_reserved_time_window(offset))
+        })
     }))
 }
