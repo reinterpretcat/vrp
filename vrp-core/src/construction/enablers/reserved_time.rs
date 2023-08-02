@@ -40,11 +40,11 @@ pub type ReservedTimesIndex = HashMap<Arc<Actor>, Vec<ReservedTimeSpan>>;
 
 /// Specifies a function which returns an extra reserved time window for given actor. This reserved
 /// time should be considered for planning.
-type ReservedTimesFunc = Arc<dyn Fn(&Route, &TimeWindow) -> Option<ReservedTimeWindow> + Send + Sync>;
+pub(crate) type ReservedTimesFn = Arc<dyn Fn(&Route, &TimeWindow) -> Option<ReservedTimeWindow> + Send + Sync>;
 
 /// Provides way to calculate activity costs which might contain reserved time.
 pub struct DynamicActivityCost {
-    reserved_times_fn: ReservedTimesFunc,
+    reserved_times_fn: ReservedTimesFn,
 }
 
 impl DynamicActivityCost {
@@ -100,7 +100,7 @@ impl ActivityCost for DynamicActivityCost {
 
 /// Provides way to calculate transport costs which might contain reserved time.
 pub struct DynamicTransportCost {
-    reserved_times_fn: ReservedTimesFunc,
+    reserved_times_fn: ReservedTimesFn,
     inner: Arc<dyn TransportCost + Send + Sync>,
 }
 
@@ -140,7 +140,24 @@ impl TransportCost for DynamicTransportCost {
     }
 }
 
-fn create_reserved_times_fn(reserved_times_index: ReservedTimesIndex) -> Result<ReservedTimesFunc, String> {
+/// Optimizes reserved time schedules by rescheduling it to earlier time (e.g. to avoid transit stops,
+/// reduce waiting time).
+pub(crate) fn optimize_reserved_times_schedule(route: &mut Route, reserved_times_fn: &ReservedTimesFn) {
+    // NOTE run in this order as reducing waiting time can be also applied on top of avoiding travel time
+    avoid_reserved_time_when_driving(route, reserved_times_fn);
+    reduce_waiting_by_reserved_time(route, reserved_times_fn);
+}
+
+fn avoid_reserved_time_when_driving(_route: &mut Route, _reserved_times_fn: &ReservedTimesFn) {
+    todo!()
+}
+
+fn reduce_waiting_by_reserved_time(_route: &mut Route, _reserved_times_fn: &ReservedTimesFn) {
+    todo!()
+}
+
+/// Creates a reserved time function from reserved time index.
+pub(crate) fn create_reserved_times_fn(reserved_times_index: ReservedTimesIndex) -> Result<ReservedTimesFn, String> {
     if reserved_times_index.is_empty() {
         return Ok(Arc::new(|_, _| None));
     }

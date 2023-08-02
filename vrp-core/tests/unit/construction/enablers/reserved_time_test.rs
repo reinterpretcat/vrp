@@ -79,7 +79,7 @@ fn create_feature_and_route(
     vehicle_detail_data: VehicleData,
     activities: Vec<ActivityData>,
     reserved_time: ReservedTimeSpan,
-) -> (Feature, RouteContext) {
+) -> (ReservedTimesFn, Feature, RouteContext) {
     let (location_start, location_end, time_start, time_end) = vehicle_detail_data;
 
     let activities = activities
@@ -96,21 +96,21 @@ fn create_feature_and_route(
             .details(vec![create_detail((Some(location_start), Some(location_end)), Some((time_start, time_end)))])
             .build()])
         .build();
-    let reserved_times = fleet
-        .actors
-        .first()
-        .map(|actor| vec![(actor.clone(), vec![reserved_time])].into_iter().collect::<HashMap<_, _>>())
-        .unwrap();
-    let route_ctx = create_route_context_with_activities(&fleet, "v1", activities);
+    let reserved_times_idx =
+        vec![(fleet.actors.first().unwrap().clone(), vec![reserved_time])].into_iter().collect::<HashMap<_, _>>();
+    let mut route_ctx = create_route_context_with_activities(&fleet, "v1", activities);
     let feature = create_minimize_transport_costs_feature(
         "minimize_costs",
-        Arc::new(DynamicTransportCost::new(reserved_times.clone(), Arc::new(TestTransportCost::default())).unwrap()),
-        Arc::new(DynamicActivityCost::new(reserved_times).unwrap()),
+        Arc::new(
+            DynamicTransportCost::new(reserved_times_idx.clone(), Arc::new(TestTransportCost::default())).unwrap(),
+        ),
+        Arc::new(DynamicActivityCost::new(reserved_times_idx.clone()).unwrap()),
         VIOLATION_CODE,
     )
     .unwrap();
+    feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
 
-    (feature, route_ctx)
+    (create_reserved_times_fn(reserved_times_idx).unwrap(), feature, route_ctx)
 }
 
 fn get_activity_states(route_ctx: &RouteContext, key: i32) -> Vec<Option<f64>> {
@@ -163,8 +163,7 @@ fn can_update_state_for_reserved_time_impl(
     late_arrival_expected: Vec<Option<f64>>,
     expected_schedules: Vec<(Timestamp, Timestamp)>,
 ) {
-    let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data, activities, reserved_time);
-    feature.state.unwrap().accept_route_state(&mut route_ctx);
+    let (_, _, route_ctx) = create_feature_and_route(vehicle_detail_data, activities, reserved_time);
 
     let schedules = get_schedules(&route_ctx);
     let late_arrival_result = get_activity_states(&route_ctx, LATEST_ARRIVAL_KEY);
@@ -244,10 +243,8 @@ fn can_evaluate_activity_impl(
     activities: Vec<ActivityData>,
     expected_schedules: Vec<(Timestamp, Timestamp)>,
 ) {
-    let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data, activities, reserved_time);
-    let feature_constraint = feature.constraint.unwrap();
-    let feature_state = feature.state.unwrap();
-    feature_state.accept_route_state(&mut route_ctx);
+    let (_, feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data, activities, reserved_time);
+    let (feature_constraint, feature_state) = (feature.constraint.unwrap(), feature.state.unwrap());
     let (loc, (start, end), dur) = target;
     let prev = route_ctx.route().tour.get(0).unwrap();
     let target = test_activity_with_location_tw_and_duration(loc, TimeWindow::new(start, end), dur);
@@ -262,4 +259,22 @@ fn can_evaluate_activity_impl(
         feature_state.accept_route_state(&mut route_ctx);
         assert_eq!(get_schedules(&route_ctx), expected_schedules)
     }
+}
+
+#[test]
+#[ignore]
+fn can_avoid_reserved_time_when_driving() {
+    // TODO should NOT shift to the departure activity
+    let vehicle_detail_data: VehicleData = (0, 0, 0., 100.);
+    let reserved_time: ReservedTimeSpan =
+        ReservedTimeSpan { time: TimeSpan::Offset(TimeOffset::new(10., 40.)), duration: 5. };
+    let activities: Vec<ActivityData> = vec![(10, (0., 100.), 10.), (50, (0., 100.), 10.)];
+    let expected_schedules: Vec<(Timestamp, Timestamp)> =
+        vec![(0., 0.), (10., 20.), (20., 25.), (65., 75.), (125., 125.)];
+    let (reserved_times_fn, _, mut route_ctx) =
+        create_feature_and_route(vehicle_detail_data, activities, reserved_time);
+
+    avoid_reserved_time_when_driving(route_ctx.route_mut(), &reserved_times_fn);
+
+    assert_eq!(get_schedules(&route_ctx), expected_schedules)
 }

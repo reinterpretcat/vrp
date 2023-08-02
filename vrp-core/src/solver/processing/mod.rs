@@ -6,6 +6,9 @@ use rosomaxa::prelude::*;
 mod advance_departure;
 pub use self::advance_departure::AdvanceDeparture;
 
+mod reschedule_reserved_time;
+pub use self::reschedule_reserved_time::RescheduleReservedTime;
+
 mod unassignment_reason;
 pub use self::unassignment_reason::UnassignmentReason;
 
