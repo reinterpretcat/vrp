@@ -38,7 +38,13 @@ impl HeuristicSolutionProcessing for RescheduleReservedTime {
                 .routes
                 .iter_mut()
                 .filter(|route_ctx| reserved_times_idx.contains_key(&route_ctx.route().actor))
-                .for_each(|route_ctx| optimize_reserved_times_schedule(route_ctx.route_mut(), &reserved_times_fn));
+                .for_each(|route_ctx| {
+                    optimize_reserved_times_schedule(route_ctx.route_mut(), &reserved_times_fn);
+                    // NOTE: optimize_* method has to make sure that no time violation could happen and
+                    //       rewrite schedules; calling accept_* methods will rewrite optimizations,
+                    //       hence not desirable
+                    route_ctx.mark_stale(false);
+                });
             solution
         } else {
             solution

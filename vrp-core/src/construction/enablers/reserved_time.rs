@@ -148,8 +148,23 @@ pub(crate) fn optimize_reserved_times_schedule(route: &mut Route, reserved_times
     reduce_waiting_by_reserved_time(route, reserved_times_fn);
 }
 
-fn avoid_reserved_time_when_driving(_route: &mut Route, _reserved_times_fn: &ReservedTimesFn) {
-    todo!()
+fn avoid_reserved_time_when_driving(route: &mut Route, reserved_times_fn: &ReservedTimesFn) {
+    // NOTE assume reserved times has no intersection
+    route
+        .tour
+        .legs()
+        .filter_map(|(leg, idx)| match &leg {
+            &[from, to] => Some((from, to, idx)),
+            _ => None,
+        })
+        .filter_map(|(from, to, idx)| {
+            let travel_tw = TimeWindow::new(from.schedule.departure, to.schedule.arrival);
+            reserved_times_fn(route, &travel_tw).map(|reserved_time| (from, to, idx, reserved_time, travel_tw))
+        })
+        .for_each(|(_from, _to, idx, reserved_time, travel_tw)| {
+            println!("{idx} {reserved_time:?} {travel_tw:?}");
+            // TODO
+        });
 }
 
 fn reduce_waiting_by_reserved_time(_route: &mut Route, _reserved_times_fn: &ReservedTimesFn) {
