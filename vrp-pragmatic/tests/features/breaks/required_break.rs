@@ -309,13 +309,12 @@ fn can_skip_break_if_it_is_after_start_before_end_range() {
 
 // TODO check exact and offset use cases
 #[test]
-#[ignore]
 fn can_reschedule_break_early_from_transport_to_activity() {
     let is_open = true;
     let problem = create_problem(
         vec![create_delivery_job("job1", (5., 0.)), create_delivery_job("job2", (10., 0.))],
         VehicleBreak::Required {
-            time: VehicleRequiredBreakTime::ExactTime { earliest: format_time(5.), latest: format_time(7.) },
+            time: VehicleRequiredBreakTime::ExactTime { earliest: format_time(4.), latest: format_time(7.) },
             duration: 2.,
         },
         is_open,
@@ -346,26 +345,18 @@ fn can_reschedule_break_early_from_transport_to_activity() {
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                         0,
                     ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (5., 0.),
-                        1,
-                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
-                        5,
-                    ),
                     Stop::Point(PointStop {
                         location: (5., 0.).to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:05Z".to_string(),
-                            departure: "1970-01-01T00:00:05Z".to_string(),
+                            departure: "1970-01-01T00:00:08Z".to_string(),
                         },
                         distance: 5,
                         parking: None,
                         load: vec![1],
                         activities: vec![
                             Activity {
-                                job_id: "job2".to_string(),
+                                job_id: "job1".to_string(),
                                 activity_type: "delivery".to_string(),
                                 location: Some((5., 0.).to_loc()),
                                 time: Some(Interval {
@@ -378,7 +369,7 @@ fn can_reschedule_break_early_from_transport_to_activity() {
                             Activity {
                                 job_id: "break".to_string(),
                                 activity_type: "break".to_string(),
-                                location: Some((5., 0.).to_loc()),
+                                location: None,
                                 time: Some(Interval {
                                     start: "1970-01-01T00:00:06Z".to_string(),
                                     end: "1970-01-01T00:00:08Z".to_string(),

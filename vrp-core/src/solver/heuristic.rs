@@ -275,6 +275,7 @@ mod builder {
             context: vec![Box::<VicinityClustering>::default()],
             solution: vec![
                 Box::<AdvanceDeparture>::default(),
+                Box::<RescheduleReservedTime>::default(),
                 Box::<UnassignmentReason>::default(),
                 Box::<VicinityClustering>::default(),
             ],

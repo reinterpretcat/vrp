@@ -122,6 +122,14 @@ impl Stop {
         }
     }
 
+    /// Returns stop's schedule time as mutable.
+    pub fn schedule_mut(&mut self) -> &mut Schedule {
+        match self {
+            Self::Transit(transit) => &mut transit.time,
+            Self::Point(point) => &mut point.time,
+        }
+    }
+
     /// Returns stop's load.
     pub fn load(&self) -> &Vec<i32> {
         match self {

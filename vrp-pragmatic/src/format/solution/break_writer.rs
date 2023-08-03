@@ -1,7 +1,9 @@
 use super::*;
+use std::cmp::Ordering;
 use vrp_core::construction::enablers::ReservedTimesIndex;
 use vrp_core::models::common::TimeWindow;
 use vrp_core::models::solution::Route;
+use vrp_core::utils::compare_floats;
 
 /// Converts reserved time duration applied to activity or travel time to break activity.
 pub(crate) fn insert_reserved_times_as_breaks(
@@ -21,31 +23,30 @@ pub(crate) fn insert_reserved_times_as_breaks(
         .iter()
         .flat_map(|times| times.iter())
         .map(|reserved_time| reserved_time.to_reserved_time_window(shift_time.start))
-        // NOTE: we ignore reserved.time.start here as it is ignored in core implementation
         .map(|rt| (TimeWindow::new(rt.time.end, rt.time.end + rt.duration), rt))
         .filter(|(reserved_tw, _)| shift_time.intersects(reserved_tw))
         .for_each(|(reserved_tw, reserved_time)| {
             // NOTE scan and insert a new stop if necessary
-            if let Some((leg_idx, load)) = tour
-                .stops
-                .windows(2)
-                .enumerate()
-                .filter_map(|(leg_idx, stops)| {
-                    if let &[prev, next] = &stops {
-                        let travel_tw = TimeWindow::new(
-                            parse_time(&prev.schedule().departure),
-                            parse_time(&next.schedule().arrival),
-                        );
+            let travel_break_info = tour.stops.windows(2).enumerate().find_map(|(leg_idx, stops)| {
+                if let &[prev, next] = &stops {
+                    let travel_tw =
+                        TimeWindow::new(parse_time(&prev.schedule().departure), parse_time(&next.schedule().arrival));
 
-                        if travel_tw.intersects_exclusive(&reserved_tw) {
-                            return Some((leg_idx, prev.load().clone()));
-                        }
+                    if travel_tw.intersects_exclusive(&reserved_tw) {
+                        // NOTE: should be moved to the last activity on previous stop by post-processing
+                        return if reserved_time.time.start < travel_tw.start {
+                            let break_tw = TimeWindow::new(travel_tw.start - reserved_tw.duration(), travel_tw.start);
+                            Some(BreakInsertionInfo::TransitBreakMoved { leg_idx, break_tw })
+                        } else {
+                            Some(BreakInsertionInfo::TransitBreakUsed { leg_idx, load: prev.load().clone() })
+                        };
                     }
+                }
 
-                    None
-                })
-                .next()
-            {
+                None
+            });
+
+            if let Some(BreakInsertionInfo::TransitBreakUsed { leg_idx, load }) = travel_break_info.clone() {
                 tour.stops.insert(
                     leg_idx + 1,
                     Stop::Transit(TransitStop {
@@ -62,7 +63,7 @@ pub(crate) fn insert_reserved_times_as_breaks(
             let break_time = reserved_time.duration as i64;
 
             // NOTE insert activity
-            tour.stops.iter_mut().for_each(|stop| {
+            tour.stops.iter_mut().enumerate().for_each(|(current_idx, stop)| {
                 let stop_tw =
                     TimeWindow::new(parse_time(&stop.schedule().arrival), parse_time(&stop.schedule().departure));
 
@@ -83,18 +84,30 @@ pub(crate) fn insert_reserved_times_as_breaks(
                             }
                         })
                         .next()
-                        .unwrap_or(0);
+                        .unwrap_or(stop.activities().len());
 
-                    // TODO costs may not match?
+                    let break_cost = break_time as f64 * route.actor.vehicle.costs.per_service_time;
+
                     let activities = match stop {
                         Stop::Point(point) => {
-                            tour.statistic.cost += break_time as f64 * route.actor.vehicle.costs.per_service_time;
+                            tour.statistic.cost += break_cost;
                             &mut point.activities
                         }
                         Stop::Transit(transit) => {
                             tour.statistic.times.driving -= break_time;
                             &mut transit.activities
                         }
+                    };
+
+                    let activity_time = match &travel_break_info {
+                        Some(BreakInsertionInfo::TransitBreakMoved { break_tw, leg_idx })
+                            if *leg_idx == current_idx =>
+                        {
+                            tour.statistic.cost -= break_cost;
+                            tour.statistic.times.driving -= break_time;
+                            break_tw
+                        }
+                        _ => &reserved_tw,
                     };
 
                     activities.insert(
@@ -104,8 +117,8 @@ pub(crate) fn insert_reserved_times_as_breaks(
                             activity_type: "break".to_string(),
                             location: None,
                             time: Some(Interval {
-                                start: format_time(reserved_tw.start),
-                                end: format_time(reserved_tw.end),
+                                start: format_time(activity_time.start),
+                                end: format_time(activity_time.end),
                             }),
                             job_tag: None,
                             commute: None,
@@ -124,9 +137,22 @@ pub(crate) fn insert_reserved_times_as_breaks(
                             }
                         }
                     });
+
+                    activities.sort_by(|a, b| match (&a.time, &b.time) {
+                        (Some(a), Some(b)) => compare_floats(parse_time(&a.start), parse_time(&b.start)),
+                        (Some(_), None) => Ordering::Greater,
+                        (None, Some(_)) => Ordering::Less,
+                        (None, None) => Ordering::Equal,
+                    })
                 }
             });
 
             tour.statistic.times.break_time += break_time;
         });
+}
+
+#[derive(Clone)]
+enum BreakInsertionInfo {
+    TransitBreakUsed { leg_idx: usize, load: Vec<i32> },
+    TransitBreakMoved { leg_idx: usize, break_tw: TimeWindow },
 }

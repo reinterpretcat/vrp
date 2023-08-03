@@ -12,13 +12,13 @@ pub trait ReservedTimeDimension {
 }
 
 impl ReservedTimeDimension for Extras {
-    fn set_reserved_times(&mut self, config: ReservedTimesIndex) -> &mut Self {
-        self.set_value("rt", config);
+    fn set_reserved_times(&mut self, reserved_times: ReservedTimesIndex) -> &mut Self {
+        self.set_value("reserved_times", reserved_times);
         self
     }
 
     fn get_reserved_times(&self) -> Option<&ReservedTimesIndex> {
-        self.get_value("rt")
+        self.get_value("reserved_times")
     }
 }
 

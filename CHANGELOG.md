@@ -16,7 +16,6 @@ All notable changes to this project will be documented in this file.
 * `breaking` change required break definition to support time range
 * change duration in csv import command from minutes to seconds
 
-
 ### Added
 
 * more experimental plots in `heuristic-research` playground

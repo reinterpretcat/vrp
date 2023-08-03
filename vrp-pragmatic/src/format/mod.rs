@@ -170,12 +170,3 @@ pub fn get_job_index(problem: &CoreProblem) -> &JobIndex {
 pub fn get_coord_index(problem: &CoreProblem) -> &CoordIndex {
     problem.extras.get("coord_index").and_then(|s| s.downcast_ref::<CoordIndex>()).expect("cannot get coord index!")
 }
-
-/// Gets reserved times index.
-pub fn get_reserved_times_index(problem: &CoreProblem) -> &ReservedTimesIndex {
-    problem
-        .extras
-        .get("reserved_times_index")
-        .and_then(|s| s.downcast_ref::<ReservedTimesIndex>())
-        .expect("cannot get reserved time index!")
-}

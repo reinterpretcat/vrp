@@ -11,7 +11,7 @@ use vrp_core::construction::enablers::*;
 use vrp_core::models::common::{TimeOffset, TimeSpan, TimeWindow};
 use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, GoalContext};
-use vrp_core::solver::processing::VicinityDimension;
+use vrp_core::solver::processing::{ReservedTimeDimension, VicinityDimension};
 
 pub fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
     let coord_index = CoordIndex::new(&problem);
@@ -183,10 +183,13 @@ fn create_extras(
 
     extras.insert("coord_index".to_owned(), coord_index);
     extras.insert("job_index".to_owned(), Arc::new(job_index.clone()));
-    extras.insert("reserved_times_index".to_owned(), Arc::new(reserved_times_index));
 
     if props.has_dispatch {
         extras.insert("route_modifier".to_owned(), Arc::new(get_route_modifier(goal, job_index)));
+    }
+
+    if !reserved_times_index.is_empty() {
+        extras.set_reserved_times(reserved_times_index);
     }
 
     if let Some(config) = create_cluster_config(api_problem)? {
