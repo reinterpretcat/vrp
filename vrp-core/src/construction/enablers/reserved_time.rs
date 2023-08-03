@@ -150,7 +150,7 @@ pub(crate) fn optimize_reserved_times_schedule(route: &mut Route, reserved_times
 
 fn avoid_reserved_time_when_driving(route: &mut Route, reserved_times_fn: &ReservedTimesFn) {
     // NOTE assume reserved times has no intersection
-    route
+    let schedule_shifts = route
         .tour
         .legs()
         .filter_map(|(leg, idx)| match &leg {
@@ -159,17 +159,19 @@ fn avoid_reserved_time_when_driving(route: &mut Route, reserved_times_fn: &Reser
         })
         .filter_map(|(from, to, idx)| {
             let travel_tw = TimeWindow::new(from.schedule.departure, to.schedule.arrival);
-            reserved_times_fn(route, &travel_tw).map(|reserved_time| (from, to, idx, reserved_time, travel_tw))
+            reserved_times_fn(route, &travel_tw).map(|reserved_time| (idx, from, reserved_time))
         })
-        .for_each(|(_from, _to, idx, reserved_time, travel_tw)| {
-            println!("{idx} {reserved_time:?} {travel_tw:?}");
-            // TODO
-        });
+        .filter(|(_, from, reserved_time)| from.schedule.departure > reserved_time.time.start)
+        .map(|(idx, _, reserved_time)| (idx, reserved_time.duration))
+        .collect::<Vec<_>>();
+
+    schedule_shifts.into_iter().for_each(|(idx, duration)| {
+        route.tour.get_mut(idx).unwrap().schedule.departure += duration;
+    });
 }
 
 fn reduce_waiting_by_reserved_time(_route: &mut Route, _reserved_times_fn: &ReservedTimesFn) {
-    // NOTE disable this optimization if time-dependent VRP is enabled?..
-    todo!()
+    // TODO: could be added if necessary, but it should be thought carefully to keep solution feasibility
 }
 
 /// Creates a reserved time function from reserved time index.

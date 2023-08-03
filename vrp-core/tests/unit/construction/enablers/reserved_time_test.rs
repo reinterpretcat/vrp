@@ -261,16 +261,33 @@ fn can_evaluate_activity_impl(
     }
 }
 
-#[test]
-#[ignore]
-fn can_avoid_reserved_time_when_driving() {
-    // TODO should NOT shift to the departure activity
-    let vehicle_detail_data: VehicleData = (0, 0, 0., 100.);
-    let reserved_time: ReservedTimeSpan =
-        ReservedTimeSpan { time: TimeSpan::Offset(TimeOffset::new(10., 40.)), duration: 5. };
-    let activities: Vec<ActivityData> = vec![(10, (0., 100.), 10.), (50, (0., 100.), 10.)];
-    let expected_schedules: Vec<(Timestamp, Timestamp)> =
-        vec![(0., 0.), (10., 20.), (20., 25.), (65., 75.), (125., 125.)];
+parameterized_test! {can_avoid_reserved_time_when_driving, (vehicle_detail_data, reserved_time, activities, expected_schedules), {
+    can_avoid_reserved_time_when_driving_impl(vehicle_detail_data, reserved_time, activities, expected_schedules);
+}}
+
+can_avoid_reserved_time_when_driving! {
+    case01_should_move_duration_to_serving: (
+        (0, 0, 0., 100.), (10., 40., 5.),
+        vec![(10, (0., 100.), 10.), (50, (0., 100.), 10.)],
+        vec![(0., 0.), (10., 25.), (65., 75.), (125., 125.)]
+    ),
+    case02_should_keep_duration_at_driving: (
+        (0, 0, 0., 100.), (30., 40., 5.),
+        vec![(10, (0., 100.), 10.), (50, (0., 100.), 10.)],
+        vec![(0., 0.), (10., 20.), (65., 75.), (125., 125.)]
+    ),
+}
+
+fn can_avoid_reserved_time_when_driving_impl(
+    vehicle_detail_data: VehicleData,
+    reserved_time: (Timestamp, Timestamp, Duration),
+    activities: Vec<ActivityData>,
+    expected_schedules: Vec<(Timestamp, Timestamp)>,
+) {
+    let reserved_time = ReservedTimeSpan {
+        time: TimeSpan::Offset(TimeOffset::new(reserved_time.0, reserved_time.1)),
+        duration: reserved_time.2,
+    };
     let (reserved_times_fn, _, mut route_ctx) =
         create_feature_and_route(vehicle_detail_data, activities, reserved_time);
 
