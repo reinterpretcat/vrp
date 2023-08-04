@@ -22,6 +22,8 @@ pub(crate) use self::solution_writer::create_solution;
 use super::*;
 use crate::{format_time, parse_time};
 use std::io::{BufWriter, Write};
+use vrp_core::prelude::GenericError;
+
 type ApiActivity = model::Activity;
 type ApiSolution = model::Solution;
 type ApiSchedule = model::Schedule;
@@ -57,7 +59,7 @@ pub fn write_pragmatic<W: Write>(
     solution: &DomainSolution,
     output_type: PragmaticOutputType,
     writer: &mut BufWriter<W>,
-) -> Result<(), String> {
+) -> Result<(), GenericError> {
     let solution = create_solution(problem, solution, &output_type);
 
     match output_type {

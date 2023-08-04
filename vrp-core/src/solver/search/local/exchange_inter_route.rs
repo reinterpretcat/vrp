@@ -225,13 +225,13 @@ fn get_new_insertion_ctx(
     insertion_ctx: &InsertionContext,
     seed_job: &Job,
     seed_route_idx: usize,
-) -> Result<InsertionContext, String> {
+) -> Result<InsertionContext, GenericError> {
     let mut new_insertion_ctx = insertion_ctx.deep_copy();
 
     let route_ctx = &mut new_insertion_ctx.solution.routes[seed_route_idx];
     let removal_result = route_ctx.route_mut().tour.remove(seed_job);
     if !removal_result {
-        return Err("cannot find job in insertion ctx".to_string());
+        return Err("cannot find job in insertion ctx".into());
     }
 
     // NOTE removed job is not added to the required list as it will be tried

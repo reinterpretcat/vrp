@@ -14,7 +14,7 @@ pub fn create_group_feature(
     total_jobs: usize,
     code: ViolationCode,
     state_key: StateKey,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_constraint(GroupConstraint { total_jobs, code, state_key })

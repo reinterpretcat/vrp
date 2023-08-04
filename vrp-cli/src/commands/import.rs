@@ -5,6 +5,7 @@ mod import_test;
 use super::*;
 use std::io::BufReader;
 use vrp_cli::extensions::import::import_problem;
+use vrp_core::prelude::GenericError;
 use vrp_pragmatic::format::problem::serialize_problem;
 
 pub const FORMAT_ARG_NAME: &str = "FORMAT";
@@ -32,7 +33,7 @@ pub fn get_import_app() -> Command {
         )
 }
 
-pub fn run_import(matches: &ArgMatches) -> Result<(), String> {
+pub fn run_import(matches: &ArgMatches) -> Result<(), GenericError> {
     let input_format = matches.get_one::<String>(FORMAT_ARG_NAME).unwrap();
     let input_files = matches
         .get_many::<String>(INPUT_ARG_NAME)
@@ -43,8 +44,8 @@ pub fn run_import(matches: &ArgMatches) -> Result<(), String> {
             let out_result = matches.get_one::<String>(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out result"));
             let mut out_buffer = create_write_buffer(out_result);
             serialize_problem(&problem, &mut out_buffer)
-                .map_err(|err| format!("cannot serialize result problem: '{err}'"))
+                .map_err(|err| format!("cannot serialize result problem: '{err}'").into())
         }
-        Err(err) => Err(format!("cannot import problem: '{err}'")),
+        Err(err) => Err(format!("cannot import problem: '{err}'").into()),
     }
 }

@@ -14,7 +14,7 @@ pub use self::telemetry::*;
 pub mod strategies;
 
 /// Defines evolution result type.
-pub type EvolutionResult<S> = Result<(Vec<S>, Option<TelemetryMetrics>), String>;
+pub type EvolutionResult<S> = Result<(Vec<S>, Option<TelemetryMetrics>), GenericError>;
 
 /// Provides the way to preprocess context before using it.
 pub trait HeuristicContextProcessing {

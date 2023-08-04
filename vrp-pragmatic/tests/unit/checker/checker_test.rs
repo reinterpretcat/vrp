@@ -49,8 +49,8 @@ fn can_remove_duplicates_in_error_list() {
     assert_eq!(
         result,
         Err(vec![
-            "cannot find vehicle with id 'my_vehicle_11'".to_owned(),
-            "used vehicle with unknown id: 'my_vehicle_11'".to_owned()
+            "cannot find vehicle with id 'my_vehicle_11'".into(),
+            "used vehicle with unknown id: 'my_vehicle_11'".into()
         ])
     );
 }

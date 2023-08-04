@@ -5,10 +5,10 @@ use vrp_core::construction::features::*;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::*;
-use vrp_core::models::{Extras, Problem};
+use vrp_core::prelude::GenericError;
 
 pub(crate) trait TextReader {
-    fn read_problem(&mut self, is_rounded: bool) -> Result<Problem, String> {
+    fn read_problem(&mut self, is_rounded: bool) -> Result<Problem, GenericError> {
         let (jobs, fleet) = self.read_definitions()?;
         let transport = self.create_transport(is_rounded)?;
         let activity = Arc::new(SimpleActivityCost::default());
@@ -30,11 +30,11 @@ pub(crate) trait TextReader {
         &self,
         activity: Arc<SimpleActivityCost>,
         transport: Arc<dyn TransportCost + Send + Sync>,
-    ) -> Result<GoalContext, String>;
+    ) -> Result<GoalContext, GenericError>;
 
-    fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), String>;
+    fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError>;
 
-    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, String>;
+    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, GenericError>;
 
     fn create_extras(&self) -> Extras;
 }
@@ -97,7 +97,7 @@ pub(crate) fn create_dimens_with_id(prefix: &str, id: &str) -> Dimensions {
 pub(crate) fn create_goal_context_prefer_min_tours(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
-) -> Result<GoalContext, String> {
+) -> Result<GoalContext, GenericError> {
     let features = vec![
         create_minimize_unassigned_jobs_feature("min_unassigned", Arc::new(|_, _| 1.))?,
         create_minimize_tours_feature("min_tours")?,
@@ -115,7 +115,7 @@ pub(crate) fn create_goal_context_prefer_min_tours(
 pub(crate) fn create_goal_context_distance_only(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
-) -> Result<GoalContext, String> {
+) -> Result<GoalContext, GenericError> {
     let features = vec![
         create_minimize_unassigned_jobs_feature("min_unassigned", Arc::new(|_, _| 1.))?,
         create_minimize_distance_feature("min_distance", transport, activity, 1)?,
@@ -128,12 +128,16 @@ pub(crate) fn create_goal_context_distance_only(
     GoalContext::new(features.as_slice(), feature_map.as_slice(), &feature_map[1..])
 }
 
-pub(crate) fn read_line<R: Read>(reader: &mut BufReader<R>, buffer: &mut String) -> Result<usize, String> {
+pub(crate) fn read_line<R: Read>(reader: &mut BufReader<R>, buffer: &mut String) -> Result<usize, GenericError> {
     buffer.clear();
-    reader.read_line(buffer).map_err(|err| err.to_string())
+    reader.read_line(buffer).map_err(|err| err.to_string().into())
 }
 
-pub(crate) fn skip_lines<R: Read>(count: usize, reader: &mut BufReader<R>, buffer: &mut String) -> Result<(), String> {
+pub(crate) fn skip_lines<R: Read>(
+    count: usize,
+    reader: &mut BufReader<R>,
+    buffer: &mut String,
+) -> Result<(), GenericError> {
     for _ in 0..count {
         read_line(reader, buffer).map_err(|_| "cannot skip lines")?;
     }

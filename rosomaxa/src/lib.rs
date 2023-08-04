@@ -36,7 +36,7 @@
 //! let (_, fitness) = solutions.first().unwrap();
 //! assert!(*fitness < 0.001);
 //!
-//! # Ok::<(), String>(())
+//! # Ok::<(), GenericError>(())
 //! ```
 //!
 
@@ -61,8 +61,8 @@ use crate::algorithms::math::RemedianUsize;
 use crate::algorithms::nsga2::MultiObjective;
 use crate::evolution::{Telemetry, TelemetryMetrics, TelemetryMode};
 use crate::population::*;
-use crate::utils::Environment;
 use crate::utils::Timer;
+use crate::utils::{Environment, GenericError};
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -79,7 +79,7 @@ pub trait HeuristicObjective: MultiObjective + Send + Sync {}
 /// Specifies a dynamically dispatched type for heuristic population.
 pub type DynHeuristicPopulation<O, S> = dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync;
 /// Specifies a heuristic result type.
-pub type HeuristicResult<O, S> = Result<(Box<DynHeuristicPopulation<O, S>>, Option<TelemetryMetrics>), String>;
+pub type HeuristicResult<O, S> = Result<(Box<DynHeuristicPopulation<O, S>>, Option<TelemetryMetrics>), GenericError>;
 
 /// Represents heuristic context.
 pub trait HeuristicContext: Send + Sync {
@@ -234,7 +234,7 @@ where
         self.population.on_generation(self.telemetry.get_statistics());
     }
 
-    fn on_result(self) -> Result<(Box<DynHeuristicPopulation<O, S>>, Option<TelemetryMetrics>), String> {
+    fn on_result(self) -> Result<(Box<DynHeuristicPopulation<O, S>>, Option<TelemetryMetrics>), GenericError> {
         let mut telemetry = self.telemetry;
 
         telemetry.on_result(self.objective.as_ref(), self.population.as_ref());

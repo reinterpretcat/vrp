@@ -7,11 +7,11 @@ use crate::utils::combine_error_results;
 use hashbrown::HashSet;
 
 /// Checks relation rules.
-pub fn check_relations(context: &CheckerContext) -> Result<(), Vec<String>> {
+pub fn check_relations(context: &CheckerContext) -> Result<(), Vec<GenericError>> {
     combine_error_results(&[check_relations_assignment(context)])
 }
 
-fn check_relations_assignment(context: &CheckerContext) -> Result<(), String> {
+fn check_relations_assignment(context: &CheckerContext) -> Result<(), GenericError> {
     let reserved_ids = vec!["departure", "arrival", "break", "dispatch", "reload"].into_iter().collect::<HashSet<_>>();
 
     (0_usize..)
@@ -46,7 +46,7 @@ fn check_relations_assignment(context: &CheckerContext) -> Result<(), String> {
             })?;
 
             if expected_relation_count != relation.jobs.len() {
-                return Err(format!("relation {} contains duplicated ids: {:?}", idx, relation.jobs));
+                return Err(format!("relation {} contains duplicated ids: {:?}", idx, relation.jobs).into());
             }
 
             match relation.type_field {
@@ -56,7 +56,8 @@ fn check_relations_assignment(context: &CheckerContext) -> Result<(), String> {
                         Err(format!(
                             "relation {} does not follow strict rule: expected {:?}, got {:?}, common: {:?}",
                             idx, relation.jobs, activity_ids, common
-                        ))
+                        )
+                        .into())
                     } else {
                         Ok(())
                     }
@@ -67,7 +68,8 @@ fn check_relations_assignment(context: &CheckerContext) -> Result<(), String> {
                         Err(format!(
                             "relation {} does not follow sequence rule: expected {:?}, got {:?}, common: {:?}",
                             idx, relation.jobs, activity_ids, ids
-                        ))
+                        )
+                        .into())
                     } else {
                         Ok(())
                     }
@@ -81,7 +83,7 @@ fn check_relations_assignment(context: &CheckerContext) -> Result<(), String> {
                         .any(|tour| get_activity_ids(tour).iter().any(|id| relation_ids.contains(id)));
 
                     if has_wrong_assignment {
-                        Err(format!("relation {idx} has jobs assigned to another tour"))
+                        Err(format!("relation {idx} has jobs assigned to another tour").into())
                     } else {
                         Ok(())
                     }
@@ -92,13 +94,17 @@ fn check_relations_assignment(context: &CheckerContext) -> Result<(), String> {
     Ok(())
 }
 
-fn get_tour_by_vehicle_id(vehicle_id: &str, shift_index: Option<usize>, solution: &Solution) -> Result<Tour, String> {
+fn get_tour_by_vehicle_id(
+    vehicle_id: &str,
+    shift_index: Option<usize>,
+    solution: &Solution,
+) -> Result<Tour, GenericError> {
     solution
         .tours
         .iter()
         .find(|tour| tour.vehicle_id == vehicle_id && tour.shift_index == shift_index.unwrap_or(0))
         .cloned()
-        .ok_or_else(|| format!("cannot find tour for '{vehicle_id}'"))
+        .ok_or_else(|| format!("cannot find tour for '{vehicle_id}'").into())
 }
 
 fn get_activity_ids(tour: &Tour) -> Vec<String> {

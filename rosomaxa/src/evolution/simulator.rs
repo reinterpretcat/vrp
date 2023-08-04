@@ -19,9 +19,9 @@ where
     S: HeuristicSolution,
 {
     /// Creates a new instance of `EvolutionSimulator`.
-    pub fn new(config: EvolutionConfig<C, O, S>) -> Result<Self, String> {
+    pub fn new(config: EvolutionConfig<C, O, S>) -> Result<Self, GenericError> {
         if config.initial.operators.is_empty() {
-            return Err("at least one initial method has to be specified".to_string());
+            return Err("at least one initial method has to be specified".into());
         }
 
         Ok(Self { config })

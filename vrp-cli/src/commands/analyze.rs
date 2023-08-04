@@ -4,6 +4,7 @@ mod analyze_test;
 
 use super::*;
 use vrp_cli::extensions::analyze::get_clusters;
+use vrp_core::utils::GenericError;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -60,14 +61,14 @@ pub fn get_analyze_app() -> Command {
 pub fn run_analyze(
     matches: &ArgMatches,
     out_writer_func: fn(Option<File>) -> BufWriter<Box<dyn Write>>,
-) -> Result<(), String> {
+) -> Result<(), GenericError> {
     match matches.subcommand() {
         Some(("clusters", clusters_matches)) => {
             let problem_path = clusters_matches.get_one::<String>(PROBLEM_ARG_NAME).unwrap();
             let problem_format = clusters_matches.get_one::<String>(FORMAT_ARG_NAME).unwrap();
 
             if problem_format != "pragmatic" {
-                return Err(format!("unknown problem format: '{problem_format}'"));
+                return Err(format!("unknown problem format: '{problem_format}'").into());
             }
 
             let problem_reader = BufReader::new(open_file(problem_path, "problem"));
@@ -80,14 +81,14 @@ pub fn run_analyze(
             let epsilon = parse_float_value::<f64>(clusters_matches, EPSILON_ARG_NAME, "epsilon")?;
 
             let clusters = get_clusters(problem_reader, matrices_readers, min_points, epsilon)
-                .map_err(|err| format!("cannot get clusters: '{err}'"))?;
+                .map_err(|err| GenericError::from(format!("cannot get clusters: '{err}'")))?;
 
             let out_geojson =
                 clusters_matches.get_one::<String>(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out geojson"));
             let mut geo_writer = out_writer_func(out_geojson);
 
-            geo_writer.write_all(clusters.as_bytes()).map_err(|err| format!("cannot write result: '{err}'"))
+            geo_writer.write_all(clusters.as_bytes()).map_err(|err| format!("cannot write result: '{err}'").into())
         }
-        _ => Err("no argument with analyze subcommand was used. Use -h to print help information".to_string()),
+        _ => Err("no argument with analyze subcommand was used. Use -h to print help information".into()),
     }
 }

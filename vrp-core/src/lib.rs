@@ -91,7 +91,7 @@
 //! assert_eq!(solution.cost, 42.);
 //! assert_eq!(solution.routes.len(), 1);
 //! assert_eq!(solution.unassigned.len(), 0);
-//! # Ok::<(), String>(())
+//! # Ok::<(), GenericError>(())
 //! ```
 //!
 

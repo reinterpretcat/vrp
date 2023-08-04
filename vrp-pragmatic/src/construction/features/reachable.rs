@@ -8,7 +8,7 @@ pub fn create_reachable_feature(
     name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
     code: ViolationCode,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     FeatureBuilder::default().with_name(name).with_constraint(ReachableConstraint { transport, code }).build()
 }
 

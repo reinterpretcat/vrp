@@ -23,13 +23,13 @@ pub(crate) fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String,
 pub(crate) fn create_transport_costs(
     api_problem: &ApiProblem,
     matrices: &[Matrix],
-) -> Result<Arc<dyn TransportCost + Sync + Send>, String> {
+) -> Result<Arc<dyn TransportCost + Sync + Send>, GenericError> {
     if !matrices.iter().all(|m| m.profile.is_some()) && !matrices.iter().all(|m| m.profile.is_none()) {
-        return Err("all matrices should have profile set or none of them".to_string());
+        return Err("all matrices should have profile set or none of them".into());
     }
 
     if matrices.iter().any(|m| m.profile.is_none()) && matrices.iter().any(|m| m.timestamp.is_some()) {
-        return Err("when timestamp is set, all matrices should have profile set".to_string());
+        return Err("when timestamp is set, all matrices should have profile set".into());
     }
 
     let matrix_profiles = get_profile_index_map(api_problem);
@@ -39,7 +39,8 @@ pub(crate) fn create_transport_costs(
              {} must be less or equal to {}",
             matrix_profiles.len(),
             matrices.len()
-        ));
+        )
+        .into());
     }
 
     let matrix_data = matrices
@@ -78,7 +79,7 @@ pub(crate) fn create_transport_costs(
 
     let matrix_indices = matrix_data.iter().map(|data| data.index).collect::<HashSet<_>>().len();
     if matrix_profiles.len() != matrix_indices {
-        return Err("amount of fleet profiles does not match matrix profiles".to_string());
+        return Err("amount of fleet profiles does not match matrix profiles".into());
     }
 
     create_matrix_transport_cost(matrix_data)

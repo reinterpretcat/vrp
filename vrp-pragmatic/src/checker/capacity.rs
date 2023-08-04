@@ -10,20 +10,20 @@ use vrp_core::models::common::{Load, MultiDimLoad};
 /// Checks that vehicle load is assigned correctly. The following rules are checked:
 /// * max vehicle's capacity is not violated
 /// * load change is correct
-pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), Vec<String>> {
+pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), Vec<GenericError>> {
     combine_error_results(&[check_vehicle_load_assignment(context), check_resource_consumption(context)])
 }
 
-fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), String> {
-    context.solution.tours.iter().try_for_each(|tour| {
+fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), GenericError> {
+    context.solution.tours.iter().try_for_each::<_, Result<_, GenericError>>(|tour| {
         let capacity = MultiDimLoad::new(context.get_vehicle(&tour.vehicle_id)?.capacity.clone());
         let intervals = get_intervals(context, tour);
 
         intervals
             .iter()
-            .try_fold::<_, _, Result<_, String>>(MultiDimLoad::default(), |acc, interval| {
+            .try_fold::<_, _, Result<_, GenericError>>(MultiDimLoad::default(), |acc, interval| {
                 let (start_delivery, end_pickup) = get_activities_from_interval(context, tour, interval.as_slice())
-                    .try_fold::<_, _, Result<_, String>>(
+                    .try_fold::<_, _, Result<_, GenericError>>(
                     (acc, MultiDimLoad::default()),
                     |acc, (activity, activity_type)| {
                         let activity_type = activity_type?;
@@ -37,48 +37,51 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), String>
                     },
                 )?;
 
-                let end_capacity = interval.iter().try_fold(start_delivery, |acc, (idx, (from, to))| {
-                    let from_load = MultiDimLoad::new(from.load().clone());
-                    let to_load = MultiDimLoad::new(to.load().clone());
+                let end_capacity = interval.iter().try_fold::<_, _, Result<_, GenericError>>(
+                    start_delivery,
+                    |acc, (idx, (from, to))| {
+                        let from_load = MultiDimLoad::new(from.load().clone());
+                        let to_load = MultiDimLoad::new(to.load().clone());
 
-                    if !capacity.can_fit(&from_load) || !capacity.can_fit(&to_load) {
-                        return Err(format!("load exceeds capacity in tour '{}'", tour.vehicle_id));
-                    }
+                        if !capacity.can_fit(&from_load) || !capacity.can_fit(&to_load) {
+                            return Err(format!("load exceeds capacity in tour '{}'", tour.vehicle_id).into());
+                        }
 
-                    let change = to.activities().iter().try_fold::<_, _, Result<_, String>>(
-                        MultiDimLoad::default(),
-                        |acc, activity| {
-                            let activity_type = context.get_activity_type(tour, to, activity)?;
-                            let (demand_type, demand) =
-                                if activity.activity_type == "arrival" || activity.activity_type == "reload" {
-                                    (DemandType::StaticDelivery, end_pickup)
-                                } else {
-                                    get_demand(context, activity, &activity_type)?
-                                };
+                        let change = to.activities().iter().try_fold::<_, _, Result<_, GenericError>>(
+                            MultiDimLoad::default(),
+                            |acc, activity| {
+                                let activity_type = context.get_activity_type(tour, to, activity)?;
+                                let (demand_type, demand) =
+                                    if activity.activity_type == "arrival" || activity.activity_type == "reload" {
+                                        (DemandType::StaticDelivery, end_pickup)
+                                    } else {
+                                        get_demand(context, activity, &activity_type)?
+                                    };
 
-                            Ok(match demand_type {
-                                DemandType::StaticDelivery | DemandType::DynamicDelivery => acc - demand,
-                                DemandType::StaticPickup | DemandType::DynamicPickup => acc + demand,
-                                DemandType::None | DemandType::StaticPickupDelivery => acc,
-                            })
-                        },
-                    )?;
+                                Ok(match demand_type {
+                                    DemandType::StaticDelivery | DemandType::DynamicDelivery => acc - demand,
+                                    DemandType::StaticPickup | DemandType::DynamicPickup => acc + demand,
+                                    DemandType::None | DemandType::StaticPickupDelivery => acc,
+                                })
+                            },
+                        )?;
 
-                    let is_from_valid = from_load == acc;
-                    let is_to_valid = to_load == from_load + change;
+                        let is_from_valid = from_load == acc;
+                        let is_to_valid = to_load == from_load + change;
 
-                    if (is_from_valid && is_to_valid) || (*idx == 0 && has_dispatch(tour)) {
-                        Ok(to_load)
-                    } else {
-                        let message = match (is_from_valid, is_to_valid) {
-                            (true, false) => format!("at stop {}", idx + 1),
-                            (false, true) => format!("at stop {idx}"),
-                            _ => format!("at stops {}, {}", idx, idx + 1),
-                        };
+                        if (is_from_valid && is_to_valid) || (*idx == 0 && has_dispatch(tour)) {
+                            Ok(to_load)
+                        } else {
+                            let message = match (is_from_valid, is_to_valid) {
+                                (true, false) => format!("at stop {}", idx + 1),
+                                (false, true) => format!("at stop {idx}"),
+                                _ => format!("at stops {}, {}", idx, idx + 1),
+                            };
 
-                        Err(format!("load mismatch {} in tour '{}'", message, tour.vehicle_id))
-                    }
-                })?;
+                            Err(format!("load mismatch {} in tour '{}'", message, tour.vehicle_id).into())
+                        }
+                    },
+                )?;
 
                 Ok(end_capacity - end_pickup)
             })
@@ -86,7 +89,7 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), String>
     })
 }
 
-fn check_resource_consumption(context: &CheckerContext) -> Result<(), String> {
+fn check_resource_consumption(context: &CheckerContext) -> Result<(), GenericError> {
     let resources = context
         .problem
         .fleet
@@ -140,12 +143,14 @@ fn check_resource_consumption(context: &CheckerContext) -> Result<(), String> {
         });
 
     consumption.into_iter().try_for_each(|(resource_id, consumed)| {
-        let available = *resources
-            .get(&resource_id)
-            .ok_or_else(|| format!("cannot find resource '{resource_id}' in list of available resources"))?;
+        let available = *resources.get(&resource_id).ok_or_else(|| {
+            GenericError::from(format!("cannot find resource '{resource_id}' in list of available resources"))
+        })?;
 
         if consumed > available {
-            Err(format!("consumed more resource '{resource_id}' than available: {consumed} vs {available}"))
+            Err(GenericError::from(format!(
+                "consumed more resource '{resource_id}' than available: {consumed} vs {available}"
+            )))
         } else {
             Ok(())
         }
@@ -165,7 +170,7 @@ fn get_demand(
     context: &CheckerContext,
     activity: &Activity,
     activity_type: &ActivityType,
-) -> Result<(DemandType, MultiDimLoad), String> {
+) -> Result<(DemandType, MultiDimLoad), GenericError> {
     let (is_dynamic, demand) = context.visit_job(
         activity,
         activity_type,
@@ -230,7 +235,7 @@ fn get_activities_from_interval<'a>(
     context: &'a CheckerContext,
     tour: &'a Tour,
     interval: &'a [(usize, (&Stop, &Stop))],
-) -> impl Iterator<Item = (Activity, Result<ActivityType, String>)> + 'a {
+) -> impl Iterator<Item = (Activity, Result<ActivityType, GenericError>)> + 'a {
     interval
         .iter()
         .flat_map(|(_, (from, to))| once(from).chain(once(to)))

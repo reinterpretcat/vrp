@@ -16,6 +16,7 @@ use vrp_core::construction::clustering::vicinity::VisitPolicy;
 use vrp_core::models::common::{Duration, Profile, TimeWindow};
 use vrp_core::models::solution::{Commute as DomainCommute, CommuteInfo as DomainCommuteInfo};
 use vrp_core::models::Problem as CoreProblem;
+use vrp_core::prelude::GenericError;
 use vrp_core::solver::processing::VicinityDimension;
 
 /// Stores problem and solution together and provides some helper methods.
@@ -50,7 +51,7 @@ impl CheckerContext {
         problem: Problem,
         matrices: Option<Vec<Matrix>>,
         solution: Solution,
-    ) -> Result<Self, Vec<String>> {
+    ) -> Result<Self, Vec<GenericError>> {
         let job_map = problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect();
         let clustering = core_problem.extras.get_cluster_config().cloned();
         let coord_index = CoordIndex::new(&problem);
@@ -66,7 +67,7 @@ impl CheckerContext {
     }
 
     /// Performs solution check.
-    pub fn check(&self) -> Result<(), Vec<String>> {
+    pub fn check(&self) -> Result<(), Vec<GenericError>> {
         // avoid duplicates keeping original order
         let (_, errors) = check_vehicle_load(self)
             .err()
@@ -94,16 +95,16 @@ impl CheckerContext {
     }
 
     /// Gets vehicle by its id.
-    fn get_vehicle(&self, vehicle_id: &str) -> Result<&VehicleType, String> {
+    fn get_vehicle(&self, vehicle_id: &str) -> Result<&VehicleType, GenericError> {
         self.problem
             .fleet
             .vehicles
             .iter()
             .find(|v| v.vehicle_ids.contains(&vehicle_id.to_string()))
-            .ok_or_else(|| format!("cannot find vehicle with id '{vehicle_id}'"))
+            .ok_or_else(|| format!("cannot find vehicle with id '{vehicle_id}'").into())
     }
 
-    fn get_vehicle_profile(&self, vehicle_id: &str) -> Result<Profile, String> {
+    fn get_vehicle_profile(&self, vehicle_id: &str) -> Result<Profile, GenericError> {
         let profile = &self.get_vehicle(vehicle_id)?.profile;
         let index = self
             .profile_index
@@ -135,7 +136,7 @@ impl CheckerContext {
     }
 
     /// Gets vehicle shift where activity is used.
-    fn get_vehicle_shift(&self, tour: &Tour) -> Result<VehicleShift, String> {
+    fn get_vehicle_shift(&self, tour: &Tour) -> Result<VehicleShift, GenericError> {
         let tour_time = TimeWindow::new(
             parse_time(
                 &tour.stops.first().as_ref().ok_or_else(|| "cannot get first activity".to_string())?.schedule().arrival,
@@ -156,7 +157,7 @@ impl CheckerContext {
                 shift_time.intersects(&tour_time)
             })
             .cloned()
-            .ok_or_else(|| format!("cannot find shift for tour with vehicle if: '{}'", tour.vehicle_id))
+            .ok_or_else(|| format!("cannot find shift for tour with vehicle if: '{}'", tour.vehicle_id).into())
     }
 
     /// Returns stop's activity type names.
@@ -165,7 +166,7 @@ impl CheckerContext {
     }
 
     /// Gets wrapped activity type.
-    fn get_activity_type(&self, tour: &Tour, stop: &Stop, activity: &Activity) -> Result<ActivityType, String> {
+    fn get_activity_type(&self, tour: &Tour, stop: &Stop, activity: &Activity) -> Result<ActivityType, GenericError> {
         let shift = self.get_vehicle_shift(tour)?;
         let time = self.get_activity_time(stop, activity);
         let location = self.get_activity_location(stop, activity);
@@ -174,7 +175,7 @@ impl CheckerContext {
             "departure" | "arrival" => Ok(ActivityType::Terminal),
             "pickup" | "delivery" | "service" | "replacement" => {
                 self.job_map.get(activity.job_id.as_str()).map_or_else(
-                    || Err(format!("cannot find job with id '{}'", activity.job_id)),
+                    || Err(format!("cannot find job with id '{}'", activity.job_id).into()),
                     |job| Ok(ActivityType::Job(job.clone())),
                 )
             }
@@ -188,7 +189,7 @@ impl CheckerContext {
                         .find(|b| get_break_time_window(tour, b).map(|tw| tw.intersects(&time)).unwrap_or(false))
                 })
                 .map(|b| ActivityType::Break(b.clone()))
-                .ok_or_else(|| format!("cannot find break for tour '{}'", tour.vehicle_id)),
+                .ok_or_else(|| format!("cannot find break for tour '{}'", tour.vehicle_id).into()),
             "reload" => shift
                 .reloads
                 .as_ref()
@@ -199,7 +200,7 @@ impl CheckerContext {
                     })
                 })
                 .map(|r| ActivityType::Reload(r.clone()))
-                .ok_or_else(|| format!("cannot find reload for tour '{}'", tour.vehicle_id)),
+                .ok_or_else(|| format!("cannot find reload for tour '{}'", tour.vehicle_id).into()),
             "dispatch" => shift
                 .dispatch
                 .as_ref()
@@ -207,8 +208,8 @@ impl CheckerContext {
                     dispatch.iter().find(|d| location.as_ref().map_or(false, |location| d.location == *location))
                 })
                 .map(|d| ActivityType::Depot(d.clone()))
-                .ok_or_else(|| format!("cannot find dispatch for tour '{}'", tour.vehicle_id)),
-            _ => Err(format!("unknown activity type: '{}'", activity.activity_type)),
+                .ok_or_else(|| format!("cannot find dispatch for tour '{}'", tour.vehicle_id).into()),
+            _ => Err(format!("unknown activity type: '{}'", activity.activity_type).into()),
         }
     }
 
@@ -222,7 +223,7 @@ impl CheckerContext {
         parking: Duration,
         stop: &PointStop,
         activity_idx: usize,
-    ) -> Result<Option<DomainCommute>, String> {
+    ) -> Result<Option<DomainCommute>, GenericError> {
         let get_activity_location_by_idx = |idx: usize| {
             stop.activities
                 .get(idx)
@@ -244,7 +245,7 @@ impl CheckerContext {
                 match (commute.is_zero_distance(), activity_idx) {
                     (true, _) => Ok(Some(commute)),
                     // NOTE that's unreachable
-                    (false, idx) if idx == 0 => Err("cannot have commute at first activity in the stop".to_string()),
+                    (false, idx) if idx == 0 => Err("cannot have commute at first activity in the stop".into()),
                     (false, idx) => {
                         let prev_location = if matches!(config.visiting, VisitPolicy::Return) {
                             stop_location
@@ -290,7 +291,7 @@ impl CheckerContext {
                                     },
                                 }))
                             }
-                            _ => Err("cannot find next commute info".to_string()),
+                            _ => Err("cannot find next commute info".into()),
                         }
                     }
                 }
@@ -305,7 +306,7 @@ impl CheckerContext {
         activity_type: &ActivityType,
         job_visitor: F1,
         other_visitor: F2,
-    ) -> Result<R, String>
+    ) -> Result<R, GenericError>
     where
         F1: Fn(&Job, &JobTask) -> R,
         F2: Fn() -> R,
@@ -320,7 +321,10 @@ impl CheckerContext {
                     match_job_task(activity.activity_type.as_str(), job, |tasks| tasks.first())
                 } else {
                     activity.job_tag.as_ref().ok_or_else(|| {
-                        format!("checker requires that multi job activity must have tag: '{}'", activity.job_id)
+                        GenericError::from(format!(
+                            "checker requires that multi job activity must have tag: '{}'",
+                            activity.job_id
+                        ))
                     })?;
 
                     match_job_task(activity.activity_type.as_str(), job, |tasks| {
@@ -329,18 +333,18 @@ impl CheckerContext {
                 }
                 .map(|task| job_visitor(job, task))
             }
-            .ok_or_else(|| "cannot match activity to job place".to_string()),
+            .ok_or_else(|| "cannot match activity to job place".into()),
             _ => Ok(other_visitor()),
         }
     }
 
-    fn get_location_index(&self, location: &Location) -> Result<usize, String> {
+    fn get_location_index(&self, location: &Location) -> Result<usize, GenericError> {
         self.coord_index
             .get_by_loc(location)
-            .ok_or_else(|| format!("cannot find coordinate in coord index: {location:?}"))
+            .ok_or_else(|| format!("cannot find coordinate in coord index: {location:?}").into())
     }
 
-    fn get_matrix_data(&self, profile: &Profile, from_idx: usize, to_idx: usize) -> Result<(i64, i64), String> {
+    fn get_matrix_data(&self, profile: &Profile, from_idx: usize, to_idx: usize) -> Result<(i64, i64), GenericError> {
         let matrices = get_matrices(&self.matrices)?;
         let matrix =
             matrices.get(profile.index).ok_or_else(|| format!("cannot find matrix with index {}", profile.index))?;
@@ -394,31 +398,32 @@ fn get_matrix_size(matrices: &[Matrix]) -> usize {
     (matrices.first().unwrap().travel_times.len() as f64).sqrt().round() as usize
 }
 
-fn get_matrix_value(idx: usize, matrix_values: &[i64]) -> Result<i64, String> {
+fn get_matrix_value(idx: usize, matrix_values: &[i64]) -> Result<i64, GenericError> {
     matrix_values
         .get(idx)
         .cloned()
-        .ok_or_else(|| format!("attempt to get value out of bounds: {} vs {}", idx, matrix_values.len()))
+        .ok_or_else(|| format!("attempt to get value out of bounds: {} vs {}", idx, matrix_values.len()).into())
 }
 
-fn get_matrices(matrices: &Option<Vec<Matrix>>) -> Result<&Vec<Matrix>, String> {
+fn get_matrices(matrices: &Option<Vec<Matrix>>) -> Result<&Vec<Matrix>, GenericError> {
     let matrices = matrices.as_ref().unwrap();
 
     if matrices.iter().any(|matrix| matrix.timestamp.is_some()) {
-        return Err("not implemented: time aware routing check".to_string());
+        return Err("not implemented: time aware routing check".into());
     }
 
     Ok(matrices)
 }
 
-fn get_profile_index(problem: &Problem, matrices: &[Matrix]) -> Result<HashMap<String, usize>, String> {
+fn get_profile_index(problem: &Problem, matrices: &[Matrix]) -> Result<HashMap<String, usize>, GenericError> {
     let profiles = problem.fleet.profiles.len();
     if profiles != matrices.len() {
         return Err(format!(
             "precondition failed: amount of matrices supplied ({}) does not match profile specified ({})",
             matrices.len(),
             profiles,
-        ));
+        )
+        .into());
     }
 
     Ok(problem

@@ -18,7 +18,7 @@ pub(crate) fn create_goal_context(
     activity: Arc<dyn ActivityCost + Send + Sync>,
     props: &ProblemProperties,
     locks: &[Arc<Lock>],
-) -> Result<GoalContext, String> {
+) -> Result<GoalContext, GenericError> {
     let mut features = Vec::new();
 
     // TODO what's about performance implications on order of features when they are evaluated?
@@ -83,7 +83,7 @@ fn get_objective_features(
     jobs: Arc<Jobs>,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
-) -> Result<Vec<Vec<Feature>>, String> {
+) -> Result<Vec<Vec<Feature>>, GenericError> {
     let objectives = if let Some(objectives) = api_problem.objectives.clone() {
         objectives
     } else {
@@ -231,7 +231,7 @@ fn get_capacity_feature(
     jobs: &Jobs,
     job_index: &JobIndex,
     props: &ProblemProperties,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     if props.has_reloads {
         let threshold = 0.9;
 
@@ -268,7 +268,7 @@ fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(
     job_index: &JobIndex,
     capacity_map: fn(Vec<i32>) -> T,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     let reload_resources = get_reload_resources(api_problem, job_index, capacity_map);
     let capacity_feature_factory: CapacityFeatureFactoryFn<T> = Box::new(|name, multi_trip| {
         create_capacity_limit_with_multi_trip_feature(name, CAPACITY_CONSTRAINT_CODE, multi_trip)
@@ -293,7 +293,7 @@ fn get_tour_limit_feature(
     name: &str,
     api_problem: &ApiProblem,
     transport: Arc<dyn TransportCost + Send + Sync>,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     let (distances, durations) = api_problem
         .fleet
         .vehicles
@@ -391,7 +391,7 @@ where
 }
 
 #[allow(clippy::type_complexity)]
-fn extract_feature_map(features: &[Vec<Feature>]) -> Result<(Vec<Vec<String>>, Vec<Vec<String>>), String> {
+fn extract_feature_map(features: &[Vec<Feature>]) -> Result<(Vec<Vec<String>>, Vec<Vec<String>>), GenericError> {
     let global_objective_map: Vec<Vec<String>> = features
         .iter()
         .map(|features| features.iter().filter_map(|f| f.objective.as_ref().map(|_| f.name.clone())).collect())

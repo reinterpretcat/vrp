@@ -17,9 +17,9 @@ pub(crate) fn generate_from_prototype(
     jobs_size: usize,
     vehicle_types_size: usize,
     area_size: Option<f64>,
-) -> Result<Problem, String> {
+) -> Result<Problem, GenericError> {
     if problem.plan.jobs.len() < 3 {
-        return Err("at least three jobs should be defined".to_string());
+        return Err("at least three jobs should be defined".into());
     }
 
     Ok(Problem {

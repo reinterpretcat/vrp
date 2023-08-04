@@ -55,7 +55,7 @@ fn can_get_errors_serialized() {
 
 #[test]
 fn can_get_config_error() {
-    let result = to_config_error("some error");
+    let result = serialize_as_config_error("some error");
 
     assert!(result.starts_with('{'));
     assert!(result.ends_with('}'));

@@ -6,15 +6,15 @@ use super::*;
 use crate::utils::combine_error_results;
 
 /// NOTE to ensure distance/duration correctness, routing check should be performed first.
-pub fn check_limits(context: &CheckerContext) -> Result<(), Vec<String>> {
+pub fn check_limits(context: &CheckerContext) -> Result<(), Vec<GenericError>> {
     combine_error_results(&[check_shift_limits(context), check_shift_time(context)])
 }
 
 /// Check that shift limits are not violated:
 /// * max shift time
 /// * max distance
-fn check_shift_limits(context: &CheckerContext) -> Result<(), String> {
-    context.solution.tours.iter().try_for_each::<_, Result<_, String>>(|tour| {
+fn check_shift_limits(context: &CheckerContext) -> Result<(), GenericError> {
+    context.solution.tours.iter().try_for_each::<_, Result<_, GenericError>>(|tour| {
         let vehicle = context.get_vehicle(&tour.vehicle_id)?;
 
         if let Some(ref limits) = vehicle.limits {
@@ -23,7 +23,7 @@ fn check_shift_limits(context: &CheckerContext) -> Result<(), String> {
                     return Err(format!(
                         "max distance limit violation, expected: not more than {}, got: {}, vehicle id '{}', shift index: {}",
                         max_distance, tour.statistic.distance, tour.vehicle_id, tour.shift_index
-                    ));
+                    ).into());
                 }
             }
 
@@ -32,7 +32,7 @@ fn check_shift_limits(context: &CheckerContext) -> Result<(), String> {
                     return Err(format!(
                         "shift time limit violation, expected: not more than {}, got: {}, vehicle id '{}', shift index: {}",
                         max_duration, tour.statistic.duration, tour.vehicle_id, tour.shift_index
-                    ));
+                    ).into());
                 }
             }
 
@@ -47,7 +47,7 @@ fn check_shift_limits(context: &CheckerContext) -> Result<(), String> {
                     return Err(format!(
                         "tour size limit violation, expected: not more than {}, got: {}, vehicle id '{}', shift index: {}",
                         tour_size_limit, tour_activities, tour.vehicle_id, tour.shift_index
-                    ))
+                    ).into())
                 }
             }
         }
@@ -56,8 +56,8 @@ fn check_shift_limits(context: &CheckerContext) -> Result<(), String> {
     })
 }
 
-fn check_shift_time(context: &CheckerContext) -> Result<(), String> {
-    context.solution.tours.iter().try_for_each::<_, Result<_, String>>(|tour| {
+fn check_shift_time(context: &CheckerContext) -> Result<(), GenericError> {
+    context.solution.tours.iter().try_for_each::<_, Result<_, GenericError>>(|tour| {
         let vehicle = context.get_vehicle(&tour.vehicle_id)?;
 
         let (start, end) = tour.stops.first().zip(tour.stops.last()).ok_or("empty tour")?;
@@ -80,7 +80,8 @@ fn check_shift_time(context: &CheckerContext) -> Result<(), String> {
             Err(format!(
                 "tour time is outside shift time, vehicle id '{}', shift index: {}",
                 tour.vehicle_id, tour.shift_index
-            ))
+            )
+            .into())
         } else {
             Ok(())
         }

@@ -45,19 +45,24 @@ const EXPERIMENTAL_ARG_NAME: &str = "experimental";
 const ROUNDED_ARG_NAME: &str = "round";
 
 #[allow(clippy::type_complexity)]
-struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
+struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, GenericError>>);
 
-struct InitSolutionReader(pub Box<dyn Fn(File, Arc<Problem>) -> Result<Solution, String>>);
+struct InitSolutionReader(pub Box<dyn Fn(File, Arc<Problem>) -> Result<Solution, GenericError>>);
 
 #[allow(clippy::type_complexity)]
 struct SolutionWriter(
     pub  Box<
-        dyn Fn(&Problem, Solution, BufWriter<Box<dyn Write>>, Option<BufWriter<Box<dyn Write>>>) -> Result<(), String>,
+        dyn Fn(
+            &Problem,
+            Solution,
+            BufWriter<Box<dyn Write>>,
+            Option<BufWriter<Box<dyn Write>>>,
+        ) -> Result<(), GenericError>,
     >,
 );
 
 #[allow(clippy::type_complexity)]
-struct LocationWriter(pub Box<dyn Fn(File, BufWriter<Box<dyn Write>>) -> Result<(), String>>);
+struct LocationWriter(pub Box<dyn Fn(File, BufWriter<Box<dyn Write>>) -> Result<(), GenericError>>);
 
 #[allow(clippy::type_complexity)]
 type FormatMap<'a> = HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter, LocationWriter)>;
@@ -128,7 +133,7 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
                 } else {
                     BufReader::new(problem).read_pragmatic()
                 }
-                .map_err(|errs| errs.to_string())
+                .map_err(|errs| errs.into())
             })),
             InitSolutionReader(Box::new(move |file, problem| {
                 read_init_pragmatic(BufReader::new(file), problem, random.clone())
@@ -143,9 +148,9 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
             LocationWriter(Box::new(|problem, writer| {
                 let mut writer = writer;
                 deserialize_problem(BufReader::new(problem))
-                    .map_err(|errs| errs.to_string())
+                    .map_err(|errs| errs.to_string().into())
                     .and_then(|problem| get_locations_serialized(&problem))
-                    .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(|err| err.to_string()))
+                    .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(|err| err.to_string().into()))
             })),
         ),
     );
@@ -302,7 +307,7 @@ pub fn get_solve_app() -> Command {
 pub fn run_solve(
     matches: &ArgMatches,
     out_writer_func: fn(Option<File>) -> BufWriter<Box<dyn Write>>,
-) -> Result<(), String> {
+) -> Result<(), GenericError> {
     let max_time = parse_int_value::<usize>(matches, TIME_ARG_NAME, "max time")?;
 
     let environment = get_environment(matches, max_time)?;
@@ -339,7 +344,8 @@ pub fn run_solve(
             let geo_buffer = out_geojson.map(|geojson| create_write_buffer(Some(geojson)));
 
             if is_get_locations_set {
-                locations_writer.0(problem_file, out_buffer).map_err(|err| format!("cannot get locations '{err}'"))
+                locations_writer.0(problem_file, out_buffer)
+                    .map_err(|err| GenericError::from(format!("cannot get locations '{err}'")))
             } else {
                 match problem_reader.0(problem_file, matrix_files) {
                     Ok(problem) => {
@@ -401,16 +407,18 @@ pub fn run_solve(
 
                         Ok(())
                     }
-                    Err(error) => Err(format!("cannot read {problem_format} problem from '{problem_path}': '{error}'")),
+                    Err(error) => {
+                        Err(format!("cannot read {problem_format} problem from '{problem_path}': '{error}'").into())
+                    }
                 }
             }
         }
-        None => Err(format!("unknown format: '{problem_format}'")),
+        None => Err(format!("unknown format: '{problem_format}'").into()),
     }
 }
 
-fn get_min_cv(matches: &ArgMatches) -> Result<Option<(String, usize, f64, bool)>, String> {
-    let err_result = Err("cannot parse min_cv parameter".to_string());
+fn get_min_cv(matches: &ArgMatches) -> Result<Option<(String, usize, f64, bool)>, GenericError> {
+    let err_result = Err("cannot parse min_cv parameter".into());
     matches
         .get_one::<String>(MIN_CV_ARG_NAME)
         .map(|arg| match arg.split(',').collect::<Vec<_>>().as_slice() {
@@ -429,7 +437,7 @@ fn get_min_cv(matches: &ArgMatches) -> Result<Option<(String, usize, f64, bool)>
         .unwrap_or(Ok(None))
 }
 
-fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, String> {
+fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, GenericError> {
     matches
         .get_one::<String>(INIT_SIZE_ARG_NAME)
         .map(|size| {
@@ -437,13 +445,13 @@ fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, String> {
             {
                 Ok(Some(value))
             } else {
-                Err(format!("init size must be an integer bigger than 0, got '{size}'"))
+                Err(format!("init size must be an integer bigger than 0, got '{size}'").into())
             }
         })
         .unwrap_or(Ok(None))
 }
 
-fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<Environment>, String> {
+fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<Environment>, GenericError> {
     let quota = Some(create_interruption_quota(max_time));
     let is_experimental = matches.get_one::<bool>(EXPERIMENTAL_ARG_NAME).copied().unwrap_or(false);
 
@@ -467,7 +475,7 @@ fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<
                     is_experimental,
                 )))
             } else {
-                Err("cannot parse parallelism parameter".to_string())
+                Err("cannot parse parallelism parameter".into())
             }
         })
         .unwrap_or_else(|| Ok(Arc::new(Environment { quota, is_experimental, ..Environment::default() })))
@@ -496,11 +504,11 @@ fn get_heuristic(
     matches: &ArgMatches,
     problem: Arc<Problem>,
     environment: Arc<Environment>,
-) -> Result<TargetHeuristic, String> {
+) -> Result<TargetHeuristic, GenericError> {
     match matches.get_one::<String>(HEURISTIC_ARG_NAME).map(String::as_str) {
         Some("dynamic") => Ok(Box::new(get_dynamic_heuristic(problem, environment))),
         Some("static") => Ok(Box::new(get_static_heuristic(problem, environment))),
-        Some(name) if name != "default" => Err(format!("unknown heuristic type name: '{name}'")),
+        Some(name) if name != "default" => Err(format!("unknown heuristic type name: '{name}'").into()),
         _ => Ok(get_default_heuristic(problem, environment)),
     }
 }
@@ -509,7 +517,7 @@ fn get_heuristic(
 fn get_async_evolution(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
-) -> Result<TargetEvolutionStrategy, String> {
+) -> Result<TargetEvolutionStrategy, GenericError> {
     use vrp_core::rosomaxa::evolution::strategies::{AsyncIterative, AsyncParams};
 
     let selection_size = get_default_selection_size(environment.as_ref());
@@ -534,11 +542,11 @@ fn get_async_evolution(
 fn get_async_evolution(
     _problem: Arc<Problem>,
     _environment: Arc<Environment>,
-) -> Result<TargetEvolutionStrategy, String> {
+) -> Result<TargetEvolutionStrategy, GenericError> {
     unreachable!()
 }
 
-fn check_pragmatic_solution_with_args(matches: &ArgMatches) -> Result<(), String> {
+fn check_pragmatic_solution_with_args(matches: &ArgMatches) -> Result<(), GenericError> {
     check_solution(matches, "pragmatic", PROBLEM_ARG_NAME, OUT_RESULT_ARG_NAME, MATRIX_ARG_NAME)
 }
 

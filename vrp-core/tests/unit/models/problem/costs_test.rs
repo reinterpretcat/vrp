@@ -23,7 +23,7 @@ fn can_detect_dimensions_mismatch() {
             create_matrix_data(Profile::default(), Some(1.), (0., 1), (0., 2)),
         ])
         .err(),
-        Some("distance and duration collections have different length".to_string())
+        Some("distance and duration collections have different length".into())
     );
 }
 
@@ -35,7 +35,7 @@ fn can_return_error_when_mixing_timestamps() {
     assert_eq!(
         TimeAwareMatrixTransportCost::new(vec![create_matrix_data(Profile::default(), None, (0., 1), (0., 1))], 1,)
             .err(),
-        Some("time-aware routing requires all matrices to have timestamp".to_string())
+        Some("time-aware routing requires all matrices to have timestamp".into())
     );
 
     assert_eq!(
@@ -47,12 +47,12 @@ fn can_return_error_when_mixing_timestamps() {
             1,
         )
         .err(),
-        Some("time-aware routing requires all matrices to have timestamp".to_string())
+        Some("time-aware routing requires all matrices to have timestamp".into())
     );
 
     assert_eq!(
         TimeAwareMatrixTransportCost::new(vec![create_matrix_data(p0.clone(), Some(0.), (0., 1), (0., 1))], 1,).err(),
-        Some("should not use time aware matrix routing with single matrix".to_string())
+        Some("should not use time aware matrix routing with single matrix".into())
     );
 
     assert_eq!(
@@ -65,7 +65,7 @@ fn can_return_error_when_mixing_timestamps() {
             1,
         )
         .err(),
-        Some("should not use time aware matrix routing with single matrix".to_string())
+        Some("should not use time aware matrix routing with single matrix".into())
     );
 }
 

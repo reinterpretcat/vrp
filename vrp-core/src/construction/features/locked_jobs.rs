@@ -19,7 +19,7 @@ pub fn create_locked_jobs_feature(
     fleet: &Fleet,
     locks: &[Arc<Lock>],
     code: ViolationCode,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     let (rules, conditions) = locks.iter().fold((Vec::new(), HashMap::new()), |(mut rules, mut conditions), lock| {
         let condition = lock.condition_fn.clone();
         lock.details.iter().for_each(|detail| {

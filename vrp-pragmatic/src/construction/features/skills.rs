@@ -19,7 +19,7 @@ pub struct JobSkills {
 }
 
 /// Creates a skills feature as hard constraint.
-pub fn create_skills_feature(name: &str, code: ViolationCode) -> Result<Feature, String> {
+pub fn create_skills_feature(name: &str, code: ViolationCode) -> Result<Feature, GenericError> {
     FeatureBuilder::default().with_name(name).with_constraint(SkillsConstraint { code }).build()
 }
 

@@ -39,7 +39,7 @@ use crate::extensions::solve::config::{create_builder_from_config, Config};
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
-use vrp_core::prelude::Solver;
+use vrp_core::prelude::{GenericError, Solver};
 use vrp_pragmatic::format::problem::{serialize_problem, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::{write_pragmatic, PragmaticOutputType};
 use vrp_pragmatic::format::FormatError;
@@ -56,6 +56,7 @@ mod c_interop {
     use std::panic;
     use std::panic::UnwindSafe;
     use std::slice;
+    use vrp_core::prelude::GenericError;
     use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem};
     use vrp_pragmatic::format::{CoordIndex, MultiFormatError};
 
@@ -66,14 +67,14 @@ mod c_interop {
         std::str::from_utf8(slice).unwrap().to_string()
     }
 
-    fn call_back(result: Result<String, String>, success: Callback, failure: Callback) {
+    fn call_back(result: Result<String, GenericError>, success: Callback, failure: Callback) {
         match result {
             Ok(ok) => {
                 let ok = CString::new(ok.as_bytes()).unwrap();
                 success(ok.as_ptr());
             }
             Err(err) => {
-                let error = CString::new(err.as_bytes()).unwrap();
+                let error = CString::new(err.to_string().as_bytes()).unwrap();
                 failure(error.as_ptr());
             }
         };
@@ -101,7 +102,7 @@ mod c_interop {
             let problem = to_string(problem);
             let problem = BufReader::new(problem.as_bytes());
             let result = deserialize_problem(problem)
-                .map_err(|errs| errs.to_string())
+                .map_err(|errs| errs.into())
                 .and_then(|problem| get_locations_serialized(&problem));
 
             call_back(result, success, failure);
@@ -133,7 +134,7 @@ mod c_interop {
                     success(problem.as_ptr());
                 }
                 Err(err) => {
-                    let error = CString::new(err.as_bytes()).unwrap();
+                    let error = CString::new(err.to_string().as_bytes()).unwrap();
                     failure(error.as_ptr());
                 }
             }
@@ -172,7 +173,7 @@ mod c_interop {
                     Err(MultiFormatError::from(errors1.into_iter().chain(errors2.into_iter()).collect::<Vec<_>>()))
                 }
             }
-            .map_err(|errs| errs.to_string())
+            .map_err(|errs| errs.into())
             .map(|_| "[]".to_string());
 
             call_back(result, success, failure);
@@ -196,10 +197,10 @@ mod c_interop {
 
             let result =
                 if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
-                    .map_err(|errs| errs.to_string())
+                    .map_err(|errs| errs.into())
                     .and_then(|problem| {
                         read_config(BufReader::new(to_string(config).as_bytes()))
-                            .map_err(|err| to_config_error(err.as_str()))
+                            .map_err(|err| GenericError::from(serialize_as_config_error(err.to_string().as_str())))
                             .map(|config| (problem, config))
                     })
                     .and_then(|(problem, config)| get_solution_serialized(Arc::new(problem), config));
@@ -231,10 +232,10 @@ mod c_interop {
                 unreachable!()
             }
             extern "C" fn failure2(_: *const c_char) {}
-            call_back(Err("failure".to_string()), success2, failure2);
+            call_back(Err("failure".into()), success2, failure2);
 
             let result = std::panic::catch_unwind(|| {
-                call_back(Err("failure".to_string()), success1, failure1);
+                call_back(Err("failure".into()), success1, failure1);
             });
             assert!(result.is_err());
         }
@@ -361,19 +362,19 @@ mod py_interop {
 
                 writer
                     .into_inner()
-                    .map_err(|err| format!("BufWriter: {err}"))
-                    .and_then(|bytes| String::from_utf8(bytes).map_err(|err| format!("StringUTF8: {err}")))
+                    .map_err(|err| format!("BufWriter: {err}").into())
+                    .and_then(|bytes| String::from_utf8(bytes).map_err(|err| format!("StringUTF8: {err}").into()))
             })
-            .map_err(PyOSError::new_err)
+            .map_err(|err| PyOSError::new_err(err.to_string()))
     }
 
     /// Returns a list of unique locations which can be used to request a routing matrix.
     #[pyfunction]
     fn get_routing_locations(problem: String) -> PyResult<String> {
         deserialize_problem(BufReader::new(problem.as_bytes()))
-            .map_err(|errs| errs.to_string())
+            .map_err(|errs| errs.into())
             .and_then(|problem| get_locations_serialized(&problem))
-            .map_err(PyOSError::new_err)
+            .map_err(|err| PyOSError::new_err(err.to_string()))
     }
 
     /// Validates and solves Vehicle Routing Problem.
@@ -398,14 +399,14 @@ mod py_interop {
 
         // try solve problem
         if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
-            .map_err(|errs| errs.to_string())
+            .map_err(|errs| errs.into())
             .and_then(|problem| {
                 read_config(BufReader::new(config.as_bytes()))
-                    .map_err(|err| to_config_error(err.as_str()))
+                    .map_err(|err| GenericError::from(serialize_as_config_error(err.to_string().as_str())))
                     .map(|config| (problem, config))
             })
             .and_then(|(problem, config)| get_solution_serialized(Arc::new(problem), config))
-            .map_err(PyOSError::new_err)
+            .map_err(|err| PyOSError::new_err(err.to_string()))
     }
 
     #[pymodule]
@@ -492,7 +493,7 @@ mod wasm {
         );
 
         let config: Config = serde_wasm_bindgen::from_value(config)
-            .map_err(|err| to_config_error(&err.to_string()))
+            .map_err(|err| serialize_as_config_error(&err.to_string()))
             .map_err(|err| JsValue::from_str(err.as_str()))?;
 
         get_solution_serialized(problem, config)
@@ -502,15 +503,15 @@ mod wasm {
 }
 
 /// Gets locations serialized in json.
-pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
+pub fn get_locations_serialized(problem: &Problem) -> Result<String, GenericError> {
     // TODO validate the problem?
 
     let locations = get_unique_locations(problem);
-    serde_json::to_string_pretty(&locations).map_err(|err| err.to_string())
+    serde_json::to_string_pretty(&locations).map_err(|err| err.to_string().into())
 }
 
 /// Gets solution serialized in json.
-pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Result<String, String> {
+pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Result<String, GenericError> {
     let solution = create_builder_from_config(problem.clone(), Default::default(), &config)
         .and_then(|builder| builder.build())
         .map(|config| Solver::new(problem.clone(), config))
@@ -539,7 +540,7 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
     Ok(result)
 }
 
-fn to_config_error(err: &str) -> String {
+fn serialize_as_config_error(err: &str) -> String {
     FormatError::new(
         "E0004".to_string(),
         "cannot read config".to_string(),

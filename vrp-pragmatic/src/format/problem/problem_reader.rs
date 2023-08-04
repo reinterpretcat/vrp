@@ -178,7 +178,7 @@ fn create_extras(
     job_index: JobIndex,
     coord_index: Arc<CoordIndex>,
     reserved_times_index: ReservedTimesIndex,
-) -> Result<Extras, String> {
+) -> Result<Extras, GenericError> {
     let mut extras = Extras::default();
 
     extras.insert("coord_index".to_owned(), coord_index);

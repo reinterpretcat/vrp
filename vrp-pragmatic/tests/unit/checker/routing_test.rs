@@ -80,12 +80,13 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> So
     }
 }
 
-fn duration_error_msg(stop_idx: usize, actual: usize, expected: usize) -> String {
-    format!("arrival time mismatch for {stop_idx} stop in the tour: my_vehicle_1, expected: '1970-01-01T00:00:0{expected}Z', got: '1970-01-01T00:00:0{actual}Z'")
+fn duration_error(stop_idx: usize, actual: usize, expected: usize) -> GenericError {
+    format!("arrival time mismatch for {stop_idx} stop in the tour: my_vehicle_1, expected: '1970-01-01T00:00:0{expected}Z', got: '1970-01-01T00:00:0{actual}Z'").into()
 }
 
-fn distance_error_msg(stop_idx: usize, actual: usize, expected: usize) -> String {
+fn distance_error(stop_idx: usize, actual: usize, expected: usize) -> GenericError {
     format!("distance mismatch for {stop_idx} stop in the tour: my_vehicle_1, expected: '{expected}', got: '{actual}'")
+        .into()
 }
 
 parameterized_test! {can_check_stop, (stop_data, expected_result), {
@@ -99,16 +100,16 @@ can_check_stop! {
     case_02: (&[(2., 1), (3., 2), (6., 4)], Ok(())),
     case_03: (&[(1., 1), (3., 1), (6., 4)], Ok(())),
 
-    case_04: (&[(3., 1), (3., 2), (6., 4)], Err(vec![duration_error_msg(1, 3, 1)])),
-    case_05: (&[(1., 1), (1., 2), (6., 4)], Err(vec![duration_error_msg(2, 1, 3)])),
-    case_06: (&[(1., 1), (3., 2), (8., 4)], Err(vec![duration_error_msg(3, 8, 6)])),
+    case_04: (&[(3., 1), (3., 2), (6., 4)], Err(vec![duration_error(1, 3, 1)])),
+    case_05: (&[(1., 1), (1., 2), (6., 4)], Err(vec![duration_error(2, 1, 3)])),
+    case_06: (&[(1., 1), (3., 2), (8., 4)], Err(vec![duration_error(3, 8, 6)])),
 
-    case_07: (&[(1., 3), (3., 2), (6., 4)], Err(vec![distance_error_msg(1, 3, 1)])),
-    case_08: (&[(1., 1), (3., 0), (6., 4)], Err(vec![distance_error_msg(2, 0, 2)])),
-    case_09: (&[(1., 1), (3., 2), (6., 6)], Err(vec![distance_error_msg(3, 6, 4)])),
+    case_07: (&[(1., 3), (3., 2), (6., 4)], Err(vec![distance_error(1, 3, 1)])),
+    case_08: (&[(1., 1), (3., 0), (6., 4)], Err(vec![distance_error(2, 0, 2)])),
+    case_09: (&[(1., 1), (3., 2), (6., 6)], Err(vec![distance_error(3, 6, 4)])),
 }
 
-fn can_check_stop_impl(stop_data: &[(f64, i64); 3], expected_result: Result<(), Vec<String>>) {
+fn can_check_stop_impl(stop_data: &[(f64, i64); 3], expected_result: Result<(), Vec<GenericError>>) {
     let problem = create_test_problem();
     let matrix = create_matrix_from_problem(&problem);
     let solution = create_test_solution(create_test_statistic(), stop_data);
@@ -129,15 +130,15 @@ can_check_tour_statistic! {
     case_02: (Statistic {
         distance: 1,
         ..create_test_statistic()
-    }, Err(vec!["distance mismatch for tour statistic: my_vehicle_1, expected: '4', got: '1'".to_string()])),
+    }, Err(vec!["distance mismatch for tour statistic: my_vehicle_1, expected: '4', got: '1'".into()])),
 
     case_03: (Statistic {
         duration: 1,
         ..create_test_statistic()
-    }, Err(vec!["duration mismatch for tour statistic: my_vehicle_1, expected: '6', got: '1'".to_string()])),
+    }, Err(vec!["duration mismatch for tour statistic: my_vehicle_1, expected: '6', got: '1'".into()])),
 }
 
-fn can_check_tour_statistic_impl(statistic: Statistic, expected_result: Result<(), Vec<String>>) {
+fn can_check_tour_statistic_impl(statistic: Statistic, expected_result: Result<(), Vec<GenericError>>) {
     let problem = create_test_problem();
     let matrix = create_matrix_from_problem(&problem);
     let solution = create_test_solution(statistic, &[(1., 1), (3., 2), (6., 4)]);
@@ -165,6 +166,7 @@ fn can_check_solution_statistic() {
             "solution statistic mismatch, expected: '{:?}', got: '{:?}'",
             create_test_statistic(),
             wrong_statistic
-        )])
+        )
+        .into()])
     );
 }

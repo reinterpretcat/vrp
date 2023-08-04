@@ -31,6 +31,7 @@ pub use crate::algorithms::nsga2::Objective;
 pub use crate::utils::unwrap_from_result;
 pub use crate::utils::DefaultRandom;
 pub use crate::utils::Environment;
+pub use crate::utils::GenericError;
 pub use crate::utils::InfoLogger;
 pub use crate::utils::Noise;
 pub use crate::utils::Quota;

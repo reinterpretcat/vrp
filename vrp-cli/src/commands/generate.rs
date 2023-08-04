@@ -5,6 +5,7 @@ mod generate_test;
 use super::*;
 use std::io::BufReader;
 use vrp_cli::extensions::generate::generate_problem;
+use vrp_core::prelude::GenericError;
 use vrp_pragmatic::format::problem::{serialize_problem, Problem};
 use vrp_pragmatic::format::CoordIndex;
 use vrp_pragmatic::validation::ValidationContext;
@@ -66,7 +67,7 @@ pub fn get_generate_app() -> Command {
         )
 }
 
-pub fn run_generate(matches: &ArgMatches) -> Result<(), String> {
+pub fn run_generate(matches: &ArgMatches) -> Result<(), GenericError> {
     match generate_problem_from_args(matches) {
         Ok((problem, input_format)) => {
             let out_result = matches.get_one::<String>(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out result"));
@@ -74,15 +75,15 @@ pub fn run_generate(matches: &ArgMatches) -> Result<(), String> {
 
             match input_format.as_str() {
                 "pragmatic" => serialize_problem(&problem, &mut out_buffer)
-                    .map_err(|err| format!("cannot serialize as pragmatic problem: '{err}'")),
-                _ => Err(format!("unknown output format: '{input_format}'")),
+                    .map_err(|err| format!("cannot serialize as pragmatic problem: '{err}'").into()),
+                _ => Err(format!("unknown output format: '{input_format}'").into()),
             }
         }
-        Err(err) => Err(format!("cannot generate problem: '{err}'")),
+        Err(err) => Err(format!("cannot generate problem: '{err}'").into()),
     }
 }
 
-fn generate_problem_from_args(matches: &ArgMatches) -> Result<(Problem, String), String> {
+fn generate_problem_from_args(matches: &ArgMatches) -> Result<(Problem, String), GenericError> {
     let input_format = matches.get_one::<String>(FORMAT_ARG_NAME).unwrap();
 
     let input_files = matches
@@ -101,7 +102,7 @@ fn generate_problem_from_args(matches: &ArgMatches) -> Result<(Problem, String),
             let coord_index = CoordIndex::new(&problem);
             ValidationContext::new(&problem, None, &coord_index)
                 .validate()
-                .map_err(|errs| format!("generated problem has some validation errors:\n{errs}",))
+                .map_err(|errs| format!("generated problem has some validation errors:\n{errs}",).into())
                 .map(|_| (problem, input_format.to_owned()))
         },
     )

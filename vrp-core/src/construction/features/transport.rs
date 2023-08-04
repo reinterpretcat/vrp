@@ -20,7 +20,7 @@ pub fn create_minimize_transport_costs_feature(
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     time_window_code: ViolationCode,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     create_feature(
         name,
         transport,
@@ -37,7 +37,7 @@ pub fn create_minimize_duration_feature(
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     time_window_code: ViolationCode,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     create_feature(
         name,
         transport,
@@ -58,7 +58,7 @@ pub fn create_minimize_distance_feature(
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     time_window_code: ViolationCode,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     create_feature(
         name,
         transport,
@@ -78,7 +78,7 @@ fn create_feature(
     activity: Arc<dyn ActivityCost + Send + Sync>,
     time_window_code: ViolationCode,
     fitness_fn: Box<dyn Fn(&InsertionContext) -> f64 + Send + Sync>,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_constraint(TransportConstraint {

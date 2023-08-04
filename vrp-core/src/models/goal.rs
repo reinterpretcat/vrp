@@ -46,7 +46,7 @@ impl GoalContext {
         features: &[Feature],
         global_objective_map: &[Vec<String>],
         local_objective_map: &[Vec<String>],
-    ) -> Result<Self, String> {
+    ) -> Result<Self, GenericError> {
         let ids_all = features
             .iter()
             .filter_map(|feature| feature.objective.as_ref().map(|_| feature.name.clone()))
@@ -57,7 +57,8 @@ impl GoalContext {
             return Err(format!(
                 "some of the features are defined more than once, check ids list: {}",
                 ids_all.join(",")
-            ));
+            )
+            .into());
         }
 
         let check_objective_map = |objective_map: &[Vec<String>]| {
@@ -68,14 +69,12 @@ impl GoalContext {
 
         if !check_objective_map(global_objective_map) {
             return Err(
-                "global objective map is invalid: it should contain unique ids of the features specified".to_string()
+                "global objective map is invalid: it should contain unique ids of the features specified".into()
             );
         }
 
         if !check_objective_map(local_objective_map) {
-            return Err(
-                "local objective map is invalid: it should contain unique ids of the features specified".to_string()
-            );
+            return Err("local objective map is invalid: it should contain unique ids of the features specified".into());
         }
 
         let feature_map = features
@@ -83,7 +82,7 @@ impl GoalContext {
             .filter_map(|feature| feature.objective.as_ref().map(|objective| (feature.name.clone(), objective.clone())))
             .collect::<HashMap<_, _>>();
 
-        let remap_objectives = |objective_map: &[Vec<String>]| -> Result<Vec<_>, String> {
+        let remap_objectives = |objective_map: &[Vec<String>]| -> Result<Vec<_>, GenericError> {
             objective_map.iter().try_fold(Vec::default(), |mut acc_outer, ids| {
                 acc_outer.push(ids.iter().try_fold(Vec::default(), |mut acc_inner, id| {
                     if let Some(objective) = feature_map.get(id) {
@@ -194,7 +193,7 @@ pub struct FeatureBuilder {
 
 impl FeatureBuilder {
     /// Combines multiple features into one.
-    pub fn combine(name: &str, features: &[Feature]) -> Result<Feature, String> {
+    pub fn combine(name: &str, features: &[Feature]) -> Result<Feature, GenericError> {
         combine_features(name, features)
     }
 
@@ -231,15 +230,15 @@ impl FeatureBuilder {
     }
 
     /// Tries to builds a feature.
-    pub fn build(self) -> Result<Feature, String> {
+    pub fn build(self) -> Result<Feature, GenericError> {
         let feature = self.feature;
 
         if feature.name == String::default() {
-            return Err("features with default id are not allowed".to_string());
+            return Err("features with default id are not allowed".into());
         }
 
         if feature.constraint.is_none() && feature.objective.is_none() {
-            Err("empty feature is not allowed".to_string())
+            Err("empty feature is not allowed".into())
         } else {
             Ok(feature)
         }
@@ -306,18 +305,18 @@ impl MultiObjective for GoalContext {
         Box::new(self.flatten_objectives.iter().map(|o| o.fitness(solution)))
     }
 
-    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String> {
+    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, GenericError> {
         self.flatten_objectives
             .get(idx)
             .map(|o| o.total_order(a, b))
-            .ok_or_else(|| format!("cannot get total_order with index: {idx}"))
+            .ok_or_else(|| format!("cannot get total_order with index: {idx}").into())
     }
 
-    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String> {
+    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, GenericError> {
         self.flatten_objectives
             .get(idx)
             .map(|o| o.distance(a, b))
-            .ok_or_else(|| format!("cannot get distance with index: {idx}"))
+            .ok_or_else(|| format!("cannot get distance with index: {idx}").into())
     }
 
     fn size(&self) -> usize {

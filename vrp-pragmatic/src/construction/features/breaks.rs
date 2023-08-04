@@ -11,7 +11,7 @@ use hashbrown::HashSet;
 use std::iter::once;
 use vrp_core::construction::enablers::*;
 use vrp_core::models::solution::Activity;
-use vrp_core::rosomaxa::prelude::Objective;
+use vrp_core::rosomaxa::prelude::*;
 
 /// Specifies break policy.
 #[derive(Clone)]
@@ -24,7 +24,7 @@ pub enum BreakPolicy {
 
 /// Creates a feature to schedule an optional break. Here, optional means that break sometimes can
 /// be skipped due to constraint violations or suboptimal search path in solution space.
-pub fn create_optional_break_feature(name: &str, code: ViolationCode) -> Result<Feature, String> {
+pub fn create_optional_break_feature(name: &str, code: ViolationCode) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_constraint(OptionalBreakConstraint { code })

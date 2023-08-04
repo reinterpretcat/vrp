@@ -26,7 +26,7 @@ pub fn create_maximize_total_job_value_feature(
     job_read_value_fn: JobReadValueFn,
     job_write_value_fn: JobWriteValueFn,
     merge_code: ViolationCode,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(MaximizeTotalValueObjective {

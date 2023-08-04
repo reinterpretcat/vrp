@@ -35,7 +35,7 @@ parameterized_test! {can_check_shift_and_distance_limit, (max_distance, shift_ti
         Err(format!(
             "{} violation, expected: not more than {}, got: {}, vehicle id 'some_real_vehicle', shift index: 0",
             prefix_msg, max_distance.unwrap_or_else(|| shift_time.unwrap()), actual,
-        ))
+        ).into())
     } else {
         Ok(())
     };
@@ -58,7 +58,7 @@ pub fn can_check_shift_and_distance_limit_impl(
     max_distance: Option<f64>,
     max_duration: Option<f64>,
     actual: i64,
-    expected: Result<(), String>,
+    expected: Result<(), GenericError>,
 ) {
     let problem = create_test_problem(Some(VehicleLimits { max_distance, max_duration, tour_size: None }));
     let solution =
@@ -126,7 +126,7 @@ pub fn can_check_tour_size_limit() {
     assert_eq!(
         result,
         Err("tour size limit violation, expected: not more than 2, got: 3, vehicle id 'some_real_vehicle', shift index: 0"
-            .to_string())
+            .into())
     );
 }
 
@@ -201,5 +201,5 @@ fn can_check_shift_time() {
 
     let result = check_shift_time(&ctx);
 
-    assert_eq!(result, Err("tour time is outside shift time, vehicle id 'my_vehicle_1', shift index: 0".to_owned()));
+    assert_eq!(result, Err("tour time is outside shift time, vehicle id 'my_vehicle_1', shift index: 0".into()));
 }

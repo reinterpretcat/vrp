@@ -8,7 +8,11 @@ use super::*;
 use crate::construction::enablers::JobTie;
 
 /// Creates a compatibility feature as hard constraint.
-pub fn create_compatibility_feature(name: &str, code: ViolationCode, state_key: StateKey) -> Result<Feature, String> {
+pub fn create_compatibility_feature(
+    name: &str,
+    code: ViolationCode,
+    state_key: StateKey,
+) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_constraint(CompatibilityConstraint { code, state_key })

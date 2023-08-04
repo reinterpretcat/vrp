@@ -3,6 +3,7 @@
 mod plan_test;
 
 use super::get_random_item;
+use vrp_core::prelude::GenericError;
 use vrp_core::utils::{DefaultRandom, Random};
 use vrp_pragmatic::format::problem::{Job, JobPlace, JobTask, Plan, Problem};
 use vrp_pragmatic::format::Location;
@@ -15,7 +16,7 @@ pub(crate) fn generate_plan(
     locations: Option<Vec<Location>>,
     jobs_size: usize,
     area_size: Option<f64>,
-) -> Result<Plan, String> {
+) -> Result<Plan, GenericError> {
     let rnd = DefaultRandom::default();
 
     let get_location_fn = get_location_fn(problem_proto, locations, area_size)?;
@@ -81,7 +82,7 @@ fn get_location_fn(
     problem_proto: &Problem,
     locations: Option<Vec<Location>>,
     area_size: Option<f64>,
-) -> Result<LocationFn, String> {
+) -> Result<LocationFn, GenericError> {
     if let Some(locations) = locations {
         Ok(Box::new(move |rnd| get_random_item(locations.as_slice(), rnd).cloned().expect("cannot get any location")))
     } else {
@@ -89,7 +90,7 @@ fn get_location_fn(
             if area_size > 0. {
                 get_bounding_box_from_size(&problem_proto.plan, area_size)
             } else {
-                return Err("area size must be positive".to_string());
+                return Err("area size must be positive".into());
             }
         } else {
             get_bounding_box_from_plan(&problem_proto.plan)

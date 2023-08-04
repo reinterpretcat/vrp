@@ -3,18 +3,19 @@
 use crate::construction::heuristics::{MoveContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use crate::models::*;
-use rosomaxa::prelude::unwrap_from_result;
+use rosomaxa::prelude::*;
 use std::slice::Iter;
 use std::sync::Arc;
 
 /// Combines multiple features as single with given name.
-pub(crate) fn combine_features(name: &str, features: &[Feature]) -> Result<Feature, String> {
+pub(crate) fn combine_features(name: &str, features: &[Feature]) -> Result<Feature, GenericError> {
     let objectives = features.iter().filter_map(|feature| feature.objective.clone()).collect::<Vec<_>>();
     if objectives.len() > 1 {
         return Err(format!(
             "combination of features with multiple objectives is not supported. Objective count: {}",
             objectives.len()
-        ));
+        )
+        .into());
     }
 
     let constraints = features.iter().filter_map(|feature| feature.constraint.clone()).collect::<Vec<_>>();

@@ -10,21 +10,22 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::*;
 use vrp_core::models::{Extras, Problem};
+use vrp_core::prelude::GenericError;
 
 /// A trait to read lilim problem.
 pub trait LilimProblem {
     /// Reads lilim problem.
-    fn read_lilim(self, is_rounded: bool) -> Result<Problem, String>;
+    fn read_lilim(self, is_rounded: bool) -> Result<Problem, GenericError>;
 }
 
 impl<R: Read> LilimProblem for BufReader<R> {
-    fn read_lilim(self, is_rounded: bool) -> Result<Problem, String> {
+    fn read_lilim(self, is_rounded: bool) -> Result<Problem, GenericError> {
         LilimReader { buffer: String::new(), reader: self, coord_index: CoordIndex::default() }.read_problem(is_rounded)
     }
 }
 
 impl LilimProblem for String {
-    fn read_lilim(self, is_rounded: bool) -> Result<Problem, String> {
+    fn read_lilim(self, is_rounded: bool) -> Result<Problem, GenericError> {
         BufReader::new(self.as_bytes()).read_lilim(is_rounded)
     }
 }
@@ -60,18 +61,18 @@ impl<R: Read> TextReader for LilimReader<R> {
         &self,
         activity: Arc<SimpleActivityCost>,
         transport: Arc<dyn TransportCost + Send + Sync>,
-    ) -> Result<GoalContext, String> {
+    ) -> Result<GoalContext, GenericError> {
         create_goal_context_prefer_min_tours(activity, transport)
     }
 
-    fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), String> {
+    fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError> {
         let fleet = self.read_fleet()?;
         let jobs = self.read_jobs()?;
 
         Ok((jobs, fleet))
     }
 
-    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, GenericError> {
         self.coord_index.create_transport(is_rounded)
     }
 
@@ -81,7 +82,7 @@ impl<R: Read> TextReader for LilimReader<R> {
 }
 
 impl<R: Read> LilimReader<R> {
-    fn read_fleet(&mut self) -> Result<Fleet, String> {
+    fn read_fleet(&mut self) -> Result<Fleet, GenericError> {
         let vehicle = self.read_vehicle()?;
         let depot = self.read_customer()?;
 
@@ -93,7 +94,7 @@ impl<R: Read> LilimReader<R> {
         ))
     }
 
-    fn read_jobs(&mut self) -> Result<Vec<Job>, String> {
+    fn read_jobs(&mut self) -> Result<Vec<Job>, GenericError> {
         let mut customers: HashMap<usize, JobLine> = Default::default();
         let mut relations: Vec<Relation> = Default::default();
         loop {
@@ -152,7 +153,7 @@ impl<R: Read> LilimReader<R> {
         })
     }
 
-    fn read_vehicle(&mut self) -> Result<VehicleLine, String> {
+    fn read_vehicle(&mut self) -> Result<VehicleLine, GenericError> {
         read_line(&mut self.reader, &mut self.buffer)?;
         let (number, capacity, _ignored) = self
             .buffer
@@ -164,7 +165,7 @@ impl<R: Read> LilimReader<R> {
         Ok(VehicleLine { number, capacity, _ignored })
     }
 
-    fn read_customer(&mut self) -> Result<JobLine, String> {
+    fn read_customer(&mut self) -> Result<JobLine, GenericError> {
         read_line(&mut self.reader, &mut self.buffer)?;
         let (id, x, y, demand, start, end, service, _, relation) = self
             .buffer

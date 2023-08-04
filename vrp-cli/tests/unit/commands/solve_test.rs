@@ -106,7 +106,7 @@ fn can_specify_heuristic_setting() {
 fn can_specify_parallelism() {
     for (params, result) in vec![
         (vec!["--parallelism", "3,1"], Ok(3_usize)),
-        (vec!["--parallelism", "3"], Err("cannot parse parallelism parameter".to_string())),
+        (vec!["--parallelism", "3"], Err("cannot parse parallelism parameter".into())),
     ] {
         let matches = get_solomon_matches(params.as_slice());
 
@@ -120,7 +120,7 @@ fn can_specify_parallelism() {
 fn can_use_init_size() {
     for (params, result) in vec![
         (vec!["--init-size", "1"], Ok(Some(1))),
-        (vec!["--init-size", "0"], Err("init size must be an integer bigger than 0, got '0'".to_string())),
+        (vec!["--init-size", "0"], Err("init size must be an integer bigger than 0, got '0'".into())),
         (vec![], Ok(None)),
     ] {
         let matches = get_solomon_matches(params.as_slice());
@@ -136,11 +136,11 @@ fn can_specify_cv() {
     for (params, result) in vec![
         (vec!["--min-cv", "sample,200,0.05,true"], Ok(Some(("sample".to_string(), 200, 0.05, true)))),
         (vec!["--min-cv", "period,100,0.01,false"], Ok(Some(("period".to_string(), 100, 0.01, false)))),
-        (vec!["--min-cv", "sample,200,0,tru"], Err("cannot parse min_cv parameter".to_string())),
-        (vec!["--min-cv", "sampl,200,0,true"], Err("cannot parse min_cv parameter".to_string())),
-        (vec!["--min-cv", "perio,200,0,true"], Err("cannot parse min_cv parameter".to_string())),
-        (vec!["--min-cv", "200,0"], Err("cannot parse min_cv parameter".to_string())),
-        (vec!["--min-cv", "0"], Err("cannot parse min_cv parameter".to_string())),
+        (vec!["--min-cv", "sample,200,0,tru"], Err("cannot parse min_cv parameter".into())),
+        (vec!["--min-cv", "sampl,200,0,true"], Err("cannot parse min_cv parameter".into())),
+        (vec!["--min-cv", "perio,200,0,true"], Err("cannot parse min_cv parameter".into())),
+        (vec!["--min-cv", "200,0"], Err("cannot parse min_cv parameter".into())),
+        (vec!["--min-cv", "0"], Err("cannot parse min_cv parameter".into())),
         (vec![], Ok(None)),
     ] {
         let matches = get_solomon_matches(params.as_slice());

@@ -7,16 +7,17 @@ fn test_violations() -> Option<Vec<Violation>> {
     Some(vec![Violation::Break { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }])
 }
 
-fn get_matched_break_error_msg(matched: usize, actual: usize) -> Result<(), Vec<String>> {
+fn get_matched_break_error_msg(matched: usize, actual: usize) -> Result<(), Vec<GenericError>> {
     Err(vec![format!(
         "cannot match all breaks, matched: '{matched}', actual '{actual}' for vehicle 'my_vehicle_1', shift index '0'"
-    )])
+    )
+    .into()])
 }
 
-fn get_total_break_error_msg(expected: usize, actual: usize) -> Result<(), Vec<String>> {
+fn get_total_break_error_msg(expected: usize, actual: usize) -> Result<(), Vec<GenericError>> {
     Err(vec![format!(
         "amount of breaks does not match, expected: '{expected}', got '{actual}' for vehicle 'my_vehicle_1', shift index '0'"
-    )])
+    ).into()])
 }
 
 fn get_offset_break(start: f64, end: f64) -> VehicleOptionalBreakTime {
@@ -66,7 +67,7 @@ fn can_check_breaks_impl(
     break_times: VehicleOptionalBreakTime,
     violations: Option<Vec<Violation>>,
     has_break: bool,
-    expected_result: Result<(), Vec<String>>,
+    expected_result: Result<(), Vec<GenericError>>,
 ) {
     let problem = Problem {
         plan: Plan {

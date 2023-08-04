@@ -6,6 +6,7 @@ use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
+use vrp_core::prelude::GenericError;
 use vrp_core::utils::{DefaultRandom, Random};
 
 /// Creates stop with single activity using common schema.
@@ -166,7 +167,7 @@ pub fn to_core_solution(
     solution: &Solution,
     core_problem: Arc<CoreProblem>,
     random: Arc<dyn Random + Send + Sync>,
-) -> Result<CoreSolution, String> {
+) -> Result<CoreSolution, GenericError> {
     let mut writer = BufWriter::new(Vec::new());
     serialize_solution(solution, &mut writer).expect("cannot serialize test solution");
     let bytes = writer.into_inner().expect("cannot get bytes from writer");

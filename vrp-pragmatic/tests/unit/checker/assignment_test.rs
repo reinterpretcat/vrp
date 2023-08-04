@@ -64,19 +64,19 @@ check_jobs! {
             ("my_vehicle_2", 0, vec![("job1", "delivery")])
         ],
         vec![],
-        Err("job served in multiple tours: 'job1'".to_string())
+        Err("job served in multiple tours: 'job1'".into())
     ),
     case_03: (
         vec![("job1", vec!["pickup", "delivery"])],
         vec![("my_vehicle_1", 0, vec![("job1", "pickup")])],
         vec![],
-        Err("not all tasks served for 'job1', expected: 2, assigned: 1".to_string())
+        Err("not all tasks served for 'job1', expected: 2, assigned: 1".into())
     ),
     case_04: (
         vec![("job1", vec!["pickup", "delivery"])],
         vec![("my_vehicle_1", 0, vec![("job1", "delivery"), ("job1", "pickup")])],
         vec![],
-        Err("found pickup after delivery for 'job1'".to_string())
+        Err("found pickup after delivery for 'job1'".into())
     ),
     case_05: (
         vec![("job1", vec!["pickup", "delivery"])],
@@ -88,13 +88,13 @@ check_jobs! {
         vec![("job1", vec!["pickup", "delivery"])],
         vec![],
         vec!["job1", "job1"],
-        Err("duplicated job ids in the list of unassigned jobs".to_string())
+        Err("duplicated job ids in the list of unassigned jobs".into())
     ),
     case_07: (
         vec![("job1", vec!["pickup", "delivery"])],
         vec![],
         vec!["job2"],
-        Err("unknown job id in the list of unassigned jobs: 'job2'".to_string())
+        Err("unknown job id in the list of unassigned jobs: 'job2'".into())
     ),
     case_08: (
         vec![("job1", vec!["pickup", "delivery"])],
@@ -106,7 +106,7 @@ check_jobs! {
         vec![("job1", vec!["pickup", "delivery"])],
         vec![("my_vehicle_1", 0, vec![("job1", "pickup"), ("job1", "delivery")])],
         vec!["job1"],
-        Err("job present as assigned and unassigned: 'job1'".to_string())
+        Err("job present as assigned and unassigned: 'job1'".into())
     ),
      case_10: (
         vec![("job1", vec!["pickup"])],
@@ -121,7 +121,7 @@ fn check_jobs_impl(
     jobs: Vec<(&str, Vec<&str>)>,
     tours: Vec<(&str, usize, Vec<(&str, &str)>)>,
     unassigned: Vec<&str>,
-    expected_result: Result<(), String>,
+    expected_result: Result<(), GenericError>,
 ) {
     let create_tasks = |tgt: &str, tasks: &Vec<&str>| {
         (1..)
@@ -244,7 +244,7 @@ fn can_detect_time_window_violation() {
 
     let result = check_assignment(&ctx);
 
-    assert_eq!(result, Err(vec!["cannot match activities to jobs: job1:<no tag>".to_owned()]));
+    assert_eq!(result, Err(vec!["cannot match activities to jobs: job1:<no tag>".into()]));
 }
 
 #[test]
@@ -308,7 +308,7 @@ fn can_detect_job_duration_violation() {
 
     let result = check_assignment(&ctx);
 
-    assert_eq!(result, Err(vec!["cannot match activities to jobs: job1:<no tag>".to_owned()]));
+    assert_eq!(result, Err(vec!["cannot match activities to jobs: job1:<no tag>".into()]));
 }
 
 #[test]
@@ -370,7 +370,7 @@ fn can_detect_dispatch_violations() {
 
     let result = check_dispatch(&ctx);
 
-    assert_eq!(result, Err("tour should have dispatch, but none is found: 'my_vehicle_1'".to_owned()));
+    assert_eq!(result, Err("tour should have dispatch, but none is found: 'my_vehicle_1'".into()));
 }
 
 #[test]
@@ -430,5 +430,5 @@ fn can_detect_group_violations() {
 
     let result = check_groups(&ctx);
 
-    assert_eq!(result, Err("job groups are not respected: 'group1'".to_owned()));
+    assert_eq!(result, Err("job groups are not respected: 'group1'".into()));
 }

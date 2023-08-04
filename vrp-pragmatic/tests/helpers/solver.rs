@@ -10,7 +10,7 @@ use vrp_core::rosomaxa::evolution::TelemetryMode;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::{create_default_config_builder, create_elitism_population, Solver};
 use vrp_core::solver::{get_default_telemetry_mode, RefinementContext};
-use vrp_core::utils::{Environment, Parallelism};
+use vrp_core::utils::{Environment, GenericError, Parallelism};
 
 /// Runs solver with cheapest insertion heuristic.
 pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matrix>>) -> Solution {
@@ -92,14 +92,14 @@ fn get_core_solution<F: FnOnce(Arc<CoreProblem>) -> CoreSolution>(
     let format_solution = sort_all_data(create_solution(&core_problem, &core_solution, &Default::default()));
 
     if perform_check {
-        if let Some(err) =
+        if let Some(errs) =
             CheckerContext::new(core_problem, format_problem.clone(), format_matrices, format_solution.clone())
                 .and_then(|ctx| ctx.check())
                 .err()
         {
             panic!(
                 "check failed: '{}', problem: {:?}, solution: {:?}",
-                err.join("\n"),
+                GenericError::join_many(&errs, "\n"),
                 format_problem,
                 format_solution
             );

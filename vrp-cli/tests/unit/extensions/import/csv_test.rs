@@ -42,7 +42,8 @@ job2,52.5165,13.3808,3,,
 
     let result =
         import_problem("csv", Some(vec![BufReader::new(invalid_jobs.as_bytes()), BufReader::new("".as_bytes())]))
-            .expect_err("Should return error!");
+            .expect_err("Should return error!")
+            .to_string();
 
     assert_eq!(result, "cannot read csv: E0000, cause: 'cannot read jobs', action: 'check jobs definition'.");
 }
@@ -66,7 +67,8 @@ job1,52.5225,13.4095,1,3,,
 
     let result =
         import_problem("csv", input_size.map(|size| (0..size).map(|_| BufReader::new(jobs_csv.as_bytes())).collect()))
-            .expect_err("Should return error!");
+            .expect_err("Should return error!")
+            .to_string();
 
     assert_eq!(result, "csv format expects two files with jobs and vehicles as an input");
 }

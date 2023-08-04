@@ -13,7 +13,7 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
     name: &str,
     threshold: Option<f64>,
     load_balance_fn: LoadBalanceFn<T>,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     let default_capacity = T::default();
     let default_intervals = vec![(0_usize, 0_usize)];
 
@@ -47,7 +47,7 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
 }
 
 /// Creates a feature which balances activities across all tours.
-pub fn create_activity_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, String> {
+pub fn create_activity_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, GenericError> {
     let route_estimate_fn = Arc::new(|route_ctx: &RouteContext| route_ctx.route().tour.job_activity_count() as f64);
     let solution_estimate_fn = Arc::new(|solution_ctx: &SolutionContext| {
         get_cv_safe(
@@ -64,12 +64,12 @@ pub fn create_activity_balanced_feature(name: &str, threshold: Option<f64>) -> R
 }
 
 /// Creates a feature which which balances travelled durations across all tours.
-pub fn create_duration_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, String> {
+pub fn create_duration_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, GenericError> {
     create_transport_balanced_feature(name, threshold, TOTAL_DURATION_KEY, BALANCE_DURATION_KEY)
 }
 
 /// Creates a feature which which balances travelled distances across all tours.
-pub fn create_distance_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, String> {
+pub fn create_distance_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, GenericError> {
     create_transport_balanced_feature(name, threshold, TOTAL_DISTANCE_KEY, BALANCE_DISTANCE_KEY)
 }
 
@@ -78,7 +78,7 @@ fn create_transport_balanced_feature(
     threshold: Option<f64>,
     value_key: i32,
     state_key: i32,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     let route_estimate_fn = Arc::new(move |route_ctx: &RouteContext| {
         route_ctx.state().get_route_state::<f64>(value_key).cloned().unwrap_or(0.)
     });
@@ -102,7 +102,7 @@ fn create_feature(
     state_key: StateKey,
     route_estimate_fn: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
     solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(WorkBalanceObjective {

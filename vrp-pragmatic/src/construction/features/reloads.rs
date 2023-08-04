@@ -20,7 +20,7 @@ use vrp_core::models::solution::{Activity, Route};
 pub type LoadScheduleThresholdFn<T> = Box<dyn Fn(&T) -> T + Send + Sync>;
 /// A factory function to create capacity feature.
 pub type CapacityFeatureFactoryFn<T> =
-    Box<dyn Fn(&str, Arc<dyn MultiTrip<Constraint = T> + Send + Sync>) -> Result<Feature, String>>;
+    Box<dyn Fn(&str, Arc<dyn MultiTrip<Constraint = T> + Send + Sync>) -> Result<Feature, GenericError>>;
 /// Specifies place capacity threshold function.
 type PlaceCapacityThresholdFn<T> = Box<dyn Fn(&RouteContext, &Activity, &T) -> bool + Send + Sync>;
 
@@ -33,7 +33,7 @@ pub fn create_shared_reload_multi_trip_feature<T>(
     total_jobs: usize,
     constraint_code: ViolationCode,
     resource_key: StateKey,
-) -> Result<Feature, String>
+) -> Result<Feature, GenericError>
 where
     T: SharedResource + LoadOps,
 {
@@ -59,7 +59,7 @@ pub fn create_simple_reload_multi_trip_feature<T: LoadOps>(
     name: &str,
     capacity_feature_factory: CapacityFeatureFactoryFn<T>,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     let multi_trip = create_reload_multi_trip(load_schedule_threshold_fn, None);
 
     (capacity_feature_factory)(name, Arc::new(multi_trip))
@@ -141,7 +141,7 @@ fn create_shared_reload_constraint<T>(
     total_jobs: usize,
     constraint_code: ViolationCode,
     resource_key: StateKey,
-) -> Result<Feature, String>
+) -> Result<Feature, GenericError>
 where
     T: SharedResource + LoadOps,
 {

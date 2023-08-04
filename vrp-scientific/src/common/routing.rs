@@ -5,6 +5,7 @@ mod routing_test;
 use std::sync::Arc;
 use vrp_core::models::common::Location;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData, TransportCost};
+use vrp_core::prelude::GenericError;
 
 /// Represents a coord index which can be used to analyze customer's locations.
 #[derive(Clone, Default)]
@@ -26,7 +27,7 @@ impl CoordIndex {
     }
 
     /// Creates transport.
-    pub fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+    pub fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, GenericError> {
         let matrix_values = self
             .locations
             .iter()

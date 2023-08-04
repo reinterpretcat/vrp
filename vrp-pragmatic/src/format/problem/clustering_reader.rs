@@ -7,7 +7,7 @@ use vrp_core::construction::clustering::vicinity::*;
 use vrp_core::models::common::Profile;
 
 /// Creates cluster config if it is defined on the api problem.
-pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<ClusterConfig>, String> {
+pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<ClusterConfig>, GenericError> {
     if let Some(clustering) = api_problem.plan.clustering.as_ref() {
         match clustering {
             Clustering::Vicinity { profile, threshold, visiting, serving, filtering } => Ok(Some(ClusterConfig {
@@ -39,7 +39,7 @@ pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<C
     }
 }
 
-fn get_profile(api_problem: &ApiProblem, profile: &VehicleProfile) -> Result<Profile, String> {
+fn get_profile(api_problem: &ApiProblem, profile: &VehicleProfile) -> Result<Profile, GenericError> {
     let profile_map = get_profile_index_map(api_problem);
     let profile_index = profile_map
         .get(&profile.matrix)

@@ -12,7 +12,7 @@ use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::{Activity, Place};
-use vrp_core::utils::compare_floats;
+use vrp_core::prelude::*;
 
 /// Aggregates job specific information for a job activity.
 pub(crate) struct JobInfo(pub Job, pub Arc<Single>, pub Place, pub TimeWindow);
@@ -25,7 +25,7 @@ pub(crate) fn try_match_point_job(
     activity: &FormatActivity,
     job_index: &JobIndex,
     coord_index: &CoordIndex,
-) -> Result<Option<JobInfo>, String> {
+) -> Result<Option<JobInfo>, GenericError> {
     let ctx = ActivityContext {
         route_start_time: get_route_start_time(tour)?,
         location: coord_index
@@ -55,7 +55,8 @@ pub(crate) fn try_match_point_job(
                         return Err(format!(
                             "cannot check multi job without unique tags, check '{}' job",
                             activity.job_id
-                        ));
+                        )
+                        .into());
                     }
 
                     Box::new(multi.jobs.iter())
@@ -80,7 +81,7 @@ pub(crate) fn try_match_point_job(
                 .next()
                 .ok_or_else(|| format!("cannot match '{}' for '{}'", ctx.act_type, tour.vehicle_id))?,
         )),
-        _ => Err(format!("unknown activity type: {}", activity.activity_type)),
+        _ => Err(format!("unknown activity type: {}", activity.activity_type).into()),
     }
 }
 
@@ -90,7 +91,7 @@ pub(crate) fn try_match_transit_activity(
     tour: &FormatTour,
     stop: &TransitStop,
     activity: &FormatActivity,
-) -> Result<TimeWindow, String> {
+) -> Result<TimeWindow, GenericError> {
     try_match_break_activity(problem, tour, &stop.time, activity)
 }
 
@@ -100,7 +101,7 @@ pub(crate) fn try_match_break_activity(
     tour: &FormatTour,
     stop_schedule: &FormatSchedule,
     activity: &FormatActivity,
-) -> Result<TimeWindow, String> {
+) -> Result<TimeWindow, GenericError> {
     let route_start_time = get_route_start_time(tour)?;
     let activity_time = get_activity_time(activity, stop_schedule);
 
@@ -121,7 +122,7 @@ pub(crate) fn try_match_break_activity(
             VehicleBreak::Optional { .. } => None,
         })
         .find(|time| activity_time.intersects(time))
-        .ok_or_else(|| "cannot match activity to required break".to_string())
+        .ok_or_else(|| "cannot match activity to required break".into())
 }
 
 struct ActivityContext<'a> {
@@ -244,6 +245,6 @@ fn get_activity_time(activity: &FormatActivity, stop_schedule: &FormatSchedule) 
         .unwrap_or_else(|| TimeWindow::new(parse_time(&stop_schedule.arrival), parse_time(&stop_schedule.departure)))
 }
 
-fn get_route_start_time(tour: &FormatTour) -> Result<Timestamp, String> {
-    tour.stops.first().map(|stop| parse_time(&stop.schedule().departure)).ok_or_else(|| "empty route".to_owned())
+fn get_route_start_time(tour: &FormatTour) -> Result<Timestamp, GenericError> {
+    tour.stops.first().map(|stop| parse_time(&stop.schedule().departure)).ok_or_else(|| "empty route".into())
 }

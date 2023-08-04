@@ -20,7 +20,7 @@ pub fn create_activity_limit_feature(
     name: &str,
     code: ViolationCode,
     limit_func: ActivitySizeResolver,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_constraint(ActivityLimitConstraint { code, limit_fn: limit_func })
@@ -36,7 +36,7 @@ pub fn create_travel_limit_feature(
     tour_duration_limit_fn: TravelLimitFn<Duration>,
     distance_code: ViolationCode,
     duration_code: ViolationCode,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_constraint(TravelLimitConstraint {

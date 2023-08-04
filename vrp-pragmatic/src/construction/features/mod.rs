@@ -6,6 +6,7 @@ use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::*;
+use vrp_core::prelude::*;
 
 /// A key which tracks job group state.
 pub const GROUP_KEY: i32 = 1000;

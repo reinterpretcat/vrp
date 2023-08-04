@@ -18,9 +18,9 @@ pub fn create_tour_compactness_feature(
     job_radius: usize,
     state_key: StateKey,
     thresholds: Option<(usize, f64)>,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     if job_radius < 1 {
-        return Err("Tour compactness: job radius should be at least 1".to_string());
+        return Err("Tour compactness: job radius should be at least 1".into());
     }
 
     let thresholds = thresholds.map(|(threshold, distance)| (threshold as f64, distance));

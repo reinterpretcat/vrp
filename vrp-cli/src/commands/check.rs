@@ -3,6 +3,7 @@
 mod check_test;
 
 use super::*;
+use vrp_core::prelude::GenericError;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "problem-file";
@@ -32,7 +33,7 @@ pub fn get_check_app() -> Command {
         )
 }
 
-pub fn run_check(matches: &ArgMatches) -> Result<(), String> {
+pub fn run_check(matches: &ArgMatches) -> Result<(), GenericError> {
     let input_format = matches.get_one::<String>(FORMAT_ARG_NAME).unwrap();
     check_solution(matches, input_format, PROBLEM_ARG_NAME, SOLUTION_ARG_NAME, MATRIX_ARG_NAME)
 }

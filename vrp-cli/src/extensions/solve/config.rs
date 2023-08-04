@@ -440,7 +440,7 @@ fn configure_from_evolution(
     environment: Arc<Environment>,
     telemetry_mode: TelemetryMode,
     population_config: &Option<EvolutionConfig>,
-) -> Result<ProblemConfigBuilder, String> {
+) -> Result<ProblemConfigBuilder, GenericError> {
     if let Some(config) = population_config {
         if let Some(initial) = &config.initial {
             builder = builder.with_initial(
@@ -537,7 +537,7 @@ fn configure_from_hyper(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
     hyper_config: &Option<HyperType>,
-) -> Result<ProblemConfigBuilder, String> {
+) -> Result<ProblemConfigBuilder, GenericError> {
     if let Some(config) = hyper_config {
         match config {
             HyperType::StaticSelective { operators } => {
@@ -609,7 +609,7 @@ fn create_operator(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
     operator: &SearchOperatorType,
-) -> Result<(TargetSearchOperator, TargetHeuristicProbability), String> {
+) -> Result<(TargetSearchOperator, TargetHeuristicProbability), GenericError> {
     Ok(match operator {
         SearchOperatorType::RuinRecreate { probability, ruins, recreates } => {
             let ruin = Arc::new(WeightedRuin::new(
@@ -629,10 +629,10 @@ fn create_operator(
         }
         SearchOperatorType::Decomposition { routes, repeat, probability } => {
             if *repeat < 1 {
-                return Err(format!("repeat must be greater than 1. Specified: {repeat}"));
+                return Err(format!("repeat must be greater than 1. Specified: {repeat}").into());
             }
             if routes.min < 2 {
-                return Err(format!("min routes must be greater than 2. Specified: {}", routes.min));
+                return Err(format!("min routes must be greater than 2. Specified: {}", routes.min).into());
             }
 
             let operator = create_default_heuristic_operator(problem, environment.clone());
@@ -800,8 +800,8 @@ fn configure_from_environment(
 }
 
 /// Reads config from reader.
-pub fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, String> {
-    serde_json::from_reader(reader).map_err(|err| format!("cannot deserialize config: '{err}'"))
+pub fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, GenericError> {
+    serde_json::from_reader(reader).map_err(|err| format!("cannot deserialize config: '{err}'").into())
 }
 
 /// Creates a solver `Builder` from config file.
@@ -809,7 +809,7 @@ pub fn create_builder_from_config_file<R>(
     problem: Arc<Problem>,
     solutions: Vec<InsertionContext>,
     reader: BufReader<R>,
-) -> Result<ProblemConfigBuilder, String>
+) -> Result<ProblemConfigBuilder, GenericError>
 where
     R: Read,
 {
@@ -821,7 +821,7 @@ pub fn create_builder_from_config(
     problem: Arc<Problem>,
     solutions: Vec<InsertionContext>,
     config: &Config,
-) -> Result<ProblemConfigBuilder, String> {
+) -> Result<ProblemConfigBuilder, GenericError> {
     let environment =
         configure_from_environment(&config.environment, config.termination.as_ref().and_then(|t| t.max_time));
     let telemetry_mode = get_telemetry_mode(environment.clone(), &config.telemetry);

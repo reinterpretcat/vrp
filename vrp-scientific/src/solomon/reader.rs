@@ -9,26 +9,27 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::*;
 use vrp_core::models::{Extras, Problem};
+use vrp_core::prelude::GenericError;
 
 /// A trait read write solomon problem.
 pub trait SolomonProblem {
     /// Reads solomon problem.
-    fn read_solomon(self, is_rounded: bool) -> Result<Problem, String>;
+    fn read_solomon(self, is_rounded: bool) -> Result<Problem, GenericError>;
 }
 
 impl<R: Read> SolomonProblem for BufReader<R> {
-    fn read_solomon(self, is_rounded: bool) -> Result<Problem, String> {
+    fn read_solomon(self, is_rounded: bool) -> Result<Problem, GenericError> {
         read_solomon_format(self, is_rounded)
     }
 }
 
 impl SolomonProblem for String {
-    fn read_solomon(self, is_rounded: bool) -> Result<Problem, String> {
+    fn read_solomon(self, is_rounded: bool) -> Result<Problem, GenericError> {
         read_solomon_format(BufReader::new(self.as_bytes()), is_rounded)
     }
 }
 
-fn read_solomon_format<R: Read>(reader: BufReader<R>, is_rounded: bool) -> Result<Problem, String> {
+fn read_solomon_format<R: Read>(reader: BufReader<R>, is_rounded: bool) -> Result<Problem, GenericError> {
     SolomonReader { buffer: String::new(), reader, coord_index: CoordIndex::default() }.read_problem(is_rounded)
 }
 
@@ -56,18 +57,18 @@ impl<R: Read> TextReader for SolomonReader<R> {
         &self,
         activity: Arc<SimpleActivityCost>,
         transport: Arc<dyn TransportCost + Send + Sync>,
-    ) -> Result<GoalContext, String> {
+    ) -> Result<GoalContext, GenericError> {
         create_goal_context_prefer_min_tours(activity, transport)
     }
 
-    fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), String> {
+    fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError> {
         let fleet = self.read_fleet()?;
         let jobs = self.read_jobs()?;
 
         Ok((jobs, fleet))
     }
 
-    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, GenericError> {
         self.coord_index.create_transport(is_rounded)
     }
 
@@ -77,7 +78,7 @@ impl<R: Read> TextReader for SolomonReader<R> {
 }
 
 impl<R: Read> SolomonReader<R> {
-    fn read_fleet(&mut self) -> Result<Fleet, String> {
+    fn read_fleet(&mut self) -> Result<Fleet, GenericError> {
         self.skip_lines(4)?;
         let vehicle = self.read_vehicle()?;
         self.skip_lines(4)?;
@@ -90,7 +91,7 @@ impl<R: Read> SolomonReader<R> {
         ))
     }
 
-    fn read_jobs(&mut self) -> Result<Vec<Job>, String> {
+    fn read_jobs(&mut self) -> Result<Vec<Job>, GenericError> {
         let mut jobs: Vec<Job> = Default::default();
         loop {
             match self.read_customer() {
@@ -122,7 +123,7 @@ impl<R: Read> SolomonReader<R> {
         Ok(jobs)
     }
 
-    fn read_vehicle(&mut self) -> Result<VehicleLine, String> {
+    fn read_vehicle(&mut self) -> Result<VehicleLine, GenericError> {
         read_line(&mut self.reader, &mut self.buffer)?;
         let (number, capacity) = self
             .buffer
@@ -134,7 +135,7 @@ impl<R: Read> SolomonReader<R> {
         Ok(VehicleLine { number, capacity })
     }
 
-    fn read_customer(&mut self) -> Result<JobLine, String> {
+    fn read_customer(&mut self) -> Result<JobLine, GenericError> {
         read_line(&mut self.reader, &mut self.buffer)?;
         let (id, x, y, demand, start, end, service) = self
             .buffer
@@ -151,7 +152,7 @@ impl<R: Read> SolomonReader<R> {
         })
     }
 
-    fn skip_lines(&mut self, count: usize) -> Result<(), String> {
+    fn skip_lines(&mut self, count: usize) -> Result<(), GenericError> {
         skip_lines(count, &mut self.reader, &mut self.buffer)
     }
 }

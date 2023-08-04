@@ -10,18 +10,18 @@ parameterized_test! {can_check_load, (stop_loads, expected_result), {
 can_check_load! {
     case00: ( vec![1, 1, 3, 1, 2, 1, 0], Ok(())),
 
-    case01: ( vec![1, 2, 3, 1, 2, 1, 0], Err(vec!["load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned()])),
-    case02: ( vec![1, 1, 2, 1, 2, 1, 0], Err(vec!["load mismatch at stops 2, 3 in tour 'my_vehicle_1'".to_owned()])),
-    case03: ( vec![1, 1, 3, 2, 2, 1, 0], Err(vec!["load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned()])),
-    case04: ( vec![1, 1, 3, 1, 1, 1, 0], Err(vec!["load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned()])),
-    case05: ( vec![1, 1, 3, 1, 2, 2, 0], Err(vec!["load mismatch at stop 5 in tour 'my_vehicle_1'".to_owned()])),
+    case01: ( vec![1, 2, 3, 1, 2, 1, 0], Err(vec!["load mismatch at stop 1 in tour 'my_vehicle_1'".into()])),
+    case02: ( vec![1, 1, 2, 1, 2, 1, 0], Err(vec!["load mismatch at stops 2, 3 in tour 'my_vehicle_1'".into()])),
+    case03: ( vec![1, 1, 3, 2, 2, 1, 0], Err(vec!["load mismatch at stop 3 in tour 'my_vehicle_1'".into()])),
+    case04: ( vec![1, 1, 3, 1, 1, 1, 0], Err(vec!["load mismatch at stop 4 in tour 'my_vehicle_1'".into()])),
+    case05: ( vec![1, 1, 3, 1, 2, 2, 0], Err(vec!["load mismatch at stop 5 in tour 'my_vehicle_1'".into()])),
 
-    case06_1: ( vec![10, 1, 3, 1, 2, 1, 0], Err(vec!["load exceeds capacity in tour 'my_vehicle_1'".to_owned()])),
-    case06_2: ( vec![1, 1, 30, 1, 2, 1, 0], Err(vec!["load exceeds capacity in tour 'my_vehicle_1'".to_owned()])),
-    case06_3: ( vec![1, 1, 3, 1, 20, 1, 0], Err(vec!["load exceeds capacity in tour 'my_vehicle_1'".to_owned()])),
+    case06_1: ( vec![10, 1, 3, 1, 2, 1, 0], Err(vec!["load exceeds capacity in tour 'my_vehicle_1'".into()])),
+    case06_2: ( vec![1, 1, 30, 1, 2, 1, 0], Err(vec!["load exceeds capacity in tour 'my_vehicle_1'".into()])),
+    case06_3: ( vec![1, 1, 3, 1, 20, 1, 0], Err(vec!["load exceeds capacity in tour 'my_vehicle_1'".into()])),
 }
 
-fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<String>>) {
+fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<GenericError>>) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -375,6 +375,6 @@ fn can_check_resource_consumption() {
     assert_eq!(
         result,
         Err("consumed more resource 'resource_1' than available: [2, 0, 0, 0, 0, 0, 0, 0] vs [1, 0, 0, 0, 0, 0, 0, 0]"
-            .to_string())
+            .into())
     );
 }

@@ -57,7 +57,7 @@ fn create_unassigned_jobs(job_ids: &[&str]) -> Option<Vec<UnassignedJob>> {
     )
 }
 
-fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, String> {
+fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, GenericError> {
     let environment = Arc::new(Environment::default());
     let matrix = create_matrix_from_problem(&problem);
     let core_problem = Arc::new(
@@ -76,7 +76,7 @@ fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, 
 
     let bytes = writer.into_inner().expect("cannot get bytes from writer");
 
-    deserialize_solution(BufReader::new(bytes.as_slice())).map_err(|err| format!("cannot read solution: {err}"))
+    deserialize_solution(BufReader::new(bytes.as_slice())).map_err(|err| format!("cannot read solution: {err}").into())
 }
 
 #[test]
@@ -202,7 +202,7 @@ fn can_handle_empty_tour_error_in_init_solution() {
 
     let result_solution = get_init_solution(problem, &solution);
 
-    assert_eq!(result_solution, Err("empty tour in init solution".to_owned()));
+    assert_eq!(result_solution, Err("empty tour in init solution".into()));
 }
 
 #[test]
@@ -250,5 +250,5 @@ fn can_handle_commute_error_in_init_solution() {
 
     let result_solution = get_init_solution(problem, &solution);
 
-    assert_eq!(result_solution, Err("commute property in initial solution is not supported".to_owned()));
+    assert_eq!(result_solution, Err("commute property in initial solution is not supported".into()));
 }

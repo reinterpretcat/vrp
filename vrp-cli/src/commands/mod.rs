@@ -11,6 +11,7 @@ use std::io::{stdout, BufReader, BufWriter, Write};
 use std::process;
 use std::str::FromStr;
 use vrp_cli::extensions::check::check_pragmatic_solution;
+use vrp_core::prelude::GenericError;
 
 pub(crate) fn create_write_buffer(out_file: Option<File>) -> BufWriter<Box<dyn Write>> {
     if let Some(out_file) = out_file {
@@ -38,11 +39,13 @@ fn parse_float_value<T: FromStr<Err = std::num::ParseFloatError>>(
     matches: &ArgMatches,
     arg_name: &str,
     arg_desc: &str,
-) -> Result<Option<T>, String> {
+) -> Result<Option<T>, GenericError> {
     matches
         .get_one::<String>(arg_name)
         .map(|arg| {
-            arg.parse::<T>().map_err(|err| format!("cannot get float value, error: '{err}': '{arg_desc}'")).map(Some)
+            arg.parse::<T>()
+                .map_err(|err| format!("cannot get float value, error: '{err}': '{arg_desc}'").into())
+                .map(Some)
         })
         .unwrap_or(Ok(None))
 }
@@ -51,11 +54,13 @@ fn parse_int_value<T: FromStr<Err = std::num::ParseIntError>>(
     matches: &ArgMatches,
     arg_name: &str,
     arg_desc: &str,
-) -> Result<Option<T>, String> {
+) -> Result<Option<T>, GenericError> {
     matches
         .get_one::<String>(arg_name)
         .map(|arg| {
-            arg.parse::<T>().map_err(|err| format!("cannot get integer value, error: '{err}': '{arg_desc}'")).map(Some)
+            arg.parse::<T>()
+                .map_err(|err| format!("cannot get integer value, error: '{err}': '{arg_desc}'").into())
+                .map(Some)
         })
         .unwrap_or(Ok(None))
 }
@@ -66,7 +71,7 @@ fn check_solution(
     problem_arg_name: &str,
     solution_arg_name: &str,
     matrix_arg_name: &str,
-) -> Result<(), String> {
+) -> Result<(), GenericError> {
     let problem_files = matches
         .get_many::<String>(problem_arg_name)
         .map(|paths| paths.map(|path| BufReader::new(open_file(path, "problem"))).collect::<Vec<_>>());
@@ -81,9 +86,9 @@ fn check_solution(
             check_pragmatic_solution(problem_files.swap_remove(0), solution_file, matrix_files)
         }
         ("pragmatic", _, _) => {
-            Err(vec!["pragmatic format expects one problem, one solution file, and optionally matrices".to_string()])
+            Err(vec!["pragmatic format expects one problem, one solution file, and optionally matrices".into()])
         }
-        _ => Err(vec![format!("unknown format: '{input_format}'")]),
+        _ => Err(vec![format!("unknown format: '{input_format}'").into()]),
     }
-    .map_err(|err| format!("checker found {} errors:\n{}", err.len(), err.join("\n")))
+    .map_err(|errs| format!("checker found {} errors:\n{}", errs.len(), GenericError::join_many(&errs, "\n")).into())
 }

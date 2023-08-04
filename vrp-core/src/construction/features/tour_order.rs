@@ -15,7 +15,7 @@ pub fn create_tour_order_hard_feature(
     name: &str,
     code: ViolationCode,
     order_fn: TourOrderFn,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     FeatureBuilder::default().with_name(name).with_constraint(TourOrderConstraint { code, order_fn }).build()
 }
 
@@ -24,7 +24,7 @@ pub fn create_tour_order_soft_feature(
     name: &str,
     state_key: StateKey,
     order_fn: TourOrderFn,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(TourOrderObjective { state_key, order_fn: order_fn.clone() })

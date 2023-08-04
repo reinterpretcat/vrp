@@ -4,6 +4,7 @@ use crate::models::problem::*;
 use crate::models::solution::Route;
 use crate::models::Problem;
 use crate::models::*;
+use rosomaxa::prelude::GenericError;
 use std::sync::Arc;
 
 struct ExampleTransportCost {}
@@ -68,7 +69,7 @@ fn create_example_fleet() -> Arc<Fleet> {
 fn create_example_goal_ctx(
     transport: Arc<dyn TransportCost + Sync + Send>,
     activity: Arc<dyn ActivityCost + Sync + Send>,
-) -> Result<GoalContext, String> {
+) -> Result<GoalContext, GenericError> {
     let features = vec![
         create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.))?,
         create_minimize_tours_feature("min_tours")?,

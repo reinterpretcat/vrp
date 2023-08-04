@@ -5,6 +5,7 @@ mod costs_test;
 use crate::models::common::*;
 use crate::models::solution::{Activity, Route};
 use hashbrown::HashMap;
+use rosomaxa::prelude::GenericError;
 use rosomaxa::utils::CollectGroupBy;
 use std::sync::Arc;
 
@@ -97,23 +98,25 @@ impl MatrixData {
 }
 
 /// Creates time agnostic or time aware routing costs based on matrix data passed.
-pub fn create_matrix_transport_cost(costs: Vec<MatrixData>) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+pub fn create_matrix_transport_cost(
+    costs: Vec<MatrixData>,
+) -> Result<Arc<dyn TransportCost + Send + Sync>, GenericError> {
     if costs.is_empty() {
-        return Err("no matrix data found".to_string());
+        return Err("no matrix data found".into());
     }
 
     let size = (costs.first().unwrap().durations.len() as f64).sqrt().round() as usize;
 
     if costs.iter().any(|matrix| matrix.distances.len() != matrix.durations.len()) {
-        return Err("distance and duration collections have different length".to_string());
+        return Err("distance and duration collections have different length".into());
     }
 
     if costs.iter().any(|matrix| (matrix.distances.len() as f64).sqrt().round() as usize != size) {
-        return Err("distance lengths don't match".to_string());
+        return Err("distance lengths don't match".into());
     }
 
     if costs.iter().any(|matrix| (matrix.durations.len() as f64).sqrt().round() as usize != size) {
-        return Err("duration lengths don't match".to_string());
+        return Err("duration lengths don't match".into());
     }
 
     Ok(if costs.iter().any(|costs| costs.timestamp.is_some()) {
@@ -132,16 +135,16 @@ struct TimeAgnosticMatrixTransportCost {
 
 impl TimeAgnosticMatrixTransportCost {
     /// Creates an instance of `TimeAgnosticMatrixTransportCost`.
-    pub fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, String> {
+    pub fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, GenericError> {
         let mut costs = costs;
         costs.sort_by(|a, b| a.index.cmp(&b.index));
 
         if costs.iter().any(|costs| costs.timestamp.is_some()) {
-            return Err("time aware routing".to_string());
+            return Err("time aware routing".into());
         }
 
         if (0..).zip(costs.iter().map(|c| &c.index)).any(|(a, &b)| a != b) {
-            return Err("duplicate profiles can be passed only for time aware routing".to_string());
+            return Err("duplicate profiles can be passed only for time aware routing".into());
         }
 
         let (durations, distances) = costs.into_iter().fold((vec![], vec![]), |mut acc, data| {
@@ -181,15 +184,15 @@ struct TimeAwareMatrixTransportCost {
 
 impl TimeAwareMatrixTransportCost {
     /// Creates an instance of `TimeAwareMatrixTransportCost`.
-    fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, String> {
+    fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, GenericError> {
         if costs.iter().any(|matrix| matrix.timestamp.is_none()) {
-            return Err("time-aware routing requires all matrices to have timestamp".to_string());
+            return Err("time-aware routing requires all matrices to have timestamp".into());
         }
 
         let costs = costs.into_iter().collect_group_by_key(|matrix| matrix.index);
 
         if costs.iter().any(|(_, matrices)| matrices.len() == 1) {
-            return Err("should not use time aware matrix routing with single matrix".to_string());
+            return Err("should not use time aware matrix routing with single matrix".into());
         }
 
         let costs = costs

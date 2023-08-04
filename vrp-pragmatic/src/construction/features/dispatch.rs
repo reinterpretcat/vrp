@@ -12,7 +12,7 @@ use vrp_core::construction::enablers::*;
 use vrp_core::models::solution::Activity;
 
 /// Creates a dispatch feature as a hard constraint.
-pub fn create_dispatch_feature(name: &str, code: ViolationCode) -> Result<Feature, String> {
+pub fn create_dispatch_feature(name: &str, code: ViolationCode) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_constraint(DispatchConstraint { code })

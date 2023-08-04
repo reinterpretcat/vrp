@@ -10,6 +10,7 @@ mod prototype;
 use self::prototype::generate_from_prototype;
 
 use std::io::{BufReader, Read};
+use vrp_core::prelude::GenericError;
 use vrp_core::utils::{DefaultRandom, Random};
 use vrp_pragmatic::format::problem::*;
 
@@ -21,7 +22,7 @@ pub fn generate_problem<R: Read>(
     job_size: usize,
     vehicles_size: usize,
     area_size: Option<f64>,
-) -> Result<Problem, String> {
+) -> Result<Problem, GenericError> {
     let locations = if let Some(locations_reader) = locations_reader {
         Some(deserialize_locations(locations_reader).map_err(|errs| errs.to_string())?)
     } else {

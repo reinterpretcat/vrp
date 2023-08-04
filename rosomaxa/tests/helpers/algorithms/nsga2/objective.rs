@@ -1,5 +1,5 @@
 use crate::algorithms::nsga2::{dominance_order, MultiObjective, Objective};
-use crate::utils::compare_floats;
+use crate::prelude::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
@@ -81,12 +81,12 @@ impl MultiObjective for SliceMultiObjective {
         Box::new(self.objectives.iter().map(|o| o.fitness(solution)))
     }
 
-    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String> {
-        self.objectives.get(idx).map(|o| o.total_order(a, b)).ok_or_else(|| format!("wrong index: {idx}"))
+    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, GenericError> {
+        self.objectives.get(idx).map(|o| o.total_order(a, b)).ok_or_else(|| format!("wrong index: {idx}").into())
     }
 
-    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String> {
-        self.objectives.get(idx).map(|o| o.distance(a, b)).ok_or_else(|| format!("wrong index: {idx}"))
+    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, GenericError> {
+        self.objectives.get(idx).map(|o| o.distance(a, b)).ok_or_else(|| format!("wrong index: {idx}").into())
     }
 
     fn size(&self) -> usize {
@@ -119,22 +119,22 @@ impl MultiObjective for SliceHierarchicalObjective {
         Box::new(self.primary_objectives.iter().chain(self.secondary_objectives.iter()).map(|o| o.fitness(solution)))
     }
 
-    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String> {
+    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, GenericError> {
         self.primary_objectives
             .iter()
             .chain(self.secondary_objectives.iter())
             .nth(idx)
             .map(|o| o.total_order(a, b))
-            .ok_or_else(|| format!("wrong index: {idx}"))
+            .ok_or_else(|| format!("wrong index: {idx}").into())
     }
 
-    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String> {
+    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, GenericError> {
         self.primary_objectives
             .iter()
             .chain(self.secondary_objectives.iter())
             .nth(idx)
             .map(|o| o.distance(a, b))
-            .ok_or_else(|| format!("wrong index: {idx}"))
+            .ok_or_else(|| format!("wrong index: {idx}").into())
     }
 
     fn size(&self) -> usize {

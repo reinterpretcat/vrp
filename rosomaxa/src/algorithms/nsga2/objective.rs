@@ -1,3 +1,4 @@
+use crate::prelude::GenericError;
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
 
@@ -49,10 +50,10 @@ pub trait MultiObjective {
     fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a>;
 
     /// Get solution order for individual objective.
-    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String>;
+    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, GenericError>;
 
     /// Gets solution distance for individual objective.
-    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String>;
+    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, GenericError>;
 
     /// Returns total number of inner objectives.
     fn size(&self) -> usize;

@@ -10,9 +10,10 @@ use hashbrown::HashSet;
 use std::cmp::Ordering;
 use vrp_core::construction::clustering::vicinity::ServingPolicy;
 use vrp_core::prelude::compare_floats;
+use vrp_core::utils::GenericError;
 
 /// Checks assignment of jobs and vehicles.
-pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<String>> {
+pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<GenericError>> {
     combine_error_results(&[
         check_vehicles(ctx),
         check_jobs_presence(ctx),
@@ -23,7 +24,7 @@ pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<String>> {
 }
 
 /// Checks that vehicles in each tour are used once per shift and they are known in problem.
-fn check_vehicles(ctx: &CheckerContext) -> Result<(), String> {
+fn check_vehicles(ctx: &CheckerContext) -> Result<(), GenericError> {
     let all_vehicles: HashSet<_> = ctx.problem.fleet.vehicles.iter().flat_map(|v| v.vehicle_ids.iter()).collect();
     let mut used_vehicles = HashSet::<(String, usize)>::new();
 
@@ -43,7 +44,7 @@ fn check_vehicles(ctx: &CheckerContext) -> Result<(), String> {
 }
 
 /// Checks job task rules.
-fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
+fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), GenericError> {
     struct JobAssignment {
         pub tour_info: (String, usize),
         pub pickups: Vec<usize>,
@@ -75,7 +76,7 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
                     used_jobs.entry(activity.job_id.clone()).or_insert_with(|| new_assignment(tour_info.clone()));
 
                 if asgn.tour_info != tour_info {
-                    return Err(format!("job served in multiple tours: '{}'", activity.job_id));
+                    return Err(GenericError::from(format!("job served in multiple tours: '{}'", activity.job_id)));
                 }
 
                 match activity.activity_type.as_str() {
@@ -100,13 +101,13 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
         let assigned_tasks = asgn.pickups.len() + asgn.deliveries.len() + asgn.services.len() + asgn.replacements.len();
 
         if expected_tasks != assigned_tasks {
-            return Err(format!(
+            return Err(GenericError::from(format!(
                 "not all tasks served for '{id}', expected: {expected_tasks}, assigned: {assigned_tasks}"
-            ));
+            )));
         }
 
         if !asgn.deliveries.is_empty() && asgn.pickups.iter().max() > asgn.deliveries.iter().min() {
-            return Err(format!("found pickup after delivery for '{id}'"));
+            return Err(GenericError::from(format!("found pickup after delivery for '{id}'")));
         }
 
         Ok(())
@@ -123,16 +124,16 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
     let unique_unassigned_jobs = all_unassigned_jobs.iter().cloned().collect::<HashSet<_>>();
 
     if unique_unassigned_jobs.len() != all_unassigned_jobs.len() {
-        return Err("duplicated job ids in the list of unassigned jobs".to_string());
+        return Err("duplicated job ids in the list of unassigned jobs".into());
     }
 
-    unique_unassigned_jobs.iter().try_for_each(|job_id| {
+    unique_unassigned_jobs.iter().try_for_each::<_, Result<_, GenericError>>(|job_id| {
         if !all_jobs.contains_key(job_id) {
-            return Err(format!("unknown job id in the list of unassigned jobs: '{job_id}'"));
+            return Err(format!("unknown job id in the list of unassigned jobs: '{job_id}'").into());
         }
 
         if used_jobs.contains_key(job_id) {
-            return Err(format!("job present as assigned and unassigned: '{job_id}'"));
+            return Err(format!("job present as assigned and unassigned: '{job_id}'").into());
         }
 
         Ok(())
@@ -146,14 +147,15 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
             "amount of jobs present in problem and solution doesn't match: {} vs {}",
             all_jobs.len(),
             all_used_job.len()
-        ));
+        )
+        .into());
     }
 
     Ok(())
 }
 
 /// Checks job constraint violations.
-fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
+fn check_jobs_match(ctx: &CheckerContext) -> Result<(), GenericError> {
     let job_index = get_job_index(&ctx.core_problem);
     let coord_index = get_coord_index(&ctx.core_problem);
     let job_ids = ctx
@@ -252,14 +254,14 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
         .collect::<Vec<_>>();
 
     if !job_ids.is_empty() {
-        return Err(format!("cannot match activities to jobs: {}", job_ids.join(", ")));
+        return Err(format!("cannot match activities to jobs: {}", job_ids.join(", ")).into());
     }
 
     Ok(())
 }
 
 /// Checks whether dispatch is properly assigned.
-fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
+fn check_dispatch(ctx: &CheckerContext) -> Result<(), GenericError> {
     let vehicles_with_dispatch = ctx
         .problem
         .fleet
@@ -269,7 +271,7 @@ fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
         .filter_map(|(v, shift)| shift.dispatch.as_ref().map(|ds| (v, ds)))
         .collect::<HashMap<_, _>>();
 
-    ctx.solution.tours.iter().try_fold((), |_, tour| {
+    ctx.solution.tours.iter().try_fold::<_, _, Result<_, GenericError>>((), |_, tour| {
         let should_have_dispatch = vehicles_with_dispatch.contains_key(&tour.type_id);
         let dispatch_in_tour = tour
             .stops
@@ -285,15 +287,15 @@ fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
             .collect::<Vec<_>>();
 
         if dispatch_in_tour.len() > 1 {
-            return Err(format!("more than one dispatch in the tour: '{}'", tour.vehicle_id));
+            return Err(format!("more than one dispatch in the tour: '{}'", tour.vehicle_id).into());
         }
 
         if should_have_dispatch && dispatch_in_tour.is_empty() {
-            return Err(format!("tour should have dispatch, but none is found: '{}'", tour.vehicle_id));
+            return Err(format!("tour should have dispatch, but none is found: '{}'", tour.vehicle_id).into());
         }
 
         if !should_have_dispatch && !dispatch_in_tour.is_empty() {
-            return Err(format!("tour should not have dispatch, but it is present: '{}'", tour.vehicle_id));
+            return Err(format!("tour should not have dispatch, but it is present: '{}'", tour.vehicle_id).into());
         }
 
         if should_have_dispatch {
@@ -304,7 +306,7 @@ fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
                 .unwrap()
                 .as_point()
                 .map(|point| point.location.clone())
-                .ok_or_else(|| "first stop has no location".to_string())?;
+                .ok_or_else(|| GenericError::from("first stop has no location"))?;
 
             match (stop_idx, activity_idx) {
                 (0, 1) => {
@@ -312,7 +314,8 @@ fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
                         if *location != first_stop_location {
                             return Err(format!(
                                 "invalid dispatch location: {location}, expected to match the first stop"
-                            ));
+                            )
+                            .into());
                         }
                     }
                 }
@@ -321,11 +324,12 @@ fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
                         if *location == first_stop_location {
                             return Err(format!(
                                 "invalid dispatch location: {location}, expected not to match the first stop"
-                            ));
+                            )
+                            .into());
                         }
                     }
                 }
-                _ => return Err(format!("invalid dispatch activity index, expected: 1, got: '{activity_idx}'")),
+                _ => return Err(format!("invalid dispatch activity index, expected: 1, got: '{activity_idx}'").into()),
             }
         }
 
@@ -333,7 +337,7 @@ fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
     })
 }
 
-fn check_groups(ctx: &CheckerContext) -> Result<(), String> {
+fn check_groups(ctx: &CheckerContext) -> Result<(), GenericError> {
     let violations = ctx
         .solution
         .tours
@@ -362,6 +366,6 @@ fn check_groups(ctx: &CheckerContext) -> Result<(), String> {
         Ok(())
     } else {
         let err_info = violations.into_iter().map(|(group, _)| group).collect::<Vec<_>>().join(",");
-        Err(format!("job groups are not respected: '{err_info}'"))
+        Err(format!("job groups are not respected: '{err_info}'").into())
     }
 }

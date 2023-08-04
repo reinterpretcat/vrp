@@ -6,7 +6,7 @@ use crate::models::common::*;
 use crate::models::problem::{ActivityCost, Actor, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
 use hashbrown::HashMap;
-use rosomaxa::prelude::compare_floats;
+use rosomaxa::prelude::{compare_floats, GenericError};
 use std::cmp::Ordering;
 use std::sync::Arc;
 
@@ -49,7 +49,7 @@ pub struct DynamicActivityCost {
 
 impl DynamicActivityCost {
     /// Creates a new instance of `DynamicActivityCost` with given reserved time function.
-    pub fn new(reserved_times_index: ReservedTimesIndex) -> Result<Self, String> {
+    pub fn new(reserved_times_index: ReservedTimesIndex) -> Result<Self, GenericError> {
         Ok(Self { reserved_times_fn: create_reserved_times_fn(reserved_times_index)? })
     }
 }
@@ -109,7 +109,7 @@ impl DynamicTransportCost {
     pub fn new(
         reserved_times_index: ReservedTimesIndex,
         inner: Arc<dyn TransportCost + Send + Sync>,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, GenericError> {
         Ok(Self { reserved_times_fn: create_reserved_times_fn(reserved_times_index)?, inner })
     }
 }
@@ -175,7 +175,9 @@ fn reduce_waiting_by_reserved_time(_route: &mut Route, _reserved_times_fn: &Rese
 }
 
 /// Creates a reserved time function from reserved time index.
-pub(crate) fn create_reserved_times_fn(reserved_times_index: ReservedTimesIndex) -> Result<ReservedTimesFn, String> {
+pub(crate) fn create_reserved_times_fn(
+    reserved_times_index: ReservedTimesIndex,
+) -> Result<ReservedTimesFn, GenericError> {
     if reserved_times_index.is_empty() {
         return Ok(Arc::new(|_, _| None));
     }

@@ -33,7 +33,7 @@ pub fn create_shared_resource_feature<T>(
     interval_fn: SharedResourceIntervalFn,
     resource_capacity_fn: SharedResourceCapacityFn<T>,
     resource_demand_fn: SharedResourceDemandFn<T>,
-) -> Result<Feature, String>
+) -> Result<Feature, GenericError>
 where
     T: SharedResource + Add<Output = T> + Sub<Output = T>,
 {

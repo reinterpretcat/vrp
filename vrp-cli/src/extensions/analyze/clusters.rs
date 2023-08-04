@@ -7,6 +7,7 @@ use std::sync::Arc;
 use vrp_core::construction::clustering::dbscan::create_job_clusters;
 use vrp_core::models::problem::get_job_locations;
 use vrp_core::models::Problem;
+use vrp_core::prelude::GenericError;
 use vrp_core::utils::Environment;
 use vrp_pragmatic::construction::enablers::JobTie;
 use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, PragmaticProblem};
@@ -19,7 +20,7 @@ pub fn get_clusters<F: Read>(
     matrices_readers: Option<Vec<BufReader<F>>>,
     min_points: Option<usize>,
     epsilon: Option<f64>,
-) -> Result<String, String> {
+) -> Result<String, GenericError> {
     let problem = Arc::new(get_core_problem(problem_reader, matrices_readers).map_err(|errs| errs.to_string())?);
 
     let coord_index = get_coord_index(&problem);

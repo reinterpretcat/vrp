@@ -14,7 +14,7 @@ pub type UnassignedJobEstimator = Arc<dyn Fn(&SolutionContext, &Job) -> f64 + Se
 pub fn create_minimize_unassigned_jobs_feature(
     name: &str,
     unassigned_job_estimator: UnassignedJobEstimator,
-) -> Result<Feature, String> {
+) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(MinimizeUnassignedObjective { unassigned_job_estimator })

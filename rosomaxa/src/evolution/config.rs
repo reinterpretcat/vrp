@@ -238,7 +238,7 @@ where
         max_time: Option<usize>,
         min_cv: Option<(String, usize, f64, bool, K)>,
         target_proximity: Option<(Vec<f64>, f64)>,
-    ) -> Result<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>, String> {
+    ) -> Result<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>, GenericError> {
         let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = match (
             max_generations,
             max_time,
@@ -278,7 +278,7 @@ where
                             "period" => {
                                 Box::new(MinVariation::<C, O, S, K>::new_with_period(value, threshold, is_global, key))
                             }
-                            _ => return Err(format!("unknown variation interval type: {interval_type}")),
+                            _ => return Err(format!("unknown variation interval type: {interval_type}").into()),
                         };
 
                     terminations.push(variation)
@@ -302,7 +302,7 @@ where
     }
 
     /// Builds the evolution config.
-    pub fn build(self) -> Result<EvolutionConfig<C, O, S>, String> {
+    pub fn build(self) -> Result<EvolutionConfig<C, O, S>, GenericError> {
         let context = self.context.ok_or_else(|| "missing heuristic context".to_string())?;
         let logger = context.environment().logger.clone();
         let termination =

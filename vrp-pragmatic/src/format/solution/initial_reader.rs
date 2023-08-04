@@ -28,7 +28,7 @@ pub fn read_init_solution<R: Read>(
     solution: BufReader<R>,
     problem: Arc<Problem>,
     random: Arc<dyn Random + Send + Sync>,
-) -> Result<Solution, String> {
+) -> Result<Solution, GenericError> {
     let solution = deserialize_solution(solution).map_err(|err| format!("cannot deserialize solution: {err}"))?;
 
     let mut registry = Registry::new(&problem.fleet, random);
@@ -39,7 +39,7 @@ pub fn read_init_solution<R: Read>(
     let job_index = get_job_index(problem.as_ref());
 
     let routes =
-        solution.tours.iter().try_fold::<_, _, Result<_, String>>(Vec::<_>::default(), |mut routes, tour| {
+        solution.tours.iter().try_fold::<_, _, Result<_, GenericError>>(Vec::<_>::default(), |mut routes, tour| {
             let actor_key = (tour.vehicle_id.clone(), tour.type_id.clone(), tour.shift_index);
             let actor =
                 actor_index.get(&actor_key).ok_or_else(|| format!("cannot find vehicle for {actor_key:?}"))?.clone();
@@ -48,7 +48,7 @@ pub fn read_init_solution<R: Read>(
             let mut core_route = create_core_route(actor, tour)?;
 
             tour.stops.iter().try_for_each(|stop| {
-                stop.activities().iter().try_for_each::<_, Result<_, String>>(|activity| {
+                stop.activities().iter().try_for_each::<_, Result<_, GenericError>>(|activity| {
                     try_insert_activity(&mut core_route, tour, stop, activity, job_index, coord_index, &mut added_jobs)
                 })
             })?;
@@ -58,9 +58,11 @@ pub fn read_init_solution<R: Read>(
             Ok(routes)
         })?;
 
-    let mut unassigned = solution.unassigned.unwrap_or_default().iter().try_fold::<Vec<_>, _, Result<_, String>>(
-        Default::default(),
-        |mut acc, unassigned_job| {
+    let mut unassigned = solution
+        .unassigned
+        .unwrap_or_default()
+        .iter()
+        .try_fold::<Vec<_>, _, Result<_, GenericError>>(Default::default(), |mut acc, unassigned_job| {
             let job = job_index
                 .get(&unassigned_job.job_id)
                 .cloned()
@@ -76,8 +78,7 @@ pub fn read_init_solution<R: Read>(
             acc.push((job, code));
 
             Ok(acc)
-        },
-    )?;
+        })?;
 
     unassigned.extend(
         problem.jobs.all().filter(|job| added_jobs.get(job).is_none()).map(|job| (job, UnassignmentInfo::Unknown)),
@@ -94,13 +95,13 @@ fn try_insert_activity(
     job_index: &JobIndex,
     coord_index: &CoordIndex,
     added_jobs: &mut HashSet<Job>,
-) -> Result<(), String> {
+) -> Result<(), GenericError> {
     if activity.commute.is_some() {
-        return Err("commute property in initial solution is not supported".to_string());
+        return Err("commute property in initial solution is not supported".into());
     }
 
     let stop = match stop {
-        FormatStop::Transit(_) => return Err("transit property in initial solution is not yet supported".to_string()),
+        FormatStop::Transit(_) => return Err("transit property in initial solution is not yet supported".into()),
         FormatStop::Point(stop) => stop,
     };
 
@@ -109,7 +110,9 @@ fn try_insert_activity(
         added_jobs.insert(job);
         insert_new_activity(route, single, place, time);
     } else if activity.activity_type != "departure" && activity.activity_type != "arrival" {
-        return Err(format!("cannot match activity with job id '{}' in tour: '{}'", activity.job_id, tour.vehicle_id));
+        return Err(
+            format!("cannot match activity with job id '{}' in tour: '{}'", activity.job_id, tour.vehicle_id).into()
+        );
     }
 
     Ok(())
@@ -125,14 +128,14 @@ fn get_actor_key(actor: &Actor) -> ActorKey {
     (vehicle_id, type_id, shift_index)
 }
 
-fn create_core_route(actor: Arc<Actor>, format_tour: &FormatTour) -> Result<Route, String> {
+fn create_core_route(actor: Arc<Actor>, format_tour: &FormatTour) -> Result<Route, GenericError> {
     let mut core_tour = CoreTour::new(&actor);
 
     // NOTE this is necessary to keep departure time optimization
     let set_activity_time = |format_stop: &FormatStop,
                              format_activity: &FormatActivity,
                              core_activity: &mut Activity|
-     -> Result<(), String> {
+     -> Result<(), GenericError> {
         let time = &format_stop.schedule();
         let (arrival, departure) = format_activity
             .time

@@ -272,7 +272,7 @@ impl InitialOperator for RecreateInitialOperator {
 /// assert_eq!(solution.cost, 42.);
 /// assert_eq!(solution.routes.len(), 1);
 /// assert_eq!(solution.unassigned.len(), 0);
-/// # Ok::<(), String>(())
+/// # Ok::<(), GenericError>(())
 /// ```
 pub struct Solver {
     problem: Arc<Problem>,
@@ -290,7 +290,7 @@ impl Solver {
 
     /// Solves a Vehicle Routing Problem and returns a feasible solution in case of success
     /// or error description, if solution cannot be found.
-    pub fn solve(self) -> Result<Solution, String> {
+    pub fn solve(self) -> Result<Solution, GenericError> {
         (self.config.context.environment.logger)(&format!(
             "total jobs: {}, actors: {}",
             self.problem.jobs.size(),

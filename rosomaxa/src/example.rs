@@ -156,19 +156,19 @@ impl MultiObjective for VectorObjective {
         Box::new(once((self.fitness_fn)(solution.data.as_slice())))
     }
 
-    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, String> {
+    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, GenericError> {
         if idx == 0 {
             Ok(Objective::total_order(self, a, b))
         } else {
-            Err(format!("objective has only 1 inner, passed index: {idx}"))
+            Err(format!("objective has only 1 inner, passed index: {idx}").into())
         }
     }
 
-    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, String> {
+    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, GenericError> {
         if idx == 0 {
             Ok(Objective::distance(self, a, b))
         } else {
-            Err(format!("objective has only 1 inner, passed index: {idx}"))
+            Err(format!("objective has only 1 inner, passed index: {idx}").into())
         }
     }
 
@@ -446,7 +446,7 @@ impl Solver {
     }
 
     /// Runs the solver using configuration provided through fluent interface methods.
-    pub fn solve(self) -> Result<(SolverSolutions, Option<TelemetryMetrics>), String> {
+    pub fn solve(self) -> Result<(SolverSolutions, Option<TelemetryMetrics>), GenericError> {
         // create an environment based on max_time and logger parameters supplied
         let environment =
             Environment { is_experimental: self.is_experimental, ..Environment::new_with_time_quota(self.max_time) };

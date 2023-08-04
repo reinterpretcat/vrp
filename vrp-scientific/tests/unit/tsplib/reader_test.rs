@@ -21,7 +21,7 @@ fn get_example_problem_reader() -> BufReader<File> {
 
 #[test]
 fn can_read_meta_errors() {
-    for (from, to, error) in &[
+    for &(from, to, error) in &[
         ("CVRP", "ASD", "expecting 'CVRP' as TYPE, got 'ASD'"),
         ("DIMENSION : 6", "DIMENSION : asd", "cannot parse DIMENSION: 'invalid float literal'"),
         ("EUC_2D", "ASD", "expecting 'EUC_2D' as EDGE_WEIGHT_TYPE, got 'ASD'"),
@@ -32,7 +32,7 @@ fn can_read_meta_errors() {
 
         let result = reader.read_meta();
 
-        assert_eq!(result, Err(error.to_string()));
+        assert_eq!(result, Err(error.into()));
     }
 }
 

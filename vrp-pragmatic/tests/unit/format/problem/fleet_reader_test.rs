@@ -100,7 +100,7 @@ fn can_create_transport_costs_negative_cases_impl(profiles: &[&str], matrices: &
 
     let result = create_transport_costs(&problem, matrices);
 
-    assert_eq!(result.err(), Some(res_err.to_string()));
+    assert_eq!(result.err(), Some(res_err.into()));
 }
 
 parameterized_test! {can_create_transport_costs_positive_cases, (profiles, matrices, probes), {

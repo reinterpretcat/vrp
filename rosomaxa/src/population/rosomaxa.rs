@@ -197,9 +197,9 @@ where
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
 {
     /// Creates a new instance of `Rosomaxa`.
-    pub fn new(objective: Arc<O>, environment: Arc<Environment>, config: RosomaxaConfig) -> Result<Self, String> {
+    pub fn new(objective: Arc<O>, environment: Arc<Environment>, config: RosomaxaConfig) -> Result<Self, GenericError> {
         if config.elite_size < 1 || config.node_size < 1 || config.selection_size < 2 {
-            return Err("Rosomaxa algorithm requires some parameters to be above thresholds".to_string());
+            return Err("Rosomaxa algorithm requires some parameters to be above thresholds".into());
         }
 
         Ok(Self {

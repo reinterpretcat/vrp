@@ -39,6 +39,7 @@ use crate::format::problem::Problem;
 use crate::format::{CoordIndex, Location};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
+use vrp_core::prelude::GenericError;
 
 /// Get lists of problem.
 pub fn get_unique_locations(problem: &Problem) -> Vec<Location> {
@@ -54,8 +55,8 @@ fn parse_time(time: &str) -> f64 {
     parse_time_safe(time).unwrap()
 }
 
-fn parse_time_safe(time: &str) -> Result<f64, String> {
+fn parse_time_safe(time: &str) -> Result<f64, GenericError> {
     OffsetDateTime::parse(time, &Rfc3339)
         .map(|time| time.unix_timestamp() as f64)
-        .map_err(|err| format!("cannot parse date: {err}"))
+        .map_err(|err| format!("cannot parse date: {err}").into())
 }

@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 * `breaking`: refactor internal models to simplify cost/telemetry handling
 * `breaking` change required break definition to support time range
 * change duration in csv import command from minutes to seconds
+* `breaking` use `GenericError` instead of `String` within `Result`
 
 ### Added
 

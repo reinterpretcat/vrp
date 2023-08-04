@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use vrp_core::construction::enablers::ReservedTimesIndex;
 use vrp_core::models::problem::{Fleet as CoreFleet, Job as CoreJob};
 use vrp_core::models::Problem as CoreProblem;
+use vrp_core::prelude::GenericError;
 
 mod coord_index;
 pub use self::coord_index::CoordIndex;
@@ -126,6 +127,12 @@ impl std::fmt::Display for MultiFormatError {
 impl From<Vec<FormatError>> for MultiFormatError {
     fn from(errors: Vec<FormatError>) -> Self {
         MultiFormatError { errors }
+    }
+}
+
+impl From<MultiFormatError> for GenericError {
+    fn from(value: MultiFormatError) -> Self {
+        value.to_string().into()
     }
 }
 

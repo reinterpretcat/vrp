@@ -9,21 +9,22 @@ use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::*;
+use vrp_core::prelude::GenericError;
 
 /// A trait to read tsplib95 problem. Please note that it is very basic implementation of the format specification.
 pub trait TsplibProblem {
     /// Reads tsplib95 problem.
-    fn read_tsplib(self, is_rounded: bool) -> Result<Problem, String>;
+    fn read_tsplib(self, is_rounded: bool) -> Result<Problem, GenericError>;
 }
 
 impl<R: Read> TsplibProblem for BufReader<R> {
-    fn read_tsplib(self, is_rounded: bool) -> Result<Problem, String> {
+    fn read_tsplib(self, is_rounded: bool) -> Result<Problem, GenericError> {
         TsplibReader::new(self).read_problem(is_rounded)
     }
 }
 
 impl TsplibProblem for String {
-    fn read_tsplib(self, is_rounded: bool) -> Result<Problem, String> {
+    fn read_tsplib(self, is_rounded: bool) -> Result<Problem, GenericError> {
         TsplibReader::new(BufReader::new(self.as_bytes())).read_problem(is_rounded)
     }
 }
@@ -41,11 +42,11 @@ impl<R: Read> TextReader for TsplibReader<R> {
         &self,
         activity: Arc<SimpleActivityCost>,
         transport: Arc<dyn TransportCost + Send + Sync>,
-    ) -> Result<GoalContext, String> {
+    ) -> Result<GoalContext, GenericError> {
         create_goal_context_distance_only(activity, transport)
     }
 
-    fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), String> {
+    fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError> {
         self.read_meta()?;
 
         let (coordinates, demands) = self.read_customer_data()?;
@@ -54,7 +55,7 @@ impl<R: Read> TextReader for TsplibReader<R> {
 
         let dimension = self.dimension.unwrap();
 
-        let jobs = coordinates.iter().filter(|(id, _)| **id != depot_id).try_fold::<_, _, Result<_, String>>(
+        let jobs = coordinates.iter().filter(|(id, _)| **id != depot_id).try_fold::<_, _, Result<_, GenericError>>(
             Vec::with_capacity(dimension),
             |mut jobs, (id, (x, y))| {
                 let demand = demands.get(id).cloned().ok_or_else(|| format!("cannot find demand for id: '{id}'"))?;
@@ -78,7 +79,7 @@ impl<R: Read> TextReader for TsplibReader<R> {
         Ok((jobs, fleet))
     }
 
-    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, GenericError> {
         self.coord_index.create_transport(is_rounded)
     }
 
@@ -100,12 +101,12 @@ impl<R: Read> TsplibReader<R> {
         }
     }
 
-    fn read_meta(&mut self) -> Result<(), String> {
+    fn read_meta(&mut self) -> Result<(), GenericError> {
         self.skip_lines(2)?;
 
         let problem_type = self.read_key_value("TYPE")?;
         if problem_type != "CVRP" {
-            return Err(format!("expecting 'CVRP' as TYPE, got '{problem_type}'"));
+            return Err(format!("expecting 'CVRP' as TYPE, got '{problem_type}'").into());
         }
 
         self.dimension = Some(
@@ -115,7 +116,7 @@ impl<R: Read> TsplibReader<R> {
 
         let edge_type = self.read_key_value("EDGE_WEIGHT_TYPE")?;
         if edge_type != "EUC_2D" {
-            return Err(format!("expecting 'EUC_2D' as EDGE_WEIGHT_TYPE, got '{edge_type}'"));
+            return Err(format!("expecting 'EUC_2D' as EDGE_WEIGHT_TYPE, got '{edge_type}'").into());
         }
 
         self.vehicle_capacity = Some(
@@ -126,7 +127,7 @@ impl<R: Read> TsplibReader<R> {
         Ok(())
     }
 
-    fn read_customer_data(&mut self) -> Result<ProblemData, String> {
+    fn read_customer_data(&mut self) -> Result<ProblemData, GenericError> {
         let dimension = self.dimension.unwrap();
 
         // read coordinates
@@ -138,7 +139,7 @@ impl<R: Read> TsplibReader<R> {
             let data = line.split_whitespace().collect::<Vec<_>>();
 
             if data.len() != 3 {
-                return Err(format!("unexpected coord data: '{line}'"));
+                return Err(format!("unexpected coord data: '{line}'").into());
             }
 
             let coord = (parse_int(data[1], "cannot parse coord.0")?, parse_int(data[2], "cannot parse coord.1")?);
@@ -155,7 +156,7 @@ impl<R: Read> TsplibReader<R> {
             let data = line.split_whitespace().collect::<Vec<_>>();
 
             if data.len() != 2 {
-                return Err(format!("unexpected demand data: '{line}'"));
+                return Err(format!("unexpected demand data: '{line}'").into());
             }
 
             demands.insert(parse_int(data[0], "cannot parse id")?, parse_int(data[1], "cannot parse demand")?);
@@ -164,7 +165,7 @@ impl<R: Read> TsplibReader<R> {
         Ok((coordinates, demands))
     }
 
-    fn read_depot_data(&mut self) -> Result<i32, String> {
+    fn read_depot_data(&mut self) -> Result<i32, GenericError> {
         self.read_expected_line("DEPOT_SECTION")?;
         let depot_id = parse_int(self.read_line()?.trim(), "cannot parse depot id")?;
         self.read_expected_line("-1")?;
@@ -172,37 +173,37 @@ impl<R: Read> TsplibReader<R> {
         Ok(depot_id)
     }
 
-    fn read_key_value(&mut self, expected_key: &str) -> Result<String, String> {
+    fn read_key_value(&mut self, expected_key: &str) -> Result<String, GenericError> {
         let line = self.read_line()?;
         let key_value = line.split(':').map(|v| v.to_string()).collect::<Vec<_>>();
 
         if key_value.len() != 2 {
-            return Err(format!("expected colon separated string, got: '{line}'"));
+            return Err(format!("expected colon separated string, got: '{line}'").into());
         }
 
         let actual_key = key_value[0].trim();
         if actual_key.trim() != expected_key {
-            return Err(format!("unexpected key, expecting: '{expected_key}', got: '{actual_key}'"));
+            return Err(format!("unexpected key, expecting: '{expected_key}', got: '{actual_key}'").into());
         }
 
         Ok(key_value[1].trim().to_string())
     }
 
-    fn read_expected_line(&mut self, expected: &str) -> Result<(), String> {
+    fn read_expected_line(&mut self, expected: &str) -> Result<(), GenericError> {
         let line = self.read_line()?.trim();
         if line != expected {
-            Err(format!("expecting {expected}, got: '{line}'"))
+            Err(format!("expecting {expected}, got: '{line}'").into())
         } else {
             Ok(())
         }
     }
 
-    fn read_line(&mut self) -> Result<&String, String> {
+    fn read_line(&mut self) -> Result<&String, GenericError> {
         read_line(&mut self.reader, &mut self.buffer)?;
         Ok(&self.buffer)
     }
 
-    fn skip_lines(&mut self, count: usize) -> Result<(), String> {
+    fn skip_lines(&mut self, count: usize) -> Result<(), GenericError> {
         skip_lines(count, &mut self.reader, &mut self.buffer)
     }
 
@@ -223,9 +224,9 @@ impl<R: Read> TsplibReader<R> {
     }
 }
 
-fn parse_int(data: &str, err_msg: &str) -> Result<i32, String> {
+fn parse_int(data: &str, err_msg: &str) -> Result<i32, GenericError> {
     data.parse::<f64>()
         // NOTE observed that some input files might have coordinates like 28.00000
         .map(|value| value.round() as i32)
-        .map_err(|err| format!("{err_msg}: '{err}'"))
+        .map_err(|err| format!("{err_msg}: '{err}'").into())
 }
