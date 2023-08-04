@@ -498,7 +498,7 @@ mod wasm {
 
         get_solution_serialized(problem, config)
             .map(|problem| JsValue::from_str(problem.as_str()))
-            .map_err(|err| JsValue::from_str(err.as_str()))
+            .map_err(|err| JsValue::from_str(&err.to_string()))
     }
 }
 
