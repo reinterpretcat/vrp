@@ -187,9 +187,7 @@ pub type StateKey = i32;
 
 /// Provides a way to build feature with some checks.
 #[derive(Default)]
-pub struct FeatureBuilder {
-    feature: Feature,
-}
+pub struct FeatureBuilder(Feature);
 
 impl FeatureBuilder {
     /// Combines multiple features into one.
@@ -198,19 +196,19 @@ impl FeatureBuilder {
     }
 
     /// Creates a builder from another feature
-    pub fn from_feature(other: Feature) -> Self {
-        Self { feature: other }
+    pub fn from_feature(feature: Feature) -> Self {
+        Self(feature)
     }
 
     /// Sets given name.
     pub fn with_name(mut self, name: &str) -> Self {
-        self.feature.name = name.to_string();
+        self.0.name = name.to_string();
         self
     }
 
     /// Adds given constraint.
     pub fn with_constraint<T: FeatureConstraint + Send + Sync + 'static>(mut self, constraint: T) -> Self {
-        self.feature.constraint = Some(Arc::new(constraint));
+        self.0.constraint = Some(Arc::new(constraint));
         self
     }
 
@@ -219,19 +217,19 @@ impl FeatureBuilder {
         mut self,
         objective: T,
     ) -> Self {
-        self.feature.objective = Some(Arc::new(objective));
+        self.0.objective = Some(Arc::new(objective));
         self
     }
 
     /// Adds given state.
     pub fn with_state<T: FeatureState + Send + Sync + 'static>(mut self, state: T) -> Self {
-        self.feature.state = Some(Arc::new(state));
+        self.0.state = Some(Arc::new(state));
         self
     }
 
     /// Tries to builds a feature.
     pub fn build(self) -> Result<Feature, GenericError> {
-        let feature = self.feature;
+        let feature = self.0;
 
         if feature.name == String::default() {
             return Err("features with default id are not allowed".into());

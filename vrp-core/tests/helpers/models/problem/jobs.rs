@@ -71,49 +71,47 @@ pub fn get_job_id(job: &Job) -> &String {
     job.dimens().get_id().unwrap()
 }
 
-pub struct SingleBuilder {
-    single: Single,
-}
+pub struct SingleBuilder(Single);
 
 impl Default for SingleBuilder {
     fn default() -> Self {
-        Self { single: test_single() }
+        Self(test_single())
     }
 }
 
 impl SingleBuilder {
     pub fn id(&mut self, id: &str) -> &mut Self {
-        self.single.dimens.set_value("id", id.to_string());
+        self.0.dimens.set_value("id", id.to_string());
         self
     }
 
     pub fn dimens(&mut self, dimens: Dimensions) -> &mut Self {
-        self.single.dimens = dimens;
+        self.0.dimens = dimens;
         self
     }
 
     pub fn location(&mut self, loc: Option<Location>) -> &mut Self {
-        self.single.places.first_mut().unwrap().location = loc;
+        self.0.places.first_mut().unwrap().location = loc;
         self
     }
 
     pub fn duration(&mut self, dur: Duration) -> &mut Self {
-        self.single.places.first_mut().unwrap().duration = dur;
+        self.0.places.first_mut().unwrap().duration = dur;
         self
     }
 
     pub fn times(&mut self, times: Vec<TimeWindow>) -> &mut Self {
-        self.single.places.first_mut().unwrap().times = times.into_iter().map(TimeSpan::Window).collect();
+        self.0.places.first_mut().unwrap().times = times.into_iter().map(TimeSpan::Window).collect();
         self
     }
 
     pub fn demand(&mut self, demand: Demand<SingleDimLoad>) -> &mut Self {
-        self.single.dimens.set_demand(demand);
+        self.0.dimens.set_demand(demand);
         self
     }
 
     pub fn places(&mut self, places: Vec<TestPlace>) -> &mut Self {
-        self.single.places = places
+        self.0.places = places
             .into_iter()
             .map(|p| Place {
                 location: p.0,
@@ -126,7 +124,7 @@ impl SingleBuilder {
     }
 
     pub fn build(&mut self) -> Single {
-        std::mem::replace(&mut self.single, test_single())
+        std::mem::replace(&mut self.0, test_single())
     }
 
     pub fn build_shared(&mut self) -> Arc<Single> {

@@ -69,44 +69,42 @@ pub fn get_test_actor_from_fleet(fleet: &Fleet, vehicle_id: &str) -> Arc<Actor> 
     fleet.actors.iter().find(|actor| get_vehicle_id(&actor.vehicle) == vehicle_id).unwrap().clone()
 }
 
-pub struct VehicleBuilder {
-    vehicle: Vehicle,
-}
+pub struct VehicleBuilder(Vehicle);
 
 impl Default for VehicleBuilder {
     fn default() -> VehicleBuilder {
-        VehicleBuilder { vehicle: test_vehicle(0) }
+        Self(test_vehicle(0))
     }
 }
 
 impl VehicleBuilder {
     pub fn id(&mut self, id: &str) -> &mut VehicleBuilder {
-        self.vehicle.dimens.set_id(id);
+        self.0.dimens.set_id(id);
         self
     }
 
     pub fn profile(&mut self, profile: Profile) -> &mut VehicleBuilder {
-        self.vehicle.profile = profile;
+        self.0.profile = profile;
         self
     }
 
     pub fn capacity(&mut self, capacity: i32) -> &mut VehicleBuilder {
-        self.vehicle.dimens.set_capacity(SingleDimLoad::new(capacity));
+        self.0.dimens.set_capacity(SingleDimLoad::new(capacity));
         self
     }
 
     pub fn costs(&mut self, costs: Costs) -> &mut VehicleBuilder {
-        self.vehicle.costs = costs;
+        self.0.costs = costs;
         self
     }
 
     pub fn details(&mut self, details: Vec<VehicleDetail>) -> &mut VehicleBuilder {
-        self.vehicle.details = details;
+        self.0.details = details;
         self
     }
 
     pub fn build(&mut self) -> Vehicle {
-        std::mem::replace(&mut self.vehicle, test_vehicle(0))
+        std::mem::replace(&mut self.0, test_vehicle(0))
     }
 }
 

@@ -126,33 +126,31 @@ fn create_route(actor: Arc<Actor>, mut tour: Tour, activities: Vec<Activity>) ->
     Route { actor, tour }
 }
 
-pub struct ActivityBuilder {
-    activity: Activity,
-}
+pub struct ActivityBuilder(Activity);
 
 impl Default for ActivityBuilder {
     fn default() -> Self {
-        Self { activity: test_activity() }
+        Self(test_activity())
     }
 }
 
 impl ActivityBuilder {
     pub fn place(&mut self, place: Place) -> &mut Self {
-        self.activity.place = place;
+        self.0.place = place;
         self
     }
 
     pub fn schedule(&mut self, schedule: Schedule) -> &mut Self {
-        self.activity.schedule = schedule;
+        self.0.schedule = schedule;
         self
     }
 
     pub fn job(&mut self, job: Option<Arc<Single>>) -> &mut Self {
-        self.activity.job = job;
+        self.0.job = job;
         self
     }
 
     pub fn build(&mut self) -> Activity {
-        std::mem::replace(&mut self.activity, test_activity())
+        std::mem::replace(&mut self.0, test_activity())
     }
 }
