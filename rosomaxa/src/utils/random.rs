@@ -4,7 +4,19 @@ mod random_test;
 
 use rand::prelude::*;
 use rand::Error;
+use rand_distr::{Gamma, Normal};
 use std::cell::RefCell;
+use std::cmp::Ordering;
+use std::sync::Arc;
+
+/// Provides the way to sample from different distributions.
+pub trait DistributionSampler {
+    /// Returns a sample from gamma distribution.
+    fn gamma(&self, shape: f64, scale: f64) -> f64;
+
+    /// Returns a sample from normal distribution.
+    fn normal(&self, mean: f64, std_dev: f64) -> f64;
+}
 
 /// Provides the way to use randomized values in generic way.
 pub trait Random {
@@ -27,6 +39,31 @@ pub trait Random {
 
     /// Returns RNG.
     fn get_rng(&self) -> RandomGen;
+}
+
+/// Provides way to sample from different distributions.
+#[derive(Clone)]
+pub struct DefaultDistributionSampler(Arc<dyn Random>);
+
+impl DefaultDistributionSampler {
+    /// Creates a new instance of `DefaultDistributionSampler`.
+    pub fn new(random: Arc<dyn Random>) -> Self {
+        Self(random)
+    }
+}
+
+impl DistributionSampler for DefaultDistributionSampler {
+    fn gamma(&self, shape: f64, scale: f64) -> f64 {
+        Gamma::new(shape, scale)
+            .unwrap_or_else(|_| panic!("cannot create gamma dist: shape={shape}, scale={scale}"))
+            .sample(&mut self.0.get_rng())
+    }
+
+    fn normal(&self, mean: f64, std_dev: f64) -> f64 {
+        Normal::new(mean, std_dev)
+            .unwrap_or_else(|_| panic!("cannot create normal dist: mean={mean}, std_dev={std_dev}"))
+            .sample(&mut self.0.get_rng())
+    }
 }
 
 /// A default random implementation.
@@ -137,3 +174,31 @@ impl RngCore for RandomGen {
 }
 
 impl CryptoRng for RandomGen {}
+
+/// Returns an index of max element in values. In case of many same max elements,
+/// returns the one from them at random.
+pub fn random_argmax<I>(values: I, random: &dyn Random) -> Option<usize>
+where
+    I: Iterator<Item = f64>,
+{
+    let mut rng = random.get_rng();
+    let mut count = 0;
+    values
+        .enumerate()
+        .max_by(move |(_, r), (_, s)| match r.total_cmp(s) {
+            Ordering::Equal => {
+                count += 1;
+                if rng.gen_range(0..=count) == 0 {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
+            }
+            Ordering::Less => {
+                count = 0;
+                Ordering::Less
+            }
+            Ordering::Greater => Ordering::Greater,
+        })
+        .map(|(idx, _)| idx)
+}

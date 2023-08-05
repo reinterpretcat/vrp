@@ -4,3 +4,4 @@ pub mod gsom;
 pub mod math;
 pub mod mdp;
 pub mod nsga2;
+pub mod rl;

@@ -22,6 +22,7 @@ heuristic-telemetry = []
 rand.workspace = true
 rayon.workspace = true
 rustc-hash.workspace = true
+rand_distr = "0.4.3"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 num_cpus = "1.16.0"
