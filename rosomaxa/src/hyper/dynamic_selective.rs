@@ -197,6 +197,7 @@ where
         let slot_machines = search_operators
             .into_iter()
             .map(|(operator, name, _)| {
+                // TODO use initial weight as prior mean estimation?
                 SlotMachine::new(
                     1.,
                     SearchAction { operator, operator_name: name.to_string() },

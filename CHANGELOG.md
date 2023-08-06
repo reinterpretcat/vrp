@@ -5,11 +5,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+This release focuses on algorithmic and some feature changes
+
 ### Changed
 
+* `breaking` replace MDP with multi-armed bandit RL algorithm
 * change `stops.activity.time.start` not to include waiting time
 * improve required break functionality
-* MDP adjustments
 * improve managing packages with cargo's workspace
 * update dependencies
 * `breaking`: refactor internal models to simplify cost/telemetry handling
