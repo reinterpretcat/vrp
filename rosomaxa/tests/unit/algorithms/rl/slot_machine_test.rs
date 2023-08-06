@@ -2,6 +2,29 @@ use super::*;
 use crate::helpers::utils::create_test_random;
 use crate::utils::{random_argmax, DefaultDistributionSampler};
 
+#[derive(Clone)]
+struct TestAction(DefaultDistributionSampler);
+
+impl SlotAction for TestAction {
+    type Context = (f64, f64);
+    type Feedback = TestFeedback;
+
+    fn take(&self, context: Self::Context) -> Self::Feedback {
+        let (mean, var) = context;
+        let reward = self.0.normal(mean, var.sqrt());
+
+        TestFeedback(reward)
+    }
+}
+
+struct TestFeedback(f64);
+
+impl SlotFeedback for TestFeedback {
+    fn reward(&self) -> f64 {
+        self.0
+    }
+}
+
 #[test]
 fn can_find_proper_estimations() {
     let total_episodes = 100;
@@ -17,17 +40,14 @@ fn can_find_proper_estimations() {
             let random = create_test_random();
             let sampler = DefaultDistributionSampler::new(random.clone());
             let mut slots = (0..5)
-                .map(|idx| {
-                    SlotMachine::new(prior_mean, sampler.clone(), {
-                        let sampler = sampler.clone();
-                        move || sampler.normal(slot_means[idx], slot_vars[idx].sqrt())
-                    })
-                })
+                .map(|_| SlotMachine::new(prior_mean, TestAction(sampler.clone()), sampler.clone()))
                 .collect::<Vec<_>>();
 
             for _ in 0..attempts {
                 let slot_idx = random_argmax(slots.iter().map(|slot| slot.sample()), random.as_ref()).unwrap();
-                slots[slot_idx].play();
+                let slot = &mut slots[slot_idx];
+                let feedback = slot.play((slot_means[slot_idx], slot_vars[slot_idx].sqrt()));
+                slot.update(&feedback);
             }
 
             slots

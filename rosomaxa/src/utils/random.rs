@@ -43,11 +43,11 @@ pub trait Random {
 
 /// Provides way to sample from different distributions.
 #[derive(Clone)]
-pub struct DefaultDistributionSampler(Arc<dyn Random>);
+pub struct DefaultDistributionSampler(Arc<dyn Random + Send + Sync>);
 
 impl DefaultDistributionSampler {
     /// Creates a new instance of `DefaultDistributionSampler`.
-    pub fn new(random: Arc<dyn Random>) -> Self {
+    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
         Self(random)
     }
 }

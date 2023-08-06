@@ -5,14 +5,27 @@ mod slot_machine_test;
 use crate::utils::DistributionSampler;
 use std::fmt::{Display, Formatter};
 
+/// Represents an action on slot machine;
+pub trait SlotAction {
+    /// An environment context.
+    type Context;
+    ///  A feedback from taking slot action.
+    type Feedback: SlotFeedback;
+
+    /// Take an action for given context and return reward.
+    fn take(&self, context: Self::Context) -> Self::Feedback;
+}
+
+/// Provides a feedback for taking an action on a slot.
+pub trait SlotFeedback {
+    /// A reward for taking an action on a slot machine.
+    fn reward(&self) -> f64;
+}
+
 /// Simulates a slot machine.
 /// Internally tries to estimate reward probability distribution using one of methods from Thompson sampling.
 #[derive(Clone)]
-pub struct SlotMachine<T, S>
-where
-    T: Clone,
-    S: Clone,
-{
+pub struct SlotMachine<A, S> {
     /// The number of times this slot machine has been tried.
     n: usize,
     /// Gamma shape parameter.
@@ -25,23 +38,23 @@ where
     v: f64,
     /// Sampler: used to provide samples from underlying estimated distribution.
     sampler: S,
-    /// Actual slot play function.
-    player: T,
+    /// Actual slot action function.
+    action: A,
 }
 
-impl<T, S> SlotMachine<T, S>
+impl<A, S> SlotMachine<A, S>
 where
-    T: Fn() -> f64 + Clone,
+    A: SlotAction + Clone,
     S: DistributionSampler + Clone,
 {
     /// Creates a new instance of `SlotMachine`.
-    pub fn new(prior_mean: f64, sampler: S, player: T) -> Self {
+    pub fn new(prior_mean: f64, action: A, sampler: S) -> Self {
         let alpha = 1.;
         let beta = 10.;
         let mu = prior_mean;
         let v = beta / (alpha + 1.);
 
-        Self { n: 0, alpha, beta, mu, v, player, sampler }
+        Self { n: 0, alpha, beta, mu, v, action, sampler }
     }
 
     /// Samples from estimated normal distribution.
@@ -53,14 +66,15 @@ where
         self.sampler.normal(self.mu, variance.sqrt())
     }
 
-    /// Plays the game and updates slot state.
-    pub fn play(&mut self) {
-        let reward = (self.player)();
-        self.update(reward);
+    /// Plays a game by taking action within given context. As result, updates a slot state.
+    pub fn play(&self, context: A::Context) -> A::Feedback {
+        self.action.take(context)
     }
 
     /// Updates slot machine.
-    fn update(&mut self, reward: f64) {
+    pub fn update(&mut self, feedback: &A::Feedback) {
+        let reward = feedback.reward();
+
         let n = 1.;
         let v = self.n as f64;
 

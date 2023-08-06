@@ -3,16 +3,16 @@
 mod dynamic_selective_test;
 
 use super::*;
-use crate::algorithms::math::{relative_distance, RemedianUsize};
-use crate::algorithms::mdp::*;
-use crate::utils::compare_floats;
+use crate::algorithms::math::RemedianUsize;
+use crate::algorithms::rl::{SlotAction, SlotFeedback, SlotMachine};
+use crate::utils::{compare_floats, random_argmax, DefaultDistributionSampler};
 use crate::Timer;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::Formatter;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
+use std::iter::once;
 use std::sync::Arc;
-use std::time::Duration;
 
 /// A collection of heuristic search operators with their name and initial weight.
 pub type HeuristicSearchOperators<C, O, S> =
@@ -23,84 +23,51 @@ pub type HeuristicDiversifyOperators<C, O, S> =
     Vec<Arc<dyn HeuristicDiversifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>>;
 
 /// An experimental dynamic selective hyper heuristic which selects inner heuristics
-/// based on how they work during the search. The selection process is modeled by
-/// Markov Decision Process.
+/// based on how they work during the search. The selection process is modeled using reinforcement
+/// learning technics.
 pub struct DynamicSelective<C, O, S>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    heuristic_simulator: Simulator<SearchState>,
-    initial_estimates: StateEstimates<SearchState>,
-    action_registry: SearchActionRegistry<C, O, S>,
+    agent: SearchAgent<'static, C, O, S>,
     diversify_operators: HeuristicDiversifyOperators<C, O, S>,
-    tracker: HeuristicTracker,
 }
 
 impl<C, O, S> HyperHeuristic for DynamicSelective<C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S> + 'static,
     O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    S: HeuristicSolution + 'static,
 {
     type Context = C;
     type Objective = O;
     type Solution = S;
 
     fn search(&mut self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
-        let agent = self.heuristic_simulator.run_episode(
-            SearchAgent {
-                heuristic_ctx,
-                original: solution,
-                registry: &self.action_registry,
-                estimates: &self.initial_estimates,
-                tracker: &self.tracker,
-                state: Self::compare_solution(heuristic_ctx, solution),
-                solution: Some(solution.deep_copy()),
-                samples: Vec::default(),
-            },
-            get_state_reducer(),
-        );
+        let generation = heuristic_ctx.statistics().generation;
+        let feedback = self.agent.search(heuristic_ctx, solution);
 
-        let (individuals, runtimes) =
-            agent.solution.map(|solution| (vec![solution], agent.samples)).unwrap_or_default();
+        self.agent.update(generation, &feedback);
 
-        self.update_simulator(heuristic_ctx, runtimes);
-
-        individuals
+        vec![feedback.solution]
     }
 
     fn search_many(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
-        let agents = solutions
-            .into_iter()
-            .map(|solution| SearchAgent {
-                heuristic_ctx,
-                original: solution,
-                registry: &self.action_registry,
-                estimates: &self.initial_estimates,
-                tracker: &self.tracker,
-                state: Self::compare_solution(heuristic_ctx, solution),
-                solution: Some(solution.deep_copy()),
-                samples: Vec::default(),
-            })
-            .collect();
+        let feedbacks = parallel_into_collect(solutions.iter().enumerate().collect(), |(idx, solution)| {
+            heuristic_ctx
+                .environment()
+                .parallelism
+                .thread_pool_execute(idx, || self.agent.search(heuristic_ctx, solution))
+        });
 
-        let (individuals, runtimes) = self
-            .heuristic_simulator
-            // NOTE use parallelism setting
-            .run_episodes(agents, heuristic_ctx.environment().parallelism.clone(), get_state_reducer())
-            .into_iter()
-            .filter_map(|agent| agent.solution.map(|solution| (solution, agent.samples)))
-            .fold((Vec::new(), Vec::new()), |mut acc, (solution, runtime)| {
-                acc.0.push(solution);
-                acc.1.extend(runtime.into_iter());
-                acc
-            });
+        let generation = heuristic_ctx.statistics().generation;
+        feedbacks.iter().for_each(|feedback| {
+            self.agent.update(generation, &feedback);
+        });
 
-        self.update_simulator(heuristic_ctx, runtimes);
-
-        individuals
+        feedbacks.into_iter().map(|feedback| feedback.solution).collect()
     }
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
@@ -119,9 +86,9 @@ where
 
 impl<C, O, S> DynamicSelective<C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S> + 'static,
     O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    S: HeuristicSolution + 'static,
 {
     /// Creates a new instance of `DynamicSelective` heuristic.
     pub fn new(
@@ -129,272 +96,156 @@ where
         diversify_operators: HeuristicDiversifyOperators<C, O, S>,
         environment: &Environment,
     ) -> Self {
-        let operator_estimates = search_operators
-            .iter()
-            .enumerate()
-            .map(|(heuristic_idx, (_, _, weight))| (SearchAction::Search { heuristic_idx }, *weight))
-            .collect::<HashMap<_, _>>();
-        let operator_estimates = ActionEstimates::from(operator_estimates);
-
-        Self {
-            heuristic_simulator: Simulator::new(
-                create_learning_strategy(0.),
-                create_policy_strategy(0., environment.random.clone()),
-            ),
-            initial_estimates: vec![
-                (SearchState::BestKnown, operator_estimates.clone()),
-                (SearchState::Diverse, operator_estimates),
-                (SearchState::BestMajorImprovement(Default::default()), Default::default()),
-                (SearchState::BestMinorImprovement(Default::default()), Default::default()),
-                (SearchState::DiverseImprovement(Default::default()), Default::default()),
-                (SearchState::Stagnated(Default::default()), Default::default()),
-            ]
-            .into_iter()
-            .collect(),
-            action_registry: SearchActionRegistry { heuristics: search_operators },
-            diversify_operators,
-            tracker: HeuristicTracker {
-                total_median: RemedianUsize::new(11, |a, b| a.cmp(b)),
-                overall_telemetry: Default::default(),
-                selection_telemetry: Default::default(),
-            },
-        }
-    }
-
-    fn compare_solution(heuristic_ctx: &C, solution: &S) -> SearchState {
-        match compare_to_best(heuristic_ctx, solution) {
-            Ordering::Greater => SearchState::Diverse,
-            _ => SearchState::BestKnown,
-        }
-    }
-
-    fn update_simulator(&mut self, heuristic_ctx: &C, samples: Vec<SearchSample>) {
-        try_exchange_estimates(&mut self.heuristic_simulator);
-
-        // update learning and policy strategies to move from more exploration at the beginning to exploitation in the end
-        let termination_estimate = heuristic_ctx.statistics().termination_estimate;
-        let random = heuristic_ctx.environment().random.clone();
-        let generation = heuristic_ctx.statistics().generation;
-
-        self.heuristic_simulator.set_learning_strategy(create_learning_strategy(termination_estimate));
-        self.heuristic_simulator.set_policy_strategy(create_policy_strategy(termination_estimate, random));
-
-        samples.into_iter().for_each(|sample| {
-            let estimate = self
-                .heuristic_simulator
-                .get_state_estimates()
-                .get(&sample.old_state)
-                .and_then(|action_estimates| action_estimates.data().get(&sample.action))
-                .cloned()
-                .unwrap_or_default();
-            self.tracker.observe_sample(generation, estimate, sample);
-        });
-
-        self.tracker.observe_all_states(generation, self.heuristic_simulator.get_state_estimates(), |heuristic_idx| {
-            self.action_registry.heuristics[heuristic_idx].1.clone()
-        });
+        Self { agent: SearchAgent::new(search_operators, environment.random.clone()), diversify_operators }
     }
 }
 
-#[derive(Default, Clone)]
-struct Feedback {
-    pub median_ratio: f64,
-    pub improvement_ratio: f64,
-}
-
-impl Hash for Feedback {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        0.hash(state)
-    }
-}
-
-impl PartialEq for Feedback {
-    fn eq(&self, _: &Self) -> bool {
-        true
-    }
-}
-
-impl Eq for Feedback {}
-
-impl Feedback {
-    /// Evaluates reward value according to environment state.
-    pub fn eval_reward(&self, reward: f64) -> f64 {
-        if reward == 0. {
-            return 0.;
-        }
-
-        let reward_to_zero = compare_floats(reward, 0.);
-
-        let median_ratio = match (self.median_ratio.clamp(0.5, 2.), reward_to_zero) {
-            (ratio, _) if ratio < 1.001 => 1.,
-            (ratio, Ordering::Less) => ratio,
-            (ratio, Ordering::Greater) => 1. / ratio,
-            _ => unreachable!("zero case is trivially handled"),
-        };
-
-        let improvement_ratio = match (self.improvement_ratio, reward_to_zero) {
-            // stagnation: reduce negative reward and increase positive
-            (ratio, Ordering::Greater) if ratio < 0.05 => 10.,
-            (ratio, Ordering::Less) if ratio < 0.05 => 0.1,
-            // fast convergence: reduce positive reward and increase negative
-            (ratio, Ordering::Greater) if ratio > 0.150 => 0.5,
-            (ratio, Ordering::Less) if ratio < 0.10 => 2.,
-            // moderate convergence: keep the same
-            _ => 1.,
-        };
-
-        median_ratio * improvement_ratio * reward
-    }
-}
+type SlotMachines<'a, C, O, S> = Vec<SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler>>;
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 enum SearchState {
-    /// A state with the best known solution.
     BestKnown,
-    /// A state with diverse (not the best known) solution.
     Diverse,
-    /// A state with new best known solution found (major improvement).
-    BestMajorImprovement(Feedback),
-    /// A state with new best known solution found (minor improvement).
-    BestMinorImprovement(Feedback),
-    /// A state with improved diverse solution.
-    DiverseImprovement(Feedback),
-    /// A state with equal or degraded solution.
-    Stagnated(Feedback),
 }
 
-impl State for SearchState {
-    type Action = SearchAction;
-
-    fn reward(&self) -> f64 {
-        match &self {
-            SearchState::BestMajorImprovement(feedback) => feedback.eval_reward(1000.),
-            SearchState::BestMinorImprovement(feedback) => feedback.eval_reward(100.),
-            SearchState::DiverseImprovement(feedback) => feedback.eval_reward(10.),
-            SearchState::Stagnated(feedback) => feedback.eval_reward(-1.),
-            SearchState::BestKnown | SearchState::Diverse => {
-                unreachable!("no reward as no transition to initial state")
-            }
+impl Display for SearchState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SearchState::BestKnown => f.write_str("best"),
+            SearchState::Diverse => f.write_str("diverse"),
         }
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone)]
-enum SearchAction {
-    /// An action which performs the search.
-    Search { heuristic_idx: usize },
+struct SearchFeedback<S> {
+    sample: SearchSample,
+    slot_idx: usize,
+    solution: S,
 }
 
-struct SearchActionRegistry<C, O, S>
+impl<S> SlotFeedback for SearchFeedback<S> {
+    fn reward(&self) -> f64 {
+        self.sample.reward
+    }
+}
+
+struct SearchAction<'a, C, O, S> {
+    operator: Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync + 'a>,
+    operator_name: String,
+}
+
+impl<'a, C, O, S> Clone for SearchAction<'a, C, O, S> {
+    fn clone(&self) -> Self {
+        Self { operator: self.operator.clone(), operator_name: self.operator_name.clone() }
+    }
+}
+
+impl<'a, C, O, S> SlotAction for SearchAction<'a, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S> + 'a,
     O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    S: HeuristicSolution + 'a,
 {
-    pub heuristics: HeuristicSearchOperators<C, O, S>,
+    type Context = SearchContext<'a, C, O, S>;
+    type Feedback = SearchFeedback<S>;
+
+    fn take(&self, context: Self::Context) -> Self::Feedback {
+        let (new_solution, duration) =
+            Timer::measure_duration(|| self.operator.search(context.heuristic_ctx, context.solution));
+
+        let is_new_best = compare_to_best(context.heuristic_ctx, &new_solution) == Ordering::Less;
+        let duration = duration.as_millis() as usize;
+
+        let base_reward = estimate_distance_reward(context.heuristic_ctx, context.solution, &new_solution);
+        let reward_multiplier = estimate_reward_multiplier(&context, duration, is_new_best);
+        let reward = base_reward * reward_multiplier;
+
+        let transition = (context.from, convert_to_state(context.heuristic_ctx, &new_solution));
+
+        let sample = SearchSample { name: self.operator_name.clone(), duration, reward, transition };
+
+        SearchFeedback { sample, slot_idx: context.slot_idx, solution: new_solution }
+    }
 }
 
-struct SearchSample {
-    /// Name of heuristic used.
-    pub name: String,
-    /// Duration of the search.
-    pub duration: Duration,
-    /// Old state of the search.
-    pub old_state: SearchState,
-    /// Final state of the search.
-    pub new_state: SearchState,
-    /// Action taken.
-    pub action: SearchAction,
-}
-
-struct SearchAgent<'a, C, O, S>
+struct SearchContext<'a, C, O, S>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
     heuristic_ctx: &'a C,
-    registry: &'a SearchActionRegistry<C, O, S>,
-    estimates: &'a StateEstimates<SearchState>,
-    tracker: &'a HeuristicTracker,
-    state: SearchState,
-    original: &'a S,
-    solution: Option<S>,
-    samples: Vec<SearchSample>,
+    from: SearchState,
+    slot_idx: usize,
+    solution: &'a S,
+    approx_median: Option<usize>,
 }
 
-impl<'a, C, O, S> Agent<SearchState> for SearchAgent<'a, C, O, S>
+struct SearchAgent<'a, C, O, S> {
+    slot_machines: HashMap<SearchState, SlotMachines<'a, C, O, S>>,
+    tracker: HeuristicTracker,
+    random: Arc<dyn Random + Send + Sync>,
+}
+
+impl<'a, C, O, S> SearchAgent<'a, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S> + 'a,
     O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    S: HeuristicSolution + 'a,
 {
-    fn get_state(&self) -> &SearchState {
-        &self.state
+    pub fn new(search_operators: HeuristicSearchOperators<C, O, S>, random: Arc<dyn Random + Send + Sync>) -> Self {
+        let slot_machines = search_operators
+            .into_iter()
+            .map(|(operator, name, _)| {
+                SlotMachine::new(
+                    1.,
+                    SearchAction { operator, operator_name: name.to_string() },
+                    DefaultDistributionSampler::new(random.clone()),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let slot_machines = once((SearchState::BestKnown, slot_machines.clone()))
+            .chain(once((SearchState::Diverse, slot_machines)))
+            .collect();
+
+        Self {
+            slot_machines,
+            tracker: HeuristicTracker {
+                total_median: RemedianUsize::new(11, |a, b| a.cmp(b)),
+                search_telemetry: Default::default(),
+            },
+            random,
+        }
     }
 
-    fn get_actions(&self, state: &SearchState) -> ActionEstimates<SearchState> {
-        self.estimates[state].clone()
+    /// Picks relevant search operator based on learnings and runs the search.
+    pub fn search(&self, heuristic_ctx: &C, solution: &S) -> SearchFeedback<S> {
+        let from = convert_to_state(heuristic_ctx, solution);
+
+        let (slot_idx, slot_machine) = self
+            .slot_machines
+            .get(&from)
+            .and_then(|slots| {
+                random_argmax(slots.iter().map(|slot| slot.sample()), self.random.as_ref())
+                    .and_then(|slot_idx| slots.get(slot_idx).map(|slot| (slot_idx, slot)))
+            })
+            .expect("cannot get slot machine");
+
+        let approx_median = self.tracker.approx_median();
+
+        slot_machine.play(SearchContext { heuristic_ctx, from, slot_idx, solution, approx_median })
     }
 
-    fn take_action(&mut self, action: &<SearchState as State>::Action) {
-        let (new_solution, duration, name) = match action {
-            SearchAction::Search { heuristic_idx } => {
-                let solution = self.solution.as_ref().unwrap();
-                let (heuristic, name, _) = &self.registry.heuristics[*heuristic_idx];
+    /// Updates estimations based on search feedback.
+    pub fn update(&mut self, generation: usize, feedback: &SearchFeedback<S>) {
+        let from = &feedback.sample.transition.0;
 
-                let (new_solution, duration) =
-                    Timer::measure_duration(|| heuristic.search(self.heuristic_ctx, solution));
+        if let Some(slots) = self.slot_machines.get_mut(from) {
+            slots[feedback.slot_idx].update(feedback);
+        }
 
-                (new_solution, duration, name.to_string())
-            }
-        };
-
-        let objective = self.heuristic_ctx.objective();
-        let statistics = self.heuristic_ctx.statistics();
-
-        let compare_to_old = objective.total_order(&new_solution, self.original);
-        let compare_to_best = compare_to_best(self.heuristic_ctx, &new_solution);
-
-        let ratio = Feedback {
-            median_ratio: self.tracker.approx_median().map_or(1., |median| {
-                if median == 0 {
-                    1.
-                } else {
-                    duration.as_millis() as f64 / median as f64
-                }
-            }),
-            // NOTE consider "instant" improvement ratio only to react quicker on a change
-            improvement_ratio: statistics.improvement_1000_ratio,
-        };
-
-        let old_state = self.state.clone();
-        self.state = match (compare_to_old, compare_to_best) {
-            (_, Ordering::Less) => {
-                let is_significant_change =
-                    self.heuristic_ctx.ranked().next().map_or(statistics.improvement_1000_ratio < 0.01, |(best, _)| {
-                        let distance = relative_distance(objective.fitness(best), objective.fitness(&new_solution));
-                        distance > 0.01
-                    });
-
-                if is_significant_change {
-                    SearchState::BestMajorImprovement(ratio)
-                } else {
-                    SearchState::BestMinorImprovement(ratio)
-                }
-            }
-            (Ordering::Less, _) => SearchState::DiverseImprovement(ratio),
-            (_, _) => SearchState::Stagnated(ratio),
-        };
-
-        self.solution = Some(new_solution);
-        self.samples.push(SearchSample {
-            name,
-            duration,
-            old_state,
-            new_state: self.state.clone(),
-            action: action.clone(),
-        })
+        self.tracker.observe_sample(generation, feedback.sample.clone())
     }
 }
 
@@ -405,60 +256,20 @@ where
     S: HeuristicSolution,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if !self.tracker.telemetry_enabled() {
+        if !self.agent.tracker.telemetry_enabled() {
             return Ok(());
         }
 
         f.write_fmt(format_args!("TELEMETRY\n"))?;
-        f.write_fmt(format_args!("selection\n"))?;
-        f.write_fmt(format_args!("name,generation,estimation,state,duration\n"))?;
-        self.tracker.selection_telemetry.iter().try_for_each(|(name, entries)| {
-            entries.iter().try_for_each(|(generation, duration, estimate, state)| {
-                let state = match state {
-                    SearchState::BestMajorImprovement(_) => "best_major",
-                    SearchState::BestMinorImprovement(_) => "best_minor",
-                    SearchState::DiverseImprovement(_) => "diverse",
-                    SearchState::Stagnated(_) => "stagnated",
-                    SearchState::BestKnown | SearchState::Diverse => unreachable!(),
-                };
-                f.write_fmt(format_args!("{name},{generation},{estimate},{state},{}\n", duration.as_millis()))
-            })
-        })?;
-
-        f.write_fmt(format_args!("overall\n"))?;
-        f.write_fmt(format_args!("name,generation,estimation,state\n"))?;
-        self.tracker.overall_telemetry.iter().try_for_each(|(state, estimations)| {
-            let state = match state {
-                SearchState::BestKnown => "best",
-                SearchState::Diverse => "diverse",
-                _ => unreachable!(),
-            };
-            estimations.iter().try_for_each(|(generation, name, estimation)| {
-                f.write_fmt(format_args!("{name},{generation},{estimation},{state}\n"))
-            })
-        })?;
+        for (generation, sample) in self.agent.tracker.search_telemetry.iter() {
+            f.write_fmt(format_args!("name,generation,reward,from,to,duration\n"))?;
+            f.write_fmt(format_args!(
+                "{},{},{},{},{},{}\n",
+                sample.name, generation, sample.reward, sample.transition.0, sample.transition.1, sample.duration
+            ))?;
+        }
 
         Ok(())
-    }
-}
-
-fn try_exchange_estimates(heuristic_simulator: &mut Simulator<SearchState>) {
-    let (best_known_max, diverse_state_max) = {
-        let state_estimates = heuristic_simulator.get_state_estimates();
-        (
-            state_estimates.get(&SearchState::BestKnown).and_then(|state| state.max_estimate()),
-            state_estimates.get(&SearchState::Diverse).and_then(|state| state.max_estimate()),
-        )
-    };
-
-    let is_best_known_stagnation =
-        best_known_max.map_or(false, |(_, max)| compare_floats(max, 0.) != Ordering::Greater);
-    let is_diverse_improvement =
-        diverse_state_max.map_or(false, |(_, max)| compare_floats(max, 0.) == Ordering::Greater);
-
-    if is_best_known_stagnation && is_diverse_improvement {
-        let estimates = heuristic_simulator.get_state_estimates().get(&SearchState::Diverse).unwrap().clone();
-        heuristic_simulator.set_action_estimates(SearchState::BestKnown, estimates);
     }
 }
 
@@ -475,14 +286,131 @@ where
         .unwrap_or(Ordering::Less)
 }
 
+fn convert_to_state<C, O, S>(heuristic_ctx: &C, solution: &S) -> SearchState
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    if matches!(compare_to_best(heuristic_ctx, solution), Ordering::Less) {
+        SearchState::BestKnown
+    } else {
+        SearchState::Diverse
+    }
+}
+
+/// Estimates new solution discovery reward based on distance metric.
+/// Returns a reward estimation in `[0, 6]` range. This range consists of:
+/// - a initial distance improvement gives `[0, 2]`
+/// - a best known improvement gives `[0, 2]` * BEST_DISCOVERY_REWARD_MULTIPLIER
+fn estimate_distance_reward<C, O, S>(heuristic_ctx: &C, initial_solution: &S, new_solution: &S) -> f64
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    heuristic_ctx
+        .ranked()
+        .next()
+        .map(|(best_known, _)| {
+            const BEST_DISCOVERY_REWARD_MULTIPLIER: f64 = 2.;
+
+            let objective = heuristic_ctx.objective();
+
+            let distance_initial = get_relative_distance(objective, new_solution, initial_solution);
+            let distance_best = get_relative_distance(objective, new_solution, best_known);
+
+            // NOTE remap distances to range [0, 2]
+            match (compare_floats(distance_initial, 0.), compare_floats(distance_best, 0.)) {
+                (Ordering::Greater, Ordering::Greater) => {
+                    (distance_initial + 1.) + (distance_best + 1.) * BEST_DISCOVERY_REWARD_MULTIPLIER
+                }
+                (Ordering::Greater, Ordering::Less) => distance_initial + 1.,
+                _ => 0.,
+            }
+        })
+        .unwrap_or(0.)
+}
+
+/// Estimates performance of used operation based on its duration and overall improvement statistics.
+/// Returns a reward multiplier in `(~0.5, 3]` range.
+fn estimate_reward_multiplier<C, O, S>(
+    search_ctx: &SearchContext<C, O, S>,
+    duration: usize,
+    has_improvement: bool,
+) -> f64
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    let improvement_ratio = search_ctx.heuristic_ctx.statistics().improvement_1000_ratio;
+    let approx_median = &search_ctx.approx_median;
+    let median_ratio =
+        approx_median.map_or(1., |median| if median == 0 { 1. } else { duration as f64 / median as f64 });
+
+    let median_ratio = match median_ratio.clamp(0.5, 2.) {
+        ratio if ratio < 0.75 => 1.5,   // Allegro
+        ratio if ratio < 1.001 => 1.25, // Allegretto
+        ratio if ratio > 1.5 => 0.75,   // Andante
+        _ => 1.,                        // Moderato
+    };
+
+    let improvement_ratio = match (improvement_ratio, has_improvement) {
+        // stagnation: increase reward
+        (ratio, true) if ratio < 0.05 => 2.,
+        // fast convergence: decrease reward
+        (ratio, true) if ratio > 0.150 => 0.75,
+        // moderate convergence
+        _ => 1.,
+    };
+
+    median_ratio * improvement_ratio
+}
+
+/// Returns distance in [-1., 1] where sign specifies whether a solution is better (positive) or worse (negative).
+fn get_relative_distance<O, S>(objective: &O, a: &S, b: &S) -> f64
+where
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    let order = objective.total_order(a, b);
+
+    let sign = match order {
+        Ordering::Less => 1.,
+        Ordering::Greater => -1.,
+        Ordering::Equal => return 0.,
+    };
+
+    let idx = (0..objective.size())
+        .find(|idx| {
+            let distance = objective.get_distance(a, b, *idx).expect("cannot get distance by idx");
+            compare_floats(distance, 0.) != Ordering::Equal
+        })
+        .expect("cannot find objective idx where solution values are different");
+
+    a.fitness()
+        .skip(idx)
+        .next()
+        .zip(b.fitness().skip(idx).next())
+        .map(|(a, b)| (a - b).abs() / a.abs().max(b.abs()))
+        .expect("cannot get fitness by idx")
+        * sign
+}
+
+/// Sample of search telemetry.
+#[derive(Clone)]
+struct SearchSample {
+    name: String,
+    duration: usize,
+    reward: f64,
+    transition: (SearchState, SearchState),
+}
+
 /// Provides way to track heuristic's telemetry and duration median estimation.
 struct HeuristicTracker {
-    /// An estimation of median (remedian) of heuristic duration.
     total_median: RemedianUsize,
-    /// Keeps track of all heuristics and their estimations.
-    overall_telemetry: HashMap<SearchState, Vec<(usize, String, f64)>>,
-    /// Keeps track of selected heuristics and their results at each generation.
-    selection_telemetry: HashMap<String, Vec<(usize, Duration, f64, SearchState)>>,
+    search_telemetry: Vec<(usize, SearchSample)>,
 }
 
 impl HeuristicTracker {
@@ -497,69 +425,10 @@ impl HeuristicTracker {
     }
 
     /// Observes a current sample. Updates total duration median.
-    pub fn observe_sample(&mut self, generation: usize, estimate: f64, sample: SearchSample) {
-        self.total_median.add_observation(sample.duration.as_millis() as usize);
+    pub fn observe_sample(&mut self, generation: usize, sample: SearchSample) {
+        self.total_median.add_observation(sample.duration);
         if self.telemetry_enabled() {
-            self.selection_telemetry.entry(sample.name).or_default().push((
-                generation,
-                sample.duration,
-                estimate,
-                sample.new_state,
-            ));
+            self.search_telemetry.push((generation, sample));
         }
-    }
-
-    /// Observes all search states.
-    pub fn observe_all_states(
-        &mut self,
-        generation: usize,
-        states: &StateEstimates<SearchState>,
-        name_resolution_fn: impl Fn(usize) -> String,
-    ) {
-        if self.telemetry_enabled() {
-            states
-                .iter()
-                // NOTE we interested only in best_known and diverse states
-                .filter(|(state, _)| matches!(state, SearchState::BestKnown | SearchState::Diverse))
-                .for_each(|(s, estimates)| {
-                    self.overall_telemetry.entry(s.clone()).or_insert_with(Vec::default).extend(
-                        estimates.data().iter().map(|(action, &estimate)| {
-                            let heuristic_idx = match action {
-                                SearchAction::Search { heuristic_idx } => *heuristic_idx,
-                            };
-                            (generation, (name_resolution_fn)(heuristic_idx), estimate)
-                        }),
-                    )
-                });
-        }
-    }
-}
-
-fn create_learning_strategy(termination_estimate: f64) -> Box<dyn LearningStrategy<SearchState> + Send + Sync> {
-    // https://www.wolframalpha.com/input?i=plot++%281%2F%284%2Be%5E%28-4*%28x+-+0.25%29%29%29%29%2C+x%3D0+to+1
-    let x = termination_estimate.clamp(0., 1.);
-    let alpha = 1. / (4. + std::f64::consts::E.powf(-4. * (x - 0.25)));
-
-    Box::new(MonteCarlo::new(alpha))
-}
-
-fn create_policy_strategy(
-    termination_estimate: f64,
-    random: Arc<dyn Random + Send + Sync>,
-) -> Box<dyn PolicyStrategy<SearchState> + Send + Sync> {
-    // https://www.wolframalpha.com/input?i=plot+0.2*+%281+-+1%2F%281%2Be%5E%28-4+*%28x+-+0.25%29%29%29%29%2C+x%3D0+to+1
-    let x = termination_estimate.clamp(0., 1.);
-    let epsilon = 0.2 * (1. - 1. / (1. + std::f64::consts::E.powf(-4. * (x - 0.25))));
-
-    Box::new(EpsilonWeighted::new(epsilon, random))
-}
-
-fn get_state_reducer() -> impl Fn(&SearchState, &[f64]) -> f64 {
-    |state, values| {
-        match state {
-            SearchState::BestKnown { .. } => values.iter().copied().max_by(compare_floats_refs).unwrap_or(0.),
-            _ => values.iter().sum::<f64>() / values.len() as f64,
-        }
-        .max(1.)
     }
 }
