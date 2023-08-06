@@ -96,7 +96,7 @@ where
         diversify_operators: HeuristicDiversifyOperators<C, O, S>,
         environment: &Environment,
     ) -> Self {
-        Self { agent: SearchAgent::new(search_operators, environment.random.clone()), diversify_operators }
+        Self { agent: SearchAgent::new(search_operators, environment), diversify_operators }
     }
 }
 
@@ -193,14 +193,14 @@ where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution + 'a,
 {
-    pub fn new(search_operators: HeuristicSearchOperators<C, O, S>, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(search_operators: HeuristicSearchOperators<C, O, S>, environment: &Environment) -> Self {
         let slot_machines = search_operators
             .into_iter()
             .map(|(operator, name, _)| {
                 SlotMachine::new(
                     1.,
                     SearchAction { operator, operator_name: name.to_string() },
-                    DefaultDistributionSampler::new(random.clone()),
+                    DefaultDistributionSampler::new(environment.random.clone()),
                 )
             })
             .collect::<Vec<_>>();
@@ -214,8 +214,9 @@ where
             tracker: HeuristicTracker {
                 total_median: RemedianUsize::new(11, |a, b| a.cmp(b)),
                 search_telemetry: Default::default(),
+                is_experimental: environment.is_experimental,
             },
-            random,
+            random: environment.random.clone(),
         }
     }
 
@@ -411,12 +412,13 @@ struct SearchSample {
 struct HeuristicTracker {
     total_median: RemedianUsize,
     search_telemetry: Vec<(usize, SearchSample)>,
+    is_experimental: bool,
 }
 
 impl HeuristicTracker {
     /// Returns true if telemetry is enabled.
     pub fn telemetry_enabled(&self) -> bool {
-        cfg!(feature = "heuristic-telemetry")
+        cfg!(feature = "heuristic-telemetry") && self.is_experimental
     }
 
     /// Returns median approximation.
