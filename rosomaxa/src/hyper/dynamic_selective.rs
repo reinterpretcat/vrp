@@ -260,10 +260,14 @@ where
         }
 
         self.slot_machines.iter().for_each(|(state, slots)| {
-            slots.iter().map(|slot| slot.get_params()).for_each(|(alpha, beta, mu, v, n)| {
-                self.tracker
-                    .observe_params(generation, HeuristicSample { state: state.clone(), alpha, beta, mu, v, n });
-            })
+            slots.iter().enumerate().map(|(idx, slot)| (idx, slot.get_params())).for_each(
+                |(idx, (alpha, beta, mu, v, n))| {
+                    self.tracker.observe_params(
+                        generation,
+                        HeuristicSample { state: state.clone(), idx, alpha, beta, mu, v, n },
+                    );
+                },
+            )
         });
     }
 }
@@ -290,11 +294,11 @@ where
         }
 
         f.write_fmt(format_args!("heuristic:\n"))?;
-        f.write_fmt(format_args!("generation,state,alpha,beta,mu,v,n\n"))?;
+        f.write_fmt(format_args!("generation,state,idx,alpha,beta,mu,v,n\n"))?;
         for (generation, sample) in self.agent.tracker.heuristic_telemetry.iter() {
             f.write_fmt(format_args!(
-                "{},{},{},{},{},{},{}\n",
-                generation, sample.state, sample.alpha, sample.beta, sample.mu, sample.v, sample.n
+                "{},{},{},{},{},{},{},{}\n",
+                generation, sample.state, sample.idx, sample.alpha, sample.beta, sample.mu, sample.v, sample.n
             ))?;
         }
 
@@ -437,6 +441,7 @@ struct SearchSample {
 
 struct HeuristicSample {
     state: SearchState,
+    idx: usize,
     alpha: f64,
     beta: f64,
     mu: f64,

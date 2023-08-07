@@ -125,7 +125,7 @@ pub struct SearchResult(pub usize, pub f64, pub (usize, usize), pub usize);
 
 /// Heuristic state result represented as (state idx, alpha, beta, mu, v, n).
 #[derive(Default, Serialize, Deserialize)]
-pub struct HeuristicResult(pub usize, pub f64, pub f64, pub f64, pub f64, pub usize);
+pub struct HeuristicResult(pub usize, pub usize, pub f64, pub f64, pub f64, pub f64, pub usize);
 
 /// Keeps track of dynamic selective hyper heuristic state.
 #[derive(Default, Serialize, Deserialize)]
@@ -189,24 +189,25 @@ impl HyperHeuristicState {
 
                     let generation: usize = fields[0].parse().unwrap();
                     let state = fields[1].clone();
-                    let alpha = fields[2].parse().unwrap();
-                    let beta = fields[3].parse().unwrap();
-                    let mu = fields[4].parse().unwrap();
-                    let v = fields[5].parse().unwrap();
-                    let n = fields[6].parse().unwrap();
+                    let idx = fields[2].parse().unwrap();
+                    let alpha = fields[3].parse().unwrap();
+                    let beta = fields[4].parse().unwrap();
+                    let mu = fields[5].parse().unwrap();
+                    let v = fields[6].parse().unwrap();
+                    let n = fields[7].parse().unwrap();
 
                     insert_to_map(&mut states, state.clone());
                     let state = states.get(&state).copied().unwrap();
 
                     data.entry(generation)
                         .or_insert_with(Vec::default)
-                        .push(HeuristicResult(state, alpha, beta, mu, v, n));
+                        .push(HeuristicResult(state, idx, alpha, beta, mu, v, n));
 
                     data
                 });
             heuristic_states
                 .values_mut()
-                .for_each(|states| states.sort_by(|HeuristicResult(a, ..), HeuristicResult(b, ..)| a.cmp(b)));
+                .for_each(|states| states.sort_by(|HeuristicResult(_, a, ..), HeuristicResult(_, b, ..)| a.cmp(b)));
 
             Some(Self { names, states, search_states, heuristic_states })
         } else {
