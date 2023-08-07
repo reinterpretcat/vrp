@@ -67,6 +67,8 @@ where
             self.agent.update(generation, feedback);
         });
 
+        self.agent.save_params(generation);
+
         feedbacks.into_iter().map(|feedback| feedback.solution).collect()
     }
 
@@ -215,6 +217,7 @@ where
             tracker: HeuristicTracker {
                 total_median: RemedianUsize::new(11, |a, b| a.cmp(b)),
                 search_telemetry: Default::default(),
+                heuristic_telemetry: Default::default(),
                 is_experimental: environment.is_experimental,
             },
             random: environment.random.clone(),
@@ -249,6 +252,20 @@ where
 
         self.tracker.observe_sample(generation, feedback.sample.clone())
     }
+
+    /// Updates statistics about heuristic internal parameters.
+    pub fn save_params(&mut self, generation: usize) {
+        if !self.tracker.telemetry_enabled() {
+            return;
+        }
+
+        self.slot_machines.iter().for_each(|(state, slots)| {
+            slots.iter().map(|slot| slot.get_params()).for_each(|(alpha, beta, mu, v, n)| {
+                self.tracker
+                    .observe_params(generation, HeuristicSample { state: state.clone(), alpha, beta, mu, v, n });
+            })
+        });
+    }
 }
 
 impl<C, O, S> Display for DynamicSelective<C, O, S>
@@ -263,11 +280,21 @@ where
         }
 
         f.write_fmt(format_args!("TELEMETRY\n"))?;
+        f.write_fmt(format_args!("search:\n"))?;
         f.write_fmt(format_args!("name,generation,reward,from,to,duration\n"))?;
         for (generation, sample) in self.agent.tracker.search_telemetry.iter() {
             f.write_fmt(format_args!(
                 "{},{},{},{},{},{}\n",
                 sample.name, generation, sample.reward, sample.transition.0, sample.transition.1, sample.duration
+            ))?;
+        }
+
+        f.write_fmt(format_args!("heuristic:\n"))?;
+        f.write_fmt(format_args!("generation,state,alpha,beta,mu,v,n\n"))?;
+        for (generation, sample) in self.agent.tracker.heuristic_telemetry.iter() {
+            f.write_fmt(format_args!(
+                "{},{},{},{},{},{},{}\n",
+                generation, sample.state, sample.alpha, sample.beta, sample.mu, sample.v, sample.n
             ))?;
         }
 
@@ -408,10 +435,20 @@ struct SearchSample {
     transition: (SearchState, SearchState),
 }
 
+struct HeuristicSample {
+    state: SearchState,
+    alpha: f64,
+    beta: f64,
+    mu: f64,
+    v: f64,
+    n: usize,
+}
+
 /// Provides way to track heuristic's telemetry and duration median estimation.
 struct HeuristicTracker {
     total_median: RemedianUsize,
     search_telemetry: Vec<(usize, SearchSample)>,
+    heuristic_telemetry: Vec<(usize, HeuristicSample)>,
     is_experimental: bool,
 }
 
@@ -431,6 +468,12 @@ impl HeuristicTracker {
         self.total_median.add_observation(sample.duration);
         if self.telemetry_enabled() {
             self.search_telemetry.push((generation, sample));
+        }
+    }
+
+    pub fn observe_params(&mut self, generation: usize, sample: HeuristicSample) {
+        if self.telemetry_enabled() {
+            self.heuristic_telemetry.push((generation, sample));
         }
     }
 }

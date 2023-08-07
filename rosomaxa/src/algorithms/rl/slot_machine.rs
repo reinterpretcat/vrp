@@ -86,6 +86,11 @@ where
         self.n += 1;
         self.mu += (reward - self.mu) / self.n as f64;
     }
+
+    /// Gets learned params (alpha, beta, mean and variants) and usage amount.
+    pub fn get_params(&self) -> (f64, f64, f64, f64, usize) {
+        (self.alpha, self.beta, self.mu, self.v, self.n)
+    }
 }
 
 impl<T, S> Display for SlotMachine<T, S>
