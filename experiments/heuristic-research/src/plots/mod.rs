@@ -206,42 +206,30 @@ fn get_solution_points(generation: usize) -> Vec<ColoredDataPoint3D> {
         .unwrap_or_else(Vec::new)
 }
 
-fn get_heuristic_state(generation: usize, kind: &str) -> HeuristicDrawConfig {
+fn get_heuristic_state(generation: usize, _kind: &str) -> HeuristicDrawConfig {
     EXPERIMENT_DATA
         .lock()
         .ok()
         .and_then(|data| {
             let names_rev = data.heuristic_state.names.iter().map(|(k, v)| (*v, k)).collect::<HashMap<_, _>>();
-            let states_rev = data.heuristic_state.states.iter().map(|(k, v)| (*v, k)).collect::<HashMap<_, _>>();
-            let max_estimate = data.heuristic_state.max_estimate;
+            let _states_rev = data.heuristic_state.states.iter().map(|(k, v)| (*v, k)).collect::<HashMap<_, _>>();
 
             let unzip_sorted = |mut data: Vec<(String, f64)>| -> (Vec<String>, Vec<f64>) {
                 data.sort_by(|a, b| a.0.cmp(&b.0));
                 data.into_iter().unzip()
             };
 
-            match kind {
-                "selection" => data.heuristic_state.selection_states.get(&generation).map(|states| {
-                    let data = states
-                        .iter()
-                        .map(|(name_idx, estimate, ..)| (names_rev.get(name_idx).unwrap().to_string(), *estimate))
-                        .collect::<Vec<_>>();
-                    let (labels, estimations) = unzip_sorted(data);
+            data.heuristic_state.search_states.get(&generation).map(|states| {
+                let data = states
+                    .iter()
+                    // NOTE: just show all transitions
+                    //.filter(|SearchResult(_, _, (_, to_idx), _)| states_rev.get(to_idx).unwrap().as_str() == kind)
+                    .map(|SearchResult(name_idx, reward, _, _)| (names_rev.get(name_idx).unwrap().to_string(), *reward))
+                    .collect::<Vec<_>>();
+                let (labels, estimations) = unzip_sorted(data);
 
-                    HeuristicDrawConfig { labels, max_estimate, estimations }
-                }),
-                // NOTE: expected best, diverse, see DynamicSelective::Display implementation
-                _ => data.heuristic_state.overall_states.get(&generation).map(|states| {
-                    let data = states
-                        .iter()
-                        .filter(|(_, _, state_idx)| states_rev.get(state_idx).unwrap().as_str() == kind)
-                        .map(|(name_idx, estimate, _)| (names_rev.get(name_idx).unwrap().to_string(), *estimate))
-                        .collect::<Vec<_>>();
-                    let (labels, estimations) = unzip_sorted(data);
-
-                    HeuristicDrawConfig { labels, max_estimate, estimations }
-                }),
-            }
+                HeuristicDrawConfig { labels, estimations }
+            })
         })
         .unwrap_or_default()
 }

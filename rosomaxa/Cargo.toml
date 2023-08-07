@@ -15,8 +15,6 @@ edition.workspace = true
 default = []
 # an experimental asynchronous evolution targeting better performance on multiple CPUs
 async-evolution = ["tokio"]
-# enables dynamic heuristic telemetry on each generation for further analysis
-heuristic-telemetry = []
 
 [dependencies]
 rand.workspace = true

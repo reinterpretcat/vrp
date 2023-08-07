@@ -64,7 +64,7 @@ where
 
         let generation = heuristic_ctx.statistics().generation;
         feedbacks.iter().for_each(|feedback| {
-            self.agent.update(generation, &feedback);
+            self.agent.update(generation, feedback);
         });
 
         feedbacks.into_iter().map(|feedback| feedback.solution).collect()
@@ -263,8 +263,8 @@ where
         }
 
         f.write_fmt(format_args!("TELEMETRY\n"))?;
+        f.write_fmt(format_args!("name,generation,reward,from,to,duration\n"))?;
         for (generation, sample) in self.agent.tracker.search_telemetry.iter() {
-            f.write_fmt(format_args!("name,generation,reward,from,to,duration\n"))?;
             f.write_fmt(format_args!(
                 "{},{},{},{},{},{}\n",
                 sample.name, generation, sample.reward, sample.transition.0, sample.transition.1, sample.duration
@@ -352,10 +352,10 @@ where
         approx_median.map_or(1., |median| if median == 0 { 1. } else { duration as f64 / median as f64 });
 
     let median_ratio = match median_ratio.clamp(0.5, 2.) {
-        ratio if ratio < 0.75 => 1.5,   // Allegro
-        ratio if ratio < 1.001 => 1.25, // Allegretto
-        ratio if ratio > 1.5 => 0.75,   // Andante
-        _ => 1.,                        // Moderato
+        ratio if ratio < 0.75 => 1.5, // Allegro
+        ratio if ratio < 1. => 1.25,  // Allegretto
+        ratio if ratio > 1.5 => 0.75, // Andante
+        _ => 1.,                      // Moderato
     };
 
     let improvement_ratio = match (improvement_ratio, has_improvement) {
@@ -392,9 +392,8 @@ where
         .expect("cannot find objective idx where solution values are different");
 
     a.fitness()
-        .skip(idx)
-        .next()
-        .zip(b.fitness().skip(idx).next())
+        .nth(idx)
+        .zip(b.fitness().nth(idx))
         .map(|(a, b)| (a - b).abs() / a.abs().max(b.abs()))
         .expect("cannot get fitness by idx")
         * sign
@@ -419,7 +418,7 @@ struct HeuristicTracker {
 impl HeuristicTracker {
     /// Returns true if telemetry is enabled.
     pub fn telemetry_enabled(&self) -> bool {
-        cfg!(feature = "heuristic-telemetry") && self.is_experimental
+        self.is_experimental
     }
 
     /// Returns median approximation.

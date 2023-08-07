@@ -16,7 +16,7 @@ edition.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-rosomaxa = { workspace = true, features = ["heuristic-telemetry"] }
+rosomaxa.workspace = true
 vrp-scientific.workspace = true
 
 serde.workspace = true

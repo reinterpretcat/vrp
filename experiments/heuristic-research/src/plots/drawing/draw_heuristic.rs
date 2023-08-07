@@ -1,4 +1,5 @@
 use super::*;
+use rosomaxa::prelude::compare_floats_refs;
 
 /// Draws heuristic state as bar plot.
 pub fn draw_heuristic<B: DrawingBackend + 'static>(
@@ -10,7 +11,7 @@ pub fn draw_heuristic<B: DrawingBackend + 'static>(
     let labels = &fitness_config.labels;
     let data = &fitness_config.estimations;
 
-    let max_x = fitness_config.max_estimate;
+    let max_x = data.iter().copied().max_by(compare_floats_refs).unwrap_or(1.);
     let max_y = data.len() - 1;
     // TODO: improve font size detection
     let font_size = if max_y < 20 { 16 } else { 8 };
@@ -18,7 +19,7 @@ pub fn draw_heuristic<B: DrawingBackend + 'static>(
     let mut chart = ChartBuilder::on(area)
         .set_label_area_size(LabelAreaPosition::Left, 40)
         .set_label_area_size(LabelAreaPosition::Bottom, 40)
-        .caption("Heuristic probabilities", ("sans-serif", 16))
+        .caption("Heuristic data", ("sans-serif", 16))
         .build_cartesian_2d(0.0..max_x, (0..max_y).into_segmented())?;
 
     chart.configure_mesh().draw()?;

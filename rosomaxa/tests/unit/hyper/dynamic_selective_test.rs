@@ -1,30 +1,8 @@
-// TODO
-
-//use super::*;
-/*use crate::example::{VectorContext, VectorObjective, VectorSolution};
+use super::*;
+use crate::example::{VectorContext, VectorObjective, VectorSolution};
 use crate::helpers::example::{create_default_heuristic_context, create_example_objective};
 use std::ops::Range;
-
-parameterized_test! {can_evaluate_state_reward, (ratio, value, expected), {
-    can_evaluate_state_reward_impl(ratio, value, expected);
-}}
-
-can_evaluate_state_reward! {
-    case_01: (1.0, 1000., 1000.),
-    case_02: (1.0, 0., 0.),
-    case_03: (1.5, 0., 0.),
-    case_04: (1.5, -10., -15.),
-    case_05: (1.5, 30., 20.),
-    case_06: (3., 30., 15.),
-}
-
-fn can_evaluate_state_reward_impl(ratio: f64, value: f64, expected: f64) {
-    let feedback = Feedback { median_ratio: ratio, improvement_ratio: 0.1 };
-
-    let result = feedback.eval_reward(value);
-
-    assert_eq!(result, expected);
-}
+use std::time::Duration;
 
 #[test]
 fn can_estimate_median() {
@@ -74,38 +52,57 @@ fn can_estimate_median() {
 
     heuristic.search_many(&create_default_heuristic_context(), (0..100).map(|_| &solution).collect());
 
-    let median = heuristic.tracker.approx_median().expect("cannot be None");
+    let median = heuristic.agent.tracker.approx_median().expect("cannot be None");
     assert!(median > 0);
 }
 
-#[test]
-#[cfg(feature = "heuristic-telemetry")]
-fn can_display_heuristic_info() {
-    let create_sample = |name: &str, duration: u64, new_state: SearchState| SearchSample {
-        name: name.to_string(),
-        duration: Duration::from_millis(duration),
-        old_state: SearchState::Diverse,
-        new_state,
-        action: SearchAction::Search { heuristic_idx: 0 },
+parameterized_test! {can_estimate_reward_multiplier, (approx_median, duration, has_improvement, expected), {
+    can_estimate_reward_multiplier_impl(approx_median, duration, has_improvement, expected);
+}}
+
+can_estimate_reward_multiplier! {
+    case_01_moderate: (Some(1), 1, false, 1.),
+    case_02_allegro: (Some(2), 1, false, 1.5),
+    case_03_allegretto: (Some(10), 8, false, 1.25),
+    case_04_andante: (Some(8), 13, false, 0.75),
+    case_05_moderato_improvement: (Some(1), 1, true, 2.),
+}
+
+fn can_estimate_reward_multiplier_impl(
+    approx_median: Option<usize>,
+    duration: usize,
+    has_improvement: bool,
+    expected: f64,
+) {
+    let heuristic_ctx = create_default_heuristic_context();
+    let objective = create_example_objective();
+    let solution = VectorSolution::new(vec![], objective);
+    let search_ctx = SearchContext {
+        heuristic_ctx: &heuristic_ctx,
+        from: SearchState::BestKnown,
+        slot_idx: 0,
+        solution: &solution,
+        approx_median,
     };
-    let environment = Environment::default();
-    let create_feedback = || Feedback { median_ratio: 1., improvement_ratio: 1. };
+
+    let result = estimate_reward_multiplier(&search_ctx, duration, has_improvement);
+
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn can_display_heuristic_info() {
+    let is_experimental = true;
+    let environment = Environment { is_experimental, ..Environment::default() };
+    let duration = 1;
+    let reward = 1.;
+    let transition = (SearchState::Diverse, SearchState::BestKnown);
     let mut heuristic =
         DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(vec![], vec![], &environment);
-    heuristic.tracker.observe_sample(1, 1., create_sample("name1", 100, SearchState::Stagnated(create_feedback())));
-    heuristic.tracker.observe_sample(
-        2,
-        1.,
-        create_sample("name1", 101, SearchState::BestMajorImprovement(create_feedback())),
-    );
-    heuristic.tracker.observe_sample(
-        1,
-        1.,
-        create_sample("name2", 102, SearchState::DiverseImprovement(create_feedback())),
-    );
+
+    heuristic.agent.tracker.observe_sample(1, SearchSample { name: "name1".to_string(), duration, reward, transition });
 
     let formatted = format!("{heuristic}");
 
     assert!(!formatted.is_empty());
 }
-*/

@@ -82,7 +82,7 @@
 //!
 //! The solver is not limited by R&R principle, additionally it utilizes some other heuristics
 //! and their combinations. They are picked based on their performance in terms of search quality and
-//! latency introduced. Reinforcement technics are used here (Markov Decision Process).
+//! latency introduced. Reinforcement technics are used here.
 //!
 
 extern crate rand;

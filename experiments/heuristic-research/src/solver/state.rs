@@ -119,6 +119,10 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<f64>) 
     })
 }
 
+/// Search state result represented as (name idx, reward, (from state idx, to state idx), duration).
+#[derive(Default, Serialize, Deserialize)]
+pub struct SearchResult(pub usize, pub f64, pub (usize, usize), pub usize);
+
 /// Keeps track of dynamic selective hyper heuristic state.
 #[derive(Default, Serialize, Deserialize)]
 pub struct HyperHeuristicState {
@@ -126,12 +130,8 @@ pub struct HyperHeuristicState {
     pub names: HashMap<String, usize>,
     /// Unique state names.
     pub states: HashMap<String, usize>,
-    /// Heuristic max estimate
-    pub max_estimate: f64,
-    /// Heuristic states at specific generations as (name idx, estimation, state idx, duration).
-    pub selection_states: HashMap<usize, Vec<(usize, f64, usize, f64)>>,
-    /// Heuristic states at specific generations as (name idx, estimation, state idx)
-    pub overall_states: HashMap<usize, Vec<(usize, f64, usize)>>,
+    /// Heuristic states at specific generations.
+    pub search_states: HashMap<usize, Vec<SearchResult>>,
 }
 
 impl HyperHeuristicState {
@@ -140,55 +140,43 @@ impl HyperHeuristicState {
         if data.starts_with("TELEMETRY") {
             let mut names = HashMap::new();
             let mut states = HashMap::new();
-            let mut max_estimate = 0_f64;
 
             let insert_to_map = |map: &mut HashMap<String, usize>, key: String| {
                 let length = map.len();
                 map.entry(key).or_insert_with(|| length);
             };
 
-            let mut get_data = |line: &str| {
+            let mut search_states = data.lines().skip(2).fold(HashMap::new(), |mut data, line| {
                 let fields: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
                 let name = fields[0].clone();
                 let generation = fields[1].parse().unwrap();
-                let estimate = fields[2].parse().unwrap();
-                let state = fields[3].clone();
+                let reward = fields[2].parse().unwrap();
+                let from = fields[3].clone();
+                let to = fields[4].clone();
+                let duration = fields[5].parse().unwrap();
 
                 insert_to_map(&mut names, name.clone());
-                insert_to_map(&mut states, state.clone());
+                insert_to_map(&mut states, from.clone());
+                insert_to_map(&mut states, to.clone());
 
-                max_estimate = max_estimate.max(estimate);
+                let name = names.get(&name).copied().unwrap();
+                let from = states.get(&from).copied().unwrap();
+                let to = states.get(&to).copied().unwrap();
 
-                (
-                    fields,
-                    (names.get(&name).copied().unwrap(), generation, estimate, states.get(&state).copied().unwrap()),
-                )
-            };
+                data.entry(generation).or_insert_with(Vec::default).push(SearchResult(
+                    name,
+                    reward,
+                    (from, to),
+                    duration,
+                ));
 
-            // TODO sort by name?
+                data
+            });
+            search_states
+                .values_mut()
+                .for_each(|states| states.sort_by(|SearchResult(a, ..), SearchResult(b, ..)| a.cmp(b)));
 
-            let mut selection_states =
-                data.lines().skip(3).take_while(|line| *line != "overall").fold(HashMap::new(), |mut data, line| {
-                    let (fields, (name, generation, estimate, state)) = get_data(line);
-                    let duration = fields[4].parse().unwrap();
-
-                    data.entry(generation).or_insert_with(Vec::default).push((name, estimate, state, duration));
-
-                    data
-                });
-            selection_states.values_mut().for_each(|states| states.sort_by(|(a, ..), (b, ..)| a.cmp(b)));
-
-            let mut overall_states =
-                data.lines().skip_while(|line| *line != "overall").skip(2).fold(HashMap::new(), |mut data, line| {
-                    let (_, (name, generation, estimate, state)) = get_data(line);
-
-                    data.entry(generation).or_insert_with(Vec::default).push((name, estimate, state));
-
-                    data
-                });
-            overall_states.values_mut().for_each(|states| states.sort_by(|(a, ..), (b, ..)| a.cmp(b)));
-
-            Some(Self { names, states, max_estimate, selection_states, overall_states })
+            Some(Self { names, states, search_states })
         } else {
             None
         }

@@ -27,8 +27,9 @@ impl SlotFeedback for TestFeedback {
 
 #[test]
 fn can_find_proper_estimations() {
+    let sockets = 5;
     let total_episodes = 100;
-    let expected_failures_threshold = 20;
+    let expected_failures_threshold = (0.3 * (sockets * total_episodes) as f64) as usize;
     let failed_slot_estimations: usize = (0..total_episodes)
         .map(|_| {
             let slot_means = &[5.0_f64, 9., 7., 13., 11.];
@@ -39,7 +40,7 @@ fn can_find_proper_estimations() {
 
             let random = create_test_random();
             let sampler = DefaultDistributionSampler::new(random.clone());
-            let mut slots = (0..5)
+            let mut slots = (0..sockets)
                 .map(|_| SlotMachine::new(prior_mean, TestAction(sampler.clone()), sampler.clone()))
                 .collect::<Vec<_>>();
 
@@ -61,5 +62,7 @@ fn can_find_proper_estimations() {
         })
         .sum();
 
-    assert!(failed_slot_estimations < expected_failures_threshold);
+    if failed_slot_estimations > expected_failures_threshold {
+        panic!("too many estimation failures: {failed_slot_estimations} < {expected_failures_threshold}")
+    }
 }

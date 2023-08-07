@@ -14,7 +14,6 @@ edition.workspace = true
 [features]
 default = ["rosomaxa"]
 async-evolution = ["rosomaxa/async-evolution"]
-heuristic-telemetry = ["rosomaxa/heuristic-telemetry"]
 
 [dependencies]
 rosomaxa = { workspace = true, optional = true }
