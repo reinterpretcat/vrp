@@ -162,7 +162,13 @@ where
         let reward_multiplier = estimate_reward_multiplier(&context, duration, is_new_best);
         let reward = base_reward * reward_multiplier;
 
-        let transition = (context.from, convert_to_state(context.heuristic_ctx, &new_solution));
+        let to = if matches!(compare_to_best(context.heuristic_ctx, &new_solution), Ordering::Less) {
+            SearchState::BestKnown
+        } else {
+            SearchState::Diverse
+        };
+
+        let transition = (context.from, to);
 
         let sample = SearchSample { name: self.operator_name.clone(), duration, reward, transition };
 
@@ -226,7 +232,11 @@ where
 
     /// Picks relevant search operator based on learnings and runs the search.
     pub fn search(&self, heuristic_ctx: &C, solution: &S) -> SearchFeedback<S> {
-        let from = convert_to_state(heuristic_ctx, solution);
+        let from = if matches!(compare_to_best(heuristic_ctx, solution), Ordering::Equal) {
+            SearchState::BestKnown
+        } else {
+            SearchState::Diverse
+        };
 
         let (slot_idx, slot_machine) = self
             .slot_machines
@@ -317,19 +327,6 @@ where
         .next()
         .map(|(best_known, _)| heuristic_ctx.objective().total_order(solution, best_known))
         .unwrap_or(Ordering::Less)
-}
-
-fn convert_to_state<C, O, S>(heuristic_ctx: &C, solution: &S) -> SearchState
-where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-{
-    if matches!(compare_to_best(heuristic_ctx, solution), Ordering::Less) {
-        SearchState::BestKnown
-    } else {
-        SearchState::Diverse
-    }
 }
 
 /// Estimates new solution discovery reward based on distance metric.
