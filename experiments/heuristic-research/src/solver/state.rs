@@ -123,7 +123,7 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<f64>) 
 #[derive(Default, Serialize, Deserialize)]
 pub struct SearchResult(pub usize, pub f64, pub (usize, usize), pub usize);
 
-/// Heuristic state result represented as (state idx, alpha, beta, mu, v, n).
+/// Heuristic state result represented as (state idx, name idx, alpha, beta, mu, v, n).
 #[derive(Default, Serialize, Deserialize)]
 pub struct HeuristicResult(pub usize, pub usize, pub f64, pub f64, pub f64, pub f64, pub usize);
 
@@ -189,7 +189,7 @@ impl HyperHeuristicState {
 
                     let generation: usize = fields[0].parse().unwrap();
                     let state = fields[1].clone();
-                    let idx = fields[2].parse().unwrap();
+                    let name = fields[2].clone();
                     let alpha = fields[3].parse().unwrap();
                     let beta = fields[4].parse().unwrap();
                     let mu = fields[5].parse().unwrap();
@@ -197,11 +197,14 @@ impl HyperHeuristicState {
                     let n = fields[7].parse().unwrap();
 
                     insert_to_map(&mut states, state.clone());
+                    insert_to_map(&mut names, name.clone());
+
                     let state = states.get(&state).copied().unwrap();
+                    let name = names.get(&name).copied().unwrap();
 
                     data.entry(generation)
                         .or_insert_with(Vec::default)
-                        .push(HeuristicResult(state, idx, alpha, beta, mu, v, n));
+                        .push(HeuristicResult(state, name, alpha, beta, mu, v, n));
 
                     data
                 });

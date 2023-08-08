@@ -70,19 +70,22 @@ Each shift can have the following properties:
     vehicle has to navigate first to one of these places to load goods with dispatching constraints.
   Check example [here](../../../examples/pragmatic/basics/dispatch.md).
 - **breaks** (optional) a list of vehicle breaks. There are two types of breaks:
-    * required: this break is guaranteed to be assigned at cost of flexibility. It has the following properties:
-      - `time` (required): a fixed time or offset when the break should happen
+    * __required__: this break is guaranteed to be assigned at cost of flexibility. It has the following properties:
+      - `time` (required): a fixed time or offset range when the break should happen specified by `earliest` and `latest` properties.
+        The break will be assigned not earlier, and not later than the range specified.
       - `duration` (required): duration of the break
-    * optional: although such break is not guaranteed for assignment, the algorithm has more flexibility for assignment.
+    * __optional__: although such break is not guaranteed for assignment, it has some advantages over required break:
+      - aribatry break location is supported
+      - the algorithm has more flexibility for assignment
       It is specified by:
       - `time` (required): time window or interval after which a break should happen (e.g. between 3 or 4 hours after start).
       - `places`: list of alternative places defined by `location` (optional), `duration` (required) and `tag` (optional).
-        If location of a break is omitted then break is stick to location of job served before break.
+        If location of a break is omitted then break is stick to location of a job served before break.
       - `policy` (optional): a break skip policy. Possible values:
         * `skip-if-no-intersection`: allows to skip break if actual tour schedule doesn't intersect with vehicle time window (default)
         * `skip-if-arrival-before-end`: allows to skip break if vehicle arrives before break's time window end.
 
-  Please note that break is a soft constraint and can be unassigned in some cases due to other hard constraints, such
+  Please note that optional break is a soft constraint and can be unassigned in some cases due to other hard constraints, such
   as time windows. You can control its unassignment weight using specific property on `minimize-unassigned` objective.
   See example [here](../../../examples/pragmatic/basics/break.md)
 - **reloads** (optional) a list of vehicle reloads. A reload is a place where vehicle can load new deliveries and unload

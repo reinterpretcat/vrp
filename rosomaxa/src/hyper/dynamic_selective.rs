@@ -102,7 +102,7 @@ where
     }
 }
 
-type SlotMachines<'a, C, O, S> = Vec<SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler>>;
+type SlotMachines<'a, C, O, S> = Vec<(SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler>, String)>;
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 enum SearchState {
@@ -206,10 +206,13 @@ where
             .into_iter()
             .map(|(operator, name, _)| {
                 // TODO use initial weight as prior mean estimation?
-                SlotMachine::new(
-                    1.,
-                    SearchAction { operator, operator_name: name.to_string() },
-                    DefaultDistributionSampler::new(environment.random.clone()),
+                (
+                    SlotMachine::new(
+                        1.,
+                        SearchAction { operator, operator_name: name.to_string() },
+                        DefaultDistributionSampler::new(environment.random.clone()),
+                    ),
+                    name,
                 )
             })
             .collect::<Vec<_>>();
@@ -242,8 +245,8 @@ where
             .slot_machines
             .get(&from)
             .and_then(|slots| {
-                random_argmax(slots.iter().map(|slot| slot.sample()), self.random.as_ref())
-                    .and_then(|slot_idx| slots.get(slot_idx).map(|slot| (slot_idx, slot)))
+                random_argmax(slots.iter().map(|(slot, _)| slot.sample()), self.random.as_ref())
+                    .and_then(|slot_idx| slots.get(slot_idx).map(|(slot, _)| (slot_idx, slot)))
             })
             .expect("cannot get slot machine");
 
@@ -257,7 +260,7 @@ where
         let from = &feedback.sample.transition.0;
 
         if let Some(slots) = self.slot_machines.get_mut(from) {
-            slots[feedback.slot_idx].update(feedback);
+            slots[feedback.slot_idx].0.update(feedback);
         }
 
         self.tracker.observe_sample(generation, feedback.sample.clone())
@@ -270,11 +273,11 @@ where
         }
 
         self.slot_machines.iter().for_each(|(state, slots)| {
-            slots.iter().enumerate().map(|(idx, slot)| (idx, slot.get_params())).for_each(
-                |(idx, (alpha, beta, mu, v, n))| {
+            slots.iter().map(|(slot, name)| (name.clone(), slot.get_params())).for_each(
+                |(name, (alpha, beta, mu, v, n))| {
                     self.tracker.observe_params(
                         generation,
-                        HeuristicSample { state: state.clone(), idx, alpha, beta, mu, v, n },
+                        HeuristicSample { state: state.clone(), name, alpha, beta, mu, v, n },
                     );
                 },
             )
@@ -304,11 +307,11 @@ where
         }
 
         f.write_fmt(format_args!("heuristic:\n"))?;
-        f.write_fmt(format_args!("generation,state,idx,alpha,beta,mu,v,n\n"))?;
+        f.write_fmt(format_args!("generation,state,name,alpha,beta,mu,v,n\n"))?;
         for (generation, sample) in self.agent.tracker.heuristic_telemetry.iter() {
             f.write_fmt(format_args!(
                 "{},{},{},{},{},{},{},{}\n",
-                generation, sample.state, sample.idx, sample.alpha, sample.beta, sample.mu, sample.v, sample.n
+                generation, sample.state, sample.name, sample.alpha, sample.beta, sample.mu, sample.v, sample.n
             ))?;
         }
 
@@ -438,7 +441,7 @@ struct SearchSample {
 
 struct HeuristicSample {
     state: SearchState,
-    idx: usize,
+    name: String,
     alpha: f64,
     beta: f64,
     mu: f64,
