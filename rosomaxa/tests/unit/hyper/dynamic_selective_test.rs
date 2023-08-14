@@ -85,7 +85,7 @@ fn can_estimate_reward_multiplier_impl(
         approx_median,
     };
 
-    let result = estimate_reward_multiplier(&search_ctx, duration, has_improvement);
+    let result = estimate_reward_perf_multiplier(&search_ctx, duration, has_improvement);
 
     assert_eq!(result, expected);
 }

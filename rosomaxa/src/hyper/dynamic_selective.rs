@@ -159,15 +159,10 @@ where
         let duration = duration.as_millis() as usize;
 
         let base_reward = estimate_distance_reward(context.heuristic_ctx, context.solution, &new_solution);
-        let reward_multiplier = estimate_reward_multiplier(&context, duration, is_new_best);
+        let reward_multiplier = estimate_reward_perf_multiplier(&context, duration, is_new_best);
         let reward = base_reward * reward_multiplier;
 
-        let to = if matches!(compare_to_best(context.heuristic_ctx, &new_solution), Ordering::Less) {
-            SearchState::BestKnown
-        } else {
-            SearchState::Diverse
-        };
-
+        let to = if is_new_best { SearchState::BestKnown } else { SearchState::Diverse };
         let transition = (context.from, to);
 
         let sample = SearchSample { name: self.operator_name.clone(), duration, reward, transition };
@@ -367,7 +362,7 @@ where
 
 /// Estimates performance of used operation based on its duration and overall improvement statistics.
 /// Returns a reward multiplier in `(~0.5, 3]` range.
-fn estimate_reward_multiplier<C, O, S>(
+fn estimate_reward_perf_multiplier<C, O, S>(
     search_ctx: &SearchContext<C, O, S>,
     duration: usize,
     has_improvement: bool,
