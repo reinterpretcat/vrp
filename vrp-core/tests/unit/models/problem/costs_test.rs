@@ -33,8 +33,12 @@ fn can_return_error_when_mixing_timestamps() {
     let p1 = Profile::new(1, None);
 
     assert_eq!(
-        TimeAwareMatrixTransportCost::new(vec![create_matrix_data(Profile::default(), None, (0., 1), (0., 1))], 1,)
-            .err(),
+        TimeAwareMatrixTransportCost::new(
+            vec![create_matrix_data(Profile::default(), None, (0., 1), (0., 1))],
+            1,
+            NoFallback
+        )
+        .err(),
         Some("time-aware routing requires all matrices to have timestamp".into())
     );
 
@@ -45,13 +49,19 @@ fn can_return_error_when_mixing_timestamps() {
                 create_matrix_data(p0.clone(), None, (0., 1), (0., 1))
             ],
             1,
+            NoFallback
         )
         .err(),
         Some("time-aware routing requires all matrices to have timestamp".into())
     );
 
     assert_eq!(
-        TimeAwareMatrixTransportCost::new(vec![create_matrix_data(p0.clone(), Some(0.), (0., 1), (0., 1))], 1,).err(),
+        TimeAwareMatrixTransportCost::new(
+            vec![create_matrix_data(p0.clone(), Some(0.), (0., 1), (0., 1))],
+            1,
+            NoFallback
+        )
+        .err(),
         Some("should not use time aware matrix routing with single matrix".into())
     );
 
@@ -63,6 +73,7 @@ fn can_return_error_when_mixing_timestamps() {
                 create_matrix_data(p1, Some(0.), (1., 1), (1., 1)),         //
             ],
             1,
+            NoFallback
         )
         .err(),
         Some("should not use time aware matrix routing with single matrix".into())
@@ -84,6 +95,7 @@ fn can_interpolate_durations() {
             create_matrix_data(p1.clone(), Some(10.), (400., 2), (5., 2)),
         ],
         2,
+        NoFallback,
     )
     .unwrap();
 
