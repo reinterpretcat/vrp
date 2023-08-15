@@ -100,21 +100,22 @@ impl MatrixData {
 /// A fallback for transport costs if from->to entry is not defined.
 pub trait TransportFallback: Send + Sync {
     /// Returns fallback duration.
-    fn duration(&self, from: Location, to: Location) -> Duration;
+    fn duration(&self, profile: &Profile, from: Location, to: Location) -> Duration;
+
     /// Returns fallback distance.
-    fn distance(&self, from: Location, to: Location) -> Distance;
+    fn distance(&self, profile: &Profile, from: Location, to: Location) -> Distance;
 }
 
 /// A trivial implementation of no fallback for transport cost.
 struct NoFallback;
 
 impl TransportFallback for NoFallback {
-    fn duration(&self, from: Location, to: Location) -> Duration {
-        panic!("cannot get duration for {from}->{to}")
+    fn duration(&self, profile: &Profile, from: Location, to: Location) -> Duration {
+        panic!("cannot get duration for {from}->{to} for {profile:?}")
     }
 
-    fn distance(&self, from: Location, to: Location) -> Distance {
-        panic!("cannot get distance for {from}->{to}")
+    fn distance(&self, profile: &Profile, from: Location, to: Location) -> Distance {
+        panic!("cannot get distance for {from}->{to} for {profile:?}")
     }
 }
 
@@ -197,7 +198,7 @@ impl<T: TransportFallback> TransportCost for TimeAgnosticMatrixTransportCost<T> 
             .unwrap()
             .get(from * self.size + to)
             .copied()
-            .unwrap_or_else(|| self.fallback.duration(from, to))
+            .unwrap_or_else(|| self.fallback.duration(profile, from, to))
             * profile.scale
     }
 
@@ -207,7 +208,7 @@ impl<T: TransportFallback> TransportCost for TimeAgnosticMatrixTransportCost<T> 
             .unwrap()
             .get(from * self.size + to)
             .copied()
-            .unwrap_or_else(|| self.fallback.distance(from, to))
+            .unwrap_or_else(|| self.fallback.distance(profile, from, to))
     }
 
     fn duration(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Duration {
@@ -292,7 +293,7 @@ impl<T: TransportFallback> TimeAwareMatrixTransportCost<T> {
                     })
             }
         }
-        .unwrap_or_else(|| self.fallback.duration(from, to));
+        .unwrap_or_else(|| self.fallback.duration(profile, from, to));
 
         duration * profile.scale
     }
@@ -319,7 +320,7 @@ impl<T: TransportFallback> TimeAwareMatrixTransportCost<T> {
             Err(matrix_idx) => matrices.get(matrix_idx - 1).unwrap().distances.get(data_idx),
         }
         .copied()
-        .unwrap_or_else(|| self.fallback.distance(from, to))
+        .unwrap_or_else(|| self.fallback.distance(profile, from, to))
     }
 }
 
