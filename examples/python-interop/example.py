@@ -7,9 +7,9 @@ from pydantic.json import pydantic_encoder
 # if you want to use approximation, you can skip this definition and pass empty list later
 # also there is a get_locations method to get list of locations in expected order.
 # you can use this list to fetch routing matrix externally
-matrix = prg.Matrix(
+matrix = prg.RoutingMatrix(
     profile='normal_car',
-    travelTimes=[0, 609, 981, 906, 813, 0, 371, 590, 1055, 514, 0, 439, 948, 511, 463, 0],
+    durations=[0, 609, 981, 906, 813, 0, 371, 590, 1055, 514, 0, 439, 948, 511, 463, 0],
     distances=[0, 3840, 5994, 5333, 4696, 0, 2154, 3226, 5763, 2674, 0, 2145, 5112, 2470, 2152, 0]
 )
 

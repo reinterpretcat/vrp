@@ -56,8 +56,8 @@ Pickup job is a job with `job.pickups` property specified,   without `job.delive
 {{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:33:57}}
 ```
 
-The vehicle picks some `good` at pickup locations, which leads to capacity growth according to `job.pickups.demand` value,
-and brings it till the end of the tour. Each pickup task has its own properties such as `demand` and `places`.
+The vehicle picks some `good` at pickup locations, which leads to capacity consumption growth according to `job.pickups.demand`
+value, and brings it till the end of the tour (or next reload). Each pickup task has its own properties such as `demand` and `places`.
 
 
 ## Delivery job
@@ -68,9 +68,9 @@ Delivery job is a job with `job.deliveries` property specified, without `job.pic
 {{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:4:32}}
 ```
 
-The vehicle picks some `goods` at the start stop, which leads to initial capacity growth, and brings it to job's locations,
-where capacity is decreased based on `job.deliveries.demand` values. Each delivery task has its own properties such as
-`demand` and `places`.
+The vehicle picks some `goods` at the start stop, which leads to initial capacity consumption growth, and brings it to
+job's locations, where capacity consumption is decreased based on `job.deliveries.demand` values. Each delivery task has
+its own properties such as `demand` and `places`.
 
 
 ## Pickup and delivery job

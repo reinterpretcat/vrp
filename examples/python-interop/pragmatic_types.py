@@ -10,9 +10,9 @@ from datetime import datetime
 # Routing matrix
 
 @dataclass
-class Matrix:
+class RoutingMatrix:
     profile: str
-    travelTimes: List[int]
+    durations: List[int]
     distances: List[int]
 
 

@@ -16,10 +16,10 @@ custom hyper- and meta-heuristic implementations, shortly described [here](https
 If you use the project in academic work, please consider citing:
 
 ```
-@misc{builuk_rosomaxa_2022,
+@misc{builuk_rosomaxa_2023,
     author       = {Ilya Builuk},
     title        = {{A new solver for rich Vehicle Routing Problem}},
-    year         = 2022,
+    year         = 2023,
     doi          = {10.5281/zenodo.4624037},
     publisher    = {Zenodo},
     url          = {https://doi.org/10.5281/zenodo.4624037}
@@ -38,6 +38,8 @@ points: custom constraints, objective functions, acceptance criteria, etc.
 For general installation steps and basic usage options, please check next sections. More detailed overview of features
 and full description of the usage is presented in [A Vehicle Routing Problem Solver Documentation](https://reinterpretcat.github.io/vrp).
 
+Probably, the easiest way to learn how to use the solver, would be to play with [interactive tutorial](https://github.com/reinterpretcat/vrp/tree/master/examples/python-interop/tutorial.ipynb),
+written as jupyter notebook.
 
 # Installation
 
@@ -56,9 +58,9 @@ python examples/python-interop/example.py # run test example
 Alternatively, you can use [maturin](https://github.com/PyO3/maturin) tool to build solver locally. You need to enable
 `py_bindings` feature which is not enabled by default.
 
-You can find extra information in [python example section](https://reinterpretcat.github.io/vrp/examples/interop/python.html)
+Additionally, to jupyter notebook mentioned above, you can find extra information in [python example section](https://reinterpretcat.github.io/vrp/examples/interop/python.html)
 of the docs. The [full source code](./examples/python-interop/example.py) of python example is available in the repo which
-contains useful model wrappers with help of `pydantic` lib.
+contains useful model wrappers with help of `pydantic` lib (reused by tutorial as well).
 
 
 ## Install from Docker
