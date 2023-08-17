@@ -259,7 +259,7 @@ impl<T: Send + Sync> FixedMultiTrip<T> {
     }
 
     fn promote_multi_trips_when_needed(&self, solution_ctx: &mut SolutionContext) {
-        let jobs = solution_ctx
+        let candidate_jobs = solution_ctx
             .routes
             .iter()
             .filter(|route_ctx| self.is_multi_trip_needed(route_ctx))
@@ -269,9 +269,16 @@ impl<T: Send + Sync> FixedMultiTrip<T> {
             })
             .collect::<HashSet<_>>();
 
-        solution_ctx.ignored.retain(|job| !jobs.contains(job));
-        solution_ctx.locked.extend(jobs.iter().cloned());
-        solution_ctx.required.extend(jobs.into_iter());
+        // NOTE: get already assigned jobs to guarantee locking them
+        let assigned_job = solution_ctx
+            .routes
+            .iter()
+            .flat_map(|route_ctx| route_ctx.route().tour.jobs())
+            .filter(|job| self.is_marker_job(job));
+
+        solution_ctx.ignored.retain(|job| !candidate_jobs.contains(job));
+        solution_ctx.locked.extend(candidate_jobs.iter().cloned().chain(assigned_job));
+        solution_ctx.required.extend(candidate_jobs.into_iter());
     }
 }
 

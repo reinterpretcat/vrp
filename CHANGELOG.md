@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+* reload is removed from the solution passed as initial (#126)
+
 
 ## [v1.22.0]- 2023-08-08
 
