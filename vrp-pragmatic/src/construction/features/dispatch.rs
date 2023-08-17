@@ -92,7 +92,10 @@ impl FeatureState for DispatchState {
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         // NOTE enforce propagation to locked
         solution_ctx.locked.extend(
-            solution_ctx.routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs().filter(is_dispatch_job)),
+            solution_ctx
+                .routes
+                .iter()
+                .flat_map(|route_ctx| route_ctx.route().tour.jobs().cloned().filter(is_dispatch_job)),
         );
 
         process_conditional_jobs(solution_ctx, None, self.context_transition.as_ref());

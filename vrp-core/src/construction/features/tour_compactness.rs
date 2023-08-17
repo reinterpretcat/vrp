@@ -98,7 +98,7 @@ impl FeatureState for TourCompactnessState {
                 .route()
                 .tour
                 .jobs()
-                .map(|job| count_shared_neighbours((solution_ctx, route_ctx, &job), &self.jobs, self.job_radius))
+                .map(|job| count_shared_neighbours((solution_ctx, route_ctx, job), &self.jobs, self.job_radius))
                 .sum::<usize>() as Cost
         }) / 2.;
 

@@ -274,7 +274,8 @@ impl<T: Send + Sync> FixedMultiTrip<T> {
             .routes
             .iter()
             .flat_map(|route_ctx| route_ctx.route().tour.jobs())
-            .filter(|job| self.is_marker_job(job));
+            .filter(|job| self.is_marker_job(job))
+            .cloned();
 
         solution_ctx.ignored.retain(|job| !candidate_jobs.contains(job));
         solution_ctx.locked.extend(candidate_jobs.iter().cloned().chain(assigned_job));

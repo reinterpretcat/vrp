@@ -116,7 +116,7 @@ fn find_best_insertion_pair(
                         .tour
                         .jobs()
                         .enumerate()
-                        .filter(|(idx, job)| !locked.contains(job) && filter_jobs_indices(*idx))
+                        .filter(|(idx, job)| !locked.contains(*job) && filter_jobs_indices(*idx))
                         .collect::<Vec<_>>()
                         .as_slice(),
                     |(_, test_job)| {

@@ -88,7 +88,7 @@ fn can_insert_at_last_position() {
 #[test]
 fn can_remove_job() {
     let mut tour = get_test_tour();
-    let job = tour.jobs().last().unwrap();
+    let job = tour.jobs().last().cloned().unwrap();
     assert_eq!(tour.job_count(), 2);
 
     let removed = tour.remove(&job);

@@ -54,7 +54,7 @@ impl Objective for MaximizeTotalValueObjective {
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         solution.solution.routes.iter().fold(0., |acc, route_ctx| {
-            route_ctx.route().tour.jobs().fold(acc, |acc, job| acc + (self.estimate_value_fn)(route_ctx, &job))
+            route_ctx.route().tour.jobs().fold(acc, |acc, job| acc + (self.estimate_value_fn)(route_ctx, job))
         })
     }
 }

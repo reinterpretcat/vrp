@@ -76,7 +76,7 @@ fn get_new_route_ctx_idx(new_insertion_ctx: &mut InsertionContext, route_ctx: &R
 }
 
 fn get_assigned_jobs(insertion_ctx: &InsertionContext) -> HashSet<Job> {
-    insertion_ctx.solution.routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect()
+    insertion_ctx.solution.routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs().cloned()).collect()
 }
 
 fn synchronize_jobs(

@@ -84,7 +84,7 @@ fn get_route_by_idx(insertion_ctx: &InsertionContext, route_idx: usize) -> &Rout
 }
 
 fn get_movable_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) -> Vec<Job> {
-    route_ctx.route().tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(job)).collect()
+    route_ctx.route().tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(*job)).cloned().collect()
 }
 
 fn get_evaluation_context<'a>(search_ctx: &'a SearchContext, job: &'a Job) -> EvaluationContext<'a> {

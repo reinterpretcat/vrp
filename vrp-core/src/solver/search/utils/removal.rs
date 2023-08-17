@@ -106,7 +106,7 @@ impl JobRemovalTracker {
 
         // check locked jobs
         let has_locked_jobs =
-            !solution.locked.is_empty() && route_ctx.route().tour.jobs().any(|job| solution.locked.contains(&job));
+            !solution.locked.is_empty() && route_ctx.route().tour.jobs().any(|job| solution.locked.contains(job));
         if has_locked_jobs {
             return false;
         }
@@ -126,7 +126,7 @@ impl JobRemovalTracker {
     fn remove_whole_route(&mut self, solution: &mut SolutionContext, route_idx: usize) {
         let route_ctx = solution.routes.get_mut(route_idx).expect("invalid route index");
         let actor = route_ctx.route().actor.clone();
-        let jobs = route_ctx.route().tour.jobs().collect::<Vec<_>>();
+        let jobs = route_ctx.route().tour.jobs().cloned().collect::<Vec<_>>();
 
         self.activities_left =
             (self.activities_left - jobs.iter().map(get_total_activities).sum::<usize>() as i32).max(0);
@@ -152,7 +152,7 @@ impl JobRemovalTracker {
     ) -> bool {
         let locked = solution.locked.clone();
         let route_ctx = solution.routes.get(route_idx).expect("invalid route index");
-        let mut jobs: Vec<Job> = route_ctx.route().tour.jobs().filter(|job| !locked.contains(job)).collect();
+        let mut jobs: Vec<Job> = route_ctx.route().tour.jobs().filter(|job| !locked.contains(*job)).cloned().collect();
         jobs.shuffle(&mut random.get_rng());
         jobs.truncate(self.activities_left as usize);
 

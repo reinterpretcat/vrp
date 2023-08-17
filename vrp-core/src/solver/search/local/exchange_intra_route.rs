@@ -77,8 +77,13 @@ impl LocalOperator for ExchangeIntraRouteRandom {
 }
 
 fn get_shuffled_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) -> Vec<Job> {
-    let mut jobs =
-        route_ctx.route().tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(job)).collect::<Vec<_>>();
+    let mut jobs = route_ctx
+        .route()
+        .tour
+        .jobs()
+        .filter(|job| !insertion_ctx.solution.locked.contains(*job))
+        .cloned()
+        .collect::<Vec<_>>();
     jobs.shuffle(&mut insertion_ctx.environment.random.get_rng());
 
     jobs

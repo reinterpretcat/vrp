@@ -131,8 +131,8 @@ impl Tour {
     }
 
     /// Returns all jobs.
-    pub fn jobs(&'_ self) -> impl Iterator<Item = Job> + '_ {
-        self.jobs.iter().cloned()
+    pub fn jobs(&'_ self) -> impl Iterator<Item = &Job> + '_ {
+        self.jobs.iter()
     }
 
     /// Returns activity by its index in tour.

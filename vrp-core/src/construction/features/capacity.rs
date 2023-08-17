@@ -181,7 +181,7 @@ impl<T: LoadOps> Objective for CapacityObjective<T> {
             .routes
             .iter()
             .flat_map(|route_ctx| route_ctx.route().tour.jobs())
-            .map(|job| self.estimate_job(&job))
+            .map(|job| self.estimate_job(job))
             .sum()
     }
 }

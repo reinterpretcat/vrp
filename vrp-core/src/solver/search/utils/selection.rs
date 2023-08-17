@@ -13,9 +13,7 @@ pub(crate) fn get_route_jobs(solution: &SolutionContext) -> HashMap<Job, usize> 
         .routes
         .iter()
         .enumerate()
-        .flat_map(|(route_idx, route_ctx)| {
-            route_ctx.route().tour.jobs().collect::<Vec<_>>().into_iter().map(move |job| (job, route_idx))
-        })
+        .flat_map(|(route_idx, route_ctx)| route_ctx.route().tour.jobs().cloned().map(move |job| (job, route_idx)))
         .collect()
 }
 

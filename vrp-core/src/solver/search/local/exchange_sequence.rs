@@ -64,7 +64,7 @@ fn get_route_indices(insertion_ctx: &InsertionContext) -> Vec<usize> {
         .enumerate()
         .filter_map(|(idx, route_ctx)| {
             let locked_jobs =
-                route_ctx.route().tour.jobs().filter(|job| insertion_ctx.solution.locked.contains(job)).count();
+                route_ctx.route().tour.jobs().filter(|job| insertion_ctx.solution.locked.contains(*job)).count();
             let has_enough_jobs = (route_ctx.route().tour.job_count() - locked_jobs) >= MIN_JOBS;
 
             if has_enough_jobs {

@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* apply minor refactorings to some core api
+
 ### Fixed
 
 * reload is removed from the solution passed as initial (#126)

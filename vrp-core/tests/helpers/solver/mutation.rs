@@ -79,7 +79,7 @@ pub fn rearrange_jobs_in_routes(insertion_ctx: &mut InsertionContext, job_order:
     let jobs_map = get_jobs_map_by_ids(insertion_ctx);
 
     insertion_ctx.solution.routes.iter_mut().zip(job_order.iter()).for_each(|(route_ctx, order)| {
-        let jobs = route_ctx.route().tour.jobs().collect::<Vec<_>>();
+        let jobs = route_ctx.route().tour.jobs().cloned().collect::<Vec<_>>();
         jobs.iter().for_each(|job| {
             route_ctx.route_mut().tour.remove(job);
         });

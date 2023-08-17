@@ -110,12 +110,12 @@ fn remove_jobs(
     SelectionSamplingIterator::new(insertion_ctx.solution.routes.iter_mut(), sample, random.clone())
         .flat_map(|route_ctx| {
             #[allow(clippy::needless_collect)]
-            let all_jobs = route_ctx.route().tour.jobs().filter(|job| !locked.contains(job)).collect::<Vec<_>>();
+            let all_jobs = route_ctx.route().tour.jobs().filter(|job| !locked.contains(*job)).collect::<Vec<_>>();
             let amount = random.uniform_int(jobs_range.start, jobs_range.end) as usize;
 
             let jobs = if random.is_head_not_tails() {
-                let jobs =
-                    SelectionSamplingIterator::new(all_jobs.into_iter(), amount, random.clone()).collect::<Vec<_>>();
+                let jobs = SelectionSamplingIterator::new(all_jobs.into_iter().cloned(), amount, random.clone())
+                    .collect::<Vec<_>>();
                 jobs.iter().for_each(|job| {
                     route_ctx.route_mut().tour.remove(job);
                     unassigned.insert(job.clone(), UnassignmentInfo::Unknown);
