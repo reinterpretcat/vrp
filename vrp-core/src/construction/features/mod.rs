@@ -20,6 +20,9 @@ pub use self::locked_jobs::*;
 mod minimize_unassigned;
 pub use self::minimize_unassigned::*;
 
+mod multi_trip;
+pub use self::multi_trip::*;
+
 mod shared_resource;
 pub use self::shared_resource::*;
 

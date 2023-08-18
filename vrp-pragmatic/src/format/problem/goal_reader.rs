@@ -270,8 +270,8 @@ fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
 ) -> Result<Feature, GenericError> {
     let reload_resources = get_reload_resources(api_problem, job_index, capacity_map);
-    let capacity_feature_factory: CapacityFeatureFactoryFn<T> = Box::new(|name, multi_trip| {
-        create_capacity_limit_with_multi_trip_feature(name, CAPACITY_CONSTRAINT_CODE, multi_trip)
+    let capacity_feature_factory: CapacityFeatureFactoryFn = Box::new(|name, multi_trip| {
+        create_capacity_limit_with_multi_trip_feature::<T>(name, CAPACITY_CONSTRAINT_CODE, multi_trip)
     });
 
     if reload_resources.is_empty() {

@@ -53,7 +53,9 @@ fn can_handle_reload_jobs_with_merge() {
     let create_job = || Job::Single(Arc::new(create_single_with_location(None)));
     let feature = create_simple_reload_multi_trip_feature(
         "reload",
-        Box::new(|name, multi_trip| create_capacity_limit_with_multi_trip_feature(name, VIOLATION_CODE, multi_trip)),
+        Box::new(|name, multi_trip| {
+            create_capacity_limit_with_multi_trip_feature::<SingleDimLoad>(name, VIOLATION_CODE, multi_trip)
+        }),
         Box::new(|_| SingleDimLoad::default()),
     );
     let constraint = feature.unwrap().constraint.unwrap();
@@ -189,7 +191,9 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
     let mut solution_ctx = SolutionContext { routes: vec![route_ctx], ..create_solution_context_for_fleet(&fleet) };
     let feature = create_simple_reload_multi_trip_feature::<MultiDimLoad>(
         "reload",
-        Box::new(|name, multi_trip| create_capacity_limit_with_multi_trip_feature(name, VIOLATION_CODE, multi_trip)),
+        Box::new(|name, multi_trip| {
+            create_capacity_limit_with_multi_trip_feature::<MultiDimLoad>(name, VIOLATION_CODE, multi_trip)
+        }),
         Box::new(move |capacity| *capacity * threshold),
     )
     .unwrap();

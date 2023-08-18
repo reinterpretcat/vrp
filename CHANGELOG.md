@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-* apply minor refactorings to some core api
+* apply refactorings to some core api
 
 ### Fixed
 

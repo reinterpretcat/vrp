@@ -6,55 +6,89 @@ mod capacity_test;
 
 use super::*;
 use crate::construction::enablers::*;
-use crate::models::problem::Single;
-use crate::models::solution::Activity;
-use rosomaxa::prelude::Objective;
-use std::iter::once;
-use std::slice::Iter;
+use crate::models::solution::{Activity, Route};
+use std::iter::empty;
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 /// Creates capacity feature as a hard constraint with multi trip functionality as a soft constraint.
 pub fn create_capacity_limit_with_multi_trip_feature<T: LoadOps>(
     name: &str,
     code: ViolationCode,
-    multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip + Send + Sync>,
 ) -> Result<Feature, GenericError> {
-    FeatureBuilder::default()
-        .with_name(name)
-        .with_constraint(CapacityConstraint::new(code, multi_trip.clone()))
-        .with_objective(CapacityObjective::new(multi_trip.clone()))
-        .with_state(CapacityState::new(code, multi_trip))
-        .build()
+    create_multi_trip_feature(
+        name,
+        code,
+        &[CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
+        Arc::new(CapacitatedMultiTrip::<T> { inner: Some(multi_trip), code, phantom: Default::default() }),
+    )
 }
 
 /// Creates capacity feature as a hard constraint.
 pub fn create_capacity_limit_feature<T: LoadOps>(name: &str, code: ViolationCode) -> Result<Feature, GenericError> {
-    let multi_trip = Arc::new(NoMultiTrip::<T>::default());
-    FeatureBuilder::default()
-        .with_name(name)
-        .with_constraint(CapacityConstraint::new(code, multi_trip.clone()))
-        .with_state(CapacityState::new(code, multi_trip))
-        .build()
+    create_multi_trip_feature(
+        name,
+        code,
+        &[CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
+        Arc::new(CapacitatedMultiTrip::<T> { inner: None, code, phantom: Default::default() }),
+    )
+    .map(|feature| Feature {
+        // NOTE: opt-out from objective
+        objective: None,
+        ..feature
+    })
 }
 
-struct CapacityConstraint<T: LoadOps> {
+struct CapacitatedMultiTrip<T: LoadOps> {
+    inner: Option<Arc<dyn MultiTrip + Send + Sync>>,
     code: ViolationCode,
-    multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>,
+    phantom: PhantomData<T>,
 }
 
-impl<T: LoadOps> FeatureConstraint for CapacityConstraint<T> {
+impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
+    fn is_marker_job(&self, job: &Job) -> bool {
+        self.inner.as_ref().map_or(false, |inner| inner.is_marker_job(job))
+    }
+
+    fn is_marker_assignable(&self, route: &Route, job: &Job) -> bool {
+        self.inner.as_ref().map_or(false, |inner| inner.is_marker_assignable(route, job))
+    }
+
+    fn is_multi_trip_needed(&self, route_ctx: &RouteContext) -> bool {
+        self.inner.as_ref().map_or(false, |inner| inner.is_multi_trip_needed(route_ctx))
+    }
+
+    fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
+        self.inner.as_ref().and_then(|inner| inner.get_marker_intervals(route_ctx))
+    }
+
+    fn get_interval_key(&self) -> Option<StateKey> {
+        self.inner.as_ref().and_then(|inner| inner.get_interval_key())
+    }
+
+    fn filter_markers<'a>(
+        &'a self,
+        route: &'a Route,
+        jobs: &'a [Job],
+    ) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync> {
+        self.inner.as_ref().map_or_else(
+            || {
+                let empty: Box<dyn Iterator<Item = Job> + 'a + Send + Sync> = Box::new(empty());
+                empty
+            },
+            |inner| inner.filter_markers(route, jobs),
+        )
+    }
+
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
-            MoveContext::Route { route_ctx, job, .. } => self.evaluate_route(route_ctx, job),
+            MoveContext::Route { route_ctx, job, .. } => self.evaluate_job(route_ctx, job),
             MoveContext::Activity { route_ctx, activity_ctx } => self.evaluate_activity(route_ctx, activity_ctx),
         }
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
-        if once(&source).chain(once(&candidate)).any(|job| self.multi_trip.is_marker_job(job)) {
-            return Err(self.code);
-        }
-
         match (&source, &candidate) {
             (Job::Single(s_source), Job::Single(s_candidate)) => {
                 let source_demand: Option<&Demand<T>> = s_source.dimens.get_demand();
@@ -77,29 +111,28 @@ impl<T: LoadOps> FeatureConstraint for CapacityConstraint<T> {
             _ => Err(self.code),
         }
     }
-}
 
-impl<T: LoadOps> CapacityConstraint<T> {
-    fn new(code: ViolationCode, multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>) -> Self {
-        Self { code, multi_trip }
+    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
+        if let Some(inner) = &self.inner {
+            inner.accept_route_state(route_ctx);
+        }
+        self.recalculate_states(route_ctx);
     }
 
-    fn evaluate_route(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
-        if self.multi_trip.is_marker_job(job) {
-            return if self.multi_trip.is_assignable(route_ctx.route(), job) {
-                None
-            } else {
-                Some(ConstraintViolation { code: self.code, stopped: true })
-            };
-        };
+    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
+        if let Some(inner) = &self.inner {
+            inner.accept_solution_state(solution_ctx);
+        }
+    }
+}
 
+impl<T: LoadOps> CapacitatedMultiTrip<T> {
+    fn evaluate_job(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
         let can_handle = match job {
-            Job::Single(job) => {
-                can_handle_demand_on_intervals(route_ctx, self.multi_trip.as_ref(), job.dimens.get_demand(), None)
+            Job::Single(job) => self.can_handle_demand_on_intervals(route_ctx, job.dimens.get_demand(), None),
+            Job::Multi(job) => {
+                job.jobs.iter().any(|job| self.can_handle_demand_on_intervals(route_ctx, job.dimens.get_demand(), None))
             }
-            Job::Multi(job) => job.jobs.iter().any(|job| {
-                can_handle_demand_on_intervals(route_ctx, self.multi_trip.as_ref(), job.dimens.get_demand(), None)
-            }),
         };
 
         if can_handle {
@@ -114,28 +147,11 @@ impl<T: LoadOps> CapacityConstraint<T> {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ConstraintViolation> {
-        if activity_ctx
-            .target
-            .job
-            .as_ref()
-            .map_or(false, |job| self.multi_trip.is_marker_job(&Job::Single(job.clone())))
-        {
-            // NOTE insert marker job in route only as last
-            let is_first = activity_ctx.prev.job.is_none();
-            let is_not_last = activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some();
-
-            return if is_first || is_not_last {
-                ConstraintViolation::skip(self.code)
-            } else {
-                ConstraintViolation::success()
-            };
-        };
-
         let demand = get_demand(activity_ctx.target);
 
         let violation = if activity_ctx.target.retrieve_job().map_or(false, |job| job.as_multi().is_some()) {
             // NOTE multi job has dynamic demand which can go in another interval
-            if can_handle_demand_on_intervals(route_ctx, self.multi_trip.as_ref(), demand, Some(activity_ctx.index)) {
+            if self.can_handle_demand_on_intervals(route_ctx, demand, Some(activity_ctx.index)) {
                 None
             } else {
                 Some(false)
@@ -146,89 +162,59 @@ impl<T: LoadOps> CapacityConstraint<T> {
                 activity_ctx.prev,
                 route_ctx.route().actor.vehicle.dimens.get_capacity(),
                 demand,
-                !self.multi_trip.has_markers(route_ctx),
+                !self.has_markers(route_ctx),
             )
         };
 
         violation.map(|stopped| ConstraintViolation { code: self.code, stopped })
     }
-}
 
-struct CapacityObjective<T: LoadOps> {
-    multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>,
-}
-
-impl<T: LoadOps> CapacityObjective<T> {
-    pub fn new(multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>) -> Self {
-        Self { multi_trip }
+    fn has_markers(&self, route_ctx: &RouteContext) -> bool {
+        self.get_marker_intervals(route_ctx).map_or(false, |intervals| intervals.len() > 1)
     }
 
-    fn estimate_job(&self, job: &Job) -> Cost {
-        if self.multi_trip.is_marker_job(job) {
-            -1.
-        } else {
-            0.
-        }
-    }
-}
+    fn can_handle_demand_on_intervals(
+        &self,
+        route_ctx: &RouteContext,
+        demand: Option<&Demand<T>>,
+        insert_idx: Option<usize>,
+    ) -> bool {
+        let has_demand_violation = |activity: &Activity| {
+            has_demand_violation(
+                route_ctx.state(),
+                activity,
+                route_ctx.route().actor.vehicle.dimens.get_capacity(),
+                demand,
+                true,
+            )
+        };
 
-impl<T: LoadOps> Objective for CapacityObjective<T> {
-    type Solution = InsertionContext;
+        let has_demand_violation_on_borders = |start_idx: usize, end_idx: usize| {
+            has_demand_violation(route_ctx.route().tour.get(start_idx).unwrap()).is_none()
+                || has_demand_violation(route_ctx.route().tour.get(end_idx).unwrap()).is_none()
+        };
 
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution
-            .solution
-            .routes
-            .iter()
-            .flat_map(|route_ctx| route_ctx.route().tour.jobs())
-            .map(|job| self.estimate_job(job))
-            .sum()
-    }
-}
-
-impl<T: LoadOps> FeatureObjective for CapacityObjective<T> {
-    fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
-        match move_ctx {
-            MoveContext::Route { job, .. } => self.estimate_job(job),
-            MoveContext::Activity { .. } => 0.,
-        }
-    }
-}
-
-struct CapacityState<T: LoadOps> {
-    multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>,
-    context_transition: Box<dyn JobContextTransition + Send + Sync>,
-    state_keys: Vec<StateKey>,
-    code: ViolationCode,
-}
-
-impl<T: LoadOps> CapacityState<T> {
-    pub fn new(code: ViolationCode, multi_trip: Arc<dyn MultiTrip<Constraint = T> + Send + Sync>) -> Self {
-        let context_transition = Box::new(ConcreteJobContextTransition {
-            remove_required: {
-                let multi_trip = multi_trip.clone();
-                move |_, _, job| multi_trip.is_marker_job(job)
-            },
-            promote_required: |_, _, _| false,
-            remove_locked: |_, _, _| false,
-            promote_locked: {
-                let multi_trip = multi_trip.clone();
-                move |_, _, job| multi_trip.is_marker_job(job)
-            },
-        });
-
-        Self {
-            multi_trip,
-            context_transition,
-            state_keys: vec![CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
-            code,
-        }
+        self.get_marker_intervals(route_ctx)
+            .map(|intervals| {
+                if let Some(insert_idx) = insert_idx {
+                    intervals.iter().filter(|(_, end_idx)| insert_idx <= *end_idx).all(|interval| {
+                        has_demand_violation(route_ctx.route().tour.get(insert_idx.max(interval.0)).unwrap()).is_none()
+                    })
+                } else {
+                    intervals.iter().any(|(start_idx, end_idx)| has_demand_violation_on_borders(*start_idx, *end_idx))
+                }
+            })
+            .unwrap_or_else(|| {
+                if let Some(insert_idx) = insert_idx {
+                    has_demand_violation(route_ctx.route().tour.get(insert_idx).unwrap()).is_none()
+                } else {
+                    has_demand_violation_on_borders(0, route_ctx.route().tour.total().max(1) - 1)
+                }
+            })
     }
 
     fn recalculate_states(&self, route_ctx: &mut RouteContext) {
-        self.multi_trip.accept_route_state(route_ctx);
         let marker_intervals = self
-            .multi_trip
             .get_marker_intervals(route_ctx)
             .cloned()
             .unwrap_or_else(|| vec![(0, route_ctx.route().tour.total() - 1)]);
@@ -276,31 +262,6 @@ impl<T: LoadOps> CapacityState<T> {
         if let Some(capacity) = route_ctx.route().actor.clone().vehicle.dimens.get_capacity() {
             route_ctx.state_mut().put_route_state(MAX_LOAD_KEY, max_load.ratio(capacity));
         }
-    }
-}
-
-impl<T: LoadOps> FeatureState for CapacityState<T> {
-    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
-        self.accept_route_state(solution_ctx.routes.get_mut(route_index).unwrap());
-        self.multi_trip.accept_insertion(solution_ctx, route_index, job, self.code);
-    }
-
-    fn accept_route_state(&self, solution_ctx: &mut RouteContext) {
-        self.recalculate_states(solution_ctx);
-    }
-
-    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
-        process_conditional_jobs(solution_ctx, None, self.context_transition.as_ref());
-
-        solution_ctx.routes.iter_mut().filter(|route_ctx| route_ctx.is_stale()).for_each(|route_ctx| {
-            self.recalculate_states(route_ctx);
-        });
-
-        self.multi_trip.accept_solution_state(solution_ctx);
-    }
-
-    fn state_keys(&self) -> Iter<StateKey> {
-        self.state_keys.iter()
     }
 }
 
@@ -352,47 +313,6 @@ fn has_demand_violation<T: LoadOps>(
     } else {
         None
     }
-}
-
-fn can_handle_demand_on_intervals<T: LoadOps>(
-    route_ctx: &RouteContext,
-    multi_trip: &(dyn MultiTrip<Constraint = T> + Send + Sync),
-    demand: Option<&Demand<T>>,
-    insert_idx: Option<usize>,
-) -> bool {
-    let has_demand_violation = |activity: &Activity| {
-        has_demand_violation(
-            route_ctx.state(),
-            activity,
-            route_ctx.route().actor.vehicle.dimens.get_capacity(),
-            demand,
-            true,
-        )
-    };
-
-    let has_demand_violation_on_borders = |start_idx: usize, end_idx: usize| {
-        has_demand_violation(route_ctx.route().tour.get(start_idx).unwrap()).is_none()
-            || has_demand_violation(route_ctx.route().tour.get(end_idx).unwrap()).is_none()
-    };
-
-    multi_trip
-        .get_marker_intervals(route_ctx)
-        .map(|intervals| {
-            if let Some(insert_idx) = insert_idx {
-                intervals.iter().filter(|(_, end_idx)| insert_idx <= *end_idx).all(|interval| {
-                    has_demand_violation(route_ctx.route().tour.get(insert_idx.max(interval.0)).unwrap()).is_none()
-                })
-            } else {
-                intervals.iter().any(|(start_idx, end_idx)| has_demand_violation_on_borders(*start_idx, *end_idx))
-            }
-        })
-        .unwrap_or_else(|| {
-            if let Some(insert_idx) = insert_idx {
-                has_demand_violation(route_ctx.route().tour.get(insert_idx).unwrap()).is_none()
-            } else {
-                has_demand_violation_on_borders(0, route_ctx.route().tour.total().max(1) - 1)
-            }
-        })
 }
 
 fn get_demand<T: LoadOps>(activity: &Activity) -> Option<&Demand<T>> {

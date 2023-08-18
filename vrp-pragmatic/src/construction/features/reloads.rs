@@ -19,15 +19,15 @@ use vrp_core::models::solution::{Activity, Route};
 /// Specifies load schedule threshold function.
 pub type LoadScheduleThresholdFn<T> = Box<dyn Fn(&T) -> T + Send + Sync>;
 /// A factory function to create capacity feature.
-pub type CapacityFeatureFactoryFn<T> =
-    Box<dyn Fn(&str, Arc<dyn MultiTrip<Constraint = T> + Send + Sync>) -> Result<Feature, GenericError>>;
+pub type CapacityFeatureFactoryFn =
+    Box<dyn Fn(&str, Arc<dyn MultiTrip + Send + Sync>) -> Result<Feature, GenericError>>;
 /// Specifies place capacity threshold function.
 type PlaceCapacityThresholdFn<T> = Box<dyn Fn(&RouteContext, &Activity, &T) -> bool + Send + Sync>;
 
 /// Creates a multi trip strategy to use multi trip with reload jobs which shared some resources.
 pub fn create_shared_reload_multi_trip_feature<T>(
     name: &str,
-    capacity_feature_factory: CapacityFeatureFactoryFn<T>,
+    capacity_feature_factory: CapacityFeatureFactoryFn,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
     resource_map: HashMap<Job, (T, SharedResourceId)>,
     total_jobs: usize,
@@ -57,7 +57,7 @@ where
 /// Creates a multi trip strategy to use multi trip with reload jobs.
 pub fn create_simple_reload_multi_trip_feature<T: LoadOps>(
     name: &str,
-    capacity_feature_factory: CapacityFeatureFactoryFn<T>,
+    capacity_feature_factory: CapacityFeatureFactoryFn,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
 ) -> Result<Feature, GenericError> {
     let multi_trip = create_reload_multi_trip(load_schedule_threshold_fn, None);
@@ -177,13 +177,11 @@ struct FixedMultiTrip<T: Send + Sync> {
 }
 
 impl<T: Send + Sync> MultiTrip for FixedMultiTrip<T> {
-    type Constraint = T;
-
     fn is_marker_job(&self, job: &Job) -> bool {
         job.as_single().map_or(false, |single| (self.is_marker_single_fn)(single))
     }
 
-    fn is_assignable(&self, route: &Route, job: &Job) -> bool {
+    fn is_marker_assignable(&self, route: &Route, job: &Job) -> bool {
         if self.is_marker_job(job) {
             let job = job.to_single();
             let vehicle_id = get_vehicle_id_from_job(job);
@@ -199,7 +197,12 @@ impl<T: Send + Sync> MultiTrip for FixedMultiTrip<T> {
         (self.is_multi_trip_needed_fn)(route_ctx)
     }
 
-    fn get_state_code(&self) -> Option<i32> {
+    fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
+        self.get_interval_key()
+            .and_then(|state_code| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(state_code))
+    }
+
+    fn get_interval_key(&self) -> Option<i32> {
         Some(self.intervals_key)
     }
 
@@ -225,6 +228,16 @@ impl<T: Send + Sync> MultiTrip for FixedMultiTrip<T> {
         )
     }
 
+    fn evaluate(&self, _: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        None
+    }
+
+    fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
+        Ok(source)
+    }
+
+    fn accept_route_state(&self, _: &mut RouteContext) {}
+
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         self.promote_multi_trips_when_needed(solution_ctx);
         self.remove_trivial_multi_trips(solution_ctx);
@@ -232,12 +245,16 @@ impl<T: Send + Sync> MultiTrip for FixedMultiTrip<T> {
 }
 
 impl<T: Send + Sync> FixedMultiTrip<T> {
+    fn has_markers(&self, route_ctx: &RouteContext) -> bool {
+        self.get_marker_intervals(route_ctx).map_or(false, |intervals| intervals.len() > 1)
+    }
+
     fn remove_trivial_multi_trips(&self, solution_ctx: &mut SolutionContext) {
         let mut extra_ignored = Vec::new();
         solution_ctx.routes.iter_mut().filter(|route_ctx| self.has_markers(route_ctx)).for_each(|route_ctx| {
-            let reloads = self.get_marker_intervals(route_ctx).cloned().unwrap_or_default();
+            let intervals = self.get_marker_intervals(route_ctx).cloned().unwrap_or_default();
 
-            let _ = reloads.windows(2).try_for_each(|item| {
+            let _ = intervals.windows(2).try_for_each(|item| {
                 let ((left_start, left_end), (right_start, right_end)) = match item {
                     &[left, right] => (left, right),
                     _ => unreachable!(),
