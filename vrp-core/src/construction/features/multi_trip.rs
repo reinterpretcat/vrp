@@ -1,5 +1,6 @@
 use super::*;
 use crate::construction::enablers::*;
+use crate::models::solution::Route;
 use hashbrown::HashSet;
 use rosomaxa::prelude::Objective;
 use std::iter::once;
@@ -146,6 +147,10 @@ impl MultiTripState {
 
         Self { multi_trip, context_transition, state_keys, code }
     }
+
+    fn filter_markers<'a>(&'a self, route: &'a Route, jobs: &'a [Job]) -> impl Iterator<Item = Job> + 'a + Send + Sync {
+        jobs.iter().filter(|job| self.multi_trip.is_marker_assignable(route, job)).cloned()
+    }
 }
 
 impl FeatureState for MultiTripState {
@@ -159,8 +164,7 @@ impl FeatureState for MultiTripState {
         let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
         if self.multi_trip.is_marker_job(job) {
             // move all unassigned marker jobs back to ignored
-            let jobs =
-                self.multi_trip.filter_markers(route_ctx.route(), &solution_ctx.required).collect::<HashSet<_>>();
+            let jobs = self.filter_markers(route_ctx.route(), &solution_ctx.required).collect::<HashSet<_>>();
             solution_ctx.required.retain(|job| !jobs.contains(job));
             solution_ctx.unassigned.retain(|job, _| !jobs.contains(job));
             solution_ctx.ignored.extend(jobs.into_iter());
@@ -174,9 +178,8 @@ impl FeatureState for MultiTripState {
         } else if self.multi_trip.is_multi_trip_needed(route_ctx) {
             // move all marker jobs for this shift to required
             let jobs = self
-                .multi_trip
                 .filter_markers(route_ctx.route(), &solution_ctx.ignored)
-                .chain(self.multi_trip.filter_markers(route_ctx.route(), &solution_ctx.required))
+                .chain(self.filter_markers(route_ctx.route(), &solution_ctx.required))
                 .collect::<HashSet<_>>();
 
             solution_ctx.ignored.retain(|job| !jobs.contains(job));

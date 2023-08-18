@@ -5,16 +5,15 @@
 mod reloads_test;
 
 use super::*;
+use crate::construction::enablers::JobTie;
 use crate::construction::enablers::*;
-use crate::construction::enablers::{JobTie, VehicleTie};
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 use std::cmp::Ordering;
-use std::marker::PhantomData;
 use std::ops::Range;
-use vrp_core::construction::enablers::MultiTrip;
+use vrp_core::construction::enablers::{FixedMultiTrip, MultiTrip};
 use vrp_core::construction::features::*;
 use vrp_core::models::problem::Single;
-use vrp_core::models::solution::{Activity, Route};
+use vrp_core::models::solution::Activity;
 
 /// Specifies load schedule threshold function.
 pub type LoadScheduleThresholdFn<T> = Box<dyn Fn(&T) -> T + Send + Sync>;
@@ -68,7 +67,7 @@ pub fn create_simple_reload_multi_trip_feature<T: LoadOps>(
 fn create_reload_multi_trip<T: LoadOps>(
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
     place_capacity_threshold: Option<PlaceCapacityThresholdFn<T>>,
-) -> FixedMultiTrip<T> {
+) -> FixedMultiTrip {
     FixedMultiTrip {
         is_marker_single_fn: Box::new(is_reload_single),
         is_multi_trip_needed_fn: Box::new(move |route_ctx| {
@@ -129,8 +128,17 @@ fn create_reload_multi_trip<T: LoadOps>(
                     (place_capacity_threshold)(route_ctx, activity, &left_delivery)
                 })
         }),
+        is_assignable_fn: Box::new(|route, job| {
+            if let Some(job) = job.as_single() {
+                let vehicle_id = get_vehicle_id_from_job(job);
+                let shift_index = get_shift_index(&job.dimens);
+
+                is_correct_vehicle(route, vehicle_id, shift_index)
+            } else {
+                false
+            }
+        }),
         intervals_key: RELOAD_INTERVALS_KEY,
-        phantom: Default::default(),
     }
 }
 
@@ -162,142 +170,6 @@ where
         }),
         Arc::new(|single| single.dimens.get_demand().map(|demand| demand.delivery.0)),
     )
-}
-
-/// Specifies obsolete interval function which takes left and right interval range. These
-/// intervals are separated by marker job activity.
-type ObsoleteIntervalFn = dyn Fn(&RouteContext, Range<usize>, Range<usize>) -> bool + Send + Sync;
-
-struct FixedMultiTrip<T: Send + Sync> {
-    is_marker_single_fn: Box<dyn Fn(&Single) -> bool + Send + Sync>,
-    is_multi_trip_needed_fn: Box<dyn Fn(&RouteContext) -> bool + Send + Sync>,
-    is_obsolete_interval_fn: Box<ObsoleteIntervalFn>,
-    intervals_key: i32,
-    phantom: PhantomData<T>,
-}
-
-impl<T: Send + Sync> MultiTrip for FixedMultiTrip<T> {
-    fn is_marker_job(&self, job: &Job) -> bool {
-        job.as_single().map_or(false, |single| (self.is_marker_single_fn)(single))
-    }
-
-    fn is_marker_assignable(&self, route: &Route, job: &Job) -> bool {
-        if self.is_marker_job(job) {
-            let job = job.to_single();
-            let vehicle_id = get_vehicle_id_from_job(job);
-            let shift_index = get_shift_index(&job.dimens);
-
-            is_correct_vehicle(route, vehicle_id, shift_index)
-        } else {
-            false
-        }
-    }
-
-    fn is_multi_trip_needed(&self, route_ctx: &RouteContext) -> bool {
-        (self.is_multi_trip_needed_fn)(route_ctx)
-    }
-
-    fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
-        self.get_interval_key()
-            .and_then(|state_code| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(state_code))
-    }
-
-    fn get_interval_key(&self) -> Option<i32> {
-        Some(self.intervals_key)
-    }
-
-    fn filter_markers<'a>(
-        &'a self,
-        route: &'a Route,
-        jobs: &'a [Job],
-    ) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync> {
-        let shift_index = get_shift_index(&route.actor.vehicle.dimens);
-        let vehicle_id = route.actor.vehicle.dimens.get_vehicle_id().unwrap();
-
-        Box::new(
-            jobs.iter()
-                .filter(move |job| match job {
-                    Job::Single(job) => {
-                        (self.is_marker_single_fn)(job)
-                            && get_shift_index(&job.dimens) == shift_index
-                            && get_vehicle_id_from_job(job) == vehicle_id
-                    }
-                    _ => false,
-                })
-                .cloned(),
-        )
-    }
-
-    fn evaluate(&self, _: &MoveContext<'_>) -> Option<ConstraintViolation> {
-        None
-    }
-
-    fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
-        Ok(source)
-    }
-
-    fn accept_route_state(&self, _: &mut RouteContext) {}
-
-    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
-        self.promote_multi_trips_when_needed(solution_ctx);
-        self.remove_trivial_multi_trips(solution_ctx);
-    }
-}
-
-impl<T: Send + Sync> FixedMultiTrip<T> {
-    fn has_markers(&self, route_ctx: &RouteContext) -> bool {
-        self.get_marker_intervals(route_ctx).map_or(false, |intervals| intervals.len() > 1)
-    }
-
-    fn remove_trivial_multi_trips(&self, solution_ctx: &mut SolutionContext) {
-        let mut extra_ignored = Vec::new();
-        solution_ctx.routes.iter_mut().filter(|route_ctx| self.has_markers(route_ctx)).for_each(|route_ctx| {
-            let intervals = self.get_marker_intervals(route_ctx).cloned().unwrap_or_default();
-
-            let _ = intervals.windows(2).try_for_each(|item| {
-                let ((left_start, left_end), (right_start, right_end)) = match item {
-                    &[left, right] => (left, right),
-                    _ => unreachable!(),
-                };
-
-                assert_eq!(left_end + 1, right_start);
-
-                if (self.is_obsolete_interval_fn)(route_ctx, left_start..left_end, right_start..right_end) {
-                    // NOTE: we remove only one reload per tour, state update should be handled externally
-                    extra_ignored.push(route_ctx.route_mut().tour.remove_activity_at(right_start));
-                    Err(())
-                } else {
-                    Ok(())
-                }
-            });
-        });
-
-        solution_ctx.ignored.extend(extra_ignored.into_iter());
-    }
-
-    fn promote_multi_trips_when_needed(&self, solution_ctx: &mut SolutionContext) {
-        let candidate_jobs = solution_ctx
-            .routes
-            .iter()
-            .filter(|route_ctx| self.is_multi_trip_needed(route_ctx))
-            .flat_map(|route_ctx| {
-                self.filter_markers(route_ctx.route(), &solution_ctx.ignored)
-                    .chain(self.filter_markers(route_ctx.route(), &solution_ctx.required))
-            })
-            .collect::<HashSet<_>>();
-
-        // NOTE: get already assigned jobs to guarantee locking them
-        let assigned_job = solution_ctx
-            .routes
-            .iter()
-            .flat_map(|route_ctx| route_ctx.route().tour.jobs())
-            .filter(|job| self.is_marker_job(job))
-            .cloned();
-
-        solution_ctx.ignored.retain(|job| !candidate_jobs.contains(job));
-        solution_ctx.locked.extend(candidate_jobs.iter().cloned().chain(assigned_job));
-        solution_ctx.required.extend(candidate_jobs.into_iter());
-    }
 }
 
 fn is_reload_single(single: &Single) -> bool {

@@ -1,9 +1,15 @@
 use crate::construction::heuristics::{MoveContext, RouteContext, SolutionContext};
-use crate::models::problem::Job;
+use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Route};
 use crate::models::{ConstraintViolation, StateKey, ViolationCode};
+use hashbrown::HashSet;
+use std::ops::Range;
 
-/// This trait defines multi-trip strategy for constraint extension.
+// TODO rename to RouteIntervals?
+//     accept_route_state     -> update_route_intervals
+//     accept_solution_state  -> update_solution_intervals
+
+/// This trait defines a shared multi-trip behavior for specific feature extension.
 pub trait MultiTrip {
     /// Returns true if job is considered as multi trip marker.
     fn is_marker_job(&self, job: &Job) -> bool;
@@ -20,12 +26,7 @@ pub trait MultiTrip {
     /// Gets interval state key if present.
     fn get_interval_key(&self) -> Option<StateKey>;
 
-    /// Gets all multi trip markers for specific route from jobs collection.
-    fn filter_markers<'a>(
-        &'a self,
-        route: &'a Route,
-        jobs: &'a [Job],
-    ) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync>;
+    // TODO can we get rid of evaluate and merge from this interface?
 
     /// Evaluates context for insertion possibility.
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation>;
@@ -38,6 +39,123 @@ pub trait MultiTrip {
 
     /// Accepts solution state, e.g. removes trivial marker jobs.
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext);
+}
+
+/// Provides a basic implementation of multi trip functionality.
+#[allow(clippy::type_complexity)]
+pub struct FixedMultiTrip {
+    /// Checks whether specified single job is of marker type.
+    pub is_marker_single_fn: Box<dyn Fn(&Single) -> bool + Send + Sync>,
+
+    /// Specifies a function which checks whether multi trip is needed for given route.
+    pub is_multi_trip_needed_fn: Box<dyn Fn(&RouteContext) -> bool + Send + Sync>,
+
+    /// Specifies an obsolete interval function which takes left and right interval range. These intervals are separated by marker job activity.
+    pub is_obsolete_interval_fn: Box<dyn Fn(&RouteContext, Range<usize>, Range<usize>) -> bool + Send + Sync>,
+
+    /// Specifies a function which checks whether job can be assigned to a given route.
+    pub is_assignable_fn: Box<dyn Fn(&Route, &Job) -> bool + Send + Sync>,
+
+    /// An intervals state key.
+    pub intervals_key: StateKey,
+}
+
+impl MultiTrip for FixedMultiTrip {
+    fn is_marker_job(&self, job: &Job) -> bool {
+        job.as_single().map_or(false, |single| (self.is_marker_single_fn)(single))
+    }
+
+    fn is_marker_assignable(&self, route: &Route, job: &Job) -> bool {
+        self.is_marker_job(job) && (self.is_assignable_fn)(route, job)
+    }
+
+    fn is_multi_trip_needed(&self, route_ctx: &RouteContext) -> bool {
+        (self.is_multi_trip_needed_fn)(route_ctx)
+    }
+
+    fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
+        self.get_interval_key()
+            .and_then(|state_code| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(state_code))
+    }
+
+    fn get_interval_key(&self) -> Option<i32> {
+        Some(self.intervals_key)
+    }
+
+    fn evaluate(&self, _: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        None
+    }
+
+    fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
+        Ok(source)
+    }
+
+    fn accept_route_state(&self, _: &mut RouteContext) {}
+
+    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
+        self.promote_multi_trips_when_needed(solution_ctx);
+        self.remove_trivial_multi_trips(solution_ctx);
+    }
+}
+
+impl FixedMultiTrip {
+    fn has_markers(&self, route_ctx: &RouteContext) -> bool {
+        self.get_marker_intervals(route_ctx).map_or(false, |intervals| intervals.len() > 1)
+    }
+
+    fn filter_markers<'a>(&'a self, route: &'a Route, jobs: &'a [Job]) -> impl Iterator<Item = Job> + 'a {
+        jobs.iter().filter(|job| self.is_marker_assignable(route, job)).cloned()
+    }
+
+    fn remove_trivial_multi_trips(&self, solution_ctx: &mut SolutionContext) {
+        let mut extra_ignored = Vec::new();
+        solution_ctx.routes.iter_mut().filter(|route_ctx| self.has_markers(route_ctx)).for_each(|route_ctx| {
+            let intervals = self.get_marker_intervals(route_ctx).cloned().unwrap_or_default();
+
+            let _ = intervals.windows(2).try_for_each(|item| {
+                let ((left_start, left_end), (right_start, right_end)) = match item {
+                    &[left, right] => (left, right),
+                    _ => unreachable!(),
+                };
+
+                assert_eq!(left_end + 1, right_start);
+
+                if (self.is_obsolete_interval_fn)(route_ctx, left_start..left_end, right_start..right_end) {
+                    // NOTE: we remove only one reload per tour, state update should be handled externally
+                    extra_ignored.push(route_ctx.route_mut().tour.remove_activity_at(right_start));
+                    Err(())
+                } else {
+                    Ok(())
+                }
+            });
+        });
+
+        solution_ctx.ignored.extend(extra_ignored.into_iter());
+    }
+
+    fn promote_multi_trips_when_needed(&self, solution_ctx: &mut SolutionContext) {
+        let candidate_jobs = solution_ctx
+            .routes
+            .iter()
+            .filter(|route_ctx| self.is_multi_trip_needed(route_ctx))
+            .flat_map(|route_ctx| {
+                self.filter_markers(route_ctx.route(), &solution_ctx.ignored)
+                    .chain(self.filter_markers(route_ctx.route(), &solution_ctx.required))
+            })
+            .collect::<HashSet<_>>();
+
+        // NOTE: get already assigned jobs to guarantee locking them
+        let assigned_job = solution_ctx
+            .routes
+            .iter()
+            .flat_map(|route_ctx| route_ctx.route().tour.jobs())
+            .filter(|job| self.is_marker_job(job))
+            .cloned();
+
+        solution_ctx.ignored.retain(|job| !candidate_jobs.contains(job));
+        solution_ctx.locked.extend(candidate_jobs.iter().cloned().chain(assigned_job));
+        solution_ctx.required.extend(candidate_jobs.into_iter());
+    }
 }
 
 /// Returns intervals between vehicle terminal and multi trip activities.

@@ -7,7 +7,6 @@ mod capacity_test;
 use super::*;
 use crate::construction::enablers::*;
 use crate::models::solution::{Activity, Route};
-use std::iter::empty;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
@@ -65,20 +64,6 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
 
     fn get_interval_key(&self) -> Option<StateKey> {
         self.inner.as_ref().and_then(|inner| inner.get_interval_key())
-    }
-
-    fn filter_markers<'a>(
-        &'a self,
-        route: &'a Route,
-        jobs: &'a [Job],
-    ) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync> {
-        self.inner.as_ref().map_or_else(
-            || {
-                let empty: Box<dyn Iterator<Item = Job> + 'a + Send + Sync> = Box::new(empty());
-                empty
-            },
-            |inner| inner.filter_markers(route, jobs),
-        )
     }
 
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
