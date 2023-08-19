@@ -1,6 +1,6 @@
 use self::ActivityType::*;
 use super::*;
-use crate::construction::enablers::route_intervals;
+use crate::construction::enablers::get_route_intervals;
 use crate::helpers::construction::features::create_simple_demand;
 use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
@@ -68,7 +68,7 @@ fn create_route_ctx(
         .collect();
 
     let mut route_ctx = create_route_context_with_activities(fleet, vehicle_id, activities);
-    let intervals = route_intervals(route_ctx.route(), |activity| {
+    let intervals = get_route_intervals(route_ctx.route(), |activity| {
         activity.job.as_ref().map_or(false, |job| {
             let capacity: Option<&SingleDimLoad> = job.dimens.get_capacity();
             capacity.is_some()

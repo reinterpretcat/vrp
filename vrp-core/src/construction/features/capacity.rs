@@ -14,13 +14,13 @@ use std::sync::Arc;
 pub fn create_capacity_limit_with_multi_trip_feature<T: LoadOps>(
     name: &str,
     code: ViolationCode,
-    multi_trip: Arc<dyn MultiTrip + Send + Sync>,
+    route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
 ) -> Result<Feature, GenericError> {
     create_multi_trip_feature(
         name,
         code,
         &[CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
-        Arc::new(CapacitatedMultiTrip::<T> { inner: Some(multi_trip), code, phantom: Default::default() }),
+        Arc::new(CapacitatedRouteIntervals::<T> { inner: Some(route_intervals), code, phantom: Default::default() }),
     )
 }
 
@@ -30,7 +30,7 @@ pub fn create_capacity_limit_feature<T: LoadOps>(name: &str, code: ViolationCode
         name,
         code,
         &[CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
-        Arc::new(CapacitatedMultiTrip::<T> { inner: None, code, phantom: Default::default() }),
+        Arc::new(CapacitatedRouteIntervals::<T> { inner: None, code, phantom: Default::default() }),
     )
     .map(|feature| Feature {
         // NOTE: opt-out from objective
@@ -39,13 +39,13 @@ pub fn create_capacity_limit_feature<T: LoadOps>(name: &str, code: ViolationCode
     })
 }
 
-struct CapacitatedMultiTrip<T: LoadOps> {
-    inner: Option<Arc<dyn MultiTrip + Send + Sync>>,
+struct CapacitatedRouteIntervals<T: LoadOps> {
+    inner: Option<Arc<dyn RouteIntervals + Send + Sync>>,
     code: ViolationCode,
     phantom: PhantomData<T>,
 }
 
-impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
+impl<T: LoadOps> RouteIntervals for CapacitatedRouteIntervals<T> {
     fn is_marker_job(&self, job: &Job) -> bool {
         self.inner.as_ref().map_or(false, |inner| inner.is_marker_job(job))
     }
@@ -54,8 +54,8 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
         self.inner.as_ref().map_or(false, |inner| inner.is_marker_assignable(route, job))
     }
 
-    fn is_multi_trip_needed(&self, route_ctx: &RouteContext) -> bool {
-        self.inner.as_ref().map_or(false, |inner| inner.is_multi_trip_needed(route_ctx))
+    fn is_new_interval_needed(&self, route_ctx: &RouteContext) -> bool {
+        self.inner.as_ref().map_or(false, |inner| inner.is_new_interval_needed(route_ctx))
     }
 
     fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
@@ -97,21 +97,21 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
         }
     }
 
-    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
+    fn update_route_intervals(&self, route_ctx: &mut RouteContext) {
         if let Some(inner) = &self.inner {
-            inner.accept_route_state(route_ctx);
+            inner.update_route_intervals(route_ctx);
         }
         self.recalculate_states(route_ctx);
     }
 
-    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
+    fn update_solution_intervals(&self, solution_ctx: &mut SolutionContext) {
         if let Some(inner) = &self.inner {
-            inner.accept_solution_state(solution_ctx);
+            inner.update_solution_intervals(solution_ctx);
         }
     }
 }
 
-impl<T: LoadOps> CapacitatedMultiTrip<T> {
+impl<T: LoadOps> CapacitatedRouteIntervals<T> {
     fn evaluate_job(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
         let can_handle = match job {
             Job::Single(job) => self.can_handle_demand_on_intervals(route_ctx, job.dimens.get_demand(), None),

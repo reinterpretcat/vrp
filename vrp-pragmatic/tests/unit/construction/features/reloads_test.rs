@@ -53,8 +53,8 @@ fn can_handle_reload_jobs_with_merge() {
     let create_job = || Job::Single(Arc::new(create_single_with_location(None)));
     let feature = create_simple_reload_multi_trip_feature(
         "reload",
-        Box::new(|name, multi_trip| {
-            create_capacity_limit_with_multi_trip_feature::<SingleDimLoad>(name, VIOLATION_CODE, multi_trip)
+        Box::new(|name, route_intervals| {
+            create_capacity_limit_with_multi_trip_feature::<SingleDimLoad>(name, VIOLATION_CODE, route_intervals)
         }),
         Box::new(|_| SingleDimLoad::default()),
     );
@@ -191,8 +191,8 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
     let mut solution_ctx = SolutionContext { routes: vec![route_ctx], ..create_solution_context_for_fleet(&fleet) };
     let feature = create_simple_reload_multi_trip_feature::<MultiDimLoad>(
         "reload",
-        Box::new(|name, multi_trip| {
-            create_capacity_limit_with_multi_trip_feature::<MultiDimLoad>(name, VIOLATION_CODE, multi_trip)
+        Box::new(|name, route_intervals| {
+            create_capacity_limit_with_multi_trip_feature::<MultiDimLoad>(name, VIOLATION_CODE, route_intervals)
         }),
         Box::new(move |capacity| *capacity * threshold),
     )
@@ -218,28 +218,29 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
     );
 }
 
-parameterized_test! {can_handle_multi_trip_needed_for_multi_dim_load, (vehicle_capacity, current_capacity, expected), {
-    can_handle_multi_trip_needed_for_multi_dim_load_impl(vehicle_capacity, current_capacity, expected);
+parameterized_test! {can_handle_new_interval_needed_for_multi_dim_load, (vehicle_capacity, current_capacity, expected), {
+    can_handle_new_interval_needed_for_multi_dim_load_impl(vehicle_capacity, current_capacity, expected);
 }}
 
-can_handle_multi_trip_needed_for_multi_dim_load! {
+can_handle_new_interval_needed_for_multi_dim_load! {
     case01_all_the_same: (vec![1], vec![1], true),
     case02_one_the_same: (vec![2, 1], vec![1, 1], true),
     case03_all_different: (vec![2, 2], vec![1, 1], false),
 }
 
-fn can_handle_multi_trip_needed_for_multi_dim_load_impl(
+fn can_handle_new_interval_needed_for_multi_dim_load_impl(
     vehicle_capacity: Vec<i32>,
     current_capacity: Vec<i32>,
     expected: bool,
 ) {
     let threshold = 1.;
-    let multi_trip = create_reload_multi_trip::<MultiDimLoad>(Box::new(move |capacity| *capacity * threshold), None);
+    let route_intervals =
+        create_reload_route_intervals::<MultiDimLoad>(Box::new(move |capacity| *capacity * threshold), None);
     let (mut route_ctx, _) = create_route_context_with_fleet(vehicle_capacity, Vec::default());
     let (route, state) = route_ctx.as_mut();
     state.put_activity_state(MAX_PAST_CAPACITY_KEY, route.tour.end().unwrap(), MultiDimLoad::new(current_capacity));
 
-    let result = multi_trip.is_multi_trip_needed(&route_ctx);
+    let result = route_intervals.is_new_interval_needed(&route_ctx);
 
     assert_eq!(result, expected);
 }

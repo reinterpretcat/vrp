@@ -10,7 +10,7 @@ use crate::construction::enablers::*;
 use hashbrown::HashMap;
 use std::cmp::Ordering;
 use std::ops::Range;
-use vrp_core::construction::enablers::{FixedMultiTrip, MultiTrip};
+use vrp_core::construction::enablers::{FixedReloadIntervals, RouteIntervals};
 use vrp_core::construction::features::*;
 use vrp_core::models::problem::Single;
 use vrp_core::models::solution::Activity;
@@ -19,7 +19,7 @@ use vrp_core::models::solution::Activity;
 pub type LoadScheduleThresholdFn<T> = Box<dyn Fn(&T) -> T + Send + Sync>;
 /// A factory function to create capacity feature.
 pub type CapacityFeatureFactoryFn =
-    Box<dyn Fn(&str, Arc<dyn MultiTrip + Send + Sync>) -> Result<Feature, GenericError>>;
+    Box<dyn Fn(&str, Arc<dyn RouteIntervals + Send + Sync>) -> Result<Feature, GenericError>>;
 /// Specifies place capacity threshold function.
 type PlaceCapacityThresholdFn<T> = Box<dyn Fn(&RouteContext, &Activity, &T) -> bool + Send + Sync>;
 
@@ -39,7 +39,7 @@ where
     let shared_resource =
         create_shared_reload_constraint(name, resource_map, total_jobs, constraint_code, resource_key)?;
 
-    let multi_trip = create_reload_multi_trip(
+    let route_intervals = create_reload_route_intervals(
         load_schedule_threshold_fn,
         Some(Box::new(move |route_ctx, activity, demand| {
             route_ctx
@@ -48,7 +48,7 @@ where
                 .map_or(true, |resource_available| resource_available.can_fit(demand))
         })),
     );
-    let capacity = (capacity_feature_factory)(name, Arc::new(multi_trip))?;
+    let capacity = (capacity_feature_factory)(name, Arc::new(route_intervals))?;
 
     FeatureBuilder::combine(name, &[capacity, shared_resource])
 }
@@ -59,18 +59,18 @@ pub fn create_simple_reload_multi_trip_feature<T: LoadOps>(
     capacity_feature_factory: CapacityFeatureFactoryFn,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
 ) -> Result<Feature, GenericError> {
-    let multi_trip = create_reload_multi_trip(load_schedule_threshold_fn, None);
+    let route_intervals = create_reload_route_intervals(load_schedule_threshold_fn, None);
 
-    (capacity_feature_factory)(name, Arc::new(multi_trip))
+    (capacity_feature_factory)(name, Arc::new(route_intervals))
 }
 
-fn create_reload_multi_trip<T: LoadOps>(
+fn create_reload_route_intervals<T: LoadOps>(
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
     place_capacity_threshold: Option<PlaceCapacityThresholdFn<T>>,
-) -> FixedMultiTrip {
-    FixedMultiTrip {
+) -> FixedReloadIntervals {
+    FixedReloadIntervals {
         is_marker_single_fn: Box::new(is_reload_single),
-        is_multi_trip_needed_fn: Box::new(move |route_ctx| {
+        is_new_interval_needed_fn: Box::new(move |route_ctx| {
             route_ctx
                 .route()
                 .tour

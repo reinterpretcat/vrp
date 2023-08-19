@@ -5,20 +5,16 @@ use crate::models::{ConstraintViolation, StateKey, ViolationCode};
 use hashbrown::HashSet;
 use std::ops::Range;
 
-// TODO rename to RouteIntervals?
-//     accept_route_state     -> update_route_intervals
-//     accept_solution_state  -> update_solution_intervals
-
-/// This trait defines a shared multi-trip behavior for specific feature extension.
-pub trait MultiTrip {
-    /// Returns true if job is considered as multi trip marker.
+/// This trait defines a logic to split route into logical intervals by marker jobs.
+pub trait RouteIntervals {
+    /// Returns true if job is considered as a route interval marker.
     fn is_marker_job(&self, job: &Job) -> bool;
 
-    /// Returns true if given job is multi trip marker and can be used with given route.
+    /// Returns true if given job is a marker job and can be used with given route.
     fn is_marker_assignable(&self, route: &Route, job: &Job) -> bool;
 
-    /// Checks whether vehicle can do a new multi trip.
-    fn is_multi_trip_needed(&self, route_ctx: &RouteContext) -> bool;
+    /// Checks whether vehicle can do a new route interval.
+    fn is_new_interval_needed(&self, route_ctx: &RouteContext) -> bool;
 
     /// Gets route intervals split by marker jobs.
     fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>>;
@@ -34,21 +30,21 @@ pub trait MultiTrip {
     /// Tries to merge jobs together.
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode>;
 
-    /// Recalculates states for route context.
-    fn accept_route_state(&self, route_ctx: &mut RouteContext);
+    /// Update route intervals on route level.
+    fn update_route_intervals(&self, route_ctx: &mut RouteContext);
 
-    /// Accepts solution state, e.g. removes trivial marker jobs.
-    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext);
+    /// Update route intervals on solution level.
+    fn update_solution_intervals(&self, solution_ctx: &mut SolutionContext);
 }
 
-/// Provides a basic implementation of multi trip functionality.
+/// Provides a basic implementation of reload intervals functionality.
 #[allow(clippy::type_complexity)]
-pub struct FixedMultiTrip {
+pub struct FixedReloadIntervals {
     /// Checks whether specified single job is of marker type.
     pub is_marker_single_fn: Box<dyn Fn(&Single) -> bool + Send + Sync>,
 
-    /// Specifies a function which checks whether multi trip is needed for given route.
-    pub is_multi_trip_needed_fn: Box<dyn Fn(&RouteContext) -> bool + Send + Sync>,
+    /// Specifies a function which checks whether a new interval is needed for given route.
+    pub is_new_interval_needed_fn: Box<dyn Fn(&RouteContext) -> bool + Send + Sync>,
 
     /// Specifies an obsolete interval function which takes left and right interval range. These intervals are separated by marker job activity.
     pub is_obsolete_interval_fn: Box<dyn Fn(&RouteContext, Range<usize>, Range<usize>) -> bool + Send + Sync>,
@@ -60,7 +56,7 @@ pub struct FixedMultiTrip {
     pub intervals_key: StateKey,
 }
 
-impl MultiTrip for FixedMultiTrip {
+impl RouteIntervals for FixedReloadIntervals {
     fn is_marker_job(&self, job: &Job) -> bool {
         job.as_single().map_or(false, |single| (self.is_marker_single_fn)(single))
     }
@@ -69,8 +65,8 @@ impl MultiTrip for FixedMultiTrip {
         self.is_marker_job(job) && (self.is_assignable_fn)(route, job)
     }
 
-    fn is_multi_trip_needed(&self, route_ctx: &RouteContext) -> bool {
-        (self.is_multi_trip_needed_fn)(route_ctx)
+    fn is_new_interval_needed(&self, route_ctx: &RouteContext) -> bool {
+        (self.is_new_interval_needed_fn)(route_ctx)
     }
 
     fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
@@ -90,15 +86,15 @@ impl MultiTrip for FixedMultiTrip {
         Ok(source)
     }
 
-    fn accept_route_state(&self, _: &mut RouteContext) {}
+    fn update_route_intervals(&self, _: &mut RouteContext) {}
 
-    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
-        self.promote_multi_trips_when_needed(solution_ctx);
-        self.remove_trivial_multi_trips(solution_ctx);
+    fn update_solution_intervals(&self, solution_ctx: &mut SolutionContext) {
+        self.promote_markers_when_needed(solution_ctx);
+        self.remove_trivial_markers(solution_ctx);
     }
 }
 
-impl FixedMultiTrip {
+impl FixedReloadIntervals {
     fn has_markers(&self, route_ctx: &RouteContext) -> bool {
         self.get_marker_intervals(route_ctx).map_or(false, |intervals| intervals.len() > 1)
     }
@@ -107,7 +103,7 @@ impl FixedMultiTrip {
         jobs.iter().filter(|job| self.is_marker_assignable(route, job)).cloned()
     }
 
-    fn remove_trivial_multi_trips(&self, solution_ctx: &mut SolutionContext) {
+    fn remove_trivial_markers(&self, solution_ctx: &mut SolutionContext) {
         let mut extra_ignored = Vec::new();
         solution_ctx.routes.iter_mut().filter(|route_ctx| self.has_markers(route_ctx)).for_each(|route_ctx| {
             let intervals = self.get_marker_intervals(route_ctx).cloned().unwrap_or_default();
@@ -133,11 +129,11 @@ impl FixedMultiTrip {
         solution_ctx.ignored.extend(extra_ignored.into_iter());
     }
 
-    fn promote_multi_trips_when_needed(&self, solution_ctx: &mut SolutionContext) {
+    fn promote_markers_when_needed(&self, solution_ctx: &mut SolutionContext) {
         let candidate_jobs = solution_ctx
             .routes
             .iter()
-            .filter(|route_ctx| self.is_multi_trip_needed(route_ctx))
+            .filter(|route_ctx| self.is_new_interval_needed(route_ctx))
             .flat_map(|route_ctx| {
                 self.filter_markers(route_ctx.route(), &solution_ctx.ignored)
                     .chain(self.filter_markers(route_ctx.route(), &solution_ctx.required))
@@ -158,8 +154,8 @@ impl FixedMultiTrip {
     }
 }
 
-/// Returns intervals between vehicle terminal and multi trip activities.
-pub fn route_intervals(route: &Route, is_marker_activity: impl Fn(&Activity) -> bool) -> Vec<(usize, usize)> {
+/// Returns intervals between vehicle terminal and marker job activities.
+pub fn get_route_intervals(route: &Route, is_marker_activity: impl Fn(&Activity) -> bool) -> Vec<(usize, usize)> {
     let last_idx = route.tour.total() - 1;
     (0_usize..).zip(route.tour.all_activities()).fold(Vec::<(usize, usize)>::default(), |mut acc, (idx, a)| {
         let is_marker_activity = is_marker_activity(a);

@@ -8,7 +8,7 @@ use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::*;
-use vrp_core::construction::enablers::{route_intervals, ReservedTimesIndex};
+use vrp_core::construction::enablers::{get_route_intervals, ReservedTimesIndex};
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Multi, TravelTime};
@@ -84,7 +84,7 @@ fn create_tour(
         statistic: Statistic::default(),
     };
 
-    let intervals = route_intervals(route, |a| get_activity_type(a).map_or(false, |t| t == "reload"));
+    let intervals = get_route_intervals(route, |a| get_activity_type(a).map_or(false, |t| t == "reload"));
 
     let mut leg = intervals.into_iter().fold(Leg::empty(), |leg, (start_idx, end_idx)| {
         let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
