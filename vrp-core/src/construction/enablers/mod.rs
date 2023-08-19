@@ -18,3 +18,6 @@ pub use self::reserved_time::*;
 
 mod schedule_update;
 pub use self::schedule_update::*;
+
+mod travel_delta;
+pub use self::travel_delta::*;

@@ -5,9 +5,10 @@
 mod tour_limits_test;
 
 use super::*;
-use crate::models::common::{Distance, Duration, Timestamp};
-use crate::models::problem::{Actor, TransportCost, TravelTime};
-use crate::models::solution::{Activity, Route};
+use crate::construction::enablers::calculate_travel_delta;
+use crate::models::common::{Distance, Duration};
+use crate::models::problem::{Actor, TransportCost};
+use crate::models::solution::Route;
 
 /// A function which returns activity size limit for given actor.
 pub type ActivitySizeResolver = Arc<dyn Fn(&Actor) -> Option<usize> + Sync + Send>;
@@ -93,51 +94,7 @@ struct TravelLimitConstraint {
 
 impl TravelLimitConstraint {
     fn calculate_travel(&self, route: &Route, activity_ctx: &ActivityContext) -> (Distance, Duration) {
-        let prev = activity_ctx.prev;
-        let tar = activity_ctx.target;
-        let next = activity_ctx.next;
-
-        let prev_dep = prev.schedule.departure;
-
-        let (prev_to_tar_dis, prev_to_tar_dur) = self.calculate_leg_travel_info(route, prev, tar, prev_dep);
-        if next.is_none() {
-            return (prev_to_tar_dis, prev_to_tar_dur);
-        }
-
-        let next = next.unwrap();
-        let tar_dep = prev_dep + prev_to_tar_dur;
-
-        let (prev_to_next_dis, prev_to_next_dur) = self.calculate_leg_travel_info(route, prev, next, prev_dep);
-        let (tar_to_next_dis, tar_to_next_dur) = self.calculate_leg_travel_info(route, tar, next, tar_dep);
-
-        (prev_to_tar_dis + tar_to_next_dis - prev_to_next_dis, prev_to_tar_dur + tar_to_next_dur - prev_to_next_dur)
-    }
-
-    fn calculate_leg_travel_info(
-        &self,
-        route: &Route,
-        first: &Activity,
-        second: &Activity,
-        departure: Timestamp,
-    ) -> (Distance, Duration) {
-        let first_to_second_dis = self.transport.distance(
-            route,
-            first.place.location,
-            second.place.location,
-            TravelTime::Departure(departure),
-        );
-        let first_to_second_dur = self.transport.duration(
-            route,
-            first.place.location,
-            second.place.location,
-            TravelTime::Departure(departure),
-        );
-
-        let second_arr = departure + first_to_second_dur;
-        let second_wait = (second.place.time.start - second_arr).max(0.);
-        let second_dep = second_arr + second_wait + second.place.duration;
-
-        (first_to_second_dis, second_dep - departure)
+        calculate_travel_delta(route, activity_ctx, self.transport.as_ref())
     }
 }
 
