@@ -1,7 +1,7 @@
-use crate::construction::heuristics::{MoveContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::{RouteContext, SolutionContext};
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Route};
-use crate::models::{ConstraintViolation, StateKey, ViolationCode};
+use crate::models::StateKey;
 use hashbrown::HashSet;
 use std::ops::Range;
 
@@ -21,14 +21,6 @@ pub trait RouteIntervals {
 
     /// Gets interval state key if present.
     fn get_interval_key(&self) -> Option<StateKey>;
-
-    // TODO can we get rid of evaluate and merge from this interface?
-
-    /// Evaluates context for insertion possibility.
-    fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation>;
-
-    /// Tries to merge jobs together.
-    fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode>;
 
     /// Update route intervals on route level.
     fn update_route_intervals(&self, route_ctx: &mut RouteContext);
@@ -76,14 +68,6 @@ impl RouteIntervals for FixedReloadIntervals {
 
     fn get_interval_key(&self) -> Option<i32> {
         Some(self.intervals_key)
-    }
-
-    fn evaluate(&self, _: &MoveContext<'_>) -> Option<ConstraintViolation> {
-        None
-    }
-
-    fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
-        Ok(source)
     }
 
     fn update_route_intervals(&self, _: &mut RouteContext) {}

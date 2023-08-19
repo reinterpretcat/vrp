@@ -20,7 +20,11 @@ pub fn create_capacity_limit_with_multi_trip_feature<T: LoadOps>(
         name,
         code,
         &[CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
-        Arc::new(CapacitatedRouteIntervals::<T> { inner: Some(route_intervals), code, phantom: Default::default() }),
+        Arc::new(CapacitatedMultiTrip::<T> {
+            route_intervals: Some(route_intervals),
+            code,
+            phantom: Default::default(),
+        }),
     )
 }
 
@@ -30,7 +34,7 @@ pub fn create_capacity_limit_feature<T: LoadOps>(name: &str, code: ViolationCode
         name,
         code,
         &[CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
-        Arc::new(CapacitatedRouteIntervals::<T> { inner: None, code, phantom: Default::default() }),
+        Arc::new(CapacitatedMultiTrip::<T> { route_intervals: None, code, phantom: Default::default() }),
     )
     .map(|feature| Feature {
         // NOTE: opt-out from objective
@@ -39,33 +43,7 @@ pub fn create_capacity_limit_feature<T: LoadOps>(name: &str, code: ViolationCode
     })
 }
 
-struct CapacitatedRouteIntervals<T: LoadOps> {
-    inner: Option<Arc<dyn RouteIntervals + Send + Sync>>,
-    code: ViolationCode,
-    phantom: PhantomData<T>,
-}
-
-impl<T: LoadOps> RouteIntervals for CapacitatedRouteIntervals<T> {
-    fn is_marker_job(&self, job: &Job) -> bool {
-        self.inner.as_ref().map_or(false, |inner| inner.is_marker_job(job))
-    }
-
-    fn is_marker_assignable(&self, route: &Route, job: &Job) -> bool {
-        self.inner.as_ref().map_or(false, |inner| inner.is_marker_assignable(route, job))
-    }
-
-    fn is_new_interval_needed(&self, route_ctx: &RouteContext) -> bool {
-        self.inner.as_ref().map_or(false, |inner| inner.is_new_interval_needed(route_ctx))
-    }
-
-    fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
-        self.inner.as_ref().and_then(|inner| inner.get_marker_intervals(route_ctx))
-    }
-
-    fn get_interval_key(&self) -> Option<StateKey> {
-        self.inner.as_ref().and_then(|inner| inner.get_interval_key())
-    }
-
+impl<T: LoadOps> FeatureConstraint for CapacitatedMultiTrip<T> {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => self.evaluate_job(route_ctx, job),
@@ -96,22 +74,52 @@ impl<T: LoadOps> RouteIntervals for CapacitatedRouteIntervals<T> {
             _ => Err(self.code),
         }
     }
+}
+
+struct CapacitatedMultiTrip<T: LoadOps> {
+    route_intervals: Option<Arc<dyn RouteIntervals + Send + Sync>>,
+    code: ViolationCode,
+    phantom: PhantomData<T>,
+}
+
+impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {}
+
+impl<T: LoadOps> RouteIntervals for CapacitatedMultiTrip<T> {
+    fn is_marker_job(&self, job: &Job) -> bool {
+        self.route_intervals.as_ref().map_or(false, |inner| inner.is_marker_job(job))
+    }
+
+    fn is_marker_assignable(&self, route: &Route, job: &Job) -> bool {
+        self.route_intervals.as_ref().map_or(false, |inner| inner.is_marker_assignable(route, job))
+    }
+
+    fn is_new_interval_needed(&self, route_ctx: &RouteContext) -> bool {
+        self.route_intervals.as_ref().map_or(false, |inner| inner.is_new_interval_needed(route_ctx))
+    }
+
+    fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
+        self.route_intervals.as_ref().and_then(|inner| inner.get_marker_intervals(route_ctx))
+    }
+
+    fn get_interval_key(&self) -> Option<StateKey> {
+        self.route_intervals.as_ref().and_then(|inner| inner.get_interval_key())
+    }
 
     fn update_route_intervals(&self, route_ctx: &mut RouteContext) {
-        if let Some(inner) = &self.inner {
-            inner.update_route_intervals(route_ctx);
+        if let Some(route_intervals) = &self.route_intervals {
+            route_intervals.update_route_intervals(route_ctx);
         }
         self.recalculate_states(route_ctx);
     }
 
     fn update_solution_intervals(&self, solution_ctx: &mut SolutionContext) {
-        if let Some(inner) = &self.inner {
-            inner.update_solution_intervals(solution_ctx);
+        if let Some(route_intervals) = &self.route_intervals {
+            route_intervals.update_solution_intervals(solution_ctx);
         }
     }
 }
 
-impl<T: LoadOps> CapacitatedRouteIntervals<T> {
+impl<T: LoadOps> CapacitatedMultiTrip<T> {
     fn evaluate_job(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
         let can_handle = match job {
             Job::Single(job) => self.can_handle_demand_on_intervals(route_ctx, job.dimens.get_demand(), None),
