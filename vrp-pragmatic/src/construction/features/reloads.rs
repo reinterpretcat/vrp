@@ -129,14 +129,9 @@ fn create_reload_route_intervals<T: LoadOps>(
                 })
         }),
         is_assignable_fn: Box::new(|route, job| {
-            if let Some(job) = job.as_single() {
-                let vehicle_id = get_vehicle_id_from_job(job);
-                let shift_index = get_shift_index(&job.dimens);
-
-                is_correct_vehicle(route, vehicle_id, shift_index)
-            } else {
-                false
-            }
+            job.as_single().map_or(false, |job| {
+                is_correct_vehicle(route, get_vehicle_id_from_job(job), get_shift_index(&job.dimens))
+            })
         }),
         intervals_key: RELOAD_INTERVALS_KEY,
     }

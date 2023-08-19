@@ -8,7 +8,6 @@ use super::*;
 use crate::construction::enablers::calculate_travel_delta;
 use crate::models::common::{Distance, Duration};
 use crate::models::problem::{Actor, TransportCost};
-use crate::models::solution::Route;
 
 /// A function which returns activity size limit for given actor.
 pub type ActivitySizeResolver = Arc<dyn Fn(&Actor) -> Option<usize> + Sync + Send>;
@@ -93,8 +92,8 @@ struct TravelLimitConstraint {
 }
 
 impl TravelLimitConstraint {
-    fn calculate_travel(&self, route: &Route, activity_ctx: &ActivityContext) -> (Distance, Duration) {
-        calculate_travel_delta(route, activity_ctx, self.transport.as_ref())
+    fn calculate_travel(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> (Distance, Duration) {
+        calculate_travel_delta(route_ctx, activity_ctx, self.transport.as_ref())
     }
 }
 
@@ -107,7 +106,7 @@ impl FeatureConstraint for TravelLimitConstraint {
                 let tour_duration_limit = (self.tour_duration_limit_fn)(route_ctx.route().actor.as_ref());
 
                 if tour_distance_limit.is_some() || tour_duration_limit.is_some() {
-                    let (change_distance, change_duration) = self.calculate_travel(route_ctx.route(), activity_ctx);
+                    let (change_distance, change_duration) = self.calculate_travel(route_ctx, activity_ctx);
 
                     if let Some(distance_limit) = tour_distance_limit {
                         let curr_dis = route_ctx.state().get_route_state(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);

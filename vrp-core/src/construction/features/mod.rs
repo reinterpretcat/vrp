@@ -65,6 +65,8 @@ pub const MAX_PAST_CAPACITY_KEY: i32 = 13;
 pub const RELOAD_INTERVALS_KEY: i32 = 14;
 /// A key which tracks max load in tour.
 pub const MAX_LOAD_KEY: i32 = 15;
+/// A key which tracks recharge intervals.
+pub const RECHARGE_INTERVALS_KEY: i32 = 16;
 
 /// A key for balancing max load.
 pub const BALANCE_MAX_LOAD_KEY: i32 = 20;

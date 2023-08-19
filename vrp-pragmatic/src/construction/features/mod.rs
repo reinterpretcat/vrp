@@ -34,6 +34,9 @@ pub use self::groups::*;
 pub mod reachable;
 pub use self::reachable::*;
 
+pub mod recharge;
+pub use self::recharge::*;
+
 pub mod reloads;
 pub use self::reloads::*;
 
