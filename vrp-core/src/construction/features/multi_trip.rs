@@ -8,7 +8,16 @@ use std::slice::Iter;
 use std::sync::Arc;
 
 /// Specifies multi trip extension behavior.
-pub trait MultiTrip: RouteIntervals + FeatureConstraint {}
+pub trait MultiTrip {
+    /// Gets an actual route intervals.
+    fn get_route_intervals(&self) -> &(dyn RouteIntervals);
+
+    /// Gets an actual feature constraint which restricts a route.
+    fn get_constraint(&self) -> &(dyn FeatureConstraint);
+
+    /// Recalculates inner states for given route.
+    fn recalculate_states(&self, route_ctx: &mut RouteContext);
+}
 
 /// Creates a feature with multi trip functionality.
 pub fn create_multi_trip_feature(
@@ -17,7 +26,7 @@ pub fn create_multi_trip_feature(
     state_keys: &[StateKey],
     multi_trip: Arc<dyn MultiTrip + Send + Sync>,
 ) -> Result<Feature, GenericError> {
-    let state_keys = match multi_trip.get_interval_key() {
+    let state_keys = match multi_trip.get_route_intervals().get_interval_key() {
         Some(key) if !state_keys.contains(&key) => state_keys.iter().copied().chain(once(key)).collect(),
         _ => state_keys.to_vec(),
     };
@@ -37,10 +46,11 @@ struct MultiTripConstraint {
 
 impl FeatureConstraint for MultiTripConstraint {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        let intervals = self.multi_trip.get_route_intervals();
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => {
-                if self.multi_trip.is_marker_job(job) {
-                    return if self.multi_trip.is_marker_assignable(route_ctx.route(), job) {
+                if intervals.is_marker_job(job) {
+                    return if intervals.is_marker_assignable(route_ctx.route(), job) {
                         None
                     } else {
                         Some(ConstraintViolation { code: self.code, stopped: true })
@@ -52,7 +62,7 @@ impl FeatureConstraint for MultiTripConstraint {
                     .target
                     .job
                     .as_ref()
-                    .map_or(false, |job| self.multi_trip.is_marker_job(&Job::Single(job.clone())))
+                    .map_or(false, |job| intervals.is_marker_job(&Job::Single(job.clone())))
                 {
                     // NOTE insert marker job in route only as last
                     let is_first = activity_ctx.prev.job.is_none();
@@ -67,15 +77,15 @@ impl FeatureConstraint for MultiTripConstraint {
             }
         }
 
-        self.multi_trip.evaluate(move_ctx)
+        self.multi_trip.get_constraint().evaluate(move_ctx)
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
-        if once(&source).chain(once(&candidate)).any(|job| self.multi_trip.is_marker_job(job)) {
+        if once(&source).chain(once(&candidate)).any(|job| self.multi_trip.get_route_intervals().is_marker_job(job)) {
             return Err(self.code);
         }
 
-        self.multi_trip.merge(source, candidate)
+        self.multi_trip.get_constraint().merge(source, candidate)
     }
 }
 
@@ -95,7 +105,7 @@ impl MultiTripObjective {
     }
 
     fn estimate_job(&self, job: &Job) -> Cost {
-        if self.multi_trip.is_marker_job(job) {
+        if self.multi_trip.get_route_intervals().is_marker_job(job) {
             -1.
         } else {
             0.
@@ -138,13 +148,13 @@ impl MultiTripState {
         let context_transition = Box::new(ConcreteJobContextTransition {
             remove_required: {
                 let multi_trip = multi_trip.clone();
-                move |_, _, job| multi_trip.is_marker_job(job)
+                move |_, _, job| multi_trip.get_route_intervals().is_marker_job(job)
             },
             promote_required: |_, _, _| false,
             remove_locked: |_, _, _| false,
             promote_locked: {
                 let multi_trip = multi_trip.clone();
-                move |_, _, job| multi_trip.is_marker_job(job)
+                move |_, _, job| multi_trip.get_route_intervals().is_marker_job(job)
             },
         });
 
@@ -152,7 +162,7 @@ impl MultiTripState {
     }
 
     fn filter_markers<'a>(&'a self, route: &'a Route, jobs: &'a [Job]) -> impl Iterator<Item = Job> + 'a + Send + Sync {
-        jobs.iter().filter(|job| self.multi_trip.is_marker_assignable(route, job)).cloned()
+        jobs.iter().filter(|job| self.multi_trip.get_route_intervals().is_marker_assignable(route, job)).cloned()
     }
 }
 
@@ -165,8 +175,10 @@ impl FeatureState for MultiTripState {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
         self.accept_route_state(solution_ctx.routes.get_mut(route_index).unwrap());
 
+        let intervals = self.multi_trip.get_route_intervals();
+
         let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
-        if self.multi_trip.is_marker_job(job) {
+        if intervals.is_marker_job(job) {
             // move all unassigned marker jobs back to ignored
             let jobs = self.filter_markers(route_ctx.route(), &solution_ctx.required).collect::<HashSet<_>>();
             solution_ctx.required.retain(|job| !jobs.contains(job));
@@ -179,7 +191,7 @@ impl FeatureState for MultiTripState {
                 }
                 _ => {}
             });
-        } else if self.multi_trip.is_new_interval_needed(route_ctx) {
+        } else if intervals.is_new_interval_needed(route_ctx) {
             // move all marker jobs for this shift to required
             let jobs = self
                 .filter_markers(route_ctx.route(), &solution_ctx.ignored)
@@ -193,15 +205,19 @@ impl FeatureState for MultiTripState {
     }
 
     fn accept_route_state(&self, route_ctx: &mut RouteContext) {
-        if let Some(interval_key) = self.multi_trip.get_interval_key() {
+        let intervals = self.multi_trip.get_route_intervals();
+
+        if let Some(interval_key) = intervals.get_interval_key() {
             let (route, state) = route_ctx.as_mut();
             let intervals = get_route_intervals(route, |a| {
-                a.job.as_ref().map_or(false, |job| self.multi_trip.is_marker_job(&Job::Single(job.clone())))
+                a.job.as_ref().map_or(false, |job| intervals.is_marker_job(&Job::Single(job.clone())))
             });
 
             state.put_route_state(interval_key, intervals);
         }
-        self.multi_trip.update_route_intervals(route_ctx);
+        intervals.update_route_intervals(route_ctx);
+
+        self.multi_trip.recalculate_states(route_ctx);
     }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
@@ -211,7 +227,7 @@ impl FeatureState for MultiTripState {
             self.accept_route_state(route_ctx);
         });
 
-        self.multi_trip.update_solution_intervals(solution_ctx);
+        self.multi_trip.get_route_intervals().update_solution_intervals(solution_ctx);
     }
 
     fn state_keys(&self) -> Iter<StateKey> {

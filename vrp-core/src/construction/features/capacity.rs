@@ -6,7 +6,7 @@ mod capacity_test;
 
 use super::*;
 use crate::construction::enablers::*;
-use crate::models::solution::{Activity, Route};
+use crate::models::solution::Activity;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
@@ -20,21 +20,23 @@ pub fn create_capacity_limit_with_multi_trip_feature<T: LoadOps>(
         name,
         code,
         &[CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
-        Arc::new(CapacitatedMultiTrip::<T> {
-            route_intervals: Some(route_intervals),
-            code,
-            phantom: Default::default(),
-        }),
+        Arc::new(CapacitatedMultiTrip::<T> { route_intervals, code, phantom: Default::default() }),
     )
 }
 
 /// Creates capacity feature as a hard constraint.
 pub fn create_capacity_limit_feature<T: LoadOps>(name: &str, code: ViolationCode) -> Result<Feature, GenericError> {
+    // TODO theoretically, the code can be easily refactored here to get opt-out from no-op multi-trip runtime overhead
+
     create_multi_trip_feature(
         name,
         code,
         &[CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
-        Arc::new(CapacitatedMultiTrip::<T> { route_intervals: None, code, phantom: Default::default() }),
+        Arc::new(CapacitatedMultiTrip::<T> {
+            route_intervals: Arc::new(NoRouteIntervals::default()),
+            code,
+            phantom: Default::default(),
+        }),
     )
     .map(|feature| Feature {
         // NOTE: opt-out from objective
@@ -77,44 +79,69 @@ impl<T: LoadOps> FeatureConstraint for CapacitatedMultiTrip<T> {
 }
 
 struct CapacitatedMultiTrip<T: LoadOps> {
-    route_intervals: Option<Arc<dyn RouteIntervals + Send + Sync>>,
+    route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
     code: ViolationCode,
     phantom: PhantomData<T>,
 }
 
-impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {}
-
-impl<T: LoadOps> RouteIntervals for CapacitatedMultiTrip<T> {
-    fn is_marker_job(&self, job: &Job) -> bool {
-        self.route_intervals.as_ref().map_or(false, |inner| inner.is_marker_job(job))
+impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
+    fn get_route_intervals(&self) -> &(dyn RouteIntervals) {
+        self.route_intervals.as_ref()
     }
 
-    fn is_marker_assignable(&self, route: &Route, job: &Job) -> bool {
-        self.route_intervals.as_ref().map_or(false, |inner| inner.is_marker_assignable(route, job))
+    fn get_constraint(&self) -> &(dyn FeatureConstraint) {
+        self
     }
 
-    fn is_new_interval_needed(&self, route_ctx: &RouteContext) -> bool {
-        self.route_intervals.as_ref().map_or(false, |inner| inner.is_new_interval_needed(route_ctx))
-    }
+    fn recalculate_states(&self, route_ctx: &mut RouteContext) {
+        let marker_intervals = self
+            .get_route_intervals()
+            .get_marker_intervals(route_ctx)
+            .cloned()
+            .unwrap_or_else(|| vec![(0, route_ctx.route().tour.total() - 1)]);
 
-    fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
-        self.route_intervals.as_ref().and_then(|inner| inner.get_marker_intervals(route_ctx))
-    }
+        let (_, max_load) =
+            marker_intervals.into_iter().fold((T::default(), T::default()), |(acc, max), (start_idx, end_idx)| {
+                let (route, state) = route_ctx.as_mut();
 
-    fn get_interval_key(&self) -> Option<StateKey> {
-        self.route_intervals.as_ref().and_then(|inner| inner.get_interval_key())
-    }
+                // determine static deliveries loaded at the begin and static pickups brought to the end
+                let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
+                    (acc, T::default()),
+                    |acc, activity| {
+                        get_demand(activity)
+                            .map(|demand| (acc.0 + demand.delivery.0, acc.1 + demand.pickup.0))
+                            .unwrap_or_else(|| acc)
+                    },
+                );
 
-    fn update_route_intervals(&self, route_ctx: &mut RouteContext) {
-        if let Some(route_intervals) = &self.route_intervals {
-            route_intervals.update_route_intervals(route_ctx);
-        }
-        self.recalculate_states(route_ctx);
-    }
+                // determine actual load at each activity and max discovered in the past
+                let (current, _) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
+                    (start_delivery, T::default()),
+                    |(current, max), activity| {
+                        let change = get_demand(activity).map(|demand| demand.change()).unwrap_or_else(T::default);
 
-    fn update_solution_intervals(&self, solution_ctx: &mut SolutionContext) {
-        if let Some(route_intervals) = &self.route_intervals {
-            route_intervals.update_solution_intervals(solution_ctx);
+                        let current = current + change;
+                        let max = max.max_load(current);
+
+                        state.put_activity_state(CURRENT_CAPACITY_KEY, activity, current);
+                        state.put_activity_state(MAX_PAST_CAPACITY_KEY, activity, max);
+
+                        (current, max)
+                    },
+                );
+
+                let current_max =
+                    route.tour.activities_slice(start_idx, end_idx).iter().rev().fold(current, |max, activity| {
+                        let max = max.max_load(*state.get_activity_state(CURRENT_CAPACITY_KEY, activity).unwrap());
+                        state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, activity, max);
+                        max
+                    });
+
+                (current - end_pickup, current_max.max_load(max))
+            });
+
+        if let Some(capacity) = route_ctx.route().actor.clone().vehicle.dimens.get_capacity() {
+            route_ctx.state_mut().put_route_state(MAX_LOAD_KEY, max_load.ratio(capacity));
         }
     }
 }
@@ -163,7 +190,7 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
     }
 
     fn has_markers(&self, route_ctx: &RouteContext) -> bool {
-        self.get_marker_intervals(route_ctx).map_or(false, |intervals| intervals.len() > 1)
+        self.route_intervals.get_marker_intervals(route_ctx).map_or(false, |intervals| intervals.len() > 1)
     }
 
     fn can_handle_demand_on_intervals(
@@ -187,7 +214,8 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
                 || has_demand_violation(route_ctx.route().tour.get(end_idx).unwrap()).is_none()
         };
 
-        self.get_marker_intervals(route_ctx)
+        self.route_intervals
+            .get_marker_intervals(route_ctx)
             .map(|intervals| {
                 if let Some(insert_idx) = insert_idx {
                     intervals.iter().filter(|(_, end_idx)| insert_idx <= *end_idx).all(|interval| {
@@ -204,57 +232,6 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
                     has_demand_violation_on_borders(0, route_ctx.route().tour.total().max(1) - 1)
                 }
             })
-    }
-
-    fn recalculate_states(&self, route_ctx: &mut RouteContext) {
-        let marker_intervals = self
-            .get_marker_intervals(route_ctx)
-            .cloned()
-            .unwrap_or_else(|| vec![(0, route_ctx.route().tour.total() - 1)]);
-
-        let (_, max_load) =
-            marker_intervals.into_iter().fold((T::default(), T::default()), |(acc, max), (start_idx, end_idx)| {
-                let (route, state) = route_ctx.as_mut();
-
-                // determine static deliveries loaded at the begin and static pickups brought to the end
-                let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
-                    (acc, T::default()),
-                    |acc, activity| {
-                        get_demand(activity)
-                            .map(|demand| (acc.0 + demand.delivery.0, acc.1 + demand.pickup.0))
-                            .unwrap_or_else(|| acc)
-                    },
-                );
-
-                // determine actual load at each activity and max discovered in the past
-                let (current, _) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
-                    (start_delivery, T::default()),
-                    |(current, max), activity| {
-                        let change = get_demand(activity).map(|demand| demand.change()).unwrap_or_else(T::default);
-
-                        let current = current + change;
-                        let max = max.max_load(current);
-
-                        state.put_activity_state(CURRENT_CAPACITY_KEY, activity, current);
-                        state.put_activity_state(MAX_PAST_CAPACITY_KEY, activity, max);
-
-                        (current, max)
-                    },
-                );
-
-                let current_max =
-                    route.tour.activities_slice(start_idx, end_idx).iter().rev().fold(current, |max, activity| {
-                        let max = max.max_load(*state.get_activity_state(CURRENT_CAPACITY_KEY, activity).unwrap());
-                        state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, activity, max);
-                        max
-                    });
-
-                (current - end_pickup, current_max.max_load(max))
-            });
-
-        if let Some(capacity) = route_ctx.route().actor.clone().vehicle.dimens.get_capacity() {
-            route_ctx.state_mut().put_route_state(MAX_LOAD_KEY, max_load.ratio(capacity));
-        }
     }
 }
 

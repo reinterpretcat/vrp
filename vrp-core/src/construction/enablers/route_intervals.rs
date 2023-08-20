@@ -29,6 +29,36 @@ pub trait RouteIntervals {
     fn update_solution_intervals(&self, solution_ctx: &mut SolutionContext);
 }
 
+/// A no-op implementation of `RouteIntervals`.
+#[derive(Default)]
+pub struct NoRouteIntervals {}
+
+impl RouteIntervals for NoRouteIntervals {
+    fn is_marker_job(&self, _: &Job) -> bool {
+        false
+    }
+
+    fn is_marker_assignable(&self, _: &Route, _: &Job) -> bool {
+        false
+    }
+
+    fn is_new_interval_needed(&self, _: &RouteContext) -> bool {
+        false
+    }
+
+    fn get_marker_intervals<'a>(&self, _: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
+        None
+    }
+
+    fn get_interval_key(&self) -> Option<StateKey> {
+        None
+    }
+
+    fn update_route_intervals(&self, _: &mut RouteContext) {}
+
+    fn update_solution_intervals(&self, _: &mut SolutionContext) {}
+}
+
 /// Provides a basic implementation of reload intervals functionality.
 #[allow(clippy::type_complexity)]
 pub struct FixedReloadIntervals {

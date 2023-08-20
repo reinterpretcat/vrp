@@ -6,7 +6,6 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use vrp_core::construction::enablers::{calculate_travel, FixedReloadIntervals, RouteIntervals};
 use vrp_core::construction::features::{create_multi_trip_feature, MultiTrip, RECHARGE_INTERVALS_KEY};
-use vrp_core::models::solution::Route;
 
 /// Creates a feature to insert charge stations along the route.
 pub fn create_recharge_feature<T: LoadOps>(
@@ -24,7 +23,7 @@ pub fn create_recharge_feature<T: LoadOps>(
         code,
         &[distance_state_key, RECHARGE_INTERVALS_KEY],
         Arc::new(RechargeableMultiTrip::<T> {
-            route_intervals: Some(Arc::new(FixedReloadIntervals {
+            route_intervals: Arc::new(FixedReloadIntervals {
                 is_marker_single_fn: Box::new(is_recharge_single),
                 is_new_interval_needed_fn: Box::new(move |route_ctx| {
                     route_ctx
@@ -59,7 +58,7 @@ pub fn create_recharge_feature<T: LoadOps>(
                     })
                 }),
                 intervals_key: RECHARGE_INTERVALS_KEY,
-            })),
+            }),
             transport,
             code,
             distance_state_key,
@@ -67,6 +66,59 @@ pub fn create_recharge_feature<T: LoadOps>(
             phantom: Default::default(),
         }),
     )
+}
+
+struct RechargeableMultiTrip<T: LoadOps> {
+    route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
+    transport: Arc<dyn TransportCost + Send + Sync>,
+    code: ViolationCode,
+    distance_state_key: StateKey,
+    distance_limit: Distance,
+    phantom: PhantomData<T>,
+}
+
+impl<T: LoadOps> MultiTrip for RechargeableMultiTrip<T> {
+    fn get_route_intervals(&self) -> &(dyn RouteIntervals) {
+        self.route_intervals.as_ref()
+    }
+
+    fn get_constraint(&self) -> &(dyn FeatureConstraint) {
+        self
+    }
+
+    fn recalculate_states(&self, route_ctx: &mut RouteContext) {
+        let marker_intervals = self
+            .route_intervals
+            .get_marker_intervals(route_ctx)
+            .cloned()
+            .unwrap_or_else(|| vec![(0, route_ctx.route().tour.total() - 1)]);
+
+        marker_intervals.into_iter().for_each(|(start_idx, end_idx)| {
+            let (route, state) = route_ctx.as_mut();
+
+            let _ = route
+                .tour
+                .activities_slice(start_idx, end_idx)
+                .windows(2)
+                .filter_map(|leg| match leg {
+                    [prev, next] => Some((prev, next)),
+                    _ => None,
+                })
+                .fold(Distance::default(), |acc, (prev, next)| {
+                    let distance = self.transport.distance(
+                        route,
+                        prev.place.location,
+                        next.place.location,
+                        TravelTime::Departure(prev.schedule.departure),
+                    );
+                    let counter = acc + distance;
+
+                    state.put_activity_state(self.distance_state_key, next, counter);
+
+                    counter
+                });
+        });
+    }
 }
 
 impl<T: LoadOps> FeatureConstraint for RechargeableMultiTrip<T> {
@@ -79,52 +131,6 @@ impl<T: LoadOps> FeatureConstraint for RechargeableMultiTrip<T> {
 
     fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
         Ok(source)
-    }
-}
-
-struct RechargeableMultiTrip<T: LoadOps> {
-    route_intervals: Option<Arc<dyn RouteIntervals + Send + Sync>>,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    code: ViolationCode,
-    distance_state_key: StateKey,
-    distance_limit: Distance,
-    phantom: PhantomData<T>,
-}
-
-impl<T: LoadOps> MultiTrip for RechargeableMultiTrip<T> {}
-
-impl<T: LoadOps> RouteIntervals for RechargeableMultiTrip<T> {
-    fn is_marker_job(&self, job: &Job) -> bool {
-        self.route_intervals.as_ref().map_or(false, |inner| inner.is_marker_job(job))
-    }
-
-    fn is_marker_assignable(&self, route: &Route, job: &Job) -> bool {
-        self.route_intervals.as_ref().map_or(false, |inner| inner.is_marker_assignable(route, job))
-    }
-
-    fn is_new_interval_needed(&self, route_ctx: &RouteContext) -> bool {
-        self.route_intervals.as_ref().map_or(false, |inner| inner.is_new_interval_needed(route_ctx))
-    }
-
-    fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
-        self.route_intervals.as_ref().and_then(|inner| inner.get_marker_intervals(route_ctx))
-    }
-
-    fn get_interval_key(&self) -> Option<StateKey> {
-        self.route_intervals.as_ref().and_then(|inner| inner.get_interval_key())
-    }
-
-    fn update_route_intervals(&self, route_ctx: &mut RouteContext) {
-        if let Some(route_intervals) = &self.route_intervals {
-            route_intervals.update_route_intervals(route_ctx);
-        }
-        self.recalculate_states(route_ctx);
-    }
-
-    fn update_solution_intervals(&self, solution_ctx: &mut SolutionContext) {
-        if let Some(route_intervals) = &self.route_intervals {
-            route_intervals.update_solution_intervals(solution_ctx);
-        }
     }
 }
 
@@ -158,39 +164,6 @@ impl<T: LoadOps> RechargeableMultiTrip<T> {
         } else {
             None
         }
-    }
-
-    fn recalculate_states(&self, route_ctx: &mut RouteContext) {
-        let marker_intervals = self
-            .get_marker_intervals(route_ctx)
-            .cloned()
-            .unwrap_or_else(|| vec![(0, route_ctx.route().tour.total() - 1)]);
-
-        marker_intervals.into_iter().for_each(|(start_idx, end_idx)| {
-            let (route, state) = route_ctx.as_mut();
-
-            let _ = route
-                .tour
-                .activities_slice(start_idx, end_idx)
-                .windows(2)
-                .filter_map(|leg| match leg {
-                    [prev, next] => Some((prev, next)),
-                    _ => None,
-                })
-                .fold(Distance::default(), |acc, (prev, next)| {
-                    let distance = self.transport.distance(
-                        route,
-                        prev.place.location,
-                        next.place.location,
-                        TravelTime::Departure(prev.schedule.departure),
-                    );
-                    let counter = acc + distance;
-
-                    state.put_activity_state(self.distance_state_key, next, counter);
-
-                    counter
-                });
-        });
     }
 }
 
