@@ -157,8 +157,9 @@ impl MultiTripState {
 }
 
 impl FeatureState for MultiTripState {
-    fn state_keys(&self) -> Iter<StateKey> {
-        self.state_keys.iter()
+    fn notify_failure(&self, _solution_ctx: &mut SolutionContext, _route_indices: &[usize], _jobs: &[Job]) -> bool {
+        // TODO: unblock insertion of marker jobs for given routes if it's proper time.
+        false
     }
 
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
@@ -211,5 +212,9 @@ impl FeatureState for MultiTripState {
         });
 
         self.multi_trip.update_solution_intervals(solution_ctx);
+    }
+
+    fn state_keys(&self) -> Iter<StateKey> {
+        self.state_keys.iter()
     }
 }
