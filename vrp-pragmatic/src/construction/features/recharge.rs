@@ -15,16 +15,38 @@ pub fn create_recharge_feature<T: LoadOps>(
     distance_limit: (StateKey, Distance),
     transport: Arc<dyn TransportCost + Send + Sync>,
 ) -> Result<Feature, GenericError> {
+    const DISTANCE_THRESHOLD_RATIO: f64 = 0.8;
     let (distance_state_key, distance_limit) = distance_limit;
+
     create_multi_trip_feature(
         name,
         code,
-        &[],
+        &[distance_state_key, RECHARGE_INTERVALS_KEY],
         Arc::new(RechargeableMultiTrip::<T> {
             route_intervals: Some(Arc::new(FixedReloadIntervals {
                 is_marker_single_fn: Box::new(is_recharge_single),
-                is_new_interval_needed_fn: Box::new(move |_route_ctx| todo!()),
-                is_obsolete_interval_fn: Box::new(|_route_ctx, _left, _right| todo!()),
+                is_new_interval_needed_fn: Box::new(move |route_ctx| {
+                    route_ctx
+                        .route()
+                        .tour
+                        .end()
+                        .map(|end| {
+                            let current: Distance = route_ctx
+                                .state()
+                                .get_activity_state(distance_state_key, end)
+                                .copied()
+                                .unwrap_or_default();
+
+                            let threshold = distance_limit * DISTANCE_THRESHOLD_RATIO;
+
+                            current > threshold
+                        })
+                        .unwrap_or(false)
+                }),
+                is_obsolete_interval_fn: Box::new(|_route_ctx, _left, _right| {
+                    // TODO
+                    todo!()
+                }),
                 is_assignable_fn: Box::new(|route, job| {
                     job.as_single().map_or(false, |job| {
                         is_correct_vehicle(route, get_vehicle_id_from_job(job), get_shift_index(&job.dimens))
