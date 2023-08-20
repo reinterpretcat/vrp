@@ -9,7 +9,7 @@ use crate::construction::enablers::*;
 use std::marker::PhantomData;
 use std::sync::Arc;
 use vrp_core::construction::enablers::*;
-use vrp_core::construction::features::RECHARGE_INTERVALS_KEY;
+use vrp_core::construction::features::*;
 
 /// Specifies a distance limit function for recharge. It should return a fixed value for the same
 /// actor all the time.
@@ -19,14 +19,13 @@ pub type RechargeDistanceLimitFn = Arc<dyn Fn(&Actor) -> Option<Distance> + Send
 pub fn create_recharge_feature<T: LoadOps>(
     name: &str,
     code: ViolationCode,
-    distance_state_key: StateKey,
     distance_limit_fn: RechargeDistanceLimitFn,
     transport: Arc<dyn TransportCost + Send + Sync>,
 ) -> Result<Feature, GenericError> {
     create_multi_trip_feature(
         name,
         code,
-        &[distance_state_key, RECHARGE_INTERVALS_KEY],
+        &[RECHARGE_DISTANCE_KEY, RECHARGE_INTERVALS_KEY],
         Arc::new(RechargeableMultiTrip::<T> {
             route_intervals: Arc::new(FixedReloadIntervals {
                 is_marker_single_fn: Box::new(is_recharge_single),
@@ -40,7 +39,7 @@ pub fn create_recharge_feature<T: LoadOps>(
                             .map(|end| {
                                 let current: Distance = route_ctx
                                     .state()
-                                    .get_activity_state(distance_state_key, end)
+                                    .get_activity_state(RECHARGE_DISTANCE_KEY, end)
                                     .copied()
                                     .unwrap_or_default();
 
@@ -75,7 +74,7 @@ pub fn create_recharge_feature<T: LoadOps>(
             }),
             transport,
             code,
-            distance_state_key,
+            distance_state_key: RECHARGE_DISTANCE_KEY,
             distance_limit_fn,
             phantom: Default::default(),
         }),
