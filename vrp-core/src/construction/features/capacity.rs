@@ -26,8 +26,7 @@ pub fn create_capacity_limit_with_multi_trip_feature<T: LoadOps>(
 
 /// Creates capacity feature as a hard constraint.
 pub fn create_capacity_limit_feature<T: LoadOps>(name: &str, code: ViolationCode) -> Result<Feature, GenericError> {
-    // TODO theoretically, the code can be easily refactored here to get opt-out from no-op multi-trip runtime overhead
-
+    // TODO theoretically, the code can be easily refactored to get opt-out from no-op multi-trip runtime overhead here
     create_multi_trip_feature(
         name,
         code,

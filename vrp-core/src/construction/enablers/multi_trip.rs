@@ -1,8 +1,14 @@
-use super::*;
+//! Provides a skeleton to model multi trip functionality. It uses concept of marker job to reset
+//! some constraint limitations once the marker job's activity is visited.
+
 use crate::construction::enablers::*;
+use crate::construction::heuristics::*;
+use crate::models::common::Cost;
+use crate::models::problem::Job;
 use crate::models::solution::Route;
+use crate::models::*;
 use hashbrown::HashSet;
-use rosomaxa::prelude::Objective;
+use rosomaxa::prelude::*;
 use std::iter::once;
 use std::slice::Iter;
 use std::sync::Arc;
