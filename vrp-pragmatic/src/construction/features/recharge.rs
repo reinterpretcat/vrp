@@ -1,5 +1,9 @@
 //! Provides way to insert recharge stations in the tour to recharge (refuel) vehicle.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/features/recharge_test.rs"]
+mod recharge_test;
+
 use super::*;
 use crate::construction::enablers::*;
 use std::marker::PhantomData;
@@ -7,17 +11,18 @@ use std::sync::Arc;
 use vrp_core::construction::enablers::*;
 use vrp_core::construction::features::RECHARGE_INTERVALS_KEY;
 
+/// Specifies a distance limit function for recharge. It should return a fixed value for the same
+/// actor all the time.
+pub type RechargeDistanceLimitFn = Arc<dyn Fn(&Actor) -> Option<Distance> + Send + Sync>;
+
 /// Creates a feature to insert charge stations along the route.
 pub fn create_recharge_feature<T: LoadOps>(
     name: &str,
     code: ViolationCode,
-    distance_limit: (StateKey, Distance),
+    distance_state_key: StateKey,
+    distance_limit_fn: RechargeDistanceLimitFn,
     transport: Arc<dyn TransportCost + Send + Sync>,
 ) -> Result<Feature, GenericError> {
-    const DISTANCE_THRESHOLD_RATIO: f64 = 0.8;
-    let (distance_state_key, distance_limit) = distance_limit;
-    let distance_threshold = distance_limit * DISTANCE_THRESHOLD_RATIO;
-
     create_multi_trip_feature(
         name,
         code,
@@ -25,32 +30,41 @@ pub fn create_recharge_feature<T: LoadOps>(
         Arc::new(RechargeableMultiTrip::<T> {
             route_intervals: Arc::new(FixedReloadIntervals {
                 is_marker_single_fn: Box::new(is_recharge_single),
-                is_new_interval_needed_fn: Box::new(move |route_ctx| {
-                    route_ctx
-                        .route()
-                        .tour
-                        .end()
-                        .map(|end| {
-                            let current: Distance = route_ctx
-                                .state()
-                                .get_activity_state(distance_state_key, end)
-                                .copied()
-                                .unwrap_or_default();
-                            current > distance_threshold
-                        })
-                        .unwrap_or(false)
-                }),
-                is_obsolete_interval_fn: Box::new(move |route_ctx, left, right| {
-                    let intervals_distance = route_ctx
-                        .route()
-                        .tour
-                        .get(left.end)
-                        .iter()
-                        .chain(route_ctx.route().tour.get(right.end).iter())
-                        .flat_map(|activity| route_ctx.state().get_activity_state(RELOAD_RESOURCE_KEY, activity))
-                        .sum::<Distance>();
+                is_new_interval_needed_fn: Box::new({
+                    let distance_limit_fn = distance_limit_fn.clone();
+                    move |route_ctx| {
+                        route_ctx
+                            .route()
+                            .tour
+                            .end()
+                            .map(|end| {
+                                let current: Distance = route_ctx
+                                    .state()
+                                    .get_activity_state(distance_state_key, end)
+                                    .copied()
+                                    .unwrap_or_default();
 
-                    intervals_distance < distance_threshold
+                                (distance_limit_fn)(route_ctx.route().actor.as_ref())
+                                    .map_or(false, |threshold| current > threshold)
+                            })
+                            .unwrap_or(false)
+                    }
+                }),
+                is_obsolete_interval_fn: Box::new({
+                    let distance_limit_fn = distance_limit_fn.clone();
+                    move |route_ctx, left, right| {
+                        let intervals_distance = route_ctx
+                            .route()
+                            .tour
+                            .get(left.end)
+                            .iter()
+                            .chain(route_ctx.route().tour.get(right.end).iter())
+                            .flat_map(|activity| route_ctx.state().get_activity_state(RELOAD_RESOURCE_KEY, activity))
+                            .sum::<Distance>();
+
+                        (distance_limit_fn)(route_ctx.route().actor.as_ref())
+                            .map_or(false, |threshold| intervals_distance < threshold)
+                    }
                 }),
                 is_assignable_fn: Box::new(|route, job| {
                     job.as_single().map_or(false, |job| {
@@ -62,7 +76,7 @@ pub fn create_recharge_feature<T: LoadOps>(
             transport,
             code,
             distance_state_key,
-            distance_limit,
+            distance_limit_fn,
             phantom: Default::default(),
         }),
     )
@@ -73,7 +87,7 @@ struct RechargeableMultiTrip<T: LoadOps> {
     transport: Arc<dyn TransportCost + Send + Sync>,
     code: ViolationCode,
     distance_state_key: StateKey,
-    distance_limit: Distance,
+    distance_limit_fn: RechargeDistanceLimitFn,
     phantom: PhantomData<T>,
 }
 
@@ -87,6 +101,10 @@ impl<T: LoadOps> MultiTrip for RechargeableMultiTrip<T> {
     }
 
     fn recalculate_states(&self, route_ctx: &mut RouteContext) {
+        if (self.distance_limit_fn)(route_ctx.route().actor.as_ref()).is_none() {
+            return;
+        }
+
         let marker_intervals = self
             .route_intervals
             .get_marker_intervals(route_ctx)
@@ -144,6 +162,8 @@ impl<T: LoadOps> RechargeableMultiTrip<T> {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ConstraintViolation> {
+        let threshold = (self.distance_limit_fn)(route_ctx.route().actor.as_ref())?;
+
         let is_prev_recharge = activity_ctx.prev.job.as_ref().map_or(false, |job| is_recharge_single(job));
         let current_distance = if is_prev_recharge {
             // NOTE ignore current_distance for prev if prev is marker job as we store
@@ -159,7 +179,7 @@ impl<T: LoadOps> RechargeableMultiTrip<T> {
 
         let (prev_to_next_distance, _) = calculate_travel(route_ctx, activity_ctx, self.transport.as_ref());
 
-        if current_distance + prev_to_next_distance > self.distance_limit {
+        if current_distance + prev_to_next_distance > threshold {
             ConstraintViolation::skip(self.code)
         } else {
             None
