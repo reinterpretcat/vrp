@@ -17,6 +17,7 @@ pub fn create_recharge_feature<T: LoadOps>(
 ) -> Result<Feature, GenericError> {
     const DISTANCE_THRESHOLD_RATIO: f64 = 0.8;
     let (distance_state_key, distance_limit) = distance_limit;
+    let distance_threshold = distance_limit * DISTANCE_THRESHOLD_RATIO;
 
     create_multi_trip_feature(
         name,
@@ -36,16 +37,21 @@ pub fn create_recharge_feature<T: LoadOps>(
                                 .get_activity_state(distance_state_key, end)
                                 .copied()
                                 .unwrap_or_default();
-
-                            let threshold = distance_limit * DISTANCE_THRESHOLD_RATIO;
-
-                            current > threshold
+                            current > distance_threshold
                         })
                         .unwrap_or(false)
                 }),
-                is_obsolete_interval_fn: Box::new(|_route_ctx, _left, _right| {
-                    // TODO
-                    todo!()
+                is_obsolete_interval_fn: Box::new(move |route_ctx, left, right| {
+                    let intervals_distance = route_ctx
+                        .route()
+                        .tour
+                        .get(left.end)
+                        .iter()
+                        .chain(route_ctx.route().tour.get(right.end).iter())
+                        .flat_map(|activity| route_ctx.state().get_activity_state(RELOAD_RESOURCE_KEY, activity))
+                        .sum::<Distance>();
+
+                    intervals_distance < distance_threshold
                 }),
                 is_assignable_fn: Box::new(|route, job| {
                     job.as_single().map_or(false, |job| {
