@@ -6,6 +6,7 @@ use crate::construction::heuristics::*;
 use crate::models::common::{Cost, IdDimension};
 use crate::models::problem::{Actor, Job};
 use crate::models::solution::Activity;
+use crate::models::ViolationCode;
 use crate::utils::short_type_name;
 use rosomaxa::utils::unwrap_from_result;
 use std::borrow::Borrow;
@@ -68,7 +69,7 @@ impl Debug for InsertionSuccess {
 #[derive(Debug)]
 pub struct InsertionFailure {
     /// Failed constraint code.
-    pub constraint: i32,
+    pub constraint: ViolationCode,
     /// A flag which signalizes that algorithm should stop trying to insert at next positions.
     pub stopped: bool,
     /// Original job failed to be inserted.
@@ -266,30 +267,23 @@ impl InsertionHeuristic {
         while !insertion_ctx.solution.required.is_empty()
             && !insertion_ctx.environment.quota.as_ref().map_or(false, |q| q.is_reached())
         {
-            let (result, selected_jobs, selected_routes) = {
-                job_selector.prepare(&mut insertion_ctx);
-                route_selector.prepare(&mut insertion_ctx);
+            job_selector.prepare(&mut insertion_ctx);
+            route_selector.prepare(&mut insertion_ctx);
 
-                let jobs = job_selector.select(&insertion_ctx).collect::<Vec<_>>();
-                let routes = route_selector.select(&insertion_ctx, jobs.as_slice()).collect::<Vec<_>>();
+            let jobs = job_selector.select(&insertion_ctx).collect::<Vec<_>>();
+            let routes = route_selector.select(&insertion_ctx, jobs.as_slice()).collect::<Vec<_>>();
 
-                let result = self.insertion_evaluator.evaluate_all(
-                    &insertion_ctx,
-                    jobs.as_slice(),
-                    routes.as_slice(),
-                    leg_selection,
-                    result_selector,
-                );
-
-                (result, jobs.len(), routes.len())
-            };
+            let result =
+                self.insertion_evaluator.evaluate_all(&insertion_ctx, &jobs, &routes, leg_selection, result_selector);
 
             match result {
                 InsertionResult::Success(success) => {
                     apply_insertion_success(&mut insertion_ctx, success);
                 }
                 InsertionResult::Failure(failure) => {
-                    apply_insertion_failure(&mut insertion_ctx, failure, selected_jobs, selected_routes);
+                    // NOTE copy data to make borrow checker happy
+                    let (route_indices, jobs) = copy_selection_data(&insertion_ctx, routes.as_slice(), jobs.as_slice());
+                    apply_insertion_failure(&mut insertion_ctx, failure, &route_indices, &jobs);
                 }
             }
         }
@@ -402,9 +396,12 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
 fn apply_insertion_failure(
     insertion_ctx: &mut InsertionContext,
     failure: InsertionFailure,
-    selected_jobs: usize,
-    selected_routes: usize,
+    route_indices: &[usize],
+    jobs: &[Job],
 ) {
+    let selected_routes = route_indices.len();
+    let selected_jobs = jobs.len();
+
     // NOTE in most of the cases, it is not needed to reevaluate insertion for all other jobs
     let all_unassignable = selected_jobs == insertion_ctx.solution.required.len()
         && selected_routes == insertion_ctx.solution.routes.len();
@@ -418,6 +415,13 @@ fn apply_insertion_failure(
         insertion_ctx.solution.required.retain(|j| *j != job);
     }
 
+    // give a change to promote special jobs which might unblock assignment for other jobs
+    // TODO move this a bit up to avoid adding failed jobs to unassigned?
+    let failure_handled = insertion_ctx.problem.goal.notify_failure(&mut insertion_ctx.solution, route_indices, jobs);
+    if failure_handled {
+        return;
+    }
+
     if all_unassignable || no_routes_available {
         let code =
             if all_unassignable { UnassignmentInfo::Unknown } else { UnassignmentInfo::Simple(failure.constraint) };
@@ -429,4 +433,18 @@ fn finalize_unassigned(insertion_ctx: &mut InsertionContext, code: UnassignmentI
     let unassigned = &insertion_ctx.solution.unassigned;
     insertion_ctx.solution.required.retain(|job| !unassigned.contains_key(job));
     insertion_ctx.solution.unassigned.extend(insertion_ctx.solution.required.drain(0..).map(|job| (job, code.clone())));
+}
+
+fn copy_selection_data(
+    insertion_ctx: &InsertionContext,
+    routes: &[&RouteContext],
+    jobs: &[&Job],
+) -> (Vec<usize>, Vec<Job>) {
+    let route_indices = routes
+        .iter()
+        .filter_map(|route| insertion_ctx.solution.routes.iter().position(|r| r.route().actor == route.route().actor))
+        .collect::<Vec<_>>();
+    let jobs = jobs.iter().map(|&job| job.clone()).collect::<Vec<_>>();
+
+    (route_indices, jobs)
 }

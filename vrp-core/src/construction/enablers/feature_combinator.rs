@@ -80,6 +80,16 @@ impl FeatureConstraint for CombinedFeatureConstraint {
     }
 }
 
+pub(crate) fn notify_failure_with_states(
+    states: &[Arc<dyn FeatureState + Send + Sync>],
+    solution_ctx: &mut SolutionContext,
+    route_indices: &[usize],
+    jobs: &[Job],
+) -> bool {
+    // NOTE exit when first true is returned
+    states.iter().any(|state| state.notify_failure(solution_ctx, route_indices, jobs))
+}
+
 pub(crate) fn accept_insertion_with_states(
     states: &[Arc<dyn FeatureState + Send + Sync>],
     solution_ctx: &mut SolutionContext,

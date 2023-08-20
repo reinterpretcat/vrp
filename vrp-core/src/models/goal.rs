@@ -122,6 +122,7 @@ impl Debug for GoalContext {
 
 /// An individual feature which is used to build a specific VRP variant, e.g. capacity restriction,
 /// job values, etc. Each feature consists of three optional parts (but at least one should be defined):
+///
 /// * **constraint**: an invariant which should be hold to have a feasible VRP solution in the end.
 /// A good examples are hard constraints such as capacity, time, travel limits, etc.
 ///
@@ -132,7 +133,7 @@ impl Debug for GoalContext {
 ///  find out which one is "better") and local objective level (e.g. which job should be inserted next
 ///  into specific solution).
 ///
-/// * **state**: the corresponding cached data of constraint/objective to speedup their evaluations.
+/// * **state**: the corresponding cached data of constraint/objective to speedup/control their evaluations.
 ///
 /// As mentioned above, at least one part should be defined. Some rules of thumb:
 /// * each soft constraint requires an objective so that goal of optimization is reflected on global
@@ -243,8 +244,19 @@ impl FeatureBuilder {
     }
 }
 
-/// Controls a cached state of the given feature.
+/// Provides the way to modify solution state when the search is performed.
 pub trait FeatureState {
+    /// Notifies a state that given routes (indices) and jobs cannot be assigned due to constraint violations.
+    /// This method can be used to modify solution context to help resolve some limitations imposed by
+    /// constraints and, generally, can modify solution context.
+    /// If some action was taken which might help to assign given jobs to given routes, then true
+    /// should be returned. **Please note**, if this method wrongly returns true, it might cause infinite
+    /// loops in insertion evaluation process.
+    /// Default implementation returns false which is safe and ok for most of the features.
+    fn notify_failure(&self, _solution_ctx: &mut SolutionContext, _route_indices: &[usize], _jobs: &[Job]) -> bool {
+        false
+    }
+
     /// Accept insertion of specific job into the route.
     /// Called once job has been inserted into solution represented via `solution_ctx`.
     /// Target route is defined by `route_index` which refers to `routes` collection in solution context.
@@ -353,6 +365,13 @@ impl GoalContext {
     /// Accepts solution state.
     pub fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         accept_solution_state_with_states(&self.states, solution_ctx);
+    }
+
+    /// Notifies about failed attempt to insert given jobs into given routes (indices).
+    /// Returns true if failure is some attempt to handle failure was performed and retry can be
+    /// performed.
+    pub fn notify_failure(&self, solution_ctx: &mut SolutionContext, route_indices: &[usize], jobs: &[Job]) -> bool {
+        notify_failure_with_states(&self.states, solution_ctx, route_indices, jobs)
     }
 
     /// Tries to merge two jobs taking into account common constraints.
