@@ -47,13 +47,20 @@ fn create_feature(limit: Distance) -> Feature {
     .expect("cannot create feature")
 }
 
-#[test]
-fn can_accumulate_distance() {
-    let limit = 10.;
-    let recharges = vec![(2, 8)];
-    let activities = vec![(5., 5., 5), (10., 10., 10), (15., 15., 15)];
-    let expected_counters = vec![0., 5., 8., 2., 7.];
+parameterized_test! {can_accumulate_distance, (limit, recharges, activities, expected_counters), {
+    can_accumulate_distance_impl(limit, recharges, activities, expected_counters);
+}}
 
+can_accumulate_distance! {
+    case01_single_recharge: (20., vec![(2, 8)], vec![(5., 5., 5), (10., 10., 10), (15., 15., 15)], vec![0., 5., 0., 2., 7.]),
+}
+
+fn can_accumulate_distance_impl(
+    limit: Distance,
+    recharges: Vec<(usize, Location)>,
+    activities: Vec<(Timestamp, Timestamp, Location)>,
+    expected_counters: Vec<Distance>,
+) {
     let mut route_ctx = create_route_ctx(&activities, true);
     recharges.into_iter().for_each(|(recharge_idx, recharge_location)| {
         route_ctx.route_mut().tour.insert_at(recharge(recharge_location), recharge_idx);
