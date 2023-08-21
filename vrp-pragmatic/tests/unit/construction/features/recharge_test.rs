@@ -52,7 +52,26 @@ parameterized_test! {can_accumulate_distance, (limit, recharges, activities, exp
 }}
 
 can_accumulate_distance! {
-    case01_single_recharge: (20., vec![(2, 8)], vec![(5., 5., 5), (10., 10., 10), (15., 15., 15)], vec![0., 5., 0., 2., 7.]),
+    case01_single_recharge: (20., vec![(2, 8)],
+        vec![(5., 5., 5), (10., 10., 10), (15., 15., 15)],
+        vec![0., 5., 0., 2., 7.]
+    ),
+    case02_two_recharges: (20., vec![(2, 8), (5, 17)],
+        vec![(5., 5., 5), (10., 10., 10), (15., 15., 15), (20., 20., 20)],
+        vec![0., 5., 0., 2., 7., 0., 3.]
+    ),
+    case03_no_recharges: (20., vec![],
+        vec![(5., 5., 5), (10., 10., 10), (15., 15., 15), (20., 20., 20)],
+        vec![0., 5., 10., 15., 20.]
+    ),
+    case04_recharge_at_end: (20., vec![(4, 8)],
+        vec![(5., 5., 5), (10., 10., 10), (15., 15., 15)],
+        vec![0., 5., 10., 15., 0.]
+    ),
+    case05_recharge_at_start: (20., vec![(1, 8)],
+        vec![(5., 5., 5), (10., 10., 10), (15., 15., 15)],
+        vec![0., 0., 3., 8., 13.]
+    ),
 }
 
 fn can_accumulate_distance_impl(
