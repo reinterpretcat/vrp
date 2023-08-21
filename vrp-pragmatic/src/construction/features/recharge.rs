@@ -6,7 +6,6 @@ mod recharge_test;
 
 use super::*;
 use crate::construction::enablers::*;
-use std::marker::PhantomData;
 use std::sync::Arc;
 use vrp_core::construction::enablers::*;
 use vrp_core::construction::features::*;
@@ -16,7 +15,7 @@ use vrp_core::construction::features::*;
 pub type RechargeDistanceLimitFn = Arc<dyn Fn(&Actor) -> Option<Distance> + Send + Sync>;
 
 /// Creates a feature to insert charge stations along the route.
-pub fn create_recharge_feature<T: LoadOps>(
+pub fn create_recharge_feature(
     name: &str,
     code: ViolationCode,
     distance_limit_fn: RechargeDistanceLimitFn,
@@ -26,7 +25,7 @@ pub fn create_recharge_feature<T: LoadOps>(
         name,
         code,
         &[RECHARGE_DISTANCE_KEY, RECHARGE_INTERVALS_KEY],
-        Arc::new(RechargeableMultiTrip::<T> {
+        Arc::new(RechargeableMultiTrip {
             route_intervals: Arc::new(FixedReloadIntervals {
                 is_marker_single_fn: Box::new(is_recharge_single),
                 is_new_interval_needed_fn: Box::new({
@@ -76,21 +75,19 @@ pub fn create_recharge_feature<T: LoadOps>(
             code,
             distance_state_key: RECHARGE_DISTANCE_KEY,
             distance_limit_fn,
-            phantom: Default::default(),
         }),
     )
 }
 
-struct RechargeableMultiTrip<T: LoadOps> {
+struct RechargeableMultiTrip {
     route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
     code: ViolationCode,
     distance_state_key: StateKey,
     distance_limit_fn: RechargeDistanceLimitFn,
-    phantom: PhantomData<T>,
 }
 
-impl<T: LoadOps> MultiTrip for RechargeableMultiTrip<T> {
+impl MultiTrip for RechargeableMultiTrip {
     fn get_route_intervals(&self) -> &(dyn RouteIntervals) {
         self.route_intervals.as_ref()
     }
@@ -138,7 +135,7 @@ impl<T: LoadOps> MultiTrip for RechargeableMultiTrip<T> {
     }
 }
 
-impl<T: LoadOps> FeatureConstraint for RechargeableMultiTrip<T> {
+impl FeatureConstraint for RechargeableMultiTrip {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => self.evaluate_job(route_ctx, job),
@@ -151,7 +148,7 @@ impl<T: LoadOps> FeatureConstraint for RechargeableMultiTrip<T> {
     }
 }
 
-impl<T: LoadOps> RechargeableMultiTrip<T> {
+impl RechargeableMultiTrip {
     fn evaluate_job(&self, _: &RouteContext, _: &Job) -> Option<ConstraintViolation> {
         ConstraintViolation::success()
     }

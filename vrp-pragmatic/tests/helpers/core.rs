@@ -21,6 +21,14 @@ pub fn test_driver() -> Driver {
 }
 
 pub fn test_vehicle(id: &str) -> Vehicle {
+    test_vehicle_impl(id, false)
+}
+
+pub fn test_vehicle_with_no_end(id: &str) -> Vehicle {
+    test_vehicle_impl(id, true)
+}
+
+fn test_vehicle_impl(id: &str, has_open_end: bool) -> Vehicle {
     let mut dimens = Dimensions::default();
     dimens.set_vehicle_id(id.to_string()).set_vehicle_type(id.to_owned()).set_shift_index(0);
 
@@ -30,7 +38,7 @@ pub fn test_vehicle(id: &str) -> Vehicle {
         dimens,
         details: vec![VehicleDetail {
             start: Some(VehiclePlace { location: 0, time: Default::default() }),
-            end: Some(VehiclePlace { location: 0, time: Default::default() }),
+            end: if has_open_end { None } else { Some(VehiclePlace { location: 0, time: Default::default() }) },
         }],
     }
 }

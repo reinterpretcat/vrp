@@ -3,6 +3,10 @@ use crate::format::problem::*;
 use crate::format::{CoordIndex, Location};
 use crate::format_time;
 use crate::helpers::ToLocation;
+use std::sync::Arc;
+use vrp_core::models::common::{Distance, Duration, Location as CoreLocation, Profile};
+use vrp_core::models::problem::{TransportCost, TravelTime};
+use vrp_core::models::solution::Route;
 
 pub fn create_job_place(location: (f64, f64), tag: Option<String>) -> JobPlace {
     JobPlace { times: None, location: location.to_loc(), duration: 1., tag }
@@ -324,4 +328,35 @@ fn convert_times(times: &Vec<(i32, i32)>) -> Option<Vec<Vec<String>>> {
     } else {
         Some(times.iter().map(|tw| vec![format_time(tw.0 as f64), format_time(tw.1 as f64)]).collect())
     }
+}
+
+#[derive(Default)]
+pub struct TestTransportCost {}
+
+impl TransportCost for TestTransportCost {
+    fn duration_approx(&self, _: &Profile, from: CoreLocation, to: CoreLocation) -> Duration {
+        fake_routing(from, to)
+    }
+
+    fn distance_approx(&self, _: &Profile, from: CoreLocation, to: CoreLocation) -> Distance {
+        fake_routing(from, to)
+    }
+
+    fn duration(&self, _: &Route, from: CoreLocation, to: CoreLocation, _: TravelTime) -> Duration {
+        fake_routing(from, to)
+    }
+
+    fn distance(&self, _: &Route, from: CoreLocation, to: CoreLocation, _: TravelTime) -> Distance {
+        fake_routing(from, to)
+    }
+}
+
+impl TestTransportCost {
+    pub fn new_shared() -> Arc<dyn TransportCost + Sync + Send> {
+        Arc::new(Self::default())
+    }
+}
+
+fn fake_routing(from: CoreLocation, to: CoreLocation) -> f64 {
+    (if to > from { to - from } else { from - to }) as f64
 }
