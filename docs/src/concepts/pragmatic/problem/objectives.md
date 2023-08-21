@@ -80,7 +80,7 @@ minimization and any of work balance.
 An usage example:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.balance-load.problem.json:154:159}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.balance-load.problem.json:156:161}}
 ```
 
 ## Default behaviour
