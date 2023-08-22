@@ -138,6 +138,7 @@ fn can_handle_properly_invalid_break_removal() {
                             policy: None,
                         }]),
                         reloads: None,
+                        recharges: None,
                     }],
                     capacity: vec![5],
                     skills: None,

@@ -100,6 +100,7 @@ mod single {
                             duration: 2.0,
                             ..create_default_reload()
                         }]),
+                        recharges: None,
                     }],
                     capacity: vec![5],
                     skills: None,

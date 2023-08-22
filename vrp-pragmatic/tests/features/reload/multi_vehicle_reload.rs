@@ -23,6 +23,7 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
                         duration: 2.0,
                         ..create_default_reload()
                     }]),
+                    recharges: None,
                 }],
                 capacity: vec![1],
                 ..create_default_vehicle_type()

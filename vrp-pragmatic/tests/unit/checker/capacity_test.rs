@@ -45,6 +45,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Gen
                         duration: 2.0,
                         ..create_default_reload()
                     }]),
+                    recharges: None,
                 }],
                 capacity: vec![5],
                 ..create_default_vehicle_type()

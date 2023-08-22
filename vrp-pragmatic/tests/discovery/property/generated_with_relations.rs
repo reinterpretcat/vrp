@@ -21,6 +21,7 @@ fn vehicle_type_prototype() -> impl Strategy<Value = VehicleType> {
                 generate_no_dispatch(),
                 default_breaks_prototype(),
                 generate_no_reloads(),
+                generate_no_recharges(),
             ),
             1..2,
         ),

@@ -40,6 +40,7 @@ fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleOptionalBreak
                             policy,
                         }]),
                         reloads: None,
+                        recharges: None,
                     }],
                     ..create_default_vehicle_type()
                 },

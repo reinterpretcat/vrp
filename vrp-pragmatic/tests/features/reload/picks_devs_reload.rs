@@ -28,6 +28,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                         duration: 2.0,
                         ..create_default_reload()
                     }]),
+                    recharges: None,
                 }],
                 capacity: vec![1],
                 ..create_default_vehicle_type()

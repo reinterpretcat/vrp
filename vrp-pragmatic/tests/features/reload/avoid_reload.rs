@@ -37,6 +37,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload_impl(generations
                         duration: 2.0,
                         ..create_default_reload()
                     }]),
+                    recharges: None,
                 }],
                 capacity: vec![2],
                 ..create_default_vehicle_type()

@@ -74,19 +74,22 @@ prop_compose! {
         dispatch_proto: impl Strategy<Value = Option<Vec<VehicleDispatch>>>,
         breaks_proto: impl Strategy<Value = Option<Vec<VehicleBreak>>>,
         reloads_proto: impl Strategy<Value = Option<Vec<VehicleReload>>>,
+        recharges_proto: impl Strategy<Value = Option<VehicleRecharges>>,
     )
     (
      places in places_proto,
      dispatch in dispatch_proto,
      breaks in breaks_proto,
-     reloads in reloads_proto
+     reloads in reloads_proto,
+     recharges in recharges_proto,
     ) -> VehicleShift {
         VehicleShift {
           start: places.0,
           end: places.1,
           dispatch,
           breaks,
-          reloads
+          reloads,
+          recharges,
         }
     }
 }
@@ -128,6 +131,13 @@ prop_compose! {
 prop_compose! {
     /// Generates no reload places.
     pub fn generate_no_reloads()(_ in ".*") -> Option<Vec<VehicleReload>> {
+        None
+    }
+}
+
+prop_compose! {
+    /// Generates no recharge places.
+    pub fn generate_no_recharges()(_ in ".*") -> Option<VehicleRecharges> {
         None
     }
 }

@@ -153,6 +153,7 @@ fn can_assign_interval_break_with_reload() {
                         duration: 3.0,
                         ..create_default_reload()
                     }]),
+                    recharges: None,
                 }],
                 capacity: vec![2],
                 ..create_default_vehicle_type()

@@ -164,6 +164,7 @@ fn can_read_complex_problem() {
                         policy: None,
                     }]),
                     reloads: None,
+                    recharges: None,
                 }],
                 capacity: vec![10, 1],
                 skills: Some(vec!["unique1".to_string(), "unique2".to_string()]),

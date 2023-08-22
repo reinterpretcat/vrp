@@ -300,6 +300,10 @@ pub struct VehicleShift {
     /// unloaded during single tour.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reloads: Option<Vec<VehicleReload>>,
+
+    /// Vehicle recharge stations information.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recharges: Option<VehicleRecharges>,
 }
 
 /// Specifies a dispatch place where vehicle can load cargo and start the tour.
@@ -348,6 +352,17 @@ pub struct VehicleReload {
     /// A shared reload resource id.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resource_id: Option<String>,
+}
+
+/// Specifies vehicle recharge stations data.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VehicleRecharges {
+    /// Maximum traveled distance before recharge station has to be visited.
+    pub max_distance: f64,
+
+    /// Specifies list of recharge station. Each can be visited only once.
+    pub stations: Vec<JobPlace>,
 }
 
 /// Vehicle limits.
