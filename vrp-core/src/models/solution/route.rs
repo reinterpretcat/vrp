@@ -8,7 +8,7 @@ use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
 /// Specifies an extra commute information to reach the actual place.
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Commute {
     /// An commute information to reach place from other location.
     pub forward: CommuteInfo,
@@ -18,7 +18,7 @@ pub struct Commute {
 }
 
 /// Commute information.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CommuteInfo {
     /// A previous or next location.
     pub location: Location,
@@ -44,6 +44,7 @@ pub struct Place {
 }
 
 /// Represents activity which is needed to be performed.
+#[derive(Debug)]
 pub struct Activity {
     /// Specifies activity details.
     pub place: Place,

@@ -12,29 +12,35 @@ fn recharge(location: Location) -> Activity {
     Activity { job: Some(single_shared), ..create_activity_at_location(location) }
 }
 
-fn create_route_ctx(activities: &[(Timestamp, Timestamp, Location)], is_open_end: bool) -> RouteContext {
+fn create_route_ctx(activities: &[Location], recharges: Vec<(usize, Location)>, is_open_end: bool) -> RouteContext {
     let fleet = if is_open_end {
         test_fleet_with_vehicles(vec![Arc::new(test_vehicle_with_no_end("v1"))])
     } else {
         test_fleet()
     };
 
-    RouteContext::new_with_state(
+    let mut route_ctx = RouteContext::new_with_state(
         create_route_with_activities(
             &fleet,
             "v1",
             activities
                 .iter()
                 .enumerate()
-                .map(|(idx, &(arrival, departure, location))| Activity {
-                    schedule: Schedule::new(arrival, departure),
+                .map(|(idx, &location)| Activity {
+                    schedule: Schedule::new(location as f64, location as f64),
                     job: Some(create_single(&format!("job{}", idx + 1))),
                     ..create_activity_at_location(location)
                 })
                 .collect(),
         ),
         RouteState::default(),
-    )
+    );
+
+    recharges.into_iter().for_each(|(recharge_idx, recharge_location)| {
+        route_ctx.route_mut().tour.insert_at(recharge(recharge_location), recharge_idx);
+    });
+
+    route_ctx
 }
 
 fn create_feature(limit: Distance) -> Feature {
@@ -53,37 +59,29 @@ parameterized_test! {can_accumulate_distance, (limit, recharges, activities, exp
 
 can_accumulate_distance! {
     case01_single_recharge: (20., vec![(2, 8)],
-        vec![(5., 5., 5), (10., 10., 10), (15., 15., 15)],
-        vec![0., 5., 0., 2., 7.]
+        vec![5, 10, 15], vec![0., 5., 0., 2., 7.]
     ),
     case02_two_recharges: (20., vec![(2, 8), (5, 17)],
-        vec![(5., 5., 5), (10., 10., 10), (15., 15., 15), (20., 20., 20)],
-        vec![0., 5., 0., 2., 7., 0., 3.]
+        vec![5, 10, 15, 20], vec![0., 5., 0., 2., 7., 0., 3.]
     ),
     case03_no_recharges: (20., vec![],
-        vec![(5., 5., 5), (10., 10., 10), (15., 15., 15), (20., 20., 20)],
-        vec![0., 5., 10., 15., 20.]
+        vec![5, 10, 15, 20], vec![0., 5., 10., 15., 20.]
     ),
-    case04_recharge_at_end: (20., vec![(4, 8)],
-        vec![(5., 5., 5), (10., 10., 10), (15., 15., 15)],
-        vec![0., 5., 10., 15., 0.]
+    case04_recharge_at_end: (25., vec![(4, 8)],
+        vec![5, 10, 15], vec![0., 5., 10., 15., 0.]
     ),
     case05_recharge_at_start: (20., vec![(1, 8)],
-        vec![(5., 5., 5), (10., 10., 10), (15., 15., 15)],
-        vec![0., 0., 3., 8., 13.]
+        vec![5, 10, 15], vec![0., 0., 3., 8., 13.]
     ),
 }
 
 fn can_accumulate_distance_impl(
     limit: Distance,
     recharges: Vec<(usize, Location)>,
-    activities: Vec<(Timestamp, Timestamp, Location)>,
+    activities: Vec<Location>,
     expected_counters: Vec<Distance>,
 ) {
-    let mut route_ctx = create_route_ctx(&activities, true);
-    recharges.into_iter().for_each(|(recharge_idx, recharge_location)| {
-        route_ctx.route_mut().tour.insert_at(recharge(recharge_location), recharge_idx);
-    });
+    let mut route_ctx = create_route_ctx(&activities, recharges, true);
     let state = create_feature(limit).state.unwrap();
 
     state.accept_route_state(&mut route_ctx);
@@ -96,4 +94,74 @@ fn can_accumulate_distance_impl(
             .unwrap_or_default();
         assert_eq!(counter, expected_counters[idx], "doesn't match for: {}", idx);
     });
+}
+
+parameterized_test! {can_evaluate_insertion, (limit, recharges, insertion_data, activities, expected), {
+    can_evaluate_insertion_impl(limit, recharges, insertion_data, activities, expected);
+}}
+
+can_evaluate_insertion! {
+    case01_reject_before_recharge: (20., vec![(2, 8)], (1, 16, (1, 2)), vec![5, 10, 15],
+        ConstraintViolation::skip(VIOLATION_CODE),
+    ),
+    case02_accept_after_recharge: (20., vec![(2, 8)], (1, 16, (2, 3)), vec![5, 10, 15],
+        None,
+    ),
+}
+
+fn can_evaluate_insertion_impl(
+    limit: Distance,
+    recharges: Vec<(usize, Location)>,
+    insertion_data: (usize, Location, (usize, usize)),
+    activities: Vec<Location>,
+    expected: Option<ConstraintViolation>,
+) {
+    let (index, new_location, (prev, next)) = insertion_data;
+    let mut route_ctx = create_route_ctx(&activities, recharges, true);
+    let feature = create_feature(limit);
+    let (constraint, state) = (feature.constraint.unwrap(), feature.state.unwrap());
+    state.accept_route_state(&mut route_ctx);
+
+    let result = constraint.evaluate(&MoveContext::Activity {
+        route_ctx: &route_ctx,
+        activity_ctx: &ActivityContext {
+            index,
+            prev: route_ctx.route().tour.get(prev).unwrap(),
+            target: &create_activity_at_location(new_location),
+            next: route_ctx.route().tour.get(next),
+        },
+    });
+
+    assert_eq!(result, expected);
+}
+
+parameterized_test! {can_handle_obsolete_intervals, (limit, recharges, activities, expected), {
+    can_handle_obsolete_intervals_impl(limit, recharges, activities, expected);
+}}
+
+can_handle_obsolete_intervals! {
+    case01_remove_one_exact: (30., vec![(2, 5)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 15, 20, 30]),
+    case02_remove_one_diff: (30., vec![(3, 8)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 15, 20, 30]),
+    case03_keep_one_exact: (29., vec![(2, 5)], vec![5, 10, 15, 20, 30], vec![0, 5, 5, 10, 15, 20, 30]),
+    case04_remove_one_diff: (29., vec![(3, 8)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 8, 15, 20, 30]),
+}
+
+fn can_handle_obsolete_intervals_impl(
+    limit: Distance,
+    recharges: Vec<(usize, Location)>,
+    activities: Vec<Location>,
+    expected: Vec<Location>,
+) {
+    let mut solution = SolutionContext {
+        routes: vec![create_route_ctx(&activities, recharges, true)],
+        ..create_solution_context_for_fleet(&test_fleet())
+    };
+    let state = create_feature(limit).state.unwrap();
+
+    state.accept_solution_state(&mut solution);
+
+    assert_eq!(
+        expected,
+        solution.routes[0].route().tour.all_activities().map(|a| a.place.location).collect::<Vec<_>>()
+    );
 }

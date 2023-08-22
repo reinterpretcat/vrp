@@ -6,9 +6,11 @@ mod recharge_test;
 
 use super::*;
 use crate::construction::enablers::*;
+use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::construction::enablers::*;
 use vrp_core::construction::features::*;
+use vrp_core::models::solution::Route;
 
 /// Specifies a distance limit function for recharge. It should return a fixed value for the same
 /// actor all the time.
@@ -50,18 +52,37 @@ pub fn create_recharge_feature(
                 }),
                 is_obsolete_interval_fn: Box::new({
                     let distance_limit_fn = distance_limit_fn.clone();
+                    let transport = transport.clone();
+                    let get_distance = move |route: &Route, from_idx: usize, to_idx: usize| {
+                        route.tour.get(from_idx).zip(route.tour.get(to_idx)).map_or(
+                            Distance::default(),
+                            |(from, to)| {
+                                transport.distance(
+                                    route,
+                                    from.place.location,
+                                    to.place.location,
+                                    TravelTime::Departure(from.schedule.departure),
+                                )
+                            },
+                        )
+                    };
                     move |route_ctx, left, right| {
-                        let intervals_distance = route_ctx
+                        let with_recharge_distance = route_ctx
                             .route()
                             .tour
                             .get(left.end)
                             .iter()
                             .chain(route_ctx.route().tour.get(right.end).iter())
-                            .flat_map(|activity| route_ctx.state().get_activity_state(RELOAD_RESOURCE_KEY, activity))
+                            .flat_map(|activity| route_ctx.state().get_activity_state(RECHARGE_DISTANCE_KEY, activity))
                             .sum::<Distance>();
 
+                        let recharge_distance_delta = get_distance(route_ctx.route(), left.end, right.start + 1)
+                            - get_distance(route_ctx.route(), right.start, right.start + 1);
+
+                        let new_distance = with_recharge_distance + recharge_distance_delta;
+
                         (distance_limit_fn)(route_ctx.route().actor.as_ref())
-                            .map_or(false, |threshold| intervals_distance < threshold)
+                            .map_or(false, |threshold| compare_floats(new_distance, threshold) != Ordering::Greater)
                     }
                 }),
                 is_assignable_fn: Box::new(|route, job| {
@@ -162,8 +183,6 @@ impl RechargeableMultiTrip {
 
         let is_prev_recharge = activity_ctx.prev.job.as_ref().map_or(false, |job| is_recharge_single(job));
         let current_distance = if is_prev_recharge {
-            // NOTE ignore current_distance for prev if prev is marker job as we store
-            //      accumulated distance here to simplify obsolete intervals calculations
             Distance::default()
         } else {
             route_ctx

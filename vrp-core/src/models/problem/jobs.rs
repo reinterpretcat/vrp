@@ -68,15 +68,8 @@ impl Job {
 impl Debug for Job {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Job::Single(single) => f
-                .debug_struct(short_type_name::<Single>())
-                .field("id", &single.dimens.get_id().map(|id| id.as_str()).unwrap_or("undef"))
-                .finish_non_exhaustive(),
-            Job::Multi(multi) => f
-                .debug_struct(short_type_name::<Multi>())
-                .field("id", &multi.dimens.get_id().map(|id| id.as_str()).unwrap_or("undef"))
-                .field("jobs", &multi.jobs.len())
-                .finish_non_exhaustive(),
+            Job::Single(single) => single.fmt(f),
+            Job::Multi(multi) => multi.fmt(f),
         }
     }
 }
@@ -100,6 +93,14 @@ pub struct Single {
     pub dimens: Dimensions,
 }
 
+impl Debug for Single {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Single>())
+            .field("id", &self.dimens.get_id().map(|id| id.as_str()).unwrap_or("undef"))
+            .finish_non_exhaustive()
+    }
+}
+
 /// Represents a job which consists of multiple sub jobs.
 /// All of these jobs must be performed or none of them. Order can be controlled
 /// via specific dimension value.
@@ -110,6 +111,15 @@ pub struct Multi {
     pub dimens: Dimensions,
     /// Permutation generator.
     permutator: Box<dyn JobPermutation + Send + Sync>,
+}
+
+impl Debug for Multi {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Multi>())
+            .field("id", &self.dimens.get_id().map(|id| id.as_str()).unwrap_or("undef"))
+            .field("jobs", &self.jobs.len())
+            .finish_non_exhaustive()
+    }
 }
 
 /// Defines a trait to work with multi job's permutations.
