@@ -108,6 +108,7 @@ pub(crate) struct ProblemProperties {
     has_unreachable_locations: bool,
     has_dispatch: bool,
     has_reloads: bool,
+    has_recharges: bool,
     has_order: bool,
     has_group: bool,
     has_value: bool,

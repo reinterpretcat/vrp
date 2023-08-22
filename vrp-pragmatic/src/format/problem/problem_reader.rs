@@ -209,25 +209,16 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
                 .flat_map(|tasks| tasks.iter())
                 .any(|task| task.demand.as_ref().map_or(false, |d| d.len() > 1))
         });
-    let has_breaks = api_problem
-        .fleet
-        .vehicles
-        .iter()
-        .flat_map(|t| &t.shifts)
-        .any(|shift| shift.breaks.as_ref().map_or(false, |b| !b.is_empty()));
-
     let has_skills = api_problem.plan.jobs.iter().any(|job| job.skills.is_some());
 
-    let has_dispatch = api_problem
-        .fleet
-        .vehicles
-        .iter()
-        .any(|t| t.shifts.iter().any(|s| s.dispatch.as_ref().map_or(false, |dispatch| !dispatch.is_empty())));
-    let has_reloads = api_problem
-        .fleet
-        .vehicles
-        .iter()
-        .any(|t| t.shifts.iter().any(|s| s.reloads.as_ref().map_or(false, |reloads| !reloads.is_empty())));
+    let shift_has_fn = |shift_has: fn(&VehicleShift) -> bool| {
+        api_problem.fleet.vehicles.iter().any(|t| t.shifts.iter().any(shift_has))
+    };
+
+    let has_breaks = shift_has_fn(|s| s.breaks.as_ref().map_or(false, |b| !b.is_empty()));
+    let has_dispatch = shift_has_fn(|s| s.dispatch.as_ref().map_or(false, |d| !d.is_empty()));
+    let has_reloads = shift_has_fn(|s| s.reloads.as_ref().map_or(false, |r| !r.is_empty()));
+    let has_recharges = shift_has_fn(|s| s.recharges.as_ref().is_some());
 
     let has_order = api_problem
         .plan
@@ -256,6 +247,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_unreachable_locations,
         has_dispatch,
         has_reloads,
+        has_recharges,
         has_order,
         has_group,
         has_value,
