@@ -144,6 +144,8 @@ can_handle_obsolete_intervals! {
     case02_remove_one_diff: (30., vec![(3, 8)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 15, 20, 30]),
     case03_keep_one_exact: (29., vec![(2, 5)], vec![5, 10, 15, 20, 30], vec![0, 5, 5, 10, 15, 20, 30]),
     case04_remove_one_diff: (29., vec![(3, 8)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 8, 15, 20, 30]),
+
+    case05_can_handle_two: (25., vec![(3, 10), (5, 20)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 15, 20, 20, 30]),
 }
 
 fn can_handle_obsolete_intervals_impl(

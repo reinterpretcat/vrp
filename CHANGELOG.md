@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* recharge stations feature to support basic electric VRP use cases
+
 ### Changed
 
 * apply refactorings to some core api
