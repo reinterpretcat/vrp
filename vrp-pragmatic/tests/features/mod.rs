@@ -13,6 +13,7 @@ mod limits;
 mod multjob;
 mod pickdev;
 mod priorities;
+mod recharge;
 mod relations;
 mod reload;
 mod skills;

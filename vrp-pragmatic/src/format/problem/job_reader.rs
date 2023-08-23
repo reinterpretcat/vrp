@@ -190,6 +190,10 @@ fn read_conditional_jobs(
             if let Some(reloads) = &shift.reloads {
                 read_reloads(coord_index, job_index, &mut jobs, vehicle, shift_index, reloads);
             }
+
+            if let Some(recharges) = &shift.recharges {
+                read_recharges(coord_index, job_index, &mut jobs, vehicle, shift_index, recharges);
+            }
         }
     });
 
@@ -303,21 +307,65 @@ fn read_reloads(
     shift_index: usize,
     reloads: &[VehicleReload],
 ) {
+    read_specific_job_places(
+        "reload",
+        coord_index,
+        job_index,
+        jobs,
+        vehicle,
+        shift_index,
+        reloads.iter().map(|reload| JobPlace {
+            location: reload.location.clone(),
+            duration: reload.duration,
+            times: reload.times.clone(),
+            tag: reload.tag.clone(),
+        }),
+    )
+}
+
+fn read_recharges(
+    coord_index: &CoordIndex,
+    job_index: &mut JobIndex,
+    jobs: &mut Vec<Job>,
+    vehicle: &VehicleType,
+    shift_index: usize,
+    recharges: &VehicleRecharges,
+) {
+    read_specific_job_places(
+        "recharge",
+        coord_index,
+        job_index,
+        jobs,
+        vehicle,
+        shift_index,
+        recharges.stations.iter().cloned(),
+    )
+}
+
+fn read_specific_job_places(
+    job_type: &str,
+    coord_index: &CoordIndex,
+    job_index: &mut JobIndex,
+    jobs: &mut Vec<Job>,
+    vehicle: &VehicleType,
+    shift_index: usize,
+    get_places: impl Iterator<Item = JobPlace>,
+) {
     (1..)
-        .zip(reloads.iter())
+        .zip(get_places)
         .flat_map(|(reload_idx, place)| {
             vehicle
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let job_id = format!("{vehicle_id}_reload_{shift_index}_{reload_idx}");
+                    let job_id = format!("{vehicle_id}_{job_type}_{shift_index}_{reload_idx}");
                     let times = parse_times(&place.times);
 
                     let job = get_conditional_job(
                         coord_index,
                         vehicle_id.clone(),
                         &job_id,
-                        "reload",
+                        job_type,
                         shift_index,
                         vec![(Some(place.location.clone()), place.duration, times, place.tag.clone())],
                     );

@@ -42,6 +42,10 @@ pub(crate) fn create_goal_context(
         features.push(create_optional_break_feature("break", BREAK_CONSTRAINT_CODE)?)
     }
 
+    if props.has_recharges {
+        features.push(get_recharge_feature("recharge", api_problem, transport.clone())?);
+    }
+
     if props.has_order && !global_objective_map.iter().flat_map(|o| o.iter()).any(|name| *name == "tour_order") {
         features.push(create_tour_order_hard_feature("tour_order", TOUR_ORDER_CONSTRAINT_CODE, get_tour_order_fn())?)
     }
@@ -325,6 +329,36 @@ fn get_tour_limit_feature(
         DISTANCE_LIMIT_CONSTRAINT_CODE,
         DURATION_LIMIT_CONSTRAINT_CODE,
     )
+}
+
+fn get_recharge_feature(
+    name: &str,
+    api_problem: &ApiProblem,
+    transport: Arc<dyn TransportCost + Send + Sync>,
+) -> Result<Feature, GenericError> {
+    let distance_limit_index: HashMap<_, HashMap<_, _>> =
+        api_problem.fleet.vehicles.iter().fold(HashMap::default(), |mut acc, vehicle_type| {
+            vehicle_type
+                .shifts
+                .iter()
+                .enumerate()
+                .flat_map(|(shift_idx, shift)| {
+                    shift.recharges.as_ref().map(|recharges| (shift_idx, recharges.max_distance))
+                })
+                .for_each(|(shift_idx, max_distance)| {
+                    acc.entry(vehicle_type.type_id.clone()).or_default().insert(shift_idx, max_distance);
+                });
+
+            acc
+        });
+
+    let distance_limit_fn: RechargeDistanceLimitFn = Arc::new(move |actor: &Actor| {
+        actor.vehicle.dimens.get_vehicle_type().zip(actor.vehicle.dimens.get_shift_index()).and_then(
+            |(type_id, shift_idx)| distance_limit_index.get(type_id).and_then(|idx| idx.get(&shift_idx).copied()),
+        )
+    });
+
+    create_recharge_feature(name, RECHARGE_CONSTRAINT_CODE, distance_limit_fn, transport)
 }
 
 fn get_reload_resources<T>(
