@@ -28,6 +28,7 @@ pub fn create_recharge_feature(
         name,
         code,
         &[RECHARGE_DISTANCE_KEY, RECHARGE_INTERVALS_KEY],
+        MarkerInsertionPolicy::Any,
         Arc::new(RechargeableMultiTrip {
             route_intervals: Arc::new(FixedReloadIntervals {
                 is_marker_single_fn: Box::new(is_recharge_single),

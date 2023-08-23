@@ -167,3 +167,24 @@ fn can_handle_obsolete_intervals_impl(
         solution.routes[0].route().tour.all_activities().map(|a| a.place.location).collect::<Vec<_>>()
     );
 }
+
+#[test]
+fn can_accept_recharge_in_long_empty_route() {
+    let mut route_ctx = create_route_ctx(&[], vec![], false);
+    route_ctx.route_mut().tour.get_mut(1).unwrap().place.location = 100;
+    let feature = create_feature(55.);
+    let (constraint, state) = (feature.constraint.unwrap(), feature.state.unwrap());
+    state.accept_route_state(&mut route_ctx);
+
+    let result = constraint.evaluate(&MoveContext::Activity {
+        route_ctx: &route_ctx,
+        activity_ctx: &ActivityContext {
+            index: 0,
+            prev: route_ctx.route().tour.start().unwrap(),
+            target: &recharge(50),
+            next: route_ctx.route().tour.end(),
+        },
+    });
+
+    assert_eq!(result, None);
+}

@@ -20,6 +20,7 @@ pub fn create_capacity_limit_with_multi_trip_feature<T: LoadOps>(
         name,
         code,
         &[CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
+        MarkerInsertionPolicy::Last,
         Arc::new(CapacitatedMultiTrip::<T> { route_intervals, code, phantom: Default::default() }),
     )
 }
@@ -31,6 +32,7 @@ pub fn create_capacity_limit_feature<T: LoadOps>(name: &str, code: ViolationCode
         name,
         code,
         &[CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
+        MarkerInsertionPolicy::Last,
         Arc::new(CapacitatedMultiTrip::<T> {
             route_intervals: Arc::new(NoRouteIntervals::default()),
             code,

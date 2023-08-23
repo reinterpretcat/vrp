@@ -29,11 +29,20 @@ pub trait MultiTrip {
     fn try_recover(&self, solution_ctx: &mut SolutionContext, route_indices: &[usize], jobs: &[Job]) -> bool;
 }
 
+/// Marker insertion policy.
+pub enum MarkerInsertionPolicy {
+    /// Any position.
+    Any,
+    /// Only last position is allowed.
+    Last,
+}
+
 /// Creates a feature with multi trip functionality.
 pub fn create_multi_trip_feature(
     name: &str,
     code: ViolationCode,
     state_keys: &[StateKey],
+    policy: MarkerInsertionPolicy,
     multi_trip: Arc<dyn MultiTrip + Send + Sync>,
 ) -> Result<Feature, GenericError> {
     let state_keys = match multi_trip.get_route_intervals().get_interval_key() {
@@ -43,7 +52,7 @@ pub fn create_multi_trip_feature(
 
     FeatureBuilder::default()
         .with_name(name)
-        .with_constraint(MultiTripConstraint::new(code, multi_trip.clone()))
+        .with_constraint(MultiTripConstraint::new(code, policy, multi_trip.clone()))
         .with_objective(MultiTripObjective::new(multi_trip.clone()))
         .with_state(MultiTripState::new(code, state_keys, multi_trip))
         .build()
@@ -51,6 +60,7 @@ pub fn create_multi_trip_feature(
 
 struct MultiTripConstraint {
     code: ViolationCode,
+    policy: MarkerInsertionPolicy,
     multi_trip: Arc<dyn MultiTrip + Send + Sync>,
 }
 
@@ -74,16 +84,18 @@ impl FeatureConstraint for MultiTripConstraint {
                     .as_ref()
                     .map_or(false, |job| intervals.is_marker_job(&Job::Single(job.clone())))
                 {
-                    // NOTE insert marker job in route only as last
-                    let is_first = activity_ctx.prev.job.is_none();
-                    let is_not_last = activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some();
+                    match self.policy {
+                        MarkerInsertionPolicy::Any => {}
+                        MarkerInsertionPolicy::Last => {
+                            let is_first = activity_ctx.prev.job.is_none();
+                            let is_not_last = activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some();
 
-                    return if is_first || is_not_last {
-                        ConstraintViolation::skip(self.code)
-                    } else {
-                        ConstraintViolation::success()
-                    };
-                };
+                            if is_first || is_not_last {
+                                return ConstraintViolation::skip(self.code);
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -100,8 +112,8 @@ impl FeatureConstraint for MultiTripConstraint {
 }
 
 impl MultiTripConstraint {
-    fn new(code: ViolationCode, multi_trip: Arc<dyn MultiTrip + Send + Sync>) -> Self {
-        Self { code, multi_trip }
+    fn new(code: ViolationCode, policy: MarkerInsertionPolicy, multi_trip: Arc<dyn MultiTrip + Send + Sync>) -> Self {
+        Self { code, policy, multi_trip }
     }
 }
 
