@@ -6,6 +6,7 @@ mod recharge_test;
 
 use super::*;
 use crate::construction::enablers::*;
+use hashbrown::HashSet;
 use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::construction::enablers::*;
@@ -153,6 +154,43 @@ impl MultiTrip for RechargeableMultiTrip {
                     counter
                 });
         });
+    }
+
+    fn try_recover(&self, solution_ctx: &mut SolutionContext, route_indices: &[usize], _: &[Job]) -> bool {
+        let routes = &mut solution_ctx.routes;
+
+        let jobs: HashSet<_> = if route_indices.is_empty() {
+            solution_ctx
+                .ignored
+                .iter()
+                .filter(|job| job.as_single().map_or(false, |single| is_recharge_single(single.as_ref())))
+                .cloned()
+                .collect()
+        } else {
+            routes
+                .iter()
+                .enumerate()
+                .filter(|(idx, _)| route_indices.contains(idx))
+                .flat_map(|(_, route_ctx)| {
+                    solution_ctx
+                        .ignored
+                        .iter()
+                        .chain(solution_ctx.required.iter())
+                        .filter(|job| self.route_intervals.is_marker_assignable(route_ctx.route(), job))
+                })
+                .cloned()
+                .collect()
+        };
+
+        if jobs.is_empty() {
+            false
+        } else {
+            solution_ctx.ignored.retain(|job| !jobs.contains(job));
+            solution_ctx.locked.extend(jobs.iter().cloned());
+            solution_ctx.required.extend(jobs.into_iter());
+
+            true
+        }
     }
 }
 

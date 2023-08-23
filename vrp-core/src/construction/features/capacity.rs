@@ -143,6 +143,11 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
             route_ctx.state_mut().put_route_state(MAX_LOAD_KEY, max_load.ratio(capacity));
         }
     }
+
+    fn try_recover(&self, _: &mut SolutionContext, _: &[usize], _: &[Job]) -> bool {
+        // TODO try to recover if multi-trip is used
+        false
+    }
 }
 
 impl<T: LoadOps> CapacitatedMultiTrip<T> {

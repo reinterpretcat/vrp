@@ -406,6 +406,13 @@ fn apply_insertion_failure(
     let all_unassignable = selected_jobs == insertion_ctx.solution.required.len()
         && selected_routes == insertion_ctx.solution.routes.len();
 
+    // give a change to promote special jobs which might unblock assignment for other jobs
+    // TODO move this a bit up to avoid adding failed jobs to unassigned?
+    let failure_handled = insertion_ctx.problem.goal.notify_failure(&mut insertion_ctx.solution, route_indices, jobs);
+    if failure_handled {
+        return;
+    }
+
     // NOTE this happens when evaluator fails to insert jobs due to lack of routes in registry
     // TODO remove from required only jobs from selected list
     let no_routes_available = failure.job.is_none();
@@ -413,13 +420,6 @@ fn apply_insertion_failure(
     if let Some(job) = failure.job {
         insertion_ctx.solution.unassigned.insert(job.clone(), UnassignmentInfo::Simple(failure.constraint));
         insertion_ctx.solution.required.retain(|j| *j != job);
-    }
-
-    // give a change to promote special jobs which might unblock assignment for other jobs
-    // TODO move this a bit up to avoid adding failed jobs to unassigned?
-    let failure_handled = insertion_ctx.problem.goal.notify_failure(&mut insertion_ctx.solution, route_indices, jobs);
-    if failure_handled {
-        return;
     }
 
     if all_unassignable || no_routes_available {
@@ -442,7 +442,7 @@ fn copy_selection_data(
 ) -> (Vec<usize>, Vec<Job>) {
     let route_indices = routes
         .iter()
-        .filter_map(|route| insertion_ctx.solution.routes.iter().position(|r| r.route().actor == route.route().actor))
+        .filter_map(|route| insertion_ctx.solution.routes.iter().position(|r| r == *route))
         .collect::<Vec<_>>();
     let jobs = jobs.iter().map(|&job| job.clone()).collect::<Vec<_>>();
 

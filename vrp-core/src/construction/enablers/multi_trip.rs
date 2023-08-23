@@ -23,6 +23,10 @@ pub trait MultiTrip {
 
     /// Recalculates inner states for given route.
     fn recalculate_states(&self, route_ctx: &mut RouteContext);
+
+    /// Provides the way to recover from inability of the solver to insert jobs.
+    /// Returns true if some recovery actions were taken.
+    fn try_recover(&self, solution_ctx: &mut SolutionContext, route_indices: &[usize], jobs: &[Job]) -> bool;
 }
 
 /// Creates a feature with multi trip functionality.
@@ -173,9 +177,8 @@ impl MultiTripState {
 }
 
 impl FeatureState for MultiTripState {
-    fn notify_failure(&self, _solution_ctx: &mut SolutionContext, _route_indices: &[usize], _jobs: &[Job]) -> bool {
-        // TODO: unblock insertion of marker jobs for given routes if it's proper time.
-        false
+    fn notify_failure(&self, solution_ctx: &mut SolutionContext, route_indices: &[usize], jobs: &[Job]) -> bool {
+        self.multi_trip.try_recover(solution_ctx, route_indices, jobs)
     }
 
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {

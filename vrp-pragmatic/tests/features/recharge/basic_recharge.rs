@@ -32,6 +32,7 @@ fn can_use_recharge() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
+    assert!(!solution.tours.is_empty());
     assert_eq!(
         get_ids_from_tour(&solution.tours[0]),
         vec![vec!["departure"], vec!["job1"], vec!["recharge"], vec!["job2"], vec!["arrival"]]
