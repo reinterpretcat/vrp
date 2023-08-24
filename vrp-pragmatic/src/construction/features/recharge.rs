@@ -55,6 +55,15 @@ pub fn create_recharge_feature(
                 is_obsolete_interval_fn: Box::new({
                     let distance_limit_fn = distance_limit_fn.clone();
                     let transport = transport.clone();
+                    let get_counter = move |route_ctx: &RouteContext, activity_idx: usize| {
+                        route_ctx
+                            .route()
+                            .tour
+                            .get(activity_idx)
+                            .and_then(|activity| route_ctx.state().get_activity_state(RECHARGE_DISTANCE_KEY, activity))
+                            .copied()
+                            .unwrap_or(Distance::default())
+                    };
                     let get_distance = move |route: &Route, from_idx: usize, to_idx: usize| {
                         route.tour.get(from_idx).zip(route.tour.get(to_idx)).map_or(
                             Distance::default(),
@@ -69,19 +78,9 @@ pub fn create_recharge_feature(
                         )
                     };
                     move |route_ctx, left, right| {
-                        let with_recharge_distance = route_ctx
-                            .route()
-                            .tour
-                            .get(left.end)
-                            .iter()
-                            .chain(route_ctx.route().tour.get(right.end).iter())
-                            .flat_map(|activity| route_ctx.state().get_activity_state(RECHARGE_DISTANCE_KEY, activity))
-                            .sum::<Distance>();
-
-                        let recharge_distance_delta = get_distance(route_ctx.route(), left.end, right.start + 1)
-                            - get_distance(route_ctx.route(), right.start, right.start + 1);
-
-                        let new_distance = with_recharge_distance + recharge_distance_delta;
+                        let new_distance = get_counter(route_ctx, left.end) + get_counter(route_ctx, right.end)
+                            - get_counter(route_ctx, right.start + 1)
+                            + get_distance(route_ctx.route(), left.end, right.start + 1);
 
                         (distance_limit_fn)(route_ctx.route().actor.as_ref())
                             .map_or(false, |threshold| compare_floats(new_distance, threshold) != Ordering::Greater)
