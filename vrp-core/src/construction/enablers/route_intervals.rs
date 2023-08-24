@@ -22,9 +22,6 @@ pub trait RouteIntervals {
     /// Gets interval state key if present.
     fn get_interval_key(&self) -> Option<StateKey>;
 
-    /// Update route intervals on route level.
-    fn update_route_intervals(&self, route_ctx: &mut RouteContext);
-
     /// Update route intervals on solution level.
     fn update_solution_intervals(&self, solution_ctx: &mut SolutionContext);
 }
@@ -54,14 +51,12 @@ impl RouteIntervals for NoRouteIntervals {
         None
     }
 
-    fn update_route_intervals(&self, _: &mut RouteContext) {}
-
     fn update_solution_intervals(&self, _: &mut SolutionContext) {}
 }
 
-/// Provides a basic implementation of reload intervals functionality.
+/// Provides a basic implementation of route intervals functionality.
 #[allow(clippy::type_complexity)]
-pub struct FixedReloadIntervals {
+pub struct FixedRouteIntervals {
     /// Checks whether specified single job is of marker type.
     pub is_marker_single_fn: Box<dyn Fn(&Single) -> bool + Send + Sync>,
 
@@ -78,7 +73,7 @@ pub struct FixedReloadIntervals {
     pub intervals_key: StateKey,
 }
 
-impl RouteIntervals for FixedReloadIntervals {
+impl RouteIntervals for FixedRouteIntervals {
     fn is_marker_job(&self, job: &Job) -> bool {
         job.as_single().map_or(false, |single| (self.is_marker_single_fn)(single))
     }
@@ -100,15 +95,13 @@ impl RouteIntervals for FixedReloadIntervals {
         Some(self.intervals_key)
     }
 
-    fn update_route_intervals(&self, _: &mut RouteContext) {}
-
     fn update_solution_intervals(&self, solution_ctx: &mut SolutionContext) {
         self.promote_markers_when_needed(solution_ctx);
         self.remove_trivial_markers(solution_ctx);
     }
 }
 
-impl FixedReloadIntervals {
+impl FixedRouteIntervals {
     fn has_markers(&self, route_ctx: &RouteContext) -> bool {
         self.get_marker_intervals(route_ctx).map_or(false, |intervals| intervals.len() > 1)
     }

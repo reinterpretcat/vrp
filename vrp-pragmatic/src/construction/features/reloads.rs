@@ -10,7 +10,7 @@ use crate::construction::enablers::*;
 use hashbrown::HashMap;
 use std::cmp::Ordering;
 use std::ops::Range;
-use vrp_core::construction::enablers::{FixedReloadIntervals, RouteIntervals};
+use vrp_core::construction::enablers::{FixedRouteIntervals, RouteIntervals};
 use vrp_core::construction::features::*;
 use vrp_core::models::problem::Single;
 use vrp_core::models::solution::Activity;
@@ -67,8 +67,8 @@ pub fn create_simple_reload_multi_trip_feature<T: LoadOps>(
 fn create_reload_route_intervals<T: LoadOps>(
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
     place_capacity_threshold: Option<PlaceCapacityThresholdFn<T>>,
-) -> FixedReloadIntervals {
-    FixedReloadIntervals {
+) -> FixedRouteIntervals {
+    FixedRouteIntervals {
         is_marker_single_fn: Box::new(is_reload_single),
         is_new_interval_needed_fn: Box::new(move |route_ctx| {
             route_ctx

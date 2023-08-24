@@ -226,17 +226,16 @@ impl FeatureState for MultiTripState {
     }
 
     fn accept_route_state(&self, route_ctx: &mut RouteContext) {
-        let intervals = self.multi_trip.get_route_intervals();
+        let route_intervals = self.multi_trip.get_route_intervals();
 
-        if let Some(interval_key) = intervals.get_interval_key() {
+        if let Some(interval_key) = route_intervals.get_interval_key() {
             let (route, state) = route_ctx.as_mut();
             let intervals = get_route_intervals(route, |a| {
-                a.job.as_ref().map_or(false, |job| intervals.is_marker_job(&Job::Single(job.clone())))
+                a.job.as_ref().map_or(false, |job| route_intervals.is_marker_job(&Job::Single(job.clone())))
             });
 
             state.put_route_state(interval_key, intervals);
         }
-        intervals.update_route_intervals(route_ctx);
 
         self.multi_trip.recalculate_states(route_ctx);
     }
