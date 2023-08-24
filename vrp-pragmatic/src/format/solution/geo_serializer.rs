@@ -7,7 +7,7 @@ use crate::format::solution::{Activity, PointStop, Tour, UnassignedJob};
 use crate::format::{get_coord_index, get_job_index, CoordIndex, Location};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::io::{BufWriter, Error, ErrorKind, Write};
 use vrp_core::models::problem::Job;
 use vrp_core::prelude::*;
@@ -33,7 +33,7 @@ pub enum Geometry {
 #[serde(tag = "type")]
 pub struct Feature {
     /// Feature properties.
-    pub properties: HashMap<String, String>,
+    pub properties: BTreeMap<String, String>,
     /// Feature geometry.
     pub geometry: Geometry,
 }
@@ -127,7 +127,7 @@ fn create_geojson_named_locations(locations: &[(String, Location, usize)]) -> Re
     })
 }
 
-fn slice_to_map(vec: &[(&str, &str)]) -> HashMap<String, String> {
+fn slice_to_map(vec: &[(&str, &str)]) -> BTreeMap<String, String> {
     vec.iter().map(|&(key, value)| (key.to_string(), value.to_string())).collect()
 }
 
