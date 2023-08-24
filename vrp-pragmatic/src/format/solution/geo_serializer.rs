@@ -161,6 +161,7 @@ fn get_stop_point(tour_idx: usize, stop_idx: usize, stop: &PointStop, color: &st
             ("stop_idx", stop_idx.to_string().as_str()),
             ("arrival", stop.time.arrival.as_str()),
             ("departure", stop.time.departure.as_str()),
+            ("distance", stop.distance.to_string().as_str()),
             ("jobs_ids", stop.activities.iter().map(|a| a.job_id.clone()).collect::<Vec<_>>().join(",").as_str()),
         ]),
         geometry: Geometry::Point { coordinates: get_lng_lat(&stop.location)? },

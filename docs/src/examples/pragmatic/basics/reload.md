@@ -1,6 +1,6 @@
 # Multiple trips
 
-These examples demonstrates how to use vehicle reload feature which is designed to overcome vehicle capacity limitation
+These examples demonstrate how to use vehicle reload feature which is designed to overcome vehicle capacity limitation
 in order to perform multiple trips (tours).
 
 Essentially, reload is a place where vehicle can unload `static` pickups and load new `static` deliveries. Here, static
