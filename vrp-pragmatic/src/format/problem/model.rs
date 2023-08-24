@@ -362,8 +362,11 @@ pub struct VehicleRecharges {
     pub max_distance: f64,
 
     /// Specifies list of recharge station. Each can be visited only once.
-    pub stations: Vec<JobPlace>,
+    pub stations: Vec<VehicleRechargeStation>,
 }
+
+/// Specifies type alias for vehicle recharge station.
+pub type VehicleRechargeStation = JobPlace;
 
 /// Vehicle limits.
 #[derive(Clone, Deserialize, Debug, Serialize)]

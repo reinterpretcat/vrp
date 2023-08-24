@@ -58,6 +58,10 @@ impl CoordIndex {
                 if let Some(reloads) = &shift.reloads {
                     reloads.iter().for_each(|reload| index.add(&reload.location));
                 }
+
+                if let Some(recharges) = &shift.recharges {
+                    recharges.stations.iter().for_each(|station| index.add(&station.location));
+                }
             });
         });
 

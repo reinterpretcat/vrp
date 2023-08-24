@@ -134,15 +134,20 @@ fn slice_to_map(vec: &[(&str, &str)]) -> HashMap<String, String> {
 fn get_marker_symbol(stop: &PointStop) -> String {
     let contains_activity_type =
         |activity_type: &&str| stop.activities.iter().any(|activity| activity.activity_type == *activity_type);
-    match (
-        ["departure", "dispatch", "reload", "arrival"].iter().any(contains_activity_type),
-        contains_activity_type(&"break"),
-    ) {
-        (true, _) => "warehouse",
-        (_, true) => "beer",
-        _ => "marker",
+
+    if ["departure", "dispatch", "reload", "arrival"].iter().any(contains_activity_type) {
+        return "warehouse".to_string();
     }
-    .to_string()
+
+    if contains_activity_type(&"recharge") {
+        return "charging-station".to_string();
+    }
+
+    if contains_activity_type(&"break") {
+        return "beer".to_string();
+    }
+
+    "marker".to_string()
 }
 
 fn get_stop_point(tour_idx: usize, stop_idx: usize, stop: &PointStop, color: &str) -> Result<Feature, Error> {

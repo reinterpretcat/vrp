@@ -176,7 +176,6 @@ impl MultiTrip for RechargeableMultiTrip {
                     solution_ctx
                         .ignored
                         .iter()
-                        .chain(solution_ctx.required.iter())
                         .filter(|job| self.route_intervals.is_marker_assignable(route_ctx.route(), job))
                 })
                 .cloned()
@@ -231,9 +230,18 @@ impl RechargeableMultiTrip {
                 .unwrap_or(Distance::default())
         };
 
-        let (prev_to_next_distance, _) = calculate_travel(route_ctx, activity_ctx, self.transport.as_ref());
+        let ((prev_to_tar_distance, tar_to_next_distance), _) =
+            calculate_travel(route_ctx, activity_ctx, self.transport.as_ref());
 
-        if current_distance + prev_to_next_distance > threshold {
+        let is_new_recharge = activity_ctx.target.job.as_ref().map_or(false, |job| is_recharge_single(job));
+
+        let is_violation = if is_new_recharge {
+            (current_distance + prev_to_tar_distance) > threshold || tar_to_next_distance > threshold
+        } else {
+            current_distance + prev_to_tar_distance + tar_to_next_distance > threshold
+        };
+
+        if is_violation {
             ConstraintViolation::skip(self.code)
         } else {
             None

@@ -42,6 +42,7 @@ enum ActivityType {
     Depot(VehicleDispatch),
     Break(VehicleBreak),
     Reload(VehicleReload),
+    Recharge(VehicleRechargeStation),
 }
 
 impl CheckerContext {
@@ -173,12 +174,14 @@ impl CheckerContext {
 
         match activity.activity_type.as_str() {
             "departure" | "arrival" => Ok(ActivityType::Terminal),
+
             "pickup" | "delivery" | "service" | "replacement" => {
                 self.job_map.get(activity.job_id.as_str()).map_or_else(
                     || Err(format!("cannot find job with id '{}'", activity.job_id).into()),
                     |job| Ok(ActivityType::Job(job.clone())),
                 )
             }
+
             "break" => shift
                 .breaks
                 .as_ref()
@@ -190,6 +193,7 @@ impl CheckerContext {
                 })
                 .map(|b| ActivityType::Break(b.clone()))
                 .ok_or_else(|| format!("cannot find break for tour '{}'", tour.vehicle_id).into()),
+
             "reload" => shift
                 .reloads
                 .as_ref()
@@ -201,6 +205,18 @@ impl CheckerContext {
                 })
                 .map(|r| ActivityType::Reload(r.clone()))
                 .ok_or_else(|| format!("cannot find reload for tour '{}'", tour.vehicle_id).into()),
+
+            "recharge" => shift
+                .recharges
+                .as_ref()
+                .and_then(|recharges| {
+                    recharges.stations.iter().find(|r| {
+                        location.as_ref().map_or(false, |location| r.location == *location) && r.tag == activity.job_tag
+                    })
+                })
+                .map(|r| ActivityType::Recharge(r.clone()))
+                .ok_or_else(|| format!("cannot find recharge for tour '{}'", tour.vehicle_id).into()),
+
             "dispatch" => shift
                 .dispatch
                 .as_ref()

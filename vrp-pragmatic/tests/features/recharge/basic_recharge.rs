@@ -20,7 +20,7 @@ fn can_use_recharge() {
                             tag: None,
                         }],
                     }),
-                    ..create_default_vehicle_shift_with_locations((0., 0.), (100., 100.))
+                    ..create_default_vehicle_shift_with_locations((0., 0.), (100., 0.))
                 }],
                 ..create_default_vehicle_type()
             }],
@@ -30,7 +30,7 @@ fn can_use_recharge() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+    let solution = solve_with_cheapest_insertion(problem, Some(vec![matrix]));
 
     assert!(!solution.tours.is_empty());
     assert_eq!(
