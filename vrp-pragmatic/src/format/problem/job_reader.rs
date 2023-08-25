@@ -353,12 +353,12 @@ fn read_specific_job_places(
 ) {
     (1..)
         .zip(get_places)
-        .flat_map(|(reload_idx, place)| {
+        .flat_map(|(place_idx, place)| {
             vehicle
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let job_id = format!("{vehicle_id}_{job_type}_{shift_index}_{reload_idx}");
+                    let job_id = format!("{vehicle_id}_{job_type}_{shift_index}_{place_idx}");
                     let times = parse_times(&place.times);
 
                     let job = get_conditional_job(

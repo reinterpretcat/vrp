@@ -59,19 +59,19 @@ parameterized_test! {can_accumulate_distance, (limit, recharges, activities, exp
 
 can_accumulate_distance! {
     case01_single_recharge: (20., vec![(2, 8)],
-        vec![5, 10, 15], vec![0., 5., 0., 2., 7.]
+        vec![5, 10, 15], vec![0., 5., 8., 2., 7.]
     ),
     case02_two_recharges: (20., vec![(2, 8), (5, 17)],
-        vec![5, 10, 15, 20], vec![0., 5., 0., 2., 7., 0., 3.]
+        vec![5, 10, 15, 20], vec![0., 5., 8., 2., 7., 9., 3.]
     ),
     case03_no_recharges: (20., vec![],
         vec![5, 10, 15, 20], vec![0., 5., 10., 15., 20.]
     ),
     case04_recharge_at_end: (25., vec![(4, 8)],
-        vec![5, 10, 15], vec![0., 5., 10., 15., 0.]
+        vec![5, 10, 15], vec![0., 5., 10., 15., 22.]
     ),
     case05_recharge_at_start: (20., vec![(1, 8)],
-        vec![5, 10, 15], vec![0., 0., 3., 8., 13.]
+        vec![5, 10, 15], vec![0., 8., 3., 8., 13.]
     ),
 }
 

@@ -11,7 +11,7 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::construction::enablers::*;
 use vrp_core::construction::features::*;
-use vrp_core::models::solution::Route;
+use vrp_core::models::solution::{Activity, Route};
 
 /// Specifies a distance limit function for recharge. It should return a fixed value for the same
 /// actor all the time.
@@ -30,7 +30,7 @@ pub fn create_recharge_feature(
         &[RECHARGE_DISTANCE_KEY, RECHARGE_INTERVALS_KEY],
         MarkerInsertionPolicy::Any,
         Arc::new(RechargeableMultiTrip {
-            route_intervals: Arc::new(FixedRouteIntervals {
+            route_intervals: FixedRouteIntervals {
                 is_marker_single_fn: Box::new(is_recharge_single),
                 is_new_interval_needed_fn: Box::new({
                     let distance_limit_fn = distance_limit_fn.clone();
@@ -92,7 +92,7 @@ pub fn create_recharge_feature(
                     })
                 }),
                 intervals_key: RECHARGE_INTERVALS_KEY,
-            }),
+            },
             transport,
             code,
             distance_state_key: RECHARGE_DISTANCE_KEY,
@@ -102,7 +102,7 @@ pub fn create_recharge_feature(
 }
 
 struct RechargeableMultiTrip {
-    route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
+    route_intervals: FixedRouteIntervals,
     transport: Arc<dyn TransportCost + Send + Sync>,
     code: ViolationCode,
     distance_state_key: StateKey,
@@ -111,7 +111,7 @@ struct RechargeableMultiTrip {
 
 impl MultiTrip for RechargeableMultiTrip {
     fn get_route_intervals(&self) -> &(dyn RouteIntervals) {
-        self.route_intervals.as_ref()
+        &self.route_intervals
     }
 
     fn get_constraint(&self) -> &(dyn FeatureConstraint) {
@@ -123,14 +123,13 @@ impl MultiTrip for RechargeableMultiTrip {
             return;
         }
 
-        let marker_intervals = self
-            .route_intervals
-            .get_marker_intervals(route_ctx)
-            .cloned()
-            .unwrap_or_else(|| vec![(0, route_ctx.route().tour.total() - 1)]);
+        let last_idx = route_ctx.route().tour.total() - 1;
+        let marker_intervals = self.route_intervals.resolve_marker_intervals(route_ctx).collect::<Vec<_>>();
 
         marker_intervals.into_iter().for_each(|(start_idx, end_idx)| {
             let (route, state) = route_ctx.as_mut();
+
+            let end_idx = if end_idx != last_idx { end_idx + 1 } else { end_idx };
 
             let _ = route
                 .tour
@@ -218,26 +217,40 @@ impl RechargeableMultiTrip {
     ) -> Option<ConstraintViolation> {
         let threshold = (self.distance_limit_fn)(route_ctx.route().actor.as_ref())?;
 
-        let is_prev_recharge = activity_ctx.prev.job.as_ref().map_or(false, |job| is_recharge_single(job));
-        let current_distance = if is_prev_recharge {
-            Distance::default()
-        } else {
-            route_ctx
-                .state()
-                .get_activity_state::<Distance>(self.distance_state_key, activity_ctx.prev)
-                .copied()
-                .unwrap_or(Distance::default())
-        };
-
-        let ((prev_to_tar_distance, tar_to_next_distance), _) =
-            calculate_travel(route_ctx, activity_ctx, self.transport.as_ref());
+        let end = self
+            .route_intervals
+            .resolve_marker_intervals(route_ctx)
+            .find(|(_, end_idx)| activity_ctx.index <= *end_idx)
+            .and_then(|(_, end_idx)| route_ctx.route().tour.get(end_idx))
+            .expect("invalid markers state");
+        let interval_distance = self.get_distance(route_ctx, end);
 
         let is_new_recharge = activity_ctx.target.job.as_ref().map_or(false, |job| is_recharge_single(job));
 
         let is_violation = if is_new_recharge {
-            (current_distance + prev_to_tar_distance) > threshold || tar_to_next_distance > threshold
+            let ((prev_to_tar_distance, tar_to_next_distance), _) =
+                calculate_travel(route_ctx, activity_ctx, self.transport.as_ref());
+
+            // S ----- A ---- [X] ------ B ----- F
+
+            let current_distance = self.get_distance(route_ctx, activity_ctx.prev);
+            // check S->X
+            let is_begin_violates = (current_distance + prev_to_tar_distance) > threshold;
+            // check X->F
+            let is_end_violates = if let Some(next) = &activity_ctx.next {
+                let next_distance = self.get_distance(route_ctx, next);
+                let new_interval_distance = interval_distance - next_distance;
+
+                (new_interval_distance + tar_to_next_distance) > threshold
+            } else {
+                false
+            };
+
+            is_begin_violates || is_end_violates
         } else {
-            current_distance + prev_to_tar_distance + tar_to_next_distance > threshold
+            let (distance_delta, _) = calculate_travel_delta(route_ctx, activity_ctx, self.transport.as_ref());
+
+            (interval_distance + distance_delta) > threshold
         };
 
         if is_violation {
@@ -245,6 +258,16 @@ impl RechargeableMultiTrip {
         } else {
             None
         }
+    }
+}
+
+impl RechargeableMultiTrip {
+    fn get_distance(&self, route_ctx: &RouteContext, activity: &Activity) -> Distance {
+        route_ctx
+            .state()
+            .get_activity_state::<Distance>(self.distance_state_key, activity)
+            .copied()
+            .unwrap_or(Distance::default())
     }
 }
 

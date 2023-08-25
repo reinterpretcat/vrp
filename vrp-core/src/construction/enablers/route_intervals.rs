@@ -2,7 +2,9 @@ use crate::construction::heuristics::{RouteContext, SolutionContext};
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Route};
 use crate::models::StateKey;
+use crate::utils::Either;
 use hashbrown::HashSet;
+use std::iter::once;
 use std::ops::Range;
 
 /// This trait defines a logic to split route into logical intervals by marker jobs.
@@ -158,6 +160,18 @@ impl FixedRouteIntervals {
         solution_ctx.ignored.retain(|job| !candidate_jobs.contains(job));
         solution_ctx.locked.extend(candidate_jobs.iter().cloned().chain(assigned_job));
         solution_ctx.required.extend(candidate_jobs.into_iter());
+    }
+
+    /// Returns marker intervals or default interval [0, tour_size).
+    pub fn resolve_marker_intervals<'a>(
+        &self,
+        route_ctx: &'a RouteContext,
+    ) -> impl Iterator<Item = (usize, usize)> + 'a {
+        let last_idx = route_ctx.route().tour.total() - 1;
+
+        self.get_marker_intervals(route_ctx)
+            .map(|intervals| Either::Left(intervals.iter().copied()))
+            .unwrap_or_else(|| Either::Right(once((0, last_idx))))
     }
 }
 
