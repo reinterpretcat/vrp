@@ -78,7 +78,9 @@ pub fn create_recharge_feature(
                         )
                     };
                     move |route_ctx, left, right| {
-                        let new_distance = get_counter(route_ctx, left.end) + get_counter(route_ctx, right.end)
+                        let end_idx = get_end_idx(route_ctx, right.end);
+
+                        let new_distance = get_counter(route_ctx, left.end) + get_counter(route_ctx, end_idx)
                             - get_counter(route_ctx, right.start + 1)
                             + get_distance(route_ctx.route(), left.end, right.start + 1);
 
@@ -221,12 +223,7 @@ impl RechargeableMultiTrip {
             .route_intervals
             .resolve_marker_intervals(route_ctx)
             .find(|(_, end_idx)| activity_ctx.index <= *end_idx)
-            .and_then(|(_, end_idx)| {
-                let last_idx = route_ctx.route().tour.total() - 1;
-                let end_idx = end_idx + if end_idx == last_idx { 0 } else { 1 };
-
-                route_ctx.route().tour.get(end_idx)
-            })
+            .and_then(|(_, end_idx)| route_ctx.route().tour.get(get_end_idx(route_ctx, end_idx)))
             .map(|end| self.get_distance(route_ctx, end))
             .expect("invalid markers state");
 
@@ -278,4 +275,9 @@ impl RechargeableMultiTrip {
 
 fn is_recharge_single(single: &Single) -> bool {
     single.dimens.get_job_type().map_or(false, |t| t == "recharge")
+}
+
+fn get_end_idx(route_ctx: &RouteContext, end_idx: usize) -> usize {
+    let last_idx = route_ctx.route().tour.total() - 1;
+    end_idx + if end_idx == last_idx { 0 } else { 1 }
 }
