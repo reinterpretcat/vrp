@@ -1,8 +1,9 @@
 use crate::format::problem::*;
+use crate::format_time;
 use crate::helpers::*;
 
 #[test]
-fn can_use_recharge() {
+fn can_use_recharge_trivial_case() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", (30., 0.)), create_delivery_job("job2", (70., 0.))],
@@ -37,4 +38,47 @@ fn can_use_recharge() {
         get_ids_from_tour(&solution.tours[0]),
         vec![vec!["departure"], vec!["job1"], vec!["recharge"], vec!["job2"], vec!["arrival"]]
     );
+}
+
+#[test]
+fn can_still_skip_jobs_with_recharge() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job("job1", (52.5577, 13.4783)),
+                create_delivery_job("job2", (52.4838, 13.4319)),
+                create_delivery_job("job3", (52.4656, 13.4485)),
+            ],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    end: Some(ShiftEnd {
+                        earliest: None,
+                        latest: format_time(3600. * 12.),
+                        location: (52.5189, 13.4011).to_loc(),
+                    }),
+                    recharges: Some(VehicleRecharges {
+                        max_distance: 10000.,
+                        stations: vec![JobPlace {
+                            location: (52.5459, 13.5058).to_loc(),
+                            duration: 900.,
+                            times: None,
+                            tag: None,
+                        }],
+                    }),
+                    ..create_default_vehicle_shift_with_locations((52.5189, 13.4011), (52.5189, 13.4011))
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+
+    let solution = solve_with_metaheuristic(problem, None);
+
+    assert!(!solution.tours.is_empty());
+    assert_eq!(solution.unassigned.iter().flatten().count(), 2);
 }

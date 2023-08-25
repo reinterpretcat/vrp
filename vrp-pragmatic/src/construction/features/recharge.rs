@@ -217,13 +217,18 @@ impl RechargeableMultiTrip {
     ) -> Option<ConstraintViolation> {
         let threshold = (self.distance_limit_fn)(route_ctx.route().actor.as_ref())?;
 
-        let end = self
+        let interval_distance = self
             .route_intervals
             .resolve_marker_intervals(route_ctx)
             .find(|(_, end_idx)| activity_ctx.index <= *end_idx)
-            .and_then(|(_, end_idx)| route_ctx.route().tour.get(end_idx))
+            .and_then(|(_, end_idx)| {
+                let last_idx = route_ctx.route().tour.total() - 1;
+                let end_idx = end_idx + if end_idx == last_idx { 0 } else { 1 };
+
+                route_ctx.route().tour.get(end_idx)
+            })
+            .map(|end| self.get_distance(route_ctx, end))
             .expect("invalid markers state");
-        let interval_distance = self.get_distance(route_ctx, end);
 
         let is_new_recharge = activity_ctx.target.job.as_ref().map_or(false, |job| is_recharge_single(job));
 
