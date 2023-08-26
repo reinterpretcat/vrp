@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.22.1]- 2023-08-26
+
 ### Added
 
 * `experimental` recharge stations feature to support basic electric VRP use case
@@ -681,7 +684,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.22.0...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.22.1...HEAD
+[v1.22.1]: https://github.com/reinterpretcat/vrp/compare/v1.22.0...v1.22.1
 [v1.22.0]: https://github.com/reinterpretcat/vrp/compare/v1.21.1...v1.22.0
 [v1.21.1]: https://github.com/reinterpretcat/vrp/compare/v1.21.0...v1.21.1
 [v1.21.0]: https://github.com/reinterpretcat/vrp/compare/v1.20.0...v1.21.0

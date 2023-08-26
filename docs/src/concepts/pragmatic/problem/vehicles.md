@@ -97,7 +97,7 @@ Each shift can have the following properties:
     - tag (optional): a tag which will be propagated back within the corresponding reload activity in solution
     - resourceId (optional): a shared reload resource id. It is used to limit amount of deliveries loaded at this reload.
   See examples [here](../../../examples/pragmatic/basics/reload.md).
-- **recharges** (optional, experimental) specifies recharging stations and max distance limit before recharge should happend
+- **recharges** (optional, experimental) specifies recharging stations and max distance limit before recharge should happen.
   See examples [here](../../../examples/pragmatic/basics/recharge.md).
 
 ## Related errors
