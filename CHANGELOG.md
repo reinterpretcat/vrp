@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * apply refactorings to some core api
+* update dependencies
 
 ### Fixed
 
