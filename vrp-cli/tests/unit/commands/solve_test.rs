@@ -104,7 +104,7 @@ fn can_specify_heuristic_setting() {
 
 #[test]
 fn can_specify_parallelism() {
-    for (params, result) in vec![
+    for (params, result) in [
         (vec!["--parallelism", "3,1"], Ok(3_usize)),
         (vec!["--parallelism", "3"], Err("cannot parse parallelism parameter".into())),
     ] {
@@ -118,7 +118,7 @@ fn can_specify_parallelism() {
 
 #[test]
 fn can_use_init_size() {
-    for (params, result) in vec![
+    for (params, result) in [
         (vec!["--init-size", "1"], Ok(Some(1))),
         (vec!["--init-size", "0"], Err("init size must be an integer bigger than 0, got '0'".into())),
         (vec![], Ok(None)),

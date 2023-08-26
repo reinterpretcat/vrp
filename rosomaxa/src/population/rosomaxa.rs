@@ -90,9 +90,7 @@ where
         let is_improved = self.elite.add_all(elite);
 
         match &mut self.phase {
-            RosomaxaPhases::Initial { solutions: known_individuals } => {
-                known_individuals.extend(individuals.into_iter())
-            }
+            RosomaxaPhases::Initial { solutions: known_individuals } => known_individuals.extend(individuals),
             RosomaxaPhases::Exploration { network, statistics, .. } => {
                 network.store_batch(individuals, statistics.generation, init_individual);
             }
@@ -233,7 +231,7 @@ where
                         individuals.drain(0..4).collect(),
                     );
 
-                    let initial = individuals.drain(0..).collect::<Vec<_>>();
+                    let initial = std::mem::take(individuals);
                     let initial = initial.into_iter().map(init_individual).collect::<Vec<_>>();
                     initial.iter().for_each(|individual| network.store(individual.deep_copy(), 0));
 

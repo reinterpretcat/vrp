@@ -135,7 +135,7 @@ impl FixedRouteIntervals {
             });
         });
 
-        solution_ctx.ignored.extend(extra_ignored.into_iter());
+        solution_ctx.ignored.extend(extra_ignored);
     }
 
     fn promote_markers_when_needed(&self, solution_ctx: &mut SolutionContext) {
@@ -159,7 +159,7 @@ impl FixedRouteIntervals {
 
         solution_ctx.ignored.retain(|job| !candidate_jobs.contains(job));
         solution_ctx.locked.extend(candidate_jobs.iter().cloned().chain(assigned_job));
-        solution_ctx.required.extend(candidate_jobs.into_iter());
+        solution_ctx.required.extend(candidate_jobs);
     }
 
     /// Returns marker intervals or default interval [0, tour_size).

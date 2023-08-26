@@ -73,11 +73,11 @@ impl CheckerContext {
         let (_, errors) = check_vehicle_load(self)
             .err()
             .into_iter()
-            .chain(check_relations(self).err().into_iter())
-            .chain(check_breaks(self).err().into_iter())
-            .chain(check_assignment(self).err().into_iter())
-            .chain(check_routing(self).err().into_iter())
-            .chain(check_limits(self).err().into_iter())
+            .chain(check_relations(self).err())
+            .chain(check_breaks(self).err())
+            .chain(check_assignment(self).err())
+            .chain(check_routing(self).err())
+            .chain(check_limits(self).err())
             .flatten()
             .fold((HashSet::new(), Vec::default()), |(mut used, mut errors), error| {
                 if !used.contains(&error) {

@@ -135,7 +135,7 @@ impl JobRemovalTracker {
             self.removed_jobs.insert(job.clone());
         });
 
-        solution.required.extend(jobs.into_iter());
+        solution.required.extend(jobs);
         solution.keep_routes(&|route_ctx| route_ctx.route().actor != actor);
 
         self.affected_actors.insert(actor);

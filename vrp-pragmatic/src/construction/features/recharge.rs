@@ -187,7 +187,7 @@ impl MultiTrip for RechargeableMultiTrip {
         } else {
             solution_ctx.ignored.retain(|job| !jobs.contains(job));
             solution_ctx.locked.extend(jobs.iter().cloned());
-            solution_ctx.required.extend(jobs.into_iter());
+            solution_ctx.required.extend(jobs);
 
             true
         }

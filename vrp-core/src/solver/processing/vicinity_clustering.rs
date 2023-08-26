@@ -57,14 +57,13 @@ impl HeuristicContextProcessing for VicinityClustering {
                 (Vec::new(), HashSet::new()),
                 |(mut clusters, mut clustered_jobs), (cluster, cluster_jobs)| {
                     clusters.push(cluster);
-                    clustered_jobs.extend(cluster_jobs.into_iter());
+                    clustered_jobs.extend(cluster_jobs);
 
                     (clusters, clustered_jobs)
                 },
             );
 
-            let jobs =
-                problem.jobs.all().filter(|job| !clustered_jobs.contains(job)).chain(clusters.into_iter()).collect();
+            let jobs = problem.jobs.all().filter(|job| !clustered_jobs.contains(job)).chain(clusters).collect();
 
             let mut extras: Extras =
                 problem.extras.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<HashMap<_, _, _>>();

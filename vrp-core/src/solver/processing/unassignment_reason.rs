@@ -59,7 +59,7 @@ impl HeuristicSolutionProcessing for UnassignmentReason {
             (job, code)
         });
 
-        insertion_ctx.solution.unassigned.extend(unassigned.into_iter());
+        insertion_ctx.solution.unassigned.extend(unassigned);
 
         insertion_ctx
     }

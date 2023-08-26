@@ -349,7 +349,7 @@ pub(crate) fn create_feature_collection(problem: &Problem, solution: &Solution) 
     Ok(FeatureCollection {
         features: stop_markers
             .into_iter()
-            .chain(stop_lines.into_iter())
+            .chain(stop_lines)
             .chain(unassigned_markers)
             .chain(clusters_geometry)
             .collect(),

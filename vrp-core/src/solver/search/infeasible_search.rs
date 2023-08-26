@@ -45,18 +45,17 @@ impl HeuristicSearchOperator for InfeasibleSearch {
 
         let repeat_count = refinement_ctx.environment.random.uniform_int(1, self.repeat_count as i32);
 
-        (0..repeat_count).fold(Some(new_insertion_ctx), |initial, _| {
+        let mut initial = Some(new_insertion_ctx);
+        for _ in 0..repeat_count {
             // NOTE from diversity reasons, we don't want to see original solution in the population
-            let new_insertion_ctx = if let Some(initial) = initial {
+            let new_insertion_ctx = if let Some(initial) = initial.take() {
                 self.inner_search.search(&new_refinement_ctx, &initial)
             } else {
                 self.inner_search.search(&new_refinement_ctx, get_random_individual(&new_refinement_ctx))
             };
 
             new_refinement_ctx.add_solution(new_insertion_ctx);
-
-            None
-        });
+        }
 
         let new_insertion_ctx = get_best_or_random_individual(&new_refinement_ctx, insertion_ctx);
 

@@ -99,11 +99,9 @@ fn can_format_network() {
 fn can_handle_empty_population() {
     let (_, mut rosomaxa) = create_rosomaxa(10);
 
-    for (phase, estimate) in vec![
-        (SelectionPhase::Initial, None),
-        (SelectionPhase::Initial, Some(0.7)),
-        (SelectionPhase::Initial, Some(0.95)),
-    ] {
+    for (phase, estimate) in
+        [(SelectionPhase::Initial, None), (SelectionPhase::Initial, Some(0.7)), (SelectionPhase::Initial, Some(0.95))]
+    {
         if let Some(estimate) = estimate {
             rosomaxa.update_phase(&create_statistics(estimate, 10));
         }

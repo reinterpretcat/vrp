@@ -126,7 +126,7 @@ impl FleetBuilder {
     }
 
     pub fn add_vehicles(&mut self, vehicles: Vec<Vehicle>) -> &mut FleetBuilder {
-        self.vehicles.extend(vehicles.into_iter());
+        self.vehicles.extend(vehicles);
         self
     }
 

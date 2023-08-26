@@ -159,7 +159,7 @@ where
             domindated.retain(|idx| !ids.contains(idx));
         });
 
-        current_front.extend(ids.into_iter());
+        current_front.extend(ids);
     }
 
     Front { dominated_solutions, domination_count, previous_front: Vec::new(), current_front, rank: 0, solutions }

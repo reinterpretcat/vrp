@@ -95,13 +95,13 @@ where
 
                 if let Some((solutions, idx)) = host_receiver.recv().await {
                     actors.free_actor(idx);
-                    processed_solutions.extend(solutions.into_iter());
+                    processed_solutions.extend(solutions);
                 }
 
                 if processed_solutions.len() == self.params.selection_size {
                     let termination_estimate = termination.estimate(&heuristic_ctx);
                     heuristic_ctx.on_generation(
-                        processed_solutions.drain(0..).collect(),
+                        std::mem::take(&mut processed_solutions),
                         termination_estimate,
                         generation_time.clone(),
                     );

@@ -170,7 +170,7 @@ mod c_interop {
                 }
                 (Err(errors), Ok(_)) | (Ok(_), Err(errors)) => Err(errors),
                 (Err(errors1), Err(errors2)) => {
-                    Err(MultiFormatError::from(errors1.into_iter().chain(errors2.into_iter()).collect::<Vec<_>>()))
+                    Err(MultiFormatError::from(errors1.into_iter().chain(errors2).collect::<Vec<_>>()))
                 }
             }
             .map_err(|errs| errs.into())

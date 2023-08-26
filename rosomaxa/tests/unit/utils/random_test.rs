@@ -6,7 +6,7 @@ fn can_return_weights() {
     let weights = &[100, 50, 20];
     let experiments = 10000_usize;
     let total_sum = weights.iter().sum::<usize>();
-    let mut counter = vec![0_usize; 3];
+    let mut counter = [0_usize; 3];
 
     (0..experiments).for_each(|_| {
         let idx = random.weighted(weights);

@@ -15,7 +15,7 @@ fn check_relations_assignment(context: &CheckerContext) -> Result<(), GenericErr
     let reserved_ids = vec!["departure", "arrival", "break", "dispatch", "reload"].into_iter().collect::<HashSet<_>>();
 
     (0_usize..)
-        .zip(context.problem.plan.relations.as_ref().map_or(vec![].iter(), |relations| relations.iter()))
+        .zip(context.problem.plan.relations.as_ref().map_or([].iter(), |relations| relations.iter()))
         .try_for_each(|(idx, relation)| {
             let tour = get_tour_by_vehicle_id(&relation.vehicle_id, relation.shift_index, &context.solution);
             // NOTE tour can be absent for tour relation
@@ -126,7 +126,7 @@ where
     }
 
     if let Some(position) = left.iter().position(|item| *item == *right.first().unwrap()) {
-        left.into_iter().skip(position).zip(right.into_iter()).filter(|(a, b)| *a == *b).map(|(item, _)| item).collect()
+        left.into_iter().skip(position).zip(right).filter(|(a, b)| *a == *b).map(|(item, _)| item).collect()
     } else {
         vec![]
     }

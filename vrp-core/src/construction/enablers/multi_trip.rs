@@ -204,7 +204,7 @@ impl FeatureState for MultiTripState {
             let jobs = self.filter_markers(route_ctx.route(), &solution_ctx.required).collect::<HashSet<_>>();
             solution_ctx.required.retain(|job| !jobs.contains(job));
             solution_ctx.unassigned.retain(|job, _| !jobs.contains(job));
-            solution_ctx.ignored.extend(jobs.into_iter());
+            solution_ctx.ignored.extend(jobs);
             // NOTE reevaluate insertion of unassigned due to multi-trip constraint jobs
             solution_ctx.unassigned.iter_mut().for_each(|pair| match pair.1 {
                 UnassignmentInfo::Simple(code) if *code == self.code => {
@@ -221,7 +221,7 @@ impl FeatureState for MultiTripState {
 
             solution_ctx.ignored.retain(|job| !jobs.contains(job));
             solution_ctx.locked.extend(jobs.iter().cloned());
-            solution_ctx.required.extend(jobs.into_iter());
+            solution_ctx.required.extend(jobs);
         }
     }
 

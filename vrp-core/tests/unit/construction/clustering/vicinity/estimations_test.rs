@@ -192,7 +192,7 @@ fn can_get_dissimilarities_impl(
         .collect::<Vec<_>>();
 
     assert_eq!(dissimilarities.len(), expected.len());
-    dissimilarities.into_iter().zip(expected.into_iter()).for_each(|(result, expected)| {
+    dissimilarities.into_iter().zip(expected).for_each(|(result, expected)| {
         assert_eq!(result.1, expected.0);
         compare_visit_info(&result.2, &expected.1);
     });

@@ -83,7 +83,7 @@ pub fn map_to_problem(
     );
     let jobs = Arc::new(jobs);
     let fleet = Arc::new(fleet);
-    let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect::<Vec<_>>();
+    let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index)).collect::<Vec<_>>();
     let goal = Arc::new(
         create_goal_context(
             &api_problem,

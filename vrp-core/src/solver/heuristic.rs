@@ -543,7 +543,7 @@ mod dynamic {
                     )
                 })
             })
-            .chain(mutations.into_iter())
+            .chain(mutations)
             .filter(|(_, name, _)| heuristic_filter.map_or(true, |filter| filter.is_enabled(name.as_str())))
             .collect::<Vec<_>>()
     }

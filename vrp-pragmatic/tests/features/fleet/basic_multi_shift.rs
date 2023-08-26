@@ -143,7 +143,7 @@ fn can_prefer_first_days_with_minimize_arrival_time_objective() {
         ]),
         fleet: Fleet {
             vehicles: vec![VehicleType {
-                shifts: vec![0., 100., 200., 300., 400.]
+                shifts: [0., 100., 200., 300., 400.]
                     .iter()
                     .map(|earliest| VehicleShift {
                         start: ShiftStart {

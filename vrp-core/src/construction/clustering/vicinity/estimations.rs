@@ -67,7 +67,7 @@ pub(crate) fn get_clusters(
                 .collect::<Vec<_>>();
 
             clusters.push((new_cluster.clone(), new_cluster_jobs.clone()));
-            used_jobs.extend(new_cluster_jobs.into_iter());
+            used_jobs.extend(new_cluster_jobs);
 
             // remove used jobs from analysis
             cluster_estimates.retain(|(center, _)| !used_jobs.contains(center));
