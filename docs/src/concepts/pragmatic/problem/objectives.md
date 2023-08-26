@@ -55,6 +55,7 @@ These objectives provide some extra control on job assignment:
 * `compact-tour`: controls how tour is shaped by limiting amount of shared jobs, assigned in different routes,
     for a given job' neighbourhood. It has the following mandatory parameters:
    *  `options`: options to relax objective:
+       - `jobRadius`: a radius of neighbourhood, minimum is 1
        - `threshold`: a minimum shared jobs to count
        - `distance`:  a minimum relative distance between counts when comparing different solutions.
    This objective is supposed to be on the same level within cost ones.

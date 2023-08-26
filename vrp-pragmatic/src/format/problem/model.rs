@@ -659,6 +659,7 @@ pub struct BalanceOptions {
 
 /// Specifies tour compactness options to relax impact of objective.
 #[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CompactOptions {
     /// Specifies radius of neighbourhood. Min is 1.
     pub job_radius: usize,
