@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-* recharge stations feature to support basic electric VRP use cases
+* `experimental` recharge stations feature to support basic electric VRP use case
 
 ### Changed
 

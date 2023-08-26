@@ -113,11 +113,16 @@ impl FeatureState for TourCompactnessState {
 fn count_shared_neighbours(item: (&SolutionContext, &RouteContext, &Job), jobs: &Jobs, job_radius: usize) -> usize {
     let (solution_ctx, route_ctx, job) = item;
 
-    let profile = &route_ctx.route().actor.vehicle.profile;
-    let departure = route_ctx.route().tour.start().map_or(Timestamp::default(), |s| s.schedule.departure);
+    let route = route_ctx.route();
+    let departure = route.tour.start().map_or(Timestamp::default(), |s| s.schedule.departure);
 
-    jobs.neighbors(profile, job, departure)
+    jobs.neighbors(&route.actor.vehicle.profile, job, departure)
         .take(job_radius)
-        .filter(|(j, _)| solution_ctx.routes.iter().filter(|rc| *rc != route_ctx).any(|rc| rc.route().tour.has_job(j)))
+        .filter(|(j, _)| {
+            let not_current = !route.tour.has_job(j);
+            let is_assigned = !solution_ctx.required.contains(j);
+
+            not_current && is_assigned
+        })
         .count()
 }

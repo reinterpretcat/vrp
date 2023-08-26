@@ -1,0 +1,728 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:00:00Z",
+        "departure": "2020-05-01T09:00:00Z",
+        "distance": "0",
+        "jobs_ids": "departure",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "0",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.4011,
+          52.5189
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:10:14Z",
+        "departure": "2020-05-01T09:15:14Z",
+        "distance": "6141",
+        "jobs_ids": "job3",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "1",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.310531630245285,
+          52.51645925211421
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:16:57Z",
+        "departure": "2020-05-01T09:31:57Z",
+        "distance": "7172",
+        "jobs_ids": "recharge",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "charging-station",
+        "stop_idx": "2",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.3243,
+          52.5204
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:39:55Z",
+        "departure": "2020-05-01T09:44:55Z",
+        "distance": "11952",
+        "jobs_ids": "job12",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "3",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.347428870365968,
+          52.560969920106366
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:49:03Z",
+        "departure": "2020-05-01T09:54:03Z",
+        "distance": "14433",
+        "jobs_ids": "job7",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "4",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.381458245337722,
+          52.55268247887361
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:55:55Z",
+        "departure": "2020-05-01T10:10:55Z",
+        "distance": "15553",
+        "jobs_ids": "recharge",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "charging-station",
+        "stop_idx": "5",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.3975,
+          52.5502
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T10:13:44Z",
+        "departure": "2020-05-01T10:18:44Z",
+        "distance": "17244",
+        "jobs_ids": "job11",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "6",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.384345955947186,
+          52.53728559309784
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T10:20:08Z",
+        "departure": "2020-05-01T10:25:08Z",
+        "distance": "18086",
+        "jobs_ids": "job18",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "7",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.396692271118948,
+          52.53636687412595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T10:28:25Z",
+        "departure": "2020-05-01T10:28:25Z",
+        "distance": "20053",
+        "jobs_ids": "arrival",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "8",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.4011,
+          52.5189
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:00:00Z",
+        "departure": "2020-05-01T09:00:00Z",
+        "distance": "0",
+        "jobs_ids": "departure",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "0",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.4011,
+          52.5189
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:04:08Z",
+        "departure": "2020-05-01T09:09:08Z",
+        "distance": "2479",
+        "jobs_ids": "job20",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "1",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.434017943525484,
+          52.52862953792047
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:15:40Z",
+        "departure": "2020-05-01T09:20:40Z",
+        "distance": "6399",
+        "jobs_ids": "job15",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "2",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.459275950620873,
+          52.5603208042266
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:22:52Z",
+        "departure": "2020-05-01T09:27:52Z",
+        "distance": "7720",
+        "jobs_ids": "job1",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "3",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.47831557890163,
+          52.55770070807453
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:31:40Z",
+        "departure": "2020-05-01T09:46:40Z",
+        "distance": "9997",
+        "jobs_ids": "recharge",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "charging-station",
+        "stop_idx": "4",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.5058,
+          52.5459
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:49:48Z",
+        "departure": "2020-05-01T09:54:48Z",
+        "distance": "11873",
+        "jobs_ids": "job14",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "5",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.487291894366974,
+          52.533357673695875
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T09:56:20Z",
+        "departure": "2020-05-01T10:01:20Z",
+        "distance": "12788",
+        "jobs_ids": "job8",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "6",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.488275599400666,
+          52.52515727139781
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T10:04:43Z",
+        "departure": "2020-05-01T10:09:43Z",
+        "distance": "14823",
+        "jobs_ids": "job9",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "7",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.508014352789075,
+          52.5113790139571
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T10:12:05Z",
+        "departure": "2020-05-01T10:17:05Z",
+        "distance": "16238",
+        "jobs_ids": "job10",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "8",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.490517138667146,
+          52.50443783915422
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T10:18:20Z",
+        "departure": "2020-05-01T10:33:20Z",
+        "distance": "16988",
+        "jobs_ids": "recharge",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "charging-station",
+        "stop_idx": "9",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.5011,
+          52.5064
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T10:42:57Z",
+        "departure": "2020-05-01T10:47:57Z",
+        "distance": "22757",
+        "jobs_ids": "job5",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "10",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.448598436078305,
+          52.465611353026226
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T10:54:55Z",
+        "departure": "2020-05-01T11:09:55Z",
+        "distance": "26932",
+        "jobs_ids": "recharge",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "charging-station",
+        "stop_idx": "11",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.4076,
+          52.4936
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T11:13:13Z",
+        "departure": "2020-05-01T11:18:13Z",
+        "distance": "28909",
+        "jobs_ids": "job4",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "12",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.431958828477605,
+          52.48382634966174
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T11:25:36Z",
+        "departure": "2020-05-01T11:30:36Z",
+        "distance": "33336",
+        "jobs_ids": "job16",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "13",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.439791508009296,
+          52.52330707366729
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2020-05-01T11:35:03Z",
+        "departure": "2020-05-01T11:35:03Z",
+        "distance": "36002",
+        "jobs_ids": "arrival",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "14",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.4011,
+          52.5189
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "activities": "9",
+        "arrival": "2020-05-01T10:28:25Z",
+        "departure": "2020-05-01T09:00:00Z",
+        "distance": "20053",
+        "shift_idx": "0",
+        "stroke": "#e6194b",
+        "stroke-width": "4",
+        "tour_idx": "0",
+        "vehicle_id": "vehicle_1"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4011,
+            52.5189
+          ],
+          [
+            13.310531630245285,
+            52.51645925211421
+          ],
+          [
+            13.3243,
+            52.5204
+          ],
+          [
+            13.347428870365968,
+            52.560969920106366
+          ],
+          [
+            13.381458245337722,
+            52.55268247887361
+          ],
+          [
+            13.3975,
+            52.5502
+          ],
+          [
+            13.384345955947186,
+            52.53728559309784
+          ],
+          [
+            13.396692271118948,
+            52.53636687412595
+          ],
+          [
+            13.4011,
+            52.5189
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "activities": "15",
+        "arrival": "2020-05-01T11:35:03Z",
+        "departure": "2020-05-01T09:00:00Z",
+        "distance": "36002",
+        "shift_idx": "0",
+        "stroke": "#3cb44b",
+        "stroke-width": "4",
+        "tour_idx": "1",
+        "vehicle_id": "vehicle_2"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4011,
+            52.5189
+          ],
+          [
+            13.434017943525484,
+            52.52862953792047
+          ],
+          [
+            13.459275950620873,
+            52.5603208042266
+          ],
+          [
+            13.47831557890163,
+            52.55770070807453
+          ],
+          [
+            13.5058,
+            52.5459
+          ],
+          [
+            13.487291894366974,
+            52.533357673695875
+          ],
+          [
+            13.488275599400666,
+            52.52515727139781
+          ],
+          [
+            13.508014352789075,
+            52.5113790139571
+          ],
+          [
+            13.490517138667146,
+            52.50443783915422
+          ],
+          [
+            13.5011,
+            52.5064
+          ],
+          [
+            13.448598436078305,
+            52.465611353026226
+          ],
+          [
+            13.4076,
+            52.4936
+          ],
+          [
+            13.431958828477605,
+            52.48382634966174
+          ],
+          [
+            13.439791508009296,
+            52.52330707366729
+          ],
+          [
+            13.4011,
+            52.5189
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "job_id": "job17",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "roadblock",
+        "reasons": "RECHARGE_CONSTRAINT_CODE:cannot be assigned due to recharge constraint,CAPACITY_CONSTRAINT:does not fit into any vehicle due to capacity"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.317361234494124,
+          52.48354407179593
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "job_id": "job19",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "roadblock",
+        "reasons": "CAPACITY_CONSTRAINT:does not fit into any vehicle due to capacity,RECHARGE_CONSTRAINT_CODE:cannot be assigned due to recharge constraint"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.381890620781643,
+          52.46220732686443
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "job_id": "job2",
+        "marker-color": "#4363d8",
+        "marker-size": "medium",
+        "marker-symbol": "roadblock",
+        "reasons": "CAPACITY_CONSTRAINT:does not fit into any vehicle due to capacity,RECHARGE_CONSTRAINT_CODE:cannot be assigned due to recharge constraint"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.300632258878087,
+          52.56043917150327
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "job_id": "job13",
+        "marker-color": "#f58231",
+        "marker-size": "medium",
+        "marker-symbol": "roadblock",
+        "reasons": "CAPACITY_CONSTRAINT:does not fit into any vehicle due to capacity,RECHARGE_CONSTRAINT_CODE:cannot be assigned due to recharge constraint"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.426293829138386,
+          52.46326762540066
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "job_id": "job6",
+        "marker-color": "#911eb4",
+        "marker-size": "medium",
+        "marker-symbol": "roadblock",
+        "reasons": "CAPACITY_CONSTRAINT:does not fit into any vehicle due to capacity,RECHARGE_CONSTRAINT_CODE:cannot be assigned due to recharge constraint"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.319996854028378,
+          52.47033706718906
+        ]
+      }
+    }
+  ]
+}

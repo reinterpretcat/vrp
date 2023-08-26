@@ -1,0 +1,664 @@
+{
+  "statistic": {
+    "cost": 134.25099999999998,
+    "distance": 56055,
+    "duration": 14608,
+    "times": {
+      "driving": 5608,
+      "serving": 9000,
+      "waiting": 0,
+      "break": 0,
+      "commuting": 0,
+      "parking": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5189,
+            "lng": 13.4011
+          },
+          "time": {
+            "arrival": "2020-05-01T09:00:00Z",
+            "departure": "2020-05-01T09:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            5
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.51645925211421,
+            "lng": 13.310531630245285
+          },
+          "time": {
+            "arrival": "2020-05-01T09:10:14Z",
+            "departure": "2020-05-01T09:15:14Z"
+          },
+          "distance": 6141,
+          "load": [
+            4
+          ],
+          "activities": [
+            {
+              "jobId": "job3",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5204,
+            "lng": 13.3243
+          },
+          "time": {
+            "arrival": "2020-05-01T09:16:57Z",
+            "departure": "2020-05-01T09:31:57Z"
+          },
+          "distance": 7172,
+          "load": [
+            4
+          ],
+          "activities": [
+            {
+              "jobId": "recharge",
+              "type": "recharge"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.560969920106366,
+            "lng": 13.347428870365968
+          },
+          "time": {
+            "arrival": "2020-05-01T09:39:55Z",
+            "departure": "2020-05-01T09:44:55Z"
+          },
+          "distance": 11952,
+          "load": [
+            3
+          ],
+          "activities": [
+            {
+              "jobId": "job12",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.55268247887361,
+            "lng": 13.381458245337722
+          },
+          "time": {
+            "arrival": "2020-05-01T09:49:03Z",
+            "departure": "2020-05-01T09:54:03Z"
+          },
+          "distance": 14433,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "job7",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5502,
+            "lng": 13.3975
+          },
+          "time": {
+            "arrival": "2020-05-01T09:55:55Z",
+            "departure": "2020-05-01T10:10:55Z"
+          },
+          "distance": 15553,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "recharge",
+              "type": "recharge"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.53728559309784,
+            "lng": 13.384345955947186
+          },
+          "time": {
+            "arrival": "2020-05-01T10:13:44Z",
+            "departure": "2020-05-01T10:18:44Z"
+          },
+          "distance": 17244,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job11",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.53636687412595,
+            "lng": 13.396692271118948
+          },
+          "time": {
+            "arrival": "2020-05-01T10:20:08Z",
+            "departure": "2020-05-01T10:25:08Z"
+          },
+          "distance": 18086,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job18",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5189,
+            "lng": 13.4011
+          },
+          "time": {
+            "arrival": "2020-05-01T10:28:25Z",
+            "departure": "2020-05-01T10:28:25Z"
+          },
+          "distance": 20053,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 55.5356,
+        "distance": 20053,
+        "duration": 5305,
+        "times": {
+          "driving": 2005,
+          "serving": 3300,
+          "waiting": 0,
+          "break": 0,
+          "commuting": 0,
+          "parking": 0
+        }
+      }
+    },
+    {
+      "vehicleId": "vehicle_2",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5189,
+            "lng": 13.4011
+          },
+          "time": {
+            "arrival": "2020-05-01T09:00:00Z",
+            "departure": "2020-05-01T09:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            10
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52862953792047,
+            "lng": 13.434017943525484
+          },
+          "time": {
+            "arrival": "2020-05-01T09:04:08Z",
+            "departure": "2020-05-01T09:09:08Z"
+          },
+          "distance": 2479,
+          "load": [
+            9
+          ],
+          "activities": [
+            {
+              "jobId": "job20",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5603208042266,
+            "lng": 13.459275950620873
+          },
+          "time": {
+            "arrival": "2020-05-01T09:15:40Z",
+            "departure": "2020-05-01T09:20:40Z"
+          },
+          "distance": 6399,
+          "load": [
+            8
+          ],
+          "activities": [
+            {
+              "jobId": "job15",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.55770070807453,
+            "lng": 13.47831557890163
+          },
+          "time": {
+            "arrival": "2020-05-01T09:22:52Z",
+            "departure": "2020-05-01T09:27:52Z"
+          },
+          "distance": 7720,
+          "load": [
+            7
+          ],
+          "activities": [
+            {
+              "jobId": "job1",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5459,
+            "lng": 13.5058
+          },
+          "time": {
+            "arrival": "2020-05-01T09:31:40Z",
+            "departure": "2020-05-01T09:46:40Z"
+          },
+          "distance": 9997,
+          "load": [
+            7
+          ],
+          "activities": [
+            {
+              "jobId": "recharge",
+              "type": "recharge"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.533357673695875,
+            "lng": 13.487291894366974
+          },
+          "time": {
+            "arrival": "2020-05-01T09:49:48Z",
+            "departure": "2020-05-01T09:54:48Z"
+          },
+          "distance": 11873,
+          "load": [
+            6
+          ],
+          "activities": [
+            {
+              "jobId": "job14",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52515727139781,
+            "lng": 13.488275599400666
+          },
+          "time": {
+            "arrival": "2020-05-01T09:56:20Z",
+            "departure": "2020-05-01T10:01:20Z"
+          },
+          "distance": 12788,
+          "load": [
+            5
+          ],
+          "activities": [
+            {
+              "jobId": "job8",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5113790139571,
+            "lng": 13.508014352789075
+          },
+          "time": {
+            "arrival": "2020-05-01T10:04:43Z",
+            "departure": "2020-05-01T10:09:43Z"
+          },
+          "distance": 14823,
+          "load": [
+            4
+          ],
+          "activities": [
+            {
+              "jobId": "job9",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.50443783915422,
+            "lng": 13.490517138667146
+          },
+          "time": {
+            "arrival": "2020-05-01T10:12:05Z",
+            "departure": "2020-05-01T10:17:05Z"
+          },
+          "distance": 16238,
+          "load": [
+            3
+          ],
+          "activities": [
+            {
+              "jobId": "job10",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5064,
+            "lng": 13.5011
+          },
+          "time": {
+            "arrival": "2020-05-01T10:18:20Z",
+            "departure": "2020-05-01T10:33:20Z"
+          },
+          "distance": 16988,
+          "load": [
+            3
+          ],
+          "activities": [
+            {
+              "jobId": "recharge",
+              "type": "recharge"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.465611353026226,
+            "lng": 13.448598436078305
+          },
+          "time": {
+            "arrival": "2020-05-01T10:42:57Z",
+            "departure": "2020-05-01T10:47:57Z"
+          },
+          "distance": 22757,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "job5",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4936,
+            "lng": 13.4076
+          },
+          "time": {
+            "arrival": "2020-05-01T10:54:55Z",
+            "departure": "2020-05-01T11:09:55Z"
+          },
+          "distance": 26932,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "recharge",
+              "type": "recharge"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.48382634966174,
+            "lng": 13.431958828477605
+          },
+          "time": {
+            "arrival": "2020-05-01T11:13:13Z",
+            "departure": "2020-05-01T11:18:13Z"
+          },
+          "distance": 28909,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job4",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52330707366729,
+            "lng": 13.439791508009296
+          },
+          "time": {
+            "arrival": "2020-05-01T11:25:36Z",
+            "departure": "2020-05-01T11:30:36Z"
+          },
+          "distance": 33336,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job16",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5189,
+            "lng": 13.4011
+          },
+          "time": {
+            "arrival": "2020-05-01T11:35:03Z",
+            "departure": "2020-05-01T11:35:03Z"
+          },
+          "distance": 36002,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 78.71539999999999,
+        "distance": 36002,
+        "duration": 9303,
+        "times": {
+          "driving": 3603,
+          "serving": 5700,
+          "waiting": 0,
+          "break": 0,
+          "commuting": 0,
+          "parking": 0
+        }
+      }
+    }
+  ],
+  "unassigned": [
+    {
+      "jobId": "job17",
+      "reasons": [
+        {
+          "code": "RECHARGE_CONSTRAINT_CODE",
+          "description": "cannot be assigned due to recharge constraint",
+          "details": [
+            {
+              "vehicleId": "vehicle_1",
+              "shiftIndex": 0
+            }
+          ]
+        },
+        {
+          "code": "CAPACITY_CONSTRAINT",
+          "description": "does not fit into any vehicle due to capacity",
+          "details": [
+            {
+              "vehicleId": "vehicle_2",
+              "shiftIndex": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "jobId": "job19",
+      "reasons": [
+        {
+          "code": "RECHARGE_CONSTRAINT_CODE",
+          "description": "cannot be assigned due to recharge constraint",
+          "details": [
+            {
+              "vehicleId": "vehicle_1",
+              "shiftIndex": 0
+            }
+          ]
+        },
+        {
+          "code": "CAPACITY_CONSTRAINT",
+          "description": "does not fit into any vehicle due to capacity",
+          "details": [
+            {
+              "vehicleId": "vehicle_2",
+              "shiftIndex": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "jobId": "job2",
+      "reasons": [
+        {
+          "code": "RECHARGE_CONSTRAINT_CODE",
+          "description": "cannot be assigned due to recharge constraint",
+          "details": [
+            {
+              "vehicleId": "vehicle_1",
+              "shiftIndex": 0
+            }
+          ]
+        },
+        {
+          "code": "CAPACITY_CONSTRAINT",
+          "description": "does not fit into any vehicle due to capacity",
+          "details": [
+            {
+              "vehicleId": "vehicle_2",
+              "shiftIndex": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "jobId": "job13",
+      "reasons": [
+        {
+          "code": "RECHARGE_CONSTRAINT_CODE",
+          "description": "cannot be assigned due to recharge constraint",
+          "details": [
+            {
+              "vehicleId": "vehicle_1",
+              "shiftIndex": 0
+            }
+          ]
+        },
+        {
+          "code": "CAPACITY_CONSTRAINT",
+          "description": "does not fit into any vehicle due to capacity",
+          "details": [
+            {
+              "vehicleId": "vehicle_2",
+              "shiftIndex": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "jobId": "job6",
+      "reasons": [
+        {
+          "code": "RECHARGE_CONSTRAINT_CODE",
+          "description": "cannot be assigned due to recharge constraint",
+          "details": [
+            {
+              "vehicleId": "vehicle_1",
+              "shiftIndex": 0
+            }
+          ]
+        },
+        {
+          "code": "CAPACITY_CONSTRAINT",
+          "description": "does not fit into any vehicle due to capacity",
+          "details": [
+            {
+              "vehicleId": "vehicle_2",
+              "shiftIndex": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

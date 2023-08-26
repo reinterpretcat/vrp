@@ -4,8 +4,6 @@ This example demonstrates an **experimental** feature to model a simple scenario
 a distance limit (10km), so that they are forced to visit charging stations. Each station is defined by specific location,
 charging duration and time windows.
 
-**TODO**: update examples
-
 <details>
     <summary>Problem</summary><p>
 
@@ -30,3 +28,5 @@ charging duration and time windows.
 </div>
 
 <div id="map"></div>
+
+**NOTE**: the feature is on early stage
