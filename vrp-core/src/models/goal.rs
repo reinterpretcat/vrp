@@ -14,6 +14,7 @@ use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
+use std::ops::ControlFlow;
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -302,13 +303,15 @@ impl MultiObjective for GoalContext {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        unwrap_from_result(self.global_objectives.iter().try_fold(
-            Ordering::Equal,
-            |_, objectives| match dominance_order(a, b, objectives.iter().map(|o| o.as_ref())) {
-                Ordering::Equal => Ok(Ordering::Equal),
-                order => Err(order),
-            },
-        ))
+        self.global_objectives
+            .iter()
+            .try_fold(Ordering::Equal, |_, objectives| {
+                match dominance_order(a, b, objectives.iter().map(|o| o.as_ref())) {
+                    Ordering::Equal => ControlFlow::Continue(Ordering::Equal),
+                    order => ControlFlow::Break(order),
+                }
+            })
+            .unwrap_value()
     }
 
     fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {

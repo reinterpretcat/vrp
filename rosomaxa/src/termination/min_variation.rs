@@ -4,10 +4,11 @@ mod min_variation_test;
 
 use super::*;
 use crate::algorithms::math::get_cv;
-use crate::utils::CollectGroupBy;
+use crate::utils::{CollectGroupBy, UnwrapValue};
 use rand::prelude::SliceRandom;
 use std::hash::Hash;
 use std::marker::PhantomData;
+use std::ops::ControlFlow;
 
 /// A termination criteria which calculates coefficient variation in each objective and terminates
 /// when min threshold is not reached.
@@ -123,19 +124,19 @@ where
     where
         I: Iterator<Item = &'a Vec<f64>>,
     {
-        unwrap_from_result(
-            values.flat_map(|values| values.iter().cloned().enumerate()).collect_group_by().into_iter().try_fold(
-                true,
-                |_, (_, values)| {
-                    let cv = get_cv(values.as_slice());
-                    if cv > self.threshold {
-                        Err(false)
-                    } else {
-                        Ok(true)
-                    }
-                },
-            ),
-        )
+        values
+            .flat_map(|values| values.iter().cloned().enumerate())
+            .collect_group_by()
+            .into_iter()
+            .try_fold(true, |_, (_, values)| {
+                let cv = get_cv(values.as_slice());
+                if cv > self.threshold {
+                    ControlFlow::Break(false)
+                } else {
+                    ControlFlow::Continue(true)
+                }
+            })
+            .unwrap_value()
     }
 }
 

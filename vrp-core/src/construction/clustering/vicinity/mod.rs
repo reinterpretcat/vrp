@@ -12,6 +12,7 @@ use crate::models::Problem;
 use hashbrown::HashSet;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
+use std::ops::ControlFlow;
 use std::sync::Arc;
 
 mod estimations;
@@ -190,27 +191,26 @@ fn get_check_insertion_fn(
             result_selector: &BestResultSelector::default(),
         };
 
-        unwrap_from_result(
-            insertion_ctx
-                .solution
-                .registry
-                .next_route()
-                .filter(|route_ctx| (actor_filter)(&route_ctx.route().actor))
-                .try_fold(Err(-1), |_, route_ctx| {
-                    let result = eval_job_insertion_in_route(
-                        &insertion_ctx,
-                        &eval_ctx,
-                        route_ctx,
-                        InsertionPosition::Any,
-                        InsertionResult::make_failure(),
-                    );
+        insertion_ctx
+            .solution
+            .registry
+            .next_route()
+            .filter(|route_ctx| (actor_filter)(&route_ctx.route().actor))
+            .try_fold(Err(-1), |_, route_ctx| {
+                let result = eval_job_insertion_in_route(
+                    &insertion_ctx,
+                    &eval_ctx,
+                    route_ctx,
+                    InsertionPosition::Any,
+                    InsertionResult::make_failure(),
+                );
 
-                    match result {
-                        InsertionResult::Success(_) => Err(Ok(())),
-                        InsertionResult::Failure(failure) => Ok(Err(failure.constraint)),
-                    }
-                }),
-        )
+                match result {
+                    InsertionResult::Success(_) => ControlFlow::Break(Ok(())),
+                    InsertionResult::Failure(failure) => ControlFlow::Continue(Err(failure.constraint)),
+                }
+            })
+            .unwrap_value()
     }
 }
 

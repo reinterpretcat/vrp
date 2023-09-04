@@ -203,9 +203,12 @@ fn build_job_cluster(
     let center_estimates = estimates.get(center_job).expect("missing job in estimates");
 
     // iterate through all places and choose the one with most jobs clustered
-    unwrap_from_result(center.places.iter().enumerate().filter_map(map_place).try_fold(
-        Option::<(Job, usize)>::None,
-        |best_cluster, center_place_info| {
+    center
+        .places
+        .iter()
+        .enumerate()
+        .filter_map(map_place)
+        .try_fold(Option::<(Job, usize)>::None, |best_cluster, center_place_info| {
             let (center_place_idx, center_location, center_duration, center_times) = center_place_info;
             let (new_duration, parking) = get_service_time(center_duration, &config.serving);
             let new_duration = new_duration + parking;
@@ -278,24 +281,27 @@ fn build_job_cluster(
                 job_estimates.sort_by(|(_, _, a_info), (_, _, b_info)| (ordering_fn)(a_info, b_info));
 
                 // try to find the first successful addition to the cluster from job estimates
-                let addition_result = unwrap_from_result(job_estimates.iter().try_fold(None, |_, candidate| {
-                    try_add_job(
-                        variant,
-                        last_place_idx,
-                        &cluster,
-                        (candidate.0, candidate.1),
-                        config,
-                        center_commute,
-                        check_insertion,
-                    )
-                    .map_or_else(
-                        || {
-                            cluster_candidates.remove(candidate.0);
-                            Ok(None)
-                        },
-                        |data| Err(Some(data)),
-                    )
-                }));
+                let addition_result = job_estimates
+                    .iter()
+                    .try_fold(None, |_, candidate| {
+                        try_add_job(
+                            variant,
+                            last_place_idx,
+                            &cluster,
+                            (candidate.0, candidate.1),
+                            config,
+                            center_commute,
+                            check_insertion,
+                        )
+                        .map_or_else(
+                            || {
+                                cluster_candidates.remove(candidate.0);
+                                ControlFlow::Continue(None)
+                            },
+                            |data| ControlFlow::Break(Some(data)),
+                        )
+                    })
+                    .unwrap_value();
 
                 match addition_result {
                     Some((new_cluster, visit_info)) => {
@@ -318,14 +324,14 @@ fn build_job_cluster(
             }
 
             match (&best_cluster, count) {
-                (_, count) if is_max_jobs(count) => Err(Some((cluster, count))),
-                (Some((_, best_count)), _) if *best_count < count => Ok(Some((cluster, count))),
-                (None, _) if count > 1 => Ok(Some((cluster, count))),
-                _ => Ok(best_cluster),
+                (_, count) if is_max_jobs(count) => ControlFlow::Break(Some((cluster, count))),
+                (Some((_, best_count)), _) if *best_count < count => ControlFlow::Continue(Some((cluster, count))),
+                (None, _) if count > 1 => ControlFlow::Continue(Some((cluster, count))),
+                _ => ControlFlow::Continue(best_cluster),
             }
-        },
-    ))
-    .map(|(cluster, _)| cluster)
+        })
+        .unwrap_value()
+        .map(|(cluster, _)| cluster)
 }
 
 fn try_add_job<F>(
@@ -364,77 +370,84 @@ where
     let include_unreachable = true;
     let dissimilarities = get_cluster_info_sorted(center_place_idx, candidate, include_unreachable, ordering);
 
-    unwrap_from_result(dissimilarities.into_iter().try_fold(None, |_, info| {
-        let place = job.places.get(info.place_idx).expect("wrong place index");
-        let place_times = filter_times(place.times.as_slice());
+    dissimilarities
+        .into_iter()
+        .try_fold(None, |_, info| {
+            let place = job.places.get(info.place_idx).expect("wrong place index");
+            let place_times = filter_times(place.times.as_slice());
 
-        // override backward movement costs in case of return
-        let commute = if matches!(config.visiting, VisitPolicy::Return) {
-            center_commute(&info)
-        } else {
-            Commute {
-                forward: info.commute.forward,
-                backward: CommuteInfo { location: place.location.expect("no location"), distance: 0., duration: 0. },
-            }
-        };
-        let info = ClusterInfo { commute, ..info };
+            // override backward movement costs in case of return
+            let commute = if matches!(config.visiting, VisitPolicy::Return) {
+                center_commute(&info)
+            } else {
+                Commute {
+                    forward: info.commute.forward,
+                    backward: CommuteInfo {
+                        location: place.location.expect("no location"),
+                        distance: 0.,
+                        duration: 0.,
+                    },
+                }
+            };
+            let info = ClusterInfo { commute, ..info };
 
-        let new_cluster_times = cluster_times
-            .iter()
-            .flat_map(|cluster_time| {
-                place_times.iter().filter_map({
-                    let forward_duration = info.commute.forward.duration;
-                    move |place_time| {
-                        // NOTE travel duration to the place can be deducted from its time window requirement
-                        let place_time = TimeWindow::new(place_time.start - forward_duration, place_time.end);
-                        let overlap_time = place_time.overlapping(cluster_time);
+            let new_cluster_times = cluster_times
+                .iter()
+                .flat_map(|cluster_time| {
+                    place_times.iter().filter_map({
+                        let forward_duration = info.commute.forward.duration;
+                        move |place_time| {
+                            // NOTE travel duration to the place can be deducted from its time window requirement
+                            let place_time = TimeWindow::new(place_time.start - forward_duration, place_time.end);
+                            let overlap_time = place_time.overlapping(cluster_time);
 
-                        let duration = if place_time.end < cluster_time.end {
-                            cluster_place.duration
-                        } else {
-                            cluster_last_duration
-                        };
+                            let duration = if place_time.end < cluster_time.end {
+                                cluster_place.duration
+                            } else {
+                                cluster_last_duration
+                            };
 
-                        overlap_time.map(|time| (time, duration))
+                            overlap_time.map(|time| (time, duration))
+                        }
+                    })
+                })
+                .filter_map(|(overlap_time, duration)| {
+                    // TODO adapt service time from last cluster job to avoid time window violation of
+                    //      a next job in case of last time arrival. However, this can be too restrictive
+                    //      in some cases and can be improved to keep time window a bit wider.
+                    let end = overlap_time.end - duration - info.commute.forward.duration;
+                    if end - overlap_time.start < time_window_threshold {
+                        None
+                    } else {
+                        Some(TimeWindow::new(overlap_time.start, end))
                     }
                 })
-            })
-            .filter_map(|(overlap_time, duration)| {
-                // TODO adapt service time from last cluster job to avoid time window violation of
-                //      a next job in case of last time arrival. However, this can be too restrictive
-                //      in some cases and can be improved to keep time window a bit wider.
-                let end = overlap_time.end - duration - info.commute.forward.duration;
-                if end - overlap_time.start < time_window_threshold {
-                    None
-                } else {
-                    Some(TimeWindow::new(overlap_time.start, end))
-                }
-            })
-            .collect::<Vec<_>>();
+                .collect::<Vec<_>>();
 
-        // no time window intersection: cannot be clustered
-        if new_cluster_times.is_empty() {
-            return Ok(None);
-        }
+            // no time window intersection: cannot be clustered
+            if new_cluster_times.is_empty() {
+                return ControlFlow::Continue(None);
+            }
 
-        let movement = match config.visiting {
-            VisitPolicy::Return => info.commute.duration(),
-            VisitPolicy::ClosedContinuation | VisitPolicy::OpenContinuation => info.commute.forward.duration,
-        };
+            let movement = match config.visiting {
+                VisitPolicy::Return => info.commute.duration(),
+                VisitPolicy::ClosedContinuation | VisitPolicy::OpenContinuation => info.commute.forward.duration,
+            };
 
-        let new_cluster_duration = cluster_place.duration + movement + info.service_time;
+            let new_cluster_duration = cluster_place.duration + movement + info.service_time;
 
-        let updated_cluster =
-            create_single_job(cluster_place.location, new_cluster_duration, &new_cluster_times, &cluster.dimens);
-        let updated_candidate =
-            create_single_job(place.location, new_cluster_duration, &new_cluster_times, &job.dimens);
+            let updated_cluster =
+                create_single_job(cluster_place.location, new_cluster_duration, &new_cluster_times, &cluster.dimens);
+            let updated_candidate =
+                create_single_job(place.location, new_cluster_duration, &new_cluster_times, &job.dimens);
 
-        variant
-            .merge(updated_cluster, updated_candidate)
-            .and_then(|merged_cluster| (check_insertion_fn)(&merged_cluster).map(|_| (merged_cluster, info)))
-            .map(Some)
-            .map_or_else(|_| Ok(None), Err)
-    }))
+            variant
+                .merge(updated_cluster, updated_candidate)
+                .and_then(|merged_cluster| (check_insertion_fn)(&merged_cluster).map(|_| (merged_cluster, info)))
+                .map(Some)
+                .map_or_else(|_| ControlFlow::Continue(None), ControlFlow::Break)
+        })
+        .unwrap_value()
 }
 
 fn get_cluster_info_sorted(

@@ -8,11 +8,11 @@ use crate::models::problem::{Actor, Job};
 use crate::models::solution::Activity;
 use crate::models::ViolationCode;
 use crate::utils::short_type_name;
-use rosomaxa::utils::unwrap_from_result;
+use rosomaxa::prelude::UnwrapValue;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
-use std::ops::{Add, Index, Sub};
+use std::ops::{Add, ControlFlow, Index, Sub};
 use std::sync::Arc;
 use tinyvec::{TinyVec, TinyVecIterator};
 
@@ -138,16 +138,18 @@ impl PartialOrd for InsertionCost {
 impl Ord for InsertionCost {
     fn cmp(&self, other: &Self) -> Ordering {
         let size = self.data.len().max(other.data.len());
-        unwrap_from_result((0..size).try_fold(Ordering::Equal, |acc, idx| {
-            let left = self.data.get(idx).cloned().unwrap_or_default();
-            let right = other.data.get(idx).cloned().unwrap_or_default();
+        (0..size)
+            .try_fold(Ordering::Equal, |acc, idx| {
+                let left = self.data.get(idx).cloned().unwrap_or_default();
+                let right = other.data.get(idx).cloned().unwrap_or_default();
 
-            let result = left.total_cmp(&right);
-            match result {
-                Ordering::Equal => Ok(acc),
-                _ => Err(result),
-            }
-        }))
+                let result = left.total_cmp(&right);
+                match result {
+                    Ordering::Equal => ControlFlow::Continue(acc),
+                    _ => ControlFlow::Break(result),
+                }
+            })
+            .unwrap_value()
     }
 }
 

@@ -10,6 +10,7 @@ use crate::models::GoalContext;
 use hashbrown::{HashMap, HashSet};
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
+use std::ops::ControlFlow;
 use std::sync::Arc;
 
 /// Repairs a feasible solution from another, potentially infeasible.
@@ -139,23 +140,27 @@ fn synchronize_jobs(
 }
 
 fn is_activity_to_single_match(activity: &Activity, single: &Single) -> bool {
-    unwrap_from_result(single.places.iter().try_fold(false, |_, place| {
-        let is_same_duration = compare_floats(activity.place.duration, place.duration) == Ordering::Equal;
-        let is_same_location = place.location.map_or(true, |location| location == activity.place.location);
-        let is_same_time_window = place.times.iter().any(|time| {
-            match time {
-                TimeSpan::Window(tw) => activity.place.time == *tw,
-                // TODO support offset time window activities
-                TimeSpan::Offset(_) => false,
-            }
-        });
+    single
+        .places
+        .iter()
+        .try_fold(false, |_, place| {
+            let is_same_duration = compare_floats(activity.place.duration, place.duration) == Ordering::Equal;
+            let is_same_location = place.location.map_or(true, |location| location == activity.place.location);
+            let is_same_time_window = place.times.iter().any(|time| {
+                match time {
+                    TimeSpan::Window(tw) => activity.place.time == *tw,
+                    // TODO support offset time window activities
+                    TimeSpan::Offset(_) => false,
+                }
+            });
 
-        if is_same_duration && is_same_location && is_same_time_window {
-            Err(true)
-        } else {
-            Ok(false)
-        }
-    }))
+            if is_same_duration && is_same_location && is_same_time_window {
+                ControlFlow::Break(true)
+            } else {
+                ControlFlow::Continue(false)
+            }
+        })
+        .unwrap_value()
 }
 
 fn unassign_invalid_multi_jobs(

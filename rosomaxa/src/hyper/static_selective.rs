@@ -1,7 +1,8 @@
 use super::*;
-use crate::utils::{parallel_into_collect, unwrap_from_result};
+use crate::utils::{parallel_into_collect, UnwrapValue};
 use std::cmp::Ordering;
 use std::fmt::Formatter;
+use std::ops::ControlFlow;
 use std::sync::Arc;
 
 /// A type which specifies probability behavior for heuristic selection.
@@ -80,23 +81,22 @@ where
     }
 
     fn search_once(&self, heuristic_ctx: &C, solution: &S) -> S {
-        unwrap_from_result(
-            self.search_group
-                .iter()
-                .filter(|(_, (probability, _))| probability(heuristic_ctx, solution))
-                // NOTE not more than two search runs in a row
-                .take(2)
-                .try_fold(solution.deep_copy(), |base_solution, (heuristic, _)| {
-                    let new_solution = heuristic.search(heuristic_ctx, &base_solution);
+        self.search_group
+            .iter()
+            .filter(|(_, (probability, _))| probability(heuristic_ctx, solution))
+            // NOTE not more than two search runs in a row
+            .take(2)
+            .try_fold(solution.deep_copy(), |base_solution, (heuristic, _)| {
+                let new_solution = heuristic.search(heuristic_ctx, &base_solution);
 
-                    if heuristic_ctx.objective().total_order(&base_solution, &new_solution) == Ordering::Greater {
-                        // NOTE exit immediately as we don't want to lose improvement from original solution
-                        Err(new_solution)
-                    } else {
-                        Ok(new_solution)
-                    }
-                }),
-        )
+                if heuristic_ctx.objective().total_order(&base_solution, &new_solution) == Ordering::Greater {
+                    // NOTE exit immediately as we don't want to lose improvement from original solution
+                    ControlFlow::Break(new_solution)
+                } else {
+                    ControlFlow::Continue(new_solution)
+                }
+            })
+            .unwrap_value()
     }
 }
 

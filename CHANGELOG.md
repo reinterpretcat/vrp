@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* apply code style refactoring
+
 
 ## [v1.22.1]- 2023-08-26
 

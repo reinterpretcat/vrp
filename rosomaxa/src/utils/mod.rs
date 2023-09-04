@@ -23,3 +23,6 @@ pub use self::random::*;
 
 mod timing;
 pub use self::timing::*;
+
+mod types;
+pub use self::types::*;

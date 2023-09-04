@@ -2,6 +2,8 @@
 #[path = "../../../tests/unit/construction/heuristics/evaluators_test.rs"]
 mod evaluators_test;
 
+use rosomaxa::prelude::UnwrapValue;
+use std::ops::ControlFlow;
 use std::sync::Arc;
 
 use crate::construction::heuristics::*;
@@ -9,7 +11,6 @@ use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Leg, Place};
 use crate::models::{ConstraintViolation, GoalContext};
 use crate::utils::Either;
-use rosomaxa::utils::unwrap_from_result;
 
 /// Specifies an evaluation context data.
 pub struct EvaluationContext<'a> {
@@ -159,52 +160,58 @@ fn eval_multi(
 ) -> InsertionResult {
     let insertion_idx = get_insertion_index(route_ctx, position).unwrap_or(0);
     // 1. analyze permutations
-    let result = unwrap_from_result(multi.permutations().into_iter().try_fold(
-        MultiContext::new(best_known_cost, insertion_idx),
-        |acc_res, services| {
+    let result = multi
+        .permutations()
+        .into_iter()
+        .try_fold(MultiContext::new(best_known_cost, insertion_idx), |acc_res, services| {
             let mut shadow = ShadowContext::new(eval_ctx.goal, route_ctx);
-            let perm_res = unwrap_from_result((0..).try_fold(MultiContext::new(None, insertion_idx), |out, _| {
-                if out.is_failure(route_ctx.route().tour.job_activity_count()) {
-                    return Err(out);
-                }
-                shadow.restore(route_ctx);
-
-                // 2. analyze inner jobs
-                let sq_res = unwrap_from_result(services.iter().try_fold(out.next(), |in1, service| {
-                    if in1.violation.is_some() {
-                        return Err(in1);
+            let perm_res = (0..)
+                .try_fold(MultiContext::new(None, insertion_idx), |out, _| {
+                    if out.is_failure(route_ctx.route().tour.job_activity_count()) {
+                        return ControlFlow::Break(out);
                     }
-                    let mut activity = Activity::new_with_job(service.clone());
-                    // 3. analyze legs
-                    let srv_res = analyze_insertion_in_route(
-                        eval_ctx,
-                        shadow.route_ctx(),
-                        None,
-                        service,
-                        &mut activity,
-                        Default::default(),
-                        SingleContext::new(None, in1.next_index),
-                    );
+                    shadow.restore(route_ctx);
 
-                    if srv_res.is_success() {
-                        activity.place = srv_res.place.unwrap();
-                        let activity = shadow.insert(activity, srv_res.index);
-                        let activities = concat_activities(in1.activities, (activity, srv_res.index));
-                        return MultiContext::success(
-                            in1.cost.unwrap_or_else(|| route_costs.clone()) + srv_res.cost.unwrap(),
-                            activities,
-                        );
-                    }
+                    // 2. analyze inner jobs
+                    let sq_res = services
+                        .iter()
+                        .try_fold(out.next(), |in1, service| {
+                            if in1.violation.is_some() {
+                                return ControlFlow::Break(in1);
+                            }
+                            let mut activity = Activity::new_with_job(service.clone());
+                            // 3. analyze legs
+                            let srv_res = analyze_insertion_in_route(
+                                eval_ctx,
+                                shadow.route_ctx(),
+                                None,
+                                service,
+                                &mut activity,
+                                Default::default(),
+                                SingleContext::new(None, in1.next_index),
+                            );
 
-                    MultiContext::fail(srv_res, in1)
-                }));
+                            if srv_res.is_success() {
+                                activity.place = srv_res.place.unwrap();
+                                let activity = shadow.insert(activity, srv_res.index);
+                                let activities = concat_activities(in1.activities, (activity, srv_res.index));
+                                return MultiContext::success(
+                                    in1.cost.unwrap_or_else(|| route_costs.clone()) + srv_res.cost.unwrap(),
+                                    activities,
+                                );
+                            }
 
-                MultiContext::promote(sq_res, out)
-            }));
+                            MultiContext::fail(srv_res, in1)
+                        })
+                        .unwrap_value();
+
+                    MultiContext::promote(sq_res, out)
+                })
+                .unwrap_value();
 
             MultiContext::promote(perm_res, acc_res)
-        },
-    ));
+        })
+        .unwrap_value();
 
     let job = eval_ctx.job.clone();
     if result.is_success() {
@@ -232,7 +239,7 @@ fn analyze_insertion_in_route(
     match insertion_idx {
         Some(idx) => {
             if let Some(leg) = route_ctx.route().tour.legs().nth(idx) {
-                unwrap_from_result(analyze_leg_insertion(leg, init))
+                analyze_leg_insertion(leg, init).unwrap_value()
             } else {
                 init
             }
@@ -264,7 +271,7 @@ fn analyze_insertion_in_route_leg(
     target: &mut Activity,
     route_costs: InsertionCost,
     init: SingleContext,
-) -> Result<SingleContext, SingleContext> {
+) -> ControlFlow<SingleContext, SingleContext> {
     let (items, index) = leg;
     let (prev, next) = match items {
         [prev] => (prev, None),
@@ -327,24 +334,24 @@ impl SingleContext {
         Self { violation: None, index, cost, place: None }
     }
 
-    fn fail(violation: ConstraintViolation, other: SingleContext) -> Result<Self, Self> {
+    fn fail(violation: ConstraintViolation, other: SingleContext) -> ControlFlow<Self, Self> {
         let stopped = violation.stopped;
         let ctx = Self { violation: Some(violation), index: other.index, cost: other.cost, place: other.place };
         if stopped {
-            Err(ctx)
+            ControlFlow::Break(ctx)
         } else {
-            Ok(ctx)
+            ControlFlow::Continue(ctx)
         }
     }
 
     #[allow(clippy::unnecessary_wraps)]
-    fn success(index: usize, cost: InsertionCost, place: Place) -> Result<Self, Self> {
-        Ok(Self { violation: None, index, cost: Some(cost), place: Some(place) })
+    fn success(index: usize, cost: InsertionCost, place: Place) -> ControlFlow<Self, Self> {
+        ControlFlow::Continue(Self { violation: None, index, cost: Some(cost), place: Some(place) })
     }
 
     #[allow(clippy::unnecessary_wraps)]
-    fn skip(other: SingleContext) -> Result<Self, Self> {
-        Ok(other)
+    fn skip(other: SingleContext) -> ControlFlow<Self, Self> {
+        ControlFlow::Continue(other)
     }
 
     fn is_success(&self) -> bool {
@@ -373,7 +380,7 @@ impl MultiContext {
     }
 
     /// Promotes insertion context by best price.
-    fn promote(left: Self, right: Self) -> Result<Self, Self> {
+    fn promote(left: Self, right: Self) -> ControlFlow<Self, Self> {
         let index = left.start_index.max(right.start_index) + 1;
         let best = match (&left.cost, &right.cost) {
             (Some(left_cost), Some(right_cost)) => {
@@ -404,18 +411,18 @@ impl MultiContext {
         };
 
         if result.violation.as_ref().map_or(false, |v| v.stopped) {
-            Err(result)
+            ControlFlow::Break(result)
         } else {
-            Ok(result)
+            ControlFlow::Continue(result)
         }
     }
 
     /// Creates failed insertion context within reason code.
-    fn fail(err_ctx: SingleContext, other_ctx: MultiContext) -> Result<Self, Self> {
+    fn fail(err_ctx: SingleContext, other_ctx: MultiContext) -> ControlFlow<Self, Self> {
         let (code, stopped) =
             err_ctx.violation.map_or((0, false), |v| (v.code, v.stopped && other_ctx.activities.is_none()));
 
-        Err(Self {
+        ControlFlow::Break(Self {
             violation: Some(ConstraintViolation { code, stopped }),
             start_index: other_ctx.start_index,
             next_index: other_ctx.start_index,
@@ -426,8 +433,8 @@ impl MultiContext {
 
     /// Creates successful insertion context.
     #[allow(clippy::unnecessary_wraps)]
-    fn success(cost: InsertionCost, activities: Vec<(Activity, usize)>) -> Result<Self, Self> {
-        Ok(Self {
+    fn success(cost: InsertionCost, activities: Vec<(Activity, usize)>) -> ControlFlow<Self, Self> {
+        ControlFlow::Continue(Self {
             violation: None,
             start_index: activities.first().unwrap().1,
             next_index: activities.last().unwrap().1 + 1,

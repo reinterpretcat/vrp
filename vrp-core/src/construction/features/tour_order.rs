@@ -9,6 +9,7 @@ use crate::models::problem::{Actor, Single};
 use crate::models::solution::Activity;
 use crate::utils::Either;
 use std::cmp::Ordering;
+use std::ops::ControlFlow;
 
 /// Creates a tour order feature as hard constraint.
 pub fn create_tour_order_hard_feature(
@@ -179,24 +180,23 @@ fn evaluate_result<T>(
     let get_order_by_idx = |idx: usize| get_order(route_ctx.route().tour.get(idx).and_then(get_single));
     let target = get_order(get_single(activity_ctx.target));
 
-    unwrap_from_result(
-        (0..=activity_ctx.index)
-            .map(get_order_by_idx)
-            .map(|early| (early, target, true))
-            .chain(
-                (activity_ctx.index + 1..route_ctx.route().tour.total())
-                    .map(get_order_by_idx)
-                    .map(|late| (target, late, false)),
-            )
-            .try_fold(None, |_, (left, right, stopped)| {
-                let result = (check_order)(left, right, stopped);
-                if result.is_some() {
-                    Err(result)
-                } else {
-                    Ok(None)
-                }
-            }),
-    )
+    (0..=activity_ctx.index)
+        .map(get_order_by_idx)
+        .map(|early| (early, target, true))
+        .chain(
+            (activity_ctx.index + 1..route_ctx.route().tour.total())
+                .map(get_order_by_idx)
+                .map(|late| (target, late, false)),
+        )
+        .try_fold(None, |_, (left, right, stopped)| {
+            let result = (check_order)(left, right, stopped);
+            if result.is_some() {
+                ControlFlow::Break(result)
+            } else {
+                ControlFlow::Continue(None)
+            }
+        })
+        .unwrap_value()
 }
 
 fn get_violations(routes: &[RouteContext], order_fn: &TourOrderFn) -> usize {

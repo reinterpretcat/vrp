@@ -17,11 +17,3 @@ macro_rules! compare_float_types {
 compare_float_types! { compare_floats, f64}
 compare_float_types! { compare_floats_refs, &f64}
 compare_float_types! { compare_floats_f32, f32}
-
-/// Unwraps result type.
-pub fn unwrap_from_result<T>(result: Result<T, T>) -> T {
-    match result {
-        Ok(result) => result,
-        Err(result) => result,
-    }
-}

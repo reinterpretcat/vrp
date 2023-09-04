@@ -9,6 +9,7 @@ use crate::solver::RefinementContext;
 use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
 use rosomaxa::prelude::*;
+use std::ops::ControlFlow;
 
 const MIN_JOBS: usize = 2;
 
@@ -187,9 +188,8 @@ fn insert_jobs(
         // reevaluate last insertion point
         let last_index = get_route_ctx(insertion_ctx, route_idx).route().tour.job_activity_count();
         // try to find success insertion starting from given point
-        let (result, start_index) = unwrap_from_result((start_index..=last_index).try_fold(
-            (InsertionResult::make_failure(), start_index),
-            |_, insertion_idx| {
+        let (result, start_index) = (start_index..=last_index)
+            .try_fold((InsertionResult::make_failure(), start_index), |_, insertion_idx| {
                 let insertion = eval_job_insertion_in_route(
                     insertion_ctx,
                     &eval_ctx,
@@ -200,11 +200,11 @@ fn insert_jobs(
                 );
 
                 match &insertion {
-                    InsertionResult::Failure(_) => Ok((insertion, insertion_idx)),
-                    InsertionResult::Success(_) => Err((insertion, insertion_idx)),
+                    InsertionResult::Failure(_) => ControlFlow::Continue((insertion, insertion_idx)),
+                    InsertionResult::Success(_) => ControlFlow::Break((insertion, insertion_idx)),
                 }
-            },
-        ));
+            })
+            .unwrap_value();
 
         match result {
             InsertionResult::Success(success) => {

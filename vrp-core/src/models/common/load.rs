@@ -4,11 +4,11 @@ mod load_test;
 
 use crate::models::common::{Dimensions, ValueDimension};
 use crate::models::Problem;
-use rosomaxa::utils::unwrap_from_result;
+use rosomaxa::prelude::UnwrapValue;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::Sum;
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, ControlFlow, Mul, Sub};
 
 const CAPACITY_DIMENSION_KEY: &str = "cpc";
 const DEMAND_DIMENSION_KEY: &str = "dmd";
@@ -307,10 +307,18 @@ impl Sub for MultiDimLoad {
 impl PartialOrd for MultiDimLoad {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let size = self.size.max(other.size);
-        unwrap_from_result((0..size).try_fold(None, |acc, idx| {
-            let result = self.get(idx).cmp(&other.get(idx));
-            acc.map_or(Ok(Some(result)), |acc| if acc != result { Err(None) } else { Ok(Some(result)) })
-        }))
+        (0..size)
+            .try_fold(None, |acc, idx| {
+                let result = self.get(idx).cmp(&other.get(idx));
+                acc.map_or(ControlFlow::Continue(Some(result)), |acc| {
+                    if acc != result {
+                        ControlFlow::Break(None)
+                    } else {
+                        ControlFlow::Continue(Some(result))
+                    }
+                })
+            })
+            .unwrap_value()
     }
 }
 

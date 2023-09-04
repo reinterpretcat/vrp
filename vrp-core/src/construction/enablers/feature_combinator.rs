@@ -4,6 +4,7 @@ use crate::construction::heuristics::{MoveContext, RouteContext, SolutionContext
 use crate::models::problem::Job;
 use crate::models::*;
 use rosomaxa::prelude::*;
+use std::ops::ControlFlow;
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -171,7 +172,13 @@ pub(crate) fn evaluate_with_constraints(
     constraints: &[Arc<dyn FeatureConstraint + Send + Sync>],
     move_ctx: &MoveContext<'_>,
 ) -> Option<ConstraintViolation> {
-    unwrap_from_result(constraints.iter().try_fold(None, |_, constraint| {
-        constraint.evaluate(move_ctx).map(|violation| Err(Some(violation))).unwrap_or_else(|| Ok(None))
-    }))
+    constraints
+        .iter()
+        .try_fold(None, |_, constraint| {
+            constraint
+                .evaluate(move_ctx)
+                .map(|violation| ControlFlow::Break(Some(violation)))
+                .unwrap_or_else(|| ControlFlow::Continue(None))
+        })
+        .unwrap_value()
 }

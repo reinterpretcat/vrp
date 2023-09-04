@@ -9,6 +9,7 @@ use crate::utils::*;
 use rand::prelude::*;
 use rosomaxa::utils::{map_reduce, parallel_collect, Random};
 use std::cmp::Ordering;
+use std::ops::ControlFlow;
 use std::sync::Arc;
 
 /// On each insertion step, selects a list of routes where jobs can be inserted.
@@ -423,7 +424,7 @@ impl LegSelection {
     ) -> R
     where
         R: Default,
-        FM: FnMut(Leg, R) -> Result<R, R>,
+        FM: FnMut(Leg, R) -> ControlFlow<R, R>,
         FC: Fn(&R, &R) -> bool,
     {
         if let Some((sample_size, random)) = self.get_sample_data(route_ctx, job, skip) {
@@ -435,13 +436,13 @@ impl LegSelection {
                 .sample_search(
                     sample_size,
                     random.clone(),
-                    &mut |leg: Leg<'_>| unwrap_from_result(map_fn(leg, R::default())),
+                    &mut |leg: Leg<'_>| map_fn(leg, R::default()).unwrap_value(),
                     |leg: &Leg<'_>| leg.1 as i32,
                     &compare_fn,
                 )
                 .unwrap_or(init)
         } else {
-            unwrap_from_result(route_ctx.route().tour.legs().skip(skip).try_fold(init, |acc, leg| map_fn(leg, acc)))
+            route_ctx.route().tour.legs().skip(skip).try_fold(init, |acc, leg| map_fn(leg, acc)).unwrap_value()
         }
     }
 
