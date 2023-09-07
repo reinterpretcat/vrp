@@ -33,26 +33,20 @@ fn can_use_scale_on_profile() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: statistic.clone(),
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        capacity,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0,
-                    ),
-                    stop2.into(),
-                ],
-                statistic,
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![capacity])
+                            .build_departure(),
+                        stop2.into(),
+                    ])
+                    .statistic(statistic)
+                    .build()
+            )
+            .build()
     );
 }

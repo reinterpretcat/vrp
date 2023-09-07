@@ -28,52 +28,32 @@ fn can_use_two_dimensions() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 16.,
-                distance: 2,
-                duration: 4,
-                times: Timing { driving: 2, serving: 2, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity_md(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        vec![1, 1],
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
-                    ),
-                    create_stop_with_activity_md(
-                        "job1",
-                        "delivery",
-                        (1., 0.),
-                        vec![1, 0],
-                        ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
-                        1
-                    ),
-                    create_stop_with_activity_md(
-                        "job2",
-                        "delivery",
-                        (2., 0.),
-                        vec![0, 0],
-                        ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
-                        2
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 16.,
-                    distance: 2,
-                    duration: 4,
-                    times: Timing { driving: 2, serving: 2, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![1, 1])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((1., 0.))
+                            .schedule_stamp(1., 2.)
+                            .load(vec![1, 0])
+                            .distance(1)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((2., 0.))
+                            .schedule_stamp(3., 4.)
+                            .load(vec![0, 0])
+                            .distance(2)
+                            .build_single("job2", "delivery"),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(2).serving(2).build())
+                    .build()
+            )
+            .build()
     );
 }
 
@@ -97,18 +77,15 @@ fn can_unassign_due_to_dimension_mismatch() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic::default(),
-            tours: vec![],
-            unassigned: Some(vec![UnassignedJob {
+        SolutionBuilder::default()
+            .unassigned(Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "CAPACITY_CONSTRAINT".to_string(),
                     description: "does not fit into any vehicle due to capacity".to_string(),
                     details: None,
                 }]
-            }]),
-            ..create_empty_solution()
-        }
+            }]))
+            .build()
     );
 }

@@ -22,18 +22,15 @@ fn can_have_empty_detail_in_empty_solution() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic::default(),
-            tours: vec![],
-            unassigned: Some(vec![UnassignedJob {
+        SolutionBuilder::default()
+            .unassigned(Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "SKILL_CONSTRAINT".to_string(),
                     description: "cannot serve required skill".to_string(),
                     details: None
                 }]
-            }]),
-            ..create_empty_solution()
-        }
+            }]))
+            .build()
     );
 }

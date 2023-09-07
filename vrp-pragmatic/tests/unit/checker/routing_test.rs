@@ -1,5 +1,4 @@
 use super::*;
-use crate::format_time;
 use crate::helpers::*;
 use vrp_core::models::examples::create_example_problem;
 
@@ -20,64 +19,34 @@ fn create_test_statistic() -> Statistic {
 
 fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> Solution {
     let [first, second, third] = stop_data;
-    Solution {
-        statistic: statistic.clone(),
-        tours: vec![Tour {
-            vehicle_id: "my_vehicle_1".to_string(),
-            type_id: "my_vehicle".to_string(),
-            shift_index: 0,
-            stops: vec![
-                create_stop_with_activity(
-                    "departure",
-                    "departure",
-                    (0., 0.),
-                    2,
-                    ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                    0,
-                ),
-                Stop::Point(PointStop {
-                    location: (1., 0.).to_loc(),
-                    time: Schedule { arrival: format_time(first.0), departure: "1970-01-01T00:00:02Z".to_string() },
-                    distance: first.1,
-                    parking: None,
-                    load: vec![1],
-                    activities: vec![Activity {
-                        job_id: "job1".to_string(),
-                        activity_type: "delivery".to_string(),
-                        location: None,
-                        time: None,
-                        job_tag: None,
-                        commute: None,
-                    }],
-                }),
-                Stop::Point(PointStop {
-                    location: (2., 0.).to_loc(),
-                    time: Schedule { arrival: format_time(second.0), departure: "1970-01-01T00:00:04Z".to_string() },
-                    distance: second.1,
-                    parking: None,
-                    load: vec![0],
-                    activities: vec![Activity {
-                        job_id: "job2".to_string(),
-                        activity_type: "delivery".to_string(),
-                        location: Some((2., 0.).to_loc()),
-                        time: None,
-                        job_tag: None,
-                        commute: None,
-                    }],
-                }),
-                create_stop_with_activity(
-                    "arrival",
-                    "arrival",
-                    (0., 0.),
-                    0,
-                    (format_time(third.0).as_str(), "1970-01-01T00:00:06Z"),
-                    third.1,
-                ),
-            ],
-            statistic,
-        }],
-        ..create_empty_solution()
-    }
+    SolutionBuilder::default()
+        .tour(
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![2]).build_departure(),
+                    StopBuilder::default()
+                        .coordinate((1., 0.))
+                        .schedule_stamp(first.0, 2.)
+                        .load(vec![1])
+                        .distance(first.1)
+                        .build_single("job1", "delivery"),
+                    StopBuilder::default()
+                        .coordinate((2., 0.))
+                        .schedule_stamp(second.0, 4.)
+                        .load(vec![0])
+                        .distance(second.1)
+                        .build_single("job2", "delivery"),
+                    StopBuilder::default()
+                        .coordinate((0., 0.))
+                        .schedule_stamp(third.0, 6.)
+                        .load(vec![0])
+                        .distance(third.1)
+                        .build_arrival(),
+                ])
+                .statistic(statistic)
+                .build(),
+        )
+        .build()
 }
 
 fn duration_error(stop_idx: usize, actual: usize, expected: usize) -> GenericError {

@@ -24,83 +24,57 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 170.,
-                distance: 80,
-                duration: 80,
-                times: Timing { driving: 80, serving: 0, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        4,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (10., 0.),
-                        3,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:10Z"),
-                        10
-                    ),
-                    create_stop_with_activity(
-                        "job2",
-                        "delivery",
-                        (20., 0.),
-                        2,
-                        ("1970-01-01T00:00:20Z", "1970-01-01T00:00:20Z"),
-                        20
-                    ),
-                    create_stop_with_activity(
-                        "job3",
-                        "delivery",
-                        (30., 0.),
-                        1,
-                        ("1970-01-01T00:00:30Z", "1970-01-01T00:00:30Z"),
-                        30
-                    ),
-                    create_stop_with_activity(
-                        "job4",
-                        "delivery",
-                        (40., 0.),
-                        0,
-                        ("1970-01-01T00:00:40Z", "1970-01-01T00:00:40Z"),
-                        40
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:01:20Z", "1970-01-01T00:01:20Z"),
-                        80
-                    ),
-                ],
-                statistic: Statistic {
-                    cost: 170.,
-                    distance: 80,
-                    duration: 80,
-                    times: Timing { driving: 80, serving: 0, ..Timing::default() },
-                },
-            }],
-            unassigned: Some(vec![UnassignedJob {
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![4])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((10., 0.))
+                            .schedule_stamp(10., 10.)
+                            .load(vec![3])
+                            .distance(10)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((20., 0.))
+                            .schedule_stamp(20., 20.)
+                            .load(vec![2])
+                            .distance(20)
+                            .build_single("job2", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((30., 0.))
+                            .schedule_stamp(30., 30.)
+                            .load(vec![1])
+                            .distance(30)
+                            .build_single("job3", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((40., 0.))
+                            .schedule_stamp(40., 40.)
+                            .load(vec![0])
+                            .distance(40)
+                            .build_single("job4", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(80., 80.)
+                            .load(vec![0])
+                            .distance(80)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(80).build())
+                    .build()
+            )
+            .unassigned(Some(vec![UnassignedJob {
                 job_id: "job5".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "TIME_WINDOW_CONSTRAINT".to_string(),
                     description: "cannot be visited within time window".to_string(),
                     details: Some(vec![UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }]),
                 }]
-            }]),
-            ..create_empty_solution()
-        },
+            }]))
+            .build()
     );
 }

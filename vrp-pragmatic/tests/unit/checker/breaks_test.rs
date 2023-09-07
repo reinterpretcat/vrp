@@ -115,64 +115,36 @@ fn can_check_breaks_impl(
         });
     }
 
-    let solution = Solution {
-        statistic: Statistic {
-            cost: 22.,
-            distance: 4,
-            duration: 8,
-            times: Timing { driving: 4, serving: 2, break_time: 2, ..Timing::default() },
-        },
-        tours: vec![Tour {
-            vehicle_id: "my_vehicle_1".to_string(),
-            type_id: "my_vehicle".to_string(),
-            shift_index: 0,
-            stops: vec![
-                create_stop_with_activity(
-                    "departure",
-                    "departure",
-                    (0., 0.),
-                    2,
-                    ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                    0,
-                ),
-                create_stop_with_activity(
-                    "job1",
-                    "delivery",
-                    (1., 0.),
-                    1,
-                    ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
-                    5,
-                ),
-                Stop::Point(PointStop {
-                    location: (2., 0.).to_loc(),
-                    time: Schedule {
-                        arrival: "1970-01-01T00:00:03Z".to_string(),
-                        departure: "1970-01-01T00:00:06Z".to_string(),
-                    },
-                    distance: 2,
-                    parking: None,
-                    load: vec![0],
-                    activities,
-                }),
-                create_stop_with_activity(
-                    "arrival",
-                    "arrival",
-                    (0., 0.),
-                    0,
-                    ("1970-01-01T00:00:08Z", "1970-01-01T00:00:08Z"),
-                    4,
-                ),
-            ],
-            statistic: Statistic {
-                cost: 22.,
-                distance: 4,
-                duration: 8,
-                times: Timing { driving: 4, serving: 2, break_time: 2, ..Timing::default() },
-            },
-        }],
-        violations,
-        ..create_empty_solution()
-    };
+    let solution = SolutionBuilder::default()
+        .tour(
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![2]).build_departure(),
+                    StopBuilder::default()
+                        .coordinate((1., 0.))
+                        .schedule_stamp(1., 2.)
+                        .load(vec![1])
+                        .distance(1)
+                        .build_single("job1", "delivery"),
+                    StopBuilder::default()
+                        .coordinate((2., 0.))
+                        .schedule_stamp(3., 6.)
+                        .load(vec![0])
+                        .distance(2)
+                        .activities(activities)
+                        .build(),
+                    StopBuilder::default()
+                        .coordinate((0., 0.))
+                        .schedule_stamp(8., 8.)
+                        .load(vec![0])
+                        .distance(4)
+                        .build_arrival(),
+                ])
+                .statistic(StatisticBuilder::default().driving(4).serving(2).break_time(2).build())
+                .build(),
+        )
+        .violations(violations)
+        .build();
     let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
     let result = check_breaks(&ctx);

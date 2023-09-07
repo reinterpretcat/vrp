@@ -1,5 +1,4 @@
 use crate::format::problem::*;
-use crate::format::solution::*;
 use crate::helpers::*;
 
 #[test]
@@ -24,84 +23,55 @@ fn can_use_multiple_times() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 240.,
-                distance: 100,
-                duration: 130,
-                times: Timing { driving: 100, serving: 0, waiting: 30, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        5,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (10., 0.),
-                        4,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:10Z"),
-                        10
-                    ),
-                    create_stop_with_activity(
-                        "job2",
-                        "delivery",
-                        (20., 0.),
-                        3,
-                        ("1970-01-01T00:00:20Z", "1970-01-01T00:00:20Z"),
-                        20
-                    ),
-                    create_stop_with_activity(
-                        "job4",
-                        "delivery",
-                        (40., 0.),
-                        2,
-                        ("1970-01-01T00:00:40Z", "1970-01-01T00:00:40Z"),
-                        40
-                    ),
-                    create_stop_with_activity(
-                        "job5",
-                        "delivery",
-                        (50., 0.),
-                        1,
-                        ("1970-01-01T00:00:50Z", "1970-01-01T00:00:50Z"),
-                        50
-                    ),
-                    create_stop_with_activity_time(
-                        "job3",
-                        "delivery",
-                        (30., 0.),
-                        0,
-                        ("1970-01-01T00:01:10Z", "1970-01-01T00:01:40Z"),
-                        ("1970-01-01T00:01:40Z", "1970-01-01T00:01:40Z"),
-                        70
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:02:10Z", "1970-01-01T00:02:10Z"),
-                        100
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 240.,
-                    distance: 100,
-                    duration: 130,
-                    times: Timing { driving: 100, serving: 0, waiting: 30, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![5])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((10., 0.))
+                            .schedule_stamp(10., 10.)
+                            .load(vec![4])
+                            .distance(10)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((20., 0.))
+                            .schedule_stamp(20., 20.)
+                            .load(vec![3])
+                            .distance(20)
+                            .build_single("job2", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((40., 0.))
+                            .schedule_stamp(40., 40.)
+                            .load(vec![2])
+                            .distance(40)
+                            .build_single("job4", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((50., 0.))
+                            .schedule_stamp(50., 50.)
+                            .load(vec![1])
+                            .distance(50)
+                            .build_single("job5", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((30., 0.))
+                            .schedule_stamp(70., 100.)
+                            .load(vec![0])
+                            .distance(70)
+                            .build_single_time("job3", "delivery", (100., 100.)),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(130., 130.)
+                            .load(vec![0])
+                            .distance(100)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(100).waiting(30).build())
+                    .build()
+            )
+            .build()
     );
 }

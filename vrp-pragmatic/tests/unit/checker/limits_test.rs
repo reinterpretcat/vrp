@@ -18,16 +18,15 @@ fn create_test_problem(limits: Option<VehicleLimits>) -> Problem {
 }
 
 fn create_test_solution(statistic: Statistic, stops: Vec<Stop>) -> Solution {
-    Solution {
-        tours: vec![Tour {
+    SolutionBuilder::default()
+        .tour(Tour {
             vehicle_id: "some_real_vehicle".to_string(),
             type_id: "my_vehicle".to_string(),
             shift_index: 0,
             stops,
             statistic,
-        }],
-        ..create_empty_solution()
-    }
+        })
+        .build()
 }
 
 parameterized_test! {can_check_shift_and_distance_limit, (max_distance, shift_time, actual, expected_result), {
@@ -77,46 +76,31 @@ pub fn can_check_tour_size_limit() {
     let solution = create_test_solution(
         Statistic::default(),
         vec![
-            create_stop_with_activity(
-                "departure",
-                "departure",
-                (0., 0.),
-                3,
-                (format_time(0.).as_str(), format_time(0.).as_str()),
-                0,
-            ),
-            create_stop_with_activity(
-                "job1",
-                "delivery",
-                (1., 0.),
-                2,
-                (format_time(1.).as_str(), format_time(1.).as_str()),
-                1,
-            ),
-            create_stop_with_activity(
-                "job2",
-                "delivery",
-                (2., 0.),
-                1,
-                (format_time(2.).as_str(), format_time(2.).as_str()),
-                2,
-            ),
-            create_stop_with_activity(
-                "job3",
-                "delivery",
-                (3., 0.),
-                0,
-                (format_time(3.).as_str(), format_time(3.).as_str()),
-                3,
-            ),
-            create_stop_with_activity(
-                "arrival",
-                "arrival",
-                (0., 0.),
-                0,
-                (format_time(6.).as_str(), format_time(6.).as_str()),
-                6,
-            ),
+            StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![3]).build_departure(),
+            StopBuilder::default()
+                .coordinate((1., 0.))
+                .schedule_stamp(1., 1.)
+                .load(vec![2])
+                .distance(1)
+                .build_single("job1", "delivery"),
+            StopBuilder::default()
+                .coordinate((2., 0.))
+                .schedule_stamp(2., 2.)
+                .load(vec![1])
+                .distance(2)
+                .build_single("job2", "delivery"),
+            StopBuilder::default()
+                .coordinate((3., 0.))
+                .schedule_stamp(3., 3.)
+                .load(vec![0])
+                .distance(3)
+                .build_single("job3", "delivery"),
+            StopBuilder::default()
+                .coordinate((0., 0.))
+                .schedule_stamp(6., 6.)
+                .load(vec![0])
+                .distance(6)
+                .build_arrival(),
         ],
     );
     let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
@@ -150,52 +134,29 @@ fn can_check_shift_time() {
         },
         ..create_empty_problem()
     };
-    let solution = Solution {
-        statistic: Statistic {
-            cost: 17.,
-            distance: 2,
-            duration: 5,
-            times: Timing { driving: 2, serving: 1, waiting: 2, ..Timing::default() },
-        },
-        tours: vec![Tour {
-            vehicle_id: "my_vehicle_1".to_string(),
-            type_id: "my_vehicle".to_string(),
-            shift_index: 0,
-            stops: vec![
-                create_stop_with_activity(
-                    "departure",
-                    "departure",
-                    (0., 0.),
-                    1,
-                    ("1970-01-01T00:00:02Z", "1970-01-01T00:00:02Z"),
-                    0,
-                ),
-                create_stop_with_activity(
-                    "job1",
-                    "delivery",
-                    (1., 0.),
-                    0,
-                    ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
-                    1,
-                ),
-                create_stop_with_activity(
-                    "arrival",
-                    "arrival",
-                    (0., 0.),
-                    0,
-                    ("1970-01-01T00:00:07Z", "1970-01-01T00:00:07Z"),
-                    2,
-                ),
-            ],
-            statistic: Statistic {
-                cost: 17.,
-                distance: 2,
-                duration: 5,
-                times: Timing { driving: 2, serving: 1, waiting: 2, ..Timing::default() },
-            },
-        }],
-        ..create_empty_solution()
-    };
+
+    let solution = SolutionBuilder::default()
+        .tour(
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(2., 2.).load(vec![1]).build_departure(),
+                    StopBuilder::default()
+                        .coordinate((1., 0.))
+                        .schedule_stamp(5., 6.)
+                        .load(vec![0])
+                        .distance(1)
+                        .build_single("job1", "delivery"),
+                    StopBuilder::default()
+                        .coordinate((0., 0.))
+                        .schedule_stamp(7., 7.)
+                        .load(vec![0])
+                        .distance(2)
+                        .build_arrival(),
+                ])
+                .statistic(StatisticBuilder::default().driving(2).serving(1).waiting(2).build())
+                .build(),
+        )
+        .build();
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
     let ctx = CheckerContext::new(core_problem, problem, None, solution).unwrap();
 

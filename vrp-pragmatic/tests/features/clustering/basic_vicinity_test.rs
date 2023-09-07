@@ -79,35 +79,33 @@ fn can_cluster_simple_jobs_impl(
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: statistic.clone(),
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        4,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0,
-                    ),
-                    stop2.into(),
-                    create_stop_with_activity(
-                        "job4",
-                        "delivery",
-                        (10., 0.),
-                        0,
-                        (&format_time(stop3_schedule.0), &format_time(stop3_schedule.1)),
-                        10,
-                    ),
-                ],
-                statistic,
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![4])
+                            .build_departure(),
+                        stop2.into(),
+                        StopBuilder::default()
+                            .coordinate((10., 0.))
+                            .schedule_stamp(stop3_schedule.0, stop3_schedule.1)
+                            .load(vec![0])
+                            .distance(10)
+                            .build_single("job4", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(24., 24.)
+                            .load(vec![0])
+                            .distance(20)
+                            .build_arrival(),
+                    ])
+                    .statistic(statistic)
+                    .build()
+            )
+            .build()
     );
 }
 
@@ -218,27 +216,26 @@ fn can_handle_two_clusters_impl(
                 }
             });
     }
+
     assert_eq!(
         solution,
-        Solution {
-            statistic: statistic.clone(),
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: once(create_stop_with_activity(
-                    "departure",
-                    "departure",
-                    (0., 0.),
-                    4,
-                    ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                    0,
-                ))
-                .chain(stops.into_iter().map(StopData::into))
-                .collect(),
-                statistic,
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(
+                        once(
+                            StopBuilder::default()
+                                .coordinate((0., 0.))
+                                .schedule_stamp(0., 0.)
+                                .load(vec![2])
+                                .build_departure(),
+                        )
+                        .chain(stops.into_iter().map(StopData::into))
+                        .collect()
+                    )
+                    .statistic(statistic)
+                    .build()
+            )
+            .build()
     );
 }

@@ -1,5 +1,4 @@
 use crate::format::problem::*;
-use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
 
@@ -43,84 +42,48 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
 
     assert_eq!(
         solution.tours,
-        vec![Tour {
-            vehicle_id: "my_vehicle_1".to_string(),
-            type_id: "my_vehicle".to_string(),
-            shift_index: 0,
-            stops: vec![
-                create_stop_with_activity(
-                    "departure",
-                    "departure",
-                    (0., 0.),
-                    1,
-                    ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                    0
-                ),
-                create_stop_with_activity(
-                    "d1",
-                    "delivery",
-                    (1., 0.),
-                    0,
-                    ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
-                    1
-                ),
-                create_stop_with_activity(
-                    "p1",
-                    "pickup",
-                    (2., 0.),
-                    1,
-                    ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
-                    2
-                ),
-                create_stop_with_activity(
-                    "reload",
-                    "reload",
-                    (3., 0.),
-                    1,
-                    ("1970-01-01T00:00:05Z", "1970-01-01T00:00:07Z"),
-                    3
-                ),
-                create_stop_with_activity(
-                    "d2",
-                    "delivery",
-                    (4., 0.),
-                    0,
-                    ("1970-01-01T00:00:08Z", "1970-01-01T00:00:09Z"),
-                    4
-                ),
-                create_stop_with_activity(
-                    "p2",
-                    "pickup",
-                    (5., 0.),
-                    1,
-                    ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
-                    5
-                ),
-                create_stop_with_activity(
-                    "arrival",
-                    "arrival",
-                    (6., 0.),
-                    0,
-                    ("1970-01-01T00:00:12Z", "1970-01-01T00:00:12Z"),
-                    6
-                ),
-            ],
-            statistic: Statistic {
-                cost: 28.,
-                distance: 6,
-                duration: 12,
-                times: Timing { driving: 6, serving: 6, ..Timing::default() },
-            },
-        }]
-    );
-    assert_eq!(
-        solution.statistic,
-        Statistic {
-            cost: 28.,
-            distance: 6,
-            duration: 12,
-            times: Timing { driving: 6, serving: 6, ..Timing::default() },
-        }
+        vec![TourBuilder::default()
+            .stops(vec![
+                StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![1]).build_departure(),
+                StopBuilder::default()
+                    .coordinate((1., 0.))
+                    .schedule_stamp(1., 2.)
+                    .load(vec![0])
+                    .distance(1)
+                    .build_single("d1", "delivery"),
+                StopBuilder::default()
+                    .coordinate((2., 0.))
+                    .schedule_stamp(3., 4.)
+                    .load(vec![1])
+                    .distance(2)
+                    .build_single("p1", "pickup"),
+                StopBuilder::default()
+                    .coordinate((3., 0.))
+                    .schedule_stamp(5., 7.)
+                    .load(vec![1])
+                    .distance(3)
+                    .build_single("reload", "reload"),
+                StopBuilder::default()
+                    .coordinate((4., 0.))
+                    .schedule_stamp(8., 9.)
+                    .load(vec![0])
+                    .distance(4)
+                    .build_single("d2", "delivery"),
+                StopBuilder::default()
+                    .coordinate((5., 0.))
+                    .schedule_stamp(10., 11.)
+                    .load(vec![1])
+                    .distance(5)
+                    .build_single("p2", "pickup"),
+                StopBuilder::default()
+                    .coordinate((6., 0.))
+                    .schedule_stamp(12., 12.)
+                    .load(vec![0])
+                    .distance(6)
+                    .build_arrival(),
+            ])
+            .statistic(StatisticBuilder::default().driving(6).serving(6).build())
+            .build()]
     );
     assert!(solution.violations.is_none());
 

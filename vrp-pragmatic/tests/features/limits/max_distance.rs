@@ -28,19 +28,16 @@ fn can_limit_by_max_distance() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic::default(),
-            tours: vec![],
-            unassigned: Some(vec![UnassignedJob {
+        SolutionBuilder::default()
+            .unassigned(Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "MAX_DISTANCE_CONSTRAINT".to_string(),
                     description: "cannot be assigned due to max distance constraint of vehicle".to_string(),
                     details: None
                 }]
-            }]),
-            ..create_empty_solution()
-        }
+            }]))
+            .build()
     );
 }
 
@@ -68,18 +65,15 @@ fn can_handle_empty_route() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic::default(),
-            tours: vec![],
-            unassigned: Some(vec![UnassignedJob {
+        SolutionBuilder::default()
+            .unassigned(Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "MAX_DISTANCE_CONSTRAINT".to_string(),
                     description: "cannot be assigned due to max distance constraint of vehicle".to_string(),
                     details: None,
                 }]
-            }]),
-            ..create_empty_solution()
-        }
+            }]))
+            .build()
     );
 }

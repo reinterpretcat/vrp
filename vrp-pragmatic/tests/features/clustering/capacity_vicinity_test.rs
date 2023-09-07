@@ -42,35 +42,27 @@ fn can_mix_pickup_delivery_jobs() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: statistic.clone(),
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        3,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0,
-                    ),
-                    stop2.into(),
-                    create_stop_with_activity(
-                        "job4",
-                        "delivery",
-                        (10., 0.),
-                        1,
-                        (&format_time(stop3_schedule.0), &format_time(stop3_schedule.1)),
-                        10,
-                    ),
-                ],
-                statistic,
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![3])
+                            .build_departure(),
+                        stop2.into(),
+                        StopBuilder::default()
+                            .coordinate((10., 0.))
+                            .schedule_stamp(stop3_schedule.0, stop3_schedule.1)
+                            .load(vec![0])
+                            .distance(10)
+                            .build_single("job4", "delivery"),
+                    ])
+                    .statistic(statistic)
+                    .build()
+            )
+            .build()
     );
 }
 
@@ -137,40 +129,39 @@ fn can_vary_cluster_size_based_on_capacity_impl(
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: statistic.clone(),
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: once(create_stop_with_activity(
-                    "departure",
-                    "departure",
-                    (0., 0.),
-                    capacity,
-                    ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                    0,
-                ))
-                .chain(stops.into_iter().map(StopData::into))
-                .collect(),
-
-                statistic,
-            }],
-            unassigned: unassigned.map(|job_ids| job_ids
-                .iter()
-                .map(|job_id| UnassignedJob {
-                    job_id: job_id.to_string(),
-                    reasons: vec![UnassignedJobReason {
-                        code: "CAPACITY_CONSTRAINT".to_string(),
-                        description: "does not fit into any vehicle due to capacity".to_string(),
-                        details: Some(vec![UnassignedJobDetail {
-                            vehicle_id: "my_vehicle_1".to_string(),
-                            shift_index: 0
-                        }])
-                    }]
-                })
-                .collect()),
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(
+                        once(
+                            StopBuilder::default()
+                                .coordinate((0., 0.))
+                                .schedule_stamp(0., 0.)
+                                .load(vec![capacity])
+                                .build_departure(),
+                        )
+                        .chain(stops.into_iter().map(StopData::into))
+                        .collect()
+                    )
+                    .statistic(statistic)
+                    .build()
+            )
+            .unassigned(unassigned.map(|job_ids| {
+                job_ids
+                    .iter()
+                    .map(|job_id| UnassignedJob {
+                        job_id: job_id.to_string(),
+                        reasons: vec![UnassignedJobReason {
+                            code: "CAPACITY_CONSTRAINT".to_string(),
+                            description: "does not fit into any vehicle due to capacity".to_string(),
+                            details: Some(vec![UnassignedJobDetail {
+                                vehicle_id: "my_vehicle_1".to_string(),
+                                shift_index: 0,
+                            }]),
+                        }],
+                    })
+                    .collect()
+            }))
+            .build()
     );
 }

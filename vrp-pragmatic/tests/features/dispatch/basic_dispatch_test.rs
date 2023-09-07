@@ -33,68 +33,44 @@ fn can_assign_single_dispatch() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 42.,
-                distance: 14,
-                duration: 18,
-                times: Timing { driving: 14, serving: 4, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:03Z"),
-                        0,
-                    ),
-                    create_stop_with_activity(
-                        "dispatch",
-                        "dispatch",
-                        (7., 0.),
-                        2,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:12Z"),
-                        7,
-                    ),
-                    create_stop_with_activity(
-                        "job2",
-                        "delivery",
-                        (5., 0.),
-                        1,
-                        ("1970-01-01T00:00:14Z", "1970-01-01T00:00:15Z"),
-                        9,
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (3., 0.),
-                        0,
-                        ("1970-01-01T00:00:17Z", "1970-01-01T00:00:18Z"),
-                        11
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:21Z", "1970-01-01T00:00:21Z"),
-                        14
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 42.,
-                    distance: 14,
-                    duration: 18,
-                    times: Timing { driving: 14, serving: 4, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 3.)
+                            .load(vec![2])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((7., 0.))
+                            .schedule_stamp(10., 12.)
+                            .load(vec![2])
+                            .distance(7)
+                            .build_single("dispatch", "dispatch"),
+                        StopBuilder::default()
+                            .coordinate((5., 0.))
+                            .schedule_stamp(14., 15.)
+                            .load(vec![1])
+                            .distance(9)
+                            .build_single("job2", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((3., 0.))
+                            .schedule_stamp(17., 18.)
+                            .load(vec![0])
+                            .distance(11)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(21., 21.)
+                            .load(vec![0])
+                            .distance(14)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(14).serving(4).build())
+                    .build()
+            )
+            .build()
     );
 }
 

@@ -26,7 +26,6 @@ fn check_vehicles_impl(known_ids: Vec<&str>, tours: Vec<(&str, usize)>, expected
         ..create_empty_problem()
     };
     let solution = Solution {
-        statistic: Statistic::default(),
         tours: tours
             .into_iter()
             .map(|(id, shift_index)| Tour {
@@ -37,7 +36,7 @@ fn check_vehicles_impl(known_ids: Vec<&str>, tours: Vec<(&str, usize)>, expected
                 statistic: Statistic::default(),
             })
             .collect(),
-        ..create_empty_solution()
+        ..SolutionBuilder::default().build()
     };
     let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
@@ -140,7 +139,7 @@ fn check_jobs_impl(
             .collect()
     };
 
-    let create_stop = |stop: (&str, &str)| create_stop_with_activity(stop.0, stop.1, (0., 0.), 0, ("", ""), 0);
+    let create_stop = |stop: (&str, &str)| StopBuilder::default().coordinate((0., 0.)).build_single(stop.0, stop.1);
 
     let problem = Problem {
         plan: Plan {
@@ -160,7 +159,6 @@ fn check_jobs_impl(
         ..create_empty_problem()
     };
     let solution = Solution {
-        statistic: Statistic::default(),
         tours: tours
             .into_iter()
             .map(|(id, shift_index, stops)| Tour {
@@ -174,7 +172,7 @@ fn check_jobs_impl(
         unassigned: Some(
             unassigned.into_iter().map(|job| UnassignedJob { job_id: job.to_string(), reasons: vec![] }).collect(),
         ),
-        ..create_empty_solution()
+        ..SolutionBuilder::default().build()
     };
     let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
@@ -193,52 +191,28 @@ fn can_detect_time_window_violation() {
         fleet: create_default_fleet(),
         ..create_empty_problem()
     };
-    let solution = Solution {
-        statistic: Statistic {
-            cost: 15.,
-            distance: 2,
-            duration: 3,
-            times: Timing { driving: 2, serving: 1, ..Timing::default() },
-        },
-        tours: vec![Tour {
-            vehicle_id: "my_vehicle_1".to_string(),
-            type_id: "my_vehicle".to_string(),
-            shift_index: 0,
-            stops: vec![
-                create_stop_with_activity(
-                    "departure",
-                    "departure",
-                    (0., 0.),
-                    1,
-                    ("1970-01-01T00:00:02Z", "1970-01-01T00:00:02Z"),
-                    0,
-                ),
-                create_stop_with_activity(
-                    "job1",
-                    "delivery",
-                    (1., 0.),
-                    0,
-                    ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
-                    1,
-                ),
-                create_stop_with_activity(
-                    "arrival",
-                    "arrival",
-                    (0., 0.),
-                    0,
-                    ("1970-01-01T00:00:05Z", "1970-01-01T00:00:05Z"),
-                    2,
-                ),
-            ],
-            statistic: Statistic {
-                cost: 15.,
-                distance: 2,
-                duration: 3,
-                times: Timing { driving: 2, serving: 1, ..Timing::default() },
-            },
-        }],
-        ..create_empty_solution()
-    };
+    let solution = SolutionBuilder::default()
+        .tour(
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(2., 2.).load(vec![1]).build_departure(),
+                    StopBuilder::default()
+                        .coordinate((1., 0.))
+                        .schedule_stamp(3., 4.)
+                        .load(vec![0])
+                        .distance(1)
+                        .build_single("job1", "delivery"),
+                    StopBuilder::default()
+                        .coordinate((0., 0.))
+                        .schedule_stamp(5., 5.)
+                        .load(vec![0])
+                        .distance(2)
+                        .build_arrival(),
+                ])
+                .statistic(StatisticBuilder::default().driving(2).serving(1).build())
+                .build(),
+        )
+        .build();
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
     let ctx = CheckerContext::new(core_problem, problem, None, solution).unwrap();
 
@@ -257,52 +231,28 @@ fn can_detect_job_duration_violation() {
         fleet: create_default_fleet(),
         ..create_empty_problem()
     };
-    let solution = Solution {
-        statistic: Statistic {
-            cost: 18.,
-            distance: 2,
-            duration: 6,
-            times: Timing { driving: 2, serving: 2, waiting: 2, ..Timing::default() },
-        },
-        tours: vec![Tour {
-            vehicle_id: "my_vehicle_1".to_string(),
-            type_id: "my_vehicle".to_string(),
-            shift_index: 0,
-            stops: vec![
-                create_stop_with_activity(
-                    "departure",
-                    "departure",
-                    (0., 0.),
-                    1,
-                    ("1970-01-01T00:00:02Z", "1970-01-01T00:00:02Z"),
-                    0,
-                ),
-                create_stop_with_activity(
-                    "job1",
-                    "delivery",
-                    (1., 0.),
-                    0,
-                    ("1970-01-01T00:00:05Z", "1970-01-01T00:00:07Z"),
-                    1,
-                ),
-                create_stop_with_activity(
-                    "arrival",
-                    "arrival",
-                    (0., 0.),
-                    0,
-                    ("1970-01-01T00:00:08Z", "1970-01-01T00:00:08Z"),
-                    2,
-                ),
-            ],
-            statistic: Statistic {
-                cost: 18.,
-                distance: 2,
-                duration: 6,
-                times: Timing { driving: 2, serving: 2, waiting: 2, ..Timing::default() },
-            },
-        }],
-        ..create_empty_solution()
-    };
+    let solution = SolutionBuilder::default()
+        .tour(
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(2., 2.).load(vec![1]).build_departure(),
+                    StopBuilder::default()
+                        .coordinate((1., 0.))
+                        .schedule_stamp(5., 7.)
+                        .load(vec![0])
+                        .distance(1)
+                        .build_single("job1", "delivery"),
+                    StopBuilder::default()
+                        .coordinate((0., 0.))
+                        .schedule_stamp(8., 8.)
+                        .load(vec![0])
+                        .distance(2)
+                        .build_arrival(),
+                ])
+                .statistic(StatisticBuilder::default().driving(2).serving(2).waiting(2).build())
+                .build(),
+        )
+        .build();
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
     let ctx = CheckerContext::new(core_problem, problem, None, solution).unwrap();
 
@@ -331,40 +281,28 @@ fn can_detect_dispatch_violations() {
         },
         ..create_empty_problem()
     };
-    let solution = Solution {
-        tours: vec![Tour {
-            vehicle_id: "my_vehicle_1".to_string(),
-            type_id: "my_vehicle".to_string(),
-            stops: vec![
-                create_stop_with_activity(
-                    "departure",
-                    "departure",
-                    (0., 0.),
-                    1,
-                    ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                    0,
-                ),
-                create_stop_with_activity(
-                    "job1",
-                    "delivery",
-                    (2., 0.),
-                    0,
-                    ("1970-01-01T00:00:02Z", "1970-01-01T00:00:03Z"),
-                    2,
-                ),
-                create_stop_with_activity(
-                    "arrival",
-                    "arrival",
-                    (0., 0.),
-                    0,
-                    ("1970-01-01T00:00:05Z", "1970-01-01T00:00:05Z"),
-                    4,
-                ),
-            ],
-            ..create_empty_tour()
-        }],
-        ..create_empty_solution()
-    };
+    let solution = SolutionBuilder::default()
+        .tour(
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(2., 2.).load(vec![1]).build_departure(),
+                    StopBuilder::default()
+                        .coordinate((2., 0.))
+                        .schedule_stamp(2., 3.)
+                        .load(vec![0])
+                        .distance(2)
+                        .build_single("job1", "delivery"),
+                    StopBuilder::default()
+                        .coordinate((0., 0.))
+                        .schedule_stamp(5., 5.)
+                        .load(vec![0])
+                        .distance(4)
+                        .build_arrival(),
+                ])
+                .statistic(StatisticBuilder::default().driving(2).serving(2).waiting(2).build())
+                .build(),
+        )
+        .build();
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
     let ctx = CheckerContext::new(core_problem, problem, None, solution).unwrap();
 
@@ -392,39 +330,29 @@ fn can_detect_group_violations() {
         },
         ..create_empty_problem()
     };
-    let create_tour = |vehicle_id: &str, job_id: &str| Tour {
-        vehicle_id: vehicle_id.to_string(),
-        type_id: "my_vehicle".to_string(),
-        stops: vec![
-            create_stop_with_activity(
-                "departure",
-                "departure",
-                (0., 0.),
-                1,
-                ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                0,
-            ),
-            create_stop_with_activity(
-                job_id,
-                "delivery",
-                (1., 0.),
-                0,
-                ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
-                1,
-            ),
-            create_stop_with_activity(
-                "arrival",
-                "arrival",
-                (0., 0.),
-                0,
-                ("1970-01-01T00:00:03Z", "1970-01-01T00:00:03Z"),
-                2,
-            ),
-        ],
-        ..create_empty_tour()
+
+    let create_tour = |vehicle_id: &str, job_id: &str| {
+        TourBuilder::default()
+            .vehicle_id(vehicle_id)
+            .stops(vec![
+                StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![1]).build_departure(),
+                StopBuilder::default()
+                    .coordinate((1., 0.))
+                    .schedule_stamp(1., 2.)
+                    .load(vec![0])
+                    .distance(1)
+                    .build_single(job_id, "delivery"),
+                StopBuilder::default()
+                    .coordinate((0., 0.))
+                    .schedule_stamp(3., 3.)
+                    .load(vec![0])
+                    .distance(2)
+                    .build_arrival(),
+            ])
+            .statistic(StatisticBuilder::default().driving(2).serving(2).waiting(2).build())
+            .build()
     };
-    let solution =
-        Solution { tours: vec![create_tour("v1", "job1"), create_tour("v2", "job2")], ..create_empty_solution() };
+    let solution = SolutionBuilder::default().tour(create_tour("v1", "job1")).tour(create_tour("v2", "job2")).build();
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
     let ctx = CheckerContext::new(core_problem, problem, None, solution).unwrap();
 

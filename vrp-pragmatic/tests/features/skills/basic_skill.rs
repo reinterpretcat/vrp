@@ -1,5 +1,4 @@
 use crate::format::problem::*;
-use crate::format::solution::*;
 use crate::helpers::*;
 
 #[test]
@@ -34,51 +33,31 @@ fn can_wait_for_job_start() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 47.,
-                distance: 18,
-                duration: 19,
-                times: Timing { driving: 18, serving: 1, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "vehicle_with_skill_1".to_string(),
-                type_id: "vehicle_with_skill".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (10., 0.),
-                        1,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (1., 0.),
-                        0,
-                        ("1970-01-01T00:00:09Z", "1970-01-01T00:00:10Z"),
-                        9
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (10., 0.),
-                        0,
-                        ("1970-01-01T00:00:19Z", "1970-01-01T00:00:19Z"),
-                        18
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 47.,
-                    distance: 18,
-                    duration: 19,
-                    times: Timing { driving: 18, serving: 1, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(10., 0.)
+                            .load(vec![1])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((1., 0.))
+                            .schedule_stamp(9., 10.)
+                            .load(vec![0])
+                            .distance(9)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((10., 0.))
+                            .schedule_stamp(19., 19.)
+                            .load(vec![0])
+                            .distance(18)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(18).serving(1).build())
+                    .build()
+            )
+            .build()
     );
 }

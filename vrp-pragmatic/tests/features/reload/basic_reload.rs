@@ -59,68 +59,44 @@ fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<Job>, unassigned: 
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 26.,
-                distance: 6,
-                duration: 10,
-                times: Timing { driving: 6, serving: 4, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        1,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (1., 0.),
-                        0,
-                        ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
-                        1
-                    ),
-                    create_stop_with_activity(
-                        "reload",
-                        "reload",
-                        (0., 0.),
-                        1,
-                        ("1970-01-01T00:00:03Z", "1970-01-01T00:00:05Z"),
-                        2
-                    ),
-                    create_stop_with_activity(
-                        "job2",
-                        "delivery",
-                        (2., 0.),
-                        0,
-                        ("1970-01-01T00:00:07Z", "1970-01-01T00:00:08Z"),
-                        4
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:10Z"),
-                        6
-                    ),
-                ],
-                statistic: Statistic {
-                    cost: 26.,
-                    distance: 6,
-                    duration: 10,
-                    times: Timing { driving: 6, serving: 4, ..Timing::default() },
-                },
-            }],
-            unassigned,
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![1])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((1., 0.))
+                            .schedule_stamp(1., 2.)
+                            .load(vec![0])
+                            .distance(1)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(3., 5.)
+                            .load(vec![1])
+                            .distance(2)
+                            .build_single("reload", "reload"),
+                        StopBuilder::default()
+                            .coordinate((2., 0.))
+                            .schedule_stamp(7., 8.)
+                            .load(vec![0])
+                            .distance(4)
+                            .build_single("job2", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(10., 10.)
+                            .load(vec![0])
+                            .distance(6)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(6).serving(4).build())
+                    .build()
+            )
+            .unassigned(unassigned)
+            .build()
     );
 }

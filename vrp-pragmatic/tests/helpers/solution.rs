@@ -1,108 +1,412 @@
+//! Provides helper logic for solution domain, sometimes assuming some defaults used from problem domain helpers.
+
 use crate::format::solution::*;
+use crate::format::Location;
+use crate::format_time;
 use crate::helpers::ToLocation;
 use hashbrown::HashMap;
 use std::cmp::Ordering::{Equal, Less};
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
+use vrp_core::models::common::{Cost, Timestamp};
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
 use vrp_core::prelude::GenericError;
 use vrp_core::utils::{DefaultRandom, Random};
 
-/// Creates stop with single activity using common schema.
-pub fn create_stop_with_activity(
-    id: &str,
-    activity_type: &str,
-    location: (f64, f64),
-    load: i32,
-    time: (&str, &str),
-    distance: i64,
-) -> Stop {
-    create_stop_with_activity_impl(id, activity_type, location, vec![load], time, None, distance, None)
+/// Provides way to build a stop with one or multiple activities.
+pub struct StopBuilder {
+    stop: Stop,
 }
 
-/// Creates stop with single activity using specific activity time.
-pub fn create_stop_with_activity_time(
-    id: &str,
-    activity_type: &str,
-    location: (f64, f64),
-    load: i32,
-    stop_time: (&str, &str),
-    activity_time: (&str, &str),
-    distance: i64,
-) -> Stop {
-    create_stop_with_activity_impl(
-        id,
-        activity_type,
-        location,
-        vec![load],
-        stop_time,
-        Some(activity_time),
-        distance,
-        None,
-    )
+impl StopBuilder {
+    pub fn new_transit() -> Self {
+        Self {
+            stop: Stop::Transit(TransitStop {
+                time: Schedule { arrival: format_time(0.), departure: format_time(0.) },
+                load: vec![],
+                activities: vec![],
+            }),
+        }
+    }
+
+    pub fn distance(mut self, distance: i64) -> Self {
+        let mut stop = self.stop.to_point();
+        stop.distance = distance;
+        self.stop = Stop::Point(stop);
+
+        self
+    }
+
+    pub fn coordinate(mut self, coordinate: (f64, f64)) -> Self {
+        let mut stop = self.stop.to_point();
+        stop.location = coordinate.to_loc();
+        self.stop = Stop::Point(stop);
+
+        self
+    }
+
+    pub fn reference(mut self, index: usize) -> Self {
+        let mut stop = self.stop.to_point();
+        stop.location = Location::Reference { index };
+        self.stop = Stop::Point(stop);
+
+        self
+    }
+
+    pub fn load(mut self, load: Vec<i32>) -> Self {
+        *self.stop.load_mut() = load;
+
+        self
+    }
+
+    pub fn schedule_stamp(mut self, arrival: Timestamp, departure: Timestamp) -> Self {
+        *self.stop.schedule_mut() = Schedule { arrival: format_time(arrival), departure: format_time(departure) };
+
+        self
+    }
+
+    pub fn activity(mut self, activity: Activity) -> Self {
+        self.stop.activities_mut().push(activity);
+
+        self
+    }
+
+    pub fn activities(mut self, activities: Vec<Activity>) -> Self {
+        self.stop.activities_mut().extend(activities);
+
+        self
+    }
+
+    /// Builds a stop with one or more activities defined by the user.
+    pub fn build(self) -> Stop {
+        if self.stop.load().is_empty() {
+            panic!("no load is set");
+        }
+
+        if self.stop.activities().is_empty() {
+            panic!("no activities are set");
+        }
+
+        self.stop
+    }
+
+    /// Builds departure stop with single predefined departure activity.
+    pub fn build_departure(mut self) -> Stop {
+        if !self.stop.activities().is_empty() {
+            panic!("non empty departure list of activities, use alternatives");
+        }
+
+        self = self.distance(0);
+
+        self.stop
+            .activities_mut()
+            .push(ActivityBuilder::default().job_id("departure").activity_type("departure").build());
+
+        self.stop
+    }
+
+    /// Builds arrival stop with single predefined arrival activity.
+    pub fn build_arrival(mut self) -> Stop {
+        if !self.stop.activities().is_empty() {
+            panic!("non empty arrival list of activities, use alternatives");
+        }
+
+        self.stop.activities_mut().push(ActivityBuilder::default().job_id("arrival").activity_type("arrival").build());
+
+        self.stop
+    }
+
+    /// Builds a stop with single predefined activity with given type, job id and tag.
+    pub fn build_single_tag(mut self, job_id: &str, activity_type: &str, tag: &str) -> Stop {
+        if !self.stop.activities().is_empty() {
+            panic!("non empty single list of activities, use alternatives");
+        }
+
+        self = self.activity(ActivityBuilder::default().activity_type(activity_type).job_id(job_id).tag(tag).build());
+
+        self.stop
+    }
+
+    /// Builds a stop with single predefined activity with given type, job id and time.
+    pub fn build_single_time(mut self, job_id: &str, activity_type: &str, time: (Timestamp, Timestamp)) -> Stop {
+        if !self.stop.activities().is_empty() {
+            panic!("non empty single list of activities, use alternatives");
+        }
+
+        self = self.activity(
+            ActivityBuilder::default().activity_type(activity_type).job_id(job_id).time_stamp(time.0, time.1).build(),
+        );
+
+        self.stop
+    }
+
+    /// Builds a stop with single predefined activity with given type and job id.
+    pub fn build_single(mut self, job_id: &str, activity_type: &str) -> Stop {
+        if !self.stop.activities().is_empty() {
+            panic!("non empty single list of activities, use alternatives");
+        }
+
+        self = self.activity(ActivityBuilder::default().activity_type(activity_type).job_id(job_id).build());
+
+        self.stop
+    }
 }
 
-/// Creates stop with single activity using multiple demand.
-pub fn create_stop_with_activity_md(
-    id: &str,
-    activity_type: &str,
-    location: (f64, f64),
-    load: Vec<i32>,
-    time: (&str, &str),
-    distance: i64,
-) -> Stop {
-    create_stop_with_activity_impl(id, activity_type, location, load, time, None, distance, None)
+impl Default for StopBuilder {
+    fn default() -> Self {
+        Self {
+            stop: Stop::Point(PointStop {
+                location: Location::Coordinate { lat: 0., lng: 0. },
+                time: Schedule { arrival: format_time(0.), departure: format_time(0.) },
+                distance: 0,
+                load: vec![],
+                parking: None,
+                activities: vec![],
+            }),
+        }
+    }
 }
 
-/// Creates stop with single activity using tag.
-pub fn create_stop_with_activity_with_tag(
-    id: &str,
-    activity_type: &str,
-    location: (f64, f64),
-    load: i32,
-    time: (&str, &str),
-    distance: i64,
-    job_tag: &str,
-) -> Stop {
-    create_stop_with_activity_impl(
-        id,
-        activity_type,
-        location,
-        vec![load],
-        time,
-        None,
-        distance,
-        Some(job_tag.to_string()),
-    )
+pub struct ActivityBuilder {
+    activity: Activity,
 }
 
-#[allow(clippy::too_many_arguments)]
-fn create_stop_with_activity_impl(
-    id: &str,
-    activity_type: &str,
-    location: (f64, f64),
-    load: Vec<i32>,
-    stop_time: (&str, &str),
-    activity_time: Option<(&str, &str)>,
-    distance: i64,
-    job_tag: Option<String>,
-) -> Stop {
-    Stop::Point(PointStop {
-        location: (location.0, location.1).to_loc(),
-        time: Schedule { arrival: stop_time.0.to_string(), departure: stop_time.1.to_string() },
-        load,
-        distance,
-        activities: vec![Activity {
-            job_id: id.to_string(),
-            activity_type: activity_type.to_string(),
-            location: None,
-            time: activity_time.map(|(start, end)| Interval { start: start.to_string(), end: end.to_string() }),
-            job_tag,
-            commute: None,
-        }],
-        parking: None,
-    })
+impl ActivityBuilder {
+    pub fn delivery() -> Self {
+        let mut builder = Self::default();
+        builder.activity.activity_type = "delivery".to_string();
+
+        builder
+    }
+
+    pub fn pickup() -> Self {
+        let mut builder = Self::default();
+        builder.activity.activity_type = "pickup".to_string();
+
+        builder
+    }
+
+    pub fn break_type() -> Self {
+        let mut builder = Self::default();
+        builder.activity.activity_type = "break".to_string();
+        builder.activity.job_id = "break".to_string();
+
+        builder
+    }
+
+    pub fn job_id(mut self, job_id: &str) -> Self {
+        self.activity.job_id = job_id.to_string();
+
+        self
+    }
+
+    pub fn activity_type(mut self, activity_type: &str) -> Self {
+        self.activity.activity_type = activity_type.to_string();
+
+        self
+    }
+
+    pub fn coordinate(mut self, coordinate: (f64, f64)) -> Self {
+        self.activity.location = Some(coordinate.to_loc());
+
+        self
+    }
+
+    pub fn time_stamp(mut self, start: Timestamp, end: Timestamp) -> Self {
+        self.activity.time = Some(Interval { start: format_time(start), end: format_time(end) });
+
+        self
+    }
+
+    pub fn tag(mut self, tag: &str) -> Self {
+        self.activity.job_tag = Some(tag.to_string());
+
+        self
+    }
+
+    pub fn commute(mut self, commute: Commute) -> Self {
+        self.activity.commute = Some(commute);
+
+        self
+    }
+
+    pub fn build(self) -> Activity {
+        if self.activity.activity_type.is_empty() {
+            panic!("missing activity type");
+        }
+
+        if self.activity.job_id.is_empty() {
+            panic!("missing activity job id")
+        }
+
+        self.activity
+    }
+}
+
+impl Default for ActivityBuilder {
+    fn default() -> Self {
+        Self {
+            activity: Activity {
+                job_id: "".to_string(),
+                activity_type: "".to_string(),
+                location: None,
+                time: None,
+                job_tag: None,
+                commute: None,
+            },
+        }
+    }
+}
+
+pub struct StatisticBuilder {
+    fixed: Cost,
+    costs: (Cost, Cost),
+    statistic: Statistic,
+}
+
+impl StatisticBuilder {
+    pub fn driving(mut self, driving: i64) -> Self {
+        self.statistic.times.driving = driving;
+
+        self
+    }
+
+    pub fn serving(mut self, serving: i64) -> Self {
+        self.statistic.times.serving = serving;
+
+        self
+    }
+
+    pub fn waiting(mut self, waiting: i64) -> Self {
+        self.statistic.times.waiting = waiting;
+
+        self
+    }
+
+    pub fn break_time(mut self, break_time: i64) -> Self {
+        self.statistic.times.break_time = break_time;
+
+        self
+    }
+
+    pub fn build(self) -> Statistic {
+        let mut statistic = self.statistic;
+        let (per_distance, per_time) = self.costs;
+        let times = statistic.times.clone();
+
+        statistic.distance = statistic.times.driving;
+        statistic.cost = self.fixed
+            + statistic.distance as f64 * per_distance
+            + (times.driving + times.serving + times.waiting + times.break_time + times.parking + times.commuting)
+                as f64
+                * per_time;
+
+        statistic
+    }
+}
+
+impl Default for StatisticBuilder {
+    fn default() -> Self {
+        Self { fixed: 10.0, costs: (1., 1.), statistic: Default::default() }
+    }
+}
+
+pub struct TourBuilder {
+    tour: Tour,
+}
+
+impl TourBuilder {
+    pub fn vehicle_id(mut self, id: &str) -> Self {
+        self.tour.vehicle_id = id.to_string();
+
+        self
+    }
+
+    pub fn shift_index(mut self, idx: usize) -> Self {
+        self.tour.shift_index = idx;
+
+        self
+    }
+
+    pub fn stops(mut self, stops: Vec<Stop>) -> Self {
+        self.tour.stops = stops;
+
+        self
+    }
+
+    pub fn statistic(mut self, statistic: Statistic) -> Self {
+        self.tour.statistic = statistic;
+
+        self
+    }
+
+    pub fn build(self) -> Tour {
+        if self.tour.stops.is_empty() {
+            panic!("no stops in the tour");
+        }
+
+        self.tour
+    }
+}
+
+impl Default for TourBuilder {
+    fn default() -> Self {
+        Self {
+            tour: Tour {
+                vehicle_id: "my_vehicle_1".to_string(),
+                type_id: "my_vehicle".to_string(),
+                shift_index: 0,
+                stops: vec![],
+                statistic: Default::default(),
+            },
+        }
+    }
+}
+
+pub struct SolutionBuilder {
+    solution: Solution,
+}
+
+impl SolutionBuilder {
+    pub fn tour(mut self, tour: Tour) -> Self {
+        self.solution.tours.push(tour);
+
+        self
+    }
+
+    pub fn unassigned(mut self, unassigned: Option<Vec<UnassignedJob>>) -> Self {
+        self.solution.unassigned = unassigned;
+
+        self
+    }
+
+    pub fn violations(mut self, violations: Option<Vec<Violation>>) -> Self {
+        self.solution.violations = violations;
+
+        self
+    }
+
+    pub fn build(mut self) -> Solution {
+        self.solution.statistic =
+            self.solution.tours.iter().fold(Statistic::default(), |acc, tour| acc + tour.statistic.clone());
+
+        self.solution
+    }
+}
+
+impl Default for SolutionBuilder {
+    fn default() -> Self {
+        Self {
+            solution: Solution {
+                statistic: Default::default(),
+                tours: vec![],
+                unassigned: None,
+                violations: None,
+                extras: None,
+            },
+        }
+    }
 }
 
 pub fn assert_vehicle_agnostic(result: Solution, expected: Solution) {
@@ -132,20 +436,6 @@ pub fn assert_vehicle_agnostic(result: Solution, expected: Solution) {
     });
 
     assert_eq!(result, expected);
-}
-
-pub fn create_empty_tour() -> Tour {
-    Tour {
-        vehicle_id: "".to_string(),
-        type_id: "".to_string(),
-        shift_index: 0,
-        stops: vec![],
-        statistic: Default::default(),
-    }
-}
-
-pub fn create_empty_solution() -> Solution {
-    Solution { statistic: Default::default(), tours: vec![], unassigned: None, violations: None, extras: None }
 }
 
 pub fn get_ids_from_tour(tour: &Tour) -> Vec<Vec<String>> {

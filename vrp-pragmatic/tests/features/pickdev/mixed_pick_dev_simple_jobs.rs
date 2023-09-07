@@ -1,5 +1,4 @@
 use crate::format::problem::*;
-use crate::format::solution::*;
 use crate::helpers::*;
 
 #[test]
@@ -22,77 +21,49 @@ fn can_use_one_pickup_delivery_and_two_deliveries_with_one_vehicle() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 30.,
-                distance: 8,
-                duration: 12,
-                times: Timing { driving: 8, serving: 4, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        2,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
-                    ),
-                    create_stop_with_activity_with_tag(
-                        "job2",
-                        "pickup",
-                        (2., 0.),
-                        3,
-                        ("1970-01-01T00:00:02Z", "1970-01-01T00:00:03Z"),
-                        2,
-                        "p1"
-                    ),
-                    create_stop_with_activity(
-                        "job3",
-                        "delivery",
-                        (4., 0.),
-                        2,
-                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
-                        4
-                    ),
-                    create_stop_with_activity_with_tag(
-                        "job2",
-                        "delivery",
-                        (3., 0.),
-                        1,
-                        ("1970-01-01T00:00:07Z", "1970-01-01T00:00:08Z"),
-                        5,
-                        "d1"
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (1., 0.),
-                        0,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
-                        7
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:12Z", "1970-01-01T00:00:12Z"),
-                        8
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 30.,
-                    distance: 8,
-                    duration: 12,
-                    times: Timing { driving: 8, serving: 4, ..Timing::default() },
-                }
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![2])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((2., 0.))
+                            .schedule_stamp(2., 3.)
+                            .load(vec![3])
+                            .distance(2)
+                            .build_single_tag("job2", "pickup", "p1"),
+                        StopBuilder::default()
+                            .coordinate((4., 0.))
+                            .schedule_stamp(5., 6.)
+                            .load(vec![2])
+                            .distance(4)
+                            .build_single("job3", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((3., 0.))
+                            .schedule_stamp(7., 8.)
+                            .load(vec![1])
+                            .distance(5)
+                            .build_single_tag("job2", "delivery", "d1"),
+                        StopBuilder::default()
+                            .coordinate((1., 0.))
+                            .schedule_stamp(10., 11.)
+                            .load(vec![0])
+                            .distance(7)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(12., 12.)
+                            .load(vec![0])
+                            .distance(8)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(8).serving(4).build())
+                    .build()
+            )
+            .build()
     );
 }

@@ -21,18 +21,15 @@ fn can_use_vehicle_with_open_end() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic::default(),
-            tours: vec![],
-            unassigned: Some(vec![UnassignedJob {
+        SolutionBuilder::default()
+            .unassigned(Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "REACHABLE_CONSTRAINT".to_string(),
                     description: "location unreachable".to_string(),
                     details: None,
                 }]
-            }]),
-            ..create_empty_solution()
-        }
+            }]))
+            .build()
     );
 }

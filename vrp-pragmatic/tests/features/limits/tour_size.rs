@@ -29,59 +29,39 @@ fn can_skip_job_from_multiple_because_of_tour_size() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 16.,
-                distance: 2,
-                duration: 4,
-                times: Timing { driving: 2, serving: 2, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        2,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (1., 0.),
-                        1,
-                        ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
-                        1
-                    ),
-                    create_stop_with_activity(
-                        "job2",
-                        "delivery",
-                        (2., 0.),
-                        0,
-                        ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
-                        2
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 16.,
-                    distance: 2,
-                    duration: 4,
-                    times: Timing { driving: 2, serving: 2, ..Timing::default() },
-                },
-            }],
-            unassigned: Some(vec![UnassignedJob {
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![2])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((1., 0.))
+                            .schedule_stamp(1., 2.)
+                            .load(vec![1])
+                            .distance(1)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((2., 0.))
+                            .schedule_stamp(3., 4.)
+                            .load(vec![0])
+                            .distance(2)
+                            .build_single("job2", "delivery")
+                    ])
+                    .statistic(StatisticBuilder::default().driving(2).serving(2).break_time(2).build())
+                    .build()
+            )
+            .unassigned(Some(vec![UnassignedJob {
                 job_id: "job3".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "TOUR_SIZE_CONSTRAINT".to_string(),
                     description: "cannot be assigned due to tour size constraint of vehicle".to_string(),
                     details: Some(vec![UnassignedJobDetail { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }]),
                 }]
-            }]),
-            ..create_empty_solution()
-        }
+            }]))
+            .build()
     );
 }

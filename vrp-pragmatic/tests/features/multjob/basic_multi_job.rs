@@ -1,5 +1,4 @@
 use crate::format::problem::*;
-use crate::format::solution::*;
 use crate::helpers::*;
 
 #[test]
@@ -25,79 +24,50 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 46.,
-                distance: 16,
-                duration: 20,
-                times: Timing { driving: 16, serving: 4, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        1,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
-                    ),
-                    create_stop_with_activity(
-                        "simple",
-                        "delivery",
-                        (1., 0.),
-                        0,
-                        ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
-                        1
-                    ),
-                    create_stop_with_activity_with_tag(
-                        "multi",
-                        "pickup",
-                        (2., 0.),
-                        1,
-                        ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
-                        2,
-                        "p1"
-                    ),
-                    create_stop_with_activity_with_tag(
-                        "multi",
-                        "pickup",
-                        (8., 0.),
-                        2,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
-                        8,
-                        "p2"
-                    ),
-                    create_stop_with_activity_with_tag(
-                        "multi",
-                        "delivery",
-                        (6., 0.),
-                        0,
-                        ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
-                        10,
-                        "d1"
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:20Z", "1970-01-01T00:00:20Z"),
-                        16
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 46.,
-                    distance: 16,
-                    duration: 20,
-                    times: Timing { driving: 16, serving: 4, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![1])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((1., 0.))
+                            .schedule_stamp(1., 2.)
+                            .load(vec![0])
+                            .distance(1)
+                            .build_single("simple", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((2., 0.))
+                            .schedule_stamp(3., 4.)
+                            .load(vec![1])
+                            .distance(2)
+                            .build_single_tag("multi", "pickup", "p1"),
+                        StopBuilder::default()
+                            .coordinate((8., 0.))
+                            .schedule_stamp(10., 11.)
+                            .load(vec![2])
+                            .distance(8)
+                            .build_single_tag("multi", "pickup", "p2"),
+                        StopBuilder::default()
+                            .coordinate((6., 0.))
+                            .schedule_stamp(13., 14.)
+                            .load(vec![0])
+                            .distance(10)
+                            .build_single_tag("multi", "delivery", "d1"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(20., 20.)
+                            .load(vec![0])
+                            .distance(16)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(16).serving(4).build())
+                    .build()
+            )
+            .build()
     );
 }
 
@@ -121,70 +91,43 @@ fn can_assign_multi_job_in_pickup_effective_way() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 37.,
-                distance: 12,
-                duration: 15,
-                times: Timing { driving: 12, serving: 3, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
-                    ),
-                    create_stop_with_activity_with_tag(
-                        "multi",
-                        "pickup",
-                        (2., 0.),
-                        1,
-                        ("1970-01-01T00:00:02Z", "1970-01-01T00:00:03Z"),
-                        2,
-                        "p2"
-                    ),
-                    create_stop_with_activity_with_tag(
-                        "multi",
-                        "pickup",
-                        (4., 0.),
-                        2,
-                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
-                        4,
-                        "p1"
-                    ),
-                    create_stop_with_activity_with_tag(
-                        "multi",
-                        "delivery",
-                        (6., 0.),
-                        0,
-                        ("1970-01-01T00:00:08Z", "1970-01-01T00:00:09Z"),
-                        6,
-                        "d1"
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:15Z", "1970-01-01T00:00:15Z"),
-                        12
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 37.,
-                    distance: 12,
-                    duration: 15,
-                    times: Timing { driving: 12, serving: 3, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![0])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((2., 0.))
+                            .schedule_stamp(2., 3.)
+                            .load(vec![1])
+                            .distance(2)
+                            .build_single_tag("multi", "pickup", "p2"),
+                        StopBuilder::default()
+                            .coordinate((4., 0.))
+                            .schedule_stamp(5., 6.)
+                            .load(vec![2])
+                            .distance(4)
+                            .build_single_tag("multi", "pickup", "p1"),
+                        StopBuilder::default()
+                            .coordinate((6., 0.))
+                            .schedule_stamp(8., 9.)
+                            .load(vec![0])
+                            .distance(6)
+                            .build_single_tag("multi", "delivery", "d1"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(15., 15.)
+                            .load(vec![0])
+                            .distance(12)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(12).serving(3).build())
+                    .build()
+            )
+            .build()
     );
 }

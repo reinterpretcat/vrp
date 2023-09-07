@@ -54,141 +54,64 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Gen
         },
         ..create_empty_problem()
     };
-    let solution = Solution {
-        statistic: Statistic {
-            cost: 13.,
-            distance: 1,
-            duration: 2,
-            times: Timing { driving: 1, serving: 1, ..Timing::default() },
-        },
-        tours: vec![Tour {
-            vehicle_id: "my_vehicle_1".to_string(),
-            type_id: "my_vehicle".to_string(),
-            shift_index: 0,
-            stops: vec![
-                create_stop_with_activity(
-                    "departure",
-                    "departure",
-                    (0., 0.),
-                    *stop_loads.first().unwrap(),
-                    ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                    0,
-                ),
-                Stop::Point(PointStop {
-                    location: (1., 0.).to_loc(),
-                    time: Schedule {
-                        arrival: "1970-01-01T00:00:03Z".to_string(),
-                        departure: "1970-01-01T00:00:05Z".to_string(),
-                    },
-                    distance: 1,
-                    parking: None,
-                    load: vec![*stop_loads.get(1).unwrap()],
-                    activities: vec![
-                        Activity {
-                            job_id: "job1".to_string(),
-                            activity_type: "delivery".to_string(),
-                            location: None,
-                            time: None,
-                            job_tag: None,
-                            commute: None,
-                        },
-                        Activity {
-                            job_id: "job5".to_string(),
-                            activity_type: "pickup".to_string(),
-                            location: None,
-                            time: None,
-                            job_tag: Some("p1".to_string()),
-                            commute: None,
-                        },
-                    ],
-                }),
-                Stop::Point(PointStop {
-                    location: (0., 0.).to_loc(),
-                    time: Schedule {
-                        arrival: "1970-01-01T00:00:03Z".to_string(),
-                        departure: "1970-01-01T00:00:05Z".to_string(),
-                    },
-                    distance: 1,
-                    parking: None,
-                    load: vec![*stop_loads.get(2).unwrap()],
-                    activities: vec![Activity {
-                        job_id: "reload".to_string(),
-                        activity_type: "reload".to_string(),
-                        location: None,
-                        time: None,
-                        job_tag: None,
-                        commute: None,
-                    }],
-                }),
-                Stop::Point(PointStop {
-                    location: (2., 0.).to_loc(),
-                    time: Schedule {
-                        arrival: "1970-01-01T00:00:07Z".to_string(),
-                        departure: "1970-01-01T00:00:08Z".to_string(),
-                    },
-                    distance: 3,
-                    parking: None,
-                    load: vec![*stop_loads.get(3).unwrap()],
-                    activities: vec![
-                        Activity {
-                            job_id: "job2".to_string(),
-                            activity_type: "delivery".to_string(),
-                            location: Some((2., 0.).to_loc()),
-                            time: Some(Interval {
-                                start: "1970-01-01T00:00:08Z".to_string(),
-                                end: "1970-01-01T00:00:09Z".to_string(),
-                            }),
-                            job_tag: None,
-                            commute: None,
-                        },
-                        Activity {
-                            job_id: "job3".to_string(),
-                            activity_type: "delivery".to_string(),
-                            location: Some((3., 0.).to_loc()),
-                            time: Some(Interval {
-                                start: "1970-01-01T00:00:09Z".to_string(),
-                                end: "1970-01-01T00:00:10Z".to_string(),
-                            }),
-                            job_tag: None,
-                            commute: None,
-                        },
-                    ],
-                }),
-                create_stop_with_activity(
-                    "job4",
-                    "pickup",
-                    (4., 0.),
-                    *stop_loads.get(4).unwrap(),
-                    ("1970-01-01T00:00:11Z", "1970-01-01T00:00:12Z"),
-                    5,
-                ),
-                create_stop_with_activity_with_tag(
-                    "job5",
-                    "delivery",
-                    (5., 0.),
-                    *stop_loads.get(5).unwrap(),
-                    ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
-                    6,
-                    "d1",
-                ),
-                create_stop_with_activity(
-                    "arrival",
-                    "arrival",
-                    (0., 0.),
-                    *stop_loads.get(6).unwrap(),
-                    ("1970-01-01T00:00:19Z", "1970-01-01T00:00:19Z"),
-                    11,
-                ),
-            ],
-            statistic: Statistic {
-                cost: 13.,
-                distance: 1,
-                duration: 2,
-                times: Timing { driving: 1, serving: 1, ..Timing::default() },
-            },
-        }],
-        ..create_empty_solution()
-    };
+    let solution = SolutionBuilder::default()
+        .tour(
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default()
+                        .coordinate((0., 0.))
+                        .schedule_stamp(0., 0.)
+                        .load(vec![*stop_loads.first().unwrap()])
+                        .build_departure(),
+                    StopBuilder::default()
+                        .coordinate((1., 0.))
+                        .schedule_stamp(3., 5.)
+                        .load(vec![*stop_loads.get(1).unwrap()])
+                        .distance(1)
+                        .activity(ActivityBuilder::delivery().job_id("job1").build())
+                        .activity(ActivityBuilder::pickup().job_id("job5").tag("p1").build())
+                        .build(),
+                    StopBuilder::default()
+                        .coordinate((0., 0.))
+                        .schedule_stamp(3., 5.)
+                        .load(vec![*stop_loads.get(2).unwrap()])
+                        .distance(1)
+                        .build_single("reload", "reload"),
+                    StopBuilder::default()
+                        .coordinate((2., 0.))
+                        .schedule_stamp(7., 8.)
+                        .load(vec![*stop_loads.get(3).unwrap()])
+                        .distance(3)
+                        .activity(
+                            ActivityBuilder::delivery().job_id("job2").coordinate((2., 0.)).time_stamp(8., 9.).build(),
+                        )
+                        .activity(
+                            ActivityBuilder::delivery().job_id("job3").coordinate((3., 0.)).time_stamp(9., 10.).build(),
+                        )
+                        .build(),
+                    StopBuilder::default()
+                        .coordinate((4., 0.))
+                        .schedule_stamp(11., 12.)
+                        .load(vec![*stop_loads.get(4).unwrap()])
+                        .distance(5)
+                        .build_single("job4", "pickup"),
+                    StopBuilder::default()
+                        .coordinate((5., 0.))
+                        .schedule_stamp(13., 14.)
+                        .load(vec![*stop_loads.get(5).unwrap()])
+                        .distance(6)
+                        .build_single_tag("job5", "delivery", "d1"),
+                    StopBuilder::default()
+                        .coordinate((0., 0.))
+                        .schedule_stamp(19., 19.)
+                        .load(vec![*stop_loads.get(6).unwrap()])
+                        .distance(11)
+                        .build_arrival(),
+                ])
+                .statistic(StatisticBuilder::default().driving(1).serving(1).build())
+                .build(),
+        )
+        .build();
     let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
     let result = check_vehicle_load(&ctx);
@@ -204,73 +127,35 @@ fn can_check_load_when_departure_has_other_activity() {
         fleet: Fleet { vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])], ..create_default_fleet() },
         ..create_empty_problem()
     };
-    let solution = Solution {
-        statistic: Statistic {
-            cost: 6.,
-            distance: 2,
-            duration: 4,
-            times: Timing { driving: 2, serving: 2, ..Timing::default() },
-        },
-        tours: vec![Tour {
-            vehicle_id: "my_vehicle_1".to_string(),
-            type_id: "my_vehicle".to_string(),
-            shift_index: 0,
-            stops: vec![
-                Stop::Point(PointStop {
-                    location: (0., 0.).to_loc(),
-                    time: Schedule {
-                        arrival: "1970-01-01T00:00:00Z".to_string(),
-                        departure: "1970-01-01T00:00:01Z".to_string(),
-                    },
-                    distance: 0,
-                    parking: None,
-                    load: vec![1],
-                    activities: vec![
-                        Activity {
-                            job_id: "departure".to_string(),
-                            activity_type: "departure".to_string(),
-                            location: None,
-                            time: None,
-                            job_tag: None,
-                            commute: None,
-                        },
-                        Activity {
-                            job_id: "job1".to_string(),
-                            activity_type: "pickup".to_string(),
-                            location: None,
-                            time: None,
-                            job_tag: Some("p1".to_string()),
-                            commute: None,
-                        },
-                    ],
-                }),
-                create_stop_with_activity_with_tag(
-                    "job1",
-                    "delivery",
-                    (1., 0.),
-                    0,
-                    ("1970-01-01T00:00:02Z", "1970-01-01T00:00:03Z"),
-                    1,
-                    "d1",
-                ),
-                create_stop_with_activity(
-                    "arrival",
-                    "arrival",
-                    (0., 0.),
-                    0,
-                    ("1970-01-01T00:00:04Z", "1970-01-01T00:00:04Z"),
-                    2,
-                ),
-            ],
-            statistic: Statistic {
-                cost: 6.,
-                distance: 2,
-                duration: 4,
-                times: Timing { driving: 2, serving: 2, ..Timing::default() },
-            },
-        }],
-        ..create_empty_solution()
-    };
+    let solution = SolutionBuilder::default()
+        .tour(
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default()
+                        .coordinate((1., 0.))
+                        .schedule_stamp(0., 1.)
+                        .load(vec![1])
+                        .distance(0)
+                        .activity(ActivityBuilder::default().job_id("departure").activity_type("departure").build())
+                        .activity(ActivityBuilder::pickup().job_id("job1").tag("p1").build())
+                        .build(),
+                    StopBuilder::default()
+                        .coordinate((1., 0.))
+                        .schedule_stamp(2., 3.)
+                        .load(vec![0])
+                        .distance(1)
+                        .build_single_tag("job1", "delivery", "d1"),
+                    StopBuilder::default()
+                        .coordinate((0., 0.))
+                        .schedule_stamp(4., 4.)
+                        .load(vec![0])
+                        .distance(2)
+                        .build_arrival(),
+                ])
+                .statistic(StatisticBuilder::default().driving(2).serving(2).build())
+                .build(),
+        )
+        .build();
     let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
     let result = check_vehicle_load(&ctx);
@@ -306,69 +191,40 @@ fn can_check_resource_consumption() {
         },
         ..create_empty_problem()
     };
-    let solution = Solution {
-        statistic: Statistic {
-            cost: 17.,
-            distance: 6,
-            duration: 11,
-            times: Timing { driving: 6, serving: 5, ..Timing::default() },
-        },
-        tours: vec![Tour {
-            vehicle_id: "my_vehicle_1".to_string(),
-            type_id: "my_vehicle".to_string(),
-            shift_index: 0,
-            stops: vec![
-                create_stop_with_activity(
-                    "departure",
-                    "departure",
-                    (0., 0.),
-                    1,
-                    ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                    0,
-                ),
-                create_stop_with_activity(
-                    "job1",
-                    "delivery",
-                    (1., 0.),
-                    0,
-                    ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
-                    1,
-                ),
-                create_stop_with_activity(
-                    "reload",
-                    "reload",
-                    (4., 0.),
-                    2,
-                    ("1970-01-01T00:00:05Z", "1970-01-01T00:00:07Z"),
-                    4,
-                ),
-                create_stop_with_activity(
-                    "job3",
-                    "delivery",
-                    (3., 0.),
-                    1,
-                    ("1970-01-01T00:00:08Z", "1970-01-01T00:00:09Z"),
-                    5,
-                ),
-                create_stop_with_activity(
-                    "job2",
-                    "delivery",
-                    (2., 0.),
-                    0,
-                    ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
-                    6,
-                ),
-            ],
-            statistic: Statistic {
-                cost: 17.,
-                distance: 6,
-                duration: 11,
-                times: Timing { driving: 6, serving: 5, ..Timing::default() },
-            },
-        }],
-        ..create_empty_solution()
-    };
-
+    let solution = SolutionBuilder::default()
+        .tour(
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![1]).build_departure(),
+                    StopBuilder::default()
+                        .coordinate((1., 0.))
+                        .schedule_stamp(1., 2.)
+                        .load(vec![0])
+                        .distance(1)
+                        .build_single("job1", "delivery"),
+                    StopBuilder::default()
+                        .coordinate((4., 0.))
+                        .schedule_stamp(5., 7.)
+                        .load(vec![2])
+                        .distance(4)
+                        .build_single("reload", "reload"),
+                    StopBuilder::default()
+                        .coordinate((3., 0.))
+                        .schedule_stamp(8., 9.)
+                        .load(vec![1])
+                        .distance(5)
+                        .build_single("job3", "delivery"),
+                    StopBuilder::default()
+                        .coordinate((2., 0.))
+                        .schedule_stamp(10., 11.)
+                        .load(vec![0])
+                        .distance(6)
+                        .build_single("job2", "delivery"),
+                ])
+                .statistic(StatisticBuilder::default().driving(6).serving(5).build())
+                .build(),
+        )
+        .build();
     let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
     let result = check_resource_consumption(&ctx);

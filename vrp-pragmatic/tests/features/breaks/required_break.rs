@@ -1,5 +1,4 @@
 use crate::format::problem::*;
-use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
 
@@ -44,75 +43,39 @@ fn can_assign_break_during_travel() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 54.,
-                distance: 20,
-                duration: 24,
-                times: Timing { driving: 20, serving: 2, break_time: 2, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        2,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0,
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (5., 0.),
-                        1,
-                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
-                        5,
-                    ),
-                    Stop::Transit(TransitStop {
-                        time: Schedule {
-                            arrival: "1970-01-01T00:00:07Z".to_string(),
-                            departure: "1970-01-01T00:00:09Z".to_string(),
-                        },
-                        load: vec![1],
-                        activities: vec![Activity {
-                            job_id: "break".to_string(),
-                            activity_type: "break".to_string(),
-                            location: None,
-                            time: None,
-                            job_tag: None,
-                            commute: None
-                        }],
-                    }),
-                    create_stop_with_activity(
-                        "job2",
-                        "delivery",
-                        (10., 0.),
-                        0,
-                        ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
-                        10
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:24Z", "1970-01-01T00:00:24Z"),
-                        20
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 54.,
-                    distance: 20,
-                    duration: 24,
-                    times: Timing { driving: 20, serving: 2, break_time: 2, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![2])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((5., 0.))
+                            .schedule_stamp(5., 6.)
+                            .load(vec![1])
+                            .distance(5)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::new_transit().schedule_stamp(7., 9.).load(vec![1]).build_single("break", "break"),
+                        StopBuilder::default()
+                            .coordinate((10., 0.))
+                            .schedule_stamp(13., 14.)
+                            .load(vec![0])
+                            .distance(10)
+                            .build_single("job2", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(24., 24.)
+                            .load(vec![0])
+                            .distance(20)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(20).serving(2).break_time(2).build())
+                    .build()
+            )
+            .build()
     );
 }
 
@@ -133,78 +96,40 @@ fn can_assign_break_during_activity() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 35.,
-                distance: 10,
-                duration: 15,
-                times: Timing { driving: 10, serving: 3, break_time: 2, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        1,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0,
-                    ),
-                    Stop::Point(PointStop {
-                        location: (5., 0.).to_loc(),
-                        time: Schedule {
-                            arrival: "1970-01-01T00:00:05Z".to_string(),
-                            departure: "1970-01-01T00:00:10Z".to_string(),
-                        },
-                        distance: 5,
-                        parking: None,
-                        load: vec![0],
-                        activities: vec![
-                            Activity {
-                                job_id: "job1".to_string(),
-                                activity_type: "delivery".to_string(),
-                                location: Some((5., 0.).to_loc()),
-                                time: Some(Interval {
-                                    start: "1970-01-01T00:00:05Z".to_string(),
-                                    end: "1970-01-01T00:00:10Z".to_string(),
-                                }),
-                                job_tag: None,
-                                commute: None
-                            },
-                            Activity {
-                                job_id: "break".to_string(),
-                                activity_type: "break".to_string(),
-                                location: None,
-                                time: Some(Interval {
-                                    start: "1970-01-01T00:00:07Z".to_string(),
-                                    end: "1970-01-01T00:00:09Z".to_string(),
-                                }),
-                                job_tag: None,
-                                commute: None
-                            }
-                        ],
-                    }),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:15Z", "1970-01-01T00:00:15Z"),
-                        10
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 35.,
-                    distance: 10,
-                    duration: 15,
-                    times: Timing { driving: 10, serving: 3, break_time: 2, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![1])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((5., 0.))
+                            .schedule_stamp(5., 10.)
+                            .load(vec![0])
+                            .distance(5)
+                            .activity(
+                                ActivityBuilder::delivery()
+                                    .job_id("job1")
+                                    .coordinate((5., 0.))
+                                    .time_stamp(5., 10.)
+                                    .build()
+                            )
+                            .activity(ActivityBuilder::break_type().time_stamp(7., 9.).build())
+                            .build(),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(15., 15.)
+                            .load(vec![0])
+                            .distance(10)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(10).serving(3).break_time(2).build())
+                    .build()
+            )
+            .build()
     );
 }
 
@@ -225,67 +150,33 @@ fn can_handle_required_break_when_its_start_falls_at_activity_end() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 34.,
-                distance: 10,
-                duration: 14,
-                times: Timing { driving: 10, serving: 2, break_time: 2, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        2,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0,
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (5., 0.),
-                        1,
-                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
-                        5,
-                    ),
-                    Stop::Transit(TransitStop {
-                        time: Schedule {
-                            arrival: "1970-01-01T00:00:06Z".to_string(),
-                            departure: "1970-01-01T00:00:08Z".to_string(),
-                        },
-                        load: vec![1],
-                        activities: vec![Activity {
-                            job_id: "break".to_string(),
-                            activity_type: "break".to_string(),
-                            location: None,
-                            time: None,
-                            job_tag: None,
-                            commute: None
-                        }],
-                    }),
-                    create_stop_with_activity(
-                        "job2",
-                        "delivery",
-                        (10., 0.),
-                        0,
-                        ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
-                        10
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 34.,
-                    distance: 10,
-                    duration: 14,
-                    times: Timing { driving: 10, serving: 2, break_time: 2, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![2])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((5., 0.))
+                            .schedule_stamp(5., 6.)
+                            .load(vec![1])
+                            .distance(5)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::new_transit().schedule_stamp(6., 8.).load(vec![1]).build_single("break", "break"),
+                        StopBuilder::default()
+                            .coordinate((10., 0.))
+                            .schedule_stamp(13., 14.)
+                            .load(vec![0])
+                            .distance(10)
+                            .build_single("job2", "delivery"),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(10).serving(2).break_time(2).build())
+                    .build()
+            )
+            .build()
     );
 }
 
@@ -325,77 +216,39 @@ fn can_reschedule_break_early_from_transport_to_activity() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 34.,
-                distance: 10,
-                duration: 14,
-                times: Timing { driving: 10, serving: 2, break_time: 2, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        2,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0,
-                    ),
-                    Stop::Point(PointStop {
-                        location: (5., 0.).to_loc(),
-                        time: Schedule {
-                            arrival: "1970-01-01T00:00:05Z".to_string(),
-                            departure: "1970-01-01T00:00:08Z".to_string(),
-                        },
-                        distance: 5,
-                        parking: None,
-                        load: vec![1],
-                        activities: vec![
-                            Activity {
-                                job_id: "job1".to_string(),
-                                activity_type: "delivery".to_string(),
-                                location: Some((5., 0.).to_loc()),
-                                time: Some(Interval {
-                                    start: "1970-01-01T00:00:05Z".to_string(),
-                                    end: "1970-01-01T00:00:06Z".to_string(),
-                                }),
-                                job_tag: None,
-                                commute: None
-                            },
-                            Activity {
-                                job_id: "break".to_string(),
-                                activity_type: "break".to_string(),
-                                location: None,
-                                time: Some(Interval {
-                                    start: "1970-01-01T00:00:06Z".to_string(),
-                                    end: "1970-01-01T00:00:08Z".to_string(),
-                                }),
-                                job_tag: None,
-                                commute: None
-                            }
-                        ],
-                    }),
-                    create_stop_with_activity(
-                        "job2",
-                        "delivery",
-                        (10., 0.),
-                        0,
-                        ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
-                        10
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 34.,
-                    distance: 10,
-                    duration: 14,
-                    times: Timing { driving: 10, serving: 2, break_time: 2, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![2])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((5., 0.))
+                            .schedule_stamp(5., 8.)
+                            .load(vec![0])
+                            .distance(5)
+                            .activity(
+                                ActivityBuilder::delivery()
+                                    .job_id("job1")
+                                    .coordinate((5., 0.))
+                                    .time_stamp(5., 6.)
+                                    .build()
+                            )
+                            .activity(ActivityBuilder::break_type().time_stamp(6., 8.).build())
+                            .build(),
+                        StopBuilder::default()
+                            .coordinate((10., 0.))
+                            .schedule_stamp(13., 14.)
+                            .load(vec![0])
+                            .distance(10)
+                            .build_single("job2", "delivery"),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(10).serving(2).break_time(2).build())
+                    .build()
+            )
+            .build()
     );
 }

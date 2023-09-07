@@ -1,5 +1,4 @@
 use crate::format::problem::*;
-use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
 
@@ -37,68 +36,43 @@ fn can_assign_break_between_jobs() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 54.,
-                distance: 20,
-                duration: 24,
-                times: Timing { driving: 20, serving: 2, break_time: 2, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        2,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0,
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (5., 0.),
-                        1,
-                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
-                        5,
-                    ),
-                    create_stop_with_activity_with_tag(
-                        "break",
-                        "break",
-                        (6., 0.),
-                        1,
-                        ("1970-01-01T00:00:07Z", "1970-01-01T00:00:09Z"),
-                        6,
-                        "break_tag"
-                    ),
-                    create_stop_with_activity(
-                        "job2",
-                        "delivery",
-                        (10., 0.),
-                        0,
-                        ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
-                        10
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:24Z", "1970-01-01T00:00:24Z"),
-                        20
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 54.,
-                    distance: 20,
-                    duration: 24,
-                    times: Timing { driving: 20, serving: 2, break_time: 2, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![2])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((5., 0.))
+                            .schedule_stamp(5., 6.)
+                            .load(vec![1])
+                            .distance(5)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((6., 0.))
+                            .schedule_stamp(7., 9.)
+                            .load(vec![1])
+                            .distance(6)
+                            .build_single_tag("break", "break", "break_tag"),
+                        StopBuilder::default()
+                            .coordinate((10., 0.))
+                            .schedule_stamp(13., 14.)
+                            .load(vec![0])
+                            .distance(10)
+                            .build_single("job2", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(24., 24.)
+                            .load(vec![0])
+                            .distance(20)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(20).serving(2).break_time(2).build())
+                    .build()
+            )
+            .build()
     );
 }

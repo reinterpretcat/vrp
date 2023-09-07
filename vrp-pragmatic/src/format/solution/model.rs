@@ -138,6 +138,14 @@ impl Stop {
         }
     }
 
+    /// Returns stop's load as mutable.
+    pub fn load_mut(&mut self) -> &mut Vec<i32> {
+        match self {
+            Self::Transit(transit) => &mut transit.load,
+            Self::Point(point) => &mut point.load,
+        }
+    }
+
     /// Returns stop activities.
     pub fn activities(&self) -> &Vec<Activity> {
         match self {

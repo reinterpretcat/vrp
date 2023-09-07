@@ -1,5 +1,4 @@
 use crate::format::problem::*;
-use crate::format::solution::*;
 use crate::format::Location;
 use crate::helpers::*;
 
@@ -22,61 +21,38 @@ fn can_wait_for_job_start() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 26.,
-                distance: 4,
-                duration: 12,
-                times: Timing { driving: 4, serving: 0, waiting: 8, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        2,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (1., 0.),
-                        1,
-                        ("1970-01-01T00:00:01Z", "1970-01-01T00:00:01Z"),
-                        1
-                    ),
-                    create_stop_with_activity_time(
-                        "job2",
-                        "delivery",
-                        (2., 0.),
-                        0,
-                        ("1970-01-01T00:00:02Z", "1970-01-01T00:00:10Z"),
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:10Z"),
-                        2
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:12Z", "1970-01-01T00:00:12Z"),
-                        4
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 26.,
-                    distance: 4,
-                    duration: 12,
-                    times: Timing { driving: 4, serving: 0, waiting: 8, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![2])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((1., 0.))
+                            .schedule_stamp(1., 1.)
+                            .load(vec![1])
+                            .distance(1)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((2., 0.))
+                            .schedule_stamp(2., 10.)
+                            .load(vec![0])
+                            .distance(2)
+                            .build_single_time("job2", "delivery", (10., 10.)),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(12., 12.)
+                            .load(vec![0])
+                            .distance(4)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(4).waiting(8).build())
+                    .build()
+            )
+            .build()
     );
 }
 
@@ -96,52 +72,32 @@ fn can_skip_initial_waiting() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 24.,
-                distance: 2,
-                duration: 12,
-                times: Timing { driving: 2, serving: 10, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        1,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:09Z"),
-                        0
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (1., 0.),
-                        0,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:20Z"),
-                        1
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:21Z", "1970-01-01T00:00:21Z"),
-                        2
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 24.,
-                    distance: 2,
-                    duration: 12,
-                    times: Timing { driving: 2, serving: 10, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 9.)
+                            .load(vec![1])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((1., 0.))
+                            .schedule_stamp(10., 20.)
+                            .load(vec![0])
+                            .distance(1)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(21., 21.)
+                            .load(vec![0])
+                            .distance(2)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(2).serving(10).build())
+                    .build()
+            )
+            .build()
     );
 }
 
@@ -174,52 +130,31 @@ fn can_consider_latest_departure_time() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 28.,
-                distance: 2,
-                duration: 16,
-                times: Timing { driving: 2, serving: 10, waiting: 4, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        1,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:05Z"),
-                        0
-                    ),
-                    create_stop_with_activity_time(
-                        "job1",
-                        "delivery",
-                        (1., 0.),
-                        0,
-                        ("1970-01-01T00:00:06Z", "1970-01-01T00:00:20Z"),
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:20Z"),
-                        1
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:21Z", "1970-01-01T00:00:21Z"),
-                        2
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 28.,
-                    distance: 2,
-                    duration: 16,
-                    times: Timing { driving: 2, serving: 10, waiting: 4, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![1])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((1., 0.))
+                            .schedule_stamp(6., 20.)
+                            .load(vec![0])
+                            .distance(1)
+                            .build_single_time("job1", "delivery", (10., 20.)),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(21., 21.)
+                            .load(vec![0])
+                            .distance(2)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(2).serving(10).waiting(4).build())
+                    .build()
+            )
+            .build()
     );
 }

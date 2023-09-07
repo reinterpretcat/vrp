@@ -22,18 +22,15 @@ fn can_unassign_multi_job_due_to_capacity() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic::default(),
-            tours: vec![],
-            unassigned: Some(vec![UnassignedJob {
+        SolutionBuilder::default()
+            .unassigned(Some(vec![UnassignedJob {
                 job_id: "multi".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: "CAPACITY_CONSTRAINT".to_string(),
                     description: "does not fit into any vehicle due to capacity".to_string(),
                     details: None,
                 }]
-            }]),
-            ..create_empty_solution()
-        }
+            }]))
+            .build()
     );
 }

@@ -43,60 +43,38 @@ fn can_create_solution() {
 
     assert_eq!(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 52.,
-                distance: 20,
-                duration: 22,
-                times: Timing { driving: 20, serving: 2, ..Timing::default() },
-            },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        2,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
-                    ),
-                    create_stop_with_activity(
-                        "job2",
-                        "delivery",
-                        (10., 0.),
-                        1,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
-                        10
-                    ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (5., 0.),
-                        0,
-                        ("1970-01-01T00:00:16Z", "1970-01-01T00:00:17Z"),
-                        15
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (0., 0.),
-                        0,
-                        ("1970-01-01T00:00:22Z", "1970-01-01T00:00:22Z"),
-                        20
-                    )
-                ],
-                statistic: Statistic {
-                    cost: 52.,
-                    distance: 20,
-                    duration: 22,
-                    times: Timing { driving: 20, serving: 2, ..Timing::default() },
-                },
-            }],
-            ..create_empty_solution()
-        }
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![2])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((10., 0.))
+                            .schedule_stamp(10., 11.)
+                            .load(vec![1])
+                            .distance(10)
+                            .build_single("job2", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((5., 0.))
+                            .schedule_stamp(16., 17.)
+                            .load(vec![0])
+                            .distance(15)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(22., 22.)
+                            .load(vec![0])
+                            .distance(20)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(20).serving(2).break_time(2).build())
+                    .build()
+            )
+            .build()
     );
 }
 

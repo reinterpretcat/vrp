@@ -1,5 +1,4 @@
 use crate::format::problem::*;
-use crate::format::solution::*;
 use crate::helpers::*;
 use crate::{format_time, parse_time};
 use vrp_core::utils::compare_floats_refs;
@@ -41,91 +40,57 @@ fn can_use_multiple_times_from_vehicle_and_job() {
 
     assert_vehicle_agnostic(
         solution,
-        Solution {
-            statistic: Statistic {
-                cost: 102.,
-                distance: 40,
-                duration: 42,
-                times: Timing { driving: 40, serving: 2, ..Timing::default() },
-            },
-            tours: vec![
-                Tour {
-                    vehicle_id: "my_vehicle_1".to_string(),
-                    type_id: "my_vehicle".to_string(),
-                    shift_index: 0,
-                    stops: vec![
-                        create_stop_with_activity(
-                            "departure",
-                            "departure",
-                            (0., 0.),
-                            1,
-                            ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                            0,
-                        ),
-                        create_stop_with_activity(
-                            "job1",
-                            "delivery",
-                            (10., 0.),
-                            0,
-                            ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
-                            10,
-                        ),
-                        create_stop_with_activity(
-                            "arrival",
-                            "arrival",
-                            (0., 0.),
-                            0,
-                            ("1970-01-01T00:00:21Z", "1970-01-01T00:00:21Z"),
-                            20,
-                        ),
-                    ],
-                    statistic: Statistic {
-                        cost: 51.,
-                        distance: 20,
-                        duration: 21,
-                        times: Timing { driving: 20, serving: 1, ..Timing::default() },
-                    },
-                },
-                Tour {
-                    vehicle_id: "my_vehicle_1".to_string(),
-                    type_id: "my_vehicle".to_string(),
-                    shift_index: 1,
-                    stops: vec![
-                        create_stop_with_activity(
-                            "departure",
-                            "departure",
-                            (0., 0.),
-                            1,
-                            ("1970-01-01T00:01:40Z", "1970-01-01T00:01:40Z"),
-                            0,
-                        ),
-                        create_stop_with_activity(
-                            "job2",
-                            "delivery",
-                            (10., 0.),
-                            0,
-                            ("1970-01-01T00:01:50Z", "1970-01-01T00:01:51Z"),
-                            10,
-                        ),
-                        create_stop_with_activity(
-                            "arrival",
-                            "arrival",
-                            (0., 0.),
-                            0,
-                            ("1970-01-01T00:02:01Z", "1970-01-01T00:02:01Z"),
-                            20,
-                        ),
-                    ],
-                    statistic: Statistic {
-                        cost: 51.,
-                        distance: 20,
-                        duration: 21,
-                        times: Timing { driving: 20, serving: 1, ..Timing::default() },
-                    },
-                },
-            ],
-            ..create_empty_solution()
-        },
+        SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![1])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((10., 0.))
+                            .schedule_stamp(10., 11.)
+                            .load(vec![0])
+                            .distance(10)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(21., 21.)
+                            .load(vec![0])
+                            .distance(20)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(20).serving(1).build())
+                    .build(),
+            )
+            .tour(
+                TourBuilder::default()
+                    .shift_index(1)
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(100., 100.)
+                            .load(vec![1])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((1., 0.))
+                            .schedule_stamp(110., 111.)
+                            .load(vec![0])
+                            .distance(10)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(121., 121.)
+                            .load(vec![0])
+                            .distance(20)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(20).serving(1).build())
+                    .build(),
+            )
+            .build(),
     );
 }
 

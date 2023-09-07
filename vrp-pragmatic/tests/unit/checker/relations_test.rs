@@ -4,7 +4,6 @@ use crate::helpers::*;
 
 mod single {
     use super::*;
-    use crate::format::solution::Tour as VehicleTour;
     use vrp_core::models::examples::create_example_problem;
     use RelationType::{Any, Sequence, Strict};
 
@@ -110,121 +109,64 @@ mod single {
             },
             ..create_empty_problem()
         };
-        let solution = Solution {
-            statistic: Statistic {
-                cost: 51.,
-                distance: 16,
-                duration: 25,
-                times: Timing { driving: 16, serving: 9, break_time: 2, ..Timing::default() },
-            },
-            tours: vec![
-                VehicleTour {
-                    vehicle_id: "my_vehicle_1".to_string(),
-                    type_id: "my_vehicle".to_string(),
-                    shift_index: 0,
-                    stops: vec![
-                        create_stop_with_activity(
-                            "departure",
-                            "departure",
-                            (0., 0.),
-                            2,
-                            ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                            0,
-                        ),
-                        create_stop_with_activity(
-                            "job1",
-                            "delivery",
-                            (1., 0.),
-                            1,
-                            ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
-                            1,
-                        ),
-                        Stop::Point(PointStop {
-                            location: (2., 0.).to_loc(),
-                            time: Schedule {
-                                arrival: "1970-01-01T00:00:03Z".to_string(),
-                                departure: "1970-01-01T00:00:06Z".to_string(),
-                            },
-                            distance: 2,
-                            parking: None,
-                            load: vec![0],
-                            activities: vec![
-                                Activity {
-                                    job_id: "job2".to_string(),
-                                    activity_type: "delivery".to_string(),
-                                    location: None,
-                                    time: None,
-                                    job_tag: None,
-                                    commute: None,
-                                },
-                                Activity {
-                                    job_id: "break".to_string(),
-                                    activity_type: "break".to_string(),
-                                    location: None,
-                                    time: None,
-                                    job_tag: None,
-                                    commute: None,
-                                },
-                            ],
-                        }),
-                        create_stop_with_activity(
-                            "job3",
-                            "pickup",
-                            (3., 0.),
-                            1,
-                            ("1970-01-01T00:00:07Z", "1970-01-01T00:00:08Z"),
-                            3,
-                        ),
-                        create_stop_with_activity(
-                            "reload",
-                            "reload",
-                            (0., 0.),
-                            1,
-                            ("1970-01-01T00:00:11Z", "1970-01-01T00:00:13Z"),
-                            6,
-                        ),
-                        create_stop_with_activity(
-                            "job4",
-                            "delivery",
-                            (4., 0.),
-                            0,
-                            ("1970-01-01T00:00:17Z", "1970-01-01T00:00:18Z"),
-                            10,
-                        ),
-                        create_stop_with_activity(
-                            "job5",
-                            "pickup",
-                            (5., 0.),
-                            1,
-                            ("1970-01-01T00:00:19Z", "1970-01-01T00:00:20Z"),
-                            11,
-                        ),
-                        create_stop_with_activity(
-                            "arrival",
-                            "arrival",
-                            (0., 0.),
-                            0,
-                            ("1970-01-01T00:00:25Z", "1970-01-01T00:00:25Z"),
-                            16,
-                        ),
-                    ],
-                    statistic: Statistic {
-                        cost: 51.,
-                        distance: 16,
-                        duration: 25,
-                        times: Timing { driving: 16, serving: 9, break_time: 2, ..Timing::default() },
-                    },
-                },
-                VehicleTour {
-                    vehicle_id: "my_vehicle_2".to_string(),
-                    type_id: "my_vehicle".to_string(),
-                    shift_index: 0,
-                    stops: vec![],
-                    statistic: Default::default(),
-                },
-            ],
-            ..create_empty_solution()
-        };
+        let solution = SolutionBuilder::default()
+            .tour(
+                TourBuilder::default()
+                    .stops(vec![
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(0., 0.)
+                            .load(vec![2])
+                            .build_departure(),
+                        StopBuilder::default()
+                            .coordinate((1., 0.))
+                            .schedule_stamp(1., 2.)
+                            .load(vec![1])
+                            .distance(1)
+                            .build_single("job1", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((2., 0.))
+                            .schedule_stamp(3., 6.)
+                            .load(vec![0])
+                            .distance(2)
+                            .activity(ActivityBuilder::delivery().job_id("job2").build())
+                            .activity(ActivityBuilder::break_type().job_id("break").build())
+                            .build(),
+                        StopBuilder::default()
+                            .coordinate((3., 0.))
+                            .schedule_stamp(7., 8.)
+                            .load(vec![1])
+                            .distance(3)
+                            .build_single("job3", "pickup"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(11., 13.)
+                            .load(vec![1])
+                            .distance(6)
+                            .build_single("reload", "reload"),
+                        StopBuilder::default()
+                            .coordinate((4., 0.))
+                            .schedule_stamp(17., 18.)
+                            .load(vec![0])
+                            .distance(10)
+                            .build_single("job4", "delivery"),
+                        StopBuilder::default()
+                            .coordinate((5., 0.))
+                            .schedule_stamp(19., 20.)
+                            .load(vec![1])
+                            .distance(11)
+                            .build_single("job5", "pickup"),
+                        StopBuilder::default()
+                            .coordinate((0., 0.))
+                            .schedule_stamp(25., 2.)
+                            .load(vec![0])
+                            .distance(16)
+                            .build_arrival(),
+                    ])
+                    .statistic(StatisticBuilder::default().driving(16).serving(9).break_time(2).build())
+                    .build(),
+            )
+            .build();
         let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
         let result = check_relations(&ctx).map_err(|_| ());
