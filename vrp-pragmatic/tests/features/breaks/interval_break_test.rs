@@ -60,12 +60,6 @@ fn can_assign_interval_break_between_jobs() {
                             .activity(ActivityBuilder::break_type().coordinate((5., 0.)).time_stamp(6., 8.).build())
                             .build(),
                         StopBuilder::default()
-                            .coordinate((6., 0.))
-                            .schedule_stamp(7., 9.)
-                            .load(vec![1])
-                            .distance(6)
-                            .build_single_tag("break", "break", "break_tag"),
-                        StopBuilder::default()
                             .coordinate((15., 0.))
                             .schedule_stamp(18., 19.)
                             .load(vec![0])

@@ -72,7 +72,7 @@ fn can_use_two_breaks() {
                             .coordinate((99., 0.))
                             .schedule_stamp(102., 105.)
                             .load(vec![0])
-                            .distance(5)
+                            .distance(99)
                             .activity(
                                 ActivityBuilder::delivery()
                                     .job_id("job2")

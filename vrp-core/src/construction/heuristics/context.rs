@@ -516,16 +516,18 @@ impl RegistryContext {
         self.registry.next().map(move |actor| &self.index[&actor])
     }
 
-    /// Returns route for given actor if it is available.
-    pub fn next_with_actor(&self, actor: &Actor) -> Option<&'_ RouteContext> {
-        self.registry.available().find(|a| actor == a.as_ref()).and_then(|a| self.index.get(&a))
-    }
-
     /// Gets route for given actor and marks it as used.
     /// Returns None if actor is already in use.
     /// NOTE: you need to call free route to make it to be available again.
     pub fn get_route(&mut self, actor: &Actor) -> Option<RouteContext> {
-        if let Some(route_ctx) = self.next_with_actor(actor).map(|route_ctx| route_ctx.deep_copy()) {
+        let route_ctx = self
+            .registry
+            .available()
+            .find(|a| actor == a.as_ref())
+            .and_then(|a| self.index.get(&a))
+            .map(|route_ctx| route_ctx.deep_copy());
+
+        if let Some(route_ctx) = route_ctx {
             assert!(self.registry.use_actor(&route_ctx.route().actor));
             Some(route_ctx)
         } else {

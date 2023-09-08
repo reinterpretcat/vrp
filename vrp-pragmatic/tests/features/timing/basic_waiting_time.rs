@@ -136,7 +136,7 @@ fn can_consider_latest_departure_time() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0., 5.)
                             .load(vec![1])
                             .build_departure(),
                         StopBuilder::default()

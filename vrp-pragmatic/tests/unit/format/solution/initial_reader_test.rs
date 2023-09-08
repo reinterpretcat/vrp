@@ -120,7 +120,7 @@ fn can_read_basic_init_solution() {
                         .schedule_stamp(9., 10.)
                         .load(vec![0])
                         .distance(4)
-                        .build_single_tag("job1", "delivery", "d1"),
+                        .build_single_tag("job2", "delivery", "d1"),
                     StopBuilder::default()
                         .coordinate((0., 0.))
                         .schedule_stamp(14., 14.)
@@ -143,7 +143,15 @@ fn can_read_basic_init_solution() {
 #[test]
 fn can_handle_empty_tour_error_in_init_solution() {
     let problem = create_basic_problem(create_default_breaks());
-    let solution = SolutionBuilder::default().tour(TourBuilder::default().build()).build();
+    let solution = SolutionBuilder::default()
+        .tour(Tour {
+            vehicle_id: "my_vehicle_1".to_string(),
+            type_id: "my_vehicle".to_string(),
+            shift_index: 0,
+            stops: Default::default(),
+            statistic: Default::default(),
+        })
+        .build();
 
     let result_solution = get_init_solution(problem, &solution);
 

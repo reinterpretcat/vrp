@@ -89,7 +89,7 @@ fn can_use_strict_and_sequence_relation_for_one_vehicle() {
                             .schedule_stamp(25., 26.)
                             .load(vec![0])
                             .distance(19)
-                            .build_single("job1", "delivery"),
+                            .build_single("job3", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
                             .schedule_stamp(29., 29.)

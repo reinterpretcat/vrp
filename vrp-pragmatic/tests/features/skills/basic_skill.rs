@@ -36,10 +36,12 @@ fn can_wait_for_job_start() {
         SolutionBuilder::default()
             .tour(
                 TourBuilder::default()
+                    .type_id("vehicle_with_skill")
+                    .vehicle_id("vehicle_with_skill_1")
                     .stops(vec![
                         StopBuilder::default()
-                            .coordinate((0., 0.))
-                            .schedule_stamp(10., 0.)
+                            .coordinate((10., 0.))
+                            .schedule_stamp(0., 0.)
                             .load(vec![1])
                             .build_departure(),
                         StopBuilder::default()

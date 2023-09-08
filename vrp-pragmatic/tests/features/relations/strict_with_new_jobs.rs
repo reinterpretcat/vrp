@@ -87,7 +87,7 @@ fn can_use_two_strict_relations_with_two_vehicles_with_new_jobs() {
                             .schedule_stamp(17., 18.)
                             .load(vec![0])
                             .distance(13)
-                            .build_single("job8", "delivery"),
+                            .build_single("job9", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
                             .schedule_stamp(27., 27.)

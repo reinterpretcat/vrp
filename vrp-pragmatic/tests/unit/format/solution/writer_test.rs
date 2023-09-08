@@ -71,7 +71,7 @@ fn can_create_solution() {
                             .distance(20)
                             .build_arrival(),
                     ])
-                    .statistic(StatisticBuilder::default().driving(20).serving(2).break_time(2).build())
+                    .statistic(StatisticBuilder::default().driving(20).serving(2).build())
                     .build()
             )
             .build()

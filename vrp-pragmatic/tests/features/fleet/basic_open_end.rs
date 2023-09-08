@@ -27,7 +27,7 @@ fn can_use_vehicle_with_open_end() {
                         StopBuilder::default()
                             .coordinate((0., 0.))
                             .schedule_stamp(0., 0.)
-                            .load(vec![2])
+                            .load(vec![1])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))

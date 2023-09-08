@@ -51,7 +51,7 @@ fn can_skip_job_from_multiple_because_of_tour_size() {
                             .distance(2)
                             .build_single("job2", "delivery")
                     ])
-                    .statistic(StatisticBuilder::default().driving(2).serving(2).break_time(2).build())
+                    .statistic(StatisticBuilder::default().driving(2).serving(2).build())
                     .build()
             )
             .unassigned(Some(vec![UnassignedJob {

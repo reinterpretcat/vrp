@@ -75,11 +75,11 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                             .load(vec![1])
                             .build_departure(),
                         StopBuilder::default()
-                            .coordinate((1., 0.))
+                            .coordinate((10., 0.))
                             .schedule_stamp(110., 111.)
                             .load(vec![0])
                             .distance(10)
-                            .build_single("job1", "delivery"),
+                            .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
                             .schedule_stamp(121., 121.)

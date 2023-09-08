@@ -59,7 +59,7 @@ fn can_assign_service_job() {
                             .distance(3)
                             .build_single("job3", "pickup"),
                         StopBuilder::default()
-                            .coordinate((0., 0.))
+                            .coordinate((4., 0.))
                             .schedule_stamp(7., 7.)
                             .load(vec![0])
                             .distance(4)

@@ -228,7 +228,7 @@ fn can_reschedule_break_early_from_transport_to_activity() {
                         StopBuilder::default()
                             .coordinate((5., 0.))
                             .schedule_stamp(5., 8.)
-                            .load(vec![0])
+                            .load(vec![1])
                             .distance(5)
                             .activity(
                                 ActivityBuilder::delivery()

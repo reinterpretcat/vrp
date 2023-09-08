@@ -15,14 +15,12 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
                 shifts: vec![VehicleShift {
                     start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd { earliest: None, latest: format_time(100.), location: (0., 0.).to_loc() }),
-                    dispatch: None,
-                    breaks: None,
                     reloads: Some(vec![VehicleReload {
                         location: (0., 0.).to_loc(),
                         duration: 2.0,
                         ..create_default_reload()
                     }]),
-                    recharges: None,
+                    ..create_default_vehicle_shift()
                 }],
                 capacity: vec![1],
                 ..create_default_vehicle_type()
@@ -35,7 +33,7 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
 
     let solution = solve_with_cheapest_insertion(problem, Some(vec![matrix]));
 
-    assert_eq!(
+    assert_vehicle_agnostic(
         solution,
         SolutionBuilder::default()
             .tour(
@@ -72,8 +70,8 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
                             .build_arrival(),
                     ])
                     .statistic(StatisticBuilder::default().driving(6).serving(4).build())
-                    .build()
+                    .build(),
             )
-            .build()
+            .build(),
     );
 }

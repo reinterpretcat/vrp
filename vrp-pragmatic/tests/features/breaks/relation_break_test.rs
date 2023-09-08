@@ -152,7 +152,7 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
                         StopBuilder::default()
                             .coordinate((3., 0.))
                             .schedule_stamp(5., 7.)
-                            .load(vec![1])
+                            .load(vec![0])
                             .distance(3)
                             .build_single("break", "break"),
                         StopBuilder::default()

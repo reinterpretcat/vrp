@@ -295,12 +295,10 @@ impl StatisticBuilder {
         let (per_distance, per_time) = self.costs;
         let times = statistic.times.clone();
 
+        statistic.duration =
+            times.driving + times.serving + times.waiting + times.break_time + times.parking + times.commuting;
         statistic.distance = statistic.times.driving;
-        statistic.cost = self.fixed
-            + statistic.distance as f64 * per_distance
-            + (times.driving + times.serving + times.waiting + times.break_time + times.parking + times.commuting)
-                as f64
-                * per_time;
+        statistic.cost = self.fixed + statistic.distance as f64 * per_distance + statistic.duration as f64 * per_time;
 
         statistic
     }
@@ -317,6 +315,12 @@ pub struct TourBuilder {
 }
 
 impl TourBuilder {
+    pub fn type_id(mut self, id: &str) -> Self {
+        self.tour.type_id = id.to_string();
+
+        self
+    }
+
     pub fn vehicle_id(mut self, id: &str) -> Self {
         self.tour.vehicle_id = id.to_string();
 

@@ -42,7 +42,7 @@ fn can_use_sequence_relation_with_strict_time_windows() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0., 10.)
                             .load(vec![5])
                             .build_departure(),
                         StopBuilder::default()
@@ -77,7 +77,7 @@ fn can_use_sequence_relation_with_strict_time_windows() {
                             .build_single_time("job1", "delivery", (150., 160.)),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(170., 17.)
+                            .schedule_stamp(170., 170.)
                             .load(vec![0])
                             .distance(100)
                             .build_arrival(),

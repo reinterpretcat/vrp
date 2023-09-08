@@ -55,7 +55,7 @@ fn can_mix_pickup_delivery_jobs() {
                         StopBuilder::default()
                             .coordinate((10., 0.))
                             .schedule_stamp(stop3_schedule.0, stop3_schedule.1)
-                            .load(vec![0])
+                            .load(vec![1])
                             .distance(10)
                             .build_single("job4", "delivery"),
                     ])

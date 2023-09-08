@@ -56,13 +56,13 @@ fn can_use_location_index() {
                             .schedule_stamp(2., 3.)
                             .load(vec![1])
                             .distance(2)
-                            .build_single("job1", "delivery"),
+                            .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .reference(0)
                             .schedule_stamp(4., 5.)
                             .load(vec![0])
                             .distance(3)
-                            .build_single("job2", "delivery"),
+                            .build_single("job1", "delivery"),
                     ])
                     .statistic(StatisticBuilder::default().driving(3).serving(2).build())
                     .build()

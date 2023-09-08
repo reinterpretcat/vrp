@@ -40,7 +40,7 @@ fn can_assign_single_dispatch() {
                         StopBuilder::default()
                             .coordinate((0., 0.))
                             .schedule_stamp(0., 3.)
-                            .load(vec![2])
+                            .load(vec![0])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((7., 0.))

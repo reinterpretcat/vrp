@@ -34,7 +34,7 @@ fn can_use_one_pickup_delivery_job_with_one_vehicle() {
                             .schedule_stamp(3., 4.)
                             .load(vec![0])
                             .distance(2)
-                            .build_single_tag("job2", "delivery", "d1"),
+                            .build_single_tag("job1", "delivery", "d1"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
                             .schedule_stamp(6., 6.)

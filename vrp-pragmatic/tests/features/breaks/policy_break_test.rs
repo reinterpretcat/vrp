@@ -1,4 +1,5 @@
 use crate::format::problem::*;
+use crate::format::solution::Violation;
 use crate::format_time;
 use crate::helpers::*;
 
@@ -28,7 +29,6 @@ fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleOptionalBreak
                             latest: format_time(1000.),
                             location: (100., 0.).to_loc(),
                         }),
-                        dispatch: None,
                         breaks: Some(vec![VehicleBreak::Optional {
                             time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(8.)]),
                             places: vec![VehicleOptionalBreakPlace {
@@ -38,8 +38,7 @@ fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleOptionalBreak
                             }],
                             policy,
                         }]),
-                        reloads: None,
-                        recharges: None,
+                        ..create_default_vehicle_shift()
                     }],
                     ..create_default_vehicle_type()
                 },
@@ -58,6 +57,8 @@ fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleOptionalBreak
         SolutionBuilder::default()
             .tour(
                 TourBuilder::default()
+                    .type_id("vehicle_without_break")
+                    .vehicle_id("vehicle_without_break_1")
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
@@ -154,6 +155,7 @@ fn can_skip_break_when_jobs_completed_impl(policy: Option<VehicleOptionalBreakPo
                     .statistic(StatisticBuilder::default().driving(2).serving(10).build())
                     .build()
             )
+            .violations(Some(vec![Violation::Break { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }]))
             .build()
     );
 }

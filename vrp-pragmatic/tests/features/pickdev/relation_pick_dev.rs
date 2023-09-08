@@ -39,7 +39,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                         StopBuilder::default()
                             .coordinate((10., 0.))
                             .schedule_stamp(0., 0.)
-                            .load(vec![2])
+                            .load(vec![0])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((20., 0.))

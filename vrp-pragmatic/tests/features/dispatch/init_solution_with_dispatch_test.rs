@@ -111,7 +111,7 @@ fn can_use_init_solution_with_dispatch() {
                         .schedule_stamp(7., 8.)
                         .load(vec![0])
                         .distance(1)
-                        .build_single("job1", "delivery"),
+                        .build_single("job2", "delivery"),
                     StopBuilder::default()
                         .coordinate((0., 0.))
                         .schedule_stamp(9., 9.)

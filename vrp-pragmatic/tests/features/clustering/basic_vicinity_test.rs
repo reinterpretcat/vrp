@@ -95,12 +95,6 @@ fn can_cluster_simple_jobs_impl(
                             .load(vec![0])
                             .distance(10)
                             .build_single("job4", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((0., 0.))
-                            .schedule_stamp(24., 24.)
-                            .load(vec![0])
-                            .distance(20)
-                            .build_arrival(),
                     ])
                     .statistic(statistic)
                     .build()
@@ -227,7 +221,7 @@ fn can_handle_two_clusters_impl(
                             StopBuilder::default()
                                 .coordinate((0., 0.))
                                 .schedule_stamp(0., 0.)
-                                .load(vec![2])
+                                .load(vec![4])
                                 .build_departure(),
                         )
                         .chain(stops.into_iter().map(StopData::into))
