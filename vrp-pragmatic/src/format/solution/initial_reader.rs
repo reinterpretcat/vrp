@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/format/solution/initial_reader_test.rs"]
 mod initial_reader_test;
 
-use crate::construction::enablers::VehicleTie;
+use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::format::solution::activity_matcher::{try_match_point_job, JobInfo};
 use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
@@ -15,9 +15,9 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
-use vrp_core::models::problem::{Actor, Job, Single};
+use vrp_core::models::problem::{Actor, Job};
 use vrp_core::models::solution::Tour as CoreTour;
-use vrp_core::models::solution::{Activity, Place, Registry, Route};
+use vrp_core::models::solution::{Activity, Registry, Route};
 use vrp_core::prelude::*;
 
 type ActorKey = (String, String, usize);
@@ -107,8 +107,22 @@ fn try_insert_activity(
 
     if let Some(JobInfo(job, single, place, time)) = try_match_point_job(tour, stop, activity, job_index, coord_index)?
     {
-        added_jobs.insert(job);
-        insert_new_activity(route, single, place, time);
+        let is_inserted = added_jobs.insert(job.clone());
+        if !is_inserted && matches!(job, Job::Single(_)) {
+            return Err(format!(
+                "potential double assignment for single job '{:?}', matched job id: '{:?}'; try to use a different tag as a discriminator",
+                activity.job_id,
+                job.dimens().get_job_id()
+            )
+            .into());
+        }
+
+        route.tour.insert_last(Activity {
+            place,
+            schedule: Schedule { arrival: time.start, departure: time.end },
+            job: Some(single),
+            commute: None,
+        });
     } else if activity.activity_type != "departure" && activity.activity_type != "arrival" {
         return Err(
             format!("cannot match activity with job id '{}' in tour: '{}'", activity.job_id, tour.vehicle_id).into()
@@ -163,14 +177,4 @@ fn create_core_route(actor: Arc<Actor>, format_tour: &FormatTour) -> Result<Rout
     }
 
     Ok(Route { actor, tour: core_tour })
-}
-
-fn insert_new_activity(route: &mut Route, single: Arc<Single>, place: Place, time: TimeWindow) {
-    let activity = Activity {
-        place,
-        schedule: Schedule { arrival: time.start, departure: time.end },
-        job: Some(single),
-        commute: None,
-    };
-    route.tour.insert_last(activity);
 }

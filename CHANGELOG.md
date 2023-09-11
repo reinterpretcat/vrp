@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
 
 * apply code style refactoring
 
+### Fixed
+
+* double reload assignment when initial solution is used (#126)
+
 
 ## [v1.22.1]- 2023-08-26
 
