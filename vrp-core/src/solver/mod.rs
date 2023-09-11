@@ -106,9 +106,6 @@ pub mod search;
 
 mod heuristic;
 
-/// A key to store a filter for heuristic methods applied by dynamic hyper-heuristic.
-pub const HEURISTIC_FILTER_KEY: &str = "heuristic_filter";
-
 /// A key to store tabu list.
 const TABU_LIST_KEY: i32 = 1;
 /// A key to store solution order information.

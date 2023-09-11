@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::heuristics::*;
-use crate::models::common::{has_multi_dim_demand, MultiDimLoad, SingleDimLoad};
+use crate::models::common::{has_multi_dim_demand, Dimensions, MultiDimLoad, SingleDimLoad, ValueDimension};
 use crate::models::GoalContext;
 use crate::rosomaxa::get_default_selection_size;
 use crate::solver::search::*;
@@ -52,20 +52,26 @@ pub type TargetHeuristicGroup = HeuristicSearchGroup<RefinementContext, GoalCont
 /// A type alias for evolution config builder.
 pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, GoalContext, InsertionContext, String>;
 
-/// A wrapper around heuristic filter function.
-pub struct HeuristicFilter {
-    filter: Arc<dyn Fn(&str) -> bool + Send + Sync>,
+/// A type to filter meta heuristics by name. Returns true if heuristic can be used.
+pub type HeuristicFilterFn = Arc<dyn Fn(&str) -> bool + Send + Sync>;
+
+/// A type to use a filtering by meta heuristics name.
+/// The corresponding function returns true if heuristic can be used.
+pub trait HeuristicFilter {
+    /// Gets heuristic filter.
+    fn get_heuristic_filter(&self) -> Option<HeuristicFilterFn>;
+
+    /// Sets heuristic filter.
+    fn set_heuristic_filter(&mut self, heuristic_filter: Arc<dyn Fn(&str) -> bool + Send + Sync>);
 }
 
-impl HeuristicFilter {
-    /// Creates a new instance of `HeuristicFilter`.
-    pub fn new<F: Fn(&str) -> bool + Send + Sync + 'static>(filter: F) -> Self {
-        Self { filter: Arc::new(filter) }
+impl HeuristicFilter for Dimensions {
+    fn get_heuristic_filter(&self) -> Option<HeuristicFilterFn> {
+        self.get_value("heuristic_filter").cloned()
     }
 
-    /// Checks whether heuristic (or method) is enabled.
-    pub fn is_enabled(&self, heuristic_name: &str) -> bool {
-        (self.filter)(heuristic_name)
+    fn set_heuristic_filter(&mut self, heuristic_filter: HeuristicFilterFn) {
+        self.set_value("heuristic_filter", heuristic_filter);
     }
 }
 
@@ -529,8 +535,7 @@ mod dynamic {
             ),
         ];
 
-        let heuristic_filter =
-            problem.extras.get(HEURISTIC_FILTER_KEY).and_then(|s| s.downcast_ref::<HeuristicFilter>());
+        let heuristic_filter = problem.extras.get_heuristic_filter();
 
         recreates
             .iter()
@@ -544,7 +549,7 @@ mod dynamic {
                 })
             })
             .chain(mutations)
-            .filter(|(_, name, _)| heuristic_filter.map_or(true, |filter| filter.is_enabled(name.as_str())))
+            .filter(|(_, name, _)| heuristic_filter.as_ref().map_or(true, |filter| (filter)(name.as_str())))
             .collect::<Vec<_>>()
     }
 
