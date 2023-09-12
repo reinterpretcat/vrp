@@ -179,28 +179,6 @@ fn match_place(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &Activ
     }
 }
 
-pub(crate) fn get_job_tag(single: &Single, place: (Location, (TimeWindow, Timestamp))) -> Option<&String> {
-    let (location, (time_window, start_time)) = place;
-    single.dimens.get_place_tags().map(|tags| (tags, &single.places)).and_then(|(tags, places)| {
-        tags.iter()
-            .find(|(place_idx, _)| {
-                let place = places.get(*place_idx).expect("invalid tag place index");
-
-                let is_correct_location = place.location.map_or(true, |l| location == l);
-                let is_correct_time = place
-                    .times
-                    .iter()
-                    .map(|time| time.to_time_window(start_time))
-                    .any(|time| time.intersects(&time_window));
-
-                // TODO check duration too?
-
-                is_correct_location && is_correct_time
-            })
-            .map(|(_, tag)| tag)
-    })
-}
-
 pub(crate) fn get_extra_time(stop: &PointStop, activity: &FormatActivity, place: &Place) -> Option<f64> {
     let activity_time = get_activity_time(activity, &stop.time);
     stop.activities
@@ -220,6 +198,28 @@ pub(crate) fn get_extra_time(stop: &PointStop, activity: &FormatActivity, place:
             }
         })
         .next()
+}
+
+pub(super) fn get_job_tag(single: &Single, place: (Location, (TimeWindow, Timestamp))) -> Option<&String> {
+    let (location, (time_window, start_time)) = place;
+    single.dimens.get_place_tags().map(|tags| (tags, &single.places)).and_then(|(tags, places)| {
+        tags.iter()
+            .find(|(place_idx, _)| {
+                let place = places.get(*place_idx).expect("invalid tag place index");
+
+                let is_correct_location = place.location.map_or(true, |l| location == l);
+                let is_correct_time = place
+                    .times
+                    .iter()
+                    .map(|time| time.to_time_window(start_time))
+                    .any(|time| time.intersects(&time_window));
+
+                // TODO check duration too?
+
+                is_correct_location && is_correct_time
+            })
+            .map(|(_, tag)| tag)
+    })
 }
 
 fn get_job_id(single: &Arc<Single>) -> String {

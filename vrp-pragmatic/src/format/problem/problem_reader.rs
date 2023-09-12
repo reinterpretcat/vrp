@@ -13,13 +13,13 @@ use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, GoalContext};
 use vrp_core::solver::processing::{ReservedTimeDimension, VicinityDimension};
 
-pub fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
+pub(super) fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
     let coord_index = CoordIndex::new(&problem);
     let matrices = if coord_index.get_used_types().1 { vec![] } else { create_approx_matrices(&problem) };
     map_to_problem(problem, matrices, coord_index)
 }
 
-pub fn map_to_problem_with_matrices(
+pub(super) fn map_to_problem_with_matrices(
     problem: ApiProblem,
     matrices: Vec<Matrix>,
 ) -> Result<CoreProblem, MultiFormatError> {
@@ -27,7 +27,7 @@ pub fn map_to_problem_with_matrices(
     map_to_problem(problem, matrices, coord_index)
 }
 
-pub fn map_to_problem(
+pub(super) fn map_to_problem(
     api_problem: ApiProblem,
     matrices: Vec<Matrix>,
     coord_index: CoordIndex,

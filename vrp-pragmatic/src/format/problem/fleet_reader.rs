@@ -11,7 +11,7 @@ use std::cmp::Ordering;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 
-pub(crate) fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
+pub(super) fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
     api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
         if acc.get(&profile.name).is_none() {
             acc.insert(profile.name.clone(), acc.len());
@@ -20,7 +20,7 @@ pub(crate) fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String,
     })
 }
 
-pub(crate) fn create_transport_costs(
+pub(super) fn create_transport_costs(
     api_problem: &ApiProblem,
     matrices: &[Matrix],
 ) -> Result<Arc<dyn TransportCost + Sync + Send>, GenericError> {
@@ -85,7 +85,7 @@ pub(crate) fn create_transport_costs(
     create_matrix_transport_cost(matrix_data)
 }
 
-pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> CoreFleet {
+pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> CoreFleet {
     let profile_indices = get_profile_index_map(api_problem);
     let mut vehicles: Vec<Arc<Vehicle>> = Default::default();
 

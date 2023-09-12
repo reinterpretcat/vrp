@@ -3,7 +3,7 @@
 pub(crate) mod activity_matcher;
 
 mod break_writer;
-pub(crate) use self::break_writer::insert_reserved_times_as_breaks;
+use self::break_writer::insert_reserved_times_as_breaks;
 
 mod extensions;
 

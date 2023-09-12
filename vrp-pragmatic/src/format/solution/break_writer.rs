@@ -6,7 +6,7 @@ use vrp_core::models::solution::Route;
 use vrp_core::utils::compare_floats;
 
 /// Converts reserved time duration applied to activity or travel time to break activity.
-pub(crate) fn insert_reserved_times_as_breaks(
+pub(super) fn insert_reserved_times_as_breaks(
     route: &Route,
     tour: &mut Tour,
     reserved_times_index: &ReservedTimesIndex,

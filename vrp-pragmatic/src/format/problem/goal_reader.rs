@@ -9,7 +9,7 @@ use vrp_core::models::problem::{ActivityCost, Actor, Jobs, Single, TransportCost
 use vrp_core::models::{Feature, GoalContext, Lock};
 
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn create_goal_context(
+pub(super) fn create_goal_context(
     api_problem: &ApiProblem,
     job_index: &JobIndex,
     jobs: Arc<Jobs>,

@@ -101,7 +101,7 @@ pub(crate) fn get_job_tasks(job: &Job) -> impl Iterator<Item = &JobTask> {
     job.pickups.iter().chain(job.deliveries.iter()).chain(job.services.iter()).chain(job.replacements.iter()).flatten()
 }
 
-pub(crate) struct ProblemProperties {
+struct ProblemProperties {
     has_multi_dimen_capacity: bool,
     has_breaks: bool,
     has_skills: bool,

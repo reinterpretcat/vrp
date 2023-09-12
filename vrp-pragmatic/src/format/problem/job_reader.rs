@@ -19,7 +19,7 @@ const MULTI_JOB_SAMPLE_SIZE: usize = 3;
 type PlaceData = (Option<Location>, Duration, Vec<TimeSpan>, Option<String>);
 type ApiJob = crate::format::problem::Job;
 
-pub(crate) fn read_jobs_with_extra_locks(
+pub(super) fn read_jobs_with_extra_locks(
     api_problem: &ApiProblem,
     props: &ProblemProperties,
     coord_index: &CoordIndex,
@@ -37,7 +37,7 @@ pub(crate) fn read_jobs_with_extra_locks(
     (Jobs::new(fleet, jobs, transport), locks)
 }
 
-pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> {
+pub(super) fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> {
     if api_problem.plan.relations.as_ref().map_or(true, |r| r.is_empty()) {
         return vec![];
     }
