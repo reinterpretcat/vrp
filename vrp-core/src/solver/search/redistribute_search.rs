@@ -159,8 +159,8 @@ fn remove_jobs(
 }
 
 fn create_amended_variant(original: &GoalContext, rules: HashMap<Job, Arc<Actor>>) -> Arc<GoalContext> {
-    let mut constraints = original.constraints.clone();
+    let mut constraints = original.constraints().collect::<Vec<_>>();
     constraints.push(Arc::new(RedistributeFeatureConstraint { rules }));
 
-    Arc::new(GoalContext { constraints, ..original.clone() })
+    Arc::new(original.clone().with_constraints(constraints.into_iter()))
 }

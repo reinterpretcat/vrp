@@ -110,23 +110,19 @@ fn create_modified_variant(
     let shuffled =
         if random.is_hit(shuffle_probability) { original.get_shuffled(random.as_ref()) } else { original.clone() };
 
-    let constraints = shuffled
-        .constraints
-        .iter()
-        .map(|constraint| {
-            let skip_probability = if random.is_head_not_tails() { 1. } else { skip_probability };
+    let constraints = shuffled.constraints().map(|constraint| {
+        let skip_probability = if random.is_head_not_tails() { 1. } else { skip_probability };
 
-            let value: Arc<dyn FeatureConstraint + Send + Sync> = Arc::new(StochasticFeatureConstraint {
-                inner: constraint.clone(),
-                random: random.clone(),
-                probability: skip_probability,
-            });
+        let value: Arc<dyn FeatureConstraint + Send + Sync> = Arc::new(StochasticFeatureConstraint {
+            inner: constraint.clone(),
+            random: random.clone(),
+            probability: skip_probability,
+        });
 
-            value
-        })
-        .collect();
+        value
+    });
 
-    Arc::new(GoalContext { constraints, ..shuffled })
+    Arc::new(shuffled.with_constraints(constraints))
 }
 
 fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionContext {

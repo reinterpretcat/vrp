@@ -33,11 +33,11 @@ use std::sync::Arc;
 /// for vehicles/jobs, etc.
 #[derive(Clone, Default)]
 pub struct GoalContext {
-    pub(crate) global_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
-    pub(crate) flatten_objectives: Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
-    pub(crate) local_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
-    pub(crate) constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
-    pub(crate) states: Vec<Arc<dyn FeatureState + Send + Sync>>,
+    global_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
+    flatten_objectives: Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
+    local_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
+    constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
+    states: Vec<Arc<dyn FeatureState + Send + Sync>>,
 }
 
 impl GoalContext {
@@ -106,6 +106,19 @@ impl GoalContext {
         let flatten_objectives = global_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
 
         Ok(Self { global_objectives, flatten_objectives, local_objectives, constraints, states })
+    }
+
+    /// Creates a new instance of `GoalContext` with given feature constraints.
+    pub fn with_constraints<Iter>(&self, constraints: Iter) -> Self
+    where
+        Iter: Iterator<Item = Arc<dyn FeatureConstraint + Send + Sync>>,
+    {
+        GoalContext { constraints: constraints.collect(), ..self.clone() }
+    }
+
+    /// Returns an iterator over internal feature constraints.
+    pub fn constraints(&self) -> impl Iterator<Item = Arc<dyn FeatureConstraint + Send + Sync>> + '_ {
+        self.constraints.iter().cloned()
     }
 }
 
