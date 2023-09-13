@@ -112,6 +112,7 @@ mod range_sampling {
 mod sampling_search {
     use super::*;
     use crate::Environment;
+    use std::cell::RefCell;
     use std::sync::RwLock;
 
     #[derive(Clone, Debug, Default)]
@@ -305,5 +306,41 @@ mod sampling_search {
         let median = results[results.len() / 2];
         assert!(median.0 < 250);
         assert!(results.iter().all(|(_, count)| *count < 100));
+    }
+
+    fn run_experiment(sequence: Vec<i32>, expected_counter: usize, expected_value: i32) {
+        let random = Arc::new(DefaultRandom::new_repeatable());
+        let counter = RefCell::new(0);
+        let value = sequence
+            .into_iter()
+            .enumerate()
+            .sample_search(
+                4,
+                random.clone(),
+                |(_idx, i)| {
+                    *counter.borrow_mut() += 1;
+                    //println!("{} probe: {i} at {idx}", counter.borrow());
+                    i
+                },
+                |(idx, _)| *idx as i32,
+                |a, b| *a > *b,
+            )
+            .unwrap();
+
+        assert_eq!(value, expected_value);
+        assert_eq!(*counter.borrow(), expected_counter);
+    }
+
+    #[test]
+    fn can_reproduce_issue_with_weak_sampling() {
+        run_experiment(
+            vec![
+                48, 8, 45, 11, 21, 54, 15, 26, 23, 37, 58, 27, 31, 11, 60, //
+                66, 47, 96, 82, 34, 20, 23, 94, 11, 18, 89, 79, 47, 77, 30, //
+                76, 36, 93, 15, 21, 40, 97, 77, 35, 86, 61, 71, 7, 32, 29, //
+            ],
+            4,
+            86,
+        )
     }
 }

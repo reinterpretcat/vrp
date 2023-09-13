@@ -4,7 +4,7 @@
 #[path = "../../tests/unit/utils/iterators_test.rs"]
 mod iterators_test;
 
-use crate::utils::Random;
+use crate::utils::*;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
@@ -103,6 +103,8 @@ pub fn create_range_sampling_iter<I: Iterator>(
 
 /// Provides way to search using selection sampling algorithm on iterator where elements have ordered
 /// index values.
+/// TODO: fixme: sometimes algorithm skips searching for a range (seems related to best as last element in the sequence)
+///       see can_reproduce_issue_with_weak_sampling test
 pub trait SelectionSamplingSearch: Iterator {
     /// Searches using selection sampling algorithm.
     fn sample_search<'a, T, R, FM, FI, FC>(
@@ -133,11 +135,15 @@ pub trait SelectionSamplingSearch: Iterator {
             state.next_right = state.next_right.min(last_idx);
 
             state = SelectionSamplingIterator::new(self.clone().skip(skip).take(take), sample_size, random.clone())
-                .filter(|item| index_fn(item) != best_idx)
-                .fold(state, |mut acc, item| {
+                .filter_map(|item| {
                     let item_idx = index_fn(&item);
-                    let item_mapped = map_fn(item);
-
+                    if item_idx != best_idx {
+                        Some((item_idx, map_fn(item)))
+                    } else {
+                        None
+                    }
+                })
+                .fold(state, |mut acc, (item_idx, item_mapped)| {
                     if acc.best.as_ref().map_or(false, |(best_idx, _)| *best_idx == acc.target_left) {
                         acc.next_right = item_idx - 1;
                     }
@@ -166,7 +172,6 @@ pub trait SelectionSamplingSearch: Iterator {
 
 impl<T: Iterator> SelectionSamplingSearch for T {}
 
-#[derive(Debug)]
 struct SelectionSamplingSearchState<T> {
     target_left: i32,
     target_right: i32,
@@ -178,5 +183,15 @@ struct SelectionSamplingSearchState<T> {
 impl<T> Default for SelectionSamplingSearchState<T> {
     fn default() -> Self {
         Self { target_left: 0, target_right: i32::MAX, best: None, next_left: i32::MAX, next_right: i32::MAX }
+    }
+}
+
+impl<T> std::fmt::Debug for SelectionSamplingSearchState<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>())
+            .field("target", &(self.target_left, self.target_right))
+            .field("next", &(self.next_left, self.next_right))
+            .field("best_idx", &self.best.as_ref().map_or("X".to_string(), |(best_idx, _)| best_idx.to_string()))
+            .finish()
     }
 }

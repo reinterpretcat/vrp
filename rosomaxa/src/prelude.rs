@@ -35,5 +35,5 @@ pub use crate::utils::InfoLogger;
 pub use crate::utils::Noise;
 pub use crate::utils::Quota;
 pub use crate::utils::UnwrapValue;
-pub use crate::utils::{compare_floats, compare_floats_refs};
+pub use crate::utils::{compare_floats, compare_floats_refs, short_type_name};
 pub use crate::utils::{Random, RandomGen};

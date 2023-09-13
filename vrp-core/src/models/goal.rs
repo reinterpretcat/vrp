@@ -6,7 +6,6 @@ use crate::construction::enablers::*;
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
-use crate::utils::short_type_name;
 use hashbrown::{HashMap, HashSet};
 use rand::prelude::SliceRandom;
 use rosomaxa::algorithms::nsga2::dominance_order;

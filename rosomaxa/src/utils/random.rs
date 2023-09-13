@@ -68,7 +68,16 @@ impl DistributionSampler for DefaultDistributionSampler {
 
 /// A default random implementation.
 #[derive(Default)]
-pub struct DefaultRandom {}
+pub struct DefaultRandom {
+    use_repeatable: bool,
+}
+
+impl DefaultRandom {
+    /// Creates an instance of `DefaultRandom` with repeatable (predictable) random generation.
+    pub fn new_repeatable() -> Self {
+        Self { use_repeatable: true }
+    }
+}
 
 impl Random for DefaultRandom {
     fn uniform_int(&self, min: i32, max: i32) -> i32 {
@@ -108,7 +117,7 @@ impl Random for DefaultRandom {
     }
 
     fn get_rng(&self) -> RandomGen {
-        RandomGen::new_randomized()
+        RandomGen { use_repeatable: self.use_repeatable }
     }
 }
 

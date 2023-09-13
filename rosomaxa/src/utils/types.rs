@@ -19,3 +19,10 @@ impl<T> UnwrapValue for ControlFlow<T, T> {
         }
     }
 }
+
+/// Returns a short name of a type.
+pub fn short_type_name<T: ?Sized>() -> &'static str {
+    let name = std::any::type_name::<T>();
+
+    name.rsplit_once(':').map(|(_, name)| name).unwrap_or(name)
+}
