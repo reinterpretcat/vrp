@@ -101,10 +101,33 @@ pub fn create_range_sampling_iter<I: Iterator>(
     iterator.skip(offset).take(sample_size)
 }
 
-/// Provides way to search using selection sampling algorithm on iterator where elements have ordered
-/// index values.
+/// Provides way to search with help of selection sampling algorithm on iterator where elements have
+/// ordered index values.
+///
+/// The general idea is to sample values from the sequence uniformly, find the best from them and
+/// check adjusted range, formed by these sampled values. The general motivation is that in many
+/// domains values are not distributed randomly and this approach can quickly explore promising
+/// regions and start exploiting them, significantly reducing total amount of probes.
+///
+/// For example:
+///
+/// - let's assume we have the following sequence: 48, 8, 45, 11, 21, 54, 15, 26, 23, 37, 58, 27, 31, 11, 60,
+///   sampling size is 4 and we want to find a maximum value.
+/// - at first iteration, let's assume it samples the following values from range [0, 14):
+///     - 1 sample: 26 at 7
+///     - 2 sample: 23 at 8
+///     - 3 sample: 27 at 10
+///     - 4 sample: 11 at 13
+/// - the highest value is 27, so previous and next sampled indices (8, 13) give a next range to sample:
+///     - 5 sample: 37 at 9
+///     - 6 sample: 58 at 11
+///     - 7 sample: 31 at 12
+///  - here we found a better maximum (58), so we update current best and continue with further shrinking the search range
+///  - we repeat the process till trivial range is reached
+///
 /// TODO: fixme: sometimes algorithm skips searching for a range (seems related to best as last element in the sequence)
 ///       see can_reproduce_issue_with_weak_sampling test
+///       additionally, the code could be made a bit nicer and less hacky
 pub trait SelectionSamplingSearch: Iterator {
     /// Searches using selection sampling algorithm.
     fn sample_search<'a, T, R, FM, FI, FC>(
