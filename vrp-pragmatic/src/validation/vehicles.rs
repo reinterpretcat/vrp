@@ -221,7 +221,7 @@ fn check_e1306_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), 
     }
 }
 
-fn check_e1307_vehicle_required_break_rescheduling(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1307_vehicle_offset_break_rescheduling(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(|_, shift, _| {
@@ -229,11 +229,17 @@ fn check_e1307_vehicle_required_break_rescheduling(ctx: &ValidationContext) -> R
                 .breaks
                 .as_ref()
                 .map(|breaks| {
-                    let has_required_break = breaks.iter().any(|br| matches!(br, VehicleBreak::Required { .. }));
+                    let has_time_offset = breaks.iter().any(|br| {
+                        matches!(
+                            br,
+                            VehicleBreak::Required { time: VehicleRequiredBreakTime::OffsetTime { .. }, .. }
+                                | VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeOffset { .. }, .. }
+                        )
+                    });
                     let has_rescheduling =
                         shift.start.latest.as_ref().map_or(true, |latest| *latest != shift.start.earliest);
 
-                    !(has_required_break && has_rescheduling)
+                    !(has_time_offset && has_rescheduling)
                 })
                 .unwrap_or(true)
         }),
@@ -244,8 +250,8 @@ fn check_e1307_vehicle_required_break_rescheduling(ctx: &ValidationContext) -> R
     } else {
         Err(FormatError::new(
             "E1307".to_string(),
-            "required break is used with departure rescheduling".to_string(),
-            format!("when required break is used, start.latest should be set equal to start.earliest in the shift, check vehicle type ids: '{}'", type_ids.join(", ")),
+            "time offset interval for break is used with departure rescheduling".to_string(),
+            format!("when time offset is used, start.latest should be set equal to start.earliest in the shift, check vehicle type ids: '{}'", type_ids.join(", ")),
         ))
     }
 }
@@ -345,7 +351,7 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError
         check_e1304_vehicle_reload_time_is_correct(ctx),
         check_e1305_vehicle_dispatch_is_correct(ctx),
         check_e1306_vehicle_has_no_zero_costs(ctx),
-        check_e1307_vehicle_required_break_rescheduling(ctx),
+        check_e1307_vehicle_offset_break_rescheduling(ctx),
         check_e1308_vehicle_reload_resources(ctx),
     ])
     .map_err(|errors| errors.into())

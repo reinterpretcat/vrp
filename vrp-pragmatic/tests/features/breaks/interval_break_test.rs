@@ -17,6 +17,11 @@ fn can_assign_interval_break_between_jobs() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(0.)),
+                        location: (0., 0.).to_loc(),
+                    },
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeOffset(vec![5., 10.]),
                         places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],

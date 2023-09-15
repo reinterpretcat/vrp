@@ -136,7 +136,7 @@ fn can_handle_rescheduling_with_required_break_impl(latest: Option<f64>, expecte
         ..create_empty_problem()
     };
 
-    let result = check_e1307_vehicle_required_break_rescheduling(&ValidationContext::new(
+    let result = check_e1307_vehicle_offset_break_rescheduling(&ValidationContext::new(
         &problem,
         None,
         &CoordIndex::new(&problem),

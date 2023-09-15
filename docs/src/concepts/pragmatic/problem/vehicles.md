@@ -71,14 +71,14 @@ Each shift can have the following properties:
   Check example [here](../../../examples/pragmatic/basics/dispatch.md).
 - **breaks** (optional) a list of vehicle breaks. There are two types of breaks:
     * __required__: this break is guaranteed to be assigned at cost of flexibility. It has the following properties:
-      - `time` (required): a fixed time or offset range when the break should happen specified by `earliest` and `latest` properties.
+      - `time` (required): a fixed time or time offset interval when the break should happen specified by `earliest` and `latest` properties.
         The break will be assigned not earlier, and not later than the range specified.
       - `duration` (required): duration of the break
     * __optional__: although such break is not guaranteed for assignment, it has some advantages over required break:
-      - aribatry break location is supported
+      - arbitrary break location is supported
       - the algorithm has more flexibility for assignment
       It is specified by:
-      - `time` (required): time window or interval after which a break should happen (e.g. between 3 or 4 hours after start).
+      - `time` (required): time window or time offset interval after which a break should happen (e.g. between 3 or 4 hours after start).
       - `places`: list of alternative places defined by `location` (optional), `duration` (required) and `tag` (optional).
         If location of a break is omitted then break is stick to location of a job served before break.
       - `policy` (optional): a break skip policy. Possible values:
@@ -88,6 +88,9 @@ Each shift can have the following properties:
   Please note that optional break is a soft constraint and can be unassigned in some cases due to other hard constraints, such
   as time windows. You can control its unassignment weight using specific property on `minimize-unassigned` objective.
   See example [here](../../../examples/pragmatic/basics/break.md)
+
+  Additionally, offset time interval requires departure time optimization to be disabled explicitly (see [E1307](../errors/index.md#e1307)).
+
 - **reloads** (optional) a list of vehicle reloads. A reload is a place where vehicle can load new deliveries and unload
     pickups. It can be used to model multi trip routes.
   Each reload has optional and required fields:
@@ -109,5 +112,5 @@ Each shift can have the following properties:
 * [E1304 invalid reload time windows in vehicle shift](../errors/index.md#e1304)
 * [E1305 invalid dispatch in vehicle shift](../errors/index.md#e1305)
 * [E1306 time and duration costs are zeros](../errors/index.md#e1306)
-* [E1307 required break is used with departure rescheduling](../errors/index.md#e1307)
+* [E1307 time offset interval for break  is used with departure rescheduling](../errors/index.md#e1307)
 * [E1308 invalid vehicle reload resource](../errors/index.md#e1308)
