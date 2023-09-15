@@ -18,7 +18,7 @@ Advantages:
 
 Disadvantages:
 * `it is bad for version control`: it’s harder to track what has been added to the local file namespace.
-  Although it is valid, it is not a big issue.
+  Although it is valid, I believe it is not a big issue.
 * `it can lead to unnecessary naming collisions`.  Can be solved using aliasing (`alias`/`as` keywords)
 
 __NOTE__: on crate level, [preludes](https://doc.rust-lang.org/beta/reference/names/preludes.html) can be used to have a
@@ -45,6 +45,24 @@ println!("{}", sum);
 ```rust
 println!("{}", (1..11).fold(0, |a, b| a + b));
 ```
+
+### prefer linear style to multiple one-several lines functions which are called just once
+
+Advantages (personal taste):
+- code is easier to follow (fewer jumps here and there over code base)
+- call stack is less nested, so debug is easier
+
+However, this is not hard rule. In some cases, you might prefer to split:
+- multiple usages
+- separate function provides a good abstraction over complex logic
+- you want to test it separately
+- ..
+
+In general, don’t be over-eager to abstract, or offended by a few lines of duplication. Premature abstraction often
+ends up coupling code that should not have to evolve together.
+
+Please note, that this is not about proposing a single 1000-lines god function.
+
 
 ## Code organization level
 
