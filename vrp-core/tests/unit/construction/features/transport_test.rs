@@ -138,11 +138,16 @@ mod timing {
                 "v1",
                 vec![
                     ActivityBuilder::default()
-                        .place(Place { location: 10, duration: 5., time: TimeWindow { start: 20., end: 30. } })
+                        .place(Place { idx: 0, location: 10, duration: 5., time: TimeWindow { start: 20., end: 30. } })
                         .schedule(Schedule::new(10., 25.))
                         .build(),
                     ActivityBuilder::default()
-                        .place(Place { location: 20, duration: 10., time: TimeWindow { start: 50., end: 100. } })
+                        .place(Place {
+                            idx: 0,
+                            location: 20,
+                            duration: 10.,
+                            time: TimeWindow { start: 50., end: 100. },
+                        })
                         .schedule(Schedule::new(35., 60.))
                         .build(),
                 ],
@@ -166,7 +171,7 @@ mod timing {
             .build();
         let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
         let target = Box::new(Activity {
-            place: Place { location: 5, duration: 1.0, time: DEFAULT_ACTIVITY_TIME_WINDOW },
+            place: Place { idx: 0, location: 5, duration: 1.0, time: DEFAULT_ACTIVITY_TIME_WINDOW },
             schedule: DEFAULT_ACTIVITY_SCHEDULE,
             job: None,
             commute: None,
@@ -194,16 +199,16 @@ mod timing {
             "v1",
             vec![
                 ActivityBuilder::default()
-                    .place(Place { location: 10, duration: 0.0, time: DEFAULT_ACTIVITY_TIME_WINDOW.clone() })
+                    .place(Place { idx: 0, location: 10, duration: 0.0, time: DEFAULT_ACTIVITY_TIME_WINDOW.clone() })
                     .schedule(Schedule { arrival: 0.0, departure: 10.0 })
                     .build(),
                 ActivityBuilder::default()
-                    .place(Place { location: 20, duration: 0.0, time: TimeWindow { start: 40.0, end: 70.0 } })
+                    .place(Place { idx: 0, location: 20, duration: 0.0, time: TimeWindow { start: 40.0, end: 70.0 } })
                     .build(),
             ],
         );
         let target = Box::new(Activity {
-            place: Place { location: 30, duration: 10.0, time: DEFAULT_ACTIVITY_TIME_WINDOW },
+            place: Place { idx: 0, location: 30, duration: 10.0, time: DEFAULT_ACTIVITY_TIME_WINDOW },
             schedule: DEFAULT_ACTIVITY_SCHEDULE,
             job: None,
             commute: None,

@@ -33,6 +33,9 @@ pub struct CommuteInfo {
 /// Specifies activity place.
 #[derive(Clone, Debug)]
 pub struct Place {
+    /// An index of the place in original job definition.
+    pub idx: usize,
+
     /// Location where activity is performed.
     pub location: Location,
 
@@ -86,7 +89,7 @@ impl Activity {
     /// Creates an activity with a job.
     pub fn new_with_job(job: Arc<Single>) -> Self {
         Activity {
-            place: Place { location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: f64::MAX } },
+            place: Place { idx: 0, location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: f64::MAX } },
             schedule: Schedule { arrival: 0.0, departure: 0.0 },
             job: Some(job),
             commute: None,
@@ -97,6 +100,7 @@ impl Activity {
     pub fn deep_copy(&self) -> Self {
         Self {
             place: Place {
+                idx: self.place.idx,
                 location: self.place.location,
                 duration: self.place.duration,
                 time: self.place.time.clone(),

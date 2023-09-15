@@ -151,14 +151,15 @@ fn match_place(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &Activ
         (true, true, _) | (true, false, false) => single
             .places
             .iter()
-            .find(|place| {
+            .enumerate()
+            .find(|(_, place)| {
                 let is_same_location = place.location.map_or(true, |l| l == activity_ctx.location);
                 let is_proper_time =
                     place.times.iter().any(|time| time.intersects(activity_ctx.route_start_time, &activity_ctx.time));
 
                 is_same_location && is_proper_time
             })
-            .map(|place| {
+            .map(|(idx, place)| {
                 // NOTE search for the latest occurrence assuming that times are sorted
                 let time = place
                     .times
@@ -173,7 +174,7 @@ fn match_place(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &Activ
                     }
                 };
 
-                Place { location: activity_ctx.location, duration: place.duration, time }
+                Place { idx, location: activity_ctx.location, duration: place.duration, time }
             }),
         _ => None,
     }
@@ -224,7 +225,7 @@ pub(super) fn get_job_tag(single: &Single, place: (Location, (TimeWindow, Timest
 
 fn get_job_id(single: &Arc<Single>) -> String {
     Activity {
-        place: Place { location: 0, duration: 0.0, time: TimeWindow::new(0., 0.) },
+        place: Place { idx: 0, location: 0, duration: 0.0, time: TimeWindow::new(0., 0.) },
         schedule: Schedule { arrival: 0.0, departure: 0.0 },
         job: Some(single.clone()),
         commute: None,

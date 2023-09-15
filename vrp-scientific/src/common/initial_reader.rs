@@ -47,9 +47,11 @@ pub fn read_init_solution<R: Read>(
 
                 route.last().unwrap().split_whitespace().for_each(|id| {
                     let single = id_map.get(id).unwrap();
-                    let place = single.places.first().unwrap();
+                    let place_idx = 0;
+                    let place = &single.places[place_idx];
                     tour.insert_last(Activity {
                         place: vrp_core::models::solution::Place {
+                            idx: place_idx,
                             location: place.location.unwrap(),
                             duration: place.duration,
                             time: place.times.first().and_then(|span| span.as_time_window()).unwrap(),

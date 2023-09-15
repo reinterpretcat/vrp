@@ -87,9 +87,11 @@ pub fn rearrange_jobs_in_routes(insertion_ctx: &mut InsertionContext, job_order:
 
         order.iter().for_each(|job_id| {
             let job = jobs_map.get(&job_id.to_string()).unwrap().to_single().clone();
-            let place = job.places.first().unwrap();
+            let place_idx = 0;
+            let place = &job.places[place_idx];
             route_ctx.route_mut().tour.insert_last(Activity {
                 place: Place {
+                    idx: place_idx,
                     location: place.location.unwrap(),
                     duration: place.duration,
                     time: place.times.first().unwrap().to_time_window(0.),

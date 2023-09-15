@@ -14,7 +14,7 @@ pub fn test_activity() -> Activity {
 
 pub fn test_activity_with_location(location: Location) -> Activity {
     Activity {
-        place: Place { location, duration: DEFAULT_JOB_DURATION, time: DEFAULT_ACTIVITY_TIME_WINDOW },
+        place: Place { idx: 0, location, duration: DEFAULT_JOB_DURATION, time: DEFAULT_ACTIVITY_TIME_WINDOW },
         schedule: Schedule::new(location as f64, location as f64 + DEFAULT_JOB_DURATION),
         job: Some(test_single_with_location(Some(location))),
         commute: None,
@@ -23,7 +23,7 @@ pub fn test_activity_with_location(location: Location) -> Activity {
 
 pub fn test_activity_with_location_and_duration(location: Location, duration: Duration) -> Activity {
     Activity {
-        place: Place { location, duration, time: DEFAULT_ACTIVITY_TIME_WINDOW },
+        place: Place { idx: 0, location, duration, time: DEFAULT_ACTIVITY_TIME_WINDOW },
         schedule: Schedule::new(location as f64, location as f64 + DEFAULT_JOB_DURATION),
         job: Some(test_single_with_location(Some(location))),
         commute: None,
@@ -32,7 +32,7 @@ pub fn test_activity_with_location_and_duration(location: Location, duration: Du
 
 pub fn test_activity_with_location_and_tw(location: Location, tw: TimeWindow) -> Activity {
     Activity {
-        place: Place { location, duration: DEFAULT_JOB_DURATION, time: tw },
+        place: Place { idx: 0, location, duration: DEFAULT_JOB_DURATION, time: tw },
         schedule: Schedule::new(location as f64, location as f64 + DEFAULT_JOB_DURATION),
         job: Some(test_single_with_location(Some(location))),
         commute: None,
@@ -41,7 +41,7 @@ pub fn test_activity_with_location_and_tw(location: Location, tw: TimeWindow) ->
 
 pub fn test_activity_with_location_tw_and_duration(location: Location, tw: TimeWindow, duration: Duration) -> Activity {
     Activity {
-        place: Place { location, duration, time: tw },
+        place: Place { idx: 0, location, duration, time: tw },
         schedule: Schedule::new(location as f64, location as f64 + duration),
         job: Some(test_single_with_location(Some(location))),
         commute: None,
@@ -51,6 +51,7 @@ pub fn test_activity_with_location_tw_and_duration(location: Location, tw: TimeW
 pub fn test_activity_with_schedule(schedule: Schedule) -> Activity {
     Activity {
         place: Place {
+            idx: 0,
             location: DEFAULT_JOB_LOCATION,
             duration: DEFAULT_JOB_DURATION,
             time: DEFAULT_ACTIVITY_TIME_WINDOW,
@@ -64,6 +65,7 @@ pub fn test_activity_with_schedule(schedule: Schedule) -> Activity {
 pub fn test_activity_with_job(job: Arc<Single>) -> Activity {
     Activity {
         place: Place {
+            idx: 0,
             location: DEFAULT_JOB_LOCATION,
             duration: DEFAULT_JOB_DURATION,
             time: DEFAULT_ACTIVITY_TIME_WINDOW,
@@ -77,6 +79,7 @@ pub fn test_activity_with_job(job: Arc<Single>) -> Activity {
 pub fn test_activity_without_job() -> Activity {
     Activity {
         place: Place {
+            idx: 0,
             location: DEFAULT_JOB_LOCATION,
             duration: DEFAULT_JOB_DURATION,
             time: DEFAULT_ACTIVITY_TIME_WINDOW,

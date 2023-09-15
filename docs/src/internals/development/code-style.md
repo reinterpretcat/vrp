@@ -51,17 +51,21 @@ println!("{}", (1..11).fold(0, |a, b| a + b));
 Advantages (personal taste):
 - code is easier to follow (fewer jumps here and there over code base)
 - call stack is less nested, so debug is easier
+- benefit of not making it possible to call the function from other places
 
 However, this is not hard rule. In some cases, you might prefer to split:
 - multiple usages
 - separate function provides a good abstraction over complex logic
-- you want to test it separately
+- make sense to test it separately
 - ..
 
 In general, don’t be over-eager to abstract, or offended by a few lines of duplication. Premature abstraction often
 ends up coupling code that should not have to evolve together.
 
 Please note, that this is not about proposing a single 1000-lines god function.
+
+Additional resources:
+- http://number-none.com/blow/blog/programming/2014/09/26/carmack-on-inlined-code.html
 
 
 ## Code organization level

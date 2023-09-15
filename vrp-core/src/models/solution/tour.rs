@@ -236,7 +236,7 @@ fn create_start_activity(actor: &Actor) -> Activity {
 
     Activity {
         schedule: Schedule { arrival: time.start, departure: time.start },
-        place: Place { location: start.location, duration: 0.0, time },
+        place: Place { idx: 0, location: start.location, duration: 0., time },
         job: None,
         commute: None,
     }
@@ -248,7 +248,7 @@ fn create_end_activity(actor: &Actor) -> Option<Activity> {
         let time = place.time.to_time_window();
         Activity {
             schedule: Schedule { arrival: time.start, departure: time.start },
-            place: Place { location: place.location, duration: 0.0, time },
+            place: Place { idx: 0, location: place.location, duration: 0.0, time },
             job: None,
             commute: None,
         }

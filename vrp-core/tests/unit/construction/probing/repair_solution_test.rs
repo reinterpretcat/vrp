@@ -115,7 +115,7 @@ fn add_new_route(insertion_ctx: &mut InsertionContext, vehicle_id: &str, activit
 
     activities.into_iter().for_each(|(location, duration, (tw_start, tw_end), single)| {
         tour.insert_last(Activity {
-            place: Place { location, duration, time: TimeWindow::new(tw_start, tw_end) },
+            place: Place { idx: 0, location, duration, time: TimeWindow::new(tw_start, tw_end) },
             schedule: Schedule::new(0., 0.),
             job: Some(single),
             commute: None,

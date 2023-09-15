@@ -32,9 +32,11 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
 
                 let create_activity = |single: Arc<Single>, previous_location: usize| {
                     assert_eq!(single.places.len(), 1);
-                    assert_eq!(single.places.first().unwrap().times.len(), 1);
 
-                    let place = single.places.first().unwrap();
+                    let place_idx = 0;
+                    let place = &single.places[place_idx];
+                    assert_eq!(place.times.len(), 1);
+
                     let time = single.places.first().unwrap().times.first().unwrap();
                     let time = time
                         .as_time_window()
@@ -42,6 +44,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
 
                     Activity {
                         place: ActivityPlace {
+                            idx: place_idx,
                             location: place.location.unwrap_or(previous_location),
                             duration: place.duration,
                             time,

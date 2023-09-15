@@ -280,10 +280,11 @@ fn analyze_insertion_in_route_leg(
     };
     let start_time = route_ctx.route().tour.start().unwrap().schedule.departure;
     // analyze service details
-    single.places.iter().try_fold(init, |acc, detail| {
+    single.places.iter().enumerate().try_fold(init, |acc, (idx, detail)| {
         // analyze detail time windows
         detail.times.iter().try_fold(acc, |acc, time| {
             target.place = Place {
+                idx,
                 location: detail.location.unwrap_or(prev.place.location),
                 duration: detail.duration,
                 time: time.to_time_window(start_time),

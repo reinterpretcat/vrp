@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* original job place index in activity place to simplify activity-job place matching
+
 ### Changed
 
 * apply code style refactoring
@@ -12,6 +16,8 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 * double reload assignment when initial solution is used (#126)
+* unexpected total_order behavior in dynamic heuristic (#128)
+* improve validation rule for break with time offset  (#129)
 
 
 ## [v1.22.1]- 2023-08-26

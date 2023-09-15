@@ -125,7 +125,8 @@ impl HeuristicSolutionProcessing for VicinityClustering {
                     cluster.into_iter().fold((cluster_arrival, Vec::new()), |(arrival, mut activities), info| {
                         // NOTE assumption: no waiting time possible in between of clustered jobs
                         let job = info.job.to_single().clone();
-                        let place = job.places.first().unwrap();
+                        let place_idx = 0;
+                        let place = &job.places[place_idx];
 
                         let backward = match config.visiting {
                             VisitPolicy::Return => info.commute.backward.duration,
@@ -139,6 +140,7 @@ impl HeuristicSolutionProcessing for VicinityClustering {
 
                         activities.push(Activity {
                             place: Place {
+                                idx: place_idx,
                                 location: place.location.unwrap(),
                                 duration: info.service_time,
                                 time: cluster_time.clone(),

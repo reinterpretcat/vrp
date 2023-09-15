@@ -13,7 +13,7 @@ type JobPlace = crate::models::problem::Place;
 
 fn create_activity_at(loc_and_time: usize) -> Activity {
     ActivityBuilder::default()
-        .place(Place { location: loc_and_time, duration: 0.0, time: DEFAULT_JOB_TIME_SPAN.to_time_window(0.) })
+        .place(Place { idx: 0, location: loc_and_time, duration: 0.0, time: DEFAULT_JOB_TIME_SPAN.to_time_window(0.) })
         .schedule(Schedule { arrival: loc_and_time as Timestamp, departure: loc_and_time as Timestamp })
         .build()
 }

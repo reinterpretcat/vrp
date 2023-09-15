@@ -14,7 +14,7 @@ fn create_insertion_success(insertion_ctx: &InsertionContext, insertion_data: (u
     let actor = insertion_ctx.solution.routes.get(route_idx).unwrap().route().actor.clone();
     let job = get_jobs_by_ids(insertion_ctx, &[job_id]).first().cloned().unwrap();
     let activity = Activity {
-        place: Place { location: 0, duration: 0.0, time: TimeWindow::new(0., 1.) },
+        place: Place { idx: 0, location: 0, duration: 0.0, time: TimeWindow::new(0., 1.) },
         schedule: Schedule { arrival: 0., departure: 0. },
         job: Some(job.to_single().clone()),
         commute: None,

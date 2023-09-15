@@ -69,6 +69,7 @@ pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Ve
 pub fn create_activity_at_location(location: Location) -> Activity {
     Activity {
         place: vrp_core::models::solution::Place {
+            idx: 0,
             location,
             duration: DEFAULT_JOB_DURATION,
             time: DEFAULT_ACTIVITY_TIME_WINDOW,

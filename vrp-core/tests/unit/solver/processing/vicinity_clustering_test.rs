@@ -88,7 +88,7 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
                     test_activity_with_schedule(Schedule::new(0., 0.)),
                     test_activity_with_schedule(Schedule::new(0., 0.)),
                     vec![Activity {
-                        place: Place { location: 3, duration: DEFAULT_JOB_DURATION * 3., time: clustered_time },
+                        place: Place { idx: 0, location: 3, duration: DEFAULT_JOB_DURATION * 3., time: clustered_time },
                         schedule: Schedule::new(3., 3. + duration),
                         job: Some(clustered_single),
                         commute: Some(Commute {
