@@ -410,12 +410,18 @@ where
         Ordering::Equal => return 0.,
     };
 
-    let idx = (0..objective.size())
-        .find(|idx| {
-            let distance = objective.get_distance(a, b, *idx).expect("cannot get distance by idx");
-            compare_floats(distance, 0.) != Ordering::Equal
-        })
-        .expect("cannot find objective idx where solution values are different");
+    let idx = (0..objective.size()).find(|idx| {
+        let distance = objective.get_distance(a, b, *idx).expect("cannot get distance by idx");
+        compare_floats(distance, 0.) != Ordering::Equal
+    });
+
+    // NOTE special case when total order returns non-zero sign when all objectives are the same
+    //      considering their from non-numerical quality point of view
+    let idx = if let Some(idx) = idx {
+        idx
+    } else {
+        return 0.;
+    };
 
     a.fitness()
         .nth(idx)

@@ -106,3 +106,51 @@ fn can_display_heuristic_info() {
 
     assert!(!formatted.is_empty());
 }
+
+#[test]
+fn can_handle_when_objective_lies() {
+    struct LiarObjective;
+
+    impl MultiObjective for LiarObjective {
+        type Solution = TestData;
+
+        fn total_order(&self, _: &Self::Solution, _: &Self::Solution) -> Ordering {
+            // that is where it lies based on some non-fitness related factors for total order
+            Ordering::Greater
+        }
+
+        fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
+            solution.fitness()
+        }
+
+        fn get_order(&self, _: &Self::Solution, _: &Self::Solution, _: usize) -> Result<Ordering, GenericError> {
+            unreachable!()
+        }
+
+        fn get_distance(&self, _: &Self::Solution, _: &Self::Solution, _: usize) -> Result<f64, GenericError> {
+            Ok(0.)
+        }
+
+        fn size(&self) -> usize {
+            1
+        }
+    }
+    impl HeuristicObjective for LiarObjective {}
+
+    struct TestData;
+
+    impl HeuristicSolution for TestData {
+        fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
+            // fitness is the same
+            Box::new(once(1.))
+        }
+
+        fn deep_copy(&self) -> Self {
+            unreachable!()
+        }
+    }
+
+    let distance = get_relative_distance(&LiarObjective, &TestData, &TestData);
+
+    assert_eq!(distance, 0.)
+}
