@@ -645,6 +645,10 @@ pub enum Objective {
     /// An objective to control order of job activities in the tour.
     #[serde(rename(deserialize = "tour-order", serialize = "tour-order"))]
     TourOrder,
+
+    /// An objective to prefer jobs to be served as soon as possible.
+    #[serde(rename(deserialize = "fast-service", serialize = "fast-service"))]
+    FastService,
 }
 
 /// Specifies balance objective options. At the moment, it uses coefficient of variation as

@@ -224,6 +224,13 @@ fn get_objective_features(
                     }
                     Objective::TourOrder => {
                         create_tour_order_soft_feature("tour_order", TOUR_ORDER_KEY, get_tour_order_fn())
+                    },
+                    Objective::FastService => {
+                        if props.has_multi_dimen_capacity {
+                            create_fast_service_feature::<MultiDimLoad>("fast_service", transport.clone(), activity.clone())
+                        } else {
+                            create_fast_service_feature::<SingleDimLoad>("fast_service", transport.clone(), activity.clone())
+                        }
                     }
                 })
                 .collect()

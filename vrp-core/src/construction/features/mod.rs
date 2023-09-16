@@ -11,6 +11,9 @@ use std::sync::Arc;
 mod capacity;
 pub use self::capacity::*;
 
+mod fast_service;
+pub use self::fast_service::*;
+
 mod fleet_usage;
 pub use self::fleet_usage::*;
 
