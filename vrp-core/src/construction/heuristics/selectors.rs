@@ -437,7 +437,7 @@ impl LegSelection {
                     sample_size,
                     random.clone(),
                     &mut |leg: Leg<'_>| map_fn(leg, R::default()).unwrap_value(),
-                    |leg: &Leg<'_>| leg.1 as i32,
+                    |leg: &Leg<'_>| leg.1 - skip,
                     &compare_fn,
                 )
                 .unwrap_or(init)

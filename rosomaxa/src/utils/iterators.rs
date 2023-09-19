@@ -6,6 +6,7 @@ mod iterators_test;
 
 use crate::utils::*;
 use std::collections::HashMap;
+use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -125,9 +126,6 @@ pub fn create_range_sampling_iter<I: Iterator>(
 ///  - here we found a better maximum (58), so we update current best and continue with further shrinking the search range
 ///  - we repeat the process till trivial range is reached
 ///
-/// TODO: fixme: sometimes algorithm skips searching for a range (seems related to best as last element in the sequence)
-///       see can_reproduce_issue_with_weak_sampling test
-///       additionally, the code could be made a bit nicer and less hacky
 pub trait SelectionSamplingSearch: Iterator {
     /// Searches using selection sampling algorithm.
     fn sample_search<'a, T, R, FM, FI, FC>(
@@ -143,78 +141,166 @@ pub trait SelectionSamplingSearch: Iterator {
         T: 'a,
         R: 'a,
         FM: FnMut(T) -> R,
-        FI: Fn(&T) -> i32,
+        FI: Fn(&T) -> usize,
         FC: Fn(&R, &R) -> bool,
     {
-        let last_idx = i32::MAX;
-        let mut state = SelectionSamplingSearchState::<R>::default();
+        let size = self.size_hint().0;
+        if size == 0 || sample_size == 0 {
+            return None;
+        }
 
+        let mut state = SelectionSamplingSearchState::<R>::new(size);
         loop {
-            let best_idx = state.best.as_ref().map_or(-1, |(best_idx, _)| *best_idx);
-            let skip = state.target_left as usize;
-            let take = (state.target_right - state.target_left) as usize + 1;
+            let best_idx = state.best.get_idx();
+            let (skip, take) = (state.left, state.right - state.left + 1);
+            let iterator = self.clone().skip(skip).take(take);
 
-            state.next_left = last_idx;
-            state.next_right = state.next_right.min(last_idx);
+            // keeps track data to track properly right range limit if best is found at last
+            let (orig_right, last_probe_idx) = (state.right, take.min(sample_size - 1));
 
-            state = SelectionSamplingIterator::new(self.clone().skip(skip).take(take), sample_size, random.clone())
-                .filter_map(|item| {
+            state = SelectionSamplingIterator::new(iterator, sample_size, random.clone())
+                .enumerate()
+                .filter_map(|(probe_idx, item)| {
                     let item_idx = index_fn(&item);
+
+                    assert!(
+                        item_idx >= skip && item_idx <= orig_right,
+                        "caller's index_fn returns an index outside of expected range"
+                    );
+
                     if item_idx != best_idx {
-                        Some((item_idx, map_fn(item)))
+                        Some((probe_idx, item_idx, map_fn(item)))
                     } else {
                         None
                     }
                 })
-                .fold(state, |mut acc, (item_idx, item_mapped)| {
-                    if acc.best.as_ref().map_or(false, |(best_idx, _)| *best_idx == acc.target_left) {
-                        acc.next_right = item_idx - 1;
+                .fold(state, |mut acc, (probe_idx, item_idx, item_mapped)| {
+                    // NOTE below we apply minus/plus one to border indices to avoid probing them multiple times
+                    match &acc.best {
+                        BestItem::Unknown => {
+                            acc.best = BestItem::Fresh((item_idx, item_mapped));
+                        }
+                        BestItem::Fresh((best_idx, best_value)) | BestItem::Stale((best_idx, best_value)) => {
+                            // if stale, shrink the range to converge the search
+                            if matches!(acc.best, BestItem::Stale(_)) {
+                                acc.left = ((item_idx + 1).min(*best_idx)).max(acc.left);
+                                acc.right = ((item_idx.max(1) - 1).max(*best_idx)).min(acc.right);
+                            } else {
+                                //  if a new best is found on the previous probe, adjust right to the current probe
+                                if acc.last == *best_idx {
+                                    acc.right = item_idx.max(1) - 1
+                                }
+                            }
+
+                            // if a new found, set the search range to adjusted left and right items
+                            if compare_fn(&item_mapped, best_value) {
+                                acc.best = BestItem::Fresh((item_idx, item_mapped));
+                                // keep same index for left/right if it is a first/last probe
+                                acc.left = if probe_idx == 0 { acc.left } else { acc.last + 1 };
+                                acc.right = if probe_idx == last_probe_idx { orig_right } else { item_idx };
+                            }
+                        }
                     }
 
-                    if acc.best.as_ref().map_or(true, |(_, best)| compare_fn(&item_mapped, best)) {
-                        acc.best = Some((item_idx, item_mapped));
-                        acc.next_left = acc.target_left + 1
-                    }
-
-                    acc.target_left = item_idx;
+                    acc.last = item_idx;
 
                     acc
-                });
+                })
+                .next_range();
 
-            state.target_left = state.next_left;
-            state.target_right = state.next_right;
-
-            if state.target_left >= state.target_right {
+            if state.is_terminal() {
                 break;
             }
         }
 
-        state.best.map(|(_, best)| best)
+        state.best.get_value()
     }
 }
 
 impl<T: Iterator> SelectionSamplingSearch for T {}
 
-struct SelectionSamplingSearchState<T> {
-    target_left: i32,
-    target_right: i32,
-    best: Option<(i32, T)>,
-    next_left: i32,
-    next_right: i32,
+/// Keeps track of best item index and actual value.
+enum BestItem<T> {
+    /// No best item yet discovered.
+    Unknown,
+    /// A best item was discovered, but on previous range search.
+    Stale((usize, T)),
+    /// A best item was discovered on current range search.
+    Fresh((usize, T)),
 }
 
-impl<T> Default for SelectionSamplingSearchState<T> {
-    fn default() -> Self {
-        Self { target_left: 0, target_right: i32::MAX, best: None, next_left: i32::MAX, next_right: i32::MAX }
+impl<T> BestItem<T> {
+    /// Gets index of best item.
+    fn get_idx(&self) -> usize {
+        match self {
+            BestItem::Unknown => 0,
+            BestItem::Stale((idx, _)) | BestItem::Fresh((idx, _)) => *idx,
+        }
+    }
+
+    /// Gets value of best item if it is found.
+    fn get_value(self) -> Option<T> {
+        match self {
+            BestItem::Unknown => None,
+            BestItem::Stale((_, value)) | BestItem::Fresh((_, value)) => Some(value),
+        }
     }
 }
 
-impl<T> std::fmt::Debug for SelectionSamplingSearchState<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<T> Debug for BestItem<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BestItem::Unknown => write!(f, "X"),
+            BestItem::Stale((idx, _)) | BestItem::Fresh((idx, _)) => write!(f, "{idx}"),
+        }
+    }
+}
+
+/// Keeps  track of search state.
+struct SelectionSamplingSearchState<T> {
+    /// Left search range index.
+    left: usize,
+    /// Right search range index.
+    right: usize,
+    /// Last processed index.
+    last: usize,
+    /// Best item found so far.
+    best: BestItem<T>,
+    /// Cycle detection counter (for confidence, can be removed after stabilization).
+    counter: usize,
+}
+
+impl<T> SelectionSamplingSearchState<T> {
+    pub fn new(size: usize) -> Self {
+        Self { left: 0, right: size - 1, last: 0, best: BestItem::<T>::Unknown, counter: 0 }
+    }
+
+    pub fn next_range(mut self) -> Self {
+        self.counter += 1;
+
+        // NOTE normally, this should not happen, keep it for testing purpose
+        assert!(self.counter < 1000, "cycle in selection sampling search detected");
+
+        Self {
+            best: match self.best {
+                BestItem::Unknown => BestItem::Unknown,
+                BestItem::Stale(item) | BestItem::Fresh(item) => BestItem::Stale(item),
+            },
+            ..self
+        }
+    }
+
+    pub fn is_terminal(&self) -> bool {
+        self.left >= self.right
+    }
+}
+
+impl<T> Debug for SelectionSamplingSearchState<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct(short_type_name::<Self>())
-            .field("target", &(self.target_left, self.target_right))
-            .field("next", &(self.next_left, self.next_right))
-            .field("best_idx", &self.best.as_ref().map_or("X".to_string(), |(best_idx, _)| best_idx.to_string()))
+            .field("range", &(self.left, self.right))
+            .field("counter", &self.counter)
+            .field("best_idx", &self.best)
             .finish()
     }
 }

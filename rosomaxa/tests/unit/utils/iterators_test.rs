@@ -118,86 +118,11 @@ mod sampling_search {
     #[derive(Clone, Debug, Default)]
     struct DataType {
         data: bool,
-        idx: i32,
-    }
-
-    use crate::prelude::RandomGen;
-
-    struct DummyRandom {
-        target_sequences: Vec<Vec<usize>>,
-        current_sequence: RwLock<usize>,
-        current_item: RwLock<usize>,
-        sampled: RwLock<usize>,
-        sample: usize,
-        total: usize,
-    }
-
-    impl DummyRandom {
-        pub fn new(sample: usize, total: usize, target_sequences: Vec<Vec<usize>>) -> Self {
-            Self {
-                target_sequences,
-                current_sequence: RwLock::new(0),
-                current_item: RwLock::new(0),
-                sampled: RwLock::new(0),
-                sample,
-                total,
-            }
-        }
-    }
-
-    impl Random for DummyRandom {
-        fn uniform_int(&self, _: i32, _: i32) -> i32 {
-            unimplemented!()
-        }
-
-        fn uniform_real(&self, _: f64, _: f64) -> f64 {
-            unimplemented!()
-        }
-
-        fn is_head_not_tails(&self) -> bool {
-            unimplemented!()
-        }
-
-        fn is_hit(&self, _: f64) -> bool {
-            if *self.current_item.write().unwrap() >= self.total {
-                *self.current_item.write().unwrap() = 0;
-                *self.sampled.write().unwrap() = 0;
-                *self.current_sequence.write().unwrap() += 1;
-            }
-
-            let target_sequence_idx = *self.current_sequence.read().unwrap();
-            let target_sequence = if let Some(target_sequence) = self.target_sequences.get(target_sequence_idx) {
-                target_sequence
-            } else {
-                return false;
-            };
-            let current = *self.current_item.read().unwrap();
-
-            *self.current_item.write().unwrap() += 1;
-
-            if target_sequence.contains(&current) {
-                *self.sampled.write().unwrap() += 1;
-
-                if *self.sampled.write().unwrap() == self.sample {
-                    *self.current_item.write().unwrap() = self.total;
-                }
-                true
-            } else {
-                false
-            }
-        }
-
-        fn weighted(&self, _: &[usize]) -> usize {
-            unimplemented!()
-        }
-
-        fn get_rng(&self) -> RandomGen {
-            unimplemented!()
-        }
+        idx: usize,
     }
 
     #[allow(clippy::type_complexity)]
-    fn get_result_comparer(target: i32) -> Box<dyn Fn(&DataType, &DataType) -> bool> {
+    fn get_result_comparer(target: usize) -> Box<dyn Fn(&DataType, &DataType) -> bool> {
         Box::new(move |left, right| {
             match (left.data, right.data) {
                 (true, false) => return true,
@@ -207,72 +132,9 @@ mod sampling_search {
             match (left.idx, right.idx) {
                 (_, rhs) if rhs == target => false,
                 (lhs, _) if lhs == target => true,
-                (lhs, rhs) => (lhs - target).abs() < (rhs - target).abs(),
+                (lhs, rhs) => (lhs as i32 - target as i32).abs() < (rhs as i32 - target as i32).abs(),
             }
         })
-    }
-
-    parameterized_test! {can_redefine_random_as_expected, (sample, total, target_sequence), {
-        can_redefine_random_as_expected_impl(sample, total, target_sequence);
-    }}
-
-    can_redefine_random_as_expected! {
-         case_01: (3, 10, vec![vec![3, 5, 9]]),
-         case_02: (3, 10, vec![vec![3, 5, 9], vec![6, 7, 8]]),
-         case_03: (3, 10, vec![vec![2, 3, 5], vec![6, 7, 8]]),
-         case_04: (3, 10, vec![vec![2, 3, 5], vec![6, 7, 9]]),
-         case_05: (4, 100, vec![vec![3, 5, 17, 96]]),
-    }
-
-    fn can_redefine_random_as_expected_impl(sample: usize, total: usize, target_sequences: Vec<Vec<usize>>) {
-        let random = Arc::new(DummyRandom::new(sample, total, target_sequences.clone()));
-
-        target_sequences.into_iter().for_each(|target_sequence| {
-            let results = SelectionSamplingIterator::new(0..total, sample, random.clone()).collect::<Vec<_>>();
-            assert_eq!(results, target_sequence);
-        });
-    }
-
-    parameterized_test! {can_search_for_best, (skip, target, target_sequences), {
-        can_search_for_best_impl(skip, target, target_sequences);
-    }}
-
-    can_search_for_best! {
-        case_01: (0, 10, vec![(1, vec![3, 22, 45, 96]), (0, vec![4, 15, 32, 44])]),
-        case_02: (0, 10, vec![(2, vec![1, 21, 46, 96]), (2, vec![23, 25, 32, 45])]),
-        case_03: (0, 10, vec![(1, vec![1, 4, 46, 96]), (1, vec![3, 8, 20, 45]), (0, vec![10, 12, 17, 19])]),
-
-        case_04_should_not_use_second: (0, 10, vec![(1, vec![1, 2, 3, 96]), (usize::MAX, vec![2, 2, 2, 2])]),
-    }
-
-    fn can_search_for_best_impl(skip: usize, target: i32, target_sequences: Vec<(usize, Vec<usize>)>) {
-        let total_size = 100;
-        let sample_size = 4;
-        let expected_idx = *target_sequences.iter().rev().find_map(|(idx, data)| data.get(*idx)).unwrap();
-        let target_sequences = target_sequences
-            .iter()
-            .enumerate()
-            .rev()
-            .map(|(idx, (_, target_sequence))| {
-                if idx != 0 {
-                    let (offset_idx, prev_sequence) = target_sequences.get(idx - 1).unwrap();
-                    let offset = if *offset_idx != 0 { prev_sequence[*offset_idx - 1] } else { 0 } + 1;
-                    target_sequence.iter().map(|target| *target - offset).collect()
-                } else {
-                    target_sequence.clone()
-                }
-            })
-            .rev()
-            .collect();
-        let random = Arc::new(DummyRandom::new(sample_size, total_size, target_sequences));
-        let map_fn = |item: &DataType| item.clone();
-        let compare_fn = get_result_comparer(target);
-        let data = (0..total_size).map(|idx| DataType { data: idx % 2 == 0, idx: idx as i32 }).collect::<Vec<_>>();
-
-        let element =
-            data.iter().skip(skip).sample_search(sample_size, random, map_fn, |item| item.idx, compare_fn).unwrap();
-
-        assert_eq!(element.idx as usize, expected_idx);
     }
 
     #[test]
@@ -308,39 +170,61 @@ mod sampling_search {
         assert!(results.iter().all(|(_, count)| *count < 100));
     }
 
-    fn run_experiment(sequence: Vec<i32>, expected_counter: usize, expected_value: i32) {
+    parameterized_test! {can_reproduce_issue_with_weak_sampling, (sequence, sample_size, expected_counter, expected_value), {
+        can_reproduce_issue_with_weak_sampling_impl(sequence, sample_size, expected_counter, expected_value);
+    }}
+
+    can_reproduce_issue_with_weak_sampling! {
+        case01_few_updates: (
+            vec![
+                76, 36, 93, 15, 21, 40, 97, 77, 35, 86, 61, 71, 7, 32, 29,
+                66, 47, 96, 82, 34, 20, 23, 94, 11, 18, 89, 79, 47, 77, 30,
+                48, 8, 45, 11, 21, 54, 15, 26, 23, 37, 58, 27, 31, 11, 60,
+            ],
+            4, 12, 96,
+        ),
+        case02_at_end: (
+            vec![
+                66, 47, 96, 82, 34, 20, 23, 94, 11, 18, 89, 79, 47, 77, 30,
+                48, 8, 45, 11, 21, 54, 15, 26, 23, 37, 58, 27, 31, 11, 60,
+                76, 36, 93, 15, 21, 40, 97, 77, 35, 86, 61, 71, 7, 32, 29,
+            ],
+            4, 7, 86,
+        ),
+        case03_wave: (
+            vec![
+                2, 5, 6, 10, 18, 24, 25, 29, 34, 35, 37, 38, 40, 43, 45, 53, 55, 60, 61, 63, 68,
+                69, 71, 73, 77, 80, 81, 82, 84, 91, 96, 93, 90, 86, 80, 72, 71, 65, 62, 56, 55, 52,
+            ],
+            8, 14, 96,
+        ),
+    }
+
+    fn can_reproduce_issue_with_weak_sampling_impl(
+        sequence: Vec<i32>,
+        sample_size: usize,
+        expected_counter: usize,
+        expected_value: i32,
+    ) {
         let random = Arc::new(DefaultRandom::new_repeatable());
         let counter = RefCell::new(0);
         let value = sequence
             .into_iter()
             .enumerate()
             .sample_search(
-                4,
+                sample_size,
                 random.clone(),
                 |(_idx, i)| {
                     *counter.borrow_mut() += 1;
                     //println!("{} probe: {i} at {idx}", counter.borrow());
                     i
                 },
-                |(idx, _)| *idx as i32,
+                |(idx, _)| *idx,
                 |a, b| *a > *b,
             )
             .unwrap();
 
         assert_eq!(value, expected_value);
         assert_eq!(*counter.borrow(), expected_counter);
-    }
-
-    #[test]
-    fn can_reproduce_issue_with_weak_sampling() {
-        run_experiment(
-            vec![
-                48, 8, 45, 11, 21, 54, 15, 26, 23, 37, 58, 27, 31, 11, 60, //
-                66, 47, 96, 82, 34, 20, 23, 94, 11, 18, 89, 79, 47, 77, 30, //
-                76, 36, 93, 15, 21, 40, 97, 77, 35, 86, 61, 71, 7, 32, 29, //
-            ],
-            4,
-            86,
-        )
     }
 }
