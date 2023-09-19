@@ -24,16 +24,13 @@ fn get_problem(problem_path: &str) -> Arc<Problem> {
 fn solve_problem_with_max_generations(problem_path: &str, generations: usize) -> Solution {
     let problem = get_problem(problem_path);
 
-    let (solution, _, _) =
-        create_default_config_builder(problem.clone(), Arc::new(Environment::default()), TelemetryMode::None)
-            .with_max_generations(Some(generations))
-            .build()
-            .map(|config| Solver::new(problem, config))
-            .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
-            .solve()
-            .unwrap_or_else(|err| panic!("cannot solver problem: {}", err));
-
-    solution
+    create_default_config_builder(problem.clone(), Arc::new(Environment::default()), TelemetryMode::None)
+        .with_max_generations(Some(generations))
+        .build()
+        .map(|config| Solver::new(problem, config))
+        .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
+        .solve()
+        .unwrap_or_else(|err| panic!("cannot solver problem: {}", err))
 }
 
 /// Solve problem using cheapest insertion heuristic and returns one solution.
