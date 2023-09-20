@@ -172,9 +172,7 @@ pub trait SelectionSamplingSearch: Iterator {
 
                     // NOTE below we apply minus/plus one to border indices to avoid probing them multiple times
                     match &acc.best {
-                        BestItem::Unknown => {
-                            acc.best = BestItem::Fresh((item_idx, map_fn(item)));
-                        }
+                        BestItem::Unknown => acc.best = BestItem::Fresh((item_idx, map_fn(item))),
                         BestItem::Fresh((best_idx, best_value)) | BestItem::Stale((best_idx, best_value)) => {
                             // if stale, shrink the range to converge the search
                             if matches!(acc.best, BestItem::Stale(_)) {
