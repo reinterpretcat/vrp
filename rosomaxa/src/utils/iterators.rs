@@ -144,41 +144,36 @@ pub trait SelectionSamplingSearch: Iterator {
         FI: Fn(&T) -> usize,
         FC: Fn(&R, &R) -> bool,
     {
+        // support up to 32*8 indices to be memorized
+        const N: usize = 32;
+
         let size = self.size_hint().0;
         if size == 0 || sample_size == 0 {
             return None;
         }
 
-        let mut state = SelectionSamplingSearchState::<R>::new(size);
+        let mut state = SearchState::<N, R>::new(sample_size, size);
         loop {
-            let best_idx = state.best.get_idx();
             let (skip, take) = (state.left, state.right - state.left + 1);
             let iterator = self.clone().skip(skip).take(take);
-
             // keeps track data to track properly right range limit if best is found at last
             let (orig_right, last_probe_idx) = (state.right, take.min(sample_size - 1));
 
             state = SelectionSamplingIterator::new(iterator, sample_size, random.clone())
                 .enumerate()
-                .filter_map(|(probe_idx, item)| {
+                .fold(state, |mut acc, (probe_idx, item)| {
                     let item_idx = index_fn(&item);
+                    let is_new_item = acc.probe(item_idx);
 
                     assert!(
                         item_idx >= skip && item_idx <= orig_right,
                         "caller's index_fn returns an index outside of expected range"
                     );
 
-                    if item_idx != best_idx {
-                        Some((probe_idx, item_idx, map_fn(item)))
-                    } else {
-                        None
-                    }
-                })
-                .fold(state, |mut acc, (probe_idx, item_idx, item_mapped)| {
                     // NOTE below we apply minus/plus one to border indices to avoid probing them multiple times
                     match &acc.best {
                         BestItem::Unknown => {
-                            acc.best = BestItem::Fresh((item_idx, item_mapped));
+                            acc.best = BestItem::Fresh((item_idx, map_fn(item)));
                         }
                         BestItem::Fresh((best_idx, best_value)) | BestItem::Stale((best_idx, best_value)) => {
                             // if stale, shrink the range to converge the search
@@ -192,12 +187,16 @@ pub trait SelectionSamplingSearch: Iterator {
                                 }
                             }
 
-                            // if a new found, set the search range to adjusted left and right items
-                            if compare_fn(&item_mapped, best_value) {
-                                acc.best = BestItem::Fresh((item_idx, item_mapped));
-                                // keep same index for left/right if it is a first/last probe
-                                acc.left = if probe_idx == 0 { acc.left } else { acc.last + 1 };
-                                acc.right = if probe_idx == last_probe_idx { orig_right } else { item_idx };
+                            // avoid evaluating same item twice by checking the probe
+                            if is_new_item {
+                                let item_value = map_fn(item);
+                                // if a new found, set the search range to adjusted left and right items
+                                if compare_fn(&item_value, best_value) {
+                                    acc.best = BestItem::Fresh((item_idx, item_value));
+                                    // keep same index for left/right if it is a first/last probe
+                                    acc.left = if probe_idx == 0 { acc.left } else { acc.last + 1 };
+                                    acc.right = if probe_idx == last_probe_idx { orig_right } else { item_idx };
+                                }
                             }
                         }
                     }
@@ -230,14 +229,6 @@ enum BestItem<T> {
 }
 
 impl<T> BestItem<T> {
-    /// Gets index of best item.
-    fn get_idx(&self) -> usize {
-        match self {
-            BestItem::Unknown => 0,
-            BestItem::Stale((idx, _)) | BestItem::Fresh((idx, _)) => *idx,
-        }
-    }
-
     /// Gets value of best item if it is found.
     fn get_value(self) -> Option<T> {
         match self {
@@ -256,31 +247,39 @@ impl<T> Debug for BestItem<T> {
     }
 }
 
-/// Keeps  track of search state.
-struct SelectionSamplingSearchState<T> {
-    /// Left search range index.
+/// Keeps  track of search state for selection sampling search.
+struct SearchState<const N: usize, T> {
     left: usize,
-    /// Right search range index.
     right: usize,
-    /// Last processed index.
     last: usize,
-    /// Best item found so far.
     best: BestItem<T>,
-    /// Cycle detection counter (for confidence, can be removed after stabilization).
-    counter: usize,
+    bit_array: FixedBitArray<N>,
+    collisions_limit: i32,
 }
 
-impl<T> SelectionSamplingSearchState<T> {
-    pub fn new(size: usize) -> Self {
-        Self { left: 0, right: size - 1, last: 0, best: BestItem::<T>::Unknown, counter: 0 }
+impl<const N: usize, T> SearchState<N, T> {
+    pub fn new(collisions_limit: usize, size: usize) -> Self {
+        Self {
+            left: 0,
+            right: size - 1,
+            last: 0,
+            best: BestItem::<T>::Unknown,
+            bit_array: FixedBitArray::<N>::default(),
+            collisions_limit: collisions_limit as i32,
+        }
     }
 
-    pub fn next_range(mut self) -> Self {
-        self.counter += 1;
+    /// Returns true if item was not seen before.
+    pub fn probe(&mut self, index: usize) -> bool {
+        if self.bit_array.replace(index, true) {
+            self.collisions_limit -= 1;
+            false
+        } else {
+            true
+        }
+    }
 
-        // NOTE normally, this should not happen, keep it for testing purpose
-        assert!(self.counter < 1000, "cycle in selection sampling search detected");
-
+    pub fn next_range(self) -> Self {
         Self {
             best: match self.best {
                 BestItem::Unknown => BestItem::Unknown,
@@ -291,16 +290,17 @@ impl<T> SelectionSamplingSearchState<T> {
     }
 
     pub fn is_terminal(&self) -> bool {
-        self.left >= self.right
+        self.left >= self.right || self.collisions_limit <= 0
     }
 }
 
-impl<T> Debug for SelectionSamplingSearchState<T> {
+impl<const N: usize, T> Debug for SearchState<N, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct(short_type_name::<Self>())
             .field("range", &(self.left, self.right))
-            .field("counter", &self.counter)
+            .field("col_lim", &self.collisions_limit)
             .field("best_idx", &self.best)
+            .field("bits", &format!("{:b}", self.bit_array))
             .finish()
     }
 }
