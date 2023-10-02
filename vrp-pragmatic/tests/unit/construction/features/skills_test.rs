@@ -127,3 +127,12 @@ fn can_merge_skills_impl(source: Job, candidate: Job, expected: Result<(), i32>)
 
     assert_eq!(result, expected);
 }
+
+#[test]
+fn can_create_empty_skills_as_none() {
+    let skills = JobSkills::new(Some(vec![]), Some(vec![]), Some(vec![]));
+
+    assert!(skills.all_of.is_none());
+    assert!(skills.one_of.is_none());
+    assert!(skills.none_of.is_none());
+}

@@ -18,6 +18,16 @@ pub struct JobSkills {
     pub none_of: Option<HashSet<String>>,
 }
 
+impl JobSkills {
+    /// Creates a new instance of [`JobSkills`].
+    pub fn new(all_of: Option<Vec<String>>, one_of: Option<Vec<String>>, none_of: Option<Vec<String>>) -> Self {
+        let map: fn(Option<Vec<_>>) -> Option<HashSet<_>> =
+            |skills| skills.and_then(|v| if v.is_empty() { None } else { Some(v.into_iter().collect()) });
+
+        Self { all_of: map(all_of), one_of: map(one_of), none_of: map(none_of) }
+    }
+}
+
 /// Creates a skills feature as hard constraint.
 pub fn create_skills_feature(name: &str, code: ViolationCode) -> Result<Feature, GenericError> {
     FeatureBuilder::default().with_name(name).with_constraint(SkillsConstraint { code }).build()

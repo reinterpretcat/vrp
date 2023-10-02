@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 * double reload assignment when initial solution is used (#126)
 * unexpected total_order behavior in dynamic heuristic (#128)
 * improve validation rule for break with time offset  (#129)
+* fix issue with skills (#133)
 
 
 ## [v1.22.1]- 2023-08-26

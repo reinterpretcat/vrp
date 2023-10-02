@@ -506,11 +506,9 @@ fn create_condition(vehicle_id: String, shift_index: usize) -> Arc<dyn Fn(&Actor
 }
 
 fn get_skills(skills: &Option<ApiJobSkills>) -> Option<FeatureJobSkills> {
-    skills.as_ref().map(|skills| FeatureJobSkills {
-        all_of: skills.all_of.as_ref().map(|all_of| all_of.iter().cloned().collect()),
-        one_of: skills.one_of.as_ref().map(|any_of| any_of.iter().cloned().collect()),
-        none_of: skills.none_of.as_ref().map(|none_of| none_of.iter().cloned().collect()),
-    })
+    skills
+        .as_ref()
+        .map(|skills| FeatureJobSkills::new(skills.all_of.clone(), skills.one_of.clone(), skills.none_of.clone()))
 }
 
 fn empty() -> MultiDimLoad {
