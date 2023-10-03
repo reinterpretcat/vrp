@@ -55,3 +55,9 @@ Routing matrix example:
 
 If you have already your routing matrix, you can use location indices instead of geocoordinates as described
 [here](../routing/index.md#location-format).
+
+
+## Experimental
+
+Additionally, you can use a custom type of location with `type`=`unknown` to model a zero distance/duration to
+any other location.

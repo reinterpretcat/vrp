@@ -15,7 +15,7 @@ use vrp_core::solver::processing::{ReservedTimeDimension, VicinityDimension};
 
 pub(super) fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
     let coord_index = CoordIndex::new(&problem);
-    let matrices = if coord_index.get_used_types().1 { vec![] } else { create_approx_matrices(&problem) };
+    let matrices = if coord_index.has_indices() { vec![] } else { create_approx_matrices(&problem) };
     map_to_problem(problem, matrices, coord_index)
 }
 
@@ -40,7 +40,7 @@ pub(super) fn map_to_problem(
     let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
     let reserved_times_index = read_reserved_times_index(&api_problem, &fleet);
 
-    let transport = create_transport_costs(&api_problem, &matrices).map_err(|err| {
+    let transport = create_transport_costs(&api_problem, &matrices, coord_index.clone()).map_err(|err| {
         vec![FormatError::new(
             "E0002".to_string(),
             "cannot create transport costs".to_string(),

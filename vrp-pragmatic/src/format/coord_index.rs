@@ -1,7 +1,7 @@
 //! A helper module for processing geo coordinates in problem and solution.
 
 use crate::format::problem::{Problem, VehicleBreak};
-use crate::format::Location;
+use crate::format::{CustomLocationType, Location};
 use hashbrown::HashMap;
 use std::cmp::Ordering::Less;
 use std::hash::{Hash, Hasher};
@@ -10,12 +10,13 @@ use std::hash::{Hash, Hasher};
 pub struct CoordIndex {
     direct_index: HashMap<Location, usize>,
     reverse_index: HashMap<usize, Location>,
+    flags: u8,
 }
 
 impl CoordIndex {
     /// Creates a new instance of `CoordIndex`.
     pub fn new(problem: &Problem) -> Self {
-        let mut index = Self { direct_index: Default::default(), reverse_index: Default::default() };
+        let mut index = Self { direct_index: Default::default(), reverse_index: Default::default(), flags: 0 };
 
         // process plan
         problem.plan.jobs.iter().for_each(|job| {
@@ -72,8 +73,18 @@ impl CoordIndex {
     pub fn add(&mut self, location: &Location) {
         if self.direct_index.get(location).is_none() {
             let value = match location {
-                Location::Coordinate { lat: _, lng: _ } => self.direct_index.len(),
-                Location::Reference { index } => *index,
+                Location::Coordinate { lat: _, lng: _ } => {
+                    self.flags |= 0b0001;
+                    self.direct_index.len()
+                }
+                Location::Reference { index } => {
+                    self.flags |= 0b0010;
+                    *index
+                }
+                Location::Custom { r#type: CustomLocationType::Unknown } => {
+                    self.flags |= 0b0100;
+                    self.direct_index.len()
+                }
             };
 
             self.direct_index.insert(location.clone(), value);
@@ -103,12 +114,19 @@ impl CoordIndex {
         self.reverse_index.keys().max().cloned()
     }
 
-    /// Returns types of locations in form (`has_coordinates`, `has_indices`).
-    pub fn get_used_types(&self) -> (bool, bool) {
-        self.direct_index.iter().fold((false, false), |(has_coordinates, has_indices), (location, _)| match location {
-            Location::Coordinate { lat: _, lng: _ } => (true, has_indices),
-            Location::Reference { index: _ } => (has_coordinates, true),
-        })
+    /// Returns true if problem has coordinates.
+    pub fn has_coordinates(&self) -> bool {
+        (self.flags & 0b0001) > 0
+    }
+
+    /// Returns true if problem has indices.
+    pub fn has_indices(&self) -> bool {
+        (self.flags & 0b0010) > 0
+    }
+
+    /// Returns true if problem has unknown.
+    pub fn has_unknown(&self) -> bool {
+        (self.flags & 0b0100) > 0
     }
 }
 
@@ -121,6 +139,10 @@ impl PartialEq for Location {
                 (l_lat - r_lat).abs() < f64::EPSILON && (l_lng - r_lng).abs() < f64::EPSILON
             }
             (Location::Reference { index: left }, Location::Reference { index: right }) => left == right,
+            (
+                Location::Custom { r#type: CustomLocationType::Unknown },
+                Location::Custom { r#type: CustomLocationType::Unknown },
+            ) => true,
             _ => false,
         }
     }
@@ -135,6 +157,9 @@ impl Hash for Location {
             }
             Location::Reference { index } => {
                 state.write_usize(*index);
+            }
+            Location::Custom { r#type: CustomLocationType::Unknown } => {
+                state.write_usize(0);
             }
         }
     }

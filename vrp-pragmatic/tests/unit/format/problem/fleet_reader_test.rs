@@ -97,8 +97,9 @@ can_create_transport_costs_negative_cases! {
 
 fn can_create_transport_costs_negative_cases_impl(profiles: &[&str], matrices: &[Matrix], res_err: &str) {
     let problem = create_problem(profiles);
+    let coord_index = Arc::new(CoordIndex::new(&problem));
 
-    let result = create_transport_costs(&problem, matrices);
+    let result = create_transport_costs(&problem, matrices, coord_index);
 
     assert_eq!(result.err(), Some(res_err.into()));
 }
@@ -154,8 +155,9 @@ fn can_create_transport_costs_positive_cases_impl(
     probes: &[(usize, Timestamp, Distance)],
 ) {
     let problem = create_problem(profiles);
+    let coord_index = Arc::new(CoordIndex::new(&problem));
 
-    let transport = create_transport_costs(&problem, matrices).unwrap();
+    let transport = create_transport_costs(&problem, matrices, coord_index).unwrap();
 
     probes.iter().for_each(|&(profile_idx, timestamp, distance)| {
         let route = Route {

@@ -122,7 +122,7 @@ fn check_e1505_profiles_exist(ctx: &ValidationContext) -> Result<(), FormatError
 
 /// Validates routing rules.
 pub fn validate_routing(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
-    let location_types = ctx.coord_index.get_used_types();
+    let location_types = (ctx.coord_index.has_coordinates(), ctx.coord_index.has_indices());
 
     combine_error_results(&[
         check_e1500_duplicated_profiles(ctx),

@@ -3,7 +3,7 @@
 mod fleet_reader_test;
 
 use super::*;
-use crate::construction::enablers::{create_typed_actor_groups, VehicleTie};
+use crate::construction::enablers::{create_typed_actor_groups, UnknownLocationFallback, VehicleTie};
 use crate::get_unique_locations;
 use crate::utils::get_approx_transportation;
 use hashbrown::HashSet;
@@ -23,6 +23,7 @@ pub(super) fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String,
 pub(super) fn create_transport_costs(
     api_problem: &ApiProblem,
     matrices: &[Matrix],
+    coord_index: Arc<CoordIndex>,
 ) -> Result<Arc<dyn TransportCost + Sync + Send>, GenericError> {
     if !matrices.iter().all(|m| m.profile.is_some()) && !matrices.iter().all(|m| m.profile.is_none()) {
         return Err("all matrices should have profile set or none of them".into());
@@ -30,6 +31,10 @@ pub(super) fn create_transport_costs(
 
     if matrices.iter().any(|m| m.profile.is_none()) && matrices.iter().any(|m| m.timestamp.is_some()) {
         return Err("when timestamp is set, all matrices should have profile set".into());
+    }
+
+    if coord_index.has_unknown() && coord_index.has_indices() {
+        return Err("mixing custom unknown locations with location indices is not yet supported".into());
     }
 
     let matrix_profiles = get_profile_index_map(api_problem);
@@ -82,7 +87,11 @@ pub(super) fn create_transport_costs(
         return Err("amount of fleet profiles does not match matrix profiles".into());
     }
 
-    create_matrix_transport_cost(matrix_data)
+    if coord_index.has_unknown() {
+        create_matrix_transport_cost_with_fallback(matrix_data, UnknownLocationFallback::new(coord_index))
+    } else {
+        create_matrix_transport_cost(matrix_data)
+    }
 }
 
 pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> CoreFleet {

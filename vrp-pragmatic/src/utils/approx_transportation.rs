@@ -2,7 +2,8 @@
 #[path = "../../tests/unit/utils/approx_transportation_test.rs"]
 mod approx_transportation_test;
 
-use crate::format::Location;
+use crate::format::{CustomLocationType, Location};
+use vrp_core::models::common::Distance;
 use vrp_core::utils::parallel_collect;
 
 /// Gets approximated durations and distances rounded to nearest integer.
@@ -26,6 +27,12 @@ pub fn get_approx_transportation(locations: &[Location], speeds: &[f64]) -> Vec<
 
 /// Gets distance between two points using haversine formula.
 pub(crate) fn get_haversine_distance(p1: &Location, p2: &Location) -> f64 {
+    if matches!(p1, Location::Custom { r#type: CustomLocationType::Unknown })
+        || matches!(p2, Location::Custom { r#type: CustomLocationType::Unknown })
+    {
+        return Distance::default();
+    }
+
     let (p1_lat, p1_lng) = as_lat_lon(p1.clone());
     let (p2_lat, p2_lng) = as_lat_lon(p2.clone());
 

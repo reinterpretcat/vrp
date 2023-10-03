@@ -7,6 +7,7 @@ extern crate serde_json;
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 use vrp_core::construction::enablers::ReservedTimesIndex;
+use vrp_core::models::common::{Distance, Duration};
 use vrp_core::models::problem::{Fleet as CoreFleet, Job as CoreJob};
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::prelude::GenericError;
@@ -28,22 +29,34 @@ pub enum Location {
         /// Longitude.
         lng: f64,
     },
+
     /// A location type represented by index reference in routing matrix.
     Reference {
         /// An index in routing matrix.
         index: usize,
     },
+
+    /// A custom location type with no reference in matrix.
+    Custom {
+        /// Specifies a custom location type.
+        r#type: CustomLocationType,
+    },
 }
 
 impl Location {
-    /// Creates a new `[Location]` as coordinate.
+    /// Creates a new [`Location`] as coordinate.
     pub fn new_coordinate(lat: f64, lng: f64) -> Self {
         Self::Coordinate { lat, lng }
     }
 
-    /// Creates a new `[Location]` as index reference.
+    /// Creates a new [`Location`] as index reference.
     pub fn new_reference(index: usize) -> Self {
         Self::Reference { index }
+    }
+
+    /// Creates a new [`Location`] as custom unknown type.
+    pub fn new_unknown() -> Self {
+        Self::Custom { r#type: CustomLocationType::Unknown }
     }
 
     /// Returns lat lng if location is coordinate, panics otherwise.
@@ -60,8 +73,22 @@ impl std::fmt::Display for Location {
         match *self {
             Location::Coordinate { lat, lng } => write!(f, "lat={lat}, lng={lng}"),
             Location::Reference { index } => write!(f, "index={index}"),
+            Location::Custom { r#type } => {
+                let value = match r#type {
+                    CustomLocationType::Unknown => "unknown",
+                };
+                write!(f, "unknown={value}")
+            }
         }
     }
+}
+
+/// A custom location type which has no reference to matrix.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub enum CustomLocationType {
+    /// Unknown type which has a zero distance/duration to any other location.
+    #[serde(rename(deserialize = "unknown", serialize = "unknown"))]
+    Unknown,
 }
 
 /// A format error.

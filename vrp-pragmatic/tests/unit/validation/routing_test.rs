@@ -44,8 +44,9 @@ fn can_detect_mixed_locations() {
     };
     let coord_index = CoordIndex::new(&problem);
     let ctx = ValidationContext::new(&problem, None, &coord_index);
+    let location_types = (ctx.coord_index.has_coordinates(), ctx.coord_index.has_indices());
 
-    let result = check_e1502_no_location_type_mix(&ctx, ctx.coord_index.get_used_types());
+    let result = check_e1502_no_location_type_mix(&ctx, location_types);
 
     assert_eq!(result.err().map(|err| err.code), Some("E1502".to_string()));
 }
@@ -58,8 +59,9 @@ fn can_detect_missing_matrix_when_indices_used() {
     };
     let coord_index = CoordIndex::new(&problem);
     let ctx = ValidationContext::new(&problem, None, &coord_index);
+    let location_types = (ctx.coord_index.has_coordinates(), ctx.coord_index.has_indices());
 
-    let result = check_e1503_no_matrix_when_indices_used(&ctx, ctx.coord_index.get_used_types());
+    let result = check_e1503_no_matrix_when_indices_used(&ctx, location_types);
 
     assert_eq!(result.err().map(|err| err.code), Some("E1503".to_string()));
 }

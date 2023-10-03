@@ -1,0 +1,158 @@
+{
+  "statistic": {
+    "cost": 32.152962,
+    "distance": 6862,
+    "duration": 1827,
+    "times": {
+      "driving": 687,
+      "serving": 1140,
+      "waiting": 0,
+      "break": 0,
+      "commuting": 0,
+      "parking": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "type": "unknown"
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:49:55Z"
+          },
+          "distance": 0,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52599,
+            "lng": 13.45413
+          },
+          "time": {
+            "arrival": "2019-07-04T09:49:55Z",
+            "departure": "2019-07-04T09:54:55Z"
+          },
+          "distance": 0,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job1",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5225,
+            "lng": 13.4095
+          },
+          "time": {
+            "arrival": "2019-07-04T10:00:00Z",
+            "departure": "2019-07-04T10:09:00Z"
+          },
+          "distance": 3048,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "job2",
+              "type": "pickup",
+              "location": {
+                "lat": 52.5225,
+                "lng": 13.4095
+              },
+              "time": {
+                "start": "2019-07-04T10:00:00Z",
+                "end": "2019-07-04T10:04:00Z"
+              }
+            },
+            {
+              "jobId": "job3",
+              "type": "pickup",
+              "location": {
+                "lat": 52.5225,
+                "lng": 13.4095
+              },
+              "time": {
+                "start": "2019-07-04T10:04:00Z",
+                "end": "2019-07-04T10:09:00Z"
+              },
+              "jobTag": "p1"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5165,
+            "lng": 13.3808
+          },
+          "time": {
+            "arrival": "2019-07-04T10:12:26Z",
+            "departure": "2019-07-04T10:17:26Z"
+          },
+          "distance": 5104,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job3",
+              "type": "delivery",
+              "jobTag": "d1"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T10:20:22Z",
+            "departure": "2019-07-04T10:20:22Z"
+          },
+          "distance": 6862,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 32.152962,
+        "distance": 6862,
+        "duration": 1827,
+        "times": {
+          "driving": 687,
+          "serving": 1140,
+          "waiting": 0,
+          "break": 0,
+          "commuting": 0,
+          "parking": 0
+        }
+      }
+    }
+  ]
+}

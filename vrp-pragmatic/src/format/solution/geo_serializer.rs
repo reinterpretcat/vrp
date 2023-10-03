@@ -4,7 +4,7 @@ mod geo_serializer_test;
 
 use super::Solution;
 use crate::format::solution::{Activity, PointStop, Tour, UnassignedJob};
-use crate::format::{get_coord_index, get_job_index, CoordIndex, Location};
+use crate::format::{get_coord_index, get_job_index, CoordIndex, CustomLocationType, Location};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
@@ -377,6 +377,9 @@ fn get_lng_lat(location: &Location) -> Result<(f64, f64), Error> {
         Location::Coordinate { lat, lng } => Ok((*lng, *lat)),
         Location::Reference { index: _ } => {
             Err(Error::new(ErrorKind::InvalidData, "geojson cannot be used with location indices"))
+        }
+        Location::Custom { r#type: CustomLocationType::Unknown } => {
+            Err(Error::new(ErrorKind::InvalidData, "geojson cannot be used with location unknown type"))
         }
     }
 }
