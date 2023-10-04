@@ -2,7 +2,7 @@
 
 use crate::format::problem::{Problem, VehicleBreak};
 use crate::format::{CustomLocationType, Location};
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering::Less;
 use std::hash::{Hash, Hasher};
 
@@ -10,13 +10,19 @@ use std::hash::{Hash, Hasher};
 pub struct CoordIndex {
     direct_index: HashMap<Location, usize>,
     reverse_index: HashMap<usize, Location>,
+    custom_locations: HashSet<Location>,
     flags: u8,
 }
 
 impl CoordIndex {
     /// Creates a new instance of `CoordIndex`.
     pub fn new(problem: &Problem) -> Self {
-        let mut index = Self { direct_index: Default::default(), reverse_index: Default::default(), flags: 0 };
+        let mut index = Self {
+            direct_index: Default::default(),
+            reverse_index: Default::default(),
+            custom_locations: Default::default(),
+            flags: 0,
+        };
 
         // process plan
         problem.plan.jobs.iter().for_each(|job| {
@@ -66,11 +72,20 @@ impl CoordIndex {
             });
         });
 
+        // NOTE promote custom locations to the index to use usize outside
+        index.custom_locations.iter().for_each(|location| {
+            debug_assert!(matches!(location, Location::Custom { .. }));
+
+            let value = index.direct_index.len();
+            index.direct_index.insert(location.clone(), value);
+            index.reverse_index.insert(value, location.clone());
+        });
+
         index
     }
 
     /// Adds location to indices.
-    pub fn add(&mut self, location: &Location) {
+    pub(crate) fn add(&mut self, location: &Location) {
         if self.direct_index.get(location).is_none() {
             let value = match location {
                 Location::Coordinate { lat: _, lng: _ } => {
@@ -83,7 +98,9 @@ impl CoordIndex {
                 }
                 Location::Custom { r#type: CustomLocationType::Unknown } => {
                     self.flags |= 0b0100;
-                    self.direct_index.len()
+                    // NOTE do not add custom location in the index yet
+                    self.custom_locations.insert(location.clone());
+                    return;
                 }
             };
 
@@ -109,9 +126,14 @@ impl CoordIndex {
         sorted_pairs.iter().map(|pair| pair.1.clone()).collect()
     }
 
-    /// Max location index.
-    pub fn max_index(&self) -> Option<usize> {
-        self.reverse_index.keys().max().cloned()
+    /// Max location index in matrix.
+    pub(crate) fn max_matrix_index(&self) -> Option<usize> {
+        self.reverse_index.keys().max().copied().map(|max| max - self.custom_locations_len())
+    }
+
+    /// Returns size of custom locations index.
+    pub(crate) fn custom_locations_len(&self) -> usize {
+        self.custom_locations.len()
     }
 
     /// Returns true if problem has coordinates.

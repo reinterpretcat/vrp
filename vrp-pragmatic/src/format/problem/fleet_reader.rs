@@ -6,6 +6,7 @@ use super::*;
 use crate::construction::enablers::{create_typed_actor_groups, UnknownLocationFallback, VehicleTie};
 use crate::get_unique_locations;
 use crate::utils::get_approx_transportation;
+use crate::Location as ApiLocation;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 use vrp_core::models::common::*;
@@ -31,10 +32,6 @@ pub(super) fn create_transport_costs(
 
     if matrices.iter().any(|m| m.profile.is_none()) && matrices.iter().any(|m| m.timestamp.is_some()) {
         return Err("when timestamp is set, all matrices should have profile set".into());
-    }
-
-    if coord_index.has_unknown() && coord_index.has_indices() {
-        return Err("mixing custom unknown locations with location indices is not yet supported".into());
     }
 
     let matrix_profiles = get_profile_index_map(api_problem);
@@ -197,7 +194,10 @@ pub fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
         .collect::<HashSet<u64>>();
     let speeds = speeds.into_iter().map(f64::from_bits).collect::<Vec<_>>();
 
-    let locations = get_unique_locations(problem);
+    let locations = get_unique_locations(problem)
+        .into_iter()
+        .filter(|location| !matches!(location, ApiLocation::Custom { .. }))
+        .collect::<Vec<_>>();
     let approx_data = get_approx_transportation(&locations, speeds.as_slice());
 
     problem

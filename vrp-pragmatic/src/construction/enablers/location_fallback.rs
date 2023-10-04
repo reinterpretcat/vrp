@@ -9,7 +9,7 @@ pub struct UnknownLocationFallback {
 }
 
 impl UnknownLocationFallback {
-    /// Creates a new instance of [`CoordIndex`];
+    /// Creates a new instance of [`UnknownLocationFallback`];
     pub fn new(coord_index: Arc<CoordIndex>) -> Self {
         Self { coord_index }
     }
@@ -18,10 +18,8 @@ impl UnknownLocationFallback {
         let (from, to) = (self.coord_index.get_by_idx(from), self.coord_index.get_by_idx(to));
 
         match (from, to) {
-            (
-                Some(ApiLocation::Custom { r#type: CustomLocationType::Unknown }),
-                Some(ApiLocation::Custom { r#type: CustomLocationType::Unknown }),
-            ) => Duration::default(),
+            (Some(ApiLocation::Custom { r#type: CustomLocationType::Unknown }), _)
+            | (_, Some(ApiLocation::Custom { r#type: CustomLocationType::Unknown })) => Duration::default(),
             _ => panic!("fallback is only for locations of custom unknown type"),
         }
     }

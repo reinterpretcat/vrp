@@ -67,7 +67,7 @@ fn check_e1503_no_matrix_when_indices_used(
 fn check_e1504_index_size_mismatch(ctx: &ValidationContext) -> Result<(), FormatError> {
     let (max_index, matrix_size, is_correct_index) = ctx
         .coord_index
-        .max_index()
+        .max_matrix_index()
         .into_iter()
         .zip(
             ctx.matrices

@@ -365,6 +365,17 @@ impl CheckerContext {
         let matrix =
             matrices.get(profile.index).ok_or_else(|| format!("cannot find matrix with index {}", profile.index))?;
 
+        let max_matrix_idx = self.coord_index.max_matrix_index().unwrap_or(0);
+        let max_total_idx = max_matrix_idx + self.coord_index.custom_locations_len();
+
+        let is_special_from_idx = from_idx > max_matrix_idx && from_idx <= max_total_idx;
+        let is_special_to_idx = to_idx > max_matrix_idx && to_idx <= max_total_idx;
+
+        if is_special_from_idx || is_special_to_idx {
+            // TODO handle other types of custom locations
+            return Ok((0, 0));
+        }
+
         let matrix_size = get_matrix_size(matrices.as_slice());
         let matrix_idx = from_idx * matrix_size + to_idx;
 

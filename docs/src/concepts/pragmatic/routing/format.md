@@ -60,4 +60,4 @@ If you have already your routing matrix, you can use location indices instead of
 ## Experimental
 
 Additionally, you can use a custom type of location with `type`=`unknown` to model a zero distance/duration to
-any other location.
+any other location. This could be useful to model unknown location for vehicle start.

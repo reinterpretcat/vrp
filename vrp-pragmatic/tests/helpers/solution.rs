@@ -1,7 +1,7 @@
 //! Provides helper logic for solution domain, sometimes assuming some defaults used from problem domain helpers.
 
 use crate::format::solution::*;
-use crate::format::Location;
+use crate::format::{CustomLocationType, Location};
 use crate::format_time;
 use crate::helpers::ToLocation;
 use hashbrown::HashMap;
@@ -49,6 +49,14 @@ impl StopBuilder {
     pub fn reference(mut self, index: usize) -> Self {
         let mut stop = self.stop.to_point();
         stop.location = Location::Reference { index };
+        self.stop = Stop::Point(stop);
+
+        self
+    }
+
+    pub fn custom_unknown(mut self) -> Self {
+        let mut stop = self.stop.to_point();
+        stop.location = Location::Custom { r#type: CustomLocationType::Unknown };
         self.stop = Stop::Point(stop);
 
         self
