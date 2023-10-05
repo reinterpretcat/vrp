@@ -29,11 +29,8 @@ pub struct Costs {
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct DriverDetail {}
 
-/// Represents a driver, person who drives Vehicle.
-/// Introduced to allow the following scenarios:
-/// * reuse vehicle multiple times with different drivers
-/// * solve best driver-vehicle match problem.
-/// NOTE: At the moment, it is not used.
+/// Represents a driver, person who drives Vehicle. Reserved for future usage, e.g. to allow
+/// reuse same vehicle more than once at different times.
 pub struct Driver {
     /// Specifies operating costs for driver.
     pub costs: Costs,
@@ -80,7 +77,7 @@ pub struct Vehicle {
     pub details: Vec<VehicleDetail>,
 }
 
-/// Represents an actor detail.
+/// Represents an actor detail: exact start/end location and operating time.
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct ActorDetail {
     /// A place where actor's vehicle starts.
@@ -93,7 +90,7 @@ pub struct ActorDetail {
     pub time: TimeWindow,
 }
 
-/// Represents an actor.
+/// Represents an actor: abstraction over vehicle and driver.
 pub struct Actor {
     /// A vehicle associated within actor.
     pub vehicle: Arc<Vehicle>,

@@ -1,3 +1,3 @@
 # Development
 
-This chapter describes development topics, such as code style, testing, etc.
+This chapter describes development topics, such as high level architecture, project structure, code style, testing, etc.

@@ -6,6 +6,7 @@
 //!
 //! - **solomon**: see [Solomon benchmark](https://www.sintef.no/projectweb/top/vrptw/solomon-benchmark)
 //! - **lilim**: see [Li&Lim benchmark](https://www.sintef.no/projectweb/top/pdptw/li-lim-benchmark)
+//! - **tsplib** subset of TSPLIB95 format
 
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]

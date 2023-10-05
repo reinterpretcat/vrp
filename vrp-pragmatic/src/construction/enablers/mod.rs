@@ -1,4 +1,4 @@
-//! Provides extension logic.
+//! Provides extension logic for building various VRP features.
 
 use std::sync::Arc;
 use vrp_core::models::common::Dimensions;

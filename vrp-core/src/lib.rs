@@ -11,6 +11,7 @@
 //! Another goal is an intuitive design: it should be relatively easy to start using it without prior
 //! knowledge of the domain. That's why the API design does not try to generalize models and
 //! implementations in order to develop a general purpose metaheuristic.
+//! Check [rosomaxa](https://docs.rs/rosomaxa/latest) crate for more generic models/algorithms.
 //!
 //!
 //! Extra functionality, already developed on top of this crate, is available via following crates:
@@ -26,18 +27,20 @@
 //! The next sections explain some basic concepts such as types used to model VRP definition,
 //! constructive heuristics, metaheuristic, etc. Start exploring them, if you are curious about
 //! internal implementation or library extension. It you are looking just for user documentation,
-//! check! the [`user guide`] documentation.
+//! check the [`user guide`] documentation.
 //!
 //! [`user guide`]: https://reinterpretcat.github.io/vrp/
 //!
 //!
 //! # Modeling VRP
 //!
-//! Model definitions can be split into three groups:
+//! Model definitions can be split into the following groups:
 //!
 //! - [`common`] group contains common models: time-specific, location, distance, etc.
 //! - [`problem`] group contains VRP definition models: job, vehicle, cost-specific, etc.
 //! - [`solution`] group contains models which used to represent a VRP solution: route, tour, activity, etc.
+//!
+//! Additionally, there are a key concepts such as `Feature` and `GoalContext`.
 //!
 //! Check corresponding modules for details.
 //!

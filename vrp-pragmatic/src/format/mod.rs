@@ -86,7 +86,7 @@ impl std::fmt::Display for Location {
 /// A custom location type which has no reference to matrix.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum CustomLocationType {
-    /// Unknown type which has a zero distance/duration to any other location.
+    /// Unknown location type which has a zero distance/duration to any other location.
     #[serde(rename(deserialize = "unknown", serialize = "unknown"))]
     Unknown,
 }

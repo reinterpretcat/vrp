@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 * apply code style refactoring
 * improve selection sampling search
 * update dependencies
+* improve a bit documentation
 
 ### Fixed
 

@@ -41,7 +41,7 @@ use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 use vrp_core::prelude::GenericError;
 
-/// Get lists of problem.
+/// Get lists of unique locations in the problem. Use it to request routing matrix from outside.
 pub fn get_unique_locations(problem: &Problem) -> Vec<Location> {
     CoordIndex::new(problem).unique()
 }

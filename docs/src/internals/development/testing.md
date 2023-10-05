@@ -37,7 +37,7 @@ The testing module is considered as child module, that's why it has full access 
 ### shared functionality
 - fake/stubs
     - fake constraints
-- add helper logic for repetable setup/validation functionality
+- add helper logic for repeatable setup/validation functionality
     - simple functions
     - builder pattern
     - should be easily discoverable
@@ -74,7 +74,7 @@ The testing module is considered as child module, that's why it has full access 
 ### performance testing
 - libraries
     - criterion
-- can be run using command ..
+- can be run using `cargo bench` command
 - difficult to have results stable
     - no isolation
     - non-determinism
@@ -89,7 +89,7 @@ The testing module is considered as child module, that's why it has full access 
 
 
 ### documentation tests
-- very few at the moment as the main focus is on standalone usage, not on a crate
+- very few at the moment as the main focus is on standalone usage, not on as a crate lib.
 
 
 ## metrics
@@ -101,4 +101,4 @@ The testing module is considered as child module, that's why it has full access 
 - 90% is fine
 
 ### tests stability
-- no random failures
+- aim for no random failures

@@ -122,7 +122,8 @@ impl Debug for Multi {
     }
 }
 
-/// Defines a trait to work with multi job's permutations.
+/// Defines a trait to work with multi job's permutations. Essentially, it specifies valid combinations
+/// of sub-jobs inside multi-job.
 pub trait JobPermutation {
     // TODO fix all implementations to support returning reference
     /// Returns a valid permutation.
@@ -132,7 +133,7 @@ pub trait JobPermutation {
     fn validate(&self, permutation: &[usize]) -> bool;
 }
 
-/// Specifies permutation generator which allows only fixed set of permutations.
+/// Specifies job permutation generator which allows only fixed set of permutations.
 pub struct FixedJobPermutation {
     permutations: Vec<Vec<usize>>,
 }

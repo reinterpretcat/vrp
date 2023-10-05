@@ -1,4 +1,5 @@
-//! Provides way to insert recharge stations in the tour to recharge (refuel) vehicle.
+//! An experimental feature which provides way to insert recharge stations in the tour to recharge
+//! (refuel) vehicle.
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/features/recharge_test.rs"]

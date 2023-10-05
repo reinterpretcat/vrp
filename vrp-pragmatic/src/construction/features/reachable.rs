@@ -1,4 +1,4 @@
-//! Creates a feature to detect filter jobs based on their reachability.
+//! A feature to detect filter jobs based on their reachability.
 
 use super::*;
 use vrp_core::models::problem::{TransportCost, TravelTime};
