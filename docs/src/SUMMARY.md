@@ -67,7 +67,7 @@
   * [Development](internals/development/index.md)
     * [Project Structure](internals/development/structure.md)
     * [Solver extension](internals/development/extension.md)
-    * [Code style](internals/development/code-style.md)
+    * [Development practices](internals/development/best-practices.md)
     * [Testing](internals/development/testing.md)
   * [Algorithms](internals/algorithms/index.md)
     * [Rosomaxa](internals/algorithms/rosomaxa.md)
