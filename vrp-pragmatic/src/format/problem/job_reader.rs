@@ -42,12 +42,13 @@ pub(super) fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<
         return vec![];
     }
 
-    let relations = api_problem.plan.relations.as_ref().unwrap().iter().fold(HashMap::new(), |mut acc, r| {
-        let shift_index = r.shift_index.unwrap_or(0);
-        acc.entry((r.vehicle_id.clone(), shift_index)).or_insert_with(Vec::new).push(r.clone());
+    let relations: HashMap<_, Vec<_>> =
+        api_problem.plan.relations.as_ref().unwrap().iter().fold(HashMap::new(), |mut acc, r| {
+            let shift_index = r.shift_index.unwrap_or_default();
+            acc.entry((r.vehicle_id.clone(), shift_index)).or_default().push(r.clone());
 
-        acc
-    });
+            acc
+        });
 
     relations.into_iter().fold(vec![], |mut acc, ((vehicle_id, shift_index), rels)| {
         let condition = create_condition(vehicle_id.clone(), shift_index);

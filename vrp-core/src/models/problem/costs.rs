@@ -270,7 +270,7 @@ impl<T: TransportFallback> TimeAwareMatrixTransportCost<T> {
 
         let duration = match timestamps.binary_search(&(timestamp as u64)) {
             Ok(matrix_idx) => matrices.get(matrix_idx).unwrap().durations.get(data_idx).copied(),
-            Err(matrix_idx) if matrix_idx == 0 => matrices.first().unwrap().durations.get(data_idx).copied(),
+            Err(0) => matrices.first().unwrap().durations.get(data_idx).copied(),
             Err(matrix_idx) if matrix_idx == matrices.len() => {
                 matrices.last().unwrap().durations.get(data_idx).copied()
             }
@@ -315,7 +315,7 @@ impl<T: TransportFallback> TimeAwareMatrixTransportCost<T> {
 
         match timestamps.binary_search(&(timestamp as u64)) {
             Ok(matrix_idx) => matrices.get(matrix_idx).unwrap().distances.get(data_idx),
-            Err(matrix_idx) if matrix_idx == 0 => matrices.first().unwrap().distances.get(data_idx),
+            Err(0) => matrices.first().unwrap().distances.get(data_idx),
             Err(matrix_idx) if matrix_idx == matrices.len() => matrices.last().unwrap().distances.get(data_idx),
             Err(matrix_idx) => matrices.get(matrix_idx - 1).unwrap().distances.get(data_idx),
         }

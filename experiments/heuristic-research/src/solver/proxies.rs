@@ -118,17 +118,13 @@ where
     type Individual = S;
 
     fn add_all(&mut self, individuals: Vec<Self::Individual>) -> bool {
-        self.acquire()
-            .on_add
-            .entry(self.generation)
-            .or_insert_with(Vec::new)
-            .extend(individuals.iter().map(|i| i.into()));
+        self.acquire().on_add.entry(self.generation).or_default().extend(individuals.iter().map(|i| i.into()));
 
         self.inner.add_all(individuals)
     }
 
     fn add(&mut self, individual: Self::Individual) -> bool {
-        self.acquire().on_add.entry(self.generation).or_insert_with(Vec::new).push((&individual).into());
+        self.acquire().on_add.entry(self.generation).or_default().push((&individual).into());
 
         self.inner.add(individual)
     }
@@ -151,7 +147,7 @@ where
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         Box::new(self.inner.select().map(|individual| {
-            self.acquire().on_select.entry(self.generation).or_insert_with(Vec::new).push(individual.into());
+            self.acquire().on_select.entry(self.generation).or_default().push(individual.into());
 
             individual
         }))

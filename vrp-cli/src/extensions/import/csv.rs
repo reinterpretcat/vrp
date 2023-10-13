@@ -86,8 +86,8 @@ mod actual {
 
         let jobs = read_csv_entries::<CsvJob, _>(reader)?
             .iter()
-            .fold(HashMap::new(), |mut acc, job| {
-                acc.entry(&job.id).or_insert_with(Vec::new).push(job);
+            .fold(HashMap::<_, Vec<_>>::new(), |mut acc, job| {
+                acc.entry(&job.id).or_default().push(job);
                 acc
             })
             .into_iter()

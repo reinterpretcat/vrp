@@ -261,7 +261,7 @@ impl CheckerContext {
                 match (commute.is_zero_distance(), activity_idx) {
                     (true, _) => Ok(Some(commute)),
                     // NOTE that's unreachable
-                    (false, idx) if idx == 0 => Err("cannot have commute at first activity in the stop".into()),
+                    (false, 0) => Err("cannot have commute at first activity in the stop".into()),
                     (false, idx) => {
                         let prev_location = if matches!(config.visiting, VisitPolicy::Return) {
                             stop_location

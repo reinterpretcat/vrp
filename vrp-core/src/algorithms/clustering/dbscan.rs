@@ -54,7 +54,7 @@ where
                 }
 
                 match point_type {
-                    Some(point_type) if point_type == PointType::Clustered => {}
+                    Some(PointType::Clustered) => {}
                     _ => {
                         point_types.insert(point, PointType::Clustered);
                         cluster.push(point);

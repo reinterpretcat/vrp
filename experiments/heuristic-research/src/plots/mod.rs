@@ -203,7 +203,7 @@ fn get_solution_points(generation: usize) -> Vec<ColoredDataPoint3D> {
 
             data_points
         })
-        .unwrap_or_else(Vec::new)
+        .unwrap_or_default()
 }
 
 fn get_heuristic_state(generation: usize, _kind: &str) -> HeuristicDrawConfig {

@@ -349,7 +349,7 @@ fn check_groups(ctx: &CheckerContext) -> Result<(), GenericError> {
                 .flat_map(|activity| ctx.get_job_by_id(&activity.job_id))
                 .flat_map(|job| job.group.as_ref())
                 .for_each(|group| {
-                    acc.entry(group.clone()).or_insert_with(HashSet::default).insert((
+                    acc.entry(group.clone()).or_default().insert((
                         tour.type_id.clone(),
                         tour.vehicle_id.clone(),
                         tour.shift_index,

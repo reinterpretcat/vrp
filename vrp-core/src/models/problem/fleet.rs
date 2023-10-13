@@ -164,8 +164,8 @@ impl Fleet {
             .collect::<Vec<_>>();
 
         let group_key = (*group_key)(&actors);
-        let groups = actors.iter().cloned().fold(HashMap::new(), |mut acc, actor| {
-            acc.entry((*group_key)(&actor)).or_insert_with(HashSet::new).insert(actor.clone());
+        let groups: HashMap<_, HashSet<_>> = actors.iter().cloned().fold(HashMap::new(), |mut acc, actor| {
+            acc.entry((*group_key)(&actor)).or_default().insert(actor.clone());
             acc
         });
 

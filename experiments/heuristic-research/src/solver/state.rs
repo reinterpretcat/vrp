@@ -152,8 +152,9 @@ impl HyperHeuristicState {
                 map.entry(key).or_insert_with(|| length);
             };
 
-            let mut search_states =
-                data.lines().skip(3).take_while(|line| *line != "heuristic:").fold(HashMap::new(), |mut data, line| {
+            let mut search_states = data.lines().skip(3).take_while(|line| *line != "heuristic:").fold(
+                HashMap::<_, Vec<_>>::new(),
+                |mut data, line| {
                     let fields: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
                     let name = fields[0].clone();
                     let generation = fields[1].parse().unwrap();
@@ -170,21 +171,18 @@ impl HyperHeuristicState {
                     let from = states.get(&from).copied().unwrap();
                     let to = states.get(&to).copied().unwrap();
 
-                    data.entry(generation).or_insert_with(Vec::default).push(SearchResult(
-                        name,
-                        reward,
-                        (from, to),
-                        duration,
-                    ));
+                    data.entry(generation).or_default().push(SearchResult(name, reward, (from, to), duration));
 
                     data
-                });
+                },
+            );
             search_states
                 .values_mut()
                 .for_each(|states| states.sort_by(|SearchResult(a, ..), SearchResult(b, ..)| a.cmp(b)));
 
-            let mut heuristic_states =
-                data.lines().skip_while(|line| *line != "heuristic:").skip(2).fold(HashMap::new(), |mut data, line| {
+            let mut heuristic_states = data.lines().skip_while(|line| *line != "heuristic:").skip(2).fold(
+                HashMap::<_, Vec<_>>::new(),
+                |mut data, line| {
                     let fields: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
 
                     let generation: usize = fields[0].parse().unwrap();
@@ -202,12 +200,11 @@ impl HyperHeuristicState {
                     let state = states.get(&state).copied().unwrap();
                     let name = names.get(&name).copied().unwrap();
 
-                    data.entry(generation)
-                        .or_insert_with(Vec::default)
-                        .push(HeuristicResult(state, name, alpha, beta, mu, v, n));
+                    data.entry(generation).or_default().push(HeuristicResult(state, name, alpha, beta, mu, v, n));
 
                     data
-                });
+                },
+            );
             heuristic_states
                 .values_mut()
                 .for_each(|states| states.sort_by(|HeuristicResult(_, a, ..), HeuristicResult(_, b, ..)| a.cmp(b)));
