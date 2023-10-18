@@ -11,6 +11,7 @@ pub struct CoordIndex {
     direct_index: HashMap<Location, usize>,
     reverse_index: HashMap<usize, Location>,
     custom_locations: HashSet<Location>,
+    max_matrix_index: usize,
     flags: u8,
 }
 
@@ -21,6 +22,7 @@ impl CoordIndex {
             direct_index: Default::default(),
             reverse_index: Default::default(),
             custom_locations: Default::default(),
+            max_matrix_index: 0,
             flags: 0,
         };
 
@@ -72,11 +74,14 @@ impl CoordIndex {
             });
         });
 
+        index.max_matrix_index = index.direct_index.len().max(1) - 1;
+
+        let start_offset = index.direct_index.len() * index.direct_index.len();
         // NOTE promote custom locations to the index to use usize outside
-        index.custom_locations.iter().for_each(|location| {
+        index.custom_locations.iter().enumerate().for_each(|(offset, location)| {
             debug_assert!(matches!(location, Location::Custom { .. }));
 
-            let value = index.direct_index.len();
+            let value = start_offset + offset;
             index.direct_index.insert(location.clone(), value);
             index.reverse_index.insert(value, location.clone());
         });
@@ -126,9 +131,17 @@ impl CoordIndex {
         sorted_pairs.iter().map(|pair| pair.1.clone()).collect()
     }
 
+    /// Checks whether given id belongs to special (custom) location range.
+    pub(crate) fn is_special_index(&self, index: usize) -> bool {
+        let start = (self.max_matrix_index + 1).pow(2);
+        let end = start + self.custom_locations_len();
+
+        (start..end).contains(&index)
+    }
+
     /// Max location index in matrix.
-    pub(crate) fn max_matrix_index(&self) -> Option<usize> {
-        self.reverse_index.keys().max().copied().map(|max| max - self.custom_locations_len())
+    pub(crate) fn max_matrix_index(&self) -> usize {
+        self.max_matrix_index
     }
 
     /// Returns size of custom locations index.

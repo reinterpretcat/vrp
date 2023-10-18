@@ -65,19 +65,13 @@ fn check_e1503_no_matrix_when_indices_used(
 
 /// Checks that coord index has a proper maximum index for
 fn check_e1504_index_size_mismatch(ctx: &ValidationContext) -> Result<(), FormatError> {
-    let (max_index, matrix_size, is_correct_index) = ctx
-        .coord_index
-        .max_matrix_index()
-        .into_iter()
-        .zip(
-            ctx.matrices
-                .and_then(|matrices| matrices.first())
-                .map(|matrix| (matrix.distances.len() as f64).sqrt().round() as usize),
-        )
-        .next()
-        .map_or((0_usize, 0_usize, true), |(max_index, matrix_size)| {
-            (max_index, matrix_size, max_index + 1 == matrix_size)
-        });
+    let max_index = ctx.coord_index.max_matrix_index();
+
+    let (matrix_size, is_correct_index) = ctx
+        .matrices
+        .and_then(|matrices| matrices.first())
+        .map(|matrix| (matrix.distances.len() as f64).sqrt().round() as usize)
+        .map_or((0_usize, true), |matrix_size| (matrix_size, max_index + 1 == matrix_size));
 
     if !is_correct_index {
         Err(FormatError::new(
