@@ -3,7 +3,8 @@ use crate::format::{CoordIndex, CustomLocationType, Location as ApiLocation};
 use vrp_core::models::common::{Distance, Duration, Location, Profile};
 use vrp_core::models::problem::TransportFallback;
 
-/// A transport fallback for unknown location. Returns zero distance/duration for unknown type locations.
+/// A transport fallback for only custom unknown location type.
+/// Returns zero distance/duration for unknown type locations.
 pub struct UnknownLocationFallback {
     coord_index: Arc<CoordIndex>,
 }
@@ -19,7 +20,7 @@ impl UnknownLocationFallback {
 
         match (from, to) {
             (Some(ApiLocation::Custom { r#type: CustomLocationType::Unknown }), _)
-            | (_, Some(ApiLocation::Custom { r#type: CustomLocationType::Unknown })) => Duration::default(),
+            | (_, Some(ApiLocation::Custom { r#type: CustomLocationType::Unknown })) => f64::default(),
             _ => panic!("fallback is only for locations of custom unknown type"),
         }
     }

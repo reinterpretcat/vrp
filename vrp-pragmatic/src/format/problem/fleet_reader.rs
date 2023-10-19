@@ -84,7 +84,7 @@ pub(super) fn create_transport_costs(
         return Err("amount of fleet profiles does not match matrix profiles".into());
     }
 
-    if coord_index.has_unknown() {
+    if coord_index.has_custom() {
         create_matrix_transport_cost_with_fallback(matrix_data, UnknownLocationFallback::new(coord_index))
     } else {
         create_matrix_transport_cost(matrix_data)

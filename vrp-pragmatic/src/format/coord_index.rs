@@ -1,5 +1,9 @@
 //! A helper module for processing geo coordinates in problem and solution.
 
+#[cfg(test)]
+#[path = "../../tests/unit/format/coord_index_test.rs"]
+mod coord_index_test;
+
 use crate::format::problem::{Problem, VehicleBreak};
 use crate::format::{CustomLocationType, Location};
 use hashbrown::{HashMap, HashSet};
@@ -159,8 +163,8 @@ impl CoordIndex {
         (self.flags & 0b0010) > 0
     }
 
-    /// Returns true if problem has unknown.
-    pub fn has_unknown(&self) -> bool {
+    /// Returns true if problem has custom locations.
+    pub fn has_custom(&self) -> bool {
         (self.flags & 0b0100) > 0
     }
 }

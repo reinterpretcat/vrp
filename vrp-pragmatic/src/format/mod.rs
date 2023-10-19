@@ -77,7 +77,7 @@ impl std::fmt::Display for Location {
                 let value = match r#type {
                     CustomLocationType::Unknown => "unknown",
                 };
-                write!(f, "unknown={value}")
+                write!(f, "custom={value}")
             }
         }
     }
