@@ -74,6 +74,24 @@ impl Goal {
 
         Self { target, alternatives: None }
     }
+
+    /// Creates instance of `Goal` with alternatives. The general idea behind alternatives is to
+    /// allow search to explore solution space better, temporary switch a target objective function
+    /// to one of alternatives.
+    pub fn with_alternatives<I>(global: I, local: I, alternatives: (Vec<(I, I)>, f64)) -> Self
+    where
+        I: IntoIterator<Item = Vec<String>>,
+    {
+        let target = Target { global: global.into_iter().collect(), local: local.into_iter().collect() };
+
+        let (alternatives, probability) = alternatives;
+        let alternatives = alternatives
+            .into_iter()
+            .map(|(g, l)| Target { global: g.into_iter().collect(), local: l.into_iter().collect() })
+            .collect();
+
+        Self { target, alternatives: Some((alternatives, probability)) }
+    }
 }
 
 impl GoalContext {

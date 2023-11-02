@@ -455,6 +455,8 @@ fn extract_feature_map(features: &[Vec<Feature>]) -> Result<(Vec<Vec<String>>, V
         println!("WARN: the size of local objectives ({}) exceeds pre-allocated stack size", local_objective_map.len());
     }
 
+    // TODO generate and return alternatives
+
     Ok((global_objective_map, local_objective_map))
 }
 
