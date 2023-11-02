@@ -56,7 +56,6 @@
       "maxNodeSize": 2,
       "spreadFactor": 0.75,
       "distributionFactor": 0.75,
-      "objectiveReshuffling": 0.01,
       "rebalanceMemory": 100,
       "explorationRatio": 0.9
     }

@@ -77,21 +77,23 @@ fn create_objective_feature_with_dynamic_cost(name: &str, fitness_fn: FitnessFn)
 #[test]
 pub fn can_create_goal_context_with_objective() {
     let features = &[create_minimize_tours_feature("min_tours").unwrap()];
-    let objectives_map = &[vec!["min_tours".to_string()]];
+    let objectives_map = [vec!["min_tours".to_string()]];
+    let goal = Goal::no_alternatives(objectives_map.clone(), objectives_map);
 
-    GoalContext::new(features, objectives_map, objectives_map).expect("cannot create goal context");
+    GoalContext::new(features, goal).expect("cannot create goal context");
 }
 
 #[test]
 pub fn can_create_goal_context_without_objectives() {
     let features = &[create_capacity_limit_feature::<SingleDimLoad>("capacity", 0).unwrap()];
-    let objectives_map = &[];
+    let goal = Goal::no_alternatives([], []);
 
-    GoalContext::new(features, objectives_map, objectives_map).expect("cannot create goal context");
+    GoalContext::new(features, goal).expect("cannot create goal context");
 }
 
 #[test]
 pub fn can_evaluate_constraints() {
+    let goal = Goal::no_alternatives([], []);
     let route_ctx = RouteContext::new(test_actor());
     let activity_ctx = ActivityContext {
         index: 0,
@@ -102,7 +104,7 @@ pub fn can_evaluate_constraints() {
     let move_ctx = MoveContext::activity(&route_ctx, &activity_ctx);
 
     assert_eq!(
-        GoalContext::new(&[create_constraint_feature("c_1", ConstraintViolation::success())], &[], &[])
+        GoalContext::new(&[create_constraint_feature("c_1", ConstraintViolation::success())], goal.clone(),)
             .unwrap()
             .evaluate(&move_ctx),
         None
@@ -114,8 +116,7 @@ pub fn can_evaluate_constraints() {
                 create_constraint_feature("c_1", ConstraintViolation::success()),
                 create_constraint_feature("c_2", ConstraintViolation::fail(1)),
             ],
-            &[],
-            &[]
+            goal.clone(),
         )
         .unwrap()
         .evaluate(&move_ctx),
@@ -128,8 +129,7 @@ pub fn can_evaluate_constraints() {
                 create_constraint_feature("c_1", ConstraintViolation::skip(1)),
                 create_constraint_feature("c_2", ConstraintViolation::success()),
             ],
-            &[],
-            &[]
+            goal
         )
         .unwrap()
         .evaluate(&move_ctx),

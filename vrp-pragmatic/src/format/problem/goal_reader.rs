@@ -6,7 +6,7 @@ use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::features::*;
 use vrp_core::models::common::{LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{ActivityCost, Actor, Jobs, Single, TransportCost};
-use vrp_core::models::{Feature, GoalContext, Lock};
+use vrp_core::models::{Feature, Goal, GoalContext, Lock};
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn create_goal_context(
@@ -78,7 +78,9 @@ pub(super) fn create_goal_context(
         )?);
     }
 
-    GoalContext::new(features.as_slice(), global_objective_map.as_slice(), local_objective_map.as_slice())
+    let goal = Goal::no_alternatives(global_objective_map, local_objective_map);
+
+    GoalContext::new(features.as_slice(), goal)
 }
 
 fn get_objective_features(

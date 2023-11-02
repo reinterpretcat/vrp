@@ -197,7 +197,8 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
         Box::new(move |capacity| *capacity * threshold),
     )
     .unwrap();
-    let variant = GoalContext::new(&[feature], &[], &[]).unwrap();
+    let goal = Goal::no_alternatives([], []);
+    let variant = GoalContext::new(&[feature], goal).unwrap();
 
     variant.accept_route_state(solution_ctx.routes.get_mut(0).unwrap());
 

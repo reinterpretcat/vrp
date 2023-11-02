@@ -105,11 +105,13 @@ pub(crate) fn create_goal_context_prefer_min_tours(
         create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
     ];
 
-    let feature_map =
-        vec![vec!["min_unassigned".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]];
-
     // NOTE: exclude min_unassigned from local objective
-    GoalContext::new(features.as_slice(), feature_map.as_slice(), &feature_map[1..])
+    let goal = Goal::no_alternatives(
+        vec![vec!["min_unassigned".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
+        vec![vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
+    );
+
+    GoalContext::new(features.as_slice(), goal)
 }
 
 pub(crate) fn create_goal_context_distance_only(
@@ -122,10 +124,13 @@ pub(crate) fn create_goal_context_distance_only(
         create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
     ];
 
-    let feature_map = vec![vec!["min_unassigned".to_string()], vec!["min_distance".to_string()]];
-
     // NOTE: exclude min_unassigned from local objective
-    GoalContext::new(features.as_slice(), feature_map.as_slice(), &feature_map[1..])
+    let goal = Goal::no_alternatives(
+        vec![vec!["min_unassigned".to_string()], vec!["min_distance".to_string()]],
+        vec![vec!["min_distance".to_string()]],
+    );
+
+    GoalContext::new(features.as_slice(), goal)
 }
 
 pub(crate) fn read_line<R: Read>(reader: &mut BufReader<R>, buffer: &mut String) -> Result<usize, GenericError> {

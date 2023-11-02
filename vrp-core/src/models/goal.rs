@@ -17,6 +17,11 @@ use std::ops::ControlFlow;
 use std::slice::Iter;
 use std::sync::Arc;
 
+/// A type alias for a list of feature objectives.
+type Objectives = Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>;
+/// A type alias for a pair of alternative objectives (global and local).
+type Alternative = (Vec<Objectives>, Vec<Objectives>);
+
 /// Defines Vehicle Routing Problem variant by global and local objectives:
 /// A **global objective** defines the way two VRP solutions are compared in order to select better one:
 /// for example, given the same amount of assigned jobs, prefer less tours used instead of total
@@ -32,21 +37,49 @@ use std::sync::Arc;
 /// for vehicles/jobs, etc.
 #[derive(Clone, Default)]
 pub struct GoalContext {
-    global_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
-    flatten_objectives: Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
-    local_objectives: Vec<Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>>,
+    global_objectives: Vec<Objectives>,
+    local_objectives: Vec<Objectives>,
+    flatten_objectives: Objectives,
+    alternatives: Option<(Vec<Alternative>, f64)>,
     constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
     states: Vec<Arc<dyn FeatureState + Send + Sync>>,
 }
 
+/// Specifies a target of optimization on global and local objective levels.
+#[derive(Clone, Debug)]
+pub struct Target {
+    /// A global hierarchical objective function specified by names of corresponding features.
+    pub global: Vec<Vec<String>>,
+    /// A local hierarchical objective function specified by names of corresponding features.
+    pub local: Vec<Vec<String>>,
+}
+
+/// A `Goal` type defines the goal of optimization in terms of feature names.
+#[derive(Clone, Debug)]
+pub struct Goal {
+    /// A target objective of optimization specified by user explicitly or implicitly.
+    pub target: Target,
+    /// Alternative objectives with their probability weight which help solver to have a better
+    /// exploration during the search phase.
+    pub alternatives: Option<(Vec<Target>, f64)>,
+}
+
+impl Goal {
+    /// Creates instance of `Goal` without alternatives.
+    pub fn no_alternatives<I>(global: I, local: I) -> Self
+    where
+        I: IntoIterator<Item = Vec<String>>,
+    {
+        let target = Target { global: global.into_iter().collect(), local: local.into_iter().collect() };
+
+        Self { target, alternatives: None }
+    }
+}
+
 impl GoalContext {
-    /// Creates a new instance of `VrpVariant` with features specified using information about
+    /// Creates a new instance of `GoalContext` with features specified using information about
     /// hierarchy of objectives.
-    pub fn new(
-        features: &[Feature],
-        global_objective_map: &[Vec<String>],
-        local_objective_map: &[Vec<String>],
-    ) -> Result<Self, GenericError> {
+    pub fn new(features: &[Feature], goal: Goal) -> Result<Self, GenericError> {
         let ids_all = features
             .iter()
             .filter_map(|feature| feature.objective.as_ref().map(|_| feature.name.clone()))
@@ -61,20 +94,16 @@ impl GoalContext {
             .into());
         }
 
-        let check_objective_map = |objective_map: &[Vec<String>]| {
-            let objective_ids_all = objective_map.iter().flat_map(|objective| objective.iter()).collect::<Vec<_>>();
-            let objective_ids_unique = objective_ids_all.iter().cloned().collect::<HashSet<_>>();
-            objective_ids_all.len() == objective_ids_unique.len() && objective_ids_unique.is_subset(&ids_unique)
+        let check_target_map = |target: &Target| {
+            [&target.global, &target.local].iter().all(|objectives| {
+                let objective_ids_all = objectives.iter().flat_map(|objective| objective.iter()).collect::<Vec<_>>();
+                let objective_ids_unique = objective_ids_all.iter().cloned().collect::<HashSet<_>>();
+                objective_ids_all.len() == objective_ids_unique.len() && objective_ids_unique.is_subset(&ids_unique)
+            })
         };
 
-        if !check_objective_map(global_objective_map) {
-            return Err(
-                "global objective map is invalid: it should contain unique ids of the features specified".into()
-            );
-        }
-
-        if !check_objective_map(local_objective_map) {
-            return Err("local objective map is invalid: it should contain unique ids of the features specified".into());
+        if !check_target_map(&goal.target) {
+            return Err("main target is invalid: it should contain unique ids of the features specified".into());
         }
 
         let feature_map = features
@@ -97,14 +126,33 @@ impl GoalContext {
             })
         };
 
-        let global_objectives = remap_objectives(global_objective_map)?;
-        let local_objectives = remap_objectives(local_objective_map)?;
+        let global_objectives = remap_objectives(&goal.target.global)?;
+        let local_objectives = remap_objectives(&goal.target.local)?;
+
+        let alternatives = if let Some((alternatives, probability)) = goal.alternatives {
+            let alternatives = alternatives
+                .into_iter()
+                .map(|target| {
+                    let global = remap_objectives(&target.global)?;
+                    let local = remap_objectives(&target.local)?;
+                    Ok((global, local))
+                })
+                .collect::<Result<Vec<_>, GenericError>>()?;
+
+            if alternatives.is_empty() {
+                None
+            } else {
+                Some((alternatives, probability))
+            }
+        } else {
+            None
+        };
 
         let states = features.iter().filter_map(|feature| feature.state.clone()).collect();
         let constraints = features.iter().filter_map(|feature| feature.constraint.clone()).collect();
         let flatten_objectives = global_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
 
-        Ok(Self { global_objectives, flatten_objectives, local_objectives, constraints, states })
+        Ok(Self { global_objectives, flatten_objectives, local_objectives, alternatives, constraints, states })
     }
 
     /// Creates a new instance of `GoalContext` with given feature constraints.
@@ -125,8 +173,9 @@ impl Debug for GoalContext {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct(short_type_name::<Self>())
             .field("global", &self.global_objectives.len())
-            .field("flatten", &self.flatten_objectives.len())
             .field("local", &self.local_objectives.len())
+            .field("flatten", &self.flatten_objectives.len())
+            .field("alternatives", &self.alternatives.is_some())
             .field("constraints", &self.constraints.len())
             .field("states", &self.states.len())
             .finish()
@@ -354,15 +403,36 @@ impl HeuristicObjective for GoalContext {}
 impl Shuffled for GoalContext {
     /// Returns a new instance of `GoalContext` with shuffled objectives.
     fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
-        let mut global_objectives = self.global_objectives.clone();
-        let mut flatten_objectives = self.flatten_objectives.clone();
-        let mut local_objectives = self.local_objectives.clone();
+        let instance = self.clone();
 
-        global_objectives.shuffle(&mut random.get_rng());
-        flatten_objectives.shuffle(&mut random.get_rng());
-        local_objectives.shuffle(&mut random.get_rng());
+        if let Some((alternatives, probability)) = &self.alternatives {
+            assert!(!alternatives.is_empty());
 
-        Self { global_objectives, flatten_objectives, local_objectives, ..self.clone() }
+            if random.is_hit(*probability) {
+                let idx = random.uniform_int(0, alternatives.len() as i32 - 1) as usize;
+                let (global_objectives, local_objectives) = alternatives[idx].clone();
+                let flatten_objectives = global_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
+
+                return Self { global_objectives, flatten_objectives, local_objectives, ..instance };
+            }
+        }
+
+        // NOTE: random shuffling is not very effective, so do it much less frequent
+        const RANDOM_SHUFFLE_PROBABILITY: f64 = 0.01;
+
+        if random.is_hit(RANDOM_SHUFFLE_PROBABILITY) {
+            let mut global_objectives = self.global_objectives.clone();
+            let mut flatten_objectives = self.flatten_objectives.clone();
+            let mut local_objectives = self.local_objectives.clone();
+
+            global_objectives.shuffle(&mut random.get_rng());
+            flatten_objectives.shuffle(&mut random.get_rng());
+            local_objectives.shuffle(&mut random.get_rng());
+
+            Self { global_objectives, flatten_objectives, local_objectives, ..instance }
+        } else {
+            instance
+        }
     }
 }
 

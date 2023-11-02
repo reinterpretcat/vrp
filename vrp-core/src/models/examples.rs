@@ -77,10 +77,12 @@ fn create_example_goal_ctx(
         create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
     ];
 
-    let feature_map =
-        vec![vec!["min_jobs".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]];
+    let goal = Goal::no_alternatives(
+        vec![vec!["min_jobs".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
+        vec![vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
+    );
 
-    GoalContext::new(features.as_slice(), feature_map.as_slice(), feature_map.as_slice())
+    GoalContext::new(features.as_slice(), goal)
 }
 
 /// Creates an example problem used in documentation tests.

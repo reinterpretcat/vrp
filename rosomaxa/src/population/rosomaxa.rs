@@ -26,8 +26,6 @@ pub struct RosomaxaConfig {
     pub spread_factor: f64,
     /// Distribution factor of GSOM.
     pub distribution_factor: f64,
-    /// Objective reshuffling probability.
-    pub objective_reshuffling: f64,
     /// A node rebalance memory of GSOM.
     pub rebalance_memory: usize,
     /// A ratio of exploration phase.
@@ -44,7 +42,6 @@ impl RosomaxaConfig {
             node_size: 2,
             spread_factor: 0.75,
             distribution_factor: 0.75,
-            objective_reshuffling: 0.01,
             rebalance_memory: 100,
             exploration_ratio: 0.9,
         }
@@ -368,12 +365,8 @@ where
             Err(o) => panic!("expected individuals of length {} but it was {}", 4, o.len()),
         };
 
-        let storage_factory = IndividualStorageFactory {
-            node_size: config.node_size,
-            reshuffling_probability: config.objective_reshuffling,
-            random: environment.random.clone(),
-            objective,
-        };
+        let storage_factory =
+            IndividualStorageFactory { node_size: config.node_size, random: environment.random.clone(), objective };
 
         Network::new(
             *inputs_array,
@@ -458,7 +451,6 @@ where
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
 {
     node_size: usize,
-    reshuffling_probability: f64,
     random: Arc<dyn Random + Send + Sync>,
     objective: Arc<O>,
 }
@@ -476,9 +468,9 @@ where
             self.node_size,
             create_dedup_fn(0.1),
         );
-        if self.random.is_hit(self.reshuffling_probability) {
-            elitism.shuffle_objective();
-        }
+
+        elitism.shuffle_objective();
+
         IndividualStorage { population: elitism }
     }
 }

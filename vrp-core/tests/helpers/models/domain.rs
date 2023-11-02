@@ -7,7 +7,7 @@ use crate::models::common::{Cost, IdDimension};
 use crate::models::examples::create_example_problem;
 use crate::models::problem::{Fleet, Job, Jobs};
 use crate::models::solution::Registry;
-use crate::models::{GoalContext, Problem, Solution};
+use crate::models::{Goal, GoalContext, Problem, Solution};
 use rosomaxa::utils::{DefaultRandom, Environment, Random};
 use std::sync::Arc;
 
@@ -20,7 +20,8 @@ pub fn create_empty_problem_with_goal_ctx(goal_ctx: GoalContext) -> Arc<Problem>
 }
 
 pub fn create_empty_problem() -> Arc<Problem> {
-    let goal_ctx = GoalContext::new(&[], &[], &[]).unwrap();
+    let empty_goal = Goal::no_alternatives([], []);
+    let goal_ctx = GoalContext::new(&[], empty_goal).unwrap();
     create_empty_problem_with_goal_ctx(goal_ctx)
 }
 
