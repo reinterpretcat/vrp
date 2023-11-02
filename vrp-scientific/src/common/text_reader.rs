@@ -98,17 +98,18 @@ pub(crate) fn create_goal_context_prefer_min_tours(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
 ) -> Result<GoalContext, GenericError> {
-    let features = vec![
-        create_minimize_unassigned_jobs_feature("min_unassigned", Arc::new(|_, _| 1.))?,
-        create_minimize_tours_feature("min_tours")?,
-        create_minimize_distance_feature("min_distance", transport, activity, 1)?,
-        create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
-    ];
+    let features = get_essential_features(activity, transport)?;
 
-    // NOTE: exclude min_unassigned from local objective
-    let goal = Goal::no_alternatives(
+    let goal = Goal::with_alternatives(
         vec![vec!["min_unassigned".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
         vec![vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
+        (
+            vec![(
+                vec![vec!["min_unassigned".to_string()], vec!["min_distance".to_string()]],
+                vec![vec!["min_distance".to_string()]],
+            )],
+            0.25,
+        ),
     );
 
     GoalContext::new(features.as_slice(), goal)
@@ -118,19 +119,37 @@ pub(crate) fn create_goal_context_distance_only(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
 ) -> Result<GoalContext, GenericError> {
-    let features = vec![
-        create_minimize_unassigned_jobs_feature("min_unassigned", Arc::new(|_, _| 1.))?,
-        create_minimize_distance_feature("min_distance", transport, activity, 1)?,
-        create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
-    ];
+    let features = get_essential_features(activity, transport)?;
 
-    // NOTE: exclude min_unassigned from local objective
-    let goal = Goal::no_alternatives(
+    let goal = Goal::with_alternatives(
         vec![vec!["min_unassigned".to_string()], vec!["min_distance".to_string()]],
         vec![vec!["min_distance".to_string()]],
+        (
+            vec![(
+                vec![
+                    vec!["min_unassigned".to_string()],
+                    vec!["min_tours".to_string()],
+                    vec!["min_distance".to_string()],
+                ],
+                vec![vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
+            )],
+            0.25,
+        ),
     );
 
     GoalContext::new(features.as_slice(), goal)
+}
+
+fn get_essential_features(
+    activity: Arc<SimpleActivityCost>,
+    transport: Arc<dyn TransportCost + Send + Sync>,
+) -> Result<Vec<Feature>, GenericError> {
+    Ok(vec![
+        create_minimize_unassigned_jobs_feature("min_unassigned", Arc::new(|_, _| 1.))?,
+        create_minimize_tours_feature("min_tours")?,
+        create_minimize_distance_feature("min_distance", transport, activity, 1)?,
+        create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
+    ])
 }
 
 pub(crate) fn read_line<R: Read>(reader: &mut BufReader<R>, buffer: &mut String) -> Result<usize, GenericError> {

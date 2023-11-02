@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 * original job place index in activity place to simplify activity-job place matching
 * `experimental`: a new type of location in pragmatic format to model zero distance/duration from it to any other location.
   This could be useful to model optional vehicle start location.
+* allow user to pass alternative objectives in goal context to guide the search
 
 ### Changed
 
