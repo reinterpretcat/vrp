@@ -436,7 +436,7 @@ impl Shuffled for GoalContext {
         }
 
         // NOTE: random shuffling is not very effective, so do it much less frequent
-        const RANDOM_SHUFFLE_PROBABILITY: f64 = 0.01;
+        const RANDOM_SHUFFLE_PROBABILITY: f64 = 0.005;
 
         if random.is_hit(RANDOM_SHUFFLE_PROBABILITY) {
             let mut global_objectives = self.global_objectives.clone();

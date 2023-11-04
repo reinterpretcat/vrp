@@ -108,7 +108,7 @@ pub(crate) fn create_goal_context_prefer_min_tours(
                 vec![vec!["min_unassigned".to_string()], vec!["min_distance".to_string()]],
                 vec![vec!["min_distance".to_string()]],
             )],
-            0.25,
+            0.1,
         ),
     );
 
@@ -133,7 +133,7 @@ pub(crate) fn create_goal_context_distance_only(
                 ],
                 vec![vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
             )],
-            0.25,
+            0.1,
         ),
     );
 
