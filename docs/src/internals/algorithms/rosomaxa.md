@@ -56,6 +56,15 @@ This helps to address [exploration-exploitation dilemma](https://en.wikipedia.or
 in applying a strategy of picking heuristics.
 
 
+### Additional used techniques
+
+TODO: describe additional explorative techniques:
+
+- tabu list usage in ruin methods
+- alternative objectives manipulation
+- ..
+
+
 ## Further research
 
 * experiment with different solution characteristics

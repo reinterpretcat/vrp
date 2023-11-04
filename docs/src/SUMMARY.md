@@ -70,4 +70,5 @@
     * [Development practices](internals/development/best-practices.md)
     * [Testing](internals/development/testing.md)
   * [Algorithms](internals/algorithms/index.md)
+    * [Heuristics](internals/algorithms/heuristics.md)
     * [Rosomaxa](internals/algorithms/rosomaxa.md)
