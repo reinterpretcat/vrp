@@ -12,14 +12,14 @@ The `rosomaxa` algorithm is based on the following key ideas:
 
 * use [Growing Self-Organizing Map](https://en.wikipedia.org/wiki/Growing_self-organizing_map)(GSOM) to cluster discovered solutions and retain good, but different ones
 * choice clustering characteristics which are specific to solution geometry rather to objectives
-* use 2D visualization to analyze and understand algorithm behavior. See an interactive demo [here](https://reinterpretcat.github.io/heuristics/www/)
 * utilize reinforcement learning technics in dynamic hyper-heuristic to choose one of pre-defined meta-heuristics on each solution refinement step.
+* use 2D visualization to analyze and understand algorithm behavior. See an interactive demo [here](https://reinterpretcat.github.io/heuristics/www/)
 
 
 ### Clustering
 
-Solution clustering is preformed by custom implementation of a growing self-organizing map which is a growing variant
-of a self-organizing map. In `rosomaxa`, it has the following characteristics:
+Solution clustering is preformed by custom implementation of GSOM which is a growing variant of a self-organizing map.
+In `rosomaxa`, it has the following characteristics:
 
 * each node maintains a small population which keeps track of a few solutions selected by elitism approach
 * nodes are created and split based on selected solution characteristics. For VRP domain, they are such as:
@@ -47,6 +47,9 @@ Here:
 * `t_matrix` and `l_matrix` shows how often nodes are updated
 * `objective_0`, `objective_1`, `objective_2`: objective values such as amount of unassigned jobs, tours, and cost
 
+The new experimental visualization tool is part of the repo: `experiments/heuristic-research`.
+Online version is available here: https://reinterpretcat.github.io/heuristics/www/vector.html
+
 
 ### Dynamic hyper-heuristic
 
@@ -54,6 +57,8 @@ Essentially, a built-in dynamic hyper-heuristic uses [Multi-Armed Bandit](https:
 with [Thompson sampling](https://en.wikipedia.org/wiki/Thompson_sampling) approach to pick meta-heuristic for the list.
 This helps to address [exploration-exploitation dilemma](https://en.wikipedia.org/wiki/Exploration-exploitation_dilemma)
 in applying a strategy of picking heuristics.
+
+Implementation can be found [here](https://github.com/reinterpretcat/vrp/blob/master/rosomaxa/src/algorithms/rl/slot_machine.rs)
 
 
 ### Additional used techniques
@@ -71,4 +76,4 @@ TODO: describe additional explorative techniques:
 * rebalance GSOM parameters based on search progression
 * analyze "heat" map dynamically to adjust GSOM parameters
 * more fine-grained control of `exploration` vs `exploitation` ratio
-* try to calculate gradients
+* try to calculate gradients based on GSOM nodes
