@@ -263,7 +263,7 @@ mod builder {
         let random = environment.random.clone();
         let wrap = |recreate: Arc<dyn Recreate + Send + Sync>| Box::new(RecreateInitialOperator::new(recreate));
 
-        vec![
+        let mut main: InitialOperators<_, _, _> = vec![
             (wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 1),
             (wrap(Arc::new(RecreateWithFarthest::new(random.clone()))), 1),
             (wrap(Arc::new(RecreateWithRegret::new(2, 3, random.clone()))), 1),
@@ -272,7 +272,28 @@ mod builder {
             (wrap(Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone()))), 1),
             (wrap(Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone()))), 1),
             (wrap(Arc::new(RecreateWithNearestNeighbor::new(random.clone()))), 1),
-        ]
+        ];
+
+        let alternatives = get_recreate_with_alternative_goal(problem.goal.as_ref(), {
+            move || RecreateWithCheapest::new(random.clone())
+        })
+        .map(|recreate| {
+            let init_operator: Box<
+                dyn InitialOperator<Context = RefinementContext, Objective = GoalContext, Solution = InsertionContext>
+                    + Send
+                    + Sync,
+            > = wrap(recreate);
+
+            (init_operator, 1)
+        })
+        .collect::<InitialOperators<_, _, _>>();
+
+        if alternatives.is_empty() {
+            main
+        } else {
+            main.splice(1..1, alternatives);
+            main
+        }
     }
 
     /// Create default processing.
@@ -442,24 +463,32 @@ mod dynamic {
 
         // NOTE: consider checking usage of names within heuristic filter before changing them
 
+        let cheapest: Arc<dyn Recreate + Send + Sync> = Arc::new(RecreateWithCheapest::new(random.clone()));
         let recreates: Vec<(Arc<dyn Recreate + Send + Sync>, String)> = vec![
+            (cheapest.clone(), "cheapest".to_string()),
             (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best".to_string()),
             (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), "regret".to_string()),
-            (Arc::new(RecreateWithCheapest::new(random.clone())), "cheapest".to_string()),
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), "perturbation".to_string()),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), "gaps".to_string()),
             (create_recreate_with_blinks(problem.as_ref(), random.clone()), "blinks".to_string()),
             (Arc::new(RecreateWithFarthest::new(random.clone())), "farthest".to_string()),
             (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), "nearest".to_string()),
             (
-                Arc::new(RecreateWithSkipRandom::default_explorative_phased(
-                    Arc::new(RecreateWithCheapest::new(random.clone())),
-                    random.clone(),
-                )),
+                Arc::new(RecreateWithSkipRandom::default_explorative_phased(cheapest.clone(), random.clone())),
                 "skip_random".to_string(),
             ),
             (Arc::new(RecreateWithSlice::new(random.clone())), "slice".to_string()),
-        ];
+        ]
+        .into_iter()
+        .chain(
+            get_recreate_with_alternative_goal(problem.goal.as_ref(), {
+                let random = random.clone();
+                move || RecreateWithCheapest::new(random.clone())
+            })
+            .enumerate()
+            .map(|(idx, recreate)| (recreate, format!("alternative_{idx}"))),
+        )
+        .collect();
 
         let ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String, f64)> = vec![
             (Arc::new(AdjustedStringRemoval::new_with_defaults(normal_limits.clone())), "asr".to_string(), 2.),
@@ -611,4 +640,17 @@ mod dynamic {
             1,
         ))))
     }
+}
+
+fn get_recreate_with_alternative_goal<T, F>(
+    original_goal: &GoalContext,
+    recreate_fn: F,
+) -> impl Iterator<Item = Arc<dyn Recreate + Send + Sync>> + '_
+where
+    T: Recreate + Send + Sync + 'static,
+    F: Fn() -> T + 'static,
+{
+    original_goal.get_alternatives().map::<Arc<dyn Recreate + Send + Sync>, _>(move |goal| {
+        Arc::new(RecreateWithGoal::new(Arc::new(goal), recreate_fn()))
+    })
 }

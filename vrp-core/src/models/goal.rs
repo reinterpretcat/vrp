@@ -421,22 +421,19 @@ impl HeuristicObjective for GoalContext {}
 impl Shuffled for GoalContext {
     /// Returns a new instance of `GoalContext` with shuffled objectives.
     fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
-        let instance = self.clone();
-
         if let Some((alternatives, probability)) = &self.alternatives {
             assert!(!alternatives.is_empty());
 
             if random.is_hit(*probability) {
                 let idx = random.uniform_int(0, alternatives.len() as i32 - 1) as usize;
-                let (global_objectives, local_objectives) = alternatives[idx].clone();
-                let flatten_objectives = global_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
-
-                return Self { global_objectives, flatten_objectives, local_objectives, ..instance };
+                return self.get_alternative(idx);
             }
         }
 
         // NOTE: random shuffling is not very effective, so do it much less frequent
         const RANDOM_SHUFFLE_PROBABILITY: f64 = 0.005;
+
+        let instance = self.clone();
 
         if random.is_hit(RANDOM_SHUFFLE_PROBABILITY) {
             let mut global_objectives = self.global_objectives.clone();
@@ -455,6 +452,22 @@ impl Shuffled for GoalContext {
 }
 
 impl GoalContext {
+    fn get_alternative(&self, idx: usize) -> Self {
+        let (alternatives, _) = self.alternatives.as_ref().expect("no alternatives");
+
+        let (global_objectives, local_objectives) = alternatives[idx].clone();
+        let flatten_objectives = global_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
+
+        Self { global_objectives, flatten_objectives, local_objectives, ..self.clone() }
+    }
+
+    /// Returns goals with alternative objectives.
+    pub(crate) fn get_alternatives(&self) -> impl Iterator<Item = Self> + '_ {
+        self.alternatives
+            .iter()
+            .flat_map(|(alternatives, _)| (0..alternatives.len()).map(|idx| self.get_alternative(idx)))
+    }
+
     /// Accepts job insertion.
     pub fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
         accept_insertion_with_states(&self.states, solution_ctx, route_index, job)

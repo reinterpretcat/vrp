@@ -1,6 +1,7 @@
 //! The recreate module contains logic to build a feasible solution from partially ruined.
 
 use crate::construction::heuristics::*;
+use crate::models::{GoalContext, Problem};
 use crate::solver::RefinementContext;
 use hashbrown::HashMap;
 use rosomaxa::prelude::SelectionPhase;
@@ -122,5 +123,42 @@ impl PhasedRecreate {
 impl Recreate for PhasedRecreate {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         self.recreates.get(&refinement_ctx.selection_phase()).unwrap().run(refinement_ctx, insertion_ctx)
+    }
+}
+
+pub(crate) struct RecreateWithGoal<T: Recreate + Send + Sync> {
+    goal: Arc<GoalContext>,
+    inner: T,
+}
+
+impl<T: Recreate + Send + Sync> RecreateWithGoal<T> {
+    /// Creates a new instance of `RecreateWithGoal`.
+    pub fn new(goal: Arc<GoalContext>, inner: T) -> Self {
+        Self { goal, inner }
+    }
+}
+
+impl<T: Recreate + Send + Sync> Recreate for RecreateWithGoal<T> {
+    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+        let problem = insertion_ctx.problem.clone();
+
+        let insertion_ctx = InsertionContext {
+            problem: Arc::new(Problem {
+                fleet: problem.fleet.clone(),
+                jobs: problem.jobs.clone(),
+                locks: problem.locks.clone(),
+                goal: self.goal.clone(),
+                activity: problem.activity.clone(),
+                transport: problem.transport.clone(),
+                extras: problem.extras.clone(),
+            }),
+            ..insertion_ctx
+        };
+
+        let mut insertion_ctx = self.inner.run(refinement_ctx, insertion_ctx);
+
+        insertion_ctx.problem = problem;
+
+        insertion_ctx
     }
 }
