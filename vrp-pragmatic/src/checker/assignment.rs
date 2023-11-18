@@ -9,6 +9,7 @@ use crate::utils::combine_error_results;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 use vrp_core::construction::clustering::vicinity::ServingPolicy;
+use vrp_core::models::solution::Place;
 use vrp_core::prelude::compare_floats;
 use vrp_core::utils::GenericError;
 
@@ -176,62 +177,14 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), GenericError> {
                                         Err(_) => {
                                             // NOTE required break is not a job
                                             if activity.activity_type == "break" {
-                                                try_match_break_activity(&ctx.problem, tour, &stop.time, activity).is_err()
+                                                try_match_break_activity(&ctx.problem, tour, &stop.time, activity)
+                                                    .is_err()
                                             } else {
                                                 true
                                             }
-                                        },
+                                        }
                                         Ok(Some(JobInfo(_, _, place, time))) => {
-                                            let not_equal = |left: f64, right: f64| compare_floats(left, right) != Ordering::Equal;
-                                            let parking = ctx
-                                                .clustering
-                                                .as_ref()
-                                                .map(|config| config.serving.get_parking())
-                                                .unwrap_or(0.);
-                                            let commute_profile = ctx.clustering.as_ref().map(|config| config.profile.clone());
-                                            let domain_commute = ctx.get_commute_info(commute_profile, parking, stop, *idx);
-                                            let extra_time = get_extra_time(stop, activity, &place).unwrap_or(0.);
-
-                                            match (&ctx.clustering, &activity.commute, domain_commute) {
-                                                (_, _, Err(_))
-                                                | (_, None, Ok(Some(_)))
-                                                | (_, Some(_), Ok(None))
-                                                | (&None, &Some(_), Ok(Some(_))) => true,
-                                                (_, None, Ok(None)) => {
-                                                    let expected_departure = time.start.max(place.time.start) + place.duration + extra_time;
-                                                    not_equal(time.end, expected_departure)
-                                                }
-                                                (Some(config), Some(commute), Ok(Some(d_commute))) => {
-                                                    let (service_time, parking) = match config.serving {
-                                                        ServingPolicy::Original { parking } => (place.duration, parking),
-                                                        ServingPolicy::Multiplier { multiplier, parking } => {
-                                                            (place.duration * multiplier, parking)
-                                                        }
-                                                        ServingPolicy::Fixed { value, parking } => (value, parking),
-                                                    };
-
-                                                    let a_commute = commute.to_domain(&ctx.coord_index);
-
-                                                    // NOTE: we keep parking in service time of a first activity of the non-first cluster
-                                                    let service_time = service_time
-                                                        + if a_commute.is_zero_distance() && *idx > 0 { parking } else { 0. };
-
-                                                    let expected_departure = time.start.max(place.time.start)
-                                                        + service_time
-                                                        + d_commute.backward.duration
-                                                        + extra_time;
-                                                    let actual_departure = time.end + d_commute.backward.duration;
-
-                                                    // NOTE: a "workaroundish" approach for two clusters in the same stop
-                                                    (not_equal(actual_departure, expected_departure)
-                                                        && not_equal(actual_departure, expected_departure - parking))
-                                                        // compare commute
-                                                        || not_equal(a_commute.forward.distance, d_commute.forward.distance)
-                                                        || not_equal(a_commute.forward.duration, d_commute.forward.duration)
-                                                        || not_equal(a_commute.backward.distance, d_commute.backward.distance)
-                                                        || not_equal(a_commute.backward.duration, d_commute.backward.duration)
-                                                }
-                                            }
+                                            is_valid_job_info(ctx, stop, activity, *idx, place, time)
                                         }
                                         _ => false,
                                     }
@@ -258,6 +211,55 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), GenericError> {
     }
 
     Ok(())
+}
+
+fn is_valid_job_info(
+    ctx: &CheckerContext,
+    stop: &PointStop,
+    activity: &Activity,
+    activity_idx: usize,
+    place: Place,
+    time: TimeWindow,
+) -> bool {
+    let not_equal = |left: f64, right: f64| compare_floats(left, right) != Ordering::Equal;
+    let parking = ctx.clustering.as_ref().map(|config| config.serving.get_parking()).unwrap_or(0.);
+    let commute_profile = ctx.clustering.as_ref().map(|config| config.profile.clone());
+    let domain_commute = ctx.get_commute_info(commute_profile, parking, stop, activity_idx);
+    let extra_time = get_extra_time(stop, activity, &place).unwrap_or(0.);
+
+    match (&ctx.clustering, &activity.commute, domain_commute) {
+        (_, _, Err(_)) | (_, None, Ok(Some(_))) | (_, Some(_), Ok(None)) | (&None, &Some(_), Ok(Some(_))) => true,
+        (_, None, Ok(None)) => {
+            let expected_departure = time.start.max(place.time.start) + place.duration + extra_time;
+            not_equal(time.end, expected_departure)
+        }
+        (Some(config), Some(commute), Ok(Some(d_commute))) => {
+            let (service_time, parking) = match config.serving {
+                ServingPolicy::Original { parking } => (place.duration, parking),
+                ServingPolicy::Multiplier { multiplier, parking } => (place.duration * multiplier, parking),
+                ServingPolicy::Fixed { value, parking } => (value, parking),
+            };
+
+            let a_commute = commute.to_domain(&ctx.coord_index);
+
+            // NOTE: we keep parking in service time of a first activity of the non-first cluster
+            let service_time =
+                service_time + if a_commute.is_zero_distance() && activity_idx > 0 { parking } else { 0. };
+
+            let expected_departure =
+                time.start.max(place.time.start) + service_time + d_commute.backward.duration + extra_time;
+            let actual_departure = time.end + d_commute.backward.duration;
+
+            // NOTE: a "workaroundish" approach for two clusters in the same stop
+            (not_equal(actual_departure, expected_departure)
+                && not_equal(actual_departure, expected_departure - parking))
+                // compare commute
+                || not_equal(a_commute.forward.distance, d_commute.forward.distance)
+                || not_equal(a_commute.forward.duration, d_commute.forward.duration)
+                || not_equal(a_commute.backward.distance, d_commute.backward.distance)
+                || not_equal(a_commute.backward.duration, d_commute.backward.duration)
+        }
+    }
 }
 
 /// Checks whether dispatch is properly assigned.
