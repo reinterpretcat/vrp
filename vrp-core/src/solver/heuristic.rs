@@ -454,23 +454,18 @@ mod statik {
 mod dynamic {
     use super::*;
 
-    pub fn get_operators(
-        problem: Arc<Problem>,
-        environment: Arc<Environment>,
-    ) -> Vec<(TargetSearchOperator, String, f64)> {
-        let (normal_limits, small_limits) = get_limits(problem.as_ref());
-        let random = environment.random.clone();
-
-        // NOTE: consider checking usage of names within heuristic filter before changing them
-
+    fn get_recreates(
+        problem: &Problem,
+        random: Arc<dyn Random + Send + Sync>,
+    ) -> Vec<(Arc<dyn Recreate + Send + Sync>, String)> {
         let cheapest: Arc<dyn Recreate + Send + Sync> = Arc::new(RecreateWithCheapest::new(random.clone()));
-        let recreates: Vec<(Arc<dyn Recreate + Send + Sync>, String)> = vec![
+        vec![
             (cheapest.clone(), "cheapest".to_string()),
             (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best".to_string()),
             (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), "regret".to_string()),
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), "perturbation".to_string()),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), "gaps".to_string()),
-            (create_recreate_with_blinks(problem.as_ref(), random.clone()), "blinks".to_string()),
+            (create_recreate_with_blinks(problem, random.clone()), "blinks".to_string()),
             (Arc::new(RecreateWithFarthest::new(random.clone())), "farthest".to_string()),
             (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), "nearest".to_string()),
             (
@@ -488,13 +483,19 @@ mod dynamic {
             .enumerate()
             .map(|(idx, recreate)| (recreate, format!("alternative_{idx}"))),
         )
-        .collect();
+        .collect()
+    }
 
-        let ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String, f64)> = vec![
+    fn get_ruins(
+        problem: Arc<Problem>,
+        environment: Arc<Environment>,
+        normal_limits: RemovalLimits,
+    ) -> Vec<(Arc<dyn Ruin + Send + Sync>, String, f64)> {
+        vec![
             (Arc::new(AdjustedStringRemoval::new_with_defaults(normal_limits.clone())), "asr".to_string(), 2.),
             (Arc::new(NeighbourRemoval::new(normal_limits.clone())), "neighbour_removal".to_string(), 5.),
             (
-                Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment.clone())),
+                Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment)),
                 "cluster_removal".to_string(),
                 4.,
             ),
@@ -505,19 +506,11 @@ mod dynamic {
             (Arc::new(RandomRouteRemoval::new(normal_limits.clone())), "random_route_removal".to_string(), 2.),
             (Arc::new(CloseRouteRemoval::new(normal_limits.clone())), "close_route_removal".to_string(), 4.),
             (Arc::new(WorstRouteRemoval::new(normal_limits)), "worst_route_removal".to_string(), 5.),
-        ];
+        ]
+    }
 
-        let extra_random_job = Arc::new(RandomJobRemoval::new(small_limits));
-
-        // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
-        let ruins = ruins
-            .into_iter()
-            .map::<(Arc<dyn Ruin + Send + Sync>, String, f64), _>(|(ruin, name, weight)| {
-                (Arc::new(CompositeRuin::new(vec![(ruin, 1.), (extra_random_job.clone(), 0.1)])), name, weight)
-            })
-            .collect::<Vec<_>>();
-
-        let mutations: Vec<(TargetSearchOperator, String, f64)> = vec![
+    fn get_mutations(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<(TargetSearchOperator, String, f64)> {
+        vec![
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
                 "local_exch_inter_route_best".to_string(),
@@ -540,7 +533,7 @@ mod dynamic {
             ),
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(
-                    random.clone(),
+                    environment.random.clone(),
                     SINGLE_HEURISTIC_QUOTA_LIMIT,
                 )))),
                 "local_swap_star".to_string(),
@@ -562,7 +555,32 @@ mod dynamic {
                 "decompose_search".to_string(),
                 25.,
             ),
-        ];
+        ]
+    }
+
+    pub fn get_operators(
+        problem: Arc<Problem>,
+        environment: Arc<Environment>,
+    ) -> Vec<(TargetSearchOperator, String, f64)> {
+        let (normal_limits, small_limits) = get_limits(problem.as_ref());
+        let random = environment.random.clone();
+
+        // NOTE: consider checking usage of names within heuristic filter before changing them
+
+        let recreates = get_recreates(problem.as_ref(), random.clone());
+        let ruins = get_ruins(problem.clone(), environment.clone(), normal_limits.clone());
+
+        let extra_random_job = Arc::new(RandomJobRemoval::new(small_limits));
+
+        // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
+        let ruins = ruins
+            .into_iter()
+            .map::<(Arc<dyn Ruin + Send + Sync>, String, f64), _>(|(ruin, name, weight)| {
+                (Arc::new(CompositeRuin::new(vec![(ruin, 1.), (extra_random_job.clone(), 0.1)])), name, weight)
+            })
+            .collect::<Vec<_>>();
+
+        let mutations = get_mutations(problem.clone(), environment.clone());
 
         let heuristic_filter = problem.extras.get_heuristic_filter();
 
