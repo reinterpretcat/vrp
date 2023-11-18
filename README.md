@@ -3,6 +3,7 @@
 ![build](https://github.com/reinterpretcat/vrp/actions/workflows/build.yaml/badge.svg)
 [![downloads](https://img.shields.io/crates/d/vrp-core)](https://crates.io/crates/vrp-core)
 [![codecov](https://codecov.io/gh/reinterpretcat/vrp/branch/master/graph/badge.svg)](https://codecov.io/gh/reinterpretcat/vrp)
+[![CodeScene Code Health](https://codescene.io/projects/46594/status-badges/code-health)](https://codescene.io/projects/46594)
 [![dependency status](https://deps.rs/crate/vrp-cli/1.22.1/status.svg)](https://deps.rs/crate/vrp-cli/1.22.1)
 [![DOI](https://zenodo.org/badge/238436117.svg)](https://zenodo.org/badge/latestdoi/238436117)
 
