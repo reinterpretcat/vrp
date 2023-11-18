@@ -248,47 +248,44 @@ fn has_demand_violation<T: LoadOps>(
     demand: Option<&Demand<T>>,
     stopped: bool,
 ) -> Option<bool> {
-    if let Some(demand) = demand {
-        if let Some(&capacity) = capacity {
-            let default = T::default();
-
-            // check how static delivery affect past max load
-            if demand.delivery.0.is_not_empty() {
-                let past = *state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot).unwrap_or(&default);
-                if !capacity.can_fit(&(past + demand.delivery.0)) {
-                    return Some(stopped);
-                }
-            }
-
-            // check how static pickup affect future max load
-            if demand.pickup.0.is_not_empty() {
-                let future = *state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).unwrap_or(&default);
-                if !capacity.can_fit(&(future + demand.pickup.0)) {
-                    return Some(false);
-                }
-            }
-
-            // check dynamic load change
-            let change = demand.change();
-            if change.is_not_empty() {
-                let future = *state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).unwrap_or(&default);
-                if !capacity.can_fit(&(future + change)) {
-                    return Some(false);
-                }
-
-                let current = *state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).unwrap_or(&default);
-                if !capacity.can_fit(&(current + change)) {
-                    return Some(false);
-                }
-            }
-
-            None
-        } else {
-            Some(stopped)
-        }
+    let demand = demand?;
+    let capacity = if let Some(capacity) = capacity.copied() {
+        capacity
     } else {
-        None
+        return Some(stopped);
+    };
+
+    // check how static delivery affect past max load
+    if demand.delivery.0.is_not_empty() {
+        let past: T = state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot).copied().unwrap_or_default();
+        if !capacity.can_fit(&(past + demand.delivery.0)) {
+            return Some(stopped);
+        }
     }
+
+    // check how static pickup affect future max load
+    if demand.pickup.0.is_not_empty() {
+        let future: T = state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).copied().unwrap_or_default();
+        if !capacity.can_fit(&(future + demand.pickup.0)) {
+            return Some(false);
+        }
+    }
+
+    // check dynamic load change
+    let change = demand.change();
+    if change.is_not_empty() {
+        let future: T = state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).copied().unwrap_or_default();
+        if !capacity.can_fit(&(future + change)) {
+            return Some(false);
+        }
+
+        let current: T = state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).copied().unwrap_or_default();
+        if !capacity.can_fit(&(current + change)) {
+            return Some(false);
+        }
+    }
+
+    None
 }
 
 fn get_demand<T: LoadOps>(activity: &Activity) -> Option<&Demand<T>> {
