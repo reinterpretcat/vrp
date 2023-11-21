@@ -140,7 +140,7 @@ to call the library from it.
 The goal is to reduce burnout by limiting the maintenance overhead of reviewing and validating third-party code.
 
 Please submit an [issue](https://github.com/reinterpretcat/vrp/issues/new) or [discussion](https://github.com/reinterpretcat/vrp/discussions/new/choose)
-if you have a MR proposal.
+if you have ideas for improvement.
 
 # Status
 
