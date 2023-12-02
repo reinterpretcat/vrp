@@ -88,7 +88,7 @@
 extern crate rand;
 
 use crate::construction::heuristics::InsertionContext;
-use crate::models::{GoalContext, Problem, Solution};
+use crate::models::{GoalContext, Problem, Solution, StateKey};
 use crate::solver::search::Recreate;
 use hashbrown::HashMap;
 use rosomaxa::evolution::*;
@@ -107,11 +107,11 @@ pub mod search;
 mod heuristic;
 
 /// A key to store tabu list.
-const TABU_LIST_KEY: i32 = 1;
+const TABU_LIST_KEY: StateKey = 1;
 /// A key to store solution order information.
-const SOLUTION_ORDER_KEY: i32 = 2;
+const SOLUTION_ORDER_KEY: StateKey = 2;
 /// A key to store solution weights information.
-const SOLUTION_WEIGHTS_KEY: i32 = 3;
+const SOLUTION_WEIGHTS_KEY: StateKey = 3;
 
 /// A type which encapsulates information needed to perform solution refinement process.
 pub struct RefinementContext {

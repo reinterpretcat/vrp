@@ -9,15 +9,15 @@ use vrp_core::models::*;
 use vrp_core::prelude::*;
 
 /// A key which tracks job group state.
-pub const GROUP_KEY: i32 = 1000;
+pub const GROUP_KEY: StateKey = 1000;
 /// A key which tracks compatibility key.
-pub const COMPATIBILITY_KEY: i32 = 1001;
+pub const COMPATIBILITY_KEY: StateKey = 1001;
 /// A key which tracks tour order state.
-pub const TOUR_ORDER_KEY: i32 = 1002;
+pub const TOUR_ORDER_KEY: StateKey = 1002;
 /// A key which tracks reload resource consumption state.
-pub const RELOAD_RESOURCE_KEY: i32 = 1003;
+pub const RELOAD_RESOURCE_KEY: StateKey = 1003;
 /// A key which tracks tour compactness state.
-pub const TOUR_COMPACTNESS_KEY: i32 = 1004;
+pub const TOUR_COMPACTNESS_KEY: StateKey = 1004;
 
 mod breaks;
 pub use self::breaks::*;
