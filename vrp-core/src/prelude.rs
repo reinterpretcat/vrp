@@ -4,6 +4,10 @@
 pub use crate::solver::create_default_config_builder;
 pub use crate::solver::Solver;
 
+pub use crate::models::problem::ActivityCost;
+pub use crate::models::problem::Fleet;
+pub use crate::models::problem::Jobs;
+pub use crate::models::problem::TransportCost;
 pub use crate::models::Problem;
 pub use crate::models::Solution;
 

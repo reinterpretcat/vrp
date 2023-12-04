@@ -53,15 +53,20 @@ where
     FeatureBuilder::combine(name, &[capacity, shared_resource])
 }
 
-/// Creates a multi trip strategy to use multi trip with reload jobs.
+/// Creates a multi trip feature to use multi trip with reload jobs.
 pub fn create_simple_reload_multi_trip_feature<T: LoadOps>(
     name: &str,
     capacity_feature_factory: CapacityFeatureFactoryFn,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
 ) -> Result<Feature, GenericError> {
-    let route_intervals = create_reload_route_intervals(load_schedule_threshold_fn, None);
+    (capacity_feature_factory)(name, create_simple_reload_route_intervals(load_schedule_threshold_fn))
+}
 
-    (capacity_feature_factory)(name, Arc::new(route_intervals))
+/// Creates a reload intervals to use with reload jobs.
+pub fn create_simple_reload_route_intervals<T: LoadOps>(
+    load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
+) -> Arc<dyn RouteIntervals + Send + Sync> {
+    Arc::new(create_reload_route_intervals(load_schedule_threshold_fn, None))
 }
 
 fn create_reload_route_intervals<T: LoadOps>(

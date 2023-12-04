@@ -3,39 +3,33 @@ use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::*;
 use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
+use vrp_core::construction::enablers::NoRouteIntervals;
 use vrp_core::construction::features::*;
 use vrp_core::models::common::{LoadOps, MultiDimLoad, SingleDimLoad};
-use vrp_core::models::problem::{ActivityCost, Actor, Jobs, Single, TransportCost};
-use vrp_core::models::{Feature, Goal, GoalContext, Lock};
+use vrp_core::models::problem::{Actor, Single, TransportCost};
+use vrp_core::models::{Feature, Goal, GoalContext};
 
-#[allow(clippy::too_many_arguments)]
 pub(super) fn create_goal_context(
     api_problem: &ApiProblem,
-    job_index: &JobIndex,
-    jobs: Arc<Jobs>,
-    fleet: Arc<CoreFleet>,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
+    blocks: &ProblemBlocks,
     props: &ProblemProperties,
-    locks: &[Arc<Lock>],
 ) -> Result<GoalContext, GenericError> {
     let mut features = Vec::new();
 
     // TODO what's about performance implications on order of features when they are evaluated?
 
-    let objective_features =
-        get_objective_features(api_problem, props, jobs.clone(), transport.clone(), activity.clone())?;
+    let objective_features = get_objective_features(api_problem, blocks, props)?;
     let (global_objective_map, local_objective_map) = extract_feature_map(objective_features.as_slice())?;
     features.extend(objective_features.into_iter().flat_map(|features| features.into_iter()));
 
     if props.has_unreachable_locations {
-        features.push(create_reachable_feature("reachable", transport.clone(), REACHABLE_CONSTRAINT_CODE)?)
+        features.push(create_reachable_feature("reachable", blocks.transport.clone(), REACHABLE_CONSTRAINT_CODE)?)
     }
 
-    features.push(get_capacity_feature("capacity", api_problem, jobs.as_ref(), job_index, props)?);
+    features.push(get_capacity_feature("capacity", api_problem, blocks, props)?);
 
     if props.has_tour_travel_limits {
-        features.push(get_tour_limit_feature("tour_limit", api_problem, transport.clone())?)
+        features.push(get_tour_limit_feature("tour_limit", api_problem, blocks.transport.clone())?)
     }
 
     if props.has_breaks {
@@ -43,7 +37,7 @@ pub(super) fn create_goal_context(
     }
 
     if props.has_recharges {
-        features.push(get_recharge_feature("recharge", api_problem, transport.clone())?);
+        features.push(get_recharge_feature("recharge", api_problem, blocks.transport.clone())?);
     }
 
     if props.has_order && !global_objective_map.iter().flat_map(|o| o.iter()).any(|name| *name == "tour_order") {
@@ -55,7 +49,7 @@ pub(super) fn create_goal_context(
     }
 
     if props.has_group {
-        features.push(create_group_feature("group", jobs.size(), GROUP_CONSTRAINT_CODE, GROUP_KEY)?);
+        features.push(create_group_feature("group", blocks.jobs.size(), GROUP_CONSTRAINT_CODE, GROUP_KEY)?);
     }
 
     if props.has_skills {
@@ -66,8 +60,13 @@ pub(super) fn create_goal_context(
         features.push(create_dispatch_feature("dispatch", DISPATCH_CONSTRAINT_CODE)?)
     }
 
-    if !locks.is_empty() {
-        features.push(create_locked_jobs_feature("locked_jobs", fleet.as_ref(), locks, LOCKING_CONSTRAINT_CODE)?);
+    if !blocks.locks.is_empty() {
+        features.push(create_locked_jobs_feature(
+            "locked_jobs",
+            blocks.fleet.as_ref(),
+            &blocks.locks,
+            LOCKING_CONSTRAINT_CODE,
+        )?);
     }
 
     if props.has_tour_size_limits {
@@ -85,10 +84,8 @@ pub(super) fn create_goal_context(
 
 fn get_objective_features(
     api_problem: &ApiProblem,
+    blocks: &ProblemBlocks,
     props: &ProblemProperties,
-    jobs: Arc<Jobs>,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
 ) -> Result<Vec<Vec<Feature>>, GenericError> {
     let objectives = if let Some(objectives) = api_problem.objectives.clone() {
         objectives
@@ -114,20 +111,20 @@ fn get_objective_features(
                 .map(|objective| match objective {
                     Objective::MinimizeCost => create_minimize_transport_costs_feature(
                         "min_cost",
-                        transport.clone(),
-                        activity.clone(),
+                        blocks.transport.clone(),
+                        blocks.activity.clone(),
                         TIME_CONSTRAINT_CODE,
                     ),
                     Objective::MinimizeDistance => create_minimize_distance_feature(
                         "min_distance",
-                        transport.clone(),
-                        activity.clone(),
+                        blocks.transport.clone(),
+                        blocks.activity.clone(),
                         TIME_CONSTRAINT_CODE,
                     ),
                     Objective::MinimizeDuration => create_minimize_duration_feature(
                         "min_duration",
-                        transport.clone(),
-                        activity.clone(),
+                        blocks.transport.clone(),
+                        blocks.activity.clone(),
                         TIME_CONSTRAINT_CODE,
                     ),
                     Objective::MinimizeTours => create_minimize_tours_feature("min_tours"),
@@ -216,7 +213,7 @@ fn get_objective_features(
                         let thresholds = Some((options.threshold, options.distance));
                         create_tour_compactness_feature(
                             "tour_compact",
-                            jobs.clone(),
+                            blocks.jobs.clone(),
                             options.job_radius,
                             TOUR_COMPACTNESS_KEY,
                             thresholds,
@@ -224,47 +221,38 @@ fn get_objective_features(
                     }
                     Objective::TourOrder => {
                         create_tour_order_soft_feature("tour_order", TOUR_ORDER_KEY, get_tour_order_fn())
-                    },
-                    Objective::FastService => {
-                        if props.has_multi_dimen_capacity {
-                            create_fast_service_feature::<MultiDimLoad>("fast_service", transport.clone(), activity.clone())
-                        } else {
-                            create_fast_service_feature::<SingleDimLoad>("fast_service", transport.clone(), activity.clone())
-                        }
                     }
+                    Objective::FastService => get_fast_service_feature("fast_service", blocks, props),
                 })
                 .collect()
         })
         .collect()
 }
 
+const RELOAD_THRESHOLD: f64 = 0.9;
+
 fn get_capacity_feature(
     name: &str,
     api_problem: &ApiProblem,
-    jobs: &Jobs,
-    job_index: &JobIndex,
+    blocks: &ProblemBlocks,
     props: &ProblemProperties,
 ) -> Result<Feature, GenericError> {
     if props.has_reloads {
-        let threshold = 0.9;
-
         if props.has_multi_dimen_capacity {
             get_capacity_with_reload_feature::<MultiDimLoad>(
                 name,
                 api_problem,
-                jobs,
-                job_index,
+                blocks,
                 MultiDimLoad::new,
-                Box::new(move |capacity| *capacity * threshold),
+                Box::new(move |capacity| *capacity * RELOAD_THRESHOLD),
             )
         } else {
             get_capacity_with_reload_feature::<SingleDimLoad>(
                 name,
                 api_problem,
-                jobs,
-                job_index,
+                blocks,
                 |capacity| SingleDimLoad::new(capacity.first().cloned().unwrap_or_default()),
-                Box::new(move |capacity| *capacity * threshold),
+                Box::new(move |capacity| *capacity * RELOAD_THRESHOLD),
             )
         }
     } else if props.has_multi_dimen_capacity {
@@ -274,15 +262,52 @@ fn get_capacity_feature(
     }
 }
 
+fn get_fast_service_feature(
+    name: &str,
+    blocks: &ProblemBlocks,
+    props: &ProblemProperties,
+) -> Result<Feature, GenericError> {
+    let (transport, activity) = (blocks.transport.clone(), blocks.activity.clone());
+    if props.has_reloads {
+        if props.has_multi_dimen_capacity {
+            create_fast_service_feature::<MultiDimLoad>(
+                name,
+                transport,
+                activity,
+                create_simple_reload_route_intervals(Box::new(move |capacity: &MultiDimLoad| {
+                    *capacity * RELOAD_THRESHOLD
+                })),
+                FAST_SERVICE_KEY,
+            )
+        } else {
+            create_fast_service_feature::<SingleDimLoad>(
+                name,
+                transport,
+                activity,
+                create_simple_reload_route_intervals(Box::new(move |capacity: &SingleDimLoad| {
+                    *capacity * RELOAD_THRESHOLD
+                })),
+                FAST_SERVICE_KEY,
+            )
+        }
+    } else {
+        let route_intervals = Arc::new(NoRouteIntervals::default());
+        if props.has_multi_dimen_capacity {
+            create_fast_service_feature::<MultiDimLoad>(name, transport, activity, route_intervals, FAST_SERVICE_KEY)
+        } else {
+            create_fast_service_feature::<SingleDimLoad>(name, transport, activity, route_intervals, FAST_SERVICE_KEY)
+        }
+    }
+}
+
 fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(
     name: &str,
     api_problem: &ApiProblem,
-    jobs: &Jobs,
-    job_index: &JobIndex,
+    blocks: &ProblemBlocks,
     capacity_map: fn(Vec<i32>) -> T,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
 ) -> Result<Feature, GenericError> {
-    let reload_resources = get_reload_resources(api_problem, job_index, capacity_map);
+    let reload_resources = get_reload_resources(api_problem, blocks.job_index.as_ref(), capacity_map);
     let capacity_feature_factory: CapacityFeatureFactoryFn = Box::new(|name, route_intervals| {
         create_capacity_limit_with_multi_trip_feature::<T>(name, CAPACITY_CONSTRAINT_CODE, route_intervals)
     });
@@ -295,7 +320,7 @@ fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(
             capacity_feature_factory,
             load_schedule_threshold_fn,
             reload_resources,
-            jobs.size(),
+            blocks.jobs.size(),
             RELOAD_RESOURCE_CONSTRAINT_CODE,
             RELOAD_RESOURCE_KEY,
         )

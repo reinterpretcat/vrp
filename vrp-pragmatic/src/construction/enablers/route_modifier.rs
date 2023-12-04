@@ -5,7 +5,7 @@ use vrp_core::construction::heuristics::*;
 use vrp_core::models::GoalContext;
 
 /// Returns route modifier.
-pub fn get_route_modifier(goal: Arc<GoalContext>, job_index: JobIndex) -> RouteModifier {
+pub fn get_route_modifier(goal: Arc<GoalContext>, job_index: Arc<JobIndex>) -> RouteModifier {
     RouteModifier::new(move |route_ctx: RouteContext| {
         let actor = &route_ctx.route().actor;
         let vehicle = &actor.vehicle;

@@ -95,7 +95,7 @@ impl FeatureState for DispatchState {
             solution_ctx
                 .routes
                 .iter()
-                .flat_map(|route_ctx| route_ctx.route().tour.jobs().cloned().filter(is_dispatch_job)),
+                .flat_map(|route_ctx| route_ctx.route().tour.jobs().filter(|&j| is_dispatch_job(j)).cloned()),
         );
 
         process_conditional_jobs(solution_ctx, None, self.context_transition.as_ref());

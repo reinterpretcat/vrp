@@ -8,7 +8,7 @@ use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 use vrp_core::construction::enablers::ReservedTimesIndex;
 use vrp_core::models::common::{Distance, Duration};
-use vrp_core::models::problem::{Fleet as CoreFleet, Job as CoreJob};
+use vrp_core::models::problem::Job as CoreJob;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::prelude::GenericError;
 

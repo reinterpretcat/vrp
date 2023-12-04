@@ -18,6 +18,8 @@ pub const TOUR_ORDER_KEY: StateKey = 1002;
 pub const RELOAD_RESOURCE_KEY: StateKey = 1003;
 /// A key which tracks tour compactness state.
 pub const TOUR_COMPACTNESS_KEY: StateKey = 1004;
+/// A key to track fast service feature state.
+pub const FAST_SERVICE_KEY: StateKey = 1005;
 
 mod breaks;
 pub use self::breaks::*;

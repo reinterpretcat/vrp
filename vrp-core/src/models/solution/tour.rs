@@ -12,6 +12,7 @@ use rustc_hash::FxHasher;
 use std::fmt::{Debug, Formatter};
 use std::hash::BuildHasherDefault;
 use std::iter::once;
+use std::ops::Index;
 use std::slice::{Iter, IterMut};
 
 /// A tour leg.
@@ -165,6 +166,11 @@ impl Tour {
         self.activities.iter().position(move |a| a.has_same_job(job))
     }
 
+    /// Returns index of last job occurrence in the tour.
+    pub fn index_last(&self, job: &Job) -> Option<usize> {
+        self.activities.iter().rev().position(move |a| a.has_same_job(job))
+    }
+
     /// Checks whether job is present in tour.
     pub fn has_job(&self, job: &Job) -> bool {
         self.jobs.contains(job)
@@ -201,6 +207,14 @@ impl Tour {
             jobs: self.jobs.clone(),
             is_closed: self.is_closed,
         }
+    }
+}
+
+impl Index<usize> for Tour {
+    type Output = Activity;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.activities[index]
     }
 }
 

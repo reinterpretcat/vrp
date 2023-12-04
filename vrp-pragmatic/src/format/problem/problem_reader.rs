@@ -9,7 +9,6 @@ use crate::validation::ValidationContext;
 use crate::{parse_time, CoordIndex};
 use vrp_core::construction::enablers::*;
 use vrp_core::models::common::{TimeOffset, TimeSpan, TimeWindow};
-use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, GoalContext};
 use vrp_core::solver::processing::{ReservedTimeDimension, VicinityDimension};
 
@@ -34,78 +33,22 @@ pub(super) fn map_to_problem(
 ) -> Result<CoreProblem, MultiFormatError> {
     ValidationContext::new(&api_problem, Some(&matrices), &coord_index).validate()?;
 
-    let problem_props = get_problem_properties(&api_problem, &matrices);
+    let props = get_problem_properties(&api_problem, &matrices);
+    let blocks = get_problem_blocks(&api_problem, matrices, coord_index, &props)?;
 
-    let coord_index = Arc::new(coord_index);
-    let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
-    let reserved_times_index = read_reserved_times_index(&api_problem, &fleet);
-
-    let transport = create_transport_costs(&api_problem, &matrices, coord_index.clone()).map_err(|err| {
+    let goal = Arc::new(create_goal_context(&api_problem, &blocks, &props).map_err(|err| {
         vec![FormatError::new(
-            "E0002".to_string(),
-            "cannot create transport costs".to_string(),
-            format!("check matrix routing data: '{err}'"),
+            "E0000".to_string(),
+            "cannot create vrp variant".to_string(),
+            format!("need to analyze how features are defined: '{err}'"),
         )]
-    })?;
-    let activity: Arc<dyn ActivityCost + Send + Sync> = Arc::new(OnlyVehicleActivityCost::default());
+    })?);
 
-    let (transport, activity) = if reserved_times_index.is_empty() {
-        (transport, activity)
-    } else {
-        DynamicTransportCost::new(reserved_times_index.clone(), transport)
-            .and_then(|transport| {
-                DynamicActivityCost::new(reserved_times_index.clone()).map(|activity| (transport, activity))
-            })
-            .map_err(|err| {
-                vec![FormatError::new(
-                    "E0002".to_string(),
-                    "cannot create transport costs".to_string(),
-                    format!("check fleet definition: '{err}'"),
-                )]
-            })
-            .map::<(Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>), _>(
-                |(transport, activity)| (Arc::new(transport), Arc::new(activity)),
-            )?
-    };
-
-    // TODO pass random from outside as there might be need to have it initialized with seed
-    //      at the moment, this random instance is used only by multi job permutation generator
-    let random: Arc<dyn Random + Send + Sync> = Arc::new(DefaultRandom::default());
-    let mut job_index = Default::default();
-    let (jobs, locks) = read_jobs_with_extra_locks(
-        &api_problem,
-        &problem_props,
-        &coord_index,
-        &fleet,
-        &transport,
-        &mut job_index,
-        &random,
-    );
-    let jobs = Arc::new(jobs);
-    let fleet = Arc::new(fleet);
-    let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index)).collect::<Vec<_>>();
-    let goal = Arc::new(
-        create_goal_context(
-            &api_problem,
-            &job_index,
-            jobs.clone(),
-            fleet.clone(),
-            transport.clone(),
-            activity.clone(),
-            &problem_props,
-            &locks,
-        )
-        .map_err(|err| {
-            vec![FormatError::new(
-                "E0000".to_string(),
-                "cannot create vrp variant".to_string(),
-                format!("need to analyze how features are defined: '{err}'"),
-            )]
-        })?,
-    );
+    let ProblemBlocks { coord_index, job_index, jobs, fleet, transport, activity, locks, reserved_times_index } =
+        blocks;
 
     let extras = Arc::new(
-        create_extras(&api_problem, goal.clone(), &problem_props, job_index, coord_index, reserved_times_index)
+        create_extras(&api_problem, goal.clone(), &props, job_index.clone(), coord_index.clone(), reserved_times_index)
             .map_err(|err| {
                 // TODO make sure that error matches actual reason
                 vec![FormatError::new(
@@ -175,17 +118,17 @@ fn create_extras(
     api_problem: &ApiProblem,
     goal: Arc<GoalContext>,
     props: &ProblemProperties,
-    job_index: JobIndex,
+    job_index: Arc<JobIndex>,
     coord_index: Arc<CoordIndex>,
     reserved_times_index: ReservedTimesIndex,
 ) -> Result<Extras, GenericError> {
     let mut extras = Extras::default();
 
-    extras.insert("coord_index".to_owned(), coord_index);
-    extras.insert("job_index".to_owned(), Arc::new(job_index.clone()));
+    extras.insert("coord_index".to_owned(), coord_index.clone());
+    extras.insert("job_index".to_owned(), job_index.clone());
 
     if props.has_dispatch {
-        extras.insert("route_modifier".to_owned(), Arc::new(get_route_modifier(goal, job_index)));
+        extras.insert("route_modifier".to_owned(), Arc::new(get_route_modifier(goal, job_index.clone())));
     }
 
     if !reserved_times_index.is_empty() {
@@ -255,4 +198,69 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_tour_size_limits,
         has_tour_travel_limits,
     }
+}
+
+fn get_problem_blocks(
+    api_problem: &ApiProblem,
+    matrices: Vec<Matrix>,
+    coord_index: CoordIndex,
+    problem_props: &ProblemProperties,
+) -> Result<ProblemBlocks, MultiFormatError> {
+    let coord_index = Arc::new(coord_index);
+    let fleet = read_fleet(api_problem, problem_props, &coord_index);
+    let reserved_times_index = read_reserved_times_index(api_problem, &fleet);
+
+    let transport = create_transport_costs(api_problem, &matrices, coord_index.clone()).map_err(|err| {
+        vec![FormatError::new(
+            "E0002".to_string(),
+            "cannot create transport costs".to_string(),
+            format!("check matrix routing data: '{err}'"),
+        )]
+    })?;
+    let activity: Arc<dyn ActivityCost + Send + Sync> = Arc::new(OnlyVehicleActivityCost::default());
+
+    let (transport, activity) = if reserved_times_index.is_empty() {
+        (transport, activity)
+    } else {
+        DynamicTransportCost::new(reserved_times_index.clone(), transport)
+            .and_then(|transport| {
+                DynamicActivityCost::new(reserved_times_index.clone()).map(|activity| (transport, activity))
+            })
+            .map_err(|err| {
+                vec![FormatError::new(
+                    "E0002".to_string(),
+                    "cannot create transport costs".to_string(),
+                    format!("check fleet definition: '{err}'"),
+                )]
+            })
+            .map::<(Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>), _>(
+                |(transport, activity)| (Arc::new(transport), Arc::new(activity)),
+            )?
+    };
+
+    // TODO pass random from outside as there might be need to have it initialized with seed
+    //      at the moment, this random instance is used only by multi job permutation generator
+    let random: Arc<dyn Random + Send + Sync> = Arc::new(DefaultRandom::default());
+    let mut job_index = Default::default();
+    let (jobs, locks) = read_jobs_with_extra_locks(
+        api_problem,
+        problem_props,
+        &coord_index,
+        &fleet,
+        &transport,
+        &mut job_index,
+        &random,
+    );
+    let locks = locks.into_iter().chain(read_locks(api_problem, &job_index)).collect::<Vec<_>>();
+
+    Ok(ProblemBlocks {
+        coord_index,
+        job_index: Arc::new(job_index),
+        jobs: Arc::new(jobs),
+        fleet: Arc::new(fleet),
+        transport,
+        activity,
+        locks,
+        reserved_times_index,
+    })
 }

@@ -5,6 +5,8 @@ use crate::parse_time;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::TimeWindow;
+use vrp_core::models::Lock;
+use vrp_core::prelude::{ActivityCost, Fleet as CoreFleet, Jobs as CoreJobs, TransportCost};
 use vrp_core::utils::*;
 
 pub(crate) type ApiProblem = Problem;
@@ -101,6 +103,7 @@ pub(crate) fn get_job_tasks(job: &Job) -> impl Iterator<Item = &JobTask> {
     job.pickups.iter().chain(job.deliveries.iter()).chain(job.services.iter()).chain(job.replacements.iter()).flatten()
 }
 
+/// Keeps track of problem properties (e.g. features).
 struct ProblemProperties {
     has_multi_dimen_capacity: bool,
     has_breaks: bool,
@@ -115,6 +118,18 @@ struct ProblemProperties {
     has_compatibility: bool,
     has_tour_size_limits: bool,
     has_tour_travel_limits: bool,
+}
+
+/// Keeps track of materialized problem building blocks.
+struct ProblemBlocks {
+    coord_index: Arc<CoordIndex>,
+    job_index: Arc<JobIndex>,
+    jobs: Arc<CoreJobs>,
+    fleet: Arc<CoreFleet>,
+    transport: Arc<dyn TransportCost + Send + Sync>,
+    activity: Arc<dyn ActivityCost + Send + Sync>,
+    locks: Vec<Arc<Lock>>,
+    reserved_times_index: ReservedTimesIndex,
 }
 
 fn parse_time_window(tw: &[String]) -> TimeWindow {
