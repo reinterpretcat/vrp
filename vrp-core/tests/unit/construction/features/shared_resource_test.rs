@@ -4,7 +4,7 @@ use crate::construction::enablers::get_route_intervals;
 use crate::helpers::construction::features::create_simple_demand;
 use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
-use crate::helpers::models::solution::{test_activity, RouteBuilder, RouteContextBuilder};
+use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::models::common::*;
 use crate::models::problem::{Fleet, Vehicle, VehicleDetail};
 
@@ -16,7 +16,7 @@ fn create_usage_activity(demand: i32) -> Activity {
     let demand = create_simple_demand(-demand);
     let single = test_single_with_simple_demand(demand);
 
-    Activity { job: Some(single), ..test_activity() }
+    Activity { job: Some(single), ..ActivityBuilder::default().build() }
 }
 
 fn create_resource_activity(capacity: i32, resource_id: Option<SharedResourceId>) -> Activity {
@@ -26,7 +26,7 @@ fn create_resource_activity(capacity: i32, resource_id: Option<SharedResourceId>
     }
     single.dimens.set_capacity(SingleDimLoad::new(capacity));
 
-    Activity { job: Some(Arc::new(single)), ..test_activity() }
+    Activity { job: Some(Arc::new(single)), ..ActivityBuilder::default().build() }
 }
 
 fn create_feature(total_jobs: usize) -> Feature {
@@ -271,7 +271,7 @@ fn can_constraint_activity_impl(
     demand: Option<i32>,
     expected: Option<i32>,
 ) {
-    let target = demand.map_or_else(test_activity, create_usage_activity);
+    let target = demand.map_or_else(|| ActivityBuilder::default().build(), create_usage_activity);
     let total_jobs = activities[0].len() + activities[1].len();
     let mut solution_ctx = create_solution_ctx(resources, activities, is_ovrp);
     let feature = create_feature(total_jobs);

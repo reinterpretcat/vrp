@@ -14,8 +14,8 @@ fn get_test_tour() -> Tour {
     let mut tour = Tour::default();
     tour.set_start(test_activity_without_job());
     tour.set_end(test_activity_without_job());
-    tour.insert_last(test_activity());
-    tour.insert_last(test_activity());
+    tour.insert_last(ActivityBuilder::default().build());
+    tour.insert_last(ActivityBuilder::default().build());
 
     tour
 }
@@ -118,8 +118,8 @@ fn can_get_activities_for_job() {
 fn can_get_legs() {
     let start = test_activity_without_job();
     let end = test_activity_without_job();
-    let a1 = test_activity();
-    let a2 = test_activity();
+    let a1 = ActivityBuilder::default().build();
+    let a2 = ActivityBuilder::default().build();
 
     // s a1 a2 e
     let mut tour = Tour::default();
@@ -149,11 +149,11 @@ fn can_get_job_index() {
     tour.set_start(test_activity_without_job());
     tour.set_end(test_activity_without_job());
     let job = Arc::new(test_single());
-    tour.insert_last(test_activity());
+    tour.insert_last(ActivityBuilder::default().build());
     tour.insert_last(test_activity_with_job(job.clone()));
-    tour.insert_last(test_activity());
+    tour.insert_last(ActivityBuilder::default().build());
     tour.insert_last(test_activity_with_job(job.clone()));
-    tour.insert_last(test_activity());
+    tour.insert_last(ActivityBuilder::default().build());
 
     let index = tour.index(&Job::Single(job));
 
@@ -173,7 +173,7 @@ fn can_get_activity_and_job_count() {
     assert_eq!(tour.job_activity_count(), 0);
     assert_eq!(tour.job_count(), 0);
 
-    tour.insert_last(test_activity());
+    tour.insert_last(ActivityBuilder::default().build());
     assert_eq!(tour.job_activity_count(), 1);
     assert_eq!(tour.job_count(), 1);
 }
@@ -184,8 +184,8 @@ fn can_get_start_and_end() {
 
     tour.set_start(test_activity_without_job());
     tour.set_end(test_activity_without_job());
-    tour.insert_last(test_activity());
-    tour.insert_last(test_activity());
+    tour.insert_last(ActivityBuilder::default().build());
+    tour.insert_last(ActivityBuilder::default().build());
 
     assert_eq!(get_memory_address(tour.start().unwrap()), get_memory_address(&tour.activities[0]));
     assert_eq!(get_memory_address(tour.end().unwrap()), get_memory_address(&tour.activities[3]));

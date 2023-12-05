@@ -18,7 +18,7 @@ fn create_single_with_order(id: &str, order: Option<f64>) -> Arc<Single> {
 }
 
 fn create_activity_for_job_with_order(id: &str, order: Option<f64>) -> Activity {
-    Activity { job: Some(create_single_with_order(id, order)), ..test_activity() }
+    Activity { job: Some(create_single_with_order(id, order)), ..ActivityBuilder::default().build() }
 }
 
 #[test]

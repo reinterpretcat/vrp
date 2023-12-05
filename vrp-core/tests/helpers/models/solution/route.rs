@@ -8,10 +8,6 @@ use std::sync::Arc;
 
 pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arrival: 0.0 };
 
-pub fn test_activity() -> Activity {
-    test_activity_with_job(Arc::new(test_single()))
-}
-
 pub fn test_activity_with_location(location: Location) -> Activity {
     Activity {
         place: Place { idx: 0, location, duration: DEFAULT_JOB_DURATION, time: DEFAULT_ACTIVITY_TIME_WINDOW },
@@ -216,4 +212,8 @@ fn create_route(actor: Arc<Actor>, mut tour: Tour, activities: Vec<Activity>) ->
     });
 
     Route { actor, tour }
+}
+
+fn test_activity() -> Activity {
+    test_activity_with_job(Arc::new(test_single()))
 }
