@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/features/fast_service_test.rs"]
+mod fast_service_test;
+
 use super::*;
 use crate::construction::enablers::{calculate_travel_delta, RouteIntervals};
 use hashbrown::HashMap;
