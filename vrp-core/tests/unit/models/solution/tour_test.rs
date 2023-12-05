@@ -12,8 +12,8 @@ fn get_memory_address(activity: &Activity) -> usize {
 
 fn get_test_tour() -> Tour {
     let mut tour = Tour::default();
-    tour.set_start(test_activity_without_job());
-    tour.set_end(test_activity_without_job());
+    tour.set_start(ActivityBuilder::default().job(None).build());
+    tour.set_end(ActivityBuilder::default().job(None).build());
     tour.insert_last(ActivityBuilder::default().build());
     tour.insert_last(ActivityBuilder::default().build());
 
@@ -29,7 +29,7 @@ fn compare_legs(left: &RouteLeg, right: &RouteLeg) {
 
 #[test]
 fn can_set_and_get_start() {
-    let activity = test_activity_without_job();
+    let activity = ActivityBuilder::default().job(None).build();
     let mut tour = Tour::default();
 
     tour.set_start(activity);
@@ -42,9 +42,9 @@ fn can_set_and_get_start() {
 
 #[test]
 fn can_set_and_get_end() {
-    let activity = test_activity_without_job();
+    let activity = ActivityBuilder::default().job(None).build();
     let mut tour = Tour::default();
-    tour.set_start(test_activity_without_job());
+    tour.set_start(ActivityBuilder::default().job(None).build());
 
     tour.set_end(activity);
     let pointer = get_memory_address(&tour.activities[1]);
@@ -67,7 +67,7 @@ can_insert_at_specific_position! {
 }
 
 fn can_insert_at_specific_position_impl(position: usize) {
-    let activity = test_activity_with_location(42);
+    let activity = ActivityBuilder::with_location(42).build();
     let mut tour = get_test_tour();
 
     tour.insert_at(activity, position);
@@ -77,7 +77,7 @@ fn can_insert_at_specific_position_impl(position: usize) {
 
 #[test]
 fn can_insert_at_last_position() {
-    let activity = test_activity_with_location(42);
+    let activity = ActivityBuilder::with_location(42).build();
     let mut tour = get_test_tour();
 
     tour.insert_last(activity);
@@ -101,7 +101,7 @@ fn can_remove_job() {
 fn can_get_activities_for_job() {
     let mut tour = get_test_tour();
     let job = Arc::new(test_single());
-    let activity = test_activity_with_job(job.clone());
+    let activity = ActivityBuilder::default().job(Some(job.clone())).build();
 
     tour.insert_at(activity, 2);
     let pointer = get_memory_address(&tour.activities[2]);
@@ -116,8 +116,8 @@ fn can_get_activities_for_job() {
 
 #[test]
 fn can_get_legs() {
-    let start = test_activity_without_job();
-    let end = test_activity_without_job();
+    let start = ActivityBuilder::default().job(None).build();
+    let end = ActivityBuilder::default().job(None).build();
     let a1 = ActivityBuilder::default().build();
     let a2 = ActivityBuilder::default().build();
 
@@ -146,13 +146,13 @@ fn can_get_legs() {
 #[test]
 fn can_get_job_index() {
     let mut tour = Tour::default();
-    tour.set_start(test_activity_without_job());
-    tour.set_end(test_activity_without_job());
+    tour.set_start(ActivityBuilder::default().job(None).build());
+    tour.set_end(ActivityBuilder::default().job(None).build());
     let job = Arc::new(test_single());
     tour.insert_last(ActivityBuilder::default().build());
-    tour.insert_last(test_activity_with_job(job.clone()));
+    tour.insert_last(ActivityBuilder::default().job(Some(job.clone())).build());
     tour.insert_last(ActivityBuilder::default().build());
-    tour.insert_last(test_activity_with_job(job.clone()));
+    tour.insert_last(ActivityBuilder::default().job(Some(job.clone())).build());
     tour.insert_last(ActivityBuilder::default().build());
 
     let index = tour.index(&Job::Single(job));
@@ -165,11 +165,11 @@ fn can_get_job_index() {
 fn can_get_activity_and_job_count() {
     let mut tour = Tour::default();
 
-    tour.set_start(test_activity_without_job());
+    tour.set_start(ActivityBuilder::default().job(None).build());
     assert_eq!(tour.job_activity_count(), 0);
     assert_eq!(tour.job_count(), 0);
 
-    tour.set_end(test_activity_without_job());
+    tour.set_end(ActivityBuilder::default().job(None).build());
     assert_eq!(tour.job_activity_count(), 0);
     assert_eq!(tour.job_count(), 0);
 
@@ -182,8 +182,8 @@ fn can_get_activity_and_job_count() {
 fn can_get_start_and_end() {
     let mut tour = Tour::default();
 
-    tour.set_start(test_activity_without_job());
-    tour.set_end(test_activity_without_job());
+    tour.set_start(ActivityBuilder::default().job(None).build());
+    tour.set_end(ActivityBuilder::default().job(None).build());
     tour.insert_last(ActivityBuilder::default().build());
     tour.insert_last(ActivityBuilder::default().build());
 

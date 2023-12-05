@@ -1,7 +1,7 @@
 use super::*;
 use crate::helpers::models::domain::{create_empty_solution_context, create_registry_context};
 use crate::helpers::models::problem::{test_driver, test_vehicle_with_id, FleetBuilder, SingleBuilder};
-use crate::helpers::models::solution::{test_activity_with_job, RouteBuilder, RouteContextBuilder};
+use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Dimensions;
 use crate::models::problem::{Fleet, Multi};
@@ -21,7 +21,9 @@ fn create_route_with_jobs_activities(
     let activities_per_job = activities / jobs;
     let left_overs = activities - activities_per_job * jobs;
     let get_activity = |job_idx: usize| {
-        test_activity_with_job(SingleBuilder::default().id(format!("{job_idx}").as_str()).build_shared())
+        ActivityBuilder::default()
+            .job(Some(SingleBuilder::default().id(format!("{job_idx}").as_str()).build_shared()))
+            .build()
     };
     // NOTE need to keep multi-jobs somewhere to keep weak reference in sub-jobs alive
     let mut multi_jobs = Vec::new();
@@ -36,7 +38,13 @@ fn create_route_with_jobs_activities(
                     .collect::<Vec<_>>();
                 let multi = Multi::new_shared(singles, Dimensions::default());
                 multi_jobs.push(multi.clone());
-                multi.jobs.iter().cloned().map(test_activity_with_job).collect::<Vec<_>>().into_iter()
+                multi
+                    .jobs
+                    .iter()
+                    .cloned()
+                    .map(|single| ActivityBuilder::default().job(Some(single)).build())
+                    .collect::<Vec<_>>()
+                    .into_iter()
             } else {
                 once(get_activity(job_idx)).collect::<Vec<_>>().into_iter()
             }

@@ -41,7 +41,7 @@ mod activity {
             .with_route(
                 RouteBuilder::default()
                     .with_vehicle(&test_fleet(), "v1")
-                    .add_activities((0..activities).map(|idx| test_activity_with_location(idx as Location)))
+                    .add_activities((0..activities).map(|idx| ActivityBuilder::with_location(idx).build()))
                     .build(),
             )
             .build();
@@ -140,9 +140,9 @@ mod traveling {
             &route_ctx,
             &ActivityContext {
                 index: 0,
-                prev: &test_activity_with_location(50),
-                target: &test_activity_with_location(location),
-                next: Some(&test_activity_with_location(50)),
+                prev: &ActivityBuilder::with_location(50).build(),
+                target: &ActivityBuilder::with_location(location).build(),
+                next: Some(&ActivityBuilder::with_location(50).build()),
             },
         ));
 
@@ -157,9 +157,9 @@ mod traveling {
             &route_ctx,
             &ActivityContext {
                 index: 0,
-                prev: &test_activity_with_location(50),
-                target: &test_activity_with_location_and_tw(75, TimeWindow::new(100., 100.)),
-                next: Some(&test_activity_with_location(50)),
+                prev: &ActivityBuilder::with_location(50).build(),
+                target: &ActivityBuilder::with_location_and_tw(75, TimeWindow::new(100., 100.)).build(),
+                next: Some(&ActivityBuilder::with_location(50).build()),
             },
         ));
 

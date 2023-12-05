@@ -24,6 +24,10 @@ fn create_constraint_violation(stopped: bool) -> Option<ConstraintViolation> {
     Some(ConstraintViolation { code: VIOLATION_CODE, stopped })
 }
 
+fn create_activity_with_simple_demand(size: i32) -> Activity {
+    ActivityBuilder::default().job(Some(test_single_with_simple_demand(create_simple_demand(size)))).build()
+}
+
 fn get_simple_capacity_state(key: i32, state: &RouteState, activity: Option<&Activity>) -> i32 {
     state.get_activity_state::<SingleDimLoad>(key, activity.unwrap()).expect("expect single capacity").value
 }
@@ -54,9 +58,9 @@ fn can_calculate_current_capacity_state_values_impl(
         .with_route(
             RouteBuilder::default()
                 .with_vehicle(&fleet, "v1")
-                .add_activity(test_activity_with_job(test_single_with_simple_demand(create_simple_demand(s1))))
-                .add_activity(test_activity_with_job(test_single_with_simple_demand(create_simple_demand(s2))))
-                .add_activity(test_activity_with_job(test_single_with_simple_demand(create_simple_demand(s3))))
+                .add_activity(create_activity_with_simple_demand(s1))
+                .add_activity(create_activity_with_simple_demand(s2))
+                .add_activity(create_activity_with_simple_demand(s3))
                 .build(),
         )
         .build();
@@ -122,21 +126,16 @@ fn can_evaluate_demand_on_activity_impl(
         .with_route(
             RouteBuilder::default()
                 .with_vehicle(&fleet, "v1")
-                .add_activities(
-                    sizes
-                        .into_iter()
-                        .map(|size| test_activity_with_job(test_single_with_simple_demand(create_simple_demand(size)))),
-                )
+                .add_activities(sizes.into_iter().map(create_activity_with_simple_demand))
                 .build(),
         )
         .build();
     let feature = create_feature();
     feature.state.unwrap().accept_route_state(&mut route_ctx);
-    let target = test_activity_with_job(test_single_with_simple_demand(create_simple_demand(size)));
     let activity_ctx = ActivityContext {
         index: 0,
         prev: route_ctx.route().tour.get(neighbours.0).unwrap(),
-        target: &target,
+        target: &create_activity_with_simple_demand(size),
         next: route_ctx.route().tour.get(neighbours.1),
     };
 

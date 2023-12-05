@@ -55,9 +55,9 @@ mod timing {
             .with_route(
                 RouteBuilder::default()
                     .with_vehicle(&fleet, "v1")
-                    .add_activity(test_activity_with_location(10))
-                    .add_activity(test_activity_with_location(20))
-                    .add_activity(test_activity_with_location(30))
+                    .add_activity(ActivityBuilder::with_location(10).build())
+                    .add_activity(ActivityBuilder::with_location(20).build())
+                    .add_activity(ActivityBuilder::with_location(30).build())
                     .build(),
             )
             .build();
@@ -122,7 +122,7 @@ mod timing {
         feature.state.unwrap().accept_route_state(&mut route_ctx);
 
         let prev = route_ctx.route().tour.get(prev_index).unwrap();
-        let target = test_activity_with_location(location);
+        let target = ActivityBuilder::with_location(location).build();
         let next = route_ctx.route().tour.get(next_index);
         let activity_ctx = ActivityContext { index: 0, prev, target: &target, next };
 

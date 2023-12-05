@@ -41,9 +41,9 @@ fn can_advance_departure_time_impl(
             .with_route(
                 RouteBuilder::default()
                     .with_vehicle(&fleet, "v1")
-                    .add_activity(test_activity_with_location_and_tw(10, tw1.clone()))
-                    .add_activity(test_activity_with_location_and_tw(20, tw2.clone()))
-                    .add_activity(test_activity_with_location_and_tw(30, tw3.clone()))
+                    .add_activity(ActivityBuilder::with_location_and_tw(10, tw1.clone()).build())
+                    .add_activity(ActivityBuilder::with_location_and_tw(20, tw2.clone()).build())
+                    .add_activity(ActivityBuilder::with_location_and_tw(30, tw3.clone()).build())
                     .build(),
             )
             .build();
@@ -96,7 +96,7 @@ fn can_recede_departure_time_impl(
         .with_route(
             RouteBuilder::default()
                 .with_vehicle(&fleet, "v1")
-                .add_activity(test_activity_with_location_and_tw(10, tw))
+                .add_activity(ActivityBuilder::with_location_and_tw(10, tw).build())
                 .build(),
         )
         .build();

@@ -85,8 +85,8 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
                 .with_route(
                     RouteBuilder::default()
                         .with_vehicle(new_problem.fleet.as_ref(), "v1")
-                        .with_start(test_activity_with_schedule(Schedule::new(0., 0.)))
-                        .with_end(test_activity_with_schedule(Schedule::new(0., 0.)))
+                        .with_start(ActivityBuilder::default().schedule(Schedule::new(0., 0.)).job(None).build())
+                        .with_end(ActivityBuilder::default().schedule(Schedule::new(0., 0.)).job(None).build())
                         .add_activity(Activity {
                             place: Place {
                                 idx: 0,

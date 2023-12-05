@@ -8,84 +8,6 @@ use std::sync::Arc;
 
 pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arrival: 0.0 };
 
-pub fn test_activity_with_location(location: Location) -> Activity {
-    Activity {
-        place: Place { idx: 0, location, duration: DEFAULT_JOB_DURATION, time: DEFAULT_ACTIVITY_TIME_WINDOW },
-        schedule: Schedule::new(location as f64, location as f64 + DEFAULT_JOB_DURATION),
-        job: Some(test_single_with_location(Some(location))),
-        commute: None,
-    }
-}
-
-pub fn test_activity_with_location_and_duration(location: Location, duration: Duration) -> Activity {
-    Activity {
-        place: Place { idx: 0, location, duration, time: DEFAULT_ACTIVITY_TIME_WINDOW },
-        schedule: Schedule::new(location as f64, location as f64 + DEFAULT_JOB_DURATION),
-        job: Some(test_single_with_location(Some(location))),
-        commute: None,
-    }
-}
-
-pub fn test_activity_with_location_and_tw(location: Location, tw: TimeWindow) -> Activity {
-    Activity {
-        place: Place { idx: 0, location, duration: DEFAULT_JOB_DURATION, time: tw },
-        schedule: Schedule::new(location as f64, location as f64 + DEFAULT_JOB_DURATION),
-        job: Some(test_single_with_location(Some(location))),
-        commute: None,
-    }
-}
-
-pub fn test_activity_with_location_tw_and_duration(location: Location, tw: TimeWindow, duration: Duration) -> Activity {
-    Activity {
-        place: Place { idx: 0, location, duration, time: tw },
-        schedule: Schedule::new(location as f64, location as f64 + duration),
-        job: Some(test_single_with_location(Some(location))),
-        commute: None,
-    }
-}
-
-pub fn test_activity_with_schedule(schedule: Schedule) -> Activity {
-    Activity {
-        place: Place {
-            idx: 0,
-            location: DEFAULT_JOB_LOCATION,
-            duration: DEFAULT_JOB_DURATION,
-            time: DEFAULT_ACTIVITY_TIME_WINDOW,
-        },
-        schedule,
-        job: None,
-        commute: None,
-    }
-}
-
-pub fn test_activity_with_job(job: Arc<Single>) -> Activity {
-    Activity {
-        place: Place {
-            idx: 0,
-            location: DEFAULT_JOB_LOCATION,
-            duration: DEFAULT_JOB_DURATION,
-            time: DEFAULT_ACTIVITY_TIME_WINDOW,
-        },
-        schedule: DEFAULT_ACTIVITY_SCHEDULE,
-        job: Some(job),
-        commute: None,
-    }
-}
-
-pub fn test_activity_without_job() -> Activity {
-    Activity {
-        place: Place {
-            idx: 0,
-            location: DEFAULT_JOB_LOCATION,
-            duration: DEFAULT_JOB_DURATION,
-            time: DEFAULT_ACTIVITY_TIME_WINDOW,
-        },
-        schedule: DEFAULT_ACTIVITY_SCHEDULE,
-        job: None,
-        commute: None,
-    }
-}
-
 pub struct RouteContextBuilder(RouteContext);
 
 impl Default for RouteContextBuilder {
@@ -182,6 +104,23 @@ impl Default for ActivityBuilder {
 }
 
 impl ActivityBuilder {
+    pub fn with_location(location: Location) -> Self {
+        Self::with_location_tw_and_duration(location, DEFAULT_ACTIVITY_TIME_WINDOW, DEFAULT_JOB_DURATION)
+    }
+
+    pub fn with_location_and_tw(location: Location, tw: TimeWindow) -> Self {
+        Self::with_location_tw_and_duration(location, tw, DEFAULT_JOB_DURATION)
+    }
+
+    pub fn with_location_tw_and_duration(location: Location, tw: TimeWindow, duration: Duration) -> Self {
+        Self(Activity {
+            place: Place { idx: 0, location, duration, time: tw },
+            schedule: Schedule::new(location as f64, location as f64 + duration),
+            job: Some(test_single_with_location(Some(location))),
+            commute: None,
+        })
+    }
+
     pub fn place(&mut self, place: Place) -> &mut Self {
         self.0.place = place;
         self
@@ -215,5 +154,15 @@ fn create_route(actor: Arc<Actor>, mut tour: Tour, activities: Vec<Activity>) ->
 }
 
 fn test_activity() -> Activity {
-    test_activity_with_job(Arc::new(test_single()))
+    Activity {
+        place: Place {
+            idx: 0,
+            location: DEFAULT_JOB_LOCATION,
+            duration: DEFAULT_JOB_DURATION,
+            time: DEFAULT_ACTIVITY_TIME_WINDOW,
+        },
+        schedule: DEFAULT_ACTIVITY_SCHEDULE,
+        job: Some(Arc::new(test_single())),
+        commute: None,
+    }
 }

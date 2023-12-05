@@ -2,7 +2,7 @@ use super::*;
 use crate::construction::features::*;
 use crate::helpers::construction::features::create_goal_ctx_with_features;
 use crate::helpers::models::domain::create_empty_insertion_context;
-use crate::helpers::models::solution::{test_activity_without_job, test_actor};
+use crate::helpers::models::solution::{test_actor, ActivityBuilder};
 use crate::models::common::SingleDimLoad;
 
 fn create_constraint_feature(name: &str, violation: Option<ConstraintViolation>) -> Feature {
@@ -97,8 +97,8 @@ pub fn can_evaluate_constraints() {
     let route_ctx = RouteContext::new(test_actor());
     let activity_ctx = ActivityContext {
         index: 0,
-        prev: &test_activity_without_job(),
-        target: &test_activity_without_job(),
+        prev: &ActivityBuilder::default().job(None).build(),
+        target: &ActivityBuilder::default().job(None).build(),
         next: None,
     };
     let move_ctx = MoveContext::activity(&route_ctx, &activity_ctx);
@@ -160,8 +160,8 @@ fn can_use_objective_estimate_impl(feature_names: &[&str], feature_map: &[Vec<&s
     let route_ctx = RouteContext::new(test_actor());
     let activity_ctx = ActivityContext {
         index: 0,
-        prev: &test_activity_without_job(),
-        target: &test_activity_without_job(),
+        prev: &ActivityBuilder::default().job(None).build(),
+        target: &ActivityBuilder::default().job(None).build(),
         next: None,
     };
     let move_ctx = MoveContext::activity(&route_ctx, &activity_ctx);

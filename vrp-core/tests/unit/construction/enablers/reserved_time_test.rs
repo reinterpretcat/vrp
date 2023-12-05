@@ -83,7 +83,7 @@ fn create_feature_and_route(
     let (location_start, location_end, time_start, time_end) = vehicle_detail_data;
 
     let activities = activities.into_iter().map(|(loc, (start, end), dur)| {
-        test_activity_with_location_tw_and_duration(loc, TimeWindow::new(start, end), dur)
+        ActivityBuilder::with_location_tw_and_duration(loc, TimeWindow::new(start, end), dur).build()
     });
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
@@ -245,7 +245,7 @@ fn can_evaluate_activity_impl(
     let (feature_constraint, feature_state) = (feature.constraint.unwrap(), feature.state.unwrap());
     let (loc, (start, end), dur) = target;
     let prev = route_ctx.route().tour.get(0).unwrap();
-    let target = test_activity_with_location_tw_and_duration(loc, TimeWindow::new(start, end), dur);
+    let target = ActivityBuilder::with_location_tw_and_duration(loc, TimeWindow::new(start, end), dur).build();
     let next = route_ctx.route().tour.get(1);
     let activity_ctx = ActivityContext { index: 1, prev, target: &target, next };
 
