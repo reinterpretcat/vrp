@@ -96,7 +96,7 @@ mod costs {
 mod debug {
     use super::*;
     use crate::helpers::models::problem::SingleBuilder;
-    use crate::helpers::models::solution::{create_empty_route_ctx, test_activity};
+    use crate::helpers::models::solution::{test_activity, RouteContextBuilder};
 
     #[test]
     fn can_use_debug_fmt_for_insertion_cost() {
@@ -125,7 +125,7 @@ mod debug {
             InsertionCost::new(&[1., 2., 3.]),
             SingleBuilder::default().build_as_job_ref(),
             vec![(test_activity(), 1)],
-            &create_empty_route_ctx(),
+            &RouteContextBuilder::default().build(),
         );
 
         let result = format!("{result:?}");

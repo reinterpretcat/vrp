@@ -36,7 +36,9 @@ fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<Co
         false,
     ))];
     let solution_ctx = create_empty_solution_context();
-    let route_ctx = create_route_context_with_activities(&fleet, used.as_str(), vec![]);
+    let route_ctx = RouteContextBuilder::default()
+        .with_route(RouteBuilder::default().with_vehicle(&fleet, used.as_str()).build())
+        .build();
     let constraint = create_feature_constraint(&fleet, &locks);
 
     let result = constraint.evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));
@@ -171,7 +173,7 @@ fn can_lock_jobs_to_position_in_tour_impl(
     let constraint = create_feature_constraint(&fleet, &locks);
 
     let result = constraint.evaluate(&MoveContext::activity(
-        &create_route_context_with_activities(&fleet, "v1", vec![]),
+        &RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build(),
         &ActivityContext {
             index: 0,
             prev: &prev,

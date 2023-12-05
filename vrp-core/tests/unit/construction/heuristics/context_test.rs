@@ -85,13 +85,13 @@ fn can_remove_activity_states() {
 
 #[test]
 fn can_use_stale_flag() {
-    let mut route_ctx = create_empty_route_ctx();
+    let mut route_ctx = RouteContextBuilder::default().build();
 
     assert!(route_ctx.is_stale());
     route_ctx.mark_stale(false);
     assert!(!route_ctx.is_stale());
 
-    let mut route_ctx = create_empty_route_ctx();
+    let mut route_ctx = RouteContextBuilder::default().build();
     route_ctx.mark_stale(false);
     let _ = route_ctx.as_mut();
     assert!(route_ctx.is_stale());
@@ -103,7 +103,9 @@ fn can_use_debug_fmt_for_insertion_ctx() {
     let mut insertion_ctx = create_insertion_context(
         Registry::new(&fleet, test_random()),
         create_goal_ctx_with_transport(),
-        vec![create_route_context_with_activities(&fleet, "v1", vec![test_activity()])],
+        vec![RouteContextBuilder::default()
+            .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").add_activity(test_activity()).build())
+            .build()],
     );
     insertion_ctx.solution.unassigned.insert(SingleBuilder::default().build_as_job_ref(), UnassignmentInfo::Unknown);
 

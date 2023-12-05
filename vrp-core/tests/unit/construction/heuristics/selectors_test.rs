@@ -1,7 +1,7 @@
 use super::*;
 use crate::helpers::models::domain::create_empty_insertion_context;
 use crate::helpers::models::problem::test_single_with_id;
-use crate::helpers::models::solution::create_empty_route_ctx;
+use crate::helpers::models::solution::RouteContextBuilder;
 use crate::helpers::solver::generate_matrix_routes_with_defaults;
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Cost;
@@ -15,7 +15,7 @@ mod noise_checks {
             InsertionCost::new(&[cost]),
             Job::Single(test_single_with_id("job1")),
             vec![],
-            &create_empty_route_ctx(),
+            &RouteContextBuilder::default().build(),
         )
     }
 
@@ -131,7 +131,7 @@ mod positions {
     fn can_decide_how_to_fold_impl(jobs: usize, routes: usize, expected_result: bool) {
         let insertion_ctx = InsertionContext {
             solution: SolutionContext {
-                routes: (0..routes).map(|_| create_empty_route_ctx()).collect(),
+                routes: (0..routes).map(|_| RouteContextBuilder::default().build()).collect(),
                 required: (0..jobs).map(|_| SingleBuilder::default().build_as_job_ref()).collect(),
                 ..create_empty_solution_context()
             },

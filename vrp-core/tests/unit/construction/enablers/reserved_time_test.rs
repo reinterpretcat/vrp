@@ -44,7 +44,7 @@ fn can_search_for_reserved_time_impl(
     times: Vec<((Timestamp, Timestamp), Duration)>,
     tests: Vec<((Timestamp, Timestamp), Option<usize>)>,
 ) {
-    let route_ctx = create_empty_route_ctx();
+    let route_ctx = RouteContextBuilder::default().build();
     let reserved_times = vec![(
         route_ctx.route().actor.clone(),
         times
@@ -82,13 +82,9 @@ fn create_feature_and_route(
 ) -> (ReservedTimesFn, Feature, RouteContext) {
     let (location_start, location_end, time_start, time_end) = vehicle_detail_data;
 
-    let activities = activities
-        .into_iter()
-        .map(|(loc, (start, end), dur)| {
-            test_activity_with_location_tw_and_duration(loc, TimeWindow::new(start, end), dur)
-        })
-        .collect();
-
+    let activities = activities.into_iter().map(|(loc, (start, end), dur)| {
+        test_activity_with_location_tw_and_duration(loc, TimeWindow::new(start, end), dur)
+    });
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicles(vec![VehicleBuilder::default()
@@ -98,7 +94,9 @@ fn create_feature_and_route(
         .build();
     let reserved_times_idx =
         vec![(fleet.actors.first().unwrap().clone(), vec![reserved_time])].into_iter().collect::<HashMap<_, _>>();
-    let mut route_ctx = create_route_context_with_activities(&fleet, "v1", activities);
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").add_activities(activities).build())
+        .build();
     let feature = create_minimize_transport_costs_feature(
         "minimize_costs",
         Arc::new(

@@ -51,11 +51,16 @@ mod timing {
                 .details(vec![create_detail((Some(location_start), Some(location_end)), Some((time_start, time_end)))])
                 .build()])
             .build();
-        let route_ctx = create_route_context_with_activities(
-            &fleet,
-            "v1",
-            vec![test_activity_with_location(10), test_activity_with_location(20), test_activity_with_location(30)],
-        );
+        let route_ctx = RouteContextBuilder::default()
+            .with_route(
+                RouteBuilder::default()
+                    .with_vehicle(&fleet, "v1")
+                    .add_activity(test_activity_with_location(10))
+                    .add_activity(test_activity_with_location(20))
+                    .add_activity(test_activity_with_location(30))
+                    .build(),
+            )
+            .build();
 
         (create_feature(), route_ctx)
     }
@@ -133,25 +138,35 @@ mod timing {
             .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
             .build();
         let mut solution_ctx = SolutionContext {
-            routes: vec![create_route_context_with_activities(
-                &fleet,
-                "v1",
-                vec![
-                    ActivityBuilder::default()
-                        .place(Place { idx: 0, location: 10, duration: 5., time: TimeWindow { start: 20., end: 30. } })
-                        .schedule(Schedule::new(10., 25.))
+            routes: vec![RouteContextBuilder::default()
+                .with_route(
+                    RouteBuilder::default()
+                        .with_vehicle(&fleet, "v1")
+                        .add_activity(
+                            ActivityBuilder::default()
+                                .place(Place {
+                                    idx: 0,
+                                    location: 10,
+                                    duration: 5.,
+                                    time: TimeWindow { start: 20., end: 30. },
+                                })
+                                .schedule(Schedule::new(10., 25.))
+                                .build(),
+                        )
+                        .add_activity(
+                            ActivityBuilder::default()
+                                .place(Place {
+                                    idx: 0,
+                                    location: 20,
+                                    duration: 10.,
+                                    time: TimeWindow { start: 50., end: 100. },
+                                })
+                                .schedule(Schedule::new(35., 60.))
+                                .build(),
+                        )
                         .build(),
-                    ActivityBuilder::default()
-                        .place(Place {
-                            idx: 0,
-                            location: 20,
-                            duration: 10.,
-                            time: TimeWindow { start: 50., end: 100. },
-                        })
-                        .schedule(Schedule::new(35., 60.))
-                        .build(),
-                ],
-            )],
+                )
+                .build()],
             registry: create_registry_context(&fleet),
             ..create_empty_solution_context()
         };
@@ -169,7 +184,9 @@ mod timing {
             .add_driver(test_driver_with_costs(empty_costs()))
             .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
             .build();
-        let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
+        let route_ctx = RouteContextBuilder::default()
+            .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
+            .build();
         let target = Box::new(Activity {
             place: Place { idx: 0, location: 5, duration: 1.0, time: DEFAULT_ACTIVITY_TIME_WINDOW },
             schedule: DEFAULT_ACTIVITY_SCHEDULE,
@@ -194,19 +211,34 @@ mod timing {
             .add_driver(test_driver_with_costs(empty_costs()))
             .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
             .build();
-        let route_ctx = create_route_context_with_activities(
-            &fleet,
-            "v1",
-            vec![
-                ActivityBuilder::default()
-                    .place(Place { idx: 0, location: 10, duration: 0.0, time: DEFAULT_ACTIVITY_TIME_WINDOW.clone() })
-                    .schedule(Schedule { arrival: 0.0, departure: 10.0 })
+        let route_ctx = RouteContextBuilder::default()
+            .with_route(
+                RouteBuilder::default()
+                    .with_vehicle(&fleet, "v1")
+                    .add_activity(
+                        ActivityBuilder::default()
+                            .place(Place {
+                                idx: 0,
+                                location: 10,
+                                duration: 0.0,
+                                time: DEFAULT_ACTIVITY_TIME_WINDOW.clone(),
+                            })
+                            .schedule(Schedule { arrival: 0.0, departure: 10.0 })
+                            .build(),
+                    )
+                    .add_activity(
+                        ActivityBuilder::default()
+                            .place(Place {
+                                idx: 0,
+                                location: 20,
+                                duration: 0.0,
+                                time: TimeWindow { start: 40.0, end: 70.0 },
+                            })
+                            .build(),
+                    )
                     .build(),
-                ActivityBuilder::default()
-                    .place(Place { idx: 0, location: 20, duration: 0.0, time: TimeWindow { start: 40.0, end: 70.0 } })
-                    .build(),
-            ],
-        );
+            )
+            .build();
         let target = Box::new(Activity {
             place: Place { idx: 0, location: 30, duration: 10.0, time: DEFAULT_ACTIVITY_TIME_WINDOW },
             schedule: DEFAULT_ACTIVITY_SCHEDULE,
@@ -232,7 +264,9 @@ mod timing {
             .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
             .build();
         let solution_ctx = create_empty_solution_context();
-        let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
+        let route_ctx = RouteContextBuilder::default()
+            .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
+            .build();
         let job = SingleBuilder::default().times(vec![TimeWindow::new(2000., 3000.)]).build_as_job_ref();
 
         let result =

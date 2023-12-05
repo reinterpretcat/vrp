@@ -2,7 +2,7 @@ use crate::construction::heuristics::{InsertionContext, SolutionContext, Unassig
 use crate::helpers::construction::features::create_goal_ctx_with_transport;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
-use crate::helpers::models::solution::create_route_context_with_activities;
+use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
 use crate::models::common::{IdDimension, TimeWindow};
 use crate::models::problem::Job;
 use crate::solver::processing::UnassignmentReason;
@@ -17,8 +17,8 @@ fn create_test_insertion_ctx(unassigned: Vec<(Job, UnassignmentInfo)>) -> Insert
         .add_vehicle(test_vehicle_with_id("v2"))
         .build();
     let routes = vec![
-        create_route_context_with_activities(&fleet, "v1", vec![]),
-        create_route_context_with_activities(&fleet, "v2", vec![]),
+        RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build(),
+        RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v2").build()).build(),
     ];
     let mut insertion_ctx = InsertionContext {
         problem: create_problem_with_goal_ctx_jobs_and_fleet(

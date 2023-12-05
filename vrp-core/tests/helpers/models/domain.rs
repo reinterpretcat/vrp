@@ -2,7 +2,7 @@ use crate::construction::features::*;
 use crate::construction::heuristics::{InsertionContext, RegistryContext, SolutionContext, UnassignmentInfo};
 use crate::helpers::construction::features::create_goal_ctx_with_transport;
 use crate::helpers::models::problem::*;
-use crate::helpers::models::solution::create_route_context_with_activities;
+use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
 use crate::models::common::{Cost, IdDimension};
 use crate::models::examples::create_example_problem;
 use crate::models::problem::{Fleet, Job, Jobs};
@@ -84,8 +84,9 @@ pub fn create_simple_insertion_ctx(distance: f64, unassigned: usize) -> Insertio
     let problem = create_example_problem();
 
     let mut insertion_ctx = create_empty_insertion_context();
-
-    let mut route_ctx = create_route_context_with_activities(problem.fleet.as_ref(), "v1", vec![]);
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(RouteBuilder::default().with_vehicle(problem.fleet.as_ref(), "v1").build())
+        .build();
 
     route_ctx.state_mut().put_route_state(TOTAL_DISTANCE_KEY, distance);
     route_ctx.state_mut().put_route_state(TOTAL_DURATION_KEY, 0.);

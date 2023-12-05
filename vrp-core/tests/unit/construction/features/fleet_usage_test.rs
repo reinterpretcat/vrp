@@ -8,7 +8,9 @@ fn create_test_insertion_ctx(routes: &[f64]) -> InsertionContext {
     let problem = insertion_ctx.problem.clone();
 
     routes.iter().for_each(|arrival| {
-        let mut route_ctx = create_route_context_with_activities(problem.fleet.as_ref(), "v1", vec![]);
+        let mut route_ctx = RouteContextBuilder::default()
+            .with_route(RouteBuilder::default().with_vehicle(problem.fleet.as_ref(), "v1").build())
+            .build();
         route_ctx.route_mut().tour.all_activities_mut().last().unwrap().schedule.arrival = *arrival;
 
         insertion_ctx.solution.routes.push(route_ctx);

@@ -90,43 +90,91 @@ pub fn test_activity_without_job() -> Activity {
     }
 }
 
-pub fn create_route_with_start_end_activities(
-    fleet: &Fleet,
-    vehicle: &str,
-    start: Activity,
-    end: Activity,
-    activities: Vec<Activity>,
-) -> Route {
-    let mut tour = Tour::default();
-    tour.set_start(start);
-    tour.set_end(end);
+pub struct RouteContextBuilder(RouteContext);
 
-    create_route(get_test_actor_from_fleet(fleet, vehicle), tour, activities)
+impl Default for RouteContextBuilder {
+    fn default() -> Self {
+        Self(create_empty_route_ctx())
+    }
 }
 
-pub fn create_empty_route_ctx() -> RouteContext {
-    RouteContext::new_with_state(create_route(test_actor(), Tour::default(), vec![]), RouteState::default())
+impl RouteContextBuilder {
+    pub fn with_route(&mut self, route: Route) -> &mut Self {
+        *self.0.route_mut() = route;
+        self
+    }
+
+    pub fn with_state(&mut self, state: RouteState) -> &mut Self {
+        *self.0.state_mut() = state;
+        self
+    }
+
+    pub fn build(&mut self) -> RouteContext {
+        std::mem::replace(&mut self.0, create_empty_route_ctx())
+    }
 }
 
-pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {
-    let actor = get_test_actor_from_fleet(fleet, vehicle);
-    let tour = Tour::new(actor.as_ref());
+pub struct RouteBuilder(Route);
 
-    create_route(actor, tour, activities)
+impl Default for RouteBuilder {
+    fn default() -> Self {
+        Self(create_route(test_actor(), Tour::default(), vec![]))
+    }
 }
 
-pub fn create_route_context_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> RouteContext {
-    let route = create_route_with_activities(fleet, vehicle, activities);
+impl RouteBuilder {
+    /// Switches route to a vehicle with a given id from the fleet. Clears all changes in the tour done previously.
+    pub fn with_vehicle(&mut self, fleet: &Fleet, vehicle_id: &str) -> &mut Self {
+        let actor = get_test_actor_from_fleet(fleet, vehicle_id);
+        let tour = Tour::new(actor.as_ref());
 
-    RouteContext::new_with_state(route, RouteState::default())
-}
+        self.0 = create_route(actor, tour, vec![]);
+        self
+    }
 
-fn create_route(actor: Arc<Actor>, mut tour: Tour, activities: Vec<Activity>) -> Route {
-    activities.into_iter().enumerate().for_each(|(index, a)| {
-        tour.insert_at(a, index + 1);
-    });
+    /// Sets tour start. NOTE: clears all existing activities.
+    pub fn with_start(&mut self, start: Activity) -> &mut Self {
+        self.0.tour = Tour::default();
+        self.0.tour.set_start(start);
+        self
+    }
 
-    Route { actor, tour }
+    /// Sets tour end. NOTE: requires start to be set and no job activities are inserted.
+    pub fn with_end(&mut self, end: Activity) -> &mut Self {
+        self.0.tour.set_end(end);
+        self
+    }
+
+    /// Adds activities with jobs to the tour.
+    pub fn add_activities<I>(&mut self, activities: I) -> &mut Self
+    where
+        I: IntoIterator<Item = Activity>,
+    {
+        let start_idx = self.0.tour.job_activity_count() + 1;
+        activities.into_iter().enumerate().for_each(|(index, a)| {
+            self.0.tour.insert_at(a, start_idx + index);
+        });
+        self
+    }
+
+    pub fn add_activity(&mut self, activity: Activity) -> &mut Self {
+        self.0.tour.insert_last(activity);
+        self
+    }
+
+    pub fn with_activity<F>(&mut self, configure: F) -> &mut Self
+    where
+        F: FnOnce(&mut Activity),
+    {
+        let mut activity = test_activity();
+        configure(&mut activity);
+        self.0.tour.insert_last(activity);
+        self
+    }
+
+    pub fn build(&mut self) -> Route {
+        std::mem::replace(&mut self.0, RouteBuilder::default().0)
+    }
 }
 
 pub struct ActivityBuilder(Activity);
@@ -156,4 +204,16 @@ impl ActivityBuilder {
     pub fn build(&mut self) -> Activity {
         std::mem::replace(&mut self.0, test_activity())
     }
+}
+
+fn create_empty_route_ctx() -> RouteContext {
+    RouteContext::new_with_state(create_route(test_actor(), Tour::default(), vec![]), RouteState::default())
+}
+
+fn create_route(actor: Arc<Actor>, mut tour: Tour, activities: Vec<Activity>) -> Route {
+    activities.into_iter().enumerate().for_each(|(index, a)| {
+        tour.insert_at(a, index + 1);
+    });
+
+    Route { actor, tour }
 }

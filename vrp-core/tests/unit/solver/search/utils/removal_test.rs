@@ -1,7 +1,7 @@
 use super::*;
 use crate::helpers::models::domain::{create_empty_solution_context, create_registry_context};
 use crate::helpers::models::problem::{test_driver, test_vehicle_with_id, FleetBuilder, SingleBuilder};
-use crate::helpers::models::solution::{create_route_context_with_activities, test_activity_with_job};
+use crate::helpers::models::solution::{test_activity_with_job, RouteBuilder, RouteContextBuilder};
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Dimensions;
 use crate::models::problem::{Fleet, Multi};
@@ -41,10 +41,12 @@ fn create_route_with_jobs_activities(
                 once(get_activity(job_idx)).collect::<Vec<_>>().into_iter()
             }
         })
-        .chain((0..left_overs).map(|idx| get_activity(jobs + idx)))
-        .collect();
+        .chain((0..left_overs).map(|idx| get_activity(jobs + idx)));
 
-    let mut route_ctx = create_route_context_with_activities(fleet, vehicle.as_str(), activities);
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(RouteBuilder::default().with_vehicle(fleet, vehicle.as_str()).add_activities(activities).build())
+        .build();
+
     route_ctx.state_mut().put_route_state(0, multi_jobs);
 
     route_ctx

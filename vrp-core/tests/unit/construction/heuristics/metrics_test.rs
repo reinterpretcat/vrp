@@ -1,7 +1,7 @@
 use crate::construction::features::*;
 use crate::construction::heuristics::*;
 use crate::helpers::models::domain::create_empty_insertion_context;
-use crate::helpers::models::solution::create_empty_route_ctx;
+use crate::helpers::models::solution::RouteContextBuilder;
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 
@@ -12,7 +12,7 @@ fn create_insertion_ctx(route_amount: usize, route_factory: &(dyn Fn(usize) -> R
 }
 
 fn create_route_ctx_with_route_state(key: i32, value: f64) -> RouteContext {
-    let mut ctx = create_empty_route_ctx();
+    let mut ctx = RouteContextBuilder::default().build();
     ctx.state_mut().put_route_state(key, value);
     ctx
 }

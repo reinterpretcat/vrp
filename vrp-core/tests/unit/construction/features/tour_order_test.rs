@@ -1,5 +1,4 @@
 use super::*;
-use crate::construction::heuristics::RouteContext;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::{IdDimension, ValueDimension};
@@ -25,21 +24,18 @@ fn create_activity_for_job_with_order(id: &str, order: Option<f64>) -> Activity 
 #[test]
 fn can_get_violations() {
     let fleet = test_fleet();
+    let route_ctx = RouteContextBuilder::default()
+        .with_route(
+            RouteBuilder::default()
+                .with_vehicle(&fleet, "v1")
+                .add_activity(create_activity_for_job_with_order("job1", Some(2.)))
+                .add_activity(create_activity_for_job_with_order("job2", None))
+                .add_activity(create_activity_for_job_with_order("job3", Some(1.)))
+                .build(),
+        )
+        .build();
 
-    let route = RouteContext::new_with_state(
-        create_route_with_activities(
-            &fleet,
-            "v1",
-            vec![
-                create_activity_for_job_with_order("job1", Some(2.)),
-                create_activity_for_job_with_order("job2", None),
-                create_activity_for_job_with_order("job3", Some(1.)),
-            ],
-        ),
-        RouteState::default(),
-    );
-
-    let violations = get_violations(&[route], &get_order_fn());
+    let violations = get_violations(&[route_ctx], &get_order_fn());
 
     assert_eq!(violations, 1);
 }

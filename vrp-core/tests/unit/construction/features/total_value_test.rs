@@ -27,7 +27,7 @@ fn can_estimate_job_value_impl(value: f64, expected: f64) {
     .unwrap()
     .objective
     .unwrap();
-    let route_ctx = create_empty_route_ctx();
+    let route_ctx = RouteContextBuilder::default().build();
     let solution_ctx = create_empty_solution_context();
 
     let result =

@@ -37,15 +37,16 @@ fn can_advance_departure_time_impl(
                 ..test_vehicle_with_id("v1")
             })
             .build();
-        let route_ctx = create_route_context_with_activities(
-            &fleet,
-            "v1",
-            vec![
-                test_activity_with_location_and_tw(10, tw1.clone()),
-                test_activity_with_location_and_tw(20, tw2.clone()),
-                test_activity_with_location_and_tw(30, tw3.clone()),
-            ],
-        );
+        let route_ctx = RouteContextBuilder::default()
+            .with_route(
+                RouteBuilder::default()
+                    .with_vehicle(&fleet, "v1")
+                    .add_activity(test_activity_with_location_and_tw(10, tw1.clone()))
+                    .add_activity(test_activity_with_location_and_tw(20, tw2.clone()))
+                    .add_activity(test_activity_with_location_and_tw(30, tw3.clone()))
+                    .build(),
+            )
+            .build();
 
         let departure_time = try_advance_departure_time(&route_ctx, &TestTransportCost::default(), optimize_whole_tour);
 
@@ -91,8 +92,14 @@ fn can_recede_departure_time_impl(
             ..test_vehicle_with_id("v1")
         })
         .build();
-    let mut route_ctx =
-        create_route_context_with_activities(&fleet, "v1", vec![test_activity_with_location_and_tw(10, tw)]);
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(
+            RouteBuilder::default()
+                .with_vehicle(&fleet, "v1")
+                .add_activity(test_activity_with_location_and_tw(10, tw))
+                .build(),
+        )
+        .build();
     let (route, state) = route_ctx.as_mut();
     route.tour.get_mut(0).unwrap().schedule.departure = start_departure;
     let first = route.tour.get(1).unwrap();

@@ -4,7 +4,7 @@ use crate::construction::enablers::get_route_intervals;
 use crate::helpers::construction::features::create_simple_demand;
 use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
-use crate::helpers::models::solution::{create_route_context_with_activities, test_activity};
+use crate::helpers::models::solution::{test_activity, RouteBuilder, RouteContextBuilder};
 use crate::models::common::*;
 use crate::models::problem::{Fleet, Vehicle, VehicleDetail};
 
@@ -56,18 +56,16 @@ fn create_route_ctx(
     resources: &HashMap<usize, i32>,
     activities: &[ActivityType],
 ) -> RouteContext {
-    let activities = activities
-        .iter()
-        .map(|activity_type| match activity_type {
-            SharedResource(resource_id) => {
-                create_resource_activity(*resources.get(resource_id).unwrap(), Some(*resource_id))
-            }
-            NormalResource(capacity) => create_resource_activity(*capacity, None),
-            Usage(demand) => create_usage_activity(*demand),
-        })
-        .collect();
-
-    let mut route_ctx = create_route_context_with_activities(fleet, vehicle_id, activities);
+    let activities = activities.iter().map(|activity_type| match activity_type {
+        SharedResource(resource_id) => {
+            create_resource_activity(*resources.get(resource_id).unwrap(), Some(*resource_id))
+        }
+        NormalResource(capacity) => create_resource_activity(*capacity, None),
+        Usage(demand) => create_usage_activity(*demand),
+    });
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(RouteBuilder::default().with_vehicle(fleet, vehicle_id).add_activities(activities).build())
+        .build();
     let intervals = get_route_intervals(route_ctx.route(), |activity| {
         activity.job.as_ref().map_or(false, |job| {
             let capacity: Option<&SingleDimLoad> = job.dimens.get_capacity();

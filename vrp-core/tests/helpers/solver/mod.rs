@@ -4,7 +4,7 @@ use crate::construction::heuristics::MoveContext;
 use crate::helpers::construction::features::{create_goal_ctx_with_feature, create_goal_ctx_with_features};
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;
-use crate::helpers::models::solution::{create_route_with_activities, test_activity_with_job};
+use crate::helpers::models::solution::{test_activity_with_job, RouteBuilder};
 use crate::models::common::{Cost, IdDimension, Location};
 use crate::models::problem::*;
 use crate::models::solution::{Activity, Registry, Route};
@@ -122,7 +122,7 @@ pub fn generate_matrix_routes(
     let mut jobs: Vec<Job> = Default::default();
 
     (0..cols).for_each(|i| {
-        routes.push(create_route_with_activities(&fleet, i.to_string().as_str(), Default::default()));
+        routes.push(RouteBuilder::default().with_vehicle(fleet.as_ref(), i.to_string().as_str()).build());
         (0..rows).for_each(|j| {
             let index = i * rows + j;
 

@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::heuristics::{RouteContext, RouteState, SolutionContext, UnassignmentInfo};
+use crate::construction::heuristics::{SolutionContext, UnassignmentInfo};
 use crate::helpers::construction::clustering::vicinity::*;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
@@ -81,24 +81,29 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
     let insertion_ctx = InsertionContext {
         problem: new_problem.clone(),
         solution: SolutionContext {
-            routes: vec![RouteContext::new_with_state(
-                create_route_with_start_end_activities(
-                    new_problem.fleet.as_ref(),
-                    "v1",
-                    test_activity_with_schedule(Schedule::new(0., 0.)),
-                    test_activity_with_schedule(Schedule::new(0., 0.)),
-                    vec![Activity {
-                        place: Place { idx: 0, location: 3, duration: DEFAULT_JOB_DURATION * 3., time: clustered_time },
-                        schedule: Schedule::new(3., 3. + duration),
-                        job: Some(clustered_single),
-                        commute: Some(Commute {
-                            forward: CommuteInfo { location: 3, duration: 0., distance: 0. },
-                            backward: CommuteInfo { location: 3, duration: 0., distance: 0. },
-                        }),
-                    }],
-                ),
-                RouteState::default(),
-            )],
+            routes: vec![RouteContextBuilder::default()
+                .with_route(
+                    RouteBuilder::default()
+                        .with_vehicle(new_problem.fleet.as_ref(), "v1")
+                        .with_start(test_activity_with_schedule(Schedule::new(0., 0.)))
+                        .with_end(test_activity_with_schedule(Schedule::new(0., 0.)))
+                        .add_activity(Activity {
+                            place: Place {
+                                idx: 0,
+                                location: 3,
+                                duration: DEFAULT_JOB_DURATION * 3.,
+                                time: clustered_time,
+                            },
+                            schedule: Schedule::new(3., 3. + duration),
+                            job: Some(clustered_single),
+                            commute: Some(Commute {
+                                forward: CommuteInfo { location: 3, duration: 0., distance: 0. },
+                                backward: CommuteInfo { location: 3, duration: 0., distance: 0. },
+                            }),
+                        })
+                        .build(),
+                )
+                .build()],
             ..create_empty_solution_context()
         },
         ..create_empty_insertion_context()

@@ -37,11 +37,14 @@ mod activity {
             Job::Multi(test_multi_job_with_locations((0..job_size).map(|idx| vec![Some(idx as Location)]).collect()))
         };
         let solution_ctx = create_empty_solution_context();
-        let route_ctx = create_route_context_with_activities(
-            &test_fleet(),
-            "v1",
-            (0..activities).map(|idx| test_activity_with_location(idx as Location)).collect(),
-        );
+        let route_ctx = RouteContextBuilder::default()
+            .with_route(
+                RouteBuilder::default()
+                    .with_vehicle(&test_fleet(), "v1")
+                    .add_activities((0..activities).map(|idx| test_activity_with_location(idx as Location)))
+                    .build(),
+            )
+            .build();
         let constraint = create_activity_limit_feature("activity_limit", VIOLATION_CODE, Arc::new(move |_| limit))
             .unwrap()
             .constraint
@@ -63,7 +66,7 @@ mod traveling {
     const DURATION_CODE: ViolationCode = 3;
 
     fn create_test_data(
-        vehicle: &str,
+        vehicle_id: &str,
         target: &str,
         limit: (Option<Distance>, Option<Duration>),
     ) -> (Feature, RouteContext) {
@@ -72,7 +75,10 @@ mod traveling {
         state.put_route_state(TOTAL_DISTANCE_KEY, 50.);
         state.put_route_state(TOTAL_DURATION_KEY, 50.);
         let target = target.to_owned();
-        let route_ctx = RouteContext::new_with_state(create_route_with_activities(&fleet, vehicle, vec![]), state);
+        let route_ctx = RouteContextBuilder::default()
+            .with_route(RouteBuilder::default().with_vehicle(&fleet, vehicle_id).build())
+            .with_state(state)
+            .build();
         let transport = TestTransportCost::new_shared();
         let tour_distance_limit = Arc::new({
             let target = target.clone();

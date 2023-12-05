@@ -50,16 +50,16 @@ fn can_calculate_current_capacity_state_values_impl(
     exp_s3: i32,
 ) {
     let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
-    let mut route_ctx = create_route_context_with_activities(
-        &fleet,
-        "v1",
-        vec![
-            test_activity_with_job(test_single_with_simple_demand(create_simple_demand(s1))),
-            test_activity_with_job(test_single_with_simple_demand(create_simple_demand(s2))),
-            test_activity_with_job(test_single_with_simple_demand(create_simple_demand(s3))),
-        ],
-    );
-
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(
+            RouteBuilder::default()
+                .with_vehicle(&fleet, "v1")
+                .add_activity(test_activity_with_job(test_single_with_simple_demand(create_simple_demand(s1))))
+                .add_activity(test_activity_with_job(test_single_with_simple_demand(create_simple_demand(s2))))
+                .add_activity(test_activity_with_job(test_single_with_simple_demand(create_simple_demand(s3))))
+                .build(),
+        )
+        .build();
     create_feature().state.unwrap().accept_route_state(&mut route_ctx);
 
     let tour = &route_ctx.route().tour;
@@ -84,7 +84,8 @@ can_evaluate_demand_on_route! {
 fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<ConstraintViolation>) {
     let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
     let solution_ctx = create_empty_solution_context();
-    let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
+    let route_ctx =
+        RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build();
     let job = Job::Single(test_single_with_simple_demand(create_simple_demand(size)));
 
     let result = create_feature().constraint.unwrap().evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));
@@ -117,14 +118,18 @@ fn can_evaluate_demand_on_activity_impl(
     expected: Option<ConstraintViolation>,
 ) {
     let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
-    let mut route_ctx = create_route_context_with_activities(
-        &fleet,
-        "v1",
-        sizes
-            .into_iter()
-            .map(|size| test_activity_with_job(test_single_with_simple_demand(create_simple_demand(size))))
-            .collect(),
-    );
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(
+            RouteBuilder::default()
+                .with_vehicle(&fleet, "v1")
+                .add_activities(
+                    sizes
+                        .into_iter()
+                        .map(|size| test_activity_with_job(test_single_with_simple_demand(create_simple_demand(size)))),
+                )
+                .build(),
+        )
+        .build();
     let feature = create_feature();
     feature.state.unwrap().accept_route_state(&mut route_ctx);
     let target = test_activity_with_job(test_single_with_simple_demand(create_simple_demand(size)));
