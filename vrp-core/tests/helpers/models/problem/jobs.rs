@@ -9,12 +9,6 @@ pub const DEFAULT_ACTIVITY_TIME_WINDOW: TimeWindow = TimeWindow { start: 0., end
 
 pub type TestPlace = (Option<Location>, Duration, Vec<(f64, f64)>);
 
-pub fn test_single_with_id(id: &str) -> Arc<Single> {
-    let mut single = test_single();
-    single.dimens.set_id(id);
-    Arc::new(single)
-}
-
 pub fn test_single_with_id_and_location(id: &str, location: Option<Location>) -> Arc<Single> {
     let mut single = Single { places: vec![test_place_with_location(location)], dimens: Default::default() };
     single.dimens.set_id(id);
@@ -60,7 +54,7 @@ impl Default for SingleBuilder {
 
 impl SingleBuilder {
     pub fn id(&mut self, id: &str) -> &mut Self {
-        self.0.dimens.set_value("id", id.to_string());
+        self.0.dimens.set_id(id);
         self
     }
 

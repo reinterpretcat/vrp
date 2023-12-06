@@ -6,7 +6,10 @@ use crate::helpers::models::problem::*;
 #[test]
 fn can_get_check_insertion() {
     let disallow_merge_list = vec!["job2"];
-    let jobs = vec![Job::Single(test_single_with_id("job1")), Job::Single(test_single_with_id("job2"))];
+    let jobs = vec![
+        SingleBuilder::default().id("job1").build_as_job_ref(),
+        SingleBuilder::default().id("job2").build_as_job_ref(),
+    ];
     let constraint = create_goal_context(disallow_merge_list);
     let fleet = test_fleet();
     let problem = create_problem_with_goal_ctx_jobs_and_fleet(constraint, jobs.clone(), fleet);
@@ -22,9 +25,9 @@ fn can_get_check_insertion() {
 #[test]
 pub fn can_create_job_clusters() {
     let jobs = vec![
-        Job::Single(test_single_with_id("job1")),
-        Job::Single(test_single_with_id("job2")),
-        Job::Single(test_single_with_id("job3")),
+        SingleBuilder::default().id("job1").build_as_job_ref(),
+        SingleBuilder::default().id("job2").build_as_job_ref(),
+        SingleBuilder::default().id("job3").build_as_job_ref(),
     ];
     let constraint = create_goal_context(vec![]);
     let filtering =

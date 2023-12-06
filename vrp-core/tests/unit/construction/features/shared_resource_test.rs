@@ -206,7 +206,7 @@ fn can_constraint_route_impl(
     expected: Option<i32>,
 ) {
     let job = Job::Single(job_demand.map_or_else(
-        || test_single_with_id("job1"),
+        || SingleBuilder::default().id("job1").build_shared(),
         |demand| SingleBuilder::default().demand(create_simple_demand(-demand)).build_shared(),
     ));
     let constraint = create_feature(total_jobs).constraint.unwrap();

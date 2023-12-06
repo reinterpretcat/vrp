@@ -32,7 +32,7 @@ mod activity {
         expected: Option<ConstraintViolation>,
     ) {
         let job = if job_size == 1 {
-            Job::Single(test_single_with_id("job1"))
+            SingleBuilder::default().id("job1").build_as_job_ref()
         } else {
             Job::Multi(test_multi_job_with_locations((0..job_size).map(|idx| vec![Some(idx as Location)]).collect()))
         };

@@ -1,6 +1,5 @@
 use super::*;
 use crate::helpers::models::domain::create_empty_insertion_context;
-use crate::helpers::models::problem::test_single_with_id;
 use crate::helpers::models::solution::RouteContextBuilder;
 use crate::helpers::solver::generate_matrix_routes_with_defaults;
 use crate::helpers::utils::random::FakeRandom;
@@ -9,11 +8,12 @@ use std::sync::Arc;
 
 mod noise_checks {
     use super::*;
+    use crate::helpers::models::problem::SingleBuilder;
 
     fn make_success(cost: Cost) -> InsertionResult {
         InsertionResult::make_success(
             InsertionCost::new(&[cost]),
-            Job::Single(test_single_with_id("job1")),
+            SingleBuilder::default().id("job1").build_as_job_ref(),
             vec![],
             &RouteContextBuilder::default().build(),
         )
