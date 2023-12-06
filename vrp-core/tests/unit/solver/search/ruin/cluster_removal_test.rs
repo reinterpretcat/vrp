@@ -2,7 +2,7 @@ use super::*;
 use crate::helpers::construction::clustering::dbscan::create_test_distances;
 use crate::helpers::construction::features::create_goal_ctx_with_transport;
 use crate::helpers::models::domain::create_empty_problem;
-use crate::helpers::models::problem::test_single_with_id_and_location;
+use crate::helpers::models::problem::SingleBuilder;
 use crate::helpers::solver::*;
 use rosomaxa::prelude::Environment;
 use std::sync::Arc;
@@ -15,7 +15,7 @@ fn can_create_ruin_cluster_with_default_params() {
         1,
         false,
         |_, _| create_goal_ctx_with_transport(),
-        test_single_with_id_and_location,
+        |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
     );
@@ -52,7 +52,7 @@ fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
         1,
         false,
         |_, _| create_goal_ctx_with_transport(),
-        test_single_with_id_and_location,
+        |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
     );
