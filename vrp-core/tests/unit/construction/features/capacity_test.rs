@@ -7,7 +7,6 @@ use crate::helpers::models::solution::*;
 use crate::models::common::{Demand, DemandDimension, SingleDimLoad};
 use crate::models::problem::{Job, Vehicle};
 use crate::models::solution::Activity;
-use std::sync::Arc;
 
 const STATE_KEY: StateKey = 2;
 const VIOLATION_CODE: ViolationCode = 2;
@@ -169,12 +168,12 @@ fn can_merge_jobs_with_demand_impl(
     let cluster = Job::Single(if let Some(cluster) = cluster {
         test_single_with_simple_demand(create_demand(cluster))
     } else {
-        Arc::new(test_single())
+        SingleBuilder::default().build_shared()
     });
     let candidate = Job::Single(if let Some(candidate) = candidate {
         test_single_with_simple_demand(create_demand(candidate))
     } else {
-        Arc::new(test_single())
+        SingleBuilder::default().build_shared()
     });
     let constraint = create_feature().constraint.unwrap();
 

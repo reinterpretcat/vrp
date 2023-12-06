@@ -52,14 +52,14 @@ mod single {
     }}
 
     can_insert_job_with_location_into_empty_tour! {
-        case01: (Job::Single(Arc::new(test_single())), InsertionPosition::Any, true),
+        case01: (SingleBuilder::default().build_as_job_ref(), InsertionPosition::Any, true),
         case02: (Job::Single(test_single_with_location(None)), InsertionPosition::Any, true),
 
-        case03: (Job::Single(Arc::new(test_single())), InsertionPosition::Concrete(0), true),
+        case03: (SingleBuilder::default().build_as_job_ref(), InsertionPosition::Concrete(0), true),
         case04: (Job::Single(test_single_with_location(None)), InsertionPosition::Concrete(0), true),
-        case05: (Job::Single(Arc::new(test_single())), InsertionPosition::Concrete(1), false),
+        case05: (SingleBuilder::default().build_as_job_ref(), InsertionPosition::Concrete(1), false),
 
-        case06: (Job::Single(Arc::new(test_single())), InsertionPosition::Last, true),
+        case06: (SingleBuilder::default().build_as_job_ref(), InsertionPosition::Last, true),
         case07: (Job::Single(test_single_with_location(None)), InsertionPosition::Last, true),
     }
 

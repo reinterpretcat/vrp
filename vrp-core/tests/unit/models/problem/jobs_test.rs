@@ -97,7 +97,7 @@ fn create_costs() -> Costs {
 
 #[test]
 fn all_returns_all_jobs() {
-    let jobs = vec![Job::Single(Arc::new(test_single())), Job::Single(Arc::new(test_single()))];
+    let jobs = vec![SingleBuilder::default().build_as_job_ref(), SingleBuilder::default().build_as_job_ref()];
 
     assert_eq!(Jobs::new(&test_fleet(), jobs, &create_only_distance_transport_cost()).all().count(), 2)
 }

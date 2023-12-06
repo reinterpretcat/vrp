@@ -20,7 +20,7 @@ fn create_usage_activity(demand: i32) -> Activity {
 }
 
 fn create_resource_activity(capacity: i32, resource_id: Option<SharedResourceId>) -> Activity {
-    let mut single = test_single();
+    let mut single = SingleBuilder::default().build();
     if let Some(resource_id) = resource_id {
         single.dimens.set_value("resource_id", resource_id);
     }

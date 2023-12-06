@@ -13,13 +13,6 @@ pub fn test_place_with_location(location: Option<Location>) -> Place {
     Place { location, duration: DEFAULT_JOB_DURATION, times: vec![DEFAULT_JOB_TIME_SPAN] }
 }
 
-pub fn test_single() -> Single {
-    let mut single =
-        Single { places: vec![test_place_with_location(Some(DEFAULT_JOB_LOCATION))], dimens: Default::default() };
-    single.dimens.set_id("single");
-    single
-}
-
 pub fn test_single_with_simple_demand(demand: Demand<SingleDimLoad>) -> Arc<Single> {
     let mut single = test_single();
     single.dimens.set_demand(demand);
@@ -134,4 +127,11 @@ impl SingleBuilder {
     pub fn build_as_job_ref(&mut self) -> Job {
         Job::Single(Arc::new(self.build()))
     }
+}
+
+fn test_single() -> Single {
+    let mut single =
+        Single { places: vec![test_place_with_location(Some(DEFAULT_JOB_LOCATION))], dimens: Default::default() };
+    single.dimens.set_id("single");
+    single
 }

@@ -162,7 +162,7 @@ fn test_activity() -> Activity {
             time: DEFAULT_ACTIVITY_TIME_WINDOW,
         },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
-        job: Some(Arc::new(test_single())),
+        job: Some(SingleBuilder::default().build_shared()),
         commute: None,
     }
 }

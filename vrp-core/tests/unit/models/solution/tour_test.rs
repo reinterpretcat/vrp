@@ -1,8 +1,7 @@
 use super::*;
-use crate::helpers::models::problem::test_single;
+use crate::helpers::models::problem::SingleBuilder;
 use crate::helpers::models::solution::*;
 use crate::models::problem::Job;
-use std::sync::Arc;
 
 type RouteLeg = (Vec<usize>, usize);
 
@@ -100,13 +99,11 @@ fn can_remove_job() {
 #[test]
 fn can_get_activities_for_job() {
     let mut tour = get_test_tour();
-    let job = Arc::new(test_single());
-    let activity = ActivityBuilder::default().job(Some(job.clone())).build();
+    let activity = ActivityBuilder::default().build();
+    let job = Job::Single(activity.job.clone().unwrap());
 
     tour.insert_at(activity, 2);
     let pointer = get_memory_address(&tour.activities[2]);
-
-    let job = Job::Single(job);
 
     let result: Vec<&Activity> = tour.job_activities(&job).collect();
 
@@ -148,7 +145,7 @@ fn can_get_job_index() {
     let mut tour = Tour::default();
     tour.set_start(ActivityBuilder::default().job(None).build());
     tour.set_end(ActivityBuilder::default().job(None).build());
-    let job = Arc::new(test_single());
+    let job = SingleBuilder::default().build_shared();
     tour.insert_last(ActivityBuilder::default().build());
     tour.insert_last(ActivityBuilder::default().job(Some(job.clone())).build());
     tour.insert_last(ActivityBuilder::default().build());

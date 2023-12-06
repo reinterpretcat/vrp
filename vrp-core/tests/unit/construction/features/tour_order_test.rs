@@ -7,7 +7,7 @@ use crate::models::solution::Activity;
 const VIOLATION_CODE: ViolationCode = 1;
 
 fn create_single_with_order(id: &str, order: Option<f64>) -> Arc<Single> {
-    let mut single = test_single();
+    let mut single = SingleBuilder::default().build();
     single.dimens.set_id(id);
 
     if let Some(order) = order {
