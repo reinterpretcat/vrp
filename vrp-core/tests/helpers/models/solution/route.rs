@@ -116,7 +116,7 @@ impl ActivityBuilder {
         Self(Activity {
             place: Place { idx: 0, location, duration, time: tw },
             schedule: Schedule::new(location as f64, location as f64 + duration),
-            job: Some(test_single_with_location(Some(location))),
+            job: Some(SingleBuilder::default().location(Some(location)).build_shared()),
             commute: None,
         })
     }

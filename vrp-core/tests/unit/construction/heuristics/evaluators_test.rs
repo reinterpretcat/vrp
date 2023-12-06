@@ -53,14 +53,14 @@ mod single {
 
     can_insert_job_with_location_into_empty_tour! {
         case01: (SingleBuilder::default().build_as_job_ref(), InsertionPosition::Any, true),
-        case02: (Job::Single(test_single_with_location(None)), InsertionPosition::Any, true),
+        case02: (SingleBuilder::default().location(None).build_as_job_ref(), InsertionPosition::Any, true),
 
         case03: (SingleBuilder::default().build_as_job_ref(), InsertionPosition::Concrete(0), true),
-        case04: (Job::Single(test_single_with_location(None)), InsertionPosition::Concrete(0), true),
+        case04: (SingleBuilder::default().location(None).build_as_job_ref(), InsertionPosition::Concrete(0), true),
         case05: (SingleBuilder::default().build_as_job_ref(), InsertionPosition::Concrete(1), false),
 
         case06: (SingleBuilder::default().build_as_job_ref(), InsertionPosition::Last, true),
-        case07: (Job::Single(test_single_with_location(None)), InsertionPosition::Last, true),
+        case07: (SingleBuilder::default().location(None).build_as_job_ref(), InsertionPosition::Last, true),
     }
 
     fn can_insert_job_with_location_into_empty_tour_impl(job: Job, position: InsertionPosition, has_result: bool) {
@@ -177,7 +177,7 @@ mod single {
                 .build(),
             test_random(),
         );
-        let job = Job::Single(test_single_with_location(Some(job_location)));
+        let job = SingleBuilder::default().location(Some(job_location)).build_as_job_ref();
         let mut ctx = create_test_insertion_context(registry);
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
@@ -190,7 +190,7 @@ mod single {
 
     #[test]
     fn can_detect_and_return_insertion_violation() {
-        let job = Job::Single(test_single_with_location(Some(1111)));
+        let job = SingleBuilder::default().location(Some(1111)).build_as_job_ref();
         let mut ctx = create_test_insertion_context(create_test_registry());
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);

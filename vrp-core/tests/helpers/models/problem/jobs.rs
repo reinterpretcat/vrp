@@ -9,10 +9,6 @@ pub const DEFAULT_ACTIVITY_TIME_WINDOW: TimeWindow = TimeWindow { start: 0., end
 
 pub type TestPlace = (Option<Location>, Duration, Vec<(f64, f64)>);
 
-pub fn test_place_with_location(location: Option<Location>) -> Place {
-    Place { location, duration: DEFAULT_JOB_DURATION, times: vec![DEFAULT_JOB_TIME_SPAN] }
-}
-
 pub fn test_single_with_simple_demand(demand: Demand<SingleDimLoad>) -> Arc<Single> {
     let mut single = test_single();
     single.dimens.set_demand(demand);
@@ -23,10 +19,6 @@ pub fn test_single_with_id(id: &str) -> Arc<Single> {
     let mut single = test_single();
     single.dimens.set_id(id);
     Arc::new(single)
-}
-
-pub fn test_single_with_location(location: Option<Location>) -> Arc<Single> {
-    Arc::new(Single { places: vec![test_place_with_location(location)], dimens: Default::default() })
 }
 
 pub fn test_single_with_id_and_location(id: &str, location: Option<Location>) -> Arc<Single> {
@@ -134,4 +126,8 @@ fn test_single() -> Single {
         Single { places: vec![test_place_with_location(Some(DEFAULT_JOB_LOCATION))], dimens: Default::default() };
     single.dimens.set_id("single");
     single
+}
+
+fn test_place_with_location(location: Option<Location>) -> Place {
+    Place { location, duration: DEFAULT_JOB_DURATION, times: vec![DEFAULT_JOB_TIME_SPAN] }
 }
