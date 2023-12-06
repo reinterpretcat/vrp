@@ -115,8 +115,8 @@ calculates_proper_cost_between_single_jobs! {
     case1: (SingleBuilder::default().location(Some(0)).build_shared(), SingleBuilder::default().location(Some(10)).build_shared(), 10.0),
     case2: (SingleBuilder::default().location(Some(0)).build_shared(), SingleBuilder::default().location(None).build_shared(), 0.0),
     case3: (SingleBuilder::default().location(None).build_shared(), SingleBuilder::default().location(None).build_shared(), 0.0),
-    case4: (SingleBuilder::default().location(Some(3)).build_shared(), test_single_with_locations(vec![Some(5), Some(2)]), 1.0),
-    case5: (test_single_with_locations(vec![Some(2), Some(1)]), test_single_with_locations(vec![Some(10), Some(9)]), 7.0),
+    case4: (SingleBuilder::default().location(Some(3)).build_shared(), SingleBuilder::with_locations(vec![Some(5), Some(2)]).build_shared(), 1.0),
+    case5: (SingleBuilder::with_locations(vec![Some(2), Some(1)]).build_shared(), SingleBuilder::with_locations(vec![Some(10), Some(9)]).build_shared(), 7.0),
 }
 
 parameterized_test! {calculates_proper_cost_between_multi_jobs, (left, right, expected), {

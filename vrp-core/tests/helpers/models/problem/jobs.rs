@@ -9,13 +9,6 @@ pub const DEFAULT_ACTIVITY_TIME_WINDOW: TimeWindow = TimeWindow { start: 0., end
 
 pub type TestPlace = (Option<Location>, Duration, Vec<(f64, f64)>);
 
-pub fn test_single_with_locations(locations: Vec<Option<Location>>) -> Arc<Single> {
-    Arc::new(Single {
-        places: locations.into_iter().map(test_place_with_location).collect(),
-        dimens: Default::default(),
-    })
-}
-
 pub fn test_multi_with_id(id: &str, jobs: Vec<Arc<Single>>) -> Arc<Multi> {
     let mut dimens = Dimensions::default();
     dimens.set_id(id);
@@ -24,7 +17,8 @@ pub fn test_multi_with_id(id: &str, jobs: Vec<Arc<Single>>) -> Arc<Multi> {
 }
 
 pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> Arc<Multi> {
-    Multi::new_shared(locations.into_iter().map(test_single_with_locations).collect(), Default::default())
+    let jobs = locations.into_iter().map(|locations| SingleBuilder::with_locations(locations).build_shared()).collect();
+    Multi::new_shared(jobs, Default::default())
 }
 
 pub fn test_multi_with_permutations(id: &str, jobs: Vec<Arc<Single>>, permutations: Vec<Vec<usize>>) -> Arc<Multi> {
@@ -47,6 +41,16 @@ impl Default for SingleBuilder {
 }
 
 impl SingleBuilder {
+    pub fn with_locations(locations: Vec<Option<Location>>) -> Self {
+        let mut single = Single {
+            places: locations.into_iter().map(test_place_with_location).collect(),
+            dimens: Default::default(),
+        };
+        single.dimens.set_id("single");
+
+        Self(single)
+    }
+
     pub fn id(&mut self, id: &str) -> &mut Self {
         self.0.dimens.set_id(id);
         self
