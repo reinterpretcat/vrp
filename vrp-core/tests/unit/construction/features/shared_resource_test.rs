@@ -14,7 +14,7 @@ const INTERVALS_KEY: StateKey = 2;
 
 fn create_usage_activity(demand: i32) -> Activity {
     let demand = create_simple_demand(-demand);
-    let single = test_single_with_simple_demand(demand);
+    let single = SingleBuilder::default().demand(demand).build_shared();
 
     Activity { job: Some(single), ..ActivityBuilder::default().build() }
 }
@@ -207,7 +207,7 @@ fn can_constraint_route_impl(
 ) {
     let job = Job::Single(job_demand.map_or_else(
         || test_single_with_id("job1"),
-        |demand| test_single_with_simple_demand(create_simple_demand(-demand)),
+        |demand| SingleBuilder::default().demand(create_simple_demand(-demand)).build_shared(),
     ));
     let constraint = create_feature(total_jobs).constraint.unwrap();
     let solution_ctx = create_solution_ctx(resources, vec![activities], false);

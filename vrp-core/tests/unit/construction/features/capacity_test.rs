@@ -24,7 +24,8 @@ fn create_constraint_violation(stopped: bool) -> Option<ConstraintViolation> {
 }
 
 fn create_activity_with_simple_demand(size: i32) -> Activity {
-    ActivityBuilder::default().job(Some(test_single_with_simple_demand(create_simple_demand(size)))).build()
+    let job = SingleBuilder::default().demand(create_simple_demand(size)).build_shared();
+    ActivityBuilder::default().job(Some(job)).build()
 }
 
 fn get_simple_capacity_state(key: i32, state: &RouteState, activity: Option<&Activity>) -> i32 {
@@ -89,7 +90,7 @@ fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<ConstraintViola
     let solution_ctx = create_empty_solution_context();
     let route_ctx =
         RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build();
-    let job = Job::Single(test_single_with_simple_demand(create_simple_demand(size)));
+    let job = SingleBuilder::default().demand(create_simple_demand(size)).build_as_job_ref();
 
     let result = create_feature().constraint.unwrap().evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));
 
@@ -166,12 +167,12 @@ fn can_merge_jobs_with_demand_impl(
         delivery: (SingleDimLoad::new(demand.2), SingleDimLoad::new(demand.3)),
     };
     let cluster = Job::Single(if let Some(cluster) = cluster {
-        test_single_with_simple_demand(create_demand(cluster))
+        SingleBuilder::default().demand(create_demand(cluster)).build_shared()
     } else {
         SingleBuilder::default().build_shared()
     });
     let candidate = Job::Single(if let Some(candidate) = candidate {
-        test_single_with_simple_demand(create_demand(candidate))
+        SingleBuilder::default().demand(create_demand(candidate)).build_shared()
     } else {
         SingleBuilder::default().build_shared()
     });

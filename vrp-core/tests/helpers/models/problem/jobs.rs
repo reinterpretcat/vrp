@@ -9,12 +9,6 @@ pub const DEFAULT_ACTIVITY_TIME_WINDOW: TimeWindow = TimeWindow { start: 0., end
 
 pub type TestPlace = (Option<Location>, Duration, Vec<(f64, f64)>);
 
-pub fn test_single_with_simple_demand(demand: Demand<SingleDimLoad>) -> Arc<Single> {
-    let mut single = test_single();
-    single.dimens.set_demand(demand);
-    Arc::new(single)
-}
-
 pub fn test_single_with_id(id: &str) -> Arc<Single> {
     let mut single = test_single();
     single.dimens.set_id(id);
