@@ -76,7 +76,7 @@ impl SingleBuilder {
         self
     }
 
-    pub fn demand(&mut self, demand: Demand<SingleDimLoad>) -> &mut Self {
+    pub fn demand<T: LoadOps>(&mut self, demand: Demand<T>) -> &mut Self {
         self.0.dimens.set_demand(demand);
         self
     }

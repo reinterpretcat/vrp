@@ -36,7 +36,9 @@ pub struct RouteBuilder(Route);
 
 impl Default for RouteBuilder {
     fn default() -> Self {
-        Self(create_route(test_actor(), Tour::default(), vec![]))
+        let actor = test_actor();
+        let tour = Tour::new(actor.as_ref());
+        Self(create_route(actor, tour, vec![]))
     }
 }
 

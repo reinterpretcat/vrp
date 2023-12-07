@@ -3,7 +3,7 @@
 mod fast_service_test;
 
 use super::*;
-use crate::construction::enablers::{calculate_travel_delta, RouteIntervals};
+use crate::construction::enablers::{calculate_travel, calculate_travel_delta, RouteIntervals};
 use hashbrown::HashMap;
 use std::marker::PhantomData;
 
@@ -73,23 +73,26 @@ impl<T: LoadOps> FeatureObjective for FastServiceObjective<T> {
             MoveContext::Activity { route_ctx, activity_ctx } => (route_ctx, activity_ctx),
         };
 
-        let (_, prev_to_tar_dur) = calculate_travel_delta(route_ctx, activity_ctx, self.transport.as_ref());
-
-        let arrival = activity_ctx.prev.schedule.departure + prev_to_tar_dur;
-        let departure = self.activity.estimate_departure(route_ctx.route(), activity_ctx.target, arrival);
         let activity_idx = activity_ctx.index;
 
         let single = if let Some(ref single) = activity_ctx.target.job {
             single
         } else {
-            return departure - self.get_start_time(route_ctx, activity_idx);
+            return self.get_departure(route_ctx, activity_ctx) - self.get_start_time(route_ctx, activity_idx);
         };
 
         // NOTE: for simplicity, we ignore impact on already inserted jobs on local objective level
         match get_time_interval_type::<T>(single.as_ref()) {
-            TimeIntervalType::FromStart => departure - self.get_start_time(route_ctx, activity_idx),
-            TimeIntervalType::ToEnd => self.get_end_time(route_ctx, activity_idx) - departure,
-            TimeIntervalType::FromFirstToLast => self.get_cost_for_multi_job(route_ctx, activity_ctx, departure),
+            TimeIntervalType::FromStart => {
+                self.get_departure(route_ctx, activity_ctx) - self.get_start_time(route_ctx, activity_idx)
+            }
+            TimeIntervalType::ToEnd => {
+                let departure = self.get_departure(route_ctx, activity_ctx);
+                let (_, duration_delta) = calculate_travel_delta(route_ctx, activity_ctx, self.transport.as_ref());
+
+                self.get_end_time(route_ctx, activity_idx) + duration_delta - departure
+            }
+            TimeIntervalType::FromFirstToLast => self.get_cost_for_multi_job(route_ctx, activity_ctx),
             TimeIntervalType::FromStartToEnd => {
                 self.get_end_time(route_ctx, activity_idx) - self.get_start_time(route_ctx, activity_idx)
             }
@@ -117,12 +120,15 @@ impl<T: LoadOps> FastServiceObjective<T> {
         route_ctx.route().tour[end_idx].schedule.arrival
     }
 
-    fn get_cost_for_multi_job(
-        &self,
-        route_ctx: &RouteContext,
-        activity_ctx: &ActivityContext,
-        departure: Timestamp,
-    ) -> Cost {
+    fn get_departure(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Timestamp {
+        let (_, (prev_to_tar_dur, _)) = calculate_travel(route_ctx, activity_ctx, self.transport.as_ref());
+        let arrival = activity_ctx.prev.schedule.departure + prev_to_tar_dur;
+
+        self.activity.estimate_departure(route_ctx.route(), activity_ctx.target, arrival)
+    }
+
+    fn get_cost_for_multi_job(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Cost {
+        let departure = self.get_departure(route_ctx, activity_ctx);
         let range = route_ctx
             .state()
             .get_route_state::<MultiJobRanges>(self.state_key)
