@@ -168,7 +168,7 @@ impl Tour {
 
     /// Returns index of last job occurrence in the tour.
     pub fn index_last(&self, job: &Job) -> Option<usize> {
-        self.activities.iter().rev().position(move |a| a.has_same_job(job))
+        self.activities.iter().rposition(move |a| a.has_same_job(job))
     }
 
     /// Checks whether job is present in tour.

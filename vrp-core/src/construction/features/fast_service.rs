@@ -121,6 +121,8 @@ impl<T: LoadOps> FastServiceObjective<T> {
     }
 
     fn get_departure(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Timestamp {
+        // TODO optimize: clients are interested also in travel delta, so we can do needed calculations once
+        //      and avoid `calculate_travel_delta` call later
         let (_, (prev_to_tar_dur, _)) = calculate_travel(route_ctx, activity_ctx, self.transport.as_ref());
         let arrival = activity_ctx.prev.schedule.departure + prev_to_tar_dur;
 
@@ -142,10 +144,17 @@ impl<T: LoadOps> FastServiceObjective<T> {
             return departure - self.get_start_time(route_ctx, activity_ctx.index);
         };
 
-        if end_idx > activity_ctx.index {
-            Cost::default()
-        } else {
-            departure - route_ctx.route().tour[start_idx].schedule.departure
+        let (_, duration_delta) = calculate_travel_delta(route_ctx, activity_ctx, self.transport.as_ref());
+
+        // NOTE ignore impact of insertion
+        match (start_idx, activity_ctx.index, end_idx) {
+            (start_idx, activity_idx, end_idx) if activity_idx <= start_idx => {
+                route_ctx.route().tour[end_idx].schedule.departure - departure + duration_delta
+            }
+            (start_idx, activity_idx, end_idx) if activity_idx >= end_idx => {
+                departure - route_ctx.route().tour[start_idx].schedule.departure + duration_delta
+            }
+            _ => Cost::default(),
         }
     }
 
