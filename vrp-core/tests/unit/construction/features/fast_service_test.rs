@@ -98,11 +98,18 @@ mod estimation {
     }}
 
     can_estimate_multi_job_insertion_without_reload! {
-        case01_before_next_activity_estimate_miss: InsertionTestCase {
+        case01_start_next_activity: InsertionTestCase {
             target_index: 1, target_location: 15, demand: 1, activities: vec![(10, Some(-1)), (20, None)], end_time: 40., expected_cost: 5.,
         },
-        case02_before_skip_activity: InsertionTestCase {
+        case02_start_skip_activity: InsertionTestCase {
             target_index: 1, target_location: 15, demand: 1, activities: vec![(10, None), (20, Some(-1))], end_time: 40., expected_cost: 15.,
+        },
+
+        case03_end_prev_activity: InsertionTestCase {
+            target_index: 3, target_location: 15, demand: -1, activities: vec![(10, Some(1)), (20, None)], end_time: 40., expected_cost: 15.,
+        },
+        case04_end_prev_activity: InsertionTestCase {
+            target_index: 2, target_location: 15, demand: -1, activities: vec![(10, Some(1)), (20, None)], end_time: 40., expected_cost: 5.,
         },
     }
 
