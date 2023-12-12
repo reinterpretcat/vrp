@@ -42,6 +42,7 @@ constraints such as time windows. The objective has the following optional param
 * `minimize-tours`: minimizes total amount of tours present in solution
 * `maximize-tours`: maximizes total amount of tours present in solution
 * `minimize-arrival-time`: prefers solutions where work is finished earlier
+* `fast-service`: prefers solutions when jobs are served early in tours
 
 ### Job distribution objectives
 
