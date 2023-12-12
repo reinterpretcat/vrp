@@ -97,6 +97,22 @@ impl RouteBuilder {
     }
 }
 
+#[derive(Default)]
+pub struct RouteStateBuilder {
+    state: RouteState,
+}
+
+impl RouteStateBuilder {
+    pub fn add_route_state<T: Send + Sync + 'static>(&mut self, key: i32, value: T) -> &mut Self {
+        self.state.put_route_state(key, value);
+        self
+    }
+
+    pub fn build(&mut self) -> RouteState {
+        std::mem::replace(&mut self.state, RouteState::default())
+    }
+}
+
 pub struct ActivityBuilder(Activity);
 
 impl Default for ActivityBuilder {

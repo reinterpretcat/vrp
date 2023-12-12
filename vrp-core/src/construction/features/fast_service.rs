@@ -57,10 +57,12 @@ impl<T: LoadOps> Objective for FastServiceObjective<T> {
             .routes
             .iter()
             .flat_map(|route_ctx| {
-                route_ctx.route().tour.jobs().map(|job| match job {
-                    Job::Single(_) => self.estimate_single_job(route_ctx, job),
-                    Job::Multi(_) => self.estimate_multi_job(route_ctx, job),
-                })
+                route_ctx.route().tour.jobs().filter(|job| !self.route_intervals.is_marker_job(job)).map(
+                    |job| match job {
+                        Job::Single(_) => self.estimate_single_job(route_ctx, job),
+                        Job::Multi(_) => self.estimate_multi_job(route_ctx, job),
+                    },
+                )
             })
             .sum::<Cost>()
     }
@@ -75,14 +77,15 @@ impl<T: LoadOps> FeatureObjective for FastServiceObjective<T> {
 
         let activity_idx = activity_ctx.index;
 
-        let single = if let Some(ref single) = activity_ctx.target.job {
-            single
-        } else {
-            return self.get_departure(route_ctx, activity_ctx) - self.get_start_time(route_ctx, activity_idx);
-        };
+        let (single, job) =
+            if let Some((single, job)) = activity_ctx.target.job.as_ref().zip(activity_ctx.target.retrieve_job()) {
+                (single, job)
+            } else {
+                return self.get_departure(route_ctx, activity_ctx) - self.get_start_time(route_ctx, activity_idx);
+            };
 
         // NOTE: for simplicity, we ignore impact on already inserted jobs on local objective level
-        match get_time_interval_type::<T>(single.as_ref()) {
+        match get_time_interval_type::<T>(&job, single.as_ref()) {
             TimeIntervalType::FromStart => {
                 self.get_departure(route_ctx, activity_ctx) - self.get_start_time(route_ctx, activity_idx)
             }
@@ -173,7 +176,7 @@ impl<T: LoadOps> FastServiceObjective<T> {
         let activity_idx = tour.index(job).expect("cannot find index for job");
         let activity = &tour[activity_idx];
 
-        (match get_time_interval_type::<T>(single) {
+        (match get_time_interval_type::<T>(job, single) {
             TimeIntervalType::FromStart => activity.schedule.departure - self.get_start_time(route_ctx, activity_idx),
             TimeIntervalType::ToEnd => self.get_end_time(route_ctx, activity_idx) - activity.schedule.departure,
             TimeIntervalType::FromStartToEnd => {
@@ -244,14 +247,17 @@ impl FeatureState for FastServiceState {
     }
 }
 
-fn get_time_interval_type<T: LoadOps>(single: &Single) -> TimeIntervalType {
+fn get_time_interval_type<T: LoadOps>(job: &Job, single: &Single) -> TimeIntervalType {
+    if job.as_multi().is_some() {
+        return TimeIntervalType::FromFirstToLast;
+    }
+
     let demand: &Demand<T> =
         if let Some(demand) = single.dimens.get_demand() { demand } else { return TimeIntervalType::FromStart };
 
     match (demand.delivery.0.is_not_empty(), demand.pickup.0.is_not_empty()) {
-        (true, true) => TimeIntervalType::FromStartToEnd,
-        (true, _) => TimeIntervalType::FromStart,
-        (_, true) => TimeIntervalType::ToEnd,
-        _ => TimeIntervalType::FromFirstToLast,
+        (true, false) => TimeIntervalType::FromStart,
+        (false, true) => TimeIntervalType::ToEnd,
+        _ => TimeIntervalType::FromStartToEnd,
     }
 }

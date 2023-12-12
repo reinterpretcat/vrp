@@ -1,4 +1,5 @@
 use super::*;
+use crate::construction::enablers::NoRouteIntervals;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 
@@ -15,16 +16,15 @@ fn create_test_feature(route_intervals: Arc<dyn RouteIntervals + Send + Sync>) -
     .unwrap()
 }
 
-mod estimation {
+fn create_test_feature_no_reload() -> Feature {
+    create_test_feature(Arc::new(NoRouteIntervals::default()))
+}
+
+mod local_estimation {
     use super::*;
-    use crate::construction::enablers::NoRouteIntervals;
     use crate::helpers::construction::features::{create_simple_demand, create_simple_dynamic_demand};
     use crate::models::solution::Activity;
     use std::iter::once;
-
-    fn create_test_feature_no_reload() -> Feature {
-        create_test_feature(Arc::new(NoRouteIntervals::default()))
-    }
 
     fn run_estimation_test_case<T>(test_case: InsertionTestCase<T>, job: Arc<Single>, activities: Vec<Activity>) {
         let InsertionTestCase { target_index, target_location, end_time, expected_cost, .. } = test_case;
@@ -142,5 +142,89 @@ mod estimation {
 
         run_estimation_test_case(test_case, multi.jobs[0].clone(), activities);
         drop(multi);
+    }
+}
+
+mod global_estimation {
+    use super::*;
+    use crate::construction::enablers::get_route_intervals;
+    use crate::helpers::models::domain::{create_empty_insertion_context, create_empty_solution_context};
+    use crate::models::solution::Route;
+
+    #[test]
+    fn can_get_solution_fitness() {
+        let objective = create_test_feature_no_reload().objective.expect("no objective");
+        let route_ctx = RouteContextBuilder::default()
+            .with_route(
+                RouteBuilder::default()
+                    .add_activity(ActivityBuilder::with_location(10).build())
+                    .add_activity(ActivityBuilder::with_location(20).build())
+                    .build(),
+            )
+            .build();
+        let insertion_ctx = InsertionContext {
+            solution: SolutionContext { routes: vec![route_ctx], ..create_empty_solution_context() },
+            ..create_empty_insertion_context()
+        };
+
+        let fitness = objective.fitness(&insertion_ctx);
+
+        assert_eq!(fitness, 30.)
+    }
+
+    #[test]
+    fn can_get_solution_fitness_with_reload() {
+        const STATE_KEY: StateKey = 0;
+        const INTERVAL_LOCATION: Location = 15;
+
+        struct FakeRouteIntervals;
+
+        impl RouteIntervals for FakeRouteIntervals {
+            fn is_marker_job(&self, job: &Job) -> bool {
+                job.places().any(|p| p.location == Some(INTERVAL_LOCATION))
+            }
+
+            fn is_marker_assignable(&self, _: &Route, _: &Job) -> bool {
+                unreachable!()
+            }
+
+            fn is_new_interval_needed(&self, _: &RouteContext) -> bool {
+                unreachable!()
+            }
+
+            fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
+                route_ctx.state().get_route_state::<Vec<(usize, usize)>>(STATE_KEY)
+            }
+
+            fn get_interval_key(&self) -> Option<StateKey> {
+                unreachable!()
+            }
+
+            fn update_solution_intervals(&self, _: &mut SolutionContext) {
+                unreachable!()
+            }
+        }
+
+        let objective = create_test_feature(Arc::new(FakeRouteIntervals)).objective.expect("no objective");
+        let route = RouteBuilder::default()
+            .add_activity(ActivityBuilder::with_location(10).build())
+            .add_activity(ActivityBuilder::with_location(INTERVAL_LOCATION).build())
+            .add_activity(ActivityBuilder::with_location(20).build())
+            .build();
+        let state = RouteStateBuilder::default()
+            .add_route_state(
+                STATE_KEY,
+                get_route_intervals(&route, |activity| activity.place.location == INTERVAL_LOCATION),
+            )
+            .build();
+        let route_ctx = RouteContextBuilder::default().with_route(route).with_state(state).build();
+        let insertion_ctx = InsertionContext {
+            solution: SolutionContext { routes: vec![route_ctx], ..create_empty_solution_context() },
+            ..create_empty_insertion_context()
+        };
+
+        let fitness = objective.fitness(&insertion_ctx);
+
+        assert_eq!(fitness, 15.)
     }
 }
