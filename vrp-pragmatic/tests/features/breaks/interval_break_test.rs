@@ -105,7 +105,6 @@ fn can_assign_interval_break_with_reload() {
                         location: (0., 0.).to_loc(),
                     },
                     end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (30., 0.).to_loc() }),
-                    dispatch: None,
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeOffset(vec![8., 12.]),
                         places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],

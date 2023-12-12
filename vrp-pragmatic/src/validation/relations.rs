@@ -179,7 +179,6 @@ fn check_e1206_relation_has_no_missing_shift_properties(
         .filter(|(vehicle_shift, relation)| {
             relation.jobs.iter().filter(|job_id| is_reserved_job_id(job_id)).any(|job_id| match job_id.as_str() {
                 "break" => vehicle_shift.breaks.is_none(),
-                "dispatch" => vehicle_shift.dispatch.is_none(),
                 "reload" => vehicle_shift.reloads.is_none(),
                 "arrival" => vehicle_shift.end.is_none(),
                 _ => false,
@@ -195,8 +194,7 @@ fn check_e1206_relation_has_no_missing_shift_properties(
             "E1206".to_string(),
             "relation has special job id which is not defined on vehicle shift".to_string(),
             format!(
-                "remove special job id or add vehicle shift property \
-            (e.g. break, dispatch, reload), vehicle ids: '{}'",
+                "remove special job id or add vehicle shift property (e.g. break, reload), vehicle ids: '{}'",
                 vehicle_ids.join(", ")
             ),
         ))

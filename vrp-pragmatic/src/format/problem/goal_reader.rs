@@ -56,10 +56,6 @@ pub(super) fn create_goal_context(
         features.push(create_skills_feature("skills", SKILL_CONSTRAINT_CODE)?)
     }
 
-    if props.has_dispatch {
-        features.push(create_dispatch_feature("dispatch", DISPATCH_CONSTRAINT_CODE)?)
-    }
-
     if !blocks.locks.is_empty() {
         features.push(create_locked_jobs_feature(
             "locked_jobs",
@@ -528,7 +524,7 @@ fn get_tour_order_fn() -> TourOrderFn {
                 dimens.get_job_order().map(|order| OrderResult::Value(order as f64)).unwrap_or_else(|| {
                     dimens.get_job_type().map_or(OrderResult::Default, |v| {
                         match v.as_str() {
-                            "break" | "reload" | "dispatch" => OrderResult::Ignored,
+                            "break" | "reload" => OrderResult::Ignored,
                             // job without value
                             _ => OrderResult::Default,
                         }

@@ -101,21 +101,13 @@ fn create_tour(
 
         let (start_idx, start) = if start_idx == 0 {
             let start = route.tour.start().unwrap();
-            let (has_dispatch, is_same_location) = route.tour.get(1).map_or((false, false), |activity| {
-                let has_dispatch = activity
-                    .retrieve_job()
-                    .and_then(|job| job.dimens().get_job_type().cloned())
-                    .map_or(false, |job_type| job_type == "dispatch");
-
-                let is_same_location = start.place.location == activity.place.location;
-
-                (has_dispatch, is_same_location)
-            });
+            let is_same_location =
+                route.tour.get(1).map_or(false, |activity| start.place.location == activity.place.location);
 
             tour.stops.push(Stop::Point(PointStop {
                 location: coord_index.get_by_idx(start.place.location).unwrap(),
                 time: format_schedule(&start.schedule),
-                load: if has_dispatch { vec![0] } else { start_delivery.as_vec() },
+                load: start_delivery.as_vec(),
                 distance: 0,
                 activities: vec![ApiActivity {
                     job_id: "departure".to_string(),
@@ -242,11 +234,7 @@ fn create_tour(
                 last.activities.push(ApiActivity {
                     job_id,
                     activity_type: activity_type.clone(),
-                    location: if !is_new_stop && activity_type == "dispatch" {
-                        None
-                    } else {
-                        Some(coord_index.get_by_idx(act.place.location).unwrap())
-                    },
+                    location: Some(coord_index.get_by_idx(act.place.location).unwrap()),
                     time: Some(Interval {
                         start: format_time(activity_arrival.max(act.place.time.start)),
                         end: format_time(activity_departure),

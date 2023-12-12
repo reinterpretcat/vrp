@@ -20,7 +20,6 @@ fn can_use_reloads_with_different_locations() {
                 shifts: vec![VehicleShift {
                     start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (32., 0.).to_loc() }),
-                    dispatch: None,
                     breaks: None,
                     reloads: Some(vec![
                         VehicleReload {

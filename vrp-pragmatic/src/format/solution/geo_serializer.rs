@@ -135,7 +135,7 @@ fn get_marker_symbol(stop: &PointStop) -> String {
     let contains_activity_type =
         |activity_type: &&str| stop.activities.iter().any(|activity| activity.activity_type == *activity_type);
 
-    if ["departure", "dispatch", "reload", "arrival"].iter().any(contains_activity_type) {
+    if ["departure", "reload", "arrival"].iter().any(contains_activity_type) {
         return "warehouse".to_string();
     }
 

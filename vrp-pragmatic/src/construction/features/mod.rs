@@ -27,9 +27,6 @@ pub use self::breaks::*;
 pub mod compatibility;
 pub use self::compatibility::*;
 
-pub mod dispatch;
-pub use self::dispatch::*;
-
 pub mod groups;
 pub use self::groups::*;
 

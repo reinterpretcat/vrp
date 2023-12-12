@@ -39,7 +39,6 @@ pub struct CheckerContext {
 enum ActivityType {
     Terminal,
     Job(Job),
-    Depot(VehicleDispatch),
     Break(VehicleBreak),
     Reload(VehicleReload),
     Recharge(VehicleRechargeStation),
@@ -217,14 +216,6 @@ impl CheckerContext {
                 .map(|r| ActivityType::Recharge(r.clone()))
                 .ok_or_else(|| format!("cannot find recharge for tour '{}'", tour.vehicle_id).into()),
 
-            "dispatch" => shift
-                .dispatch
-                .as_ref()
-                .and_then(|dispatch| {
-                    dispatch.iter().find(|d| location.as_ref().map_or(false, |location| d.location == *location))
-                })
-                .map(|d| ActivityType::Depot(d.clone()))
-                .ok_or_else(|| format!("cannot find dispatch for tour '{}'", tour.vehicle_id).into()),
             _ => Err(format!("unknown activity type: '{}'", activity.activity_type).into()),
         }
     }

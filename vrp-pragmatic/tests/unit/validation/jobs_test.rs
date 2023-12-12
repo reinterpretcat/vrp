@@ -16,7 +16,6 @@ can_detect_reserved_ids! {
     case03: ("arrival", Some("arrival")),
     case04: ("break", Some("break")),
     case05: ("reload", Some("reload")),
-    case06: ("dispatch", Some("dispatch")),
 }
 
 fn can_detect_reserved_ids_impl(job_id: String, expected: Option<&str>) {

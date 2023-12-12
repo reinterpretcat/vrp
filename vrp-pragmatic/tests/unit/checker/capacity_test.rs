@@ -38,7 +38,6 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Gen
                 shifts: vec![VehicleShift {
                     start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (0., 0.).to_loc() }),
-                    dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         location: (0., 0.).to_loc(),

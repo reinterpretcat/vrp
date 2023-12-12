@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::enablers::{get_route_modifier, OnlyVehicleActivityCost, VehicleTie};
+use crate::construction::enablers::{OnlyVehicleActivityCost, VehicleTie};
 use crate::format::problem::clustering_reader::create_cluster_config;
 use crate::format::problem::fleet_reader::*;
 use crate::format::problem::goal_reader::create_goal_context;
@@ -9,7 +9,7 @@ use crate::validation::ValidationContext;
 use crate::{parse_time, CoordIndex};
 use vrp_core::construction::enablers::*;
 use vrp_core::models::common::{TimeOffset, TimeSpan, TimeWindow};
-use vrp_core::models::{Extras, GoalContext};
+use vrp_core::models::Extras;
 use vrp_core::solver::processing::{ReservedTimeDimension, VicinityDimension};
 
 pub(super) fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
@@ -48,15 +48,14 @@ pub(super) fn map_to_problem(
         blocks;
 
     let extras = Arc::new(
-        create_extras(&api_problem, goal.clone(), &props, job_index.clone(), coord_index.clone(), reserved_times_index)
-            .map_err(|err| {
-                // TODO make sure that error matches actual reason
-                vec![FormatError::new(
-                    "E0002".to_string(),
-                    "cannot create transport costs".to_string(),
-                    format!("check clustering config: '{err}'"),
-                )]
-            })?,
+        create_extras(&api_problem, job_index.clone(), coord_index.clone(), reserved_times_index).map_err(|err| {
+            // TODO make sure that error matches actual reason
+            vec![FormatError::new(
+                "E0002".to_string(),
+                "cannot create transport costs".to_string(),
+                format!("check clustering config: '{err}'"),
+            )]
+        })?,
     );
 
     Ok(CoreProblem { fleet, jobs, locks, goal, activity, transport, extras })
@@ -116,8 +115,6 @@ fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> Res
 
 fn create_extras(
     api_problem: &ApiProblem,
-    goal: Arc<GoalContext>,
-    props: &ProblemProperties,
     job_index: Arc<JobIndex>,
     coord_index: Arc<CoordIndex>,
     reserved_times_index: ReservedTimesIndex,
@@ -126,10 +123,6 @@ fn create_extras(
 
     extras.insert("coord_index".to_owned(), coord_index.clone());
     extras.insert("job_index".to_owned(), job_index.clone());
-
-    if props.has_dispatch {
-        extras.insert("route_modifier".to_owned(), Arc::new(get_route_modifier(goal, job_index.clone())));
-    }
 
     if !reserved_times_index.is_empty() {
         extras.set_reserved_times(reserved_times_index);
@@ -159,7 +152,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
     };
 
     let has_breaks = shift_has_fn(|s| s.breaks.as_ref().map_or(false, |b| !b.is_empty()));
-    let has_dispatch = shift_has_fn(|s| s.dispatch.as_ref().map_or(false, |d| !d.is_empty()));
     let has_reloads = shift_has_fn(|s| s.reloads.as_ref().map_or(false, |r| !r.is_empty()));
     let has_recharges = shift_has_fn(|s| s.recharges.as_ref().is_some());
 
@@ -188,7 +180,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_breaks,
         has_skills,
         has_unreachable_locations,
-        has_dispatch,
         has_reloads,
         has_recharges,
         has_order,

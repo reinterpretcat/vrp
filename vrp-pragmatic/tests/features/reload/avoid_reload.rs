@@ -29,7 +29,6 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload_impl(generations
                 shifts: vec![VehicleShift {
                     start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd { earliest: None, latest: format_time(100.), location: (0., 0.).to_loc() }),
-                    dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         location: (0., 0.).to_loc(),

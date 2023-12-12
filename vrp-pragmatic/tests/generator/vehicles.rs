@@ -71,14 +71,12 @@ pub fn generate_shifts(
 prop_compose! {
    pub fn generate_shift(
         places_proto: impl Strategy<Value = (ShiftStart, Option<ShiftEnd>)>,
-        dispatch_proto: impl Strategy<Value = Option<Vec<VehicleDispatch>>>,
         breaks_proto: impl Strategy<Value = Option<Vec<VehicleBreak>>>,
         reloads_proto: impl Strategy<Value = Option<Vec<VehicleReload>>>,
         recharges_proto: impl Strategy<Value = Option<VehicleRecharges>>,
     )
     (
      places in places_proto,
-     dispatch in dispatch_proto,
      breaks in breaks_proto,
      reloads in reloads_proto,
      recharges in recharges_proto,
@@ -86,7 +84,6 @@ prop_compose! {
         VehicleShift {
           start: places.0,
           end: places.1,
-          dispatch,
           breaks,
           reloads,
           recharges,
@@ -117,13 +114,6 @@ prop_compose! {
 prop_compose! {
     /// Generates no breaks.
     pub fn generate_no_breaks()(_ in ".*") -> Option<Vec<VehicleBreak>> {
-        None
-    }
-}
-
-prop_compose! {
-    /// Generates no dispatch places.
-    pub fn generate_no_dispatch()(_ in ".*") -> Option<Vec<VehicleDispatch>> {
         None
     }
 }

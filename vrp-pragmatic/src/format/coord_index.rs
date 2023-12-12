@@ -52,10 +52,6 @@ impl CoordIndex {
                     index.add(&end.location);
                 }
 
-                if let Some(dispatch) = &shift.dispatch {
-                    dispatch.iter().for_each(|dispatch| index.add(&dispatch.location));
-                }
-
                 if let Some(breaks) = &shift.breaks {
                     breaks
                         .iter()

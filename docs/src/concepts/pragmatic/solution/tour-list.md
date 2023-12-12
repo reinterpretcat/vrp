@@ -42,8 +42,8 @@ Please check examples [here](../../../examples/pragmatic/basics/break.md).
 
 An activity specifies work to be done and has the following structure:
 
-* **jobId** (required): id of the job or special id (`departure`, `arrival`, `break`, `reload`, `dispatch`)
-* **type** (required):  activity type: `departure`, `arrival`, `break`, `reload`, `dispatch`, `pickup` or `delivery`
+* **jobId** (required): id of the job or special id (`departure`, `arrival`, `break`, `reload`)
+* **type** (required):  activity type: `departure`, `arrival`, `break`, `reload`, `pickup` or `delivery`
 * **location** (optional): activity location. Omitted if stop list has one activity
 * **time** (optional): start and end time of activity. Omitted if stop list has one activity
 * **jobTag** (optional): a job place tag

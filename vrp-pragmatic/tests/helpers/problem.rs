@@ -209,7 +209,6 @@ pub fn create_default_open_vehicle_shift() -> VehicleShift {
     VehicleShift {
         start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
         end: None,
-        dispatch: None,
         breaks: None,
         reloads: None,
         recharges: None,
@@ -220,7 +219,6 @@ pub fn create_default_vehicle_shift_with_locations(start: (f64, f64), end: (f64,
     VehicleShift {
         start: ShiftStart { earliest: format_time(0.), latest: None, location: (start.0, start.1).to_loc() },
         end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (end.0, end.1).to_loc() }),
-        dispatch: None,
         breaks: None,
         reloads: None,
         recharges: None,

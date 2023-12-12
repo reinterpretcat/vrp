@@ -14,9 +14,6 @@ pub use self::location_fallback::*;
 mod only_vehicle_activity_cost;
 pub use self::only_vehicle_activity_cost::*;
 
-mod route_modifier;
-pub use self::route_modifier::*;
-
 mod typed_actor_group_key;
 pub use self::typed_actor_group_key::*;
 

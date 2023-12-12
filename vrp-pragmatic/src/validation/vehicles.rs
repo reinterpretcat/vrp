@@ -154,47 +154,6 @@ fn check_e1304_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result
     }
 }
 
-fn check_e1305_vehicle_dispatch_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
-    let type_ids = get_invalid_type_ids(
-        ctx,
-        Box::new(move |vehicle, shift, shift_time| {
-            shift.dispatch.as_ref().map_or(true, |dispatch| {
-                let has_valid_tw = dispatch.iter().flat_map(|dispatch| dispatch.limits.iter()).all(|limit| {
-                    let start = parse_time(&limit.start);
-                    let end = parse_time(&limit.end);
-
-                    compare_floats(start, end) != Ordering::Greater
-                        && shift_time.as_ref().map_or(true, |tw| {
-                            TimeWindow::new(start, start).intersects(tw) && TimeWindow::new(end, end).intersects(tw)
-                        })
-                });
-
-                let has_valid_max = dispatch.iter().all(|dispatch| {
-                    dispatch.limits.iter().map(|limit| limit.max).sum::<usize>() == vehicle.vehicle_ids.len()
-                });
-
-                has_valid_tw
-                    && has_valid_max
-                    && dispatch.iter().map(|dispatch| dispatch.location.clone()).collect::<HashSet<_>>().len()
-                        == dispatch.len()
-            })
-        }),
-    );
-
-    if type_ids.is_empty() {
-        Ok(())
-    } else {
-        Err(FormatError::new(
-            "E1305".to_string(),
-            "invalid dispatch in vehicle shift".to_string(),
-            format!(
-                "ensure that all dispatch have proper dispatch parameters and unique locations. Vehicle type ids: '{}'",
-                type_ids.join(", ")
-            ),
-        ))
-    }
-}
-
 /// Checks that vehicle area restrictions are valid.
 fn check_e1306_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = ctx
@@ -349,7 +308,6 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError
         check_e1302_vehicle_shift_time(ctx),
         check_e1303_vehicle_breaks_time_is_correct(ctx),
         check_e1304_vehicle_reload_time_is_correct(ctx),
-        check_e1305_vehicle_dispatch_is_correct(ctx),
         check_e1306_vehicle_has_no_zero_costs(ctx),
         check_e1307_vehicle_offset_break_rescheduling(ctx),
         check_e1308_vehicle_reload_resources(ctx),

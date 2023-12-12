@@ -13,6 +13,10 @@ All notable changes to this project will be documented in this file.
 * allow user to pass alternative objectives in goal context to guide the search
 * `experimental`: a new `fast-service` objective function to serve jobs as soon as possible
 
+### Removed
+
+* experimental `dispatch` feature
+
 ### Changed
 
 * apply code style refactoring

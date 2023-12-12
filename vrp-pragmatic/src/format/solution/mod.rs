@@ -89,7 +89,6 @@ fn map_code_reason(code: i32) -> (&'static str, &'static str) {
         BREAK_CONSTRAINT_CODE => ("BREAK_CONSTRAINT", "break is not assignable"),
         LOCKING_CONSTRAINT_CODE => ("LOCKING_CONSTRAINT", "cannot be served due to relation lock"),
         AREA_CONSTRAINT_CODE => ("AREA_CONSTRAINT", "cannot be assigned due to area constraint"),
-        DISPATCH_CONSTRAINT_CODE => ("DISPATCH_CONSTRAINT", "cannot be assigned due to vehicle dispatch"),
         TOUR_SIZE_CONSTRAINT_CODE => {
             ("TOUR_SIZE_CONSTRAINT", "cannot be assigned due to tour size constraint of vehicle")
         }
@@ -117,7 +116,6 @@ fn map_reason_code(reason: &str) -> i32 {
         "BREAK_CONSTRAINT" => BREAK_CONSTRAINT_CODE,
         "LOCKING_CONSTRAINT" => LOCKING_CONSTRAINT_CODE,
         "AREA_CONSTRAINT" => AREA_CONSTRAINT_CODE,
-        "DISPATCH_CONSTRAINT" => DISPATCH_CONSTRAINT_CODE,
         "TOUR_SIZE_CONSTRAINT" => TOUR_SIZE_CONSTRAINT_CODE,
         "TOUR_ORDER_CONSTRAINT" => TOUR_ORDER_CONSTRAINT_CODE,
         "GROUP_CONSTRAINT" => GROUP_CONSTRAINT_CODE,

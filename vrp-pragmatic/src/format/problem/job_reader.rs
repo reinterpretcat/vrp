@@ -4,10 +4,8 @@ use crate::format::coord_index::CoordIndex;
 use crate::format::problem::JobSkills as ApiJobSkills;
 use crate::format::problem::*;
 use crate::format::{JobIndex, Location};
-use crate::parse_time;
 use crate::utils::VariableJobPermutation;
 use hashbrown::HashMap;
-use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
@@ -72,7 +70,7 @@ pub(super) fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<
                 .filter(|job| job.as_str() != "departure" && job.as_str() != "arrival")
                 .fold((HashMap::<String, _>::default(), vec![]), |(mut indexer, mut jobs), job| {
                     let job_id = match job.as_str() {
-                        "break" | "dispatch" | "reload" => {
+                        "break" | "reload" => {
                             let entry = indexer.entry(job.clone()).or_insert(1_usize);
                             let job_index = *entry;
                             *entry += 1;
@@ -180,10 +178,6 @@ fn read_conditional_jobs(
 
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
-            if let Some(dispatch) = &shift.dispatch {
-                read_dispatch(coord_index, job_index, &mut jobs, vehicle, shift_index, dispatch);
-            }
-
             if let Some(breaks) = &shift.breaks {
                 read_optional_breaks(coord_index, job_index, &mut jobs, vehicle, shift_index, breaks);
             }
@@ -255,49 +249,6 @@ fn read_optional_breaks(
                 .collect::<Vec<_>>()
         })
         .for_each(|(job_id, single)| add_conditional_job(job_index, jobs, job_id, single));
-}
-
-fn read_dispatch(
-    coord_index: &CoordIndex,
-    job_index: &mut JobIndex,
-    jobs: &mut Vec<Job>,
-    vehicle: &VehicleType,
-    shift_index: usize,
-    dispatch: &[VehicleDispatch],
-) {
-    dispatch.iter().enumerate().for_each(|(dispatch_idx, dispatch)| {
-        let total_max = dispatch.limits.iter().map(|l| l.max).sum::<usize>();
-        assert_eq!(total_max, vehicle.vehicle_ids.len());
-
-        dispatch
-            .limits
-            .iter()
-            .flat_map(|limit| {
-                let location = Some(dispatch.location.clone());
-                let start = parse_time(&limit.start);
-                let end = parse_time(&limit.end);
-
-                assert_ne!(compare_floats(start, end), Ordering::Greater);
-
-                (0..limit.max).map(move |_| {
-                    (
-                        location.clone(),
-                        end - start,
-                        vec![TimeSpan::Window(TimeWindow::new(start, start))],
-                        dispatch.tag.clone(),
-                    )
-                })
-            })
-            .zip(vehicle.vehicle_ids.iter())
-            .for_each(|(place, vehicle_id)| {
-                let job_id = format!("{}_dispatch_{}_{}", vehicle_id, shift_index, dispatch_idx + 1);
-
-                let job =
-                    get_conditional_job(coord_index, vehicle_id.clone(), &job_id, "dispatch", shift_index, vec![place]);
-
-                add_conditional_job(job_index, jobs, job_id, job);
-            });
-    });
 }
 
 fn read_reloads(

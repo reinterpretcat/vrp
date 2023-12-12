@@ -79,7 +79,6 @@ fn can_check_breaks_impl(
                 shifts: vec![VehicleShift {
                     start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
                     end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (0., 0.).to_loc() }),
-                    dispatch: None,
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: break_times,
                         places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],

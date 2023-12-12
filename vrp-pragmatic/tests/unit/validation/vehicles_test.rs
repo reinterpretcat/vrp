@@ -1,5 +1,4 @@
 use super::*;
-use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
 
@@ -27,50 +26,6 @@ fn can_detect_invalid_break_time() {
         check_e1303_vehicle_breaks_time_is_correct(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
 
     assert_eq!(result.err().map(|err| err.code), Some("E1303".to_string()));
-}
-
-parameterized_test! {can_detect_invalid_dispatch, (allowed_areas, expected), {
-    can_detect_invalid_dispatch_impl(allowed_areas, expected);
-}}
-
-can_detect_invalid_dispatch! {
-    case01: (&[(0., (0., 10.))], None),
-    case02: (&[(1., (0., 10.))], None),
-    case03: (&[(1., (0., 10.)), (1., (0., 10.))], Some("E1305".to_string())),
-    case04: (&[(1., (0., 10.)), (2., (0., 10.))], None),
-
-    case05: (&[(1., (0., 10.))], None),
-    case06: (&[(1., (1001., 1010.))], Some("E1305".to_string())),
-    case07: (&[(1., (10., 1.))], Some("E1305".to_string())),
-}
-
-fn can_detect_invalid_dispatch_impl(dispatch: &[(f64, (f64, f64))], expected: Option<String>) {
-    let dispatch = Some(
-        dispatch
-            .iter()
-            .cloned()
-            .map(|(lat, times)| VehicleDispatch {
-                location: Location::Coordinate { lat, lng: 0. },
-                limits: vec![VehicleDispatchLimit { max: 1, start: format_time(times.0), end: format_time(times.1) }],
-                tag: None,
-            })
-            .collect(),
-    );
-    let problem = Problem {
-        fleet: Fleet {
-            vehicles: vec![VehicleType {
-                shifts: vec![VehicleShift { dispatch, ..create_default_vehicle_shift() }],
-                ..create_default_vehicle_type()
-            }],
-            ..create_default_fleet()
-        },
-        ..create_empty_problem()
-    };
-
-    let result =
-        check_e1305_vehicle_dispatch_is_correct(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
-
-    assert_eq!(result.err().map(|err| err.code), expected);
 }
 
 parameterized_test! {can_detect_zero_costs, (costs, expected), {

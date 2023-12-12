@@ -25,7 +25,6 @@ job was not added to the existing tours.
 | BREAK_CONSTRAINT              | `break is not assignable`                                      | correct break location or/and time window?              |
 | LOCKING_CONSTRAINT            | `cannot be served due to relation lock`                        | review relations?                                       |
 | AREA_CONSTRAINT               | `cannot be assigned due to area constraint`                    | make sure that jobs inside allowed areas                |
-| DISPATCH_CONSTRAINT           | `cannot be assigned due to vehicle dispatch`                   | make sure that vehicle dispatch definition is correct   |
 | TOUR_SIZE_CONSTRAINT          | `cannot be assigned due to tour size constraint of vehicle`    | make sure that there are enough vehicles to serve jobs  |
 | TOUR_ORDER_CONSTRAINT         | `cannot be assigned due to tour order constraint`              | tour order might be too strict or not vehicles enough   |
 | GROUP_CONSTRAINT              | `cannot be assigned due to group constraint`                   | try to reduce amount of jobs in the group?              |

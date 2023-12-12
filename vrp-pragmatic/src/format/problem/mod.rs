@@ -109,7 +109,6 @@ struct ProblemProperties {
     has_breaks: bool,
     has_skills: bool,
     has_unreachable_locations: bool,
-    has_dispatch: bool,
     has_reloads: bool,
     has_recharges: bool,
     has_order: bool,

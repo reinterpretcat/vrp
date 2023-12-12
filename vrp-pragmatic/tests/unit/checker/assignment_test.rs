@@ -1,5 +1,4 @@
 use super::*;
-use crate::format_time;
 use crate::helpers::*;
 use vrp_core::models::examples::create_example_problem;
 
@@ -259,56 +258,6 @@ fn can_detect_job_duration_violation() {
     let result = check_assignment(&ctx);
 
     assert_eq!(result, Err(vec!["cannot match activities to jobs: job1:<no tag>".into()]));
-}
-
-#[test]
-fn can_detect_dispatch_violations() {
-    let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job("job1", (2., 0.))], ..create_empty_plan() },
-        fleet: Fleet {
-            vehicles: vec![VehicleType {
-                shifts: vec![VehicleShift {
-                    dispatch: Some(vec![VehicleDispatch {
-                        location: (1., 0.).to_loc(),
-                        limits: vec![VehicleDispatchLimit { max: 1, start: format_time(1.), end: format_time(2.) }],
-                        tag: None,
-                    }]),
-                    ..create_default_vehicle_shift()
-                }],
-                ..create_default_vehicle_type()
-            }],
-            ..create_default_fleet()
-        },
-        ..create_empty_problem()
-    };
-    let solution = SolutionBuilder::default()
-        .tour(
-            TourBuilder::default()
-                .stops(vec![
-                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(2., 2.).load(vec![1]).build_departure(),
-                    StopBuilder::default()
-                        .coordinate((2., 0.))
-                        .schedule_stamp(2., 3.)
-                        .load(vec![0])
-                        .distance(2)
-                        .build_single("job1", "delivery"),
-                    StopBuilder::default()
-                        .coordinate((0., 0.))
-                        .schedule_stamp(5., 5.)
-                        .load(vec![0])
-                        .distance(4)
-                        .build_arrival(),
-                ])
-                .statistic(StatisticBuilder::default().driving(2).serving(2).waiting(2).build())
-                .build(),
-        )
-        .build();
-    let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
-    let ctx = CheckerContext::new(core_problem, problem, None, solution).unwrap();
-
-    let result = check_dispatch(&ctx);
-
-    assert_eq!(result, Err("tour should have dispatch, but none is found: 'my_vehicle_1'".into()));
 }
 
 #[test]

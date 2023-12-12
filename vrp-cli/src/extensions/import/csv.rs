@@ -125,7 +125,6 @@ mod actual {
                             location: depot_location.clone(),
                         },
                         end: Some(ShiftEnd { earliest: None, latest: vehicle.tw_end, location: depot_location }),
-                        dispatch: None,
                         breaks: None,
                         reloads: None,
                         recharges: None,

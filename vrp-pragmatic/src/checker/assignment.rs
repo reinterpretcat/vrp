@@ -15,13 +15,7 @@ use vrp_core::utils::GenericError;
 
 /// Checks assignment of jobs and vehicles.
 pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<GenericError>> {
-    combine_error_results(&[
-        check_vehicles(ctx),
-        check_jobs_presence(ctx),
-        check_jobs_match(ctx),
-        check_dispatch(ctx),
-        check_groups(ctx),
-    ])
+    combine_error_results(&[check_vehicles(ctx), check_jobs_presence(ctx), check_jobs_match(ctx), check_groups(ctx)])
 }
 
 /// Checks that vehicles in each tour are used once per shift and they are known in problem.
@@ -260,83 +254,6 @@ fn is_valid_job_info(
                 || not_equal(a_commute.backward.duration, d_commute.backward.duration)
         }
     }
-}
-
-/// Checks whether dispatch is properly assigned.
-fn check_dispatch(ctx: &CheckerContext) -> Result<(), GenericError> {
-    let vehicles_with_dispatch = ctx
-        .problem
-        .fleet
-        .vehicles
-        .iter()
-        .flat_map(|v| v.shifts.iter().map(move |shift| (v.type_id.clone(), shift)))
-        .filter_map(|(v, shift)| shift.dispatch.as_ref().map(|ds| (v, ds)))
-        .collect::<HashMap<_, _>>();
-
-    ctx.solution.tours.iter().try_fold::<_, _, Result<_, GenericError>>((), |_, tour| {
-        let should_have_dispatch = vehicles_with_dispatch.contains_key(&tour.type_id);
-        let dispatch_in_tour = tour
-            .stops
-            .iter()
-            .enumerate()
-            .flat_map(|(stop_idx, stop)| {
-                stop.activities()
-                    .iter()
-                    .enumerate()
-                    .map(move |(activity_index, activity)| (stop_idx, activity_index, activity))
-            })
-            .filter(|(_, _, activity)| activity.activity_type == "dispatch")
-            .collect::<Vec<_>>();
-
-        if dispatch_in_tour.len() > 1 {
-            return Err(format!("more than one dispatch in the tour: '{}'", tour.vehicle_id).into());
-        }
-
-        if should_have_dispatch && dispatch_in_tour.is_empty() {
-            return Err(format!("tour should have dispatch, but none is found: '{}'", tour.vehicle_id).into());
-        }
-
-        if !should_have_dispatch && !dispatch_in_tour.is_empty() {
-            return Err(format!("tour should not have dispatch, but it is present: '{}'", tour.vehicle_id).into());
-        }
-
-        if should_have_dispatch {
-            let (stop_idx, activity_idx, dispatch_activity) = dispatch_in_tour.first().unwrap();
-            let first_stop_location = tour
-                .stops
-                .first()
-                .unwrap()
-                .as_point()
-                .map(|point| point.location.clone())
-                .ok_or_else(|| GenericError::from("first stop has no location"))?;
-
-            match (stop_idx, activity_idx) {
-                (0, 1) => {
-                    if let Some(location) = &dispatch_activity.location {
-                        if *location != first_stop_location {
-                            return Err(format!(
-                                "invalid dispatch location: {location}, expected to match the first stop"
-                            )
-                            .into());
-                        }
-                    }
-                }
-                (1, 0) => {
-                    if let Some(location) = &dispatch_activity.location {
-                        if *location == first_stop_location {
-                            return Err(format!(
-                                "invalid dispatch location: {location}, expected not to match the first stop"
-                            )
-                            .into());
-                        }
-                    }
-                }
-                _ => return Err(format!("invalid dispatch activity index, expected: 1, got: '{activity_idx}'").into()),
-            }
-        }
-
-        Ok(())
-    })
 }
 
 fn check_groups(ctx: &CheckerContext) -> Result<(), GenericError> {

@@ -66,9 +66,6 @@ Each shift can have the following properties:
 - **start** (required) specifies vehicle start place defined via location, earliest (required) and latest (optional) departure time
 - **end** (optional) specifies vehicle end place defined via location, earliest (reserved) and latest (required) arrival time.
     When omitted, then vehicle ends on last job location
-- **dispatch** (optional) a list of dispatch places. When specified, shift start location is not considered as depot and
-    vehicle has to navigate first to one of these places to load goods with dispatching constraints.
-  Check example [here](../../../examples/pragmatic/basics/dispatch.md).
 - **breaks** (optional) a list of vehicle breaks. There are two types of breaks:
     * __required__: this break is guaranteed to be assigned at cost of flexibility. It has the following properties:
       - `time` (required): a fixed time or time offset interval when the break should happen specified by `earliest` and `latest` properties.
@@ -110,7 +107,6 @@ Each shift can have the following properties:
 * [E1302 invalid start or end times in vehicle shift](../errors/index.md#e1302)
 * [E1303 invalid break time windows in vehicle shift](../errors/index.md#e1303)
 * [E1304 invalid reload time windows in vehicle shift](../errors/index.md#e1304)
-* [E1305 invalid dispatch in vehicle shift](../errors/index.md#e1305)
 * [E1306 time and duration costs are zeros](../errors/index.md#e1306)
 * [E1307 time offset interval for break  is used with departure rescheduling](../errors/index.md#e1307)
 * [E1308 invalid vehicle reload resource](../errors/index.md#e1308)

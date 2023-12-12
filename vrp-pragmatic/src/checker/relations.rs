@@ -12,7 +12,7 @@ pub fn check_relations(context: &CheckerContext) -> Result<(), Vec<GenericError>
 }
 
 fn check_relations_assignment(context: &CheckerContext) -> Result<(), GenericError> {
-    let reserved_ids = vec!["departure", "arrival", "break", "dispatch", "reload"].into_iter().collect::<HashSet<_>>();
+    let reserved_ids = vec!["departure", "arrival", "break", "reload"].into_iter().collect::<HashSet<_>>();
 
     (0_usize..)
         .zip(context.problem.plan.relations.as_ref().map_or([].iter(), |relations| relations.iter()))

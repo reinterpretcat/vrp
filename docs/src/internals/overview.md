@@ -61,7 +61,6 @@ right side
      * multi-job
       *_ minor perf. improv.
     * vehicle place
-     *_ dispatch
      *_ reload
     * break
      *_ legal break
