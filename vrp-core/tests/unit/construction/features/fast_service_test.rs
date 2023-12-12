@@ -11,6 +11,7 @@ fn create_test_feature(route_intervals: Arc<dyn RouteIntervals + Send + Sync>) -
         TestTransportCost::new_shared(),
         TestActivityCost::new_shared(),
         route_intervals,
+        None,
         STATE_KEY,
     )
     .unwrap()

@@ -5,6 +5,9 @@ mod fast_service_test;
 use super::*;
 use crate::construction::enablers::{calculate_travel, calculate_travel_delta, RouteIntervals};
 use hashbrown::HashMap;
+use rosomaxa::algorithms::math::relative_distance;
+use std::cmp::Ordering;
+use std::iter::once;
 use std::marker::PhantomData;
 
 /// Creates a feature to prefer a fast serving of jobs.
@@ -13,11 +16,12 @@ pub fn create_fast_service_feature<T: LoadOps>(
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
+    tolerance: Option<f64>,
     state_key: StateKey,
 ) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
-        .with_objective(FastServiceObjective::<T>::new(transport, activity, route_intervals, state_key))
+        .with_objective(FastServiceObjective::<T>::new(transport, activity, route_intervals, tolerance, state_key))
         .with_state(FastServiceState::new(state_key))
         .build()
 }
@@ -44,12 +48,26 @@ struct FastServiceObjective<T> {
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
+    tolerance: Option<f64>,
     state_key: StateKey,
     phantom: PhantomData<T>,
 }
 
 impl<T: LoadOps> Objective for FastServiceObjective<T> {
     type Solution = InsertionContext;
+
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        let fitness_a = self.fitness(a);
+        let fitness_b = self.fitness(b);
+
+        if let Some(tolerance) = self.tolerance {
+            if relative_distance(once(fitness_a), once(fitness_b)) < tolerance {
+                return Ordering::Equal;
+            }
+        }
+
+        compare_floats(fitness_a, fitness_b)
+    }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         solution
@@ -108,9 +126,10 @@ impl<T: LoadOps> FastServiceObjective<T> {
         transport: Arc<dyn TransportCost + Send + Sync>,
         activity: Arc<dyn ActivityCost + Send + Sync>,
         route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
+        tolerance: Option<f64>,
         state_key: StateKey,
     ) -> Self {
-        Self { transport, activity, route_intervals, state_key, phantom: Default::default() }
+        Self { transport, activity, route_intervals, state_key, tolerance, phantom: Default::default() }
     }
 
     fn get_start_time(&self, route_ctx: &RouteContext, activity_idx: usize) -> Timestamp {
