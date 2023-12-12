@@ -87,21 +87,7 @@ fn get_objective_features(
     blocks: &ProblemBlocks,
     props: &ProblemProperties,
 ) -> Result<Vec<Vec<Feature>>, GenericError> {
-    let objectives = if let Some(objectives) = api_problem.objectives.clone() {
-        objectives
-    } else {
-        let mut objectives = vec![
-            vec![Objective::MinimizeUnassigned { breaks: Some(1.) }],
-            vec![Objective::MinimizeTours],
-            vec![Objective::MinimizeCost],
-        ];
-
-        if props.has_value {
-            objectives.insert(0, vec![Objective::MaximizeValue { breaks: None }])
-        }
-
-        objectives
-    };
+    let objectives = get_objectives(api_problem, props);
 
     objectives
         .iter()
@@ -229,6 +215,24 @@ fn get_objective_features(
                 .collect()
         })
         .collect()
+}
+
+fn get_objectives(api_problem: &ApiProblem, props: &ProblemProperties) -> Vec<Vec<Objective>> {
+    if let Some(objectives) = api_problem.objectives.clone() {
+        objectives
+    } else {
+        let mut objectives = vec![
+            vec![Objective::MinimizeUnassigned { breaks: Some(1.) }],
+            vec![Objective::MinimizeTours],
+            vec![Objective::MinimizeCost],
+        ];
+
+        if props.has_value {
+            objectives.insert(0, vec![Objective::MaximizeValue { breaks: None }])
+        }
+
+        objectives
+    }
 }
 
 const RELOAD_THRESHOLD: f64 = 0.9;
