@@ -222,7 +222,9 @@ fn get_objective_features(
                     Objective::TourOrder => {
                         create_tour_order_soft_feature("tour_order", TOUR_ORDER_KEY, get_tour_order_fn())
                     }
-                    Objective::FastService => get_fast_service_feature("fast_service", blocks, props),
+                    Objective::FastService { tolerance } => {
+                        get_fast_service_feature("fast_service", blocks, props, *tolerance)
+                    }
                 })
                 .collect()
         })
@@ -266,6 +268,7 @@ fn get_fast_service_feature(
     name: &str,
     blocks: &ProblemBlocks,
     props: &ProblemProperties,
+    tolerance: Option<f64>,
 ) -> Result<Feature, GenericError> {
     let (transport, activity) = (blocks.transport.clone(), blocks.activity.clone());
     if props.has_reloads {
@@ -277,6 +280,7 @@ fn get_fast_service_feature(
                 create_simple_reload_route_intervals(Box::new(move |capacity: &MultiDimLoad| {
                     *capacity * RELOAD_THRESHOLD
                 })),
+                tolerance,
                 FAST_SERVICE_KEY,
             )
         } else {
@@ -287,15 +291,30 @@ fn get_fast_service_feature(
                 create_simple_reload_route_intervals(Box::new(move |capacity: &SingleDimLoad| {
                     *capacity * RELOAD_THRESHOLD
                 })),
+                tolerance,
                 FAST_SERVICE_KEY,
             )
         }
     } else {
         let route_intervals = Arc::new(NoRouteIntervals::default());
         if props.has_multi_dimen_capacity {
-            create_fast_service_feature::<MultiDimLoad>(name, transport, activity, route_intervals, FAST_SERVICE_KEY)
+            create_fast_service_feature::<MultiDimLoad>(
+                name,
+                transport,
+                activity,
+                route_intervals,
+                tolerance,
+                FAST_SERVICE_KEY,
+            )
         } else {
-            create_fast_service_feature::<SingleDimLoad>(name, transport, activity, route_intervals, FAST_SERVICE_KEY)
+            create_fast_service_feature::<SingleDimLoad>(
+                name,
+                transport,
+                activity,
+                route_intervals,
+                tolerance,
+                FAST_SERVICE_KEY,
+            )
         }
     }
 }

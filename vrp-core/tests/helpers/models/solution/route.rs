@@ -109,7 +109,7 @@ impl RouteStateBuilder {
     }
 
     pub fn build(&mut self) -> RouteState {
-        std::mem::replace(&mut self.state, RouteState::default())
+        std::mem::take(&mut self.state)
     }
 }
 

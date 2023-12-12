@@ -39,7 +39,7 @@ fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), For
                 BalanceDuration { .. } => acc.entry("balance-duration"),
                 CompactTour { .. } => acc.entry("compact-tour"),
                 TourOrder => acc.entry("tour-order"),
-                FastService => acc.entry("fast-service"),
+                FastService { .. } => acc.entry("fast-service"),
             }
             .and_modify(|count| *count += 1)
             .or_insert(1_usize);

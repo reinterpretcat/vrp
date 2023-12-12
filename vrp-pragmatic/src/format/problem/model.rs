@@ -648,7 +648,11 @@ pub enum Objective {
 
     /// An objective to prefer jobs to be served as soon as possible.
     #[serde(rename(deserialize = "fast-service", serialize = "fast-service"))]
-    FastService,
+    FastService {
+        /// An objective tolerance specifies how different objective values have to be
+        /// to consider them different. Relative distance metric is used.
+        tolerance: Option<f64>,
+    },
 }
 
 /// Specifies balance objective options. At the moment, it uses coefficient of variation as
