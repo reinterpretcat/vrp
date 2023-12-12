@@ -110,7 +110,7 @@ fn can_specify_parallelism() {
     ] {
         let matches = get_solomon_matches(params.as_slice());
 
-        let thread_pool_size = get_environment(&matches, None).map(|e| e.parallelism.thread_pool_size());
+        let thread_pool_size = get_environment(&matches).map(|e| e.parallelism.thread_pool_size());
 
         assert_eq!(thread_pool_size, result);
     }
