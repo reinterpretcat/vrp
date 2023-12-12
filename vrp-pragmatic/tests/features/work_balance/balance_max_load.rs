@@ -26,7 +26,7 @@ fn can_balance_max_load() {
             ..create_default_fleet()
         },
         objectives: Some(vec![
-            vec![MinimizeUnassignedJobs { breaks: None }],
+            vec![MinimizeUnassigned { breaks: None }],
             vec![BalanceMaxLoad { options: None }],
             vec![MinimizeCost],
         ]),

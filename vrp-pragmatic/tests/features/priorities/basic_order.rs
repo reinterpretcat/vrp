@@ -21,13 +21,13 @@ fn create_test_limit() -> Option<VehicleLimits> {
 fn create_order_objective(is_constrained: bool) -> Vec<Vec<Objective>> {
     if is_constrained {
         vec![
-            vec![Objective::MinimizeUnassignedJobs { breaks: None }],
+            vec![Objective::MinimizeUnassigned { breaks: None }],
             vec![Objective::MinimizeTours],
             vec![Objective::MinimizeCost],
         ]
     } else {
         vec![
-            vec![Objective::MinimizeUnassignedJobs { breaks: None }],
+            vec![Objective::MinimizeUnassigned { breaks: None }],
             vec![Objective::MinimizeTours],
             vec![Objective::TourOrder],
             vec![Objective::MinimizeCost],

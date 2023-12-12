@@ -102,7 +102,7 @@ fn can_prefer_first_days_with_minimize_arrival_time_objective() {
             ..create_empty_plan()
         },
         objectives: Some(vec![
-            vec![Objective::MinimizeUnassignedJobs { breaks: None }],
+            vec![Objective::MinimizeUnassigned { breaks: None }],
             vec![Objective::MinimizeArrivalTime],
             vec![Objective::MinimizeCost],
         ]),

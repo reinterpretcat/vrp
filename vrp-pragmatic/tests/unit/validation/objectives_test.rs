@@ -96,7 +96,7 @@ fn can_detect_missing_cost_objective_impl(objectives: Option<Vec<Vec<Objective>>
 fn can_detect_missing_value_jobs() {
     let problem = Problem {
         objectives: Some(vec![
-            vec![MinimizeUnassignedJobs { breaks: None }],
+            vec![MinimizeUnassigned { breaks: None }],
             vec![MaximizeValue { breaks: None }],
             vec![MinimizeCost],
         ]),
@@ -114,7 +114,7 @@ fn can_detect_missing_value_jobs() {
 #[test]
 fn can_detect_missing_order_jobs() {
     let problem = Problem {
-        objectives: Some(vec![vec![MinimizeUnassignedJobs { breaks: None }], vec![TourOrder], vec![MinimizeCost]]),
+        objectives: Some(vec![vec![MinimizeUnassigned { breaks: None }], vec![TourOrder], vec![MinimizeCost]]),
         ..create_empty_problem()
     };
     let coord_index = CoordIndex::new(&problem);
@@ -186,11 +186,11 @@ parameterized_test! {can_detect_missing_value_objective, (objectives, expected),
 
 can_detect_missing_value_objective! {
     case01: (Some(vec![
-                vec![MinimizeUnassignedJobs { breaks: None }],
+                vec![MinimizeUnassigned { breaks: None }],
                 vec![MinimizeCost],
             ]), Some("E1607".to_string())),
     case02: (Some(vec![
-                vec![MinimizeUnassignedJobs { breaks: None }],
+                vec![MinimizeUnassigned { breaks: None }],
                 vec![MaximizeValue { breaks: None }],
                 vec![MinimizeCost],
             ]), None),

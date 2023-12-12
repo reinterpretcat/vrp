@@ -24,7 +24,7 @@ fn can_balance_duration() {
             ..create_default_fleet()
         },
         objectives: Some(vec![
-            vec![MinimizeUnassignedJobs { breaks: None }],
+            vec![MinimizeUnassigned { breaks: None }],
             vec![BalanceDuration { options: None }],
             vec![MinimizeCost],
         ]),

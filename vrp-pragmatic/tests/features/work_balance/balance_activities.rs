@@ -52,7 +52,7 @@ fn can_balance_activities_with_threshold_impl(threshold: Option<f64>, expected_l
             ..create_default_fleet()
         },
         objectives: Some(vec![
-            vec![MinimizeUnassignedJobs { breaks: None }],
+            vec![MinimizeUnassigned { breaks: None }],
             vec![BalanceActivities { options: Some(BalanceOptions { threshold }) }],
             vec![MinimizeCost],
         ]),

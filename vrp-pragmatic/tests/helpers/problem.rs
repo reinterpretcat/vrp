@@ -1,4 +1,4 @@
-use crate::format::problem::Objective::{MinimizeCost, MinimizeUnassignedJobs};
+use crate::format::problem::Objective::{MinimizeCost, MinimizeUnassigned};
 use crate::format::problem::*;
 use crate::format::{CoordIndex, Location};
 use crate::format_time;
@@ -269,7 +269,7 @@ pub fn create_default_matrix_profiles() -> Vec<MatrixProfile> {
 }
 
 pub fn create_min_jobs_cost_objective() -> Option<Vec<Vec<Objective>>> {
-    Some(vec![vec![MinimizeUnassignedJobs { breaks: None }], vec![MinimizeCost]])
+    Some(vec![vec![MinimizeUnassigned { breaks: None }], vec![MinimizeCost]])
 }
 
 pub fn create_empty_plan() -> Plan {

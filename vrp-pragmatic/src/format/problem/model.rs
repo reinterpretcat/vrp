@@ -436,12 +436,11 @@ pub struct VehicleOptionalBreakPlace {
 
 /// Vehicle break policy.
 #[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum VehicleOptionalBreakPolicy {
     /// Allows to skip break if actual tour schedule doesn't intersect with vehicle time window.
-    #[serde(rename(deserialize = "skip-if-no-intersection", serialize = "skip-if-no-intersection"))]
     SkipIfNoIntersection,
     /// Allows to skip break if vehicle arrives before break's time window end.
-    #[serde(rename(deserialize = "skip-if-arrival-before-end", serialize = "skip-if-arrival-before-end"))]
     SkipIfArrivalBeforeEnd,
 }
 
@@ -557,30 +556,24 @@ pub struct Fleet {
 
 /// Specifies objective function types.
 #[derive(Clone, Deserialize, Debug, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "kebab-case")]
 pub enum Objective {
     /// An objective to minimize total cost as linear combination of total time and distance.
-    #[serde(rename(deserialize = "minimize-cost", serialize = "minimize-cost"))]
     MinimizeCost,
 
     /// An objective to minimize total distance.
-    #[serde(rename(deserialize = "minimize-distance", serialize = "minimize-distance"))]
     MinimizeDistance,
 
     /// An objective to minimize total duration.
-    #[serde(rename(deserialize = "minimize-duration", serialize = "minimize-duration"))]
     MinimizeDuration,
 
     /// An objective to minimize total tour amount.
-    #[serde(rename(deserialize = "minimize-tours", serialize = "minimize-tours"))]
     MinimizeTours,
 
     /// An objective to maximize total tour amount.
-    #[serde(rename(deserialize = "maximize-tours", serialize = "maximize-tours"))]
     MaximizeTours,
 
     /// An objective to maximize value of served jobs.
-    #[serde(rename(deserialize = "maximize-value", serialize = "maximize-value"))]
     MaximizeValue {
         /// Specifies a weight of skipped breaks.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -588,8 +581,7 @@ pub enum Objective {
     },
 
     /// An objective to minimize amount of unassigned jobs.
-    #[serde(rename(deserialize = "minimize-unassigned", serialize = "minimize-unassigned"))]
-    MinimizeUnassignedJobs {
+    MinimizeUnassigned {
         /// A skipped break weight to increase/decrease break is importance.
         /// Default is 1.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -597,11 +589,9 @@ pub enum Objective {
     },
 
     /// An objective to minimize sum of arrival times from all routes.
-    #[serde(rename(deserialize = "minimize-arrival-time", serialize = "minimize-arrival-time"))]
     MinimizeArrivalTime,
 
     /// An objective to balance max load across all tours.
-    #[serde(rename(deserialize = "balance-max-load", serialize = "balance-max-load"))]
     BalanceMaxLoad {
         /// A relative load in single tour before balancing takes place.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -609,7 +599,6 @@ pub enum Objective {
     },
 
     /// An objective to balance activities across all tours.
-    #[serde(rename(deserialize = "balance-activities", serialize = "balance-activities"))]
     BalanceActivities {
         /// An options which can be used to specify minimum activity amount in a tour before
         /// it considered for balancing.
@@ -618,7 +607,6 @@ pub enum Objective {
     },
 
     /// An objective to balance distance across all tours.
-    #[serde(rename(deserialize = "balance-distance", serialize = "balance-distance"))]
     BalanceDistance {
         /// An options which can be used to specify minimum distance of a tour before
         /// it considered for balancing.
@@ -627,7 +615,6 @@ pub enum Objective {
     },
 
     /// An objective to balance duration across all tours.
-    #[serde(rename(deserialize = "balance-duration", serialize = "balance-duration"))]
     BalanceDuration {
         /// An options which can be used to specify minimum duration of a tour before
         /// it considered for balancing.
@@ -636,18 +623,15 @@ pub enum Objective {
     },
 
     /// An objective to control how tours are built.
-    #[serde(rename(deserialize = "compact-tour", serialize = "compact-tour"))]
     CompactTour {
         /// Options used to relax objective's impact.
         options: CompactOptions,
     },
 
     /// An objective to control order of job activities in the tour.
-    #[serde(rename(deserialize = "tour-order", serialize = "tour-order"))]
     TourOrder,
 
     /// An objective to prefer jobs to be served as soon as possible.
-    #[serde(rename(deserialize = "fast-service", serialize = "fast-service"))]
     FastService {
         /// An objective tolerance specifies how different objective values have to be
         /// to consider them different. Relative distance metric is used.

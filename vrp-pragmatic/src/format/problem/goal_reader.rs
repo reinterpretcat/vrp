@@ -91,7 +91,7 @@ fn get_objective_features(
         objectives
     } else {
         let mut objectives = vec![
-            vec![Objective::MinimizeUnassignedJobs { breaks: Some(1.) }],
+            vec![Objective::MinimizeUnassigned { breaks: Some(1.) }],
             vec![Objective::MinimizeTours],
             vec![Objective::MinimizeCost],
         ];
@@ -155,7 +155,7 @@ fn get_objective_features(
                         }),
                         -1,
                     ),
-                    Objective::MinimizeUnassignedJobs { breaks } => create_minimize_unassigned_jobs_feature(
+                    Objective::MinimizeUnassigned { breaks } => create_minimize_unassigned_jobs_feature(
                         "min_unassigned",
                         Arc::new({
                             let break_value = *breaks;

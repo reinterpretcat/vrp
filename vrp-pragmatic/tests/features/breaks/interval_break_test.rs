@@ -1,10 +1,10 @@
-use crate::format::problem::Objective::{MinimizeCost, MinimizeUnassignedJobs};
+use crate::format::problem::Objective::{MinimizeCost, MinimizeUnassigned};
 use crate::format::problem::*;
 use crate::format_time;
 use crate::helpers::*;
 
 fn create_test_objectives() -> Option<Vec<Vec<Objective>>> {
-    Some(vec![vec![MinimizeUnassignedJobs { breaks: Some(10.) }], vec![MinimizeCost]])
+    Some(vec![vec![MinimizeUnassigned { breaks: Some(10.) }], vec![MinimizeCost]])
 }
 
 #[test]
