@@ -44,10 +44,8 @@ pub fn get_waiting_mean(insertion_ctx: &InsertionContext) -> f64 {
             .solution
             .routes
             .iter()
-            .filter_map(|route_ctx| route_ctx.route().tour.get(1).map(|a| (route_ctx, a)))
-            .map(|(route_ctx, activity)| {
-                route_ctx.state().get_activity_state::<f64>(WAITING_KEY, activity).cloned().unwrap_or(0.)
-            }),
+            .filter(|route_ctx| route_ctx.route().tour.get(1).is_some())
+            .map(|route_ctx| route_ctx.state().get_activity_state::<f64>(WAITING_KEY, 1).cloned().unwrap_or(0.)),
     )
 }
 /// Gets longest distance between two connected customers (mean, S2).

@@ -28,8 +28,8 @@ fn create_activity_with_simple_demand(size: i32) -> Activity {
     ActivityBuilder::default().job(Some(job)).build()
 }
 
-fn get_simple_capacity_state(key: i32, state: &RouteState, activity: Option<&Activity>) -> i32 {
-    state.get_activity_state::<SingleDimLoad>(key, activity.unwrap()).expect("expect single capacity").value
+fn get_simple_capacity_state(key: i32, state: &RouteState, activity_idx: Option<usize>) -> i32 {
+    state.get_activity_state::<SingleDimLoad>(key, activity_idx.unwrap()).expect("expect single capacity").value
 }
 
 parameterized_test! {can_calculate_current_capacity_state_values, (s1, s2, s3, start, end, exp_s1, exp_s2, exp_s3), {
@@ -68,11 +68,11 @@ fn can_calculate_current_capacity_state_values_impl(
 
     let tour = &route_ctx.route().tour;
     let state = route_ctx.state();
-    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.start()), start);
-    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.end()), end);
-    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.get(1)), exp_s1);
-    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.get(2)), exp_s2);
-    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.get(3)), exp_s3);
+    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, Some(0)), start);
+    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.end_idx()), end);
+    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, Some(1)), exp_s1);
+    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, Some(2)), exp_s2);
+    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, Some(3)), exp_s3);
 }
 
 parameterized_test! {can_evaluate_demand_on_route, (size, expected), {

@@ -263,7 +263,7 @@ impl RouteContext {
     /// Creates a deep copy of `RouteContext`.
     pub fn deep_copy(&self) -> Self {
         let new_route = Route { actor: self.route.actor.clone(), tour: self.route.tour.deep_copy() };
-        let new_state = RouteState::from_other_and_tours(&self.state, &self.route.tour, &new_route.tour);
+        let new_state = RouteState::from_other(&self.state, self.route.tour.total());
 
         RouteContext { route: new_route, state: new_state, cache: RouteCache { is_stale: self.cache.is_stale } }
     }
@@ -342,18 +342,17 @@ impl Default for RouteState {
 
 impl RouteState {
     /// A fast way to create `RouteState`.
-    pub(crate) fn from_other_and_tours(other: &Self, old_tour: &Tour, new_tour: &Tour) -> Self {
+    pub(crate) fn from_other(other: &Self, total_activities: usize) -> Self {
         let route_states = other.route_states.clone();
         let route_keys = other.route_keys.clone();
         let activity_keys = other.activity_keys.clone();
         let mut activity_states =
             HashMap::with_capacity_and_hasher(other.activity_states.len(), BuildHasherDefault::<FxHasher>::default());
 
-        old_tour.all_activities().enumerate().for_each(|(index, activity)| {
+        (0..total_activities).for_each(|activity_idx| {
             other.all_activity_keys().for_each(|key| {
-                if let Some(value) = other.get_activity_state_raw(key, activity) {
-                    let activity = new_tour.get(index).unwrap();
-                    activity_states.insert((activity as *const Activity as usize, key), value.clone());
+                if let Some(value) = other.get_activity_state_raw(key, activity_idx) {
+                    activity_states.insert((activity_idx, key), value.clone());
                 }
             });
         });
@@ -372,13 +371,13 @@ impl RouteState {
     }
 
     /// Gets value associated with key converted to given type.
-    pub fn get_activity_state<T: Send + Sync + 'static>(&self, key: i32, activity: &Activity) -> Option<&T> {
-        self.activity_states.get(&(activity as *const Activity as usize, key)).and_then(|s| s.downcast_ref::<T>())
+    pub fn get_activity_state<T: Send + Sync + 'static>(&self, key: i32, activity_idx: usize) -> Option<&T> {
+        self.activity_states.get(&(activity_idx, key)).and_then(|s| s.downcast_ref::<T>())
     }
 
     /// Gets value associated with key.
-    pub fn get_activity_state_raw(&self, key: i32, activity: &Activity) -> Option<&StateValue> {
-        self.activity_states.get(&(activity as *const Activity as usize, key))
+    pub fn get_activity_state_raw(&self, key: i32, activity_idx: usize) -> Option<&StateValue> {
+        self.activity_states.get(&(activity_idx, key))
     }
 
     /// Puts value associated with key.
@@ -394,22 +393,15 @@ impl RouteState {
     }
 
     /// Puts value associated with key and specific activity.
-    pub fn put_activity_state<T: Send + Sync + 'static>(&mut self, key: i32, activity: &Activity, value: T) {
-        self.activity_states.insert((activity as *const Activity as usize, key), Arc::new(value));
+    pub fn put_activity_state<T: Send + Sync + 'static>(&mut self, key: i32, activity_idx: usize, value: T) {
+        self.activity_states.insert((activity_idx, key), Arc::new(value));
         self.activity_keys.insert(key);
     }
 
     /// Puts value associated with key and specific activity.
-    pub fn put_activity_state_raw(&mut self, key: i32, activity: &Activity, value: StateValue) {
-        self.activity_states.insert((activity as *const Activity as usize, key), value);
+    pub fn put_activity_state_raw(&mut self, key: i32, activity_idx: usize, value: StateValue) {
+        self.activity_states.insert((activity_idx, key), value);
         self.activity_keys.insert(key);
-    }
-
-    /// Removes all activity states for given activity.
-    pub fn remove_activity_states(&mut self, activity: &Activity) {
-        for (_, key) in self.activity_keys.iter().enumerate() {
-            self.activity_states.remove(&(activity as *const Activity as usize, *key));
-        }
     }
 
     /// Returns all activity state keys.

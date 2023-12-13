@@ -103,6 +103,16 @@ pub struct RouteStateBuilder {
 }
 
 impl RouteStateBuilder {
+    pub fn add_activity_state<T: Send + Sync + 'static>(
+        &mut self,
+        key: i32,
+        activity_idx: usize,
+        value: T,
+    ) -> &mut Self {
+        self.state.put_activity_state(key, activity_idx, value);
+        self
+    }
+
     pub fn add_route_state<T: Send + Sync + 'static>(&mut self, key: i32, value: T) -> &mut Self {
         self.state.put_route_state(key, value);
         self

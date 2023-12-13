@@ -86,13 +86,13 @@ fn can_accumulate_distance_impl(
 
     state.accept_route_state(&mut route_ctx);
 
-    route_ctx.route().tour.all_activities().enumerate().for_each(|(idx, activity)| {
+    (0..route_ctx.route().tour.total()).for_each(|activity_idx| {
         let counter = route_ctx
             .state()
-            .get_activity_state::<Distance>(RECHARGE_DISTANCE_KEY, activity)
+            .get_activity_state::<Distance>(RECHARGE_DISTANCE_KEY, activity_idx)
             .copied()
             .unwrap_or_default();
-        assert_eq!(counter, expected_counters[idx], "doesn't match for: {}", idx);
+        assert_eq!(counter, expected_counters[activity_idx], "doesn't match for: {activity_idx}");
     });
 }
 

@@ -5,6 +5,7 @@ use vrp_core::construction::features::create_capacity_limit_with_multi_trip_feat
 use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::{MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::*;
+use vrp_core::models::solution::Activity;
 
 const VIOLATION_CODE: ViolationCode = 1;
 
@@ -239,7 +240,7 @@ fn can_handle_new_interval_needed_for_multi_dim_load_impl(
         create_reload_route_intervals::<MultiDimLoad>(Box::new(move |capacity| *capacity * threshold), None);
     let (mut route_ctx, _) = create_route_context_with_fleet(vehicle_capacity, Vec::default());
     let (route, state) = route_ctx.as_mut();
-    state.put_activity_state(MAX_PAST_CAPACITY_KEY, route.tour.end().unwrap(), MultiDimLoad::new(current_capacity));
+    state.put_activity_state(MAX_PAST_CAPACITY_KEY, route.tour.end_idx().unwrap(), MultiDimLoad::new(current_capacity));
 
     let result = route_intervals.is_new_interval_needed(&route_ctx);
 

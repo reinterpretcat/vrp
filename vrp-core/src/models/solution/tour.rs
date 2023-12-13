@@ -156,6 +156,11 @@ impl Tour {
         self.activities.last()
     }
 
+    /// Returns end activity in tour.
+    pub fn end_idx(&self) -> Option<usize> {
+        self.activities.last().map(|_| self.activities.len() - 1)
+    }
+
     /// Checks whether job is present in tour
     pub fn contains(&self, job: &Job) -> bool {
         self.jobs.contains(job)

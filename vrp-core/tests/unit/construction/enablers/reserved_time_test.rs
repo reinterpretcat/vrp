@@ -112,11 +112,8 @@ fn create_feature_and_route(
 }
 
 fn get_activity_states(route_ctx: &RouteContext, key: i32) -> Vec<Option<f64>> {
-    route_ctx
-        .route()
-        .tour
-        .all_activities()
-        .map(|a| route_ctx.state().get_activity_state::<f64>(key, a).cloned())
+    (0..route_ctx.route().tour.total())
+        .map(|activity_idx| route_ctx.state().get_activity_state::<f64>(key, activity_idx).cloned())
         .collect()
 }
 
@@ -247,7 +244,7 @@ fn can_evaluate_activity_impl(
     let prev = route_ctx.route().tour.get(0).unwrap();
     let target = ActivityBuilder::with_location_tw_and_duration(loc, TimeWindow::new(start, end), dur).build();
     let next = route_ctx.route().tour.get(1);
-    let activity_ctx = ActivityContext { index: 1, prev, target: &target, next };
+    let activity_ctx = ActivityContext { index: 0, prev, target: &target, next };
 
     let is_violation = feature_constraint.evaluate(&MoveContext::activity(&route_ctx, &activity_ctx)).is_some();
 

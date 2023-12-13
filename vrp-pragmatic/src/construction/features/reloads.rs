@@ -13,7 +13,6 @@ use std::ops::Range;
 use vrp_core::construction::enablers::{FixedRouteIntervals, RouteIntervals};
 use vrp_core::construction::features::*;
 use vrp_core::models::problem::Single;
-use vrp_core::models::solution::Activity;
 
 /// Specifies load schedule threshold function.
 pub type LoadScheduleThresholdFn<T> = Box<dyn Fn(&T) -> T + Send + Sync>;
@@ -21,7 +20,7 @@ pub type LoadScheduleThresholdFn<T> = Box<dyn Fn(&T) -> T + Send + Sync>;
 pub type CapacityFeatureFactoryFn =
     Box<dyn Fn(&str, Arc<dyn RouteIntervals + Send + Sync>) -> Result<Feature, GenericError>>;
 /// Specifies place capacity threshold function.
-type PlaceCapacityThresholdFn<T> = Box<dyn Fn(&RouteContext, &Activity, &T) -> bool + Send + Sync>;
+type PlaceCapacityThresholdFn<T> = Box<dyn Fn(&RouteContext, usize, &T) -> bool + Send + Sync>;
 
 /// Creates a multi trip strategy to use multi trip with reload jobs which shared some resources.
 pub fn create_shared_reload_multi_trip_feature<T>(
@@ -41,10 +40,10 @@ where
 
     let route_intervals = create_reload_route_intervals(
         load_schedule_threshold_fn,
-        Some(Box::new(move |route_ctx, activity, demand| {
+        Some(Box::new(move |route_ctx, activity_idx, demand| {
             route_ctx
                 .state()
-                .get_activity_state::<T>(resource_key, activity)
+                .get_activity_state::<T>(resource_key, activity_idx)
                 .map_or(true, |resource_available| resource_available.can_fit(demand))
         })),
     );
@@ -79,10 +78,13 @@ fn create_reload_route_intervals<T: LoadOps>(
             route_ctx
                 .route()
                 .tour
-                .end()
-                .map(|end| {
-                    let current: T =
-                        route_ctx.state().get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_default();
+                .end_idx()
+                .map(|end_idx| {
+                    let current: T = route_ctx
+                        .state()
+                        .get_activity_state(MAX_PAST_CAPACITY_KEY, end_idx)
+                        .cloned()
+                        .unwrap_or_default();
 
                     let max_capacity = route_ctx.route().actor.vehicle.dimens.get_capacity().unwrap();
                     let threshold_capacity = (load_schedule_threshold_fn)(max_capacity);
@@ -94,9 +96,8 @@ fn create_reload_route_intervals<T: LoadOps>(
         is_obsolete_interval_fn: Box::new(move |route_ctx, left, right| {
             let capacity: T = route_ctx.route().actor.vehicle.dimens.get_capacity().cloned().unwrap_or_default();
 
-            let get_load = |activity_index: usize, state_key: i32| {
-                let activity = route_ctx.route().tour.get(activity_index).unwrap();
-                route_ctx.state().get_activity_state::<T>(state_key, activity).cloned().unwrap_or_default()
+            let get_load = |activity_idx: usize, state_key: i32| {
+                route_ctx.state().get_activity_state::<T>(state_key, activity_idx).cloned().unwrap_or_default()
             };
 
             let fold_demand = |range: Range<usize>, demand_fn: fn(&Demand<T>) -> T| {
@@ -128,9 +129,8 @@ fn create_reload_route_intervals<T: LoadOps>(
                 && place_capacity_threshold.as_ref().map_or(true, |place_capacity_threshold| {
                     // total static delivery at left
                     let left_delivery = fold_demand(left.start..right.end, |demand| demand.delivery.0);
-                    let activity = route_ctx.route().tour.get(left.start).unwrap();
 
-                    (place_capacity_threshold)(route_ctx, activity, &left_delivery)
+                    (place_capacity_threshold)(route_ctx, left.start, &left_delivery)
                 })
         }),
         is_assignable_fn: Box::new(|route, job| {

@@ -142,7 +142,8 @@ impl TransportConstraint {
         }
 
         let (next_act_location, latest_arr_time_at_next) = if let Some(next) = next {
-            let latest_arrival = route_ctx.state().get_activity_state(LATEST_ARRIVAL_KEY, next).copied();
+            let latest_arrival =
+                route_ctx.state().get_activity_state(LATEST_ARRIVAL_KEY, activity_ctx.index + 1).copied();
             (next.place.location, latest_arrival.unwrap_or(next.place.time.end))
         } else {
             // open vrp
@@ -255,7 +256,7 @@ impl TransportObjective {
         }
 
         let next = next.unwrap();
-        let waiting_time = *route_ctx.state().get_activity_state(WAITING_KEY, next).unwrap_or(&0_f64);
+        let waiting_time = *route_ctx.state().get_activity_state(WAITING_KEY, activity_ctx.index + 1).unwrap_or(&0_f64);
 
         let (tp_cost_old, act_cost_old, dep_time_old) =
             self.analyze_route_leg(route_ctx, prev, next, prev.schedule.departure);

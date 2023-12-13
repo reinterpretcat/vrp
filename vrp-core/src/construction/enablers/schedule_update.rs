@@ -89,7 +89,7 @@ fn update_states(
 
     let (route, state) = route_ctx.as_mut();
 
-    route.tour.all_activities().rev().fold(init, |acc, act| {
+    route.tour.all_activities().enumerate().rev().fold(init, |acc, (activity_idx, act)| {
         if act.job.is_none() {
             return acc;
         }
@@ -104,8 +104,8 @@ fn update_states(
         };
         let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0.);
 
-        state.put_activity_state(state_keys.latest_arrival, act, latest_arrival_time);
-        state.put_activity_state(state_keys.waiting_time, act, future_waiting);
+        state.put_activity_state(state_keys.latest_arrival, activity_idx, latest_arrival_time);
+        state.put_activity_state(state_keys.waiting_time, activity_idx, future_waiting);
 
         (latest_arrival_time, act.place.location, future_waiting)
     });
@@ -123,15 +123,16 @@ fn update_statistics(
     let total_dur = end.schedule.departure - start.schedule.departure;
 
     let init = (start.place.location, start.schedule.departure, Distance::default());
-    let (_, _, total_dist) = route.tour.all_activities().skip(1).fold(init, |(loc, dep, total_dist), a| {
-        let total_dist = total_dist + transport.distance(route, loc, a.place.location, TravelTime::Departure(dep));
-        let total_dur = a.schedule.departure - start.schedule.departure;
+    let (_, _, total_dist) =
+        route.tour.all_activities().enumerate().skip(1).fold(init, |(loc, dep, total_dist), (a_idx, a)| {
+            let total_dist = total_dist + transport.distance(route, loc, a.place.location, TravelTime::Departure(dep));
+            let total_dur = a.schedule.departure - start.schedule.departure;
 
-        state.put_activity_state(state_keys.total_distance, a, total_dist);
-        state.put_activity_state(state_keys.total_duration, a, total_dur);
+            state.put_activity_state(state_keys.total_distance, a_idx, total_dist);
+            state.put_activity_state(state_keys.total_duration, a_idx, total_dur);
 
-        (a.place.location, a.schedule.departure, total_dist)
-    });
+            (a.place.location, a.schedule.departure, total_dist)
+        });
 
     state.put_route_state(state_keys.total_distance, total_dist);
     state.put_route_state(state_keys.total_duration, total_dur);

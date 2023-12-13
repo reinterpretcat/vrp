@@ -160,14 +160,11 @@ fn can_update_resource_consumption_impl(
         .routes
         .iter()
         .map(|route_ctx| {
-            route_ctx
-                .route()
-                .tour
-                .all_activities()
-                .map(|activity| {
+            (0..route_ctx.route().tour.total())
+                .map(|activity_idx| {
                     route_ctx
                         .state()
-                        .get_activity_state::<SingleDimLoad>(RESOURCE_KEY, activity)
+                        .get_activity_state::<SingleDimLoad>(RESOURCE_KEY, activity_idx)
                         .map(|resource| resource.value)
                 })
                 .collect::<Vec<_>>()

@@ -116,27 +116,27 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
                 );
 
                 // determine actual load at each activity and max discovered in the past
-                let (current, _) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
+                let (current, _) = route.tour.activities_slice(start_idx, end_idx).iter().enumerate().fold(
                     (start_delivery, T::default()),
-                    |(current, max), activity| {
+                    |(current, max), (idx, activity)| {
+                        let activity_idx = start_idx + idx;
                         let change = get_demand(activity).map(|demand| demand.change()).unwrap_or_else(T::default);
 
                         let current = current + change;
                         let max = max.max_load(current);
 
-                        state.put_activity_state(CURRENT_CAPACITY_KEY, activity, current);
-                        state.put_activity_state(MAX_PAST_CAPACITY_KEY, activity, max);
+                        state.put_activity_state(CURRENT_CAPACITY_KEY, activity_idx, current);
+                        state.put_activity_state(MAX_PAST_CAPACITY_KEY, activity_idx, max);
 
                         (current, max)
                     },
                 );
 
-                let current_max =
-                    route.tour.activities_slice(start_idx, end_idx).iter().rev().fold(current, |max, activity| {
-                        let max = max.max_load(*state.get_activity_state(CURRENT_CAPACITY_KEY, activity).unwrap());
-                        state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, activity, max);
-                        max
-                    });
+                let current_max = (start_idx..=end_idx).rev().fold(current, |max, activity_idx| {
+                    let max = max.max_load(*state.get_activity_state(CURRENT_CAPACITY_KEY, activity_idx).unwrap());
+                    state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, activity_idx, max);
+                    max
+                });
 
                 (current - end_pickup, current_max.max_load(max))
             });
@@ -185,7 +185,7 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
         } else {
             has_demand_violation(
                 route_ctx.state(),
-                activity_ctx.prev,
+                activity_ctx.index,
                 route_ctx.route().actor.vehicle.dimens.get_capacity(),
                 demand,
                 !self.has_markers(route_ctx),
@@ -205,10 +205,10 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
         demand: Option<&Demand<T>>,
         insert_idx: Option<usize>,
     ) -> bool {
-        let has_demand_violation = |activity: &Activity| {
+        let has_demand_violation = |activity_idx: usize| {
             has_demand_violation(
                 route_ctx.state(),
-                activity,
+                activity_idx,
                 route_ctx.route().actor.vehicle.dimens.get_capacity(),
                 demand,
                 true,
@@ -216,24 +216,24 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
         };
 
         let has_demand_violation_on_borders = |start_idx: usize, end_idx: usize| {
-            has_demand_violation(route_ctx.route().tour.get(start_idx).unwrap()).is_none()
-                || has_demand_violation(route_ctx.route().tour.get(end_idx).unwrap()).is_none()
+            has_demand_violation(start_idx).is_none() || has_demand_violation(end_idx).is_none()
         };
 
         self.route_intervals
             .get_marker_intervals(route_ctx)
             .map(|intervals| {
                 if let Some(insert_idx) = insert_idx {
-                    intervals.iter().filter(|(_, end_idx)| insert_idx <= *end_idx).all(|interval| {
-                        has_demand_violation(route_ctx.route().tour.get(insert_idx.max(interval.0)).unwrap()).is_none()
-                    })
+                    intervals
+                        .iter()
+                        .filter(|(_, end_idx)| insert_idx <= *end_idx)
+                        .all(|(start_idx, _)| has_demand_violation(insert_idx.max(*start_idx)).is_none())
                 } else {
                     intervals.iter().any(|(start_idx, end_idx)| has_demand_violation_on_borders(*start_idx, *end_idx))
                 }
             })
             .unwrap_or_else(|| {
                 if let Some(insert_idx) = insert_idx {
-                    has_demand_violation(route_ctx.route().tour.get(insert_idx).unwrap()).is_none()
+                    has_demand_violation(insert_idx).is_none()
                 } else {
                     has_demand_violation_on_borders(0, route_ctx.route().tour.total().max(1) - 1)
                 }
@@ -243,7 +243,7 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
 
 fn has_demand_violation<T: LoadOps>(
     state: &RouteState,
-    pivot: &Activity,
+    pivot_idx: usize,
     capacity: Option<&T>,
     demand: Option<&Demand<T>>,
     stopped: bool,
@@ -257,7 +257,7 @@ fn has_demand_violation<T: LoadOps>(
 
     // check how static delivery affect past max load
     if demand.delivery.0.is_not_empty() {
-        let past: T = state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot).copied().unwrap_or_default();
+        let past: T = state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot_idx).copied().unwrap_or_default();
         if !capacity.can_fit(&(past + demand.delivery.0)) {
             return Some(stopped);
         }
@@ -265,7 +265,7 @@ fn has_demand_violation<T: LoadOps>(
 
     // check how static pickup affect future max load
     if demand.pickup.0.is_not_empty() {
-        let future: T = state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).copied().unwrap_or_default();
+        let future: T = state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot_idx).copied().unwrap_or_default();
         if !capacity.can_fit(&(future + demand.pickup.0)) {
             return Some(false);
         }
@@ -274,12 +274,12 @@ fn has_demand_violation<T: LoadOps>(
     // check dynamic load change
     let change = demand.change();
     if change.is_not_empty() {
-        let future: T = state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).copied().unwrap_or_default();
+        let future: T = state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot_idx).copied().unwrap_or_default();
         if !capacity.can_fit(&(future + change)) {
             return Some(false);
         }
 
-        let current: T = state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).copied().unwrap_or_default();
+        let current: T = state.get_activity_state(CURRENT_CAPACITY_KEY, pivot_idx).copied().unwrap_or_default();
         if !capacity.can_fit(&(current + change)) {
             return Some(false);
         }

@@ -83,13 +83,11 @@ mod timing {
         case09: ((40, 40, 0., 100.), 2, 80.),
     }
 
-    fn can_properly_calculate_latest_arrival_impl(vehicle_detail_data: VehicleData, activity: usize, time: f64) {
+    fn can_properly_calculate_latest_arrival_impl(vehicle_detail_data: VehicleData, activity_idx: usize, time: f64) {
         let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data);
-
         feature.state.unwrap().accept_route_state(&mut route_ctx);
 
-        let activity = route_ctx.route().tour.get(activity).unwrap();
-        let result = *route_ctx.state().get_activity_state::<Timestamp>(LATEST_ARRIVAL_KEY, activity).unwrap();
+        let result = *route_ctx.state().get_activity_state::<Timestamp>(LATEST_ARRIVAL_KEY, activity_idx).unwrap();
 
         assert_eq!(result, time);
     }
@@ -124,7 +122,7 @@ mod timing {
         let prev = route_ctx.route().tour.get(prev_index).unwrap();
         let target = ActivityBuilder::with_location(location).build();
         let next = route_ctx.route().tour.get(next_index);
-        let activity_ctx = ActivityContext { index: 0, prev, target: &target, next };
+        let activity_ctx = ActivityContext { index: prev_index, prev, target: &target, next };
 
         let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(&route_ctx, &activity_ctx));
 

@@ -12,7 +12,7 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::construction::enablers::*;
 use vrp_core::construction::features::*;
-use vrp_core::models::solution::{Activity, Route};
+use vrp_core::models::solution::Route;
 
 /// Specifies a distance limit function for recharge. It should return a fixed value for the same
 /// actor all the time.
@@ -39,11 +39,11 @@ pub fn create_recharge_feature(
                         route_ctx
                             .route()
                             .tour
-                            .end()
-                            .map(|end| {
+                            .end_idx()
+                            .map(|end_idx| {
                                 let current: Distance = route_ctx
                                     .state()
-                                    .get_activity_state(RECHARGE_DISTANCE_KEY, end)
+                                    .get_activity_state(RECHARGE_DISTANCE_KEY, end_idx)
                                     .copied()
                                     .unwrap_or_default();
 
@@ -58,10 +58,8 @@ pub fn create_recharge_feature(
                     let transport = transport.clone();
                     let get_counter = move |route_ctx: &RouteContext, activity_idx: usize| {
                         route_ctx
-                            .route()
-                            .tour
-                            .get(activity_idx)
-                            .and_then(|activity| route_ctx.state().get_activity_state(RECHARGE_DISTANCE_KEY, activity))
+                            .state()
+                            .get_activity_state(RECHARGE_DISTANCE_KEY, activity_idx)
                             .copied()
                             .unwrap_or(Distance::default())
                     };
@@ -138,11 +136,12 @@ impl MultiTrip for RechargeableMultiTrip {
                 .tour
                 .activities_slice(start_idx, end_idx)
                 .windows(2)
-                .filter_map(|leg| match leg {
-                    [prev, next] => Some((prev, next)),
+                .enumerate()
+                .filter_map(|(leg_idx, leg)| match leg {
+                    [prev, next] => Some((start_idx + leg_idx, prev, next)),
                     _ => None,
                 })
-                .fold(Distance::default(), |acc, (prev, next)| {
+                .fold(Distance::default(), |acc, (activity_idx, prev, next)| {
                     let distance = self.transport.distance(
                         route,
                         prev.place.location,
@@ -150,8 +149,9 @@ impl MultiTrip for RechargeableMultiTrip {
                         TravelTime::Departure(prev.schedule.departure),
                     );
                     let counter = acc + distance;
+                    let next_idx = activity_idx + 1;
 
-                    state.put_activity_state(self.distance_state_key, next, counter);
+                    state.put_activity_state(self.distance_state_key, next_idx, counter);
 
                     counter
                 });
@@ -224,8 +224,8 @@ impl RechargeableMultiTrip {
             .route_intervals
             .resolve_marker_intervals(route_ctx)
             .find(|(_, end_idx)| activity_ctx.index <= *end_idx)
-            .and_then(|(_, end_idx)| route_ctx.route().tour.get(get_end_idx(route_ctx, end_idx)))
-            .map(|end| self.get_distance(route_ctx, end))
+            .map(|(_, end_idx)| get_end_idx(route_ctx, end_idx))
+            .map(|end_idx| self.get_distance(route_ctx, end_idx))
             .expect("invalid markers state");
 
         let is_new_recharge = activity_ctx.target.job.as_ref().map_or(false, |job| is_recharge_single(job));
@@ -236,12 +236,12 @@ impl RechargeableMultiTrip {
 
             // S ----- A ---- [X] ------ B ----- F
 
-            let current_distance = self.get_distance(route_ctx, activity_ctx.prev);
+            let current_distance = self.get_distance(route_ctx, activity_ctx.index);
             // check S->X
             let is_begin_violates = (current_distance + prev_to_tar_distance) > threshold;
             // check X->F
-            let is_end_violates = if let Some(next) = &activity_ctx.next {
-                let next_distance = self.get_distance(route_ctx, next);
+            let is_end_violates = if activity_ctx.next.is_some() {
+                let next_distance = self.get_distance(route_ctx, activity_ctx.index + 1);
                 let new_interval_distance = interval_distance - next_distance;
 
                 (new_interval_distance + tar_to_next_distance) > threshold
@@ -265,10 +265,10 @@ impl RechargeableMultiTrip {
 }
 
 impl RechargeableMultiTrip {
-    fn get_distance(&self, route_ctx: &RouteContext, activity: &Activity) -> Distance {
+    fn get_distance(&self, route_ctx: &RouteContext, activity_idx: usize) -> Distance {
         route_ctx
             .state()
-            .get_activity_state::<Distance>(self.distance_state_key, activity)
+            .get_activity_state::<Distance>(self.distance_state_key, activity_idx)
             .copied()
             .unwrap_or(Distance::default())
     }

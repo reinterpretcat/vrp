@@ -97,26 +97,23 @@ impl<T: SharedResource> SharedResourceConstraint<T> {
             .flat_map(|intervals| intervals.iter())
             .find(|(_, end_idx)| activity_ctx.index <= *end_idx)
             .and_then(|&(start_idx, _)| {
-                route_ctx
-                    .state()
-                    .get_activity_state::<T>(self.resource_key, get_activity_by_idx(route_ctx.route(), start_idx))
-                    .and_then(|resource_available| {
-                        let resource_demand = activity_ctx
-                            .target
-                            .job
-                            .as_ref()
-                            .and_then(|job| (self.resource_demand_fn)(job.as_ref()))
-                            .unwrap_or_default();
+                route_ctx.state().get_activity_state::<T>(self.resource_key, start_idx).and_then(|resource_available| {
+                    let resource_demand = activity_ctx
+                        .target
+                        .job
+                        .as_ref()
+                        .and_then(|job| (self.resource_demand_fn)(job.as_ref()))
+                        .unwrap_or_default();
 
-                        if resource_available
-                            .partial_cmp(&resource_demand)
-                            .map_or(false, |ordering| ordering == Ordering::Less)
-                        {
-                            ConstraintViolation::skip(self.code)
-                        } else {
-                            ConstraintViolation::success()
-                        }
-                    })
+                    if resource_available
+                        .partial_cmp(&resource_demand)
+                        .map_or(false, |ordering| ordering == Ordering::Less)
+                    {
+                        ConstraintViolation::skip(self.code)
+                    } else {
+                        ConstraintViolation::success()
+                    }
+                })
             })
     }
 }
@@ -184,12 +181,7 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
                     });
 
                 if let Some(resource_available) = resource_available {
-                    let (route, state) = route_ctx.as_mut();
-                    state.put_activity_state(
-                        self.resource_key,
-                        get_activity_by_idx(route, start_idx),
-                        resource_available,
-                    );
+                    route_ctx.state_mut().put_activity_state(self.resource_key, start_idx, resource_available);
                 }
             });
         });
@@ -207,8 +199,7 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
             });
 
             if has_resource_demand {
-                let (route, state) = route_ctx.as_mut();
-                state.put_activity_state(self.resource_key, get_activity_by_idx(route, start_idx), T::default());
+                route_ctx.state_mut().put_activity_state(self.resource_key, start_idx, T::default());
             }
         });
     }

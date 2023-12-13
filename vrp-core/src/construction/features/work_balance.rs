@@ -26,11 +26,10 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
 
         intervals
             .iter()
-            .map(|(start, _)| route_ctx.route().tour.get(*start).unwrap())
-            .map(|activity| {
+            .map(|(start_idx, _)| {
                 route_ctx
                     .state()
-                    .get_activity_state::<T>(MAX_FUTURE_CAPACITY_KEY, activity)
+                    .get_activity_state::<T>(MAX_FUTURE_CAPACITY_KEY, *start_idx)
                     .unwrap_or(&default_capacity)
             })
             .map(|max_load| (load_balance_fn)(max_load, capacity))
