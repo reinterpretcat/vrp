@@ -1,6 +1,6 @@
 //! This module provides some helper functionality to combine and use multiple features together.
 
-use crate::construction::heuristics::{MoveContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::models::*;
 use rosomaxa::prelude::*;

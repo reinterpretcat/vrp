@@ -111,7 +111,7 @@ fn create_feature_and_route(
     (create_reserved_times_fn(reserved_times_idx).unwrap(), feature, route_ctx)
 }
 
-fn get_activity_states(route_ctx: &RouteContext, key: i32) -> Vec<Option<f64>> {
+fn get_activity_states(route_ctx: &RouteContext, key: StateKey) -> Vec<Option<f64>> {
     (0..route_ctx.route().tour.total())
         .map(|activity_idx| route_ctx.state().get_activity_state::<f64>(key, activity_idx).cloned())
         .collect()

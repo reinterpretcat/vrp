@@ -8,7 +8,7 @@ use vrp_core::models::problem::Actor;
 use vrp_core::models::problem::{Fleet, Single};
 
 const VIOLATION_CODE: ViolationCode = 1;
-const STATE_KEY: StateKey = 2;
+const STATE_KEY: StateKey = StateKey(2);
 
 fn create_test_group_feature(total_jobs: usize) -> Feature {
     create_group_feature("group", total_jobs, VIOLATION_CODE, STATE_KEY).unwrap()
@@ -70,7 +70,7 @@ fn get_actor(fleet: &Fleet, vehicle: &str) -> Arc<Actor> {
     fleet.actors.iter().find(|actor| actor.vehicle.dimens.get_vehicle_id().unwrap() == vehicle).unwrap().clone()
 }
 
-fn get_actor_groups(solution_ctx: &mut SolutionContext, state_key: i32) -> HashMap<String, Arc<Actor>> {
+fn get_actor_groups(solution_ctx: &mut SolutionContext, state_key: StateKey) -> HashMap<String, Arc<Actor>> {
     solution_ctx
         .routes
         .iter()

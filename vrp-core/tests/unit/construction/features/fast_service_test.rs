@@ -3,7 +3,7 @@ use crate::construction::enablers::NoRouteIntervals;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 
-const STATE_KEY: StateKey = 2;
+const STATE_KEY: StateKey = StateKey(2);
 
 fn create_test_feature(route_intervals: Arc<dyn RouteIntervals + Send + Sync>) -> Feature {
     create_fast_service_feature::<SingleDimLoad>(
@@ -175,7 +175,7 @@ mod global_estimation {
 
     #[test]
     fn can_get_solution_fitness_with_reload() {
-        const STATE_KEY: StateKey = 0;
+        const STATE_KEY: StateKey = StateKey(0);
         const INTERVAL_LOCATION: Location = 15;
 
         struct FakeRouteIntervals;

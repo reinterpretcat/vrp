@@ -75,8 +75,8 @@ pub fn create_distance_balanced_feature(name: &str, threshold: Option<f64>) -> R
 fn create_transport_balanced_feature(
     name: &str,
     threshold: Option<f64>,
-    value_key: i32,
-    state_key: i32,
+    value_key: StateKey,
+    state_key: StateKey,
 ) -> Result<Feature, GenericError> {
     let route_estimate_fn = Arc::new(move |route_ctx: &RouteContext| {
         route_ctx.state().get_route_state::<f64>(value_key).cloned().unwrap_or(0.)

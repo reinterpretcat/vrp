@@ -1,5 +1,5 @@
 use crate::construction::features::create_tour_compactness_feature;
-use crate::construction::heuristics::{InsertionContext, MoveContext};
+use crate::construction::heuristics::{InsertionContext, MoveContext, StateKey};
 use crate::helpers::models::domain::{create_empty_insertion_context, create_empty_problem};
 use crate::helpers::solver::{generate_matrix_routes_with_defaults, get_job_by_id};
 use crate::models::common::Cost;
@@ -26,7 +26,7 @@ fn can_compare_solutions_with_thresholds_impl(
     states: (f64, f64),
     expected: Ordering,
 ) {
-    let state_key = 1;
+    let state_key = StateKey(1);
     let (left_state, right_state) = states;
     let create_insertion_ctx_fn = |state_value: Cost| {
         let mut insertion_ctx = create_empty_insertion_context();
@@ -76,8 +76,9 @@ fn can_count_neighbours_in_route_impl(
     let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(rows, cols, false);
     let mut insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
-    let feature = create_tour_compactness_feature("compact", insertion_ctx.problem.jobs.clone(), job_radius, 1, None)
-        .expect("cannot create feature");
+    let feature =
+        create_tour_compactness_feature("compact", insertion_ctx.problem.jobs.clone(), job_radius, StateKey(1), None)
+            .expect("cannot create feature");
     let (state, objective) = { (feature.state.as_ref().unwrap(), feature.objective.as_ref().unwrap()) };
 
     state.accept_solution_state(&mut insertion_ctx.solution);
@@ -94,7 +95,7 @@ fn can_count_neighbours_in_route_impl(
 
 #[test]
 fn can_return_err_if_feature_cannot_be_created() {
-    let result = create_tour_compactness_feature("compact", create_empty_problem().jobs.clone(), 0, 1, None);
+    let result = create_tour_compactness_feature("compact", create_empty_problem().jobs.clone(), 0, StateKey(1), None);
 
     assert!(result.is_err());
 }

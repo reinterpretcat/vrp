@@ -85,7 +85,11 @@ impl Debug for InsertionContext {
     }
 }
 
-/// A any state value.
+/// A state key used to retrieve state values associated with a specific activity or with the whole route.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct StateKey(pub usize);
+
+/// A state value which can be anything.
 pub type StateValue = Arc<dyn Any + Send + Sync>;
 
 /// Keeps information about unassigned reason code.
@@ -120,7 +124,7 @@ pub struct SolutionContext {
     pub registry: RegistryContext,
 
     /// A collection of data associated with solution.
-    pub state: HashMap<i32, StateValue>,
+    pub state: HashMap<StateKey, StateValue>,
 }
 
 impl SolutionContext {
@@ -233,10 +237,10 @@ pub struct RouteContext {
 /// NOTE: do not put any state which is not refreshed after `accept_route_state` call: it will be
 /// wiped out at some point.
 pub struct RouteState {
-    route_states: HashMap<i32, StateValue, BuildNoHashHasher<i32>>,
+    route_states: HashMap<usize, StateValue, BuildNoHashHasher<usize>>,
     activity_states: HashMap<ActivityWithKey, StateValue, BuildHasherDefault<FxHasher>>,
-    route_keys: HashSet<i32, BuildNoHashHasher<i32>>,
-    activity_keys: HashSet<i32, BuildNoHashHasher<i32>>,
+    route_keys: HashSet<usize, BuildNoHashHasher<usize>>,
+    activity_keys: HashSet<usize, BuildNoHashHasher<usize>>,
     flags: u8,
 }
 
@@ -331,10 +335,10 @@ impl Debug for RouteContext {
 impl Default for RouteState {
     fn default() -> RouteState {
         RouteState {
-            route_states: HashMap::with_capacity_and_hasher(2, BuildNoHashHasher::<i32>::default()),
+            route_states: HashMap::with_capacity_and_hasher(2, BuildNoHashHasher::<usize>::default()),
             activity_states: HashMap::with_capacity_and_hasher(4, BuildHasherDefault::<FxHasher>::default()),
-            route_keys: HashSet::with_capacity_and_hasher(2, BuildNoHashHasher::<i32>::default()),
-            activity_keys: HashSet::with_capacity_and_hasher(4, BuildNoHashHasher::<i32>::default()),
+            route_keys: HashSet::with_capacity_and_hasher(2, BuildNoHashHasher::<usize>::default()),
+            activity_keys: HashSet::with_capacity_and_hasher(4, BuildNoHashHasher::<usize>::default()),
             flags: state_flags::NO_FLAGS,
         }
     }
@@ -352,7 +356,7 @@ impl RouteState {
         (0..total_activities).for_each(|activity_idx| {
             other.all_activity_keys().for_each(|key| {
                 if let Some(value) = other.get_activity_state_raw(key, activity_idx) {
-                    activity_states.insert((activity_idx, key), value.clone());
+                    activity_states.insert((activity_idx, key.0), value.clone());
                 }
             });
         });
@@ -361,57 +365,57 @@ impl RouteState {
     }
 
     /// Gets value associated with key converted to given type.
-    pub fn get_route_state<T: Send + Sync + 'static>(&self, key: i32) -> Option<&T> {
-        self.route_states.get(&key).and_then(|s| s.downcast_ref::<T>())
+    pub fn get_route_state<T: Send + Sync + 'static>(&self, key: StateKey) -> Option<&T> {
+        self.route_states.get(&key.0).and_then(|s| s.downcast_ref::<T>())
     }
 
     /// Gets value associated with key.
-    pub fn get_route_state_raw(&self, key: i32) -> Option<&StateValue> {
-        self.route_states.get(&key)
+    pub fn get_route_state_raw(&self, key: StateKey) -> Option<&StateValue> {
+        self.route_states.get(&key.0)
     }
 
     /// Gets value associated with key converted to given type.
-    pub fn get_activity_state<T: Send + Sync + 'static>(&self, key: i32, activity_idx: usize) -> Option<&T> {
-        self.activity_states.get(&(activity_idx, key)).and_then(|s| s.downcast_ref::<T>())
+    pub fn get_activity_state<T: Send + Sync + 'static>(&self, key: StateKey, activity_idx: usize) -> Option<&T> {
+        self.activity_states.get(&(activity_idx, key.0)).and_then(|s| s.downcast_ref::<T>())
     }
 
     /// Gets value associated with key.
-    pub fn get_activity_state_raw(&self, key: i32, activity_idx: usize) -> Option<&StateValue> {
-        self.activity_states.get(&(activity_idx, key))
+    pub fn get_activity_state_raw(&self, key: StateKey, activity_idx: usize) -> Option<&StateValue> {
+        self.activity_states.get(&(activity_idx, key.0))
     }
 
     /// Puts value associated with key.
-    pub fn put_route_state<T: Send + Sync + 'static>(&mut self, key: i32, value: T) {
-        self.route_states.insert(key, Arc::new(value));
-        self.route_keys.insert(key);
+    pub fn put_route_state<T: Send + Sync + 'static>(&mut self, key: StateKey, value: T) {
+        self.route_states.insert(key.0, Arc::new(value));
+        self.route_keys.insert(key.0);
     }
 
     /// Puts value associated with key.
-    pub fn put_route_state_raw(&mut self, key: i32, value: Arc<dyn Any + Send + Sync>) {
-        self.route_states.insert(key, value);
-        self.route_keys.insert(key);
+    pub fn put_route_state_raw(&mut self, key: StateKey, value: Arc<dyn Any + Send + Sync>) {
+        self.route_states.insert(key.0, value);
+        self.route_keys.insert(key.0);
     }
 
     /// Puts value associated with key and specific activity.
-    pub fn put_activity_state<T: Send + Sync + 'static>(&mut self, key: i32, activity_idx: usize, value: T) {
-        self.activity_states.insert((activity_idx, key), Arc::new(value));
-        self.activity_keys.insert(key);
+    pub fn put_activity_state<T: Send + Sync + 'static>(&mut self, key: StateKey, activity_idx: usize, value: T) {
+        self.activity_states.insert((activity_idx, key.0), Arc::new(value));
+        self.activity_keys.insert(key.0);
     }
 
     /// Puts value associated with key and specific activity.
-    pub fn put_activity_state_raw(&mut self, key: i32, activity_idx: usize, value: StateValue) {
-        self.activity_states.insert((activity_idx, key), value);
-        self.activity_keys.insert(key);
+    pub fn put_activity_state_raw(&mut self, key: StateKey, activity_idx: usize, value: StateValue) {
+        self.activity_states.insert((activity_idx, key.0), value);
+        self.activity_keys.insert(key.0);
     }
 
     /// Returns all activity state keys.
-    pub fn all_activity_keys(&'_ self) -> impl Iterator<Item = i32> + '_ {
-        self.activity_keys.iter().cloned()
+    pub fn all_activity_keys(&'_ self) -> impl Iterator<Item = StateKey> + '_ {
+        self.activity_keys.iter().copied().map(StateKey)
     }
 
     /// Returns all route state keys.
-    pub fn all_route_keys(&'_ self) -> impl Iterator<Item = i32> + '_ {
-        self.route_keys.iter().cloned()
+    pub fn all_route_keys(&'_ self) -> impl Iterator<Item = StateKey> + '_ {
+        self.route_keys.iter().copied().map(StateKey)
     }
 
     /// Returns size route state storage.
@@ -567,7 +571,8 @@ pub struct ActivityContext<'a> {
     pub next: Option<&'a Activity>,
 }
 
-type ActivityWithKey = (usize, i32);
+/// An internal hash map key represented as `(activity_idx, state_key)`.
+type ActivityWithKey = (usize, usize);
 
 /// A local move context.
 pub enum MoveContext<'a> {

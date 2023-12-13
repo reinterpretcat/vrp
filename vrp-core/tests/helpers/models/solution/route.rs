@@ -1,4 +1,4 @@
-use crate::construction::heuristics::{RouteContext, RouteState};
+use crate::construction::heuristics::{RouteContext, RouteState, StateKey};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::test_actor;
 use crate::models::common::{Duration, Location, Schedule, TimeWindow};
@@ -105,7 +105,7 @@ pub struct RouteStateBuilder {
 impl RouteStateBuilder {
     pub fn add_activity_state<T: Send + Sync + 'static>(
         &mut self,
-        key: i32,
+        key: StateKey,
         activity_idx: usize,
         value: T,
     ) -> &mut Self {
@@ -113,7 +113,7 @@ impl RouteStateBuilder {
         self
     }
 
-    pub fn add_route_state<T: Send + Sync + 'static>(&mut self, key: i32, value: T) -> &mut Self {
+    pub fn add_route_state<T: Send + Sync + 'static>(&mut self, key: StateKey, value: T) -> &mut Self {
         self.state.put_route_state(key, value);
         self
     }

@@ -1,4 +1,4 @@
-use crate::construction::heuristics::{RouteState, UnassignmentInfo};
+use crate::construction::heuristics::{RouteState, StateKey, UnassignmentInfo};
 use crate::helpers::construction::features::create_goal_ctx_with_transport;
 use crate::helpers::construction::heuristics::create_insertion_context;
 use crate::helpers::models::domain::test_random;
@@ -10,8 +10,8 @@ use crate::models::solution::Registry;
 fn can_put_and_get_activity_state() {
     let mut route_state = RouteState::default();
 
-    route_state.put_activity_state(1, 0, "my_value".to_string());
-    let result = route_state.get_activity_state::<String>(1, 0);
+    route_state.put_activity_state(StateKey(1), 0, "my_value".to_string());
+    let result = route_state.get_activity_state::<String>(StateKey(1), 0);
 
     assert_eq!(result.unwrap(), "my_value");
 }
@@ -20,8 +20,8 @@ fn can_put_and_get_activity_state() {
 fn can_put_and_get_empty_activity_state() {
     let mut route_state = RouteState::default();
 
-    route_state.put_activity_state(1, 0, "my_value".to_string());
-    let result = route_state.get_activity_state::<String>(1, 1);
+    route_state.put_activity_state(StateKey(1), 0, "my_value".to_string());
+    let result = route_state.get_activity_state::<String>(StateKey(1), 1);
 
     assert!(result.is_none());
 }
@@ -30,13 +30,13 @@ fn can_put_and_get_empty_activity_state() {
 fn can_put_and_get_activity_state_with_different_keys() {
     let mut route_state = RouteState::default();
 
-    route_state.put_activity_state(1, 0, "key1".to_string());
-    route_state.put_activity_state(2, 0, "key2".to_string());
-    route_state.put_activity_state(3, 0, "key3".to_string());
-    let result3 = route_state.get_activity_state::<String>(3, 0);
-    let result1 = route_state.get_activity_state::<String>(1, 0);
-    let result2 = route_state.get_activity_state::<String>(2, 0);
-    let result4 = route_state.get_activity_state::<String>(4, 0);
+    route_state.put_activity_state(StateKey(1), 0, "key1".to_string());
+    route_state.put_activity_state(StateKey(2), 0, "key2".to_string());
+    route_state.put_activity_state(StateKey(3), 0, "key3".to_string());
+    let result3 = route_state.get_activity_state::<String>(StateKey(3), 0);
+    let result1 = route_state.get_activity_state::<String>(StateKey(1), 0);
+    let result2 = route_state.get_activity_state::<String>(StateKey(2), 0);
+    let result4 = route_state.get_activity_state::<String>(StateKey(4), 0);
 
     assert_eq!(result1.unwrap(), "key1");
     assert_eq!(result2.unwrap(), "key2");
@@ -48,8 +48,8 @@ fn can_put_and_get_activity_state_with_different_keys() {
 fn can_put_and_get_route_state() {
     let mut route_state = RouteState::default();
 
-    route_state.put_route_state(1, "my_value".to_string());
-    let result = route_state.get_route_state::<String>(1);
+    route_state.put_route_state(StateKey(1), "my_value".to_string());
+    let result = route_state.get_route_state::<String>(StateKey(1));
 
     assert_eq!(result.unwrap(), "my_value");
 }
@@ -58,8 +58,8 @@ fn can_put_and_get_route_state() {
 fn can_put_and_get_empty_route_state() {
     let mut route_state = RouteState::default();
 
-    route_state.put_route_state(1, "my_value".to_string());
-    let result = route_state.get_route_state::<String>(2);
+    route_state.put_route_state(StateKey(1), "my_value".to_string());
+    let result = route_state.get_route_state::<String>(StateKey(2));
 
     assert!(result.is_none());
 }

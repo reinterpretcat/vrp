@@ -55,7 +55,7 @@ fn create_route_with_jobs_activities(
         .with_route(RouteBuilder::default().with_vehicle(fleet, vehicle.as_str()).add_activities(activities).build())
         .build();
 
-    route_ctx.state_mut().put_route_state(0, multi_jobs);
+    route_ctx.state_mut().put_route_state(StateKey(0), multi_jobs);
 
     route_ctx
 }

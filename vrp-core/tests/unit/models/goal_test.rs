@@ -209,7 +209,7 @@ fn can_use_objective_total_order_impl(
         insertion_ctx
             .solution
             .state
-            .get(&name.parse::<i32>().unwrap())
+            .get(&StateKey(name.parse::<usize>().unwrap()))
             .and_then(|s| s.downcast_ref::<f64>())
             .copied()
             .unwrap()
@@ -217,7 +217,7 @@ fn can_use_objective_total_order_impl(
     let create_insertion_ctx_with_fitness_state = |fitness: Vec<f64>| {
         let mut insertion_ctx = create_empty_insertion_context();
         fitness.into_iter().enumerate().for_each(|(idx, value)| {
-            insertion_ctx.solution.state.insert(idx as i32, Arc::new(value));
+            insertion_ctx.solution.state.insert(StateKey(idx), Arc::new(value));
         });
         insertion_ctx
     };

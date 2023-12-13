@@ -96,7 +96,7 @@ fn create_reload_route_intervals<T: LoadOps>(
         is_obsolete_interval_fn: Box::new(move |route_ctx, left, right| {
             let capacity: T = route_ctx.route().actor.vehicle.dimens.get_capacity().cloned().unwrap_or_default();
 
-            let get_load = |activity_idx: usize, state_key: i32| {
+            let get_load = |activity_idx: usize, state_key: StateKey| {
                 route_ctx.state().get_activity_state::<T>(state_key, activity_idx).cloned().unwrap_or_default()
             };
 

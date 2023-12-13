@@ -263,9 +263,6 @@ impl ConstraintViolation {
 /// Specifies a type for constraint violation code.
 pub type ViolationCode = i32;
 
-/// Specifies a type for state key.
-pub type StateKey = i32;
-
 /// Provides a way to build feature with some checks.
 #[derive(Default)]
 pub struct FeatureBuilder(Feature);

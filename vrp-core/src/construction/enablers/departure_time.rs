@@ -4,10 +4,9 @@ mod departure_time_test;
 
 use crate::construction::enablers::{update_route_departure, ScheduleStateKeys};
 use crate::construction::features::*;
-use crate::construction::heuristics::RouteContext;
+use crate::construction::heuristics::{RouteContext, StateKey};
 use crate::models::common::Timestamp;
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
-use crate::models::StateKey;
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 

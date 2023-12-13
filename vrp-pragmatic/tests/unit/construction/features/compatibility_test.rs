@@ -5,7 +5,7 @@ use vrp_core::construction::heuristics::*;
 use vrp_core::models::problem::*;
 
 const VIOLATION_CODE: i32 = 1;
-const STATE_KEY: i32 = 2;
+const STATE_KEY: StateKey = StateKey(2);
 
 fn create_feature() -> Feature {
     create_compatibility_feature("compatibility", VIOLATION_CODE, STATE_KEY).unwrap()

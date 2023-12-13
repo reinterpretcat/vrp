@@ -8,11 +8,10 @@ use crate::models::common::{Demand, DemandDimension, SingleDimLoad};
 use crate::models::problem::{Job, Vehicle};
 use crate::models::solution::Activity;
 
-const STATE_KEY: StateKey = 2;
 const VIOLATION_CODE: ViolationCode = 2;
 
 fn create_feature() -> Feature {
-    create_capacity_limit_feature::<SingleDimLoad>("capacity", STATE_KEY).unwrap()
+    create_capacity_limit_feature::<SingleDimLoad>("capacity", VIOLATION_CODE).unwrap()
 }
 
 fn create_test_vehicle(capacity: i32) -> Vehicle {
@@ -28,7 +27,7 @@ fn create_activity_with_simple_demand(size: i32) -> Activity {
     ActivityBuilder::default().job(Some(job)).build()
 }
 
-fn get_simple_capacity_state(key: i32, state: &RouteState, activity_idx: Option<usize>) -> i32 {
+fn get_simple_capacity_state(key: StateKey, state: &RouteState, activity_idx: Option<usize>) -> i32 {
     state.get_activity_state::<SingleDimLoad>(key, activity_idx.unwrap()).expect("expect single capacity").value
 }
 

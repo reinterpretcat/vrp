@@ -9,8 +9,8 @@ use crate::models::common::*;
 use crate::models::problem::{Fleet, Vehicle, VehicleDetail};
 
 const VIOLATION_CODE: ViolationCode = 1;
-const RESOURCE_KEY: StateKey = 1;
-const INTERVALS_KEY: StateKey = 2;
+const RESOURCE_KEY: StateKey = StateKey(1);
+const INTERVALS_KEY: StateKey = StateKey(2);
 
 fn create_usage_activity(demand: i32) -> Activity {
     let demand = create_simple_demand(-demand);

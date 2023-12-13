@@ -40,7 +40,7 @@ pub fn create_optional_break_feature(name: &str, code: ViolationCode) -> Result<
                 remove_locked: |_, _, _| false,
                 promote_locked: |_, _, _| false,
             }),
-            state_keys: vec![code],
+            state_keys: Vec::default(),
         })
         .build()
 }

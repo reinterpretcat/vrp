@@ -45,36 +45,36 @@ mod work_balance;
 pub use self::work_balance::*;
 
 /// A key which tracks latest arrival.
-pub const LATEST_ARRIVAL_KEY: StateKey = 1;
+pub const LATEST_ARRIVAL_KEY: StateKey = StateKey(1);
 /// A key which tracks waiting time.
-pub const WAITING_KEY: StateKey = 2;
+pub const WAITING_KEY: StateKey = StateKey(2);
 /// A key which tracks total distance.
-pub const TOTAL_DISTANCE_KEY: StateKey = 3;
+pub const TOTAL_DISTANCE_KEY: StateKey = StateKey(3);
 /// A key which tracks total duration.
-pub const TOTAL_DURATION_KEY: StateKey = 4;
+pub const TOTAL_DURATION_KEY: StateKey = StateKey(4);
 /// A key which tracks global duration limit.
-pub const LIMIT_DURATION_KEY: StateKey = 5;
+pub const LIMIT_DURATION_KEY: StateKey = StateKey(5);
 
 /// A key which tracks current vehicle capacity.
-pub const CURRENT_CAPACITY_KEY: StateKey = 11;
+pub const CURRENT_CAPACITY_KEY: StateKey = StateKey(11);
 /// A key which tracks maximum vehicle capacity ahead in route.
-pub const MAX_FUTURE_CAPACITY_KEY: StateKey = 12;
+pub const MAX_FUTURE_CAPACITY_KEY: StateKey = StateKey(12);
 /// A key which tracks maximum capacity backward in route.
-pub const MAX_PAST_CAPACITY_KEY: StateKey = 13;
+pub const MAX_PAST_CAPACITY_KEY: StateKey = StateKey(13);
 /// A key which tracks reload intervals.
-pub const RELOAD_INTERVALS_KEY: StateKey = 14;
+pub const RELOAD_INTERVALS_KEY: StateKey = StateKey(14);
 /// A key which tracks max load in tour.
-pub const MAX_LOAD_KEY: StateKey = 15;
+pub const MAX_LOAD_KEY: StateKey = StateKey(15);
 /// A key which tracks recharge intervals.
-pub const RECHARGE_INTERVALS_KEY: StateKey = 16;
+pub const RECHARGE_INTERVALS_KEY: StateKey = StateKey(16);
 /// A key to track recharge distance.
-pub const RECHARGE_DISTANCE_KEY: StateKey = 17;
+pub const RECHARGE_DISTANCE_KEY: StateKey = StateKey(17);
 
 /// A key for balancing max load.
-pub const BALANCE_MAX_LOAD_KEY: StateKey = 20;
+pub const BALANCE_MAX_LOAD_KEY: StateKey = StateKey(20);
 /// A key for balancing activities.
-pub const BALANCE_ACTIVITY_KEY: StateKey = 21;
+pub const BALANCE_ACTIVITY_KEY: StateKey = StateKey(21);
 /// A key for balancing distance.
-pub const BALANCE_DISTANCE_KEY: StateKey = 22;
+pub const BALANCE_DISTANCE_KEY: StateKey = StateKey(22);
 /// A key for balancing duration.
-pub const BALANCE_DURATION_KEY: StateKey = 23;
+pub const BALANCE_DURATION_KEY: StateKey = StateKey(23);

@@ -1,7 +1,6 @@
-use crate::construction::heuristics::{RouteContext, SolutionContext};
+use crate::construction::heuristics::{RouteContext, SolutionContext, StateKey};
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Route};
-use crate::models::StateKey;
 use crate::utils::Either;
 use hashbrown::HashSet;
 use std::iter::once;
@@ -93,7 +92,7 @@ impl RouteIntervals for FixedRouteIntervals {
             .and_then(|state_code| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(state_code))
     }
 
-    fn get_interval_key(&self) -> Option<i32> {
+    fn get_interval_key(&self) -> Option<StateKey> {
         Some(self.intervals_key)
     }
 

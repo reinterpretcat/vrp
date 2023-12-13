@@ -11,7 +11,7 @@ fn create_insertion_ctx(route_amount: usize, route_factory: &(dyn Fn(usize) -> R
     ctx
 }
 
-fn create_route_ctx_with_route_state(key: i32, value: f64) -> RouteContext {
+fn create_route_ctx_with_route_state(key: StateKey, value: f64) -> RouteContext {
     let mut ctx = RouteContextBuilder::default().build();
     ctx.state_mut().put_route_state(key, value);
     ctx

@@ -116,7 +116,7 @@ fn can_interpolate_durations() {
 
 mod objective {
     use super::*;
-    use crate::construction::heuristics::{InsertionContext, MoveContext};
+    use crate::construction::heuristics::{InsertionContext, MoveContext, StateKey};
     use crate::helpers::models::domain::create_empty_insertion_context;
     use crate::models::{Feature, FeatureBuilder, FeatureObjective, Goal, GoalContext};
     use rosomaxa::prelude::{compare_floats, MultiObjective, Objective};
@@ -144,7 +144,7 @@ mod objective {
             solution
                 .solution
                 .state
-                .get(&1)
+                .get(&StateKey(1))
                 .and_then(|any| any.downcast_ref::<Vec<f64>>())
                 .and_then(|data| data.get(self.index))
                 .cloned()
@@ -168,7 +168,7 @@ mod objective {
 
     fn create_individual(data: Vec<f64>) -> InsertionContext {
         let mut individual = create_empty_insertion_context();
-        individual.solution.state.insert(1, Arc::new(data));
+        individual.solution.state.insert(StateKey(1), Arc::new(data));
 
         individual
     }

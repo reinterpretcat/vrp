@@ -2,9 +2,8 @@
 #[path = "../../../tests/unit/construction/heuristics/metrics_test.rs"]
 mod metrics_test;
 
-use super::InsertionContext;
 use crate::construction::features::*;
-use crate::construction::heuristics::RouteContext;
+use crate::construction::heuristics::{InsertionContext, RouteContext, StateKey};
 use crate::models::problem::{TransportCost, TravelTime};
 use rosomaxa::algorithms::math::*;
 use rosomaxa::prelude::*;
@@ -207,7 +206,10 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProxi
     )
 }
 
-fn get_values_from_route_state(insertion_ctx: &InsertionContext, state_key: i32) -> impl Iterator<Item = f64> + '_ {
+fn get_values_from_route_state(
+    insertion_ctx: &InsertionContext,
+    state_key: StateKey,
+) -> impl Iterator<Item = f64> + '_ {
     insertion_ctx
         .solution
         .routes
