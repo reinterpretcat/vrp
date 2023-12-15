@@ -243,12 +243,18 @@ impl Jobs {
     /// Returns range of jobs "near" to given one. Near is defined by costs with relation
     /// transport profile and departure time.
     pub fn neighbors(&self, profile: &Profile, job: &Job, _: Timestamp) -> impl Iterator<Item = (&Job, Cost)> {
-        self.index.get(&profile.index).unwrap().get(job).unwrap().0.iter().map(|(job, cost)| (job, *cost as f64))
+        let index = self.index.get(&profile.index).expect("no profile index");
+        let (neighbours_info, _) = index.get(job).expect("no job in profile index");
+
+        neighbours_info.iter().map(|(job, cost)| (job, *cost as f64))
     }
 
     /// Returns job rank as relative cost from any vehicle's start position.
     pub fn rank(&self, profile: &Profile, job: &Job) -> Cost {
-        self.index.get(&profile.index).unwrap().get(job).unwrap().1 as f64
+        let index = self.index.get(&profile.index).expect("no profile index");
+        let &(_, cost) = index.get(job).expect("no job in profile index");
+
+        cost as f64
     }
 
     /// Returns amount of jobs.

@@ -30,7 +30,7 @@ pub(super) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<C
                     }
                     VicinityServingPolicy::Fixed { value, parking } => ServingPolicy::Fixed { value, parking },
                 },
-                filtering: get_filter_policy(filtering.as_ref()),
+                filtering: get_filter_policy(api_problem, filtering.as_ref()),
                 building: get_builder_policy(),
             })),
         }
@@ -76,16 +76,26 @@ fn get_builder_policy() -> BuilderPolicy {
     }
 }
 
-fn get_filter_policy(filtering: Option<&VicinityFilteringPolicy>) -> FilterPolicy {
-    if let Some(filtering) = filtering {
-        let excluded_job_ids = filtering.exclude_job_ids.iter().cloned().collect::<HashSet<_>>();
-        FilterPolicy {
-            job_filter: Arc::new(move |job| {
-                job.dimens().get_job_id().map_or(true, |job_id| !excluded_job_ids.contains(job_id))
-            }),
-            actor_filter: Arc::new(|_| true),
-        }
+fn get_filter_policy(api_problem: &ApiProblem, filtering: Option<&VicinityFilteringPolicy>) -> FilterPolicy {
+    let relation_ids = api_problem
+        .plan
+        .relations
+        .iter()
+        .flat_map(|relations| relations.iter())
+        .flat_map(|relation| relation.jobs.iter())
+        .cloned()
+        .collect::<HashSet<_>>();
+
+    let excluded_job_ids = if let Some(filtering) = filtering {
+        filtering.exclude_job_ids.iter().cloned().chain(relation_ids).collect::<HashSet<_>>()
     } else {
-        FilterPolicy { job_filter: Arc::new(|_| true), actor_filter: Arc::new(|_| true) }
+        relation_ids
+    };
+
+    FilterPolicy {
+        job_filter: Arc::new(move |job| {
+            job.dimens().get_job_id().map_or(true, |job_id| !excluded_job_ids.contains(job_id))
+        }),
+        actor_filter: Arc::new(|_| true),
     }
 }
