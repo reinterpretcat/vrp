@@ -236,11 +236,10 @@ pub struct RouteContext {
 /// Provides the way to associate arbitrary data within route or/and activity.
 /// NOTE: do not put any state which is not refreshed after `accept_route_state` call: it will be
 /// wiped out at some point.
+#[derive(Clone)]
 pub struct RouteState {
     route_states: HashMap<usize, StateValue, BuildNoHashHasher<usize>>,
     activity_states: HashMap<ActivityWithKey, StateValue, BuildHasherDefault<FxHasher>>,
-    route_keys: HashSet<usize, BuildNoHashHasher<usize>>,
-    activity_keys: HashSet<usize, BuildNoHashHasher<usize>>,
     flags: u8,
 }
 
@@ -267,7 +266,7 @@ impl RouteContext {
     /// Creates a deep copy of `RouteContext`.
     pub fn deep_copy(&self) -> Self {
         let new_route = Route { actor: self.route.actor.clone(), tour: self.route.tour.deep_copy() };
-        let new_state = RouteState::from_other(&self.state, self.route.tour.total());
+        let new_state = self.state.clone();
 
         RouteContext { route: new_route, state: new_state, cache: RouteCache { is_stale: self.cache.is_stale } }
     }
@@ -337,33 +336,12 @@ impl Default for RouteState {
         RouteState {
             route_states: HashMap::with_capacity_and_hasher(2, BuildNoHashHasher::<usize>::default()),
             activity_states: HashMap::with_capacity_and_hasher(4, BuildHasherDefault::<FxHasher>::default()),
-            route_keys: HashSet::with_capacity_and_hasher(2, BuildNoHashHasher::<usize>::default()),
-            activity_keys: HashSet::with_capacity_and_hasher(4, BuildNoHashHasher::<usize>::default()),
             flags: state_flags::NO_FLAGS,
         }
     }
 }
 
 impl RouteState {
-    /// A fast way to create `RouteState`.
-    pub(crate) fn from_other(other: &Self, total_activities: usize) -> Self {
-        let route_states = other.route_states.clone();
-        let route_keys = other.route_keys.clone();
-        let activity_keys = other.activity_keys.clone();
-        let mut activity_states =
-            HashMap::with_capacity_and_hasher(other.activity_states.len(), BuildHasherDefault::<FxHasher>::default());
-
-        (0..total_activities).for_each(|activity_idx| {
-            other.all_activity_keys().for_each(|key| {
-                if let Some(value) = other.get_activity_state_raw(key, activity_idx) {
-                    activity_states.insert((activity_idx, key.0), value.clone());
-                }
-            });
-        });
-
-        Self { route_states, activity_states, route_keys, activity_keys, flags: other.flags }
-    }
-
     /// Gets value associated with key converted to given type.
     pub fn get_route_state<T: Send + Sync + 'static>(&self, key: StateKey) -> Option<&T> {
         self.route_states.get(&key.0).and_then(|s| s.downcast_ref::<T>())
@@ -387,35 +365,21 @@ impl RouteState {
     /// Puts value associated with key.
     pub fn put_route_state<T: Send + Sync + 'static>(&mut self, key: StateKey, value: T) {
         self.route_states.insert(key.0, Arc::new(value));
-        self.route_keys.insert(key.0);
     }
 
     /// Puts value associated with key.
     pub fn put_route_state_raw(&mut self, key: StateKey, value: Arc<dyn Any + Send + Sync>) {
         self.route_states.insert(key.0, value);
-        self.route_keys.insert(key.0);
     }
 
     /// Puts value associated with key and specific activity.
     pub fn put_activity_state<T: Send + Sync + 'static>(&mut self, key: StateKey, activity_idx: usize, value: T) {
         self.activity_states.insert((activity_idx, key.0), Arc::new(value));
-        self.activity_keys.insert(key.0);
     }
 
     /// Puts value associated with key and specific activity.
     pub fn put_activity_state_raw(&mut self, key: StateKey, activity_idx: usize, value: StateValue) {
         self.activity_states.insert((activity_idx, key.0), value);
-        self.activity_keys.insert(key.0);
-    }
-
-    /// Returns all activity state keys.
-    pub fn all_activity_keys(&'_ self) -> impl Iterator<Item = StateKey> + '_ {
-        self.activity_keys.iter().copied().map(StateKey)
-    }
-
-    /// Returns all route state keys.
-    pub fn all_route_keys(&'_ self) -> impl Iterator<Item = StateKey> + '_ {
-        self.route_keys.iter().copied().map(StateKey)
     }
 
     /// Returns size route state storage.
@@ -445,10 +409,7 @@ impl RouteState {
 
     /// Clear all states, but keeps flags.
     pub fn clear(&mut self) {
-        self.activity_keys.clear();
         self.activity_states.clear();
-
-        self.route_keys.clear();
         self.route_states.clear();
     }
 }
