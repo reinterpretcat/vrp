@@ -430,7 +430,8 @@ struct RouteCache {
 /// Keeps track on how routes are used.
 pub struct RegistryContext {
     registry: Registry,
-    index: HashMap<Arc<Actor>, RouteContext>,
+    /// Index keeps track of actor mapping to empty route prototypes.
+    index: HashMap<Arc<Actor>, Arc<RouteContext>>,
 }
 
 impl RegistryContext {
@@ -443,7 +444,7 @@ impl RegistryContext {
                 // NOTE: need to initialize empty route with states
                 goal.accept_route_state(&mut route_ctx);
 
-                (actor, route_ctx)
+                (actor, Arc::new(route_ctx))
             })
             .collect();
         Self { registry, index }
@@ -456,7 +457,7 @@ impl RegistryContext {
 
     /// Returns next route available for insertion.
     pub fn next_route(&self) -> impl Iterator<Item = &RouteContext> {
-        self.registry.next().map(move |actor| &self.index[&actor])
+        self.registry.next().map(move |actor| self.index[&actor].as_ref())
     }
 
     /// Gets route for given actor and marks it as used.
@@ -488,7 +489,7 @@ impl RegistryContext {
     pub fn deep_copy(&self) -> Self {
         Self {
             registry: self.registry.deep_copy(),
-            index: self.index.iter().map(|(actor, route_ctx)| (actor.clone(), route_ctx.deep_copy())).collect(),
+            index: self.index.iter().map(|(actor, route_ctx)| (actor.clone(), route_ctx.clone())).collect(),
         }
     }
 
@@ -498,7 +499,7 @@ impl RegistryContext {
             .index
             .iter()
             .filter(|(actor, _)| filter(actor.as_ref()))
-            .map(|(actor, route_ctx)| (actor.clone(), route_ctx.deep_copy()))
+            .map(|(actor, route_ctx)| (actor.clone(), route_ctx.clone()))
             .collect();
         Self { registry: self.registry.deep_slice(filter), index }
     }
