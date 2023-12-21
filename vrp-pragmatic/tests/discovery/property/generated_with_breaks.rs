@@ -4,6 +4,14 @@ use crate::generator::*;
 use crate::helpers::solve_with_metaheuristic_and_iterations;
 use proptest::prelude::*;
 
+fn disable_departure_time_optimization(mut vehicle: VehicleType) -> VehicleType {
+    vehicle.shifts.iter_mut().for_each(|shift| {
+        shift.start.latest = Some(shift.start.earliest.clone());
+    });
+
+    vehicle
+}
+
 mod optional {
     use super::*;
 
@@ -69,7 +77,7 @@ mod optional {
          vehicle in default_vehicle_type_prototype(),
          breaks in get_optional_breaks()
         ) -> VehicleType {
-            with_breaks(vehicle, breaks)
+            with_breaks(disable_departure_time_optimization(vehicle), breaks)
         }
     }
 
@@ -152,12 +160,7 @@ mod required {
          vehicle in default_vehicle_type_prototype(),
          breaks in get_required_breaks()
         ) -> VehicleType {
-           let mut vehicle = vehicle;
-             vehicle.shifts.iter_mut().for_each(|shift| {
-             shift.start.latest = Some(shift.start.earliest.clone());
-           });
-
-           with_breaks(vehicle, breaks)
+           with_breaks(disable_departure_time_optimization(vehicle), breaks)
         }
     }
 
