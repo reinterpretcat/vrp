@@ -67,8 +67,8 @@ fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, 
     let core_solution = to_core_solution(solution, core_problem.clone(), create_random())?;
 
     // NOTE: get statistic/tours updated
-    let insertion_ctx = InsertionContext::new_from_solution(core_problem.clone(), (core_solution, None), environment);
-    let core_solution = insertion_ctx.solution.into();
+    let core_solution =
+        InsertionContext::new_from_solution(core_problem.clone(), (core_solution, None), environment).into();
 
     let mut writer = BufWriter::new(Vec::new());
     write_pragmatic(&core_problem, &core_solution, Default::default(), &mut writer)

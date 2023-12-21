@@ -104,7 +104,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
         .filter(|job| locked.get(job).is_none() && reserved.get(job).is_none() && unassigned.get(job).is_none())
         .collect();
 
-    let registry = create_registry_context(&problem, registry);
+    let registry = RegistryContext::new(problem.goal.as_ref(), registry);
 
     let mut insertion_ctx = InsertionContext {
         problem,
@@ -142,7 +142,7 @@ pub fn create_insertion_context_from_solution(
         }
     });
 
-    let registry = create_registry_context(&problem, registry);
+    let registry = RegistryContext::new(problem.goal.as_ref(), registry);
 
     let mut insertion_ctx = InsertionContext {
         problem,
@@ -165,6 +165,7 @@ pub fn create_insertion_context_from_solution(
 
 /// Creates an empty insertion context.
 pub fn create_empty_insertion_context(problem: Arc<Problem>, environment: Arc<Environment>) -> InsertionContext {
+    let registry = Registry::new(problem.fleet.as_ref(), environment.random.clone());
     InsertionContext {
         problem: problem.clone(),
         solution: SolutionContext {
@@ -173,24 +174,10 @@ pub fn create_empty_insertion_context(problem: Arc<Problem>, environment: Arc<En
             unassigned: Default::default(),
             locked: Default::default(),
             routes: vec![],
-            registry: create_registry_context(
-                problem.as_ref(),
-                Registry::new(problem.fleet.as_ref(), environment.random.clone()),
-            ),
+            registry: RegistryContext::new(problem.goal.as_ref(), registry),
             state: Default::default(),
         },
         environment,
-    }
-}
-
-fn create_registry_context(problem: &Problem, registry: Registry) -> RegistryContext {
-    let modifier = problem.extras.get("route_modifier").and_then(|s| s.downcast_ref::<RouteModifier>());
-    let constraint = problem.goal.clone();
-
-    if let Some(modifier) = modifier {
-        RegistryContext::new_with_modifier(constraint, registry, modifier)
-    } else {
-        RegistryContext::new(constraint, registry)
     }
 }
 

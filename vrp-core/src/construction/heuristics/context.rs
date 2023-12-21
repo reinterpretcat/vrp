@@ -2,12 +2,11 @@
 #[path = "../../../tests/unit/construction/heuristics/context_test.rs"]
 mod context_test;
 
-use crate::construction::features::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::construction::heuristics::factories::*;
 use crate::models::common::Cost;
 use crate::models::problem::*;
 use crate::models::solution::*;
-use crate::models::GoalContext;
+use crate::models::{CoreStateKeys, GoalContext};
 use crate::models::{Problem, Solution};
 use hashbrown::{HashMap, HashSet};
 use nohash_hasher::BuildNoHashHasher;
@@ -55,6 +54,35 @@ impl InsertionContext {
         ctx
     }
 
+    /// Gets total cost of the solution.
+    ///
+    /// Returns None if cost cannot be calculate as the context is in non-consistent state.
+    pub fn get_total_cost(&self) -> Option<Cost> {
+        let get_cost = |costs: &Costs, distance: f64, duration: f64| {
+            costs.fixed
+                + costs.per_distance * distance
+                // NOTE this is incorrect when timing costs are different: fitness value will be
+                // different from actual cost. However we accept this so far as it is simpler for
+                // implementation and pragmatic format does not expose this feature
+                // .
+                // TODO calculate actual cost
+                + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
+        };
+
+        let schedule_keys = self.problem.extras.get_schedule_keys()?;
+
+        self.solution.routes.iter().try_fold(Cost::default(), |acc, route_ctx| {
+            let actor = &route_ctx.route.actor;
+            let distance = route_ctx.state.get_route_state::<Cost>(schedule_keys.total_distance);
+            let duration = route_ctx.state.get_route_state::<Cost>(schedule_keys.total_duration);
+
+            distance.zip(duration).map(|(&distance, &duration)| {
+                acc + get_cost(&actor.vehicle.costs, distance, duration)
+                    + get_cost(&actor.driver.costs, distance, duration)
+            })
+        })
+    }
+
     /// Restores valid context state.
     pub fn restore(&mut self) {
         self.problem.goal.accept_solution_state(&mut self.solution);
@@ -87,7 +115,7 @@ impl Debug for InsertionContext {
 
 /// A state key used to retrieve state values associated with a specific activity or with the whole route.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct StateKey(pub usize);
+pub struct StateKey(usize);
 
 /// A state value which can be anything.
 pub type StateValue = Arc<dyn Any + Send + Sync>;
@@ -128,28 +156,6 @@ pub struct SolutionContext {
 }
 
 impl SolutionContext {
-    /// Gets total cost of the solution.
-    pub fn get_total_cost(&self) -> Cost {
-        let get_cost = |costs: &Costs, distance: f64, duration: f64| {
-            costs.fixed
-                + costs.per_distance * distance
-                // NOTE this is incorrect when timing costs are different: fitness value will be
-                // different from actual cost. However we accept this so far as it is simpler for
-                // implementation and pragmatic format does not expose this feature
-                // .
-                // TODO calculate actual cost
-                + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
-        };
-
-        self.routes.iter().fold(Cost::default(), |acc, route_ctx| {
-            let actor = &route_ctx.route.actor;
-            let distance = route_ctx.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
-            let duration = route_ctx.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
-
-            acc + get_cost(&actor.vehicle.costs, distance, duration) + get_cost(&actor.driver.costs, distance, duration)
-        })
-    }
-
     /// Returns amount of jobs considered by solution context.
     /// NOTE: the amount can be different for partially solved problem from original problem.
     pub fn get_jobs_amount(&self) -> usize {
@@ -202,17 +208,20 @@ impl Debug for SolutionContext {
     }
 }
 
-impl From<SolutionContext> for Solution {
-    fn from(solution_ctx: SolutionContext) -> Self {
-        (solution_ctx, None).into()
+impl From<InsertionContext> for Solution {
+    fn from(insertion_ctx: InsertionContext) -> Self {
+        (insertion_ctx, None).into()
     }
 }
 
-impl From<(SolutionContext, Option<TelemetryMetrics>)> for Solution {
-    fn from(value: (SolutionContext, Option<TelemetryMetrics>)) -> Self {
-        let (solution_ctx, telemetry) = value;
+impl From<(InsertionContext, Option<TelemetryMetrics>)> for Solution {
+    fn from(value: (InsertionContext, Option<TelemetryMetrics>)) -> Self {
+        let (insertion_ctx, telemetry) = value;
+        let cost = insertion_ctx.get_total_cost().unwrap_or_default();
+        let solution_ctx = insertion_ctx.solution;
+
         Solution {
-            cost: solution_ctx.get_total_cost(),
+            cost,
             registry: solution_ctx.registry.resources().deep_copy(),
             routes: solution_ctx.routes.iter().map(|rc| rc.route.deep_copy()).collect(),
             unassigned: solution_ctx
@@ -418,23 +427,6 @@ struct RouteCache {
     is_stale: bool,
 }
 
-/// A wrapper around route context modifier function.
-pub struct RouteModifier {
-    modifier: Arc<dyn Fn(RouteContext) -> RouteContext + Sync + Send>,
-}
-
-impl RouteModifier {
-    /// Creates a new instance of `RouteModifier`.
-    pub fn new<F: 'static + Fn(RouteContext) -> RouteContext + Sync + Send>(modifier: F) -> Self {
-        Self { modifier: Arc::new(modifier) }
-    }
-
-    /// Modifies route context if necessary.
-    pub fn modify(&self, route_ctx: RouteContext) -> RouteContext {
-        (self.modifier)(route_ctx)
-    }
-}
-
 /// Keeps track on how routes are used.
 pub struct RegistryContext {
     registry: Registry,
@@ -443,22 +435,17 @@ pub struct RegistryContext {
 
 impl RegistryContext {
     /// Creates a new instance of `RouteRegistry`.
-    pub fn new(goal: Arc<GoalContext>, registry: Registry) -> Self {
-        Self::new_with_modifier(goal, registry, &RouteModifier::new(move |route_ctx| route_ctx))
-    }
-
-    /// Creates a new instance of `RouteRegistry` using route context modifier.
-    pub fn new_with_modifier(goal: Arc<GoalContext>, registry: Registry, modifier: &RouteModifier) -> Self {
+    pub fn new(goal: &GoalContext, registry: Registry) -> Self {
         let index = registry
             .all()
             .map(|actor| {
                 let mut route_ctx = RouteContext::new(actor.clone());
+                // NOTE: need to initialize empty route with states
                 goal.accept_route_state(&mut route_ctx);
 
-                (actor, modifier.modify(route_ctx))
+                (actor, route_ctx)
             })
             .collect();
-
         Self { registry, index }
     }
 
@@ -564,5 +551,24 @@ impl<'a> MoveContext<'a> {
     /// Creates a route variant for `MoveContext`.
     pub fn activity(route_ctx: &'a RouteContext, activity_ctx: &'a ActivityContext) -> MoveContext<'a> {
         MoveContext::Activity { route_ctx, activity_ctx }
+    }
+}
+
+/// Provides the way to get state keys.
+///
+/// From performance implications, it is better to avoid using many keys: each key requires a slot
+/// in route/activity state tracking collections.
+#[derive(Debug, Default)]
+pub struct StateKeyRegistry {
+    next: usize,
+}
+
+impl StateKeyRegistry {
+    /// Generates a next state key.
+    /// Do not call this method if state key is not going to be used in any feature.
+    pub fn next_key(&mut self) -> StateKey {
+        self.next += 1;
+
+        StateKey(self.next)
     }
 }

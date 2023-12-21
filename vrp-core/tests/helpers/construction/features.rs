@@ -1,7 +1,4 @@
-use crate::construction::features::{create_capacity_limit_feature, create_minimize_transport_costs_feature};
-use crate::helpers::models::problem::{TestActivityCost, TestTransportCost};
 use crate::models::common::{Demand, SingleDimLoad};
-use crate::models::{Feature, Goal, GoalContext};
 
 pub fn create_simple_demand(size: i32) -> Demand<SingleDimLoad> {
     if size > 0 {
@@ -30,7 +27,7 @@ pub fn create_simple_dynamic_demand(size: i32) -> Demand<SingleDimLoad> {
         }
     }
 }
-
+/*
 pub fn create_goal_ctx_with_features(features: Vec<Feature>, feature_map: Vec<Vec<&str>>) -> GoalContext {
     let feature_map: Vec<Vec<String>> =
         feature_map.iter().map(|names| names.iter().map(|name| name.to_string()).collect()).collect();
@@ -60,4 +57,4 @@ pub fn create_goal_ctx_with_transport() -> GoalContext {
 
 pub fn create_goal_ctx_with_simple_capacity() -> GoalContext {
     create_capacity_limit_feature::<SingleDimLoad>("capacity", 2).map(create_goal_ctx_with_feature).unwrap()
-}
+}*/

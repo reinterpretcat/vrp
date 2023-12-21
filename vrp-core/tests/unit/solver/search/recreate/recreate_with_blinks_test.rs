@@ -1,9 +1,8 @@
 use super::DemandJobSelector;
 use crate::construction::heuristics::JobSelector;
 use crate::helpers::construction::features::create_simple_demand;
-use crate::helpers::construction::heuristics::create_test_insertion_context;
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::problem::SingleBuilder;
-use crate::helpers::models::solution::create_test_registry;
 use crate::models::common::SingleDimLoad;
 
 parameterized_test! {can_sort_jobs_by_demand, (demands, is_asc_order, expected), {
@@ -17,7 +16,7 @@ can_sort_jobs_by_demand! {
 }
 
 fn can_sort_jobs_by_demand_impl(demands: Vec<i32>, is_asc_order: bool, expected: Vec<i32>) {
-    let mut insertion_ctx = create_test_insertion_context(create_test_registry());
+    let mut insertion_ctx = InsertionContextBuilder::default().build();
     demands.into_iter().for_each(|d| {
         insertion_ctx
             .solution

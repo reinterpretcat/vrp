@@ -1,10 +1,10 @@
 use super::*;
-use crate::helpers::models::domain::*;
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::solution::*;
 use std::cmp::Ordering;
 
 fn create_test_insertion_ctx(routes: &[f64]) -> InsertionContext {
-    let mut insertion_ctx = create_empty_insertion_context();
+    let mut insertion_ctx = InsertionContextBuilder::default().build();
     let problem = insertion_ctx.problem.clone();
 
     routes.iter().for_each(|arrival| {
@@ -21,7 +21,7 @@ fn create_test_insertion_ctx(routes: &[f64]) -> InsertionContext {
 
 #[test]
 fn can_properly_estimate_empty_solution() {
-    let empty = create_empty_insertion_context();
+    let empty = InsertionContextBuilder::default().build();
     let non_empty = create_test_insertion_ctx(&[10.]);
 
     let result = create_minimize_arrival_time_feature("minimize_arrival")

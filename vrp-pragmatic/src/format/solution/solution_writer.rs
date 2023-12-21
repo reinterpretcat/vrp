@@ -7,7 +7,6 @@ use crate::format::coord_index::CoordIndex;
 use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
-use crate::format::*;
 use vrp_core::construction::enablers::{get_route_intervals, ReservedTimesIndex};
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
@@ -39,14 +38,14 @@ pub(crate) fn create_solution(
     solution: &DomainSolution,
     output_type: &PragmaticOutputType,
 ) -> ApiSolution {
-    let coord_index = get_coord_index(problem);
+    let coord_index = problem.extras.get_coord_index().expect("no coord index");
     let empty_reserved_times = Default::default();
     let reserved_times_index = problem.extras.get_reserved_times().unwrap_or(&empty_reserved_times);
 
     let tours = solution
         .routes
         .iter()
-        .map(|r| create_tour(problem, r, coord_index, reserved_times_index))
+        .map(|r| create_tour(problem, r, &coord_index, reserved_times_index))
         .collect::<Vec<Tour>>();
 
     let statistic = tours.iter().fold(Statistic::default(), |acc, tour| acc + tour.statistic.clone());

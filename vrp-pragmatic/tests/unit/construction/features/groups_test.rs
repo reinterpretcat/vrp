@@ -8,10 +8,9 @@ use vrp_core::models::problem::Actor;
 use vrp_core::models::problem::{Fleet, Single};
 
 const VIOLATION_CODE: ViolationCode = 1;
-const STATE_KEY: StateKey = StateKey(2);
 
-fn create_test_group_feature(total_jobs: usize) -> Feature {
-    create_group_feature("group", total_jobs, VIOLATION_CODE, STATE_KEY).unwrap()
+fn create_test_group_feature(total_jobs: usize, state_key: StateKey) -> Feature {
+    create_group_feature("group", total_jobs, state_key, VIOLATION_CODE).unwrap()
 }
 
 fn get_total_jobs(routes: &[(&str, Vec<Option<&str>>)]) -> usize {
@@ -37,6 +36,7 @@ fn create_test_solution_context(
     total_jobs: usize,
     fleet: &Fleet,
     routes: Vec<(&str, Vec<Option<&str>>)>,
+    state_key: StateKey,
 ) -> SolutionContext {
     SolutionContext {
         required: (0..total_jobs).map(|_| Job::Single(create_test_single(None))).collect(),
@@ -45,7 +45,7 @@ fn create_test_solution_context(
             .map(|(vehicle, groups)| {
                 let mut state = RouteState::default();
                 state.put_route_state(
-                    STATE_KEY,
+                    state_key,
                     (groups.iter().filter_map(|g| *g).map(|g| g.to_string()).collect::<HashSet<_>>(), groups.len()),
                 );
 
@@ -100,10 +100,11 @@ fn compare_actor_groups(fleet: &Fleet, original: HashMap<String, Arc<Actor>>, ex
 
 #[test]
 fn can_build_expected_state() {
+    let state_key = StateKeyRegistry::default().next_key();
     let total_jobs = 1;
-    let state = create_test_group_feature(total_jobs).state.unwrap();
+    let state = create_test_group_feature(total_jobs, state_key).state.unwrap();
 
-    assert_eq!(state.state_keys().cloned().collect::<Vec<_>>(), vec![STATE_KEY]);
+    assert_eq!(state.state_keys().cloned().collect::<Vec<_>>(), vec![state_key]);
 }
 
 parameterized_test! {can_accept_insertion, (routes, job_group, expected), {
@@ -120,15 +121,16 @@ fn can_accept_insertion_impl(
     job_group: Option<&str>,
     expected: Vec<(&str, &str)>,
 ) {
+    let state_key = StateKeyRegistry::default().next_key();
     let total_jobs = get_total_jobs(&routes) + 1;
     let fleet = create_test_fleet();
-    let state = create_test_group_feature(total_jobs).state.unwrap();
-    let mut solution_ctx = create_test_solution_context(total_jobs, &fleet, routes);
+    let state = create_test_group_feature(total_jobs, state_key).state.unwrap();
+    let mut solution_ctx = create_test_solution_context(total_jobs, &fleet, routes, state_key);
     state.accept_solution_state(&mut solution_ctx);
 
     state.accept_insertion(&mut solution_ctx, 0, &Job::Single(create_test_single(job_group)));
 
-    compare_actor_groups(&fleet, get_actor_groups(&mut solution_ctx, STATE_KEY), expected);
+    compare_actor_groups(&fleet, get_actor_groups(&mut solution_ctx, state_key), expected);
 }
 
 parameterized_test! {can_accept_solution_state, (routes, expected), {
@@ -143,14 +145,15 @@ can_accept_solution_state! {
 }
 
 fn can_accept_solution_state_impl(routes: Vec<(&str, Vec<Option<&str>>)>, expected: Vec<(&str, &str)>) {
+    let state_key = StateKeyRegistry::default().next_key();
     let total_jobs = get_total_jobs(&routes) + 1;
     let fleet = create_test_fleet();
-    let state = create_test_group_feature(total_jobs).state.unwrap();
-    let mut solution_ctx = create_test_solution_context(total_jobs, &fleet, routes);
+    let state = create_test_group_feature(total_jobs, state_key).state.unwrap();
+    let mut solution_ctx = create_test_solution_context(total_jobs, &fleet, routes, state_key);
 
     state.accept_solution_state(&mut solution_ctx);
 
-    compare_actor_groups(&fleet, get_actor_groups(&mut solution_ctx, STATE_KEY), expected);
+    compare_actor_groups(&fleet, get_actor_groups(&mut solution_ctx, state_key), expected);
 }
 
 parameterized_test! {can_evaluate_job, (routes, route_idx, job_group, expected), {
@@ -168,12 +171,13 @@ fn can_evaluate_job_impl(
     job_group: Option<&str>,
     expected: Option<i32>,
 ) {
+    let state_key = StateKeyRegistry::default().next_key();
     let total_jobs = get_total_jobs(&routes) + 1;
     let fleet = create_test_fleet();
-    let solution_ctx = create_test_solution_context(total_jobs, &fleet, routes);
+    let solution_ctx = create_test_solution_context(total_jobs, &fleet, routes, state_key);
     let route_ctx = solution_ctx.routes.get(route_idx).unwrap();
     let job = Job::Single(create_test_single(job_group));
-    let constraint = create_test_group_feature(total_jobs).constraint.unwrap();
+    let constraint = create_test_group_feature(total_jobs, state_key).constraint.unwrap();
 
     let result = constraint.evaluate(&MoveContext::route(&solution_ctx, route_ctx, &job));
 
@@ -193,8 +197,9 @@ can_merge_groups! {
 }
 
 fn can_merge_groups_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
+    let state_key = StateKeyRegistry::default().next_key();
     let total_jobs = 1;
-    let constraint = create_test_group_feature(total_jobs).constraint.unwrap();
+    let constraint = create_test_group_feature(total_jobs, state_key).constraint.unwrap();
 
     let result = constraint.merge(source, candidate).map(|_| ());
 

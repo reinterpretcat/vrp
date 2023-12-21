@@ -32,7 +32,6 @@ fn can_write_solomon_solution() {
     let mut writer = BufWriter::new(Vec::new());
     let solution: Solution = RecreateWithCheapest::new(environment.random.clone())
         .run(&refinement_ctx, InsertionContext::new(problem, environment))
-        .solution
         .into();
     solution.write_solomon(&mut writer).unwrap();
     let result = String::from_utf8(writer.into_inner().unwrap()).unwrap();

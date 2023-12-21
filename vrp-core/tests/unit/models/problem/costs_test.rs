@@ -116,8 +116,8 @@ fn can_interpolate_durations() {
 
 mod objective {
     use super::*;
-    use crate::construction::heuristics::{InsertionContext, MoveContext, StateKey};
-    use crate::helpers::models::domain::create_empty_insertion_context;
+    use crate::construction::heuristics::{InsertionContext, MoveContext, StateKeyRegistry};
+    use crate::helpers::construction::heuristics::{create_state_key, InsertionContextBuilder};
     use crate::models::{Feature, FeatureBuilder, FeatureObjective, Goal, GoalContext};
     use rosomaxa::prelude::{compare_floats, MultiObjective, Objective};
     use std::cmp::Ordering;
@@ -144,7 +144,7 @@ mod objective {
             solution
                 .solution
                 .state
-                .get(&StateKey(1))
+                .get(&create_state_key())
                 .and_then(|any| any.downcast_ref::<Vec<f64>>())
                 .and_then(|data| data.get(self.index))
                 .cloned()
@@ -167,10 +167,7 @@ mod objective {
     }
 
     fn create_individual(data: Vec<f64>) -> InsertionContext {
-        let mut individual = create_empty_insertion_context();
-        individual.solution.state.insert(StateKey(1), Arc::new(data));
-
-        individual
+        InsertionContextBuilder::default().with_state(StateKeyRegistry::default().next_key(), data).build()
     }
 
     parameterized_test! {can_use_total_order_with_hierarchy, (data_a, data_b, expected), {

@@ -12,8 +12,10 @@ pub(crate) trait TextReader {
         let (jobs, fleet) = self.read_definitions()?;
         let transport = self.create_transport(is_rounded)?;
         let activity = Arc::new(SimpleActivityCost::default());
-        let jobs = Jobs::new(&fleet, jobs, &transport);
-        let goal = self.create_goal_context(activity.clone(), transport.clone()).expect("cannot create goal context");
+        let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
+        let extras = self.create_extras();
+        let goal =
+            self.create_goal_context(activity.clone(), transport.clone(), &extras).expect("cannot create goal context");
 
         Ok(Problem {
             fleet: Arc::new(fleet),
@@ -22,7 +24,7 @@ pub(crate) trait TextReader {
             goal: Arc::new(goal),
             activity,
             transport,
-            extras: Arc::new(self.create_extras()),
+            extras: Arc::new(extras),
         })
     }
 
@@ -30,6 +32,7 @@ pub(crate) trait TextReader {
         &self,
         activity: Arc<SimpleActivityCost>,
         transport: Arc<dyn TransportCost + Send + Sync>,
+        extras: &Extras,
     ) -> Result<GoalContext, GenericError>;
 
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError>;
@@ -97,8 +100,9 @@ pub(crate) fn create_dimens_with_id(prefix: &str, id: &str) -> Dimensions {
 pub(crate) fn create_goal_context_prefer_min_tours(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
+    extras: &Extras,
 ) -> Result<GoalContext, GenericError> {
-    let features = get_essential_features(activity, transport)?;
+    let features = get_essential_features(activity, transport, extras)?;
 
     let goal = Goal::with_alternatives(
         vec![vec!["min_unassigned".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
@@ -118,8 +122,9 @@ pub(crate) fn create_goal_context_prefer_min_tours(
 pub(crate) fn create_goal_context_distance_only(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
+    extras: &Extras,
 ) -> Result<GoalContext, GenericError> {
-    let features = get_essential_features(activity, transport)?;
+    let features = get_essential_features(activity, transport, extras)?;
 
     let goal = Goal::with_alternatives(
         vec![vec!["min_unassigned".to_string()], vec!["min_distance".to_string()]],
@@ -143,12 +148,18 @@ pub(crate) fn create_goal_context_distance_only(
 fn get_essential_features(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
+    extras: &Extras,
 ) -> Result<Vec<Feature>, GenericError> {
+    let schedule_keys =
+        extras.get_schedule_keys().cloned().ok_or_else(|| GenericError::from("missing schedule keys set in extras"))?;
+    let capacity_keys =
+        extras.get_capacity_keys().cloned().ok_or_else(|| GenericError::from("missing capacity keys set in extras"))?;
+
     Ok(vec![
         create_minimize_unassigned_jobs_feature("min_unassigned", Arc::new(|_, _| 1.))?,
         create_minimize_tours_feature("min_tours")?,
-        create_minimize_distance_feature("min_distance", transport, activity, 1)?,
-        create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
+        create_minimize_distance_feature("min_distance", transport, activity, schedule_keys, 1)?,
+        create_capacity_limit_feature::<SingleDimLoad>("capacity", capacity_keys, 2)?,
     ])
 }
 

@@ -43,6 +43,11 @@ impl Default for RouteBuilder {
 }
 
 impl RouteBuilder {
+    /// Creates route using default vehicle.
+    pub fn with_default_vehicle() -> Self {
+        Self(RouteBuilder::default().with_vehicle(&test_fleet(), "v1").build())
+    }
+
     /// Switches route to a vehicle with a given id from the fleet. Clears all changes in the tour done previously.
     pub fn with_vehicle(&mut self, fleet: &Fleet, vehicle_id: &str) -> &mut Self {
         let actor = get_test_actor_from_fleet(fleet, vehicle_id);

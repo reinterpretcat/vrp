@@ -3,8 +3,8 @@
 mod assignment_test;
 
 use super::*;
+use crate::format::get_indices;
 use crate::format::solution::activity_matcher::*;
-use crate::format::{get_coord_index, get_job_index};
 use crate::utils::combine_error_results;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
@@ -151,8 +151,9 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), GenericError> {
 
 /// Checks job constraint violations.
 fn check_jobs_match(ctx: &CheckerContext) -> Result<(), GenericError> {
-    let job_index = get_job_index(&ctx.core_problem);
-    let coord_index = get_coord_index(&ctx.core_problem);
+    let (job_index, coord_index) = get_indices(&ctx.core_problem.extras)?;
+    let (job_index, coord_index) = (job_index.as_ref(), coord_index.as_ref());
+
     let job_ids = ctx
         .solution
         .tours

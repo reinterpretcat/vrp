@@ -1,7 +1,7 @@
 use super::*;
 use crate::helpers::construction::clustering::dbscan::create_test_distances;
-use crate::helpers::construction::features::create_goal_ctx_with_transport;
-use crate::helpers::models::domain::create_empty_problem;
+use crate::helpers::construction::heuristics::create_schedule_keys;
+use crate::helpers::models::domain::{GoalContextBuilder, ProblemBuilder};
 use crate::helpers::models::problem::SingleBuilder;
 use crate::helpers::solver::*;
 use rosomaxa::prelude::Environment;
@@ -14,7 +14,7 @@ fn can_create_ruin_cluster_with_default_params() {
         8,
         1,
         false,
-        |_, _| create_goal_ctx_with_transport(),
+        |_, _, _| GoalContextBuilder::with_transport_feature(create_schedule_keys()).build(),
         |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
@@ -27,7 +27,7 @@ fn can_create_ruin_cluster_with_default_params() {
 
 #[test]
 fn can_handle_empty_problem() {
-    let problem = create_empty_problem();
+    let problem = Arc::new(ProblemBuilder::default().build());
     let limits = RemovalLimits::new(&problem);
 
     let removal = ClusterRemoval::new(problem, Arc::new(Environment::default()), 3, limits);
@@ -51,7 +51,7 @@ fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
         8,
         1,
         false,
-        |_, _| create_goal_ctx_with_transport(),
+        |_, _, _| GoalContextBuilder::with_transport_feature(create_schedule_keys()).build(),
         |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),

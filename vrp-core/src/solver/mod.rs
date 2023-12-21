@@ -87,7 +87,7 @@
 
 extern crate rand;
 
-use crate::construction::heuristics::{InsertionContext, StateKey};
+use crate::construction::heuristics::InsertionContext;
 use crate::models::{GoalContext, Problem, Solution};
 use crate::solver::search::Recreate;
 use hashbrown::HashMap;
@@ -105,13 +105,6 @@ pub mod processing;
 pub mod search;
 
 mod heuristic;
-
-/// A key to store tabu list.
-const TABU_LIST_KEY: StateKey = StateKey(1);
-/// A key to store solution order information.
-const SOLUTION_ORDER_KEY: StateKey = StateKey(2);
-/// A key to store solution weights information.
-const SOLUTION_WEIGHTS_KEY: StateKey = StateKey(3);
 
 /// A type which encapsulates information needed to perform solution refinement process.
 pub struct RefinementContext {
@@ -300,7 +293,7 @@ impl Solver {
         let insertion_ctx = if solutions.is_empty() { None } else { solutions.drain(0..1).next() }
             .ok_or_else(|| "cannot find any solution".to_string())?;
 
-        let solution = (insertion_ctx.solution, metrics).into();
+        let solution = (insertion_ctx, metrics).into();
 
         Ok(solution)
     }

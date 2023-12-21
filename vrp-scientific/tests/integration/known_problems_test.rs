@@ -64,7 +64,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     let insertion_ctx = RecreateWithCheapest::new(environment.random.clone())
         .run(&refinement_ctx, InsertionContext::new(problem, environment));
 
-    let result_cost = insertion_ctx.solution.get_total_cost();
+    let result_cost = insertion_ctx.get_total_cost().unwrap_or_default();
     assert_eq!(result_cost.round(), cost.round());
     assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected);
 }

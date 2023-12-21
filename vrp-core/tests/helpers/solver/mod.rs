@@ -1,8 +1,7 @@
 use crate::algorithms::geometry::Point;
 use crate::construction::features::create_minimize_transport_costs_feature;
 use crate::construction::heuristics::MoveContext;
-use crate::helpers::construction::features::{create_goal_ctx_with_feature, create_goal_ctx_with_features};
-use crate::helpers::models::domain::test_random;
+use crate::helpers::models::domain::{test_random, GoalContextBuilder};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder};
 use crate::models::common::{Cost, IdDimension, Location};
@@ -34,10 +33,15 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
         rows,
         cols,
         is_open_vrp,
-        |transport, activity| {
-            create_goal_ctx_with_feature(
-                create_minimize_transport_costs_feature("transport", transport, activity, 1).unwrap(),
-            )
+        |transport, activity, extras| {
+            let schedule_keys = extras.get_schedule_keys().cloned().expect("no schedule keys");
+            GoalContextBuilder::default()
+                .add_feature(
+                    create_minimize_transport_costs_feature("transport", transport, activity, schedule_keys, 1)
+                        .unwrap(),
+                )
+                .with_objectives(vec![vec!["transport"]])
+                .build()
         },
         |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
@@ -62,19 +66,23 @@ pub fn generate_matrix_routes_with_disallow_list(
         rows,
         cols,
         is_open_vrp,
-        move |transport, activity| {
+        move |transport, activity, extras| {
+            let schedule_keys = extras.get_schedule_keys().cloned().expect("no schedule keys");
             let feature_map = vec![vec!["transport"]];
-            create_goal_ctx_with_features(
-                vec![
-                    create_minimize_transport_costs_feature("transport", transport, activity, 1).unwrap(),
+            GoalContextBuilder::default()
+                .add_feature(
+                    create_minimize_transport_costs_feature("transport", transport, activity, schedule_keys, 1)
+                        .unwrap(),
+                )
+                .add_feature(
                     FeatureBuilder::default()
                         .with_name("leg")
                         .with_constraint(LegFeatureConstraint { ignore: "cX".to_string(), disallowed_pairs })
                         .build()
                         .unwrap(),
-                ],
-                feature_map,
-            )
+                )
+                .with_objectives(feature_map)
+                .build()
         },
         |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
@@ -93,7 +101,11 @@ pub fn generate_matrix_routes(
     rows: usize,
     cols: usize,
     is_open_vrp: bool,
-    goal_factory: impl FnOnce(Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>) -> GoalContext,
+    goal_factory: impl FnOnce(
+        Arc<dyn TransportCost + Send + Sync>,
+        Arc<dyn ActivityCost + Send + Sync>,
+        &Extras,
+    ) -> GoalContext,
     job_factory: impl Fn(&str, Option<Location>) -> Arc<Single>,
     vehicle_modify: impl Fn(Vehicle) -> Vehicle,
     matrix_modify: impl Fn(Vec<f64>) -> (Vec<f64>, Vec<f64>),
@@ -121,6 +133,8 @@ pub fn generate_matrix_routes(
     let mut routes: Vec<Route> = Default::default();
     let mut jobs: Vec<Job> = Default::default();
 
+    let extras = ExtrasBuilder::default().build().expect("cannot build extras");
+
     (0..cols).for_each(|i| {
         routes.push(RouteBuilder::default().with_vehicle(fleet.as_ref(), i.to_string().as_str()).build());
         (0..rows).for_each(|j| {
@@ -142,17 +156,17 @@ pub fn generate_matrix_routes(
     let matrix_data = MatrixData::new(0, None, durations, distances);
     let transport = create_matrix_transport_cost(vec![matrix_data]).unwrap();
     let activity = Arc::new(TestActivityCost::default());
-    let jobs = Jobs::new(&fleet, jobs, &transport);
+    let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
 
     let problem = Problem {
         fleet,
         jobs: Arc::new(jobs),
         locks: vec![],
         // TODO: we should pass the same transport costs, but the tests were written assuming default one
-        goal: Arc::new(goal_factory(TestTransportCost::new_shared(), activity.clone())),
+        goal: Arc::new(goal_factory(TestTransportCost::new_shared(), activity.clone(), &extras)),
         activity,
         transport,
-        extras: Arc::new(Default::default()),
+        extras: Arc::new(extras),
     };
 
     let solution =

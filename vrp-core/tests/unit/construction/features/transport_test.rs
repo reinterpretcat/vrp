@@ -26,22 +26,27 @@ fn create_detail(
 
 mod timing {
     use super::*;
-    use crate::helpers::models::domain::{create_empty_solution_context, create_registry_context};
-    use crate::models::solution::{Activity, Place};
+    use crate::helpers::construction::heuristics::{create_schedule_keys, InsertionContextBuilder};
+    use crate::helpers::models::domain::test_random;
+    use crate::models::solution::{Activity, Place, Registry};
     use rosomaxa::prelude::compare_floats;
     use std::cmp::Ordering;
 
-    fn create_feature() -> Feature {
+    fn create_feature(schedule_keys: ScheduleKeys) -> Feature {
         create_minimize_transport_costs_feature(
             "transport",
             TestTransportCost::new_shared(),
             TestActivityCost::new_shared(),
+            schedule_keys,
             VIOLATION_CODE,
         )
         .unwrap()
     }
 
-    fn create_feature_and_route(vehicle_detail_data: VehicleData) -> (Feature, RouteContext) {
+    fn create_feature_and_route(
+        vehicle_detail_data: VehicleData,
+        schedule_keys: ScheduleKeys,
+    ) -> (Feature, RouteContext) {
         let (location_start, location_end, time_start, time_end) = vehicle_detail_data;
 
         let fleet = FleetBuilder::default()
@@ -62,7 +67,9 @@ mod timing {
             )
             .build();
 
-        (create_feature(), route_ctx)
+        let feature = create_feature(schedule_keys);
+
+        (feature, route_ctx)
     }
 
     parameterized_test! {can_properly_calculate_latest_arrival, (vehicle, activity, time), {
@@ -84,10 +91,12 @@ mod timing {
     }
 
     fn can_properly_calculate_latest_arrival_impl(vehicle_detail_data: VehicleData, activity_idx: usize, time: f64) {
-        let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data);
+        let schedule_keys = create_schedule_keys();
+        let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data, schedule_keys.clone());
         feature.state.unwrap().accept_route_state(&mut route_ctx);
 
-        let result = *route_ctx.state().get_activity_state::<Timestamp>(LATEST_ARRIVAL_KEY, activity_idx).unwrap();
+        let result =
+            *route_ctx.state().get_activity_state::<Timestamp>(schedule_keys.latest_arrival, activity_idx).unwrap();
 
         assert_eq!(result, time);
     }
@@ -116,7 +125,7 @@ mod timing {
         next_index: usize,
         expected: Option<ConstraintViolation>,
     ) {
-        let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data);
+        let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data, create_schedule_keys());
         feature.state.unwrap().accept_route_state(&mut route_ctx);
 
         let prev = route_ctx.route().tour.get(prev_index).unwrap();
@@ -135,8 +144,8 @@ mod timing {
             .add_driver(test_driver())
             .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
             .build();
-        let mut solution_ctx = SolutionContext {
-            routes: vec![RouteContextBuilder::default()
+        let insertion_ctx = InsertionContextBuilder::default()
+            .with_routes(vec![RouteContextBuilder::default()
                 .with_route(
                     RouteBuilder::default()
                         .with_vehicle(&fleet, "v1")
@@ -164,12 +173,13 @@ mod timing {
                         )
                         .build(),
                 )
-                .build()],
-            registry: create_registry_context(&fleet),
-            ..create_empty_solution_context()
-        };
+                .build()])
+            .with_registry(Registry::new(&fleet, test_random()))
+            .build();
+        let mut solution_ctx = insertion_ctx.solution;
+        let schedule_keys = insertion_ctx.problem.extras.get_schedule_keys().unwrap().clone();
 
-        create_feature().state.unwrap().accept_solution_state(&mut solution_ctx);
+        create_feature(schedule_keys).state.unwrap().accept_solution_state(&mut solution_ctx);
 
         let route_ctx = solution_ctx.routes.first().unwrap();
         assert_eq!(route_ctx.route().tour.get(1).unwrap().schedule, Schedule { arrival: 10., departure: 25. });
@@ -198,7 +208,10 @@ mod timing {
             next: route_ctx.route().tour.get(1),
         };
 
-        let result = create_feature().objective.unwrap().estimate(&MoveContext::activity(&route_ctx, &activity_ctx));
+        let result = create_feature(create_schedule_keys())
+            .objective
+            .unwrap()
+            .estimate(&MoveContext::activity(&route_ctx, &activity_ctx));
 
         assert_eq!(compare_floats(result, 21.0), Ordering::Equal);
     }
@@ -250,7 +263,10 @@ mod timing {
             next: route_ctx.route().tour.get(2),
         };
 
-        let result = create_feature().objective.unwrap().estimate(&MoveContext::activity(&route_ctx, &activity_ctx));
+        let result = create_feature(create_schedule_keys())
+            .objective
+            .unwrap()
+            .estimate(&MoveContext::activity(&route_ctx, &activity_ctx));
 
         assert_eq!(compare_floats(result, 30.0), Ordering::Equal);
     }
@@ -261,14 +277,19 @@ mod timing {
             .add_driver(test_driver())
             .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
             .build();
-        let solution_ctx = create_empty_solution_context();
+        let insertion_ctx = InsertionContextBuilder::default().build();
+        let solution_ctx = insertion_ctx.solution;
+        let schedule_keys = insertion_ctx.problem.extras.get_schedule_keys().unwrap().clone();
         let route_ctx = RouteContextBuilder::default()
             .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
             .build();
         let job = SingleBuilder::default().times(vec![TimeWindow::new(2000., 3000.)]).build_as_job_ref();
 
-        let result =
-            create_feature().constraint.unwrap().evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));
+        let result = create_feature(schedule_keys).constraint.unwrap().evaluate(&MoveContext::route(
+            &solution_ctx,
+            &route_ctx,
+            &job,
+        ));
 
         assert_eq!(result, ConstraintViolation::fail(VIOLATION_CODE));
     }

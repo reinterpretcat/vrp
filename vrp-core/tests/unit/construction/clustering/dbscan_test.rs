@@ -1,11 +1,13 @@
 use super::*;
 use crate::helpers::construction::clustering::dbscan::create_test_distances;
 use crate::helpers::construction::clustering::p;
-use crate::helpers::construction::features::create_goal_ctx_with_transport;
+use crate::helpers::models::domain::GoalContextBuilder;
 use crate::helpers::models::problem::SingleBuilder;
 use crate::helpers::solver::{generate_matrix_distances_from_points, generate_matrix_routes};
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Location;
+use crate::models::{CoreStateKeys, Extras, GoalContext};
+use crate::prelude::{ActivityCost, TransportCost};
 
 type MatrixModFn = fn(Vec<f64>) -> (Vec<f64>, Vec<f64>);
 
@@ -15,6 +17,15 @@ fn can_get_max_curvature() {
         &[p(0., 0.), p(1., 0.25), p(2., 0.5), p(3., 0.75), p(4., 1.), p(6., 2.), p(7., 4.), p(8., 6.), p(9., 8.)];
 
     assert_eq!(get_max_curvature(values), 2.);
+}
+
+fn goal_factory(
+    _: Arc<dyn TransportCost + Send + Sync>,
+    _: Arc<dyn ActivityCost + Send + Sync>,
+    extras: &Extras,
+) -> GoalContext {
+    let schedule_keys = extras.get_schedule_keys().cloned().expect("no schedule keys");
+    GoalContextBuilder::with_transport_feature(schedule_keys).build()
 }
 
 parameterized_test! {can_estimate_epsilon, (matrix, nth_neighbor, matrix_modify, expected), {
@@ -40,7 +51,7 @@ fn can_estimate_epsilon_impl(matrix: (usize, usize), nth_neighbor: usize, matrix
         matrix.0,
         matrix.1,
         false,
-        |_, _| create_goal_ctx_with_transport(),
+        goal_factory,
         |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         matrix_modify,
@@ -65,7 +76,7 @@ fn can_estimate_epsilon_having_zero_costs_impl(min_points: usize) {
         8,
         1,
         false,
-        |_, _| create_goal_ctx_with_transport(),
+        goal_factory,
         |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |_| {
@@ -104,7 +115,7 @@ fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>])
         8,
         1,
         false,
-        |_, _| create_goal_ctx_with_transport(),
+        goal_factory,
         |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),

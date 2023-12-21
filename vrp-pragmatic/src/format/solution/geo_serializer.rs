@@ -4,7 +4,7 @@ mod geo_serializer_test;
 
 use super::Solution;
 use crate::format::solution::{Activity, PointStop, Tour, UnassignedJob};
-use crate::format::{get_coord_index, get_job_index, CoordIndex, CustomLocationType, Location};
+use crate::format::{get_indices, CoordIndex, CustomLocationType, Location};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
@@ -328,8 +328,8 @@ pub(crate) fn create_feature_collection(problem: &Problem, solution: &Solution) 
         .map(|(tour_idx, tour)| get_tour_line(tour_idx, tour, get_color(tour_idx).as_str()))
         .collect::<Result<Vec<_>, _>>()?;
 
-    let job_index = get_job_index(problem);
-    let coord_index = get_coord_index(problem);
+    let (job_index, coord_index) = get_indices(&problem.extras).map_err(|err| Error::new(ErrorKind::Other, err))?;
+
     let unassigned_markers = solution
         .unassigned
         .iter()
@@ -340,7 +340,7 @@ pub(crate) fn create_feature_collection(problem: &Problem, solution: &Solution) 
                 .get(&unassigned_job.job_id)
                 .ok_or_else(|| invalid_data(format!("cannot find job: {}", unassigned_job.job_id).as_str()))?;
             let color = get_color(idx);
-            get_unassigned_points(coord_index, unassigned_job, job, color.as_str())
+            get_unassigned_points(coord_index.as_ref(), unassigned_job, job, color.as_str())
         })
         .collect::<Result<Vec<Vec<Feature>>, Error>>()?
         .into_iter()

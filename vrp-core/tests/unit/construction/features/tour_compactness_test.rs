@@ -1,6 +1,7 @@
 use crate::construction::features::create_tour_compactness_feature;
-use crate::construction::heuristics::{InsertionContext, MoveContext, StateKey};
-use crate::helpers::models::domain::{create_empty_insertion_context, create_empty_problem};
+use crate::construction::heuristics::{InsertionContext, MoveContext};
+use crate::helpers::construction::heuristics::{create_state_key, InsertionContextBuilder};
+use crate::helpers::models::domain::ProblemBuilder;
 use crate::helpers::solver::{generate_matrix_routes_with_defaults, get_job_by_id};
 use crate::models::common::Cost;
 use rosomaxa::utils::Environment;
@@ -26,18 +27,18 @@ fn can_compare_solutions_with_thresholds_impl(
     states: (f64, f64),
     expected: Ordering,
 ) {
-    let state_key = StateKey(1);
+    let state_key = create_state_key();
     let (left_state, right_state) = states;
     let create_insertion_ctx_fn = |state_value: Cost| {
-        let mut insertion_ctx = create_empty_insertion_context();
+        let mut insertion_ctx = InsertionContextBuilder::default().build();
         insertion_ctx.solution.state.insert(state_key, Arc::new(state_value));
         insertion_ctx
     };
-    let objective =
-        create_tour_compactness_feature("compact", create_empty_problem().jobs.clone(), 3, state_key, thresholds)
-            .expect("cannot create feature")
-            .objective
-            .unwrap();
+    let jobs = ProblemBuilder::default().build().jobs;
+    let objective = create_tour_compactness_feature("compact", jobs, 3, state_key, thresholds)
+        .expect("cannot create feature")
+        .objective
+        .unwrap();
 
     let result = objective.total_order(&create_insertion_ctx_fn(left_state), &create_insertion_ctx_fn(right_state));
 
@@ -76,9 +77,14 @@ fn can_count_neighbours_in_route_impl(
     let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(rows, cols, false);
     let mut insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
-    let feature =
-        create_tour_compactness_feature("compact", insertion_ctx.problem.jobs.clone(), job_radius, StateKey(1), None)
-            .expect("cannot create feature");
+    let feature = create_tour_compactness_feature(
+        "compact",
+        insertion_ctx.problem.jobs.clone(),
+        job_radius,
+        create_state_key(),
+        None,
+    )
+    .expect("cannot create feature");
     let (state, objective) = { (feature.state.as_ref().unwrap(), feature.objective.as_ref().unwrap()) };
 
     state.accept_solution_state(&mut insertion_ctx.solution);
@@ -95,7 +101,9 @@ fn can_count_neighbours_in_route_impl(
 
 #[test]
 fn can_return_err_if_feature_cannot_be_created() {
-    let result = create_tour_compactness_feature("compact", create_empty_problem().jobs.clone(), 0, StateKey(1), None);
+    let jobs = ProblemBuilder::default().build().jobs;
+
+    let result = create_tour_compactness_feature("compact", jobs, 0, create_state_key(), None);
 
     assert!(result.is_err());
 }

@@ -1,11 +1,13 @@
 use super::*;
-use crate::helpers::models::domain::{create_empty_insertion_context, create_simple_insertion_ctx};
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::models::solution::RouteContextBuilder;
 use std::cmp::Ordering;
 
 #[test]
 fn can_properly_estimate_empty_solution() {
-    let empty = create_empty_insertion_context();
-    let non_empty = create_simple_insertion_ctx(10., 0);
+    let empty = InsertionContextBuilder::default().build();
+    let non_empty =
+        InsertionContextBuilder::default().with_routes(vec![RouteContextBuilder::default().build()]).build();
     let objective =
         create_minimize_unassigned_jobs_feature("minimize_unassigned", Arc::new(|_, _| 1.)).unwrap().objective.unwrap();
 

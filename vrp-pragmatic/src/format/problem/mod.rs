@@ -121,10 +121,9 @@ struct ProblemProperties {
 
 /// Keeps track of materialized problem building blocks.
 struct ProblemBlocks {
-    coord_index: Arc<CoordIndex>,
-    job_index: Arc<JobIndex>,
     jobs: Arc<CoreJobs>,
     fleet: Arc<CoreFleet>,
+    job_index: Option<Arc<JobIndex>>,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     locks: Vec<Arc<Lock>>,

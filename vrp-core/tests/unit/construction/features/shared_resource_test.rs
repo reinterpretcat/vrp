@@ -2,15 +2,13 @@ use self::ActivityType::*;
 use super::*;
 use crate::construction::enablers::get_route_intervals;
 use crate::helpers::construction::features::create_simple_demand;
-use crate::helpers::models::domain::create_empty_solution_context;
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::models::common::*;
 use crate::models::problem::{Fleet, Vehicle, VehicleDetail};
 
 const VIOLATION_CODE: ViolationCode = 1;
-const RESOURCE_KEY: StateKey = StateKey(1);
-const INTERVALS_KEY: StateKey = StateKey(2);
 
 fn create_usage_activity(demand: i32) -> Activity {
     let demand = create_simple_demand(-demand);
@@ -29,13 +27,13 @@ fn create_resource_activity(capacity: i32, resource_id: Option<SharedResourceId>
     Activity { job: Some(Arc::new(single)), ..ActivityBuilder::default().build() }
 }
 
-fn create_feature(total_jobs: usize) -> Feature {
+fn create_feature(intervals_key: StateKey, resource_key: StateKey, total_jobs: usize) -> Feature {
     create_shared_resource_feature::<SingleDimLoad>(
         "shared_resource",
         total_jobs,
         VIOLATION_CODE,
-        RESOURCE_KEY,
-        create_interval_fn(),
+        resource_key,
+        create_interval_fn(intervals_key),
         Arc::new(|activity| {
             activity.job.as_ref().and_then(|job| {
                 job.dimens.get_capacity().cloned().zip(job.dimens.get_value::<SharedResourceId>("resource_id").cloned())
@@ -53,6 +51,7 @@ fn create_ovrp_vehicle(id: &str) -> Vehicle {
 fn create_route_ctx(
     fleet: &Fleet,
     vehicle_id: &str,
+    intervals_key: StateKey,
     resources: &HashMap<usize, i32>,
     activities: &[ActivityType],
 ) -> RouteContext {
@@ -72,12 +71,13 @@ fn create_route_ctx(
             capacity.is_some()
         })
     });
-    route_ctx.state_mut().put_route_state(INTERVALS_KEY, intervals);
+    route_ctx.state_mut().put_route_state(intervals_key, intervals);
 
     route_ctx
 }
 
 fn create_solution_ctx(
+    intervals_key: StateKey,
     resources: Vec<(usize, i32)>,
     activities: Vec<Vec<ActivityType>>,
     is_ovrp: bool,
@@ -94,18 +94,28 @@ fn create_solution_ctx(
     let routes = activities
         .into_iter()
         .enumerate()
-        .map(|(idx, activities)| create_route_ctx(&fleet, format!("v{}", idx + 1).as_str(), &resources, &activities))
+        .map(|(idx, activities)| {
+            create_route_ctx(&fleet, format!("v{}", idx + 1).as_str(), intervals_key, &resources, &activities)
+        })
         .collect();
 
-    SolutionContext { routes, ..create_empty_solution_context() }
+    InsertionContextBuilder::default().with_routes(routes).build().solution
 }
 
-fn create_interval_fn() -> SharedResourceIntervalFn {
-    Arc::new(move |route_ctx| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(INTERVALS_KEY))
+fn create_interval_fn(intervals_key: StateKey) -> SharedResourceIntervalFn {
+    Arc::new(move |route_ctx| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(intervals_key))
 }
 
 fn create_resource_demand_fn() -> SharedResourceDemandFn<SingleDimLoad> {
     Arc::new(|single| single.dimens.get_demand().map(|demand| demand.delivery.0))
+}
+
+fn create_state_keys() -> (StateKey, StateKey) {
+    let mut state_registry = StateKeyRegistry::default();
+    let intervals_key = state_registry.next_key();
+    let resource_key = state_registry.next_key();
+
+    (intervals_key, resource_key)
 }
 
 enum ActivityType {
@@ -150,9 +160,10 @@ fn can_update_resource_consumption_impl(
     total_jobs: Option<usize>,
     expected_resources: Vec<Vec<Option<i32>>>,
 ) {
+    let (intervals_key, resource_key) = create_state_keys();
     let total_jobs = total_jobs.unwrap_or(activities[0].len() + activities[1].len());
-    let mut solution_ctx = create_solution_ctx(resources, activities, false);
-    let state = create_feature(total_jobs).state.unwrap();
+    let mut solution_ctx = create_solution_ctx(intervals_key, resources, activities, false);
+    let state = create_feature(intervals_key, resource_key, total_jobs).state.unwrap();
 
     state.accept_solution_state(&mut solution_ctx);
 
@@ -164,7 +175,7 @@ fn can_update_resource_consumption_impl(
                 .map(|activity_idx| {
                     route_ctx
                         .state()
-                        .get_activity_state::<SingleDimLoad>(RESOURCE_KEY, activity_idx)
+                        .get_activity_state::<SingleDimLoad>(resource_key, activity_idx)
                         .map(|resource| resource.value)
                 })
                 .collect::<Vec<_>>()
@@ -202,12 +213,13 @@ fn can_constraint_route_impl(
     job_demand: Option<i32>,
     expected: Option<i32>,
 ) {
+    let (intervals_key, resource_key) = create_state_keys();
     let job = Job::Single(job_demand.map_or_else(
         || SingleBuilder::default().id("job1").build_shared(),
         |demand| SingleBuilder::default().demand(create_simple_demand(-demand)).build_shared(),
     ));
-    let constraint = create_feature(total_jobs).constraint.unwrap();
-    let solution_ctx = create_solution_ctx(resources, vec![activities], false);
+    let constraint = create_feature(intervals_key, resource_key, total_jobs).constraint.unwrap();
+    let solution_ctx = create_solution_ctx(intervals_key, resources, vec![activities], false);
 
     let result = constraint.evaluate(&MoveContext::route(&solution_ctx, &solution_ctx.routes[0], &job));
 
@@ -268,10 +280,11 @@ fn can_constraint_activity_impl(
     demand: Option<i32>,
     expected: Option<i32>,
 ) {
+    let (intervals_key, resource_key) = create_state_keys();
     let target = demand.map_or_else(|| ActivityBuilder::default().build(), create_usage_activity);
     let total_jobs = activities[0].len() + activities[1].len();
-    let mut solution_ctx = create_solution_ctx(resources, activities, is_ovrp);
-    let feature = create_feature(total_jobs);
+    let mut solution_ctx = create_solution_ctx(intervals_key, resources, activities, is_ovrp);
+    let feature = create_feature(intervals_key, resource_key, total_jobs);
     feature.state.unwrap().accept_solution_state(&mut solution_ctx);
     let activity_ctx =
         ActivityContext { index: insertion_idx, prev: &create_usage_activity(0), target: &target, next: None };

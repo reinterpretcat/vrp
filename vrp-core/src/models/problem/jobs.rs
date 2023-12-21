@@ -231,7 +231,7 @@ pub struct Jobs {
 
 impl Jobs {
     /// Creates a new [`Jobs`].
-    pub fn new(fleet: &Fleet, jobs: Vec<Job>, transport: &Arc<dyn TransportCost + Send + Sync>) -> Jobs {
+    pub fn new(fleet: &Fleet, jobs: Vec<Job>, transport: &(dyn TransportCost + Send + Sync)) -> Jobs {
         Jobs { jobs: jobs.clone(), index: create_index(fleet, jobs, transport) }
     }
 
@@ -303,7 +303,7 @@ pub fn get_job_locations<'a>(job: &'a Job) -> Box<dyn Iterator<Item = Option<Loc
 fn create_index(
     fleet: &Fleet,
     jobs: Vec<Job>,
-    transport: &Arc<dyn TransportCost + Send + Sync>,
+    transport: &(dyn TransportCost + Send + Sync),
 ) -> HashMap<usize, JobIndex> {
     let avg_profile_costs = get_avg_profile_costs(fleet);
 
@@ -323,7 +323,7 @@ fn create_index(
             let mut sorted_job_costs: Vec<(Job, LowPrecisionCost)> = jobs
                 .iter()
                 .filter(|j| **j != job)
-                .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport.as_ref(), &job, j)))
+                .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport, &job, j)))
                 .take(MAX_NEIGHBOURS)
                 .collect();
             sorted_job_costs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Less));
@@ -331,7 +331,7 @@ fn create_index(
             let fleet_costs = starts
                 .iter()
                 .cloned()
-                .map(|s| get_cost_between_job_and_location(profile, avg_costs, transport.as_ref(), &job, s))
+                .map(|s| get_cost_between_job_and_location(profile, avg_costs, transport, &job, s))
                 .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
                 .unwrap_or(DEFAULT_COST);
 

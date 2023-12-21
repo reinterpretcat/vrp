@@ -14,5 +14,5 @@ pub fn can_read_init_solution() {
     assert_eq!(solution.routes.len(), 10);
 
     let insertion_ctx = InsertionContext::new_from_solution(problem, (solution, None), environment);
-    assert_eq!(insertion_ctx.solution.get_total_cost().round(), 828.936f64.round());
+    assert_eq!(insertion_ctx.get_total_cost().unwrap_or_default().round(), 828.936f64.round());
 }

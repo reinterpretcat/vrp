@@ -23,6 +23,7 @@ All notable changes to this project will be documented in this file.
 * improve selection sampling search
 * update dependencies
 * improve a bit documentation
+* refactor route state
 
 ### Fixed
 

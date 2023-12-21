@@ -1,15 +1,12 @@
 use super::*;
-use crate::construction::features::{
-    create_capacity_limit_feature, create_locked_jobs_feature, create_minimize_transport_costs_feature,
-};
-use crate::helpers::construction::features::{
-    create_goal_ctx_with_features, create_simple_demand, create_simple_dynamic_demand,
-};
+use crate::construction::features::*;
+use crate::helpers::construction::features::{create_simple_demand, create_simple_dynamic_demand};
+use crate::helpers::models::domain::GoalContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Place;
-use crate::models::{Lock, LockDetail, LockOrder, LockPosition, Problem};
+use crate::models::{CoreStateKeys, ExtrasBuilder, Lock, LockDetail, LockOrder, LockPosition, Problem};
 use rosomaxa::prelude::Environment;
 
 type JobData = (Option<Location>, (f64, f64), Duration, i32);
@@ -82,24 +79,35 @@ fn create_test_problem(
             })
         })
         .collect::<Vec<_>>();
+    let extras = ExtrasBuilder::default().build().expect("cannot build extras");
 
-    let goal = create_goal_ctx_with_features(
-        vec![
-            create_minimize_transport_costs_feature("transport", transport.clone(), activity.clone(), 1).unwrap(),
-            create_locked_jobs_feature("locked_jobs", &fleet, locks.as_slice(), 4).unwrap(),
-            create_capacity_limit_feature::<SingleDimLoad>("capacity", 5).unwrap(),
-        ],
-        vec![vec!["transport"]],
-    );
+    let goal = GoalContextBuilder::default()
+        .add_feature(
+            create_minimize_transport_costs_feature(
+                "transport",
+                transport.clone(),
+                activity.clone(),
+                extras.get_schedule_keys().cloned().unwrap(),
+                1,
+            )
+            .unwrap(),
+        )
+        .add_feature(create_locked_jobs_feature("locked_jobs", &fleet, locks.as_slice(), 4).unwrap())
+        .add_feature(
+            create_capacity_limit_feature::<SingleDimLoad>("capacity", extras.get_capacity_keys().cloned().unwrap(), 5)
+                .unwrap(),
+        )
+        .with_objectives(vec![vec!["transport"]])
+        .build();
 
     Problem {
         fleet: fleet.clone(),
-        jobs: Arc::new(Jobs::new(&fleet, jobs, &transport)),
+        jobs: Arc::new(Jobs::new(&fleet, jobs, transport.as_ref())),
         locks,
         goal: Arc::new(goal),
         activity,
         transport,
-        extras: Arc::new(Default::default()),
+        extras: Arc::new(extras),
     }
 }
 

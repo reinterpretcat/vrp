@@ -12,8 +12,8 @@ mod groups_test;
 pub fn create_group_feature(
     name: &str,
     total_jobs: usize,
-    code: ViolationCode,
     state_key: StateKey,
+    code: ViolationCode,
 ) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)

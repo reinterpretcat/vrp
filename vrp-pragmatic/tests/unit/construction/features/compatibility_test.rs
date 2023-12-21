@@ -5,10 +5,9 @@ use vrp_core::construction::heuristics::*;
 use vrp_core::models::problem::*;
 
 const VIOLATION_CODE: i32 = 1;
-const STATE_KEY: StateKey = StateKey(2);
 
-fn create_feature() -> Feature {
-    create_compatibility_feature("compatibility", VIOLATION_CODE, STATE_KEY).unwrap()
+fn create_feature(state_key: StateKey) -> Feature {
+    create_compatibility_feature("compatibility", state_key, VIOLATION_CODE).unwrap()
 }
 
 fn create_test_single(compatibility: Option<String>) -> Arc<Single> {
@@ -18,8 +17,9 @@ fn create_test_single(compatibility: Option<String>) -> Arc<Single> {
 }
 
 fn create_test_route_ctx(compatibility: Option<String>) -> RouteContext {
+    let state_key = StateKeyRegistry::default().next_key();
     let mut state = RouteState::default();
-    state.put_route_state(STATE_KEY, compatibility.clone());
+    state.put_route_state(state_key, compatibility.clone());
 
     RouteContext::new_with_state(
         create_route_with_activities(
@@ -43,12 +43,16 @@ can_use_compatibility! {
 }
 
 fn can_use_compatibility_impl(job_compat: Option<&str>, route_compat: Option<&str>, expected: Option<()>) {
+    let state_key = StateKeyRegistry::default().next_key();
     let solution_ctx = create_solution_context_for_fleet(&test_fleet());
     let route_ctx = create_test_route_ctx(route_compat.map(|v| v.to_string()));
     let job = Job::Single(create_test_single(job_compat.map(|v| v.to_string())));
 
-    let result =
-        create_feature().constraint.unwrap().evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job)).map(|_| ());
+    let result = create_feature(state_key)
+        .constraint
+        .unwrap()
+        .evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job))
+        .map(|_| ());
 
     assert_eq!(result, expected);
 }
@@ -63,13 +67,14 @@ can_accept_route_state! {
 }
 
 fn can_accept_route_state_impl(route_compat: Option<&str>, expected: Option<Option<&str>>) {
+    let state_key = StateKeyRegistry::default().next_key();
     let expected = expected.map(|v| v.map(|v| v.to_string()));
     let mut route_ctx = create_test_route_ctx(route_compat.map(|v| v.to_string()));
-    let state = create_feature().state.unwrap();
+    let state = create_feature(state_key).state.unwrap();
 
     state.accept_route_state(&mut route_ctx);
 
-    let result = route_ctx.state().get_route_state::<Option<String>>(STATE_KEY).cloned();
+    let result = route_ctx.state().get_route_state::<Option<String>>(state_key).cloned();
     assert_eq!(result, expected);
 }
 
@@ -89,9 +94,10 @@ fn can_merge_jobs_impl(
     candidate_compat: Option<&str>,
     expected: Result<Option<String>, i32>,
 ) {
+    let state_key = StateKeyRegistry::default().next_key();
     let source = Job::Single(create_test_single(source_compat.map(|v| v.to_string())));
     let candidate = Job::Single(create_test_single(candidate_compat.map(|v| v.to_string())));
-    let constraint = create_feature().constraint.unwrap();
+    let constraint = create_feature(state_key).constraint.unwrap();
 
     let result = constraint.merge(source, candidate).map(|job| job.dimens().get_job_compatibility().cloned());
 

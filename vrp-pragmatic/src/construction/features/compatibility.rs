@@ -10,8 +10,8 @@ use crate::construction::enablers::JobTie;
 /// Creates a compatibility feature as hard constraint.
 pub fn create_compatibility_feature(
     name: &str,
-    code: ViolationCode,
     state_key: StateKey,
+    code: ViolationCode,
 ) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)

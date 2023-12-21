@@ -2,16 +2,22 @@
 #[path = "../../../tests/unit/construction/heuristics/metrics_test.rs"]
 mod metrics_test;
 
-use crate::construction::features::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext, StateKey};
 use crate::models::problem::{TransportCost, TravelTime};
+use crate::models::CoreStateKeys;
 use rosomaxa::algorithms::math::*;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 
 /// Gets max load variance in tours.
 pub fn get_max_load_variance(insertion_ctx: &InsertionContext) -> f64 {
-    get_variance(get_values_from_route_state(insertion_ctx, MAX_LOAD_KEY).collect::<Vec<_>>().as_slice())
+    let max_load_key = if let Some(capacity_keys) = insertion_ctx.problem.extras.get_capacity_keys() {
+        capacity_keys.max_load
+    } else {
+        return 0.;
+    };
+
+    get_variance(get_values_from_route_state(insertion_ctx, max_load_key).collect::<Vec<_>>().as_slice())
 }
 
 /// Gets standard deviation of the number of customer per tour.
@@ -28,23 +34,40 @@ pub fn get_customers_deviation(insertion_ctx: &InsertionContext) -> f64 {
 
 /// Gets mean of route durations.
 pub fn get_duration_mean(insertion_ctx: &InsertionContext) -> f64 {
-    get_mean_iter(get_values_from_route_state(insertion_ctx, TOTAL_DURATION_KEY))
+    let total_duration_key = if let Some(schedule_keys) = insertion_ctx.problem.extras.get_schedule_keys() {
+        schedule_keys.total_duration
+    } else {
+        return 0.;
+    };
+
+    get_mean_iter(get_values_from_route_state(insertion_ctx, total_duration_key))
 }
 
 /// Gets mean of route distances.
 pub fn get_distance_mean(insertion_ctx: &InsertionContext) -> f64 {
-    get_mean_iter(get_values_from_route_state(insertion_ctx, TOTAL_DISTANCE_KEY))
+    let total_distance_key = if let Some(schedule_keys) = insertion_ctx.problem.extras.get_schedule_keys() {
+        schedule_keys.total_distance
+    } else {
+        return 0.;
+    };
+
+    get_mean_iter(get_values_from_route_state(insertion_ctx, total_distance_key))
 }
 
 /// Gets mean of future waiting time.
 pub fn get_waiting_mean(insertion_ctx: &InsertionContext) -> f64 {
+    let waiting_time_key = if let Some(schedule_keys) = insertion_ctx.problem.extras.get_schedule_keys() {
+        schedule_keys.waiting_time
+    } else {
+        return 0.;
+    };
     get_mean_iter(
         insertion_ctx
             .solution
             .routes
             .iter()
             .filter(|route_ctx| route_ctx.route().tour.get(1).is_some())
-            .map(|route_ctx| route_ctx.state().get_activity_state::<f64>(WAITING_KEY, 1).cloned().unwrap_or(0.)),
+            .map(|route_ctx| route_ctx.state().get_activity_state::<f64>(waiting_time_key, 1).cloned().unwrap_or(0.)),
     )
 }
 /// Gets longest distance between two connected customers (mean, S2).

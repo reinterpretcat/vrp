@@ -5,6 +5,9 @@ pub(crate) const OP_START_MSG: &str = "Optional start is not yet implemented.";
 mod domain;
 pub use self::domain::*;
 
+mod extras;
+pub use self::extras::*;
+
 mod goal;
 pub use self::goal::*;
 

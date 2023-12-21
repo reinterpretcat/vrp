@@ -8,10 +8,22 @@ use std::cmp::Ordering;
 /// Specifies load function type.
 pub type LoadBalanceFn<T> = Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>;
 
+/// Combines all keys needed for transport feature usage.
+#[derive(Clone)]
+pub struct LoadBalanceKeys {
+    /// A key which tracks reload intervals.
+    pub reload_interval: StateKey,
+    /// A key which tracks maximum vehicle capacity ahead in route.
+    pub max_future_capacity: StateKey,
+    /// A key for balancing max load.
+    pub balance_max_load: StateKey,
+}
+
 /// Creates a feature which balances max load across all tours.
 pub fn create_max_load_balanced_feature<T: LoadOps>(
     name: &str,
     threshold: Option<f64>,
+    feature_keys: LoadBalanceKeys,
     load_balance_fn: LoadBalanceFn<T>,
 ) -> Result<Feature, GenericError> {
     let default_capacity = T::default();
@@ -21,7 +33,7 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
         let capacity = route_ctx.route().actor.vehicle.dimens.get_capacity().unwrap();
         let intervals = route_ctx
             .state()
-            .get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY)
+            .get_route_state::<Vec<(usize, usize)>>(feature_keys.reload_interval)
             .unwrap_or(&default_intervals);
 
         intervals
@@ -29,7 +41,7 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
             .map(|(start_idx, _)| {
                 route_ctx
                     .state()
-                    .get_activity_state::<T>(MAX_FUTURE_CAPACITY_KEY, *start_idx)
+                    .get_activity_state::<T>(feature_keys.max_future_capacity, *start_idx)
                     .unwrap_or(&default_capacity)
             })
             .map(|max_load| (load_balance_fn)(max_load, capacity))
@@ -42,11 +54,15 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
         get_cv_safe(ctx.routes.iter().map(|route_ctx| get_load_ratio(route_ctx)).collect::<Vec<_>>().as_slice())
     });
 
-    create_feature(name, threshold, BALANCE_MAX_LOAD_KEY, route_estimate_fn, solution_estimate_fn)
+    create_feature(name, threshold, feature_keys.balance_max_load, route_estimate_fn, solution_estimate_fn)
 }
 
 /// Creates a feature which balances activities across all tours.
-pub fn create_activity_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, GenericError> {
+pub fn create_activity_balanced_feature(
+    name: &str,
+    threshold: Option<f64>,
+    balance_activities_key: StateKey,
+) -> Result<Feature, GenericError> {
     let route_estimate_fn = Arc::new(|route_ctx: &RouteContext| route_ctx.route().tour.job_activity_count() as f64);
     let solution_estimate_fn = Arc::new(|solution_ctx: &SolutionContext| {
         get_cv_safe(
@@ -59,17 +75,27 @@ pub fn create_activity_balanced_feature(name: &str, threshold: Option<f64>) -> R
         )
     });
 
-    create_feature(name, threshold, BALANCE_ACTIVITY_KEY, route_estimate_fn, solution_estimate_fn)
+    create_feature(name, threshold, balance_activities_key, route_estimate_fn, solution_estimate_fn)
 }
 
 /// Creates a feature which which balances travelled durations across all tours.
-pub fn create_duration_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, GenericError> {
-    create_transport_balanced_feature(name, threshold, TOTAL_DURATION_KEY, BALANCE_DURATION_KEY)
+pub fn create_duration_balanced_feature(
+    name: &str,
+    threshold: Option<f64>,
+    total_duration_key: StateKey,
+    balance_duration_key: StateKey,
+) -> Result<Feature, GenericError> {
+    create_transport_balanced_feature(name, threshold, total_duration_key, balance_duration_key)
 }
 
 /// Creates a feature which which balances travelled distances across all tours.
-pub fn create_distance_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, GenericError> {
-    create_transport_balanced_feature(name, threshold, TOTAL_DISTANCE_KEY, BALANCE_DISTANCE_KEY)
+pub fn create_distance_balanced_feature(
+    name: &str,
+    threshold: Option<f64>,
+    total_distance_key: StateKey,
+    balance_distance_key: StateKey,
+) -> Result<Feature, GenericError> {
+    create_transport_balanced_feature(name, threshold, total_distance_key, balance_distance_key)
 }
 
 fn create_transport_balanced_feature(

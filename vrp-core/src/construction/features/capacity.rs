@@ -7,35 +7,80 @@ mod capacity_test;
 use super::*;
 use crate::construction::enablers::*;
 use crate::models::solution::Activity;
+use std::iter::once;
 use std::marker::PhantomData;
 use std::sync::Arc;
+
+/// Combines all keys needed for capacity feature usage.
+#[derive(Clone, Debug)]
+pub struct CapacityKeys {
+    /// A key which tracks current vehicle capacity.
+    pub current_capacity: StateKey,
+    /// A key which tracks maximum vehicle capacity ahead in route.
+    pub max_future_capacity: StateKey,
+    /// A key which tracks maximum capacity backward in route.
+    pub max_past_capacity: StateKey,
+    /// A key which tracks max load in tour.
+    pub max_load: StateKey,
+}
+
+impl From<&mut StateKeyRegistry> for CapacityKeys {
+    fn from(state_registry: &mut StateKeyRegistry) -> Self {
+        Self {
+            current_capacity: state_registry.next_key(),
+            max_future_capacity: state_registry.next_key(),
+            max_past_capacity: state_registry.next_key(),
+            max_load: state_registry.next_key(),
+        }
+    }
+}
+
+impl CapacityKeys {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = StateKey> {
+        once(self.current_capacity)
+            .chain(once(self.max_future_capacity))
+            .chain(once(self.max_past_capacity))
+            .chain(once(self.max_load))
+    }
+}
 
 /// Creates capacity feature as a hard constraint with multi trip functionality as a soft constraint.
 pub fn create_capacity_limit_with_multi_trip_feature<T: LoadOps>(
     name: &str,
-    code: ViolationCode,
     route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
+    feature_keys: CapacityKeys,
+    capacity_code: ViolationCode,
 ) -> Result<Feature, GenericError> {
     create_multi_trip_feature(
         name,
-        code,
-        &[CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
+        feature_keys.clone(),
+        capacity_code,
         MarkerInsertionPolicy::Last,
-        Arc::new(CapacitatedMultiTrip::<T> { route_intervals, code, phantom: Default::default() }),
+        Arc::new(CapacitatedMultiTrip::<T> {
+            route_intervals,
+            feature_keys,
+            capacity_code,
+            phantom: Default::default(),
+        }),
     )
 }
 
 /// Creates capacity feature as a hard constraint.
-pub fn create_capacity_limit_feature<T: LoadOps>(name: &str, code: ViolationCode) -> Result<Feature, GenericError> {
+pub fn create_capacity_limit_feature<T: LoadOps>(
+    name: &str,
+    feature_keys: CapacityKeys,
+    capacity_code: ViolationCode,
+) -> Result<Feature, GenericError> {
     // TODO theoretically, the code can be easily refactored to get opt-out from no-op multi-trip runtime overhead here
     create_multi_trip_feature(
         name,
-        code,
-        &[CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY, MAX_LOAD_KEY],
+        feature_keys.clone(),
+        capacity_code,
         MarkerInsertionPolicy::Last,
         Arc::new(CapacitatedMultiTrip::<T> {
             route_intervals: Arc::new(NoRouteIntervals::default()),
-            code,
+            feature_keys,
+            capacity_code,
             phantom: Default::default(),
         }),
     )
@@ -74,14 +119,15 @@ impl<T: LoadOps> FeatureConstraint for CapacitatedMultiTrip<T> {
                     }
                 }
             }
-            _ => Err(self.code),
+            _ => Err(self.capacity_code),
         }
     }
 }
 
 struct CapacitatedMultiTrip<T: LoadOps> {
     route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
-    code: ViolationCode,
+    feature_keys: CapacityKeys,
+    capacity_code: ViolationCode,
     phantom: PhantomData<T>,
 }
 
@@ -125,16 +171,17 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
                         let current = current + change;
                         let max = max.max_load(current);
 
-                        state.put_activity_state(CURRENT_CAPACITY_KEY, activity_idx, current);
-                        state.put_activity_state(MAX_PAST_CAPACITY_KEY, activity_idx, max);
+                        state.put_activity_state(self.feature_keys.current_capacity, activity_idx, current);
+                        state.put_activity_state(self.feature_keys.max_past_capacity, activity_idx, max);
 
                         (current, max)
                     },
                 );
 
                 let current_max = (start_idx..=end_idx).rev().fold(current, |max, activity_idx| {
-                    let max = max.max_load(*state.get_activity_state(CURRENT_CAPACITY_KEY, activity_idx).unwrap());
-                    state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, activity_idx, max);
+                    let max = max
+                        .max_load(*state.get_activity_state(self.feature_keys.current_capacity, activity_idx).unwrap());
+                    state.put_activity_state(self.feature_keys.max_future_capacity, activity_idx, max);
                     max
                 });
 
@@ -142,7 +189,7 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
             });
 
         if let Some(capacity) = route_ctx.route().actor.clone().vehicle.dimens.get_capacity() {
-            route_ctx.state_mut().put_route_state(MAX_LOAD_KEY, max_load.ratio(capacity));
+            route_ctx.state_mut().put_route_state(self.feature_keys.max_load, max_load.ratio(capacity));
         }
     }
 
@@ -164,7 +211,7 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
         if can_handle {
             ConstraintViolation::success()
         } else {
-            ConstraintViolation::fail(self.code)
+            ConstraintViolation::fail(self.capacity_code)
         }
     }
 
@@ -188,11 +235,12 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
                 activity_ctx.index,
                 route_ctx.route().actor.vehicle.dimens.get_capacity(),
                 demand,
+                &self.feature_keys,
                 !self.has_markers(route_ctx),
             )
         };
 
-        violation.map(|stopped| ConstraintViolation { code: self.code, stopped })
+        violation.map(|stopped| ConstraintViolation { code: self.capacity_code, stopped })
     }
 
     fn has_markers(&self, route_ctx: &RouteContext) -> bool {
@@ -211,6 +259,7 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
                 activity_idx,
                 route_ctx.route().actor.vehicle.dimens.get_capacity(),
                 demand,
+                &self.feature_keys,
                 true,
             )
         };
@@ -246,6 +295,7 @@ fn has_demand_violation<T: LoadOps>(
     pivot_idx: usize,
     capacity: Option<&T>,
     demand: Option<&Demand<T>>,
+    feature_keys: &CapacityKeys,
     stopped: bool,
 ) -> Option<bool> {
     let demand = demand?;
@@ -257,7 +307,7 @@ fn has_demand_violation<T: LoadOps>(
 
     // check how static delivery affect past max load
     if demand.delivery.0.is_not_empty() {
-        let past: T = state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot_idx).copied().unwrap_or_default();
+        let past: T = state.get_activity_state(feature_keys.max_past_capacity, pivot_idx).copied().unwrap_or_default();
         if !capacity.can_fit(&(past + demand.delivery.0)) {
             return Some(stopped);
         }
@@ -265,7 +315,8 @@ fn has_demand_violation<T: LoadOps>(
 
     // check how static pickup affect future max load
     if demand.pickup.0.is_not_empty() {
-        let future: T = state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot_idx).copied().unwrap_or_default();
+        let future: T =
+            state.get_activity_state(feature_keys.max_future_capacity, pivot_idx).copied().unwrap_or_default();
         if !capacity.can_fit(&(future + demand.pickup.0)) {
             return Some(false);
         }
@@ -274,12 +325,14 @@ fn has_demand_violation<T: LoadOps>(
     // check dynamic load change
     let change = demand.change();
     if change.is_not_empty() {
-        let future: T = state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot_idx).copied().unwrap_or_default();
+        let future: T =
+            state.get_activity_state(feature_keys.max_future_capacity, pivot_idx).copied().unwrap_or_default();
         if !capacity.can_fit(&(future + change)) {
             return Some(false);
         }
 
-        let current: T = state.get_activity_state(CURRENT_CAPACITY_KEY, pivot_idx).copied().unwrap_or_default();
+        let current: T =
+            state.get_activity_state(feature_keys.current_capacity, pivot_idx).copied().unwrap_or_default();
         if !capacity.can_fit(&(current + change)) {
             return Some(false);
         }

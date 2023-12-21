@@ -7,9 +7,9 @@ use crate::construction::clustering::vicinity::*;
 use crate::models::common::{Schedule, ValueDimension};
 use crate::models::problem::Jobs;
 use crate::models::solution::{Activity, Place};
-use crate::models::{Extras, GoalContext, Problem};
+use crate::models::{Extras, ExtrasBuilder, GoalContext, Problem};
 use crate::solver::RefinementContext;
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 use std::sync::Arc;
 
 const ORIG_PROBLEM_KEY: &str = "orig_problem";
@@ -65,13 +65,14 @@ impl HeuristicContextProcessing for VicinityClustering {
 
             let jobs = problem.jobs.all().filter(|job| !clustered_jobs.contains(job)).chain(clusters).collect();
 
-            let mut extras: Extras =
-                problem.extras.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<HashMap<_, _, _>>();
-            extras.insert(ORIG_PROBLEM_KEY.to_string(), problem.clone());
+            let extras = ExtrasBuilder::from(problem.extras.as_ref())
+                .with_custom_key(ORIG_PROBLEM_KEY, problem.clone())
+                .build()
+                .expect("extras is in some invalid state");
 
             let problem = Arc::new(Problem {
                 fleet: problem.fleet.clone(),
-                jobs: Arc::new(Jobs::new(problem.fleet.as_ref(), jobs, &problem.transport)),
+                jobs: Arc::new(Jobs::new(problem.fleet.as_ref(), jobs, problem.transport.as_ref())),
                 locks: problem.locks.clone(),
                 goal: problem.goal.clone(),
                 activity: problem.activity.clone(),
@@ -91,8 +92,7 @@ impl HeuristicSolutionProcessing for VicinityClustering {
         let mut insertion_ctx = solution;
 
         let config = insertion_ctx.problem.extras.get_cluster_config();
-        let orig_problem =
-            insertion_ctx.problem.extras.get(ORIG_PROBLEM_KEY).cloned().and_then(|any| any.downcast::<Problem>().ok());
+        let orig_problem = insertion_ctx.problem.extras.get_value_raw(ORIG_PROBLEM_KEY);
 
         let (config, orig_problem) = if let Some((config, orig_problem)) = config.zip(orig_problem) {
             (config, orig_problem)

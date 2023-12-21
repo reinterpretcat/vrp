@@ -18,17 +18,32 @@ use vrp_core::models::solution::Route;
 /// actor all the time.
 pub type RechargeDistanceLimitFn = Arc<dyn Fn(&Actor) -> Option<Distance> + Send + Sync>;
 
+/// Keeps track of state keys used by the recharge feature.
+#[derive(Clone, Debug)]
+pub struct RechargeKeys {
+    /// A distance limit key.
+    pub distance: StateKey,
+    /// A recharge station interval key.
+    pub intervals: StateKey,
+    /// Capacity keys.
+    pub capacity_keys: CapacityKeys,
+}
+
 /// Creates a feature to insert charge stations along the route.
 pub fn create_recharge_feature(
     name: &str,
-    code: ViolationCode,
     distance_limit_fn: RechargeDistanceLimitFn,
     transport: Arc<dyn TransportCost + Send + Sync>,
+    recharge_keys: RechargeKeys,
+    code: ViolationCode,
 ) -> Result<Feature, GenericError> {
+    let distance_key = recharge_keys.distance;
+    let intervals_key = recharge_keys.intervals;
+
     create_multi_trip_feature(
         name,
+        recharge_keys.capacity_keys,
         code,
-        &[RECHARGE_DISTANCE_KEY, RECHARGE_INTERVALS_KEY],
         MarkerInsertionPolicy::Any,
         Arc::new(RechargeableMultiTrip {
             route_intervals: FixedRouteIntervals {
@@ -43,7 +58,7 @@ pub fn create_recharge_feature(
                             .map(|end_idx| {
                                 let current: Distance = route_ctx
                                     .state()
-                                    .get_activity_state(RECHARGE_DISTANCE_KEY, end_idx)
+                                    .get_activity_state(distance_key, end_idx)
                                     .copied()
                                     .unwrap_or_default();
 
@@ -59,7 +74,7 @@ pub fn create_recharge_feature(
                     let get_counter = move |route_ctx: &RouteContext, activity_idx: usize| {
                         route_ctx
                             .state()
-                            .get_activity_state(RECHARGE_DISTANCE_KEY, activity_idx)
+                            .get_activity_state(distance_key, activity_idx)
                             .copied()
                             .unwrap_or(Distance::default())
                     };
@@ -92,11 +107,11 @@ pub fn create_recharge_feature(
                         is_correct_vehicle(route, get_vehicle_id_from_job(job), get_shift_index(&job.dimens))
                     })
                 }),
-                intervals_key: RECHARGE_INTERVALS_KEY,
+                intervals_key,
             },
             transport,
             code,
-            distance_state_key: RECHARGE_DISTANCE_KEY,
+            distance_key,
             distance_limit_fn,
         }),
     )
@@ -106,7 +121,7 @@ struct RechargeableMultiTrip {
     route_intervals: FixedRouteIntervals,
     transport: Arc<dyn TransportCost + Send + Sync>,
     code: ViolationCode,
-    distance_state_key: StateKey,
+    distance_key: StateKey,
     distance_limit_fn: RechargeDistanceLimitFn,
 }
 
@@ -151,7 +166,7 @@ impl MultiTrip for RechargeableMultiTrip {
                     let counter = acc + distance;
                     let next_idx = activity_idx + 1;
 
-                    state.put_activity_state(self.distance_state_key, next_idx, counter);
+                    state.put_activity_state(self.distance_key, next_idx, counter);
 
                     counter
                 });
@@ -268,7 +283,7 @@ impl RechargeableMultiTrip {
     fn get_distance(&self, route_ctx: &RouteContext, activity_idx: usize) -> Distance {
         route_ctx
             .state()
-            .get_activity_state::<Distance>(self.distance_state_key, activity_idx)
+            .get_activity_state::<Distance>(self.distance_key, activity_idx)
             .copied()
             .unwrap_or(Distance::default())
     }

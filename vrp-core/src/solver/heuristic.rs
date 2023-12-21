@@ -1,7 +1,8 @@
 use super::*;
+use crate::construction::enablers::ScheduleKeys;
 use crate::construction::heuristics::*;
-use crate::models::common::{has_multi_dim_demand, Dimensions, MultiDimLoad, SingleDimLoad, ValueDimension};
-use crate::models::GoalContext;
+use crate::models::common::{has_multi_dim_demand, MultiDimLoad, SingleDimLoad, ValueDimension};
+use crate::models::{CoreStateKeys, Extras, GoalContext};
 use crate::rosomaxa::get_default_selection_size;
 use crate::solver::search::*;
 use rosomaxa::algorithms::gsom::Input;
@@ -65,13 +66,33 @@ pub trait HeuristicFilter {
     fn set_heuristic_filter(&mut self, heuristic_filter: Arc<dyn Fn(&str) -> bool + Send + Sync>);
 }
 
-impl HeuristicFilter for Dimensions {
+impl HeuristicFilter for Extras {
     fn get_heuristic_filter(&self) -> Option<HeuristicFilterFn> {
         self.get_value("heuristic_filter").cloned()
     }
 
     fn set_heuristic_filter(&mut self, heuristic_filter: HeuristicFilterFn) {
         self.set_value("heuristic_filter", heuristic_filter);
+    }
+}
+
+/// Specifies keys used by heuristic.
+pub struct HeuristicKeys {
+    /// A key to store rosomaxa weights.
+    pub solution_weights: StateKey,
+    /// A key to store dominance order of the solution in the population.
+    pub solution_order: StateKey,
+    /// A key to store tabu list used by ruin methods.
+    pub tabu_list: StateKey,
+}
+
+impl From<&mut StateKeyRegistry> for HeuristicKeys {
+    fn from(state_registry: &mut StateKeyRegistry) -> Self {
+        Self {
+            solution_weights: state_registry.next_key(),
+            solution_order: state_registry.next_key(),
+            tabu_list: state_registry.next_key(),
+        }
     }
 }
 
@@ -87,8 +108,8 @@ pub fn create_default_config_builder(
     ProblemConfigBuilder::default()
         .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))
         .with_context(RefinementContext::new(problem.clone(), population, telemetry_mode, environment.clone()))
+        .with_processing(create_default_processing(problem.as_ref()))
         .with_initial(4, 0.05, create_default_init_operators(problem, environment))
-        .with_processing(create_default_processing())
 }
 
 /// Creates default telemetry mode.B
@@ -107,7 +128,7 @@ pub fn get_static_heuristic(
     environment: Arc<Environment>,
 ) -> StaticSelective<RefinementContext, GoalContext, InsertionContext> {
     let default_operator = statik::create_default_heuristic_operator(problem.clone(), environment.clone());
-    let local_search = statik::create_default_local_search(environment.random.clone());
+    let local_search = statik::create_default_local_search(problem.as_ref(), environment.random.clone());
 
     let heuristic_group: TargetHeuristicGroup = vec![
         (
@@ -175,27 +196,42 @@ impl RosomaxaWeighted for InsertionContext {
             get_distance_gravity_mean(self),
             get_customers_deviation(self),
             get_longest_distance_between_depot_customer_mean(self),
-            self.solution.get_total_cost(),
+            self.get_total_cost().unwrap_or_default(),
             self.solution.routes.len() as f64,
             self.solution.unassigned.len() as f64,
         ];
-        self.solution.state.insert(SOLUTION_WEIGHTS_KEY, Arc::new(weights));
+
+        let heuristic_keys = get_heuristic_keys(self);
+        self.solution.state.insert(heuristic_keys.solution_weights, Arc::new(weights));
     }
 }
 
 impl Input for InsertionContext {
     fn weights(&self) -> &[f64] {
-        self.solution.state.get(&SOLUTION_WEIGHTS_KEY).and_then(|s| s.downcast_ref::<Vec<f64>>()).unwrap().as_slice()
+        let heuristic_keys = self.problem.extras.get_heuristic_keys().expect("heuristic keys must be set");
+
+        self.solution
+            .state
+            .get(&heuristic_keys.solution_weights)
+            .and_then(|s| s.downcast_ref::<Vec<f64>>())
+            .unwrap()
+            .as_slice()
     }
 }
 
 impl DominanceOrdered for InsertionContext {
     fn get_order(&self) -> &DominanceOrder {
-        self.solution.state.get(&SOLUTION_ORDER_KEY).and_then(|s| s.downcast_ref::<DominanceOrder>()).unwrap()
+        let heuristic_keys = get_heuristic_keys(self);
+        self.solution
+            .state
+            .get(&heuristic_keys.solution_order)
+            .and_then(|s| s.downcast_ref::<DominanceOrder>())
+            .unwrap()
     }
 
     fn set_order(&mut self, order: DominanceOrder) {
-        self.solution.state.insert(SOLUTION_ORDER_KEY, Arc::new(order));
+        let heuristic_keys = get_heuristic_keys(self);
+        self.solution.state.insert(heuristic_keys.solution_order, Arc::new(order));
     }
 }
 
@@ -240,6 +276,14 @@ fn get_limits(problem: &Problem) -> (RemovalLimits, RemovalLimits) {
     };
 
     (normal_limits, small_limits)
+}
+
+fn get_heuristic_keys(insertion_ctx: &InsertionContext) -> &HeuristicKeys {
+    insertion_ctx.problem.extras.get_heuristic_keys().expect("heuristic keys must be set")
+}
+
+fn get_schedule_keys(problem: &Problem) -> &ScheduleKeys {
+    problem.extras.get_schedule_keys().expect("schedule keys must be set")
 }
 
 const SINGLE_HEURISTIC_QUOTA_LIMIT: usize = 200;
@@ -297,11 +341,15 @@ mod builder {
     }
 
     /// Create default processing.
-    pub fn create_default_processing() -> ProcessingConfig<RefinementContext, GoalContext, InsertionContext> {
+    pub fn create_default_processing(
+        problem: &Problem,
+    ) -> ProcessingConfig<RefinementContext, GoalContext, InsertionContext> {
+        let schedule_keys = get_schedule_keys(problem).clone();
+
         ProcessingConfig {
             context: vec![Box::<VicinityClustering>::default()],
             solution: vec![
-                Box::<AdvanceDeparture>::default(),
+                Box::new(AdvanceDeparture::new(schedule_keys)),
                 Box::<RescheduleReservedTime>::default(),
                 Box::<UnassignmentReason>::default(),
                 Box::<VicinityClustering>::default(),
@@ -414,7 +462,7 @@ mod statik {
             (vec![(Arc::new(WorstJobRemoval::new(4, normal_limits)), 1.), (extra_random_job.clone(), 0.1)], 10),
             (
                 vec![
-                    (Arc::new(ClusterRemoval::new_with_defaults(problem, environment.clone())), 1.),
+                    (Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment.clone())), 1.),
                     (extra_random_job.clone(), 0.1),
                 ],
                 5,
@@ -428,14 +476,19 @@ mod statik {
         Arc::new(WeightedHeuristicOperator::new(
             vec![
                 Arc::new(RuinAndRecreate::new(ruin, recreate)),
-                create_default_local_search(environment.random.clone()),
+                create_default_local_search(problem.as_ref(), environment.random.clone()),
             ],
             vec![100, 10],
         ))
     }
 
     /// Creates default local search operator.
-    pub fn create_default_local_search(random: Arc<dyn Random + Send + Sync>) -> TargetSearchOperator {
+    pub fn create_default_local_search(
+        problem: &Problem,
+        random: Arc<dyn Random + Send + Sync>,
+    ) -> TargetSearchOperator {
+        let schedule_keys = get_schedule_keys(problem).clone();
+
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
             vec![
                 (Arc::new(ExchangeSwapStar::new(random, SINGLE_HEURISTIC_QUOTA_LIMIT)), 200),
@@ -443,7 +496,7 @@ mod statik {
                 (Arc::new(ExchangeSequence::default()), 100),
                 (Arc::new(ExchangeInterRouteRandom::default()), 30),
                 (Arc::new(ExchangeIntraRouteRandom::default()), 30),
-                (Arc::new(RescheduleDeparture::default()), 20),
+                (Arc::new(RescheduleDeparture::new(schedule_keys)), 20),
             ],
             1,
             2,
@@ -510,6 +563,8 @@ mod dynamic {
     }
 
     fn get_mutations(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<(TargetSearchOperator, String, f64)> {
+        let schedule_keys = get_schedule_keys(problem.as_ref());
+
         vec![
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
@@ -527,7 +582,7 @@ mod dynamic {
                 1.,
             ),
             (
-                Arc::new(LocalSearch::new(Arc::new(RescheduleDeparture::default()))),
+                Arc::new(LocalSearch::new(Arc::new(RescheduleDeparture::new(schedule_keys.clone())))),
                 "local_reschedule_departure".to_string(),
                 1.,
             ),

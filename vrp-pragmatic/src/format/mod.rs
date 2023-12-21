@@ -6,10 +6,11 @@ extern crate serde_json;
 
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use vrp_core::construction::enablers::ReservedTimesIndex;
-use vrp_core::models::common::{Distance, Duration};
+use vrp_core::models::common::{Distance, Duration, ValueDimension};
 use vrp_core::models::problem::Job as CoreJob;
-use vrp_core::models::Problem as CoreProblem;
+use vrp_core::models::{Extras as CoreExtras, Problem as CoreProblem};
 use vrp_core::prelude::GenericError;
 
 mod coord_index;
@@ -191,16 +192,48 @@ const RECHARGE_CONSTRAINT_CODE: i32 = 15;
 /// An job id to job index.
 pub type JobIndex = HashMap<String, CoreJob>;
 
-/// Gets job index from core problem definition.
-pub fn get_job_index(problem: &CoreProblem) -> &JobIndex {
-    problem
-        .extras
-        .get("job_index")
-        .and_then(|s| s.downcast_ref::<JobIndex>())
-        .unwrap_or_else(|| panic!("cannot get job index!"))
+/// Provides way to get/set job index.
+pub trait JobIndexAccessor {
+    /// Sets job index.
+    fn set_job_index(&mut self, coord_index: JobIndex);
+
+    /// Gets job index.
+    fn get_job_index(&self) -> Option<Arc<JobIndex>>;
 }
 
-/// Gets coord index from core problem definition.
-pub fn get_coord_index(problem: &CoreProblem) -> &CoordIndex {
-    problem.extras.get("coord_index").and_then(|s| s.downcast_ref::<CoordIndex>()).expect("cannot get coord index!")
+impl JobIndexAccessor for CoreExtras {
+    fn set_job_index(&mut self, coord_index: JobIndex) {
+        self.set_value("job_index", coord_index);
+    }
+
+    fn get_job_index(&self) -> Option<Arc<JobIndex>> {
+        self.get_value_raw("job_index")
+    }
+}
+
+/// Provides way to get/set coord index.
+pub trait CoordIndexAccessor {
+    /// Sets coord index.
+    fn set_coord_index(&mut self, coord_index: CoordIndex);
+
+    /// Gets coord index as shared reference.
+    fn get_coord_index(&self) -> Option<Arc<CoordIndex>>;
+}
+
+impl CoordIndexAccessor for CoreExtras {
+    fn set_coord_index(&mut self, coord_index: CoordIndex) {
+        self.set_value("coord_index", coord_index);
+    }
+
+    fn get_coord_index(&self) -> Option<Arc<CoordIndex>> {
+        self.get_value_raw("coord_index")
+    }
+}
+
+/// Get job and coord indices from extras
+pub fn get_indices(extras: &CoreExtras) -> Result<(Arc<JobIndex>, Arc<CoordIndex>), GenericError> {
+    let job_index = extras.get_job_index().ok_or_else(|| GenericError::from("cannot get job index"))?;
+    let coord_index = extras.get_coord_index().ok_or_else(|| GenericError::from("cannot get coord index"))?;
+
+    Ok((job_index, coord_index))
 }

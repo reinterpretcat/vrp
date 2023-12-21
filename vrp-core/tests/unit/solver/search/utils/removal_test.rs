@@ -1,23 +1,19 @@
 use super::*;
-use crate::helpers::models::domain::{create_empty_solution_context, create_registry_context};
-use crate::helpers::models::problem::{test_driver, test_vehicle_with_id, FleetBuilder, SingleBuilder};
+use crate::helpers::construction::heuristics::{create_state_key, InsertionContextBuilder};
+use crate::helpers::models::domain::test_random;
+use crate::helpers::models::problem::{test_fleet, SingleBuilder};
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Dimensions;
 use crate::models::problem::{Fleet, Multi};
+use crate::models::solution::Registry;
 use rosomaxa::utils::DefaultRandom;
 use std::iter::once;
 
-fn create_route_with_jobs_activities(
-    fleet: &Fleet,
-    vehicle_idx: usize,
-    jobs: usize,
-    activities: usize,
-) -> RouteContext {
+fn create_route_with_jobs_activities(fleet: &Fleet, jobs: usize, activities: usize) -> RouteContext {
     assert!(jobs > 0);
     assert!(activities >= jobs);
 
-    let vehicle = format!("v{}", vehicle_idx + 1);
     let activities_per_job = activities / jobs;
     let left_overs = activities - activities_per_job * jobs;
     let get_activity = |job_idx: usize| {
@@ -52,33 +48,28 @@ fn create_route_with_jobs_activities(
         .chain((0..left_overs).map(|idx| get_activity(jobs + idx)));
 
     let mut route_ctx = RouteContextBuilder::default()
-        .with_route(RouteBuilder::default().with_vehicle(fleet, vehicle.as_str()).add_activities(activities).build())
+        .with_route(RouteBuilder::default().with_vehicle(fleet, "v1").add_activities(activities).build())
         .build();
 
-    route_ctx.state_mut().put_route_state(StateKey(0), multi_jobs);
+    route_ctx.state_mut().put_route_state(create_state_key(), multi_jobs);
 
     route_ctx
 }
 
-fn create_fleet(vehicles: usize) -> Fleet {
-    FleetBuilder::default()
-        .add_driver(test_driver())
-        .add_vehicles((0..vehicles).map(|idx| test_vehicle_with_id(format!("v{}", idx + 1).as_str())).collect())
+fn create_solution_ctx(jobs: usize, activities: usize) -> SolutionContext {
+    let fleet = test_fleet();
+    let route_ctx = create_route_with_jobs_activities(&fleet, jobs, activities);
+    let actor = route_ctx.route().actor.clone();
+
+    let mut solution_ctx = InsertionContextBuilder::default()
+        .with_registry(Registry::new(&fleet, test_random()))
+        .with_routes(vec![route_ctx])
         .build()
-}
+        .solution;
 
-fn create_solution_ctx(fleet: &Fleet, routes: Vec<(usize, usize)>) -> SolutionContext {
-    let mut registry = create_registry_context(fleet);
-    let routes = routes
-        .into_iter()
-        .enumerate()
-        .map(|(idx, (jobs, activities))| create_route_with_jobs_activities(fleet, idx, jobs, activities))
-        .collect::<Vec<_>>();
-    routes.iter().for_each(|route_ctx| {
-        let _ = registry.get_route(route_ctx.route().actor.as_ref());
-    });
+    solution_ctx.registry.get_route(&actor).expect("unknown actor in registry");
 
-    SolutionContext { routes, registry, ..create_empty_solution_context() }
+    solution_ctx
 }
 
 fn get_job_from_solution_ctx(solution_ctx: &SolutionContext, route_idx: usize, activity_idx: usize) -> Job {
@@ -109,9 +100,7 @@ fn can_try_remove_job_with_job_limit_impl(
         removed_activities_range: ruined_activities..ruined_activities,
         affected_routes_range: affected_routes..affected_routes,
     };
-
-    let fleet = create_fleet(1);
-    let mut solution_ctx = create_solution_ctx(&fleet, vec![(jobs, activities)]);
+    let mut solution_ctx = create_solution_ctx(jobs, activities);
     let job = get_job_from_solution_ctx(&solution_ctx, route_idx, activity_idx);
     let mut removal = JobRemovalTracker::new(&limits, &DefaultRandom::default());
 
@@ -159,8 +148,7 @@ fn can_try_remove_route_with_limit_impl(
         affected_routes_range: affected_routes..affected_routes,
     };
     let route_idx = 0;
-    let fleet = create_fleet(1);
-    let mut solution_ctx = create_solution_ctx(&fleet, vec![(jobs, activities)]);
+    let mut solution_ctx = create_solution_ctx(jobs, activities);
     let actor = solution_ctx.routes[0].route().actor.clone();
     let random = FakeRandom::new(vec![], vec![if is_random_hit { 0. } else { 10. }]);
     let mut removal = JobRemovalTracker::new(&limits, &DefaultRandom::default());

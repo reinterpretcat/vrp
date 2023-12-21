@@ -1,6 +1,7 @@
 use super::*;
-use crate::construction::heuristics::{SolutionContext, UnassignmentInfo};
+use crate::construction::heuristics::UnassignmentInfo;
 use crate::helpers::construction::clustering::vicinity::*;
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
@@ -8,7 +9,6 @@ use crate::helpers::solver::create_default_refinement_ctx;
 use crate::models::common::IdDimension;
 use crate::models::problem::Job;
 use crate::models::solution::{Commute, CommuteInfo};
-use std::ops::Deref;
 
 fn create_test_jobs() -> Vec<Job> {
     vec![
@@ -20,14 +20,13 @@ fn create_test_jobs() -> Vec<Job> {
 }
 
 fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<Problem>) {
-    let constraint = create_goal_context(vec![]);
     let environment = Arc::new(Environment::default());
 
-    let orig_problem = Arc::try_unwrap(create_problem_with_goal_ctx_jobs_and_fleet(constraint, jobs, test_fleet()))
-        .unwrap_or_else(|_| unreachable!());
+    let orig_problem =
+        ProblemBuilder::default().with_goal(create_goal_context_with_vicinity(vec![])).with_jobs(jobs).build();
     let orig_problem = Arc::new(Problem {
         extras: Arc::new({
-            let mut extras = orig_problem.extras.deref().clone();
+            let mut extras = ExtrasBuilder::from(orig_problem.extras.as_ref()).build().expect("cannot build extras");
             extras.set_cluster_config(config);
             extras
         }),
@@ -80,8 +79,8 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
     let clustered_time = clustered_single.places.first().unwrap().clone().times.first().unwrap().to_time_window(0.);
     let insertion_ctx = InsertionContext {
         problem: new_problem.clone(),
-        solution: SolutionContext {
-            routes: vec![RouteContextBuilder::default()
+        ..InsertionContextBuilder::default()
+            .with_routes(vec![RouteContextBuilder::default()
                 .with_route(
                     RouteBuilder::default()
                         .with_vehicle(new_problem.fleet.as_ref(), "v1")
@@ -103,10 +102,8 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
                         })
                         .build(),
                 )
-                .build()],
-            ..create_empty_solution_context()
-        },
-        ..create_empty_insertion_context()
+                .build()])
+            .build()
     };
 
     let insertion_ctx = VicinityClustering::default().post_process(insertion_ctx);
@@ -132,16 +129,13 @@ fn can_unwrap_clusters_in_unassigned_on_post_process() {
     let unclustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job4_outlier").unwrap();
     let insertion_ctx = InsertionContext {
         problem: new_problem,
-        solution: SolutionContext {
-            unassigned: vec![
-                (clustered_job, UnassignmentInfo::Simple(1)),
-                (unclustered_job, UnassignmentInfo::Simple(2)),
-            ]
-            .into_iter()
-            .collect(),
-            ..create_empty_solution_context()
-        },
-        ..create_empty_insertion_context()
+        ..InsertionContextBuilder::default()
+            .with_unassigned(
+                vec![(clustered_job, UnassignmentInfo::Simple(1)), (unclustered_job, UnassignmentInfo::Simple(2))]
+                    .into_iter()
+                    .collect(),
+            )
+            .build()
     };
 
     let insertion_ctx = VicinityClustering::default().post_process(insertion_ctx);

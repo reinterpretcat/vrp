@@ -5,7 +5,7 @@ use vrp_core::construction::heuristics::{RegistryContext, SolutionContext};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::*;
-use vrp_core::models::*;
+use vrp_core::models::{Goal, GoalContext};
 use vrp_core::utils::DefaultRandom;
 
 const DEFAULT_VEHICLE_COSTS: Costs =
@@ -122,7 +122,9 @@ pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Deman
 }
 
 pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
-    let goal = Arc::new(GoalContext::default());
+    let goal = GoalContext::new(&[], Goal::no_alternatives([], [])).expect("cannot create goal context");
+    let registry = Registry::new(fleet, Arc::new(DefaultRandom::default()));
+
     SolutionContext {
         required: vec![],
         ignored: vec![],
@@ -130,6 +132,6 @@ pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
         locked: Default::default(),
         state: Default::default(),
         routes: Default::default(),
-        registry: RegistryContext::new(goal, Registry::new(fleet, Arc::new(DefaultRandom::default()))),
+        registry: RegistryContext::new(&goal, registry),
     }
 }

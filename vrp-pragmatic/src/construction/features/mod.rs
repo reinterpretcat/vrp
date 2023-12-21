@@ -8,19 +8,6 @@ use vrp_core::models::problem::*;
 use vrp_core::models::*;
 use vrp_core::prelude::*;
 
-/// A key which tracks job group state.
-pub const GROUP_KEY: StateKey = StateKey(1000);
-/// A key which tracks compatibility key.
-pub const COMPATIBILITY_KEY: StateKey = StateKey(1001);
-/// A key which tracks tour order state.
-pub const TOUR_ORDER_KEY: StateKey = StateKey(1002);
-/// A key which tracks reload resource consumption state.
-pub const RELOAD_RESOURCE_KEY: StateKey = StateKey(1003);
-/// A key which tracks tour compactness state.
-pub const TOUR_COMPACTNESS_KEY: StateKey = StateKey(1004);
-/// A key to track fast service feature state.
-pub const FAST_SERVICE_KEY: StateKey = StateKey(1005);
-
 mod breaks;
 pub use self::breaks::*;
 

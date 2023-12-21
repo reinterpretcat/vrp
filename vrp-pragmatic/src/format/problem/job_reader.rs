@@ -22,7 +22,7 @@ pub(super) fn read_jobs_with_extra_locks(
     props: &ProblemProperties,
     coord_index: &CoordIndex,
     fleet: &Fleet,
-    transport: &Arc<dyn TransportCost + Sync + Send>,
+    transport: &(dyn TransportCost + Sync + Send),
     job_index: &mut JobIndex,
     random: &Arc<dyn Random + Send + Sync>,
 ) -> (Jobs, Vec<Arc<Lock>>) {

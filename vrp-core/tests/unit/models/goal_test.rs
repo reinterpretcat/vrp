@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::features::*;
-use crate::helpers::construction::features::create_goal_ctx_with_features;
-use crate::helpers::models::domain::create_empty_insertion_context;
+use crate::helpers::construction::heuristics::{create_capacity_keys, InsertionContextBuilder};
+use crate::helpers::models::domain::GoalContextBuilder;
 use crate::helpers::models::solution::{test_actor, ActivityBuilder};
 use crate::models::common::SingleDimLoad;
 
@@ -85,7 +85,7 @@ pub fn can_create_goal_context_with_objective() {
 
 #[test]
 pub fn can_create_goal_context_without_objectives() {
-    let features = &[create_capacity_limit_feature::<SingleDimLoad>("capacity", 0).unwrap()];
+    let features = &[create_capacity_limit_feature::<SingleDimLoad>("capacity", create_capacity_keys(), 0).unwrap()];
     let goal = Goal::no_alternatives([], []);
 
     GoalContext::new(features, goal).expect("cannot create goal context");
@@ -167,7 +167,11 @@ fn can_use_objective_estimate_impl(feature_names: &[&str], feature_map: &[Vec<&s
     let move_ctx = MoveContext::activity(&route_ctx, &activity_ctx);
     let features = feature_names.iter().map(|name| create_objective_feature_with_fixed_cost(name, 1.)).collect();
 
-    let result = create_goal_ctx_with_features(features, feature_map.to_vec()).estimate(&move_ctx);
+    let result = GoalContextBuilder::default()
+        .add_features(features)
+        .with_objectives(feature_map.to_vec())
+        .build()
+        .estimate(&move_ctx);
 
     assert_eq!(result, InsertionCost::new(expected_cost));
 }
@@ -205,31 +209,26 @@ fn can_use_objective_total_order_impl(
     right_fitness: Vec<f64>,
     expected: Ordering,
 ) {
-    let fitness_fn = Arc::new(|name: &str, insertion_ctx: &InsertionContext| {
-        insertion_ctx
-            .solution
-            .state
-            .get(&StateKey(name.parse::<usize>().unwrap()))
-            .and_then(|s| s.downcast_ref::<f64>())
-            .copied()
-            .unwrap()
+    let mut keys = StateKeyRegistry::default();
+    let state_keys = [keys.next_key(), keys.next_key(), keys.next_key(), keys.next_key()];
+    let fitness_fn = Arc::new(move |name: &str, insertion_ctx: &InsertionContext| {
+        let state_key = state_keys[name.parse::<usize>().unwrap()];
+        insertion_ctx.solution.state.get(&state_key).and_then(|s| s.downcast_ref::<f64>()).copied().unwrap()
     });
     let create_insertion_ctx_with_fitness_state = |fitness: Vec<f64>| {
-        let mut insertion_ctx = create_empty_insertion_context();
+        let mut insertion_ctx = InsertionContextBuilder::default().build();
         fitness.into_iter().enumerate().for_each(|(idx, value)| {
-            insertion_ctx.solution.state.insert(StateKey(idx), Arc::new(value));
+            insertion_ctx.solution.state.insert(state_keys[idx], Arc::new(value));
         });
         insertion_ctx
     };
-    let goal_ctx = create_goal_ctx_with_features(
-        vec![
-            create_objective_feature_with_dynamic_cost("0", fitness_fn.clone()),
-            create_objective_feature_with_dynamic_cost("1", fitness_fn.clone()),
-            create_objective_feature_with_dynamic_cost("2", fitness_fn.clone()),
-            create_objective_feature_with_dynamic_cost("3", fitness_fn),
-        ],
-        feature_map,
-    );
+    let goal_ctx = GoalContextBuilder::default()
+        .add_feature(create_objective_feature_with_dynamic_cost("0", fitness_fn.clone()))
+        .add_feature(create_objective_feature_with_dynamic_cost("1", fitness_fn.clone()))
+        .add_feature(create_objective_feature_with_dynamic_cost("2", fitness_fn.clone()))
+        .add_feature(create_objective_feature_with_dynamic_cost("3", fitness_fn))
+        .with_objectives(feature_map)
+        .build();
     let left = create_insertion_ctx_with_fitness_state(left_fitness);
     let right = create_insertion_ctx_with_fitness_state(right_fitness);
 

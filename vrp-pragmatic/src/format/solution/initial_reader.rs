@@ -8,7 +8,7 @@ use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
 use crate::format::solution::{deserialize_solution, map_reason_code};
-use crate::format::{get_coord_index, get_job_index, CoordIndex, JobIndex};
+use crate::format::{get_indices, CoordIndex, JobIndex};
 use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
 use std::io::{BufReader, Read};
@@ -35,8 +35,7 @@ pub fn read_init_solution<R: Read>(
     let mut added_jobs = HashSet::default();
 
     let actor_index = registry.all().map(|actor| (get_actor_key(actor.as_ref()), actor)).collect::<HashMap<_, _>>();
-    let coord_index = get_coord_index(problem.as_ref());
-    let job_index = get_job_index(problem.as_ref());
+    let (job_index, coord_index) = get_indices(&problem.extras)?;
 
     let routes =
         solution.tours.iter().try_fold::<_, _, Result<_, GenericError>>(Vec::<_>::default(), |mut routes, tour| {
@@ -49,7 +48,15 @@ pub fn read_init_solution<R: Read>(
 
             tour.stops.iter().try_for_each(|stop| {
                 stop.activities().iter().try_for_each::<_, Result<_, GenericError>>(|activity| {
-                    try_insert_activity(&mut core_route, tour, stop, activity, job_index, coord_index, &mut added_jobs)
+                    try_insert_activity(
+                        &mut core_route,
+                        tour,
+                        stop,
+                        activity,
+                        job_index.as_ref(),
+                        coord_index.as_ref(),
+                        &mut added_jobs,
+                    )
                 })
             })?;
 

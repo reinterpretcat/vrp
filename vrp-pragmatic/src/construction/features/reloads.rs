@@ -18,9 +18,27 @@ use vrp_core::models::problem::Single;
 pub type LoadScheduleThresholdFn<T> = Box<dyn Fn(&T) -> T + Send + Sync>;
 /// A factory function to create capacity feature.
 pub type CapacityFeatureFactoryFn =
-    Box<dyn Fn(&str, Arc<dyn RouteIntervals + Send + Sync>) -> Result<Feature, GenericError>>;
+    Box<dyn FnOnce(&str, Arc<dyn RouteIntervals + Send + Sync>) -> Result<Feature, GenericError>>;
 /// Specifies place capacity threshold function.
 type PlaceCapacityThresholdFn<T> = Box<dyn Fn(&RouteContext, usize, &T) -> bool + Send + Sync>;
+
+/// Keys to track state of reload feature.
+#[derive(Clone, Debug)]
+pub struct ReloadKeys {
+    /// Reload intervals key.
+    pub intervals: StateKey,
+    /// Capacity feature keys.
+    pub capacity_keys: CapacityKeys,
+}
+
+/// Keys to track state of reload feature.
+#[derive(Clone, Debug)]
+pub struct SharedReloadKeys {
+    /// Shared resource key.
+    pub resource: StateKey,
+    /// Reload keys.
+    pub reload_keys: ReloadKeys,
+}
 
 /// Creates a multi trip strategy to use multi trip with reload jobs which shared some resources.
 pub fn create_shared_reload_multi_trip_feature<T>(
@@ -29,21 +47,22 @@ pub fn create_shared_reload_multi_trip_feature<T>(
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
     resource_map: HashMap<Job, (T, SharedResourceId)>,
     total_jobs: usize,
+    shared_reload_keys: SharedReloadKeys,
     constraint_code: ViolationCode,
-    resource_key: StateKey,
 ) -> Result<Feature, GenericError>
 where
     T: SharedResource + LoadOps,
 {
     let shared_resource =
-        create_shared_reload_constraint(name, resource_map, total_jobs, constraint_code, resource_key)?;
+        create_shared_reload_constraint(name, resource_map, total_jobs, constraint_code, shared_reload_keys.clone())?;
 
     let route_intervals = create_reload_route_intervals(
+        shared_reload_keys.reload_keys.clone(),
         load_schedule_threshold_fn,
         Some(Box::new(move |route_ctx, activity_idx, demand| {
             route_ctx
                 .state()
-                .get_activity_state::<T>(resource_key, activity_idx)
+                .get_activity_state::<T>(shared_reload_keys.resource, activity_idx)
                 .map_or(true, |resource_available| resource_available.can_fit(demand))
         })),
     );
@@ -57,21 +76,25 @@ pub fn create_simple_reload_multi_trip_feature<T: LoadOps>(
     name: &str,
     capacity_feature_factory: CapacityFeatureFactoryFn,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
+    reload_keys: ReloadKeys,
 ) -> Result<Feature, GenericError> {
-    (capacity_feature_factory)(name, create_simple_reload_route_intervals(load_schedule_threshold_fn))
+    (capacity_feature_factory)(name, create_simple_reload_route_intervals(load_schedule_threshold_fn, reload_keys))
 }
 
 /// Creates a reload intervals to use with reload jobs.
 pub fn create_simple_reload_route_intervals<T: LoadOps>(
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
+    reload_keys: ReloadKeys,
 ) -> Arc<dyn RouteIntervals + Send + Sync> {
-    Arc::new(create_reload_route_intervals(load_schedule_threshold_fn, None))
+    Arc::new(create_reload_route_intervals(reload_keys, load_schedule_threshold_fn, None))
 }
 
 fn create_reload_route_intervals<T: LoadOps>(
+    reload_keys: ReloadKeys,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
     place_capacity_threshold: Option<PlaceCapacityThresholdFn<T>>,
 ) -> FixedRouteIntervals {
+    let capacity_keys = reload_keys.capacity_keys;
     FixedRouteIntervals {
         is_marker_single_fn: Box::new(is_reload_single),
         is_new_interval_needed_fn: Box::new(move |route_ctx| {
@@ -82,7 +105,7 @@ fn create_reload_route_intervals<T: LoadOps>(
                 .map(|end_idx| {
                     let current: T = route_ctx
                         .state()
-                        .get_activity_state(MAX_PAST_CAPACITY_KEY, end_idx)
+                        .get_activity_state(capacity_keys.max_past_capacity, end_idx)
                         .cloned()
                         .unwrap_or_default();
 
@@ -118,9 +141,9 @@ fn create_reload_route_intervals<T: LoadOps>(
             let right_delivery = fold_demand(right.clone(), |demand| demand.delivery.0);
 
             // static delivery moved to left
-            let new_max_load_left = get_load(left.start, MAX_FUTURE_CAPACITY_KEY) + right_delivery;
+            let new_max_load_left = get_load(left.start, capacity_keys.max_future_capacity) + right_delivery;
             // static pickup moved to right
-            let new_max_load_right = get_load(right.start, MAX_FUTURE_CAPACITY_KEY) + left_pickup;
+            let new_max_load_right = get_load(right.start, capacity_keys.max_future_capacity) + left_pickup;
 
             let has_enough_vehicle_capacity =
                 capacity.can_fit(&new_max_load_left) && capacity.can_fit(&new_max_load_right);
@@ -138,7 +161,7 @@ fn create_reload_route_intervals<T: LoadOps>(
                 is_correct_vehicle(route, get_vehicle_id_from_job(job), get_shift_index(&job.dimens))
             })
         }),
-        intervals_key: RELOAD_INTERVALS_KEY,
+        intervals_key: reload_keys.intervals,
     }
 }
 
@@ -148,17 +171,18 @@ fn create_shared_reload_constraint<T>(
     resource_map: HashMap<Job, (T, SharedResourceId)>,
     total_jobs: usize,
     constraint_code: ViolationCode,
-    resource_key: StateKey,
+    shared_reload_keys: SharedReloadKeys,
 ) -> Result<Feature, GenericError>
 where
     T: SharedResource + LoadOps,
 {
+    let intervals_key = shared_reload_keys.reload_keys.intervals;
     create_shared_resource_feature(
         name,
         total_jobs,
         constraint_code,
-        resource_key,
-        Arc::new(move |route_ctx| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY)),
+        shared_reload_keys.resource,
+        Arc::new(move |route_ctx| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(intervals_key)),
         Arc::new(move |activity| {
             activity.job.as_ref().and_then(|job| {
                 if is_reload_single(job.as_ref()) {

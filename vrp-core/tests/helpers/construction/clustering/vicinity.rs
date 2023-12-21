@@ -1,6 +1,6 @@
 use crate::construction::clustering::vicinity::*;
 use crate::construction::heuristics::*;
-use crate::helpers::construction::features::create_goal_ctx_with_feature;
+use crate::helpers::models::domain::GoalContextBuilder;
 use crate::helpers::models::problem::{get_job_id, SingleBuilder};
 use crate::models::common::{Duration, IdDimension, Location, Profile, ValueDimension};
 use crate::models::problem::Job;
@@ -63,16 +63,18 @@ impl FeatureConstraint for VicinityTestFeatureConstraint {
     }
 }
 
-pub fn create_goal_context(disallow_merge_list: Vec<&str>) -> GoalContext {
+pub fn create_goal_context_with_vicinity(disallow_merge_list: Vec<&str>) -> GoalContext {
     let disallow_merge_list = disallow_merge_list.into_iter().map(|id| id.to_string()).collect();
 
-    create_goal_ctx_with_feature(
-        FeatureBuilder::default()
-            .with_name("vicinity")
-            .with_constraint(VicinityTestFeatureConstraint { disallow_merge_list })
-            .build()
-            .unwrap(),
-    )
+    GoalContextBuilder::default()
+        .add_feature(
+            FeatureBuilder::default()
+                .with_name("vicinity")
+                .with_constraint(VicinityTestFeatureConstraint { disallow_merge_list })
+                .build()
+                .unwrap(),
+        )
+        .build()
 }
 
 pub fn create_cluster_config() -> ClusterConfig {

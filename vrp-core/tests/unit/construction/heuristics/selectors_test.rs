@@ -1,5 +1,4 @@
 use super::*;
-use crate::helpers::models::domain::create_empty_insertion_context;
 use crate::helpers::models::solution::RouteContextBuilder;
 use crate::helpers::solver::generate_matrix_routes_with_defaults;
 use crate::helpers::utils::random::FakeRandom;
@@ -8,6 +7,7 @@ use std::sync::Arc;
 
 mod noise_checks {
     use super::*;
+    use crate::helpers::construction::heuristics::InsertionContextBuilder;
     use crate::helpers::models::problem::SingleBuilder;
 
     fn make_success(cost: Cost) -> InsertionResult {
@@ -43,9 +43,9 @@ mod noise_checks {
         let noise_range = (0.9, 1.2);
         let random = Arc::new(FakeRandom::new(vec![2], reals));
         let noise = Noise::new_with_ratio(noise_probability, noise_range, random);
+        let insertion_ctx = InsertionContextBuilder::default().build();
 
-        let actual_result =
-            NoiseResultSelector::new(noise).select_insertion(&create_empty_insertion_context(), left, right);
+        let actual_result = NoiseResultSelector::new(noise).select_insertion(&insertion_ctx, left, right);
 
         match (actual_result, expected_result) {
             (InsertionResult::Success(success), Some(cost)) => assert_eq!(success.cost, InsertionCost::new(&[cost])),
@@ -115,7 +115,7 @@ mod selections {
 
 mod positions {
     use super::*;
-    use crate::helpers::models::domain::create_empty_solution_context;
+    use crate::helpers::construction::heuristics::InsertionContextBuilder;
     use crate::helpers::models::problem::SingleBuilder;
 
     parameterized_test! {can_decide_how_to_fold, (jobs, routes, expected_result), {
@@ -129,14 +129,10 @@ mod positions {
     }
 
     fn can_decide_how_to_fold_impl(jobs: usize, routes: usize, expected_result: bool) {
-        let insertion_ctx = InsertionContext {
-            solution: SolutionContext {
-                routes: (0..routes).map(|_| RouteContextBuilder::default().build()).collect(),
-                required: (0..jobs).map(|_| SingleBuilder::default().build_as_job_ref()).collect(),
-                ..create_empty_solution_context()
-            },
-            ..create_empty_insertion_context()
-        };
+        let insertion_ctx = InsertionContextBuilder::default()
+            .with_routes((0..routes).map(|_| RouteContextBuilder::default().build()).collect())
+            .with_required((0..jobs).map(|_| SingleBuilder::default().build_as_job_ref()).collect())
+            .build();
 
         assert_eq!(PositionInsertionEvaluator::is_fold_jobs(&insertion_ctx), expected_result);
     }

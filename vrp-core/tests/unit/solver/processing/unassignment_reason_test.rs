@@ -1,6 +1,6 @@
-use crate::construction::heuristics::{InsertionContext, SolutionContext, UnassignmentInfo};
-use crate::helpers::construction::features::create_goal_ctx_with_transport;
-use crate::helpers::models::domain::*;
+use crate::construction::heuristics::{InsertionContext, UnassignmentInfo};
+use crate::helpers::construction::heuristics::{create_schedule_keys, InsertionContextBuilder};
+use crate::helpers::models::domain::{GoalContextBuilder, ProblemBuilder};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
 use crate::models::common::{IdDimension, TimeWindow};
@@ -20,19 +20,17 @@ fn create_test_insertion_ctx(unassigned: Vec<(Job, UnassignmentInfo)>) -> Insert
         RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build(),
         RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v2").build()).build(),
     ];
-    let mut insertion_ctx = InsertionContext {
-        problem: create_problem_with_goal_ctx_jobs_and_fleet(
-            create_goal_ctx_with_transport(),
-            unassigned.iter().map(|(job, _)| job.clone()).collect(),
-            fleet,
-        ),
-        solution: SolutionContext {
-            unassigned: unassigned.into_iter().collect(),
-            routes,
-            ..create_empty_solution_context()
-        },
-        ..create_empty_insertion_context()
-    };
+    let mut insertion_ctx = InsertionContextBuilder::default()
+        .with_problem(
+            ProblemBuilder::default()
+                .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+                .with_fleet(fleet)
+                .with_jobs(unassigned.iter().map(|(job, _)| job.clone()).collect())
+                .build(),
+        )
+        .with_routes(routes)
+        .with_unassigned(unassigned.into_iter().collect())
+        .build();
     insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 
     insertion_ctx

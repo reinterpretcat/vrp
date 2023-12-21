@@ -22,7 +22,6 @@ pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matr
 
         RecreateWithCheapest::new(environment.random.clone())
             .run(&refinement_ctx, InsertionContext::new(problem, environment))
-            .solution
             .into()
     })
 }

@@ -8,8 +8,9 @@ use crate::format::{FormatError, JobIndex};
 use crate::validation::ValidationContext;
 use crate::{parse_time, CoordIndex};
 use vrp_core::construction::enablers::*;
+use vrp_core::construction::heuristics::StateKeyRegistry;
 use vrp_core::models::common::{TimeOffset, TimeSpan, TimeWindow};
-use vrp_core::models::Extras;
+use vrp_core::models::ExtrasBuilder;
 use vrp_core::solver::processing::{ReservedTimeDimension, VicinityDimension};
 
 pub(super) fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
@@ -33,32 +34,36 @@ pub(super) fn map_to_problem(
 ) -> Result<CoreProblem, MultiFormatError> {
     ValidationContext::new(&api_problem, Some(&matrices), &coord_index).validate()?;
 
+    let mut state_registry = StateKeyRegistry::default();
+    let mut extras = ExtrasBuilder::new(&mut state_registry).build().map_err(to_multi_format_error)?;
+
+    extras.set_coord_index(coord_index);
+
+    let coord_index = extras.get_coord_index().expect("cannot get coord index");
+    let mut job_index = JobIndex::default();
+
     let props = get_problem_properties(&api_problem, &matrices);
-    let blocks = get_problem_blocks(&api_problem, matrices, coord_index, &props)?;
+    let mut blocks = get_problem_blocks(&api_problem, matrices, coord_index, &mut job_index, &props)?;
 
-    let goal = Arc::new(create_goal_context(&api_problem, &blocks, &props).map_err(|err| {
-        vec![FormatError::new(
-            "E0000".to_string(),
-            "cannot create vrp variant".to_string(),
-            format!("need to analyze how features are defined: '{err}'"),
-        )]
-    })?);
+    extras.set_job_index(job_index);
+    blocks.job_index = extras.get_job_index();
 
-    let ProblemBlocks { coord_index, job_index, jobs, fleet, transport, activity, locks, reserved_times_index } =
-        blocks;
-
-    let extras = Arc::new(
-        create_extras(&api_problem, job_index.clone(), coord_index.clone(), reserved_times_index).map_err(|err| {
-            // TODO make sure that error matches actual reason
-            vec![FormatError::new(
-                "E0002".to_string(),
-                "cannot create transport costs".to_string(),
-                format!("check clustering config: '{err}'"),
-            )]
-        })?,
+    let goal = Arc::new(
+        create_goal_context(&api_problem, &blocks, &props, &extras, &mut state_registry)
+            .map_err(to_multi_format_error)?,
     );
 
-    Ok(CoreProblem { fleet, jobs, locks, goal, activity, transport, extras })
+    let ProblemBlocks { jobs, fleet, transport, activity, locks, reserved_times_index, .. } = blocks;
+
+    if let Some(config) = create_cluster_config(&api_problem).map_err(to_multi_format_error)? {
+        extras.set_cluster_config(config);
+    }
+
+    if !reserved_times_index.is_empty() {
+        extras.set_reserved_times(reserved_times_index);
+    }
+
+    Ok(CoreProblem { fleet, jobs, locks, goal, activity, transport, extras: Arc::new(extras) })
 }
 
 fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> ReservedTimesIndex {
@@ -113,26 +118,13 @@ fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> Res
         .collect()
 }
 
-fn create_extras(
-    api_problem: &ApiProblem,
-    job_index: Arc<JobIndex>,
-    coord_index: Arc<CoordIndex>,
-    reserved_times_index: ReservedTimesIndex,
-) -> Result<Extras, GenericError> {
-    let mut extras = Extras::default();
-
-    extras.insert("coord_index".to_owned(), coord_index.clone());
-    extras.insert("job_index".to_owned(), job_index.clone());
-
-    if !reserved_times_index.is_empty() {
-        extras.set_reserved_times(reserved_times_index);
-    }
-
-    if let Some(config) = create_cluster_config(api_problem)? {
-        extras.set_cluster_config(config);
-    }
-
-    Ok(extras)
+fn to_multi_format_error(error: GenericError) -> MultiFormatError {
+    vec![FormatError::new(
+        "E0000".to_string(),
+        "cannot create vrp variant".to_string(),
+        format!("need to analyze how features are defined: '{error}'"),
+    )]
+    .into()
 }
 
 fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> ProblemProperties {
@@ -194,10 +186,10 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
 fn get_problem_blocks(
     api_problem: &ApiProblem,
     matrices: Vec<Matrix>,
-    coord_index: CoordIndex,
+    coord_index: Arc<CoordIndex>,
+    job_index: &mut JobIndex,
     problem_props: &ProblemProperties,
 ) -> Result<ProblemBlocks, MultiFormatError> {
-    let coord_index = Arc::new(coord_index);
     let fleet = read_fleet(api_problem, problem_props, &coord_index);
     let reserved_times_index = read_reserved_times_index(api_problem, &fleet);
 
@@ -232,23 +224,21 @@ fn get_problem_blocks(
     // TODO pass random from outside as there might be need to have it initialized with seed
     //      at the moment, this random instance is used only by multi job permutation generator
     let random: Arc<dyn Random + Send + Sync> = Arc::new(DefaultRandom::default());
-    let mut job_index = Default::default();
     let (jobs, locks) = read_jobs_with_extra_locks(
         api_problem,
         problem_props,
         &coord_index,
         &fleet,
-        &transport,
-        &mut job_index,
+        transport.as_ref(),
+        job_index,
         &random,
     );
-    let locks = locks.into_iter().chain(read_locks(api_problem, &job_index)).collect::<Vec<_>>();
+    let locks = locks.into_iter().chain(read_locks(api_problem, job_index)).collect::<Vec<_>>();
 
     Ok(ProblemBlocks {
-        coord_index,
-        job_index: Arc::new(job_index),
         jobs: Arc::new(jobs),
         fleet: Arc::new(fleet),
+        job_index: None,
         transport,
         activity,
         locks,

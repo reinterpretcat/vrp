@@ -48,16 +48,31 @@ fn create_route_context_with_fleet(capacity: Vec<i32>, activities: Vec<Activity>
     (route_ctx, fleet)
 }
 
+fn create_reload_keys() -> ReloadKeys {
+    let mut state_registry = StateKeyRegistry::default();
+    ReloadKeys { intervals: state_registry.next_key(), capacity_keys: CapacityKeys::from(&mut state_registry) }
+}
+
 #[test]
 fn can_handle_reload_jobs_with_merge() {
     let create_reload_job = || Job::Single(reload("reload").job.unwrap());
     let create_job = || Job::Single(Arc::new(create_single_with_location(None)));
+    let reload_keys = create_reload_keys();
     let feature = create_simple_reload_multi_trip_feature(
         "reload",
-        Box::new(|name, route_intervals| {
-            create_capacity_limit_with_multi_trip_feature::<SingleDimLoad>(name, VIOLATION_CODE, route_intervals)
-        }),
+        {
+            let reload_keys = reload_keys.clone();
+            Box::new(move |name, route_intervals| {
+                create_capacity_limit_with_multi_trip_feature::<SingleDimLoad>(
+                    name,
+                    route_intervals,
+                    reload_keys.capacity_keys,
+                    VIOLATION_CODE,
+                )
+            })
+        },
         Box::new(|_| SingleDimLoad::default()),
+        reload_keys,
     );
     let constraint = feature.unwrap().constraint.unwrap();
 
@@ -188,14 +203,24 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
 ) {
     let threshold = 0.9;
 
+    let reload_keys = create_reload_keys();
     let (route_ctx, fleet) = create_route_context_with_fleet(vec![capacity], activities);
     let mut solution_ctx = SolutionContext { routes: vec![route_ctx], ..create_solution_context_for_fleet(&fleet) };
     let feature = create_simple_reload_multi_trip_feature::<MultiDimLoad>(
         "reload",
-        Box::new(|name, route_intervals| {
-            create_capacity_limit_with_multi_trip_feature::<MultiDimLoad>(name, VIOLATION_CODE, route_intervals)
+        Box::new({
+            let capacity_keys = reload_keys.capacity_keys.clone();
+            move |name, route_intervals| {
+                create_capacity_limit_with_multi_trip_feature::<MultiDimLoad>(
+                    name,
+                    route_intervals,
+                    capacity_keys,
+                    VIOLATION_CODE,
+                )
+            }
         }),
         Box::new(move |capacity| *capacity * threshold),
+        reload_keys,
     )
     .unwrap();
     let goal = Goal::no_alternatives([], []);
@@ -236,11 +261,19 @@ fn can_handle_new_interval_needed_for_multi_dim_load_impl(
     expected: bool,
 ) {
     let threshold = 1.;
-    let route_intervals =
-        create_reload_route_intervals::<MultiDimLoad>(Box::new(move |capacity| *capacity * threshold), None);
+    let reload_keys = create_reload_keys();
+    let route_intervals = create_reload_route_intervals::<MultiDimLoad>(
+        reload_keys.clone(),
+        Box::new(move |capacity| *capacity * threshold),
+        None,
+    );
     let (mut route_ctx, _) = create_route_context_with_fleet(vehicle_capacity, Vec::default());
     let (route, state) = route_ctx.as_mut();
-    state.put_activity_state(MAX_PAST_CAPACITY_KEY, route.tour.end_idx().unwrap(), MultiDimLoad::new(current_capacity));
+    state.put_activity_state(
+        reload_keys.capacity_keys.max_past_capacity,
+        route.tour.end_idx().unwrap(),
+        MultiDimLoad::new(current_capacity),
+    );
 
     let result = route_intervals.is_new_interval_needed(&route_ctx);
 

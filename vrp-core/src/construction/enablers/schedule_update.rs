@@ -1,10 +1,11 @@
-use crate::construction::heuristics::{RouteContext, StateKey};
+use crate::construction::heuristics::{RouteContext, StateKey, StateKeyRegistry};
 use crate::models::common::{Distance, Schedule, Timestamp};
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
 use crate::models::OP_START_MSG;
 
 /// Contains state keys ids used by route schedule updating logic.
-pub struct ScheduleStateKeys {
+#[derive(Clone, Debug)]
+pub struct ScheduleKeys {
     /// Latest arrival state key.
     pub latest_arrival: StateKey,
     /// Waiting time state key.
@@ -13,6 +14,20 @@ pub struct ScheduleStateKeys {
     pub total_distance: StateKey,
     /// Total duration state key.
     pub total_duration: StateKey,
+    /// Limit duration state key.
+    pub limit_duration: StateKey,
+}
+
+impl From<&mut StateKeyRegistry> for ScheduleKeys {
+    fn from(state_registry: &mut StateKeyRegistry) -> Self {
+        Self {
+            latest_arrival: state_registry.next_key(),
+            waiting_time: state_registry.next_key(),
+            total_distance: state_registry.next_key(),
+            total_duration: state_registry.next_key(),
+            limit_duration: state_registry.next_key(),
+        }
+    }
 }
 
 /// Updates route schedule data.
@@ -20,7 +35,7 @@ pub fn update_route_schedule(
     route_ctx: &mut RouteContext,
     activity: &(dyn ActivityCost + Send + Sync),
     transport: &(dyn TransportCost + Send + Sync),
-    state_keys: &ScheduleStateKeys,
+    state_keys: &ScheduleKeys,
 ) {
     update_schedules(route_ctx, activity, transport);
     update_states(route_ctx, activity, transport, state_keys);
@@ -33,7 +48,7 @@ pub fn update_route_departure(
     activity: &(dyn ActivityCost + Send + Sync),
     transport: &(dyn TransportCost + Send + Sync),
     new_departure_time: Timestamp,
-    state_keys: &ScheduleStateKeys,
+    state_keys: &ScheduleKeys,
 ) {
     let start = route_ctx.route_mut().tour.get_mut(0).unwrap();
     start.schedule.departure = new_departure_time;
@@ -71,7 +86,7 @@ fn update_states(
     route_ctx: &mut RouteContext,
     activity: &(dyn ActivityCost + Send + Sync),
     transport: &(dyn TransportCost + Send + Sync),
-    state_keys: &ScheduleStateKeys,
+    state_keys: &ScheduleKeys,
 ) {
     // update latest arrival and waiting states of non-terminate (jobs) activities
     let actor = route_ctx.route().actor.clone();
@@ -113,7 +128,7 @@ fn update_states(
 fn update_statistics(
     route_ctx: &mut RouteContext,
     transport: &(dyn TransportCost + Send + Sync),
-    state_keys: &ScheduleStateKeys,
+    state_keys: &ScheduleKeys,
 ) {
     let (route, state) = route_ctx.as_mut();
 

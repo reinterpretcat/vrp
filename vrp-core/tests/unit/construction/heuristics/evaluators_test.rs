@@ -1,15 +1,29 @@
 use crate::construction::heuristics::*;
-use crate::helpers::construction::features::create_goal_ctx_with_transport;
-use crate::helpers::construction::heuristics::{create_insertion_context, create_test_insertion_context};
+use crate::helpers::construction::heuristics::{create_schedule_keys, InsertionContextBuilder};
+use crate::helpers::models::domain::GoalContextBuilder;
 use crate::helpers::models::problem::*;
-use crate::helpers::models::solution::create_test_registry;
 use crate::helpers::models::solution::ActivityBuilder;
+use crate::helpers::models::solution::{create_test_registry, RouteBuilder, RouteContextBuilder};
 use crate::models::common::{Cost, Location, Schedule, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::{Job, Single, VehicleDetail};
 use crate::models::solution::{Activity, Place, Registry};
 use std::sync::Arc;
 
 type JobPlace = crate::models::problem::Place;
+
+fn create_test_insertion_ctx() -> InsertionContext {
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver_with_costs(empty_costs()))
+        .add_vehicle(VehicleBuilder::default().id("v1").build())
+        .build();
+    let route =
+        RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build();
+
+    InsertionContextBuilder::default()
+        .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+        .with_routes(vec![route])
+        .build()
+}
 
 fn create_activity_at(loc_and_time: usize) -> Activity {
     ActivityBuilder::default()
@@ -44,6 +58,7 @@ mod single {
     use super::*;
     use crate::construction::heuristics::evaluators::InsertionPosition;
     use crate::helpers::models::domain::test_random;
+    use crate::helpers::models::solution::RouteBuilder;
     use crate::models::common::TimeInterval;
     use crate::models::problem::VehiclePlace;
 
@@ -64,7 +79,7 @@ mod single {
     }
 
     fn can_insert_job_with_location_into_empty_tour_impl(job: Job, position: InsertionPosition, has_result: bool) {
-        let mut ctx = create_test_insertion_context(create_test_registry());
+        let mut ctx = create_test_insertion_ctx();
 
         let result = evaluate_job_insertion(&mut ctx, &job, position);
 
@@ -112,11 +127,15 @@ mod single {
         location: Location,
         index: usize,
     ) {
-        let registry = create_test_registry();
+        let mut registry = create_test_registry();
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
+        registry.use_actor(&route_ctx.route().actor);
         route_ctx.route_mut().tour.insert_at(create_activity_at(5), 1).insert_at(create_activity_at(10), 2);
-        let constraint = create_goal_ctx_with_transport();
-        let mut ctx = create_insertion_context(registry, constraint, vec![route_ctx]);
+        let mut ctx = InsertionContextBuilder::default()
+            .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+            .with_registry(registry)
+            .with_routes(vec![route_ctx])
+            .build();
 
         let result = evaluate_job_insertion(&mut ctx, &job, insertion_position);
 
@@ -143,42 +162,46 @@ mod single {
         expected_used_vehicle: &str,
         cost: Cost,
     ) {
-        let registry = Registry::new(
-            &FleetBuilder::default()
-                .add_driver(test_driver_with_costs(empty_costs()))
-                .add_vehicles(vec![
-                    VehicleBuilder::default()
-                        .id("v1")
-                        .details(vec![VehicleDetail {
-                            start: Some(VehiclePlace {
-                                location: 0,
-                                time: TimeInterval { earliest: Some(0.), latest: None },
-                            }),
-                            end: Some(VehiclePlace {
-                                location: v1_end_location,
-                                time: TimeInterval { earliest: None, latest: Some(100.) },
-                            }),
-                        }])
-                        .build(),
-                    VehicleBuilder::default()
-                        .id("v2")
-                        .details(vec![VehicleDetail {
-                            start: Some(VehiclePlace {
-                                location: 20,
-                                time: TimeInterval { earliest: Some(0.), latest: None },
-                            }),
-                            end: Some(VehiclePlace {
-                                location: v2_end_location,
-                                time: TimeInterval { earliest: None, latest: Some(100.) },
-                            }),
-                        }])
-                        .build(),
-                ])
-                .build(),
-            test_random(),
-        );
+        let fleet = FleetBuilder::default()
+            .add_driver(test_driver_with_costs(empty_costs()))
+            .add_vehicles(vec![
+                VehicleBuilder::default()
+                    .id("v1")
+                    .details(vec![VehicleDetail {
+                        start: Some(VehiclePlace {
+                            location: 0,
+                            time: TimeInterval { earliest: Some(0.), latest: None },
+                        }),
+                        end: Some(VehiclePlace {
+                            location: v1_end_location,
+                            time: TimeInterval { earliest: None, latest: Some(100.) },
+                        }),
+                    }])
+                    .build(),
+                VehicleBuilder::default()
+                    .id("v2")
+                    .details(vec![VehicleDetail {
+                        start: Some(VehiclePlace {
+                            location: 20,
+                            time: TimeInterval { earliest: Some(0.), latest: None },
+                        }),
+                        end: Some(VehiclePlace {
+                            location: v2_end_location,
+                            time: TimeInterval { earliest: None, latest: Some(100.) },
+                        }),
+                    }])
+                    .build(),
+            ])
+            .build();
+        let registry = Registry::new(&fleet, test_random());
         let job = SingleBuilder::default().location(Some(job_location)).build_as_job_ref();
-        let mut ctx = create_test_insertion_context(registry);
+        let mut ctx = InsertionContextBuilder::default()
+            .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+            .with_registry(registry)
+            .with_routes(vec![RouteContextBuilder::default()
+                .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
+                .build()])
+            .build();
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
@@ -191,7 +214,7 @@ mod single {
     #[test]
     fn can_detect_and_return_insertion_violation() {
         let job = SingleBuilder::default().location(Some(1111)).build_as_job_ref();
-        let mut ctx = create_test_insertion_context(create_test_registry());
+        let mut ctx = create_test_insertion_ctx();
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
@@ -226,7 +249,7 @@ mod multi {
                 SingleBuilder::default().id("s2").location(Some(7)).build_shared(),
             ],
         ));
-        let mut ctx = create_test_insertion_context(create_test_registry());
+        let mut ctx = create_test_insertion_ctx();
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
@@ -255,7 +278,7 @@ mod multi {
                 })
                 .collect(),
         ));
-        let mut ctx = create_test_insertion_context(create_test_registry());
+        let mut ctx = create_test_insertion_ctx();
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
@@ -299,9 +322,11 @@ mod multi {
         existing.iter().for_each(|&(index, loc)| {
             route_ctx.route_mut().tour.insert_at(create_activity_at(loc), index);
         });
-        let routes = vec![route_ctx];
-        let constraint = create_goal_ctx_with_transport();
-        let mut ctx = create_insertion_context(registry, constraint, routes);
+        let mut ctx = InsertionContextBuilder::default()
+            .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+            .with_routes(vec![route_ctx])
+            .build();
+
         let job = Job::Multi(test_multi_with_id(
             "multi",
             expected
@@ -323,7 +348,7 @@ mod multi {
 
     #[test]
     fn can_choose_cheaper_permutation_from_two() {
-        let mut ctx = create_test_insertion_context(create_test_registry());
+        let mut ctx = create_test_insertion_ctx();
         let job = Job::Multi(test_multi_with_permutations(
             "multi",
             vec![

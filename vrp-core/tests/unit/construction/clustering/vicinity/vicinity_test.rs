@@ -1,5 +1,6 @@
 use super::*;
 use crate::helpers::construction::clustering::vicinity::*;
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
 
@@ -10,10 +11,11 @@ fn can_get_check_insertion() {
         SingleBuilder::default().id("job1").build_as_job_ref(),
         SingleBuilder::default().id("job2").build_as_job_ref(),
     ];
-    let constraint = create_goal_context(disallow_merge_list);
-    let fleet = test_fleet();
-    let problem = create_problem_with_goal_ctx_jobs_and_fleet(constraint, jobs.clone(), fleet);
-    let insertion_ctx = InsertionContext { problem, ..create_empty_insertion_context() };
+    let problem = ProblemBuilder::default()
+        .with_jobs(jobs.clone())
+        .with_goal(create_goal_context_with_vicinity(disallow_merge_list))
+        .build();
+    let insertion_ctx = InsertionContextBuilder::default().with_problem(problem).build();
     let actor_filter = Arc::new(|_: &Actor| true);
 
     let check_insertion = get_check_insertion_fn(insertion_ctx, actor_filter);
@@ -29,14 +31,13 @@ pub fn can_create_job_clusters() {
         SingleBuilder::default().id("job2").build_as_job_ref(),
         SingleBuilder::default().id("job3").build_as_job_ref(),
     ];
-    let constraint = create_goal_context(vec![]);
     let filtering =
         FilterPolicy { job_filter: Arc::new(|job| get_job_id(job) != "job3"), actor_filter: Arc::new(|_| true) };
     let config = ClusterConfig { filtering, ..create_cluster_config() };
-    let fleet = test_fleet();
-    let problem = create_problem_with_goal_ctx_jobs_and_fleet(constraint, jobs, fleet);
+    let problem =
+        ProblemBuilder::default().with_jobs(jobs.clone()).with_goal(create_goal_context_with_vicinity(vec![])).build();
 
-    let clusters = create_job_clusters(problem, Arc::new(Environment::default()), &config);
+    let clusters = create_job_clusters(Arc::new(problem), Arc::new(Environment::default()), &config);
 
     assert_eq!(clusters.len(), 1);
     let cluster = clusters.first().unwrap();

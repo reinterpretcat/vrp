@@ -1,42 +1,44 @@
-use crate::construction::heuristics::{RouteState, StateKey, UnassignmentInfo};
-use crate::helpers::construction::features::create_goal_ctx_with_transport;
-use crate::helpers::construction::heuristics::create_insertion_context;
-use crate::helpers::models::domain::test_random;
+use crate::construction::heuristics::{RouteState, StateKeyRegistry, UnassignmentInfo};
+use crate::helpers::construction::heuristics::{create_schedule_keys, create_state_key, InsertionContextBuilder};
+use crate::helpers::models::domain::GoalContextBuilder;
 use crate::helpers::models::problem::{test_fleet, SingleBuilder};
 use crate::helpers::models::solution::*;
-use crate::models::solution::Registry;
 
 #[test]
 fn can_put_and_get_activity_state() {
+    let state_key = create_state_key();
     let mut route_state = RouteState::default();
 
-    route_state.put_activity_state(StateKey(1), 0, "my_value".to_string());
-    let result = route_state.get_activity_state::<String>(StateKey(1), 0);
+    route_state.put_activity_state(state_key, 0, "my_value".to_string());
+    let result = route_state.get_activity_state::<String>(state_key, 0);
 
     assert_eq!(result.unwrap(), "my_value");
 }
 
 #[test]
 fn can_put_and_get_empty_activity_state() {
+    let state_key = create_state_key();
     let mut route_state = RouteState::default();
 
-    route_state.put_activity_state(StateKey(1), 0, "my_value".to_string());
-    let result = route_state.get_activity_state::<String>(StateKey(1), 1);
+    route_state.put_activity_state(state_key, 0, "my_value".to_string());
+    let result = route_state.get_activity_state::<String>(state_key, 1);
 
     assert!(result.is_none());
 }
 
 #[test]
 fn can_put_and_get_activity_state_with_different_keys() {
+    let mut keys = StateKeyRegistry::default();
+    let (key1, key2, key3, key4) = (keys.next_key(), keys.next_key(), keys.next_key(), keys.next_key());
     let mut route_state = RouteState::default();
 
-    route_state.put_activity_state(StateKey(1), 0, "key1".to_string());
-    route_state.put_activity_state(StateKey(2), 0, "key2".to_string());
-    route_state.put_activity_state(StateKey(3), 0, "key3".to_string());
-    let result3 = route_state.get_activity_state::<String>(StateKey(3), 0);
-    let result1 = route_state.get_activity_state::<String>(StateKey(1), 0);
-    let result2 = route_state.get_activity_state::<String>(StateKey(2), 0);
-    let result4 = route_state.get_activity_state::<String>(StateKey(4), 0);
+    route_state.put_activity_state(key1, 0, "key1".to_string());
+    route_state.put_activity_state(key2, 0, "key2".to_string());
+    route_state.put_activity_state(key3, 0, "key3".to_string());
+    let result3 = route_state.get_activity_state::<String>(key3, 0);
+    let result1 = route_state.get_activity_state::<String>(key1, 0);
+    let result2 = route_state.get_activity_state::<String>(key2, 0);
+    let result4 = route_state.get_activity_state::<String>(key4, 0);
 
     assert_eq!(result1.unwrap(), "key1");
     assert_eq!(result2.unwrap(), "key2");
@@ -46,20 +48,23 @@ fn can_put_and_get_activity_state_with_different_keys() {
 
 #[test]
 fn can_put_and_get_route_state() {
+    let state_key = create_state_key();
     let mut route_state = RouteState::default();
 
-    route_state.put_route_state(StateKey(1), "my_value".to_string());
-    let result = route_state.get_route_state::<String>(StateKey(1));
+    route_state.put_route_state(state_key, "my_value".to_string());
+    let result = route_state.get_route_state::<String>(state_key);
 
     assert_eq!(result.unwrap(), "my_value");
 }
 
 #[test]
 fn can_put_and_get_empty_route_state() {
+    let mut keys = StateKeyRegistry::default();
+    let (key1, key2) = (keys.next_key(), keys.next_key());
     let mut route_state = RouteState::default();
 
-    route_state.put_route_state(StateKey(1), "my_value".to_string());
-    let result = route_state.get_route_state::<String>(StateKey(2));
+    route_state.put_route_state(key1, "my_value".to_string());
+    let result = route_state.get_route_state::<String>(key2);
 
     assert!(result.is_none());
 }
@@ -80,20 +85,18 @@ fn can_use_stale_flag() {
 
 #[test]
 fn can_use_debug_fmt_for_insertion_ctx() {
-    let fleet = test_fleet();
-    let mut insertion_ctx = create_insertion_context(
-        Registry::new(&fleet, test_random()),
-        create_goal_ctx_with_transport(),
-        vec![RouteContextBuilder::default()
+    let insertion_ctx = InsertionContextBuilder::default()
+        .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+        .with_routes(vec![RouteContextBuilder::default()
             .with_route(
                 RouteBuilder::default()
-                    .with_vehicle(&fleet, "v1")
                     .add_activity(ActivityBuilder::default().build())
+                    .with_vehicle(&test_fleet(), "v1")
                     .build(),
             )
-            .build()],
-    );
-    insertion_ctx.solution.unassigned.insert(SingleBuilder::default().build_as_job_ref(), UnassignmentInfo::Unknown);
+            .build()])
+        .with_unassigned(vec![(SingleBuilder::default().build_as_job_ref(), UnassignmentInfo::Unknown)])
+        .build();
 
     let result = format!("{insertion_ctx:#?}");
 

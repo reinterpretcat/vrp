@@ -42,8 +42,9 @@ impl<R: Read> TextReader for TsplibReader<R> {
         &self,
         activity: Arc<SimpleActivityCost>,
         transport: Arc<dyn TransportCost + Send + Sync>,
+        extras: &Extras,
     ) -> Result<GoalContext, GenericError> {
-        create_goal_context_distance_only(activity, transport)
+        create_goal_context_distance_only(activity, transport, extras)
     }
 
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError> {

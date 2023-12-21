@@ -1,5 +1,4 @@
 use crate::construction::features::*;
-use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::Location;
@@ -8,6 +7,7 @@ use std::sync::Arc;
 
 mod activity {
     use super::*;
+    use crate::helpers::construction::heuristics::InsertionContextBuilder;
 
     const VIOLATION_CODE: ViolationCode = 1;
 
@@ -36,7 +36,7 @@ mod activity {
         } else {
             Job::Multi(test_multi_job_with_locations((0..job_size).map(|idx| vec![Some(idx as Location)]).collect()))
         };
-        let solution_ctx = create_empty_solution_context();
+        let solution_ctx = InsertionContextBuilder::default().build().solution;
         let route_ctx = RouteContextBuilder::default()
             .with_route(
                 RouteBuilder::default()
@@ -58,6 +58,7 @@ mod activity {
 
 mod traveling {
     use super::*;
+    use crate::construction::enablers::ScheduleKeys;
     use crate::construction::features::tour_limits::create_travel_limit_feature;
     use crate::models::common::*;
     use crate::models::problem::Actor;
@@ -70,10 +71,12 @@ mod traveling {
         target: &str,
         limit: (Option<Distance>, Option<Duration>),
     ) -> (Feature, RouteContext) {
+        let mut state_registry = StateKeyRegistry::default();
+        let schedule_keys = ScheduleKeys::from(&mut state_registry);
         let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
         let mut state = RouteState::default();
-        state.put_route_state(TOTAL_DISTANCE_KEY, 50.);
-        state.put_route_state(TOTAL_DURATION_KEY, 50.);
+        state.put_route_state(schedule_keys.total_distance, 50.);
+        state.put_route_state(schedule_keys.total_duration, 50.);
         let target = target.to_owned();
         let route_ctx = RouteContextBuilder::default()
             .with_route(RouteBuilder::default().with_vehicle(&fleet, vehicle_id).build())
@@ -105,8 +108,12 @@ mod traveling {
             transport,
             tour_distance_limit,
             tour_duration_limit,
-            DISTANCE_CODE,
-            DURATION_CODE,
+            TourLimitKeys {
+                duration_key: state_registry.next_key(),
+                schedule_keys,
+                distance_code: DISTANCE_CODE,
+                duration_code: DURATION_CODE,
+            },
         )
         .unwrap();
 

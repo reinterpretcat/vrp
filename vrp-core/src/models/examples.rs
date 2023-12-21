@@ -1,4 +1,5 @@
 use crate::construction::features::*;
+use crate::construction::heuristics::StateKeyRegistry;
 use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Route;
@@ -28,7 +29,7 @@ impl TransportCost for ExampleTransportCost {
 }
 
 /// Creates an example jobs used in documentation tests.
-fn create_example_jobs(fleet: &Fleet, transport: &Arc<dyn TransportCost + Sync + Send>) -> Arc<Jobs> {
+fn create_example_jobs(fleet: &Fleet, transport: &(dyn TransportCost + Sync + Send)) -> Arc<Jobs> {
     Arc::new(Jobs::new(
         fleet,
         vec![Job::Single(Arc::new(Single {
@@ -65,16 +66,27 @@ fn create_example_fleet() -> Arc<Fleet> {
     Arc::new(Fleet::new(drivers, vehicles, Box::new(|_| Box::new(|_| 0))))
 }
 
+/// Creates an extras with all necessary data
+fn create_example_extras() -> Extras {
+    let mut registry = StateKeyRegistry::default();
+
+    ExtrasBuilder::new(&mut registry).build().expect("cannot build example extras")
+}
+
 /// Creates and example VRP goal: CVRPTW.
 fn create_example_goal_ctx(
     transport: Arc<dyn TransportCost + Sync + Send>,
     activity: Arc<dyn ActivityCost + Sync + Send>,
+    extras: &Extras,
 ) -> Result<GoalContext, GenericError> {
+    let schedule_keys = extras.get_schedule_keys().expect("no schedule keys").clone();
+    let capacity_keys = extras.get_capacity_keys().expect("no capacity keys").clone();
+
     let features = vec![
         create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.))?,
         create_minimize_tours_feature("min_tours")?,
-        create_minimize_distance_feature("min_distance", transport, activity, 1)?,
-        create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
+        create_minimize_distance_feature("min_distance", transport, activity, schedule_keys, 1)?,
+        create_capacity_limit_feature::<SingleDimLoad>("capacity", capacity_keys, 2)?,
     ];
 
     let goal = Goal::no_alternatives(
@@ -87,11 +99,12 @@ fn create_example_goal_ctx(
 
 /// Creates an example problem used in documentation tests.
 pub fn create_example_problem() -> Arc<Problem> {
+    let extras = create_example_extras();
     let activity: Arc<dyn ActivityCost + Sync + Send> = Arc::new(SimpleActivityCost::default());
     let transport: Arc<dyn TransportCost + Sync + Send> = Arc::new(ExampleTransportCost {});
     let fleet = create_example_fleet();
-    let jobs = create_example_jobs(&fleet, &transport);
-    let goal = create_example_goal_ctx(transport.clone(), activity.clone()).unwrap();
+    let jobs = create_example_jobs(&fleet, transport.as_ref());
+    let goal = create_example_goal_ctx(transport.clone(), activity.clone(), &extras).unwrap();
 
     Arc::new(Problem {
         fleet,
@@ -100,6 +113,6 @@ pub fn create_example_problem() -> Arc<Problem> {
         goal: Arc::new(goal),
         activity,
         transport,
-        extras: Arc::new(Default::default()),
+        extras: Arc::new(extras),
     })
 }

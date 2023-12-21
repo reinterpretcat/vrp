@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::heuristics::ActivityContext;
-use crate::helpers::models::domain::create_empty_solution_context;
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::problem::{Job, Single};
@@ -35,7 +35,7 @@ fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<Co
         vec![LockDetail::new(LockOrder::Any, LockPosition::Any, vec![job.clone()])],
         false,
     ))];
-    let solution_ctx = create_empty_solution_context();
+    let solution_ctx = InsertionContextBuilder::default().build().solution;
     let route_ctx = RouteContextBuilder::default()
         .with_route(RouteBuilder::default().with_vehicle(&fleet, used.as_str()).build())
         .build();

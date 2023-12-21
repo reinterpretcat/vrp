@@ -5,7 +5,7 @@
 mod transport_test;
 
 use super::*;
-use crate::construction::enablers::{update_route_schedule, ScheduleStateKeys};
+use crate::construction::enablers::{update_route_schedule, ScheduleKeys};
 use crate::models::common::Timestamp;
 use crate::models::problem::{ActivityCost, Single, TransportCost, TravelTime};
 use crate::models::solution::Activity;
@@ -19,14 +19,16 @@ pub fn create_minimize_transport_costs_feature(
     name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
+    feature_keys: ScheduleKeys,
     time_window_code: ViolationCode,
 ) -> Result<Feature, GenericError> {
     create_feature(
         name,
         transport,
         activity,
+        feature_keys,
         time_window_code,
-        Box::new(|insertion_ctx| insertion_ctx.solution.get_total_cost()),
+        Box::new(|insertion_ctx| insertion_ctx.get_total_cost().unwrap_or_default()),
     )
 }
 
@@ -36,16 +38,19 @@ pub fn create_minimize_duration_feature(
     name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
+    feature_keys: ScheduleKeys,
     time_window_code: ViolationCode,
 ) -> Result<Feature, GenericError> {
+    let total_duration_key = feature_keys.total_duration;
     create_feature(
         name,
         transport,
         activity,
+        feature_keys,
         time_window_code,
-        Box::new(|insertion_ctx| {
+        Box::new(move |insertion_ctx| {
             insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
-                acc + route_ctx.state().get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.)
+                acc + route_ctx.state().get_route_state::<f64>(total_duration_key).cloned().unwrap_or(0.)
             })
         }),
     )
@@ -57,16 +62,19 @@ pub fn create_minimize_distance_feature(
     name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
+    feature_keys: ScheduleKeys,
     time_window_code: ViolationCode,
 ) -> Result<Feature, GenericError> {
+    let total_distance_key = feature_keys.total_distance;
     create_feature(
         name,
         transport,
         activity,
+        feature_keys,
         time_window_code,
-        Box::new(|insertion_ctx| {
+        Box::new(move |insertion_ctx| {
             insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
-                acc + route_ctx.state().get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.)
+                acc + route_ctx.state().get_route_state::<f64>(total_distance_key).cloned().unwrap_or(0.)
             })
         }),
     )
@@ -76,25 +84,28 @@ fn create_feature(
     name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
+    feature_keys: ScheduleKeys,
     time_window_code: ViolationCode,
     fitness_fn: Box<dyn Fn(&InsertionContext) -> f64 + Send + Sync>,
 ) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_constraint(TransportConstraint {
-            code: time_window_code,
             transport: transport.clone(),
             activity: activity.clone(),
+            feature_keys: feature_keys.clone(),
+            time_window_code,
         })
-        .with_state(TransportState::new(transport.clone(), activity.clone()))
-        .with_objective(TransportObjective { activity, transport, fitness_fn })
+        .with_state(TransportState::new(transport.clone(), activity.clone(), feature_keys.clone()))
+        .with_objective(TransportObjective { activity, transport, fitness_fn, feature_keys })
         .build()
 }
 
 struct TransportConstraint {
-    code: ViolationCode,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
+    feature_keys: ScheduleKeys,
+    time_window_code: ViolationCode,
 }
 
 impl TransportConstraint {
@@ -116,7 +127,7 @@ impl TransportConstraint {
         if has_time_intersection {
             None
         } else {
-            ConstraintViolation::fail(self.code)
+            ConstraintViolation::fail(self.time_window_code)
         }
     }
 
@@ -138,12 +149,12 @@ impl TransportConstraint {
             || actor.detail.time.end < target.place.time.start
             || next.map_or(false, |next| actor.detail.time.end < next.place.time.start)
         {
-            return ConstraintViolation::fail(self.code);
+            return ConstraintViolation::fail(self.time_window_code);
         }
 
         let (next_act_location, latest_arr_time_at_next) = if let Some(next) = next {
             let latest_arrival =
-                route_ctx.state().get_activity_state(LATEST_ARRIVAL_KEY, activity_ctx.index + 1).copied();
+                route_ctx.state().get_activity_state(self.feature_keys.latest_arrival, activity_ctx.index + 1).copied();
             (next.place.location, latest_arrival.unwrap_or(next.place.time.end))
         } else {
             // open vrp
@@ -154,10 +165,10 @@ impl TransportConstraint {
             + self.transport.duration(route, prev.place.location, next_act_location, TravelTime::Departure(departure));
 
         if arr_time_at_next > latest_arr_time_at_next {
-            return ConstraintViolation::fail(self.code);
+            return ConstraintViolation::fail(self.time_window_code);
         }
         if target.place.time.start > latest_arr_time_at_next {
-            return ConstraintViolation::skip(self.code);
+            return ConstraintViolation::skip(self.time_window_code);
         }
 
         let arr_time_at_target = departure
@@ -180,7 +191,7 @@ impl TransportConstraint {
             target.place.time.end.min(self.activity.estimate_arrival(route, target, latest_departure_at_target));
 
         if arr_time_at_target > latest_arr_time_at_target {
-            return ConstraintViolation::skip(self.code);
+            return ConstraintViolation::skip(self.time_window_code);
         }
 
         if next.is_none() {
@@ -198,7 +209,7 @@ impl TransportConstraint {
             );
 
         if arr_time_at_next > latest_arr_time_at_next {
-            ConstraintViolation::skip(self.code)
+            ConstraintViolation::skip(self.time_window_code)
         } else {
             ConstraintViolation::success()
         }
@@ -223,6 +234,7 @@ struct TransportObjective {
     activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
     fitness_fn: Box<dyn Fn(&InsertionContext) -> f64 + Send + Sync>,
+    feature_keys: ScheduleKeys,
 }
 
 impl TransportObjective {
@@ -256,7 +268,10 @@ impl TransportObjective {
         }
 
         let next = next.unwrap();
-        let waiting_time = *route_ctx.state().get_activity_state(WAITING_KEY, activity_ctx.index + 1).unwrap_or(&0_f64);
+        let waiting_time = *route_ctx
+            .state()
+            .get_activity_state(self.feature_keys.waiting_time, activity_ctx.index + 1)
+            .unwrap_or(&0_f64);
 
         let (tp_cost_old, act_cost_old, dep_time_old) =
             self.analyze_route_leg(route_ctx, prev, next, prev.schedule.departure);
@@ -308,23 +323,26 @@ impl FeatureObjective for TransportObjective {
 }
 
 struct TransportState {
-    schedule_state_keys: ScheduleStateKeys,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
+    schedule_keys: ScheduleKeys,
     all_state_keys: Vec<StateKey>,
 }
 
 impl TransportState {
-    fn new(transport: Arc<dyn TransportCost + Send + Sync>, activity: Arc<dyn ActivityCost + Send + Sync>) -> Self {
-        let schedule_state_keys = ScheduleStateKeys::default();
+    fn new(
+        transport: Arc<dyn TransportCost + Send + Sync>,
+        activity: Arc<dyn ActivityCost + Send + Sync>,
+        schedule_keys: ScheduleKeys,
+    ) -> Self {
         let all_state_keys = vec![
-            schedule_state_keys.waiting_time,
-            schedule_state_keys.latest_arrival,
-            schedule_state_keys.total_duration,
-            schedule_state_keys.total_distance,
+            schedule_keys.waiting_time,
+            schedule_keys.latest_arrival,
+            schedule_keys.total_duration,
+            schedule_keys.total_distance,
         ];
 
-        Self { schedule_state_keys: ScheduleStateKeys::default(), transport, activity, all_state_keys }
+        Self { transport, activity, schedule_keys, all_state_keys }
     }
 }
 
@@ -335,32 +353,16 @@ impl FeatureState for TransportState {
     }
 
     fn accept_route_state(&self, route_ctx: &mut RouteContext) {
-        update_route_schedule(route_ctx, self.activity.as_ref(), self.transport.as_ref(), &self.schedule_state_keys);
+        update_route_schedule(route_ctx, self.activity.as_ref(), self.transport.as_ref(), &self.schedule_keys);
     }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         solution_ctx.routes.iter_mut().filter(|route_ctx| route_ctx.is_stale()).for_each(|route_ctx| {
-            update_route_schedule(
-                route_ctx,
-                self.activity.as_ref(),
-                self.transport.as_ref(),
-                &self.schedule_state_keys,
-            );
+            update_route_schedule(route_ctx, self.activity.as_ref(), self.transport.as_ref(), &self.schedule_keys);
         })
     }
 
     fn state_keys(&self) -> Iter<StateKey> {
         self.all_state_keys.iter()
-    }
-}
-
-impl Default for ScheduleStateKeys {
-    fn default() -> Self {
-        Self {
-            latest_arrival: LATEST_ARRIVAL_KEY,
-            waiting_time: WAITING_KEY,
-            total_distance: TOTAL_DISTANCE_KEY,
-            total_duration: TOTAL_DURATION_KEY,
-        }
     }
 }

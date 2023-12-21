@@ -1,9 +1,8 @@
 use super::*;
 use crate::construction::enablers::NoRouteIntervals;
+use crate::helpers::construction::heuristics::create_state_key;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-
-const STATE_KEY: StateKey = StateKey(2);
 
 fn create_test_feature(route_intervals: Arc<dyn RouteIntervals + Send + Sync>) -> Feature {
     create_fast_service_feature::<SingleDimLoad>(
@@ -12,7 +11,7 @@ fn create_test_feature(route_intervals: Arc<dyn RouteIntervals + Send + Sync>) -
         TestActivityCost::new_shared(),
         route_intervals,
         None,
-        STATE_KEY,
+        create_state_key(),
     )
     .unwrap()
 }
@@ -149,7 +148,7 @@ mod local_estimation {
 mod global_estimation {
     use super::*;
     use crate::construction::enablers::get_route_intervals;
-    use crate::helpers::models::domain::{create_empty_insertion_context, create_empty_solution_context};
+    use crate::helpers::construction::heuristics::InsertionContextBuilder;
     use crate::models::solution::Route;
 
     #[test]
@@ -163,10 +162,7 @@ mod global_estimation {
                     .build(),
             )
             .build();
-        let insertion_ctx = InsertionContext {
-            solution: SolutionContext { routes: vec![route_ctx], ..create_empty_solution_context() },
-            ..create_empty_insertion_context()
-        };
+        let insertion_ctx = InsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
 
         let fitness = objective.fitness(&insertion_ctx);
 
@@ -175,10 +171,10 @@ mod global_estimation {
 
     #[test]
     fn can_get_solution_fitness_with_reload() {
-        const STATE_KEY: StateKey = StateKey(0);
         const INTERVAL_LOCATION: Location = 15;
+        let state_key = create_state_key();
 
-        struct FakeRouteIntervals;
+        struct FakeRouteIntervals(StateKey);
 
         impl RouteIntervals for FakeRouteIntervals {
             fn is_marker_job(&self, job: &Job) -> bool {
@@ -194,7 +190,7 @@ mod global_estimation {
             }
 
             fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
-                route_ctx.state().get_route_state::<Vec<(usize, usize)>>(STATE_KEY)
+                route_ctx.state().get_route_state::<Vec<(usize, usize)>>(self.0)
             }
 
             fn get_interval_key(&self) -> Option<StateKey> {
@@ -206,7 +202,7 @@ mod global_estimation {
             }
         }
 
-        let objective = create_test_feature(Arc::new(FakeRouteIntervals)).objective.expect("no objective");
+        let objective = create_test_feature(Arc::new(FakeRouteIntervals(state_key))).objective.expect("no objective");
         let route = RouteBuilder::default()
             .add_activity(ActivityBuilder::with_location(10).build())
             .add_activity(ActivityBuilder::with_location(INTERVAL_LOCATION).build())
@@ -214,15 +210,12 @@ mod global_estimation {
             .build();
         let state = RouteStateBuilder::default()
             .add_route_state(
-                STATE_KEY,
+                state_key,
                 get_route_intervals(&route, |activity| activity.place.location == INTERVAL_LOCATION),
             )
             .build();
         let route_ctx = RouteContextBuilder::default().with_route(route).with_state(state).build();
-        let insertion_ctx = InsertionContext {
-            solution: SolutionContext { routes: vec![route_ctx], ..create_empty_solution_context() },
-            ..create_empty_insertion_context()
-        };
+        let insertion_ctx = InsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
 
         let fitness = objective.fitness(&insertion_ctx);
 

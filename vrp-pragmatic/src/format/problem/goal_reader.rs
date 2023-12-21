@@ -3,22 +3,26 @@ use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::*;
 use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
-use vrp_core::construction::enablers::NoRouteIntervals;
+use vrp_core::construction::enablers::{NoRouteIntervals, ScheduleKeys};
 use vrp_core::construction::features::*;
+use vrp_core::construction::heuristics::{StateKey, StateKeyRegistry};
 use vrp_core::models::common::{LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Single, TransportCost};
-use vrp_core::models::{Feature, Goal, GoalContext};
+use vrp_core::models::{CoreStateKeys, Extras, Feature, Goal, GoalContext};
 
 pub(super) fn create_goal_context(
     api_problem: &ApiProblem,
     blocks: &ProblemBlocks,
     props: &ProblemProperties,
+    extras: &Extras,
+    state_registry: &mut StateKeyRegistry,
 ) -> Result<GoalContext, GenericError> {
     let mut features = Vec::new();
+    let mut state_context = StateKeyContext::new(extras, state_registry);
 
     // TODO what's about performance implications on order of features when they are evaluated?
 
-    let objective_features = get_objective_features(api_problem, blocks, props)?;
+    let objective_features = get_objective_features(api_problem, blocks, props, &mut state_context)?;
     let (global_objective_map, local_objective_map) = extract_feature_map(objective_features.as_slice())?;
     features.extend(objective_features.into_iter().flat_map(|features| features.into_iter()));
 
@@ -26,10 +30,10 @@ pub(super) fn create_goal_context(
         features.push(create_reachable_feature("reachable", blocks.transport.clone(), REACHABLE_CONSTRAINT_CODE)?)
     }
 
-    features.push(get_capacity_feature("capacity", api_problem, blocks, props)?);
+    features.push(get_capacity_feature("capacity", api_problem, blocks, props, &mut state_context)?);
 
     if props.has_tour_travel_limits {
-        features.push(get_tour_limit_feature("tour_limit", api_problem, blocks.transport.clone())?)
+        features.push(get_tour_limit_feature("tour_limit", api_problem, blocks.transport.clone(), &mut state_context)?)
     }
 
     if props.has_breaks {
@@ -37,7 +41,7 @@ pub(super) fn create_goal_context(
     }
 
     if props.has_recharges {
-        features.push(get_recharge_feature("recharge", api_problem, blocks.transport.clone())?);
+        features.push(get_recharge_feature("recharge", api_problem, blocks.transport.clone(), &mut state_context)?);
     }
 
     if props.has_order && !global_objective_map.iter().flat_map(|o| o.iter()).any(|name| *name == "tour_order") {
@@ -45,11 +49,20 @@ pub(super) fn create_goal_context(
     }
 
     if props.has_compatibility {
-        features.push(create_compatibility_feature("compatibility", COMPATIBILITY_CONSTRAINT_CODE, COMPATIBILITY_KEY)?);
+        features.push(create_compatibility_feature(
+            "compatibility",
+            state_context.next_key(),
+            COMPATIBILITY_CONSTRAINT_CODE,
+        )?);
     }
 
     if props.has_group {
-        features.push(create_group_feature("group", blocks.jobs.size(), GROUP_CONSTRAINT_CODE, GROUP_KEY)?);
+        features.push(create_group_feature(
+            "group",
+            blocks.jobs.size(),
+            state_context.next_key(),
+            GROUP_CONSTRAINT_CODE,
+        )?);
     }
 
     if props.has_skills {
@@ -82,6 +95,7 @@ fn get_objective_features(
     api_problem: &ApiProblem,
     blocks: &ProblemBlocks,
     props: &ProblemProperties,
+    state_context: &mut StateKeyContext,
 ) -> Result<Vec<Vec<Feature>>, GenericError> {
     let objectives = get_objectives(api_problem, props);
 
@@ -95,18 +109,21 @@ fn get_objective_features(
                         "min_cost",
                         blocks.transport.clone(),
                         blocks.activity.clone(),
+                        state_context.schedule_keys.clone(),
                         TIME_CONSTRAINT_CODE,
                     ),
                     Objective::MinimizeDistance => create_minimize_distance_feature(
                         "min_distance",
                         blocks.transport.clone(),
                         blocks.activity.clone(),
+                        state_context.schedule_keys.clone(),
                         TIME_CONSTRAINT_CODE,
                     ),
                     Objective::MinimizeDuration => create_minimize_duration_feature(
                         "min_duration",
                         blocks.transport.clone(),
                         blocks.activity.clone(),
+                        state_context.schedule_keys.clone(),
                         TIME_CONSTRAINT_CODE,
                     ),
                     Objective::MinimizeTours => create_minimize_tours_feature("min_tours"),
@@ -159,10 +176,16 @@ fn get_objective_features(
                     ),
                     Objective::MinimizeArrivalTime => create_minimize_arrival_time_feature("min_arrival_time"),
                     Objective::BalanceMaxLoad { options } => {
+                        let load_balance_keys = LoadBalanceKeys {
+                            reload_interval: state_context.get_reload_intervals_key(),
+                            max_future_capacity: state_context.capacity_keys.max_future_capacity,
+                            balance_max_load: state_context.next_key(),
+                        };
                         if props.has_multi_dimen_capacity {
                             create_max_load_balanced_feature::<MultiDimLoad>(
                                 "max_load_balance",
                                 get_threshold(options),
+                                load_balance_keys,
                                 Arc::new(|loaded, capacity| {
                                     let mut max_ratio = 0_f64;
 
@@ -178,18 +201,38 @@ fn get_objective_features(
                             create_max_load_balanced_feature::<SingleDimLoad>(
                                 "max_load_balance",
                                 get_threshold(options),
+                                load_balance_keys,
                                 Arc::new(|loaded, capacity| loaded.value as f64 / capacity.value as f64),
                             )
                         }
                     }
                     Objective::BalanceActivities { options } => {
-                        create_activity_balanced_feature("activity_balance", get_threshold(options))
+                        let balance_activities_key = state_context.next_key();
+                        create_activity_balanced_feature(
+                            "activity_balance",
+                            get_threshold(options),
+                            balance_activities_key,
+                        )
                     }
                     Objective::BalanceDistance { options } => {
-                        create_distance_balanced_feature("distance_balance", get_threshold(options))
+                        let total_distance_key = state_context.schedule_keys.total_distance;
+                        let balance_distance_key = state_context.next_key();
+                        create_distance_balanced_feature(
+                            "distance_balance",
+                            get_threshold(options),
+                            total_distance_key,
+                            balance_distance_key,
+                        )
                     }
                     Objective::BalanceDuration { options } => {
-                        create_duration_balanced_feature("duration_balance", get_threshold(options))
+                        let total_duration_key = state_context.schedule_keys.total_duration;
+                        let balance_duration_key = state_context.next_key();
+                        create_duration_balanced_feature(
+                            "duration_balance",
+                            get_threshold(options),
+                            total_duration_key,
+                            balance_duration_key,
+                        )
                     }
                     Objective::CompactTour { options } => {
                         let thresholds = Some((options.threshold, options.distance));
@@ -197,15 +240,15 @@ fn get_objective_features(
                             "tour_compact",
                             blocks.jobs.clone(),
                             options.job_radius,
-                            TOUR_COMPACTNESS_KEY,
+                            state_context.next_key(),
                             thresholds,
                         )
                     }
                     Objective::TourOrder => {
-                        create_tour_order_soft_feature("tour_order", TOUR_ORDER_KEY, get_tour_order_fn())
+                        create_tour_order_soft_feature("tour_order", state_context.next_key(), get_tour_order_fn())
                     }
                     Objective::FastService { tolerance } => {
-                        get_fast_service_feature("fast_service", blocks, props, *tolerance)
+                        get_fast_service_feature("fast_service", blocks, props, *tolerance, state_context)
                     }
                 })
                 .collect()
@@ -238,13 +281,16 @@ fn get_capacity_feature(
     api_problem: &ApiProblem,
     blocks: &ProblemBlocks,
     props: &ProblemProperties,
+    state_context: &mut StateKeyContext,
 ) -> Result<Feature, GenericError> {
+    let capacity_keys = state_context.capacity_keys.clone();
     if props.has_reloads {
         if props.has_multi_dimen_capacity {
             get_capacity_with_reload_feature::<MultiDimLoad>(
                 name,
                 api_problem,
                 blocks,
+                state_context,
                 MultiDimLoad::new,
                 Box::new(move |capacity| *capacity * RELOAD_THRESHOLD),
             )
@@ -253,14 +299,15 @@ fn get_capacity_feature(
                 name,
                 api_problem,
                 blocks,
+                state_context,
                 |capacity| SingleDimLoad::new(capacity.first().cloned().unwrap_or_default()),
                 Box::new(move |capacity| *capacity * RELOAD_THRESHOLD),
             )
         }
     } else if props.has_multi_dimen_capacity {
-        create_capacity_limit_feature::<MultiDimLoad>(name, CAPACITY_CONSTRAINT_CODE)
+        create_capacity_limit_feature::<MultiDimLoad>(name, capacity_keys, CAPACITY_CONSTRAINT_CODE)
     } else {
-        create_capacity_limit_feature::<SingleDimLoad>(name, CAPACITY_CONSTRAINT_CODE)
+        create_capacity_limit_feature::<SingleDimLoad>(name, capacity_keys, CAPACITY_CONSTRAINT_CODE)
     }
 }
 
@@ -269,30 +316,35 @@ fn get_fast_service_feature(
     blocks: &ProblemBlocks,
     props: &ProblemProperties,
     tolerance: Option<f64>,
+    state_context: &mut StateKeyContext,
 ) -> Result<Feature, GenericError> {
+    let state_key = state_context.next_key();
     let (transport, activity) = (blocks.transport.clone(), blocks.activity.clone());
     if props.has_reloads {
+        let reload_keys = state_context.get_reload_keys();
         if props.has_multi_dimen_capacity {
             create_fast_service_feature::<MultiDimLoad>(
                 name,
                 transport,
                 activity,
-                create_simple_reload_route_intervals(Box::new(move |capacity: &MultiDimLoad| {
-                    *capacity * RELOAD_THRESHOLD
-                })),
+                create_simple_reload_route_intervals(
+                    Box::new(move |capacity: &MultiDimLoad| *capacity * RELOAD_THRESHOLD),
+                    reload_keys,
+                ),
                 tolerance,
-                FAST_SERVICE_KEY,
+                state_key,
             )
         } else {
             create_fast_service_feature::<SingleDimLoad>(
                 name,
                 transport,
                 activity,
-                create_simple_reload_route_intervals(Box::new(move |capacity: &SingleDimLoad| {
-                    *capacity * RELOAD_THRESHOLD
-                })),
+                create_simple_reload_route_intervals(
+                    Box::new(move |capacity: &SingleDimLoad| *capacity * RELOAD_THRESHOLD),
+                    reload_keys,
+                ),
                 tolerance,
-                FAST_SERVICE_KEY,
+                state_key,
             )
         }
     } else {
@@ -304,7 +356,7 @@ fn get_fast_service_feature(
                 activity,
                 route_intervals,
                 tolerance,
-                FAST_SERVICE_KEY,
+                state_key,
             )
         } else {
             create_fast_service_feature::<SingleDimLoad>(
@@ -313,7 +365,7 @@ fn get_fast_service_feature(
                 activity,
                 route_intervals,
                 tolerance,
-                FAST_SERVICE_KEY,
+                state_key,
             )
         }
     }
@@ -323,16 +375,25 @@ fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(
     name: &str,
     api_problem: &ApiProblem,
     blocks: &ProblemBlocks,
+    state_context: &mut StateKeyContext,
     capacity_map: fn(Vec<i32>) -> T,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
 ) -> Result<Feature, GenericError> {
-    let reload_resources = get_reload_resources(api_problem, blocks.job_index.as_ref(), capacity_map);
-    let capacity_feature_factory: CapacityFeatureFactoryFn = Box::new(|name, route_intervals| {
-        create_capacity_limit_with_multi_trip_feature::<T>(name, CAPACITY_CONSTRAINT_CODE, route_intervals)
+    let capacity_keys = state_context.capacity_keys.clone();
+    let job_index = blocks.job_index.as_ref().ok_or("misconfiguration in goal reader: job index is not set")?;
+    let reload_resources = get_reload_resources(api_problem, job_index, capacity_map);
+    let capacity_feature_factory: CapacityFeatureFactoryFn = Box::new(move |name, route_intervals| {
+        create_capacity_limit_with_multi_trip_feature::<T>(
+            name,
+            route_intervals,
+            capacity_keys,
+            CAPACITY_CONSTRAINT_CODE,
+        )
     });
 
+    let reload_keys = state_context.get_reload_keys();
     if reload_resources.is_empty() {
-        create_simple_reload_multi_trip_feature(name, capacity_feature_factory, load_schedule_threshold_fn)
+        create_simple_reload_multi_trip_feature(name, capacity_feature_factory, load_schedule_threshold_fn, reload_keys)
     } else {
         create_shared_reload_multi_trip_feature(
             name,
@@ -340,8 +401,8 @@ fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(
             load_schedule_threshold_fn,
             reload_resources,
             blocks.jobs.size(),
+            SharedReloadKeys { resource: state_context.next_key(), reload_keys },
             RELOAD_RESOURCE_CONSTRAINT_CODE,
-            RELOAD_RESOURCE_KEY,
         )
     }
 }
@@ -350,6 +411,7 @@ fn get_tour_limit_feature(
     name: &str,
     api_problem: &ApiProblem,
     transport: Arc<dyn TransportCost + Send + Sync>,
+    state_context: &mut StateKeyContext,
 ) -> Result<Feature, GenericError> {
     let (distances, durations) = api_problem
         .fleet
@@ -379,8 +441,12 @@ fn get_tour_limit_feature(
         transport.clone(),
         get_limit(distances),
         get_limit(durations),
-        DISTANCE_LIMIT_CONSTRAINT_CODE,
-        DURATION_LIMIT_CONSTRAINT_CODE,
+        TourLimitKeys {
+            duration_key: state_context.next_key(),
+            schedule_keys: state_context.schedule_keys.clone(),
+            distance_code: DISTANCE_LIMIT_CONSTRAINT_CODE,
+            duration_code: DURATION_LIMIT_CONSTRAINT_CODE,
+        },
     )
 }
 
@@ -388,6 +454,7 @@ fn get_recharge_feature(
     name: &str,
     api_problem: &ApiProblem,
     transport: Arc<dyn TransportCost + Send + Sync>,
+    state_context: &mut StateKeyContext,
 ) -> Result<Feature, GenericError> {
     let distance_limit_index: HashMap<_, HashMap<_, _>> =
         api_problem.fleet.vehicles.iter().fold(HashMap::default(), |mut acc, vehicle_type| {
@@ -411,7 +478,13 @@ fn get_recharge_feature(
         )
     });
 
-    create_recharge_feature(name, RECHARGE_CONSTRAINT_CODE, distance_limit_fn, transport)
+    let recharge_keys = RechargeKeys {
+        distance: state_context.next_key(),
+        intervals: state_context.next_key(),
+        capacity_keys: state_context.capacity_keys.clone(),
+    };
+
+    create_recharge_feature(name, distance_limit_fn, transport, recharge_keys, RECHARGE_CONSTRAINT_CODE)
 }
 
 fn get_reload_resources<T>(
@@ -534,4 +607,37 @@ fn get_tour_order_fn() -> TourOrderFn {
             // departure and arrival
             .unwrap_or(OrderResult::Ignored)
     }))
+}
+
+/// Provides way to get unique state keys in lazily manner and share them across multiple features.
+struct StateKeyContext<'a> {
+    state_registry: &'a mut StateKeyRegistry,
+    reload_intervals: Option<StateKey>,
+    schedule_keys: ScheduleKeys,
+    capacity_keys: CapacityKeys,
+}
+
+impl<'a> StateKeyContext<'a> {
+    pub fn new(extras: &Extras, state_registry: &'a mut StateKeyRegistry) -> Self {
+        let schedule_keys = extras.get_schedule_keys().cloned().expect("schedule keys are missing in extras");
+        let capacity_keys = extras.get_capacity_keys().cloned().expect("capacity keys are missing in extras");
+
+        Self { state_registry, reload_intervals: None, capacity_keys, schedule_keys }
+    }
+
+    pub fn next_key(&mut self) -> StateKey {
+        self.state_registry.next_key()
+    }
+
+    pub fn get_reload_intervals_key(&mut self) -> StateKey {
+        if self.reload_intervals.is_none() {
+            self.reload_intervals = Some(self.state_registry.next_key());
+        }
+
+        self.reload_intervals.unwrap()
+    }
+
+    pub fn get_reload_keys(&mut self) -> ReloadKeys {
+        ReloadKeys { intervals: self.get_reload_intervals_key(), capacity_keys: self.capacity_keys.clone() }
+    }
 }

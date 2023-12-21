@@ -12,15 +12,15 @@ mod initial_reader;
 pub use self::initial_reader::read_init_solution;
 
 mod routing;
-pub use self::routing::CoordIndex;
+pub use self::routing::{CoordIndex, CoordIndexAccessor};
 
-use vrp_core::models::Extras;
+use vrp_core::models::{Extras, ExtrasBuilder};
 use vrp_core::solver::HeuristicFilter;
 
 pub(crate) fn get_extras(coord_index: CoordIndex) -> Extras {
-    let mut extras = Extras::default();
+    let mut extras = ExtrasBuilder::default().build().expect("cannot build extras");
 
-    extras.insert("coord_index".to_string(), Arc::new(coord_index));
+    extras.set_coord_index(coord_index);
     extras.set_heuristic_filter(Arc::new(|name| name != "local_reschedule_departure"));
 
     extras

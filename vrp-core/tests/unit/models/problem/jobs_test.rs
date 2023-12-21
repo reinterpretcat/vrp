@@ -99,7 +99,7 @@ fn create_costs() -> Costs {
 fn all_returns_all_jobs() {
     let jobs = vec![SingleBuilder::default().build_as_job_ref(), SingleBuilder::default().build_as_job_ref()];
 
-    assert_eq!(Jobs::new(&test_fleet(), jobs, &create_only_distance_transport_cost()).all().count(), 2)
+    assert_eq!(Jobs::new(&test_fleet(), jobs, create_only_distance_transport_cost().as_ref()).all().count(), 2)
 }
 
 parameterized_test! {calculates_proper_cost_between_single_jobs, (left, right, expected), {
@@ -162,7 +162,7 @@ fn returns_proper_job_neighbours_impl(index: usize, expected: Vec<String>) {
         SingleBuilder::default().id("s3").location(Some(3)).build_as_job_ref(),
         SingleBuilder::default().id("s4").location(Some(4)).build_as_job_ref(),
     ];
-    let jobs = Jobs::new(&fleet, species.clone(), &create_profile_aware_transport_cost());
+    let jobs = Jobs::new(&fleet, species.clone(), create_profile_aware_transport_cost().as_ref());
 
     let result: Vec<String> =
         jobs.neighbors(&p1, species.get(index).unwrap(), 0.0).map(|(j, _)| get_job_id(j).clone()).collect();
@@ -207,7 +207,7 @@ fn returns_proper_job_ranks_impl(index: usize, profile_index: usize, expected: D
         SingleBuilder::default().id("s2").location(Some(21)).build_as_job_ref(),
         SingleBuilder::default().id("s3").location(Some(31)).build_as_job_ref(),
     ];
-    let jobs = Jobs::new(&fleet, species.clone(), &create_profile_aware_transport_cost());
+    let jobs = Jobs::new(&fleet, species.clone(), create_profile_aware_transport_cost().as_ref());
 
     let result = jobs.rank(&profile, species.get(index).unwrap());
 
@@ -219,7 +219,7 @@ fn can_use_multi_job_bind_and_roots() {
     let job = test_multi_job_with_locations(vec![vec![Some(0)], vec![Some(1)]]);
     let jobs = vec![Job::Multi(job.clone())];
 
-    let jobs = Jobs::new(&test_fleet(), jobs, &create_only_distance_transport_cost());
+    let jobs = Jobs::new(&test_fleet(), jobs, create_only_distance_transport_cost().as_ref());
     let job = Job::Multi(Multi::roots(job.jobs.first().unwrap()).unwrap());
 
     assert_eq!(jobs.neighbors(&Profile::default(), &job, 0.0).count(), 0);
@@ -243,7 +243,7 @@ fn can_handle_negative_distances_durations_impl(transport_costs: Arc<dyn Transpo
         SingleBuilder::default().id("s1").location(Some(1)).build_as_job_ref(),
     ];
 
-    let jobs = Jobs::new(&test_fleet(), species.clone(), &transport_costs);
+    let jobs = Jobs::new(&test_fleet(), species.clone(), transport_costs.as_ref());
 
     for job in &species {
         assert!(jobs
