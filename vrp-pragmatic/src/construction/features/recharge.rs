@@ -141,9 +141,10 @@ impl MultiTrip for RechargeableMultiTrip {
 
         let last_idx = route_ctx.route().tour.total() - 1;
         let marker_intervals = self.route_intervals.resolve_marker_intervals(route_ctx).collect::<Vec<_>>();
+        let mut distance_counters = vec![Distance::default(); route_ctx.route().tour.total()];
 
         marker_intervals.into_iter().for_each(|(start_idx, end_idx)| {
-            let (route, state) = route_ctx.as_mut();
+            let route = route_ctx.route();
 
             let end_idx = if end_idx != last_idx { end_idx + 1 } else { end_idx };
 
@@ -166,11 +167,13 @@ impl MultiTrip for RechargeableMultiTrip {
                     let counter = acc + distance;
                     let next_idx = activity_idx + 1;
 
-                    state.put_activity_state(self.distance_key, next_idx, counter);
+                    distance_counters[next_idx] = counter;
 
                     counter
                 });
         });
+
+        route_ctx.state_mut().put_activity_states(self.distance_key, distance_counters);
     }
 
     fn try_recover(&self, solution_ctx: &mut SolutionContext, route_indices: &[usize], _: &[Job]) -> bool {

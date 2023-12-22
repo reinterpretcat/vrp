@@ -147,9 +147,15 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
             .cloned()
             .unwrap_or_else(|| vec![(0, route_ctx.route().tour.total() - 1)]);
 
+        let tour_len = route_ctx.route().tour.total();
+
+        let mut current_capacities = vec![T::default(); tour_len];
+        let mut max_past_capacities = vec![T::default(); tour_len];
+        let mut max_future_capacities = vec![T::default(); tour_len];
+
         let (_, max_load) =
             marker_intervals.into_iter().fold((T::default(), T::default()), |(acc, max), (start_idx, end_idx)| {
-                let (route, state) = route_ctx.as_mut();
+                let route = route_ctx.route();
 
                 // determine static deliveries loaded at the begin and static pickups brought to the end
                 let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
@@ -171,22 +177,26 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
                         let current = current + change;
                         let max = max.max_load(current);
 
-                        state.put_activity_state(self.feature_keys.current_capacity, activity_idx, current);
-                        state.put_activity_state(self.feature_keys.max_past_capacity, activity_idx, max);
+                        current_capacities[activity_idx] = current;
+                        max_past_capacities[activity_idx] = max;
 
                         (current, max)
                     },
                 );
 
                 let current_max = (start_idx..=end_idx).rev().fold(current, |max, activity_idx| {
-                    let max = max
-                        .max_load(*state.get_activity_state(self.feature_keys.current_capacity, activity_idx).unwrap());
-                    state.put_activity_state(self.feature_keys.max_future_capacity, activity_idx, max);
+                    let max = max.max_load(current_capacities[activity_idx]);
+                    max_future_capacities[activity_idx] = max;
+
                     max
                 });
 
                 (current - end_pickup, current_max.max_load(max))
             });
+
+        route_ctx.state_mut().put_activity_states(self.feature_keys.current_capacity, current_capacities);
+        route_ctx.state_mut().put_activity_states(self.feature_keys.max_past_capacity, max_past_capacities);
+        route_ctx.state_mut().put_activity_states(self.feature_keys.max_future_capacity, max_future_capacities);
 
         if let Some(capacity) = route_ctx.route().actor.clone().vehicle.dimens.get_capacity() {
             route_ctx.state_mut().put_route_state(self.feature_keys.max_load, max_load.ratio(capacity));

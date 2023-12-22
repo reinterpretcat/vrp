@@ -12,10 +12,8 @@ use hashbrown::{HashMap, HashSet};
 use nohash_hasher::BuildNoHashHasher;
 use rosomaxa::evolution::TelemetryMetrics;
 use rosomaxa::prelude::*;
-use rustc_hash::FxHasher;
 use std::any::Any;
 use std::fmt::{Debug, Formatter};
-use std::hash::BuildHasherDefault;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -248,7 +246,6 @@ pub struct RouteContext {
 #[derive(Clone)]
 pub struct RouteState {
     route_states: HashMap<usize, StateValue, BuildNoHashHasher<usize>>,
-    activity_states: HashMap<ActivityWithKey, StateValue, BuildHasherDefault<FxHasher>>,
 }
 
 impl RouteContext {
@@ -333,10 +330,7 @@ impl Debug for RouteContext {
 
 impl Default for RouteState {
     fn default() -> RouteState {
-        RouteState {
-            route_states: HashMap::with_capacity_and_hasher(2, BuildNoHashHasher::<usize>::default()),
-            activity_states: HashMap::with_capacity_and_hasher(4, BuildHasherDefault::<FxHasher>::default()),
-        }
+        RouteState { route_states: HashMap::with_capacity_and_hasher(4, BuildNoHashHasher::<usize>::default()) }
     }
 }
 
@@ -346,19 +340,17 @@ impl RouteState {
         self.route_states.get(&key.0).and_then(|s| s.downcast_ref::<T>())
     }
 
-    /// Gets value associated with key.
-    pub fn get_route_state_raw(&self, key: StateKey) -> Option<&StateValue> {
-        self.route_states.get(&key.0)
-    }
-
     /// Gets value associated with key converted to given type.
     pub fn get_activity_state<T: Send + Sync + 'static>(&self, key: StateKey, activity_idx: usize) -> Option<&T> {
-        self.activity_states.get(&(activity_idx, key.0)).and_then(|s| s.downcast_ref::<T>())
+        self.route_states
+            .get(&key.0)
+            .and_then(|s| s.downcast_ref::<Vec<T>>())
+            .and_then(|activity_states| activity_states.get(activity_idx))
     }
 
-    /// Gets value associated with key.
-    pub fn get_activity_state_raw(&self, key: StateKey, activity_idx: usize) -> Option<&StateValue> {
-        self.activity_states.get(&(activity_idx, key.0))
+    /// Gets values associated with key and activities.
+    pub fn get_activity_states<T: Send + Sync + 'static>(&self, key: StateKey) -> Option<&Vec<T>> {
+        self.route_states.get(&key.0).and_then(|s| s.downcast_ref::<Vec<T>>())
     }
 
     /// Puts value associated with key.
@@ -366,24 +358,13 @@ impl RouteState {
         self.route_states.insert(key.0, Arc::new(value));
     }
 
-    /// Puts value associated with key.
-    pub fn put_route_state_raw(&mut self, key: StateKey, value: Arc<dyn Any + Send + Sync>) {
-        self.route_states.insert(key.0, value);
+    /// Adds values associated with activities.
+    pub fn put_activity_states<T: Send + Sync + 'static>(&mut self, key: StateKey, values: Vec<T>) {
+        self.route_states.insert(key.0, Arc::new(values));
     }
 
-    /// Puts value associated with key and specific activity.
-    pub fn put_activity_state<T: Send + Sync + 'static>(&mut self, key: StateKey, activity_idx: usize, value: T) {
-        self.activity_states.insert((activity_idx, key.0), Arc::new(value));
-    }
-
-    /// Puts value associated with key and specific activity.
-    pub fn put_activity_state_raw(&mut self, key: StateKey, activity_idx: usize, value: StateValue) {
-        self.activity_states.insert((activity_idx, key.0), value);
-    }
-
-    /// Clear all states, but keeps flags.
+    /// Clear all states.
     pub fn clear(&mut self) {
-        self.activity_states.clear();
         self.route_states.clear();
     }
 }
@@ -484,9 +465,6 @@ pub struct ActivityContext<'a> {
     /// Next activity. Absent if tour is open and target activity inserted last.
     pub next: Option<&'a Activity>,
 }
-
-/// An internal hash map key represented as `(activity_idx, state_key)`.
-type ActivityWithKey = (usize, usize);
 
 /// A local move context.
 pub enum MoveContext<'a> {

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+This release combines many changes, but essentials are:
+- internal route state api simplification
+- increased performance
+- several experimental features
+- bug fixes
+
 ### Added
 
 * original job place index in activity place to simplify activity-job place matching
@@ -24,6 +30,7 @@ All notable changes to this project will be documented in this file.
 * update dependencies
 * improve a bit documentation
 * refactor route state
+* do not use hashmaps to store activity states
 
 ### Fixed
 

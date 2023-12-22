@@ -97,23 +97,27 @@ impl<T: SharedResource> SharedResourceConstraint<T> {
             .flat_map(|intervals| intervals.iter())
             .find(|(_, end_idx)| activity_ctx.index <= *end_idx)
             .and_then(|&(start_idx, _)| {
-                route_ctx.state().get_activity_state::<T>(self.resource_key, start_idx).and_then(|resource_available| {
-                    let resource_demand = activity_ctx
-                        .target
-                        .job
-                        .as_ref()
-                        .and_then(|job| (self.resource_demand_fn)(job.as_ref()))
-                        .unwrap_or_default();
+                route_ctx
+                    .state()
+                    .get_activity_state::<Option<T>>(self.resource_key, start_idx)
+                    .and_then(|resource_available| *resource_available)
+                    .and_then(|resource_available| {
+                        let resource_demand = activity_ctx
+                            .target
+                            .job
+                            .as_ref()
+                            .and_then(|job| (self.resource_demand_fn)(job.as_ref()))
+                            .unwrap_or_default();
 
-                    if resource_available
-                        .partial_cmp(&resource_demand)
-                        .map_or(false, |ordering| ordering == Ordering::Less)
-                    {
-                        ConstraintViolation::skip(self.code)
-                    } else {
-                        ConstraintViolation::success()
-                    }
-                })
+                        if resource_available
+                            .partial_cmp(&resource_demand)
+                            .map_or(false, |ordering| ordering == Ordering::Less)
+                        {
+                            ConstraintViolation::skip(self.code)
+                        } else {
+                            ConstraintViolation::success()
+                        }
+                    })
             })
     }
 }
@@ -173,6 +177,8 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
 
         // second pass: store amount of available resources inside activity state
         solution_ctx.routes.iter_mut().for_each(|route_ctx| {
+            let mut available_resources = vec![None; route_ctx.route().tour.total()];
+
             #[allow(clippy::unnecessary_to_owned)]
             (self.interval_fn)(route_ctx).cloned().unwrap_or_default().into_iter().for_each(|(start_idx, _)| {
                 let resource_available = (self.resource_capacity_fn)(get_activity_by_idx(route_ctx.route(), start_idx))
@@ -181,14 +187,17 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
                     });
 
                 if let Some(resource_available) = resource_available {
-                    route_ctx.state_mut().put_activity_state(self.resource_key, start_idx, resource_available);
+                    available_resources[start_idx] = Some(resource_available);
                 }
             });
+            route_ctx.state_mut().put_activity_states(self.resource_key, available_resources)
         });
     }
 
     /// Prevents resource consumption in given route by setting available to zero (default).
     fn prevent_resource_consumption(&self, route_ctx: &mut RouteContext) {
+        let mut empty_resources = vec![None; route_ctx.route().tour.total()];
+
         (self.interval_fn)(route_ctx).cloned().unwrap_or_default().into_iter().for_each(|(start_idx, end_idx)| {
             let activity = get_activity_by_idx(route_ctx.route(), start_idx);
             let has_resource_demand = (self.resource_capacity_fn)(activity).map_or(false, |(_, _)| {
@@ -199,9 +208,11 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
             });
 
             if has_resource_demand {
-                route_ctx.state_mut().put_activity_state(self.resource_key, start_idx, T::default());
+                empty_resources[start_idx] = Some(T::default());
             }
         });
+
+        route_ctx.state_mut().put_activity_states(self.resource_key, empty_resources)
     }
 
     fn get_total_demand(&self, route_ctx: &RouteContext, range: RangeInclusive<usize>) -> T {

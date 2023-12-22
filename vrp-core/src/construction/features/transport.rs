@@ -268,10 +268,12 @@ impl TransportObjective {
         }
 
         let next = next.unwrap();
-        let waiting_time = *route_ctx
+        let waiting_time = route_ctx
             .state()
-            .get_activity_state(self.feature_keys.waiting_time, activity_ctx.index + 1)
-            .unwrap_or(&0_f64);
+            .get_activity_states::<Option<Duration>>(self.feature_keys.waiting_time)
+            .and_then(|states| states.get(activity_ctx.index + 1).copied())
+            .flatten()
+            .unwrap_or_default();
 
         let (tp_cost_old, act_cost_old, dep_time_old) =
             self.analyze_route_leg(route_ctx, prev, next, prev.schedule.departure);

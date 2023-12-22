@@ -136,22 +136,22 @@ parameterized_test! {can_update_state_for_reserved_time, (vehicle_detail_data, r
 can_update_state_for_reserved_time! {
     case01_single_outside: ((0, 0, 0., 100.), (25., 30.),
               vec![(10, (0., 100.), 10.)],
-              vec![None, Some(80.), None],
+              vec![Some(0.), Some(80.), None],
               vec![(0., 0.), (10., 20.), (35., 35.)]),
 
     case02_single_inside: ((0, 0, 0., 100.), (25., 30.),
               vec![(20, (0., 25.), 10.)],
-              vec![None, Some(20.), None],
+              vec![Some(0.), Some(20.), None],
               vec![(0., 0.), (20., 35.), (55., 55.)]),
 
     case03_two_inside_travel: ((0, 0, 0., 100.), (25., 30.),
               vec![(10, (0., 20.), 10.), (20, (0., 40.), 10.)],
-              vec![None, Some(15.), Some(40.), None],
+              vec![Some(0.), Some(15.), Some(40.), None],
               vec![(0., 0.), (10., 20.), (35., 45.), (65., 65.)]),
 
     case04_two_inside_service: ((0, 0, 0., 100.), (35., 40.),
               vec![(10, (0., 20.), 10.), (20, (0., 50.), 10.)],
-              vec![None, Some(15.), Some(50.), None],
+              vec![Some(0.), Some(15.), Some(50.), None],
               vec![(0., 0.), (10., 20.), (30., 45.), (65., 65.)]),
 }
 

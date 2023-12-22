@@ -5,36 +5,14 @@ use crate::helpers::models::problem::{test_fleet, SingleBuilder};
 use crate::helpers::models::solution::*;
 
 #[test]
-fn can_put_and_get_activity_state() {
-    let state_key = create_state_key();
-    let mut route_state = RouteState::default();
-
-    route_state.put_activity_state(state_key, 0, "my_value".to_string());
-    let result = route_state.get_activity_state::<String>(state_key, 0);
-
-    assert_eq!(result.unwrap(), "my_value");
-}
-
-#[test]
-fn can_put_and_get_empty_activity_state() {
-    let state_key = create_state_key();
-    let mut route_state = RouteState::default();
-
-    route_state.put_activity_state(state_key, 0, "my_value".to_string());
-    let result = route_state.get_activity_state::<String>(state_key, 1);
-
-    assert!(result.is_none());
-}
-
-#[test]
-fn can_put_and_get_activity_state_with_different_keys() {
+fn can_put_and_get_activity_states_with_different_keys() {
     let mut keys = StateKeyRegistry::default();
     let (key1, key2, key3, key4) = (keys.next_key(), keys.next_key(), keys.next_key(), keys.next_key());
     let mut route_state = RouteState::default();
 
-    route_state.put_activity_state(key1, 0, "key1".to_string());
-    route_state.put_activity_state(key2, 0, "key2".to_string());
-    route_state.put_activity_state(key3, 0, "key3".to_string());
+    route_state.put_activity_states(key1, vec!["key1".to_string()]);
+    route_state.put_activity_states(key2, vec!["key2".to_string()]);
+    route_state.put_activity_states(key3, vec!["key3".to_string()]);
     let result3 = route_state.get_activity_state::<String>(key3, 0);
     let result1 = route_state.get_activity_state::<String>(key1, 0);
     let result2 = route_state.get_activity_state::<String>(key2, 0);

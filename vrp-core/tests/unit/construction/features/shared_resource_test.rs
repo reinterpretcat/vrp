@@ -175,7 +175,8 @@ fn can_update_resource_consumption_impl(
                 .map(|activity_idx| {
                     route_ctx
                         .state()
-                        .get_activity_state::<SingleDimLoad>(resource_key, activity_idx)
+                        .get_activity_state::<Option<SingleDimLoad>>(resource_key, activity_idx)
+                        .and_then(|resource| *resource)
                         .map(|resource| resource.value)
                 })
                 .collect::<Vec<_>>()

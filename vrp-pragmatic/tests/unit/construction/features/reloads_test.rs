@@ -269,11 +269,9 @@ fn can_handle_new_interval_needed_for_multi_dim_load_impl(
     );
     let (mut route_ctx, _) = create_route_context_with_fleet(vehicle_capacity, Vec::default());
     let (route, state) = route_ctx.as_mut();
-    state.put_activity_state(
-        reload_keys.capacity_keys.max_past_capacity,
-        route.tour.end_idx().unwrap(),
-        MultiDimLoad::new(current_capacity),
-    );
+    let mut current_capacities = vec![MultiDimLoad::default(); route.tour.total()];
+    current_capacities[route.tour.end_idx().unwrap()] = MultiDimLoad::new(current_capacity);
+    state.put_activity_states(reload_keys.capacity_keys.max_past_capacity, current_capacities);
 
     let result = route_intervals.is_new_interval_needed(&route_ctx);
 
