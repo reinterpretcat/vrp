@@ -249,15 +249,6 @@ pub struct RouteContext {
 pub struct RouteState {
     route_states: HashMap<usize, StateValue, BuildNoHashHasher<usize>>,
     activity_states: HashMap<ActivityWithKey, StateValue, BuildHasherDefault<FxHasher>>,
-    flags: u8,
-}
-
-/// Specifies route state flags which are stateful and not reset during `accept_route_state`.
-pub mod state_flags {
-    /// No flags set.
-    pub const NO_FLAGS: u8 = 0x00;
-    /// Route is in unassignable state.
-    pub const UNASSIGNABLE: u8 = 0x01;
 }
 
 impl RouteContext {
@@ -345,7 +336,6 @@ impl Default for RouteState {
         RouteState {
             route_states: HashMap::with_capacity_and_hasher(2, BuildNoHashHasher::<usize>::default()),
             activity_states: HashMap::with_capacity_and_hasher(4, BuildHasherDefault::<FxHasher>::default()),
-            flags: state_flags::NO_FLAGS,
         }
     }
 }
@@ -389,31 +379,6 @@ impl RouteState {
     /// Puts value associated with key and specific activity.
     pub fn put_activity_state_raw(&mut self, key: StateKey, activity_idx: usize, value: StateValue) {
         self.activity_states.insert((activity_idx, key.0), value);
-    }
-
-    /// Returns size route state storage.
-    pub fn sizes(&self) -> (usize, usize) {
-        (self.route_states.capacity(), self.activity_states.capacity())
-    }
-
-    /// Sets flag.
-    pub fn set_flag(&mut self, flag: u8) {
-        self.flags |= flag;
-    }
-
-    /// Gets flags.
-    pub fn get_flags(&self) -> u8 {
-        self.flags
-    }
-
-    /// Returns true if flag is set.
-    pub fn has_flag(&self, flag: u8) -> bool {
-        (self.flags & flag) > 0
-    }
-
-    /// Resets all flags.
-    pub fn reset_flags(&mut self) {
-        self.flags = state_flags::NO_FLAGS
     }
 
     /// Clear all states, but keeps flags.
