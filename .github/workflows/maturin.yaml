@@ -22,7 +22,7 @@ jobs:
         with:
           working-directory: ./vrp-cli
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --release -i python3.10 --out dist
           sccache: 'true'
           manylinux: auto
       - name: Upload wheels
@@ -47,7 +47,7 @@ jobs:
         with:
           working-directory: ./vrp-cli
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --release -i python3.10 --out dist
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v3
@@ -70,7 +70,7 @@ jobs:
         with:
           working-directory: ./vrp-cli
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --release -i python3.10 --out dist
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v3
