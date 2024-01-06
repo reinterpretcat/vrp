@@ -190,7 +190,7 @@ impl Multi {
 
     /// Returns parent multi job for given sub-job.
     pub fn roots(single: &Single) -> Option<Arc<Multi>> {
-        single.dimens.get_value::<Weak<Multi>>("rf").and_then(|w| w.upgrade())
+        single.dimens.get_extension::<Weak<Multi>>().and_then(|w| w.upgrade())
     }
 
     /// Wraps given multi job into [`Arc`] adding reference to it from all sub-jobs.
@@ -200,7 +200,7 @@ impl Multi {
                 Arc::get_mut(single)
                     .expect("Single from Multi should not be shared before binding")
                     .dimens
-                    .set_value("rf", weak_multi.clone());
+                    .set_extension(weak_multi.clone());
             });
 
             multi

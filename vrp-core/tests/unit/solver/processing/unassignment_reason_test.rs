@@ -3,7 +3,7 @@ use crate::helpers::construction::heuristics::{create_schedule_keys, InsertionCo
 use crate::helpers::models::domain::{GoalContextBuilder, ProblemBuilder};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
-use crate::models::common::{IdDimension, TimeWindow};
+use crate::models::common::TimeWindow;
 use crate::models::problem::Job;
 use crate::solver::processing::UnassignmentReason;
 use rosomaxa::evolution::HeuristicSolutionProcessing;

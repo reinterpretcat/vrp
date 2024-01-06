@@ -4,7 +4,7 @@ use crate::construction::heuristics::MoveContext;
 use crate::helpers::models::domain::{test_random, GoalContextBuilder};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder};
-use crate::models::common::{Cost, IdDimension, Location};
+use crate::models::common::{Cost, Location};
 use crate::models::problem::*;
 use crate::models::solution::{Activity, Registry, Route};
 use crate::models::*;

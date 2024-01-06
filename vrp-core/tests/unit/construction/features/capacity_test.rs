@@ -2,6 +2,7 @@ use super::*;
 use crate::construction::heuristics::{ActivityContext, RouteState};
 use crate::helpers::construction::features::*;
 use crate::helpers::construction::heuristics::{create_capacity_keys, InsertionContextBuilder};
+use crate::helpers::models::domain::create_dimen_key;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::{Demand, DemandDimension, SingleDimLoad};
@@ -14,16 +15,16 @@ fn create_feature(capacity_keys: CapacityKeys) -> Feature {
     create_capacity_limit_feature::<SingleDimLoad>("capacity", capacity_keys, VIOLATION_CODE).unwrap()
 }
 
-fn create_test_vehicle(capacity: i32) -> Vehicle {
-    VehicleBuilder::default().id("v1").capacity(capacity).build()
+fn create_test_vehicle(capacity: i32, capacity_key: DimenKey) -> Vehicle {
+    VehicleBuilder::default().id("v1").capacity(capacity_key, capacity).build()
 }
 
 fn create_constraint_violation(stopped: bool) -> Option<ConstraintViolation> {
     Some(ConstraintViolation { code: VIOLATION_CODE, stopped })
 }
 
-fn create_activity_with_simple_demand(size: i32) -> Activity {
-    let job = SingleBuilder::default().demand(create_simple_demand(size)).build_shared();
+fn create_activity_with_simple_demand(size: i32, demand_key: DimenKey) -> Activity {
+    let job = SingleBuilder::default().demand(demand_key, create_simple_demand(size)).build_shared();
     ActivityBuilder::default().job(Some(job)).build()
 }
 
@@ -53,14 +54,19 @@ fn can_calculate_current_capacity_state_values_impl(
     exp_s3: i32,
 ) {
     let capacity_keys = create_capacity_keys();
-    let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
+    let dimen_keys = capacity_keys.dimen_keys;
+    let state_keys = capacity_keys.state_keys;
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicle(create_test_vehicle(10, dimen_keys.vehicle_capacity))
+        .build();
     let mut route_ctx = RouteContextBuilder::default()
         .with_route(
             RouteBuilder::default()
                 .with_vehicle(&fleet, "v1")
-                .add_activity(create_activity_with_simple_demand(s1))
-                .add_activity(create_activity_with_simple_demand(s2))
-                .add_activity(create_activity_with_simple_demand(s3))
+                .add_activity(create_activity_with_simple_demand(s1, dimen_keys.activity_demand))
+                .add_activity(create_activity_with_simple_demand(s2, dimen_keys.activity_demand))
+                .add_activity(create_activity_with_simple_demand(s3, dimen_keys.activity_demand))
                 .build(),
         )
         .build();
@@ -68,11 +74,11 @@ fn can_calculate_current_capacity_state_values_impl(
 
     let tour = &route_ctx.route().tour;
     let state = route_ctx.state();
-    assert_eq!(get_simple_capacity_state(capacity_keys.current_capacity, state, Some(0)), start);
-    assert_eq!(get_simple_capacity_state(capacity_keys.current_capacity, state, tour.end_idx()), end);
-    assert_eq!(get_simple_capacity_state(capacity_keys.current_capacity, state, Some(1)), exp_s1);
-    assert_eq!(get_simple_capacity_state(capacity_keys.current_capacity, state, Some(2)), exp_s2);
-    assert_eq!(get_simple_capacity_state(capacity_keys.current_capacity, state, Some(3)), exp_s3);
+    assert_eq!(get_simple_capacity_state(state_keys.current_capacity, state, Some(0)), start);
+    assert_eq!(get_simple_capacity_state(state_keys.current_capacity, state, tour.end_idx()), end);
+    assert_eq!(get_simple_capacity_state(state_keys.current_capacity, state, Some(1)), exp_s1);
+    assert_eq!(get_simple_capacity_state(state_keys.current_capacity, state, Some(2)), exp_s2);
+    assert_eq!(get_simple_capacity_state(state_keys.current_capacity, state, Some(3)), exp_s3);
 }
 
 parameterized_test! {can_evaluate_demand_on_route, (size, expected), {
@@ -86,11 +92,16 @@ can_evaluate_demand_on_route! {
 }
 
 fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<ConstraintViolation>) {
-    let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
+    let dimen_keys = create_capacity_keys().dimen_keys;
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicle(create_test_vehicle(10, dimen_keys.vehicle_capacity))
+        .build();
     let insertion_ctx = InsertionContextBuilder::default().build();
     let route_ctx =
         RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build();
-    let job = SingleBuilder::default().demand(create_simple_demand(size)).build_as_job_ref();
+    let job =
+        SingleBuilder::default().demand(dimen_keys.activity_demand, create_simple_demand(size)).build_as_job_ref();
 
     let result = create_feature(create_capacity_keys()).constraint.unwrap().evaluate(&MoveContext::route(
         &insertion_ctx.solution,
@@ -125,12 +136,18 @@ fn can_evaluate_demand_on_activity_impl(
     size: i32,
     expected: Option<ConstraintViolation>,
 ) {
-    let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
+    let dimen_keys = create_capacity_keys().dimen_keys;
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicle(create_test_vehicle(10, dimen_keys.vehicle_capacity))
+        .build();
     let mut route_ctx = RouteContextBuilder::default()
         .with_route(
             RouteBuilder::default()
                 .with_vehicle(&fleet, "v1")
-                .add_activities(sizes.into_iter().map(create_activity_with_simple_demand))
+                .add_activities(
+                    sizes.into_iter().map(|size| create_activity_with_simple_demand(size, dimen_keys.activity_demand)),
+                )
                 .build(),
         )
         .build();
@@ -139,7 +156,7 @@ fn can_evaluate_demand_on_activity_impl(
     let activity_ctx = ActivityContext {
         index: 0,
         prev: route_ctx.route().tour.get(neighbours.0).unwrap(),
-        target: &create_activity_with_simple_demand(size),
+        target: &create_activity_with_simple_demand(size, dimen_keys.activity_demand),
         next: route_ctx.route().tour.get(neighbours.1),
     };
 
@@ -166,24 +183,25 @@ fn can_merge_jobs_with_demand_impl(
     candidate: Option<(i32, i32, i32, i32)>,
     expected: Result<(i32, i32, i32, i32), i32>,
 ) {
+    let demand_key = create_dimen_key();
     let create_demand = |demand: (i32, i32, i32, i32)| Demand::<SingleDimLoad> {
         pickup: (SingleDimLoad::new(demand.0), SingleDimLoad::new(demand.1)),
         delivery: (SingleDimLoad::new(demand.2), SingleDimLoad::new(demand.3)),
     };
     let cluster = Job::Single(if let Some(cluster) = cluster {
-        SingleBuilder::default().demand(create_demand(cluster)).build_shared()
+        SingleBuilder::default().demand(demand_key, create_demand(cluster)).build_shared()
     } else {
         SingleBuilder::default().build_shared()
     });
     let candidate = Job::Single(if let Some(candidate) = candidate {
-        SingleBuilder::default().demand(create_demand(candidate)).build_shared()
+        SingleBuilder::default().demand(demand_key, create_demand(candidate)).build_shared()
     } else {
         SingleBuilder::default().build_shared()
     });
     let constraint = create_feature(create_capacity_keys()).constraint.unwrap();
 
     let result: Result<Demand<SingleDimLoad>, i32> =
-        constraint.merge(cluster, candidate).and_then(|job| job.dimens().get_demand().cloned().ok_or(-1));
+        constraint.merge(cluster, candidate).and_then(|job| job.dimens().get_demand(demand_key).cloned().ok_or(-1));
 
     match (result, expected) {
         (Ok(result), Ok((pickup0, pickup1, delivery0, delivery1))) => {

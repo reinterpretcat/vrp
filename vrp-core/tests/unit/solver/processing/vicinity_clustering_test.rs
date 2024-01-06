@@ -6,7 +6,6 @@ use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::helpers::solver::create_default_refinement_ctx;
-use crate::models::common::IdDimension;
 use crate::models::problem::Job;
 use crate::models::solution::{Commute, CommuteInfo};
 

@@ -4,7 +4,7 @@ mod vicinity_clustering_test;
 
 use super::*;
 use crate::construction::clustering::vicinity::*;
-use crate::models::common::{Schedule, ValueDimension};
+use crate::models::common::Schedule;
 use crate::models::problem::Jobs;
 use crate::models::solution::{Activity, Place};
 use crate::models::{Extras, ExtrasBuilder, GoalContext, Problem};
@@ -110,7 +110,7 @@ impl HeuristicSolutionProcessing for VicinityClustering {
                 .filter_map(|(idx, activity)| {
                     activity
                         .retrieve_job()
-                        .and_then(|job| job.dimens().get_cluster().cloned())
+                        .and_then(|job| job.dimens().get_cluster(config.activity_demand_key).cloned())
                         .map(|cluster| (idx, cluster))
                 })
                 .collect::<Vec<_>>();
@@ -166,7 +166,7 @@ impl HeuristicSolutionProcessing for VicinityClustering {
             .iter()
             .flat_map(|(job, code)| {
                 job.dimens()
-                    .get_cluster()
+                    .get_cluster(config.activity_demand_key)
                     .map(|clusters| clusters.iter().map(|info| (info.job.clone(), code.clone())).collect::<Vec<_>>())
                     .unwrap_or_else(|| vec![(job.clone(), code.clone())])
                     .into_iter()

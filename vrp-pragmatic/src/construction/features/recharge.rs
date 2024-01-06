@@ -26,7 +26,7 @@ pub struct RechargeKeys {
     /// A recharge station interval key.
     pub intervals: StateKey,
     /// Capacity keys.
-    pub capacity_keys: CapacityKeys,
+    pub capacity_keys: CapacityStateKeys,
 }
 
 /// Creates a feature to insert charge stations along the route.

@@ -76,8 +76,8 @@ impl SingleBuilder {
         self
     }
 
-    pub fn demand<T: LoadOps>(&mut self, demand: Demand<T>) -> &mut Self {
-        self.0.dimens.set_demand(demand);
+    pub fn demand<T: LoadOps>(&mut self, key: DimenKey, demand: Demand<T>) -> &mut Self {
+        self.0.dimens.set_demand(key, demand);
         self
     }
 

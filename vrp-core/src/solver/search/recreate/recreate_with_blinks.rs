@@ -6,7 +6,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
 use crate::models::common::*;
 use crate::models::problem::Job;
-use crate::models::Problem;
+use crate::models::{CoreStateKeys, Problem};
 use crate::solver::search::recreate::Recreate;
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::*;
@@ -24,26 +24,34 @@ impl<T: LoadOps> DemandJobSelector<T> {
         Self { asc_order, phantom: PhantomData }
     }
 
-    fn get_capacity(demand: &Demand<T>) -> T {
-        demand.pickup.0 + demand.delivery.0 + demand.pickup.1 + demand.delivery.1
-    }
-
-    fn get_job_demand(job: &Job) -> Option<T> {
+    fn get_job_demand(&self, job: &Job, demand_key: DimenKey) -> Option<T> {
         match job {
-            Job::Single(job) => job.dimens.get_demand(),
-            Job::Multi(job) => job.jobs.first().and_then(|s| s.dimens.get_demand()),
+            Job::Single(job) => job.dimens.get_demand(demand_key),
+            Job::Multi(job) => job.jobs.first().and_then(|s| s.dimens.get_demand(demand_key)),
         }
         .map(|d| Self::get_capacity(d))
+    }
+
+    fn get_capacity(demand: &Demand<T>) -> T {
+        demand.pickup.0 + demand.delivery.0 + demand.pickup.1 + demand.delivery.1
     }
 }
 
 impl<T: LoadOps> JobSelector for DemandJobSelector<T> {
     fn prepare(&self, insertion_ctx: &mut InsertionContext) {
-        insertion_ctx.solution.required.sort_by(|a, b| match (Self::get_job_demand(a), Self::get_job_demand(b)) {
-            (None, Some(_)) => Ordering::Less,
-            (Some(_), None) => Ordering::Greater,
-            (Some(a), Some(b)) => b.partial_cmp(&a).unwrap_or(Ordering::Equal),
-            (None, None) => Ordering::Equal,
+        let demand_key = insertion_ctx
+            .problem
+            .extras
+            .get_capacity_keys()
+            .map(|keys| keys.dimen_keys.activity_demand)
+            .expect("activity demand key must be set");
+        insertion_ctx.solution.required.sort_by(|a, b| {
+            match (self.get_job_demand(a, demand_key), self.get_job_demand(b, demand_key)) {
+                (None, Some(_)) => Ordering::Less,
+                (Some(_), None) => Ordering::Greater,
+                (Some(a), Some(b)) => b.partial_cmp(&a).unwrap_or(Ordering::Equal),
+                (None, None) => Ordering::Equal,
+            }
         });
 
         if self.asc_order {

@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::enablers::ScheduleKeys;
 use crate::construction::heuristics::*;
-use crate::models::common::{has_multi_dim_demand, MultiDimLoad, SingleDimLoad, ValueDimension};
+use crate::models::common::{has_multi_dim_demand, MultiDimLoad, SingleDimLoad};
 use crate::models::{CoreStateKeys, Extras, GoalContext};
 use crate::rosomaxa::get_default_selection_size;
 use crate::solver::search::*;
@@ -362,7 +362,8 @@ fn create_recreate_with_blinks(
     problem: &Problem,
     random: Arc<dyn Random + Send + Sync>,
 ) -> Arc<dyn Recreate + Send + Sync> {
-    if has_multi_dim_demand(problem) {
+    let demand_key = problem.extras.get_capacity_keys().expect("no capacity keys").dimen_keys.activity_demand;
+    if has_multi_dim_demand(problem, demand_key) {
         Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(random))
     } else {
         Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random))

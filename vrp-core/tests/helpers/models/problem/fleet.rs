@@ -55,8 +55,7 @@ pub fn test_fleet() -> Fleet {
 }
 
 pub fn test_vehicle_with_id(id: &str) -> Vehicle {
-    let mut dimens = Dimensions::default();
-    dimens.set_id(id);
+    let mut dimens = DimensionBuilder::from(&mut DimenKeyRegistry::default()).set_id(id).build();
 
     Vehicle { profile: Profile::default(), costs: test_costs(), dimens, details: vec![test_vehicle_detail()] }
 }
@@ -88,8 +87,8 @@ impl VehicleBuilder {
         self
     }
 
-    pub fn capacity(&mut self, capacity: i32) -> &mut VehicleBuilder {
-        self.0.dimens.set_capacity(SingleDimLoad::new(capacity));
+    pub fn capacity(&mut self, key: DimenKey, capacity: i32) -> &mut VehicleBuilder {
+        self.0.dimens.set_capacity(key, SingleDimLoad::new(capacity));
         self
     }
 

@@ -12,7 +12,7 @@ use std::cmp::Ordering;
 /// Gets max load variance in tours.
 pub fn get_max_load_variance(insertion_ctx: &InsertionContext) -> f64 {
     let max_load_key = if let Some(capacity_keys) = insertion_ctx.problem.extras.get_capacity_keys() {
-        capacity_keys.max_load
+        capacity_keys.state_keys.max_load
     } else {
         return 0.;
     };

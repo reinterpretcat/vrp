@@ -3,7 +3,7 @@
 mod insertions_test;
 
 use crate::construction::heuristics::*;
-use crate::models::common::{Cost, IdDimension};
+use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job};
 use crate::models::solution::Activity;
 use crate::models::ViolationCode;

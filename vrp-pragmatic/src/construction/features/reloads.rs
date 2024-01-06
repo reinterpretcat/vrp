@@ -28,7 +28,7 @@ pub struct ReloadKeys {
     /// Reload intervals key.
     pub intervals: StateKey,
     /// Capacity feature keys.
-    pub capacity_keys: CapacityKeys,
+    pub capacity_keys: CapacityStateKeys,
 }
 
 /// Keys to track state of reload feature.

@@ -1,14 +1,18 @@
 use crate::construction::enablers::ScheduleKeys;
-use crate::construction::features::CapacityKeys;
+use crate::construction::features::{CapacityDimenKeys, CapacityKeys, CapacityStateKeys};
 use crate::construction::heuristics::StateKeyRegistry;
-use crate::models::common::{Dimensions, ValueDimension};
+use crate::models::common::DimenKeyRegistry;
 use crate::solver::HeuristicKeys;
+use hashbrown::HashMap;
 use rosomaxa::prelude::GenericError;
+use rustc_hash::FxHasher;
+use std::any::Any;
+use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
 /// Specifies a type used to store any values regarding problem configuration.
 pub struct Extras {
-    index: Dimensions,
+    index: HashMap<String, Arc<dyn Any + Send + Sync>, BuildHasherDefault<FxHasher>>,
 }
 
 impl Extras {
@@ -23,7 +27,7 @@ pub struct ExtrasBuilder(Extras);
 
 impl Default for ExtrasBuilder {
     fn default() -> Self {
-        Self::new(&mut StateKeyRegistry::default())
+        Self::new(&mut DimenKeyRegistry::default(), &mut StateKeyRegistry::default())
     }
 }
 
@@ -35,12 +39,15 @@ impl From<&Extras> for ExtrasBuilder {
 
 impl ExtrasBuilder {
     /// Creates an instance of `ExtrasBuilder` using `registry` to initialize required keys.
-    pub fn new(state_registry: &mut StateKeyRegistry) -> Self {
+    pub fn new(dimen_registry: &mut DimenKeyRegistry, state_registry: &mut StateKeyRegistry) -> Self {
         let mut builder = Self(Extras { index: Default::default() });
 
         builder
             .with_schedule_keys(ScheduleKeys::from(&mut *state_registry))
-            .with_capacity_keys(CapacityKeys::from(&mut *state_registry))
+            .with_capacity_keys(CapacityKeys {
+                state_keys: CapacityStateKeys::from(&mut *state_registry),
+                dimen_keys: CapacityDimenKeys::from(&mut *dimen_registry),
+            })
             .with_heuristic_keys(HeuristicKeys::from(&mut *state_registry));
 
         builder
@@ -119,12 +126,14 @@ impl CoreStateKeys for Extras {
     }
 }
 
-impl ValueDimension for Extras {
-    fn get_value<T: 'static>(&self, key: &str) -> Option<&T> {
-        self.index.get_value(key)
+impl Extras {
+    /// Gets value from index.
+    pub fn get_value<T: 'static>(&self, key: &str) -> Option<&T> {
+        self.index.get(key).and_then(|any| any.downcast_ref::<T>())
     }
 
-    fn set_value<T: 'static + Sync + Send>(&mut self, key: &str, value: T) {
-        self.index.set_value(key, value)
+    /// Sets value to index.
+    pub fn set_value<T: 'static + Sync + Send>(&mut self, key: &str, value: T) {
+        self.index.insert(key.to_owned(), Arc::new(value));
     }
 }

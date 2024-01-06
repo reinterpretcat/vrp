@@ -30,7 +30,7 @@ fn can_get_max_load_variance() {
             2 => 0.,
             _ => 7.,
         };
-        create_route_ctx_with_route_state(problem.extras.get_capacity_keys().unwrap().max_load, value)
+        create_route_ctx_with_route_state(problem.extras.get_capacity_keys().unwrap().state_keys.max_load, value)
     });
 
     let variance = get_max_load_variance(&insertion_ctx);

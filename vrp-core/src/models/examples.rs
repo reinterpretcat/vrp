@@ -38,7 +38,7 @@ fn create_example_jobs(fleet: &Fleet, transport: &(dyn TransportCost + Sync + Se
                 duration: 0.0,
                 times: vec![TimeSpan::Window(TimeWindow::new(0., 100.))],
             }],
-            dimens: Default::default(),
+            dimens: create_example_dimension(),
         }))],
         transport,
     ))
@@ -48,15 +48,13 @@ fn create_example_jobs(fleet: &Fleet, transport: &(dyn TransportCost + Sync + Se
 fn create_example_fleet() -> Arc<Fleet> {
     let drivers = vec![Arc::new(Driver {
         costs: Costs { fixed: 0., per_distance: 0., per_driving_time: 0., per_waiting_time: 0., per_service_time: 0. },
-        dimens: Default::default(),
+        dimens: create_example_dimension(),
         details: vec![],
     })];
-    let mut vehicle_dimens = Dimensions::default();
-    vehicle_dimens.set_id("v1");
     let vehicles = vec![Arc::new(Vehicle {
         profile: Profile::default(),
         costs: Costs { fixed: 0., per_distance: 1., per_driving_time: 0., per_waiting_time: 0., per_service_time: 0. },
-        dimens: vehicle_dimens,
+        dimens: DimensionBuilder::from(&mut DimenKeyRegistry::default()).set_id("v1").build(),
         details: vec![VehicleDetail {
             start: Some(VehiclePlace { location: 0, time: TimeInterval::default() }),
             end: None,
@@ -66,11 +64,16 @@ fn create_example_fleet() -> Arc<Fleet> {
     Arc::new(Fleet::new(drivers, vehicles, Box::new(|_| Box::new(|_| 0))))
 }
 
+fn create_example_dimension() -> Dimensions {
+    DimensionBuilder::from(&mut DimenKeyRegistry::default()).build()
+}
+
 /// Creates an extras with all necessary data
 fn create_example_extras() -> Extras {
-    let mut registry = StateKeyRegistry::default();
+    let mut dimen_registry = DimenKeyRegistry::default();
+    let mut state_registry = StateKeyRegistry::default();
 
-    ExtrasBuilder::new(&mut registry).build().expect("cannot build example extras")
+    ExtrasBuilder::new(&mut dimen_registry, &mut state_registry).build().expect("cannot build example extras")
 }
 
 /// Creates and example VRP goal: CVRPTW.

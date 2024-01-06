@@ -5,10 +5,9 @@ mod domain_test;
 use crate::models::common::{Duration, Timestamp};
 use hashbrown::HashMap;
 use rosomaxa::prelude::compare_floats;
-use rustc_hash::FxHasher;
 use std::any::Any;
 use std::cmp::Ordering;
-use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 /// Specifies location type.
@@ -192,6 +191,24 @@ impl TimeInterval {
     }
 }
 
+impl Hash for TimeInterval {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let earliest = self.earliest.unwrap_or(0.).to_bits() as i64;
+        let latest = self.latest.unwrap_or(f64::MAX).to_bits() as i64;
+
+        earliest.hash(state);
+        latest.hash(state);
+    }
+}
+
+impl Eq for TimeInterval {}
+
+impl PartialEq for TimeInterval {
+    fn eq(&self, other: &Self) -> bool {
+        self.earliest == other.earliest && self.latest == other.latest
+    }
+}
+
 /// Represents a schedule.
 #[derive(Clone, Debug)]
 pub struct Schedule {
@@ -217,63 +234,147 @@ impl PartialEq<Schedule> for Schedule {
 
 impl Eq for Schedule {}
 
+/// A key which distinguishes different dimensions. A dimension is an extension mechanism which is used to
+/// associate arbitrary data with an entity.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct DimenKey(usize);
+
+/// A dimension scope used for key generation.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum DimenScope {
+    /// A dimension key to store information associated with activity (job).
+    Activity,
+    /// A dimension key to store information associated with vehicle (actor).
+    Vehicle,
+}
+
+/// A registry (factory) to produce unique dimension keys.
+#[derive(Debug, Default)]
+pub struct DimenKeyRegistry {
+    keys_data: HashMap<DimenScope, usize>,
+}
+
+impl DimenKeyRegistry {
+    /// Gets next dimension key for given scope.
+    pub fn next_key(&mut self, scope: DimenScope) -> DimenKey {
+        // NOTE start from 1, reserving 0 for id
+        let id = self.keys_data.entry(scope).and_modify(|counter| *counter += 1).or_insert(1);
+
+        DimenKey(*id)
+    }
+}
+
+/// A core dimensions which used internally to resolve some core properties.
+pub(crate) struct CoreDimensions {
+    /// Id of an entity.
+    pub id: Option<String>,
+    /// An extension property.
+    pub extension: Option<Arc<dyn Any + Send + Sync>>,
+}
+
 /// Multiple named dimensions which can contain anything:
 /// * unit of measure, e.g. volume, mass, size, etc.
 /// * set of skills
 /// * tag.
-pub type Dimensions = HashMap<String, Arc<dyn Any + Send + Sync>, BuildHasherDefault<FxHasher>>;
-
-/// A trait to return arbitrary typed value by its key.
-pub trait ValueDimension {
-    /// Gets value from dimension with given key.
-    fn get_value<T: 'static>(&self, key: &str) -> Option<&T>;
-    /// Sets value in dimension with given key and value.
-    fn set_value<T: 'static + Sync + Send>(&mut self, key: &str, value: T);
+#[derive(Clone, Default)]
+pub struct Dimensions {
+    data: Vec<Arc<dyn Any + Send + Sync>>,
 }
 
-impl ValueDimension for Dimensions {
-    fn get_value<T: 'static>(&self, key: &str) -> Option<&T> {
-        self.get(key).and_then(|any| any.downcast_ref::<T>())
+impl Dimensions {
+    /// Gets unique id as a string reference.
+    pub fn get_id(&self) -> Option<&String> {
+        self.get_value::<CoreDimensions>(DimenKey(0)).and_then(|core_dimens| core_dimens.id.as_ref())
     }
 
-    fn set_value<T: 'static + Sync + Send>(&mut self, key: &str, value: T) {
-        self.insert(key.to_owned(), Arc::new(value));
-    }
-}
+    /// Sets id.
+    pub fn set_id<S: AsRef<str>>(&mut self, id: S) -> &mut Self {
+        let extension  = if let Some(core_dimens) = self.get_value::<CoreDimensions>(DimenKey(0)) {
+            core_dimens.extension.clone()
+        } else {
+            None
+        };
 
-/// A trait to get or set id.
-pub trait IdDimension {
-    /// Sets value as id.
-    fn set_id(&mut self, id: &str) -> &mut Self;
-    /// Gets id value if present.
-    fn get_id(&self) -> Option<&String>;
-}
-
-impl IdDimension for Dimensions {
-    fn set_id(&mut self, id: &str) -> &mut Self {
-        self.set_value("id", id.to_string());
+        let core_dimens = CoreDimensions { id: Some(id.as_ref().to_string()), extension };
+        self.set_value(DimenKey(0), Arc::new(core_dimens));
         self
     }
 
-    fn get_id(&self) -> Option<&String> {
-        self.get_value("id")
+    /// Gets an arbitrary value which can be extracted without dimension key.
+    pub(crate) fn get_extension<T: 'static>(&self) -> Option<&T> {
+        self.get_value::<CoreDimensions>(DimenKey(0))
+            .and_then(|core_dimens| core_dimens.extension.as_ref())
+            .and_then(|any| any.downcast_ref::<T>())
+    }
+
+    /// Gets value associated with given key.
+    pub fn get_value<T: 'static>(&self, key: DimenKey) -> Option<&T> {
+        self.data.get(key.0).and_then(|any| any.downcast_ref::<T>())
+    }
+
+    /// Sets value associated with given key.
+    /// Returns whether the value was set.
+    pub fn set_value<T: 'static + Sync + Send>(&mut self, key: DimenKey, value: T) -> bool {
+        // NOTE: this shouldn't be possible as we control distribution of dimension keys
+        debug_assert_ne!(key.0, 0, "attempt to override reserved dimension");
+
+        if let Some(entry) = self.data.get_mut(key.0) {
+            *entry = Arc::new(value);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Sets an extension value which can be used without dimension key.
+    /// NOTE: only one value per dimension can be used.
+    pub(crate) fn set_extension<T: 'static + Send + Sync>(&mut self, extension: T) {
+        let id = if let Some(core_dimens) = self.get_value::<CoreDimensions>(DimenKey(0)) {
+            core_dimens.id.clone()
+        } else {
+            None
+        };
+
+        self.set_value(DimenKey(0), CoreDimensions { id, extension: Some(Arc::new(extension)) });
     }
 }
 
-impl Hash for TimeInterval {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let earliest = self.earliest.unwrap_or(0.).to_bits() as i64;
-        let latest = self.latest.unwrap_or(f64::MAX).to_bits() as i64;
+/// Provides way to build dimensions using string representation of the keys.
+pub struct DimensionBuilder<'a> {
+    data: HashMap<DimenKey, Arc<dyn Any + Send + Sync>>,
+    registry: &'a mut DimenKeyRegistry,
+}
 
-        earliest.hash(state);
-        latest.hash(state);
+impl<'a> From<&'a mut DimenKeyRegistry> for DimensionBuilder<'a> {
+    fn from(registry: &'a mut DimenKeyRegistry) -> Self {
+        Self { data: Default::default(), registry }
     }
 }
 
-impl Eq for TimeInterval {}
+impl<'a> DimensionBuilder<'a> {
+    /// Sets id.
+    pub fn set_id<S: AsRef<str>>(&mut self, id: S) -> &mut Self {
+        let core_dimens = CoreDimensions { id: Some(id.as_ref().to_string()), extension: None };
+        self.data.insert(DimenKey(0), Arc::new(core_dimens));
+        self
+    }
 
-impl PartialEq for TimeInterval {
-    fn eq(&self, other: &Self) -> bool {
-        self.earliest == other.earliest && self.latest == other.latest
+    /// Sets value associated with given key.
+    /// Returns whether the value was set.
+    pub fn set_value<T: 'static + Sync + Send>(&mut self, scope: DimenScope, value: T) -> bool {
+        self.data.insert(self.registry.next_key(scope), Arc::new(value)).is_none()
+    }
+
+    /// Builds dimension.
+    pub fn build(&mut self) -> Dimensions {
+        let max_key = self.data.iter().map(|(key, _)| key.0).max().unwrap_or_default();
+        let mut data: Vec<Arc<dyn Any + Send + Sync>> = vec![Arc::new(()); max_key];
+
+        for (key, value) in std::mem::take(&mut self.data) {
+            data[key.0] = value;
+        }
+
+        Dimensions { data }
     }
 }

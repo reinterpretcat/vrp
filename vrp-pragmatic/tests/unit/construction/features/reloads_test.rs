@@ -50,7 +50,7 @@ fn create_route_context_with_fleet(capacity: Vec<i32>, activities: Vec<Activity>
 
 fn create_reload_keys() -> ReloadKeys {
     let mut state_registry = StateKeyRegistry::default();
-    ReloadKeys { intervals: state_registry.next_key(), capacity_keys: CapacityKeys::from(&mut state_registry) }
+    ReloadKeys { intervals: state_registry.next_key(), capacity_keys: CapacityStateKeys::from(&mut state_registry) }
 }
 
 #[test]

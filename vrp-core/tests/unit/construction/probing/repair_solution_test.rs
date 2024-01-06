@@ -21,13 +21,20 @@ fn create_test_problem(
     vehicles: Vec<(&str, VehicleData)>,
     locks: Vec<LockData>,
 ) -> Problem {
+    let extras = ExtrasBuilder::default().build().expect("cannot build extras");
+    let demand_key = extras.get_capacity_keys().unwrap().dimen_keys.activity_demand;
+    let capacity_key = extras.get_capacity_keys().unwrap().dimen_keys.vehicle_capacity;
+
     let create_single = |id: &str, (location, (tw_start, tw_end), duration, demand), is_multi| {
         SingleBuilder::default()
             .id(id)
             .location(location)
             .duration(duration)
             .times(vec![TimeWindow::new(tw_start, tw_end)])
-            .demand(if is_multi { create_simple_dynamic_demand(demand) } else { create_simple_demand(demand) })
+            .demand(
+                demand_key,
+                if is_multi { create_simple_dynamic_demand(demand) } else { create_simple_demand(demand) },
+            )
             .build()
     };
 
@@ -55,7 +62,7 @@ fn create_test_problem(
                         time: TimeInterval { earliest: end_earliest, latest: end_latest },
                     }),
                 }])
-                .capacity(capacity)
+                .capacity(capacity_key, capacity)
                 .build()
         })
         .collect::<Vec<_>>();
@@ -79,7 +86,6 @@ fn create_test_problem(
             })
         })
         .collect::<Vec<_>>();
-    let extras = ExtrasBuilder::default().build().expect("cannot build extras");
 
     let goal = GoalContextBuilder::default()
         .add_feature(

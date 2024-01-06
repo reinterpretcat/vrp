@@ -2,7 +2,7 @@ use crate::construction::clustering::vicinity::*;
 use crate::construction::heuristics::*;
 use crate::helpers::models::domain::GoalContextBuilder;
 use crate::helpers::models::problem::{get_job_id, SingleBuilder};
-use crate::models::common::{Duration, IdDimension, Location, Profile, ValueDimension};
+use crate::models::common::{DimenKey, Duration, Location, Profile};
 use crate::models::problem::Job;
 use crate::models::*;
 use hashbrown::HashSet;
@@ -10,12 +10,11 @@ use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
-pub const MERGED_KEY: &str = "merged";
-
 pub type JobPlaces = Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>;
 
 struct VicinityTestFeatureConstraint {
     disallow_merge_list: HashSet<String>,
+    merge_key: DimenKey,
 }
 
 impl FeatureConstraint for VicinityTestFeatureConstraint {
@@ -54,30 +53,30 @@ impl FeatureConstraint for VicinityTestFeatureConstraint {
             );
 
             let mut dimens = source.dimens.clone();
-            let mut merged = dimens.get_value::<Vec<Job>>(MERGED_KEY).cloned().unwrap_or_default();
+            let mut merged = dimens.get_value::<Vec<Job>>(self.merge_key).cloned().unwrap_or_default();
             merged.push(candidate);
-            dimens.set_value(MERGED_KEY, merged);
+            dimens.set_value(self.merge_key, merged);
 
             Ok(SingleBuilder::default().dimens(dimens).places(vec![place]).build_as_job_ref())
         }
     }
 }
 
-pub fn create_goal_context_with_vicinity(disallow_merge_list: Vec<&str>) -> GoalContext {
+pub fn create_goal_context_with_vicinity(disallow_merge_list: Vec<&str>, merge_key: DimenKey) -> GoalContext {
     let disallow_merge_list = disallow_merge_list.into_iter().map(|id| id.to_string()).collect();
 
     GoalContextBuilder::default()
         .add_feature(
             FeatureBuilder::default()
                 .with_name("vicinity")
-                .with_constraint(VicinityTestFeatureConstraint { disallow_merge_list })
+                .with_constraint(VicinityTestFeatureConstraint { disallow_merge_list, merge_key })
                 .build()
                 .unwrap(),
         )
         .build()
 }
 
-pub fn create_cluster_config() -> ClusterConfig {
+pub fn create_cluster_config(demand_key: DimenKey) -> ClusterConfig {
     let ordering_rule = |result: Ordering, left_job: &Job, right_job: &Job| match result {
         Ordering::Equal => get_job_id(left_job).cmp(get_job_id(right_job)),
         Ordering::Less => Ordering::Less,
@@ -108,5 +107,6 @@ pub fn create_cluster_config() -> ClusterConfig {
                 )
             }),
         },
+        activity_demand_key: demand_key,
     }
 }

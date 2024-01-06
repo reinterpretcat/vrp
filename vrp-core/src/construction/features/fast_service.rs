@@ -10,6 +10,15 @@ use std::cmp::Ordering;
 use std::iter::once;
 use std::marker::PhantomData;
 
+/// Keeps track of state and dimension keys for the fast service feature.
+#[derive(Clone, Debug)]
+pub struct FastServiceKeys {
+    /// A key to track fast service state.
+    pub state_key: StateKey,
+    /// A key to get demand from a job.
+    pub demand_key: DimenKey,
+}
+
 /// Creates a feature to prefer a fast serving of jobs.
 pub fn create_fast_service_feature<T: LoadOps>(
     name: &str,
@@ -17,12 +26,12 @@ pub fn create_fast_service_feature<T: LoadOps>(
     activity: Arc<dyn ActivityCost + Send + Sync>,
     route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
     tolerance: Option<f64>,
-    state_key: StateKey,
+    keys: FastServiceKeys,
 ) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
-        .with_objective(FastServiceObjective::<T>::new(transport, activity, route_intervals, tolerance, state_key))
-        .with_state(FastServiceState::new(state_key))
+        .with_objective(FastServiceObjective::<T>::new(transport, activity, route_intervals, tolerance, keys.clone()))
+        .with_state(FastServiceState::new(keys.state_key))
         .build()
 }
 
@@ -49,7 +58,7 @@ struct FastServiceObjective<T> {
     activity: Arc<dyn ActivityCost + Send + Sync>,
     route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
     tolerance: Option<f64>,
-    state_key: StateKey,
+    feature_keys: FastServiceKeys,
     phantom: PhantomData<T>,
 }
 
@@ -77,7 +86,7 @@ impl<T: LoadOps> Objective for FastServiceObjective<T> {
             .flat_map(|route_ctx| {
                 route_ctx.route().tour.jobs().filter(|job| !self.route_intervals.is_marker_job(job)).map(
                     |job| match job {
-                        Job::Single(_) => self.estimate_single_job(route_ctx, job),
+                        Job::Single(_) => self.estimate_single_job(route_ctx, job, self.feature_keys.demand_key),
                         Job::Multi(_) => self.estimate_multi_job(route_ctx, job),
                     },
                 )
@@ -103,7 +112,7 @@ impl<T: LoadOps> FeatureObjective for FastServiceObjective<T> {
             };
 
         // NOTE: for simplicity, we ignore impact on already inserted jobs on local objective level
-        match get_time_interval_type::<T>(&job, single.as_ref()) {
+        match get_time_interval_type::<T>(&job, single.as_ref(), self.feature_keys.demand_key) {
             TimeIntervalType::FromStart => {
                 self.get_departure(route_ctx, activity_ctx) - self.get_start_time(route_ctx, activity_idx)
             }
@@ -127,9 +136,9 @@ impl<T: LoadOps> FastServiceObjective<T> {
         activity: Arc<dyn ActivityCost + Send + Sync>,
         route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
         tolerance: Option<f64>,
-        state_key: StateKey,
+        feature_keys: FastServiceKeys,
     ) -> Self {
-        Self { transport, activity, route_intervals, state_key, tolerance, phantom: Default::default() }
+        Self { transport, activity, route_intervals, feature_keys, tolerance, phantom: Default::default() }
     }
 
     fn get_start_time(&self, route_ctx: &RouteContext, activity_idx: usize) -> Timestamp {
@@ -155,7 +164,7 @@ impl<T: LoadOps> FastServiceObjective<T> {
         let departure = self.get_departure(route_ctx, activity_ctx);
         let range = route_ctx
             .state()
-            .get_route_state::<MultiJobRanges>(self.state_key)
+            .get_route_state::<MultiJobRanges>(self.feature_keys.state_key)
             .zip(activity_ctx.target.retrieve_job())
             .and_then(|(jobs, job)| jobs.get(&job))
             .copied();
@@ -189,13 +198,13 @@ impl<T: LoadOps> FastServiceObjective<T> {
             .unwrap_or((0, last_idx))
     }
 
-    fn estimate_single_job(&self, route_ctx: &RouteContext, job: &Job) -> Cost {
+    fn estimate_single_job(&self, route_ctx: &RouteContext, job: &Job, demand_key: DimenKey) -> Cost {
         let single = job.to_single();
         let tour = &route_ctx.route().tour;
         let activity_idx = tour.index(job).expect("cannot find index for job");
         let activity = &tour[activity_idx];
 
-        (match get_time_interval_type::<T>(job, single) {
+        (match get_time_interval_type::<T>(job, single, demand_key) {
             TimeIntervalType::FromStart => activity.schedule.departure - self.get_start_time(route_ctx, activity_idx),
             TimeIntervalType::ToEnd => self.get_end_time(route_ctx, activity_idx) - activity.schedule.departure,
             TimeIntervalType::FromStartToEnd => {
@@ -208,7 +217,7 @@ impl<T: LoadOps> FastServiceObjective<T> {
     fn estimate_multi_job(&self, route_ctx: &RouteContext, job: &Job) -> Cost {
         route_ctx
             .state()
-            .get_route_state::<MultiJobRanges>(self.state_key)
+            .get_route_state::<MultiJobRanges>(self.feature_keys.state_key)
             .and_then(|job_ranges| job_ranges.get(job))
             .map(|&(start_idx, end_idx)| {
                 self.get_end_time(route_ctx, end_idx) - self.get_start_time(route_ctx, start_idx)
@@ -266,13 +275,16 @@ impl FeatureState for FastServiceState {
     }
 }
 
-fn get_time_interval_type<T: LoadOps>(job: &Job, single: &Single) -> TimeIntervalType {
+fn get_time_interval_type<T: LoadOps>(job: &Job, single: &Single, demand_key: DimenKey) -> TimeIntervalType {
     if job.as_multi().is_some() {
         return TimeIntervalType::FromFirstToLast;
     }
 
-    let demand: &Demand<T> =
-        if let Some(demand) = single.dimens.get_demand() { demand } else { return TimeIntervalType::FromStart };
+    let demand: &Demand<T> = if let Some(demand) = single.dimens.get_demand(demand_key) {
+        demand
+    } else {
+        return TimeIntervalType::FromStart;
+    };
 
     match (demand.delivery.0.is_not_empty(), demand.pickup.0.is_not_empty()) {
         (true, false) => TimeIntervalType::FromStart,

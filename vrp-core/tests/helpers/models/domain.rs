@@ -2,11 +2,15 @@ use crate::construction::enablers::ScheduleKeys;
 use crate::construction::features::create_minimize_transport_costs_feature;
 use crate::construction::heuristics::*;
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
-use crate::models::common::IdDimension;
+use crate::models::common::{DimenKey, DimenKeyRegistry, DimenScope};
 use crate::models::problem::{Fleet, Job, Jobs};
 use crate::models::{ExtrasBuilder, Feature, Goal, GoalContext, Problem};
 use rosomaxa::utils::{DefaultRandom, Random};
 use std::sync::Arc;
+
+pub fn create_dimen_key() -> DimenKey {
+    DimenKeyRegistry::default().next_key(DimenScope::Activity)
+}
 
 pub fn test_random() -> Arc<dyn Random + Send + Sync> {
     Arc::new(DefaultRandom::default())

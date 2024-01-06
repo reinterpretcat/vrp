@@ -3,6 +3,7 @@ use crate::helpers::construction::clustering::vicinity::*;
 use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
+use crate::models::CoreStateKeys;
 
 #[test]
 fn can_get_check_insertion() {
@@ -13,7 +14,7 @@ fn can_get_check_insertion() {
     ];
     let problem = ProblemBuilder::default()
         .with_jobs(jobs.clone())
-        .with_goal(create_goal_context_with_vicinity(disallow_merge_list))
+        .with_goal(create_goal_context_with_vicinity(disallow_merge_list, create_dimen_key()))
         .build();
     let insertion_ctx = InsertionContextBuilder::default().with_problem(problem).build();
     let actor_filter = Arc::new(|_: &Actor| true);
@@ -31,11 +32,14 @@ pub fn can_create_job_clusters() {
         SingleBuilder::default().id("job2").build_as_job_ref(),
         SingleBuilder::default().id("job3").build_as_job_ref(),
     ];
+    let problem = ProblemBuilder::default()
+        .with_jobs(jobs.clone())
+        .with_goal(create_goal_context_with_vicinity(vec![], create_dimen_key()))
+        .build();
     let filtering =
         FilterPolicy { job_filter: Arc::new(|job| get_job_id(job) != "job3"), actor_filter: Arc::new(|_| true) };
-    let config = ClusterConfig { filtering, ..create_cluster_config() };
-    let problem =
-        ProblemBuilder::default().with_jobs(jobs.clone()).with_goal(create_goal_context_with_vicinity(vec![])).build();
+    let demand_key = problem.extras.get_capacity_keys().map(|keys| keys.dimen_keys.activity_demand).unwrap();
+    let config = ClusterConfig { filtering, ..create_cluster_config(demand_key) };
 
     let clusters = create_job_clusters(Arc::new(problem), Arc::new(Environment::default()), &config);
 

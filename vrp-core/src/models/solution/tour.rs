@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/models/solution/tour_test.rs"]
 mod tour_test;
 
-use crate::models::common::{IdDimension, Schedule};
+use crate::models::common::Schedule;
 use crate::models::problem::{Actor, Job};
 use crate::models::solution::{Activity, Place};
 use crate::models::OP_START_MSG;

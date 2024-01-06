@@ -1,13 +1,14 @@
 use super::*;
 use crate::helpers::construction::clustering::vicinity::*;
+use crate::helpers::models::domain::create_dimen_key;
 use crate::helpers::models::problem::{get_job_id, SingleBuilder, TestPlace, TestTransportCost};
 
-fn get_check_insertion_fn(disallow_insertion_list: Vec<&str>) -> Arc<CheckInsertionFn> {
+fn get_check_insertion_fn(disallow_insertion_list: Vec<&str>, merge_key: DimenKey) -> Arc<CheckInsertionFn> {
     let disallow_insertion_list = disallow_insertion_list.into_iter().map(|id| id.to_string()).collect::<HashSet<_>>();
 
     Arc::new(move |job| {
         let job_to_check =
-            job.dimens().get_value::<Vec<Job>>(MERGED_KEY).and_then(|merged| merged.last()).unwrap_or(job);
+            job.dimens().get_value::<Vec<Job>>(merge_key).and_then(|merged| merged.last()).unwrap_or(job);
         let id = job_to_check.dimens().get_id();
 
         if id.map_or(false, |id| disallow_insertion_list.contains(id)) {
@@ -34,6 +35,11 @@ fn create_cluster_info(
             backward: CommuteInfo { location: backward.0, distance: backward.1, duration: backward.2 },
         },
     }
+}
+
+fn create_dimen_key_pair() -> (DimenKey, DimenKey) {
+    let mut key_registry = DimenKeyRegistry::default();
+    (key_registry.next_key(DimenScope::Activity), key_registry.next_key(DimenScope::Activity))
 }
 
 fn create_single_job(job_id: &str, places: Vec<TestPlace>) -> Job {
@@ -184,7 +190,7 @@ fn can_get_dissimilarities_impl(
     let outer = create_single_job("job1", places_outer);
     let inner = create_single_job("job2", places_inner);
     let transport = TestTransportCost::default();
-    let config = ClusterConfig { threshold, serving, ..create_cluster_config() };
+    let config = ClusterConfig { threshold, serving, ..create_cluster_config(create_dimen_key()) };
 
     let dissimilarities = get_dissimilarities(&outer, &inner, &transport, &config)
         .into_iter()
@@ -203,7 +209,7 @@ parameterized_test! {can_add_job, (center_places, candidate_places, is_disallowe
         let dummy_job = SingleBuilder::default().build_as_job_ref();
         create_cluster_info(dummy_job, e.1, e.0, e.2, e.3)
     });
-    let threshold = create_cluster_config().threshold;
+    let threshold = create_cluster_config(create_dimen_key()).threshold;
     let threshold = ThresholdPolicy { smallest_time_window, ..threshold };
 
     can_add_job_impl(center_places, candidate_places, is_disallowed_to_merge, is_disallowed_to_insert, visiting, threshold, expected);
@@ -252,7 +258,8 @@ fn can_add_job_impl(
     threshold: ThresholdPolicy,
     expected: Option<ClusterInfo>,
 ) {
-    let config = ClusterConfig { visiting, threshold, ..create_cluster_config() };
+    let (dimen_key, merge_key) = create_dimen_key_pair();
+    let config = ClusterConfig { visiting, threshold, ..create_cluster_config(dimen_key) };
     let cluster = create_single_job("cluster", center_places);
     let candidate = create_single_job("job1", candidate_places);
     let disallowed_merge = vec!["job1"];
@@ -263,8 +270,8 @@ fn can_add_job_impl(
         (false, true) => (Vec::default(), disallowed_insert),
         (false, false) => (Vec::default(), Vec::default()),
     };
-    let constraint = create_goal_context_with_vicinity(disallow_merge_list);
-    let check_insertion = get_check_insertion_fn(disallow_insertion_list);
+    let constraint = create_goal_context_with_vicinity(disallow_merge_list, merge_key);
+    let check_insertion = get_check_insertion_fn(disallow_insertion_list, merge_key);
     let center_commute = |info: &ClusterInfo| info.commute.clone();
     let transport = TestTransportCost::default();
     let dissimilarity_info = get_dissimilarities(&cluster, &candidate, &transport, &config);
@@ -364,10 +371,11 @@ fn can_build_job_cluster_impl(
     jobs_places: Vec<JobPlaces>,
     expected: Option<(Vec<usize>, f64, (f64, f64))>,
 ) {
+    let (dimen_key, merge_key) = create_dimen_key_pair();
     let transport = TestTransportCost::default();
-    let config = ClusterConfig { visiting, ..create_cluster_config() };
-    let constraint = create_goal_context_with_vicinity(disallow_merge_list);
-    let check_insertion = get_check_insertion_fn(disallow_insertion_list);
+    let config = ClusterConfig { visiting, ..create_cluster_config(dimen_key) };
+    let constraint = create_goal_context_with_vicinity(disallow_merge_list, merge_key);
+    let check_insertion = get_check_insertion_fn(disallow_insertion_list, merge_key);
     let jobs = create_jobs(jobs_places);
     let estimates = get_jobs_dissimilarities(jobs.as_slice(), &transport, &config);
     let used_jobs = used_jobs.iter().map(|idx| jobs.get(*idx).unwrap().clone()).collect();
@@ -396,12 +404,17 @@ fn can_build_job_cluster_impl(
 
             assert_eq!(result_place.duration, expected_duration);
 
-            let result_clustered_jobs =
-                result_job.dimens.get_cluster().unwrap().iter().map(|info| info.job.clone()).collect::<Vec<_>>();
+            let result_clustered_jobs = result_job
+                .dimens
+                .get_cluster(create_dimen_key())
+                .unwrap()
+                .iter()
+                .map(|info| info.job.clone())
+                .collect::<Vec<_>>();
             let expected_jobs = expected_indices.into_iter().map(|idx| jobs.get(idx).unwrap()).collect::<Vec<_>>();
             assert_eq!(result_clustered_jobs.len(), expected_jobs.len());
             result_clustered_jobs.iter().zip(expected_jobs.iter()).for_each(|(a, &b)| {
-                assert!(a == b);
+                assert_eq!(a, b);
             });
         }
         (Some(_), None) => unreachable!("unexpected some result"),
@@ -431,6 +444,7 @@ pub fn can_get_clusters_impl(
     max_jobs_per_cluster: Option<usize>,
     expected: Vec<(usize, Vec<usize>)>,
 ) {
+    let (dimen_key, merge_key) = create_dimen_key_pair();
     let threshold = ThresholdPolicy {
         moving_duration,
         moving_distance: 10.0,
@@ -442,9 +456,9 @@ pub fn can_get_clusters_impl(
     let disallow_insertion_list = vec![];
     let jobs_places = (0..jobs_amount).map(|idx| vec![(Some(idx), 2., vec![(0., 100.)])]).collect();
     let transport = TestTransportCost::default();
-    let config = ClusterConfig { threshold, ..create_cluster_config() };
-    let constraint = create_goal_context_with_vicinity(disallow_merge_list);
-    let check_insertion = get_check_insertion_fn(disallow_insertion_list);
+    let config = ClusterConfig { threshold, ..create_cluster_config(dimen_key) };
+    let constraint = create_goal_context_with_vicinity(disallow_merge_list, merge_key);
+    let check_insertion = get_check_insertion_fn(disallow_insertion_list, merge_key);
     let jobs = create_jobs(jobs_places);
     let estimates = get_jobs_dissimilarities(jobs.as_slice(), &transport, &config);
 

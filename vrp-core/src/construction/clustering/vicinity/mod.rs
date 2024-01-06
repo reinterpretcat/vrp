@@ -6,7 +6,6 @@ mod vicinity_test;
 
 use crate::construction::heuristics::*;
 use crate::models::common::*;
-use crate::models::common::{Dimensions, ValueDimension};
 use crate::models::problem::{Actor, Job};
 use crate::models::Problem;
 use hashbrown::HashSet;
@@ -19,24 +18,22 @@ mod estimations;
 use self::estimations::*;
 use crate::models::solution::Commute;
 
-const CLUSTER_DIMENSION_KEY: &str = "cls";
-
 /// A trait to get or set cluster info.
 pub trait ClusterDimension {
     /// Sets cluster.
-    fn set_cluster(&mut self, jobs: Vec<ClusterInfo>) -> &mut Self;
+    fn set_cluster(&mut self, key: DimenKey, jobs: Vec<ClusterInfo>) -> &mut Self;
     /// Gets cluster.
-    fn get_cluster(&self) -> Option<&Vec<ClusterInfo>>;
+    fn get_cluster(&self, key: DimenKey) -> Option<&Vec<ClusterInfo>>;
 }
 
 impl ClusterDimension for Dimensions {
-    fn set_cluster(&mut self, jobs: Vec<ClusterInfo>) -> &mut Self {
-        self.set_value(CLUSTER_DIMENSION_KEY, jobs);
+    fn set_cluster(&mut self, key: DimenKey, jobs: Vec<ClusterInfo>) -> &mut Self {
+        self.set_value(key, jobs);
         self
     }
 
-    fn get_cluster(&self) -> Option<&Vec<ClusterInfo>> {
-        self.get_value(CLUSTER_DIMENSION_KEY)
+    fn get_cluster(&self, key: DimenKey) -> Option<&Vec<ClusterInfo>> {
+        self.get_value(key)
     }
 }
 
@@ -60,6 +57,8 @@ pub struct ClusterConfig {
     pub filtering: FilterPolicy,
     /// Specifies building policy.
     pub building: BuilderPolicy,
+    /// Dimension key for activity demand.
+    pub activity_demand_key: DimenKey,
 }
 
 /// Defines a various thresholds to control cluster size.

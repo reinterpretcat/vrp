@@ -48,7 +48,7 @@ fn create_feature(limit: Distance) -> (RechargeKeys, Feature) {
     let recharge_keys = RechargeKeys {
         distance: state_registry.next_key(),
         intervals: state_registry.next_key(),
-        capacity_keys: CapacityKeys::from(&mut state_registry),
+        capacity_keys: CapacityStateKeys::from(&mut state_registry),
     };
     let feature = create_recharge_feature(
         "recharge",

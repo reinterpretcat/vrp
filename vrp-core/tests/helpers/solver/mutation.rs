@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::heuristics::*;
-use crate::models::common::{IdDimension, Schedule};
+use crate::models::common::Schedule;
 use crate::models::solution::{Activity, Place};
 use hashbrown::HashMap;
 

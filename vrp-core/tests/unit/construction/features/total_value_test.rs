@@ -2,7 +2,6 @@ use super::*;
 use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::problem::{get_job_id, SingleBuilder};
 use crate::helpers::models::solution::*;
-use crate::models::common::ValueDimension;
 use crate::models::problem::Single;
 
 const VIOLATION_CODE: ViolationCode = 1;

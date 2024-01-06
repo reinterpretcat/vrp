@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/models/common/load_test.rs"]
 mod load_test;
 
-use crate::models::common::{Dimensions, ValueDimension};
+use crate::models::common::{DimenKey, Dimensions};
 use crate::models::Problem;
 use rosomaxa::prelude::UnwrapValue;
 use std::cmp::Ordering;
@@ -10,8 +10,6 @@ use std::fmt::{Debug, Display, Formatter};
 use std::iter::Sum;
 use std::ops::{Add, ControlFlow, Mul, Sub};
 
-const CAPACITY_DIMENSION_KEY: &str = "cpc";
-const DEMAND_DIMENSION_KEY: &str = "dmd";
 const LOAD_DIMENSION_SIZE: usize = 8;
 
 /// Represents a load type used to represent customer's demand or vehicle's load.
@@ -47,17 +45,17 @@ pub struct Demand<T: LoadOps> {
 /// A trait to get or set vehicle's capacity.
 pub trait CapacityDimension<T: LoadOps> {
     /// Sets capacity.
-    fn set_capacity(&mut self, demand: T) -> &mut Self;
+    fn set_capacity(&mut self, key: DimenKey, demand: T) -> &mut Self;
     /// Gets capacity.
-    fn get_capacity(&self) -> Option<&T>;
+    fn get_capacity(&self, key: DimenKey) -> Option<&T>;
 }
 
 /// A trait to get or set demand.
 pub trait DemandDimension<T: LoadOps> {
     /// Sets demand.
-    fn set_demand(&mut self, demand: Demand<T>) -> &mut Self;
+    fn set_demand(&mut self, key: DimenKey, demand: Demand<T>) -> &mut Self;
     /// Gets demand.
-    fn get_demand(&self) -> Option<&Demand<T>>;
+    fn get_demand(&self, key: DimenKey) -> Option<&Demand<T>>;
 }
 
 impl<T: LoadOps> Demand<T> {
@@ -91,24 +89,24 @@ impl<T: LoadOps> Add for Demand<T> {
 }
 
 impl<T: LoadOps> CapacityDimension<T> for Dimensions {
-    fn set_capacity(&mut self, demand: T) -> &mut Self {
-        self.set_value(CAPACITY_DIMENSION_KEY, demand);
+    fn set_capacity(&mut self, key: DimenKey, demand: T) -> &mut Self {
+        self.set_value(key, demand);
         self
     }
 
-    fn get_capacity(&self) -> Option<&T> {
-        self.get_value(CAPACITY_DIMENSION_KEY)
+    fn get_capacity(&self, key: DimenKey) -> Option<&T> {
+        self.get_value(key)
     }
 }
 
 impl<T: LoadOps> DemandDimension<T> for Dimensions {
-    fn set_demand(&mut self, demand: Demand<T>) -> &mut Self {
-        self.set_value(DEMAND_DIMENSION_KEY, demand);
+    fn set_demand(&mut self, key: DimenKey, demand: Demand<T>) -> &mut Self {
+        self.set_value(key, demand);
         self
     }
 
-    fn get_demand(&self) -> Option<&Demand<T>> {
-        self.get_value(DEMAND_DIMENSION_KEY)
+    fn get_demand(&self, key: DimenKey) -> Option<&Demand<T>> {
+        self.get_value(key)
     }
 }
 
@@ -357,9 +355,9 @@ impl Display for MultiDimLoad {
 }
 
 /// Returns true if any of the jobs has multi dimensional demand.
-pub fn has_multi_dim_demand(problem: &Problem) -> bool {
+pub fn has_multi_dim_demand(problem: &Problem, demand_key: DimenKey) -> bool {
     problem.jobs.all().any(|job| {
-        let demand: Option<&Demand<MultiDimLoad>> = job.dimens().get_demand();
+        let demand: Option<&Demand<MultiDimLoad>> = job.dimens().get_demand(demand_key);
         demand.is_some()
     })
 }

@@ -1,14 +1,14 @@
 //! Provides features to balance work.
 
 use super::*;
-use crate::models::common::{CapacityDimension, LoadOps};
+use crate::models::common::LoadOps;
 use rosomaxa::algorithms::math::get_cv_safe;
 use std::cmp::Ordering;
 
 /// Specifies load function type.
 pub type LoadBalanceFn<T> = Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>;
 
-/// Combines all keys needed for transport feature usage.
+/// Combines all keys, state and dimension, needed for transport feature usage.
 #[derive(Clone)]
 pub struct LoadBalanceKeys {
     /// A key which tracks reload intervals.
@@ -17,6 +17,8 @@ pub struct LoadBalanceKeys {
     pub max_future_capacity: StateKey,
     /// A key for balancing max load.
     pub balance_max_load: StateKey,
+    /// A key to get vehicle capacity.
+    pub vehicle_capacity: DimenKey,
 }
 
 /// Creates a feature which balances max load across all tours.
@@ -30,7 +32,7 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
     let default_intervals = vec![(0_usize, 0_usize)];
 
     let get_load_ratio = Arc::new(move |route_ctx: &RouteContext| {
-        let capacity = route_ctx.route().actor.vehicle.dimens.get_capacity().unwrap();
+        let capacity = route_ctx.route().actor.vehicle.dimens.get_capacity(feature_keys.vehicle_capacity).unwrap();
         let intervals = route_ctx
             .state()
             .get_route_state::<Vec<(usize, usize)>>(feature_keys.reload_interval)

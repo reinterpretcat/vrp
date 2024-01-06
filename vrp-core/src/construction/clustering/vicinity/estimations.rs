@@ -3,7 +3,6 @@
 mod estimations_test;
 
 use super::*;
-use crate::models::common::*;
 use crate::models::problem::{Place, Single, TransportCost};
 use crate::models::solution::CommuteInfo;
 use crate::models::GoalContext;
@@ -60,7 +59,7 @@ pub(crate) fn get_clusters(
         if let Some(new_cluster) = new_cluster {
             let new_cluster_jobs = new_cluster
                 .dimens()
-                .get_cluster()
+                .get_cluster(config.activity_demand_key)
                 .expect("expected to have jobs in a cluster")
                 .iter()
                 .map(|info| info.job.clone())
@@ -76,7 +75,7 @@ pub(crate) fn get_clusters(
 
                 let is_cluster_affected = cluster
                     .as_ref()
-                    .and_then(|cluster| cluster.dimens().get_cluster())
+                    .and_then(|cluster| cluster.dimens().get_cluster(config.activity_demand_key))
                     .map_or(false, |cluster_jobs| cluster_jobs.iter().any(|info| used_jobs.contains(&info.job)));
 
                 if is_cluster_affected {
@@ -253,7 +252,7 @@ fn build_job_cluster(
                 .map(|(candidate, _)| candidate.clone())
                 .collect::<HashSet<_>>();
 
-            let mut cluster = with_cluster_dimension(new_center_job, new_visit_info);
+            let mut cluster = with_cluster_dimension(new_center_job, new_visit_info, config.activity_demand_key);
             let mut last_job = center_job.clone();
             let mut last_place_idx = center_place_idx;
             let mut count = 1_usize;
@@ -313,7 +312,7 @@ fn build_job_cluster(
                         count += 1;
 
                         cluster_candidates.remove(&visit_info.job);
-                        cluster = with_cluster_dimension(new_cluster, visit_info);
+                        cluster = with_cluster_dimension(new_cluster, visit_info, config.activity_demand_key);
                     }
                     None => cluster_candidates.clear(),
                 }
@@ -352,7 +351,7 @@ where
     let cluster_times = filter_times(cluster_place.times.as_slice());
     let cluster_last_duration = cluster
         .dimens
-        .get_cluster()
+        .get_cluster(config.activity_demand_key)
         .and_then(|jobs| jobs.last())
         .and_then(|info| {
             info.job
@@ -479,15 +478,15 @@ fn filter_times(times: &[TimeSpan]) -> Vec<TimeWindow> {
     times.iter().filter_map(|time| time.as_time_window()).collect::<Vec<_>>()
 }
 
-fn with_cluster_dimension(cluster: Job, visit_info: ClusterInfo) -> Job {
+fn with_cluster_dimension(cluster: Job, visit_info: ClusterInfo, dimen_key: DimenKey) -> Job {
     let cluster = cluster.to_single();
 
     let mut cluster = Single { places: cluster.places.clone(), dimens: cluster.dimens.clone() };
 
-    let mut jobs = cluster.dimens.get_cluster().cloned().unwrap_or_default();
+    let mut jobs = cluster.dimens.get_cluster(dimen_key).cloned().unwrap_or_default();
     jobs.push(visit_info);
 
-    cluster.dimens.set_cluster(jobs);
+    cluster.dimens.set_cluster(dimen_key, jobs);
 
     Job::Single(Arc::new(cluster))
 }
@@ -496,7 +495,7 @@ fn finish_cluster<F>(cluster: Job, config: &ClusterConfig, center_commute: F) ->
 where
     F: Fn(&ClusterInfo) -> Commute,
 {
-    let clustered_jobs = cluster.dimens().get_cluster();
+    let clustered_jobs = cluster.dimens().get_cluster(config.activity_demand_key);
 
     match (&config.visiting, clustered_jobs) {
         (VisitPolicy::ClosedContinuation, Some(clustered)) => {
@@ -515,7 +514,7 @@ where
             last_info.commute.backward = commute.backward;
 
             let mut dimens = cluster.dimens.clone();
-            dimens.set_cluster(clustered);
+            dimens.set_cluster(config.activity_demand_key, clustered);
 
             Job::Single(Arc::new(Single { places: vec![place], dimens }))
         }

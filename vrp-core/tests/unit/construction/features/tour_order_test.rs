@@ -1,7 +1,6 @@
 use super::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::models::common::{IdDimension, ValueDimension};
 use crate::models::solution::Activity;
 
 const VIOLATION_CODE: ViolationCode = 1;
