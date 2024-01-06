@@ -80,7 +80,7 @@ fn can_insert_jobs_impl(
     insert_jobs(&mut insertion_ctx, route_idx, jobs, reverse_probability_threshold, 0.);
 
     compare_with_ignore(
-        vec![get_customer_ids_from_routes(&insertion_ctx).get(0).cloned().unwrap()].as_slice(),
+        vec![get_customer_ids_from_routes(&insertion_ctx).first().cloned().unwrap()].as_slice(),
         expected_route_ids,
         "",
     );

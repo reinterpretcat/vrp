@@ -233,7 +233,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
     assert_eq!(
         solution_ctx
             .routes
-            .get(0)
+            .first()
             .unwrap()
             .route()
             .tour

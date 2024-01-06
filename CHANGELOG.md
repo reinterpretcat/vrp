@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* fix clippy warnings
+
 
 ## [v1.23.0]- 2023-12-22
 

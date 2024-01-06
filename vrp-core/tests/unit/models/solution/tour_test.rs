@@ -135,7 +135,7 @@ fn can_get_legs() {
 
     // (s,a1) (a1,a2) (a2,e)
     assert_eq!(legs.len(), 3);
-    compare_legs(legs.get(0).unwrap(), &(vec![start_ptr, a1_ptr], 0));
+    compare_legs(legs.first().unwrap(), &(vec![start_ptr, a1_ptr], 0));
     compare_legs(legs.get(1).unwrap(), &(vec![a1_ptr, a2_ptr], 1));
     compare_legs(legs.get(2).unwrap(), &(vec![a2_ptr, end_ptr], 2));
 }
