@@ -290,7 +290,7 @@ impl Dimensions {
 
     /// Sets id.
     pub fn set_id<S: AsRef<str>>(&mut self, id: S) -> &mut Self {
-        let extension  = if let Some(core_dimens) = self.get_value::<CoreDimensions>(DimenKey(0)) {
+        let extension = if let Some(core_dimens) = self.get_value::<CoreDimensions>(DimenKey(0)) {
             core_dimens.extension.clone()
         } else {
             None
@@ -337,44 +337,5 @@ impl Dimensions {
         };
 
         self.set_value(DimenKey(0), CoreDimensions { id, extension: Some(Arc::new(extension)) });
-    }
-}
-
-/// Provides way to build dimensions using string representation of the keys.
-pub struct DimensionBuilder<'a> {
-    data: HashMap<DimenKey, Arc<dyn Any + Send + Sync>>,
-    registry: &'a mut DimenKeyRegistry,
-}
-
-impl<'a> From<&'a mut DimenKeyRegistry> for DimensionBuilder<'a> {
-    fn from(registry: &'a mut DimenKeyRegistry) -> Self {
-        Self { data: Default::default(), registry }
-    }
-}
-
-impl<'a> DimensionBuilder<'a> {
-    /// Sets id.
-    pub fn set_id<S: AsRef<str>>(&mut self, id: S) -> &mut Self {
-        let core_dimens = CoreDimensions { id: Some(id.as_ref().to_string()), extension: None };
-        self.data.insert(DimenKey(0), Arc::new(core_dimens));
-        self
-    }
-
-    /// Sets value associated with given key.
-    /// Returns whether the value was set.
-    pub fn set_value<T: 'static + Sync + Send>(&mut self, scope: DimenScope, value: T) -> bool {
-        self.data.insert(self.registry.next_key(scope), Arc::new(value)).is_none()
-    }
-
-    /// Builds dimension.
-    pub fn build(&mut self) -> Dimensions {
-        let max_key = self.data.iter().map(|(key, _)| key.0).max().unwrap_or_default();
-        let mut data: Vec<Arc<dyn Any + Send + Sync>> = vec![Arc::new(()); max_key];
-
-        for (key, value) in std::mem::take(&mut self.data) {
-            data[key.0] = value;
-        }
-
-        Dimensions { data }
     }
 }

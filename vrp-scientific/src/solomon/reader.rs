@@ -30,7 +30,13 @@ impl SolomonProblem for String {
 }
 
 fn read_solomon_format<R: Read>(reader: BufReader<R>, is_rounded: bool) -> Result<Problem, GenericError> {
-    SolomonReader { buffer: String::new(), reader, coord_index: CoordIndex::default() }.read_problem(is_rounded)
+    SolomonReader {
+        buffer: String::new(),
+        reader,
+        coord_index: CoordIndex::default(),
+        dimen_registry: DimenKeyRegistry::default(),
+    }
+    .read_problem(is_rounded)
 }
 
 struct VehicleLine {
@@ -50,6 +56,7 @@ struct SolomonReader<R: Read> {
     buffer: String,
     reader: BufReader<R>,
     coord_index: CoordIndex,
+    dimen_registry: DimenKeyRegistry,
 }
 
 impl<R: Read> TextReader for SolomonReader<R> {
@@ -89,19 +96,24 @@ impl<R: Read> SolomonReader<R> {
             vehicle.capacity,
             self.coord_index.collect(depot.location),
             depot.tw,
+            &mut self.dimen_registry,
         ))
     }
 
     fn read_jobs(&mut self) -> Result<Vec<Job>, GenericError> {
         let mut jobs: Vec<Job> = Default::default();
+        let demand_key = self.dimen_registry.next_key(DimenScope::Activity);
         loop {
             match self.read_customer() {
                 Ok(customer) => {
                     let mut dimens = create_dimens_with_id("", &customer.id.to_string());
-                    dimens.set_demand(Demand::<SingleDimLoad> {
-                        pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
-                        delivery: (SingleDimLoad::new(customer.demand as i32), SingleDimLoad::default()),
-                    });
+                    dimens.set_demand(
+                        demand_key,
+                        Demand::<SingleDimLoad> {
+                            pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
+                            delivery: (SingleDimLoad::new(customer.demand as i32), SingleDimLoad::default()),
+                        },
+                    );
                     jobs.push(Job::Single(Arc::new(Single {
                         places: vec![Place {
                             location: Some(self.coord_index.collect(customer.location)),

@@ -54,7 +54,7 @@ fn create_example_fleet() -> Arc<Fleet> {
     let vehicles = vec![Arc::new(Vehicle {
         profile: Profile::default(),
         costs: Costs { fixed: 0., per_distance: 1., per_driving_time: 0., per_waiting_time: 0., per_service_time: 0. },
-        dimens: DimensionBuilder::from(&mut DimenKeyRegistry::default()).set_id("v1").build(),
+        dimens: std::mem::take(Dimensions::default().set_id("v1")),
         details: vec![VehicleDetail {
             start: Some(VehiclePlace { location: 0, time: TimeInterval::default() }),
             end: None,
@@ -65,7 +65,7 @@ fn create_example_fleet() -> Arc<Fleet> {
 }
 
 fn create_example_dimension() -> Dimensions {
-    DimensionBuilder::from(&mut DimenKeyRegistry::default()).build()
+    Dimensions::default()
 }
 
 /// Creates an extras with all necessary data

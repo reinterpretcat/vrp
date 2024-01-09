@@ -35,6 +35,7 @@ struct TsplibReader<R: Read> {
     dimension: Option<usize>,
     vehicle_capacity: Option<usize>,
     coord_index: CoordIndex,
+    dimen_registry: DimenKeyRegistry,
 }
 
 impl<R: Read> TextReader for TsplibReader<R> {
@@ -55,13 +56,14 @@ impl<R: Read> TextReader for TsplibReader<R> {
         self.read_expected_line("EOF")?;
 
         let dimension = self.dimension.unwrap();
+        let demand_key = self.dimen_registry.next_key(DimenScope::Activity);
 
         let jobs = coordinates.iter().filter(|(id, _)| **id != depot_id).try_fold::<_, _, Result<_, GenericError>>(
             Vec::with_capacity(dimension),
             |mut jobs, (id, (x, y))| {
                 let demand = demands.get(id).cloned().ok_or_else(|| format!("cannot find demand for id: '{id}'"))?;
 
-                jobs.push(self.create_job(&(*id - 1).to_string(), (*x, *y), demand));
+                jobs.push(self.create_job(&(*id - 1).to_string(), (*x, *y), demand, demand_key));
 
                 Ok(jobs)
             },
@@ -75,6 +77,7 @@ impl<R: Read> TextReader for TsplibReader<R> {
             self.vehicle_capacity.unwrap(),
             self.coord_index.collect(depot_coord),
             TimeWindow::max(),
+            &mut self.dimen_registry,
         );
 
         Ok((jobs, fleet))
@@ -99,6 +102,7 @@ impl<R: Read> TsplibReader<R> {
             dimension: None,
             vehicle_capacity: None,
             coord_index: CoordIndex::default(),
+            dimen_registry: DimenKeyRegistry::default(),
         }
     }
 
@@ -208,12 +212,15 @@ impl<R: Read> TsplibReader<R> {
         skip_lines(count, &mut self.reader, &mut self.buffer)
     }
 
-    fn create_job(&mut self, id: &str, location: (i32, i32), demand: i32) -> Job {
+    fn create_job(&mut self, id: &str, location: (i32, i32), demand: i32, demand_key: DimenKey) -> Job {
         let mut dimens = create_dimens_with_id("", id);
-        dimens.set_demand(Demand::<SingleDimLoad> {
-            pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
-            delivery: (SingleDimLoad::new(demand), SingleDimLoad::default()),
-        });
+        dimens.set_demand(
+            demand_key,
+            Demand::<SingleDimLoad> {
+                pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
+                delivery: (SingleDimLoad::new(demand), SingleDimLoad::default()),
+            },
+        );
         Job::Single(Arc::new(Single {
             places: vec![Place {
                 location: Some(self.coord_index.collect(location)),

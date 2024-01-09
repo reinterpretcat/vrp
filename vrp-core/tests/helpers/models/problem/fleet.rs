@@ -55,7 +55,7 @@ pub fn test_fleet() -> Fleet {
 }
 
 pub fn test_vehicle_with_id(id: &str) -> Vehicle {
-    let mut dimens = DimensionBuilder::from(&mut DimenKeyRegistry::default()).set_id(id).build();
+    let dimens = std::mem::take(Dimensions::default().set_id(id));
 
     Vehicle { profile: Profile::default(), costs: test_costs(), dimens, details: vec![test_vehicle_detail()] }
 }

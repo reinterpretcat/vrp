@@ -57,8 +57,8 @@ pub struct ClusterConfig {
     pub filtering: FilterPolicy,
     /// Specifies building policy.
     pub building: BuilderPolicy,
-    /// Dimension key for activity demand.
-    pub activity_demand_key: DimenKey,
+    /// Dimension key for storing cluster info.
+    pub cluster_key: DimenKey,
 }
 
 /// Defines a various thresholds to control cluster size.

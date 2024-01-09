@@ -20,7 +20,13 @@ pub trait LilimProblem {
 
 impl<R: Read> LilimProblem for BufReader<R> {
     fn read_lilim(self, is_rounded: bool) -> Result<Problem, GenericError> {
-        LilimReader { buffer: String::new(), reader: self, coord_index: CoordIndex::default() }.read_problem(is_rounded)
+        LilimReader {
+            buffer: String::new(),
+            reader: self,
+            coord_index: CoordIndex::default(),
+            dimen_registry: DimenKeyRegistry::default(),
+        }
+        .read_problem(is_rounded)
     }
 }
 
@@ -54,6 +60,7 @@ struct LilimReader<R: Read> {
     buffer: String,
     reader: BufReader<R>,
     coord_index: CoordIndex,
+    dimen_registry: DimenKeyRegistry,
 }
 
 impl<R: Read> TextReader for LilimReader<R> {
@@ -92,12 +99,14 @@ impl<R: Read> LilimReader<R> {
             vehicle.capacity,
             self.coord_index.collect(depot.location),
             depot.tw,
+            &mut self.dimen_registry,
         ))
     }
 
     fn read_jobs(&mut self) -> Result<Vec<Job>, GenericError> {
         let mut customers: HashMap<usize, JobLine> = Default::default();
         let mut relations: Vec<Relation> = Default::default();
+        let demand_key = self.dimen_registry.next_key(DimenScope::Activity);
         loop {
             match self.read_customer() {
                 Ok(customer) => {
@@ -122,7 +131,7 @@ impl<R: Read> LilimReader<R> {
             let delivery = customers.get(&relation.delivery).unwrap();
 
             jobs.push(Job::Multi(Multi::new_shared(
-                vec![self.create_single_job(pickup), self.create_single_job(delivery)],
+                vec![self.create_single_job(pickup, demand_key), self.create_single_job(delivery, demand_key)],
                 create_dimens_with_id("mlt", &index.to_string()),
             )));
         });
@@ -130,19 +139,22 @@ impl<R: Read> LilimReader<R> {
         Ok(jobs)
     }
 
-    fn create_single_job(&mut self, customer: &JobLine) -> Arc<Single> {
+    fn create_single_job(&mut self, customer: &JobLine, demand_key: DimenKey) -> Arc<Single> {
         let mut dimens = create_dimens_with_id("c", &customer.id.to_string());
-        dimens.set_demand(if customer.demand > 0 {
-            Demand::<SingleDimLoad> {
-                pickup: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand)),
-                delivery: (SingleDimLoad::default(), SingleDimLoad::default()),
-            }
-        } else {
-            Demand::<SingleDimLoad> {
-                pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
-                delivery: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand)),
-            }
-        });
+        dimens.set_demand(
+            demand_key,
+            if customer.demand > 0 {
+                Demand::<SingleDimLoad> {
+                    pickup: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand)),
+                    delivery: (SingleDimLoad::default(), SingleDimLoad::default()),
+                }
+            } else {
+                Demand::<SingleDimLoad> {
+                    pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
+                    delivery: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand)),
+                }
+            },
+        );
 
         Arc::new(Single {
             places: vec![Place {

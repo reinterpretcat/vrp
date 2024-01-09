@@ -110,7 +110,7 @@ impl HeuristicSolutionProcessing for VicinityClustering {
                 .filter_map(|(idx, activity)| {
                     activity
                         .retrieve_job()
-                        .and_then(|job| job.dimens().get_cluster(config.activity_demand_key).cloned())
+                        .and_then(|job| job.dimens().get_cluster(config.cluster_key).cloned())
                         .map(|cluster| (idx, cluster))
                 })
                 .collect::<Vec<_>>();
@@ -166,7 +166,7 @@ impl HeuristicSolutionProcessing for VicinityClustering {
             .iter()
             .flat_map(|(job, code)| {
                 job.dimens()
-                    .get_cluster(config.activity_demand_key)
+                    .get_cluster(config.cluster_key)
                     .map(|clusters| clusters.iter().map(|info| (info.job.clone(), code.clone())).collect::<Vec<_>>())
                     .unwrap_or_else(|| vec![(job.clone(), code.clone())])
                     .into_iter()

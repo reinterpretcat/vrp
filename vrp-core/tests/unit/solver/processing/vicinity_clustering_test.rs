@@ -6,8 +6,17 @@ use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::helpers::solver::create_default_refinement_ctx;
+use crate::models::common::DimenKey;
 use crate::models::problem::Job;
 use crate::models::solution::{Commute, CommuteInfo};
+
+fn create_merge_key() -> DimenKey {
+    create_dimen_key_with_index(100)
+}
+
+fn create_cluster_key() -> DimenKey {
+    create_dimen_key_with_index(101)
+}
 
 fn create_test_jobs() -> Vec<Job> {
     vec![
@@ -21,8 +30,10 @@ fn create_test_jobs() -> Vec<Job> {
 fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<Problem>) {
     let environment = Arc::new(Environment::default());
 
-    let orig_problem =
-        ProblemBuilder::default().with_goal(create_goal_context_with_vicinity(vec![])).with_jobs(jobs).build();
+    let orig_problem = ProblemBuilder::default()
+        .with_goal(create_goal_context_with_vicinity(vec![], create_merge_key()))
+        .with_jobs(jobs)
+        .build();
     let orig_problem = Arc::new(Problem {
         extras: Arc::new({
             let mut extras = ExtrasBuilder::from(orig_problem.extras.as_ref()).build().expect("cannot build extras");
@@ -41,7 +52,7 @@ fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<
 
 #[test]
 fn can_create_problem_with_clusters_on_pre_process() {
-    let (_, problem) = create_problems(create_cluster_config(), create_test_jobs());
+    let (_, problem) = create_problems(create_cluster_config(create_cluster_key()), create_test_jobs());
 
     let jobs = problem.jobs.all().collect::<Vec<_>>();
     assert_eq!(jobs.len(), 2);
@@ -49,7 +60,7 @@ fn can_create_problem_with_clusters_on_pre_process() {
     let jobs = jobs
         .iter()
         .find(|job| get_job_id(job) == "job3")
-        .and_then(|job| job.dimens().get_cluster().cloned())
+        .and_then(|job| job.dimens().get_cluster(create_cluster_key()).cloned())
         .unwrap()
         .into_iter()
         .map(|info| get_job_id(&info.job).clone())
@@ -73,7 +84,8 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
     expected: Vec<(&str, (f64, f64))>,
 ) {
     let problem_jobs = create_test_jobs();
-    let (_, new_problem) = create_problems(ClusterConfig { visiting, ..create_cluster_config() }, problem_jobs);
+    let (_, new_problem) =
+        create_problems(ClusterConfig { visiting, ..create_cluster_config(create_cluster_key()) }, problem_jobs);
     let clustered_single = new_problem.jobs.all().find(|job| get_job_id(job) == "job3").unwrap().to_single().clone();
     let clustered_time = clustered_single.places.first().unwrap().clone().times.first().unwrap().to_time_window(0.);
     let insertion_ctx = InsertionContext {
@@ -123,7 +135,7 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
 
 #[test]
 fn can_unwrap_clusters_in_unassigned_on_post_process() {
-    let (_, new_problem) = create_problems(create_cluster_config(), create_test_jobs());
+    let (_, new_problem) = create_problems(create_cluster_config(create_cluster_key()), create_test_jobs());
     let clustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job3").unwrap();
     let unclustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job4_outlier").unwrap();
     let insertion_ctx = InsertionContext {

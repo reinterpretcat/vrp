@@ -9,7 +9,7 @@ use crate::validation::ValidationContext;
 use crate::{parse_time, CoordIndex};
 use vrp_core::construction::enablers::*;
 use vrp_core::construction::heuristics::StateKeyRegistry;
-use vrp_core::models::common::{TimeOffset, TimeSpan, TimeWindow};
+use vrp_core::models::common::{DimenKeyRegistry, TimeOffset, TimeSpan, TimeWindow};
 use vrp_core::models::ExtrasBuilder;
 use vrp_core::solver::processing::{ReservedTimeDimension, VicinityDimension};
 
@@ -34,8 +34,10 @@ pub(super) fn map_to_problem(
 ) -> Result<CoreProblem, MultiFormatError> {
     ValidationContext::new(&api_problem, Some(&matrices), &coord_index).validate()?;
 
+    let mut dimen_registry = DimenKeyRegistry::default();
     let mut state_registry = StateKeyRegistry::default();
-    let mut extras = ExtrasBuilder::new(&mut state_registry).build().map_err(to_multi_format_error)?;
+    let mut extras =
+        ExtrasBuilder::new(&mut dimen_registry, &mut state_registry).build().map_err(to_multi_format_error)?;
 
     extras.set_coord_index(coord_index);
 

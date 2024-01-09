@@ -12,6 +12,16 @@ pub fn create_dimen_key() -> DimenKey {
     DimenKeyRegistry::default().next_key(DimenScope::Activity)
 }
 
+pub fn create_dimen_key_with_index(idx: usize) -> DimenKey {
+    let mut registry = DimenKeyRegistry::default();
+
+    for _ in 0..idx {
+        registry.next_key(DimenScope::Activity);
+    }
+
+    registry.next_key(DimenScope::Activity)
+}
+
 pub fn test_random() -> Arc<dyn Random + Send + Sync> {
     Arc::new(DefaultRandom::default())
 }

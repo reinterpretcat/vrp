@@ -54,8 +54,8 @@ fn can_calculate_current_capacity_state_values_impl(
     exp_s3: i32,
 ) {
     let capacity_keys = create_capacity_keys();
-    let dimen_keys = capacity_keys.dimen_keys;
-    let state_keys = capacity_keys.state_keys;
+    let dimen_keys = capacity_keys.dimen_keys.clone();
+    let state_keys = capacity_keys.state_keys.clone();
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicle(create_test_vehicle(10, dimen_keys.vehicle_capacity))

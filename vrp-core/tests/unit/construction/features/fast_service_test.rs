@@ -1,6 +1,7 @@
 use super::*;
 use crate::construction::enablers::NoRouteIntervals;
 use crate::helpers::construction::heuristics::create_state_key;
+use crate::helpers::models::domain::create_dimen_key;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 
@@ -11,7 +12,7 @@ fn create_test_feature(route_intervals: Arc<dyn RouteIntervals + Send + Sync>) -
         TestActivityCost::new_shared(),
         route_intervals,
         None,
-        create_state_key(),
+        FastServiceKeys { state_key: create_state_key(), demand_key: create_dimen_key() },
     )
     .unwrap()
 }
@@ -86,7 +87,7 @@ mod local_estimation {
     fn can_estimate_single_job_insertion_without_reload_impl(test_case: InsertionTestCase<Location>) {
         let job = SingleBuilder::default()
             .location(Some(test_case.target_location))
-            .demand(create_simple_demand(test_case.demand))
+            .demand(create_dimen_key(), create_simple_demand(test_case.demand))
             .build_shared();
         let activities = test_case.activities.iter().map(|l| ActivityBuilder::with_location(*l).build()).collect();
 
@@ -114,12 +115,16 @@ mod local_estimation {
     }
 
     fn can_estimate_multi_job_insertion_without_reload_impl(test_case: InsertionTestCase<(Location, Option<i32>)>) {
+        let dimen_key = create_dimen_key();
         let job = SingleBuilder::default()
             .location(Some(test_case.target_location))
-            .demand(create_simple_dynamic_demand(test_case.demand))
+            .demand(dimen_key, create_simple_dynamic_demand(test_case.demand))
             .build_shared();
         let jobs = test_case.activities.iter().filter_map(|(l, demand)| demand.map(|d| (l, d))).map(|(l, d)| {
-            SingleBuilder::default().location(Some(*l)).demand(create_simple_dynamic_demand(d)).build_shared()
+            SingleBuilder::default()
+                .location(Some(*l))
+                .demand(dimen_key, create_simple_dynamic_demand(d))
+                .build_shared()
         });
         let jobs = once(job).chain(jobs).collect::<Vec<_>>();
         let multi = Multi::new_shared(jobs, Default::default());

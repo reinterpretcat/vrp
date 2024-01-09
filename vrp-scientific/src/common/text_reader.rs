@@ -47,7 +47,9 @@ pub(crate) fn create_fleet_with_distance_costs(
     capacity: usize,
     location: Location,
     time: TimeWindow,
+    dimen_registry: &mut DimenKeyRegistry,
 ) -> Fleet {
+    let capacity_key = dimen_registry.next_key(DimenScope::Vehicle);
     Fleet::new(
         vec![Arc::new(Driver {
             costs: Costs {
@@ -63,7 +65,7 @@ pub(crate) fn create_fleet_with_distance_costs(
         (0..number)
             .map(|i| {
                 let mut dimens = create_dimens_with_id("v", &i.to_string());
-                dimens.set_capacity(SingleDimLoad::new(capacity as i32));
+                dimens.set_capacity(capacity_key, SingleDimLoad::new(capacity as i32));
                 Arc::new(Vehicle {
                     profile: Profile::default(),
                     costs: Costs {

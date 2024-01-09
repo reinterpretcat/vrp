@@ -59,7 +59,7 @@ pub(crate) fn get_clusters(
         if let Some(new_cluster) = new_cluster {
             let new_cluster_jobs = new_cluster
                 .dimens()
-                .get_cluster(config.activity_demand_key)
+                .get_cluster(config.cluster_key)
                 .expect("expected to have jobs in a cluster")
                 .iter()
                 .map(|info| info.job.clone())
@@ -75,7 +75,7 @@ pub(crate) fn get_clusters(
 
                 let is_cluster_affected = cluster
                     .as_ref()
-                    .and_then(|cluster| cluster.dimens().get_cluster(config.activity_demand_key))
+                    .and_then(|cluster| cluster.dimens().get_cluster(config.cluster_key))
                     .map_or(false, |cluster_jobs| cluster_jobs.iter().any(|info| used_jobs.contains(&info.job)));
 
                 if is_cluster_affected {
@@ -252,7 +252,7 @@ fn build_job_cluster(
                 .map(|(candidate, _)| candidate.clone())
                 .collect::<HashSet<_>>();
 
-            let mut cluster = with_cluster_dimension(new_center_job, new_visit_info, config.activity_demand_key);
+            let mut cluster = with_cluster_dimension(new_center_job, new_visit_info, config.cluster_key);
             let mut last_job = center_job.clone();
             let mut last_place_idx = center_place_idx;
             let mut count = 1_usize;
@@ -312,7 +312,7 @@ fn build_job_cluster(
                         count += 1;
 
                         cluster_candidates.remove(&visit_info.job);
-                        cluster = with_cluster_dimension(new_cluster, visit_info, config.activity_demand_key);
+                        cluster = with_cluster_dimension(new_cluster, visit_info, config.cluster_key);
                     }
                     None => cluster_candidates.clear(),
                 }
@@ -351,7 +351,7 @@ where
     let cluster_times = filter_times(cluster_place.times.as_slice());
     let cluster_last_duration = cluster
         .dimens
-        .get_cluster(config.activity_demand_key)
+        .get_cluster(config.cluster_key)
         .and_then(|jobs| jobs.last())
         .and_then(|info| {
             info.job
@@ -495,7 +495,7 @@ fn finish_cluster<F>(cluster: Job, config: &ClusterConfig, center_commute: F) ->
 where
     F: Fn(&ClusterInfo) -> Commute,
 {
-    let clustered_jobs = cluster.dimens().get_cluster(config.activity_demand_key);
+    let clustered_jobs = cluster.dimens().get_cluster(config.cluster_key);
 
     match (&config.visiting, clustered_jobs) {
         (VisitPolicy::ClosedContinuation, Some(clustered)) => {
@@ -514,7 +514,7 @@ where
             last_info.commute.backward = commute.backward;
 
             let mut dimens = cluster.dimens.clone();
-            dimens.set_cluster(config.activity_demand_key, clustered);
+            dimens.set_cluster(config.cluster_key, clustered);
 
             Job::Single(Arc::new(Single { places: vec![place], dimens }))
         }

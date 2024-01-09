@@ -1,16 +1,21 @@
 use super::*;
+use crate::helpers::models::domain::create_dimen_key;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::solution::Activity;
 
 const VIOLATION_CODE: ViolationCode = 1;
 
+fn create_order_key() -> DimenKey {
+    create_dimen_key()
+}
+
 fn create_single_with_order(id: &str, order: Option<f64>) -> Arc<Single> {
     let mut single = SingleBuilder::default().build();
     single.dimens.set_id(id);
 
     if let Some(order) = order {
-        single.dimens.set_value("order", order);
+        single.dimens.set_value(create_order_key(), order);
     }
 
     Arc::new(single)
@@ -57,15 +62,16 @@ fn can_merge_order_impl(source: Option<f64>, candidate: Option<f64>, expected: R
     let source_job = Job::Single(create_single_with_order("source", source));
     let candidate_job = Job::Single(create_single_with_order("candidate", candidate));
 
-    let result =
-        constraint.merge(source_job, candidate_job).map(|merged| merged.dimens().get_value::<f64>("order").cloned());
+    let result = constraint
+        .merge(source_job, candidate_job)
+        .map(|merged| merged.dimens().get_value::<f64>(create_order_key()).cloned());
 
     assert_eq!(result, expected);
 }
 
 fn get_order_fn() -> TourOrderFn {
     Either::Left(Arc::new(|single| {
-        single.map_or(OrderResult::Ignored, |single| match single.dimens.get_value::<f64>("order") {
+        single.map_or(OrderResult::Ignored, |single| match single.dimens.get_value::<f64>(create_order_key()) {
             Some(value) => OrderResult::Value(*value),
             _ => OrderResult::Default,
         })

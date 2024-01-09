@@ -10,33 +10,63 @@ use crate::models::problem::{Fleet, Vehicle, VehicleDetail};
 
 const VIOLATION_CODE: ViolationCode = 1;
 
+struct TestDimenKeys {
+    demand_key: DimenKey,
+    capacity_key: DimenKey,
+    resource_key: DimenKey,
+}
+
+fn create_dimen_keys() -> TestDimenKeys {
+    let mut dimen_registry = DimenKeyRegistry::default();
+
+    TestDimenKeys {
+        demand_key: dimen_registry.next_key(DimenScope::Activity),
+        capacity_key: dimen_registry.next_key(DimenScope::Activity),
+        resource_key: dimen_registry.next_key(DimenScope::Activity),
+    }
+}
+
+fn create_state_keys() -> (StateKey, StateKey) {
+    let mut state_registry = StateKeyRegistry::default();
+    let intervals_key = state_registry.next_key();
+    let resource_key = state_registry.next_key();
+
+    (intervals_key, resource_key)
+}
+
 fn create_usage_activity(demand: i32) -> Activity {
+    let test_keys = create_dimen_keys();
     let demand = create_simple_demand(-demand);
-    let single = SingleBuilder::default().demand(demand).build_shared();
+    let single = SingleBuilder::default().demand(test_keys.demand_key, demand).build_shared();
 
     Activity { job: Some(single), ..ActivityBuilder::default().build() }
 }
 
 fn create_resource_activity(capacity: i32, resource_id: Option<SharedResourceId>) -> Activity {
+    let dimen_keys = create_dimen_keys();
     let mut single = SingleBuilder::default().build();
     if let Some(resource_id) = resource_id {
-        single.dimens.set_value("resource_id", resource_id);
+        single.dimens.set_value(dimen_keys.resource_key, resource_id);
     }
-    single.dimens.set_capacity(SingleDimLoad::new(capacity));
+    single.dimens.set_capacity(dimen_keys.capacity_key, SingleDimLoad::new(capacity));
 
     Activity { job: Some(Arc::new(single)), ..ActivityBuilder::default().build() }
 }
 
 fn create_feature(intervals_key: StateKey, resource_key: StateKey, total_jobs: usize) -> Feature {
+    let dimen_keys = create_dimen_keys();
     create_shared_resource_feature::<SingleDimLoad>(
         "shared_resource",
         total_jobs,
         VIOLATION_CODE,
         resource_key,
         create_interval_fn(intervals_key),
-        Arc::new(|activity| {
+        Arc::new(move |activity| {
             activity.job.as_ref().and_then(|job| {
-                job.dimens.get_capacity().cloned().zip(job.dimens.get_value::<SharedResourceId>("resource_id").cloned())
+                job.dimens
+                    .get_capacity(dimen_keys.capacity_key)
+                    .cloned()
+                    .zip(job.dimens.get_value::<SharedResourceId>(dimen_keys.resource_key).cloned())
             })
         }),
         create_resource_demand_fn(),
@@ -55,6 +85,7 @@ fn create_route_ctx(
     resources: &HashMap<usize, i32>,
     activities: &[ActivityType],
 ) -> RouteContext {
+    let dimen_keys = create_dimen_keys();
     let activities = activities.iter().map(|activity_type| match activity_type {
         SharedResource(resource_id) => {
             create_resource_activity(*resources.get(resource_id).unwrap(), Some(*resource_id))
@@ -67,7 +98,7 @@ fn create_route_ctx(
         .build();
     let intervals = get_route_intervals(route_ctx.route(), |activity| {
         activity.job.as_ref().map_or(false, |job| {
-            let capacity: Option<&SingleDimLoad> = job.dimens.get_capacity();
+            let capacity: Option<&SingleDimLoad> = job.dimens.get_capacity(dimen_keys.capacity_key);
             capacity.is_some()
         })
     });
@@ -107,15 +138,7 @@ fn create_interval_fn(intervals_key: StateKey) -> SharedResourceIntervalFn {
 }
 
 fn create_resource_demand_fn() -> SharedResourceDemandFn<SingleDimLoad> {
-    Arc::new(|single| single.dimens.get_demand().map(|demand| demand.delivery.0))
-}
-
-fn create_state_keys() -> (StateKey, StateKey) {
-    let mut state_registry = StateKeyRegistry::default();
-    let intervals_key = state_registry.next_key();
-    let resource_key = state_registry.next_key();
-
-    (intervals_key, resource_key)
+    Arc::new(|single| single.dimens.get_demand(create_dimen_keys().demand_key).map(|demand| demand.delivery.0))
 }
 
 enum ActivityType {
@@ -215,9 +238,10 @@ fn can_constraint_route_impl(
     expected: Option<i32>,
 ) {
     let (intervals_key, resource_key) = create_state_keys();
+    let dimen_keys = create_dimen_keys();
     let job = Job::Single(job_demand.map_or_else(
         || SingleBuilder::default().id("job1").build_shared(),
-        |demand| SingleBuilder::default().demand(create_simple_demand(-demand)).build_shared(),
+        |demand| SingleBuilder::default().demand(dimen_keys.demand_key, create_simple_demand(-demand)).build_shared(),
     ));
     let constraint = create_feature(intervals_key, resource_key, total_jobs).constraint.unwrap();
     let solution_ctx = create_solution_ctx(intervals_key, resources, vec![activities], false);

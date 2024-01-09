@@ -1,7 +1,7 @@
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::Job;
-use vrp_core::models::Problem;
+use vrp_core::models::{CoreStateKeys, Problem};
 
 pub fn get_customer_id(job: &Job) -> String {
     get_job_id(job).to_owned()
@@ -36,7 +36,8 @@ pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec
 }
 
 pub fn get_vehicle_capacity(problem: &Problem) -> i32 {
-    let capacity: &SingleDimLoad = problem.fleet.vehicles.first().unwrap().dimens.get_capacity().unwrap();
+    let capacity_key = problem.extras.get_capacity_keys().unwrap().dimen_keys.vehicle_capacity;
+    let capacity: &SingleDimLoad = problem.fleet.vehicles.first().unwrap().dimens.get_capacity(capacity_key).unwrap();
     capacity.value
 }
 
@@ -64,7 +65,8 @@ pub fn get_job_ids(problem: &Problem) -> Vec<String> {
 }
 
 pub fn get_job_demands(problem: &Problem) -> Vec<i32> {
-    problem.jobs.all().map(|j| get_job_simple_demand(&j).delivery.0).map(|d| d.value).collect()
+    let demand_key = problem.extras.get_capacity_keys().unwrap().dimen_keys.activity_demand;
+    problem.jobs.all().map(|j| get_job_simple_demand(&j, demand_key).delivery.0).map(|d| d.value).collect()
 }
 
 pub fn get_job_durations(problem: &Problem) -> Vec<f64> {
@@ -78,11 +80,11 @@ pub fn get_job_durations(problem: &Problem) -> Vec<f64> {
         .collect()
 }
 
-pub fn get_job_simple_demand(job: &Job) -> &Demand<SingleDimLoad> {
+fn get_job_simple_demand(job: &Job, demand_key: DimenKey) -> &Demand<SingleDimLoad> {
     match job {
         Job::Single(single) => &single.dimens,
         Job::Multi(multi) => &multi.dimens,
     }
-    .get_demand()
+    .get_demand(demand_key)
     .unwrap()
 }

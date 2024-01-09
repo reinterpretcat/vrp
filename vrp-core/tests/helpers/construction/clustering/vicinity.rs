@@ -76,7 +76,7 @@ pub fn create_goal_context_with_vicinity(disallow_merge_list: Vec<&str>, merge_k
         .build()
 }
 
-pub fn create_cluster_config(demand_key: DimenKey) -> ClusterConfig {
+pub fn create_cluster_config(cluster_key: DimenKey) -> ClusterConfig {
     let ordering_rule = |result: Ordering, left_job: &Job, right_job: &Job| match result {
         Ordering::Equal => get_job_id(left_job).cmp(get_job_id(right_job)),
         Ordering::Less => Ordering::Less,
@@ -107,6 +107,6 @@ pub fn create_cluster_config(demand_key: DimenKey) -> ClusterConfig {
                 )
             }),
         },
-        activity_demand_key: demand_key,
+        cluster_key,
     }
 }

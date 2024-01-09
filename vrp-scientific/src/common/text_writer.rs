@@ -3,7 +3,6 @@
 mod text_writer_test;
 
 use std::io::{BufWriter, Error, ErrorKind, Write};
-use vrp_core::models::common::IdDimension;
 use vrp_core::models::Solution;
 
 pub(crate) fn write_text_solution<W: Write>(solution: &Solution, writer: &mut BufWriter<W>) -> Result<(), Error> {
