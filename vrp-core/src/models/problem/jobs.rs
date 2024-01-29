@@ -266,10 +266,9 @@ impl Jobs {
 impl PartialEq<Job> for Job {
     fn eq(&self, other: &Job) -> bool {
         match (&self, other) {
-            (Job::Single(_), Job::Multi(_)) => false,
-            (Job::Multi(_), Job::Single(_)) => false,
-            (Job::Single(lhs), Job::Single(rhs)) => std::ptr::eq(lhs.as_ref(), rhs.as_ref()),
-            (Job::Multi(lhs), Job::Multi(rhs)) => std::ptr::eq(lhs.as_ref(), rhs.as_ref()),
+            (Job::Single(_), Job::Multi(_)) | (Job::Multi(_), Job::Single(_)) => false,
+            (Job::Single(lhs), Job::Single(rhs)) => Arc::ptr_eq(lhs, rhs),
+            (Job::Multi(lhs), Job::Multi(rhs)) => Arc::ptr_eq(lhs, rhs),
         }
     }
 }
@@ -280,12 +279,10 @@ impl Hash for Job {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
             Job::Single(single) => {
-                let address = single.as_ref() as *const Single;
-                address.hash(state);
+                Arc::as_ptr(single).hash(state);
             }
             Job::Multi(multi) => {
-                let address = multi.as_ref() as *const Multi;
-                address.hash(state);
+                Arc::as_ptr(multi).hash(state);
             }
         }
     }

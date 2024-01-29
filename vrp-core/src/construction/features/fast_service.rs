@@ -248,9 +248,8 @@ impl FeatureState for FastServiceState {
             })
             .collect();
 
-        if !multi_job_ranges.is_empty() {
-            route_ctx.state_mut().put_route_state(self.state_keys[0], multi_job_ranges);
-        }
+        // NOTE: always override existing state to avoid stale information about multi-jobs
+        route_ctx.state_mut().put_route_state(self.state_keys[0], multi_job_ranges);
     }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {

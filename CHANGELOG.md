@@ -5,9 +5,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+* Fix issue in `fast-service` objective (#144)
+
 ### Changed
 
 * fix clippy warnings
+* minor refactorings
 
 
 ## [v1.23.0]- 2023-12-22

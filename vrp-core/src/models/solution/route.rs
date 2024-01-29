@@ -1,7 +1,7 @@
 use crate::models::common::{Distance, Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Job, Multi, Single};
 use crate::models::solution::Tour;
-use crate::utils::{compare_shared, short_type_name};
+use crate::utils::short_type_name;
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
@@ -113,14 +113,7 @@ impl Activity {
 
     /// Checks whether activity has given job.
     pub fn has_same_job(&self, job: &Job) -> bool {
-        match self.retrieve_job() {
-            Some(j) => match (&j, job) {
-                (Job::Multi(lhs), Job::Multi(rhs)) => compare_shared(lhs, rhs),
-                (Job::Single(lhs), Job::Single(rhs)) => compare_shared(lhs, rhs),
-                _ => false,
-            },
-            _ => false,
-        }
+        self.retrieve_job().as_ref().map_or(false, |other| other == job)
     }
 
     /// Returns job if activity has it.
