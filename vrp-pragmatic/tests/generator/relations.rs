@@ -6,7 +6,7 @@ use std::sync::RwLock;
 
 /// Generate relations.
 pub fn generate_relations(
-    jobs: &Vec<Job>,
+    jobs: &[Job],
     vehicles: &[VehicleType],
     total_relations: Range<usize>,
     jobs_per_relation: Range<usize>,

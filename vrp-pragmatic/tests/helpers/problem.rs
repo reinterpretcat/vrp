@@ -322,7 +322,7 @@ pub fn all_of_skills(skills: Vec<String>) -> JobSkills {
     JobSkills { all_of: Some(skills), one_of: None, none_of: None }
 }
 
-fn convert_times(times: &Vec<(i32, i32)>) -> Option<Vec<Vec<String>>> {
+fn convert_times(times: &[(i32, i32)]) -> Option<Vec<Vec<String>>> {
     if times.is_empty() {
         None
     } else {
