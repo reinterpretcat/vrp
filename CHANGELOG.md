@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Removed
+
+* GitHub sponsors functionality
+
+
 ### Fixed
 
 * Fix issue in `fast-service` objective (#144)

@@ -144,4 +144,4 @@ if you have ideas for improvement.
 
 # Status
 
-Experimental.
+Experimental. Development is on pause: I deprioritized this project.
