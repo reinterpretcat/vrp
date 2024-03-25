@@ -30,6 +30,6 @@ plotters = { version = "0.3.5", default-features = false, features = [
 ] }
 plotters-canvas = "0.3.0"
 itertools = "0.11.0"
-wasm-bindgen = "0.2.89"
-web-sys = { version = "0.3.66", features = ["HtmlCanvasElement", "console"] }
+wasm-bindgen = "0.2.92"
+web-sys = { version = "0.3.69", features = ["HtmlCanvasElement", "console"] }
 lazy_static = "1.4.0"
