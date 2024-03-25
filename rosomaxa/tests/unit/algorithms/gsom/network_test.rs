@@ -13,7 +13,7 @@ mod common {
     #[test]
     fn can_train_network() {
         let mut network = create_test_network(false);
-        let samples = vec![Data::new(1.0, 0.0, 0.0), Data::new(0.0, 1.0, 0.0), Data::new(0.0, 0.0, 1.0)];
+        let samples = [Data::new(1.0, 0.0, 0.0), Data::new(0.0, 1.0, 0.0), Data::new(0.0, 0.0, 1.0)];
 
         // train
         let random = DefaultRandom::default();

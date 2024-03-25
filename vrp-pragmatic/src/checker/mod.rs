@@ -36,6 +36,7 @@ pub struct CheckerContext {
 }
 
 /// Represents all possible activity types.
+#[allow(dead_code)] // NOTE: keep data in each variant for future use
 enum ActivityType {
     Terminal,
     Job(Job),
