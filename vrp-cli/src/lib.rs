@@ -410,7 +410,7 @@ mod py_interop {
     }
 
     #[pymodule]
-    fn vrp_cli(_py: Python, m: &PyModule) -> PyResult<()> {
+    fn vrp_cli(m: &Bound<'_, PyModule>) -> PyResult<()> {
         m.add_function(wrap_pyfunction!(convert_to_pragmatic, m)?)?;
         m.add_function(wrap_pyfunction!(get_routing_locations, m)?)?;
         m.add_function(wrap_pyfunction!(solve_pragmatic, m)?)?;
