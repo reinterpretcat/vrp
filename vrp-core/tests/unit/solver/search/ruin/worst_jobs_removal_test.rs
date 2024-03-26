@@ -3,7 +3,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::helpers::models::domain::get_sorted_customer_ids_from_jobs;
 use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_routes_with_defaults};
 use crate::helpers::utils::create_test_environment_with_random;
-use crate::helpers::utils::random::FakeRandom;
+use crate::helpers::utils::random::create_fake_random;
 use crate::solver::search::RemovalLimits;
 use std::sync::Arc;
 
@@ -24,7 +24,7 @@ fn can_ruin_solution_with_matrix_routes_impl(matrix: (usize, usize), ints: Vec<i
     let insertion_ctx: InsertionContext = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
-        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, reals))),
+        create_test_environment_with_random(create_fake_random(ints, reals)),
     );
 
     let insertion_ctx = WorstJobRemoval::new(4, limits)

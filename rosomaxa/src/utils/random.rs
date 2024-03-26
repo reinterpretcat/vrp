@@ -7,7 +7,6 @@ use rand::Error;
 use rand_distr::{Gamma, Normal};
 use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::sync::Arc;
 
 /// Provides the way to sample from different distributions.
 pub trait DistributionSampler {
@@ -18,36 +17,13 @@ pub trait DistributionSampler {
     fn normal(&self, mean: f64, std_dev: f64) -> f64;
 }
 
-/// Provides the way to use randomized values in generic way.
-pub trait Random {
-    /// Produces integral random value, uniformly distributed on the closed interval [min, max]
-    fn uniform_int(&self, min: i32, max: i32) -> i32;
-
-    /// Produces real random value, uniformly distributed on the closed interval [min, max)
-    fn uniform_real(&self, min: f64, max: f64) -> f64;
-
-    /// Flips a coin and returns true if it is "heads", false otherwise.
-    fn is_head_not_tails(&self) -> bool;
-
-    /// Tests probability value in (0., 1.) range.
-    fn is_hit(&self, probability: f64) -> bool;
-
-    /// Returns an index from collected with probability weight.
-    /// Uses exponential distribution where the weights are the rate of the distribution (lambda)
-    /// and selects the smallest sampled value.
-    fn weighted(&self, weights: &[usize]) -> usize;
-
-    /// Returns RNG.
-    fn get_rng(&self) -> RandomGen;
-}
-
 /// Provides way to sample from different distributions.
 #[derive(Clone)]
-pub struct DefaultDistributionSampler(Arc<dyn Random + Send + Sync>);
+pub struct DefaultDistributionSampler(Random);
 
 impl DefaultDistributionSampler {
     /// Creates a new instance of `DefaultDistributionSampler`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: Random) -> Self {
         Self(random)
     }
 }
@@ -67,20 +43,24 @@ impl DistributionSampler for DefaultDistributionSampler {
 }
 
 /// A default random implementation.
-#[derive(Default)]
-pub struct DefaultRandom {
+#[derive(Clone, Default)]
+pub struct Random {
     use_repeatable: bool,
 }
 
-impl DefaultRandom {
-    /// Creates an instance of `DefaultRandom` with repeatable (predictable) random generation.
+impl Random {
+    /// Creates an instance of `Random` with repeatable (predictable) random generation.
     pub fn new_repeatable() -> Self {
         Self { use_repeatable: true }
     }
-}
 
-impl Random for DefaultRandom {
-    fn uniform_int(&self, min: i32, max: i32) -> i32 {
+    /// Creates an instance of `Random` using fake generator.
+    pub fn new_fake() -> Self {
+        todo!()
+    }
+
+    /// Produces integral random value, uniformly distributed on the closed interval [min, max]
+    pub fn uniform_int(&self, min: i32, max: i32) -> i32 {
         if min == max {
             return min;
         }
@@ -89,7 +69,8 @@ impl Random for DefaultRandom {
         self.get_rng().gen_range(min..max + 1)
     }
 
-    fn uniform_real(&self, min: f64, max: f64) -> f64 {
+    /// Produces real random value, uniformly distributed on the closed interval [min, max)
+    pub fn uniform_real(&self, min: f64, max: f64) -> f64 {
         if (min - max).abs() < f64::EPSILON {
             return min;
         }
@@ -98,15 +79,20 @@ impl Random for DefaultRandom {
         self.get_rng().gen_range(min..max)
     }
 
-    fn is_head_not_tails(&self) -> bool {
+    /// Flips a coin and returns true if it is "heads", false otherwise.
+    pub fn is_head_not_tails(&self) -> bool {
         self.get_rng().gen_bool(0.5)
     }
 
-    fn is_hit(&self, probability: f64) -> bool {
+    /// Tests probability value in (0., 1.) range.
+    pub fn is_hit(&self, probability: f64) -> bool {
         self.get_rng().gen_bool(probability.clamp(0., 1.))
     }
 
-    fn weighted(&self, weights: &[usize]) -> usize {
+    /// Returns an index from collected with probability weight.
+    /// Uses exponential distribution where the weights are the rate of the distribution (lambda)
+    /// and selects the smallest sampled value.
+    pub fn weighted(&self, weights: &[usize]) -> usize {
         weights
             .iter()
             .zip(0_usize..)
@@ -116,7 +102,8 @@ impl Random for DefaultRandom {
             .1
     }
 
-    fn get_rng(&self) -> RandomGen {
+    /// Returns RNG.
+    pub fn get_rng(&self) -> RandomGen {
         RandomGen { use_repeatable: self.use_repeatable }
     }
 }
@@ -186,7 +173,7 @@ impl CryptoRng for RandomGen {}
 
 /// Returns an index of max element in values. In case of many same max elements,
 /// returns the one from them at random.
-pub fn random_argmax<I>(values: I, random: &dyn Random) -> Option<usize>
+pub fn random_argmax<I>(values: I, random: &Random) -> Option<usize>
 where
     I: Iterator<Item = f64>,
 {

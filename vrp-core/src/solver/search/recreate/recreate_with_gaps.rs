@@ -5,7 +5,6 @@ use crate::solver::search::recreate::Recreate;
 use crate::solver::search::ConfigurableRecreate;
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::Random;
-use std::sync::Arc;
 
 /// Returns a sub set of randomly selected jobs.
 struct GapsJobSelector {
@@ -30,7 +29,7 @@ pub struct RecreateWithGaps {
 
 impl RecreateWithGaps {
     /// Creates a new instance of `RecreateWithGaps`.
-    pub fn new(min_jobs: usize, max_jobs: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(min_jobs: usize, max_jobs: usize, random: Random) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::new(GapsJobSelector { min_jobs, max_jobs }),

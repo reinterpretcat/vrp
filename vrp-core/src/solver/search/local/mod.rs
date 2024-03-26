@@ -52,7 +52,7 @@ impl LocalOperator for CompositeLocalOperator {
         refinement_ctx: &RefinementContext,
         insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
-        let random = insertion_ctx.environment.random.as_ref();
+        let random = &insertion_ctx.environment.random;
         let times = random.uniform_int(self.times.0, self.times.1);
 
         let mut old_result = insertion_ctx.deep_copy();

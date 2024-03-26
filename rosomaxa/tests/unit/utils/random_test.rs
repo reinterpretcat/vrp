@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn can_return_weights() {
-    let random = DefaultRandom::default();
+    let random = Random::default();
     let weights = &[100, 50, 20];
     let experiments = 10000_usize;
     let total_sum = weights.iter().sum::<usize>();

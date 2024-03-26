@@ -187,7 +187,7 @@ where
 struct SearchAgent<'a, C, O, S> {
     slot_machines: HashMap<SearchState, SlotMachines<'a, C, O, S>>,
     tracker: HeuristicTracker,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Random,
 }
 
 impl<'a, C, O, S> SearchAgent<'a, C, O, S>
@@ -240,7 +240,7 @@ where
             .slot_machines
             .get(&from)
             .and_then(|slots| {
-                random_argmax(slots.iter().map(|(slot, _)| slot.sample()), self.random.as_ref())
+                random_argmax(slots.iter().map(|(slot, _)| slot.sample()), &self.random)
                     .and_then(|slot_idx| slots.get(slot_idx).map(|(slot, _)| (slot_idx, slot)))
             })
             .expect("cannot get slot machine");

@@ -1,6 +1,6 @@
 //! Contains environment specific logic.
 
-use crate::utils::{DefaultRandom, Random, ThreadPool, Timer};
+use crate::utils::{Random, ThreadPool, Timer};
 use std::sync::Arc;
 
 /// A logger type which is called with various information.
@@ -17,7 +17,7 @@ pub trait Quota: Send + Sync {
 #[derive(Clone)]
 pub struct Environment {
     /// A wrapper on random generator.
-    pub random: Arc<dyn Random + Send + Sync>,
+    pub random: Random,
 
     /// A global execution quota.
     pub quota: Option<Arc<dyn Quota + Send + Sync>>,
@@ -43,7 +43,7 @@ impl Environment {
 
     /// Creates an instance of `Environment`.
     pub fn new(
-        random: Arc<dyn Random + Send + Sync>,
+        random: Random,
         quota: Option<Arc<dyn Quota + Send + Sync>>,
         parallelism: Parallelism,
         logger: InfoLogger,
@@ -55,13 +55,7 @@ impl Environment {
 
 impl Default for Environment {
     fn default() -> Self {
-        Environment::new(
-            Arc::new(DefaultRandom::default()),
-            None,
-            Parallelism::default(),
-            Arc::new(|msg| println!("{msg}")),
-            false,
-        )
+        Environment::new(Random::default(), None, Parallelism::default(), Arc::new(|msg| println!("{msg}")), false)
     }
 }
 

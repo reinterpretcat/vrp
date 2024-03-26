@@ -126,7 +126,7 @@ where
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         match &self.phase {
             RosomaxaPhases::Exploration { network, coordinates, selection_size, .. } => {
-                let random = self.environment.random.as_ref();
+                let random = &self.environment.random;
 
                 let (elite_explore_size, node_explore_size) = match *selection_size {
                     value if value > 6 => {
@@ -273,7 +273,7 @@ where
 
                     Self::optimize_network(network, statistics, &self.config);
 
-                    Self::fill_populations(network, coordinates, self.environment.random.as_ref());
+                    Self::fill_populations(network, coordinates, &self.environment.random);
                 } else {
                     self.phase = RosomaxaPhases::Exploitation { selection_size }
                 }
@@ -334,11 +334,7 @@ where
         network.smooth(1);
     }
 
-    fn fill_populations(
-        network: &IndividualNetwork<O, S>,
-        coordinates: &mut Vec<Coordinate>,
-        random: &(dyn Random + Send + Sync),
-    ) {
+    fn fill_populations(network: &IndividualNetwork<O, S>, coordinates: &mut Vec<Coordinate>, random: &Random) {
         coordinates.clear();
         coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
             if node.storage.population.size() > 0 {
@@ -451,7 +447,7 @@ where
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
 {
     node_size: usize,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Random,
     objective: Arc<O>,
 }
 

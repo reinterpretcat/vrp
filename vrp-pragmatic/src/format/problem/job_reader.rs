@@ -24,7 +24,7 @@ pub(super) fn read_jobs_with_extra_locks(
     fleet: &Fleet,
     transport: &(dyn TransportCost + Sync + Send),
     job_index: &mut JobIndex,
-    random: &Arc<dyn Random + Send + Sync>,
+    random: &Random,
 ) -> (Jobs, Vec<Arc<Lock>>) {
     let (mut jobs, mut locks) = read_required_jobs(api_problem, props, coord_index, job_index, random);
     let (conditional_jobs, conditional_locks) = read_conditional_jobs(api_problem, coord_index, job_index);
@@ -102,7 +102,7 @@ fn read_required_jobs(
     props: &ProblemProperties,
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
-    random: &Arc<dyn Random + Send + Sync>,
+    random: &Random,
 ) -> (Vec<Job>, Vec<Arc<Lock>>) {
     let mut jobs = vec![];
     let has_multi_dimens = props.has_multi_dimen_capacity;
@@ -415,12 +415,7 @@ fn get_single_job(job: &ApiJob, single: Single) -> Job {
     Job::Single(Arc::new(single))
 }
 
-fn get_multi_job(
-    job: &ApiJob,
-    singles: Vec<Single>,
-    deliveries_start_index: usize,
-    random: &Arc<dyn Random + Send + Sync>,
-) -> Job {
+fn get_multi_job(job: &ApiJob, singles: Vec<Single>, deliveries_start_index: usize, random: &Random) -> Job {
     let mut dimens: Dimensions = Default::default();
     dimens
         .set_job_id(job.id.clone())

@@ -638,10 +638,7 @@ fn create_operator(
     })
 }
 
-fn create_operator_probability(
-    probability: &OperatorProbabilityType,
-    random: Arc<dyn Random + Send + Sync>,
-) -> TargetHeuristicProbability {
+fn create_operator_probability(probability: &OperatorProbabilityType, random: Random) -> TargetHeuristicProbability {
     match probability {
         OperatorProbabilityType::Scalar { scalar } => create_scalar_operator_probability(*scalar, random),
         OperatorProbabilityType::Context { threshold, phases } => create_context_operator_probability(
@@ -703,7 +700,7 @@ fn create_ruin_method(
 fn create_local_search(
     times: &MinMaxConfig,
     inners: &[LocalOperatorType],
-    random: Arc<dyn Random + Send + Sync>,
+    random: Random,
 ) -> Arc<dyn LocalOperator + Send + Sync> {
     let operators = inners
         .iter()

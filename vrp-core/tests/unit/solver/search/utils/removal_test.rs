@@ -3,11 +3,10 @@ use crate::helpers::construction::heuristics::{create_state_key, InsertionContex
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::{test_fleet, SingleBuilder};
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
-use crate::helpers::utils::random::FakeRandom;
+use crate::helpers::utils::random::create_fake_random;
 use crate::models::common::Dimensions;
 use crate::models::problem::{Fleet, Multi};
 use crate::models::solution::Registry;
-use rosomaxa::utils::DefaultRandom;
 use std::iter::once;
 
 fn create_route_with_jobs_activities(fleet: &Fleet, jobs: usize, activities: usize) -> RouteContext {
@@ -102,7 +101,7 @@ fn can_try_remove_job_with_job_limit_impl(
     };
     let mut solution_ctx = create_solution_ctx(jobs, activities);
     let job = get_job_from_solution_ctx(&solution_ctx, route_idx, activity_idx);
-    let mut removal = JobRemovalTracker::new(&limits, &DefaultRandom::default());
+    let mut removal = JobRemovalTracker::new(&limits, &Random::default());
 
     let result = removal.try_remove_job(&mut solution_ctx, route_idx, &job);
 
@@ -150,8 +149,8 @@ fn can_try_remove_route_with_limit_impl(
     let route_idx = 0;
     let mut solution_ctx = create_solution_ctx(jobs, activities);
     let actor = solution_ctx.routes[0].route().actor.clone();
-    let random = FakeRandom::new(vec![], vec![if is_random_hit { 0. } else { 10. }]);
-    let mut removal = JobRemovalTracker::new(&limits, &DefaultRandom::default());
+    let random = create_fake_random(vec![], vec![if is_random_hit { 0. } else { 10. }]);
+    let mut removal = JobRemovalTracker::new(&limits, &Random::default());
 
     let result = removal.try_remove_route(&mut solution_ctx, route_idx, &random);
 
@@ -192,7 +191,7 @@ fn can_detect_limit_reached_impl(ruined_activities: usize, affected_routes: usiz
         affected_routes_range: affected_routes..affected_routes,
     };
 
-    let removal = JobRemovalTracker::new(&limits, &DefaultRandom::default());
+    let removal = JobRemovalTracker::new(&limits, &Random::default());
 
     assert_eq!(removal.is_limit(), expected);
 }

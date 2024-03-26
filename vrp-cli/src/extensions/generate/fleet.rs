@@ -7,7 +7,7 @@ use vrp_pragmatic::format::problem::{Fleet, VehicleCosts, VehicleLimits, Vehicle
 
 /// Generates fleet of vehicles.
 pub(crate) fn generate_fleet(problem_proto: &Problem, vehicle_types_size: usize) -> Fleet {
-    let rnd = DefaultRandom::default();
+    let rnd = Random::default();
 
     let profiles = problem_proto.fleet.profiles.clone();
     let shifts = get_vehicle_shifts(problem_proto);

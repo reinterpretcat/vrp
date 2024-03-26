@@ -5,7 +5,6 @@ use crate::solver::search::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
 use hashbrown::HashSet;
 use rosomaxa::utils::{CollectGroupBy, Random};
-use std::sync::Arc;
 
 /// A recreate strategy which computes the difference in cost of inserting customer in its
 /// best and kth best route, where `k` is a user-defined parameter. Then it inserts the
@@ -22,7 +21,7 @@ impl Recreate for RecreateWithRegret {
 
 impl RecreateWithRegret {
     /// Creates a new instance of `RecreateWithRegret`.
-    pub fn new(min: usize, max: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(min: usize, max: usize, random: Random) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::<AllJobSelector>::default(),

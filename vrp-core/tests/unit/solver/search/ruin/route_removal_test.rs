@@ -3,7 +3,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::helpers::models::domain::*;
 use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_routes_with_defaults};
 use crate::helpers::utils::create_test_environment_with_random;
-use crate::helpers::utils::random::FakeRandom;
+use crate::helpers::utils::random::create_fake_random;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition, Problem};
 use crate::solver::search::{RemovalLimits, WorstRouteRemoval};
 use std::sync::Arc;
@@ -18,7 +18,7 @@ fn can_remove_whole_random_routes_from_context() {
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
-        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, vec![1.]))),
+        create_test_environment_with_random(create_fake_random(ints, vec![1.])),
     );
 
     let insertion_ctx = RandomRouteRemoval::new(limits)
@@ -50,7 +50,7 @@ fn can_remove_parts_random_routes_from_context() {
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
-        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, vec![]))),
+        create_test_environment_with_random(create_fake_random(ints, vec![])),
     );
 
     let insertion_ctx = RandomRouteRemoval::new(limits)
@@ -75,7 +75,7 @@ fn can_remove_worst_route() {
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
-        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, reals))),
+        create_test_environment_with_random(create_fake_random(ints, reals)),
     );
 
     let insertion_ctx = WorstRouteRemoval::new(limits)

@@ -4,7 +4,6 @@ use crate::solver::search::recreate::Recreate;
 use crate::solver::search::ConfigurableRecreate;
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::{Noise, Random};
-use std::sync::Arc;
 
 /// A recreate method which perturbs the cost by a factor to introduce randomization.
 pub struct RecreateWithPerturbation {
@@ -13,7 +12,7 @@ pub struct RecreateWithPerturbation {
 
 impl RecreateWithPerturbation {
     /// Creates a new instance of `RecreateWithPerturbation`.
-    pub fn new(noise: Noise, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(noise: Noise, random: Random) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::<AllJobSelector>::default(),
@@ -26,7 +25,7 @@ impl RecreateWithPerturbation {
     }
 
     /// Creates a new instance of `RecreateWithPerturbation` with default values.
-    pub fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new_with_defaults(random: Random) -> Self {
         Self::new(Noise::new_with_ratio(0.05, (-0.25, 0.25), random.clone()), random)
     }
 }

@@ -21,7 +21,7 @@ pub struct JobRemovalTracker {
 
 impl JobRemovalTracker {
     /// Creates a new instance of `JobRemoval`.
-    pub fn new(limits: &RemovalLimits, random: &(dyn Random + Send + Sync)) -> Self {
+    pub fn new(limits: &RemovalLimits, random: &Random) -> Self {
         Self {
             activities_left: random
                 .uniform_int(limits.removed_activities_range.start as i32, limits.removed_activities_range.end as i32),
@@ -77,12 +77,7 @@ impl JobRemovalTracker {
     /// if there is no locked jobs and limits are not reached. However, to increase discoverability
     /// of the solution space, at least one route could be removed ignoring limits (but it should
     /// contain no locked jobs).
-    pub fn try_remove_route(
-        &mut self,
-        solution: &mut SolutionContext,
-        route_idx: usize,
-        random: &(dyn Random + Send + Sync),
-    ) -> bool {
+    pub fn try_remove_route(&mut self, solution: &mut SolutionContext, route_idx: usize, random: &Random) -> bool {
         if self.routes_left == 0 || self.activities_left == 0 {
             return false;
         }
@@ -96,12 +91,7 @@ impl JobRemovalTracker {
         }
     }
 
-    fn can_remove_full_route(
-        &self,
-        solution: &SolutionContext,
-        route_idx: usize,
-        random: &(dyn Random + Send + Sync),
-    ) -> bool {
+    fn can_remove_full_route(&self, solution: &SolutionContext, route_idx: usize, random: &Random) -> bool {
         let route_ctx = solution.routes.get(route_idx).expect("invalid route index");
 
         // check locked jobs
@@ -144,12 +134,7 @@ impl JobRemovalTracker {
         self.has_fully_removed_routes = true;
     }
 
-    fn try_remove_part_route(
-        &mut self,
-        solution: &mut SolutionContext,
-        route_idx: usize,
-        random: &(dyn Random + Send + Sync),
-    ) -> bool {
+    fn try_remove_part_route(&mut self, solution: &mut SolutionContext, route_idx: usize, random: &Random) -> bool {
         let locked = solution.locked.clone();
         let route_ctx = solution.routes.get(route_idx).expect("invalid route index");
         let mut jobs: Vec<Job> = route_ctx.route().tour.jobs().filter(|job| !locked.contains(*job)).cloned().collect();

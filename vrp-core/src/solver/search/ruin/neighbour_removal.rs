@@ -21,7 +21,7 @@ impl Ruin for NeighbourRemoval {
     fn run(&self, _: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.environment.random.clone();
-        let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, random.as_ref()));
+        let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, &random));
         let mut tabu_list = TabuList::from(&insertion_ctx);
 
         let init_seed =

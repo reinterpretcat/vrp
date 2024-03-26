@@ -11,7 +11,7 @@ use self::prototype::generate_from_prototype;
 
 use std::io::{BufReader, Read};
 use vrp_core::prelude::GenericError;
-use vrp_core::utils::{DefaultRandom, Random};
+use vrp_core::utils::Random;
 use vrp_pragmatic::format::problem::*;
 
 /// Generates a pragmatic problem.
@@ -42,7 +42,7 @@ pub fn generate_problem<R: Read>(
     generate_from_prototype(&problem_proto, locations, job_size, vehicles_size, area_size)
 }
 
-fn get_random_item<'a, T>(items: &'a [T], rnd: &DefaultRandom) -> Option<&'a T> {
+fn get_random_item<'a, T>(items: &'a [T], rnd: &Random) -> Option<&'a T> {
     if items.is_empty() {
         return None;
     }

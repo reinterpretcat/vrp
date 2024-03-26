@@ -2,7 +2,7 @@ use super::*;
 use crate::helpers::models::domain::*;
 use crate::helpers::solver::*;
 use crate::helpers::utils::create_test_environment_with_random;
-use crate::helpers::utils::random::FakeRandom;
+use crate::helpers::utils::random::create_fake_random;
 use rosomaxa::prelude::Environment;
 use std::sync::Arc;
 
@@ -29,7 +29,7 @@ fn can_extract_jobs_impl(
         InsertionContext::new_from_solution(
             Arc::new(problem),
             (solution, None),
-            create_test_environment_with_random(Arc::new(FakeRandom::new(vec![start_idx], vec![]))),
+            create_test_environment_with_random(create_fake_random(vec![start_idx], vec![])),
         ),
         locked_ids,
     );
@@ -70,10 +70,10 @@ fn can_insert_jobs_impl(
     let mut insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
-        create_test_environment_with_random(Arc::new(FakeRandom::new(
+        create_test_environment_with_random(create_fake_random(
             vec![start_idx],
             vec![reverse_probability, 1., reverse_probability, 1.],
-        ))),
+        )),
     );
     let jobs = get_jobs_by_ids(&insertion_ctx, insert_job_ids);
 
@@ -118,7 +118,7 @@ fn can_exchange_jobs_impl(
     let mut insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
-        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, vec![1., 1., 1., 1.]))),
+        create_test_environment_with_random(create_fake_random(ints, vec![1., 1., 1., 1.])),
     );
 
     exchange_jobs(&mut insertion_ctx, &[0, 1], 4, 0.01, 0.01);

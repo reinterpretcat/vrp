@@ -1,6 +1,5 @@
 use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
-use std::sync::Arc;
 use vrp_core::models::problem::JobPermutation;
 use vrp_core::prelude::*;
 
@@ -12,16 +11,11 @@ pub struct VariableJobPermutation {
     size: usize,
     split_start_index: usize,
     sample_size: usize,
-    random: Arc<dyn Random + Sync + Send>,
+    random: Random,
 }
 
 impl VariableJobPermutation {
-    pub fn new(
-        size: usize,
-        split_start_index: usize,
-        sample_size: usize,
-        random: Arc<dyn Random + Sync + Send>,
-    ) -> Self {
+    pub fn new(size: usize, split_start_index: usize, sample_size: usize, random: Random) -> Self {
         assert!(size > 0);
         Self { size, split_start_index, sample_size, random }
     }
@@ -29,7 +23,7 @@ impl VariableJobPermutation {
 
 impl JobPermutation for VariableJobPermutation {
     fn get(&self) -> Vec<Vec<usize>> {
-        get_split_permutations(self.size, self.split_start_index, self.sample_size, self.random.as_ref())
+        get_split_permutations(self.size, self.split_start_index, self.sample_size, &self.random)
     }
 
     fn validate(&self, permutation: &[usize]) -> bool {
@@ -39,12 +33,7 @@ impl JobPermutation for VariableJobPermutation {
     }
 }
 
-fn generate_sample_permutations(
-    start: usize,
-    end: usize,
-    sample_size: usize,
-    random: &(dyn Random + Sync + Send),
-) -> Vec<Vec<usize>> {
+fn generate_sample_permutations(start: usize, end: usize, sample_size: usize, random: &Random) -> Vec<Vec<usize>> {
     // NOTE prevent to have more then possible unique permutations for simple cases
     let size = end - start + 1;
     let sample_size = if size < 10 {
@@ -68,7 +57,7 @@ fn get_split_permutations(
     size: usize,
     split_start_index: usize,
     sample_size: usize,
-    random: &(dyn Random + Sync + Send),
+    random: &Random,
 ) -> Vec<Vec<usize>> {
     // TODO make it memory efficient somehow
 

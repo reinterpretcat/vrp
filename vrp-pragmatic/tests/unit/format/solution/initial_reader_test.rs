@@ -5,7 +5,7 @@ use crate::helpers::*;
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::utils::Environment;
+use vrp_core::utils::{Environment, Random};
 
 fn create_basic_problem(breaks: Option<Vec<VehicleBreak>>) -> Problem {
     Problem {
@@ -64,7 +64,7 @@ fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, 
         (problem, vec![matrix]).read_pragmatic().unwrap_or_else(|err| panic!("cannot read core problem: {err:?}")),
     );
 
-    let core_solution = to_core_solution(solution, core_problem.clone(), create_random())?;
+    let core_solution = to_core_solution(solution, core_problem.clone(), Random::default())?;
 
     // NOTE: get statistic/tours updated
     let core_solution =

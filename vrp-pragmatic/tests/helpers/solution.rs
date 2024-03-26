@@ -12,7 +12,7 @@ use vrp_core::models::common::{Cost, Timestamp};
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
 use vrp_core::prelude::GenericError;
-use vrp_core::utils::{DefaultRandom, Random};
+use vrp_core::utils::Random;
 
 /// Provides way to build a stop with one or multiple activities.
 pub struct StopBuilder {
@@ -461,14 +461,10 @@ pub fn get_ids_from_tour_sorted(tour: &Tour) -> Vec<Vec<String>> {
     ids
 }
 
-pub fn create_random() -> Arc<dyn Random + Send + Sync> {
-    Arc::new(DefaultRandom::default())
-}
-
 pub fn to_core_solution(
     solution: &Solution,
     core_problem: Arc<CoreProblem>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Random,
 ) -> Result<CoreSolution, GenericError> {
     let mut writer = BufWriter::new(Vec::new());
     serialize_solution(solution, &mut writer).expect("cannot serialize test solution");

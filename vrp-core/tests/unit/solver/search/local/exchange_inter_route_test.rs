@@ -2,7 +2,7 @@ use super::*;
 use crate::helpers::models::domain::get_customer_ids_from_routes;
 use crate::helpers::solver::*;
 use crate::helpers::utils::create_test_environment_with_random;
-use crate::helpers::utils::random::FakeRandom;
+use crate::helpers::utils::random::create_fake_random;
 use std::sync::Arc;
 
 parameterized_test! {can_use_exchange_inter_route_best_operator, (seed_route, seed_job, locked_ids, expected_ids), {
@@ -35,7 +35,7 @@ fn can_use_exchange_inter_route_best_operator_impl(
         InsertionContext::new_from_solution(
             Arc::new(problem),
             (solution, None),
-            create_test_environment_with_random(Arc::new(FakeRandom::new(ints, reals))),
+            create_test_environment_with_random(create_fake_random(ints, reals)),
         ),
         locked_ids,
     );

@@ -3,7 +3,7 @@ use crate::helpers::models::domain::get_customer_ids_from_routes;
 use crate::helpers::models::problem::get_vehicle_id;
 use crate::helpers::solver::*;
 use crate::helpers::utils::create_test_environment_with_random;
-use crate::helpers::utils::random::FakeRandom;
+use crate::helpers::utils::random::create_fake_random;
 use crate::models::common::{Cost, Schedule, TimeWindow};
 use crate::models::solution::*;
 use rosomaxa::prelude::Environment;
@@ -68,7 +68,7 @@ can_use_exchange_swap_star! {
 
 fn can_use_exchange_swap_star_impl(jobs_order: Vec<Vec<&str>>, expected: Vec<Vec<&str>>) {
     let matrix = (3, 3);
-    let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], vec![0.; 9])));
+    let environment = create_test_environment_with_random(create_fake_random(vec![], vec![0.; 9]));
     let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
     let mut insertion_ctx =
         InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
@@ -93,7 +93,7 @@ fn can_keep_locked_jobs_in_place() {
     let jobs_order = vec![vec!["c0", "c1", "c3"], vec!["c4", "c7", "c2"], vec!["c6", "c5", "c8"]];
     let locked_ids = vec!["c2", "c3"];
     let matrix = (3, 3);
-    let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], vec![0.; 9])));
+    let environment = create_test_environment_with_random(create_fake_random(vec![], vec![0.; 9]));
     let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
     let mut insertion_ctx = promote_to_locked(
         InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone()),
@@ -271,7 +271,7 @@ can_create_route_pairs! {
 fn can_create_route_pairs_impl(route_pairs_threshold: usize, is_proximity: bool, expected_length: usize) {
     let reals = once(i32::from(is_proximity)).chain([0; 9]).map(|value| value as f64).collect();
     let matrix = (3, 3);
-    let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], reals)));
+    let environment = create_test_environment_with_random(create_fake_random(vec![], reals));
     let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
     let insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
 

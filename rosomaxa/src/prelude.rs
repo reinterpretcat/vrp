@@ -28,7 +28,6 @@ pub use crate::termination::Termination;
 pub use crate::algorithms::nsga2::MultiObjective;
 pub use crate::algorithms::nsga2::Objective;
 
-pub use crate::utils::DefaultRandom;
 pub use crate::utils::Environment;
 pub use crate::utils::GenericError;
 pub use crate::utils::InfoLogger;

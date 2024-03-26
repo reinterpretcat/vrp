@@ -11,7 +11,6 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::iter::once;
-use std::sync::Arc;
 
 type NodeHashMap<I, S> = HashMap<Coordinate, Node<I, S>, BuildHasherDefault<FxHasher>>;
 
@@ -34,7 +33,7 @@ where
     min_max_weights: MinMaxWeights,
     nodes: NodeHashMap<I, S>,
     storage_factory: F,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Random,
 }
 
 /// GSOM network configuration.
@@ -61,12 +60,7 @@ where
     F: StorageFactory<I, S>,
 {
     /// Creates a new instance of `Network`.
-    pub fn new(
-        roots: [I; 4],
-        config: NetworkConfig,
-        random: Arc<dyn Random + Send + Sync>,
-        storage_factory: F,
-    ) -> Self {
+    pub fn new(roots: [I; 4], config: NetworkConfig, random: Random, storage_factory: F) -> Self {
         let dimension = roots[0].weights().len();
 
         assert!(roots.iter().all(|r| r.weights().len() == dimension));

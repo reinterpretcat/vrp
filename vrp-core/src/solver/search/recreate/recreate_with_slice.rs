@@ -5,7 +5,6 @@ use crate::solver::search::recreate::Recreate;
 use crate::solver::search::ConfigurableRecreate;
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::Random;
-use std::sync::Arc;
 
 /// A recreate method which takes a slice from jobs and routes.
 pub struct RecreateWithSlice {
@@ -14,7 +13,7 @@ pub struct RecreateWithSlice {
 
 impl RecreateWithSlice {
     /// Creates a new instance of `RecreateWithSlice`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: Random) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::<SliceJobSelector>::default(),

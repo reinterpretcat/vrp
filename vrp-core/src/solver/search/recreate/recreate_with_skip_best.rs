@@ -5,7 +5,6 @@ use crate::solver::search::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::Random;
 use std::cmp::Ordering::*;
-use std::sync::Arc;
 
 /// A recreate strategy which skips best job insertion for insertion.
 pub struct RecreateWithSkipBest {
@@ -20,7 +19,7 @@ impl Recreate for RecreateWithSkipBest {
 
 impl RecreateWithSkipBest {
     /// Creates a new instance of `RecreateWithSkipBest`.
-    pub fn new(min: usize, max: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(min: usize, max: usize, random: Random) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::<AllJobSelector>::default(),

@@ -116,10 +116,7 @@ pub struct RecreateWithBlinks<T: LoadOps> {
 
 impl<T: LoadOps> RecreateWithBlinks<T> {
     /// Creates a new instance of `RecreateWithBlinks`.
-    pub fn new(
-        selectors: Vec<(Box<dyn JobSelector + Send + Sync>, usize)>,
-        random: Arc<dyn Random + Send + Sync>,
-    ) -> Self {
+    pub fn new(selectors: Vec<(Box<dyn JobSelector + Send + Sync>, usize)>, random: Random) -> Self {
         let weights = selectors.iter().map(|(_, weight)| *weight).collect();
         Self {
             job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
@@ -133,7 +130,7 @@ impl<T: LoadOps> RecreateWithBlinks<T> {
     }
 
     /// Creates a new instance of `RecreateWithBlinks` with default prameters.
-    pub fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new_with_defaults(random: Random) -> Self {
         Self::new(
             vec![
                 (Box::<AllJobSelector>::default(), 10),

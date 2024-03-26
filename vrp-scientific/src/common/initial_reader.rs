@@ -16,7 +16,7 @@ use vrp_core::prelude::*;
 pub fn read_init_solution<R: Read>(
     mut reader: BufReader<R>,
     problem: Arc<Problem>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Random,
 ) -> Result<Solution, GenericError> {
     let mut buffer = String::new();
 

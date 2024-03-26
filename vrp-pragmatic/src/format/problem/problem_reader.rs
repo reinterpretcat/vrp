@@ -223,7 +223,7 @@ fn get_problem_blocks(
 
     // TODO pass random from outside as there might be need to have it initialized with seed
     //      at the moment, this random instance is used only by multi job permutation generator
-    let random: Arc<dyn Random + Send + Sync> = Arc::new(DefaultRandom::default());
+    let random: Random = Random::default();
     let (jobs, locks) = read_jobs_with_extra_locks(
         api_problem,
         problem_props,

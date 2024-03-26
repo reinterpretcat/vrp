@@ -35,7 +35,7 @@ pub(crate) fn select_seed_job_with_tabu_list(
 ) -> Option<(Profile, usize, Job)> {
     select_seed_job(
         insertion_ctx.solution.routes.as_slice(),
-        insertion_ctx.environment.random.as_ref(),
+        &insertion_ctx.environment.random,
         &|route_ctx| !tabu_list.is_actor_tabu(route_ctx.route().actor.as_ref()),
         &|job| !tabu_list.is_job_tabu(job),
     )
@@ -44,7 +44,7 @@ pub(crate) fn select_seed_job_with_tabu_list(
 /// Selects seed job from existing solution
 pub(crate) fn select_seed_job(
     routes: &[RouteContext],
-    random: &(dyn Random + Send + Sync),
+    random: &Random,
     route_filter: &(dyn Fn(&RouteContext) -> bool),
     job_filter: &(dyn Fn(&Job) -> bool),
 ) -> Option<(Profile, usize, Job)> {
@@ -74,11 +74,7 @@ pub(crate) fn select_seed_job(
     None
 }
 
-fn select_random_job(
-    route_ctx: &RouteContext,
-    random: &(dyn Random + Send + Sync),
-    job_filter: &(dyn Fn(&Job) -> bool),
-) -> Option<Job> {
+fn select_random_job(route_ctx: &RouteContext, random: &Random, job_filter: &(dyn Fn(&Job) -> bool)) -> Option<Job> {
     let size = route_ctx.route().tour.job_activity_count();
     if size == 0 {
         return None;

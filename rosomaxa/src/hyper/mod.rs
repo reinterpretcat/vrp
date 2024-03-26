@@ -96,7 +96,7 @@ where
 {
     assert!(!operators.is_empty());
 
-    let random = heuristic_ctx.environment().random.as_ref();
+    let random = &heuristic_ctx.environment().random;
     let operator_idx = random.uniform_int(0, operators.len() as i32 - 1) as usize;
     let operator = &operators[operator_idx];
 
@@ -117,7 +117,7 @@ where
 {
     assert!(!operators.is_empty());
 
-    let random = heuristic_ctx.environment().random.as_ref();
+    let random = &heuristic_ctx.environment().random;
     let probability = get_diversify_probability(heuristic_ctx);
 
     let solutions = solutions.into_iter().filter(|_| random.is_hit(probability)).collect::<Vec<_>>();

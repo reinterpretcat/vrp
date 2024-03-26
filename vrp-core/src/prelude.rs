@@ -15,7 +15,6 @@ pub use rosomaxa::evolution::EvolutionConfigBuilder;
 
 // Reimport rosomaxa utils
 pub use rosomaxa::utils::compare_floats;
-pub use rosomaxa::utils::DefaultRandom;
 pub use rosomaxa::utils::Environment;
 pub use rosomaxa::utils::GenericError;
 pub use rosomaxa::utils::InfoLogger;

@@ -30,7 +30,7 @@ pub struct ExchangeSwapStar {
 
 impl ExchangeSwapStar {
     /// Creates a new instance of `ExchangeSwapStar`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>, quota_limit: usize) -> Self {
+    pub fn new(random: Random, quota_limit: usize) -> Self {
         Self {
             leg_selection: LegSelection::Stochastic(random),
             result_selector: Box::<BestResultSelector>::default(),

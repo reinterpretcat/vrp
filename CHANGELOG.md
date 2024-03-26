@@ -18,6 +18,9 @@ All notable changes to this project will be documented in this file.
 * fix clippy warnings
 * minor refactorings
 * increase limits for ruin methods
+* `breaking`: avoid using dynamic dispatch for Random to allow compiler optimizations
+  New approach is to use concrete type, so `Random` is changed from being trait to a specific type. Alternative (static dispatch)
+  would require API to introduce type information in many unrelated types. So far, I want to avoid that too.
 
 
 ## [v1.23.0]- 2023-12-22

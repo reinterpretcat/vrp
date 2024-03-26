@@ -103,12 +103,11 @@ fn create_relaxed_insertion_ctx(
 
 fn create_modified_variant(
     original: &GoalContext,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Random,
     skip_probability: f64,
     shuffle_probability: f64,
 ) -> Arc<GoalContext> {
-    let shuffled =
-        if random.is_hit(shuffle_probability) { original.get_shuffled(random.as_ref()) } else { original.clone() };
+    let shuffled = if random.is_hit(shuffle_probability) { original.get_shuffled(&random) } else { original.clone() };
 
     let constraints = shuffled.constraints().map(|constraint| {
         let skip_probability = if random.is_head_not_tails() { 1. } else { skip_probability };
@@ -147,7 +146,7 @@ fn get_best_or_random_individual<'a>(
 
 struct StochasticFeatureConstraint {
     inner: Arc<dyn FeatureConstraint + Send + Sync>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Random,
     probability: f64,
 }
 

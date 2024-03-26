@@ -7,7 +7,7 @@ type NetworkType = Network<Data, DataStorage, DataStorageFactory>;
 mod common {
     use super::*;
     use crate::helpers::algorithms::gsom::create_test_network;
-    use crate::utils::{compare_floats, DefaultRandom};
+    use crate::utils::compare_floats;
     use std::cmp::Ordering;
 
     #[test]
@@ -16,7 +16,7 @@ mod common {
         let samples = [Data::new(1.0, 0.0, 0.0), Data::new(0.0, 1.0, 0.0), Data::new(0.0, 0.0, 1.0)];
 
         // train
-        let random = DefaultRandom::default();
+        let random = Random::default();
         for j in 1..4 {
             network.smooth(4);
 
@@ -146,11 +146,9 @@ mod common {
 mod node_growing {
     use super::*;
     use crate::algorithms::gsom::{NetworkConfig, Node};
-    use crate::prelude::RandomGen;
-    use std::sync::Arc;
 
     fn create_trivial_network(has_initial_error: bool) -> NetworkType {
-        struct DummyRandom {}
+        /*        struct DummyRandom {}
         impl Random for DummyRandom {
             fn uniform_int(&self, _: i32, _: i32) -> i32 {
                 unreachable!()
@@ -175,7 +173,7 @@ mod node_growing {
             fn get_rng(&self) -> RandomGen {
                 RandomGen::new_repeatable()
             }
-        }
+        }*/
         Network::new(
             [
                 Data::new(1., 4., 8.), // n00
@@ -190,7 +188,7 @@ mod node_growing {
                 rebalance_memory: 500,
                 has_initial_error,
             },
-            Arc::new(DummyRandom {}),
+            Random::new_fake(),
             DataStorageFactory,
         )
     }

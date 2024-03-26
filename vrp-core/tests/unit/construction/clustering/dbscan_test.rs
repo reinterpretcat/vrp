@@ -4,7 +4,7 @@ use crate::helpers::construction::clustering::p;
 use crate::helpers::models::domain::GoalContextBuilder;
 use crate::helpers::models::problem::SingleBuilder;
 use crate::helpers::solver::{generate_matrix_distances_from_points, generate_matrix_routes};
-use crate::helpers::utils::random::FakeRandom;
+use crate::helpers::utils::random::create_fake_random;
 use crate::models::common::Location;
 use crate::models::{CoreStateKeys, Extras, GoalContext};
 use crate::prelude::{ActivityCost, TransportCost};
@@ -120,9 +120,9 @@ fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>])
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
     );
-    let random: Arc<dyn Random + Send + Sync> = Arc::new(FakeRandom::new(vec![0, 0], vec![epsilon]));
+    let random = create_fake_random(vec![0, 0], vec![epsilon]);
 
-    let clusters = create_job_clusters(&problem, random.as_ref(), Some(min_points), Some(epsilon))
+    let clusters = create_job_clusters(&problem, &random, Some(min_points), Some(epsilon))
         .iter()
         .map(|cluster| {
             let mut cluster =

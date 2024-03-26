@@ -1,7 +1,6 @@
-use rosomaxa::prelude::{Random, RandomGen};
-use std::sync::RwLock;
+use rosomaxa::prelude::Random;
 
-struct FakeDistribution<T> {
+/*struct FakeDistribution<T> {
     values: Vec<T>,
 }
 
@@ -15,9 +14,13 @@ impl<T> FakeDistribution<T> {
     pub fn next(&mut self) -> T {
         self.values.pop().unwrap()
     }
+}*/
+
+pub fn create_fake_random(_ints: Vec<i32>, _reals: Vec<f64>) -> Random {
+    todo!()
 }
 
-pub struct FakeRandom {
+/*pub struct FakeRandom {
     ints: RwLock<FakeDistribution<i32>>,
     reals: RwLock<FakeDistribution<f64>>,
 }
@@ -54,4 +57,4 @@ impl Random for FakeRandom {
     fn get_rng(&self) -> RandomGen {
         RandomGen::new_repeatable()
     }
-}
+}*/

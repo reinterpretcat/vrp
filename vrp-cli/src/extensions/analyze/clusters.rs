@@ -27,7 +27,7 @@ pub fn get_clusters<F: Read>(
     let coord_index = coord_index.as_ref();
     let environment = Arc::new(Environment::default());
 
-    let clusters = create_job_clusters(problem.as_ref(), environment.random.as_ref(), min_points, epsilon);
+    let clusters = create_job_clusters(problem.as_ref(), &environment.random, min_points, epsilon);
 
     let locations = clusters
         .iter()

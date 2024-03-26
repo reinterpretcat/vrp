@@ -21,7 +21,7 @@ pub fn solve_function(
 ) {
     let logger = create_info_logger_proxy(logger);
     let fitness_fn = get_fitness_fn_by_name(function_name);
-    let random = Arc::new(DefaultRandom::default());
+    let random = Random::default();
 
     let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new_with_ratio(1., (-0.1, 0.1), random));
     let delta_op = VectorHeuristicOperatorMode::JustDelta(-0.1..0.1);

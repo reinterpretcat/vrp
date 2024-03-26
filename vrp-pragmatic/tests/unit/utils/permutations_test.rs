@@ -1,9 +1,9 @@
 use super::*;
-use vrp_core::utils::DefaultRandom;
+use vrp_core::utils::Random;
 
 #[test]
 fn can_generate_split_permutations() {
-    let random = DefaultRandom::default();
+    let random = Random::default();
     let job_permutations = get_split_permutations(5, 3, 12, &random);
 
     assert_eq!(job_permutations.len(), 12);
@@ -24,7 +24,7 @@ fn can_generate_split_permutations() {
 
 #[test]
 fn can_validate_permutations() {
-    let random = Arc::new(DefaultRandom::default());
+    let random = Random::default();
     let permutator = VariableJobPermutation::new(5, 3, 12, random.clone());
 
     assert!(permutator.validate(&[0, 1, 2, 3, 4]));
@@ -44,7 +44,7 @@ fn can_validate_permutations() {
 #[test]
 fn can_generate_huge_sample_permutations() {
     for &end in &[3, 5, 10, 15, 20] {
-        let permutations = generate_sample_permutations(0, end, 3, &DefaultRandom::default());
+        let permutations = generate_sample_permutations(0, end, 3, &Random::default());
         assert_eq!(permutations.len(), 3);
     }
 }

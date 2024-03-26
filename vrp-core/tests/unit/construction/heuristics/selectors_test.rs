@@ -1,14 +1,13 @@
 use super::*;
 use crate::helpers::models::solution::RouteContextBuilder;
 use crate::helpers::solver::generate_matrix_routes_with_defaults;
-use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Cost;
-use std::sync::Arc;
 
 mod noise_checks {
     use super::*;
     use crate::helpers::construction::heuristics::InsertionContextBuilder;
     use crate::helpers::models::problem::SingleBuilder;
+    use crate::helpers::utils::random::create_fake_random;
 
     fn make_success(cost: Cost) -> InsertionResult {
         InsertionResult::make_success(
@@ -41,7 +40,7 @@ mod noise_checks {
     ) {
         let noise_probability = 0.1;
         let noise_range = (0.9, 1.2);
-        let random = Arc::new(FakeRandom::new(vec![2], reals));
+        let random = create_fake_random(vec![2], reals);
         let noise = Noise::new_with_ratio(noise_probability, noise_range, random);
         let insertion_ctx = InsertionContextBuilder::default().build();
 

@@ -23,7 +23,7 @@ impl Ruin for RandomJobRemoval {
             return insertion_ctx;
         }
 
-        let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, insertion_ctx.environment.random.as_ref()));
+        let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, &insertion_ctx.environment.random));
         let mut tabu_list = TabuList::from(&insertion_ctx);
 
         (0..self.limits.removed_activities_range.end).take_while(|_| !tracker.borrow().is_limit()).for_each(|_| {

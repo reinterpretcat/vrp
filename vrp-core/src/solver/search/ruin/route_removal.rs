@@ -24,13 +24,13 @@ impl Ruin for RandomRouteRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let random = insertion_ctx.environment.random.clone();
         let affected = self.limits.affected_routes_range.end.min(insertion_ctx.solution.routes.len());
-        let mut tracker = JobRemovalTracker::new(&self.limits, random.as_ref());
+        let mut tracker = JobRemovalTracker::new(&self.limits, &random);
 
         (0..affected).for_each(|_| {
             let route_idx = random.uniform_int(0, (insertion_ctx.solution.routes.len() - 1) as i32) as usize;
             let solution = &mut insertion_ctx.solution;
 
-            tracker.try_remove_route(solution, route_idx, random.as_ref());
+            tracker.try_remove_route(solution, route_idx, &random);
         });
 
         insertion_ctx
@@ -80,7 +80,7 @@ impl Ruin for CloseRouteRemoval {
                 .map(|route_ctx| route_ctx.route().actor.clone())
                 .collect::<Vec<_>>();
 
-            remove_routes_with_actors(&mut insertion_ctx.solution, &self.limits, random.as_ref(), routes.into_iter());
+            remove_routes_with_actors(&mut insertion_ctx.solution, &self.limits, &random, routes.into_iter());
         }
 
         insertion_ctx
@@ -128,7 +128,7 @@ impl Ruin for WorstRouteRemoval {
             .map(|route_ctx| route_ctx.route().actor.clone())
             .collect::<Vec<_>>();
 
-        remove_routes_with_actors(&mut insertion_ctx.solution, &self.limits, random.as_ref(), routes.into_iter());
+        remove_routes_with_actors(&mut insertion_ctx.solution, &self.limits, &random, routes.into_iter());
 
         insertion_ctx
     }
@@ -137,7 +137,7 @@ impl Ruin for WorstRouteRemoval {
 fn remove_routes_with_actors<Iter>(
     solution_ctx: &mut SolutionContext,
     limits: &RemovalLimits,
-    random: &(dyn Random + Send + Sync),
+    random: &Random,
     actors: Iter,
 ) where
     Iter: Iterator<Item = Arc<Actor>>,

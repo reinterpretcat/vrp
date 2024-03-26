@@ -178,7 +178,7 @@ impl MultiObjective for VectorObjective {
 }
 
 impl Shuffled for VectorObjective {
-    fn get_shuffled(&self, _: &(dyn Random + Send + Sync)) -> Self {
+    fn get_shuffled(&self, _: &Random) -> Self {
         Self::new(self.fitness_fn.clone(), self.weight_fn.clone())
     }
 }

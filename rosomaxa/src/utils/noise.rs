@@ -1,7 +1,6 @@
 //! Specifies some logic to work with noise.
 
 use crate::prelude::Random;
-use std::sync::Arc;
 
 /// Provides way to generate some noise to floating point value.
 #[derive(Clone)]
@@ -9,19 +8,19 @@ pub struct Noise {
     probability: f64,
     range: (f64, f64),
     is_addition: bool,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Random,
 }
 
 impl Noise {
     /// Creates a new instance of `Noise` which will add some noise in given range
     /// to the target value: `value = value + value * sample_from(range)`
-    pub fn new_with_addition(probability: f64, range: (f64, f64), random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new_with_addition(probability: f64, range: (f64, f64), random: Random) -> Self {
         Self { probability, range, is_addition: true, random }
     }
 
     /// Creates a new instance of `Noise` which will apply noise by multiplying target value
     /// by value from given range: `value = value * sample_from(range)`
-    pub fn new_with_ratio(probability: f64, range: (f64, f64), random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new_with_ratio(probability: f64, range: (f64, f64), random: Random) -> Self {
         Self { probability, range, is_addition: false, random }
     }
 
@@ -48,7 +47,7 @@ impl Noise {
     }
 
     /// Returns random generator.
-    pub fn random(&self) -> &(dyn Random + Send + Sync) {
-        self.random.as_ref()
+    pub fn random(&self) -> &Random {
+        &self.random
     }
 }

@@ -67,7 +67,7 @@ struct LocationWriter(pub Box<dyn Fn(File, BufWriter<Box<dyn Write>>) -> Result<
 #[allow(clippy::type_complexity)]
 type FormatMap<'a> = HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter, LocationWriter)>;
 
-fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) {
+fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Random) {
     if cfg!(feature = "scientific-format") {
         use vrp_scientific::common::read_init_solution;
         use vrp_scientific::lilim::{LilimProblem, LilimSolution};
@@ -119,7 +119,7 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
     }
 }
 
-fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>) {
+fn add_pragmatic(formats: &mut FormatMap, random: Random) {
     use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
     use vrp_pragmatic::format::solution::read_init_solution as read_init_pragmatic;
 
@@ -156,7 +156,7 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
     );
 }
 
-fn get_formats<'a>(matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) -> FormatMap<'a> {
+fn get_formats<'a>(matches: &ArgMatches, random: Random) -> FormatMap<'a> {
     let mut formats = FormatMap::default();
 
     add_scientific(&mut formats, matches, random.clone());
@@ -485,13 +485,7 @@ fn get_environment(matches: &ArgMatches) -> Result<Arc<Environment>, GenericErro
                 } else {
                     Arc::new(|_: &str| {})
                 };
-                Ok(Arc::new(Environment::new(
-                    Arc::new(DefaultRandom::default()),
-                    quota.clone(),
-                    parallelism,
-                    logger,
-                    is_experimental,
-                )))
+                Ok(Arc::new(Environment::new(Random::default(), quota.clone(), parallelism, logger, is_experimental)))
             } else {
                 Err("cannot parse parallelism parameter".into())
             }

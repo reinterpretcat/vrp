@@ -4,7 +4,7 @@ mod plan_test;
 
 use super::get_random_item;
 use vrp_core::prelude::GenericError;
-use vrp_core::utils::{DefaultRandom, Random};
+use vrp_core::utils::Random;
 use vrp_pragmatic::format::problem::{Job, JobPlace, JobTask, Plan, Problem};
 use vrp_pragmatic::format::Location;
 
@@ -17,7 +17,7 @@ pub(crate) fn generate_plan(
     jobs_size: usize,
     area_size: Option<f64>,
 ) -> Result<Plan, GenericError> {
-    let rnd = DefaultRandom::default();
+    let rnd = Random::default();
 
     let get_location_fn = get_location_fn(problem_proto, locations, area_size)?;
 
@@ -76,7 +76,7 @@ pub(crate) fn generate_plan(
     Ok(Plan { jobs, relations: None, clustering: None })
 }
 
-type LocationFn = Box<dyn Fn(&DefaultRandom) -> Location>;
+type LocationFn = Box<dyn Fn(&Random) -> Location>;
 
 fn get_location_fn(
     problem_proto: &Problem,
