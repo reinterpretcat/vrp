@@ -8,7 +8,6 @@ use crate::utils::*;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
-use std::sync::Arc;
 
 /// An iterator which collects items into group.
 pub trait CollectGroupBy: Iterator {
@@ -42,17 +41,17 @@ pub trait CollectGroupBy: Iterator {
 impl<T: Iterator> CollectGroupBy for T {}
 
 /// An iterator which visits given range using selection sampling (Algorithm S).
-pub struct SelectionSamplingIterator<I: Iterator> {
+pub struct SelectionSamplingIterator<I: Iterator, R: Random> {
     processed: usize,
     needed: usize,
     size: usize,
     iterator: I,
-    random: Arc<dyn Random + Send + Sync>,
+    random: R,
 }
 
-impl<I: Iterator> SelectionSamplingIterator<I> {
+impl<I: Iterator, R: Random> SelectionSamplingIterator<I, R> {
     /// Creates a new instance of `SelectionSamplingIterator`.
-    pub fn new(iterator: I, amount: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(iterator: I, amount: usize, random: R) -> Self {
         assert!(amount > 0);
         Self {
             // NOTE relying on lower bound size hint!
@@ -65,7 +64,7 @@ impl<I: Iterator> SelectionSamplingIterator<I> {
     }
 }
 
-impl<I: Iterator> Iterator for SelectionSamplingIterator<I> {
+impl<I: Iterator, R: Random> Iterator for SelectionSamplingIterator<I, R> {
     type Item = I::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -90,10 +89,10 @@ impl<I: Iterator> Iterator for SelectionSamplingIterator<I> {
 }
 
 /// Returns a new iterator which samples some range from existing one.
-pub fn create_range_sampling_iter<I: Iterator>(
+pub fn create_range_sampling_iter<I: Iterator, R: Random>(
     iterator: I,
     sample_size: usize,
-    random: &(dyn Random + Send + Sync),
+    random: R,
 ) -> impl Iterator<Item = I::Item> {
     let iterator_size = iterator.size_hint().0 as f64;
     let sample_count = (iterator_size / sample_size as f64).max(1.) - 1.;
@@ -128,10 +127,10 @@ pub fn create_range_sampling_iter<I: Iterator>(
 ///
 pub trait SelectionSamplingSearch: Iterator {
     /// Searches using selection sampling algorithm.
-    fn sample_search<'a, T, R, FM, FI, FC>(
+    fn sample_search<'a, T, R, FM, FI, FC, RNG>(
         self,
         sample_size: usize,
-        random: Arc<dyn Random + Send + Sync>,
+        random: RNG,
         mut map_fn: FM,
         index_fn: FI,
         compare_fn: FC,
@@ -143,6 +142,7 @@ pub trait SelectionSamplingSearch: Iterator {
         FM: FnMut(T) -> R,
         FI: Fn(&T) -> usize,
         FC: Fn(&R, &R) -> bool,
+        RNG: Random,
     {
         // support up to 32*8 indices to be memorized
         const N: usize = 32;

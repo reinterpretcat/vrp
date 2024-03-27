@@ -19,21 +19,24 @@ pub type HeuristicDiversifyGroup<C, O, S> =
     Vec<Arc<dyn HeuristicDiversifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>>;
 
 /// A simple hyper-heuristic which selects metaheuristic from the list with fixed (static) probabilities.
-pub struct StaticSelective<C, O, S>
+pub struct StaticSelective<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
     search_group: HeuristicSearchGroup<C, O, S>,
     diversify_group: HeuristicDiversifyGroup<C, O, S>,
+    environment: Environment<R>,
 }
 
-impl<C, O, S> HyperHeuristic for StaticSelective<C, O, S>
+impl<C, O, S, R> HyperHeuristic for StaticSelective<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
     type Context = C;
     type Objective = O;
@@ -45,39 +48,41 @@ where
 
     fn search_many(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
         parallel_into_collect(solutions.iter().enumerate().collect(), |(idx, solution)| {
-            heuristic_ctx
-                .environment()
-                .parallelism
-                .thread_pool_execute(idx, || self.search_once(heuristic_ctx, solution))
+            self.environment.parallelism.thread_pool_execute(idx, || self.search_once(heuristic_ctx, solution))
         })
     }
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
         let probability = get_diversify_probability(heuristic_ctx);
-        if heuristic_ctx.environment().random.is_hit(probability) {
-            diversify_solution(heuristic_ctx, solution, self.diversify_group.as_slice())
+        if self.environment.random.is_hit(probability) {
+            diversify_solution(heuristic_ctx, solution, self.diversify_group.as_slice(), &self.environment)
         } else {
             Vec::default()
         }
     }
 
     fn diversify_many(&self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
-        diversify_solutions(heuristic_ctx, solutions, self.diversify_group.as_slice())
+        diversify_solutions(heuristic_ctx, solutions, self.diversify_group.as_slice(), &self.environment)
     }
 }
 
-impl<C, O, S> StaticSelective<C, O, S>
+impl<C, O, S, R> StaticSelective<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
     /// Creates a new instance of `StaticSelective` heuristic.
-    pub fn new(search_group: HeuristicSearchGroup<C, O, S>, diversify_group: HeuristicDiversifyGroup<C, O, S>) -> Self {
+    pub fn new(
+        search_group: HeuristicSearchGroup<C, O, S>,
+        diversify_group: HeuristicDiversifyGroup<C, O, S>,
+        environment: Environment<R>,
+    ) -> Self {
         assert!(!search_group.is_empty());
         assert!(!diversify_group.is_empty());
 
-        Self { search_group, diversify_group }
+        Self { search_group, diversify_group, environment }
     }
 
     fn search_once(&self, heuristic_ctx: &C, solution: &S) -> S {
@@ -100,11 +105,12 @@ where
     }
 }
 
-impl<C, O, S> Display for StaticSelective<C, O, S>
+impl<C, O, S, R> Display for StaticSelective<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
     fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
         // NOTE don't do anything at the moment

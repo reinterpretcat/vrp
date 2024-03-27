@@ -7,10 +7,9 @@ use rand::Error;
 use rand_distr::{Gamma, Normal};
 use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::sync::Arc;
 
 /// Provides the way to sample from different distributions.
-pub trait DistributionSampler {
+pub trait DistributionSampler: Send + Sync {
     /// Returns a sample from gamma distribution.
     fn gamma(&self, shape: f64, scale: f64) -> f64;
 
@@ -19,7 +18,7 @@ pub trait DistributionSampler {
 }
 
 /// Provides the way to use randomized values in generic way.
-pub trait Random {
+pub trait Random: Clone + Send + Sync {
     /// Produces integral random value, uniformly distributed on the closed interval [min, max]
     fn uniform_int(&self, min: i32, max: i32) -> i32;
 
@@ -43,16 +42,16 @@ pub trait Random {
 
 /// Provides way to sample from different distributions.
 #[derive(Clone)]
-pub struct DefaultDistributionSampler(Arc<dyn Random + Send + Sync>);
+pub struct DefaultDistributionSampler<R: Random>(R);
 
-impl DefaultDistributionSampler {
+impl<R: Random> DefaultDistributionSampler<R> {
     /// Creates a new instance of `DefaultDistributionSampler`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: R) -> Self {
         Self(random)
     }
 }
 
-impl DistributionSampler for DefaultDistributionSampler {
+impl<R: Random> DistributionSampler for DefaultDistributionSampler<R> {
     fn gamma(&self, shape: f64, scale: f64) -> f64 {
         Gamma::new(shape, scale)
             .unwrap_or_else(|_| panic!("cannot create gamma dist: shape={shape}, scale={scale}"))
@@ -67,7 +66,7 @@ impl DistributionSampler for DefaultDistributionSampler {
 }
 
 /// A default random implementation.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct DefaultRandom {
     use_repeatable: bool,
 }
@@ -186,7 +185,7 @@ impl CryptoRng for RandomGen {}
 
 /// Returns an index of max element in values. In case of many same max elements,
 /// returns the one from them at random.
-pub fn random_argmax<I>(values: I, random: &dyn Random) -> Option<usize>
+pub fn random_argmax<I, R: Random>(values: I, random: &R) -> Option<usize>
 where
     I: Iterator<Item = f64>,
 {

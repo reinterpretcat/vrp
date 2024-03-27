@@ -61,10 +61,9 @@ impl VectorContext {
         objective: Arc<VectorObjective>,
         population: Box<VectorPopulation>,
         telemetry_mode: TelemetryMode,
-        environment: Arc<Environment>,
     ) -> Self {
         Self {
-            inner_context: TelemetryHeuristicContext::new(objective.clone(), population, telemetry_mode, environment),
+            inner_context: TelemetryHeuristicContext::new(objective.clone(), population, telemetry_mode),
             objective,
             state: Default::default(),
         }
@@ -93,10 +92,6 @@ impl HeuristicContext for VectorContext {
 
     fn selection_phase(&self) -> SelectionPhase {
         self.inner_context.population.selection_phase()
-    }
-
-    fn environment(&self) -> &Environment {
-        self.inner_context.environment()
     }
 
     fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
@@ -178,7 +173,7 @@ impl MultiObjective for VectorObjective {
 }
 
 impl Shuffled for VectorObjective {
-    fn get_shuffled(&self, _: &(dyn Random + Send + Sync)) -> Self {
+    fn get_shuffled<R: Random>(&self, _: &R) -> Self {
         Self::new(self.fitness_fn.clone(), self.weight_fn.clone())
     }
 }
@@ -250,21 +245,22 @@ impl InitialOperator for VectorInitialOperator {
 }
 
 /// Specifies mode of heuristic operator.
-pub enum VectorHeuristicOperatorMode {
+pub enum VectorHeuristicOperatorMode<R: Random> {
     /// Adds some noice to all dimensions.
-    JustNoise(Noise),
+    JustNoise(Noise<R>),
     /// Adds some noice to specific dimensions.
-    DimensionNoise(Noise, HashSet<usize>),
+    DimensionNoise(Noise<R>, HashSet<usize>),
     /// Adds a delta for each dimension.
     JustDelta(Range<f64>),
 }
 
 /// A naive implementation of heuristic search operator in vector space.
-struct VectorHeuristicOperator {
-    mode: VectorHeuristicOperatorMode,
+struct VectorHeuristicOperator<R: Random> {
+    random: R,
+    mode: VectorHeuristicOperatorMode<R>,
 }
 
-impl HeuristicSearchOperator for VectorHeuristicOperator {
+impl<R: Random> HeuristicSearchOperator for VectorHeuristicOperator<R> {
     type Context = VectorContext;
     type Objective = VectorObjective;
     type Solution = VectorSolution;
@@ -281,18 +277,19 @@ impl HeuristicSearchOperator for VectorHeuristicOperator {
                     .enumerate()
                     .map(|(idx, &d)| if dimens.contains(&idx) { d + noise.generate(d) } else { d })
                     .collect(),
-                VectorHeuristicOperatorMode::JustDelta(range) => solution
-                    .data
-                    .iter()
-                    .map(|&d| d + context.environment().random.uniform_real(range.start, range.end))
-                    .collect(),
+                VectorHeuristicOperatorMode::JustDelta(range) => {
+                    solution.data.iter().map(|&d| d + self.random.uniform_real(range.start, range.end)).collect()
+                }
             },
             context.objective.clone(),
         )
     }
 }
 
-impl HeuristicDiversifyOperator for VectorHeuristicOperator {
+impl<R> HeuristicDiversifyOperator for VectorHeuristicOperator<R>
+where
+    R: Random,
+{
     type Context = VectorContext;
     type Objective = VectorObjective;
     type Solution = VectorSolution;
@@ -325,7 +322,7 @@ type TargetHeuristic =
 /// Specifies solver solutions.
 pub type SolverSolutions = Vec<(Vec<f64>, f64)>;
 /// Specifies heuristic context factory type.
-pub type ContextFactory = Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>) -> VectorContext>;
+pub type ContextFactory = Box<dyn FnOnce(Arc<VectorObjective>) -> VectorContext>;
 
 /// An example of the optimization solver to solve trivial problems.
 pub struct Solver {
@@ -416,14 +413,24 @@ impl Solver {
     }
 
     /// Sets search operator.
-    pub fn with_search_operator(mut self, mode: VectorHeuristicOperatorMode, name: &str, probability: f64) -> Self {
-        self.search_operators.push((Arc::new(VectorHeuristicOperator { mode }), name.to_string(), probability));
+    pub fn with_search_operator<R: Random + 'static>(
+        mut self,
+        mode: VectorHeuristicOperatorMode<R>,
+        name: &str,
+        probability: f64,
+        random: R,
+    ) -> Self {
+        self.search_operators.push((Arc::new(VectorHeuristicOperator { random, mode }), name.to_string(), probability));
         self
     }
 
     /// Sets diversify operator.
-    pub fn with_diversify_operator(mut self, mode: VectorHeuristicOperatorMode) -> Self {
-        self.diversify_operators.push(Arc::new(VectorHeuristicOperator { mode }));
+    pub fn with_diversify_operator<R: Random + 'static>(
+        mut self,
+        mode: VectorHeuristicOperatorMode<R>,
+        random: R,
+    ) -> Self {
+        self.diversify_operators.push(Arc::new(VectorHeuristicOperator { random, mode }));
         self
     }
 
@@ -448,19 +455,18 @@ impl Solver {
     /// Runs the solver using configuration provided through fluent interface methods.
     pub fn solve(self) -> Result<(SolverSolutions, Option<TelemetryMetrics>), GenericError> {
         // create an environment based on max_time and logger parameters supplied
+        let environment = Environment {
+            is_experimental: self.is_experimental,
+            ..Environment::<DefaultRandom>::new_with_time_quota(self.max_time)
+        };
         let environment =
-            Environment { is_experimental: self.is_experimental, ..Environment::new_with_time_quota(self.max_time) };
-        let environment = Arc::new(if let Some(logger) = self.logger.clone() {
-            Environment { logger, ..environment }
-        } else {
-            environment
-        });
+            if let Some(logger) = self.logger.clone() { Environment { logger, ..environment } } else { environment };
 
         // build instances of implementation types from submitted data
         let heuristic = if self.use_static_heuristic {
-            self.create_static_heuristic(environment.as_ref())
+            self.create_static_heuristic(environment.clone())
         } else {
-            self.create_dynamic_heuristic(environment.as_ref())
+            self.create_dynamic_heuristic(environment.clone())
         };
         let fitness_fn = self.fitness_fn.ok_or_else(|| "objective function must be set".to_string())?;
         let weight_fn = self.weight_fn.unwrap_or_else({
@@ -479,7 +485,7 @@ impl Solver {
         let context = {
             self.context_factory.map_or_else(
                 || {
-                    let selection_size = get_default_selection_size(environment.as_ref());
+                    let selection_size = get_default_selection_size(&environment);
                     VectorContext::new(
                         objective.clone(),
                         get_default_population(objective.clone(), environment.clone(), selection_size),
@@ -489,15 +495,15 @@ impl Solver {
                             log_population: 500,
                             dump_population: false,
                         },
-                        environment.clone(),
                     )
                 },
-                |context_factory| context_factory(objective.clone(), environment.clone()),
+                |context_factory| context_factory(objective.clone()),
             )
         };
 
         // build evolution config using fluent interface
         let config = EvolutionConfigBuilder::default()
+            .with_environment(environment)
             .with_heuristic(heuristic)
             .with_objective(objective)
             .with_context(context)
@@ -522,7 +528,7 @@ impl Solver {
         Ok((solutions, metrics))
     }
 
-    fn create_dynamic_heuristic(&self, environment: &Environment) -> TargetHeuristic {
+    fn create_dynamic_heuristic(&self, environment: Environment<DefaultRandom>) -> TargetHeuristic {
         Box::new(DynamicSelective::new(
             self.search_operators.iter().map(|(op, name, weight)| (op.clone(), name.clone(), *weight)).collect(),
             self.diversify_operators.clone(),
@@ -530,7 +536,7 @@ impl Solver {
         ))
     }
 
-    fn create_static_heuristic(&self, environment: &Environment) -> TargetHeuristic {
+    fn create_static_heuristic(&self, environment: Environment<DefaultRandom>) -> TargetHeuristic {
         Box::new(StaticSelective::new(
             self.search_operators
                 .iter()
@@ -543,6 +549,7 @@ impl Solver {
                 })
                 .collect(),
             self.diversify_operators.clone(),
+            environment,
         ))
     }
 }

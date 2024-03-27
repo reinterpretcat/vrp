@@ -1,5 +1,5 @@
 use crate::example::*;
-use crate::utils::Environment;
+use crate::utils::{DefaultRandom, Environment};
 use crate::{get_default_population, get_default_selection_size, TelemetryMode};
 use std::sync::Arc;
 
@@ -18,14 +18,14 @@ pub fn create_default_heuristic_context() -> VectorContext {
 
 /// A helper method to create an example of VectorContext with given solutions and objective function.
 pub fn create_heuristic_context_with_solutions(solutions: Vec<Vec<f64>>) -> VectorContext {
-    let environment = Arc::new(Environment::default());
+    let environment = Environment::<DefaultRandom>::default();
     let objective = create_example_objective();
-    let selection_size = get_default_selection_size(environment.as_ref());
+    let selection_size = get_default_selection_size(&environment);
 
     let mut population = get_default_population(objective.clone(), environment.clone(), selection_size);
 
     let solutions = solutions.into_iter().map(|data| VectorSolution::new(data, objective.clone())).collect();
     population.add_all(solutions);
 
-    VectorContext::new(objective, population, TelemetryMode::None, environment)
+    VectorContext::new(objective, population, TelemetryMode::None)
 }

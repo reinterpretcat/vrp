@@ -24,7 +24,7 @@ fn can_generate_split_permutations() {
 
 #[test]
 fn can_validate_permutations() {
-    let random = Arc::new(DefaultRandom::default());
+    let random = DefaultRandom::default();
     let permutator = VariableJobPermutation::new(5, 3, 12, random.clone());
 
     assert!(permutator.validate(&[0, 1, 2, 3, 4]));

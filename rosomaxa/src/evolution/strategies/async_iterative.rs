@@ -25,7 +25,11 @@ pub struct AsyncParams {
 }
 
 /// An asynchronous simple evolution algorithm which maintains a single population and improves it iteratively.
-pub struct AsyncIterative<H, C, O, S> {
+pub struct AsyncIterative<H, C, O, S, R>
+where
+    R: Random,
+{
+    environment: Environment<R>,
     params: AsyncParams,
     desired_solutions_amount: usize,
     objective: Arc<O>,
@@ -33,12 +37,13 @@ pub struct AsyncIterative<H, C, O, S> {
     context_factory: AsyncContextFactory<C, O, S>,
 }
 
-impl<H, C, O, S> EvolutionStrategy for AsyncIterative<H, C, O, S>
+impl<H, C, O, S, R> EvolutionStrategy for AsyncIterative<H, C, O, S, R>
 where
     H: HyperHeuristic<Context = C, Objective = O, Solution = S> + Send + Sync + 'static,
     C: HeuristicContext<Objective = O, Solution = S> + Send + 'static,
     O: HeuristicObjective<Solution = S> + Send + 'static,
     S: HeuristicSolution + Send + 'static,
+    R: Random,
 {
     type Context = C;
     type Objective = O;
@@ -67,7 +72,7 @@ where
 
             loop {
                 let is_terminated = termination.is_termination(&mut heuristic_ctx);
-                let is_quota_reached = heuristic_ctx.environment().quota.as_ref().map_or(false, |q| q.is_reached());
+                let is_quota_reached = self.environment.quota.as_ref().map_or(false, |q| q.is_reached());
 
                 if is_terminated || is_quota_reached {
                     break;
@@ -119,22 +124,24 @@ where
     }
 }
 
-impl<H, C, O, S> AsyncIterative<H, C, O, S>
+impl<H, C, O, S, R> AsyncIterative<H, C, O, S, R>
 where
     H: HyperHeuristic<Context = C, Objective = O, Solution = S> + Send + 'static,
     C: HeuristicContext<Objective = O, Solution = S> + Send + 'static,
     O: HeuristicObjective<Solution = S> + Send + 'static,
     S: HeuristicSolution + Send + 'static,
+    R: Random,
 {
     /// Creates a new instance of `AsyncIterative` evolution strategy.
     pub fn new(
+        environment: Environment<R>,
         params: AsyncParams,
         desired_solutions_amount: usize,
         objective: Arc<O>,
         heuristic_factory: AsyncHeuristicFactory<H>,
         context_factory: AsyncContextFactory<C, O, S>,
     ) -> Self {
-        Self { params, desired_solutions_amount, objective, heuristic_factory, context_factory }
+        Self { environment, params, desired_solutions_amount, objective, heuristic_factory, context_factory }
     }
 
     fn fork_context(&self, heuristic_ctx: &C) -> C {

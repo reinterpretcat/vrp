@@ -84,20 +84,21 @@ where
 }
 
 /// Runs diversification search on given solution with some probability.
-fn diversify_solution<C, O, S>(
+fn diversify_solution<C, O, S, R>(
     heuristic_ctx: &C,
     solution: &S,
     operators: &[Arc<dyn HeuristicDiversifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>],
+    environment: &Environment<R>,
 ) -> Vec<S>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
     assert!(!operators.is_empty());
 
-    let random = heuristic_ctx.environment().random.as_ref();
-    let operator_idx = random.uniform_int(0, operators.len() as i32 - 1) as usize;
+    let operator_idx = environment.random.uniform_int(0, operators.len() as i32 - 1) as usize;
     let operator = &operators[operator_idx];
 
     operator.diversify(heuristic_ctx, solution)
@@ -105,28 +106,28 @@ where
 
 /// For each solution, picks an operator with equal probability and runs diversify once.
 /// Uses parallelism setting to run diversification on thread pool.
-fn diversify_solutions<C, O, S>(
+fn diversify_solutions<C, O, S, R>(
     heuristic_ctx: &C,
     solutions: Vec<&S>,
     operators: &[Arc<dyn HeuristicDiversifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>],
+    environment: &Environment<R>,
 ) -> Vec<S>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
     assert!(!operators.is_empty());
 
-    let random = heuristic_ctx.environment().random.as_ref();
     let probability = get_diversify_probability(heuristic_ctx);
 
-    let solutions = solutions.into_iter().filter(|_| random.is_hit(probability)).collect::<Vec<_>>();
+    let solutions = solutions.into_iter().filter(|_| environment.random.is_hit(probability)).collect::<Vec<_>>();
 
     parallel_into_collect(solutions.iter().enumerate().collect(), |(solution_idx, solution)| {
-        heuristic_ctx
-            .environment()
+        environment
             .parallelism
-            .thread_pool_execute(solution_idx, || diversify_solution(heuristic_ctx, solution, operators))
+            .thread_pool_execute(solution_idx, || diversify_solution(heuristic_ctx, solution, operators, environment))
     })
     .into_iter()
     .flatten()

@@ -12,17 +12,19 @@ use std::ops::ControlFlow;
 
 /// A termination criteria which calculates coefficient variation in each objective and terminates
 /// when min threshold is not reached.
-pub struct MinVariation<C, O, S, K>
+pub struct MinVariation<C, O, S, R, K>
 where
     C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
     K: Hash + Eq + Clone,
 {
     interval_type: IntervalType,
     threshold: f64,
     is_global: bool,
     key: K,
+    random: R,
     _marker: (PhantomData<C>, PhantomData<O>, PhantomData<S>),
 }
 
@@ -31,31 +33,33 @@ enum IntervalType {
     Period(u128),
 }
 
-impl<C, O, S, K> MinVariation<C, O, S, K>
+impl<C, O, S, R, K> MinVariation<C, O, S, R, K>
 where
     C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
     K: Hash + Eq + Clone,
 {
     /// Creates a new instance of `MinVariation` with sample interval type.
-    pub fn new_with_sample(sample: usize, threshold: f64, is_global: bool, key: K) -> Self {
+    pub fn new_with_sample(sample: usize, threshold: f64, is_global: bool, key: K, random: R) -> Self {
         assert_ne!(sample, 0);
-        Self::new(IntervalType::Sample(sample), threshold, is_global, key)
+        Self::new(IntervalType::Sample(sample), threshold, is_global, key, random)
     }
 
     /// Creates a new instance of `MinVariation` with period interval type.
-    pub fn new_with_period(period: usize, threshold: f64, is_global: bool, key: K) -> Self {
+    pub fn new_with_period(period: usize, threshold: f64, is_global: bool, key: K, random: R) -> Self {
         assert_ne!(period, 0);
-        Self::new(IntervalType::Period(period as u128 * 1000), threshold, is_global, key)
+        Self::new(IntervalType::Period(period as u128 * 1000), threshold, is_global, key, random)
     }
 
-    fn new(interval_type: IntervalType, threshold: f64, is_global: bool, key: K) -> Self {
+    fn new(interval_type: IntervalType, threshold: f64, is_global: bool, key: K, random: R) -> Self {
         Self {
             interval_type,
             threshold,
             is_global,
             key,
+            random,
             _marker: (Default::default(), Default::default(), Default::default()),
         }
     }
@@ -78,9 +82,6 @@ where
             }
             IntervalType::Period(period) => {
                 let elapsed_time = heuristic_ctx.statistics().time.elapsed_millis();
-                let random = heuristic_ctx.environment().random.clone();
-                let mut rng = random.get_rng();
-
                 let values = heuristic_ctx
                     .state_mut::<Vec<(u128, Vec<f64>)>, _>(self.key.clone(), Vec::<(u128, Vec<f64>)>::default);
 
@@ -89,7 +90,7 @@ where
                 // NOTE try to keep collection under maintainable size
                 if values.len() > 1000 {
                     let mut i = 0_usize;
-                    values.shuffle(&mut rng);
+                    values.shuffle(&mut self.random.get_rng());
                     values.retain(|_| {
                         let result = i % 10 == 0;
                         i += 1;
@@ -140,11 +141,12 @@ where
     }
 }
 
-impl<C, O, S, K> Termination for MinVariation<C, O, S, K>
+impl<C, O, S, R, K> Termination for MinVariation<C, O, S, R, K>
 where
     C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
     K: Hash + Eq + Clone,
 {
     type Context = C;

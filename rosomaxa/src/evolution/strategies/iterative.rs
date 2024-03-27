@@ -2,36 +2,41 @@ use super::*;
 use crate::utils::Timer;
 
 /// A simple evolution algorithm which maintains a single population and improves it iteratively.
-pub struct Iterative<C, O, S>
+pub struct Iterative<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
-    desired_solutions_amount: usize,
+    environment: Environment<R>,
     heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
+    desired_solutions_amount: usize,
 }
 
-impl<C, O, S> Iterative<C, O, S>
+impl<C, O, S, R> Iterative<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
     /// Creates a new instance of `RunSimple`.
     pub fn new(
+        environment: Environment<R>,
         heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
         desired_solutions_amount: usize,
     ) -> Self {
-        Self { heuristic, desired_solutions_amount }
+        Self { environment, heuristic, desired_solutions_amount }
     }
 }
 
-impl<C, O, S> EvolutionStrategy for Iterative<C, O, S>
+impl<C, O, S, R> EvolutionStrategy for Iterative<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
     type Context = C;
     type Objective = O;
@@ -47,7 +52,7 @@ where
 
         loop {
             let is_terminated = termination.is_termination(&mut heuristic_ctx);
-            let is_quota_reached = heuristic_ctx.environment().quota.as_ref().map_or(false, |q| q.is_reached());
+            let is_quota_reached = self.environment.quota.as_ref().map_or(false, |q| q.is_reached());
 
             if is_terminated || is_quota_reached {
                 break;
@@ -73,7 +78,7 @@ where
         }
 
         // NOTE give a chance to report internal state of heuristic
-        (heuristic_ctx.environment().logger)(&format!("{heuristic}"));
+        (self.environment.logger)(&format!("{heuristic}"));
 
         let (population, telemetry_metrics) = heuristic_ctx.on_result()?;
 

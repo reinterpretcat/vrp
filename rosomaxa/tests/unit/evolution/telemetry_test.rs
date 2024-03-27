@@ -4,7 +4,6 @@ use crate::helpers::example::create_example_objective;
 use crate::utils::compare_floats;
 use crate::{get_default_population, get_default_selection_size};
 use std::cmp::Ordering;
-use std::sync::Arc;
 
 fn compare_statistic(statistics: &HeuristicStatistics, expected: (usize, f64, f64)) {
     assert_eq!(statistics.generation, expected.0);
@@ -14,9 +13,9 @@ fn compare_statistic(statistics: &HeuristicStatistics, expected: (usize, f64, f6
 
 #[test]
 fn can_update_statistic() {
-    let environment = Arc::new(Environment::default());
+    let environment = Environment::<DefaultRandom>::default();
     let objective = create_example_objective();
-    let selection_size = get_default_selection_size(environment.as_ref());
+    let selection_size = get_default_selection_size(&environment);
     let population = get_default_population(objective.clone(), environment, selection_size);
     let objective = objective.as_ref();
     let population = population.as_ref();

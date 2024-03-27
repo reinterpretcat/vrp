@@ -3,6 +3,7 @@
 mod node_test;
 
 use super::*;
+use crate::utils::Random;
 use std::collections::VecDeque;
 use std::fmt::Formatter;
 
@@ -80,15 +81,15 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     }
 
     /// Checks if the cell is at the boundary of the network.
-    pub fn is_boundary<F: StorageFactory<I, S>>(&self, network: &Network<I, S, F>) -> bool {
+    pub fn is_boundary<F: StorageFactory<I, S>, R: Random>(&self, network: &Network<I, S, F, R>) -> bool {
         self.neighbours(network, 1).filter(|(_, (x, y))| x.abs() + y.abs() < 2).any(|(node, _)| node.is_none())
     }
 
     /// Gets iterator over node coordinates in neighbourhood.
     /// If neighbour is not found, then None is returned for corresponding coordinate.
-    pub fn neighbours<'a, F: StorageFactory<I, S>>(
+    pub fn neighbours<'a, F: StorageFactory<I, S>, R: Random>(
         &self,
-        network: &'a Network<I, S, F>,
+        network: &'a Network<I, S, F, R>,
         radius: usize,
     ) -> impl Iterator<Item = (Option<Coordinate>, (i32, i32))> + 'a {
         let radius = radius as i32;
@@ -102,7 +103,11 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     }
 
     /// Gets unified distance.
-    pub fn unified_distance<F: StorageFactory<I, S>>(&self, network: &Network<I, S, F>, radius: usize) -> f64 {
+    pub fn unified_distance<F: StorageFactory<I, S>, R: Random>(
+        &self,
+        network: &Network<I, S, F, R>,
+        radius: usize,
+    ) -> f64 {
         let (sum, count) = self
             .neighbours(network, radius)
             .filter_map(|(coord, _)| coord.and_then(|coord| network.find(&coord)))

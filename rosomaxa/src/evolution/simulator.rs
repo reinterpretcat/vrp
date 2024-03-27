@@ -3,23 +3,25 @@ use crate::prelude::*;
 use crate::utils::Timer;
 
 /// An entity which simulates evolution process.
-pub struct EvolutionSimulator<C, O, S>
+pub struct EvolutionSimulator<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
-    config: EvolutionConfig<C, O, S>,
+    config: EvolutionConfig<C, O, S, R>,
 }
 
-impl<C, O, S> EvolutionSimulator<C, O, S>
+impl<C, O, S, R> EvolutionSimulator<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
     /// Creates a new instance of `EvolutionSimulator`.
-    pub fn new(config: EvolutionConfig<C, O, S>) -> Result<Self, GenericError> {
+    pub fn new(config: EvolutionConfig<C, O, S, R>) -> Result<Self, GenericError> {
         if config.initial.operators.is_empty() {
             return Err("at least one initial method has to be specified".into());
         }
@@ -33,10 +35,11 @@ where
         let mut config = self.config;
 
         let hooks = config.processing;
-        let random = config.context.environment().random.clone();
+        let environment = config.environment.clone();
+        let random = environment.random.clone();
+        let logger = environment.logger.clone();
 
         let heuristic_ctx = config.context;
-        let logger = heuristic_ctx.environment().logger.clone();
 
         let mut heuristic_ctx = hooks.context.iter().fold(heuristic_ctx, |ctx, hook| hook.pre_process(ctx));
 

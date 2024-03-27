@@ -1,9 +1,8 @@
 use super::*;
-use crate::helpers::utils::create_test_random;
-use crate::utils::{random_argmax, DefaultDistributionSampler};
+use crate::utils::{random_argmax, DefaultDistributionSampler, DefaultRandom};
 
 #[derive(Clone)]
-struct TestAction(DefaultDistributionSampler);
+struct TestAction(DefaultDistributionSampler<DefaultRandom>);
 
 impl SlotAction for TestAction {
     type Context = (f64, f64);
@@ -38,14 +37,14 @@ fn can_find_proper_estimations() {
             let attempts = 1000;
             let delta = 2.;
 
-            let random = create_test_random();
+            let random = DefaultRandom::default();
             let sampler = DefaultDistributionSampler::new(random.clone());
             let mut slots = (0..sockets)
                 .map(|_| SlotMachine::new(prior_mean, TestAction(sampler.clone()), sampler.clone()))
                 .collect::<Vec<_>>();
 
             for _ in 0..attempts {
-                let slot_idx = random_argmax(slots.iter().map(|slot| slot.sample()), random.as_ref()).unwrap();
+                let slot_idx = random_argmax(slots.iter().map(|slot| slot.sample()), &random).unwrap();
                 let slot = &mut slots[slot_idx];
                 let feedback = slot.play((slot_means[slot_idx], slot_vars[slot_idx].sqrt()));
                 slot.update(&feedback);

@@ -2,13 +2,13 @@ use crate::algorithms::gsom::{Coordinate, Network};
 use crate::helpers::algorithms::gsom::{Data, DataStorage, DataStorageFactory};
 use crate::utils::Random;
 
-type NetworkType = Network<Data, DataStorage, DataStorageFactory>;
-
 mod common {
     use super::*;
     use crate::helpers::algorithms::gsom::create_test_network;
     use crate::utils::{compare_floats, DefaultRandom};
     use std::cmp::Ordering;
+
+    type NetworkType = Network<Data, DataStorage, DataStorageFactory, DefaultRandom>;
 
     #[test]
     fn can_train_network() {
@@ -147,35 +147,39 @@ mod node_growing {
     use super::*;
     use crate::algorithms::gsom::{NetworkConfig, Node};
     use crate::prelude::RandomGen;
-    use std::sync::Arc;
+
+    type NetworkType = Network<Data, DataStorage, DataStorageFactory, DummyRandom>;
+
+    #[derive(Clone)]
+    struct DummyRandom;
+
+    impl Random for DummyRandom {
+        fn uniform_int(&self, _: i32, _: i32) -> i32 {
+            unreachable!()
+        }
+
+        fn uniform_real(&self, _: f64, _: f64) -> f64 {
+            unreachable!()
+        }
+
+        fn is_head_not_tails(&self) -> bool {
+            unreachable!()
+        }
+
+        fn is_hit(&self, _: f64) -> bool {
+            false
+        }
+
+        fn weighted(&self, _: &[usize]) -> usize {
+            unreachable!()
+        }
+
+        fn get_rng(&self) -> RandomGen {
+            RandomGen::new_repeatable()
+        }
+    }
 
     fn create_trivial_network(has_initial_error: bool) -> NetworkType {
-        struct DummyRandom {}
-        impl Random for DummyRandom {
-            fn uniform_int(&self, _: i32, _: i32) -> i32 {
-                unreachable!()
-            }
-
-            fn uniform_real(&self, _: f64, _: f64) -> f64 {
-                unreachable!()
-            }
-
-            fn is_head_not_tails(&self) -> bool {
-                unreachable!()
-            }
-
-            fn is_hit(&self, _: f64) -> bool {
-                false
-            }
-
-            fn weighted(&self, _: &[usize]) -> usize {
-                unreachable!()
-            }
-
-            fn get_rng(&self) -> RandomGen {
-                RandomGen::new_repeatable()
-            }
-        }
         Network::new(
             [
                 Data::new(1., 4., 8.), // n00
@@ -190,7 +194,7 @@ mod node_growing {
                 rebalance_memory: 500,
                 has_initial_error,
             },
-            Arc::new(DummyRandom {}),
+            DummyRandom,
             DataStorageFactory,
         )
     }

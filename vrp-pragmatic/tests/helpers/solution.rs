@@ -462,7 +462,7 @@ pub fn get_ids_from_tour_sorted(tour: &Tour) -> Vec<Vec<String>> {
 }
 
 pub fn create_random() -> Arc<dyn Random + Send + Sync> {
-    Arc::new(DefaultRandom::default())
+    DefaultRandom::default()
 }
 
 pub fn to_core_solution(

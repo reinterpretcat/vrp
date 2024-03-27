@@ -1,19 +1,15 @@
 use super::*;
 
-fn just_noise(
-    probability: f64,
-    range: (f64, f64),
-    random: Arc<dyn Random + Send + Sync>,
-) -> VectorHeuristicOperatorMode {
+fn just_noise<R: Random>(probability: f64, range: (f64, f64), random: R) -> VectorHeuristicOperatorMode<R> {
     VectorHeuristicOperatorMode::JustNoise(Noise::new_with_ratio(probability, range, random))
 }
 
-fn dimen_noise(
+fn dimen_noise<R: Random>(
     probability: f64,
     range: (f64, f64),
     dimen: usize,
-    random: Arc<dyn Random + Send + Sync>,
-) -> VectorHeuristicOperatorMode {
+    random: R,
+) -> VectorHeuristicOperatorMode<R> {
     let dimen = vec![dimen].into_iter().collect();
     VectorHeuristicOperatorMode::DimensionNoise(Noise::new_with_ratio(probability, range, random), dimen)
 }
@@ -33,16 +29,16 @@ pub fn can_create_and_use_rosenbrock_function_2d() {
 
 #[test]
 fn can_solve_rosenbrock() {
-    let random = Arc::new(DefaultRandom::default());
+    let random = DefaultRandom::default();
     let (solutions, _) = Solver::default()
         .with_fitness_fn(create_rosenbrock_function())
         .with_init_solutions(vec![vec![2., 2.]])
-        .with_search_operator(just_noise(1., (-0.05, 0.05), random.clone()), "first", 1.)
-        .with_search_operator(just_noise(1., (0., 0.1), random.clone()), "second", 0.25)
-        .with_search_operator(just_noise(1., (-0.1, 0.), random.clone()), "third", 0.25)
-        .with_search_operator(dimen_noise(1., (-0.1, 0.1), 0, random.clone()), "fourth", 0.5)
-        .with_search_operator(dimen_noise(1., (-0.1, 0.1), 1, random.clone()), "five", 0.25)
-        .with_diversify_operator(dimen_noise(1., (-0.5, 0.5), 1, random))
+        .with_search_operator(just_noise(1., (-0.05, 0.05), random.clone()), "first", 1., random.clone())
+        .with_search_operator(just_noise(1., (0., 0.1), random.clone()), "second", 0.25, random.clone())
+        .with_search_operator(just_noise(1., (-0.1, 0.), random.clone()), "third", 0.25, random.clone())
+        .with_search_operator(dimen_noise(1., (-0.1, 0.1), 0, random.clone()), "fourth", 0.5, random.clone())
+        .with_search_operator(dimen_noise(1., (-0.1, 0.1), 1, random.clone()), "five", 0.25, random.clone())
+        .with_diversify_operator(dimen_noise(1., (-0.5, 0.5), 1, random.clone()), random)
         .with_termination(Some(5), Some(1000), None, None)
         .solve()
         .expect("cannot build and use solver");

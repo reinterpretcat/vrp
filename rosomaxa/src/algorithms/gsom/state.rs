@@ -4,6 +4,7 @@ mod state_test;
 
 use super::*;
 use crate::algorithms::gsom::Coordinate;
+use crate::prelude::Random;
 use std::fmt::{Display, Formatter, Result, Write};
 use std::ops::Range;
 
@@ -36,11 +37,12 @@ pub struct NodeState {
 }
 
 /// Gets network state.
-pub fn get_network_state<I, S, F>(network: &Network<I, S, F>) -> NetworkState
+pub fn get_network_state<I, S, F, R>(network: &Network<I, S, F, R>) -> NetworkState
 where
     I: Input,
     S: Storage<Item = I>,
     F: StorageFactory<I, S>,
+    R: Random,
 {
     let ((x_min, x_max), (y_min, y_max)) = get_network_shape(network);
 
@@ -70,11 +72,12 @@ where
 }
 
 /// Gets network's shape: min-max coordinate indices.
-pub fn get_network_shape<I, S, F>(network: &Network<I, S, F>) -> ((i32, i32), (i32, i32))
+pub fn get_network_shape<I, S, F, R>(network: &Network<I, S, F, R>) -> ((i32, i32), (i32, i32))
 where
     I: Input,
     S: Storage<Item = I>,
     F: StorageFactory<I, S>,
+    R: Random,
 {
     network.get_coordinates().fold(
         ((i32::MAX, i32::MIN), (i32::MAX, i32::MIN)),

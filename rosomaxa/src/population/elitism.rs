@@ -21,13 +21,14 @@ pub type DedupFn<O, S> = Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>;
 /// - sorting of individuals in population according their objective fitness using `NSGA-II` algorithm
 /// - maintaining diversity of population based on their crowding distance
 ///
-pub struct Elitism<O, S>
+pub struct Elitism<O, S, R>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
     S: HeuristicSolution + DominanceOrdered,
+    R: Random,
 {
     objective: Arc<O>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: R,
     selection_size: usize,
     max_population_size: usize,
     individuals: Vec<S>,
@@ -46,7 +47,7 @@ pub trait DominanceOrdered {
 /// Provides way to get a new objective by shuffling existing one.
 pub trait Shuffled {
     /// Returns a new objective.
-    fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self;
+    fn get_shuffled<R: Random>(&self, random: &R) -> Self;
 }
 
 /// Contains ordering information about individual in population.
@@ -57,10 +58,11 @@ pub struct DominanceOrder {
     rank: usize,
 }
 
-impl<O, S> HeuristicPopulation for Elitism<O, S>
+impl<O, S, R> HeuristicPopulation for Elitism<O, S, R>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
     S: HeuristicSolution + DominanceOrdered,
+    R: Random,
 {
     type Objective = O;
     type Individual = S;
@@ -122,18 +124,14 @@ where
     }
 }
 
-impl<O, S> Elitism<O, S>
+impl<O, S, R> Elitism<O, S, R>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
     S: HeuristicSolution + DominanceOrdered,
+    R: Random,
 {
     /// Creates a new instance of `Elitism`.
-    pub fn new(
-        objective: Arc<O>,
-        random: Arc<dyn Random + Send + Sync>,
-        max_population_size: usize,
-        selection_size: usize,
-    ) -> Self {
+    pub fn new(objective: Arc<O>, random: R, max_population_size: usize, selection_size: usize) -> Self {
         Self::new_with_dedup(
             objective,
             random,
@@ -170,7 +168,7 @@ where
     /// Creates a new instance of `Elitism` with custom deduplication function.
     pub fn new_with_dedup(
         objective: Arc<O>,
-        random: Arc<dyn Random + Send + Sync>,
+        random: R,
         max_population_size: usize,
         selection_size: usize,
         dedup_fn: DedupFn<O, S>,
@@ -181,13 +179,13 @@ where
 
     /// Shuffles objective function.
     pub fn shuffle_objective(&mut self) {
-        self.objective = Arc::new(self.objective.get_shuffled(self.random.as_ref()));
+        self.objective = Arc::new(self.objective.get_shuffled(&self.random));
     }
 
     /// Extracts all individuals from population.
-    pub fn drain<R>(&mut self, range: R) -> Vec<S>
+    pub fn drain<T>(&mut self, range: T) -> Vec<S>
     where
-        R: RangeBounds<usize>,
+        T: RangeBounds<usize>,
     {
         self.individuals.drain(range).collect()
     }
@@ -231,10 +229,11 @@ where
     }
 }
 
-impl<O, S> Display for Elitism<O, S>
+impl<O, S, R> Display for Elitism<O, S, R>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
     S: HeuristicSolution + DominanceOrdered,
+    R: Random,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let fitness = self.individuals.iter().fold(String::new(), |mut res, individual| {

@@ -1,6 +1,6 @@
 //! Contains environment specific logic.
 
-use crate::utils::{DefaultRandom, Random, ThreadPool, Timer};
+use crate::utils::{Random, ThreadPool, Timer};
 use std::sync::Arc;
 
 /// A logger type which is called with various information.
@@ -15,9 +15,9 @@ pub trait Quota: Send + Sync {
 
 /// Keeps track of environment specific information which influences algorithm behavior.
 #[derive(Clone)]
-pub struct Environment {
+pub struct Environment<R: Random> {
     /// A wrapper on random generator.
-    pub random: Arc<dyn Random + Send + Sync>,
+    pub random: R,
 
     /// A global execution quota.
     pub quota: Option<Arc<dyn Quota + Send + Sync>>,
@@ -32,18 +32,10 @@ pub struct Environment {
     pub is_experimental: bool,
 }
 
-impl Environment {
-    /// Creates an instance of `Environment` using optional time quota and defaults.
-    pub fn new_with_time_quota(max_time: Option<usize>) -> Self {
-        Self {
-            quota: max_time.map::<Arc<dyn Quota + Send + Sync>, _>(|time| Arc::new(TimeQuota::new(time as f64))),
-            ..Self::default()
-        }
-    }
-
+impl<R: Random> Environment<R> {
     /// Creates an instance of `Environment`.
     pub fn new(
-        random: Arc<dyn Random + Send + Sync>,
+        random: R,
         quota: Option<Arc<dyn Quota + Send + Sync>>,
         parallelism: Parallelism,
         logger: InfoLogger,
@@ -53,15 +45,19 @@ impl Environment {
     }
 }
 
-impl Default for Environment {
+impl<R: Random + Default> Environment<R> {
+    /// Creates an instance of `Environment` using optional time quota and defaults.
+    pub fn new_with_time_quota(max_time: Option<usize>) -> Self {
+        Self {
+            quota: max_time.map::<Arc<dyn Quota + Send + Sync>, _>(|time| Arc::new(TimeQuota::new(time as f64))),
+            ..Self::default()
+        }
+    }
+}
+
+impl<R: Random + Default> Default for Environment<R> {
     fn default() -> Self {
-        Environment::new(
-            Arc::new(DefaultRandom::default()),
-            None,
-            Parallelism::default(),
-            Arc::new(|msg| println!("{msg}")),
-            false,
-        )
+        Environment::new(R::default(), None, Parallelism::default(), Arc::new(|msg| println!("{msg}")), false)
     }
 }
 

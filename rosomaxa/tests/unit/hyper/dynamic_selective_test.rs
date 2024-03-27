@@ -8,7 +8,7 @@ use std::time::Duration;
 fn can_estimate_median() {
     struct DelayableHeuristicOperator {
         delay_range: Range<i32>,
-        random: Arc<dyn Random + Send + Sync>,
+        random: DefaultRandom,
     }
     impl HeuristicSearchOperator for DelayableHeuristicOperator {
         type Context = VectorContext;
@@ -30,10 +30,10 @@ fn can_estimate_median() {
             vec![self.search(heuristic_ctx, solution)]
         }
     }
-    let environment = Environment::default();
+    let environment = Environment::<DefaultRandom>::default();
     let random = environment.random.clone();
     let solution = VectorSolution::new(vec![0., 0.], create_example_objective());
-    let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
+    let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution, DefaultRandom>::new(
         vec![
             (
                 Arc::new(DelayableHeuristicOperator { delay_range: (2..3), random: random.clone() }),
@@ -47,7 +47,7 @@ fn can_estimate_median() {
             ),
         ],
         vec![Arc::new(DelayableHeuristicOperator { delay_range: (2..3), random: random.clone() })],
-        &environment,
+        environment,
     );
 
     heuristic.search_many(&create_default_heuristic_context(), (0..100).map(|_| &solution).collect());
@@ -97,8 +97,11 @@ fn can_display_heuristic_info() {
     let duration = 1;
     let reward = 1.;
     let transition = (SearchState::Diverse, SearchState::BestKnown);
-    let mut heuristic =
-        DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(vec![], vec![], &environment);
+    let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution, DefaultRandom>::new(
+        vec![],
+        vec![],
+        environment,
+    );
 
     heuristic.agent.tracker.observe_sample(1, SearchSample { name: "name1".to_string(), duration, reward, transition });
 

@@ -486,7 +486,7 @@ fn get_environment(matches: &ArgMatches) -> Result<Arc<Environment>, GenericErro
                     Arc::new(|_: &str| {})
                 };
                 Ok(Arc::new(Environment::new(
-                    Arc::new(DefaultRandom::default()),
+                    DefaultRandom::default(),
                     quota.clone(),
                     parallelism,
                     logger,

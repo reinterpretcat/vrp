@@ -25,21 +25,24 @@ pub type HeuristicDiversifyOperators<C, O, S> =
 /// An experimental dynamic selective hyper heuristic which selects inner heuristics
 /// based on how they work during the search. The selection process is modeled using reinforcement
 /// learning technics.
-pub struct DynamicSelective<C, O, S>
-where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-{
-    agent: SearchAgent<'static, C, O, S>,
-    diversify_operators: HeuristicDiversifyOperators<C, O, S>,
-}
-
-impl<C, O, S> HyperHeuristic for DynamicSelective<C, O, S>
+pub struct DynamicSelective<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S> + 'static,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution + 'static,
+    R: Random,
+{
+    agent: SearchAgent<'static, C, O, S, R>,
+    diversify_operators: HeuristicDiversifyOperators<C, O, S>,
+    environment: Environment<R>,
+}
+
+impl<C, O, S, R> HyperHeuristic for DynamicSelective<C, O, S, R>
+where
+    C: HeuristicContext<Objective = O, Solution = S> + 'static,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution + 'static,
+    R: Random,
 {
     type Context = C;
     type Objective = O;
@@ -56,10 +59,7 @@ where
 
     fn search_many(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
         let feedbacks = parallel_into_collect(solutions.iter().enumerate().collect(), |(idx, solution)| {
-            heuristic_ctx
-                .environment()
-                .parallelism
-                .thread_pool_execute(idx, || self.agent.search(heuristic_ctx, solution))
+            self.environment.parallelism.thread_pool_execute(idx, || self.agent.search(heuristic_ctx, solution))
         });
 
         let generation = heuristic_ctx.statistics().generation;
@@ -74,35 +74,37 @@ where
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
         let probability = get_diversify_probability(heuristic_ctx);
-        if heuristic_ctx.environment().random.is_hit(probability) {
-            diversify_solution(heuristic_ctx, solution, self.diversify_operators.as_slice())
+        if self.environment.random.is_hit(probability) {
+            diversify_solution(heuristic_ctx, solution, self.diversify_operators.as_slice(), &self.environment)
         } else {
             Vec::default()
         }
     }
 
     fn diversify_many(&self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
-        diversify_solutions(heuristic_ctx, solutions, self.diversify_operators.as_slice())
+        diversify_solutions(heuristic_ctx, solutions, self.diversify_operators.as_slice(), &self.environment)
     }
 }
 
-impl<C, O, S> DynamicSelective<C, O, S>
+impl<C, O, S, R> DynamicSelective<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S> + 'static,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution + 'static,
+    R: Random,
 {
     /// Creates a new instance of `DynamicSelective` heuristic.
     pub fn new(
         search_operators: HeuristicSearchOperators<C, O, S>,
         diversify_operators: HeuristicDiversifyOperators<C, O, S>,
-        environment: &Environment,
+        environment: Environment<R>,
     ) -> Self {
-        Self { agent: SearchAgent::new(search_operators, environment), diversify_operators }
+        Self { agent: SearchAgent::new(search_operators, &environment), diversify_operators, environment }
     }
 }
 
-type SlotMachines<'a, C, O, S> = Vec<(SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler>, String)>;
+type SlotMachines<'a, C, O, S, R> =
+    Vec<(SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler<R>>, String)>;
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 enum SearchState {
@@ -184,19 +186,26 @@ where
     approx_median: Option<usize>,
 }
 
-struct SearchAgent<'a, C, O, S> {
-    slot_machines: HashMap<SearchState, SlotMachines<'a, C, O, S>>,
-    tracker: HeuristicTracker,
-    random: Arc<dyn Random + Send + Sync>,
-}
-
-impl<'a, C, O, S> SearchAgent<'a, C, O, S>
+struct SearchAgent<'a, C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S> + 'a,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution + 'a,
+    R: Random,
 {
-    pub fn new(search_operators: HeuristicSearchOperators<C, O, S>, environment: &Environment) -> Self {
+    slot_machines: HashMap<SearchState, SlotMachines<'a, C, O, S, R>>,
+    tracker: HeuristicTracker,
+    random: R,
+}
+
+impl<'a, C, O, S, R> SearchAgent<'a, C, O, S, R>
+where
+    C: HeuristicContext<Objective = O, Solution = S> + 'a,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution + 'a,
+    R: Random,
+{
+    pub fn new(search_operators: HeuristicSearchOperators<C, O, S>, environment: &Environment<R>) -> Self {
         let slot_machines = search_operators
             .into_iter()
             .map(|(operator, name, _)| {
@@ -240,7 +249,7 @@ where
             .slot_machines
             .get(&from)
             .and_then(|slots| {
-                random_argmax(slots.iter().map(|(slot, _)| slot.sample()), self.random.as_ref())
+                random_argmax(slots.iter().map(|(slot, _)| slot.sample()), &self.random)
                     .and_then(|slot_idx| slots.get(slot_idx).map(|(slot, _)| (slot_idx, slot)))
             })
             .expect("cannot get slot machine");
@@ -280,11 +289,12 @@ where
     }
 }
 
-impl<C, O, S> Display for DynamicSelective<C, O, S>
+impl<C, O, S, R> Display for DynamicSelective<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if !self.agent.tracker.telemetry_enabled() {

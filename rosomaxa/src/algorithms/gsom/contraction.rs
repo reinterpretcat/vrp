@@ -3,17 +3,19 @@
 mod contraction_test;
 
 use super::*;
+use crate::utils::Random;
 use std::cmp::Ordering;
 
 /// Reduces (graph contraction) a network keeping it connected.
 /// NOTE: a very naive implementation: we just decimate rows and columns, shifting the rest
 ///       node coordinates correspondingly. This way we keep graph (network) connected and
 ///       respect weight distribution.
-pub(crate) fn contract_graph<I, S, F>(network: &mut Network<I, S, F>, decimation: (i32, i32))
+pub(crate) fn contract_graph<I, S, F, R>(network: &mut Network<I, S, F, R>, decimation: (i32, i32))
 where
     I: Input,
     S: Storage<Item = I>,
     F: StorageFactory<I, S>,
+    R: Random,
 {
     // determine decimation step
     let (decim_min, decim_max) = decimation;

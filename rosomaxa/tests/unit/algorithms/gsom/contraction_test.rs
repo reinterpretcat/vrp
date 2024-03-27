@@ -1,11 +1,15 @@
 use super::*;
 use crate::helpers::algorithms::gsom::*;
+use crate::utils::DefaultRandom;
 
-fn insert(coord: (i32, i32), network: &mut Network<Data, DataStorage, DataStorageFactory>) {
+fn insert(coord: (i32, i32), network: &mut Network<Data, DataStorage, DataStorageFactory, DefaultRandom>) {
     network.insert(coord.into(), &[coord.0 as f64, coord.1 as f64, 0.]);
 }
 
-fn assert_network(expected: Vec<((i32, i32), (f64, f64))>, network: &Network<Data, DataStorage, DataStorageFactory>) {
+fn assert_network(
+    expected: Vec<((i32, i32), (f64, f64))>,
+    network: &Network<Data, DataStorage, DataStorageFactory, DefaultRandom>,
+) {
     expected.into_iter().for_each(|(new_coord, old_coord)| {
         let weights = network.find(&new_coord.into()).unwrap().weights.clone();
         assert_eq!(weights, vec![old_coord.0, old_coord.1, 0.])

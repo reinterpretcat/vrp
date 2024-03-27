@@ -13,7 +13,7 @@
 //! use rosomaxa::prelude::*;
 //! use rosomaxa::example::*;
 //!
-//! let random = Arc::new(DefaultRandom::default());
+//! let random = DefaultRandom::default();
 //! // examples of heuristic operator, they are domain specific. Essentially, heuristic operator
 //! // is responsible to produce a new, potentially better solution from the given one.
 //! let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new_with_ratio(1., (-0.1, 0.1), random));
@@ -61,8 +61,8 @@ use crate::algorithms::math::RemedianUsize;
 use crate::algorithms::nsga2::MultiObjective;
 use crate::evolution::{Telemetry, TelemetryMetrics, TelemetryMode};
 use crate::population::*;
-use crate::utils::Timer;
 use crate::utils::{Environment, GenericError};
+use crate::utils::{Random, Timer};
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -102,9 +102,6 @@ pub trait HeuristicContext: Send + Sync {
 
     /// Returns selection phase.
     fn selection_phase(&self) -> SelectionPhase;
-
-    /// Returns environment.
-    fn environment(&self) -> &Environment;
 
     /// Updates population with initial solution.
     fn on_initial(&mut self, solution: Self::Solution, item_time: Timer);
@@ -160,7 +157,6 @@ where
     objective: Arc<O>,
     population: Box<DynHeuristicPopulation<O, S>>,
     telemetry: Telemetry<O, S>,
-    environment: Arc<Environment>,
 }
 
 impl<O, S> TelemetryHeuristicContext<O, S>
@@ -173,10 +169,9 @@ where
         objective: Arc<O>,
         population: Box<DynHeuristicPopulation<O, S>>,
         telemetry_mode: TelemetryMode,
-        environment: Arc<Environment>,
     ) -> Self {
         let telemetry = Telemetry::new(telemetry_mode);
-        Self { objective, population, telemetry, environment }
+        Self { objective, population, telemetry }
     }
 
     /// Adds solution to population.
@@ -211,10 +206,6 @@ where
 
     fn selection_phase(&self) -> SelectionPhase {
         self.population.selection_phase()
-    }
-
-    fn environment(&self) -> &Environment {
-        self.environment.as_ref()
     }
 
     fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
@@ -295,19 +286,20 @@ pub trait Stateful {
 }
 
 /// Gets default population selection size.
-pub fn get_default_selection_size(environment: &Environment) -> usize {
+pub fn get_default_selection_size<R: Random>(environment: &Environment<R>) -> usize {
     environment.parallelism.available_cpus().min(8)
 }
 
 /// Gets default population algorithm.
-pub fn get_default_population<O, S>(
+pub fn get_default_population<O, S, R>(
     objective: Arc<O>,
-    environment: Arc<Environment>,
+    environment: Environment<R>,
     selection_size: usize,
 ) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
 where
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
+    R: Random + 'static,
 {
     if selection_size == 1 {
         Box::new(Greedy::new(objective, 1, None))

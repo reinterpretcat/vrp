@@ -22,7 +22,8 @@ fn can_detect_termination_with_sample_impl(
     expected: Vec<bool>,
 ) {
     let mut context = create_default_heuristic_context();
-    let termination = MinVariation::<_, _, _, _>::new_with_sample(sample, threshold, false, 0);
+    let random = DefaultRandom::default();
+    let termination = MinVariation::<_, _, _, _, _>::new_with_sample(sample, threshold, false, 0, random);
 
     let result = (0..sample)
         .map(|i| {
@@ -46,8 +47,9 @@ fn can_detect_termination_with_period() {
     let threshold = 0.1;
     let expected = vec![false, false, true];
 
+    let random = DefaultRandom::default();
     let mut context = create_default_heuristic_context();
-    let termination = MinVariation::<_, _, _, _>::new_with_period(period, threshold, false, 0);
+    let termination = MinVariation::<_, _, _, _, _>::new_with_period(period, threshold, false, 0, random);
 
     let result = (0..iterations)
         .map(|i| {
@@ -75,9 +77,10 @@ can_maintain_period_buffer_size! {
 
 fn can_maintain_period_buffer_size_impl(size: u128, check_sorted: bool) {
     let key = 0;
+    let random = DefaultRandom::default();
     let mut context = create_default_heuristic_context();
     context.set_state(key, (0..size).map(|i| (i, vec![0., 0.])).collect::<Vec<_>>());
-    let termination = MinVariation::<_, _, _, _>::new_with_period(300, 0.01, false, key);
+    let termination = MinVariation::<_, _, _, _, _>::new_with_period(300, 0.01, false, key, random);
 
     termination.update_and_check(&mut context, vec![0., 0.]);
 

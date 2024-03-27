@@ -5,12 +5,16 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
-pub struct EvolutionConfig<C, O, S>
+pub struct EvolutionConfig<C, O, S, R>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
+    R: Random,
 {
+    /// An environment where algorithm is run.
+    pub environment: Environment<R>,
+
     /// An initial solution config.
     pub initial: InitialConfig<C, O, S>,
 
@@ -75,11 +79,12 @@ where
 }
 
 /// Provides configurable way to build evolution configuration using fluent interface style.
-pub struct EvolutionConfigBuilder<C, O, S, K>
+pub struct EvolutionConfigBuilder<C, O, S, R, K>
 where
     C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K> + 'static,
     O: HeuristicObjective<Solution = S> + 'static,
     S: HeuristicSolution + 'static,
+    R: Random,
     K: Hash + Eq + Clone + Send + Sync + 'static,
 {
     max_generations: Option<usize>,
@@ -88,6 +93,7 @@ where
     target_proximity: Option<(Vec<f64>, f64)>,
     heuristic: Option<Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>>,
     context: Option<C>,
+    environment: Option<Environment<R>>,
     termination: Option<Box<dyn Termination<Context = C, Objective = O>>>,
     strategy: Option<Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>>,
 
@@ -100,11 +106,12 @@ where
     processing: ProcessingConfig<C, O, S>,
 }
 
-impl<C, O, S, K> Default for EvolutionConfigBuilder<C, O, S, K>
+impl<C, O, S, R, K> Default for EvolutionConfigBuilder<C, O, S, R, K>
 where
     C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K> + 'static,
     O: HeuristicObjective<Solution = S> + 'static,
     S: HeuristicSolution + 'static,
+    R: Random + 'static,
     K: Hash + Eq + Clone + Send + Sync + 'static,
 {
     fn default() -> Self {
@@ -115,6 +122,7 @@ where
             target_proximity: None,
             heuristic: None,
             context: None,
+            environment: None,
             termination: None,
             strategy: None,
             search_operators: None,
@@ -126,11 +134,12 @@ where
     }
 }
 
-impl<C, O, S, K> EvolutionConfigBuilder<C, O, S, K>
+impl<C, O, S, R, K> EvolutionConfigBuilder<C, O, S, R, K>
 where
     C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K> + 'static,
     O: HeuristicObjective<Solution = S> + 'static,
     S: HeuristicSolution + 'static,
+    R: Random + 'static,
     K: Hash + Eq + Clone + Send + Sync + 'static,
 {
     /// Sets max generations to be run by evolution. Default is 3000.
@@ -179,6 +188,12 @@ where
         }
         self.initial.individuals = solutions;
 
+        self
+    }
+
+    /// Sets environment.
+    pub fn with_environment(mut self, environment: Environment<R>) -> Self {
+        self.environment = Some(environment);
         self
     }
 
@@ -233,12 +248,13 @@ where
     /// Gets termination criterias.
     #[allow(clippy::type_complexity)]
     fn get_termination(
-        logger: &InfoLogger,
+        environment: &Environment<R>,
         max_generations: Option<usize>,
         max_time: Option<usize>,
         min_cv: Option<(String, usize, f64, bool, K)>,
         target_proximity: Option<(Vec<f64>, f64)>,
     ) -> Result<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>, GenericError> {
+        let logger = &environment.logger;
         let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = match (
             max_generations,
             max_time,
@@ -246,19 +262,19 @@ where
             &target_proximity,
         ) {
             (None, None, None, None) => {
-                (logger)("configured to use default max-generations (3000) and max-time (300secs)");
+                logger("configured to use default max-generations (3000) and max-time (300secs)");
                 vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))]
             }
             _ => {
                 let mut terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = vec![];
 
                 if let Some(limit) = max_generations {
-                    (logger)(format!("configured to use max-generations: {limit}").as_str());
+                    logger(format!("configured to use max-generations: {limit}").as_str());
                     terminations.push(Box::new(MaxGeneration::new(limit)))
                 }
 
                 if let Some(limit) = max_time {
-                    (logger)(format!("configured to use max-time: {limit}s").as_str());
+                    logger(format!("configured to use max-time: {limit}s").as_str());
                     terminations.push(Box::new(MaxTime::new(limit as f64)));
                 }
 
@@ -270,16 +286,18 @@ where
                             .as_str(),
                         );
 
-                    let variation: Box<dyn Termination<Context = C, Objective = O> + Send + Sync> =
+                    let variation: Box<dyn Termination<Context = C, Objective = O> + Send + Sync> = {
+                        let random = environment.random.clone();
                         match interval_type.as_str() {
-                            "sample" => {
-                                Box::new(MinVariation::<C, O, S, K>::new_with_sample(value, threshold, is_global, key))
-                            }
-                            "period" => {
-                                Box::new(MinVariation::<C, O, S, K>::new_with_period(value, threshold, is_global, key))
-                            }
+                            "sample" => Box::new(MinVariation::<C, O, S, R, K>::new_with_sample(
+                                value, threshold, is_global, key, random,
+                            )),
+                            "period" => Box::new(MinVariation::<C, O, S, R, K>::new_with_period(
+                                value, threshold, is_global, key, random,
+                            )),
                             _ => return Err(format!("unknown variation interval type: {interval_type}").into()),
-                        };
+                        }
+                    };
 
                     terminations.push(variation)
                 }
@@ -302,13 +320,20 @@ where
     }
 
     /// Builds the evolution config.
-    pub fn build(self) -> Result<EvolutionConfig<C, O, S>, GenericError> {
+    pub fn build(self) -> Result<EvolutionConfig<C, O, S, R>, GenericError> {
+        let environment = self.environment.ok_or_else(|| "missing environment".to_string())?;
         let context = self.context.ok_or_else(|| "missing heuristic context".to_string())?;
-        let logger = context.environment().logger.clone();
-        let termination =
-            Self::get_termination(&logger, self.max_generations, self.max_time, self.min_cv, self.target_proximity)?;
+        let logger = environment.logger.clone();
+        let termination = Self::get_termination(
+            &environment,
+            self.max_generations,
+            self.max_time,
+            self.min_cv,
+            self.target_proximity,
+        )?;
 
         Ok(EvolutionConfig {
+            environment: environment.clone(),
             initial: self.initial,
             strategy: if let Some(strategy) = self.strategy {
                 (logger)("configured to use a custom strategy");
@@ -322,10 +347,10 @@ where
                         self.search_operators.ok_or_else(|| "missing search operators or heuristic".to_string())?,
                         self.diversify_operators
                             .ok_or_else(|| "missing diversify operators or heuristic".to_string())?,
-                        context.environment(),
+                        environment.clone(),
                     ))
                 };
-                Box::new(strategies::Iterative::new(heuristic, 1))
+                Box::new(strategies::Iterative::new(environment, heuristic, 1))
             },
             context,
             termination,

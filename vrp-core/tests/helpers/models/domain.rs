@@ -9,7 +9,7 @@ use rosomaxa::utils::{DefaultRandom, Random};
 use std::sync::Arc;
 
 pub fn test_random() -> Arc<dyn Random + Send + Sync> {
-    Arc::new(DefaultRandom::default())
+    DefaultRandom::default()
 }
 
 #[derive(Default)]
