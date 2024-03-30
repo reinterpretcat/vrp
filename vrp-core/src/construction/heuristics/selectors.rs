@@ -10,7 +10,6 @@ use rand::prelude::*;
 use rosomaxa::utils::{map_reduce, parallel_collect, Random};
 use std::cmp::Ordering;
 use std::ops::ControlFlow;
-use std::sync::Arc;
 
 /// On each insertion step, selects a list of routes where jobs can be inserted.
 /// It is up to implementation to decide whether list consists of all possible routes or just some subset.
@@ -231,12 +230,12 @@ impl ResultSelector for BestResultSelector {
 
 /// Selects results with noise.
 pub struct NoiseResultSelector {
-    noise: Noise,
+    noise: Noise<DefaultRandom>,
 }
 
 impl NoiseResultSelector {
     /// Creates a new instance of `NoiseResultSelector`.
-    pub fn new(noise: Noise) -> Self {
+    pub fn new(noise: Noise<DefaultRandom>) -> Self {
         Self { noise }
     }
 }
@@ -318,18 +317,18 @@ impl ResultSelector for FarthestResultSelector {
 /// A result selector strategy inspired by "Slack Induction by String Removals for Vehicle
 /// Routing Problems", Jan Christiaens, Greet Vanden Berghe.
 pub struct BlinkResultSelector {
-    random: Arc<dyn Random + Send + Sync>,
+    random: DefaultRandom,
     ratio: f64,
 }
 
 impl BlinkResultSelector {
     /// Creates an instance of `BlinkResultSelector`.
-    pub fn new(ratio: f64, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(ratio: f64, random: DefaultRandom) -> Self {
         Self { random, ratio }
     }
 
     /// Creates an instance of `BlinkResultSelector` with default values.
-    pub fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new_with_defaults(random: DefaultRandom) -> Self {
         Self::new(0.01, random)
     }
 }
@@ -378,12 +377,12 @@ pub enum ResultSelection {
 pub struct ResultSelectorProvider {
     inners: Vec<Box<dyn ResultSelector + Send + Sync>>,
     weights: Vec<usize>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: DefaultRandom,
 }
 
 impl ResultSelectorProvider {
     /// Creates a new instance of `StochasticResultSelectorFn`
-    pub fn new_default(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new_default(random: DefaultRandom) -> Self {
         Self {
             inners: vec![
                 Box::<BestResultSelector>::default(),
@@ -406,7 +405,7 @@ impl ResultSelectorProvider {
 #[derive(Clone)]
 pub enum LegSelection {
     /// Stochastic mode: depending on route size, not all legs could be selected.
-    Stochastic(Arc<dyn Random + Send + Sync>),
+    Stochastic(DefaultRandom),
     /// Exhaustive mode: all legs are selected.
     Exhaustive,
 }
@@ -447,12 +446,7 @@ impl LegSelection {
     }
 
     /// Returns a sample data for stochastic mode.
-    fn get_sample_data(
-        &self,
-        route_ctx: &RouteContext,
-        job: &Job,
-        skip: usize,
-    ) -> Option<(usize, Arc<dyn Random + Send + Sync>)> {
+    fn get_sample_data(&self, route_ctx: &RouteContext, job: &Job, skip: usize) -> Option<(usize, DefaultRandom)> {
         match self {
             Self::Stochastic(random) => {
                 let gen_usize = |min: i32, max: i32| random.uniform_int(min, max) as usize;

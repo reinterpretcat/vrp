@@ -9,6 +9,7 @@ use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
 use rosomaxa::prelude::Random;
 use std::sync::Arc;
+use rosomaxa::utils::DefaultRandom;
 
 /// A helper logic to keep amount of jobs/routes removed under control.
 pub struct JobRemovalTracker {
@@ -21,7 +22,7 @@ pub struct JobRemovalTracker {
 
 impl JobRemovalTracker {
     /// Creates a new instance of `JobRemoval`.
-    pub fn new(limits: &RemovalLimits, random: &(dyn Random + Send + Sync)) -> Self {
+    pub fn new(limits: &RemovalLimits, random: &DefaultRandom) -> Self {
         Self {
             activities_left: random
                 .uniform_int(limits.removed_activities_range.start as i32, limits.removed_activities_range.end as i32),
@@ -81,7 +82,7 @@ impl JobRemovalTracker {
         &mut self,
         solution: &mut SolutionContext,
         route_idx: usize,
-        random: &(dyn Random + Send + Sync),
+        random: &DefaultRandom,
     ) -> bool {
         if self.routes_left == 0 || self.activities_left == 0 {
             return false;
@@ -100,7 +101,7 @@ impl JobRemovalTracker {
         &self,
         solution: &SolutionContext,
         route_idx: usize,
-        random: &(dyn Random + Send + Sync),
+        random: &DefaultRandom,
     ) -> bool {
         let route_ctx = solution.routes.get(route_idx).expect("invalid route index");
 
@@ -148,7 +149,7 @@ impl JobRemovalTracker {
         &mut self,
         solution: &mut SolutionContext,
         route_idx: usize,
-        random: &(dyn Random + Send + Sync),
+        random: &DefaultRandom,
     ) -> bool {
         let locked = solution.locked.clone();
         let route_ctx = solution.routes.get(route_idx).expect("invalid route index");

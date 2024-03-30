@@ -84,7 +84,7 @@ type InsertionSuccessPair = ((InsertionSuccess, Option<RouteContext>), (Insertio
 
 fn find_best_insertion_pair(
     insertion_ctx: &InsertionContext,
-    noise: Noise,
+    noise: Noise<DefaultRandom>,
     filter_route_indices: Box<dyn Fn(usize) -> bool + Send + Sync>,
     filter_jobs_indices: Box<dyn Fn(usize) -> bool + Send + Sync>,
 ) -> Option<InsertionContext> {
@@ -195,14 +195,14 @@ fn test_job_insertion(
     }
 }
 
-fn get_insertion_cost_with_noise_from_pair(pair: &InsertionSuccessPair, noise: &Noise) -> InsertionCost {
+fn get_insertion_cost_with_noise_from_pair(pair: &InsertionSuccessPair, noise: &Noise<DefaultRandom>) -> InsertionCost {
     noise.generate_multi((&pair.0 .0.cost + &pair.1 .0.cost).iter()).collect()
 }
 
 fn reduce_pair_with_noise(
     left_result: Option<InsertionSuccessPair>,
     right_result: Option<InsertionSuccessPair>,
-    noise: &Noise,
+    noise: &Noise<DefaultRandom>,
 ) -> Option<InsertionSuccessPair> {
     match (&left_result, &right_result) {
         (Some(left), Some(right)) => {

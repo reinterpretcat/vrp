@@ -7,7 +7,7 @@ use crate::models::problem::Job;
 use crate::models::solution::Registry;
 use crate::models::{ExtrasBuilder, Goal, GoalContext, Problem};
 use crate::prelude::Jobs;
-use rosomaxa::prelude::Environment;
+use rosomaxa::prelude::DefaultEnvironment;
 use std::sync::Arc;
 
 pub fn create_state_key() -> StateKey {
@@ -26,7 +26,7 @@ pub fn create_capacity_keys() -> CapacityKeys {
 pub struct InsertionContextBuilder {
     problem: Option<Problem>,
     solution: Option<SolutionContext>,
-    environment: Option<Environment>,
+    environment: Option<DefaultEnvironment>,
 }
 
 impl InsertionContextBuilder {
@@ -105,9 +105,9 @@ impl InsertionContextBuilder {
         let solution = std::mem::take(&mut self.solution).unwrap();
 
         let environment = if let Some(environment) = std::mem::take(&mut self.environment) {
-            Arc::new(environment)
+            environment
         } else {
-            Arc::new(Environment::default())
+            DefaultEnvironment::default()
         };
 
         InsertionContext { problem, solution, environment }

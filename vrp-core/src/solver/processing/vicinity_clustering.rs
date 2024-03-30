@@ -34,8 +34,9 @@ impl VicinityDimension for Extras {
 }
 
 /// Provides way to change problem definition by reducing total job count using clustering.
-#[derive(Default)]
-pub struct VicinityClustering {}
+pub struct VicinityClustering {
+    environment: DefaultEnvironment
+}
 
 impl HeuristicContextProcessing for VicinityClustering {
     type Context = RefinementContext;
@@ -44,7 +45,7 @@ impl HeuristicContextProcessing for VicinityClustering {
 
     fn pre_process(&self, context: Self::Context) -> Self::Context {
         let problem = context.problem.clone();
-        let environment = context.environment.clone();
+        let environment = self.environment.clone();
 
         let config = if let Some(config) = problem.extras.get_cluster_config() { config } else { return context };
 

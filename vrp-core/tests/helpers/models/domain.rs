@@ -5,10 +5,10 @@ use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTranspor
 use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs};
 use crate::models::{ExtrasBuilder, Feature, Goal, GoalContext, Problem};
-use rosomaxa::utils::{DefaultRandom, Random};
+use rosomaxa::utils::{DefaultRandom};
 use std::sync::Arc;
 
-pub fn test_random() -> Arc<dyn Random + Send + Sync> {
+pub fn test_random() -> DefaultRandom {
     DefaultRandom::default()
 }
 

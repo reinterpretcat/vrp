@@ -26,17 +26,17 @@ pub struct InsertionContext {
     pub solution: SolutionContext,
 
     /// Information about environment.
-    pub environment: Arc<Environment>,
+    pub environment: DefaultEnvironment,
 }
 
 impl InsertionContext {
     /// Creates insertion context for given problem with unassigned jobs.
-    pub fn new(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
+    pub fn new(problem: Arc<Problem>, environment: DefaultEnvironment) -> Self {
         create_insertion_context(problem, environment)
     }
 
     /// Creates insertion context for given problem with empty solution.
-    pub fn new_empty(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
+    pub fn new_empty(problem: Arc<Problem>, environment: DefaultEnvironment) -> Self {
         create_empty_insertion_context(problem, environment)
     }
 
@@ -44,7 +44,7 @@ impl InsertionContext {
     pub fn new_from_solution(
         problem: Arc<Problem>,
         solution: (Solution, Option<Cost>),
-        environment: Arc<Environment>,
+        environment: DefaultEnvironment,
     ) -> Self {
         let mut ctx = create_insertion_context_from_solution(problem, solution, environment);
         ctx.restore();

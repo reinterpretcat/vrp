@@ -120,7 +120,7 @@ fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>])
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
     );
-    let random: Arc<dyn Random + Send + Sync> = Arc::new(FakeRandom::new(vec![0, 0], vec![epsilon]));
+    let random: DefaultRandom = Arc::new(FakeRandom::new(vec![0, 0], vec![epsilon]));
 
     let clusters = create_job_clusters(&problem, random.as_ref(), Some(min_points), Some(epsilon))
         .iter()

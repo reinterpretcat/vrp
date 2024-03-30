@@ -4,7 +4,7 @@ use crate::construction::heuristics::*;
 use crate::models::{GoalContext, Problem};
 use crate::solver::RefinementContext;
 use hashbrown::HashMap;
-use rosomaxa::prelude::SelectionPhase;
+use rosomaxa::prelude::{SelectionPhase, Random};
 use rosomaxa::HeuristicContext;
 use std::sync::Arc;
 

@@ -15,8 +15,11 @@ impl Quota for CompositeTimeQuota {
 }
 
 /// Creates a new environment with extra limit quota. Limit is specified in seconds.
-pub fn create_environment_with_custom_quota(limit: Option<usize>, environment: &Environment) -> Arc<Environment> {
-    Arc::new(Environment {
+pub fn create_environment_with_custom_quota(
+    limit: Option<usize>,
+    environment: &Environment<DefaultRandom>,
+) -> DefaultEnvironment {
+    Environment {
         quota: match (limit, environment.quota.clone()) {
             (Some(limit), None) => Some(Arc::new(TimeQuota::new(limit as f64 / 1000.))),
             (None, Some(quota)) => Some(quota),
@@ -27,5 +30,5 @@ pub fn create_environment_with_custom_quota(limit: Option<usize>, environment: &
         parallelism: environment.parallelism.clone(),
         logger: environment.logger.clone(),
         is_experimental: environment.is_experimental,
-    })
+    }
 }

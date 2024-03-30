@@ -33,7 +33,6 @@ impl HeuristicSearchOperator for InfeasibleSearch {
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
-        let refinement_ctx = heuristic_ctx;
         let insertion_ctx = solution;
 
         let new_insertion_ctx = create_relaxed_insertion_ctx(
@@ -43,7 +42,7 @@ impl HeuristicSearchOperator for InfeasibleSearch {
         );
         let mut new_refinement_ctx = create_relaxed_refinement_ctx(&new_insertion_ctx);
 
-        let repeat_count = refinement_ctx.environment.random.uniform_int(1, self.repeat_count as i32);
+        let repeat_count = solution.environment.random.uniform_int(1, self.repeat_count as i32);
 
         let mut initial = Some(new_insertion_ctx);
         for _ in 0..repeat_count {
@@ -71,7 +70,7 @@ fn create_relaxed_refinement_ctx(new_insertion_ctx: &InsertionContext) -> Refine
     let population = Box::new(ElitismPopulation::new(problem.goal.clone(), environment.random.clone(), 4, 4));
 
     // NOTE statistic is reset to default
-    RefinementContext::new(problem, population, TelemetryMode::None, environment)
+    RefinementContext::new(problem, population, TelemetryMode::None)
 }
 
 fn create_relaxed_insertion_ctx(
@@ -103,12 +102,12 @@ fn create_relaxed_insertion_ctx(
 
 fn create_modified_variant(
     original: &GoalContext,
-    random: Arc<dyn Random + Send + Sync>,
+    random: DefaultRandom,
     skip_probability: f64,
     shuffle_probability: f64,
 ) -> Arc<GoalContext> {
     let shuffled =
-        if random.is_hit(shuffle_probability) { original.get_shuffled(random.as_ref()) } else { original.clone() };
+        if random.is_hit(shuffle_probability) { original.get_shuffled(&random) } else { original.clone() };
 
     let constraints = shuffled.constraints().map(|constraint| {
         let skip_probability = if random.is_head_not_tails() { 1. } else { skip_probability };
@@ -127,7 +126,8 @@ fn create_modified_variant(
 
 fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionContext {
     let selected = new_refinement_ctx.selected().collect::<Vec<_>>();
-    let skip = new_refinement_ctx.environment.random.uniform_int(0, selected.len() as i32 - 1) as usize;
+    let environment = selected.first().expect("empty population").environment.clone();
+    let skip = environment.random.uniform_int(0, selected.len() as i32 - 1) as usize;
 
     selected.get(skip).expect("no individual")
 }
@@ -147,7 +147,7 @@ fn get_best_or_random_individual<'a>(
 
 struct StochasticFeatureConstraint {
     inner: Arc<dyn FeatureConstraint + Send + Sync>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: DefaultRandom,
     probability: f64,
 }
 

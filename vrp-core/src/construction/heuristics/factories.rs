@@ -5,13 +5,13 @@ use crate::models::solution::*;
 use crate::models::OP_START_MSG;
 use crate::models::{LockOrder, Problem, Solution};
 use hashbrown::{HashMap, HashSet};
-use rosomaxa::prelude::Environment;
+use rosomaxa::prelude::DefaultEnvironment;
 use std::sync::Arc;
 
 type ActivityPlace = crate::models::solution::Place;
 
 /// Creates insertion context from existing solution.
-pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environment>) -> InsertionContext {
+pub fn create_insertion_context(problem: Arc<Problem>, environment: DefaultEnvironment) -> InsertionContext {
     let mut locked: HashSet<Job> = Default::default();
     let mut reserved: HashSet<Job> = Default::default();
     let mut ignored: HashSet<Job> = Default::default();
@@ -121,7 +121,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
 pub fn create_insertion_context_from_solution(
     problem: Arc<Problem>,
     solution: (Solution, Option<Cost>),
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
 ) -> InsertionContext {
     let required = solution.0.unassigned.iter().map(|(job, _)| job).cloned().collect();
     let locked = problem.locks.iter().fold(HashSet::new(), |mut acc, lock| {
@@ -164,7 +164,7 @@ pub fn create_insertion_context_from_solution(
 }
 
 /// Creates an empty insertion context.
-pub fn create_empty_insertion_context(problem: Arc<Problem>, environment: Arc<Environment>) -> InsertionContext {
+pub fn create_empty_insertion_context(problem: Arc<Problem>, environment: DefaultEnvironment) -> InsertionContext {
     let registry = Registry::new(problem.fleet.as_ref(), environment.random.clone());
     InsertionContext {
         problem: problem.clone(),

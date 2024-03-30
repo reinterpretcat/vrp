@@ -41,7 +41,7 @@ impl Ruin for WorstJobRemoval {
 
         routes_savings.shuffle(&mut random.get_rng());
 
-        let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, random.as_ref()));
+        let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, &random));
         let mut tabu_list = TabuList::from(&insertion_ctx);
 
         routes_savings.iter().take_while(|_| !tracker.borrow().is_limit()).for_each(|(profile, savings)| {

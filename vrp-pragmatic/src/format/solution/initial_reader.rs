@@ -27,7 +27,7 @@ type ActorKey = (String, String, usize);
 pub fn read_init_solution<R: Read>(
     solution: BufReader<R>,
     problem: Arc<Problem>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: DefaultRandom,
 ) -> Result<Solution, GenericError> {
     let solution = deserialize_solution(solution).map_err(|err| format!("cannot deserialize solution: {err}"))?;
 

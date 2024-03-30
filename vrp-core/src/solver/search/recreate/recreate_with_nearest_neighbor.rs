@@ -2,8 +2,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
 use crate::solver::search::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
-use rosomaxa::prelude::Random;
-use std::sync::Arc;
+use rosomaxa::prelude::DefaultRandom;
 
 /// A recreate strategy which solution using nearest neighbor algorithm.
 pub struct RecreateWithNearestNeighbor {
@@ -12,7 +11,7 @@ pub struct RecreateWithNearestNeighbor {
 
 impl RecreateWithNearestNeighbor {
     /// Creates a new instance of `RecreateWithNearestNeighbor`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: DefaultRandom) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::<AllJobSelector>::default(),

@@ -20,8 +20,13 @@ pub struct ClusterRemoval {
 
 impl ClusterRemoval {
     /// Creates a new instance of `ClusterRemoval`.
-    pub fn new(problem: Arc<Problem>, environment: Arc<Environment>, min_items: usize, limits: RemovalLimits) -> Self {
-        let mut clusters = create_job_clusters(problem.as_ref(), environment.random.as_ref(), Some(min_items), None);
+    pub fn new(
+        problem: Arc<Problem>,
+        environment: DefaultEnvironment,
+        min_items: usize,
+        limits: RemovalLimits,
+    ) -> Self {
+        let mut clusters = create_job_clusters(problem.as_ref(), &environment.random, Some(min_items), None);
 
         clusters.shuffle(&mut environment.random.get_rng());
 
@@ -29,7 +34,7 @@ impl ClusterRemoval {
     }
 
     /// Creates a new instance of `ClusterRemoval` with default parameters.
-    pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
+    pub fn new_with_defaults(problem: Arc<Problem>, environment: DefaultEnvironment) -> Self {
         let limits = RemovalLimits::new(problem.as_ref());
         Self::new(problem, environment, 3, limits)
     }
@@ -38,7 +43,7 @@ impl ClusterRemoval {
 impl Ruin for ClusterRemoval {
     fn run(&self, _: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let route_jobs = get_route_jobs(&insertion_ctx.solution);
-        let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, insertion_ctx.environment.random.as_ref()));
+        let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, &insertion_ctx.environment.random));
         let mut tabu_list = TabuList::from(&insertion_ctx);
 
         let mut indices = (0..self.clusters.len()).collect::<Vec<usize>>();

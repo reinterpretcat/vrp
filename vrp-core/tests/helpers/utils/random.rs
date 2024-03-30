@@ -17,6 +17,7 @@ impl<T> FakeDistribution<T> {
     }
 }
 
+#[derive(Clone)]
 pub struct FakeRandom {
     ints: RwLock<FakeDistribution<i32>>,
     reals: RwLock<FakeDistribution<f64>>,

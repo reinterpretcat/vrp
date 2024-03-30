@@ -18,7 +18,7 @@ use std::sync::Arc;
 fn get_population<O, S>(
     population_type: &str,
     objective: Arc<O>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
     selection_size: usize,
 ) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
 where

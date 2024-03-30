@@ -1,5 +1,8 @@
 //! This module reimports a common used types.
 
+/// A type alias for environment. At the moment, we don't support any custom implementation of Random.
+pub type DefaultEnvironment = Environment<DefaultRandom>;
+
 pub use crate::HeuristicContext;
 pub use crate::HeuristicObjective;
 pub use crate::HeuristicResult;

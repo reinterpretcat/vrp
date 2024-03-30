@@ -3,8 +3,7 @@ use crate::construction::heuristics::*;
 use crate::solver::search::recreate::Recreate;
 use crate::solver::search::ConfigurableRecreate;
 use crate::solver::RefinementContext;
-use rosomaxa::prelude::Random;
-use std::sync::Arc;
+use rosomaxa::prelude::DefaultRandom;
 
 /// A recreate method which is equivalent to cheapest insertion heuristic.
 pub struct RecreateWithCheapest {
@@ -13,7 +12,7 @@ pub struct RecreateWithCheapest {
 
 impl RecreateWithCheapest {
     /// Creates a new instance of `RecreateWithCheapest`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: DefaultRandom) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::<AllJobSelector>::default(),

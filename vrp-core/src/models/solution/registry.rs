@@ -5,6 +5,7 @@ mod actor_test;
 use crate::models::problem::{Actor, Fleet};
 use hashbrown::{HashMap, HashSet};
 use rosomaxa::prelude::Random;
+use rosomaxa::utils::DefaultRandom;
 use std::sync::Arc;
 
 /// Specifies an entity responsible for providing actors and keeping track of their usage.
@@ -12,12 +13,12 @@ pub struct Registry {
     available: HashMap<usize, HashSet<Arc<Actor>>>,
     index: HashMap<Arc<Actor>, usize>,
     all: Vec<Arc<Actor>>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: DefaultRandom,
 }
 
 impl Registry {
     /// Creates a new instance of `Registry`
-    pub fn new(fleet: &Fleet, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(fleet: &Fleet, random: DefaultRandom) -> Self {
         let index = fleet
             .groups
             .iter()

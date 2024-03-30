@@ -3,8 +3,7 @@ use crate::construction::heuristics::*;
 use crate::solver::search::recreate::Recreate;
 use crate::solver::search::ConfigurableRecreate;
 use crate::solver::RefinementContext;
-use rosomaxa::prelude::Random;
-use std::sync::Arc;
+use rosomaxa::prelude::DefaultRandom;
 
 /// A recreate method which always insert first the farthest job in empty route and prefers
 /// filling non-empty routes first.
@@ -14,7 +13,7 @@ pub struct RecreateWithFarthest {
 
 impl RecreateWithFarthest {
     /// Creates a new instance of `RecreateWithFarthest`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: DefaultRandom) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::<AllJobSelector>::default(),

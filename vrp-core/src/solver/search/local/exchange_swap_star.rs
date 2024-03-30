@@ -26,15 +26,17 @@ pub struct ExchangeSwapStar {
     leg_selection: LegSelection,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
     quota_limit: usize,
+    environment: DefaultEnvironment
 }
 
 impl ExchangeSwapStar {
     /// Creates a new instance of `ExchangeSwapStar`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>, quota_limit: usize) -> Self {
+    pub fn new(environment: DefaultEnvironment, quota_limit: usize) -> Self {
         Self {
-            leg_selection: LegSelection::Stochastic(random),
+            leg_selection: LegSelection::Stochastic(environment.random.clone()),
             result_selector: Box::<BestResultSelector>::default(),
             quota_limit,
+            environment
         }
     }
 }
@@ -53,7 +55,7 @@ impl LocalOperator for ExchangeSwapStar {
         // modify environment to include median as an extra quota to prevent long runs
         let limit = refinement_ctx.statistics().speed.get_median().map(|median| median.max(self.quota_limit));
         let mut insertion_ctx = InsertionContext {
-            environment: create_environment_with_custom_quota(limit, insertion_ctx.environment.as_ref()),
+            environment: create_environment_with_custom_quota(limit, &insertion_ctx.environment),
             ..insertion_ctx.deep_copy()
         };
 
@@ -72,7 +74,7 @@ impl LocalOperator for ExchangeSwapStar {
             }
         });
 
-        Some(InsertionContext { environment: refinement_ctx.environment.clone(), ..insertion_ctx })
+        Some(InsertionContext { environment: self.environment.clone(), ..insertion_ctx })
     }
 }
 

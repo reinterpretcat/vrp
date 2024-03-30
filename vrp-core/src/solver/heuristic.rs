@@ -30,9 +30,9 @@ pub type TargetSearchOperator = Arc<
 /// A type for greedy population.
 pub type GreedyPopulation = Greedy<GoalContext, InsertionContext>;
 /// A type for elitism population.
-pub type ElitismPopulation = Elitism<GoalContext, InsertionContext>;
+pub type ElitismPopulation = Elitism<GoalContext, InsertionContext, DefaultRandom>;
 /// A type for rosomaxa population.
-pub type RosomaxaPopulation = Rosomaxa<GoalContext, InsertionContext>;
+pub type RosomaxaPopulation = Rosomaxa<GoalContext, InsertionContext, DefaultRandom>;
 
 /// A type alias for domain specific termination type.
 pub type DynTermination = dyn Termination<Context = RefinementContext, Objective = GoalContext> + Send + Sync;
@@ -43,7 +43,8 @@ pub type MaxTimeTermination = MaxTime<RefinementContext, GoalContext, InsertionC
 /// A type for max generation termination.
 pub type MaxGenerationTermination = MaxGeneration<RefinementContext, GoalContext, InsertionContext>;
 /// A type for min variation termination.
-pub type MinVariationTermination = MinVariation<RefinementContext, GoalContext, InsertionContext, String>;
+pub type MinVariationTermination =
+    MinVariation<RefinementContext, GoalContext, InsertionContext, DefaultRandom, String>;
 
 /// A heuristic probability type alias.
 pub type TargetHeuristicProbability = HeuristicProbability<RefinementContext, GoalContext, InsertionContext>;
@@ -51,7 +52,8 @@ pub type TargetHeuristicProbability = HeuristicProbability<RefinementContext, Go
 pub type TargetHeuristicGroup = HeuristicSearchGroup<RefinementContext, GoalContext, InsertionContext>;
 
 /// A type alias for evolution config builder.
-pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, GoalContext, InsertionContext, String>;
+pub type ProblemConfigBuilder =
+    EvolutionConfigBuilder<RefinementContext, GoalContext, InsertionContext, DefaultRandom, String>;
 
 /// A type to filter meta heuristics by name. Returns true if heuristic can be used.
 pub type HeuristicFilterFn = Arc<dyn Fn(&str) -> bool + Send + Sync>;
@@ -99,7 +101,7 @@ impl From<&mut StateKeyRegistry> for HeuristicKeys {
 /// Creates config builder with default settings.
 pub fn create_default_config_builder(
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
     telemetry_mode: TelemetryMode,
 ) -> ProblemConfigBuilder {
     let selection_size = get_default_selection_size(environment.as_ref());
@@ -107,7 +109,7 @@ pub fn create_default_config_builder(
 
     ProblemConfigBuilder::default()
         .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))
-        .with_context(RefinementContext::new(problem.clone(), population, telemetry_mode, environment.clone()))
+        .with_context(RefinementContext::new(problem.clone(), population, telemetry_mode))
         .with_processing(create_default_processing(problem.as_ref()))
         .with_initial(4, 0.05, create_default_init_operators(problem, environment))
 }
@@ -118,15 +120,15 @@ pub fn get_default_telemetry_mode(logger: InfoLogger) -> TelemetryMode {
 }
 
 /// Gets default heuristic.
-pub fn get_default_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
+pub fn get_default_heuristic(problem: Arc<Problem>, environment: DefaultEnvironment) -> TargetHeuristic {
     Box::new(get_dynamic_heuristic(problem, environment))
 }
 
 /// Gets static heuristic using default settings.
 pub fn get_static_heuristic(
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
-) -> StaticSelective<RefinementContext, GoalContext, InsertionContext> {
+    environment: DefaultEnvironment,
+) -> StaticSelective<RefinementContext, GoalContext, InsertionContext, DefaultRandom> {
     let default_operator = statik::create_default_heuristic_operator(problem.clone(), environment.clone());
     let local_search = statik::create_default_local_search(problem.as_ref(), environment.random.clone());
 
@@ -151,35 +153,36 @@ pub fn get_static_heuristic(
 /// Gets static heuristic using heuristic group.
 pub fn get_static_heuristic_from_heuristic_group(
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
     heuristic_group: TargetHeuristicGroup,
-) -> StaticSelective<RefinementContext, GoalContext, InsertionContext> {
-    StaticSelective::<RefinementContext, GoalContext, InsertionContext>::new(
+) -> StaticSelective<RefinementContext, GoalContext, InsertionContext, DefaultRandom> {
+    StaticSelective::<RefinementContext, GoalContext, InsertionContext, DefaultRandom>::new(
         heuristic_group,
-        create_diversify_operators(problem, environment),
+        create_diversify_operators(problem, environment.clone()),
+        environment,
     )
 }
 
 /// Gets dynamic heuristic using default settings.
 pub fn get_dynamic_heuristic(
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
-) -> DynamicSelective<RefinementContext, GoalContext, InsertionContext> {
+    environment: DefaultEnvironment,
+) -> DynamicSelective<RefinementContext, GoalContext, InsertionContext, DefaultRandom> {
     let search_operators = dynamic::get_operators(problem.clone(), environment.clone());
     let diversify_operators = create_diversify_operators(problem, environment.clone());
 
-    DynamicSelective::<RefinementContext, GoalContext, InsertionContext>::new(
+    DynamicSelective::<RefinementContext, GoalContext, InsertionContext, DefaultRandom>::new(
         search_operators,
         diversify_operators,
-        environment.as_ref(),
+        environment,
     )
 }
 
 /// Creates elitism population algorithm.
 pub fn create_elitism_population(
     objective: Arc<GoalContext>,
-    environment: Arc<Environment>,
-) -> Elitism<GoalContext, InsertionContext> {
+    environment: DefaultEnvironment,
+) -> Elitism<GoalContext, InsertionContext, DefaultRandom> {
     let selection_size = get_default_selection_size(environment.as_ref());
     Elitism::new(objective, environment.random.clone(), 4, selection_size)
 }
@@ -238,7 +241,7 @@ impl DominanceOrdered for InsertionContext {
 /// Creates a heuristic operator probability which uses `is_hit` method from passed random object.
 pub fn create_scalar_operator_probability(
     scalar_probability: f64,
-    random: Arc<dyn Random + Send + Sync>,
+    random: DefaultRandom,
 ) -> TargetHeuristicProbability {
     (Box::new(move |_, _| random.is_hit(scalar_probability)), PhantomData)
 }
@@ -248,7 +251,7 @@ pub fn create_context_operator_probability(
     jobs_threshold: usize,
     routes_threshold: usize,
     phases: Vec<(SelectionPhase, f64)>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: DefaultRandom,
 ) -> TargetHeuristicProbability {
     let phases = phases.into_iter().collect::<HashMap<_, _>>();
     (
@@ -302,10 +305,12 @@ mod builder {
     /// Creates default init operators.
     pub fn create_default_init_operators(
         problem: Arc<Problem>,
-        environment: Arc<Environment>,
+        environment: DefaultEnvironment,
     ) -> InitialOperators<RefinementContext, GoalContext, InsertionContext> {
         let random = environment.random.clone();
-        let wrap = |recreate: Arc<dyn Recreate + Send + Sync>| Box::new(RecreateInitialOperator::new(recreate));
+        let wrap = |recreate: Arc<dyn Recreate + Send + Sync>| {
+            Box::new(RecreateInitialOperator::new(recreate, environment.clone()))
+        };
 
         let mut main: InitialOperators<_, _, _> = vec![
             (wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 1),
@@ -358,10 +363,7 @@ mod builder {
     }
 }
 
-fn create_recreate_with_blinks(
-    problem: &Problem,
-    random: Arc<dyn Random + Send + Sync>,
-) -> Arc<dyn Recreate + Send + Sync> {
+fn create_recreate_with_blinks(problem: &Problem, random: DefaultRandom) -> Arc<dyn Recreate + Send + Sync> {
     if has_multi_dim_demand(problem) {
         Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(random))
     } else {
@@ -371,7 +373,7 @@ fn create_recreate_with_blinks(
 
 fn create_diversify_operators(
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
 ) -> HeuristicDiversifyOperators<RefinementContext, GoalContext, InsertionContext> {
     let random = environment.random.clone();
 
@@ -415,7 +417,7 @@ mod statik {
     /// Creates default heuristic operator (ruin and recreate) with default parameters.
     pub fn create_default_heuristic_operator(
         problem: Arc<Problem>,
-        environment: Arc<Environment>,
+        environment: DefaultEnvironment,
     ) -> TargetSearchOperator {
         let (normal_limits, small_limits) = get_limits(problem.as_ref());
         let random = environment.random.clone();
@@ -483,10 +485,7 @@ mod statik {
     }
 
     /// Creates default local search operator.
-    pub fn create_default_local_search(
-        problem: &Problem,
-        random: Arc<dyn Random + Send + Sync>,
-    ) -> TargetSearchOperator {
+    pub fn create_default_local_search(problem: &Problem, random: DefaultRandom) -> TargetSearchOperator {
         let schedule_keys = get_schedule_keys(problem).clone();
 
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
@@ -507,10 +506,7 @@ mod statik {
 mod dynamic {
     use super::*;
 
-    fn get_recreates(
-        problem: &Problem,
-        random: Arc<dyn Random + Send + Sync>,
-    ) -> Vec<(Arc<dyn Recreate + Send + Sync>, String)> {
+    fn get_recreates(problem: &Problem, random: DefaultRandom) -> Vec<(Arc<dyn Recreate + Send + Sync>, String)> {
         let cheapest: Arc<dyn Recreate + Send + Sync> = Arc::new(RecreateWithCheapest::new(random.clone()));
         vec![
             (cheapest.clone(), "cheapest".to_string()),
@@ -541,7 +537,7 @@ mod dynamic {
 
     fn get_ruins(
         problem: Arc<Problem>,
-        environment: Arc<Environment>,
+        environment: DefaultEnvironment,
         normal_limits: RemovalLimits,
     ) -> Vec<(Arc<dyn Ruin + Send + Sync>, String, f64)> {
         vec![
@@ -562,7 +558,10 @@ mod dynamic {
         ]
     }
 
-    fn get_mutations(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<(TargetSearchOperator, String, f64)> {
+    fn get_mutations(
+        problem: Arc<Problem>,
+        environment: DefaultEnvironment,
+    ) -> Vec<(TargetSearchOperator, String, f64)> {
         let schedule_keys = get_schedule_keys(problem.as_ref());
 
         vec![
@@ -615,7 +614,7 @@ mod dynamic {
 
     pub fn get_operators(
         problem: Arc<Problem>,
-        environment: Arc<Environment>,
+        environment: DefaultEnvironment,
     ) -> Vec<(TargetSearchOperator, String, f64)> {
         let (normal_limits, small_limits) = get_limits(problem.as_ref());
         let random = environment.random.clone();
@@ -657,7 +656,7 @@ mod dynamic {
 
     pub fn create_default_inner_ruin_recreate(
         problem: Arc<Problem>,
-        environment: Arc<Environment>,
+        environment: DefaultEnvironment,
     ) -> Arc<RuinAndRecreate> {
         let (_, small_limits) = get_limits(problem.as_ref());
         let random = environment.random.clone();
@@ -700,7 +699,7 @@ mod dynamic {
         Arc::new(RuinAndRecreate::new(ruin, recreate))
     }
 
-    pub fn create_default_local_search(random: Arc<dyn Random + Send + Sync>) -> Arc<LocalSearch> {
+    pub fn create_default_local_search(random: DefaultRandom) -> Arc<LocalSearch> {
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
             vec![
                 (Arc::new(ExchangeSwapStar::new(random, SINGLE_HEURISTIC_QUOTA_LIMIT / 4)), 2),

@@ -1,8 +1,7 @@
-use rosomaxa::utils::{Environment, Random};
-use std::sync::Arc;
+use rosomaxa::prelude::{DefaultEnvironment, DefaultRandom};
 
 pub mod random;
 
-pub fn create_test_environment_with_random(random: Arc<dyn Random + Send + Sync>) -> Arc<Environment> {
-    Arc::new(Environment { random, ..Default::default() })
+pub fn create_test_environment_with_random(random: DefaultRandom) -> DefaultEnvironment {
+    DefaultEnvironment { random, ..Default::default() }
 }

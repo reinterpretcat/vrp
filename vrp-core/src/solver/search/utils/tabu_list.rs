@@ -3,7 +3,7 @@ use crate::models::problem::{Actor, Job};
 use crate::models::CoreStateKeys;
 use hashbrown::HashSet;
 use rand::prelude::IteratorRandom;
-use rosomaxa::prelude::Random;
+use rosomaxa::prelude::{DefaultRandom, Random};
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -14,18 +14,18 @@ pub struct TabuList {
     jobs: HashSet<Job>,
     max_actors: usize,
     max_jobs: usize,
-    random: Arc<dyn Random + Send + Sync>,
+    random: DefaultRandom,
 }
 
 impl TabuList {
     /// Adds job to tabu list.
     pub fn add_job(&mut self, job: Job) {
-        add_with_limits(job, &mut self.jobs, self.max_jobs, self.random.as_ref());
+        add_with_limits(job, &mut self.jobs, self.max_jobs, &self.random);
     }
 
     /// Adds actor to tabu list.
     pub fn add_actor(&mut self, actor: Arc<Actor>) {
-        add_with_limits(actor, &mut self.actors, self.max_actors, self.random.as_ref());
+        add_with_limits(actor, &mut self.actors, self.max_actors, &self.random);
     }
 
     /// Checks whether given actor is in tabu list.
@@ -85,7 +85,7 @@ fn add_with_limits<T: Clone + Eq + PartialEq + Hash>(
     new_item: T,
     old_items: &mut HashSet<T>,
     limits: usize,
-    random: &(dyn Random + Send + Sync),
+    random: &DefaultRandom,
 ) {
     // NOTE do not use tabu list when limit is zero
     if limits == 0 {

@@ -417,7 +417,7 @@ impl HeuristicObjective for GoalContext {}
 
 impl Shuffled for GoalContext {
     /// Returns a new instance of `GoalContext` with shuffled objectives.
-    fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
+    fn get_shuffled<R: Random>(&self, random: &R) -> Self {
         if let Some((alternatives, probability)) = &self.alternatives {
             assert!(!alternatives.is_empty());
 

@@ -435,7 +435,7 @@ pub struct OutputConfig {
 fn configure_from_evolution(
     mut builder: ProblemConfigBuilder,
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
     telemetry_mode: TelemetryMode,
     population_config: &Option<EvolutionConfig>,
 ) -> Result<ProblemConfigBuilder, GenericError> {
@@ -529,7 +529,7 @@ fn configure_from_evolution(
 fn configure_from_hyper(
     mut builder: ProblemConfigBuilder,
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
     hyper_config: &Option<HyperType>,
 ) -> Result<ProblemConfigBuilder, GenericError> {
     if let Some(config) = hyper_config {
@@ -573,7 +573,7 @@ fn configure_from_termination(
 
 fn create_recreate_method(
     method: &RecreateMethod,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
 ) -> (Arc<dyn Recreate + Send + Sync>, usize) {
     let random = environment.random.clone();
     match method {
@@ -601,7 +601,7 @@ fn create_recreate_method(
 
 fn create_operator(
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
     operator: &SearchOperatorType,
 ) -> Result<(TargetSearchOperator, TargetHeuristicProbability), GenericError> {
     Ok(match operator {
@@ -640,7 +640,7 @@ fn create_operator(
 
 fn create_operator_probability(
     probability: &OperatorProbabilityType,
-    random: Arc<dyn Random + Send + Sync>,
+    random: DefaultRandom,
 ) -> TargetHeuristicProbability {
     match probability {
         OperatorProbabilityType::Scalar { scalar } => create_scalar_operator_probability(*scalar, random),
@@ -660,13 +660,13 @@ fn create_operator_probability(
     }
 }
 
-fn create_ruin_group(problem: &Arc<Problem>, environment: Arc<Environment>, group: &RuinGroupConfig) -> RuinGroup {
+fn create_ruin_group(problem: &Arc<Problem>, environment: DefaultEnvironment, group: &RuinGroupConfig) -> RuinGroup {
     (group.methods.iter().map(|r| create_ruin_method(problem, environment.clone(), r)).collect(), group.weight)
 }
 
 fn create_ruin_method(
     problem: &Arc<Problem>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
     method: &RuinMethod,
 ) -> (Arc<dyn Ruin + Send + Sync>, f64) {
     let limits = RemovalLimits::new(problem.as_ref());
@@ -703,7 +703,7 @@ fn create_ruin_method(
 fn create_local_search(
     times: &MinMaxConfig,
     inners: &[LocalOperatorType],
-    random: Arc<dyn Random + Send + Sync>,
+    random: DefaultRandom,
 ) -> Arc<dyn LocalOperator + Send + Sync> {
     let operators = inners
         .iter()
@@ -725,7 +725,7 @@ fn create_local_search(
     Arc::new(CompositeLocalOperator::new(operators, times.min, times.max))
 }
 
-fn get_telemetry_mode(environment: Arc<Environment>, telemetry_config: &Option<TelemetryConfig>) -> TelemetryMode {
+fn get_telemetry_mode(environment: DefaultEnvironment, telemetry_config: &Option<TelemetryConfig>) -> TelemetryMode {
     const LOG_BEST: usize = 100;
     const LOG_POPULATION: usize = 1000;
     const TRACK_POPULATION: usize = 1000;
@@ -770,7 +770,7 @@ fn get_telemetry_mode(environment: Arc<Environment>, telemetry_config: &Option<T
 fn configure_from_environment(
     environment_config: &Option<EnvironmentConfig>,
     max_time: Option<usize>,
-) -> Arc<Environment> {
+) -> DefaultEnvironment {
     let mut environment = Environment::new_with_time_quota(max_time);
 
     if let Some(parallelism) = environment_config.as_ref().and_then(|c| c.parallelism.as_ref()) {

@@ -158,7 +158,7 @@ pub struct ClusterInfo {
 /// - time offset in job times is not supported
 pub fn create_job_clusters(
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
     config: &ClusterConfig,
 ) -> Vec<(Job, Vec<Job>)> {
     let insertion_ctx = InsertionContext::new_empty(problem.clone(), environment);

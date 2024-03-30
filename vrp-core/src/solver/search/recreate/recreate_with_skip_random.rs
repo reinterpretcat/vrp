@@ -14,7 +14,7 @@ pub struct RecreateWithSkipRandom {
 
 impl RecreateWithSkipRandom {
     /// Creates a new instance of `RecreateWithSkipRandom`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: DefaultRandom) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::<SkipRandomJobSelector>::default(),
@@ -37,7 +37,7 @@ impl RecreateWithSkipRandom {
     /// Creates `RecreateWithSkipRandom` as `PhasedRecreate` which runs only in exploration phase.
     pub fn default_explorative_phased(
         default_recreate: Arc<dyn Recreate + Send + Sync>,
-        random: Arc<dyn Random + Send + Sync>,
+        random: DefaultRandom,
     ) -> PhasedRecreate {
         let recreates = vec![
             (SelectionPhase::Initial, default_recreate.clone()),

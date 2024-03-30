@@ -16,7 +16,7 @@ use std::sync::Arc;
 /// Creates clusters of jobs using DBSCAN algorithm.
 pub fn create_job_clusters(
     problem: &Problem,
-    random: &(dyn Random + Send + Sync),
+    random: &DefaultRandom,
     min_points: Option<usize>,
     epsilon: Option<f64>,
 ) -> Vec<Vec<Job>> {

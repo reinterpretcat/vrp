@@ -67,7 +67,7 @@ struct LocationWriter(pub Box<dyn Fn(File, BufWriter<Box<dyn Write>>) -> Result<
 #[allow(clippy::type_complexity)]
 type FormatMap<'a> = HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter, LocationWriter)>;
 
-fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) {
+fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: DefaultRandom) {
     if cfg!(feature = "scientific-format") {
         use vrp_scientific::common::read_init_solution;
         use vrp_scientific::lilim::{LilimProblem, LilimSolution};
@@ -119,7 +119,7 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
     }
 }
 
-fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>) {
+fn add_pragmatic(formats: &mut FormatMap, random: DefaultRandom) {
     use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
     use vrp_pragmatic::format::solution::read_init_solution as read_init_pragmatic;
 
@@ -156,7 +156,7 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
     );
 }
 
-fn get_formats<'a>(matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) -> FormatMap<'a> {
+fn get_formats<'a>(matches: &ArgMatches, random: DefaultRandom) -> FormatMap<'a> {
     let mut formats = FormatMap::default();
 
     add_scientific(&mut formats, matches, random.clone());
@@ -374,7 +374,7 @@ pub fn run_solve(
 
 fn read_init_solution(
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
     file: File,
     InitSolutionReader(init_reader): &InitSolutionReader,
 ) -> Result<Vec<InsertionContext>, GenericError> {
@@ -396,7 +396,7 @@ fn from_config_parameters(
 
 fn from_cli_parameters(
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
     init_solutions: Vec<InsertionContext>,
     matches: &ArgMatches,
 ) -> Result<Solver, GenericError> {
@@ -468,7 +468,7 @@ fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, GenericError> {
         .unwrap_or(Ok(None))
 }
 
-fn get_environment(matches: &ArgMatches) -> Result<Arc<Environment>, GenericError> {
+fn get_environment(matches: &ArgMatches) -> Result<DefaultEnvironment, GenericError> {
     let max_time = parse_int_value::<usize>(matches, TIME_ARG_NAME, "max time")?;
     let quota = Some(create_interruption_quota(max_time));
     let is_experimental = matches.get_one::<bool>(EXPERIMENTAL_ARG_NAME).copied().unwrap_or(false);
@@ -508,7 +508,7 @@ fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {
 fn get_population(
     mode: Option<&String>,
     objective: Arc<GoalContext>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
 ) -> TargetPopulation {
     let selection_size = get_default_selection_size(environment.as_ref());
 
@@ -521,7 +521,7 @@ fn get_population(
 fn get_heuristic(
     matches: &ArgMatches,
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
 ) -> Result<TargetHeuristic, GenericError> {
     match matches.get_one::<String>(HEURISTIC_ARG_NAME).map(String::as_str) {
         Some("dynamic") => Ok(Box::new(get_dynamic_heuristic(problem, environment))),
@@ -534,7 +534,7 @@ fn get_heuristic(
 #[cfg(feature = "async-evolution")]
 fn get_async_evolution(
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
+    environment: DefaultEnvironment,
 ) -> Result<TargetEvolutionStrategy, GenericError> {
     use vrp_core::rosomaxa::evolution::strategies::{AsyncIterative, AsyncParams};
 
@@ -559,7 +559,7 @@ fn get_async_evolution(
 #[cfg(not(feature = "async-evolution"))]
 fn get_async_evolution(
     _problem: Arc<Problem>,
-    _environment: Arc<Environment>,
+    _environment: DefaultEnvironment,
 ) -> Result<TargetEvolutionStrategy, GenericError> {
     unreachable!()
 }

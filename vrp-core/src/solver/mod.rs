@@ -110,8 +110,6 @@ mod heuristic;
 pub struct RefinementContext {
     /// Original problem definition.
     pub problem: Arc<Problem>,
-    /// An environmental context.
-    pub environment: Arc<Environment>,
     /// A collection of data associated with refinement process.
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
     /// Provides some basic implementation of context functionality.
@@ -130,15 +128,9 @@ pub enum RefinementSpeed {
 
 impl RefinementContext {
     /// Creates a new instance of `RefinementContext`.
-    pub fn new(
-        problem: Arc<Problem>,
-        population: TargetPopulation,
-        telemetry_mode: TelemetryMode,
-        environment: Arc<Environment>,
-    ) -> Self {
-        let inner_context =
-            TelemetryHeuristicContext::new(problem.goal.clone(), population, telemetry_mode, environment.clone());
-        Self { problem, environment, inner_context, state: Default::default() }
+    pub fn new(problem: Arc<Problem>, population: TargetPopulation, telemetry_mode: TelemetryMode) -> Self {
+        let inner_context = TelemetryHeuristicContext::new(problem.goal.clone(), population, telemetry_mode);
+        Self { problem, inner_context, state: Default::default() }
     }
 
     /// Adds solution to population.
@@ -169,10 +161,6 @@ impl HeuristicContext for RefinementContext {
 
     fn selection_phase(&self) -> SelectionPhase {
         self.inner_context.selection_phase()
-    }
-
-    fn environment(&self) -> &Environment {
-        self.inner_context.environment()
     }
 
     fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
@@ -208,12 +196,13 @@ impl Stateful for RefinementContext {
 /// Wraps recreate method as `InitialOperator`
 pub struct RecreateInitialOperator {
     recreate: Arc<dyn Recreate + Send + Sync>,
+    environment: DefaultEnvironment,
 }
 
 impl RecreateInitialOperator {
     /// Creates a new instance of `RecreateInitialOperator`.
-    pub fn new(recreate: Arc<dyn Recreate + Send + Sync>) -> Self {
-        Self { recreate }
+    pub fn new(recreate: Arc<dyn Recreate + Send + Sync>, environment: DefaultEnvironment) -> Self {
+        Self { recreate, environment }
     }
 }
 
@@ -223,7 +212,7 @@ impl InitialOperator for RecreateInitialOperator {
     type Solution = InsertionContext;
 
     fn create(&self, heuristic_ctx: &Self::Context) -> Self::Solution {
-        let insertion_ctx = InsertionContext::new(heuristic_ctx.problem.clone(), heuristic_ctx.environment.clone());
+        let insertion_ctx = InsertionContext::new(heuristic_ctx.problem.clone(), self.environment.clone());
         self.recreate.run(heuristic_ctx, insertion_ctx)
     }
 }
@@ -266,14 +255,14 @@ impl InitialOperator for RecreateInitialOperator {
 /// ```
 pub struct Solver {
     problem: Arc<Problem>,
-    config: EvolutionConfig<RefinementContext, GoalContext, InsertionContext>,
+    config: EvolutionConfig<RefinementContext, GoalContext, InsertionContext, DefaultRandom>,
 }
 
 impl Solver {
     /// Tries to create an instance of `Solver` from provided config.
     pub fn new(
         problem: Arc<Problem>,
-        config: EvolutionConfig<RefinementContext, GoalContext, InsertionContext>,
+        config: EvolutionConfig<RefinementContext, GoalContext, InsertionContext, DefaultRandom>,
     ) -> Self {
         Self { problem, config }
     }
@@ -281,7 +270,7 @@ impl Solver {
     /// Solves a Vehicle Routing Problem and returns a feasible solution in case of success
     /// or error description, if solution cannot be found.
     pub fn solve(self) -> Result<Solution, GenericError> {
-        (self.config.context.environment.logger)(&format!(
+        (self.config.environment.logger)(&format!(
             "total jobs: {}, actors: {}",
             self.problem.jobs.size(),
             self.problem.fleet.actors.len()
