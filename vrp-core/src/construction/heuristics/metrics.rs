@@ -20,6 +20,36 @@ pub fn get_max_load_variance(insertion_ctx: &InsertionContext) -> f64 {
     get_variance(get_values_from_route_state(insertion_ctx, max_load_key).collect::<Vec<_>>().as_slice())
 }
 
+/// Gets max load mean in tours.
+pub fn get_max_load_mean(insertion_ctx: &InsertionContext) -> f64 {
+    let max_load_key = if let Some(capacity_keys) = insertion_ctx.problem.extras.get_capacity_keys() {
+        capacity_keys.max_load
+    } else {
+        return 0.;
+    };
+
+    get_mean_iter(get_values_from_route_state(insertion_ctx, max_load_key))
+}
+
+/// Gets tours with max_load at least 0.9.
+pub fn get_full_load_ratio(insertion_ctx: &InsertionContext) -> f64 {
+    let max_load_key = if let Some(capacity_keys) = insertion_ctx.problem.extras.get_capacity_keys() {
+        capacity_keys.max_load
+    } else {
+        return 0.;
+    };
+
+    let total = insertion_ctx.solution.routes.len();
+    if total == 0 {
+        return 0.;
+    } else {
+        let full_capacity =
+            get_values_from_route_state(insertion_ctx, max_load_key).filter(|&max_load| max_load > 0.9).count();
+
+        full_capacity as f64 / total as f64
+    }
+}
+
 /// Gets standard deviation of the number of customer per tour.
 pub fn get_customers_deviation(insertion_ctx: &InsertionContext) -> f64 {
     let values = insertion_ctx
@@ -111,7 +141,7 @@ pub fn get_average_distance_between_depot_customer_mean(insertion_ctx: &Insertio
 pub fn get_longest_distance_between_depot_customer_mean(insertion_ctx: &InsertionContext) -> f64 {
     let transport = insertion_ctx.problem.transport.as_ref();
 
-    get_mean_iter(insertion_ctx.solution.routes.iter().map(|route_ctx| {
+    get_mean_iter(insertion_ctx.solution.routes.iter().filter_map(|route_ctx| {
         let depot = route_ctx.route().tour.start().expect("empty tour");
 
         route_ctx
@@ -128,8 +158,51 @@ pub fn get_longest_distance_between_depot_customer_mean(insertion_ctx: &Insertio
                 )
             })
             .max_by(compare_floats_refs)
-            .unwrap_or(0.)
     }))
+}
+
+/// Gets the distance between a first job and the depot (mean).
+pub fn get_first_distance_customer_mean(insertion_ctx: &InsertionContext) -> f64 {
+    let transport = insertion_ctx.problem.transport.as_ref();
+
+    get_mean_iter(insertion_ctx.solution.routes.iter().filter_map(|route_ctx| {
+        let route = route_ctx.route();
+        route.tour.get(1).zip(route.tour.start()).map(|(activity, depot)| {
+            transport.distance(
+                route,
+                depot.place.location,
+                activity.place.location,
+                TravelTime::Departure(depot.schedule.departure),
+            )
+        })
+    }))
+}
+
+/// Gets the distance between a last job and the depot (mean).
+pub fn get_last_distance_customer_mean(insertion_ctx: &InsertionContext) -> f64 {
+    let transport = insertion_ctx.problem.transport.as_ref();
+
+    let distances = insertion_ctx.solution.routes.iter().filter_map(|route_ctx| {
+        let tour = &route_ctx.route().tour;
+        if tour.total() < 2 {
+            return None;
+        }
+
+        // NOTE if it is open VRP, we get a distance between two last customers
+        let last_idx = tour.total() - 1;
+        let before_last_idx = last_idx - 1;
+
+        tour.get(before_last_idx).zip(tour.get(last_idx)).map(|(activity, depot)| {
+            transport.distance(
+                route_ctx.route(),
+                activity.place.location,
+                depot.place.location,
+                TravelTime::Departure(depot.schedule.departure),
+            )
+        })
+    });
+
+    get_mean_iter(distances)
 }
 
 /// Gets average distance between routes using medoids (S4).
@@ -159,23 +232,6 @@ pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> f64 {
     } else {
         0.
     }
-}
-
-/// Gets medoid location of given route context.
-pub fn get_medoid(route_ctx: &RouteContext, transport: &(dyn TransportCost + Send + Sync)) -> Option<usize> {
-    let profile = &route_ctx.route().actor.vehicle.profile;
-    let locations = route_ctx.route().tour.all_activities().map(|activity| activity.place.location).collect::<Vec<_>>();
-    locations
-        .iter()
-        .map(|outer_loc| {
-            let sum = locations
-                .iter()
-                .map(|inner_loc| transport.distance_approx(profile, *outer_loc, *inner_loc))
-                .sum::<f64>();
-            (sum, *outer_loc)
-        })
-        .min_by(|(sum_a, _), (sum_b, _)| compare_floats(*sum_a, *sum_b))
-        .map(|(_, location)| location)
 }
 
 /// A type which represents routes grouped by their proximity.
@@ -238,4 +294,21 @@ fn get_values_from_route_state(
         .routes
         .iter()
         .map(move |route_ctx| route_ctx.state().get_route_state::<f64>(state_key).cloned().unwrap_or(0.))
+}
+
+/// Gets medoid location of given route context.
+fn get_medoid(route_ctx: &RouteContext, transport: &(dyn TransportCost + Send + Sync)) -> Option<usize> {
+    let profile = &route_ctx.route().actor.vehicle.profile;
+    let locations = route_ctx.route().tour.all_activities().map(|activity| activity.place.location).collect::<Vec<_>>();
+    locations
+        .iter()
+        .map(|outer_loc| {
+            let sum = locations
+                .iter()
+                .map(|inner_loc| transport.distance_approx(profile, *outer_loc, *inner_loc))
+                .sum::<f64>();
+            (sum, *outer_loc)
+        })
+        .min_by(|(sum_a, _), (sum_b, _)| compare_floats(*sum_a, *sum_b))
+        .map(|(_, location)| location)
 }

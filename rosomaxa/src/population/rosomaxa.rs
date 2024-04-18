@@ -559,14 +559,20 @@ fn get_keep_size(rebalance_memory: usize, termination_estimate: f64) -> usize {
 }
 
 /// Gets learning rate decay using cosine annealing.
+/// `Cosine Annealing` is a type of learning rate schedule that has the effect of starting with a large
+/// learning rate that is relatively rapidly decreased to a minimum value before being increased rapidly again.
 fn get_learning_rate(termination_estimate: f64) -> f64 {
-    const PERIOD: f64 = 2.;
-    const MIN_LEARNING_RATE: f64 = 0.1;
+    const PERIOD: f64 = 0.25;
+    const MIN_LEARNING_RATE: f64 = 0.5;
     const MAX_LEARNING_RATE: f64 = 0.9;
 
+    assert!(termination_estimate >= 0. && termination_estimate <= 1., "termination estimate must be in [0, 1]");
+
     let min_lr = MIN_LEARNING_RATE;
-    let max_lr = MAX_LEARNING_RATE.max(min_lr + 0.05);
-    let progress = termination_estimate * PERIOD;
+    let max_lr = MAX_LEARNING_RATE;
+
+    let progress = termination_estimate % PERIOD;
+    let progress = progress / PERIOD;
 
     min_lr + 0.5 * (max_lr - min_lr) * (1. + (progress * std::f64::consts::PI).cos())
 }

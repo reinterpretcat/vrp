@@ -186,19 +186,30 @@ pub fn create_elitism_population(
 
 impl RosomaxaWeighted for InsertionContext {
     fn init_weights(&mut self) {
+        // built a feature vector which is used to classify solution in population
         let weights = vec![
+            // load related features
             get_max_load_variance(self),
+            get_max_load_mean(self),
+            get_full_load_ratio(self),
+            // time related features
             get_duration_mean(self),
-            get_distance_mean(self),
             get_waiting_mean(self),
+            // distance related features
+            get_distance_mean(self),
             get_longest_distance_between_customers_mean(self),
-            get_average_distance_between_depot_customer_mean(self),
             get_distance_gravity_mean(self),
-            get_customers_deviation(self),
+            get_first_distance_customer_mean(self),
+            get_last_distance_customer_mean(self),
+            // depot related features
+            get_average_distance_between_depot_customer_mean(self),
             get_longest_distance_between_depot_customer_mean(self),
-            self.get_total_cost().unwrap_or_default(),
-            self.solution.routes.len() as f64,
+            // tour related features
+            get_customers_deviation(self),
+            // default objective related
             self.solution.unassigned.len() as f64,
+            self.solution.routes.len() as f64,
+            self.get_total_cost().unwrap_or_default(),
         ];
 
         let heuristic_keys = get_heuristic_keys(self);
