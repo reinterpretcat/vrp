@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 * fix clippy warnings
 * minor refactorings
 * increase limits for ruin methods
+* tweak rosomaxa algorithm
 
 
 ## [v1.23.0]- 2023-12-22

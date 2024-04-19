@@ -41,7 +41,7 @@ pub fn get_full_load_ratio(insertion_ctx: &InsertionContext) -> f64 {
 
     let total = insertion_ctx.solution.routes.len();
     if total == 0 {
-        return 0.;
+        0.
     } else {
         let full_capacity =
             get_values_from_route_state(insertion_ctx, max_load_key).filter(|&max_load| max_load > 0.9).count();

@@ -10,6 +10,7 @@ use crate::utils::{Environment, Random};
 use rand::prelude::SliceRandom;
 use rayon::iter::Either;
 use std::convert::TryInto;
+use std::f64::consts::{E, PI};
 use std::fmt::Formatter;
 use std::ops::RangeBounds;
 use std::sync::Arc;
@@ -125,15 +126,18 @@ where
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         match &self.phase {
-            RosomaxaPhases::Exploration { network, coordinates, selection_size, .. } => {
+            RosomaxaPhases::Exploration { network, coordinates, selection_size, statistics, .. } => {
                 let random = self.environment.random.as_ref();
 
                 let (elite_explore_size, node_explore_size) = match *selection_size {
                     value if value > 6 => {
-                        const EXPLORE_PROBABILITY: f64 = 0.1;
+                        let ratio = statistics.improvement_1000_ratio;
+                        let elite_exlr_prob = 1. - 1. / (1. + E.powf(-10. * (ratio - 0.166)));
+                        let elite_size = (1..=2)
+                            .fold(0, |acc, idx| acc + if random.is_hit(elite_exlr_prob / idx as f64) { 2 } else { 1 });
 
-                        let elite_size = if random.is_hit(EXPLORE_PROBABILITY) { 2 } else { 1 };
-                        let node_size = if random.is_hit(EXPLORE_PROBABILITY) { 2 } else { 1 };
+                        const NODE_EXPLORE_PROB: f64 = 0.1;
+                        let node_size = if random.is_hit(NODE_EXPLORE_PROB) { 2 } else { 1 };
 
                         (elite_size, node_size)
                     }
@@ -552,7 +556,7 @@ where
 fn get_keep_size(rebalance_memory: usize, termination_estimate: f64) -> usize {
     let termination_estimate = termination_estimate.clamp(0., 0.8);
     // Sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
-    let rate = 1. / (1. + std::f64::consts::E.powf(-10. * (termination_estimate - 0.5)));
+    let rate = 1. / (1. + E.powf(-10. * (termination_estimate - 0.5)));
     let keep_ratio = 2. * (1. - rate);
 
     rebalance_memory + (rebalance_memory as f64 * keep_ratio) as usize
@@ -563,10 +567,10 @@ fn get_keep_size(rebalance_memory: usize, termination_estimate: f64) -> usize {
 /// learning rate that is relatively rapidly decreased to a minimum value before being increased rapidly again.
 fn get_learning_rate(termination_estimate: f64) -> f64 {
     const PERIOD: f64 = 0.25;
-    const MIN_LEARNING_RATE: f64 = 0.5;
-    const MAX_LEARNING_RATE: f64 = 0.9;
+    const MIN_LEARNING_RATE: f64 = 0.1;
+    const MAX_LEARNING_RATE: f64 = 1.0;
 
-    assert!(termination_estimate >= 0. && termination_estimate <= 1., "termination estimate must be in [0, 1]");
+    assert!((0. ..=1.).contains(&termination_estimate), "termination estimate must be in [0, 1]");
 
     let min_lr = MIN_LEARNING_RATE;
     let max_lr = MAX_LEARNING_RATE;
@@ -574,5 +578,5 @@ fn get_learning_rate(termination_estimate: f64) -> f64 {
     let progress = termination_estimate % PERIOD;
     let progress = progress / PERIOD;
 
-    min_lr + 0.5 * (max_lr - min_lr) * (1. + (progress * std::f64::consts::PI).cos())
+    min_lr + 0.5 * (max_lr - min_lr) * (1. + (progress * PI).cos())
 }
