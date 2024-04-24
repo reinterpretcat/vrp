@@ -5,6 +5,7 @@ mod objectives_test;
 use super::*;
 use crate::format::problem::Objective::*;
 use crate::utils::combine_error_results;
+use hashbrown::HashSet;
 
 /// Checks that objective is not empty when specified.
 fn check_e1600_empty_objective(objectives: &[&Objective]) -> Result<(), FormatError> {
@@ -21,38 +22,9 @@ fn check_e1600_empty_objective(objectives: &[&Objective]) -> Result<(), FormatEr
 
 /// Checks that each objective type specified only once.
 fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), FormatError> {
-    let mut duplicates = objectives
-        .iter()
-        .fold(HashMap::new(), |mut acc, objective| {
-            match objective {
-                MinimizeCost => acc.entry("minimize-cost"),
-                MinimizeDistance => acc.entry("minimize-distance"),
-                MinimizeDuration => acc.entry("minimize-duration"),
-                MinimizeTours => acc.entry("minimize-tours"),
-                MaximizeTours => acc.entry("maximize-tours"),
-                MaximizeValue { .. } => acc.entry("maximize-value"),
-                MinimizeUnassigned { .. } => acc.entry("minimize-unassigned"),
-                MinimizeArrivalTime => acc.entry("minimize-arrival-time"),
-                BalanceMaxLoad { .. } => acc.entry("balance-max-load"),
-                BalanceActivities { .. } => acc.entry("balance-activities"),
-                BalanceDistance { .. } => acc.entry("balance-distance"),
-                BalanceDuration { .. } => acc.entry("balance-duration"),
-                CompactTour { .. } => acc.entry("compact-tour"),
-                TourOrder => acc.entry("tour-order"),
-                FastService { .. } => acc.entry("fast-service"),
-            }
-            .and_modify(|count| *count += 1)
-            .or_insert(1_usize);
+    let unique = objectives.iter().cloned().map(std::mem::discriminant).collect::<HashSet<_>>();
 
-            acc
-        })
-        .iter()
-        .filter_map(|(name, count)| if *count > 1 { Some((*name).to_string()) } else { None })
-        .collect::<Vec<_>>();
-
-    duplicates.sort();
-
-    if duplicates.is_empty() {
+    if unique.len() == objectives.len() {
         Ok(())
     } else {
         Err(FormatError::new(

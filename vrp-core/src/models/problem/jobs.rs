@@ -4,7 +4,7 @@ mod jobs_test;
 
 use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
-use crate::utils::short_type_name;
+use crate::utils::{short_type_name, Either};
 use hashbrown::HashMap;
 use rosomaxa::utils::compare_floats_f32;
 use std::cmp::Ordering::Less;
@@ -219,9 +219,9 @@ const DEFAULT_COST: LowPrecisionCost = 0.;
 const UNREACHABLE_COST: LowPrecisionCost = f32::MAX;
 
 /// Maximum amount of job's neighbours stored in index. We restrict this side to lower impact on
-/// memory footprint. It is unlikely that more than 1000 neighbours needed to be processed in reality,
+/// memory footprint. It is unlikely that more than 100 neighbours needed to be processed in reality,
 /// but we keep it 5x times more.
-const MAX_NEIGHBOURS: usize = 5000;
+const MAX_NEIGHBOURS: usize = 512;
 
 /// Stores all jobs taking into account their neighborhood.
 pub struct Jobs {
@@ -289,10 +289,10 @@ impl Hash for Job {
 }
 
 /// Returns job locations.
-pub fn get_job_locations<'a>(job: &'a Job) -> Box<dyn Iterator<Item = Option<Location>> + 'a> {
+pub fn get_job_locations(job: &Job) -> impl Iterator<Item = Option<Location>> + '_ {
     match job {
-        Job::Single(single) => Box::new(single.places.iter().map(|p| p.location)),
-        Job::Multi(multi) => Box::new(multi.jobs.iter().flat_map(|j| j.places.iter().map(|p| p.location))),
+        Job::Single(single) => Either::Left(single.places.iter().map(|p| p.location)),
+        Job::Multi(multi) => Either::Right(multi.jobs.iter().flat_map(|j| j.places.iter().map(|p| p.location))),
     }
 }
 
@@ -321,9 +321,11 @@ fn create_index(
                 .iter()
                 .filter(|j| **j != job)
                 .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport, &job, j)))
-                .take(MAX_NEIGHBOURS)
                 .collect();
             sorted_job_costs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Less));
+
+            sorted_job_costs.truncate(MAX_NEIGHBOURS);
+            sorted_job_costs.shrink_to_fit();
 
             let fleet_costs = starts
                 .iter()
@@ -368,12 +370,10 @@ fn get_cost_between_job_and_location(
     to: Location,
 ) -> LowPrecisionCost {
     get_job_locations(job)
-        .map(|from| match from {
-            Some(from) => get_cost_between_locations(profile, costs, transport, from, to),
-            _ => DEFAULT_COST,
-        })
+        .flatten()
+        .map(|from| get_cost_between_locations(profile, costs, transport, from, to))
         .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
-        .unwrap_or(DEFAULT_COST)
+        .unwrap_or(UNREACHABLE_COST)
 }
 
 /// Returns minimal cost between jobs.
@@ -387,38 +387,19 @@ fn get_cost_between_jobs(
     let outer: Vec<Option<Location>> = get_job_locations(lhs).collect();
     let inner: Vec<Option<Location>> = get_job_locations(rhs).collect();
 
-    let (location_cost, duration) = outer
+    let routing_cost = outer
         .iter()
         .flat_map(|o| inner.iter().map(move |i| (*o, *i)))
         .map(|pair| match pair {
-            (Some(from), Some(to)) => {
-                let total = get_cost_between_locations(profile, costs, transport, from, to);
-                let duration = transport.duration_approx(profile, from, to);
-                (total, duration)
-            }
-            _ => (DEFAULT_COST, 0.),
+            (Some(from), Some(to)) => get_cost_between_locations(profile, costs, transport, from, to),
+            _ => DEFAULT_COST,
         })
-        .min_by(|(a, _), (b, _)| compare_floats_f32(*a, *b))
-        .unwrap_or((DEFAULT_COST, 0.));
-
-    let time_cost = lhs
-        .places()
-        .flat_map(|place| place.times.iter())
-        .flat_map(|left| {
-            rhs.places().flat_map(|place| place.times.iter()).map(move |right| match (left, right) {
-                (TimeSpan::Window(left), TimeSpan::Window(right)) => {
-                    // NOTE exclude traveling duration between jobs
-                    (left.distance(right) - duration).max(0.)
-                }
-                _ => 0.,
-            })
-        })
-        .map(|cost| cost as LowPrecisionCost)
         .min_by(|a, b| compare_floats_f32(*a, *b))
-        .unwrap_or(0.)
-        * costs.per_waiting_time as LowPrecisionCost;
+        .unwrap_or(DEFAULT_COST);
 
-    location_cost + time_cost
+    // NOTE: ignore time window difference costs as it is hard to balance with routing costs
+
+    routing_cost
 }
 
 fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<usize, Costs> {

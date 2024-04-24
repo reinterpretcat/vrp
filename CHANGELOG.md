@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 * minor refactorings
 * increase limits for ruin methods
 * tweak rosomaxa algorithm
+* tweak job index
 
 
 ## [v1.23.0]- 2023-12-22
