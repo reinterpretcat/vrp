@@ -9,6 +9,7 @@
 </head>
 <body>
 <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+<script src="./common_ui.js"></script>
 <script src="./vector.bootstrap.js"></script>
 <main>
     <h1>Heuristic Research Playground</h1>
@@ -56,9 +57,22 @@
         </div>
     </div>
 
-    <canvas id="canvas1" width="600" height="400"></canvas>
-    <canvas id="canvas2" width="600" height="200"></canvas>
-    <canvas id="canvas3" width="600" height="400"></canvas>
+    <div class="tabContent">
+        <div class="tab">
+            <button class="tablinks" onclick="openTab(event, 'solutionTab')" id="defaultOpen">Solution space</button>
+            <button class="tablinks" onclick="openTab(event, 'searchTab')" >Search results</button>
+            <button class="tablinks" onclick="openTab(event, 'fitnessTab')">Fitness</button>
+        </div>
+        <div id="solutionTab" class="tabcontent">
+            <canvas id="solutionCanvas" width="600" height="400"></canvas>
+        </div>
+        <div id="searchTab" class="tabcontent">
+            <canvas id="searchCanvas" width="600" height="200"></canvas>
+        </div>
+        <div id="fitnessTab" class="tabcontent" >
+            <canvas id="fitnessCanvas" width="600" height="400"></canvas>
+        </div>
+    </div>
 </main>
 <footer>
     <a href="https://github.com/reinterpretcat/vrp" target="a">Repo</a> |
@@ -66,4 +80,7 @@
     <a href="https://docs.rs/vrp-core" target="a">Docs</a>
 </footer>
 </body>
+<script>
+    document.getElementById("defaultOpen").click();
+</script>
 </html>

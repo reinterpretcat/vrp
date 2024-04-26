@@ -3,7 +3,8 @@ use itertools::{Itertools, MinMaxResult};
 use rosomaxa::prelude::{compare_floats, compare_floats_refs};
 use std::cmp::Ordering;
 
-pub(crate) fn draw_population<B: DrawingBackend + 'static>(
+/// Draws rosomaxa population state.
+pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
     config: &PopulationDrawConfig,
 ) -> DrawResult<()> {

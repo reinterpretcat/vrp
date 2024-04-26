@@ -1,10 +1,10 @@
 use super::*;
 use rosomaxa::prelude::compare_floats_refs;
 
-/// Draws heuristic state as bar plot.
-pub fn draw_heuristic<B: DrawingBackend + 'static>(
+/// Draws search state as bar plot.
+pub(crate) fn draw_search<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
-    fitness_config: &HeuristicDrawConfig,
+    fitness_config: &SearchDrawConfig,
 ) -> DrawResult<()> {
     area.fill(&WHITE)?;
 
@@ -19,7 +19,7 @@ pub fn draw_heuristic<B: DrawingBackend + 'static>(
     let mut chart = ChartBuilder::on(area)
         .set_label_area_size(LabelAreaPosition::Left, 40)
         .set_label_area_size(LabelAreaPosition::Bottom, 40)
-        .caption("Heuristic data", ("sans-serif", 16))
+        .caption("Search data", ("sans-serif", 16))
         .build_cartesian_2d(0.0..max_x, (0..max_y).into_segmented())?;
 
     chart.configure_mesh().draw()?;

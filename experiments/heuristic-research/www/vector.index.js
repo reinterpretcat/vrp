@@ -1,8 +1,8 @@
 class Chart {}
 
-const canvas1 = document.getElementById("canvas1");
-const canvas2 = document.getElementById("canvas2");
-const canvas3 = document.getElementById("canvas3");
+const solutionCanvas = document.getElementById("solutionCanvas");
+const searchCanvas = document.getElementById("searchCanvas");
+const fitnessCanvas = document.getElementById("fitnessCanvas");
 
 const coord = document.getElementById("coord");
 const plotFunction = document.getElementById("plot-function");
@@ -16,9 +16,9 @@ const generations = document.getElementById("generations");
 /** Main entry point */
 export function main() {
     setupUI();
-    setupCanvas(canvas1);
-    setupCanvas(canvas2);
-    setupCanvas(canvas3);
+    setupCanvas(solutionCanvas, 800);
+    setupCanvas(searchCanvas, 800);
+    setupCanvas(fitnessCanvas, 800);
     updateDynamicPlots();
     updateStaticPlots();
 }
@@ -49,9 +49,9 @@ function setupUI() {
 }
 
 /** Setup canvas to properly handle high DPI and redraw current plot. */
-function setupCanvas(canvas) {
+function setupCanvas(canvas, size) {
     const aspectRatio = canvas.width / canvas.height;
-    const size = canvas.parentNode.offsetWidth * 1.2;
+    //const size = canvas.parentNode.offsetWidth * 1.2;
     canvas.style.width = size + "px";
     canvas.style.height = size / aspectRatio + "px";
     canvas.width = size;
@@ -81,25 +81,26 @@ function updateDynamicPlots() {
 
     switch(selected.value) {
         case 'rosenbrock':
-            Chart.rosenbrock(canvas1, generation_value, pitch_value, yaw_value);
+            Chart.rosenbrock(solutionCanvas, generation_value, pitch_value, yaw_value);
             break;
         case 'rastrigin':
-            Chart.rastrigin(canvas1, generation_value, pitch_value, yaw_value);
+            Chart.rastrigin(solutionCanvas, generation_value, pitch_value, yaw_value);
             break;
         case 'himmelblau':
-            Chart.himmelblau(canvas1, generation_value, pitch_value, yaw_value);
+            Chart.himmelblau(solutionCanvas, generation_value, pitch_value, yaw_value);
             break;
         case 'ackley':
-            Chart.ackley(canvas1, generation_value, pitch_value, yaw_value);
+            Chart.ackley(solutionCanvas, generation_value, pitch_value, yaw_value);
             break;
         case 'matyas':
-            Chart.matyas(canvas1, generation_value, pitch_value, yaw_value);
+            Chart.matyas(solutionCanvas, generation_value, pitch_value, yaw_value);
             break;
         default:
             break;
     }
 
-    Chart.heuristic_estimations(canvas2, generation_value, heuristic_kind);
+
+    Chart.search_estimations(searchCanvas, generation_value, heuristic_kind);
     
     const end = performance.now();
 
@@ -108,7 +109,7 @@ function updateDynamicPlots() {
 }
 
 function updateStaticPlots() {
-    Chart.fitness_func(canvas3)
+    Chart.fitness_func(fitnessCanvas)
 }
 
 /** Runs experiment. */

@@ -81,9 +81,9 @@ impl Chart {
         Ok(())
     }
 
-    /// Draws plot for heuristic estimations.
-    pub fn heuristic_estimations(canvas: HtmlCanvasElement, generation: usize, kind: &str) -> Result<(), JsValue> {
-        draw_heuristic_plots(get_canvas_drawing_area(canvas), generation, kind)
+    /// Draws plot for search estimations.
+    pub fn search_estimations(canvas: HtmlCanvasElement, generation: usize, kind: &str) -> Result<(), JsValue> {
+        draw_search_plots(get_canvas_drawing_area(canvas), generation, kind)
             .map_err(|err| JsValue::from_str(&err.to_string()))
     }
 }
@@ -111,13 +111,13 @@ pub fn draw_fitness_plots<B: DrawingBackend + 'static>(
     draw_fitness(area, FitnessDrawConfig { labels, fitness, target_idx }).map_err(|err| err.to_string().into())
 }
 
-pub fn draw_heuristic_plots<B: DrawingBackend + 'static>(
+pub fn draw_search_plots<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
     generation: usize,
     kind: &str,
 ) -> Result<(), GenericError> {
-    let config = get_heuristic_state(generation, kind);
-    draw_heuristic(area, config).map_err(|err| err.to_string().into())
+    let config = get_search_config(generation, kind);
+    draw_search(area, config).map_err(|err| err.to_string().into())
 }
 
 /// Draws population plots on given area.
@@ -206,7 +206,7 @@ fn get_solution_points(generation: usize) -> Vec<ColoredDataPoint3D> {
         .unwrap_or_default()
 }
 
-fn get_heuristic_state(generation: usize, _kind: &str) -> HeuristicDrawConfig {
+fn get_search_config(generation: usize, _kind: &str) -> SearchDrawConfig {
     EXPERIMENT_DATA
         .lock()
         .ok()
@@ -228,7 +228,7 @@ fn get_heuristic_state(generation: usize, _kind: &str) -> HeuristicDrawConfig {
                     .collect::<Vec<_>>();
                 let (labels, estimations) = unzip_sorted(data);
 
-                HeuristicDrawConfig { labels, estimations }
+                SearchDrawConfig { labels, estimations }
             })
         })
         .unwrap_or_default()

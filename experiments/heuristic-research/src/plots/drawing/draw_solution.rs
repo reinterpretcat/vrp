@@ -1,6 +1,7 @@
 use super::*;
 
-pub fn draw_solution<B: DrawingBackend + 'static>(
+/// Draws solution space.
+pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
     config: &SolutionDrawConfig,
 ) -> DrawResult<()> {

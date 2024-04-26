@@ -97,9 +97,9 @@ pub struct FitnessDrawConfig {
     pub target_idx: usize,
 }
 
-/// /// Specifies drawing configuration for heuristic.
+/// /// Specifies drawing configuration for search results.
 #[derive(Default)]
-pub struct HeuristicDrawConfig {
+pub struct SearchDrawConfig {
     /// Heuristic labels.
     pub labels: Vec<String>,
     /// Actual estimations.

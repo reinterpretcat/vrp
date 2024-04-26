@@ -14,3 +14,8 @@ basic-http-server
 
 # open http://127.0.0.1:4000/www/
 ```
+
+## TODO
+
+- refactor html-css-js scripts to avoid duplication
+- add more insights from heuristic

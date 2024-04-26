@@ -38,7 +38,7 @@ fn main() {
     draw_fitness_plots(area, function_name).unwrap();
 
     let area = BitMapBackend::new("heuristic_plot.png", (1024, 768)).into_drawing_area();
-    draw_heuristic_plots(area, generation, "best").unwrap();
+    draw_search_plots(area, generation, "best").unwrap();
 
     save_state("heuristic_state.json");
 }

@@ -1,7 +1,7 @@
 use super::*;
 
 /// Draws best known fitness over search progression.
-pub fn draw_fitness<B: DrawingBackend + 'static>(
+pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
     fitness_config: &FitnessDrawConfig,
 ) -> DrawResult<()> {
