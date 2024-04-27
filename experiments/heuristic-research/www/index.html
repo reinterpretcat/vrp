@@ -1,22 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-	<meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Heuristic Research Playground: Index</title>
-	<link rel="stylesheet" href="./style.css">
-    </head>
-    <body>
-	<main>
-		<h1>Heuristic Research Playground</h1>
-		<h2>Select experiment and visualization:</h2>
-		<a href="./vector.html">3D Vector data</a>
-		<a href="./vrp_gsom.html">VRP data (GSOM)</a>
-	</main>
-	<footer>
-	    <a href="https://github.com/reinterpretcat/vrp" target="a">Repo</a> |
-	    <a href="https://crates.io/crates/vrp-cli" target="a">Crates</a> |
-	    <a href="https://docs.rs/vrp-core" target="a">Docs</a>
-	</footer>
-    </body>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Heuristic Research Playground: 3D vector data</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./experiment.style.css">
+</head>
+<body>
+<noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+<script src="bootstrap.js"></script>
+<main>
+    <h1>Heuristic Research Playground</h1>
+
+
+    <div class="row">
+        <div class="column">
+            <!-- vertical tabulation with controls -->
+            <div id="controlContainer">
+                <div class="tab-vert">
+                    <button id="functionTabButton" class="tablinks-vert">Function Bench</button>
+                    <button id="vrpTabButton" class="tablinks-vert">VRP Bench</button>
+                </div>
+
+                <div id="vectorTab" class="tabcontent-vert">
+                    <div class="select-wrap">
+                        <label>Function type</label>
+                        <select name="color" style="width: 100%;" id="plot-function">
+                            <option value="rosenbrock">Rosenbrock</option>
+                            <option value="rastrigin">Rastrigin</option>
+                            <option value="himmelblau">Himmelblau</option>
+                            <option value="ackley">Ackley</option>
+                            <option value="matyas">Matyas</option>
+                        </select>
+                    </div>
+
+                    <span style="white-space: nowrap">
+                        <label for="pitch">Pitch: </label>
+                        <input type="range" min="0" max="157" id="pitch" value="10" />
+                    </span>
+                    <span style="white-space: nowrap">
+                        <label for="yaw">Yaw: </label>
+                        <input type="range" min="0" max="314" id="yaw" value="50" />
+                    </span>
+
+                    <div id="coord"></div>
+                </div>
+
+                <div id="vrpTab" class="tabcontent-vert">
+                    <div class="select-wrap">
+                        <label>Format type</label>
+                        <select name="color" style="width: 100%;" id="vrp-format">
+                            <option value="tsplib">TSPLIB95</option>
+                            <option value="solomon">Solomon</option>
+                            <option value="lilim">LiLim</option>
+                            <option value="state">Heuristic State</option>
+                        </select>
+                    </div>
+
+                    <span style="white-space: nowrap">
+                <label for="file-selector">Select file: </label>
+                <input type='file' id="file-selector" accept='.txt,.vrp,.json'>
+            </span>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- experiment params -->
+        <div class="column">
+
+            <div class="select-wrap">
+                <label>Population type</label>
+                <select name="color" style="width: 100%;" id="plot-population">
+                    <option value="rosomaxa">Rosomaxa</option>
+                    <option value="elitism">Elitism</option>
+                    <option value="greedy">Greedy</option>
+                </select>
+            </div>
+
+            <input type="button" id="run" value="Run experiments" />
+
+
+            <div id="status">Loading WebAssembly...</div>
+            <input type="range" min="1" max="1000" id="generations" value="0" class="hide" />
+
+
+        </div>
+    </div>
+
+    <!-- horizontal tabulation with canvases -->
+    <div id="canvasContainer">
+        <div class="tab">
+            <button id="solutionTabButton" class="tablinks")>Solution space</button>
+            <button id="searchTabButton" class="tablinks">Search results</button>
+            <button id="fitnessTabButton" class="tablinks">Fitness</button>
+        </div>
+        <div id="solutionTab" class="tabcontent">
+            <canvas id="solutionCanvas" width="600" height="400"></canvas>
+        </div>
+        <div id="searchTab" class="tabcontent">
+            <canvas id="searchCanvas" width="600" height="200"></canvas>
+        </div>
+        <div id="fitnessTab" class="tabcontent">
+            <canvas id="fitnessCanvas" width="600" height="400"></canvas>
+        </div>
+    </div>
+</main>
+<footer>
+    <a href="https://github.com/reinterpretcat/vrp" target="a">Repo</a> |
+    <a href="https://crates.io/crates/vrp-cli" target="a">Crates</a> |
+    <a href="https://docs.rs/vrp-core" target="a">Docs</a>
+</footer>
+</body>
+<script>
+/*    document.getElementById("controlDefaultOpen").click();
+    document.getElementById("canvasDefaultOpen").click();*/
+</script>
 </html>

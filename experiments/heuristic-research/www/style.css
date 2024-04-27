@@ -30,12 +30,10 @@ footer {
     text-align: center;
 }
 
-.tabContent {
-    max-width: 840px;
-    width: 100%;
-}
 
-/* Style the tab */
+* {box-sizing: border-box}
+
+/* Horizontal Tabs */
 .tab {
     overflow: hidden;
     border: 1px solid #ccc;
@@ -69,4 +67,73 @@ footer {
     padding: 6px 12px;
     border: 1px solid #ccc;
     border-top: none;
+}
+
+/* Vertical Tab */
+
+.tab-vert {
+    float: left;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+    width: 30%;
+    height: 300px;
+}
+
+/* Style the buttons that are used to open the tab content */
+.tab-vert button {
+    display: block;
+    background-color: inherit;
+    color: black;
+    padding: 22px 16px;
+    width: 100%;
+    border: none;
+    outline: none;
+    text-align: left;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+/* Change background color of buttons on hover */
+.tab-vert button:hover {
+    background-color: #ddd;
+}
+
+/* Create an active/current "tab button" class */
+.tab-vert button.active {
+    background-color: #ccc;
+}
+
+/* Style the tab content */
+.tabcontent-vert {
+    float: left;
+    padding: 0px 12px;
+    border: 1px solid #ccc;
+    width: 70%;
+    border-left: none;
+    height: 300px;
+}
+
+/* Select */
+.select-wrap {
+    border: 1px solid #777;
+    border-radius: 4px;
+    padding: 0 5px;
+    width: 140px;
+    background-color:#fff;
+    position:relative;
+}
+.select-wrap label{
+    font-size:8px;
+    text-transform: uppercase;
+    color: #777;
+    padding: 0 8px;
+    position: absolute;
+    top:6px;
+}
+
+select{
+    background-color: #fff;
+    border:0px;
+    height:50px;
+    font-size: 16px;
 }
