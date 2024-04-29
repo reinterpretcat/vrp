@@ -35,7 +35,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
     let x_max = max_values[target_idx] + 0.05 * max_values[target_idx];
 
     let mut chart = ChartBuilder::on(area)
-        .caption("Best fitness", ("sans-serif", (2).percent_height()))
+        //.caption("Best fitness", ("sans-serif", (2).percent_height()))
         .set_label_area_size(LabelAreaPosition::Left, (8).percent())
         .set_label_area_size(LabelAreaPosition::Bottom, (4).percent())
         .margin((1).percent())

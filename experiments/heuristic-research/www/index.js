@@ -4,11 +4,11 @@ const solutionCanvas = document.getElementById("solutionCanvas");
 const searchCanvas = document.getElementById("searchCanvas");
 const fitnessCanvas = document.getElementById("fitnessCanvas");
 
-const coord = document.getElementById("coord");
-const fileSelector = document.getElementById("file-selector");
-const plotPopulation = document.getElementById("plot-population");
-const plotFunction = document.getElementById("plot-function");
-const vrpFormat = document.getElementById("vrp-format");
+const coordLabel = document.getElementById("coordLabel");
+const fileSelector = document.getElementById("fileSelector");
+const plotPopulation = document.getElementById("plotPopulation");
+const plotFunction = document.getElementById("plotFunction");
+const vrpFormat = document.getElementById("vrpFormat");
 const pitch = document.getElementById("pitch");
 const yaw = document.getElementById("yaw");
 const status = document.getElementById("status");
@@ -55,23 +55,23 @@ function setupUI() {
 
     // setup vertical tabs buttons
     document.getElementById("functionTabButton").addEventListener("click", function(evt) {
-        openTab(evt, 'controlContainer', 'vectorTab', '-vert');
+        openTab(evt, 'controlTab', 'vectorTab', '-vert');
         changePlot();
     });
     document.getElementById("vrpTabButton").addEventListener("click", function(evt) {
-        openTab(evt, 'controlContainer', 'vrpTab', '-vert');
+        openTab(evt, 'controlTab', 'vrpTab', '-vert');
         changePlot();
     });
 
     // setup horizontal tab buttons
     document.getElementById("solutionTabButton").addEventListener("click", function(evt) {
-        openTab(evt, 'canvasContainer', 'solutionTab', '');
+        openTab(evt, 'canvasTab', 'solutionTab', '');
     });
     document.getElementById("searchTabButton").addEventListener("click", function(evt) {
-        openTab(evt, 'canvasContainer', 'searchTab', '');
+        openTab(evt, 'canvasTab', 'searchTab', '');
     });
     document.getElementById("fitnessTabButton").addEventListener("click", function(evt) {
-        openTab(evt, 'canvasContainer', 'fitnessTab', '');
+        openTab(evt, 'canvasTab', 'fitnessTab', '');
     });
 
     // open default tabs
@@ -122,7 +122,7 @@ function updateDynamicPlots(run) {
     let population_type = plotPopulation.selectedOptions[0].value;
     let heuristic_kind = "best";
 
-    coord.innerText = `Pitch:${pitch_value}, Yaw:${yaw_value}`
+    coordLabel.innerText = `Rotation: pitch=${pitch_value}, yaw=${yaw_value}`
 
     // TODO configure parameters from outside
     let max_gen = 2000
@@ -208,10 +208,9 @@ function updateDynamicPlots(run) {
     if (run) {
         generations.max = max_gen;
         generations.classList.remove("hide");
-        status.innerText = `Generation: ${generation_value} in ${Math.ceil(end - start)}ms`;
-    } else {
-        status.innerText = `Plots loaded in ${Math.ceil(end - start)}ms`;
     }
+
+    status.innerText = `Generation: ${generation_value} rendered in ${Math.ceil(end - start)}ms`;
 }
 
 function updateStaticPlots() {

@@ -19,7 +19,7 @@ pub(crate) fn draw_search<B: DrawingBackend + 'static>(
     let mut chart = ChartBuilder::on(area)
         .set_label_area_size(LabelAreaPosition::Left, 40)
         .set_label_area_size(LabelAreaPosition::Bottom, 40)
-        .caption("Search data", ("sans-serif", 16))
+        //.caption("Search data", ("sans-serif", 16))
         .build_cartesian_2d(0.0..max_x, (0..max_y).into_segmented())?;
 
     chart.configure_mesh().draw()?;

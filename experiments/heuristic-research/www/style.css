@@ -30,6 +30,49 @@ footer {
     text-align: center;
 }
 
+label, #coordLabel, #status {
+    color: grey;
+    font-size: 10px;
+    height: 15px
+}
+
+
+#run {
+    display: block;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.hide {
+    visibility: hidden;
+    height: 0px;
+}
+
+.row {
+    display: flex;
+    width: 840px;
+}
+
+.column {
+    flex: 50%;
+    padding: 8px;
+}
+
+.block {
+    display: block;
+    width: 100%;
+    border: none;
+    background-color: #00b7e4;
+    padding: 14px 28px;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: center;
+}
+
+/* Change background color of buttons on hover */
+.block:hover {
+    background-color: #0ecfff;
+}
 
 * {box-sizing: border-box}
 
@@ -76,7 +119,7 @@ footer {
     border: 1px solid #ccc;
     background-color: #f1f1f1;
     width: 30%;
-    height: 300px;
+    height: 200px;
 }
 
 /* Style the buttons that are used to open the tab content */
@@ -105,12 +148,16 @@ footer {
 
 /* Style the tab content */
 .tabcontent-vert {
+    padding: 8px;
     float: left;
-    padding: 0px 12px;
     border: 1px solid #ccc;
     width: 70%;
     border-left: none;
-    height: 300px;
+    height: 200px;
+}
+
+#commonControls {
+    padding: 16px;
 }
 
 /* Select */
@@ -136,4 +183,26 @@ select{
     border:0px;
     height:50px;
     font-size: 16px;
+}
+
+/* file uploader */
+
+.input-container {
+    border: 1px solid #e5e5e5;
+}
+
+input[type=file]::file-selector-button {
+    background-color: #00b7e4;
+    color: #000;
+    border: 0px;
+    border-right: 1px solid #e5e5e5;
+    padding: 10px 15px;
+    margin-right: 20px;
+    transition: .5s;
+}
+
+input[type=file]::file-selector-button:hover {
+    background-color: #0ecfff;
+    border: 0px;
+    border-right: 1px solid #e5e5e5;
 }
