@@ -2,7 +2,7 @@ use super::*;
 use rosomaxa::prelude::compare_floats_refs;
 
 /// Draws search state as bar plot.
-pub(crate) fn draw_search<B: DrawingBackend + 'static>(
+pub(crate) fn draw_search_iteration<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
     fitness_config: &SearchDrawConfig,
 ) -> DrawResult<()> {

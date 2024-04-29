@@ -201,7 +201,7 @@ function updateDynamicPlots(run) {
         }
     }
 
-    Chart.search_estimations( searchCanvas, generation_value, heuristic_kind);
+    Chart.search_iteration(searchCanvas, generation_value, heuristic_kind);
 
     const end = performance.now();
 

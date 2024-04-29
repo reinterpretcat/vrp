@@ -82,8 +82,8 @@ impl Chart {
     }
 
     /// Draws plot for search estimations.
-    pub fn search_estimations(canvas: HtmlCanvasElement, generation: usize, kind: &str) -> Result<(), JsValue> {
-        draw_search_plots(get_canvas_drawing_area(canvas), generation, kind)
+    pub fn search_iteration(canvas: HtmlCanvasElement, generation: usize, kind: &str) -> Result<(), JsValue> {
+        draw_search_iteration_plots(get_canvas_drawing_area(canvas), generation, kind)
             .map_err(|err| JsValue::from_str(&err.to_string()))
     }
 }
@@ -111,13 +111,13 @@ pub fn draw_fitness_plots<B: DrawingBackend + 'static>(
     draw_fitness(area, FitnessDrawConfig { labels, fitness, target_idx }).map_err(|err| err.to_string().into())
 }
 
-pub fn draw_search_plots<B: DrawingBackend + 'static>(
+pub fn draw_search_iteration_plots<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
     generation: usize,
     kind: &str,
 ) -> Result<(), GenericError> {
     let config = get_search_config(generation, kind);
-    draw_search(area, config).map_err(|err| err.to_string().into())
+    draw_search_iteration(area, config).map_err(|err| err.to_string().into())
 }
 
 /// Draws population plots on given area.

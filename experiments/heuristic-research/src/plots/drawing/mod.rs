@@ -37,9 +37,9 @@ pub fn draw_fitness<B: DrawingBackend + 'static>(
     self::draw_fitness::draw_on_area(&area, &fitness_config)
 }
 
-pub fn draw_search<B: DrawingBackend + 'static>(
+pub fn draw_search_iteration<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
     heuristic_config: SearchDrawConfig,
 ) -> DrawResult<()> {
-    self::draw_search::draw_search(&area, &heuristic_config)
+    self::draw_search::draw_search_iteration(&area, &heuristic_config)
 }
