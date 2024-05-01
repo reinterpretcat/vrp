@@ -1,25 +1,46 @@
 use super::*;
 use rosomaxa::prelude::compare_floats_refs;
 
-/// Draws search state as bar plot.
+const TOP_SIZE: usize = 25;
+
+/// Draws search iteration statistics as bar plot.
 pub(crate) fn draw_search_iteration<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
     fitness_config: &SearchDrawConfig,
 ) -> DrawResult<()> {
-    area.fill(&WHITE)?;
+    let (labels, data): (Vec<_>, Vec<_>) = fitness_config.estimations.iter().cloned().unzip();
 
-    let labels = &fitness_config.labels;
-    let data = &fitness_config.estimations;
+    draw_bar_plot(area, labels.as_slice(), data.as_slice())
+}
+
+/// Draws search best known statistic as bar plot.
+pub(crate) fn draw_search_best_statistics<B: DrawingBackend + 'static>(
+    area: &DrawingArea<B, Shift>,
+    fitness_config: &SearchDrawConfig,
+) -> DrawResult<()> {
+    let mut statistics = fitness_config.statistics.clone();
+    statistics.sort_by(|(_, a), (_, b)| b.cmp(a));
+
+    let (labels, data): (Vec<String>, Vec<f64>) =
+        statistics.into_iter().take(TOP_SIZE).map(|(label, data)| (label, data as f64)).unzip();
+
+    draw_bar_plot(area, labels.as_slice(), data.as_slice())
+}
+
+fn draw_bar_plot<B: DrawingBackend + 'static>(
+    area: &DrawingArea<B, Shift>,
+    labels: &[String],
+    data: &[f64],
+) -> DrawResult<()> {
+    area.fill(&WHITE)?;
 
     let max_x = data.iter().copied().max_by(compare_floats_refs).unwrap_or(1.);
     let max_y = data.len() - 1;
     // TODO: improve font size detection
-    let font_size = if max_y < 20 { 16 } else { 8 };
+    let font_size = if max_y < TOP_SIZE { 16 } else { 6 };
 
     let mut chart = ChartBuilder::on(area)
-        .set_label_area_size(LabelAreaPosition::Left, 40)
         .set_label_area_size(LabelAreaPosition::Bottom, 40)
-        //.caption("Search data", ("sans-serif", 16))
         .build_cartesian_2d(0.0..max_x, (0..max_y).into_segmented())?;
 
     chart.configure_mesh().draw()?;

@@ -22,12 +22,7 @@ vrp-scientific.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
-plotters = { version = "0.3.5", default-features = false, features = [
-    "bitmap_backend",
-    "bitmap_encoder",
-    "image",
-    "all_series",
-] }
+plotters = "0.3.5"
 plotters-canvas = "0.3.0"
 itertools = "0.11.0"
 wasm-bindgen = "0.2.92"

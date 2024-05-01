@@ -90,6 +90,7 @@
         <div class="tab">
             <button id="solutionTabButton" class="tablinks")>Solution Space</button>
             <button id="searchTabButton" class="tablinks">Search Iteration</button>
+            <button id="bestTabButton" class="tablinks">Best Statistic</button>
             <button id="fitnessTabButton" class="tablinks">Best Fitness</button>
         </div>
         <div id="solutionTab" class="tabcontent">
@@ -97,6 +98,9 @@
         </div>
         <div id="searchTab" class="tabcontent">
             <canvas id="searchCanvas" width="600" height="200"></canvas>
+        </div>
+        <div id="bestTab" class="tabcontent">
+            <canvas id="bestCanvas" width="600" height="400"></canvas>
         </div>
         <div id="fitnessTab" class="tabcontent">
             <canvas id="fitnessCanvas" width="600" height="400"></canvas>
@@ -109,8 +113,4 @@
     <a href="https://docs.rs/vrp-core" target="a">Docs</a>
 </footer>
 </body>
-<script>
-/*    document.getElementById("controlDefaultOpen").click();
-    document.getElementById("canvasDefaultOpen").click();*/
-</script>
 </html>

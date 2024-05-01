@@ -15,7 +15,9 @@ use std::sync::{Arc, Mutex};
 use wasm_bindgen::prelude::*;
 
 mod plots;
-pub use self::plots::{draw_fitness_plots, draw_population_plots, draw_search_iteration_plots, Axes};
+pub use self::plots::{
+    draw_fitness_plots, draw_population_plots, draw_search_best_statistics_plots, draw_search_iteration_plots, Axes,
+};
 
 mod solver;
 pub use self::solver::{solve_function, solve_vrp};

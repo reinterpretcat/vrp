@@ -29,15 +29,19 @@ fn main() {
     };
 
     let generation = 100;
+
     let pitch = 0.;
     let yaw = 0.;
-    let area = BitMapBackend::new("population_plots.png", (1024, 768)).into_drawing_area();
+    let area = BitMapBackend::new("population_plots.png", (800, 400)).into_drawing_area();
     draw_population_plots(area, generation, pitch, yaw, axes, function_name).unwrap();
 
-    let area = BitMapBackend::new("fitness_plot.png", (1024, 768)).into_drawing_area();
+    let area = BitMapBackend::new("fitness_plot.png", (800, 400)).into_drawing_area();
     draw_fitness_plots(area, function_name).unwrap();
 
-    let area = BitMapBackend::new("heuristic_plot.png", (1024, 768)).into_drawing_area();
+    let area = BitMapBackend::new("search_best_plot.png", (800, 400)).into_drawing_area();
+    draw_search_best_statistics_plots(area, generation, "best").unwrap();
+
+    let area = BitMapBackend::new("search_iteration_plot.png", (800, 400)).into_drawing_area();
     draw_search_iteration_plots(area, generation, "best").unwrap();
 
     save_state("heuristic_state.json");

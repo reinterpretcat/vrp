@@ -2,6 +2,7 @@ class Chart {}
 
 const solutionCanvas = document.getElementById("solutionCanvas");
 const searchCanvas = document.getElementById("searchCanvas");
+const bestCanvas = document.getElementById("bestCanvas");
 const fitnessCanvas = document.getElementById("fitnessCanvas");
 
 const coordLabel = document.getElementById("coordLabel");
@@ -20,6 +21,7 @@ export function main() {
     setupUI();
     setupCanvas(solutionCanvas, 800);
     setupCanvas(searchCanvas, 800);
+    setupCanvas(bestCanvas, 800);
     setupCanvas(fitnessCanvas, 800);
 
     updateDynamicPlots();
@@ -69,6 +71,9 @@ function setupUI() {
     });
     document.getElementById("searchTabButton").addEventListener("click", function(evt) {
         openTab(evt, 'canvasTab', 'searchTab', '');
+    });
+    document.getElementById("bestTabButton").addEventListener("click", function(evt) {
+        openTab(evt, 'canvasTab', 'bestTab', '');
     });
     document.getElementById("fitnessTabButton").addEventListener("click", function(evt) {
         openTab(evt, 'canvasTab', 'fitnessTab', '');
@@ -202,6 +207,7 @@ function updateDynamicPlots(run) {
     }
 
     Chart.search_iteration(searchCanvas, generation_value, heuristic_kind);
+    Chart.search_best_statistics(bestCanvas, generation_value, heuristic_kind);
 
     const end = performance.now();
 

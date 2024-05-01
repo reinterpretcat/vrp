@@ -86,6 +86,12 @@ impl Chart {
         draw_search_iteration_plots(get_canvas_drawing_area(canvas), generation, kind)
             .map_err(|err| JsValue::from_str(&err.to_string()))
     }
+
+    /// Draws plot for best statistics.
+    pub fn search_best_statistics(canvas: HtmlCanvasElement, generation: usize, kind: &str) -> Result<(), JsValue> {
+        draw_search_best_statistics_plots(get_canvas_drawing_area(canvas), generation, kind)
+            .map_err(|err| JsValue::from_str(&err.to_string()))
+    }
 }
 
 /// Draws fitness plot on given area.
@@ -116,8 +122,15 @@ pub fn draw_search_iteration_plots<B: DrawingBackend + 'static>(
     generation: usize,
     kind: &str,
 ) -> Result<(), GenericError> {
-    let config = get_search_config(generation, kind);
-    draw_search_iteration(area, config).map_err(|err| err.to_string().into())
+    draw_search_iteration(area, get_search_config(generation, kind)).map_err(|err| err.to_string().into())
+}
+
+pub fn draw_search_best_statistics_plots<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
+    generation: usize,
+    kind: &str,
+) -> Result<(), GenericError> {
+    draw_search_best_statistics(area, get_search_config(generation, kind)).map_err(|err| err.to_string().into())
 }
 
 /// Draws population plots on given area.
@@ -206,7 +219,7 @@ fn get_solution_points(generation: usize) -> Vec<ColoredDataPoint3D> {
         .unwrap_or_default()
 }
 
-fn get_search_config(generation: usize, _kind: &str) -> SearchDrawConfig {
+fn get_search_config(generation: usize, kind: &str) -> SearchDrawConfig {
     EXPERIMENT_DATA
         .lock()
         .ok()
@@ -214,21 +227,41 @@ fn get_search_config(generation: usize, _kind: &str) -> SearchDrawConfig {
             let names_rev = data.heuristic_state.names.iter().map(|(k, v)| (*v, k)).collect::<HashMap<_, _>>();
             let _states_rev = data.heuristic_state.states.iter().map(|(k, v)| (*v, k)).collect::<HashMap<_, _>>();
 
-            let unzip_sorted = |mut data: Vec<(String, f64)>| -> (Vec<String>, Vec<f64>) {
-                data.sort_by(|a, b| a.0.cmp(&b.0));
-                data.into_iter().unzip()
-            };
+            // get statistics how often the best solution was found by specific heuristic till current generation
+            let statistics = if let Some(best_state_idx) = data.heuristic_state.states.get(kind) {
+                (0..generation).fold(vec![0; names_rev.len()], |mut acc, gen| {
+                    let gen_idx = gen + 1;
+
+                    data.heuristic_state
+                        .search_states
+                        .get(&gen_idx)
+                        .iter()
+                        .flat_map(|states| states.iter())
+                        .filter(|SearchResult(_, _, (_, to_state_idx), _)| to_state_idx == best_state_idx)
+                        .map(|SearchResult(name_idx, ..)| *name_idx)
+                        .for_each(|name_idx| {
+                            acc[name_idx] += 1;
+                        });
+
+                    acc
+                })
+            } else {
+                vec![0; names_rev.len()]
+            }
+            .into_iter()
+            .enumerate()
+            .map(|(name_idx, hits)| (names_rev.get(&name_idx).unwrap().to_string(), hits))
+            .collect();
 
             data.heuristic_state.search_states.get(&generation).map(|states| {
-                let data = states
+                let estimations = states
                     .iter()
                     // NOTE: just show all transitions
                     //.filter(|SearchResult(_, _, (_, to_idx), _)| states_rev.get(to_idx).unwrap().as_str() == kind)
                     .map(|SearchResult(name_idx, reward, _, _)| (names_rev.get(name_idx).unwrap().to_string(), *reward))
                     .collect::<Vec<_>>();
-                let (labels, estimations) = unzip_sorted(data);
 
-                SearchDrawConfig { labels, estimations }
+                SearchDrawConfig { estimations, statistics }
             })
         })
         .unwrap_or_default()

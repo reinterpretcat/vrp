@@ -15,14 +15,14 @@ pub fn draw_population<B: DrawingBackend + 'static>(
 
     match (&population_config.series, solution_config) {
         (PopulationSeries::Unknown, Some(solution_config)) => {
-            self::draw_solution::draw_on_area(&area, &solution_config)?;
+            draw_solution::draw_on_area(&area, &solution_config)?;
         }
         (PopulationSeries::Rosomaxa { .. }, Some(solution_config)) => {
             let (left, right) = area.split_horizontally(50.percent_width());
-            self::draw_solution::draw_on_area(&left, &solution_config)?;
-            self::draw_population::draw_on_area(&right, &population_config)?;
+            draw_solution::draw_on_area(&left, &solution_config)?;
+            draw_population::draw_on_area(&right, &population_config)?;
         }
-        _ => self::draw_population::draw_on_area(&area, &population_config)?,
+        _ => draw_population::draw_on_area(&area, &population_config)?,
     }
 
     area.present()?;
@@ -34,12 +34,19 @@ pub fn draw_fitness<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
     fitness_config: FitnessDrawConfig,
 ) -> DrawResult<()> {
-    self::draw_fitness::draw_on_area(&area, &fitness_config)
+    draw_fitness::draw_on_area(&area, &fitness_config)
 }
 
 pub fn draw_search_iteration<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
     heuristic_config: SearchDrawConfig,
 ) -> DrawResult<()> {
-    self::draw_search::draw_search_iteration(&area, &heuristic_config)
+    draw_search::draw_search_iteration(&area, &heuristic_config)
+}
+
+pub fn draw_search_best_statistics<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
+    heuristic_config: SearchDrawConfig,
+) -> DrawResult<()> {
+    draw_search::draw_search_best_statistics(&area, &heuristic_config)
 }

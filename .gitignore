@@ -17,3 +17,7 @@ target
 *.pyc
 __pycache__
 .venv
+
+# ignore files from heuristic playground
+*.png
+heuristic_state.json

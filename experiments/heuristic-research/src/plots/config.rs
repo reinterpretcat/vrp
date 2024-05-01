@@ -93,17 +93,17 @@ pub struct FitnessDrawConfig {
     /// Objective values for each generation.
     pub fitness: Vec<(usize, Vec<f64>)>,
     /// The most variable objective to be used to initialize axis.
-    /// Typically it is the cost (or distance/duration) minimization.
+    /// Typically, it is the cost (or distance/duration) minimization.
     pub target_idx: usize,
 }
 
 /// /// Specifies drawing configuration for search results.
 #[derive(Default)]
 pub struct SearchDrawConfig {
-    /// Heuristic labels.
-    pub labels: Vec<String>,
-    /// Actual estimations.
-    pub estimations: Vec<f64>,
+    /// Actual estimations with respective labels.
+    pub estimations: Vec<(String, f64)>,
+    /// Amount of discovered best known solutions with respective label.
+    pub statistics: Vec<(String, usize)>,
 }
 
 /// A series configuration.
