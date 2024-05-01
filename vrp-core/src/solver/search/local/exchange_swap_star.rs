@@ -9,8 +9,8 @@ use crate::utils::Either;
 use hashbrown::{HashMap, HashSet};
 use rand::seq::SliceRandom;
 use rosomaxa::utils::*;
+use std::cell::RefCell;
 use std::iter::once;
-use std::sync::RwLock;
 
 /// Implements a SWAP* algorithm described in "Hybrid Genetic Search for the CVRP:
 /// Open-Source Implementation and SWAP* Neighborhood" by Thibaut Vidal.
@@ -103,7 +103,7 @@ fn create_route_pairs(insertion_ctx: &InsertionContext, route_pairs_threshold: u
 
     if random.is_hit(0.1) { None } else { group_routes_by_proximity(insertion_ctx) }
         .map(|route_groups_distances| {
-            let used_indices = RwLock::new(HashSet::<(usize, usize)>::new());
+            let used_indices = RefCell::new(HashSet::<(usize, usize)>::new());
             let distances = route_groups_distances
                 .into_iter()
                 .enumerate()
@@ -114,12 +114,12 @@ fn create_route_pairs(insertion_ctx: &InsertionContext, route_pairs_threshold: u
                         .iter()
                         .cloned()
                         .filter(|(inner_idx, _)| {
-                            let used_indices = used_indices.read().unwrap();
+                            let used_indices = used_indices.borrow();
                             !used_indices.contains(&(outer_idx, *inner_idx))
                                 && !used_indices.contains(&(*inner_idx, outer_idx))
                         })
                         .map(|(inner_idx, _)| {
-                            let mut used_indices = used_indices.write().unwrap();
+                            let mut used_indices = used_indices.borrow_mut();
                             used_indices.insert((outer_idx, inner_idx));
                             used_indices.insert((inner_idx, outer_idx));
                             inner_idx

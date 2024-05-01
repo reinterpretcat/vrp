@@ -113,7 +113,6 @@ mod sampling_search {
     use super::*;
     use crate::Environment;
     use std::cell::RefCell;
-    use std::sync::RwLock;
 
     #[derive(Clone, Debug, Default)]
     struct DataType {
@@ -146,9 +145,9 @@ mod sampling_search {
 
         let mut results = (0..100)
             .map(|_| {
-                let counter = RwLock::new(0);
+                let mut counter = 0;
                 let map_fn = |item: &DataType| {
-                    *counter.write().unwrap() += 1;
+                    counter += 1;
                     item.clone()
                 };
                 let compare_fn = get_result_comparer(target);
@@ -159,8 +158,8 @@ mod sampling_search {
                     .sample_search(sample_size, random.clone(), map_fn, |item| item.idx, compare_fn)
                     .unwrap()
                     .idx;
-                let count = *counter.read().unwrap();
-                (idx, count)
+
+                (idx, counter)
             })
             .collect::<Vec<_>>();
 

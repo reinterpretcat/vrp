@@ -1,8 +1,7 @@
 use super::*;
 use crate::format::problem::*;
+use std::cell::RefCell;
 use std::ops::Range;
-use std::rc::Rc;
-use std::sync::RwLock;
 
 /// Generate relations.
 pub fn generate_relations(
@@ -11,7 +10,7 @@ pub fn generate_relations(
     total_relations: Range<usize>,
     jobs_per_relation: Range<usize>,
 ) -> impl Strategy<Value = Vec<Relation>> {
-    let job_ids = Rc::new(RwLock::new(get_job_ids(jobs)));
+    let job_ids = get_job_ids(jobs);
     let vehicle_ids = get_vehicle_ids(vehicles);
 
     // NOTE this is done to reduce rejections by proptest
@@ -32,11 +31,12 @@ pub fn generate_relations(
 }
 
 fn generate_relation(
-    job_ids: Rc<RwLock<Vec<String>>>,
+    job_ids: Vec<String>,
     vehicles: Vec<String>,
     jobs_per_relation: Range<usize>,
 ) -> impl Strategy<Value = Relation> {
     let vehicle_count = vehicles.len();
+    let job_ids = RefCell::new(job_ids);
 
     get_relation_type()
         .prop_flat_map(move |relation_type| (Just(relation_type), 0..vehicle_count))
@@ -45,8 +45,8 @@ fn generate_relation(
             (Just(relation_type), Just(vehicle_id), jobs_per_relation.clone())
         })
         .prop_map(move |(relation_type, vehicle_id, job_count)| {
-            let len = job_count.min(job_ids.read().unwrap().len());
-            let jobs = if job_count > 0 { job_ids.write().unwrap().drain(0..len).collect::<Vec<_>>() } else { vec![] };
+            let len = job_count.min(job_ids.borrow().len());
+            let jobs = if job_count > 0 { job_ids.borrow_mut().drain(0..len).collect::<Vec<_>>() } else { vec![] };
 
             Relation { type_field: relation_type, jobs, vehicle_id, shift_index: None }
         })

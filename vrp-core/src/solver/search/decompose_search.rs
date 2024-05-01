@@ -9,9 +9,9 @@ use crate::solver::*;
 use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
 use rosomaxa::utils::parallel_into_collect;
+use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::iter::{empty, once};
-use std::sync::RwLock;
 
 /// A search operator which decomposes original solution into multiple partial solutions,
 /// preforms search independently, and then merges partial solution back into one solution.
@@ -127,11 +127,11 @@ fn create_multiple_insertion_contexts(
     let max = if insertion_ctx.solution.routes.len() < 4 { 2 } else { max };
 
     // identify route groups and create contexts from them
-    let used_indices = RwLock::new(HashSet::new());
+    let used_indices = RefCell::new(HashSet::new());
     let insertion_ctxs = route_groups_distances
         .iter()
         .enumerate()
-        .filter(|(outer_idx, _)| !used_indices.read().unwrap().contains(outer_idx))
+        .filter(|(outer_idx, _)| !used_indices.borrow().contains(outer_idx))
         .map(|(outer_idx, route_group_distance)| {
             let group_size = environment.random.uniform_int(min, max) as usize;
             let route_group = once(outer_idx)
@@ -139,14 +139,14 @@ fn create_multiple_insertion_contexts(
                     route_group_distance
                         .iter()
                         .cloned()
-                        .filter(|(inner_idx, _)| !used_indices.read().unwrap().contains(inner_idx))
+                        .filter(|(inner_idx, _)| !used_indices.borrow().contains(inner_idx))
                         .map(|(inner_idx, _)| inner_idx),
                 )
                 .take(group_size)
                 .collect::<HashSet<_>>();
 
             route_group.iter().for_each(|idx| {
-                used_indices.write().unwrap().insert(*idx);
+                used_indices.borrow_mut().insert(*idx);
             });
 
             create_partial_insertion_ctx(insertion_ctx, environment.clone(), route_group)
