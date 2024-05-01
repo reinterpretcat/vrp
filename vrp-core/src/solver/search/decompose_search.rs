@@ -138,16 +138,14 @@ fn create_multiple_insertion_contexts(
                 .chain(
                     route_group_distance
                         .iter()
-                        .cloned()
                         .filter(|(inner_idx, _)| !used_indices.borrow().contains(inner_idx))
-                        .map(|(inner_idx, _)| inner_idx),
+                        .map(|(inner_idx, _)| inner_idx)
+                        .cloned(),
                 )
                 .take(group_size)
                 .collect::<HashSet<_>>();
 
-            route_group.iter().for_each(|idx| {
-                used_indices.borrow_mut().insert(*idx);
-            });
+            used_indices.borrow_mut().extend(route_group.iter().cloned());
 
             create_partial_insertion_ctx(insertion_ctx, environment.clone(), route_group)
         })
