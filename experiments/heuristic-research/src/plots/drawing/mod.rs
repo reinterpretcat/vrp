@@ -50,3 +50,10 @@ pub fn draw_search_best_statistics<B: DrawingBackend + 'static>(
 ) -> DrawResult<()> {
     draw_search::draw_search_best_statistics(&area, &heuristic_config)
 }
+
+pub fn draw_search_overall_statistics<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
+    heuristic_config: SearchDrawConfig,
+) -> DrawResult<()> {
+    draw_search::draw_search_overall_statistics(&area, &heuristic_config)
+}

@@ -102,8 +102,10 @@ pub struct FitnessDrawConfig {
 pub struct SearchDrawConfig {
     /// Actual estimations with respective labels.
     pub estimations: Vec<(String, f64)>,
-    /// Amount of discovered best known solutions with respective label.
-    pub statistics: Vec<(String, usize)>,
+    /// Number of discovered best known solutions with the respective label.
+    pub best: Vec<(String, usize)>,
+    /// Overall calls of specific heuristics.
+    pub overall: Vec<(String, usize)>,
 }
 
 /// A series configuration.

@@ -2,6 +2,7 @@ class Chart {}
 
 const solutionCanvas = document.getElementById("solutionCanvas");
 const searchCanvas = document.getElementById("searchCanvas");
+const overallCanvas = document.getElementById("overallCanvas");
 const bestCanvas = document.getElementById("bestCanvas");
 const fitnessCanvas = document.getElementById("fitnessCanvas");
 
@@ -21,6 +22,7 @@ export function main() {
     setupUI();
     setupCanvas(solutionCanvas, 800);
     setupCanvas(searchCanvas, 800);
+    setupCanvas(overallCanvas, 800);
     setupCanvas(bestCanvas, 800);
     setupCanvas(fitnessCanvas, 800);
 
@@ -56,27 +58,17 @@ function setupUI() {
     window.addEventListener("resize", setupCanvas);
 
     // setup vertical tabs buttons
-    document.getElementById("functionTabButton").addEventListener("click", function(evt) {
-        openTab(evt, 'controlTab', 'vectorTab', '-vert');
-        changePlot();
-    });
-    document.getElementById("vrpTabButton").addEventListener("click", function(evt) {
-        openTab(evt, 'controlTab', 'vrpTab', '-vert');
-        changePlot();
+    ['function', 'vrp'].forEach(function(type) {
+        document.getElementById(type + 'TabButton').addEventListener("click", function(evt) {
+            openTab(evt, 'controlTab', type + 'Tab', '-vert');
+        });
     });
 
     // setup horizontal tab buttons
-    document.getElementById("solutionTabButton").addEventListener("click", function(evt) {
-        openTab(evt, 'canvasTab', 'solutionTab', '');
-    });
-    document.getElementById("searchTabButton").addEventListener("click", function(evt) {
-        openTab(evt, 'canvasTab', 'searchTab', '');
-    });
-    document.getElementById("bestTabButton").addEventListener("click", function(evt) {
-        openTab(evt, 'canvasTab', 'bestTab', '');
-    });
-    document.getElementById("fitnessTabButton").addEventListener("click", function(evt) {
-        openTab(evt, 'canvasTab', 'fitnessTab', '');
+    ['solution', 'search', 'overall', 'best', 'fitness'].forEach(function(type) {
+        document.getElementById(type + 'TabButton').addEventListener("click", function(evt) {
+            openTab(evt, 'canvasTab', type + 'Tab', '');
+        });
     });
 
     // open default tabs
@@ -207,6 +199,7 @@ function updateDynamicPlots(run) {
     }
 
     Chart.search_iteration(searchCanvas, generation_value, heuristic_kind);
+    Chart.search_overall_statistics(overallCanvas, generation_value, heuristic_kind);
     Chart.search_best_statistics(bestCanvas, generation_value, heuristic_kind);
 
     const end = performance.now();

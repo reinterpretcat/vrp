@@ -20,7 +20,7 @@
                 <button id="vrpTabButton" class="tablinks-vert">VRP Bench</button>
             </div>
 
-            <div id="vectorTab" class="tabcontent-vert">
+            <div id="functionTab" class="tabcontent-vert">
                 <div class="select-wrap">
                     <label>Function type</label>
                     <select name="color" style="width: 100%;" id="plotFunction">
@@ -90,6 +90,7 @@
         <div class="tab">
             <button id="solutionTabButton" class="tablinks")>Solution Space</button>
             <button id="searchTabButton" class="tablinks">Search Iteration</button>
+            <button id="overallTabButton" class="tablinks">Overall Statistic</button>
             <button id="bestTabButton" class="tablinks">Best Statistic</button>
             <button id="fitnessTabButton" class="tablinks">Best Fitness</button>
         </div>
@@ -101,6 +102,9 @@
         </div>
         <div id="bestTab" class="tabcontent">
             <canvas id="bestCanvas" width="600" height="400"></canvas>
+        </div>
+        <div id="overallTab" class="tabcontent">
+            <canvas id="overallCanvas" width="600" height="400"></canvas>
         </div>
         <div id="fitnessTab" class="tabcontent">
             <canvas id="fitnessCanvas" width="600" height="400"></canvas>

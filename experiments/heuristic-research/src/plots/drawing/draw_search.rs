@@ -18,7 +18,23 @@ pub(crate) fn draw_search_best_statistics<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
     fitness_config: &SearchDrawConfig,
 ) -> DrawResult<()> {
-    let mut statistics = fitness_config.statistics.clone();
+    draw_search_statistics(area, fitness_config.best.as_slice())
+}
+
+/// Draws search overall statistic as bar plot.
+pub(crate) fn draw_search_overall_statistics<B: DrawingBackend + 'static>(
+    area: &DrawingArea<B, Shift>,
+    fitness_config: &SearchDrawConfig,
+) -> DrawResult<()> {
+    draw_search_statistics(area, fitness_config.overall.as_slice())
+}
+
+fn draw_search_statistics<B: DrawingBackend + 'static>(
+    area: &DrawingArea<B, Shift>,
+    statistics: &[(String, usize)],
+) -> DrawResult<()> {
+    let mut statistics = statistics.iter().cloned().collect::<Vec<_>>();
+
     statistics.sort_by(|(_, a), (_, b)| b.cmp(a));
 
     let (labels, data): (Vec<String>, Vec<f64>) =
