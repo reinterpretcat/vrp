@@ -10,6 +10,7 @@ use std::sync::Arc;
 /// A mutation operator which performs search in infeasible space.
 pub struct InfeasibleSearch {
     inner_search: TargetSearchOperator,
+    recovery_operator: Arc<dyn Recreate + Send + Sync>,
     repeat_count: usize,
     shuffle_objectives_probability: (f64, f64),
     skip_constraint_check_probability: (f64, f64),
@@ -19,11 +20,18 @@ impl InfeasibleSearch {
     /// Creates a new instance of `InfeasibleSearch`.
     pub fn new(
         inner_search: TargetSearchOperator,
+        recovery_operator: Arc<dyn Recreate + Send + Sync>,
         repeat_count: usize,
         shuffle_objectives_probability: (f64, f64),
         skip_constraint_check_probability: (f64, f64),
     ) -> Self {
-        Self { inner_search, repeat_count, shuffle_objectives_probability, skip_constraint_check_probability }
+        Self {
+            inner_search,
+            recovery_operator,
+            repeat_count,
+            shuffle_objectives_probability,
+            skip_constraint_check_probability,
+        }
     }
 }
 
@@ -59,9 +67,12 @@ impl HeuristicSearchOperator for InfeasibleSearch {
 
         let new_insertion_ctx = get_best_or_random_individual(&new_refinement_ctx, insertion_ctx);
 
-        repair_solution_from_unknown(new_insertion_ctx, &|| {
+        let new_insertion_ctx = repair_solution_from_unknown(new_insertion_ctx, &|| {
             InsertionContext::new(insertion_ctx.problem.clone(), insertion_ctx.environment.clone())
-        })
+        });
+
+        // NOTE: give a chance to rearrange unassigned jobs
+        self.recovery_operator.run(refinement_ctx, new_insertion_ctx)
     }
 }
 

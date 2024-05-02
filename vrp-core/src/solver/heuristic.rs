@@ -400,13 +400,14 @@ fn create_diversify_operators(
         Arc::new(WeightedHeuristicOperator::new(
             vec![
                 dynamic::create_default_inner_ruin_recreate(problem, environment.clone()),
-                dynamic::create_default_local_search(environment.random.clone()),
+                dynamic::create_default_local_search(random.clone()),
             ],
             vec![10, 1],
         )),
+        Arc::new(RecreateWithCheapest::new(random)),
         2,
         (0.05, 0.2),
-        (0.05, 0.33),
+        (0.33, 0.75),
     ));
     let local_search = Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
         vec![(Arc::new(ExchangeSequence::new(8, 0.5, 0.1)), 1)],
