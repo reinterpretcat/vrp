@@ -33,7 +33,7 @@ fn draw_search_statistics<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
     statistics: &[(String, usize)],
 ) -> DrawResult<()> {
-    let mut statistics = statistics.iter().cloned().collect::<Vec<_>>();
+    let mut statistics = statistics.to_vec();
 
     statistics.sort_by(|(_, a), (_, b)| b.cmp(a));
 

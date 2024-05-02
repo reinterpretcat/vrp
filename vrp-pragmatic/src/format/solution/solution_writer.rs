@@ -308,8 +308,8 @@ fn create_tour(
             }
         });
 
-    tour.vehicle_id = vehicle.dimens.get_vehicle_id().unwrap().clone();
-    tour.type_id = vehicle.dimens.get_vehicle_type().unwrap().clone();
+    tour.vehicle_id.clone_from(vehicle.dimens.get_vehicle_id().unwrap());
+    tour.type_id.clone_from(vehicle.dimens.get_vehicle_type().unwrap());
 
     tour
 }

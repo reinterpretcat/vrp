@@ -350,13 +350,6 @@ fn get_population_series(generation: usize) -> PopulationSeries {
 }
 
 fn get_axis_sizes() -> (f64, f64, f64) {
-    #[derive(Serialize)]
-    struct Axis {
-        pub x: f64,
-        pub y: f64,
-        pub z: f64,
-    }
-
     EXPERIMENT_DATA.lock().unwrap().on_generation.iter().fold((0_f64, 0_f64, 0_f64), |acc, (_, (_, data))| {
         data.iter().fold(acc, |(max_x, max_y, max_z), data| {
             let &DataPoint3D(x, y, z) = match data {

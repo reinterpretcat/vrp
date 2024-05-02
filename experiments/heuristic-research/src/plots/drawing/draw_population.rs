@@ -162,7 +162,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                 // draw local optimum markers
                 rows.clone()
                     .cartesian_product(cols.clone())
-                    .filter(|&(x, y)| (series[0].matrix_fn)().get(&Coordinate(x, y)).is_some())
+                    .filter(|&(x, y)| (series[0].matrix_fn)().contains_key(&Coordinate(x, y)))
                     .filter(|&(x, y)| {
                         get_neighbours(x, y)
                             .map(|coordinate| to_relation(&Coordinate(x, y), &coordinate))
