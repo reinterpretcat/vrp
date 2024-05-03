@@ -4,14 +4,13 @@ use crate::models::problem::Job;
 use crate::models::*;
 use crate::solver::*;
 use rosomaxa::population::Shuffled;
-use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// A mutation operator which performs search in infeasible space.
 pub struct InfeasibleSearch {
     inner_search: TargetSearchOperator,
     recovery_operator: Arc<dyn Recreate + Send + Sync>,
-    repeat_count: usize,
+    max_repeat_count: usize,
     shuffle_objectives_probability: (f64, f64),
     skip_constraint_check_probability: (f64, f64),
 }
@@ -21,17 +20,33 @@ impl InfeasibleSearch {
     pub fn new(
         inner_search: TargetSearchOperator,
         recovery_operator: Arc<dyn Recreate + Send + Sync>,
-        repeat_count: usize,
+        max_repeat_count: usize,
         shuffle_objectives_probability: (f64, f64),
         skip_constraint_check_probability: (f64, f64),
     ) -> Self {
         Self {
             inner_search,
             recovery_operator,
-            repeat_count,
+            max_repeat_count,
             shuffle_objectives_probability,
             skip_constraint_check_probability,
         }
+    }
+
+    fn recover_individual(
+        &self,
+        orig_refinement_ctx: &RefinementContext,
+        new_insertion_ctx: InsertionContext,
+    ) -> InsertionContext {
+        let new_insertion_ctx = repair_solution_from_unknown(&new_insertion_ctx, &|| {
+            InsertionContext::new(orig_refinement_ctx.problem.clone(), orig_refinement_ctx.environment.clone())
+        });
+
+        // NOTE: give a chance to rearrange unassigned jobs
+        let mut new_insertion_ctx = self.recovery_operator.run(orig_refinement_ctx, new_insertion_ctx);
+        finalize_insertion_ctx(&mut new_insertion_ctx);
+
+        new_insertion_ctx
     }
 }
 
@@ -51,7 +66,7 @@ impl HeuristicSearchOperator for InfeasibleSearch {
         );
         let mut new_refinement_ctx = create_relaxed_refinement_ctx(&new_insertion_ctx);
 
-        let repeat_count = refinement_ctx.environment.random.uniform_int(1, self.repeat_count as i32);
+        let repeat_count = refinement_ctx.environment.random.uniform_int(1, self.max_repeat_count as i32);
 
         let mut initial = Some(new_insertion_ctx);
         for _ in 0..repeat_count {
@@ -62,17 +77,13 @@ impl HeuristicSearchOperator for InfeasibleSearch {
                 self.inner_search.search(&new_refinement_ctx, get_random_individual(&new_refinement_ctx))
             };
 
-            new_refinement_ctx.add_solution(new_insertion_ctx);
+            new_refinement_ctx.add_solution(self.recover_individual(refinement_ctx, new_insertion_ctx));
         }
 
-        let new_insertion_ctx = get_best_or_random_individual(&new_refinement_ctx, insertion_ctx);
+        let insertion_ctx =
+            new_refinement_ctx.ranked().map(|(s, _)| s.deep_copy()).next().unwrap_or_else(|| solution.deep_copy());
 
-        let new_insertion_ctx = repair_solution_from_unknown(new_insertion_ctx, &|| {
-            InsertionContext::new(insertion_ctx.problem.clone(), insertion_ctx.environment.clone())
-        });
-
-        // NOTE: give a chance to rearrange unassigned jobs
-        self.recovery_operator.run(refinement_ctx, new_insertion_ctx)
+        insertion_ctx
     }
 }
 
@@ -141,19 +152,6 @@ fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionCo
     let skip = new_refinement_ctx.environment.random.uniform_int(0, selected.len() as i32 - 1) as usize;
 
     selected.get(skip).expect("no individual")
-}
-
-fn get_best_or_random_individual<'a>(
-    new_refinement_ctx: &'a RefinementContext,
-    old_insertion_ctx: &InsertionContext,
-) -> &'a InsertionContext {
-    let new_insertion_ctx = new_refinement_ctx.selected().next().expect("no individual");
-
-    if new_refinement_ctx.problem.goal.total_order(new_insertion_ctx, old_insertion_ctx) == Ordering::Less {
-        new_insertion_ctx
-    } else {
-        get_random_individual(new_refinement_ctx)
-    }
 }
 
 struct StochasticFeatureConstraint {

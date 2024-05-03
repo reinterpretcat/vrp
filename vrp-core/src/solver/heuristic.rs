@@ -405,7 +405,7 @@ fn create_diversify_operators(
             vec![10, 1],
         )),
         Arc::new(RecreateWithCheapest::new(random)),
-        2,
+        4,
         (0.05, 0.2),
         (0.33, 0.75),
     ));

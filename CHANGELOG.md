@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 * increase limits for ruin methods
 * tweak rosomaxa algorithm
 * tweak job index
+* tweak infeasible search heuristic
 
 
 ## [v1.23.0]- 2023-12-22
