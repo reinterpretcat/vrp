@@ -323,7 +323,7 @@ fn can_restore_solution_impl(
     add_routes(&mut insertion_ctx, routes);
     problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 
-    let result = repair_solution_from_unknown(&insertion_ctx, &|| {
+    let result = repair_solution_from_unknown(&insertion_ctx, || {
         InsertionContext::new(insertion_ctx.problem.clone(), insertion_ctx.environment.clone())
     });
 

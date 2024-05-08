@@ -161,6 +161,11 @@ impl Tour {
         self.activities.last().map(|_| self.activities.len() - 1)
     }
 
+    /// Reverses activities of the tour in the given range (inclusive)
+    pub fn reverse(&mut self, start: usize, end: usize) {
+        self.activities[start..=end].reverse()
+    }
+
     /// Checks whether job is present in tour
     pub fn contains(&self, job: &Job) -> bool {
         self.jobs.contains(job)

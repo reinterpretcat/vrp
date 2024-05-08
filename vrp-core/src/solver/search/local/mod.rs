@@ -6,6 +6,9 @@ use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
+mod exchange_2opt;
+pub use self::exchange_2opt::*;
+
 mod exchange_inter_route;
 pub use self::exchange_inter_route::*;
 

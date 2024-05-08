@@ -38,7 +38,7 @@ impl InfeasibleSearch {
         orig_refinement_ctx: &RefinementContext,
         new_insertion_ctx: InsertionContext,
     ) -> InsertionContext {
-        let new_insertion_ctx = repair_solution_from_unknown(&new_insertion_ctx, &|| {
+        let new_insertion_ctx = repair_solution_from_unknown(&new_insertion_ctx, || {
             InsertionContext::new(orig_refinement_ctx.problem.clone(), orig_refinement_ctx.environment.clone())
         });
 

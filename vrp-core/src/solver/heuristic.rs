@@ -504,6 +504,7 @@ mod statik {
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
             vec![
                 (Arc::new(ExchangeSwapStar::new(random, SINGLE_HEURISTIC_QUOTA_LIMIT)), 200),
+                (Arc::new(ExchangeTwoOpt::default()), 100),
                 (Arc::new(ExchangeInterRouteBest::default()), 100),
                 (Arc::new(ExchangeSequence::default()), 100),
                 (Arc::new(ExchangeInterRouteRandom::default()), 30),
@@ -598,6 +599,7 @@ mod dynamic {
                 "local_reschedule_departure".to_string(),
                 1.,
             ),
+            (Arc::new(LocalSearch::new(Arc::new(ExchangeTwoOpt::default()))), "two_opt".to_string(), 2.),
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(
                     environment.random.clone(),
