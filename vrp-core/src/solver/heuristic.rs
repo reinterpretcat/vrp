@@ -554,23 +554,21 @@ mod dynamic {
     fn get_ruins(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
-        normal_limits: RemovalLimits,
+        limits: RemovalLimits,
     ) -> Vec<(Arc<dyn Ruin + Send + Sync>, String, f64)> {
         vec![
-            (Arc::new(AdjustedStringRemoval::new_with_defaults(normal_limits.clone())), "asr".to_string(), 2.),
-            (Arc::new(NeighbourRemoval::new(normal_limits.clone())), "neighbour_removal".to_string(), 5.),
+            (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), "asr".to_string(), 2.),
+            (Arc::new(NeighbourRemoval::new(limits.clone())), "neighbour_removal".to_string(), 5.),
             (
                 Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment)),
                 "cluster_removal".to_string(),
                 4.,
             ),
-            (Arc::new(WorstJobRemoval::new(4, normal_limits.clone())), "worst_job".to_string(), 4.),
-            (Arc::new(RandomJobRemoval::new(normal_limits.clone())), "random_job_removal_1".to_string(), 2.),
-            // TODO use different limits
-            (Arc::new(RandomJobRemoval::new(normal_limits.clone())), "random_job_removal_2".to_string(), 4.),
-            (Arc::new(RandomRouteRemoval::new(normal_limits.clone())), "random_route_removal".to_string(), 2.),
-            (Arc::new(CloseRouteRemoval::new(normal_limits.clone())), "close_route_removal".to_string(), 4.),
-            (Arc::new(WorstRouteRemoval::new(normal_limits)), "worst_route_removal".to_string(), 5.),
+            (Arc::new(WorstJobRemoval::new(4, limits.clone())), "worst_job".to_string(), 4.),
+            (Arc::new(RandomJobRemoval::new(limits.clone())), "random_job_removal".to_string(), 4.),
+            (Arc::new(RandomRouteRemoval::new(limits.clone())), "random_route_removal".to_string(), 2.),
+            (Arc::new(CloseRouteRemoval::new(limits.clone())), "close_route_removal".to_string(), 4.),
+            (Arc::new(WorstRouteRemoval::new(limits)), "worst_route_removal".to_string(), 5.),
         ]
     }
 
