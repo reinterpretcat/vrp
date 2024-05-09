@@ -555,20 +555,21 @@ mod dynamic {
         problem: Arc<Problem>,
         environment: Arc<Environment>,
         limits: RemovalLimits,
+        prefix: &str,
     ) -> Vec<(Arc<dyn Ruin + Send + Sync>, String, f64)> {
         vec![
-            (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), "asr".to_string(), 2.),
-            (Arc::new(NeighbourRemoval::new(limits.clone())), "neighbour_removal".to_string(), 5.),
+            (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), format!("{prefix}_asr"), 2.),
+            (Arc::new(NeighbourRemoval::new(limits.clone())), format!("{prefix}_neighbour_removal"), 5.),
             (
                 Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment)),
-                "cluster_removal".to_string(),
+                format!("{prefix}_cluster_removal"),
                 4.,
             ),
-            (Arc::new(WorstJobRemoval::new(4, limits.clone())), "worst_job".to_string(), 4.),
-            (Arc::new(RandomJobRemoval::new(limits.clone())), "random_job_removal".to_string(), 4.),
-            (Arc::new(RandomRouteRemoval::new(limits.clone())), "random_route_removal".to_string(), 2.),
-            (Arc::new(CloseRouteRemoval::new(limits.clone())), "close_route_removal".to_string(), 4.),
-            (Arc::new(WorstRouteRemoval::new(limits)), "worst_route_removal".to_string(), 5.),
+            (Arc::new(WorstJobRemoval::new(4, limits.clone())), format!("{prefix}_worst_job"), 4.),
+            (Arc::new(RandomJobRemoval::new(limits.clone())), format!("{prefix}_random_job_removal"), 4.),
+            (Arc::new(RandomRouteRemoval::new(limits.clone())), format!("{prefix}_random_route_removal"), 2.),
+            (Arc::new(CloseRouteRemoval::new(limits.clone())), format!("{prefix}_close_route_removal"), 4.),
+            (Arc::new(WorstRouteRemoval::new(limits)), format!("{prefix}_worst_route_removal"), 5.),
         ]
     }
 
@@ -633,7 +634,10 @@ mod dynamic {
         // NOTE: consider checking usage of names within heuristic filter before changing them
 
         let recreates = get_recreates(problem.as_ref(), random.clone());
-        let ruins = get_ruins(problem.clone(), environment.clone(), normal_limits.clone());
+        let ruins = get_ruins(problem.clone(), environment.clone(), normal_limits.clone(), "normal")
+            .into_iter()
+            .chain(get_ruins(problem.clone(), environment.clone(), small_limits.clone(), "small").into_iter())
+            .collect::<Vec<_>>();
 
         let extra_random_job = Arc::new(RandomJobRemoval::new(small_limits));
 

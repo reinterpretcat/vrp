@@ -44,8 +44,10 @@ pub struct CloseRouteRemoval {
 
 impl CloseRouteRemoval {
     /// Creates a new instance of `CloseRouteRemoval`.
-    pub fn new(limits: RemovalLimits) -> Self {
-        assert!(limits.affected_routes_range.start > 1);
+    pub fn new(mut limits: RemovalLimits) -> Self {
+        limits.affected_routes_range.start = limits.affected_routes_range.start.max(2);
+        limits.affected_routes_range.end = limits.affected_routes_range.end.max(3);
+
         Self { limits }
     }
 }
