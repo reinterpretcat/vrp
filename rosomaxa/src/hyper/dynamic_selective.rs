@@ -396,7 +396,9 @@ where
     median_ratio * improvement_ratio
 }
 
-/// Returns distance in [-1., 1] where sign specifies whether a solution is better (positive) or worse (negative).
+/// Returns distance in `[-N., N]` where:
+///  - N: in range `[1, total amount of objectives]`
+///  - sign specifies whether a solution is better (positive) or worse (negative).
 fn get_relative_distance<O, S>(objective: &O, a: &S, b: &S) -> f64
 where
     O: HeuristicObjective<Solution = S>,
@@ -410,7 +412,9 @@ where
         Ordering::Equal => return 0.,
     };
 
-    let idx = (0..objective.size()).find(|idx| {
+    let total_objectives = objective.size();
+
+    let idx = (0..total_objectives).find(|idx| {
         let distance = objective.get_distance(a, b, *idx).expect("cannot get distance by idx");
         compare_floats(distance, 0.) != Ordering::Equal
     });
@@ -423,12 +427,18 @@ where
         return 0.;
     };
 
-    a.fitness()
+    assert_ne!(total_objectives, 0, "cannot have empty objective here");
+    assert_ne!(total_objectives, idx, "cannot have index equal to total amount of objectives");
+    let priority_amplifier = (total_objectives - idx) as f64;
+
+    let value = a
+        .fitness()
         .nth(idx)
         .zip(b.fitness().nth(idx))
         .map(|(a, b)| (a - b).abs() / a.abs().max(b.abs()))
-        .expect("cannot get fitness by idx")
-        * sign
+        .expect("cannot get fitness by idx");
+
+    value * sign * priority_amplifier
 }
 
 /// Sample of search telemetry.
