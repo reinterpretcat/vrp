@@ -636,7 +636,7 @@ mod dynamic {
         let recreates = get_recreates(problem.as_ref(), random.clone());
         let ruins = get_ruins(problem.clone(), environment.clone(), normal_limits.clone(), "normal")
             .into_iter()
-            .chain(get_ruins(problem.clone(), environment.clone(), small_limits.clone(), "small").into_iter())
+            .chain(get_ruins(problem.clone(), environment.clone(), small_limits.clone(), "small"))
             .collect::<Vec<_>>();
 
         let extra_random_job = Arc::new(RandomJobRemoval::new(small_limits));
