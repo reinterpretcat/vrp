@@ -24,7 +24,7 @@ serde_json.workspace = true
 
 plotters = "0.3.5"
 plotters-canvas = "0.3.0"
-itertools = "0.11.0"
+itertools = "0.13.0"
 wasm-bindgen = "0.2.92"
 web-sys = { version = "0.3.69", features = ["HtmlCanvasElement", "console"] }
 lazy_static = "1.4.0"

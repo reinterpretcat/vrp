@@ -357,7 +357,7 @@ fn get_cost_between_locations(
         // NOTE this happens if matrix uses negative values as a marker of unreachable location
         UNREACHABLE_COST
     } else {
-        (distance * costs.per_distance + duration * costs.per_driving_time) as f32
+        (distance * costs.per_distance + duration * costs.per_driving_time) as LowPrecisionCost
     }
 }
 
