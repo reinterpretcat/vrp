@@ -41,6 +41,9 @@ fn main() {
     let area = BitMapBackend::new("search_best_plot.png", (800, 400)).into_drawing_area();
     draw_search_best_statistics_plots(area, generation, "best").unwrap();
 
+    let area = BitMapBackend::new("search_duration_plot.png", (800, 400)).into_drawing_area();
+    draw_search_duration_statistics_plots(area, generation, "best").unwrap();
+
     let area = BitMapBackend::new("search_overall_plot.png", (800, 400)).into_drawing_area();
     draw_search_overall_statistics_plots(area, generation, "best").unwrap();
 

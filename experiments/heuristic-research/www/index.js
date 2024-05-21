@@ -65,7 +65,7 @@ function setupUI() {
     });
 
     // setup horizontal tab buttons
-    ['solution', 'search', 'overall', 'best', 'fitness'].forEach(function(type) {
+    ['solution', 'search', 'overall', 'best', 'duration', 'fitness'].forEach(function(type) {
         document.getElementById(type + 'TabButton').addEventListener("click", function(evt) {
             openTab(evt, 'canvasTab', type + 'Tab', '');
         });
@@ -199,8 +199,9 @@ function updateDynamicPlots(run) {
     }
 
     Chart.search_iteration(searchCanvas, generation_value, heuristic_kind);
-    Chart.search_overall_statistics(overallCanvas, generation_value, heuristic_kind);
     Chart.search_best_statistics(bestCanvas, generation_value, heuristic_kind);
+    Chart.search_duration_statistics(durationCanvas, generation_value, heuristic_kind);
+    Chart.search_overall_statistics(overallCanvas, generation_value, heuristic_kind);
 
     const end = performance.now();
 

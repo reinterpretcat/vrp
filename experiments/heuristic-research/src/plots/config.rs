@@ -106,6 +106,8 @@ pub struct SearchDrawConfig {
     pub best: Vec<(String, usize)>,
     /// Overall calls of specific heuristics.
     pub overall: Vec<(String, usize)>,
+    /// Actual durations with respective labels.
+    pub durations: Vec<(String, usize)>,
 }
 
 /// A series configuration.

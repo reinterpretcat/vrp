@@ -21,6 +21,14 @@ pub(crate) fn draw_search_best_statistics<B: DrawingBackend + 'static>(
     draw_search_statistics(area, fitness_config.best.as_slice())
 }
 
+/// Draws search durations statistic as bar plot.
+pub(crate) fn draw_search_duration_statistics<B: DrawingBackend + 'static>(
+    area: &DrawingArea<B, Shift>,
+    fitness_config: &SearchDrawConfig,
+) -> DrawResult<()> {
+    draw_search_statistics(area, fitness_config.durations.as_slice())
+}
+
 /// Draws search overall statistic as bar plot.
 pub(crate) fn draw_search_overall_statistics<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,

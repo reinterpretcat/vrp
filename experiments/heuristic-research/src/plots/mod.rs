@@ -93,6 +93,12 @@ impl Chart {
             .map_err(|err| JsValue::from_str(&err.to_string()))
     }
 
+    /// Draws plot for duration statistics.
+    pub fn search_duration_statistics(canvas: HtmlCanvasElement, generation: usize, kind: &str) -> Result<(), JsValue> {
+        draw_search_duration_statistics_plots(get_canvas_drawing_area(canvas), generation, kind)
+            .map_err(|err| JsValue::from_str(&err.to_string()))
+    }
+
     /// Draws plot for overall statistics.
     pub fn search_overall_statistics(canvas: HtmlCanvasElement, generation: usize, kind: &str) -> Result<(), JsValue> {
         draw_search_overall_statistics_plots(get_canvas_drawing_area(canvas), generation, kind)
@@ -120,7 +126,7 @@ pub fn draw_fitness_plots<B: DrawingBackend + 'static>(
         (vec!["y".to_string()], 0)
     };
 
-    draw_fitness(area, FitnessDrawConfig { labels, fitness, target_idx }).map_err(|err| err.to_string().into())
+    draw_fitness(area, FitnessDrawConfig { labels, fitness, target_idx }).map_err(From::from)
 }
 
 pub fn draw_search_iteration_plots<B: DrawingBackend + 'static>(
@@ -128,7 +134,7 @@ pub fn draw_search_iteration_plots<B: DrawingBackend + 'static>(
     generation: usize,
     kind: &str,
 ) -> Result<(), GenericError> {
-    draw_search_iteration(area, get_search_config(generation, kind)).map_err(|err| err.to_string().into())
+    draw_search_iteration(area, get_search_config(generation, kind)).map_err(From::from)
 }
 
 pub fn draw_search_best_statistics_plots<B: DrawingBackend + 'static>(
@@ -136,7 +142,15 @@ pub fn draw_search_best_statistics_plots<B: DrawingBackend + 'static>(
     generation: usize,
     kind: &str,
 ) -> Result<(), GenericError> {
-    draw_search_best_statistics(area, get_search_config(generation, kind)).map_err(|err| err.to_string().into())
+    draw_search_best_statistics(area, get_search_config(generation, kind)).map_err(From::from)
+}
+
+pub fn draw_search_duration_statistics_plots<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
+    generation: usize,
+    kind: &str,
+) -> Result<(), GenericError> {
+    draw_search_duration_statistics(area, get_search_config(generation, kind)).map_err(From::from)
 }
 
 pub fn draw_search_overall_statistics_plots<B: DrawingBackend + 'static>(
@@ -144,7 +158,7 @@ pub fn draw_search_overall_statistics_plots<B: DrawingBackend + 'static>(
     generation: usize,
     kind: &str,
 ) -> Result<(), GenericError> {
-    draw_search_overall_statistics(area, get_search_config(generation, kind)).map_err(|err| err.to_string().into())
+    draw_search_overall_statistics(area, get_search_config(generation, kind)).map_err(From::from)
 }
 
 /// Draws population plots on given area.
@@ -186,7 +200,7 @@ pub fn draw_population_plots<B: DrawingBackend + 'static>(
             })
         },
     )
-    .map_err(|err| err.to_string().into())
+    .map_err(From::from)
 }
 
 fn get_canvas_drawing_area(canvas: HtmlCanvasElement) -> DrawingArea<CanvasBackend, Shift> {
@@ -260,30 +274,69 @@ fn get_search_config(generation: usize, kind: &str) -> SearchDrawConfig {
                             &names_rev,
                             generation,
                             |SearchResult(_, _, (_, to_state_idx), _)| to_state_idx == best_state_idx,
+                            |acc, SearchResult(name_idx, ..)| {
+                                acc[*name_idx] += 1;
+                            },
                         )
                     })
                     .unwrap_or_default();
 
-                let overall =
-                    get_search_statistics(&data.heuristic_state.search_states, &names_rev, generation, |_| true);
+                let overall = get_search_statistics(
+                    &data.heuristic_state.search_states,
+                    &names_rev,
+                    generation,
+                    |_| true,
+                    |acc, SearchResult(name_idx, ..)| {
+                        acc[*name_idx] += 1;
+                    },
+                );
 
-                SearchDrawConfig { estimations, best, overall }
+                // get average durations
+                let durations = data
+                    .heuristic_state
+                    .states
+                    .get(kind)
+                    // get a sum of all durations
+                    .map(|best_state_idx| {
+                        get_search_statistics(
+                            &data.heuristic_state.search_states,
+                            &names_rev,
+                            generation,
+                            |SearchResult(_, _, (_, to_state_idx), _)| to_state_idx == best_state_idx,
+                            |acc: &mut Vec<(usize, usize)>, SearchResult(name_idx, _, _, duration)| {
+                                let (total, count) = (acc[*name_idx].0, acc[*name_idx].1);
+                                acc[*name_idx] = (total + *duration, count + 1);
+                            },
+                        )
+                    })
+                    // calculate average
+                    .map(|data| {
+                        data.into_iter()
+                            .map(|(name, (total, count))| (name, total.checked_div(count).unwrap_or_default()))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+
+                SearchDrawConfig { estimations, best, overall, durations }
             })
         })
         .unwrap_or_default()
 }
 
-fn get_search_statistics<F>(
+fn get_search_statistics<T, FF, AF>(
     search_states: &HashMap<usize, Vec<SearchResult>>,
     names_rev: &HashMap<usize, &String>,
     generation: usize,
-    filter_fn: F,
-) -> Vec<(String, usize)>
+    filter_fn: FF,
+    aggregate_fn: AF,
+) -> Vec<(String, T)>
 where
-    F: Fn(&SearchResult) -> bool,
+    T: Clone + Default,
+    FF: Fn(&SearchResult) -> bool,
+    AF: Fn(&mut Vec<T>, &SearchResult) -> (),
 {
     (0..generation)
-        .fold(vec![0; names_rev.len()], |mut acc, gen| {
+        .fold(vec![T::default(); names_rev.len()], |mut acc, gen| {
             let gen_idx = gen + 1;
 
             search_states
@@ -291,16 +344,15 @@ where
                 .iter()
                 .flat_map(|states| states.iter())
                 .filter(|&item| filter_fn(item))
-                .map(|SearchResult(name_idx, ..)| *name_idx)
-                .for_each(|name_idx| {
-                    acc[name_idx] += 1;
+                .for_each(|result| {
+                    aggregate_fn(&mut acc, result);
                 });
 
             acc
         })
         .into_iter()
         .enumerate()
-        .map(|(name_idx, hits)| (names_rev.get(&name_idx).unwrap().to_string(), hits))
+        .map(|(name_idx, value)| (names_rev.get(&name_idx).unwrap().to_string(), value))
         .collect()
 }
 

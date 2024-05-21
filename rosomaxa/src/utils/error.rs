@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::hash::{Hash, Hasher};
 
 /// A basic error type which, essentially, a wrapper on String type.
@@ -28,6 +29,12 @@ impl From<String> for GenericError {
 
 impl<'a> From<&'a str> for GenericError {
     fn from(value: &'a str) -> Self {
+        Self(value.to_string())
+    }
+}
+
+impl From<Box<dyn std::error::Error>> for GenericError {
+    fn from(value: Box<dyn Error>) -> Self {
         Self(value.to_string())
     }
 }
