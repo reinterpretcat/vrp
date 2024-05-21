@@ -1,4 +1,5 @@
 use super::*;
+use plotters::style::full_palette::BLUE_200;
 use rosomaxa::prelude::compare_floats_refs;
 
 const TOP_SIZE: usize = 25;
@@ -70,7 +71,8 @@ fn draw_bar_plot<B: DrawingBackend + 'static>(
     chart.configure_mesh().draw()?;
 
     chart.draw_series((0..).zip(data.iter()).map(|(y, x)| {
-        let mut bar = Rectangle::new([(0.0, SegmentValue::Exact(y)), (*x, SegmentValue::Exact(y + 1))], RED.filled());
+        let mut bar =
+            Rectangle::new([(0.0, SegmentValue::Exact(y)), (*x, SegmentValue::Exact(y + 1))], BLUE_200.filled());
         bar.set_margin(2, 2, 0, 0);
         bar
     }))?;
