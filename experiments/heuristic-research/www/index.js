@@ -30,6 +30,19 @@ export function main() {
 
     updateDynamicPlots();
     updateStaticPlots();
+
+    document.addEventListener('keydown', function(event) {
+        switch (event.key) {
+            case "ArrowLeft":
+                generations.value = Math.max(parseInt(generations.value) - 1, parseInt(generations.min));
+                updatePlots();
+                break;
+            case "ArrowRight":
+                generations.value = Math.min(parseInt(generations.value) + 1, parseInt(generations.max));
+                updatePlots();
+                break;
+        }
+    });
 }
 
 /** This function is used in `vector.bootstrap.js` to setup imports. */
