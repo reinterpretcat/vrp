@@ -291,31 +291,21 @@ fn get_search_config(generation: usize, kind: &str) -> SearchDrawConfig {
                     },
                 );
 
-                // get average durations
-                let durations = data
-                    .heuristic_state
-                    .states
-                    .get(kind)
-                    // get a sum of all durations
-                    .map(|best_state_idx| {
-                        get_search_statistics(
-                            &data.heuristic_state.search_states,
-                            &names_rev,
-                            generation,
-                            |SearchResult(_, _, (_, to_state_idx), _)| to_state_idx == best_state_idx,
-                            |acc: &mut Vec<(usize, usize)>, SearchResult(name_idx, _, _, duration)| {
-                                let (total, count) = (acc[*name_idx].0, acc[*name_idx].1);
-                                acc[*name_idx] = (total + *duration, count + 1);
-                            },
-                        )
-                    })
-                    // calculate average
-                    .map(|data| {
-                        data.into_iter()
-                            .map(|(name, (total, count))| (name, total.checked_div(count).unwrap_or_default()))
-                            .collect()
-                    })
-                    .unwrap_or_default();
+                // get duration averages for all states
+                let durations = get_search_statistics(
+                    &data.heuristic_state.search_states,
+                    &names_rev,
+                    generation,
+                    |_| true,
+                    |acc: &mut Vec<(usize, usize)>, SearchResult(name_idx, _, _, duration)| {
+                        let (total, count) = (acc[*name_idx].0, acc[*name_idx].1);
+                        acc[*name_idx] = (total + *duration, count + 1);
+                    },
+                )
+                // calculate average
+                .into_iter()
+                .map(|(name, (total, count))| (name, total.checked_div(count).unwrap_or_default()))
+                .collect();
 
                 SearchDrawConfig { estimations, best, overall, durations }
             })

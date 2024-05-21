@@ -4,6 +4,7 @@ const solutionCanvas = document.getElementById("solutionCanvas");
 const searchCanvas = document.getElementById("searchCanvas");
 const overallCanvas = document.getElementById("overallCanvas");
 const bestCanvas = document.getElementById("bestCanvas");
+const durationCanvas = document.getElementById("durationCanvas");
 const fitnessCanvas = document.getElementById("fitnessCanvas");
 
 const coordLabel = document.getElementById("coordLabel");
@@ -24,6 +25,7 @@ export function main() {
     setupCanvas(searchCanvas, 800);
     setupCanvas(overallCanvas, 800);
     setupCanvas(bestCanvas, 800);
+    setupCanvas(durationCanvas, 800);
     setupCanvas(fitnessCanvas, 800);
 
     updateDynamicPlots();
