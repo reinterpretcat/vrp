@@ -20,7 +20,7 @@ const generations = document.getElementById("generations");
 
 /** Main entry point */
 export function main() {
-    setupUI();
+    setupListeners();
     setupCanvas(solutionCanvas, 800);
     setupCanvas(searchCanvas, 800);
     setupCanvas(overallCanvas, 800);
@@ -30,19 +30,6 @@ export function main() {
 
     updateDynamicPlots();
     updateStaticPlots();
-
-    document.addEventListener('keydown', function(event) {
-        switch (event.key) {
-            case "ArrowLeft":
-                generations.value = Math.max(parseInt(generations.value) - 1, parseInt(generations.min));
-                updatePlots();
-                break;
-            case "ArrowRight":
-                generations.value = Math.min(parseInt(generations.value) + 1, parseInt(generations.max));
-                updatePlots();
-                break;
-        }
-    });
 }
 
 /** This function is used in `vector.bootstrap.js` to setup imports. */
@@ -55,7 +42,7 @@ export function setup(WasmChart, run_function_experiment, run_vrp_experiment, lo
 }
 
 /** Add event listeners. */
-function setupUI() {
+function setupListeners() {
     status.innerText = "WebAssembly loaded!";
     fileSelector.addEventListener("change", openFile);
     plotFunction.addEventListener("change", changePlot);
@@ -89,6 +76,20 @@ function setupUI() {
     // open default tabs
     document.getElementById("functionTabButton").click();
     document.getElementById("solutionTabButton").click();
+
+    // allow to control generation range using left-right arrows
+    document.addEventListener('keydown', function(event) {
+        switch (event.key) {
+            case "ArrowLeft":
+                generations.value = Math.max(parseInt(generations.value) - 1, parseInt(generations.min));
+                updatePlots();
+                break;
+            case "ArrowRight":
+                generations.value = Math.min(parseInt(generations.value) + 1, parseInt(generations.max));
+                updatePlots();
+                break;
+        }
+    });
 }
 
 /** Setup canvas to properly handle high DPI and redraw current plot. */
@@ -272,19 +273,17 @@ function getExperimentType() {
 }
 
 function openTab(evt, containerId, tabId, suffix) {
-    var i, tabcontent, tablinks;
-
-    const container = document.getElementById(containerId)
+    let container = document.getElementById(containerId)
 
     // Get all elements with class="tabcontent" and hide them
-    tabcontent = container.getElementsByClassName("tabcontent" + suffix);
-    for (i = 0; i < tabcontent.length; i++) {
+    let tabcontent = container.getElementsByClassName("tabcontent" + suffix);
+    for (let i = 0; i < tabcontent.length; i++) {
         tabcontent[i].style.display = "none";
     }
 
     // Get all elements with class="tablinks" and remove the class "active"
-    tablinks = container.getElementsByClassName("tablinks" + suffix);
-    for (i = 0; i < tablinks.length; i++) {
+    let tablinks = container.getElementsByClassName("tablinks" + suffix);
+    for (let i = 0; i < tablinks.length; i++) {
         tablinks[i].className = tablinks[i].className.replace(" active", "");
     }
 
