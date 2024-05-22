@@ -270,7 +270,7 @@ pub fn validate_relations(ctx: &ValidationContext) -> Result<(), MultiFormatErro
             check_e1206_relation_has_no_missing_shift_properties(relations, &vehicle_map),
             check_e1207_no_incomplete_relation(ctx, relations),
         ])
-        .map_err(|errors| errors.into())
+        .map_err(From::from)
     } else {
         Ok(())
     }

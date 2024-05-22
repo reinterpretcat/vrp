@@ -133,7 +133,7 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
                 } else {
                     BufReader::new(problem).read_pragmatic()
                 }
-                .map_err(|errs| errs.into())
+                .map_err(From::from)
             })),
             InitSolutionReader(Box::new(move |file, problem| {
                 read_init_pragmatic(BufReader::new(file), problem, random.clone())
@@ -148,9 +148,9 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
             LocationWriter(Box::new(|problem, writer| {
                 let mut writer = writer;
                 deserialize_problem(BufReader::new(problem))
-                    .map_err(|errs| errs.to_string().into())
+                    .map_err(From::from)
                     .and_then(|problem| get_locations_serialized(&problem))
-                    .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(|err| err.to_string().into()))
+                    .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(From::from))
             })),
         ),
     );
@@ -335,8 +335,7 @@ pub fn run_solve(
             let geo_buffer = out_geojson.map(|geojson| create_write_buffer(Some(geojson)));
 
             if is_get_locations_set {
-                locations_writer(problem_file, out_buffer)
-                    .map_err(|err| GenericError::from(format!("cannot get locations '{err}'")))
+                locations_writer(problem_file, out_buffer).map_err(|err| format!("cannot get locations '{err}'").into())
             } else {
                 match problem_reader(problem_file, matrix_files) {
                     Ok(problem) => {

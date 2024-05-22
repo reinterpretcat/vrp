@@ -101,9 +101,8 @@ mod c_interop {
         catch_panic(failure, || {
             let problem = to_string(problem);
             let problem = BufReader::new(problem.as_bytes());
-            let result = deserialize_problem(problem)
-                .map_err(|errs| errs.into())
-                .and_then(|problem| get_locations_serialized(&problem));
+            let result =
+                deserialize_problem(problem).map_err(From::from).and_then(|problem| get_locations_serialized(&problem));
 
             call_back(result, success, failure);
         });
@@ -173,7 +172,7 @@ mod c_interop {
                     Err(MultiFormatError::from(errors1.into_iter().chain(errors2).collect::<Vec<_>>()))
                 }
             }
-            .map_err(|errs| errs.into())
+            .map_err(From::from)
             .map(|_| "[]".to_string());
 
             call_back(result, success, failure);
@@ -197,7 +196,7 @@ mod c_interop {
 
             let result =
                 if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
-                    .map_err(|errs| errs.into())
+                    .map_err(From::from)
                     .and_then(|problem| {
                         read_config(BufReader::new(to_string(config).as_bytes()))
                             .map_err(|err| GenericError::from(serialize_as_config_error(err.to_string().as_str())))
@@ -372,7 +371,7 @@ mod py_interop {
     #[pyfunction]
     fn get_routing_locations(problem: String) -> PyResult<String> {
         deserialize_problem(BufReader::new(problem.as_bytes()))
-            .map_err(|errs| errs.into())
+            .map_err(From::from)
             .and_then(|problem| get_locations_serialized(&problem))
             .map_err(|err| PyOSError::new_err(err.to_string()))
     }
@@ -399,7 +398,7 @@ mod py_interop {
 
         // try solve problem
         if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
-            .map_err(|errs| errs.into())
+            .map_err(From::from)
             .and_then(|problem| {
                 read_config(BufReader::new(config.as_bytes()))
                     .map_err(|err| GenericError::from(serialize_as_config_error(err.to_string().as_str())))

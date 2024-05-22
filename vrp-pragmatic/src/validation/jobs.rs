@@ -191,5 +191,5 @@ pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
         check_e1106_negative_duration(ctx),
         check_e1107_negative_demand(ctx),
     ])
-    .map_err(|errors| errors.into())
+    .map_err(From::from)
 }

@@ -174,7 +174,7 @@ pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), MultiFormatErr
             check_e1606_check_multiple_cost_objectives(&objectives),
             check_e1607_jobs_with_value_but_no_objective(ctx, &objectives),
         ])
-        .map_err(|errors| errors.into())
+        .map_err(From::from)
     } else {
         Ok(())
     }

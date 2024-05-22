@@ -11,7 +11,6 @@ pub trait SolomonSolution<W: Write> {
 
 impl<W: Write, B: Borrow<Solution>> SolomonSolution<W> for B {
     fn write_solomon(&self, writer: &mut BufWriter<W>) -> Result<(), GenericError> {
-        write_text_solution(self.borrow(), writer).map_err(|err| err.to_string())?;
-        Ok(())
+        write_text_solution(self.borrow(), writer).map_err(From::from)
     }
 }

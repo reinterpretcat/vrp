@@ -312,5 +312,5 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError
         check_e1307_vehicle_offset_break_rescheduling(ctx),
         check_e1308_vehicle_reload_resources(ctx),
     ])
-    .map_err(|errors| errors.into())
+    .map_err(From::from)
 }

@@ -126,5 +126,5 @@ pub fn validate_routing(ctx: &ValidationContext) -> Result<(), MultiFormatError>
         check_e1504_index_size_mismatch(ctx),
         check_e1505_profiles_exist(ctx),
     ])
-    .map_err(|errors| errors.into())
+    .map_err(From::from)
 }
