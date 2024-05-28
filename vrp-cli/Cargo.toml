@@ -14,7 +14,6 @@ edition.workspace = true
 [features]
 default = ["vrp-core", "csv-format", "scientific-format"]
 
-async-evolution = ["vrp-core/async-evolution"]
 csv-format = ["csv"]
 scientific-format = ["vrp-scientific"]
 py_bindings = ["dep:pyo3"]

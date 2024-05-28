@@ -11,12 +11,8 @@ homepage.workspace = true
 repository.workspace = true
 edition.workspace = true
 
-[features]
-default = ["rosomaxa"]
-async-evolution = ["rosomaxa/async-evolution"]
-
 [dependencies]
-rosomaxa = { workspace = true, optional = true }
+rosomaxa.workspace = true
 
 rand.workspace = true
 rayon.workspace = true

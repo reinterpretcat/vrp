@@ -4,7 +4,6 @@
 use crate::construction::enablers::*;
 use crate::construction::features::CapacityKeys;
 use crate::construction::heuristics::*;
-use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::models::solution::Route;
 use crate::models::*;
@@ -56,7 +55,6 @@ pub fn create_multi_trip_feature(
     FeatureBuilder::default()
         .with_name(name)
         .with_constraint(MultiTripConstraint::new(capacity_code, policy, multi_trip.clone()))
-        .with_objective(MultiTripObjective::new(multi_trip.clone()))
         .with_state(MultiTripState::new(capacity_code, state_keys, multi_trip))
         .build()
 }
@@ -117,47 +115,6 @@ impl FeatureConstraint for MultiTripConstraint {
 impl MultiTripConstraint {
     fn new(code: ViolationCode, policy: MarkerInsertionPolicy, multi_trip: Arc<dyn MultiTrip + Send + Sync>) -> Self {
         Self { code, policy, multi_trip }
-    }
-}
-
-struct MultiTripObjective {
-    multi_trip: Arc<dyn MultiTrip + Send + Sync>,
-}
-
-impl MultiTripObjective {
-    pub fn new(multi_trip: Arc<dyn MultiTrip + Send + Sync>) -> Self {
-        Self { multi_trip }
-    }
-
-    fn estimate_job(&self, job: &Job) -> Cost {
-        if self.multi_trip.get_route_intervals().is_marker_job(job) {
-            -1.
-        } else {
-            0.
-        }
-    }
-}
-
-impl Objective for MultiTripObjective {
-    type Solution = InsertionContext;
-
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution
-            .solution
-            .routes
-            .iter()
-            .flat_map(|route_ctx| route_ctx.route().tour.jobs())
-            .map(|job| self.estimate_job(job))
-            .sum()
-    }
-}
-
-impl FeatureObjective for MultiTripObjective {
-    fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
-        match move_ctx {
-            MoveContext::Route { job, .. } => self.estimate_job(job),
-            MoveContext::Activity { .. } => 0.,
-        }
     }
 }
 

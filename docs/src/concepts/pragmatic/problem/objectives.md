@@ -8,8 +8,9 @@ of multi objective.
 ## Understanding multi objective structure
 
 A multi objective is defined by `objectives` property which has array of array type and defines some kind of "hierarchical"
-objective function where priority of objectives decreases from first to the last element of outer array. Objectives inside
-the same inner array have the same priority.
+objective function. Here, priority of objectives decreases from first to the last element of outer array. So, these objectives
+are optimized in lexicographical order. Objectives inside the same inner array have the same priority and are processed
+considering Pareto optimality.
 
 
 ## Available objectives
@@ -42,7 +43,9 @@ constraints such as time windows. The objective has the following optional param
 * `minimize-tours`: minimizes total amount of tours present in solution
 * `maximize-tours`: maximizes total amount of tours present in solution
 * `minimize-arrival-time`: prefers solutions where work is finished earlier
-* `fast-service`: prefers solutions when jobs are served early in tours
+* `fast-service`: prefers solutions when jobs are served early in tours. Optional parameter:
+  *  `tolerance`: an objective tolerance specifies how different objective values have to be to consider them different.
+      Relative distance metric is used.
 
 ### Job distribution objectives
 
@@ -74,9 +77,9 @@ There are four work balance objectives available:
 Each objective has optional parameters defined by `option` property:
 * `threshold`: a target coefficient of variation (scale invariant statistical measure of dispersion) value which specifies
 desired minimum balancing level. All values below threshold are considered equal which helps the search algorithm to
-optimize conflicting objectives.
+optimize conflicting objectives. This similar to ε-Constraint Method optimization (in some degree).
 
-It is recommended to set both option values to guide the search towards optimum for conflicting objectives, e.g. cost
+It is recommended to set `threshold` option to guide the search towards optimum for conflicting objectives, e.g. cost
 minimization and any of work balance.
 
 An usage example:

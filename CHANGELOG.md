@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 ### Removed
 
 * GitHub sponsors functionality
+* experimetnal `async-evolution` feature
 
 ### Fixed
 

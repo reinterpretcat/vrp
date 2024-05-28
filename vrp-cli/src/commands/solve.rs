@@ -411,7 +411,7 @@ fn from_cli_parameters(
     let init_size = get_init_size(matches)?;
     let mode = matches.get_one::<String>(SEARCH_MODE_ARG_NAME);
 
-    let builder = create_default_config_builder(problem.clone(), environment.clone(), telemetry_mode.clone())
+    let config = create_default_config_builder(problem.clone(), environment.clone(), telemetry_mode.clone())
         .with_init_solutions(init_solutions, init_size)
         .with_max_generations(max_generations)
         .with_max_time(max_time)
@@ -421,14 +421,9 @@ fn from_cli_parameters(
             get_population(mode, problem.goal.clone(), environment.clone()),
             telemetry_mode,
             environment.clone(),
-        ));
-
-    let config = if cfg!(feature = "async-evolution") && environment.is_experimental {
-        builder.with_strategy(get_async_evolution(problem.clone(), environment.clone())?)
-    } else {
-        builder.with_heuristic(get_heuristic(matches, problem.clone(), environment)?)
-    }
-    .build()?;
+        ))
+        .with_heuristic(get_heuristic(matches, problem.clone(), environment)?)
+        .build()?;
 
     Ok(Solver::new(problem.clone(), config))
 }
@@ -528,39 +523,6 @@ fn get_heuristic(
         Some(name) if name != "default" => Err(format!("unknown heuristic type name: '{name}'").into()),
         _ => Ok(get_default_heuristic(problem, environment)),
     }
-}
-
-#[cfg(feature = "async-evolution")]
-fn get_async_evolution(
-    problem: Arc<Problem>,
-    environment: Arc<Environment>,
-) -> Result<TargetEvolutionStrategy, GenericError> {
-    use vrp_core::rosomaxa::evolution::strategies::{AsyncIterative, AsyncParams};
-
-    let selection_size = get_default_selection_size(environment.as_ref());
-    let actors_size = (selection_size * 2).max(2);
-
-    Ok(Box::new(AsyncIterative::new(
-        AsyncParams { actors_size, channel_buffer: 4, selection_size },
-        1,
-        problem.goal.clone(),
-        Box::new({
-            let problem = problem.clone();
-            let environment = environment.clone();
-            move || get_dynamic_heuristic(problem.clone(), environment.clone())
-        }),
-        Box::new(move |_, population| {
-            RefinementContext::new(problem.clone(), population, TelemetryMode::None, environment.clone())
-        }),
-    )))
-}
-
-#[cfg(not(feature = "async-evolution"))]
-fn get_async_evolution(
-    _problem: Arc<Problem>,
-    _environment: Arc<Environment>,
-) -> Result<TargetEvolutionStrategy, GenericError> {
-    unreachable!()
 }
 
 fn check_pragmatic_solution_with_args(matches: &ArgMatches) -> Result<(), GenericError> {

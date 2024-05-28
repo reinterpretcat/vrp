@@ -11,10 +11,6 @@ homepage.workspace = true
 repository.workspace = true
 edition.workspace = true
 
-[features]
-default = []
-# an experimental asynchronous evolution targeting better performance on multiple CPUs
-async-evolution = ["tokio"]
 
 [dependencies]
 rand.workspace = true
@@ -24,7 +20,6 @@ rand_distr = "0.4.3"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 num_cpus = "1.16.0"
-tokio = { version= "1.37.0", features=["sync", "rt"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2.15", features = ["js"] }

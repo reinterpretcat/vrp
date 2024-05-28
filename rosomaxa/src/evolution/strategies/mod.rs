@@ -2,11 +2,6 @@
 
 use super::*;
 
-#[cfg(feature = "async-evolution")]
-mod async_iterative;
-#[cfg(feature = "async-evolution")]
-pub use self::async_iterative::{AsyncIterative, AsyncParams};
-
 mod iterative;
 pub use self::iterative::Iterative;
 
