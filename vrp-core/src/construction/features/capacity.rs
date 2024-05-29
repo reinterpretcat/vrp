@@ -36,7 +36,7 @@ impl From<&mut StateKeyRegistry> for CapacityKeys {
 }
 
 impl CapacityKeys {
-    pub(crate) fn iter(&self) -> impl Iterator<Item = StateKey> {
+    fn iter(&self) -> impl Iterator<Item = StateKey> {
         once(self.current_capacity)
             .chain(once(self.max_future_capacity))
             .chain(once(self.max_past_capacity))
@@ -47,13 +47,13 @@ impl CapacityKeys {
 /// Creates capacity feature as a hard constraint with multi trip functionality as a soft constraint.
 pub fn create_capacity_limit_with_multi_trip_feature<T: LoadOps>(
     name: &str,
-    route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
+    route_intervals: RouteIntervals,
     feature_keys: CapacityKeys,
     capacity_code: ViolationCode,
 ) -> Result<Feature, GenericError> {
     create_multi_trip_feature(
         name,
-        feature_keys.clone(),
+        feature_keys.iter().collect(),
         capacity_code,
         MarkerInsertionPolicy::Last,
         Arc::new(CapacitatedMultiTrip::<T> {
@@ -74,21 +74,16 @@ pub fn create_capacity_limit_feature<T: LoadOps>(
     // TODO theoretically, the code can be easily refactored to get opt-out from no-op multi-trip runtime overhead here
     create_multi_trip_feature(
         name,
-        feature_keys.clone(),
+        feature_keys.iter().collect(),
         capacity_code,
         MarkerInsertionPolicy::Last,
         Arc::new(CapacitatedMultiTrip::<T> {
-            route_intervals: Arc::new(NoRouteIntervals::default()),
+            route_intervals: RouteIntervals::Single,
             feature_keys,
             capacity_code,
             phantom: Default::default(),
         }),
     )
-    .map(|feature| Feature {
-        // NOTE: opt-out from objective
-        objective: None,
-        ..feature
-    })
 }
 
 impl<T: LoadOps> FeatureConstraint for CapacitatedMultiTrip<T> {
@@ -125,15 +120,15 @@ impl<T: LoadOps> FeatureConstraint for CapacitatedMultiTrip<T> {
 }
 
 struct CapacitatedMultiTrip<T: LoadOps> {
-    route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
+    route_intervals: RouteIntervals,
     feature_keys: CapacityKeys,
     capacity_code: ViolationCode,
     phantom: PhantomData<T>,
 }
 
 impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
-    fn get_route_intervals(&self) -> &(dyn RouteIntervals) {
-        self.route_intervals.as_ref()
+    fn get_route_intervals(&self) -> &RouteIntervals {
+        &self.route_intervals
     }
 
     fn get_constraint(&self) -> &(dyn FeatureConstraint) {

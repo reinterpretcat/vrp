@@ -45,11 +45,7 @@ fn create_route_ctx(activities: &[Location], recharges: Vec<(usize, Location)>, 
 
 fn create_feature(limit: Distance) -> (RechargeKeys, Feature) {
     let mut state_registry = StateKeyRegistry::default();
-    let recharge_keys = RechargeKeys {
-        distance: state_registry.next_key(),
-        intervals: state_registry.next_key(),
-        capacity_keys: CapacityKeys::from(&mut state_registry),
-    };
+    let recharge_keys = RechargeKeys { distance: state_registry.next_key(), intervals: state_registry.next_key() };
     let feature = create_recharge_feature(
         "recharge",
         Arc::new(move |_: &Actor| Some(limit)),

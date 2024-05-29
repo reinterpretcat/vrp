@@ -15,7 +15,7 @@ pub fn create_fast_service_feature<T: LoadOps>(
     name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
-    route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
+    route_intervals: RouteIntervals,
     tolerance: Option<f64>,
     state_key: StateKey,
 ) -> Result<Feature, GenericError> {
@@ -47,7 +47,7 @@ type MultiJobRanges = HashMap<Job, (usize, usize)>;
 struct FastServiceObjective<T> {
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
-    route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
+    route_intervals: RouteIntervals,
     tolerance: Option<f64>,
     state_key: StateKey,
     phantom: PhantomData<T>,
@@ -125,7 +125,7 @@ impl<T: LoadOps> FastServiceObjective<T> {
     fn new(
         transport: Arc<dyn TransportCost + Send + Sync>,
         activity: Arc<dyn ActivityCost + Send + Sync>,
-        route_intervals: Arc<dyn RouteIntervals + Send + Sync>,
+        route_intervals: RouteIntervals,
         tolerance: Option<f64>,
         state_key: StateKey,
     ) -> Self {

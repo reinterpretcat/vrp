@@ -2,7 +2,6 @@
 //! some constraint limitations once the marker job's activity is visited.
 
 use crate::construction::enablers::*;
-use crate::construction::features::CapacityKeys;
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::models::solution::Route;
@@ -16,7 +15,7 @@ use std::sync::Arc;
 /// Specifies multi trip extension behavior.
 pub trait MultiTrip {
     /// Gets an actual route intervals.
-    fn get_route_intervals(&self) -> &(dyn RouteIntervals);
+    fn get_route_intervals(&self) -> &RouteIntervals;
 
     /// Gets an actual feature constraint which restricts a route.
     fn get_constraint(&self) -> &(dyn FeatureConstraint);
@@ -40,13 +39,12 @@ pub enum MarkerInsertionPolicy {
 /// Creates a feature with multi trip functionality.
 pub fn create_multi_trip_feature(
     name: &str,
-    feature_keys: CapacityKeys,
-    capacity_code: ViolationCode,
+    state_keys: Vec<StateKey>,
+    violation_code: ViolationCode,
     policy: MarkerInsertionPolicy,
     multi_trip: Arc<dyn MultiTrip + Send + Sync>,
 ) -> Result<Feature, GenericError> {
-    let state_keys = feature_keys.iter().collect::<Vec<_>>();
-
+    // NOTE guard from a mistake for not including an interval key. Should we just assert?
     let state_keys = match multi_trip.get_route_intervals().get_interval_key() {
         Some(key) if !state_keys.contains(&key) => state_keys.iter().copied().chain(once(key)).collect(),
         _ => state_keys.to_vec(),
@@ -54,8 +52,8 @@ pub fn create_multi_trip_feature(
 
     FeatureBuilder::default()
         .with_name(name)
-        .with_constraint(MultiTripConstraint::new(capacity_code, policy, multi_trip.clone()))
-        .with_state(MultiTripState::new(capacity_code, state_keys, multi_trip))
+        .with_constraint(MultiTripConstraint::new(violation_code, policy, multi_trip.clone()))
+        .with_state(MultiTripState::new(violation_code, state_keys, multi_trip))
         .build()
 }
 

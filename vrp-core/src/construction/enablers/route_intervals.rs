@@ -5,104 +5,108 @@ use crate::utils::Either;
 use hashbrown::HashSet;
 use std::iter::once;
 use std::ops::Range;
+use std::sync::Arc;
 
-/// This trait defines a logic to split route into logical intervals by marker jobs.
-pub trait RouteIntervals {
+/// Provides a way to logically split route into intervals using specific marker jobs.
+#[derive(Clone)]
+pub enum RouteIntervals {
+    /// The whole route is considered as a single route interval with no special markers in the middle.
+    Single,
+
+    /// The route can be split into multiple intervals by marker jobs.
+    #[allow(clippy::type_complexity)]
+    Multiple {
+        /// Checks whether specified single job is of marker type.
+        is_marker_single_fn: Arc<dyn Fn(&Single) -> bool + Send + Sync>,
+
+        /// Specifies a function which checks whether a new interval is needed for given route.
+        is_new_interval_needed_fn: Arc<dyn Fn(&RouteContext) -> bool + Send + Sync>,
+
+        /// Specifies an obsolete interval function which takes left and right interval range. These intervals are separated by marker job activity.
+        is_obsolete_interval_fn: Arc<dyn Fn(&RouteContext, Range<usize>, Range<usize>) -> bool + Send + Sync>,
+
+        /// Specifies a function which checks whether job can be assigned to a given route.
+        is_assignable_fn: Arc<dyn Fn(&Route, &Job) -> bool + Send + Sync>,
+
+        /// An intervals state key.
+        intervals_key: StateKey,
+    },
+}
+
+// Public API
+impl RouteIntervals {
     /// Returns true if job is considered as a route interval marker.
-    fn is_marker_job(&self, job: &Job) -> bool;
+    pub fn is_marker_job(&self, job: &Job) -> bool {
+        match self {
+            RouteIntervals::Single => false,
+            RouteIntervals::Multiple { is_marker_single_fn, .. } => {
+                job.as_single().map_or(false, |single| (is_marker_single_fn)(single))
+            }
+        }
+    }
 
     /// Returns true if given job is a marker job and can be used with given route.
-    fn is_marker_assignable(&self, route: &Route, job: &Job) -> bool;
+    pub fn is_marker_assignable(&self, route: &Route, job: &Job) -> bool {
+        match self {
+            RouteIntervals::Single => false,
+            RouteIntervals::Multiple { is_assignable_fn, .. } => {
+                self.is_marker_job(job) && (is_assignable_fn)(route, job)
+            }
+        }
+    }
 
     /// Checks whether vehicle can do a new route interval.
-    fn is_new_interval_needed(&self, route_ctx: &RouteContext) -> bool;
+    pub fn is_new_interval_needed(&self, route_ctx: &RouteContext) -> bool {
+        match self {
+            RouteIntervals::Single => false,
+            RouteIntervals::Multiple { is_new_interval_needed_fn, .. } => (is_new_interval_needed_fn)(route_ctx),
+        }
+    }
 
     /// Gets route intervals split by marker jobs.
-    fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>>;
+    pub fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
+        match self {
+            RouteIntervals::Single => None,
+            RouteIntervals::Multiple { .. } => self
+                .get_interval_key()
+                .and_then(|state_key| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(state_key)),
+        }
+    }
+
+    /// Returns marker intervals or default interval [0, tour_size).
+    pub fn resolve_marker_intervals<'a>(
+        &self,
+        route_ctx: &'a RouteContext,
+    ) -> impl Iterator<Item = (usize, usize)> + 'a {
+        let last_idx = route_ctx.route().tour.total() - 1;
+
+        self.get_marker_intervals(route_ctx)
+            .map(|intervals| Either::Left(intervals.iter().copied()))
+            .unwrap_or_else(|| Either::Right(once((0, last_idx))))
+    }
 
     /// Gets interval state key if present.
-    fn get_interval_key(&self) -> Option<StateKey>;
+    pub fn get_interval_key(&self) -> Option<StateKey> {
+        match self {
+            RouteIntervals::Single => None,
+            RouteIntervals::Multiple { intervals_key, .. } => Some(*intervals_key),
+        }
+    }
 
     /// Update route intervals on solution level.
-    fn update_solution_intervals(&self, solution_ctx: &mut SolutionContext);
-}
-
-/// A no-op implementation of `RouteIntervals`.
-#[derive(Default)]
-pub struct NoRouteIntervals {}
-
-impl RouteIntervals for NoRouteIntervals {
-    fn is_marker_job(&self, _: &Job) -> bool {
-        false
-    }
-
-    fn is_marker_assignable(&self, _: &Route, _: &Job) -> bool {
-        false
-    }
-
-    fn is_new_interval_needed(&self, _: &RouteContext) -> bool {
-        false
-    }
-
-    fn get_marker_intervals<'a>(&self, _: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
-        None
-    }
-
-    fn get_interval_key(&self) -> Option<StateKey> {
-        None
-    }
-
-    fn update_solution_intervals(&self, _: &mut SolutionContext) {}
-}
-
-/// Provides a basic implementation of route intervals functionality.
-#[allow(clippy::type_complexity)]
-pub struct FixedRouteIntervals {
-    /// Checks whether specified single job is of marker type.
-    pub is_marker_single_fn: Box<dyn Fn(&Single) -> bool + Send + Sync>,
-
-    /// Specifies a function which checks whether a new interval is needed for given route.
-    pub is_new_interval_needed_fn: Box<dyn Fn(&RouteContext) -> bool + Send + Sync>,
-
-    /// Specifies an obsolete interval function which takes left and right interval range. These intervals are separated by marker job activity.
-    pub is_obsolete_interval_fn: Box<dyn Fn(&RouteContext, Range<usize>, Range<usize>) -> bool + Send + Sync>,
-
-    /// Specifies a function which checks whether job can be assigned to a given route.
-    pub is_assignable_fn: Box<dyn Fn(&Route, &Job) -> bool + Send + Sync>,
-
-    /// An intervals state key.
-    pub intervals_key: StateKey,
-}
-
-impl RouteIntervals for FixedRouteIntervals {
-    fn is_marker_job(&self, job: &Job) -> bool {
-        job.as_single().map_or(false, |single| (self.is_marker_single_fn)(single))
-    }
-
-    fn is_marker_assignable(&self, route: &Route, job: &Job) -> bool {
-        self.is_marker_job(job) && (self.is_assignable_fn)(route, job)
-    }
-
-    fn is_new_interval_needed(&self, route_ctx: &RouteContext) -> bool {
-        (self.is_new_interval_needed_fn)(route_ctx)
-    }
-
-    fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
-        self.get_interval_key()
-            .and_then(|state_code| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(state_code))
-    }
-
-    fn get_interval_key(&self) -> Option<StateKey> {
-        Some(self.intervals_key)
-    }
-
-    fn update_solution_intervals(&self, solution_ctx: &mut SolutionContext) {
-        self.promote_markers_when_needed(solution_ctx);
-        self.remove_trivial_markers(solution_ctx);
+    pub fn update_solution_intervals(&self, solution_ctx: &mut SolutionContext) {
+        match self {
+            RouteIntervals::Single => {}
+            RouteIntervals::Multiple { .. } => {
+                self.promote_markers_when_needed(solution_ctx);
+                self.remove_trivial_markers(solution_ctx);
+            }
+        }
     }
 }
 
-impl FixedRouteIntervals {
+// Private API
+impl RouteIntervals {
     fn has_markers(&self, route_ctx: &RouteContext) -> bool {
         self.get_marker_intervals(route_ctx).map_or(false, |intervals| intervals.len() > 1)
     }
@@ -112,6 +116,11 @@ impl FixedRouteIntervals {
     }
 
     fn remove_trivial_markers(&self, solution_ctx: &mut SolutionContext) {
+        let is_obsolete_interval_fn = match self {
+            RouteIntervals::Single => return,
+            RouteIntervals::Multiple { is_obsolete_interval_fn, .. } => is_obsolete_interval_fn,
+        };
+
         let mut extra_ignored = Vec::new();
         solution_ctx.routes.iter_mut().filter(|route_ctx| self.has_markers(route_ctx)).for_each(|route_ctx| {
             let intervals = self.get_marker_intervals(route_ctx).cloned().unwrap_or_default();
@@ -124,7 +133,7 @@ impl FixedRouteIntervals {
 
                 assert_eq!(left_end + 1, right_start);
 
-                if (self.is_obsolete_interval_fn)(route_ctx, left_start..left_end, right_start..right_end) {
+                if (is_obsolete_interval_fn)(route_ctx, left_start..left_end, right_start..right_end) {
                     // NOTE: we remove only one reload per tour, state update should be handled externally
                     extra_ignored.push(route_ctx.route_mut().tour.remove_activity_at(right_start));
                     Err(())
@@ -159,18 +168,6 @@ impl FixedRouteIntervals {
         solution_ctx.ignored.retain(|job| !candidate_jobs.contains(job));
         solution_ctx.locked.extend(candidate_jobs.iter().cloned().chain(assigned_job));
         solution_ctx.required.extend(candidate_jobs);
-    }
-
-    /// Returns marker intervals or default interval [0, tour_size).
-    pub fn resolve_marker_intervals<'a>(
-        &self,
-        route_ctx: &'a RouteContext,
-    ) -> impl Iterator<Item = (usize, usize)> + 'a {
-        let last_idx = route_ctx.route().tour.total() - 1;
-
-        self.get_marker_intervals(route_ctx)
-            .map(|intervals| Either::Left(intervals.iter().copied()))
-            .unwrap_or_else(|| Either::Right(once((0, last_idx))))
     }
 }
 

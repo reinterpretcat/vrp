@@ -1,10 +1,9 @@
 use super::*;
-use crate::construction::enablers::NoRouteIntervals;
 use crate::helpers::construction::heuristics::create_state_key;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 
-fn create_test_feature(route_intervals: Arc<dyn RouteIntervals + Send + Sync>) -> Feature {
+fn create_test_feature(route_intervals: RouteIntervals) -> Feature {
     create_fast_service_feature::<SingleDimLoad>(
         "fast_service",
         TestTransportCost::new_shared(),
@@ -17,7 +16,7 @@ fn create_test_feature(route_intervals: Arc<dyn RouteIntervals + Send + Sync>) -
 }
 
 fn create_test_feature_no_reload() -> Feature {
-    create_test_feature(Arc::new(NoRouteIntervals::default()))
+    create_test_feature(RouteIntervals::Single)
 }
 
 mod local_estimation {
@@ -149,7 +148,6 @@ mod global_estimation {
     use super::*;
     use crate::construction::enablers::get_route_intervals;
     use crate::helpers::construction::heuristics::InsertionContextBuilder;
-    use crate::models::solution::Route;
 
     #[test]
     fn can_get_solution_fitness() {
@@ -174,35 +172,14 @@ mod global_estimation {
         const INTERVAL_LOCATION: Location = 15;
         let state_key = create_state_key();
 
-        struct FakeRouteIntervals(StateKey);
-
-        impl RouteIntervals for FakeRouteIntervals {
-            fn is_marker_job(&self, job: &Job) -> bool {
-                job.places().any(|p| p.location == Some(INTERVAL_LOCATION))
-            }
-
-            fn is_marker_assignable(&self, _: &Route, _: &Job) -> bool {
-                unreachable!()
-            }
-
-            fn is_new_interval_needed(&self, _: &RouteContext) -> bool {
-                unreachable!()
-            }
-
-            fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
-                route_ctx.state().get_route_state::<Vec<(usize, usize)>>(self.0)
-            }
-
-            fn get_interval_key(&self) -> Option<StateKey> {
-                unreachable!()
-            }
-
-            fn update_solution_intervals(&self, _: &mut SolutionContext) {
-                unreachable!()
-            }
-        }
-
-        let objective = create_test_feature(Arc::new(FakeRouteIntervals(state_key))).objective.expect("no objective");
+        let route_intervals = RouteIntervals::Multiple {
+            is_marker_single_fn: Arc::new(|single| single.places.iter().any(|p| p.location == Some(INTERVAL_LOCATION))),
+            is_new_interval_needed_fn: Arc::new(|_| unreachable!()),
+            is_obsolete_interval_fn: Arc::new(|_, _, _| unreachable!()),
+            is_assignable_fn: Arc::new(|_, _| unreachable!()),
+            intervals_key: state_key,
+        };
+        let objective = create_test_feature(route_intervals).objective.expect("no objective");
         let route = RouteBuilder::default()
             .add_activity(ActivityBuilder::with_location(10).build())
             .add_activity(ActivityBuilder::with_location(INTERVAL_LOCATION).build())

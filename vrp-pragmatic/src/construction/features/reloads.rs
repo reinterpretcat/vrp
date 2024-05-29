@@ -10,15 +10,14 @@ use crate::construction::enablers::*;
 use hashbrown::HashMap;
 use std::cmp::Ordering;
 use std::ops::Range;
-use vrp_core::construction::enablers::{FixedRouteIntervals, RouteIntervals};
+use vrp_core::construction::enablers::RouteIntervals;
 use vrp_core::construction::features::*;
 use vrp_core::models::problem::Single;
 
 /// Specifies load schedule threshold function.
 pub type LoadScheduleThresholdFn<T> = Box<dyn Fn(&T) -> T + Send + Sync>;
 /// A factory function to create capacity feature.
-pub type CapacityFeatureFactoryFn =
-    Box<dyn FnOnce(&str, Arc<dyn RouteIntervals + Send + Sync>) -> Result<Feature, GenericError>>;
+pub type CapacityFeatureFactoryFn = Box<dyn FnOnce(&str, RouteIntervals) -> Result<Feature, GenericError>>;
 /// Specifies place capacity threshold function.
 type PlaceCapacityThresholdFn<T> = Box<dyn Fn(&RouteContext, usize, &T) -> bool + Send + Sync>;
 
@@ -66,7 +65,7 @@ where
                 .map_or(true, |resource_available| resource_available.can_fit(demand))
         })),
     );
-    let capacity = (capacity_feature_factory)(name, Arc::new(route_intervals))?;
+    let capacity = (capacity_feature_factory)(name, route_intervals)?;
 
     FeatureBuilder::combine(name, &[capacity, shared_resource])
 }
@@ -85,19 +84,19 @@ pub fn create_simple_reload_multi_trip_feature<T: LoadOps>(
 pub fn create_simple_reload_route_intervals<T: LoadOps>(
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
     reload_keys: ReloadKeys,
-) -> Arc<dyn RouteIntervals + Send + Sync> {
-    Arc::new(create_reload_route_intervals(reload_keys, load_schedule_threshold_fn, None))
+) -> RouteIntervals {
+    create_reload_route_intervals(reload_keys, load_schedule_threshold_fn, None)
 }
 
 fn create_reload_route_intervals<T: LoadOps>(
     reload_keys: ReloadKeys,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
     place_capacity_threshold: Option<PlaceCapacityThresholdFn<T>>,
-) -> FixedRouteIntervals {
+) -> RouteIntervals {
     let capacity_keys = reload_keys.capacity_keys;
-    FixedRouteIntervals {
-        is_marker_single_fn: Box::new(is_reload_single),
-        is_new_interval_needed_fn: Box::new(move |route_ctx| {
+    RouteIntervals::Multiple {
+        is_marker_single_fn: Arc::new(is_reload_single),
+        is_new_interval_needed_fn: Arc::new(move |route_ctx| {
             route_ctx
                 .route()
                 .tour
@@ -116,7 +115,7 @@ fn create_reload_route_intervals<T: LoadOps>(
                 })
                 .unwrap_or(false)
         }),
-        is_obsolete_interval_fn: Box::new(move |route_ctx, left, right| {
+        is_obsolete_interval_fn: Arc::new(move |route_ctx, left, right| {
             let capacity: T = route_ctx.route().actor.vehicle.dimens.get_capacity().cloned().unwrap_or_default();
 
             let get_load = |activity_idx: usize, state_key: StateKey| {
@@ -156,11 +155,7 @@ fn create_reload_route_intervals<T: LoadOps>(
                     (place_capacity_threshold)(route_ctx, left.start, &left_delivery)
                 })
         }),
-        is_assignable_fn: Box::new(|route, job| {
-            job.as_single().map_or(false, |job| {
-                is_correct_vehicle(route, get_vehicle_id_from_job(job), get_shift_index(&job.dimens))
-            })
-        }),
+        is_assignable_fn: Arc::new(is_job_belongs_to_route),
         intervals_key: reload_keys.intervals,
     }
 }

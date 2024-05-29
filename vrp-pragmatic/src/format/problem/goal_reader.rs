@@ -3,7 +3,7 @@ use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::*;
 use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
-use vrp_core::construction::enablers::{NoRouteIntervals, ScheduleKeys};
+use vrp_core::construction::enablers::{RouteIntervals, ScheduleKeys};
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::{StateKey, StateKeyRegistry};
 use vrp_core::models::common::{LoadOps, MultiDimLoad, SingleDimLoad};
@@ -348,7 +348,7 @@ fn get_fast_service_feature(
             )
         }
     } else {
-        let route_intervals = Arc::new(NoRouteIntervals::default());
+        let route_intervals = RouteIntervals::Single;
         if props.has_multi_dimen_capacity {
             create_fast_service_feature::<MultiDimLoad>(
                 name,
@@ -478,11 +478,7 @@ fn get_recharge_feature(
         )
     });
 
-    let recharge_keys = RechargeKeys {
-        distance: state_context.next_key(),
-        intervals: state_context.next_key(),
-        capacity_keys: state_context.capacity_keys.clone(),
-    };
+    let recharge_keys = RechargeKeys { distance: state_context.next_key(), intervals: state_context.next_key() };
 
     create_recharge_feature(name, distance_limit_fn, transport, recharge_keys, RECHARGE_CONSTRAINT_CODE)
 }

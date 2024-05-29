@@ -9,9 +9,9 @@ use super::*;
 use crate::construction::enablers::*;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
+use std::iter::once;
 use std::sync::Arc;
 use vrp_core::construction::enablers::*;
-use vrp_core::construction::features::*;
 use vrp_core::models::solution::Route;
 
 /// Specifies a distance limit function for recharge. It should return a fixed value for the same
@@ -25,8 +25,12 @@ pub struct RechargeKeys {
     pub distance: StateKey,
     /// A recharge station interval key.
     pub intervals: StateKey,
-    /// Capacity keys.
-    pub capacity_keys: CapacityKeys,
+}
+
+impl RechargeKeys {
+    fn iter(&self) -> impl Iterator<Item = StateKey> {
+        once(self.distance).chain(once(self.intervals))
+    }
 }
 
 /// Creates a feature to insert charge stations along the route.
@@ -42,13 +46,13 @@ pub fn create_recharge_feature(
 
     create_multi_trip_feature(
         name,
-        recharge_keys.capacity_keys,
+        recharge_keys.iter().collect(),
         code,
         MarkerInsertionPolicy::Any,
         Arc::new(RechargeableMultiTrip {
-            route_intervals: FixedRouteIntervals {
-                is_marker_single_fn: Box::new(is_recharge_single),
-                is_new_interval_needed_fn: Box::new({
+            route_intervals: RouteIntervals::Multiple {
+                is_marker_single_fn: Arc::new(is_recharge_single),
+                is_new_interval_needed_fn: Arc::new({
                     let distance_limit_fn = distance_limit_fn.clone();
                     move |route_ctx| {
                         route_ctx
@@ -68,7 +72,7 @@ pub fn create_recharge_feature(
                             .unwrap_or(false)
                     }
                 }),
-                is_obsolete_interval_fn: Box::new({
+                is_obsolete_interval_fn: Arc::new({
                     let distance_limit_fn = distance_limit_fn.clone();
                     let transport = transport.clone();
                     let get_counter = move |route_ctx: &RouteContext, activity_idx: usize| {
@@ -102,11 +106,7 @@ pub fn create_recharge_feature(
                             .map_or(false, |threshold| compare_floats(new_distance, threshold) != Ordering::Greater)
                     }
                 }),
-                is_assignable_fn: Box::new(|route, job| {
-                    job.as_single().map_or(false, |job| {
-                        is_correct_vehicle(route, get_vehicle_id_from_job(job), get_shift_index(&job.dimens))
-                    })
-                }),
+                is_assignable_fn: Arc::new(is_job_belongs_to_route),
                 intervals_key,
             },
             transport,
@@ -118,7 +118,7 @@ pub fn create_recharge_feature(
 }
 
 struct RechargeableMultiTrip {
-    route_intervals: FixedRouteIntervals,
+    route_intervals: RouteIntervals,
     transport: Arc<dyn TransportCost + Send + Sync>,
     code: ViolationCode,
     distance_key: StateKey,
@@ -126,7 +126,7 @@ struct RechargeableMultiTrip {
 }
 
 impl MultiTrip for RechargeableMultiTrip {
-    fn get_route_intervals(&self) -> &(dyn RouteIntervals) {
+    fn get_route_intervals(&self) -> &RouteIntervals {
         &self.route_intervals
     }
 
