@@ -5,7 +5,7 @@ mod rosomaxa_test;
 use super::*;
 use crate::algorithms::gsom::*;
 use crate::algorithms::math::relative_distance;
-use crate::population::elitism::{DedupFn, DominanceOrdered, Shuffled};
+use crate::population::elitism::{DedupFn, Shuffled};
 use crate::utils::{Environment, Random};
 use rand::prelude::SliceRandom;
 use rayon::iter::Either;
@@ -57,29 +57,31 @@ pub trait RosomaxaWeighted: Input {
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
 /// `MAps` and `eXtrAs` (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
-pub struct Rosomaxa<O, S>
+pub struct Rosomaxa<F, O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
     objective: Arc<O>,
     environment: Arc<Environment>,
     config: RosomaxaConfig,
-    elite: Elitism<O, S>,
-    phase: RosomaxaPhases<O, S>,
+    elite: Elitism<F, O, S>,
+    phase: RosomaxaPhases<F, O, S>,
 }
 
-impl<O, S> HeuristicPopulation for Rosomaxa<O, S>
+impl<F, O, S> HeuristicPopulation for Rosomaxa<F, O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
     type Objective = O;
     type Individual = S;
 
     fn add_all(&mut self, individuals: Vec<Self::Individual>) -> bool {
         // NOTE avoid extra deep copy
-        let best_known = self.elite.ranked().map(|(i, _)| i).next();
+        let best_known = self.elite.ranked().next();
         let elite = individuals
             .iter()
             .filter(|individual| self.is_comparable_with_best_known(individual, best_known))
@@ -99,7 +101,7 @@ where
     }
 
     fn add(&mut self, individual: Self::Individual) -> bool {
-        let best_known = self.elite.ranked().map(|(i, _)| i).next();
+        let best_known = self.elite.ranked().next();
         let individual = init_individual(individual);
         let is_improved = if self.is_comparable_with_best_known(&individual, best_known) {
             self.elite.add(individual.deep_copy())
@@ -162,7 +164,7 @@ where
         }
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Individual, usize)> + 'a> {
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         self.elite.ranked()
     }
 
@@ -188,12 +190,13 @@ where
     }
 }
 
-type IndividualNetwork<O, S> = Network<S, IndividualStorage<O, S>, IndividualStorageFactory<O, S>>;
+type IndividualNetwork<F, O, S> = Network<S, IndividualStorage<F, O, S>, IndividualStorageFactory<F, O, S>>;
 
-impl<O, S> Rosomaxa<O, S>
+impl<F, O, S> Rosomaxa<F, O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
     /// Creates a new instance of `Rosomaxa`.
     pub fn new(objective: Arc<O>, environment: Arc<Environment>, config: RosomaxaConfig) -> Result<Self, GenericError> {
@@ -293,9 +296,9 @@ where
     }
 
     fn reintroduce_gene_pool(
-        network: &mut IndividualNetwork<O, S>,
-        elite: &Elitism<O, S>,
-        gene_pool: &mut Elitism<O, S>,
+        network: &mut IndividualNetwork<F, O, S>,
+        elite: &Elitism<F, O, S>,
+        gene_pool: &mut Elitism<F, O, S>,
         statistics: &HeuristicStatistics,
         config: &RosomaxaConfig,
     ) {
@@ -318,7 +321,7 @@ where
     }
 
     fn optimize_network(
-        network: &mut IndividualNetwork<O, S>,
+        network: &mut IndividualNetwork<F, O, S>,
         statistics: &HeuristicStatistics,
         config: &RosomaxaConfig,
     ) {
@@ -339,7 +342,7 @@ where
     }
 
     fn fill_populations(
-        network: &IndividualNetwork<O, S>,
+        network: &IndividualNetwork<F, O, S>,
         coordinates: &mut Vec<Coordinate>,
         random: &(dyn Random + Send + Sync),
     ) {
@@ -360,7 +363,7 @@ where
         environment: Arc<Environment>,
         config: &RosomaxaConfig,
         individuals: Vec<S>,
-    ) -> IndividualNetwork<O, S> {
+    ) -> IndividualNetwork<F, O, S> {
         let inputs_vec = individuals.into_iter().map(init_individual).collect::<Vec<_>>();
 
         let inputs_slice = inputs_vec.into_boxed_slice();
@@ -387,10 +390,11 @@ where
     }
 }
 
-impl<O, S> Display for Rosomaxa<O, S>
+impl<F, O, S> Display for Rosomaxa<F, O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.phase {
@@ -403,14 +407,15 @@ where
     }
 }
 
-impl<'a, O, S> TryFrom<&'a Rosomaxa<O, S>> for NetworkState
+impl<'a, F, O, S> TryFrom<&'a Rosomaxa<F, O, S>> for NetworkState
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
     type Error = String;
 
-    fn try_from(value: &'a Rosomaxa<O, S>) -> Result<Self, Self::Error> {
+    fn try_from(value: &'a Rosomaxa<F, O, S>) -> Result<Self, Self::Error> {
         match &value.phase {
             RosomaxaPhases::Exploration { network, .. } => Ok(get_network_state(network)),
             _ => Err("not in exploration state".to_string()),
@@ -419,17 +424,18 @@ where
 }
 
 #[allow(clippy::large_enum_variant)]
-enum RosomaxaPhases<O, S>
+enum RosomaxaPhases<F, O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
     Initial {
         solutions: Vec<S>,
     },
     Exploration {
-        network: IndividualNetwork<O, S>,
-        gene_pool: Elitism<O, S>,
+        network: IndividualNetwork<F, O, S>,
+        gene_pool: Elitism<F, O, S>,
         coordinates: Vec<Coordinate>,
         statistics: HeuristicStatistics,
         selection_size: usize,
@@ -439,9 +445,10 @@ where
     },
 }
 
-fn init_individual<S>(individual: S) -> S
+fn init_individual<F, S>(individual: S) -> S
 where
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
     let mut individual = individual;
     individual.init_weights();
@@ -449,22 +456,24 @@ where
     individual
 }
 
-struct IndividualStorageFactory<O, S>
+struct IndividualStorageFactory<F, O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
     node_size: usize,
     random: Arc<dyn Random + Send + Sync>,
     objective: Arc<O>,
 }
 
-impl<O, S> StorageFactory<S, IndividualStorage<O, S>> for IndividualStorageFactory<O, S>
+impl<F, O, S> StorageFactory<S, IndividualStorage<F, O, S>> for IndividualStorageFactory<F, O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
-    fn eval(&self) -> IndividualStorage<O, S> {
+    fn eval(&self) -> IndividualStorage<F, O, S> {
         let mut elitism = Elitism::new_with_dedup(
             self.objective.clone(),
             self.random.clone(),
@@ -479,18 +488,20 @@ where
     }
 }
 
-struct IndividualStorage<O, S>
+struct IndividualStorage<F, O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
-    population: Elitism<O, S>,
+    population: Elitism<F, O, S>,
 }
 
-impl<O, S> Storage for IndividualStorage<O, S>
+impl<F, O, S> Storage for IndividualStorage<F, O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
     type Item = S;
 
@@ -499,7 +510,7 @@ where
     }
 
     fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Item> + 'a> {
-        Box::new(self.population.ranked().map(|(r, _)| r))
+        Box::new(self.population.ranked())
     }
 
     fn drain<R>(&mut self, range: R) -> Vec<Self::Item>
@@ -518,29 +529,26 @@ where
     }
 }
 
-impl<O, S> Display for IndividualStorage<O, S>
+impl<F, O, S> Display for IndividualStorage<F, O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.population)
     }
 }
 
-fn create_dedup_fn<O, S>(threshold: f64) -> DedupFn<O, S>
+fn create_dedup_fn<F, O, S>(threshold: f64) -> DedupFn<O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
     // NOTE custom dedup rule to increase diversity property
     Box::new(move |objective, a, b| match objective.total_order(a, b) {
-        Ordering::Equal => {
-            let fitness_a = a.fitness();
-            let fitness_b = b.fitness();
-
-            fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
-        }
+        Ordering::Equal => true,
         _ => {
             let weights_a = a.weights();
             let weights_b = b.weights();

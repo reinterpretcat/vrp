@@ -14,10 +14,12 @@ use std::sync::Arc;
 
 /// A heuristic operator which is supposed to improve passed solution.
 pub trait HeuristicSearchOperator {
+    /// A heuristic fitness.
+    type Fitness: HeuristicFitness;
     /// A heuristic context type.
-    type Context: HeuristicContext<Objective = Self::Objective, Solution = Self::Solution>;
+    type Context: HeuristicContext<Fitness = Self::Fitness, Objective = Self::Objective, Solution = Self::Solution>;
     /// A heuristic objective type.
-    type Objective: HeuristicObjective<Solution = Self::Solution>;
+    type Objective: HeuristicObjective<Fitness = Self::Fitness, Solution = Self::Solution>;
     /// A heuristic solution type.
     type Solution: HeuristicSolution;
 
@@ -27,10 +29,12 @@ pub trait HeuristicSearchOperator {
 
 /// A heuristic operator which is supposed to diversify passed solution.
 pub trait HeuristicDiversifyOperator {
+    /// A heuristic fitness.
+    type Fitness: HeuristicFitness;
     /// A heuristic context type.
-    type Context: HeuristicContext<Objective = Self::Objective, Solution = Self::Solution>;
+    type Context: HeuristicContext<Fitness = Self::Fitness, Objective = Self::Objective, Solution = Self::Solution>;
     /// A heuristic objective type.
-    type Objective: HeuristicObjective<Solution = Self::Solution>;
+    type Objective: HeuristicObjective<Fitness = Self::Fitness, Solution = Self::Solution>;
     /// A heuristic solution type.
     type Solution: HeuristicSolution;
 
@@ -40,10 +44,12 @@ pub trait HeuristicDiversifyOperator {
 
 /// Represents a hyper heuristic functionality.
 pub trait HyperHeuristic: Display {
+    /// A heuristic fitness type.
+    type Fitness: HeuristicFitness;
     /// A heuristic context type.
-    type Context: HeuristicContext<Objective = Self::Objective, Solution = Self::Solution>;
+    type Context: HeuristicContext<Fitness = Self::Fitness, Objective = Self::Objective, Solution = Self::Solution>;
     /// A heuristic objective type.
-    type Objective: HeuristicObjective<Solution = Self::Solution>;
+    type Objective: HeuristicObjective<Fitness = Self::Fitness, Solution = Self::Solution>;
     /// A heuristic solution type.
     type Solution: HeuristicSolution;
 
@@ -65,11 +71,12 @@ pub trait HyperHeuristic: Display {
 }
 
 /// Gets probability to run diversify search.
-fn get_diversify_probability<C, O, S>(heuristic_ctx: &C) -> f64
+fn get_diversify_probability<F, C, O, S>(heuristic_ctx: &C) -> f64
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     let last = heuristic_ctx.statistics().improvement_1000_ratio;
     let global = heuristic_ctx.statistics().improvement_all_ratio;
@@ -84,15 +91,18 @@ where
 }
 
 /// Runs diversification search on given solution with some probability.
-fn diversify_solution<C, O, S>(
+fn diversify_solution<F, C, O, S>(
     heuristic_ctx: &C,
     solution: &S,
-    operators: &[Arc<dyn HeuristicDiversifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>],
+    operators: &[Arc<
+        dyn HeuristicDiversifyOperator<Fitness = F, Context = C, Objective = O, Solution = S> + Send + Sync,
+    >],
 ) -> Vec<S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Fitness = F, Solution = S>,
+    S: HeuristicSolution<Fitness = F>,
 {
     assert!(!operators.is_empty());
 
@@ -105,15 +115,18 @@ where
 
 /// For each solution, picks an operator with equal probability and runs diversify once.
 /// Uses parallelism setting to run diversification on thread pool.
-fn diversify_solutions<C, O, S>(
+fn diversify_solutions<F, C, O, S>(
     heuristic_ctx: &C,
     solutions: Vec<&S>,
-    operators: &[Arc<dyn HeuristicDiversifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>],
+    operators: &[Arc<
+        dyn HeuristicDiversifyOperator<Fitness = F, Context = C, Objective = O, Solution = S> + Send + Sync,
+    >],
 ) -> Vec<S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     assert!(!operators.is_empty());
 

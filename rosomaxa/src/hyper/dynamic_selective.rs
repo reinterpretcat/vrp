@@ -15,32 +15,38 @@ use std::iter::once;
 use std::sync::Arc;
 
 /// A collection of heuristic search operators with their name and initial weight.
-pub type HeuristicSearchOperators<C, O, S> =
-    Vec<(Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String, f64)>;
+pub type HeuristicSearchOperators<F, C, O, S> = Vec<(
+    Arc<dyn HeuristicSearchOperator<Fitness = F, Context = C, Objective = O, Solution = S> + Send + Sync>,
+    String,
+    f64,
+)>;
 
 /// A collection of heuristic diversify operators.
-pub type HeuristicDiversifyOperators<C, O, S> =
-    Vec<Arc<dyn HeuristicDiversifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>>;
+pub type HeuristicDiversifyOperators<F, C, O, S> =
+    Vec<Arc<dyn HeuristicDiversifyOperator<Fitness = F, Context = C, Objective = O, Solution = S> + Send + Sync>>;
 
 /// An experimental dynamic selective hyper heuristic which selects inner heuristics
 /// based on how they work during the search. The selection process is modeled using reinforcement
 /// learning technics.
-pub struct DynamicSelective<C, O, S>
+pub struct DynamicSelective<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
-    agent: SearchAgent<'static, C, O, S>,
-    diversify_operators: HeuristicDiversifyOperators<C, O, S>,
+    agent: SearchAgent<'static, F, C, O, S>,
+    diversify_operators: HeuristicDiversifyOperators<F, C, O, S>,
 }
 
-impl<C, O, S> HyperHeuristic for DynamicSelective<C, O, S>
+impl<F, C, O, S> HyperHeuristic for DynamicSelective<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + 'static,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution + 'static,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S> + 'static,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F> + 'static,
 {
+    type Fitness = F;
     type Context = C;
     type Objective = O;
     type Solution = S;
@@ -86,23 +92,25 @@ where
     }
 }
 
-impl<C, O, S> DynamicSelective<C, O, S>
+impl<F, C, O, S> DynamicSelective<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + 'static,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution + 'static,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S> + 'static,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F> + 'static,
 {
     /// Creates a new instance of `DynamicSelective` heuristic.
     pub fn new(
-        search_operators: HeuristicSearchOperators<C, O, S>,
-        diversify_operators: HeuristicDiversifyOperators<C, O, S>,
+        search_operators: HeuristicSearchOperators<F, C, O, S>,
+        diversify_operators: HeuristicDiversifyOperators<F, C, O, S>,
         environment: &Environment,
     ) -> Self {
         Self { agent: SearchAgent::new(search_operators, environment), diversify_operators }
     }
 }
 
-type SlotMachines<'a, C, O, S> = Vec<(SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler>, String)>;
+type SlotMachines<'a, F, C, O, S> =
+    Vec<(SlotMachine<SearchAction<'a, F, C, O, S>, DefaultDistributionSampler>, String)>;
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 enum SearchState {
@@ -131,24 +139,26 @@ impl<S> SlotFeedback for SearchFeedback<S> {
     }
 }
 
-struct SearchAction<'a, C, O, S> {
-    operator: Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync + 'a>,
+struct SearchAction<'a, F, C, O, S> {
+    operator:
+        Arc<dyn HeuristicSearchOperator<Fitness = F, Context = C, Objective = O, Solution = S> + Send + Sync + 'a>,
     operator_name: String,
 }
 
-impl<'a, C, O, S> Clone for SearchAction<'a, C, O, S> {
+impl<'a, F, C, O, S> Clone for SearchAction<'a, F, C, O, S> {
     fn clone(&self) -> Self {
         Self { operator: self.operator.clone(), operator_name: self.operator_name.clone() }
     }
 }
 
-impl<'a, C, O, S> SlotAction for SearchAction<'a, C, O, S>
+impl<'a, F, C, O, S> SlotAction for SearchAction<'a, F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + 'a,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution + 'a,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S> + 'a,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F> + 'a,
 {
-    type Context = SearchContext<'a, C, O, S>;
+    type Context = SearchContext<'a, F, C, O, S>;
     type Feedback = SearchFeedback<S>;
 
     fn take(&self, context: Self::Context) -> Self::Feedback {
@@ -171,11 +181,12 @@ where
     }
 }
 
-struct SearchContext<'a, C, O, S>
+struct SearchContext<'a, F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     heuristic_ctx: &'a C,
     from: SearchState,
@@ -184,19 +195,20 @@ where
     approx_median: Option<usize>,
 }
 
-struct SearchAgent<'a, C, O, S> {
-    slot_machines: HashMap<SearchState, SlotMachines<'a, C, O, S>>,
+struct SearchAgent<'a, F, C, O, S> {
+    slot_machines: HashMap<SearchState, SlotMachines<'a, F, C, O, S>>,
     tracker: HeuristicTracker,
     random: Arc<dyn Random + Send + Sync>,
 }
 
-impl<'a, C, O, S> SearchAgent<'a, C, O, S>
+impl<'a, F, C, O, S> SearchAgent<'a, F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + 'a,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution + 'a,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S> + 'a,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F> + 'a,
 {
-    pub fn new(search_operators: HeuristicSearchOperators<C, O, S>, environment: &Environment) -> Self {
+    pub fn new(search_operators: HeuristicSearchOperators<F, C, O, S>, environment: &Environment) -> Self {
         let slot_machines = search_operators
             .into_iter()
             .map(|(operator, name, _)| {
@@ -280,11 +292,12 @@ where
     }
 }
 
-impl<C, O, S> Display for DynamicSelective<C, O, S>
+impl<F, C, O, S> Display for DynamicSelective<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if !self.agent.tracker.telemetry_enabled() {
@@ -314,16 +327,16 @@ where
     }
 }
 
-fn compare_to_best<C, O, S>(heuristic_ctx: &C, solution: &S) -> Ordering
+fn compare_to_best<F, C, O, S>(heuristic_ctx: &C, solution: &S) -> Ordering
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     heuristic_ctx
         .ranked()
         .next()
-        .map(|(best_known, _)| heuristic_ctx.objective().total_order(solution, best_known))
+        .map(|best_known| heuristic_ctx.objective().total_order(solution, best_known))
         .unwrap_or(Ordering::Less)
 }
 
@@ -331,16 +344,17 @@ where
 /// Returns a reward estimation in `[0, 6]` range. This range consists of:
 /// - a initial distance improvement gives `[0, 2]`
 /// - a best known improvement gives `[0, 2]` * BEST_DISCOVERY_REWARD_MULTIPLIER
-fn estimate_distance_reward<C, O, S>(heuristic_ctx: &C, initial_solution: &S, new_solution: &S) -> f64
+fn estimate_distance_reward<F, C, O, S>(heuristic_ctx: &C, initial_solution: &S, new_solution: &S) -> f64
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     heuristic_ctx
         .ranked()
         .next()
-        .map(|(best_known, _)| {
+        .map(|best_known| {
             const BEST_DISCOVERY_REWARD_MULTIPLIER: f64 = 2.;
 
             let objective = heuristic_ctx.objective();
@@ -362,15 +376,16 @@ where
 
 /// Estimates performance of used operation based on its duration and overall improvement statistics.
 /// Returns a reward multiplier in `(~0.5, 3]` range.
-fn estimate_reward_perf_multiplier<C, O, S>(
-    search_ctx: &SearchContext<C, O, S>,
+fn estimate_reward_perf_multiplier<F, C, O, S>(
+    search_ctx: &SearchContext<F, C, O, S>,
     duration: usize,
     has_improvement: bool,
 ) -> f64
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     let improvement_ratio = search_ctx.heuristic_ctx.statistics().improvement_1000_ratio;
     let approx_median = &search_ctx.approx_median;
@@ -396,13 +411,13 @@ where
     median_ratio * improvement_ratio
 }
 
-/// Returns distance in `[-N., N]` where:
-///  - N: in range `[1, total amount of objectives]`
-///  - sign specifies whether a solution is better (positive) or worse (negative).
-fn get_relative_distance<O, S>(objective: &O, a: &S, b: &S) -> f64
+/// Returns a signed relative distance between two solutions. Sign specifies whether a solution is
+/// better (positive) or worse (negative).
+fn get_relative_distance<F, O, S>(objective: &O, a: &S, b: &S) -> f64
 where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     let order = objective.total_order(a, b);
 
@@ -412,33 +427,9 @@ where
         Ordering::Equal => return 0.,
     };
 
-    let total_objectives = objective.size();
+    let value = objective.distance(a, b);
 
-    let idx = (0..total_objectives).find(|idx| {
-        let distance = objective.get_distance(a, b, *idx).expect("cannot get distance by idx");
-        compare_floats(distance, 0.) != Ordering::Equal
-    });
-
-    // NOTE special case when total order returns non-zero sign when all objectives are the same
-    //      considering their from non-numerical quality point of view
-    let idx = if let Some(idx) = idx {
-        idx
-    } else {
-        return 0.;
-    };
-
-    assert_ne!(total_objectives, 0, "cannot have empty objective here");
-    assert_ne!(total_objectives, idx, "cannot have index equal to total amount of objectives");
-    let priority_amplifier = (total_objectives - idx) as f64;
-
-    let value = a
-        .fitness()
-        .nth(idx)
-        .zip(b.fitness().nth(idx))
-        .map(|(a, b)| (a - b).abs() / a.abs().max(b.abs()))
-        .expect("cannot get fitness by idx");
-
-    value * sign * priority_amplifier
+    value * sign
 }
 
 /// Sample of search telemetry.

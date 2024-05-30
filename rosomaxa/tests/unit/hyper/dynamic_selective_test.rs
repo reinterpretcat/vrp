@@ -1,5 +1,5 @@
 use super::*;
-use crate::example::{VectorContext, VectorObjective, VectorSolution};
+use crate::example::{VectorContext, VectorFitness, VectorObjective, VectorSolution};
 use crate::helpers::example::{create_default_heuristic_context, create_example_objective};
 use std::ops::Range;
 use std::time::Duration;
@@ -11,6 +11,7 @@ fn can_estimate_median() {
         random: Arc<dyn Random + Send + Sync>,
     }
     impl HeuristicSearchOperator for DelayableHeuristicOperator {
+        type Fitness = VectorFitness;
         type Context = VectorContext;
         type Objective = VectorObjective;
         type Solution = VectorSolution;
@@ -22,6 +23,7 @@ fn can_estimate_median() {
         }
     }
     impl HeuristicDiversifyOperator for DelayableHeuristicOperator {
+        type Fitness = VectorFitness;
         type Context = VectorContext;
         type Objective = VectorObjective;
         type Solution = VectorSolution;
@@ -33,7 +35,7 @@ fn can_estimate_median() {
     let environment = Environment::default();
     let random = environment.random.clone();
     let solution = VectorSolution::new(vec![0., 0.], create_example_objective());
-    let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
+    let mut heuristic = DynamicSelective::<VectorFitness, VectorContext, VectorObjective, VectorSolution>::new(
         vec![
             (
                 Arc::new(DelayableHeuristicOperator { delay_range: (2..3), random: random.clone() }),
@@ -97,8 +99,11 @@ fn can_display_heuristic_info() {
     let duration = 1;
     let reward = 1.;
     let transition = (SearchState::Diverse, SearchState::BestKnown);
-    let mut heuristic =
-        DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(vec![], vec![], &environment);
+    let mut heuristic = DynamicSelective::<VectorFitness, VectorContext, VectorObjective, VectorSolution>::new(
+        vec![],
+        vec![],
+        &environment,
+    );
 
     heuristic.agent.tracker.observe_sample(1, SearchSample { name: "name1".to_string(), duration, reward, transition });
 
@@ -111,28 +116,21 @@ fn can_display_heuristic_info() {
 fn can_handle_when_objective_lies() {
     struct LiarObjective;
 
-    impl MultiObjective for LiarObjective {
+    impl Objective for LiarObjective {
         type Solution = TestData;
+        type Fitness = f64;
 
         fn total_order(&self, _: &Self::Solution, _: &Self::Solution) -> Ordering {
             // that is where it lies based on some non-fitness related factors for total order
             Ordering::Greater
         }
 
-        fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
+        fn distance(&self, _: &Self::Solution, _: &Self::Solution) -> f64 {
+            0.
+        }
+
+        fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Self::Fitness {
             solution.fitness()
-        }
-
-        fn get_order(&self, _: &Self::Solution, _: &Self::Solution, _: usize) -> Result<Ordering, GenericError> {
-            unreachable!()
-        }
-
-        fn get_distance(&self, _: &Self::Solution, _: &Self::Solution, _: usize) -> Result<f64, GenericError> {
-            Ok(0.)
-        }
-
-        fn size(&self) -> usize {
-            1
         }
     }
     impl HeuristicObjective for LiarObjective {}
@@ -140,9 +138,10 @@ fn can_handle_when_objective_lies() {
     struct TestData;
 
     impl HeuristicSolution for TestData {
-        fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
-            // fitness is the same
-            Box::new(once(1.))
+        type Fitness = f64;
+
+        fn fitness(&self) -> Self::Fitness {
+            1.
         }
 
         fn deep_copy(&self) -> Self {

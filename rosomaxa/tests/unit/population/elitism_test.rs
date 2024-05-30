@@ -2,21 +2,21 @@ use super::*;
 use crate::example::*;
 use crate::helpers::example::create_example_objective;
 
-fn get_best_fitness(population: &Elitism<VectorObjective, VectorSolution>) -> f64 {
-    population.ranked().next().unwrap().0.fitness()
+fn get_best_fitness(population: &Elitism<VectorFitness, VectorObjective, VectorSolution>) -> f64 {
+    population.ranked().next().unwrap().fitness()
 }
 
-fn get_all_fitness(population: &Elitism<VectorObjective, VectorSolution>) -> Vec<f64> {
-    population.ranked().map(|(s, _)| s.fitness()).collect()
+fn get_all_fitness(population: &Elitism<VectorFitness, VectorObjective, VectorSolution>) -> Vec<f64> {
+    population.ranked().map(|s| s.fitness()).collect()
 }
 
 fn create_objective_population(
     max_population_size: usize,
     selection_size: usize,
-) -> (Arc<VectorObjective>, Elitism<VectorObjective, VectorSolution>) {
+) -> (Arc<VectorObjective>, Elitism<VectorFitness, VectorObjective, VectorSolution>) {
     let objective = create_example_objective();
     let population =
-        Elitism::<_, _>::new(objective.clone(), Environment::default().random, max_population_size, selection_size);
+        Elitism::<_, _, _>::new(objective.clone(), Environment::default().random, max_population_size, selection_size);
 
     (objective, population)
 }

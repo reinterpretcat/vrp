@@ -4,7 +4,6 @@
 #[path = "../../tests/unit/evolution/telemetry_test.rs"]
 mod telemetry_test;
 
-use crate::algorithms::math::relative_distance;
 use crate::prelude::*;
 use crate::utils::Timer;
 use crate::{DynHeuristicPopulation, RemedianUsize};
@@ -42,12 +41,10 @@ pub struct TelemetryGeneration {
 
 /// Keeps essential information about particular individual in population.
 pub struct TelemetryIndividual {
-    /// Rank in population.
-    pub rank: usize,
     /// Solution difference from best individual.
     pub difference: f64,
-    /// Objectives fitness values.
-    pub fitness: Vec<f64>,
+    /// Objectives fitness values in readable form.
+    pub fitness: String,
 }
 
 /// Holds population state.
@@ -93,10 +90,11 @@ pub enum TelemetryMode {
 }
 
 /// Provides way to collect metrics and write information into log.
-pub struct Telemetry<O, S>
+pub struct Telemetry<F, O, S>
 where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     metrics: TelemetryMetrics,
     time: Timer,
@@ -108,10 +106,11 @@ where
     _marker: (PhantomData<O>, PhantomData<S>),
 }
 
-impl<O, S> Telemetry<O, S>
+impl<F, O, S> Telemetry<F, O, S>
 where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     /// Creates a new instance of `Telemetry`.
     pub fn new(mode: TelemetryMode) -> Self {
@@ -136,7 +135,7 @@ where
                         "[{}s] created initial solution in {}ms, fitness: ({})",
                         self.time.elapsed_secs(),
                         item_time.elapsed_millis(),
-                        format_fitness(solution.fitness())
+                        solution.fitness()
                     )
                     .as_str(),
                 );
@@ -181,14 +180,14 @@ where
             }
         };
 
-        if let Some((best_individual, rank)) = population.ranked().next() {
+        if let Some(best_individual) = population.ranked().next() {
             let should_log_best = generation % *log_best.unwrap_or(&usize::MAX) == 0;
             let should_log_population = generation % *log_population.unwrap_or(&usize::MAX) == 0;
             let should_track_population = generation % *track_population.unwrap_or(&usize::MAX) == 0;
 
             if should_log_best {
                 self.log_individual(
-                    &self.get_individual_metrics(objective, population, best_individual, rank),
+                    &self.get_individual_metrics(objective, population, best_individual),
                     Some((generation, generation_time)),
                 )
             }
@@ -242,7 +241,7 @@ where
 
         let individuals = population
             .ranked()
-            .map(|(insertion_ctx, rank)| self.get_individual_metrics(objective, population, insertion_ctx, rank))
+            .map(|insertion_ctx| self.get_individual_metrics(objective, population, insertion_ctx))
             .collect::<Vec<_>>();
 
         if should_log_population {
@@ -315,29 +314,26 @@ where
         objective: &O,
         population: &DynHeuristicPopulation<O, S>,
         solution: &S,
-        rank: usize,
     ) -> TelemetryIndividual {
-        let fitness = solution.fitness().collect::<Vec<_>>();
+        let fitness = solution.fitness().to_string();
 
         let difference = get_fitness_change(objective, population, solution);
 
-        TelemetryIndividual { rank, difference, fitness }
+        TelemetryIndividual { difference, fitness }
     }
 
     fn log_individual(&self, metrics: &TelemetryIndividual, gen_info: Option<(usize, Timer)>) {
-        let fitness = format_fitness(metrics.fitness.iter().cloned());
+        let fitness = &metrics.fitness;
 
         let value = if let Some((gen, gen_time)) = gen_info {
             format!(
-                "[{}s] generation {} took {}ms, median: {}ms fitness: ({})",
+                "[{}s] generation {gen} took {}ms, median: {}ms fitness: ({fitness})",
                 self.time.elapsed_secs(),
-                gen,
                 gen_time.elapsed_millis(),
                 self.speed_tracker.median.approx_median().unwrap_or(0),
-                fitness
             )
         } else {
-            format!("\trank: {}, fitness: ({}), difference: {:.3}%", metrics.rank, fitness, metrics.difference)
+            format!("\tfitness: ({fitness}), difference: {:.3}%", metrics.difference)
         };
 
         self.log(value.as_str());
@@ -450,24 +446,11 @@ impl SpeedTracker {
     }
 }
 
-fn get_fitness_change<O, S>(objective: &O, population: &DynHeuristicPopulation<O, S>, solution: &S) -> f64
+fn get_fitness_change<F, O, S>(objective: &O, population: &DynHeuristicPopulation<O, S>, solution: &S) -> f64
 where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
-    let fitness_change = population
-        .ranked()
-        .next()
-        .map(|(best_ctx, _)| objective.fitness(best_ctx))
-        .map(|best_fitness| {
-            let fitness_value = objective.fitness(solution);
-            relative_distance(fitness_value, best_fitness)
-        })
-        .unwrap_or(0.);
-
-    fitness_change
-}
-
-fn format_fitness(fitness: impl Iterator<Item = f64>) -> String {
-    fitness.map(|v| format!("{v:.3}")).collect::<Vec<_>>().join(", ")
+    population.ranked().next().map(|best| objective.distance(best, solution)).unwrap_or(0.)
 }

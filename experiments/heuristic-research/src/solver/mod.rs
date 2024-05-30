@@ -22,8 +22,8 @@ fn get_population<O, S>(
     selection_size: usize,
 ) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled + 'static,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted + 'static,
 {
     match population_type {
         "greedy" => Box::new(ProxyPopulation::new(Greedy::new(objective, 1, None))),

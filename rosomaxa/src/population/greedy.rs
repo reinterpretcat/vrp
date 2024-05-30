@@ -10,20 +10,22 @@ use std::sync::Arc;
 
 /// A population which keeps track of the best known individuals only.
 /// If solutions are equal, prefers to keep first discovered.
-pub struct Greedy<O, S>
+pub struct Greedy<F, O, S>
 where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     objective: Arc<O>,
     selection_size: usize,
     best_known: Option<S>,
 }
 
-impl<O, S> HeuristicPopulation for Greedy<O, S>
+impl<F, O, S> HeuristicPopulation for Greedy<F, O, S>
 where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     type Objective = O;
     type Individual = S;
@@ -59,8 +61,8 @@ where
         }
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Individual, usize)> + 'a> {
-        Box::new(self.best_known.iter().map(|individual| (individual, 0)))
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+        Box::new(self.best_known.iter())
     }
 
     fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
@@ -76,26 +78,25 @@ where
     }
 }
 
-impl<O, S> Display for Greedy<O, S>
+impl<F, O, S> Display for Greedy<F, O, S>
 where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let values = if let Some(best_known) = &self.best_known {
-            best_known.fitness().map(|v| format!("{v:.7}")).collect::<Vec<_>>().join(",")
-        } else {
-            "".to_string()
-        };
+        let values =
+            if let Some(best_known) = &self.best_known { best_known.fitness().to_string() } else { "".to_string() };
 
         write!(f, "[{values}]")
     }
 }
 
-impl<O, S> Greedy<O, S>
+impl<F, O, S> Greedy<F, O, S>
 where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     /// Creates a new instance of `Greedy`.
     pub fn new(objective: Arc<O>, selection_size: usize, best_known: Option<S>) -> Self {

@@ -223,7 +223,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
         reload_keys,
     )
     .unwrap();
-    let goal = Goal::no_alternatives([], []);
+    let goal = Goal::no_alternatives::<&str, _>([], []);
     let variant = GoalContext::new(&[feature], goal).unwrap();
 
     variant.accept_route_state(solution_ctx.routes.get_mut(0).unwrap());

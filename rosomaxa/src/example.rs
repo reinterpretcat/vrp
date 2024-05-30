@@ -7,7 +7,7 @@ mod example_test;
 use crate::algorithms::gsom::Input;
 use crate::evolution::*;
 use crate::hyper::*;
-use crate::population::{DominanceOrder, DominanceOrdered, RosomaxaWeighted, Shuffled};
+use crate::population::{RosomaxaWeighted, Shuffled};
 use crate::prelude::*;
 use crate::utils::Noise;
 use crate::*;
@@ -24,10 +24,12 @@ pub type FitnessFn = Arc<dyn Fn(&[f64]) -> f64 + Send + Sync>;
 pub type WeightFn = Arc<dyn Fn(&[f64]) -> Vec<f64> + Send + Sync>;
 /// Specifies a population type which stores vector solutions.
 pub type VectorPopulation = DynHeuristicPopulation<VectorObjective, VectorSolution>;
+/// Specifies fitness function of the vector.
+pub type VectorFitness = f64;
 
 /// An example heuristic context.
 pub struct VectorContext {
-    inner_context: TelemetryHeuristicContext<VectorObjective, VectorSolution>,
+    inner_context: TelemetryHeuristicContext<VectorFitness, VectorObjective, VectorSolution>,
     objective: Arc<VectorObjective>,
     state: HashMap<i32, Box<dyn Any + Send + Sync>>,
 }
@@ -45,7 +47,6 @@ pub struct VectorSolution {
     pub data: Vec<f64>,
     weights: Vec<f64>,
     objective: Arc<VectorObjective>,
-    order: DominanceOrder,
 }
 
 impl VectorSolution {
@@ -72,6 +73,7 @@ impl VectorContext {
 }
 
 impl HeuristicContext for VectorContext {
+    type Fitness = VectorFitness;
     type Objective = VectorObjective;
     type Solution = VectorSolution;
 
@@ -83,7 +85,7 @@ impl HeuristicContext for VectorContext {
         self.inner_context.population.select()
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a> {
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
         self.inner_context.population.ranked()
     }
 
@@ -139,41 +141,18 @@ impl HeuristicObjective for VectorObjective {}
 
 impl Objective for VectorObjective {
     type Solution = VectorSolution;
+    type Fitness = VectorFitness;
+
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        compare_floats(self.fitness(a), self.fitness(b))
+    }
+
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        self.fitness(a) - self.fitness(b)
+    }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         (self.fitness_fn)(solution.data.as_slice())
-    }
-}
-
-impl MultiObjective for VectorObjective {
-    type Solution = VectorSolution;
-
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        Objective::total_order(self, a, b)
-    }
-
-    fn fitness<'a>(&self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(once((self.fitness_fn)(solution.data.as_slice())))
-    }
-
-    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, GenericError> {
-        if idx == 0 {
-            Ok(Objective::total_order(self, a, b))
-        } else {
-            Err(format!("objective has only 1 inner, passed index: {idx}").into())
-        }
-    }
-
-    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, GenericError> {
-        if idx == 0 {
-            Ok(Objective::distance(self, a, b))
-        } else {
-            Err(format!("objective has only 1 inner, passed index: {idx}").into())
-        }
-    }
-
-    fn size(&self) -> usize {
-        1
     }
 }
 
@@ -184,27 +163,14 @@ impl Shuffled for VectorObjective {
 }
 
 impl HeuristicSolution for VectorSolution {
-    fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
-        MultiObjective::fitness(self.objective.as_ref(), self)
+    type Fitness = VectorFitness;
+
+    fn fitness(&self) -> Self::Fitness {
+        self.objective.as_ref().fitness(self)
     }
 
     fn deep_copy(&self) -> Self {
-        Self {
-            data: self.data.clone(),
-            weights: self.weights.clone(),
-            objective: self.objective.clone(),
-            order: self.order.clone(),
-        }
-    }
-}
-
-impl DominanceOrdered for VectorSolution {
-    fn get_order(&self) -> &DominanceOrder {
-        &self.order
-    }
-
-    fn set_order(&mut self, order: DominanceOrder) {
-        self.order = order
+        Self { data: self.data.clone(), weights: self.weights.clone(), objective: self.objective.clone() }
     }
 }
 
@@ -223,7 +189,7 @@ impl Input for VectorSolution {
 impl VectorSolution {
     /// Creates a new instance of `VectorSolution`.
     pub fn new(data: Vec<f64>, objective: Arc<VectorObjective>) -> Self {
-        Self { data, objective, weights: Vec::default(), order: DominanceOrder::default() }
+        Self { data, objective, weights: Vec::default() }
     }
 }
 
@@ -240,6 +206,7 @@ impl VectorInitialOperator {
 }
 
 impl InitialOperator for VectorInitialOperator {
+    type Fitness = VectorFitness;
     type Context = VectorContext;
     type Objective = VectorObjective;
     type Solution = VectorSolution;
@@ -265,6 +232,7 @@ struct VectorHeuristicOperator {
 }
 
 impl HeuristicSearchOperator for VectorHeuristicOperator {
+    type Fitness = VectorFitness;
     type Context = VectorContext;
     type Objective = VectorObjective;
     type Solution = VectorSolution;
@@ -273,7 +241,7 @@ impl HeuristicSearchOperator for VectorHeuristicOperator {
         Self::Solution::new(
             match &self.mode {
                 VectorHeuristicOperatorMode::JustNoise(noise) => {
-                    solution.data.iter().map(|&d| d + noise.generate(d)).collect()
+                    solution.data.iter().map(|d| d + noise.generate(*d)).collect()
                 }
                 VectorHeuristicOperatorMode::DimensionNoise(noise, dimens) => solution
                     .data
@@ -293,6 +261,7 @@ impl HeuristicSearchOperator for VectorHeuristicOperator {
 }
 
 impl HeuristicDiversifyOperator for VectorHeuristicOperator {
+    type Fitness = VectorFitness;
     type Context = VectorContext;
     type Objective = VectorObjective;
     type Solution = VectorSolution;
@@ -304,23 +273,43 @@ impl HeuristicDiversifyOperator for VectorHeuristicOperator {
 }
 
 type TargetInitialOperator = Box<
-    dyn InitialOperator<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution> + Send + Sync,
+    dyn InitialOperator<
+            Fitness = VectorFitness,
+            Context = VectorContext,
+            Objective = VectorObjective,
+            Solution = VectorSolution,
+        > + Send
+        + Sync,
 >;
 
 type TargetSearchOperator = Arc<
-    dyn HeuristicSearchOperator<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution>
-        + Send
+    dyn HeuristicSearchOperator<
+            Fitness = VectorFitness,
+            Context = VectorContext,
+            Objective = VectorObjective,
+            Solution = VectorSolution,
+        > + Send
         + Sync,
 >;
 
 type TargetDiversifyOperator = Arc<
-    dyn HeuristicDiversifyOperator<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution>
-        + Send
+    dyn HeuristicDiversifyOperator<
+            Fitness = VectorFitness,
+            Context = VectorContext,
+            Objective = VectorObjective,
+            Solution = VectorSolution,
+        > + Send
         + Sync,
 >;
 
-type TargetHeuristic =
-    Box<dyn HyperHeuristic<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution>>;
+type TargetHeuristic = Box<
+    dyn HyperHeuristic<
+        Fitness = VectorFitness,
+        Context = VectorContext,
+        Objective = VectorObjective,
+        Solution = VectorSolution,
+    >,
+>;
 
 /// Specifies solver solutions.
 pub type SolverSolutions = Vec<(Vec<f64>, f64)>;
@@ -339,7 +328,7 @@ pub struct Solver {
     max_time: Option<usize>,
     max_generations: Option<usize>,
     min_cv: Option<(String, usize, f64, bool)>,
-    target_proximity: Option<(Vec<f64>, f64)>,
+    target_proximity: Option<(f64, f64)>,
     search_operators: Vec<(TargetSearchOperator, String, f64)>,
     diversify_operators: Vec<TargetDiversifyOperator>,
     context_factory: Option<ContextFactory>,
@@ -405,7 +394,7 @@ impl Solver {
         max_time: Option<usize>,
         max_generations: Option<usize>,
         min_cv: Option<(String, usize, f64, bool)>,
-        target_proximity: Option<(Vec<f64>, f64)>,
+        target_proximity: Option<(f64, f64)>,
     ) -> Self {
         self.max_time = max_time;
         self.max_generations = max_generations;

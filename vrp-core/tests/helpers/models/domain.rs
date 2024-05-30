@@ -32,7 +32,7 @@ impl GoalContextBuilder {
                 )
                 .unwrap(),
             )
-            .with_objectives(vec![vec!["transport"]]);
+            .with_objectives(&["transport"]);
 
         builder
     }
@@ -42,14 +42,13 @@ impl GoalContextBuilder {
         self
     }
 
-    pub fn add_features(&mut self, feature: Vec<Feature>) -> &mut Self {
-        self.features.extend(feature);
+    pub fn add_features(&mut self, feature: &[Feature]) -> &mut Self {
+        self.features.extend(feature.iter().cloned());
         self
     }
 
-    pub fn with_objectives(&mut self, objectives: Vec<Vec<&str>>) -> &mut Self {
-        let objectives: Vec<Vec<String>> =
-            objectives.iter().map(|names| names.iter().map(|name| name.to_string()).collect()).collect();
+    pub fn with_objectives(&mut self, objectives: &[&str]) -> &mut Self {
+        let objectives: Vec<_> = objectives.iter().map(|name| name.to_string()).collect();
 
         self.goal = Some(Goal::no_alternatives(objectives.clone(), objectives));
 
@@ -57,7 +56,11 @@ impl GoalContextBuilder {
     }
 
     pub fn build(&mut self) -> GoalContext {
-        let goal = if let Some(goal) = std::mem::take(&mut self.goal) { goal } else { Goal::no_alternatives([], []) };
+        let goal = if let Some(goal) = std::mem::take(&mut self.goal) {
+            goal
+        } else {
+            Goal::no_alternatives::<&str, _>([], [])
+        };
         GoalContext::new(self.features.as_ref(), goal).unwrap()
     }
 }

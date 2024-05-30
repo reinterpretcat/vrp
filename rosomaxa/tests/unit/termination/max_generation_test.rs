@@ -19,7 +19,7 @@ fn can_detect_termination_impl(generation: usize, limit: usize, expected: bool) 
         context.on_generation(vec![], 0.1, Timer::start());
     });
 
-    let result = MaxGeneration::<_, _, _>::new(limit).is_termination(&mut context);
+    let result = MaxGeneration::new(limit).is_termination(&mut context);
 
     assert_eq!(result, expected);
 }

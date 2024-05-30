@@ -6,21 +6,21 @@ use super::*;
 use std::marker::PhantomData;
 
 /// A termination criteria which is in terminated state when maximum amount of generations is exceeded.
-pub struct MaxGeneration<C, O, S>
+pub struct MaxGeneration<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     limit: usize,
     _marker: (PhantomData<C>, PhantomData<O>, PhantomData<S>),
 }
 
-impl<C, O, S> MaxGeneration<C, O, S>
+impl<F, C, O, S> MaxGeneration<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     /// Creates a new instance of `MaxGeneration`.
     pub fn new(limit: usize) -> Self {
@@ -28,11 +28,11 @@ where
     }
 }
 
-impl<C, O, S> Termination for MaxGeneration<C, O, S>
+impl<F, C, O, S> Termination for MaxGeneration<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     type Context = C;
     type Objective = O;

@@ -31,20 +31,20 @@ mod target_proximity;
 pub use self::target_proximity::TargetProximity;
 
 /// A trait which encapsulates multiple termination criteria.
-pub struct CompositeTermination<C, O, S>
+pub struct CompositeTermination<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>>,
 }
 
-impl<C, O, S> CompositeTermination<C, O, S>
+impl<F, C, O, S> CompositeTermination<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     /// Creates a new instance of `CompositeTermination`.
     pub fn new(terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>>) -> Self {
@@ -52,11 +52,11 @@ where
     }
 }
 
-impl<C, O, S> Termination for CompositeTermination<C, O, S>
+impl<F, C, O, S> Termination for CompositeTermination<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     type Context = C;
     type Objective = O;

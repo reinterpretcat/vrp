@@ -122,7 +122,7 @@ fn create_empty_problem() -> Problem {
         fleet,
         jobs,
         locks: vec![],
-        goal: Arc::new(GoalContext::new(&[], Goal::no_alternatives([], [])).unwrap()),
+        goal: Arc::new(GoalContext::new(&[], Goal::no_alternatives::<&str, _>([], [])).unwrap()),
         activity: Arc::new(TestActivityCost::default()),
         transport,
         extras: Arc::new(ExtrasBuilder::default().build().expect("cannot build default extras")),

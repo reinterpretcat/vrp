@@ -3,23 +3,25 @@ use crate::prelude::*;
 use crate::utils::Timer;
 
 /// An entity which simulates evolution process.
-pub struct EvolutionSimulator<C, O, S>
+pub struct EvolutionSimulator<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
-    config: EvolutionConfig<C, O, S>,
+    config: EvolutionConfig<F, C, O, S>,
 }
 
-impl<C, O, S> EvolutionSimulator<C, O, S>
+impl<F, C, O, S> EvolutionSimulator<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     /// Creates a new instance of `EvolutionSimulator`.
-    pub fn new(config: EvolutionConfig<C, O, S>) -> Result<Self, GenericError> {
+    pub fn new(config: EvolutionConfig<F, C, O, S>) -> Result<Self, GenericError> {
         if config.initial.operators.is_empty() {
             return Err("at least one initial method has to be specified".into());
         }

@@ -12,11 +12,12 @@ use std::ops::ControlFlow;
 
 /// A termination criteria which calculates coefficient variation in each objective and terminates
 /// when min threshold is not reached.
-pub struct MinVariation<C, O, S, K>
+pub struct MinVariation<F, C, O, S, K>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S> + Stateful<Key = K>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
     K: Hash + Eq + Clone,
 {
     interval_type: IntervalType,
@@ -31,11 +32,12 @@ enum IntervalType {
     Period(u128),
 }
 
-impl<C, O, S, K> MinVariation<C, O, S, K>
+impl<F, C, O, S, K> MinVariation<F, C, O, S, K>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness + 'static,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S> + Stateful<Key = K>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
     K: Hash + Eq + Clone,
 {
     /// Creates a new instance of `MinVariation` with sample interval type.
@@ -60,15 +62,16 @@ where
         }
     }
 
-    fn update_and_check(&self, heuristic_ctx: &mut C, fitness: Vec<f64>) -> bool {
+    fn update_and_check(&self, heuristic_ctx: &mut C, fitness: F) -> bool {
         match &self.interval_type {
             IntervalType::Sample(sample) => {
                 let generation = heuristic_ctx.statistics().generation;
+                let size = fitness.iter().count();
 
-                let values = heuristic_ctx
-                    .state_mut::<Vec<Vec<f64>>, _>(self.key.clone(), || vec![vec![0.; fitness.len()]; *sample]);
+                let values =
+                    heuristic_ctx.state_mut::<Vec<Vec<f64>>, _>(self.key.clone(), || vec![vec![0.; size]; *sample]);
 
-                values[generation % sample] = fitness;
+                values[generation % sample] = fitness.iter().collect();
 
                 if generation < (*sample - 1) {
                     false
@@ -84,7 +87,7 @@ where
                 let values = heuristic_ctx
                     .state_mut::<Vec<(u128, Vec<f64>)>, _>(self.key.clone(), Vec::<(u128, Vec<f64>)>::default);
 
-                values.push((elapsed_time, fitness));
+                values.push((elapsed_time, fitness.iter().collect()));
 
                 // NOTE try to keep collection under maintainable size
                 if values.len() > 1000 {
@@ -140,11 +143,12 @@ where
     }
 }
 
-impl<C, O, S, K> Termination for MinVariation<C, O, S, K>
+impl<F, C, O, S, K> Termination for MinVariation<F, C, O, S, K>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness + 'static,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S> + Stateful<Key = K>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
     K: Hash + Eq + Clone,
 {
     type Context = C;
@@ -152,9 +156,9 @@ where
 
     fn is_termination(&self, heuristic_ctx: &mut Self::Context) -> bool {
         let first_individual = heuristic_ctx.ranked().next();
-        if let Some((first, _)) = first_individual {
+        if let Some(first) = first_individual {
             let objective = heuristic_ctx.objective();
-            let fitness = objective.fitness(first).collect::<Vec<_>>();
+            let fitness = objective.fitness(first);
             let result = self.update_and_check(heuristic_ctx, fitness);
 
             match (self.is_global, heuristic_ctx.selection_phase()) {

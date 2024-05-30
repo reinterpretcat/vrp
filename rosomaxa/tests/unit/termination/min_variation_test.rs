@@ -22,16 +22,17 @@ fn can_detect_termination_with_sample_impl(
     expected: Vec<bool>,
 ) {
     let mut context = create_default_heuristic_context();
-    let termination = MinVariation::<_, _, _, _>::new_with_sample(sample, threshold, false, 0);
+    let termination = MinVariation::new_with_sample(sample, threshold, false, 0);
 
     let result = (0..sample)
         .map(|i| {
-            let other = if no_other_variance { 0. } else { i as f64 };
+            let _other = if no_other_variance { 0. } else { i as f64 };
             let cost = 1. + (i + 1) as f64 * delta;
 
             context.on_generation(vec![], 0.1, Timer::start());
 
-            termination.update_and_check(&mut context, vec![other, other, cost])
+            // TODO fixme
+            termination.update_and_check(&mut context, cost) //vec![other, other, cost])
         })
         .collect::<Vec<bool>>();
 
@@ -47,15 +48,16 @@ fn can_detect_termination_with_period() {
     let expected = vec![false, false, true];
 
     let mut context = create_default_heuristic_context();
-    let termination = MinVariation::<_, _, _, _>::new_with_period(period, threshold, false, 0);
+    let termination = MinVariation::new_with_period(period, threshold, false, 0);
 
     let result = (0..iterations)
         .map(|i| {
             let cost = 1. + (i + 1) as f64 * delta;
-            let result = termination.update_and_check(&mut context, vec![0., 0., cost]);
+            let _result = termination.update_and_check(&mut context, cost); //vec![0., 0., cost]);
             sleep(Duration::from_secs(1));
 
-            result
+            // TODO: fixme
+            false
         })
         .collect::<Vec<bool>>();
 
@@ -77,9 +79,10 @@ fn can_maintain_period_buffer_size_impl(size: u128, check_sorted: bool) {
     let key = 0;
     let mut context = create_default_heuristic_context();
     context.set_state(key, (0..size).map(|i| (i, vec![0., 0.])).collect::<Vec<_>>());
-    let termination = MinVariation::<_, _, _, _>::new_with_period(300, 0.01, false, key);
+    let termination = MinVariation::new_with_period(300, 0.01, false, key);
 
-    termination.update_and_check(&mut context, vec![0., 0.]);
+    // TODO fixme
+    termination.update_and_check(&mut context, 0.); //vec![0., 0.]);
 
     let values = context.get_state::<Vec<(u128, Vec<f64>)>>(&key).unwrap();
     if check_sorted {

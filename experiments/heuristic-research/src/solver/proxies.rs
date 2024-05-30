@@ -1,6 +1,6 @@
 use crate::*;
 use rosomaxa::example::VectorSolution;
-use rosomaxa::population::{DominanceOrdered, RosomaxaWeighted, Shuffled};
+use rosomaxa::population::{RosomaxaWeighted, Shuffled};
 use rosomaxa::prelude::*;
 use std::any::TypeId;
 use std::cmp::Ordering;
@@ -46,7 +46,7 @@ impl<'a> TryFrom<&'a str> for ExperimentData {
 
 impl<S> From<&S> for ObservationData
 where
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted + 'static,
 {
     fn from(solution: &S) -> Self {
         if TypeId::of::<S>() == TypeId::of::<VectorSolution>() {
@@ -84,8 +84,8 @@ where
 pub struct ProxyPopulation<P, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
-    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled + 'static,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted + 'static,
 {
     generation: usize,
     inner: P,
@@ -94,8 +94,8 @@ where
 impl<P, O, S> ProxyPopulation<P, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
-    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled + 'static,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted + 'static,
 {
     /// Creates a new instance of `ProxyPopulation`.
     pub fn new(inner: P) -> Self {
@@ -111,8 +111,8 @@ where
 impl<P, O, S> HeuristicPopulation for ProxyPopulation<P, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted,
 {
     type Objective = O;
     type Individual = S;
@@ -153,7 +153,7 @@ where
         }))
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Individual, usize)> + 'a> {
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         self.inner.ranked()
     }
 
@@ -173,8 +173,8 @@ where
 impl<P, O, S> Display for ProxyPopulation<P, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
-    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled + 'static,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted + 'static,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.inner.fmt(f)

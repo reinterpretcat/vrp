@@ -26,6 +26,7 @@ struct MinimizeUnassignedObjective {
 }
 
 impl Objective for MinimizeUnassignedObjective {
+    type Fitness = FitnessContext;
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -40,13 +41,17 @@ impl Objective for MinimizeUnassignedObjective {
         }
     }
 
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        (self.fitness(a) - self.fitness(b)).abs()
+    }
+
+    fn fitness(&self, solution: &Self::Solution) -> Self::Fitness {
+        FitnessContext::Single(solution
             .solution
             .unassigned
             .iter()
             .map(|(job, _)| (self.unassigned_job_estimator)(&solution.solution, job))
-            .sum::<f64>()
+            .sum::<Cost>())
     }
 }
 

@@ -40,6 +40,7 @@ struct TourCompactnessObjective {
 }
 
 impl Objective for TourCompactnessObjective {
+    type Fitness = ();
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -63,6 +64,10 @@ impl Objective for TourCompactnessObjective {
         }
 
         compare_floats(fitness_a, fitness_b)
+    }
+
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        todo!()
     }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {

@@ -40,7 +40,7 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
                     create_minimize_transport_costs_feature("transport", transport, activity, schedule_keys, 1)
                         .unwrap(),
                 )
-                .with_objectives(vec![vec!["transport"]])
+                .with_objectives(&["transport"])
                 .build()
         },
         |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
@@ -68,7 +68,7 @@ pub fn generate_matrix_routes_with_disallow_list(
         is_open_vrp,
         move |transport, activity, extras| {
             let schedule_keys = extras.get_schedule_keys().cloned().expect("no schedule keys");
-            let feature_map = vec![vec!["transport"]];
+            let feature_map = &["transport"];
             GoalContextBuilder::default()
                 .add_feature(
                     create_minimize_transport_costs_feature("transport", transport, activity, schedule_keys, 1)

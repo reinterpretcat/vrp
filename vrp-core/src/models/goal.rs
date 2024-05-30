@@ -8,7 +8,7 @@ use crate::models::common::Cost;
 use crate::models::problem::Job;
 use hashbrown::{HashMap, HashSet};
 use rand::prelude::SliceRandom;
-use rosomaxa::algorithms::nsga2::dominance_order;
+use rosomaxa::algorithms::math::relative_distance;
 use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
@@ -17,10 +17,10 @@ use std::ops::ControlFlow;
 use std::slice::Iter;
 use std::sync::Arc;
 
-/// A type alias for a list of feature objectives.
-type Objectives = Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>;
+/// A type alias for a feature objective.
+type GoalObjective = Arc<dyn FeatureObjective<Fitness = Vec<f64>, Solution = InsertionContext> + Send + Sync>;
 /// A type alias for a pair of alternative objectives (global and local).
-type Alternative = (Vec<Objectives>, Vec<Objectives>);
+type Alternative = (Vec<GoalObjective>, Vec<GoalObjective>);
 
 /// Defines Vehicle Routing Problem variant by global and local objectives:
 /// A **global objective** defines the way two VRP solutions are compared in order to select better one:
@@ -37,9 +37,8 @@ type Alternative = (Vec<Objectives>, Vec<Objectives>);
 /// for vehicles/jobs, etc.
 #[derive(Clone, Default)]
 pub struct GoalContext {
-    global_objectives: Vec<Objectives>,
-    local_objectives: Vec<Objectives>,
-    flatten_objectives: Objectives,
+    global_objectives: Vec<GoalObjective>,
+    local_objectives: Vec<GoalObjective>,
     alternatives: Option<(Vec<Alternative>, f64)>,
     constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
     states: Vec<Arc<dyn FeatureState + Send + Sync>>,
@@ -49,9 +48,9 @@ pub struct GoalContext {
 #[derive(Clone, Debug)]
 pub struct Target {
     /// A global hierarchical objective function specified by names of corresponding features.
-    pub global: Vec<Vec<String>>,
+    pub global: Vec<String>,
     /// A local hierarchical objective function specified by names of corresponding features.
-    pub local: Vec<Vec<String>>,
+    pub local: Vec<String>,
 }
 
 /// A `Goal` type defines the goal of optimization in terms of feature names.
@@ -66,21 +65,25 @@ pub struct Goal {
 
 impl Goal {
     /// Creates instance of `Goal` without alternatives.
-    pub fn no_alternatives<I>(global: I, local: I) -> Self
+    pub fn no_alternatives<T, I>(global: I, local: I) -> Self
     where
-        I: IntoIterator<Item = Vec<String>>,
+        T: Into<String>,
+        I: IntoIterator<Item = T>,
     {
-        let target = Target { global: global.into_iter().collect(), local: local.into_iter().collect() };
+        let target = Target {
+            global: global.into_iter().map(Into::into).collect(),
+            local: local.into_iter().map(Into::into).collect(),
+        };
 
         Self { target, alternatives: None }
     }
 
     /// Creates instance of `Goal` with alternatives. The general idea behind alternatives is to
-    /// allow search to explore solution space better, temporary switch a target objective function
-    /// to one of alternatives.
+    /// allow search to explore solution space better, temporary switch from a target objective
+    /// function  to one of alternatives.
     pub fn with_alternatives<I>(global: I, local: I, alternatives: (Vec<(I, I)>, f64)) -> Self
     where
-        I: IntoIterator<Item = Vec<String>>,
+        I: IntoIterator<Item = String>,
     {
         let target = Target { global: global.into_iter().collect(), local: local.into_iter().collect() };
 
@@ -114,9 +117,8 @@ impl GoalContext {
 
         let check_target_map = |target: &Target| {
             [&target.global, &target.local].iter().all(|objectives| {
-                let objective_ids_all = objectives.iter().flat_map(|objective| objective.iter()).collect::<Vec<_>>();
-                let objective_ids_unique = objective_ids_all.iter().cloned().collect::<HashSet<_>>();
-                objective_ids_all.len() == objective_ids_unique.len() && objective_ids_unique.is_subset(&ids_unique)
+                let objectives_unique = objectives.iter().collect::<HashSet<_>>();
+                objectives.len() == objectives_unique.len() && objectives_unique.is_subset(&ids_unique)
             })
         };
 
@@ -129,19 +131,16 @@ impl GoalContext {
             .filter_map(|feature| feature.objective.as_ref().map(|objective| (feature.name.clone(), objective.clone())))
             .collect::<HashMap<_, _>>();
 
-        let remap_objectives = |objective_map: &[Vec<String>]| -> Result<Vec<_>, GenericError> {
-            objective_map.iter().try_fold(Vec::default(), |mut acc_outer, ids| {
-                acc_outer.push(ids.iter().try_fold(Vec::default(), |mut acc_inner, id| {
-                    if let Some(objective) = feature_map.get(id) {
-                        acc_inner.push(objective.clone());
-                        Ok(acc_inner)
-                    } else {
-                        Err(format!("cannot find objective for feature with id: {id}"))
-                    }
-                })?);
-
-                Ok(acc_outer)
-            })
+        let remap_objectives = |objective_map: &[String]| -> Result<Vec<_>, GenericError> {
+            objective_map
+                .iter()
+                .map(|objective_id| {
+                    feature_map
+                        .get(objective_id)
+                        .cloned()
+                        .ok_or_else(|| format!("cannot find objective for feature with id: {objective_id}").into())
+                })
+                .collect()
         };
 
         let global_objectives = remap_objectives(&goal.target.global)?;
@@ -168,9 +167,8 @@ impl GoalContext {
 
         let states = features.iter().filter_map(|feature| feature.state.clone()).collect();
         let constraints = features.iter().filter_map(|feature| feature.constraint.clone()).collect();
-        let flatten_objectives = global_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
 
-        Ok(Self { global_objectives, flatten_objectives, local_objectives, alternatives, constraints, states })
+        Ok(Self { global_objectives, local_objectives, alternatives, constraints, states })
     }
 
     /// Creates a new instance of `GoalContext` with given feature constraints.
@@ -192,7 +190,6 @@ impl Debug for GoalContext {
         f.debug_struct(short_type_name::<Self>())
             .field("global", &self.global_objectives.len())
             .field("local", &self.local_objectives.len())
-            .field("flatten", &self.flatten_objectives.len())
             .field("alternatives", &self.alternatives.is_some())
             .field("constraints", &self.constraints.len())
             .field("states", &self.states.len())
@@ -229,7 +226,7 @@ pub struct Feature {
     /// A hard constraint.
     pub constraint: Option<Arc<dyn FeatureConstraint + Send + Sync>>,
     /// An objective which models soft constraints.
-    pub objective: Option<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
+    pub objective: Option<Arc<dyn FeatureObjective<Fitness = Vec<f64>, Solution = InsertionContext> + Send + Sync>>,
     /// A state change handler.
     pub state: Option<Arc<dyn FeatureState + Send + Sync>>,
 }
@@ -291,7 +288,9 @@ impl FeatureBuilder {
     }
 
     /// Adds given objective.
-    pub fn with_objective<T: FeatureObjective<Solution = InsertionContext> + Send + Sync + 'static>(
+    pub fn with_objective<
+        T: FeatureObjective<Fitness = Vec<f64>, Solution = InsertionContext> + Send + Sync + 'static,
+    >(
         mut self,
         objective: T,
     ) -> Self {
@@ -370,46 +369,34 @@ pub trait FeatureConstraint {
 }
 
 /// Defines feature objective behavior.
-pub trait FeatureObjective: Objective {
+pub trait FeatureObjective: Objective + Send + Sync {
     /// Estimates a cost of insertion.
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost;
 }
 
-impl MultiObjective for GoalContext {
+impl Objective for GoalContext {
+    type Fitness = FitnessContext;
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
         self.global_objectives
             .iter()
-            .try_fold(Ordering::Equal, |_, objectives| {
-                match dominance_order(a, b, objectives.iter().map(|o| o.as_ref())) {
-                    Ordering::Equal => ControlFlow::Continue(Ordering::Equal),
-                    order => ControlFlow::Break(order),
-                }
+            .try_fold(Ordering::Equal, |_, objective| match objective.total_order(a, b) {
+                Ordering::Equal => ControlFlow::Continue(Ordering::Equal),
+                order => ControlFlow::Break(order),
             })
             .unwrap_value()
     }
 
-    fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(self.flatten_objectives.iter().map(|o| o.fitness(solution)))
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        relative_distance(
+            self.global_objectives.iter().flat_map(|o| o.fitness(a).iterate()),
+            self.global_objectives.iter().flat_map(|o| o.fitness(b).iterate()),
+        )
     }
 
-    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, GenericError> {
-        self.flatten_objectives
-            .get(idx)
-            .map(|o| o.total_order(a, b))
-            .ok_or_else(|| format!("cannot get total_order with index: {idx}").into())
-    }
-
-    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, GenericError> {
-        self.flatten_objectives
-            .get(idx)
-            .map(|o| o.distance(a, b))
-            .ok_or_else(|| format!("cannot get distance with index: {idx}").into())
-    }
-
-    fn size(&self) -> usize {
-        self.flatten_objectives.len()
+    fn fitness(&self, solution: &Self::Solution) -> Self::Fitness {
+        self.global_objectives.iter().flat_map(|o| o.fitness(solution).iterate()).collect()
     }
 }
 
@@ -434,14 +421,12 @@ impl Shuffled for GoalContext {
 
         if random.is_hit(RANDOM_SHUFFLE_PROBABILITY) {
             let mut global_objectives = self.global_objectives.clone();
-            let mut flatten_objectives = self.flatten_objectives.clone();
             let mut local_objectives = self.local_objectives.clone();
 
             global_objectives.shuffle(&mut random.get_rng());
-            flatten_objectives.shuffle(&mut random.get_rng());
             local_objectives.shuffle(&mut random.get_rng());
 
-            Self { global_objectives, flatten_objectives, local_objectives, ..instance }
+            Self { global_objectives, local_objectives, ..instance }
         } else {
             instance
         }
@@ -451,11 +436,9 @@ impl Shuffled for GoalContext {
 impl GoalContext {
     fn get_alternative(&self, idx: usize) -> Self {
         let (alternatives, _) = self.alternatives.as_ref().expect("no alternatives");
-
         let (global_objectives, local_objectives) = alternatives[idx].clone();
-        let flatten_objectives = global_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
 
-        Self { global_objectives, flatten_objectives, local_objectives, ..self.clone() }
+        Self { global_objectives, local_objectives, ..self.clone() }
     }
 
     /// Returns goals with alternative objectives.
@@ -501,13 +484,6 @@ impl GoalContext {
 
     /// Estimates insertion cost (penalty) of the refinement move.
     pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> InsertionCost {
-        self.local_objectives
-            .iter()
-            .map(|same_level_objectives| {
-                // NOTE simply sum objective values on the same level
-                // TODO: it would be nice to scale them according to their importance
-                same_level_objectives.iter().map(|objective| objective.estimate(move_ctx)).sum::<Cost>()
-            })
-            .collect()
+        self.local_objectives.iter().map(|objective| objective.estimate(move_ctx)).collect()
     }
 }

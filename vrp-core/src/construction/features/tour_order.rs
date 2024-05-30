@@ -107,7 +107,16 @@ struct TourOrderObjective {
 }
 
 impl Objective for TourOrderObjective {
+    type Fitness = f64;
     type Solution = InsertionContext;
+
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        compare_floats(self.fitness(a), self.fitness(b))
+    }
+
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        (self.fitness(a) - self.fitness(b)).abs()
+    }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         let solution = &solution.solution;

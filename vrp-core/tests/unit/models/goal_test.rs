@@ -77,7 +77,7 @@ fn create_objective_feature_with_dynamic_cost(name: &str, fitness_fn: FitnessFn)
 #[test]
 pub fn can_create_goal_context_with_objective() {
     let features = &[create_minimize_tours_feature("min_tours").unwrap()];
-    let objectives_map = [vec!["min_tours".to_string()]];
+    let objectives_map = ["min_tours".to_string()];
     let goal = Goal::no_alternatives(objectives_map.clone(), objectives_map);
 
     GoalContext::new(features, goal).expect("cannot create goal context");
@@ -86,14 +86,14 @@ pub fn can_create_goal_context_with_objective() {
 #[test]
 pub fn can_create_goal_context_without_objectives() {
     let features = &[create_capacity_limit_feature::<SingleDimLoad>("capacity", create_capacity_keys(), 0).unwrap()];
-    let goal = Goal::no_alternatives([], []);
+    let goal = Goal::no_alternatives::<&str, _>([], []);
 
     GoalContext::new(features, goal).expect("cannot create goal context");
 }
 
 #[test]
 pub fn can_evaluate_constraints() {
-    let goal = Goal::no_alternatives([], []);
+    let goal = Goal::no_alternatives::<&str, _>([], []);
     let route_ctx = RouteContext::new(test_actor());
     let activity_ctx = ActivityContext {
         index: 0,

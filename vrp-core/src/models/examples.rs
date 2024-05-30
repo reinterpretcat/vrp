@@ -90,8 +90,8 @@ fn create_example_goal_ctx(
     ];
 
     let goal = Goal::no_alternatives(
-        vec![vec!["min_jobs".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
-        vec![vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
+        vec!["min_jobs".to_string(), "min_tours".to_string(), "min_distance".to_string()],
+        vec!["min_tours".to_string(), "min_distance".to_string()],
     );
 
     GoalContext::new(features.as_slice(), goal)

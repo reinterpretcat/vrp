@@ -105,15 +105,9 @@ pub(crate) fn create_goal_context_prefer_min_tours(
     let features = get_essential_features(activity, transport, extras)?;
 
     let goal = Goal::with_alternatives(
-        vec![vec!["min_unassigned".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
-        vec![vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
-        (
-            vec![(
-                vec![vec!["min_unassigned".to_string()], vec!["min_distance".to_string()]],
-                vec![vec!["min_distance".to_string()]],
-            )],
-            0.1,
-        ),
+        vec!["min_unassigned".to_string(), "min_tours".to_string(), "min_distance".to_string()],
+        vec!["min_tours".to_string(), "min_distance".to_string()],
+        (vec![(vec!["min_unassigned".to_string(), "min_distance".to_string()], vec!["min_distance".to_string()])], 0.1),
     );
 
     GoalContext::new(features.as_slice(), goal)
@@ -127,16 +121,12 @@ pub(crate) fn create_goal_context_distance_only(
     let features = get_essential_features(activity, transport, extras)?;
 
     let goal = Goal::with_alternatives(
-        vec![vec!["min_unassigned".to_string()], vec!["min_distance".to_string()]],
-        vec![vec!["min_distance".to_string()]],
+        vec!["min_unassigned".to_string(), "min_distance".to_string()],
+        vec!["min_distance".to_string()],
         (
             vec![(
-                vec![
-                    vec!["min_unassigned".to_string()],
-                    vec!["min_tours".to_string()],
-                    vec!["min_distance".to_string()],
-                ],
-                vec![vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
+                vec!["min_unassigned".to_string(), "min_tours".to_string(), "min_distance".to_string()],
+                vec!["min_tours".to_string(), "min_distance".to_string()],
             )],
             0.1,
         ),

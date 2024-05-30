@@ -3,22 +3,22 @@ use crate::utils::Timer;
 use std::marker::PhantomData;
 
 /// A termination criteria which is in terminated state when max time elapsed.
-pub struct MaxTime<C, O, S>
+pub struct MaxTime<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     start: Timer,
     limit_in_secs: f64,
     _marker: (PhantomData<C>, PhantomData<O>, PhantomData<S>),
 }
 
-impl<C, O, S> MaxTime<C, O, S>
+impl<F, C, O, S> MaxTime<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     /// Creates a new instance of `MaxTime`.
     pub fn new(limit_in_secs: f64) -> Self {
@@ -30,11 +30,11 @@ where
     }
 }
 
-impl<C, O, S> Termination for MaxTime<C, O, S>
+impl<F, C, O, S> Termination for MaxTime<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     type Context = C;
     type Objective = O;

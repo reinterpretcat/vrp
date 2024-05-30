@@ -8,13 +8,16 @@ use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::{CoreStateKeys, GoalContext};
 use crate::models::{Problem, Solution};
+use crate::utils::Either;
 use hashbrown::{HashMap, HashSet};
 use nohash_hasher::BuildNoHashHasher;
+use rosomaxa::algorithms::math::relative_distance;
 use rosomaxa::evolution::TelemetryMetrics;
 use rosomaxa::prelude::*;
 use std::any::Any;
-use std::fmt::{Debug, Formatter};
-use std::ops::Deref;
+use std::cmp::Ordering;
+use std::fmt::{Debug, Display, Formatter};
+use std::ops::{ControlFlow, Deref};
 use std::sync::Arc;
 
 /// A context which contains information needed for heuristic and metaheuristic.
@@ -89,7 +92,9 @@ impl InsertionContext {
 }
 
 impl HeuristicSolution for InsertionContext {
-    fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
+    type Fitness = FitnessContext;
+
+    fn fitness(&self) -> Self::Fitness {
         self.problem.goal.fitness(self)
     }
 
@@ -108,6 +113,72 @@ impl Debug for InsertionContext {
             .field("problem", &self.problem)
             .field("solution", &self.solution)
             .finish_non_exhaustive()
+    }
+}
+
+/// Represents a fitness value for VRP domain.
+/// NOTE: let's be consistent and call the type Context :-D.
+#[derive(Clone)]
+pub enum FitnessContext {
+    /// A single value.
+    Single(f64),
+    /// Multiple values.
+    Multi(Vec<f64>),
+}
+
+impl Display for FitnessContext {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FitnessContext::Single(value) => format!("{value:.3}"),
+            FitnessContext::Multi(values) => {
+                f.write_str(values.iter().map(|v| format!("{v:.3}")).collect::<Vec<_>>().join(", ").as_str())
+            }
+        }
+    }
+}
+
+impl HeuristicFitness for FitnessContext {
+    fn iter(&self) -> impl Iterator<Item = f64> {
+        match self {
+            FitnessContext::Single(value) => Either::Left(*value),
+            FitnessContext::Multi(values) => Either::Right(values.iter()),
+        }
+    }
+}
+
+impl Eq for FitnessContext {}
+
+impl PartialEq<Self> for FitnessContext {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (FitnessContext::Single(a), FitnessContext::Single(b)) => compare_floats_refs(a, b) == Ordering::Equal,
+            (FitnessContext::Multi(a), FitnessContext::Multi(b)) => relative_distance(a.iter(), b.iter()) == 0.,
+            _ => false,
+        }
+    }
+}
+
+impl PartialOrd<Self> for FitnessContext {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (FitnessContext::Single(a), FitnessContext::Single(b)) => a.partial_cmp(b),
+            (FitnessContext::Multi(a), FitnessContext::Multi(b)) if a.len() == b.len() => Some(
+                a.iter()
+                    .zip(b.iter())
+                    .try_fold(Ordering::Equal, |_, (a, b)| match compare_floats_refs(a, b) {
+                        Ordering::Equal => ControlFlow::Continue(Ordering::Equal),
+                        order => ControlFlow::Break(order),
+                    })
+                    .unwrap_value(),
+            ),
+            _ => None,
+        }
+    }
+}
+
+impl Ord for FitnessContext {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).expect("cannot compare fitness: mixing types?")
     }
 }
 

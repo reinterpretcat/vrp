@@ -87,7 +87,7 @@
 
 extern crate rand;
 
-use crate::construction::heuristics::InsertionContext;
+use crate::construction::heuristics::{FitnessContext, InsertionContext};
 use crate::models::{GoalContext, Problem, Solution};
 use crate::solver::search::Recreate;
 use hashbrown::HashMap;
@@ -115,7 +115,7 @@ pub struct RefinementContext {
     /// A collection of data associated with refinement process.
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
     /// Provides some basic implementation of context functionality.
-    inner_context: TelemetryHeuristicContext<GoalContext, InsertionContext>,
+    inner_context: TelemetryHeuristicContext<FitnessContext, GoalContext, InsertionContext>,
 }
 
 /// Defines instant refinement speed type.
@@ -159,7 +159,7 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.selected()
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a> {
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
         self.inner_context.ranked()
     }
 
@@ -266,14 +266,14 @@ impl InitialOperator for RecreateInitialOperator {
 /// ```
 pub struct Solver {
     problem: Arc<Problem>,
-    config: EvolutionConfig<RefinementContext, GoalContext, InsertionContext>,
+    config: EvolutionConfig<FitnessContext, RefinementContext, GoalContext, InsertionContext>,
 }
 
 impl Solver {
     /// Tries to create an instance of `Solver` from provided config.
     pub fn new(
         problem: Arc<Problem>,
-        config: EvolutionConfig<RefinementContext, GoalContext, InsertionContext>,
+        config: EvolutionConfig<FitnessContext, RefinementContext, GoalContext, InsertionContext>,
     ) -> Self {
         Self { problem, config }
     }

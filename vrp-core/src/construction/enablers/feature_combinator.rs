@@ -1,5 +1,6 @@
 //! This module provides some helper functionality to combine and use multiple features together.
 
+use std::cmp::Ordering;
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::models::*;
@@ -7,20 +8,13 @@ use rosomaxa::prelude::*;
 use std::ops::ControlFlow;
 use std::slice::Iter;
 use std::sync::Arc;
+use rosomaxa::algorithms::math::relative_distance;
+use rosomaxa::evolution::objective::dominance_order;
 
 /// Combines multiple features as single with given name.
 pub(crate) fn combine_features(name: &str, features: &[Feature]) -> Result<Feature, GenericError> {
-    let objectives = features.iter().filter_map(|feature| feature.objective.clone()).collect::<Vec<_>>();
-    if objectives.len() > 1 {
-        return Err(format!(
-            "combination of features with multiple objectives is not supported. Objective count: {}",
-            objectives.len()
-        )
-        .into());
-    }
-
     let constraints = features.iter().filter_map(|feature| feature.constraint.clone()).collect::<Vec<_>>();
-
+    let mut objectives = features.iter().filter_map(|feature| feature.objective.clone()).collect::<Vec<_>>();
     let states = features.iter().filter_map(|feature| feature.state.clone()).collect::<Vec<_>>();
 
     let feature = Feature {
@@ -30,7 +24,11 @@ pub(crate) fn combine_features(name: &str, features: &[Feature]) -> Result<Featu
         } else {
             Some(Arc::new(CombinedFeatureConstraint { constraints }))
         },
-        objective: objectives.first().cloned(),
+        objective: match objectives.len() {
+          0 => None,
+          1 => Some(objectives.swap_remove(0)),
+          _ => Some(Arc::new(CompositeFeatureObjective::new(objectives)))
+        },
         state: if states.is_empty() { None } else { Some(Arc::new(CombinedFeatureState::new(states))) },
     };
 
@@ -181,4 +179,36 @@ pub(crate) fn evaluate_with_constraints(
                 .unwrap_or_else(|| ControlFlow::Continue(None))
         })
         .unwrap_value()
+}
+
+struct CompositeFeatureObjective {
+    objectives: Vec<Arc<dyn FeatureObjective<Fitness=FitnessContext, Solution=InsertionContext>>>
+}
+
+impl CompositeFeatureObjective {
+    fn new(objectives: Vec<Arc<dyn FeatureObjective<Fitness=FitnessContext, Solution=InsertionContext>>>) -> Self {
+        Self {
+            objectives
+        }
+    }
+}
+
+impl Objective for CompositeFeatureObjective {
+    type Fitness = FitnessContext;
+    type Solution = InsertionContext;
+
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        dominance_order(a, b, self.objectives.iter())
+    }
+
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        relative_distance(
+            self.objectives.iter().map(|o| o.fitness(a)),
+            self.objectives.iter().map(|o| o.fitness(b))
+        )
+    }
+
+    fn fitness(&self, solution: &Self::Solution) -> Self::Fitness {
+        FitnessContext::Multi(self.objectives.iter().map(|o| o.fitness(solution)).collect())
+    }
 }

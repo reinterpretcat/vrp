@@ -122,7 +122,7 @@ pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Deman
 }
 
 pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
-    let goal = GoalContext::new(&[], Goal::no_alternatives([], [])).expect("cannot create goal context");
+    let goal = GoalContext::new(&[], Goal::no_alternatives::<&str, _>([], [])).expect("cannot create goal context");
     let registry = Registry::new(fleet, Arc::new(DefaultRandom::default()));
 
     SolutionContext {

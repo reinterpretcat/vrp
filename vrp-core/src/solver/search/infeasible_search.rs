@@ -81,7 +81,7 @@ impl HeuristicSearchOperator for InfeasibleSearch {
         }
 
         let insertion_ctx =
-            new_refinement_ctx.ranked().map(|(s, _)| s.deep_copy()).next().unwrap_or_else(|| solution.deep_copy());
+            new_refinement_ctx.ranked().map(|s| s.deep_copy()).next().unwrap_or_else(|| solution.deep_copy());
 
         insertion_ctx
     }

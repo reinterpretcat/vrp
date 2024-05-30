@@ -7,7 +7,6 @@ use crate::construction::enablers::{calculate_travel, calculate_travel_delta, Ro
 use hashbrown::HashMap;
 use rosomaxa::algorithms::math::relative_distance;
 use std::cmp::Ordering;
-use std::iter::once;
 use std::marker::PhantomData;
 
 /// Creates a feature to prefer a fast serving of jobs.
@@ -54,6 +53,7 @@ struct FastServiceObjective<T> {
 }
 
 impl<T: LoadOps> Objective for FastServiceObjective<T> {
+    type Fitness = FitnessContext;
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -61,7 +61,7 @@ impl<T: LoadOps> Objective for FastServiceObjective<T> {
         let fitness_b = self.fitness(b);
 
         if let Some(tolerance) = self.tolerance {
-            if relative_distance(once(fitness_a), once(fitness_b)) < tolerance {
+            if relative_distance(fitness_a.iter(), fitness_b.iter()) < tolerance {
                 return Ordering::Equal;
             }
         }
@@ -69,20 +69,26 @@ impl<T: LoadOps> Objective for FastServiceObjective<T> {
         compare_floats(fitness_a, fitness_b)
     }
 
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution
-            .solution
-            .routes
-            .iter()
-            .flat_map(|route_ctx| {
-                route_ctx.route().tour.jobs().filter(|job| !self.route_intervals.is_marker_job(job)).map(
-                    |job| match job {
-                        Job::Single(_) => self.estimate_single_job(route_ctx, job),
-                        Job::Multi(_) => self.estimate_multi_job(route_ctx, job),
-                    },
-                )
-            })
-            .sum::<Cost>()
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        (self.fitness(a) - self.fitness(b)).abs()
+    }
+
+    fn fitness(&self, solution: &Self::Solution) -> Self::Fitness {
+        FitnessContext::Single(
+            solution
+                .solution
+                .routes
+                .iter()
+                .flat_map(|route_ctx| {
+                    route_ctx.route().tour.jobs().filter(|job| !self.route_intervals.is_marker_job(job)).map(|job| {
+                        match job {
+                            Job::Single(_) => self.estimate_single_job(route_ctx, job),
+                            Job::Multi(_) => self.estimate_multi_job(route_ctx, job),
+                        }
+                    })
+                })
+                .sum::<Cost>(),
+        )
     }
 }
 

@@ -58,24 +58,34 @@ pub mod termination;
 pub mod utils;
 
 use crate::algorithms::math::RemedianUsize;
-use crate::algorithms::nsga2::MultiObjective;
+use crate::evolution::objective::Objective;
 use crate::evolution::{Telemetry, TelemetryMetrics, TelemetryMode};
 use crate::population::*;
 use crate::utils::Timer;
 use crate::utils::{Environment, GenericError};
+use std::fmt::Display;
 use std::hash::Hash;
 use std::sync::Arc;
 
-/// Represents solution in population defined as actual solution.
+/// Represents a fitness.
+pub trait HeuristicFitness: Clone + Display + Send + Sync {
+    /// Provides way to iterate over fitness values represented as floating point number.
+    fn iter(&self) -> impl Iterator<Item = f64>;
+}
+
+/// Represents a solution in population defined as actual solution.
 pub trait HeuristicSolution: Send + Sync {
+    /// A quantitative metric how good solution is.
+    type Fitness: HeuristicFitness;
+
     /// Get fitness values of a given solution.
-    fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a>;
+    fn fitness(&self) -> Self::Fitness;
     /// Creates a deep copy of the solution.
     fn deep_copy(&self) -> Self;
 }
 
 /// Represents a heuristic objective function.
-pub trait HeuristicObjective: MultiObjective + Send + Sync {}
+pub trait HeuristicObjective: Objective + Send + Sync {}
 /// Specifies a dynamically dispatched type for heuristic population.
 pub type DynHeuristicPopulation<O, S> = dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync;
 /// Specifies a heuristic result type.
@@ -83,19 +93,21 @@ pub type HeuristicResult<O, S> = Result<(Box<DynHeuristicPopulation<O, S>>, Opti
 
 /// Represents heuristic context.
 pub trait HeuristicContext: Send + Sync {
+    /// A quantitative metric how good solution is.
+    type Fitness: HeuristicFitness;
     /// A heuristic objective function type.
-    type Objective: HeuristicObjective<Solution = Self::Solution>;
+    type Objective: HeuristicObjective<Solution = Self::Solution, Fitness = Self::Fitness>;
     /// A heuristic solution type.
-    type Solution: HeuristicSolution;
+    type Solution: HeuristicSolution<Fitness = Self::Fitness>;
 
     /// Returns objective function used by the population.
     fn objective(&self) -> &Self::Objective;
 
-    /// Returns selected solutions base on current context.
+    /// Returns selected solutions based on current context.
     fn selected<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a>;
 
-    /// Returns subset of solutions within their rank sorted according their quality.
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a>;
+    /// Returns subset of solutions sorted according their rank (quality).
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a>;
 
     /// Returns current statistic used to track the search progress.
     fn statistics(&self) -> &HeuristicStatistics;
@@ -152,21 +164,23 @@ impl Default for HeuristicStatistics {
 }
 
 /// A default heuristic context implementation which uses telemetry to track search progression parameters.
-pub struct TelemetryHeuristicContext<O, S>
+pub struct TelemetryHeuristicContext<F, O, S>
 where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     objective: Arc<O>,
     population: Box<DynHeuristicPopulation<O, S>>,
-    telemetry: Telemetry<O, S>,
+    telemetry: Telemetry<F, O, S>,
     environment: Arc<Environment>,
 }
 
-impl<O, S> TelemetryHeuristicContext<O, S>
+impl<F, O, S> TelemetryHeuristicContext<F, O, S>
 where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     /// Creates a new instance of `TelemetryHeuristicContext`.
     pub fn new(
@@ -185,11 +199,13 @@ where
     }
 }
 
-impl<O, S> HeuristicContext for TelemetryHeuristicContext<O, S>
+impl<F, O, S> HeuristicContext for TelemetryHeuristicContext<F, O, S>
 where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
+    type Fitness = F;
     type Objective = O;
     type Solution = S;
 
@@ -201,7 +217,7 @@ where
         self.population.select()
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a> {
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
         self.population.ranked()
     }
 
@@ -300,14 +316,15 @@ pub fn get_default_selection_size(environment: &Environment) -> usize {
 }
 
 /// Gets default population algorithm.
-pub fn get_default_population<O, S>(
+pub fn get_default_population<F, O, S>(
     objective: Arc<O>,
     environment: Arc<Environment>,
     selection_size: usize,
 ) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
+    F: HeuristicFitness + 'static,
+    O: HeuristicObjective<Solution = S, Fitness = F> + Shuffled + 'static,
+    S: HeuristicSolution<Fitness = F> + RosomaxaWeighted + 'static,
 {
     if selection_size == 1 {
         Box::new(Greedy::new(objective, 1, None))
@@ -317,5 +334,11 @@ where
             Rosomaxa::new(objective, environment, config).expect("cannot create rosomaxa with default configuration");
 
         Box::new(population)
+    }
+}
+
+impl HeuristicFitness for f64 {
+    fn iter(&self) -> impl Iterator<Item = f64> {
+        std::iter::once(*self)
     }
 }

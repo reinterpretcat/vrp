@@ -5,6 +5,7 @@
 mod fleet_usage_test;
 
 use super::*;
+use std::cmp::Ordering;
 
 /// Creates a feature to minimize used fleet size (affects amount of tours in solution).
 pub fn create_minimize_tours_feature(name: &str) -> Result<Feature, GenericError> {
@@ -58,10 +59,19 @@ struct FleetUsageObjective {
 }
 
 impl Objective for FleetUsageObjective {
+    type Fitness = FitnessContext;
     type Solution = InsertionContext;
 
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        (self.solution_estimate_fn)(&solution.solution)
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        self.fitness(a).cmp(&self.fitness(b))
+    }
+
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        (self.fitness(a) - self.fitness(b)).abs()
+    }
+
+    fn fitness(&self, solution: &Self::Solution) -> Self::Fitness {
+        FitnessContext::Single((self.solution_estimate_fn)(&solution.solution))
     }
 }
 

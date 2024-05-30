@@ -5,23 +5,24 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
-pub struct EvolutionConfig<C, O, S>
+pub struct EvolutionConfig<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Fitness = F, Solution = S>,
+    S: HeuristicSolution<Fitness = F>,
 {
     /// An initial solution config.
-    pub initial: InitialConfig<C, O, S>,
+    pub initial: InitialConfig<F, C, O, S>,
 
     /// A pre/post processing config.
-    pub processing: ProcessingConfig<C, O, S>,
+    pub processing: ProcessingConfig<F, C, O, S>,
 
     /// A heuristic context.
     pub context: C,
 
     /// An evolution strategy.
-    pub strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>,
+    pub strategy: Box<dyn EvolutionStrategy<Fitness = F, Context = C, Objective = O, Solution = S>>,
 
     /// A termination defines when evolution should stop.
     pub termination: Box<dyn Termination<Context = C, Objective = O>>,
@@ -29,30 +30,33 @@ where
 
 /// Specifies an operator which builds initial solution.
 pub trait InitialOperator {
+    /// A fitness type.
+    type Fitness: HeuristicFitness;
     /// A heuristic context type.
-    type Context: HeuristicContext<Objective = Self::Objective, Solution = Self::Solution>;
+    type Context: HeuristicContext<Fitness = Self::Fitness, Objective = Self::Objective, Solution = Self::Solution>;
     /// A heuristic objective type.
-    type Objective: HeuristicObjective<Solution = Self::Solution>;
+    type Objective: HeuristicObjective<Fitness = Self::Fitness, Solution = Self::Solution>;
     /// A heuristic solution type.
-    type Solution: HeuristicSolution;
+    type Solution: HeuristicSolution<Fitness = Self::Fitness>;
 
     /// Creates an initial solution from scratch.
     fn create(&self, heuristic_ctx: &Self::Context) -> Self::Solution;
 }
 
 /// A collection of initial operators.
-pub type InitialOperators<C, O, S> =
-    Vec<(Box<dyn InitialOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>;
+pub type InitialOperators<F, C, O, S> =
+    Vec<(Box<dyn InitialOperator<Fitness = F, Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>;
 
 /// An initial solutions configuration.
-pub struct InitialConfig<C, O, S>
+pub struct InitialConfig<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Fitness = F, Solution = S>,
+    S: HeuristicSolution<Fitness = F>,
 {
     /// Create methods to produce initial individuals.
-    pub operators: InitialOperators<C, O, S>,
+    pub operators: InitialOperators<F, C, O, S>,
     /// Initial size of population to be generated.
     pub max_size: usize,
     /// Quota for initial solution generation.
@@ -62,49 +66,53 @@ where
 }
 
 /// Specifies pre/post processing logic which is run before and after the solver.
-pub struct ProcessingConfig<C, O, S>
+pub struct ProcessingConfig<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Fitness = F, Solution = S>,
+    S: HeuristicSolution<Fitness = F>,
 {
     /// A heuristic context creating pre processing.
-    pub context: Vec<Box<dyn HeuristicContextProcessing<Context = C, Objective = O, Solution = S> + Send + Sync>>,
+    pub context:
+        Vec<Box<dyn HeuristicContextProcessing<Fitness = F, Context = C, Objective = O, Solution = S> + Send + Sync>>,
     /// A solution post processing.
-    pub solution: Vec<Box<dyn HeuristicSolutionProcessing<Solution = S> + Send + Sync>>,
+    pub solution: Vec<Box<dyn HeuristicSolutionProcessing<Fitness = F, Solution = S> + Send + Sync>>,
 }
 
 /// Provides configurable way to build evolution configuration using fluent interface style.
-pub struct EvolutionConfigBuilder<C, O, S, K>
+pub struct EvolutionConfigBuilder<F, C, O, S, K>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K> + 'static,
-    O: HeuristicObjective<Solution = S> + 'static,
-    S: HeuristicSolution + 'static,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S> + Stateful<Key = K> + 'static,
+    O: HeuristicObjective<Solution = S, Fitness = F> + 'static,
+    S: HeuristicSolution<Fitness = F> + 'static,
     K: Hash + Eq + Clone + Send + Sync + 'static,
 {
     max_generations: Option<usize>,
     max_time: Option<usize>,
     min_cv: Option<(String, usize, f64, bool, K)>,
-    target_proximity: Option<(Vec<f64>, f64)>,
-    heuristic: Option<Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>>,
+    target_proximity: Option<(F, f64)>,
+    heuristic: Option<Box<dyn HyperHeuristic<Fitness = F, Context = C, Objective = O, Solution = S>>>,
     context: Option<C>,
     termination: Option<Box<dyn Termination<Context = C, Objective = O>>>,
-    strategy: Option<Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>>,
+    strategy: Option<Box<dyn EvolutionStrategy<Fitness = F, Context = C, Objective = O, Solution = S>>>,
 
-    search_operators: Option<HeuristicSearchOperators<C, O, S>>,
-    diversify_operators: Option<HeuristicDiversifyOperators<C, O, S>>,
+    search_operators: Option<HeuristicSearchOperators<F, C, O, S>>,
+    diversify_operators: Option<HeuristicDiversifyOperators<F, C, O, S>>,
 
-    objective: Option<Arc<dyn HeuristicObjective<Solution = S>>>,
+    objective: Option<Arc<dyn HeuristicObjective<Solution = S, Fitness = F>>>,
 
-    initial: InitialConfig<C, O, S>,
-    processing: ProcessingConfig<C, O, S>,
+    initial: InitialConfig<F, C, O, S>,
+    processing: ProcessingConfig<F, C, O, S>,
 }
 
-impl<C, O, S, K> Default for EvolutionConfigBuilder<C, O, S, K>
+impl<F, C, O, S, K> Default for EvolutionConfigBuilder<F, C, O, S, K>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K> + 'static,
-    O: HeuristicObjective<Solution = S> + 'static,
-    S: HeuristicSolution + 'static,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S> + Stateful<Key = K> + 'static,
+    O: HeuristicObjective<Solution = S, Fitness = F> + 'static,
+    S: HeuristicSolution<Fitness = F> + 'static,
     K: Hash + Eq + Clone + Send + Sync + 'static,
 {
     fn default() -> Self {
@@ -126,11 +134,12 @@ where
     }
 }
 
-impl<C, O, S, K> EvolutionConfigBuilder<C, O, S, K>
+impl<F, C, O, S, K> EvolutionConfigBuilder<F, C, O, S, K>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K> + 'static,
-    O: HeuristicObjective<Solution = S> + 'static,
-    S: HeuristicSolution + 'static,
+    F: HeuristicFitness + 'static,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S> + Stateful<Key = K> + 'static,
+    O: HeuristicObjective<Solution = S, Fitness = F> + 'static,
+    S: HeuristicSolution<Fitness = F> + 'static,
     K: Hash + Eq + Clone + Send + Sync + 'static,
 {
     /// Sets max generations to be run by evolution. Default is 3000.
@@ -152,13 +161,13 @@ where
     }
 
     /// Sets target fitness and distance threshold as termination criteria.
-    pub fn with_target_proximity(mut self, target_proximity: Option<(Vec<f64>, f64)>) -> Self {
+    pub fn with_target_proximity(mut self, target_proximity: Option<(F, f64)>) -> Self {
         self.target_proximity = target_proximity;
         self
     }
 
     /// Sets initial parameters used to construct initial population.
-    pub fn with_initial(mut self, max_size: usize, quota: f64, operators: InitialOperators<C, O, S>) -> Self {
+    pub fn with_initial(mut self, max_size: usize, quota: f64, operators: InitialOperators<F, C, O, S>) -> Self {
         self.initial.max_size = max_size;
         self.initial.quota = quota;
         self.initial.operators = operators;
@@ -167,7 +176,7 @@ where
     }
 
     /// Specifies processing configuration.
-    pub fn with_processing(mut self, processing: ProcessingConfig<C, O, S>) -> Self {
+    pub fn with_processing(mut self, processing: ProcessingConfig<F, C, O, S>) -> Self {
         self.processing = processing;
         self
     }
@@ -183,7 +192,7 @@ where
     }
 
     /// Sets objective.
-    pub fn with_objective(mut self, objective: Arc<dyn HeuristicObjective<Solution = S>>) -> Self {
+    pub fn with_objective(mut self, objective: Arc<dyn HeuristicObjective<Solution = S, Fitness = F>>) -> Self {
         self.objective = Some(objective);
         self
     }
@@ -203,7 +212,7 @@ where
     /// Sets a different heuristic replacing initial.
     pub fn with_heuristic(
         mut self,
-        heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
+        heuristic: Box<dyn HyperHeuristic<Fitness = F, Context = C, Objective = O, Solution = S>>,
     ) -> Self {
         self.heuristic = Some(heuristic);
         self
@@ -212,20 +221,20 @@ where
     /// Sets a different heuristic replacing initial.
     pub fn with_strategy(
         mut self,
-        strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>,
+        strategy: Box<dyn EvolutionStrategy<Fitness = F, Context = C, Objective = O, Solution = S>>,
     ) -> Self {
         self.strategy = Some(strategy);
         self
     }
 
     /// Sets search operators for dynamic heuristic.
-    pub fn with_search_operators(mut self, search_operators: HeuristicSearchOperators<C, O, S>) -> Self {
+    pub fn with_search_operators(mut self, search_operators: HeuristicSearchOperators<F, C, O, S>) -> Self {
         self.search_operators = Some(search_operators);
         self
     }
 
     /// Sets diversify operators for dynamic heuristic.
-    pub fn with_diversify_operators(mut self, diversify_operators: HeuristicDiversifyOperators<C, O, S>) -> Self {
+    pub fn with_diversify_operators(mut self, diversify_operators: HeuristicDiversifyOperators<F, C, O, S>) -> Self {
         self.diversify_operators = Some(diversify_operators);
         self
     }
@@ -237,7 +246,7 @@ where
         max_generations: Option<usize>,
         max_time: Option<usize>,
         min_cv: Option<(String, usize, f64, bool, K)>,
-        target_proximity: Option<(Vec<f64>, f64)>,
+        target_proximity: Option<(F, f64)>,
     ) -> Result<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>, GenericError> {
         let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = match (
             max_generations,
@@ -272,12 +281,12 @@ where
 
                     let variation: Box<dyn Termination<Context = C, Objective = O> + Send + Sync> =
                         match interval_type.as_str() {
-                            "sample" => {
-                                Box::new(MinVariation::<C, O, S, K>::new_with_sample(value, threshold, is_global, key))
-                            }
-                            "period" => {
-                                Box::new(MinVariation::<C, O, S, K>::new_with_period(value, threshold, is_global, key))
-                            }
+                            "sample" => Box::new(MinVariation::<F, C, O, S, K>::new_with_sample(
+                                value, threshold, is_global, key,
+                            )),
+                            "period" => Box::new(MinVariation::<F, C, O, S, K>::new_with_period(
+                                value, threshold, is_global, key,
+                            )),
                             _ => return Err(format!("unknown variation interval type: {interval_type}").into()),
                         };
 
@@ -286,11 +295,11 @@ where
 
                 if let Some((target_fitness, distance_threshold)) = target_proximity.clone() {
                     (logger)(
-                            format!(
-                                "configured to use target fitness: {target_fitness:?}, distance threshold: {distance_threshold}",
-                            )
-                            .as_str(),
-                        );
+                        format!(
+                            "configured to use target fitness: {target_fitness}, distance threshold: {distance_threshold}",
+                        )
+                        .as_str(),
+                    );
                     terminations.push(Box::new(TargetProximity::new(target_fitness, distance_threshold)));
                 }
 
@@ -302,7 +311,7 @@ where
     }
 
     /// Builds the evolution config.
-    pub fn build(self) -> Result<EvolutionConfig<C, O, S>, GenericError> {
+    pub fn build(self) -> Result<EvolutionConfig<F, C, O, S>, GenericError> {
         let context = self.context.ok_or_else(|| "missing heuristic context".to_string())?;
         let logger = context.environment().logger.clone();
         let termination =

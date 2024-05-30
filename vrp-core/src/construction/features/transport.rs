@@ -9,6 +9,7 @@ use crate::construction::enablers::{update_route_schedule, ScheduleKeys};
 use crate::models::common::Timestamp;
 use crate::models::problem::{ActivityCost, Single, TransportCost, TravelTime};
 use crate::models::solution::Activity;
+use std::cmp::Ordering;
 
 // TODO
 //  remove get_total_cost, get_route_costs, get_max_cost methods from contexts
@@ -308,7 +309,16 @@ impl TransportObjective {
 }
 
 impl Objective for TransportObjective {
+    type Fitness = f64;
     type Solution = InsertionContext;
+
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        compare_floats(self.fitness(a), self.fitness(b))
+    }
+
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        (self.fitness(a) - self.fitness(b)).abs()
+    }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         (self.fitness_fn)(solution)

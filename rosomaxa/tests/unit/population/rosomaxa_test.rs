@@ -2,7 +2,9 @@ use super::*;
 use crate::example::*;
 use crate::helpers::example::create_example_objective;
 
-fn create_rosomaxa(rebalance_memory: usize) -> (Arc<VectorObjective>, Rosomaxa<VectorObjective, VectorSolution>) {
+fn create_rosomaxa(
+    rebalance_memory: usize,
+) -> (Arc<VectorObjective>, Rosomaxa<VectorFitness, VectorObjective, VectorSolution>) {
     let mut config = RosomaxaConfig::new_with_defaults(4);
     config.rebalance_memory = rebalance_memory;
 
@@ -22,8 +24,8 @@ fn create_statistics(termination_estimate: f64, generation: usize) -> HeuristicS
 }
 
 fn get_network(
-    rosomaxa: &Rosomaxa<VectorObjective, VectorSolution>,
-) -> &IndividualNetwork<VectorObjective, VectorSolution> {
+    rosomaxa: &Rosomaxa<VectorFitness, VectorObjective, VectorSolution>,
+) -> &IndividualNetwork<VectorFitness, VectorObjective, VectorSolution> {
     match &rosomaxa.phase {
         RosomaxaPhases::Exploration { network, .. } => network,
         _ => unreachable!(),

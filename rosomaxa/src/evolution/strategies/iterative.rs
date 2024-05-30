@@ -2,37 +2,41 @@ use super::*;
 use crate::utils::Timer;
 
 /// A simple evolution algorithm which maintains a single population and improves it iteratively.
-pub struct Iterative<C, O, S>
+pub struct Iterative<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     desired_solutions_amount: usize,
-    heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
+    heuristic: Box<dyn HyperHeuristic<Fitness = F, Context = C, Objective = O, Solution = S>>,
 }
 
-impl<C, O, S> Iterative<C, O, S>
+impl<F, C, O, S> Iterative<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     /// Creates a new instance of `RunSimple`.
     pub fn new(
-        heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
+        heuristic: Box<dyn HyperHeuristic<Fitness = F, Context = C, Objective = O, Solution = S>>,
         desired_solutions_amount: usize,
     ) -> Self {
         Self { heuristic, desired_solutions_amount }
     }
 }
 
-impl<C, O, S> EvolutionStrategy for Iterative<C, O, S>
+impl<F, C, O, S> EvolutionStrategy for Iterative<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
+    type Fitness = F;
     type Context = C;
     type Objective = O;
     type Solution = S;
@@ -78,7 +82,7 @@ where
         let (population, telemetry_metrics) = heuristic_ctx.on_result()?;
 
         let solutions =
-            population.ranked().map(|(solution, _)| solution.deep_copy()).take(self.desired_solutions_amount).collect();
+            population.ranked().map(|solution| solution.deep_copy()).take(self.desired_solutions_amount).collect();
 
         Ok((solutions, telemetry_metrics))
     }

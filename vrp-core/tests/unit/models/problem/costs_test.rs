@@ -119,7 +119,7 @@ mod objective {
     use crate::construction::heuristics::{InsertionContext, MoveContext, StateKeyRegistry};
     use crate::helpers::construction::heuristics::{create_state_key, InsertionContextBuilder};
     use crate::models::{Feature, FeatureBuilder, FeatureObjective, Goal, GoalContext};
-    use rosomaxa::prelude::{compare_floats, MultiObjective, Objective};
+    use rosomaxa::prelude::{compare_floats, Objective};
     use std::cmp::Ordering;
 
     struct TestObjective {
@@ -127,6 +127,7 @@ mod objective {
     }
 
     impl Objective for TestObjective {
+        type Fitness = Vec<f64>;
         type Solution = InsertionContext;
 
         fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -183,7 +184,7 @@ mod objective {
     }
 
     fn can_use_total_order_with_hierarchy_impl(data_a: Vec<f64>, data_b: Vec<f64>, expected: Ordering) {
-        let objective_map = [vec!["test_0".to_string()], vec!["test_1".to_string()], vec!["test_2".to_string()]];
+        let objective_map = ["test_0", "test_1", "test_2"];
         let goal = Goal::no_alternatives(objective_map.clone(), objective_map);
         let goal = GoalContext::new(
             &[create_objective_feature(0), create_objective_feature(1), create_objective_feature(2)],

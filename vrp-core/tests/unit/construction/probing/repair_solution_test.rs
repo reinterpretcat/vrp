@@ -97,7 +97,7 @@ fn create_test_problem(
             create_capacity_limit_feature::<SingleDimLoad>("capacity", extras.get_capacity_keys().cloned().unwrap(), 5)
                 .unwrap(),
         )
-        .with_objectives(vec![vec!["transport"]])
+        .with_objectives(&["transport"])
         .build();
 
     Problem {

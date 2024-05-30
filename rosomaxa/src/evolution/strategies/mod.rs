@@ -7,10 +7,12 @@ pub use self::iterative::Iterative;
 
 /// An evolution algorithm strategy.
 pub trait EvolutionStrategy {
+    /// A heuristic fitness type.
+    type Fitness: HeuristicFitness;
     /// A heuristic context type.
-    type Context: HeuristicContext<Objective = Self::Objective, Solution = Self::Solution>;
+    type Context: HeuristicContext<Fitness = Self::Fitness, Objective = Self::Objective, Solution = Self::Solution>;
     /// A heuristic objective type.
-    type Objective: HeuristicObjective<Solution = Self::Solution>;
+    type Objective: HeuristicObjective<Fitness = Self::Fitness, Solution = Self::Solution>;
     /// A solution type.
     type Solution: HeuristicSolution;
 

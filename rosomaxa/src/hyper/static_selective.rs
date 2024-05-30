@@ -9,32 +9,34 @@ use std::sync::Arc;
 pub type HeuristicProbability<C, O, S> = (Box<dyn Fn(&C, &S) -> bool + Send + Sync>, PhantomData<O>);
 
 /// A type which specifies a group of multiple heuristic strategies with their probability.
-pub type HeuristicSearchGroup<C, O, S> = Vec<(
-    Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>,
+pub type HeuristicSearchGroup<F, C, O, S> = Vec<(
+    Arc<dyn HeuristicSearchOperator<Fitness = F, Context = C, Objective = O, Solution = S> + Send + Sync>,
     HeuristicProbability<C, O, S>,
 )>;
 
 /// A collection of heuristic diversify operators.
-pub type HeuristicDiversifyGroup<C, O, S> =
-    Vec<Arc<dyn HeuristicDiversifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>>;
+pub type HeuristicDiversifyGroup<F, C, O, S> =
+    Vec<Arc<dyn HeuristicDiversifyOperator<Fitness = F, Context = C, Objective = O, Solution = S> + Send + Sync>>;
 
 /// A simple hyper-heuristic which selects metaheuristic from the list with fixed (static) probabilities.
-pub struct StaticSelective<C, O, S>
+pub struct StaticSelective<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
-    search_group: HeuristicSearchGroup<C, O, S>,
-    diversify_group: HeuristicDiversifyGroup<C, O, S>,
+    search_group: HeuristicSearchGroup<F, C, O, S>,
+    diversify_group: HeuristicDiversifyGroup<F, C, O, S>,
 }
 
-impl<C, O, S> HyperHeuristic for StaticSelective<C, O, S>
+impl<F, C, O, S> HyperHeuristic for StaticSelective<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
+    type Fitness = F;
     type Context = C;
     type Objective = O;
     type Solution = S;
@@ -66,14 +68,18 @@ where
     }
 }
 
-impl<C, O, S> StaticSelective<C, O, S>
+impl<F, C, O, S> StaticSelective<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    F: HeuristicFitness,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     /// Creates a new instance of `StaticSelective` heuristic.
-    pub fn new(search_group: HeuristicSearchGroup<C, O, S>, diversify_group: HeuristicDiversifyGroup<C, O, S>) -> Self {
+    pub fn new(
+        search_group: HeuristicSearchGroup<F, C, O, S>,
+        diversify_group: HeuristicDiversifyGroup<F, C, O, S>,
+    ) -> Self {
         assert!(!search_group.is_empty());
         assert!(!diversify_group.is_empty());
 
@@ -100,11 +106,11 @@ where
     }
 }
 
-impl<C, O, S> Display for StaticSelective<C, O, S>
+impl<F, C, O, S> Display for StaticSelective<F, C, O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    C: HeuristicContext<Fitness = F, Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S, Fitness = F>,
+    S: HeuristicSolution<Fitness = F>,
 {
     fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
         // NOTE don't do anything at the moment

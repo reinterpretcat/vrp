@@ -153,6 +153,7 @@ struct WorkBalanceObjective {
 }
 
 impl Objective for WorkBalanceObjective {
+    type Fitness = f64;
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -174,6 +175,10 @@ impl Objective for WorkBalanceObjective {
         }
 
         compare_floats(fitness_a, fitness_b)
+    }
+
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        (self.fitness(a) - self.fitness(b)).abs()
     }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
