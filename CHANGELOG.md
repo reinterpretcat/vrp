@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+Please note, while the major version has reached 1, breaking changes can be introduced within any minor version.
+I would prefer to downgrade the major version back to 0 to be more consistent with semantic versioning, but the crates
+are already published. So, I stick to it for now.
+
 
 ## [Unreleased]
 
@@ -9,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 * GitHub sponsors functionality
 * experimental `async-evolution` feature
+* NSGA-II implementation and its usage
 
 ### Fixed
 

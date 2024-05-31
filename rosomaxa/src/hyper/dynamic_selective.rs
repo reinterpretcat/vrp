@@ -342,6 +342,7 @@ where
         .next()
         .map(|best_known| {
             const BEST_DISCOVERY_REWARD_MULTIPLIER: f64 = 2.;
+            const DIVERSE_DISCOVERY_REWARD_MULTIPLIER: f64 = 0.1;
 
             let objective = heuristic_ctx.objective();
 
@@ -353,7 +354,7 @@ where
                 (Ordering::Greater, Ordering::Greater) => {
                     (distance_initial + 1.) + (distance_best + 1.) * BEST_DISCOVERY_REWARD_MULTIPLIER
                 }
-                (Ordering::Greater, Ordering::Less) => distance_initial + 1.,
+                (Ordering::Greater, Ordering::Less) => (distance_initial + 1.) * DIVERSE_DISCOVERY_REWARD_MULTIPLIER,
                 _ => 0.,
             }
         })
