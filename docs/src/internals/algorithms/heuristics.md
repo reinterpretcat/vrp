@@ -53,8 +53,7 @@ Currently available heuristics:
 Each heuristic accepts one of solutions from the population (not necessary the best known) and tries to improve it (or diversify).
 During one of refinement iterations, many solutions are picked at the same time and many heuristics are called then in parallel.
 Such incremental step is called a `generation`. Once it is completed, all found solutions are introduced to the population,
-which decides how to store them. With elitism/rosomaxa population types, to order solution from Pareto optimal front,
-`Non-Dominated Sorting Genetic Algorithm II` is used.
+which decides how to store them.
 
 [Related documentation](https://docs.rs/vrp-core/latest/vrp_core/solver/search/index.html)
 

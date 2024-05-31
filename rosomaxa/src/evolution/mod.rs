@@ -8,9 +8,10 @@ pub use self::config::*;
 mod simulator;
 pub use self::simulator::*;
 
-pub mod telemetry;
+mod telemetry;
 pub use self::telemetry::*;
 
+pub mod objectives;
 pub mod strategies;
 
 /// Defines evolution result type.

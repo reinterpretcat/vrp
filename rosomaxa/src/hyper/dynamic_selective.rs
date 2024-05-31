@@ -323,7 +323,7 @@ where
     heuristic_ctx
         .ranked()
         .next()
-        .map(|(best_known, _)| heuristic_ctx.objective().total_order(solution, best_known))
+        .map(|best_known| heuristic_ctx.objective().total_order(solution, best_known))
         .unwrap_or(Ordering::Less)
 }
 
@@ -340,7 +340,7 @@ where
     heuristic_ctx
         .ranked()
         .next()
-        .map(|(best_known, _)| {
+        .map(|best_known| {
             const BEST_DISCOVERY_REWARD_MULTIPLIER: f64 = 2.;
 
             let objective = heuristic_ctx.objective();
@@ -412,23 +412,22 @@ where
         Ordering::Equal => return 0.,
     };
 
-    let total_objectives = objective.size();
+    let idx = objective
+        .fitness(a)
+        .zip(objective.fitness(b))
+        .enumerate()
+        .find(|(_, (fitness_a, fitness_b))| compare_floats_refs(fitness_a, fitness_b) != Ordering::Equal)
+        .map(|(idx, _)| idx);
 
-    let idx = (0..total_objectives).find(|idx| {
-        let distance = objective.get_distance(a, b, *idx).expect("cannot get distance by idx");
-        compare_floats(distance, 0.) != Ordering::Equal
-    });
-
-    // NOTE special case when total order returns non-zero sign when all objectives are the same
-    //      considering their from non-numerical quality point of view
     let idx = if let Some(idx) = idx {
         idx
     } else {
         return 0.;
     };
 
-    assert_ne!(total_objectives, 0, "cannot have empty objective here");
-    assert_ne!(total_objectives, idx, "cannot have index equal to total amount of objectives");
+    let total_objectives = objective.fitness(a).count();
+    assert_ne!(total_objectives, 0, "cannot have an empty objective here");
+    assert_ne!(total_objectives, idx, "cannot have the index equal to total amount of objectives");
     let priority_amplifier = (total_objectives - idx) as f64;
 
     let value = a

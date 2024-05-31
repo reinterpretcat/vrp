@@ -152,7 +152,7 @@ struct WorkBalanceObjective {
     solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
 }
 
-impl Objective for WorkBalanceObjective {
+impl FeatureObjective for WorkBalanceObjective {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -185,9 +185,7 @@ impl Objective for WorkBalanceObjective {
             .cloned()
             .unwrap_or_else(|| (self.solution_estimate_fn)(&solution.solution))
     }
-}
 
-impl FeatureObjective for WorkBalanceObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
             MoveContext::Route { route_ctx, .. } => {

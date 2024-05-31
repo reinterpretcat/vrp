@@ -2,5 +2,4 @@
 
 pub mod gsom;
 pub mod math;
-pub mod nsga2;
 pub mod rl;

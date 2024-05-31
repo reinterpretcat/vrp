@@ -42,8 +42,6 @@ pub struct TelemetryGeneration {
 
 /// Keeps essential information about particular individual in population.
 pub struct TelemetryIndividual {
-    /// Rank in population.
-    pub rank: usize,
     /// Solution difference from best individual.
     pub difference: f64,
     /// Objectives fitness values.
@@ -181,14 +179,14 @@ where
             }
         };
 
-        if let Some((best_individual, rank)) = population.ranked().next() {
+        if let Some(best_individual) = population.ranked().next() {
             let should_log_best = generation % *log_best.unwrap_or(&usize::MAX) == 0;
             let should_log_population = generation % *log_population.unwrap_or(&usize::MAX) == 0;
             let should_track_population = generation % *track_population.unwrap_or(&usize::MAX) == 0;
 
             if should_log_best {
                 self.log_individual(
-                    &self.get_individual_metrics(objective, population, best_individual, rank),
+                    &self.get_individual_metrics(objective, population, best_individual),
                     Some((generation, generation_time)),
                 )
             }
@@ -240,10 +238,8 @@ where
             );
         }
 
-        let individuals = population
-            .ranked()
-            .map(|(insertion_ctx, rank)| self.get_individual_metrics(objective, population, insertion_ctx, rank))
-            .collect::<Vec<_>>();
+        let individuals =
+            population.ranked().map(|s| self.get_individual_metrics(objective, population, s)).collect::<Vec<_>>();
 
         if should_log_population {
             individuals.iter().for_each(|metrics| self.log_individual(metrics, None));
@@ -315,13 +311,12 @@ where
         objective: &O,
         population: &DynHeuristicPopulation<O, S>,
         solution: &S,
-        rank: usize,
     ) -> TelemetryIndividual {
         let fitness = solution.fitness().collect::<Vec<_>>();
 
         let difference = get_fitness_change(objective, population, solution);
 
-        TelemetryIndividual { rank, difference, fitness }
+        TelemetryIndividual { difference, fitness }
     }
 
     fn log_individual(&self, metrics: &TelemetryIndividual, gen_info: Option<(usize, Timer)>) {
@@ -337,7 +332,7 @@ where
                 fitness
             )
         } else {
-            format!("\trank: {}, fitness: ({}), difference: {:.3}%", metrics.rank, fitness, metrics.difference)
+            format!("\tfitness: ({}), difference: {:.3}%", fitness, metrics.difference)
         };
 
         self.log(value.as_str());
@@ -458,7 +453,7 @@ where
     let fitness_change = population
         .ranked()
         .next()
-        .map(|(best_ctx, _)| objective.fitness(best_ctx))
+        .map(|best_ctx| objective.fitness(best_ctx))
         .map(|best_fitness| {
             let fitness_value = objective.fitness(solution);
             relative_distance(fitness_value, best_fitness)

@@ -49,7 +49,7 @@ struct MaximizeTotalValueObjective {
     estimate_value_fn: EstimateValueFn,
 }
 
-impl Objective for MaximizeTotalValueObjective {
+impl FeatureObjective for MaximizeTotalValueObjective {
     type Solution = InsertionContext;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
@@ -57,9 +57,7 @@ impl Objective for MaximizeTotalValueObjective {
             route_ctx.route().tour.jobs().fold(acc, |acc, job| acc + (self.estimate_value_fn)(route_ctx, job))
         })
     }
-}
 
-impl FeatureObjective for MaximizeTotalValueObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => (self.estimate_value_fn)(route_ctx, job),

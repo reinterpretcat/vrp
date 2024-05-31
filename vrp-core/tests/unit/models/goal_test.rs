@@ -28,15 +28,13 @@ fn create_objective_feature_with_fixed_cost(name: &str, cost: Cost) -> Feature {
         cost: Cost,
     }
 
-    impl Objective for TestFeatureObjective {
+    impl FeatureObjective for TestFeatureObjective {
         type Solution = InsertionContext;
 
         fn fitness(&self, _: &Self::Solution) -> f64 {
             self.cost
         }
-    }
 
-    impl FeatureObjective for TestFeatureObjective {
         fn estimate(&self, _: &MoveContext<'_>) -> Cost {
             self.cost
         }
@@ -53,15 +51,13 @@ fn create_objective_feature_with_dynamic_cost(name: &str, fitness_fn: FitnessFn)
         fitness_fn: FitnessFn,
     }
 
-    impl Objective for TestFeatureObjective {
+    impl FeatureObjective for TestFeatureObjective {
         type Solution = InsertionContext;
 
         fn fitness(&self, solution: &Self::Solution) -> f64 {
             (self.fitness_fn)(self.name.as_str(), solution)
         }
-    }
 
-    impl FeatureObjective for TestFeatureObjective {
         fn estimate(&self, _: &MoveContext<'_>) -> Cost {
             unimplemented!()
         }

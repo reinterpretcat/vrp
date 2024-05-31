@@ -3,7 +3,7 @@ use crate::example::*;
 use crate::helpers::example::create_example_objective;
 
 fn get_best_fitness(population: &Greedy<VectorObjective, VectorSolution>) -> f64 {
-    population.ranked().next().unwrap().0.fitness()
+    population.ranked().next().unwrap().fitness()
 }
 
 #[test]

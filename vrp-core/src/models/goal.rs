@@ -8,7 +8,7 @@ use crate::models::common::Cost;
 use crate::models::problem::Job;
 use hashbrown::{HashMap, HashSet};
 use rand::prelude::SliceRandom;
-use rosomaxa::algorithms::nsga2::dominance_order;
+use rosomaxa::evolution::objectives::dominance_order;
 use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
@@ -370,19 +370,30 @@ pub trait FeatureConstraint {
 }
 
 /// Defines feature objective behavior.
-pub trait FeatureObjective: Objective {
+pub trait FeatureObjective {
+    /// The solution value type that we define the objective on.
+    type Solution;
+
+    /// An objective defines a total ordering between any two solution values.
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        compare_floats(self.fitness(a), self.fitness(b))
+    }
+
+    /// An objective fitness values for given `solution`.
+    fn fitness(&self, solution: &Self::Solution) -> f64;
+
     /// Estimates a cost of insertion.
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost;
 }
 
-impl MultiObjective for GoalContext {
+impl HeuristicObjective for GoalContext {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
         self.global_objectives
             .iter()
             .try_fold(Ordering::Equal, |_, objectives| {
-                match dominance_order(a, b, objectives.iter().map(|o| o.as_ref())) {
+                match dominance_order(a, b, objectives.iter().map(|o| |a, b| o.total_order(a, b))) {
                     Ordering::Equal => ControlFlow::Continue(Ordering::Equal),
                     order => ControlFlow::Break(order),
                 }
@@ -393,27 +404,7 @@ impl MultiObjective for GoalContext {
     fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
         Box::new(self.flatten_objectives.iter().map(|o| o.fitness(solution)))
     }
-
-    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, GenericError> {
-        self.flatten_objectives
-            .get(idx)
-            .map(|o| o.total_order(a, b))
-            .ok_or_else(|| format!("cannot get total_order with index: {idx}").into())
-    }
-
-    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, GenericError> {
-        self.flatten_objectives
-            .get(idx)
-            .map(|o| o.distance(a, b))
-            .ok_or_else(|| format!("cannot get distance with index: {idx}").into())
-    }
-
-    fn size(&self) -> usize {
-        self.flatten_objectives.len()
-    }
 }
-
-impl HeuristicObjective for GoalContext {}
 
 impl Shuffled for GoalContext {
     /// Returns a new instance of `GoalContext` with shuffled objectives.

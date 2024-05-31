@@ -5,9 +5,10 @@
 mod example_test;
 
 use crate::algorithms::gsom::Input;
+use crate::evolution::objectives::HeuristicObjective;
 use crate::evolution::*;
 use crate::hyper::*;
-use crate::population::{DominanceOrder, DominanceOrdered, RosomaxaWeighted, Shuffled};
+use crate::population::{RosomaxaWeighted, Shuffled};
 use crate::prelude::*;
 use crate::utils::Noise;
 use crate::*;
@@ -45,13 +46,12 @@ pub struct VectorSolution {
     pub data: Vec<f64>,
     weights: Vec<f64>,
     objective: Arc<VectorObjective>,
-    order: DominanceOrder,
 }
 
 impl VectorSolution {
     /// Returns a fitness value of given solution.
     pub fn fitness(&self) -> f64 {
-        Objective::fitness(self.objective.as_ref(), self)
+        HeuristicObjective::fitness(self.objective.as_ref(), self).next().expect("at least one value should be present")
     }
 }
 
@@ -83,7 +83,7 @@ impl HeuristicContext for VectorContext {
         self.inner_context.population.select()
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a> {
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
         self.inner_context.population.ranked()
     }
 
@@ -135,45 +135,15 @@ impl VectorObjective {
     }
 }
 
-impl HeuristicObjective for VectorObjective {}
-
-impl Objective for VectorObjective {
-    type Solution = VectorSolution;
-
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        (self.fitness_fn)(solution.data.as_slice())
-    }
-}
-
-impl MultiObjective for VectorObjective {
+impl HeuristicObjective for VectorObjective {
     type Solution = VectorSolution;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        Objective::total_order(self, a, b)
+        compare_floats((self.fitness_fn)(a.data.as_slice()), (self.fitness_fn)(b.data.as_slice()))
     }
 
-    fn fitness<'a>(&self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
+    fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
         Box::new(once((self.fitness_fn)(solution.data.as_slice())))
-    }
-
-    fn get_order(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<Ordering, GenericError> {
-        if idx == 0 {
-            Ok(Objective::total_order(self, a, b))
-        } else {
-            Err(format!("objective has only 1 inner, passed index: {idx}").into())
-        }
-    }
-
-    fn get_distance(&self, a: &Self::Solution, b: &Self::Solution, idx: usize) -> Result<f64, GenericError> {
-        if idx == 0 {
-            Ok(Objective::distance(self, a, b))
-        } else {
-            Err(format!("objective has only 1 inner, passed index: {idx}").into())
-        }
-    }
-
-    fn size(&self) -> usize {
-        1
     }
 }
 
@@ -184,27 +154,12 @@ impl Shuffled for VectorObjective {
 }
 
 impl HeuristicSolution for VectorSolution {
-    fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
-        MultiObjective::fitness(self.objective.as_ref(), self)
+    fn fitness(&self) -> impl Iterator<Item = f64> {
+        self.objective.fitness(self)
     }
 
     fn deep_copy(&self) -> Self {
-        Self {
-            data: self.data.clone(),
-            weights: self.weights.clone(),
-            objective: self.objective.clone(),
-            order: self.order.clone(),
-        }
-    }
-}
-
-impl DominanceOrdered for VectorSolution {
-    fn get_order(&self) -> &DominanceOrder {
-        &self.order
-    }
-
-    fn set_order(&mut self, order: DominanceOrder) {
-        self.order = order
+        Self { data: self.data.clone(), weights: self.weights.clone(), objective: self.objective.clone() }
     }
 }
 
@@ -223,7 +178,7 @@ impl Input for VectorSolution {
 impl VectorSolution {
     /// Creates a new instance of `VectorSolution`.
     pub fn new(data: Vec<f64>, objective: Arc<VectorObjective>) -> Self {
-        Self { data, objective, weights: Vec::default(), order: DominanceOrder::default() }
+        Self { data, objective, weights: Vec::default() }
     }
 }
 

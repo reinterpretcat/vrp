@@ -3,7 +3,7 @@
 mod elitism_test;
 
 use super::*;
-use crate::algorithms::nsga2::select_and_rank;
+use crate::algorithms::math::relative_distance;
 use crate::utils::Random;
 use crate::{HeuristicSpeed, HeuristicStatistics};
 use std::cmp::Ordering;
@@ -15,16 +15,15 @@ use std::sync::Arc;
 /// A function type to deduplicate individuals.
 pub type DedupFn<O, S> = Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>;
 
-/// A simple evolution aware implementation of `Population` trait with the the following
-/// characteristics:
-///
-/// - sorting of individuals in population according their objective fitness using `NSGA-II` algorithm
-/// - maintaining diversity of population based on their crowding distance
-///
+/// Specifies default deduplication threshold used when no dedup function is specified.
+const DEFAULT_DEDUP_FN_THRESHOLD: f64 = 0.05;
+
+/// A simple evolution aware implementation of `Population` trait which keeps predefined amount
+/// of best known individuals.
 pub struct Elitism<O, S>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + DominanceOrdered,
+    S: HeuristicSolution,
 {
     objective: Arc<O>,
     random: Arc<dyn Random + Send + Sync>,
@@ -35,32 +34,16 @@ where
     dedup_fn: DedupFn<O, S>,
 }
 
-/// Keeps track of dominance order in the population for certain individual.
-pub trait DominanceOrdered {
-    /// Gets dominance order in the population.
-    fn get_order(&self) -> &DominanceOrder;
-    /// Sets dominance order in the population.
-    fn set_order(&mut self, order: DominanceOrder);
-}
-
 /// Provides way to get a new objective by shuffling existing one.
 pub trait Shuffled {
     /// Returns a new objective.
     fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self;
 }
 
-/// Contains ordering information about individual in population.
-#[derive(Clone, Debug, Default)]
-pub struct DominanceOrder {
-    orig_index: usize,
-    seq_index: usize,
-    rank: usize,
-}
-
 impl<O, S> HeuristicPopulation for Elitism<O, S>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + DominanceOrdered,
+    S: HeuristicSolution,
 {
     type Objective = O;
     type Individual = S;
@@ -105,8 +88,8 @@ where
         }
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Individual, usize)> + 'a> {
-        Box::new(self.individuals.iter().map(|individual| (individual, individual.get_order().rank)))
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+        Box::new(self.individuals.iter())
     }
 
     fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
@@ -125,7 +108,7 @@ where
 impl<O, S> Elitism<O, S>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + DominanceOrdered,
+    S: HeuristicSolution,
 {
     /// Creates a new instance of `Elitism`.
     pub fn new(
@@ -139,17 +122,9 @@ where
             random,
             max_population_size,
             selection_size,
-            Box::new(|_, a, b| {
-                if a.get_order().rank == b.get_order().rank {
-                    // NOTE just using crowding distance here does not work
-
-                    let fitness_a = a.fitness();
-                    let fitness_b = b.fitness();
-
-                    fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
-                } else {
-                    false
-                }
+            Box::new(|objective, a, b| {
+                let distance = relative_distance(objective.fitness(a), objective.fitness(b));
+                distance < DEFAULT_DEDUP_FN_THRESHOLD
             }),
         )
     }
@@ -193,20 +168,8 @@ where
     }
 
     fn sort(&mut self) {
-        let objective = self.objective.clone();
-
-        // get best order
-        let best_order = select_and_rank(self.individuals.as_slice(), self.individuals.len(), objective.as_ref())
-            .into_iter()
-            .zip(0..)
-            .map(|(acc, idx)| DominanceOrder { orig_index: acc.index, seq_index: idx, rank: acc.rank })
-            .collect::<Vec<_>>();
-
-        assert_eq!(self.individuals.len(), best_order.len());
-
-        best_order.into_iter().for_each(|order| self.individuals[order.orig_index].set_order(order));
-        self.individuals.sort_by(|a, b| a.get_order().seq_index.cmp(&b.get_order().seq_index));
-        self.individuals.dedup_by(|a, b| (self.dedup_fn)(&objective, a, b));
+        self.individuals.sort_by(|a, b| self.objective.total_order(a, b));
+        self.individuals.dedup_by(|a, b| (self.dedup_fn)(&self.objective, a, b));
     }
 
     fn ensure_max_population_size(&mut self) {
@@ -217,16 +180,10 @@ where
 
     fn is_improved(&self, best_known_fitness: Option<Vec<f64>>) -> bool {
         best_known_fitness.zip(self.individuals.first()).map_or(true, |(best_known_fitness, new_best_known)| {
-            let dominance_order = new_best_known.get_order();
-            if dominance_order.orig_index != dominance_order.seq_index {
-                // NOTE: search is unstable, need to check fitness values
-                best_known_fitness
-                    .into_iter()
-                    .zip(new_best_known.fitness())
-                    .any(|(a, b)| compare_floats(a, b) != Ordering::Equal)
-            } else {
-                false
-            }
+            best_known_fitness
+                .into_iter()
+                .zip(new_best_known.fitness())
+                .any(|(a, b)| compare_floats(a, b) != Ordering::Equal)
         })
     }
 }
@@ -234,7 +191,7 @@ where
 impl<O, S> Display for Elitism<O, S>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + DominanceOrdered,
+    S: HeuristicSolution,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let fitness = self.individuals.iter().fold(String::new(), |mut res, individual| {

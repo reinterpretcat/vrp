@@ -113,8 +113,7 @@ right side
 
    * objective
     * kind
-     *_ multi (NSGA-II)
-     *_ hierarchical
+     *_ lexicographical
     * types
      *_ minimize/maximize routes
      *_ minimize cost

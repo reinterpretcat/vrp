@@ -1,18 +1,13 @@
 //! Specifies population types.
 
 mod elitism;
-pub use self::elitism::DominanceOrder;
-pub use self::elitism::DominanceOrdered;
-pub use self::elitism::Elitism;
-pub use self::elitism::Shuffled;
+pub use self::elitism::{Elitism, Shuffled};
 
 mod greedy;
 pub use self::greedy::Greedy;
 
 mod rosomaxa;
-pub use self::rosomaxa::Rosomaxa;
-pub use self::rosomaxa::RosomaxaConfig;
-pub use self::rosomaxa::RosomaxaWeighted;
+pub use self::rosomaxa::{Rosomaxa, RosomaxaConfig, RosomaxaWeighted};
 
 use crate::prelude::*;
 use std::cmp::Ordering;
@@ -55,7 +50,7 @@ pub trait HeuristicPopulation: Display + Send + Sync {
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a>;
 
     /// Returns subset of individuals within their rank sorted according their quality.
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Individual, usize)> + 'a>;
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a>;
 
     /// Returns all individuals in arbitrary order.
     fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a>;

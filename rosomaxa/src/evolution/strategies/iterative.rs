@@ -78,7 +78,7 @@ where
         let (population, telemetry_metrics) = heuristic_ctx.on_result()?;
 
         let solutions =
-            population.ranked().map(|(solution, _)| solution.deep_copy()).take(self.desired_solutions_amount).collect();
+            population.ranked().map(|solution| solution.deep_copy()).take(self.desired_solutions_amount).collect();
 
         Ok((solutions, telemetry_metrics))
     }

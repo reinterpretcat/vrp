@@ -57,15 +57,13 @@ struct FleetUsageObjective {
     solution_estimate_fn: Box<dyn Fn(&SolutionContext) -> Cost + Send + Sync>,
 }
 
-impl Objective for FleetUsageObjective {
+impl FeatureObjective for FleetUsageObjective {
     type Solution = InsertionContext;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         (self.solution_estimate_fn)(&solution.solution)
     }
-}
 
-impl FeatureObjective for FleetUsageObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
             MoveContext::Route { route_ctx, .. } => (self.route_estimate_fn)(route_ctx),

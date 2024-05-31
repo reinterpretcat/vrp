@@ -25,7 +25,7 @@ struct MinimizeUnassignedObjective {
     unassigned_job_estimator: UnassignedJobEstimator,
 }
 
-impl Objective for MinimizeUnassignedObjective {
+impl FeatureObjective for MinimizeUnassignedObjective {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -48,9 +48,7 @@ impl Objective for MinimizeUnassignedObjective {
             .map(|(job, _)| (self.unassigned_job_estimator)(&solution.solution, job))
             .sum::<f64>()
     }
-}
 
-impl FeatureObjective for MinimizeUnassignedObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
             MoveContext::Route { solution_ctx, job, .. } => -1. * (self.unassigned_job_estimator)(solution_ctx, job),

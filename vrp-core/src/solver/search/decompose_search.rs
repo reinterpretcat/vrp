@@ -269,7 +269,7 @@ fn merge_best(
     accumulated: InsertionContext,
 ) -> InsertionContext {
     let (decomposed_ctx, route_indices) = decomposed;
-    let (decomposed_insertion_ctx, _) = decomposed_ctx.ranked().next().expect(GREEDY_ERROR);
+    let decomposed_insertion_ctx = decomposed_ctx.ranked().next().expect(GREEDY_ERROR);
     let environment = original_insertion_ctx.environment.clone();
 
     let (partial_insertion_ctx, _) = create_partial_insertion_ctx(original_insertion_ctx, environment, route_indices);

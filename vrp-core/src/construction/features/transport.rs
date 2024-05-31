@@ -307,15 +307,13 @@ impl TransportObjective {
     }
 }
 
-impl Objective for TransportObjective {
+impl FeatureObjective for TransportObjective {
     type Solution = InsertionContext;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         (self.fitness_fn)(solution)
     }
-}
 
-impl FeatureObjective for TransportObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
             MoveContext::Route { route_ctx, .. } => self.estimate_route(route_ctx),

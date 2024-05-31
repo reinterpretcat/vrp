@@ -24,20 +24,6 @@
 //! objective which, in fact, leads to nontrivial multi-objective optimization problem, where no
 //! single solution exists that simultaneously optimizes each objective.
 //!
-//! That's why the concept of dominance is introduced: a solution is said to dominate another
-//! solution if its quality is at least as good on every objective and better on at least one.
-//! The set of all non-dominated solutions of an optimization problem is called the Pareto set and
-//! the projection of this set onto the objective function space is called the Pareto front.
-//!
-//! The aim of multi-objective metaheuristics is to approximate the Pareto front as closely as
-//! possible (Zitzler et al., 2004) and therefore generate a set of mutually non-dominated solutions
-//! called the Pareto set approximation.
-//!
-//! This library utilizes `NSGA-II` algorithm to apply Pareto-based ranking over population in order
-//! to find Pareto set approximation. However, that Pareto optimality of the solutions cannot be
-//! guaranteed: it is only known that none of the generated solutions dominates the others.
-//! In the end, the top ranked individual is returned as best known solution.
-//!
 //! # Evolutionary algorithm
 //!
 //! An evolutionary algorithm (EA) is a generic population-based metaheuristic optimization algorithm.
@@ -159,7 +145,7 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.selected()
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a> {
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
         self.inner_context.ranked()
     }
 

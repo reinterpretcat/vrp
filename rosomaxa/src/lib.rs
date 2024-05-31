@@ -58,9 +58,9 @@ pub mod termination;
 pub mod utils;
 
 use crate::algorithms::math::RemedianUsize;
-use crate::algorithms::nsga2::MultiObjective;
 use crate::evolution::{Telemetry, TelemetryMetrics, TelemetryMode};
 use crate::population::*;
+use crate::prelude::HeuristicObjective;
 use crate::utils::Timer;
 use crate::utils::{Environment, GenericError};
 use std::hash::Hash;
@@ -69,13 +69,11 @@ use std::sync::Arc;
 /// Represents solution in population defined as actual solution.
 pub trait HeuristicSolution: Send + Sync {
     /// Get fitness values of a given solution.
-    fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a>;
+    fn fitness(&self) -> impl Iterator<Item = f64>;
     /// Creates a deep copy of the solution.
     fn deep_copy(&self) -> Self;
 }
 
-/// Represents a heuristic objective function.
-pub trait HeuristicObjective: MultiObjective + Send + Sync {}
 /// Specifies a dynamically dispatched type for heuristic population.
 pub type DynHeuristicPopulation<O, S> = dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync;
 /// Specifies a heuristic result type.
@@ -95,7 +93,7 @@ pub trait HeuristicContext: Send + Sync {
     fn selected<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a>;
 
     /// Returns subset of solutions within their rank sorted according their quality.
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a>;
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a>;
 
     /// Returns current statistic used to track the search progress.
     fn statistics(&self) -> &HeuristicStatistics;
@@ -201,7 +199,7 @@ where
         self.population.select()
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Solution, usize)> + 'a> {
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
         self.population.ranked()
     }
 
@@ -307,7 +305,7 @@ pub fn get_default_population<O, S>(
 ) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
 where
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
+    S: HeuristicSolution + RosomaxaWeighted + 'static,
 {
     if selection_size == 1 {
         Box::new(Greedy::new(objective, 1, None))

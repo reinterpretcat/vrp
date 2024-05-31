@@ -14,7 +14,6 @@ An incomplete list of important references:
 - Thibaut Vidal: `Hybrid Genetic Search for the CVRP: Open-Source Implementation and SWAP* Neighborhood`
 - Richard F. Hartl, Thibaut Vidal: `Workload Equity in Vehicle Routing Problems: A Survey and Analysis`
 
-- K. Deb; A. Pratap; S. Agarwal; T. Meyarivan: `A fast and elitist multiobjective genetic algorithm: NSGA-II`
 - Damminda Alahakoon, Saman K Halgamuge, Srinivasan Bala: `Dynamic self-organizing maps with controlled growth for knowledge discovery`
 - Daniel J. Russo, Benjamin Van Roy, Abbas Kazerouni, Ian Osband and Zheng Wen: `A Tutorial on Thompson Sampling` https://web.stanford.edu/~bvr/pubs/TS_Tutorial.pdf
 

@@ -89,7 +89,7 @@ impl InsertionContext {
 }
 
 impl HeuristicSolution for InsertionContext {
-    fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
+    fn fitness(&self) -> impl Iterator<Item = f64> {
         self.problem.goal.fitness(self)
     }
 

@@ -53,7 +53,7 @@ struct FastServiceObjective<T> {
     phantom: PhantomData<T>,
 }
 
-impl<T: LoadOps> Objective for FastServiceObjective<T> {
+impl<T: LoadOps> FeatureObjective for FastServiceObjective<T> {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -84,9 +84,7 @@ impl<T: LoadOps> Objective for FastServiceObjective<T> {
             })
             .sum::<Cost>()
     }
-}
 
-impl<T: LoadOps> FeatureObjective for FastServiceObjective<T> {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         let (route_ctx, activity_ctx) = match move_ctx {
             MoveContext::Route { .. } => return Cost::default(),

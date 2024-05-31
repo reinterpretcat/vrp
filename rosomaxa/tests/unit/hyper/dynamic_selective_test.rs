@@ -111,7 +111,7 @@ fn can_display_heuristic_info() {
 fn can_handle_when_objective_lies() {
     struct LiarObjective;
 
-    impl MultiObjective for LiarObjective {
+    impl HeuristicObjective for LiarObjective {
         type Solution = TestData;
 
         fn total_order(&self, _: &Self::Solution, _: &Self::Solution) -> Ordering {
@@ -120,27 +120,14 @@ fn can_handle_when_objective_lies() {
         }
 
         fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
-            solution.fitness()
-        }
-
-        fn get_order(&self, _: &Self::Solution, _: &Self::Solution, _: usize) -> Result<Ordering, GenericError> {
-            unreachable!()
-        }
-
-        fn get_distance(&self, _: &Self::Solution, _: &Self::Solution, _: usize) -> Result<f64, GenericError> {
-            Ok(0.)
-        }
-
-        fn size(&self) -> usize {
-            1
+            Box::new(solution.fitness())
         }
     }
-    impl HeuristicObjective for LiarObjective {}
 
     struct TestData;
 
     impl HeuristicSolution for TestData {
-        fn fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
+        fn fitness(&self) -> impl Iterator<Item = f64> {
             // fitness is the same
             Box::new(once(1.))
         }

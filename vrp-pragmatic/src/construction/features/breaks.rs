@@ -11,7 +11,6 @@ use hashbrown::HashSet;
 use std::iter::once;
 use vrp_core::construction::enablers::*;
 use vrp_core::models::solution::Activity;
-use vrp_core::rosomaxa::prelude::*;
 
 /// Specifies break policy.
 #[derive(Clone)]
@@ -85,7 +84,7 @@ impl FeatureConstraint for OptionalBreakConstraint {
 
 struct OptionalBreakObjective {}
 
-impl Objective for OptionalBreakObjective {
+impl FeatureObjective for OptionalBreakObjective {
     type Solution = InsertionContext;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
@@ -97,9 +96,7 @@ impl Objective for OptionalBreakObjective {
             .filter(|job| job.as_single().filter(|single| is_break_single(single)).is_some())
             .count() as f64
     }
-}
 
-impl FeatureObjective for OptionalBreakObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
             MoveContext::Route { job, .. } => {

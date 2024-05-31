@@ -106,7 +106,7 @@ struct TourOrderObjective {
     order_fn: TourOrderFn,
 }
 
-impl Objective for TourOrderObjective {
+impl FeatureObjective for TourOrderObjective {
     type Solution = InsertionContext;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
@@ -119,9 +119,7 @@ impl Objective for TourOrderObjective {
             .cloned()
             .unwrap_or_else(|| get_violations(solution.routes.as_slice(), &self.order_fn)) as f64
     }
-}
 
-impl FeatureObjective for TourOrderObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
             MoveContext::Activity { route_ctx, activity_ctx } => {

@@ -230,22 +230,6 @@ impl Input for InsertionContext {
     }
 }
 
-impl DominanceOrdered for InsertionContext {
-    fn get_order(&self) -> &DominanceOrder {
-        let heuristic_keys = get_heuristic_keys(self);
-        self.solution
-            .state
-            .get(&heuristic_keys.solution_order)
-            .and_then(|s| s.downcast_ref::<DominanceOrder>())
-            .unwrap()
-    }
-
-    fn set_order(&mut self, order: DominanceOrder) {
-        let heuristic_keys = get_heuristic_keys(self);
-        self.solution.state.insert(heuristic_keys.solution_order, Arc::new(order));
-    }
-}
-
 /// Creates a heuristic operator probability which uses `is_hit` method from passed random object.
 pub fn create_scalar_operator_probability(
     scalar_probability: f64,

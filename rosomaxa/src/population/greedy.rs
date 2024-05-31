@@ -59,8 +59,8 @@ where
         }
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Individual, usize)> + 'a> {
-        Box::new(self.best_known.iter().map(|individual| (individual, 0)))
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+        Box::new(self.best_known.iter())
     }
 
     fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {

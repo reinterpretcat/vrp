@@ -39,7 +39,7 @@ struct TourCompactnessObjective {
     thresholds: Option<(f64, f64)>,
 }
 
-impl Objective for TourCompactnessObjective {
+impl FeatureObjective for TourCompactnessObjective {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -68,9 +68,7 @@ impl Objective for TourCompactnessObjective {
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         solution.solution.state.get(&self.state_key).and_then(|s| s.downcast_ref::<Cost>()).copied().unwrap_or_default()
     }
-}
 
-impl FeatureObjective for TourCompactnessObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
             MoveContext::Route { solution_ctx, route_ctx, job } => {

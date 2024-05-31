@@ -1,6 +1,6 @@
 use crate::{Coordinate, MatrixData};
 use rosomaxa::algorithms::gsom::NetworkState;
-use rosomaxa::population::{DominanceOrdered, Rosomaxa, RosomaxaWeighted, Shuffled};
+use rosomaxa::population::{Rosomaxa, RosomaxaWeighted, Shuffled};
 use rosomaxa::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::any::TypeId;
@@ -44,10 +44,10 @@ pub fn get_population_state<P, O, S>(population: &P) -> PopulationState
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
+    S: HeuristicSolution + RosomaxaWeighted + 'static,
 {
     let fitness_values =
-        population.ranked().next().map(|(solution, _)| solution.fitness().collect::<Vec<_>>()).unwrap_or_default();
+        population.ranked().next().map(|solution| solution.fitness().collect::<Vec<_>>()).unwrap_or_default();
 
     if TypeId::of::<P>() == TypeId::of::<Rosomaxa<O, S>>() {
         let rosomaxa = unsafe { std::mem::transmute::<&P, &Rosomaxa<O, S>>(population) };
