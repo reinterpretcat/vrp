@@ -1,6 +1,7 @@
 //! This module provides some helper functionality to combine and use multiple features together.
 
 use crate::construction::heuristics::*;
+use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::models::*;
 use rosomaxa::prelude::*;
@@ -8,31 +9,83 @@ use std::ops::ControlFlow;
 use std::slice::Iter;
 use std::sync::Arc;
 
-/// Combines multiple features as single with given name.
-pub(crate) fn combine_features(name: &str, features: &[Feature]) -> Result<Feature, GenericError> {
-    let objectives = features.iter().filter_map(|feature| feature.objective.clone()).collect::<Vec<_>>();
-    if objectives.len() > 1 {
-        return Err(format!(
-            "combination of features with multiple objectives is not supported. Objective count: {}",
-            objectives.len()
-        )
-        .into());
+/// Specifies a type for injecting custom objective combination logic.
+pub type ObjectiveCombinator = dyn Fn(&[(&str, Arc<dyn FeatureObjective>)]) -> Arc<dyn FeatureObjective>;
+
+/// Provides the way to group multiple features having more fine grained control over result.
+#[derive(Default)]
+pub struct FeatureCombinator {
+    name: Option<String>,
+    objective_combinator: Option<Box<ObjectiveCombinator>>,
+    features: Vec<Feature>,
+}
+
+impl FeatureCombinator {
+    /// Gives common feature name.
+    pub fn use_name<T: Into<String>>(mut self, name: T) -> Self {
+        self.name = Some(name.into());
+        self
     }
 
+    /// Adds feature for combination.
+    pub fn add_feature(mut self, feature: Feature) -> Self {
+        self.features.push(feature);
+        self
+    }
+
+    /// Adds many features for combination.
+    pub fn add_features(mut self, features: &[Feature]) -> Self {
+        self.features.extend(features.iter().cloned());
+
+        self
+    }
+
+    /// Provides custom objective combinator
+    pub fn use_objective_combinator(mut self, objective_combinator: Box<ObjectiveCombinator>) -> Self {
+        self.objective_combinator = Some(objective_combinator);
+        self
+    }
+
+    /// Builds single feature for many.
+    pub fn combine(self) -> Result<Feature, GenericError> {
+        let name =
+            self.name.unwrap_or_else(|| self.features.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join("+"));
+        let objective_combinator = self.objective_combinator.unwrap_or_else(|| {
+            Box::new(|objectives| {
+                let objectives = objectives.iter().map(|(_, o)| o.clone()).collect::<Vec<_>>();
+                Arc::new(CombinedFeatureObjective { objectives })
+            })
+        });
+
+        combine_features(name.as_ref(), self.features.as_slice(), &objective_combinator)
+    }
+}
+
+/// Combines multiple features as single with given name.
+fn combine_features(
+    name: &str,
+    features: &[Feature],
+    objective_combinator: &ObjectiveCombinator,
+) -> Result<Feature, GenericError> {
+    let objectives = features
+        .iter()
+        .filter_map(|feature| Some(feature.name.as_str()).zip(feature.objective.clone()))
+        .collect::<Vec<_>>();
+    let objective = match objectives.len() {
+        0 => None,
+        1 => objectives.first().map(|(_, o)| o.clone()),
+        _ => Some(objective_combinator(objectives.as_slice())),
+    };
+
     let constraints = features.iter().filter_map(|feature| feature.constraint.clone()).collect::<Vec<_>>();
+    let constraint: Option<Arc<dyn FeatureConstraint>> =
+        if constraints.is_empty() { None } else { Some(Arc::new(CombinedFeatureConstraint { constraints })) };
 
     let states = features.iter().filter_map(|feature| feature.state.clone()).collect::<Vec<_>>();
+    let state: Option<Arc<dyn FeatureState>> =
+        if states.is_empty() { None } else { Some(Arc::new(CombinedFeatureState::new(states))) };
 
-    let feature = Feature {
-        name: name.to_string(),
-        constraint: if constraints.is_empty() {
-            None
-        } else {
-            Some(Arc::new(CombinedFeatureConstraint { constraints }))
-        },
-        objective: objectives.first().cloned(),
-        state: if states.is_empty() { None } else { Some(Arc::new(CombinedFeatureState::new(states))) },
-    };
+    let feature = Feature { name: name.to_string(), constraint, objective, state };
 
     FeatureBuilder::from_feature(feature).build()
 }
@@ -78,6 +131,21 @@ impl FeatureConstraint for CombinedFeatureConstraint {
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
         merge_with_constraints(&self.constraints, source, candidate)
+    }
+}
+
+struct CombinedFeatureObjective {
+    objectives: Vec<Arc<dyn FeatureObjective>>,
+}
+
+impl FeatureObjective for CombinedFeatureObjective {
+    fn fitness(&self, solution: &InsertionContext) -> f64 {
+        // NOTE: just summing all objective values together
+        self.objectives.iter().map(|o| o.fitness(solution)).sum::<Cost>()
+    }
+
+    fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
+        self.objectives.iter().map(|o| o.estimate(move_ctx)).sum::<Cost>()
     }
 }
 

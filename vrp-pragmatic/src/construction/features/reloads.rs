@@ -10,7 +10,7 @@ use crate::construction::enablers::*;
 use hashbrown::HashMap;
 use std::cmp::Ordering;
 use std::ops::Range;
-use vrp_core::construction::enablers::RouteIntervals;
+use vrp_core::construction::enablers::{FeatureCombinator, RouteIntervals};
 use vrp_core::construction::features::*;
 use vrp_core::models::problem::Single;
 
@@ -67,7 +67,7 @@ where
     );
     let capacity = (capacity_feature_factory)(name, route_intervals)?;
 
-    FeatureBuilder::combine(name, &[capacity, shared_resource])
+    FeatureCombinator::default().use_name(name).add_features(&[capacity, shared_resource]).combine()
 }
 
 /// Creates a multi trip feature to use multi trip with reload jobs.

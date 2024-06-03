@@ -8,7 +8,7 @@ mod departure_time;
 pub use self::departure_time::*;
 
 mod feature_combinator;
-pub(crate) use self::feature_combinator::*;
+pub use self::feature_combinator::*;
 
 pub mod multi_trip;
 pub use self::multi_trip::*;

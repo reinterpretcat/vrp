@@ -18,7 +18,7 @@ use std::slice::Iter;
 use std::sync::Arc;
 
 /// A type alias for a list of feature objectives.
-type Objectives = Vec<Arc<dyn FeatureObjective + Send + Sync>>;
+type Objectives = Vec<Arc<dyn FeatureObjective>>;
 /// A type alias for a pair of alternative objectives (global and local).
 type Alternative = (Vec<Objectives>, Vec<Objectives>);
 
@@ -229,7 +229,7 @@ pub struct Feature {
     /// A hard constraint.
     pub constraint: Option<Arc<dyn FeatureConstraint>>,
     /// An objective which models soft constraints.
-    pub objective: Option<Arc<dyn FeatureObjective + Send + Sync>>,
+    pub objective: Option<Arc<dyn FeatureObjective>>,
     /// A state change handler.
     pub state: Option<Arc<dyn FeatureState>>,
 }
@@ -268,11 +268,6 @@ pub type ViolationCode = i32;
 pub struct FeatureBuilder(Feature);
 
 impl FeatureBuilder {
-    /// Combines multiple features into one.
-    pub fn combine(name: &str, features: &[Feature]) -> Result<Feature, GenericError> {
-        combine_features(name, features)
-    }
-
     /// Creates a builder from another feature
     pub fn from_feature(feature: Feature) -> Self {
         Self(feature)
@@ -291,7 +286,7 @@ impl FeatureBuilder {
     }
 
     /// Adds given objective.
-    pub fn with_objective<T: FeatureObjective + Send + Sync + 'static>(mut self, objective: T) -> Self {
+    pub fn with_objective<T: FeatureObjective + 'static>(mut self, objective: T) -> Self {
         self.0.objective = Some(Arc::new(objective));
         self
     }
@@ -494,5 +489,16 @@ impl GoalContext {
                 same_level_objectives.iter().map(|objective| objective.estimate(move_ctx)).sum::<Cost>()
             })
             .collect()
+    }
+}
+
+impl Debug for Feature {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(short_type_name::<Self>())
+            .field("name", &self.name)
+            .field("constraint", &self.constraint.is_some())
+            .field("objective", &self.objective.is_some())
+            .field("state", &self.state.is_some())
+            .finish()
     }
 }
