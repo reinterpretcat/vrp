@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 const VIOLATION_CODE: ViolationCode = 1;
 
-fn create_feature_constraint(fleet: &Fleet, locks: &[Arc<Lock>]) -> Arc<dyn FeatureConstraint + Send + Sync> {
+fn create_feature_constraint(fleet: &Fleet, locks: &[Arc<Lock>]) -> Arc<dyn FeatureConstraint> {
     create_locked_jobs_feature("locked_jobs", fleet, locks, VIOLATION_CODE).unwrap().constraint.unwrap()
 }
 

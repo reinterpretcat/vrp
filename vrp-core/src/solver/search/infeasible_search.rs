@@ -135,7 +135,7 @@ fn create_modified_variant(
     let constraints = shuffled.constraints().map(|constraint| {
         let skip_probability = if random.is_head_not_tails() { 1. } else { skip_probability };
 
-        let value: Arc<dyn FeatureConstraint + Send + Sync> = Arc::new(StochasticFeatureConstraint {
+        let value: Arc<dyn FeatureConstraint> = Arc::new(StochasticFeatureConstraint {
             inner: constraint.clone(),
             random: random.clone(),
             probability: skip_probability,
@@ -155,7 +155,7 @@ fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionCo
 }
 
 struct StochasticFeatureConstraint {
-    inner: Arc<dyn FeatureConstraint + Send + Sync>,
+    inner: Arc<dyn FeatureConstraint>,
     random: Arc<dyn Random + Send + Sync>,
     probability: f64,
 }

@@ -58,9 +58,7 @@ struct FleetUsageObjective {
 }
 
 impl FeatureObjective for FleetUsageObjective {
-    type Solution = InsertionContext;
-
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
+    fn fitness(&self, solution: &InsertionContext) -> f64 {
         (self.solution_estimate_fn)(&solution.solution)
     }
 

@@ -18,7 +18,7 @@ use std::slice::Iter;
 use std::sync::Arc;
 
 /// A type alias for a list of feature objectives.
-type Objectives = Vec<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>;
+type Objectives = Vec<Arc<dyn FeatureObjective + Send + Sync>>;
 /// A type alias for a pair of alternative objectives (global and local).
 type Alternative = (Vec<Objectives>, Vec<Objectives>);
 
@@ -41,8 +41,8 @@ pub struct GoalContext {
     local_objectives: Vec<Objectives>,
     flatten_objectives: Objectives,
     alternatives: Option<(Vec<Alternative>, f64)>,
-    constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
-    states: Vec<Arc<dyn FeatureState + Send + Sync>>,
+    constraints: Vec<Arc<dyn FeatureConstraint>>,
+    states: Vec<Arc<dyn FeatureState>>,
 }
 
 /// Specifies a target of optimization on global and local objective levels.
@@ -176,13 +176,13 @@ impl GoalContext {
     /// Creates a new instance of `GoalContext` with given feature constraints.
     pub fn with_constraints<Iter>(&self, constraints: Iter) -> Self
     where
-        Iter: Iterator<Item = Arc<dyn FeatureConstraint + Send + Sync>>,
+        Iter: Iterator<Item = Arc<dyn FeatureConstraint>>,
     {
         GoalContext { constraints: constraints.collect(), ..self.clone() }
     }
 
     /// Returns an iterator over internal feature constraints.
-    pub fn constraints(&self) -> impl Iterator<Item = Arc<dyn FeatureConstraint + Send + Sync>> + '_ {
+    pub fn constraints(&self) -> impl Iterator<Item = Arc<dyn FeatureConstraint>> + '_ {
         self.constraints.iter().cloned()
     }
 }
@@ -227,11 +227,11 @@ pub struct Feature {
     /// An unique id of the feature.
     pub name: String,
     /// A hard constraint.
-    pub constraint: Option<Arc<dyn FeatureConstraint + Send + Sync>>,
+    pub constraint: Option<Arc<dyn FeatureConstraint>>,
     /// An objective which models soft constraints.
-    pub objective: Option<Arc<dyn FeatureObjective<Solution = InsertionContext> + Send + Sync>>,
+    pub objective: Option<Arc<dyn FeatureObjective + Send + Sync>>,
     /// A state change handler.
-    pub state: Option<Arc<dyn FeatureState + Send + Sync>>,
+    pub state: Option<Arc<dyn FeatureState>>,
 }
 
 /// Specifies result of hard route constraint check.
@@ -285,22 +285,19 @@ impl FeatureBuilder {
     }
 
     /// Adds given constraint.
-    pub fn with_constraint<T: FeatureConstraint + Send + Sync + 'static>(mut self, constraint: T) -> Self {
+    pub fn with_constraint<T: FeatureConstraint + 'static>(mut self, constraint: T) -> Self {
         self.0.constraint = Some(Arc::new(constraint));
         self
     }
 
     /// Adds given objective.
-    pub fn with_objective<T: FeatureObjective<Solution = InsertionContext> + Send + Sync + 'static>(
-        mut self,
-        objective: T,
-    ) -> Self {
+    pub fn with_objective<T: FeatureObjective + Send + Sync + 'static>(mut self, objective: T) -> Self {
         self.0.objective = Some(Arc::new(objective));
         self
     }
 
     /// Adds given state.
-    pub fn with_state<T: FeatureState + Send + Sync + 'static>(mut self, state: T) -> Self {
+    pub fn with_state<T: FeatureState + 'static>(mut self, state: T) -> Self {
         self.0.state = Some(Arc::new(state));
         self
     }
@@ -322,7 +319,7 @@ impl FeatureBuilder {
 }
 
 /// Provides the way to modify solution state when the search is performed.
-pub trait FeatureState {
+pub trait FeatureState: Send + Sync {
     /// Notifies a state that given routes (indices) and jobs cannot be assigned due to constraint violations.
     /// This method can be used to modify solution context to help resolve some limitations imposed by
     /// constraints and, generally, can modify solution context.
@@ -359,7 +356,7 @@ pub trait FeatureState {
 }
 
 /// Defines feature constraint behavior.
-pub trait FeatureConstraint {
+pub trait FeatureConstraint: Send + Sync {
     /// Evaluates hard constraints violations.
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation>;
 
@@ -370,17 +367,14 @@ pub trait FeatureConstraint {
 }
 
 /// Defines feature objective behavior.
-pub trait FeatureObjective {
-    /// The solution value type that we define the objective on.
-    type Solution;
-
+pub trait FeatureObjective: Send + Sync {
     /// An objective defines a total ordering between any two solution values.
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+    fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
         compare_floats(self.fitness(a), self.fitness(b))
     }
 
     /// An objective fitness values for given `solution`.
-    fn fitness(&self, solution: &Self::Solution) -> f64;
+    fn fitness(&self, solution: &InsertionContext) -> f64;
 
     /// Estimates a cost of insertion.
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost;

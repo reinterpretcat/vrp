@@ -40,9 +40,7 @@ struct TourCompactnessObjective {
 }
 
 impl FeatureObjective for TourCompactnessObjective {
-    type Solution = InsertionContext;
-
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+    fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
         let fitness_a = self.fitness(a);
         let fitness_b = self.fitness(b);
 
@@ -65,7 +63,7 @@ impl FeatureObjective for TourCompactnessObjective {
         compare_floats(fitness_a, fitness_b)
     }
 
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
+    fn fitness(&self, solution: &InsertionContext) -> f64 {
         solution.solution.state.get(&self.state_key).and_then(|s| s.downcast_ref::<Cost>()).copied().unwrap_or_default()
     }
 

@@ -107,9 +107,7 @@ struct TourOrderObjective {
 }
 
 impl FeatureObjective for TourOrderObjective {
-    type Solution = InsertionContext;
-
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
+    fn fitness(&self, solution: &InsertionContext) -> f64 {
         let solution = &solution.solution;
 
         solution

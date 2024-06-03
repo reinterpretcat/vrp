@@ -54,9 +54,7 @@ struct FastServiceObjective<T> {
 }
 
 impl<T: LoadOps> FeatureObjective for FastServiceObjective<T> {
-    type Solution = InsertionContext;
-
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+    fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
         let fitness_a = self.fitness(a);
         let fitness_b = self.fitness(b);
 
@@ -69,7 +67,7 @@ impl<T: LoadOps> FeatureObjective for FastServiceObjective<T> {
         compare_floats(fitness_a, fitness_b)
     }
 
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
+    fn fitness(&self, solution: &InsertionContext) -> f64 {
         solution
             .solution
             .routes

@@ -38,12 +38,12 @@ pub(crate) fn combine_features(name: &str, features: &[Feature]) -> Result<Featu
 }
 
 struct CombinedFeatureState {
-    states: Vec<Arc<dyn FeatureState + Send + Sync>>,
+    states: Vec<Arc<dyn FeatureState>>,
     state_keys: Vec<StateKey>,
 }
 
 impl CombinedFeatureState {
-    pub fn new(states: Vec<Arc<dyn FeatureState + Send + Sync>>) -> Self {
+    pub fn new(states: Vec<Arc<dyn FeatureState>>) -> Self {
         let state_keys = states.iter().flat_map(|state| state.state_keys().cloned()).collect();
         Self { states, state_keys }
     }
@@ -68,7 +68,7 @@ impl FeatureState for CombinedFeatureState {
 }
 
 struct CombinedFeatureConstraint {
-    constraints: Vec<Arc<dyn FeatureConstraint + Send + Sync>>,
+    constraints: Vec<Arc<dyn FeatureConstraint>>,
 }
 
 impl FeatureConstraint for CombinedFeatureConstraint {
@@ -82,7 +82,7 @@ impl FeatureConstraint for CombinedFeatureConstraint {
 }
 
 pub(crate) fn notify_failure_with_states(
-    states: &[Arc<dyn FeatureState + Send + Sync>],
+    states: &[Arc<dyn FeatureState>],
     solution_ctx: &mut SolutionContext,
     route_indices: &[usize],
     jobs: &[Job],
@@ -92,7 +92,7 @@ pub(crate) fn notify_failure_with_states(
 }
 
 pub(crate) fn accept_insertion_with_states(
-    states: &[Arc<dyn FeatureState + Send + Sync>],
+    states: &[Arc<dyn FeatureState>],
     solution_ctx: &mut SolutionContext,
     route_index: usize,
     job: &Job,
@@ -102,10 +102,7 @@ pub(crate) fn accept_insertion_with_states(
     assert_eq!(activities, solution_ctx.routes.get_mut(route_index).unwrap().route().tour.job_activity_count());
 }
 
-pub(crate) fn accept_route_state_with_states(
-    states: &[Arc<dyn FeatureState + Send + Sync>],
-    route_ctx: &mut RouteContext,
-) {
+pub(crate) fn accept_route_state_with_states(states: &[Arc<dyn FeatureState>], route_ctx: &mut RouteContext) {
     if route_ctx.is_stale() {
         route_ctx.state_mut().clear();
 
@@ -117,10 +114,7 @@ pub(crate) fn accept_route_state_with_states(
     }
 }
 
-pub(crate) fn accept_solution_state_with_states(
-    states: &[Arc<dyn FeatureState + Send + Sync>],
-    solution_ctx: &mut SolutionContext,
-) {
+pub(crate) fn accept_solution_state_with_states(states: &[Arc<dyn FeatureState>], solution_ctx: &mut SolutionContext) {
     let has_changes = |ctx: &SolutionContext, previous_state: (usize, usize, usize)| {
         let (required, ignored, unassigned) = previous_state;
         required != ctx.required.len() || ignored != ctx.ignored.len() || unassigned != ctx.unassigned.len()
@@ -161,7 +155,7 @@ pub(crate) fn accept_solution_state_with_states(
 }
 
 pub(crate) fn merge_with_constraints(
-    constraints: &[Arc<dyn FeatureConstraint + Send + Sync>],
+    constraints: &[Arc<dyn FeatureConstraint>],
     source: Job,
     candidate: Job,
 ) -> Result<Job, ViolationCode> {
@@ -169,7 +163,7 @@ pub(crate) fn merge_with_constraints(
 }
 
 pub(crate) fn evaluate_with_constraints(
-    constraints: &[Arc<dyn FeatureConstraint + Send + Sync>],
+    constraints: &[Arc<dyn FeatureConstraint>],
     move_ctx: &MoveContext<'_>,
 ) -> Option<ConstraintViolation> {
     constraints

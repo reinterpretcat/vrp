@@ -127,16 +127,14 @@ mod objective {
     }
 
     impl FeatureObjective for TestObjective {
-        type Solution = InsertionContext;
-
-        fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
             let a = self.fitness(a);
             let b = self.fitness(b);
 
             compare_floats(a, b)
         }
 
-        fn fitness(&self, solution: &Self::Solution) -> f64 {
+        fn fitness(&self, solution: &InsertionContext) -> f64 {
             solution
                 .solution
                 .state
