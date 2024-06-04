@@ -1,6 +1,6 @@
 use crate::construction::heuristics::*;
 use crate::helpers::construction::heuristics::{create_schedule_keys, InsertionContextBuilder};
-use crate::helpers::models::domain::GoalContextBuilder;
+use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::ActivityBuilder;
 use crate::helpers::models::solution::{create_test_registry, RouteBuilder, RouteContextBuilder};
@@ -20,7 +20,7 @@ fn create_test_insertion_ctx() -> InsertionContext {
         RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build();
 
     InsertionContextBuilder::default()
-        .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+        .with_goal(TestGoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
         .with_routes(vec![route])
         .build()
 }
@@ -132,7 +132,7 @@ mod single {
         registry.use_actor(&route_ctx.route().actor);
         route_ctx.route_mut().tour.insert_at(create_activity_at(5), 1).insert_at(create_activity_at(10), 2);
         let mut ctx = InsertionContextBuilder::default()
-            .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+            .with_goal(TestGoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
             .with_registry(registry)
             .with_routes(vec![route_ctx])
             .build();
@@ -196,7 +196,7 @@ mod single {
         let registry = Registry::new(&fleet, test_random());
         let job = SingleBuilder::default().location(Some(job_location)).build_as_job_ref();
         let mut ctx = InsertionContextBuilder::default()
-            .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+            .with_goal(TestGoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
             .with_registry(registry)
             .with_routes(vec![RouteContextBuilder::default()
                 .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
@@ -323,7 +323,7 @@ mod multi {
             route_ctx.route_mut().tour.insert_at(create_activity_at(loc), index);
         });
         let mut ctx = InsertionContextBuilder::default()
-            .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+            .with_goal(TestGoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
             .with_routes(vec![route_ctx])
             .build();
 

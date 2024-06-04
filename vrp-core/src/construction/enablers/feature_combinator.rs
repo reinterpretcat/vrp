@@ -78,12 +78,19 @@ fn combine_features(
     };
 
     let constraints = features.iter().filter_map(|feature| feature.constraint.clone()).collect::<Vec<_>>();
-    let constraint: Option<Arc<dyn FeatureConstraint>> =
-        if constraints.is_empty() { None } else { Some(Arc::new(CombinedFeatureConstraint { constraints })) };
+    let constraint: Option<Arc<dyn FeatureConstraint>> = match constraints.len() {
+        0 => None,
+        1 => constraints.first().cloned(),
+        _ => Some(Arc::new(CombinedFeatureConstraint { constraints })),
+    };
 
     let states = features.iter().filter_map(|feature| feature.state.clone()).collect::<Vec<_>>();
-    let state: Option<Arc<dyn FeatureState>> =
-        if states.is_empty() { None } else { Some(Arc::new(CombinedFeatureState::new(states))) };
+    let state: Option<Arc<dyn FeatureState>> = match states.len() {
+        0 => None,
+        1 => states.first().cloned(),
+        // TODO: combined feature state seems behave differently: check reload with one state wrapped in CombinedFeatureState
+        _ => Some(Arc::new(CombinedFeatureState::new(states))),
+    };
 
     let feature = Feature { name: name.to_string(), constraint, objective, state };
 

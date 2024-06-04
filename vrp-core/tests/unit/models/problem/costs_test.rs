@@ -118,7 +118,7 @@ mod objective {
     use super::*;
     use crate::construction::heuristics::{InsertionContext, MoveContext, StateKeyRegistry};
     use crate::helpers::construction::heuristics::{create_state_key, InsertionContextBuilder};
-    use crate::models::{Feature, FeatureBuilder, FeatureObjective, Goal, GoalContext};
+    use crate::models::{Feature, FeatureBuilder, FeatureObjective, GoalContextBuilder};
     use rosomaxa::prelude::{compare_floats, HeuristicObjective};
     use std::cmp::Ordering;
 
@@ -162,11 +162,11 @@ mod objective {
         InsertionContextBuilder::default().with_state(StateKeyRegistry::default().next_key(), data).build()
     }
 
-    parameterized_test! {can_use_total_order_with_hierarchy, (data_a, data_b, expected), {
-        can_use_total_order_with_hierarchy_impl(data_a, data_b, expected);
+    parameterized_test! {can_use_total_order, (data_a, data_b, expected), {
+        can_use_total_order_impl(data_a, data_b, expected);
     }}
 
-    can_use_total_order_with_hierarchy! {
+    can_use_total_order! {
         case01: (vec![0., 1., 2.], vec![0., 1., 2.], Ordering::Equal),
         case02: (vec![1., 1., 2.], vec![0., 1., 2.], Ordering::Greater),
         case03: (vec![0., 1., 2.], vec![1., 1., 2.], Ordering::Less),
@@ -174,53 +174,18 @@ mod objective {
         case05: (vec![0., 2., 2.], vec![1., 0., 0.], Ordering::Less),
     }
 
-    fn can_use_total_order_with_hierarchy_impl(data_a: Vec<f64>, data_b: Vec<f64>, expected: Ordering) {
-        let objective_map = [vec!["test_0".to_string()], vec!["test_1".to_string()], vec!["test_2".to_string()]];
-        let goal = Goal::no_alternatives(objective_map.clone(), objective_map);
-        let goal = GoalContext::new(
-            &[create_objective_feature(0), create_objective_feature(1), create_objective_feature(2)],
-            goal,
-        )
-        .unwrap();
-
-        let a = create_individual(data_a);
-        let b = create_individual(data_b);
-
-        let result = goal.total_order(&a, &b);
-
-        assert_eq!(result, expected);
-    }
-
-    parameterized_test! {can_use_total_order_with_multi, (data_a, data_b, case, expected), {
-        can_use_total_order_with_multi_impl(data_a, data_b, case, expected);
-    }}
-
-    can_use_total_order_with_multi! {
-        case01: (vec![0., 1., 2.], vec![0., 1., 2.], true, Ordering::Equal),
-        case02: (vec![1., 0., 2.], vec![0., 1., 2.], true, Ordering::Equal),
-        case03: (vec![1., 0., 2.], vec![0., 1., 0.], true, Ordering::Greater),
-        case04: (vec![1., 0., 2.], vec![0., 1., 3.], true, Ordering::Less),
-        case05: (vec![1., 1., 2.], vec![0., 1., 2.], true, Ordering::Greater),
-        case06: (vec![0., 0., 2.], vec![0., 1., 2.], true, Ordering::Less),
-        case07: (vec![1., 0., 2.], vec![0., 1., 2.], true, Ordering::Equal),
-
-        case08: (vec![0., 1., 2.], vec![0., 1., 2.], false, Ordering::Equal),
-        case09: (vec![0., 1., 0.], vec![0., 1., 1.], false, Ordering::Less),
-        case10: (vec![1., 0., 0.], vec![0., 1., 1.], false, Ordering::Greater),
-        case11: (vec![0., 1., 1.], vec![1., 0., 0.], false, Ordering::Less),
-        case12: (vec![0., 1., 0.], vec![0., 0., 1.], false, Ordering::Equal),
-    }
-
-    fn can_use_total_order_with_multi_impl(data_a: Vec<f64>, data_b: Vec<f64>, case: bool, expected: Ordering) {
-        let features = &[create_objective_feature(0), create_objective_feature(1), create_objective_feature(2)];
-        let objective_map = if case {
-            vec![vec!["test_0".to_string(), "test_1".to_string()], vec!["test_2".to_string()]]
-        } else {
-            vec![vec!["test_0".to_string()], vec!["test_1".to_string(), "test_2".to_string()]]
-        };
-        let goal = Goal::no_alternatives(objective_map.clone(), objective_map);
-
-        let goal = GoalContext::new(features, goal).unwrap();
+    fn can_use_total_order_impl(data_a: Vec<f64>, data_b: Vec<f64>, expected: Ordering) {
+        let objective_map = vec!["test_0", "test_1", "test_2"];
+        let goal = GoalContextBuilder::with_features(vec![
+            create_objective_feature(0),
+            create_objective_feature(1),
+            create_objective_feature(2),
+        ])
+        .expect("cannot create builder")
+        .set_goal(objective_map.as_slice(), objective_map.as_slice())
+        .expect("cannot set goal")
+        .build()
+        .expect("cannot build context");
 
         let a = create_individual(data_a);
         let b = create_individual(data_b);

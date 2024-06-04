@@ -5,7 +5,7 @@ use crate::models::problem::*;
 use crate::models::solution::Route;
 use crate::models::Problem;
 use crate::models::*;
-use rosomaxa::prelude::GenericError;
+use rosomaxa::prelude::GenericResult;
 use std::sync::Arc;
 
 struct ExampleTransportCost {}
@@ -78,7 +78,7 @@ fn create_example_goal_ctx(
     transport: Arc<dyn TransportCost + Sync + Send>,
     activity: Arc<dyn ActivityCost + Sync + Send>,
     extras: &Extras,
-) -> Result<GoalContext, GenericError> {
+) -> GenericResult<GoalContext> {
     let schedule_keys = extras.get_schedule_keys().expect("no schedule keys").clone();
     let capacity_keys = extras.get_capacity_keys().expect("no capacity keys").clone();
 
@@ -89,12 +89,9 @@ fn create_example_goal_ctx(
         create_capacity_limit_feature::<SingleDimLoad>("capacity", capacity_keys, 2)?,
     ];
 
-    let goal = Goal::no_alternatives(
-        vec![vec!["min_jobs".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
-        vec![vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
-    );
-
-    GoalContext::new(features.as_slice(), goal)
+    GoalContextBuilder::with_features(features)?
+        .set_goal(&["min_jobs", "min_tours", "min_distance"], &["min_jobs", "min_distance"])?
+        .build()
 }
 
 /// Creates an example problem used in documentation tests.

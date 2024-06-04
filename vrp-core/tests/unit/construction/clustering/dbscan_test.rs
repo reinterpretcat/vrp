@@ -1,7 +1,7 @@
 use super::*;
 use crate::helpers::construction::clustering::dbscan::create_test_distances;
 use crate::helpers::construction::clustering::p;
-use crate::helpers::models::domain::GoalContextBuilder;
+use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::problem::SingleBuilder;
 use crate::helpers::solver::{generate_matrix_distances_from_points, generate_matrix_routes};
 use crate::helpers::utils::random::FakeRandom;
@@ -25,7 +25,7 @@ fn goal_factory(
     extras: &Extras,
 ) -> GoalContext {
     let schedule_keys = extras.get_schedule_keys().cloned().expect("no schedule keys");
-    GoalContextBuilder::with_transport_feature(schedule_keys).build()
+    TestGoalContextBuilder::with_transport_feature(schedule_keys).build()
 }
 
 parameterized_test! {can_estimate_epsilon, (matrix, nth_neighbor, matrix_modify, expected), {

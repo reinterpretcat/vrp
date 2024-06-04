@@ -4,6 +4,9 @@ use std::hash::{Hash, Hasher};
 #[derive(Clone, Debug)]
 pub struct GenericError(String);
 
+/// A type alias for result type with `GenericError`.
+pub type GenericResult<T> = Result<T, GenericError>;
+
 impl GenericError {
     /// Joins many errors with separator
     pub fn join_many(errs: &[GenericError], separator: &str) -> String {

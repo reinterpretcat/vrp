@@ -206,7 +206,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
     let reload_keys = create_reload_keys();
     let (route_ctx, fleet) = create_route_context_with_fleet(vec![capacity], activities);
     let mut solution_ctx = SolutionContext { routes: vec![route_ctx], ..create_solution_context_for_fleet(&fleet) };
-    let feature = create_simple_reload_multi_trip_feature::<MultiDimLoad>(
+    let reload_feature = create_simple_reload_multi_trip_feature::<MultiDimLoad>(
         "reload",
         Box::new({
             let capacity_keys = reload_keys.capacity_keys.clone();
@@ -223,12 +223,16 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
         reload_keys,
     )
     .unwrap();
-    let goal = Goal::no_alternatives([], []);
-    let variant = GoalContext::new(&[feature], goal).unwrap();
+    let min_jobs_feature = create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.)).unwrap();
+    let goal = GoalContextBuilder::with_features(vec![reload_feature, min_jobs_feature])
+        .unwrap()
+        .set_goal(&["min_jobs"], &["min_jobs"])
+        .unwrap()
+        .build()
+        .unwrap();
 
-    variant.accept_route_state(solution_ctx.routes.get_mut(0).unwrap());
-
-    variant.accept_solution_state(&mut solution_ctx);
+    goal.accept_route_state(solution_ctx.routes.get_mut(0).unwrap());
+    goal.accept_solution_state(&mut solution_ctx);
 
     assert_eq!(
         solution_ctx

@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::features::*;
 use crate::helpers::construction::features::{create_simple_demand, create_simple_dynamic_demand};
-use crate::helpers::models::domain::GoalContextBuilder;
+use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::models::common::*;
 use crate::models::problem::*;
@@ -81,7 +81,7 @@ fn create_test_problem(
         .collect::<Vec<_>>();
     let extras = ExtrasBuilder::default().build().expect("cannot build extras");
 
-    let goal = GoalContextBuilder::default()
+    let goal = TestGoalContextBuilder::default()
         .add_feature(
             create_minimize_transport_costs_feature(
                 "transport",
@@ -97,7 +97,7 @@ fn create_test_problem(
             create_capacity_limit_feature::<SingleDimLoad>("capacity", extras.get_capacity_keys().cloned().unwrap(), 5)
                 .unwrap(),
         )
-        .with_objectives(vec![vec!["transport"]])
+        .with_objectives(&["transport"])
         .build();
 
     Problem {

@@ -1,6 +1,6 @@
 use crate::construction::heuristics::{RouteState, StateKeyRegistry, UnassignmentInfo};
 use crate::helpers::construction::heuristics::{create_schedule_keys, create_state_key, InsertionContextBuilder};
-use crate::helpers::models::domain::GoalContextBuilder;
+use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::problem::{test_fleet, SingleBuilder};
 use crate::helpers::models::solution::*;
 
@@ -64,7 +64,7 @@ fn can_use_stale_flag() {
 #[test]
 fn can_use_debug_fmt_for_insertion_ctx() {
     let insertion_ctx = InsertionContextBuilder::default()
-        .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+        .with_goal(TestGoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
         .with_routes(vec![RouteContextBuilder::default()
             .with_route(
                 RouteBuilder::default()

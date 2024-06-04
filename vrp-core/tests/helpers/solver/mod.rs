@@ -1,7 +1,7 @@
 use crate::algorithms::geometry::Point;
 use crate::construction::features::create_minimize_transport_costs_feature;
 use crate::construction::heuristics::MoveContext;
-use crate::helpers::models::domain::{test_random, GoalContextBuilder};
+use crate::helpers::models::domain::{test_random, TestGoalContextBuilder};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder};
 use crate::models::common::{Cost, IdDimension, Location};
@@ -35,12 +35,12 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
         is_open_vrp,
         |transport, activity, extras| {
             let schedule_keys = extras.get_schedule_keys().cloned().expect("no schedule keys");
-            GoalContextBuilder::default()
+            TestGoalContextBuilder::default()
                 .add_feature(
                     create_minimize_transport_costs_feature("transport", transport, activity, schedule_keys, 1)
                         .unwrap(),
                 )
-                .with_objectives(vec![vec!["transport"]])
+                .with_objectives(&["transport"])
                 .build()
         },
         |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
@@ -68,8 +68,8 @@ pub fn generate_matrix_routes_with_disallow_list(
         is_open_vrp,
         move |transport, activity, extras| {
             let schedule_keys = extras.get_schedule_keys().cloned().expect("no schedule keys");
-            let feature_map = vec![vec!["transport"]];
-            GoalContextBuilder::default()
+            let feature_map = &["transport"];
+            TestGoalContextBuilder::default()
                 .add_feature(
                     create_minimize_transport_costs_feature("transport", transport, activity, schedule_keys, 1)
                         .unwrap(),

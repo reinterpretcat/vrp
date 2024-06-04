@@ -1,11 +1,14 @@
 use crate::construction::enablers::create_typed_actor_groups;
 use crate::construction::enablers::{JobTie, VehicleTie};
+use crate::helpers::TestTransportCost;
 use std::sync::Arc;
-use vrp_core::construction::heuristics::{RegistryContext, SolutionContext};
+use vrp_core::construction::enablers::ScheduleKeys;
+use vrp_core::construction::features::create_minimize_transport_costs_feature;
+use vrp_core::construction::heuristics::{RegistryContext, SolutionContext, StateKeyRegistry};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::*;
-use vrp_core::models::{Goal, GoalContext};
+use vrp_core::models::GoalContextBuilder;
 use vrp_core::utils::DefaultRandom;
 
 const DEFAULT_VEHICLE_COSTS: Costs =
@@ -122,7 +125,20 @@ pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Deman
 }
 
 pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
-    let goal = GoalContext::new(&[], Goal::no_alternatives([], [])).expect("cannot create goal context");
+    let feature = create_minimize_transport_costs_feature(
+        "min-costs",
+        TestTransportCost::new_shared(),
+        Arc::new(SimpleActivityCost::default()),
+        ScheduleKeys::from(&mut StateKeyRegistry::default()),
+        1,
+    )
+    .expect("cannot create transport cost feature");
+    let goal = GoalContextBuilder::with_features(vec![feature])
+        .expect("cannot create builder")
+        .set_goal(&["min-costs"], &["min-costs"])
+        .expect("cannot set goal")
+        .build()
+        .expect("cannot build goal context");
     let registry = Registry::new(fleet, Arc::new(DefaultRandom::default()));
 
     SolutionContext {

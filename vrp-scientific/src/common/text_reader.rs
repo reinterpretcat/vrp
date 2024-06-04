@@ -6,6 +6,7 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::*;
 use vrp_core::prelude::GenericError;
+use vrp_core::utils::GenericResult;
 
 pub(crate) trait TextReader {
     fn read_problem(&mut self, is_rounded: bool) -> Result<Problem, GenericError> {
@@ -101,22 +102,13 @@ pub(crate) fn create_goal_context_prefer_min_tours(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
     extras: &Extras,
-) -> Result<GoalContext, GenericError> {
+) -> GenericResult<GoalContext> {
     let features = get_essential_features(activity, transport, extras)?;
 
-    let goal = Goal::with_alternatives(
-        vec![vec!["min_unassigned".to_string()], vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
-        vec![vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
-        (
-            vec![(
-                vec![vec!["min_unassigned".to_string()], vec!["min_distance".to_string()]],
-                vec![vec!["min_distance".to_string()]],
-            )],
-            0.1,
-        ),
-    );
-
-    GoalContext::new(features.as_slice(), goal)
+    GoalContextBuilder::with_features(features)?
+        .set_goal(&["min_unassigned", "min_tours", "min_distance"], &["min_tours", "min_distance"])?
+        .add_alternative(&["min_unassigned", "min_distance"], &["min_distance"], 0.1)?
+        .build()
 }
 
 pub(crate) fn create_goal_context_distance_only(
@@ -126,23 +118,10 @@ pub(crate) fn create_goal_context_distance_only(
 ) -> Result<GoalContext, GenericError> {
     let features = get_essential_features(activity, transport, extras)?;
 
-    let goal = Goal::with_alternatives(
-        vec![vec!["min_unassigned".to_string()], vec!["min_distance".to_string()]],
-        vec![vec!["min_distance".to_string()]],
-        (
-            vec![(
-                vec![
-                    vec!["min_unassigned".to_string()],
-                    vec!["min_tours".to_string()],
-                    vec!["min_distance".to_string()],
-                ],
-                vec![vec!["min_tours".to_string()], vec!["min_distance".to_string()]],
-            )],
-            0.1,
-        ),
-    );
-
-    GoalContext::new(features.as_slice(), goal)
+    GoalContextBuilder::with_features(features)?
+        .set_goal(&["min_unassigned", "min_distance"], &["min_distance"])?
+        .add_alternative(&["min_unassigned", "min_tours", "min_distance"], &["min_tours", "min_distance"], 0.1)?
+        .build()
 }
 
 fn get_essential_features(

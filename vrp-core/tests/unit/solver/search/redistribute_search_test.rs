@@ -1,12 +1,12 @@
 use super::*;
 use crate::helpers::construction::heuristics::{create_schedule_keys, InsertionContextBuilder};
-use crate::helpers::models::domain::GoalContextBuilder;
+use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_routes_with_defaults};
 
 #[test]
 fn can_add_extra_constraint() {
     let original_ctx = InsertionContextBuilder::default()
-        .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+        .with_goal(TestGoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
         .build();
     let target_ctx = create_target_insertion_ctx(&original_ctx, 1..3, 4..8);
 
@@ -33,7 +33,7 @@ fn can_remove_jobs() {
 #[test]
 fn can_restore_constraints_in_context() {
     let original_ctx = InsertionContextBuilder::default()
-        .with_goal(GoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+        .with_goal(TestGoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
         .build();
     let recreate = Arc::new(RecreateWithCheapest::new(original_ctx.environment.random.clone()));
     let heuristic = RedistributeSearch::new(recreate);

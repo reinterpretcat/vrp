@@ -4,7 +4,7 @@ use crate::construction::heuristics::*;
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
 use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs};
-use crate::models::{ExtrasBuilder, Feature, Goal, GoalContext, Problem};
+use crate::models::{ExtrasBuilder, Feature, GoalContext, GoalContextBuilder, Problem};
 use rosomaxa::utils::{DefaultRandom, Random};
 use std::sync::Arc;
 
@@ -13,15 +13,14 @@ pub fn test_random() -> Arc<dyn Random + Send + Sync> {
 }
 
 #[derive(Default)]
-pub struct GoalContextBuilder {
+pub struct TestGoalContextBuilder {
     features: Vec<Feature>,
-    goal: Option<Goal>,
+    goal: Option<(Vec<String>, Vec<String>)>,
 }
 
-impl GoalContextBuilder {
+impl TestGoalContextBuilder {
     pub fn with_transport_feature(schedule_keys: ScheduleKeys) -> Self {
-        let mut builder = Self::default();
-        builder
+        Self::default()
             .add_feature(
                 create_minimize_transport_costs_feature(
                     "transport",
@@ -32,33 +31,43 @@ impl GoalContextBuilder {
                 )
                 .unwrap(),
             )
-            .with_objectives(vec![vec!["transport"]]);
-
-        builder
+            .with_objectives(&["transport"])
     }
 
-    pub fn add_feature(&mut self, feature: Feature) -> &mut Self {
+    pub fn add_feature(mut self, feature: Feature) -> Self {
         self.features.push(feature);
         self
     }
 
-    pub fn add_features(&mut self, feature: Vec<Feature>) -> &mut Self {
+    pub fn add_features(mut self, feature: Vec<Feature>) -> Self {
         self.features.extend(feature);
         self
     }
 
-    pub fn with_objectives(&mut self, objectives: Vec<Vec<&str>>) -> &mut Self {
-        let objectives: Vec<Vec<String>> =
-            objectives.iter().map(|names| names.iter().map(|name| name.to_string()).collect()).collect();
+    pub fn with_objectives(mut self, objectives: &[&str]) -> Self {
+        let objectives: Vec<_> = objectives.iter().map(|name| name.to_string()).collect();
 
-        self.goal = Some(Goal::no_alternatives(objectives.clone(), objectives));
+        self.goal = Some((objectives.clone(), objectives));
 
         self
     }
 
-    pub fn build(&mut self) -> GoalContext {
-        let goal = if let Some(goal) = std::mem::take(&mut self.goal) { goal } else { Goal::no_alternatives([], []) };
-        GoalContext::new(self.features.as_ref(), goal).unwrap()
+    pub fn build(self) -> GoalContext {
+        let (global, local) = if let Some(goal) = self.goal.as_ref() {
+            (
+                goal.0.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
+                goal.1.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
+            )
+        } else {
+            (vec![], vec![])
+        };
+
+        GoalContextBuilder::with_features(self.features)
+            .expect("cannot create builder")
+            .set_goal(global.as_slice(), local.as_slice())
+            .expect("cannot set goal")
+            .build()
+            .expect("cannot build context")
     }
 }
 
@@ -147,7 +156,7 @@ fn create_empty_problem() -> Problem {
         fleet: Arc::new(fleet),
         jobs: Arc::new(jobs),
         locks: vec![],
-        goal: Arc::new(GoalContextBuilder::default().build()),
+        goal: Arc::new(TestGoalContextBuilder::default().build()),
         activity: TestActivityCost::new_shared(),
         transport,
         extras: Arc::new(ExtrasBuilder::default().build().expect("cannot build default")),

@@ -1,29 +1,11 @@
 use super::*;
 use crate::construction::features::*;
 use crate::helpers::construction::heuristics::{create_capacity_keys, InsertionContextBuilder};
-use crate::helpers::models::domain::GoalContextBuilder;
+use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::solution::{test_actor, ActivityBuilder};
 use crate::models::common::SingleDimLoad;
 
-fn create_constraint_feature(name: &str, violation: Option<ConstraintViolation>) -> Feature {
-    struct TestFeatureConstraint {
-        violation: Option<ConstraintViolation>,
-    }
-
-    impl FeatureConstraint for TestFeatureConstraint {
-        fn evaluate(&self, _: &MoveContext<'_>) -> Option<ConstraintViolation> {
-            self.violation.clone()
-        }
-
-        fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
-            Ok(source)
-        }
-    }
-
-    FeatureBuilder::default().with_name(name).with_constraint(TestFeatureConstraint { violation }).build().unwrap()
-}
-
-fn create_objective_feature_with_fixed_cost(name: &str, cost: Cost) -> Feature {
+fn create_feature(name: &str, cost: Cost, violation: Option<ConstraintViolation>) -> Feature {
     struct TestFeatureObjective {
         cost: Cost,
     }
@@ -38,7 +20,26 @@ fn create_objective_feature_with_fixed_cost(name: &str, cost: Cost) -> Feature {
         }
     }
 
-    FeatureBuilder::default().with_name(name).with_objective(TestFeatureObjective { cost }).build().unwrap()
+    struct TestFeatureConstraint {
+        violation: Option<ConstraintViolation>,
+    }
+
+    impl FeatureConstraint for TestFeatureConstraint {
+        fn evaluate(&self, _: &MoveContext<'_>) -> Option<ConstraintViolation> {
+            self.violation.clone()
+        }
+
+        fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
+            Ok(source)
+        }
+    }
+
+    FeatureBuilder::default()
+        .with_name(name)
+        .with_objective(TestFeatureObjective { cost })
+        .with_constraint(TestFeatureConstraint { violation })
+        .build()
+        .unwrap()
 }
 
 type FitnessFn = Arc<dyn Fn(&str, &InsertionContext) -> f64 + Send + Sync>;
@@ -67,25 +68,26 @@ fn create_objective_feature_with_dynamic_cost(name: &str, fitness_fn: FitnessFn)
 }
 
 #[test]
-pub fn can_create_goal_context_with_objective() {
-    let features = &[create_minimize_tours_feature("min_tours").unwrap()];
-    let objectives_map = [vec!["min_tours".to_string()]];
-    let goal = Goal::no_alternatives(objectives_map.clone(), objectives_map);
+pub fn can_create_goal_context_with_objective() -> GenericResult<()> {
+    let features = vec![create_minimize_tours_feature("min_tours").unwrap()];
 
-    GoalContext::new(features, goal).expect("cannot create goal context");
+    GoalContextBuilder::with_features(features)?
+        .set_goal(&["min_tours"], &["min_tours"])?
+        .build()
+        .expect("cannot build context");
+    Ok(())
 }
 
 #[test]
-pub fn can_create_goal_context_without_objectives() {
-    let features = &[create_capacity_limit_feature::<SingleDimLoad>("capacity", create_capacity_keys(), 0).unwrap()];
-    let goal = Goal::no_alternatives([], []);
+pub fn cannot_create_goal_context_without_objectives() -> GenericResult<()> {
+    let features = vec![create_capacity_limit_feature::<SingleDimLoad>("capacity", create_capacity_keys(), 0).unwrap()];
 
-    GoalContext::new(features, goal).expect("cannot create goal context");
+    assert!(GoalContextBuilder::with_features(features)?.build().is_err());
+    Ok(())
 }
 
 #[test]
-pub fn can_evaluate_constraints() {
-    let goal = Goal::no_alternatives([], []);
+pub fn can_evaluate_constraints() -> GenericResult<()> {
     let route_ctx = RouteContext::new(test_actor());
     let activity_ctx = ActivityContext {
         index: 0,
@@ -96,59 +98,52 @@ pub fn can_evaluate_constraints() {
     let move_ctx = MoveContext::activity(&route_ctx, &activity_ctx);
 
     assert_eq!(
-        GoalContext::new(&[create_constraint_feature("c_1", ConstraintViolation::success())], goal.clone(),)
-            .unwrap()
+        GoalContextBuilder::with_features(vec![create_feature("c_1", 0., ConstraintViolation::success())])?
+            .set_goal(&["c_1"], &["c_1"])?
+            .build()?
             .evaluate(&move_ctx),
         None
     );
 
     assert_eq!(
-        GoalContext::new(
-            &[
-                create_constraint_feature("c_1", ConstraintViolation::success()),
-                create_constraint_feature("c_2", ConstraintViolation::fail(1)),
-            ],
-            goal.clone(),
-        )
-        .unwrap()
+        GoalContextBuilder::with_features(vec![
+            create_feature("c_1", 0., ConstraintViolation::success()),
+            create_feature("c_2", 0., ConstraintViolation::fail(1)),
+        ])?
+        .set_goal(&["c_1"], &["c_1"])?
+        .build()?
         .evaluate(&move_ctx),
         ConstraintViolation::fail(1)
     );
 
     assert_eq!(
-        GoalContext::new(
-            &[
-                create_constraint_feature("c_1", ConstraintViolation::skip(1)),
-                create_constraint_feature("c_2", ConstraintViolation::success()),
-            ],
-            goal
-        )
-        .unwrap()
+        GoalContextBuilder::with_features(vec![
+            create_feature("c_1", 0., ConstraintViolation::skip(1)),
+            create_feature("c_2", 0., ConstraintViolation::success()),
+        ])?
+        .set_goal(&["c_1"], &["c_1"])?
+        .build()?
         .evaluate(&move_ctx),
         ConstraintViolation::skip(1)
     );
+
+    Ok(())
 }
 
-parameterized_test! {can_use_objective_estimate, (feature_names, feature_map, expected_cost), {
-    can_use_objective_estimate_impl(feature_names, feature_map, expected_cost);
+parameterized_test! {can_use_objective_estimate, (feature_map, expected_cost), {
+    can_use_objective_estimate_impl(feature_map, expected_cost);
 }}
 
 can_use_objective_estimate! {
-    case01_in_one_dimen_one: (
-        &["o_1"], &[vec!["o_1"]], &[1.],
+    case01_use_one: (
+        &["o_1"], &[1.],
     ),
-    case02_in_one_dimen_two: (
-        &["o_1", "o_2"], &[vec!["o_1", "o_2"]], &[2.],
-    ),
-    case03_in_two_dimen_one: (
-        &["o_1", "o_2"], &[vec!["o_1"], vec!["o_2"]], &[1., 1.],
-    ),
-    case04_in_two_dimen_mixed: (
-        &["o_1", "o_2", "o_3"], &[vec!["o_1", "o_2"], vec!["o_3"]], &[2., 1.],
+    case02_use_two: (
+        &["o_1", "o_2"], &[1., 1.],
     ),
 }
 
-fn can_use_objective_estimate_impl(feature_names: &[&str], feature_map: &[Vec<&str>], expected_cost: &[Cost]) {
+fn can_use_objective_estimate_impl(feature_map: &[&str], expected_cost: &[Cost]) {
     let route_ctx = RouteContext::new(test_actor());
     let activity_ctx = ActivityContext {
         index: 0,
@@ -157,50 +152,28 @@ fn can_use_objective_estimate_impl(feature_names: &[&str], feature_map: &[Vec<&s
         next: None,
     };
     let move_ctx = MoveContext::activity(&route_ctx, &activity_ctx);
-    let features = feature_names.iter().map(|name| create_objective_feature_with_fixed_cost(name, 1.)).collect();
+    let features = feature_map.iter().map(|name| create_feature(name, 1., None)).collect();
 
-    let result = GoalContextBuilder::default()
+    let result = TestGoalContextBuilder::default()
         .add_features(features)
-        .with_objectives(feature_map.to_vec())
+        .with_objectives(feature_map)
         .build()
         .estimate(&move_ctx);
 
     assert_eq!(result, InsertionCost::new(expected_cost));
 }
 
-parameterized_test! {can_use_objective_total_order, (feature_map, left_fitness, right_fitness, expected), {
-    can_use_objective_total_order_impl(feature_map, left_fitness, right_fitness, expected);
+parameterized_test! {can_use_objective_total_order, (left_fitness, right_fitness, expected), {
+    can_use_objective_total_order_impl(left_fitness, right_fitness, expected);
 }}
 
 can_use_objective_total_order! {
-    case01: (
-        vec![vec!["0"], vec!["1"], vec!["2", "3"]],
-        vec![3., 5., 0., 1.], vec![3., 5., 1., 0.],
-        Ordering::Equal,
-    ),
-    case02: (
-        vec![vec!["0", "1"], vec!["2"], vec!["3"]],
-        vec![3., 5., 0., 0.], vec![5., 3., 0., 0.],
-        Ordering::Equal,
-    ),
-    case03: (
-        vec![vec!["0", "1"], vec!["2"], vec!["3"]],
-        vec![3., 3., 0., 0.], vec![5., 3., 0., 0.],
-        Ordering::Less,
-    ),
-    case04: (
-        vec![vec!["0", "1"], vec!["2"], vec!["3"]],
-        vec![5., 5., 0., 0.], vec![5., 3., 0., 0.],
-        Ordering::Greater,
-    ),
+    case01_equal: (vec![3., 5., 1., 1.], vec![3., 5., 1., 1.], Ordering::Equal),
+    case02_less:  (vec![3., 3., 0., 0.], vec![3., 5., 0., 0.], Ordering::Less),
+    case03_great: (vec![5., 5., 0., 0.], vec![5., 3., 0., 0.], Ordering::Greater),
 }
 
-fn can_use_objective_total_order_impl(
-    feature_map: Vec<Vec<&str>>,
-    left_fitness: Vec<f64>,
-    right_fitness: Vec<f64>,
-    expected: Ordering,
-) {
+fn can_use_objective_total_order_impl(left_fitness: Vec<f64>, right_fitness: Vec<f64>, expected: Ordering) {
     let mut keys = StateKeyRegistry::default();
     let state_keys = [keys.next_key(), keys.next_key(), keys.next_key(), keys.next_key()];
     let fitness_fn = Arc::new(move |name: &str, insertion_ctx: &InsertionContext| {
@@ -214,12 +187,12 @@ fn can_use_objective_total_order_impl(
         });
         insertion_ctx
     };
-    let goal_ctx = GoalContextBuilder::default()
+    let goal_ctx = TestGoalContextBuilder::default()
         .add_feature(create_objective_feature_with_dynamic_cost("0", fitness_fn.clone()))
         .add_feature(create_objective_feature_with_dynamic_cost("1", fitness_fn.clone()))
         .add_feature(create_objective_feature_with_dynamic_cost("2", fitness_fn.clone()))
         .add_feature(create_objective_feature_with_dynamic_cost("3", fitness_fn))
-        .with_objectives(feature_map)
+        .with_objectives(&["0", "1", "2", "3"])
         .build();
     let left = create_insertion_ctx_with_fitness_state(left_fitness);
     let right = create_insertion_ctx_with_fitness_state(right_fitness);

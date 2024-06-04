@@ -3,12 +3,12 @@ use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::*;
 use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
-use vrp_core::construction::enablers::{RouteIntervals, ScheduleKeys};
+use vrp_core::construction::enablers::{FeatureCombinator, RouteIntervals, ScheduleKeys};
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::{StateKey, StateKeyRegistry};
 use vrp_core::models::common::{LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Single, TransportCost};
-use vrp_core::models::{CoreStateKeys, Extras, Feature, Goal, GoalContext};
+use vrp_core::models::{CoreStateKeys, Extras, Feature, GoalContext, GoalContextBuilder};
 
 pub(super) fn create_goal_context(
     api_problem: &ApiProblem,
@@ -16,15 +16,17 @@ pub(super) fn create_goal_context(
     props: &ProblemProperties,
     extras: &Extras,
     state_registry: &mut StateKeyRegistry,
-) -> Result<GoalContext, GenericError> {
-    let mut features = Vec::new();
+) -> GenericResult<GoalContext> {
     let mut state_context = StateKeyContext::new(extras, state_registry);
 
-    // TODO what's about performance implications on order of features when they are evaluated?
-
     let objective_features = get_objective_features(api_problem, blocks, props, &mut state_context)?;
-    let (global_objective_map, local_objective_map) = extract_feature_map(objective_features.as_slice())?;
-    features.extend(objective_features.into_iter().flat_map(|features| features.into_iter()));
+    // TODO combination should happen inside `get_objective_features` for conflicting objectives
+    let mut features = objective_features
+        .into_iter()
+        .map(|features| FeatureCombinator::default().add_features(features.as_slice()).combine())
+        .collect::<GenericResult<Vec<_>>>()?;
+
+    let (global_objective_map, local_objective_map) = extract_feature_map(features.as_slice())?;
 
     if props.has_unreachable_locations {
         features.push(create_reachable_feature("reachable", blocks.transport.clone(), REACHABLE_CONSTRAINT_CODE)?)
@@ -44,7 +46,7 @@ pub(super) fn create_goal_context(
         features.push(get_recharge_feature("recharge", api_problem, blocks.transport.clone(), &mut state_context)?);
     }
 
-    if props.has_order && !global_objective_map.iter().flat_map(|o| o.iter()).any(|name| *name == "tour_order") {
+    if props.has_order && !global_objective_map.iter().any(|name| *name == "tour_order") {
         features.push(create_tour_order_hard_feature("tour_order", TOUR_ORDER_CONSTRAINT_CODE, get_tour_order_fn())?)
     }
 
@@ -86,9 +88,12 @@ pub(super) fn create_goal_context(
         )?);
     }
 
-    let goal = Goal::no_alternatives(global_objective_map, local_objective_map);
-
-    GoalContext::new(features.as_slice(), goal)
+    GoalContextBuilder::with_features(features)?
+        .set_goal(
+            Vec::from_iter(global_objective_map.iter().map(String::as_str)).as_slice(),
+            Vec::from_iter(local_objective_map.iter().map(String::as_str)).as_slice(),
+        )?
+        .build()
 }
 
 fn get_objective_features(
@@ -547,35 +552,24 @@ where
 }
 
 #[allow(clippy::type_complexity)]
-fn extract_feature_map(features: &[Vec<Feature>]) -> Result<(Vec<Vec<String>>, Vec<Vec<String>>), GenericError> {
-    let global_objective_map: Vec<Vec<String>> = features
-        .iter()
-        .map(|features| features.iter().filter_map(|f| f.objective.as_ref().map(|_| f.name.clone())).collect())
-        .collect();
+fn extract_feature_map(features: &[Feature]) -> Result<(Vec<String>, Vec<String>), GenericError> {
+    let global_objective_map =
+        features.iter().filter_map(|f| f.objective.as_ref().map(|_| f.name.clone())).collect::<Vec<_>>();
 
     // NOTE: this is more performance optimization: we want to minimize the size of InsertionCost
     //       which has the same size as local_objective_map. So, we exclude some objectives which
     //       are not really needed to be present here.
     let exclusion_set = &["min_unassigned"].into_iter().collect::<HashSet<_>>();
-    let local_objective_map: Vec<Vec<String>> = features
+    let local_objective_map = features
         .iter()
-        .flat_map(|inner| {
-            inner
-                .iter()
-                .filter_map(|f| f.objective.as_ref().map(|_| f.name.clone()))
-                .filter(|name| !exclusion_set.contains(name.as_str()))
-        })
-        // NOTE: there is no mechanism to handle objectives on the same level yet, so simply move
-        //       them to a separate level and rely on non-determenistic behavior of ResultSelector
-        .map(|objective| vec![objective])
-        .collect();
+        .filter_map(|f| f.objective.as_ref().map(|_| f.name.clone()))
+        .filter(|name| !exclusion_set.contains(name.as_str()))
+        .collect::<Vec<_>>();
 
     // NOTE COST_DIMENSION variable in vrp-core is responsible for that
     if local_objective_map.len() > 6 {
         println!("WARN: the size of local objectives ({}) exceeds pre-allocated stack size", local_objective_map.len());
     }
-
-    // TODO generate and return alternatives
 
     Ok((global_objective_map, local_objective_map))
 }

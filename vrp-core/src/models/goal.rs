@@ -19,8 +19,6 @@ use std::sync::Arc;
 
 /// A type alias for a list of feature objectives.
 type Objectives = Vec<Arc<dyn FeatureObjective>>;
-/// A type alias for a pair of alternative objectives (global and local).
-type Alternative = (Vec<Objectives>, Vec<Objectives>);
 
 /// Defines Vehicle Routing Problem variant by global and local objectives:
 /// A **global objective** defines the way two VRP solutions are compared in order to select better one:
@@ -37,142 +35,14 @@ type Alternative = (Vec<Objectives>, Vec<Objectives>);
 /// for vehicles/jobs, etc.
 #[derive(Clone, Default)]
 pub struct GoalContext {
-    global_objectives: Vec<Objectives>,
-    local_objectives: Vec<Objectives>,
-    flatten_objectives: Objectives,
-    alternatives: Option<(Vec<Alternative>, f64)>,
+    global_objectives: Objectives,
+    local_objectives: Objectives,
+    alternatives: Vec<(Objectives, Objectives, f64)>,
     constraints: Vec<Arc<dyn FeatureConstraint>>,
     states: Vec<Arc<dyn FeatureState>>,
 }
 
-/// Specifies a target of optimization on global and local objective levels.
-#[derive(Clone, Debug)]
-pub struct Target {
-    /// A global hierarchical objective function specified by names of corresponding features.
-    pub global: Vec<Vec<String>>,
-    /// A local hierarchical objective function specified by names of corresponding features.
-    pub local: Vec<Vec<String>>,
-}
-
-/// A `Goal` type defines the goal of optimization in terms of feature names.
-#[derive(Clone, Debug)]
-pub struct Goal {
-    /// A target objective of optimization specified by user explicitly or implicitly.
-    pub target: Target,
-    /// Alternative objectives with their probability weight which help solver to have a better
-    /// exploration during the search phase.
-    pub alternatives: Option<(Vec<Target>, f64)>,
-}
-
-impl Goal {
-    /// Creates instance of `Goal` without alternatives.
-    pub fn no_alternatives<I>(global: I, local: I) -> Self
-    where
-        I: IntoIterator<Item = Vec<String>>,
-    {
-        let target = Target { global: global.into_iter().collect(), local: local.into_iter().collect() };
-
-        Self { target, alternatives: None }
-    }
-
-    /// Creates instance of `Goal` with alternatives. The general idea behind alternatives is to
-    /// allow search to explore solution space better, temporary switch a target objective function
-    /// to one of alternatives.
-    pub fn with_alternatives<I>(global: I, local: I, alternatives: (Vec<(I, I)>, f64)) -> Self
-    where
-        I: IntoIterator<Item = Vec<String>>,
-    {
-        let target = Target { global: global.into_iter().collect(), local: local.into_iter().collect() };
-
-        let (alternatives, probability) = alternatives;
-        let alternatives = alternatives
-            .into_iter()
-            .map(|(g, l)| Target { global: g.into_iter().collect(), local: l.into_iter().collect() })
-            .collect();
-
-        Self { target, alternatives: Some((alternatives, probability)) }
-    }
-}
-
 impl GoalContext {
-    /// Creates a new instance of `GoalContext` with features specified using information about
-    /// hierarchy of objectives.
-    pub fn new(features: &[Feature], goal: Goal) -> Result<Self, GenericError> {
-        let ids_all = features
-            .iter()
-            .filter_map(|feature| feature.objective.as_ref().map(|_| feature.name.clone()))
-            .collect::<Vec<_>>();
-
-        let ids_unique = ids_all.iter().collect::<HashSet<_>>();
-        if ids_unique.len() != ids_all.len() {
-            return Err(format!(
-                "some of the features are defined more than once, check ids list: {}",
-                ids_all.join(",")
-            )
-            .into());
-        }
-
-        let check_target_map = |target: &Target| {
-            [&target.global, &target.local].iter().all(|objectives| {
-                let objective_ids_all = objectives.iter().flat_map(|objective| objective.iter()).collect::<Vec<_>>();
-                let objective_ids_unique = objective_ids_all.iter().cloned().collect::<HashSet<_>>();
-                objective_ids_all.len() == objective_ids_unique.len() && objective_ids_unique.is_subset(&ids_unique)
-            })
-        };
-
-        if !check_target_map(&goal.target) {
-            return Err("main target is invalid: it should contain unique ids of the features specified".into());
-        }
-
-        let feature_map = features
-            .iter()
-            .filter_map(|feature| feature.objective.as_ref().map(|objective| (feature.name.clone(), objective.clone())))
-            .collect::<HashMap<_, _>>();
-
-        let remap_objectives = |objective_map: &[Vec<String>]| -> Result<Vec<_>, GenericError> {
-            objective_map.iter().try_fold(Vec::default(), |mut acc_outer, ids| {
-                acc_outer.push(ids.iter().try_fold(Vec::default(), |mut acc_inner, id| {
-                    if let Some(objective) = feature_map.get(id) {
-                        acc_inner.push(objective.clone());
-                        Ok(acc_inner)
-                    } else {
-                        Err(format!("cannot find objective for feature with id: {id}"))
-                    }
-                })?);
-
-                Ok(acc_outer)
-            })
-        };
-
-        let global_objectives = remap_objectives(&goal.target.global)?;
-        let local_objectives = remap_objectives(&goal.target.local)?;
-
-        let alternatives = if let Some((alternatives, probability)) = goal.alternatives {
-            let alternatives = alternatives
-                .into_iter()
-                .map(|target| {
-                    let global = remap_objectives(&target.global)?;
-                    let local = remap_objectives(&target.local)?;
-                    Ok((global, local))
-                })
-                .collect::<Result<Vec<_>, GenericError>>()?;
-
-            if alternatives.is_empty() {
-                None
-            } else {
-                Some((alternatives, probability))
-            }
-        } else {
-            None
-        };
-
-        let states = features.iter().filter_map(|feature| feature.state.clone()).collect();
-        let constraints = features.iter().filter_map(|feature| feature.constraint.clone()).collect();
-        let flatten_objectives = global_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
-
-        Ok(Self { global_objectives, flatten_objectives, local_objectives, alternatives, constraints, states })
-    }
-
     /// Creates a new instance of `GoalContext` with given feature constraints.
     pub fn with_constraints<Iter>(&self, constraints: Iter) -> Self
     where
@@ -192,11 +62,110 @@ impl Debug for GoalContext {
         f.debug_struct(short_type_name::<Self>())
             .field("global", &self.global_objectives.len())
             .field("local", &self.local_objectives.len())
-            .field("flatten", &self.flatten_objectives.len())
-            .field("alternatives", &self.alternatives.is_some())
+            .field("alternatives", &self.alternatives.len())
             .field("constraints", &self.constraints.len())
             .field("states", &self.states.len())
             .finish()
+    }
+}
+
+/// Provides a customizable way to build goal context.
+pub struct GoalContextBuilder {
+    main_goal: Option<(Vec<Feature>, Vec<Feature>)>,
+    alternative_goals: Vec<(Vec<Feature>, Vec<Feature>, f64)>,
+    features: Vec<Feature>,
+}
+
+impl GoalContextBuilder {
+    /// Creates a `GoalBuilder` with the given list of features.
+    pub fn with_features(features: Vec<Feature>) -> GenericResult<Self> {
+        let ids_all = features
+            .iter()
+            .filter_map(|feature| feature.objective.as_ref().map(|_| feature.name.clone()))
+            .collect::<Vec<_>>();
+
+        let ids_unique = ids_all.iter().collect::<HashSet<_>>();
+        if ids_unique.len() != ids_all.len() {
+            return Err(format!(
+                "some of the features are defined more than once, check ids list: {}",
+                ids_all.join(",")
+            )
+            .into());
+        }
+
+        Ok(Self { main_goal: None, alternative_goals: Vec::default(), features })
+    }
+
+    /// Sets a main goal of optimization.
+    pub fn set_goal(mut self, global: &[&str], local: &[&str]) -> GenericResult<Self> {
+        let global = self.get_features(global)?;
+        let local = self.get_features(local)?;
+
+        self.main_goal = Some((global, local));
+
+        Ok(self)
+    }
+
+    /// Sets an alternative goal of optimization.
+    pub fn add_alternative(mut self, global: &[&str], local: &[&str], weight: f64) -> GenericResult<Self> {
+        let global = self.get_features(global)?;
+        let local = self.get_features(local)?;
+
+        self.alternative_goals.push((global, local, weight));
+
+        Ok(self)
+    }
+
+    fn get_features(&self, names: &[&str]) -> GenericResult<Vec<Feature>> {
+        names
+            .iter()
+            .map(|n| {
+                self.features
+                    .iter()
+                    .find(|f| f.name.eq(n))
+                    .cloned()
+                    .ok_or_else(|| GenericError::from(format!("unknown feature name: '{n}'")))
+            })
+            .collect::<Result<Vec<_>, _>>()
+    }
+
+    /// Builds goal context.
+    pub fn build(self) -> GenericResult<GoalContext> {
+        let feature_objective_map = self
+            .features
+            .iter()
+            .filter_map(|feature| feature.objective.as_ref().map(|objective| (feature.name.clone(), objective.clone())))
+            .collect::<HashMap<_, _>>();
+
+        let remap_objectives = |features: &[Feature]| -> GenericResult<Vec<_>> {
+            features
+                .iter()
+                .map(|f| {
+                    if let Some(objective) = feature_objective_map.get(&f.name) {
+                        Ok(objective.clone())
+                    } else {
+                        Err(format!("cannot find objective for feature with name: {}", f.name).into())
+                    }
+                })
+                .collect::<Result<_, GenericError>>()
+        };
+
+        let (global_objectives, local_objectives) = if let Some((global, local)) = self.main_goal {
+            (remap_objectives(&global)?, remap_objectives(&local)?)
+        } else {
+            return Err("missing main goal of optimization".into());
+        };
+
+        let alternatives = self
+            .alternative_goals
+            .into_iter()
+            .map(|(global, local, weight)| Ok((remap_objectives(&global)?, remap_objectives(&local)?, weight)))
+            .collect::<GenericResult<Vec<_>>>()?;
+
+        let states = self.features.iter().filter_map(|feature| feature.state.clone()).collect();
+        let constraints = self.features.iter().filter_map(|feature| feature.constraint.clone()).collect();
+
+        Ok(GoalContext { global_objectives, local_objectives, alternatives, constraints, states })
     }
 }
 
@@ -381,8 +350,8 @@ impl HeuristicObjective for GoalContext {
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
         self.global_objectives
             .iter()
-            .try_fold(Ordering::Equal, |_, objectives| {
-                match dominance_order(a, b, objectives.iter().map(|o| |a, b| o.total_order(a, b))) {
+            .try_fold(Ordering::Equal, |_, objective| {
+                match dominance_order(a, b, std::iter::once(|a, b| objective.total_order(a, b))) {
                     Ordering::Equal => ControlFlow::Continue(Ordering::Equal),
                     order => ControlFlow::Break(order),
                 }
@@ -391,58 +360,50 @@ impl HeuristicObjective for GoalContext {
     }
 
     fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(self.flatten_objectives.iter().map(|o| o.fitness(solution)))
+        Box::new(self.global_objectives.iter().map(|o| o.fitness(solution)))
     }
 }
 
 impl Shuffled for GoalContext {
-    /// Returns a new instance of `GoalContext` with shuffled objectives.
     fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
-        if let Some((alternatives, probability)) = &self.alternatives {
-            assert!(!alternatives.is_empty());
+        const RANDOM_ALTERNATIVE_PROBABILITY: f64 = 0.05;
+        const RANDOM_SHUFFLE_PROBABILITY: f64 = 0.001;
 
-            if random.is_hit(*probability) {
-                let idx = random.uniform_int(0, alternatives.len() as i32 - 1) as usize;
-                return self.get_alternative(idx);
-            }
+        if !self.alternatives.is_empty() && random.is_hit(RANDOM_ALTERNATIVE_PROBABILITY) {
+            let idx = random.uniform_int(0, self.alternatives.len() as i32 - 1) as usize;
+            return self.get_alternative(idx);
         }
 
-        // NOTE: random shuffling is not very effective, so do it much less frequent
-        const RANDOM_SHUFFLE_PROBABILITY: f64 = 0.005;
-
-        let instance = self.clone();
-
         if random.is_hit(RANDOM_SHUFFLE_PROBABILITY) {
-            let mut global_objectives = self.global_objectives.clone();
-            let mut flatten_objectives = self.flatten_objectives.clone();
-            let mut local_objectives = self.local_objectives.clone();
-
-            global_objectives.shuffle(&mut random.get_rng());
-            flatten_objectives.shuffle(&mut random.get_rng());
-            local_objectives.shuffle(&mut random.get_rng());
-
-            Self { global_objectives, flatten_objectives, local_objectives, ..instance }
+            self.get_shuffled(random)
         } else {
-            instance
+            self.clone()
         }
     }
 }
 
 impl GoalContext {
     fn get_alternative(&self, idx: usize) -> Self {
-        let (alternatives, _) = self.alternatives.as_ref().expect("no alternatives");
+        let (global_objectives, local_objectives, _) = self.alternatives[idx].clone();
 
-        let (global_objectives, local_objectives) = alternatives[idx].clone();
-        let flatten_objectives = global_objectives.iter().flat_map(|inners| inners.iter()).cloned().collect();
+        Self { global_objectives, local_objectives, ..self.clone() }
+    }
 
-        Self { global_objectives, flatten_objectives, local_objectives, ..self.clone() }
+    fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
+        let instance = self.clone();
+
+        let mut global_objectives = self.global_objectives.clone();
+        let mut local_objectives = self.local_objectives.clone();
+
+        global_objectives.shuffle(&mut random.get_rng());
+        local_objectives.shuffle(&mut random.get_rng());
+
+        Self { global_objectives, local_objectives, ..instance }
     }
 
     /// Returns goals with alternative objectives.
     pub(crate) fn get_alternatives(&self) -> impl Iterator<Item = Self> + '_ {
-        self.alternatives
-            .iter()
-            .flat_map(|(alternatives, _)| (0..alternatives.len()).map(|idx| self.get_alternative(idx)))
+        self.alternatives.iter().enumerate().map(|(idx, _)| self.get_alternative(idx))
     }
 
     /// Accepts job insertion.
@@ -481,14 +442,7 @@ impl GoalContext {
 
     /// Estimates insertion cost (penalty) of the refinement move.
     pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> InsertionCost {
-        self.local_objectives
-            .iter()
-            .map(|same_level_objectives| {
-                // NOTE simply sum objective values on the same level
-                // TODO: it would be nice to scale them according to their importance
-                same_level_objectives.iter().map(|objective| objective.estimate(move_ctx)).sum::<Cost>()
-            })
-            .collect()
+        self.local_objectives.iter().map(|objective| objective.estimate(move_ctx)).collect()
     }
 }
 

@@ -34,9 +34,11 @@ where
     dedup_fn: DedupFn<O, S>,
 }
 
+// TODO rename Shuffled to Alternative
+
 /// Provides way to get a new objective by shuffling existing one.
 pub trait Shuffled {
-    /// Returns a new objective.
+    /// Returns a new objective, potentially shuffled.
     fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self;
 }
 

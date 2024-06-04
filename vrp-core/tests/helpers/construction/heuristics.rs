@@ -1,11 +1,11 @@
 use crate::construction::enablers::ScheduleKeys;
 use crate::construction::features::CapacityKeys;
 use crate::construction::heuristics::*;
-use crate::helpers::models::domain::{test_random, GoalContextBuilder};
+use crate::helpers::models::domain::{test_random, TestGoalContextBuilder};
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
 use crate::models::problem::Job;
 use crate::models::solution::Registry;
-use crate::models::{ExtrasBuilder, Goal, GoalContext, Problem};
+use crate::models::{ExtrasBuilder, GoalContext, Problem};
 use crate::prelude::Jobs;
 use rosomaxa::prelude::Environment;
 use std::sync::Arc;
@@ -122,7 +122,7 @@ fn create_empty_problem() -> Problem {
         fleet,
         jobs,
         locks: vec![],
-        goal: Arc::new(GoalContext::new(&[], Goal::no_alternatives([], [])).unwrap()),
+        goal: Arc::new(TestGoalContextBuilder::default().build()),
         activity: Arc::new(TestActivityCost::default()),
         transport,
         extras: Arc::new(ExtrasBuilder::default().build().expect("cannot build default extras")),
@@ -130,7 +130,7 @@ fn create_empty_problem() -> Problem {
 }
 
 fn create_empty_solution_ctx() -> SolutionContext {
-    let goal = GoalContextBuilder::default().build();
+    let goal = TestGoalContextBuilder::default().build();
     let registry = Registry::new(&test_fleet(), test_random());
 
     SolutionContext {
