@@ -79,12 +79,9 @@ pub struct GoalContextBuilder {
 impl GoalContextBuilder {
     /// Creates a `GoalBuilder` with the given list of features.
     pub fn with_features(features: Vec<Feature>) -> GenericResult<Self> {
-        let ids_all = features
-            .iter()
-            .filter_map(|feature| feature.objective.as_ref().map(|_| feature.name.clone()))
-            .collect::<Vec<_>>();
-
+        let ids_all = features.iter().map(|feature| feature.name.clone()).collect::<Vec<_>>();
         let ids_unique = ids_all.iter().collect::<HashSet<_>>();
+
         if ids_unique.len() != ids_all.len() {
             return Err(format!(
                 "some of the features are defined more than once, check ids list: {}",

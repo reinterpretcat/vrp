@@ -28,6 +28,7 @@ are already published. So, I stick to it for now.
 * tweak job index
 * tweak infeasible search heuristic
 * refactor route intervals and multi trip enablers
+* refactor feature objective
 
 
 ## [v1.23.0]- 2023-12-22
