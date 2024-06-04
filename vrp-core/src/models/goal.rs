@@ -79,7 +79,7 @@ pub struct GoalContextBuilder {
 impl GoalContextBuilder {
     /// Creates a `GoalBuilder` with the given list of features.
     pub fn with_features(features: Vec<Feature>) -> GenericResult<Self> {
-        let ids_all = features.iter().map(|feature| feature.name.clone()).collect::<Vec<_>>();
+        let ids_all = features.iter().map(|feature| feature.name.as_str()).collect::<Vec<_>>();
         let ids_unique = ids_all.iter().collect::<HashSet<_>>();
 
         if ids_unique.len() != ids_all.len() {
@@ -89,6 +89,23 @@ impl GoalContextBuilder {
             )
             .into());
         }
+        drop(ids_unique);
+
+        // check state keys duplication
+        let state_keys = features
+            .iter()
+            .filter_map(|f| f.state.as_ref().map(|state| (f.name.clone(), state.state_keys().collect::<HashSet<_>>())))
+            .collect::<Vec<_>>();
+        state_keys.iter().try_for_each(|(outer_name, outer_keys)| {
+            state_keys.iter().filter(|(inner_name, _)| inner_name != outer_name).try_for_each(
+                |(inner_name, inner_keys)| {
+                    inner_keys.intersection(outer_keys).next().map_or(Ok(()), |_| {
+                        Err(format!("feature {outer_name} and {inner_name} shares common state keys for caching"))
+                    })
+                },
+            )
+        })?;
+        drop(state_keys);
 
         Ok(Self { main_goal: None, alternative_goals: Vec::default(), features })
     }
