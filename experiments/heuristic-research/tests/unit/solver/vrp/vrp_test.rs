@@ -28,5 +28,5 @@ EOF
     .to_string();
     let logger = Environment::default().logger;
 
-    solve_vrp("tsplib", problem, "rosomaxa", 8, 2000, logger);
+    solve_vrp("tsplib", problem, "rosomaxa", 8, 200, logger);
 }
