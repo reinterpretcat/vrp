@@ -14,6 +14,9 @@ pub use self::breaks::*;
 mod capacity;
 pub use self::capacity::*;
 
+mod compatibility;
+pub use self::compatibility::*;
+
 mod fast_service;
 pub use self::fast_service::*;
 

@@ -1,11 +1,12 @@
 use crate::construction::enablers::{BreakTie, JobTie, VehicleTie};
-use vrp_core::construction::features::{BreakAspects, BreakCandidate, BreakPolicy};
-use vrp_core::construction::heuristics::RouteContext;
+use vrp_core::construction::features::{BreakAspects, BreakCandidate, BreakPolicy, CompatibilityAspects};
+use vrp_core::construction::heuristics::{RouteContext, StateKey};
 use vrp_core::models::common::IdDimension;
-use vrp_core::models::problem::Single;
+use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::Route;
+use vrp_core::models::ViolationCode;
 
-/// Provides way to use break feature.
+/// Provides a way to use break feature.
 #[derive(Clone, Copy)]
 pub struct PragmaticBreakAspects;
 
@@ -27,6 +28,34 @@ impl BreakAspects for PragmaticBreakAspects {
 
     fn get_policy(&self, candidate: BreakCandidate<'_>) -> Option<BreakPolicy> {
         candidate.as_single().and_then(|single| single.dimens.get_break_policy())
+    }
+}
+
+/// Provides a way to use compatibility feature.
+#[derive(Clone)]
+pub struct PragmaticCompatibilityAspects {
+    state_key: StateKey,
+    violation_code: ViolationCode,
+}
+
+impl PragmaticCompatibilityAspects {
+    /// Creates a new instance of `PragmaticCompatibilityAspects`.
+    pub fn new(state_key: StateKey, violation_code: ViolationCode) -> Self {
+        Self { state_key, violation_code }
+    }
+}
+
+impl CompatibilityAspects for PragmaticCompatibilityAspects {
+    fn get_job_compatibility<'a>(&self, job: &'a Job) -> Option<&'a String> {
+        job.dimens().get_job_compatibility()
+    }
+
+    fn get_state_key(&self) -> StateKey {
+        self.state_key
+    }
+
+    fn get_violation_code(&self) -> ViolationCode {
+        self.violation_code
     }
 }
 

@@ -1,34 +1,57 @@
 use super::*;
-use crate::helpers::*;
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::models::problem::SingleBuilder;
+use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder, RouteStateBuilder};
 use std::sync::Arc;
-use vrp_core::construction::heuristics::*;
-use vrp_core::models::problem::*;
 
 const VIOLATION_CODE: i32 = 1;
+const DEFAULT_JOB_LOCATION: Location = 1;
+
+#[derive(Clone)]
+struct TestCompatibilityAspects {
+    state_key: StateKey,
+}
+
+impl CompatibilityAspects for TestCompatibilityAspects {
+    fn get_job_compatibility<'a>(&self, job: &'a Job) -> Option<&'a String> {
+        job.dimens().get_value("compat")
+    }
+
+    fn get_state_key(&self) -> StateKey {
+        self.state_key
+    }
+
+    fn get_violation_code(&self) -> ViolationCode {
+        VIOLATION_CODE
+    }
+}
 
 fn create_feature(state_key: StateKey) -> Feature {
-    create_compatibility_feature("compatibility", state_key, VIOLATION_CODE).unwrap()
+    create_compatibility_feature("compatibility", TestCompatibilityAspects { state_key }).unwrap()
 }
 
 fn create_test_single(compatibility: Option<String>) -> Arc<Single> {
-    let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
-    single.dimens.set_job_compatibility(compatibility);
-    Arc::new(single)
+    let mut builder = SingleBuilder::default();
+
+    if let Some(compatibility) = compatibility {
+        builder.property("compat", compatibility);
+    }
+
+    builder.location(Some(DEFAULT_JOB_LOCATION)).build_shared()
 }
 
 fn create_test_route_ctx(compatibility: Option<String>) -> RouteContext {
     let state_key = StateKeyRegistry::default().next_key();
-    let mut state = RouteState::default();
-    state.put_route_state(state_key, compatibility.clone());
-
-    RouteContext::new_with_state(
-        create_route_with_activities(
-            &test_fleet(),
-            "v1",
-            vec![create_activity_with_job_at_location(create_test_single(compatibility), 1)],
-        ),
-        state,
-    )
+    RouteContextBuilder::default()
+        .with_route(
+            RouteBuilder::with_default_vehicle()
+                .add_activity(
+                    ActivityBuilder::with_location(1).job(Some(create_test_single(compatibility.clone()))).build(),
+                )
+                .build(),
+        )
+        .with_state(RouteStateBuilder::default().add_route_state(state_key, compatibility).build())
+        .build()
 }
 
 parameterized_test! {can_use_compatibility, (job_compat, route_compat, expected), {
@@ -44,14 +67,16 @@ can_use_compatibility! {
 
 fn can_use_compatibility_impl(job_compat: Option<&str>, route_compat: Option<&str>, expected: Option<()>) {
     let state_key = StateKeyRegistry::default().next_key();
-    let solution_ctx = create_solution_context_for_fleet(&test_fleet());
-    let route_ctx = create_test_route_ctx(route_compat.map(|v| v.to_string()));
+    let solution_ctx = InsertionContextBuilder::default()
+        .with_routes(vec![create_test_route_ctx(route_compat.map(|v| v.to_string()))])
+        .build()
+        .solution;
     let job = Job::Single(create_test_single(job_compat.map(|v| v.to_string())));
 
     let result = create_feature(state_key)
         .constraint
         .unwrap()
-        .evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job))
+        .evaluate(&MoveContext::route(&solution_ctx, &solution_ctx.routes[0], &job))
         .map(|_| ());
 
     assert_eq!(result, expected);
@@ -99,7 +124,7 @@ fn can_merge_jobs_impl(
     let candidate = Job::Single(create_test_single(candidate_compat.map(|v| v.to_string())));
     let constraint = create_feature(state_key).constraint.unwrap();
 
-    let result = constraint.merge(source, candidate).map(|job| job.dimens().get_job_compatibility().cloned());
+    let result = constraint.merge(source, candidate).map(|job| job.dimens().get_value("compat").cloned());
 
     match (result, expected) {
         (Ok(_), Err(_)) => unreachable!("unexpected err result"),
