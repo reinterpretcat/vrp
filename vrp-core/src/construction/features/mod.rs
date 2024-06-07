@@ -8,6 +8,9 @@ use rosomaxa::prelude::*;
 use std::slice::Iter;
 use std::sync::Arc;
 
+mod breaks;
+pub use self::breaks::*;
+
 mod capacity;
 pub use self::capacity::*;
 

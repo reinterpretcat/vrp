@@ -1,6 +1,7 @@
 use super::*;
 use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::*;
+use crate::format::problem::aspects::PragmaticBreakAspects;
 use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::enablers::{FeatureCombinator, RouteIntervals, ScheduleKeys};
@@ -39,7 +40,7 @@ pub(super) fn create_goal_context(
     }
 
     if props.has_breaks {
-        features.push(create_optional_break_feature("break", BREAK_CONSTRAINT_CODE)?)
+        features.push(create_optional_break_feature("break", BREAK_CONSTRAINT_CODE, PragmaticBreakAspects)?)
     }
 
     if props.has_recharges {

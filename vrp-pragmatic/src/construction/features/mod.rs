@@ -8,9 +8,6 @@ use vrp_core::models::problem::*;
 use vrp_core::models::*;
 use vrp_core::prelude::*;
 
-mod breaks;
-pub use self::breaks::*;
-
 pub mod compatibility;
 pub use self::compatibility::*;
 

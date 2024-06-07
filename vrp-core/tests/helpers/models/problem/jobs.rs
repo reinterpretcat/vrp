@@ -56,6 +56,11 @@ impl SingleBuilder {
         self
     }
 
+    pub fn property<T: 'static + Sync + Send>(&mut self, key: &str, value: T) -> &mut Self {
+        self.0.dimens.insert(key.to_string(), Arc::new(value));
+        self
+    }
+
     pub fn dimens(&mut self, dimens: Dimensions) -> &mut Self {
         self.0.dimens = dimens;
         self

@@ -3,7 +3,7 @@
 use std::sync::Arc;
 use vrp_core::models::common::Dimensions;
 use vrp_core::models::problem::{Job, Single};
-use vrp_core::models::solution::{Activity, Route};
+use vrp_core::models::solution::Route;
 
 mod entities;
 pub use self::entities::*;
@@ -16,13 +16,6 @@ pub use self::only_vehicle_activity_cost::*;
 
 mod typed_actor_group_key;
 pub use self::typed_actor_group_key::*;
-
-pub(crate) fn as_single_job<F>(activity: &Activity, condition: F) -> Option<&Arc<Single>>
-where
-    F: Fn(&Arc<Single>) -> bool,
-{
-    activity.job.as_ref().and_then(|job| if condition(job) { Some(job) } else { None })
-}
 
 pub(crate) fn get_shift_index(dimens: &Dimensions) -> usize {
     dimens.get_shift_index().expect("cannot get shift index")
@@ -40,11 +33,4 @@ pub(crate) fn is_correct_vehicle(route: &Route, target_id: &str, target_shift: u
 pub(crate) fn is_job_belongs_to_route(route: &Route, job: &Job) -> bool {
     job.as_single()
         .map_or(false, |job| is_correct_vehicle(route, get_vehicle_id_from_job(job), get_shift_index(&job.dimens)))
-}
-
-pub(crate) fn is_single_belongs_to_route(route: &Route, single: &Arc<Single>) -> bool {
-    let vehicle_id = get_vehicle_id_from_job(single);
-    let shift_index = get_shift_index(&single.dimens);
-
-    is_correct_vehicle(route, vehicle_id, shift_index)
 }

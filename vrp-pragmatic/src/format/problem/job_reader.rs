@@ -1,5 +1,5 @@
 use crate::construction::enablers::{BreakTie, JobTie, VehicleTie};
-use crate::construction::features::{BreakPolicy, JobSkills as FeatureJobSkills};
+use crate::construction::features::JobSkills as FeatureJobSkills;
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::JobSkills as ApiJobSkills;
 use crate::format::problem::*;
@@ -7,6 +7,7 @@ use crate::format::{JobIndex, Location};
 use crate::utils::VariableJobPermutation;
 use hashbrown::HashMap;
 use std::sync::Arc;
+use vrp_core::construction::features::BreakPolicy;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
