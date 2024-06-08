@@ -7,8 +7,7 @@ use vrp_core::models::problem::*;
 use vrp_core::models::*;
 use vrp_core::prelude::*;
 
-pub mod reachable;
-pub use self::reachable::*;
+pub use vrp_core::construction::features::reachable::*;
 
 pub mod recharge;
 pub use self::recharge::*;

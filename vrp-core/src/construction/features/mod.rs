@@ -50,5 +50,7 @@ pub use self::tour_order::*;
 mod transport;
 pub use self::transport::*;
 
+pub mod reachable;
 mod work_balance;
+
 pub use self::work_balance::*;

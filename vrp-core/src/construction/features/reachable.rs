@@ -1,7 +1,10 @@
 //! A feature to detect filter jobs based on their reachability.
 
-use super::*;
-use vrp_core::models::problem::{TransportCost, TravelTime};
+use crate::construction::heuristics::MoveContext;
+use crate::models::problem::{Job, TransportCost, TravelTime};
+use crate::models::{ConstraintViolation, Feature, FeatureBuilder, FeatureConstraint, ViolationCode};
+use rosomaxa::utils::GenericError;
+use std::sync::Arc;
 
 /// Creates a feature to check reachability of the jobs. It is a hard constraint.
 pub fn create_reachable_feature(
