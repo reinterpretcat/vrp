@@ -1,4 +1,3 @@
-use crate::construction::enablers::create_typed_actor_groups;
 use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::skills::create_skills_feature;
 use crate::construction::features::JobSkills;
@@ -6,6 +5,7 @@ use crate::helpers::*;
 use hashbrown::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
+use vrp_core::construction::enablers::create_typed_actor_groups;
 use vrp_core::construction::heuristics::{MoveContext, RouteContext, RouteState};
 use vrp_core::models::problem::{Fleet, Job, Vehicle};
 use vrp_core::models::{ConstraintViolation, ViolationCode};
@@ -84,7 +84,11 @@ fn can_check_skills_impl(
     let fleet = Fleet::new(
         vec![Arc::new(test_driver())],
         vec![Arc::new(create_vehicle_with_skills(vehicle_skills))],
-        Box::new(|actors| create_typed_actor_groups(actors)),
+        |actors| {
+            create_typed_actor_groups(actors, |a| {
+                a.vehicle.dimens.get_vehicle_type().cloned().expect("no vehicle type set")
+            })
+        },
     );
     let route_ctx =
         RouteContext::new_with_state(create_route_with_activities(&fleet, "v1", vec![]), RouteState::default());

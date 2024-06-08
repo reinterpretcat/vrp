@@ -63,7 +63,7 @@ fn create_example_fleet() -> Arc<Fleet> {
         }],
     })];
 
-    Arc::new(Fleet::new(drivers, vehicles, Box::new(|_| Box::new(|_| 0))))
+    Arc::new(Fleet::new(drivers, vehicles, |_| |_| 0))
 }
 
 /// Creates an extras with all necessary data

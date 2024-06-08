@@ -88,7 +88,7 @@ pub(crate) fn create_fleet_with_distance_costs(
                 })
             })
             .collect(),
-        Box::new(|_| Box::new(|_| 0)),
+        |_| |_| 0,
     )
 }
 

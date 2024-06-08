@@ -1,8 +1,7 @@
-use crate::construction::enablers::create_typed_actor_groups;
 use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::helpers::TestTransportCost;
 use std::sync::Arc;
-use vrp_core::construction::enablers::ScheduleKeys;
+use vrp_core::construction::enablers::{create_typed_actor_groups, ScheduleKeys};
 use vrp_core::construction::features::create_minimize_transport_costs_feature;
 use vrp_core::construction::heuristics::{RegistryContext, SolutionContext, StateKeyRegistry};
 use vrp_core::models::common::*;
@@ -47,15 +46,19 @@ fn test_vehicle_impl(id: &str, has_open_end: bool) -> Vehicle {
 }
 
 pub fn test_fleet() -> Fleet {
-    Fleet::new(
-        vec![Arc::new(test_driver())],
-        vec![Arc::new(test_vehicle("v1"))],
-        Box::new(|actors| create_typed_actor_groups(actors)),
-    )
+    Fleet::new(vec![Arc::new(test_driver())], vec![Arc::new(test_vehicle("v1"))], |actors| {
+        create_typed_actor_groups(actors, |a| {
+            a.vehicle.dimens.get_vehicle_type().cloned().expect("no vehicle type set")
+        })
+    })
 }
 
 pub fn test_fleet_with_vehicles(vehicles: Vec<Arc<Vehicle>>) -> Fleet {
-    Fleet::new(vec![Arc::new(test_driver())], vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
+    Fleet::new(vec![Arc::new(test_driver())], vehicles, |actors| {
+        create_typed_actor_groups(actors, |a| {
+            a.vehicle.dimens.get_vehicle_type().cloned().expect("no vehicle type set")
+        })
+    })
 }
 
 pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {

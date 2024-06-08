@@ -24,3 +24,6 @@ pub use self::schedule_update::*;
 
 mod travel_info;
 pub use self::travel_info::*;
+
+mod typed_actor_group_key;
+pub use self::typed_actor_group_key::*;

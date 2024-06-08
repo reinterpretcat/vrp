@@ -3,12 +3,13 @@
 mod fleet_reader_test;
 
 use super::*;
-use crate::construction::enablers::{create_typed_actor_groups, UnknownLocationFallback, VehicleTie};
+use crate::construction::enablers::{UnknownLocationFallback, VehicleTie};
 use crate::get_unique_locations;
 use crate::utils::get_approx_transportation;
 use crate::Location as ApiLocation;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
+use vrp_core::construction::enablers::create_typed_actor_groups;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 
@@ -178,7 +179,11 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
         details: vec![],
     })];
 
-    CoreFleet::new(drivers, vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
+    CoreFleet::new(drivers, vehicles, |actors| {
+        create_typed_actor_groups(actors, |a| {
+            a.vehicle.dimens.get_vehicle_type().cloned().expect("vehicle has no type defined")
+        })
+    })
 }
 
 /// Creates a matrices using approximation.

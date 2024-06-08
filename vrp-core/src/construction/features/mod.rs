@@ -23,6 +23,9 @@ pub use self::fast_service::*;
 mod fleet_usage;
 pub use self::fleet_usage::*;
 
+mod groups;
+pub use self::groups::*;
+
 mod locked_jobs;
 pub use self::locked_jobs::*;
 

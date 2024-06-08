@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::*;
-use crate::format::problem::aspects::{PragmaticBreakAspects, PragmaticCompatibilityAspects};
+use crate::format::problem::aspects::{PragmaticBreakAspects, PragmaticCompatibilityAspects, PragmaticGroupAspects};
 use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::enablers::{FeatureCombinator, RouteIntervals, ScheduleKeys};
@@ -62,8 +62,7 @@ pub(super) fn create_goal_context(
         features.push(create_group_feature(
             "group",
             blocks.jobs.size(),
-            state_context.next_key(),
-            GROUP_CONSTRAINT_CODE,
+            PragmaticGroupAspects::new(state_context.next_key(), GROUP_CONSTRAINT_CODE),
         )?);
     }
 

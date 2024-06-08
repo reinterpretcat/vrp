@@ -1,16 +1,37 @@
 use super::*;
 use crate::construction::enablers::create_typed_actor_groups;
-use crate::construction::enablers::VehicleTie;
-use crate::helpers::*;
+use crate::helpers::models::domain::{test_random, TestGoalContextBuilder};
+use crate::helpers::models::problem::{test_driver, test_vehicle_with_id, FleetBuilder, SingleBuilder};
+use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder, RouteStateBuilder};
+use crate::models::problem::Actor;
+use crate::models::problem::{Fleet, Single};
+use crate::models::solution::Registry;
 use hashbrown::HashMap;
 use std::sync::Arc;
-use vrp_core::models::problem::Actor;
-use vrp_core::models::problem::{Fleet, Single};
 
 const VIOLATION_CODE: ViolationCode = 1;
 
+#[derive(Clone)]
+struct TestGroupAspects {
+    state_key: StateKey,
+}
+
+impl GroupAspects for TestGroupAspects {
+    fn get_job_group<'a>(&self, job: &'a Job) -> Option<&'a String> {
+        job.dimens().get_value::<String>("group")
+    }
+
+    fn get_state_key(&self) -> StateKey {
+        self.state_key
+    }
+
+    fn get_violation_code(&self) -> ViolationCode {
+        VIOLATION_CODE
+    }
+}
+
 fn create_test_group_feature(total_jobs: usize, state_key: StateKey) -> Feature {
-    create_group_feature("group", total_jobs, state_key, VIOLATION_CODE).unwrap()
+    create_group_feature("group", total_jobs, TestGroupAspects { state_key }).unwrap()
 }
 
 fn get_total_jobs(routes: &[(&str, Vec<Option<&str>>)]) -> usize {
@@ -18,18 +39,24 @@ fn get_total_jobs(routes: &[(&str, Vec<Option<&str>>)]) -> usize {
 }
 
 fn create_test_fleet() -> Fleet {
-    Fleet::new(
-        vec![Arc::new(test_driver())],
-        vec![Arc::new(test_vehicle("v1")), Arc::new(test_vehicle("v2"))],
-        Box::new(|actors| create_typed_actor_groups(actors)),
-    )
+    FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicle(test_vehicle_with_id("v1"))
+        .add_vehicle(test_vehicle_with_id("v2"))
+        .with_group_key_fn(Box::new(|actors| {
+            Box::new(create_typed_actor_groups(actors, |a| a.vehicle.dimens.get_id().cloned().unwrap()))
+        }))
+        .build()
 }
 
 fn create_test_single(group: Option<&str>) -> Arc<Single> {
-    let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
-    single.dimens.set_job_group(group.map(|group| group.to_string()));
+    let mut builder = SingleBuilder::default();
 
-    Arc::new(single)
+    if let Some(group) = group {
+        builder.property("group", group.to_string());
+    }
+
+    builder.build_shared()
 }
 
 fn create_test_solution_context(
@@ -40,34 +67,42 @@ fn create_test_solution_context(
 ) -> SolutionContext {
     SolutionContext {
         required: (0..total_jobs).map(|_| Job::Single(create_test_single(None))).collect(),
+        ignored: vec![],
+        unassigned: Default::default(),
+        locked: Default::default(),
         routes: routes
             .into_iter()
             .map(|(vehicle, groups)| {
-                let mut state = RouteState::default();
-                state.put_route_state(
-                    state_key,
-                    (groups.iter().filter_map(|g| *g).map(|g| g.to_string()).collect::<HashSet<_>>(), groups.len()),
-                );
-
-                RouteContext::new_with_state(
-                    create_route_with_activities(
-                        fleet,
-                        vehicle,
-                        groups
-                            .into_iter()
-                            .map(|group| create_activity_with_job_at_location(create_test_single(group), 1))
-                            .collect(),
-                    ),
-                    state,
-                )
+                RouteContextBuilder::default()
+                    .with_state(
+                        RouteStateBuilder::default()
+                            .add_route_state(
+                                state_key,
+                                (
+                                    groups.iter().filter_map(|g| *g).map(|g| g.to_string()).collect::<HashSet<_>>(),
+                                    groups.len(),
+                                ),
+                            )
+                            .build(),
+                    )
+                    .with_route(
+                        RouteBuilder::default()
+                            .with_vehicle(fleet, vehicle)
+                            .add_activities(groups.into_iter().map(|group| {
+                                ActivityBuilder::with_location(1).job(Some(create_test_single(group))).build()
+                            }))
+                            .build(),
+                    )
+                    .build()
             })
             .collect(),
-        ..create_solution_context_for_fleet(fleet)
+        registry: RegistryContext::new(&TestGoalContextBuilder::default().build(), Registry::new(fleet, test_random())),
+        state: Default::default(),
     }
 }
 
 fn get_actor(fleet: &Fleet, vehicle: &str) -> Arc<Actor> {
-    fleet.actors.iter().find(|actor| actor.vehicle.dimens.get_vehicle_id().unwrap() == vehicle).unwrap().clone()
+    fleet.actors.iter().find(|actor| actor.vehicle.dimens.get_id().unwrap() == vehicle).unwrap().clone()
 }
 
 fn get_actor_groups(solution_ctx: &mut SolutionContext, state_key: StateKey) -> HashMap<String, Arc<Actor>> {

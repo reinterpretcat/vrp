@@ -108,10 +108,13 @@ impl VehicleBuilder {
     }
 }
 
+pub type GroupKeyFn = Box<dyn Fn(&[Arc<Actor>]) -> Box<dyn Fn(&Actor) -> usize + Send + Sync>>;
+
 #[derive(Default)]
 pub struct FleetBuilder {
     drivers: Vec<Driver>,
     vehicles: Vec<Vehicle>,
+    group_key_fn: Option<GroupKeyFn>,
 }
 
 impl FleetBuilder {
@@ -130,6 +133,11 @@ impl FleetBuilder {
         self
     }
 
+    pub fn with_group_key_fn(&mut self, group_key_fn: GroupKeyFn) -> &mut FleetBuilder {
+        self.group_key_fn = Some(group_key_fn);
+        self
+    }
+
     pub fn build(&mut self) -> Fleet {
         let drivers = std::mem::take(&mut self.drivers);
         let vehicles = std::mem::take(&mut self.vehicles);
@@ -137,17 +145,22 @@ impl FleetBuilder {
         let drivers = drivers.into_iter().map(Arc::new).collect();
         let vehicles = vehicles.into_iter().map(Arc::new).collect();
 
-        Fleet::new(drivers, vehicles, Box::new(|actors| create_details_actor_groups(actors)))
+        let group_key = self
+            .group_key_fn
+            .take()
+            .unwrap_or_else(|| Box::new(|actors| Box::new(create_details_actor_groups(actors))));
+
+        Fleet::new(drivers, vehicles, group_key)
     }
 }
 
 #[allow(clippy::type_complexity)]
-pub fn create_details_actor_groups(actors: &[Arc<Actor>]) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync> {
+pub fn create_details_actor_groups(actors: &[Arc<Actor>]) -> impl Fn(&Actor) -> usize + Send + Sync {
     let unique_type_keys: HashSet<_> = actors.iter().map(|a| a.detail.clone()).collect();
 
     let type_key_map: HashMap<_, _> = unique_type_keys.into_iter().zip(0_usize..).collect();
 
     let groups: HashMap<_, _> = actors.iter().map(|a| (a.clone(), *type_key_map.get(&a.detail).unwrap())).collect();
 
-    Box::new(move |a| *groups.get(a).unwrap())
+    move |a| *groups.get(a).unwrap()
 }

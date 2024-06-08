@@ -6,7 +6,7 @@ mod compatibility_test;
 
 use super::*;
 
-/// Provides way to work with a job's compatibility.
+/// Provides a way to work with a job's compatibility.
 pub trait CompatibilityAspects: Clone + Send + Sync {
     /// Gets job compatibility if defined.
     fn get_job_compatibility<'a>(&self, job: &'a Job) -> Option<&'a String>;

@@ -1,5 +1,5 @@
 use crate::construction::enablers::{BreakTie, JobTie, VehicleTie};
-use vrp_core::construction::features::{BreakAspects, BreakCandidate, BreakPolicy, CompatibilityAspects};
+use vrp_core::construction::features::{BreakAspects, BreakCandidate, BreakPolicy, CompatibilityAspects, GroupAspects};
 use vrp_core::construction::heuristics::{RouteContext, StateKey};
 use vrp_core::models::common::IdDimension;
 use vrp_core::models::problem::{Job, Single};
@@ -48,6 +48,34 @@ impl PragmaticCompatibilityAspects {
 impl CompatibilityAspects for PragmaticCompatibilityAspects {
     fn get_job_compatibility<'a>(&self, job: &'a Job) -> Option<&'a String> {
         job.dimens().get_job_compatibility()
+    }
+
+    fn get_state_key(&self) -> StateKey {
+        self.state_key
+    }
+
+    fn get_violation_code(&self) -> ViolationCode {
+        self.violation_code
+    }
+}
+
+/// Provides a way to use the group feature.
+#[derive(Clone)]
+pub struct PragmaticGroupAspects {
+    state_key: StateKey,
+    violation_code: ViolationCode,
+}
+
+impl PragmaticGroupAspects {
+    /// Creates a new instance of `PragmaticGroupAspects`.
+    pub fn new(state_key: StateKey, violation_code: ViolationCode) -> Self {
+        Self { state_key, violation_code }
+    }
+}
+
+impl GroupAspects for PragmaticGroupAspects {
+    fn get_job_group<'a>(&self, job: &'a Job) -> Option<&'a String> {
+        job.dimens().get_job_group()
     }
 
     fn get_state_key(&self) -> StateKey {

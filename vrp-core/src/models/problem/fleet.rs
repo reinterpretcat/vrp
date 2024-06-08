@@ -111,7 +111,7 @@ impl Debug for Actor {
 }
 
 /// A grouping function for collection of actors.
-pub type ActorGroupKeyFn = Box<dyn Fn(&[Arc<Actor>]) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync>>;
+//pub type ActorGroupKeyFn = Box<dyn Fn(&[Arc<Actor>]) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync>>;
 
 /// Represents available resources to serve jobs.
 pub struct Fleet {
@@ -133,7 +133,11 @@ pub struct Fleet {
 
 impl Fleet {
     /// Creates a new instance of `Fleet`.
-    pub fn new(drivers: Vec<Arc<Driver>>, vehicles: Vec<Arc<Vehicle>>, group_key: ActorGroupKeyFn) -> Fleet {
+    pub fn new<R: Fn(&Actor) -> usize + Send + Sync>(
+        drivers: Vec<Arc<Driver>>,
+        vehicles: Vec<Arc<Vehicle>>,
+        group_key: impl Fn(&[Arc<Actor>]) -> R,
+    ) -> Fleet {
         // TODO we should also consider multiple drivers to support smart vehicle-driver assignment.
         assert_eq!(drivers.len(), 1);
         assert!(!vehicles.is_empty());
@@ -163,9 +167,9 @@ impl Fleet {
             })
             .collect::<Vec<_>>();
 
-        let group_key = (*group_key)(&actors);
+        let group_key = (group_key)(&actors);
         let groups: HashMap<_, HashSet<_>> = actors.iter().cloned().fold(HashMap::new(), |mut acc, actor| {
-            acc.entry((*group_key)(&actor)).or_default().insert(actor.clone());
+            acc.entry((group_key)(&actor)).or_default().insert(actor.clone());
             acc
         });
 
