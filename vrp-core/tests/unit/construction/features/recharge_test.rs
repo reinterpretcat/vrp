@@ -1,40 +1,74 @@
 use super::*;
-use crate::helpers::*;
-use vrp_core::models::solution::Activity;
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::models::problem::*;
+use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
+use crate::models::solution::Activity;
 
 const VIOLATION_CODE: ViolationCode = 1;
 
-fn recharge(location: Location) -> Activity {
-    let mut single_shared = create_single_with_type("recharge", "recharge");
-    let single_mut = Arc::get_mut(&mut single_shared).unwrap();
-    single_mut.dimens.set_shift_index(0).set_vehicle_id("v1".to_string());
+#[derive(Clone)]
+struct TestRechargeAspects {
+    recharge_keys: RechargeKeys,
+    recharge_distance_limit_fn: RechargeDistanceLimitFn,
+}
 
-    Activity { job: Some(single_shared), ..create_activity_at_location(location) }
+impl RechargeAspects for TestRechargeAspects {
+    fn belongs_to_route(&self, route: &Route, job: &Job) -> bool {
+        job.as_single()
+            .filter(|single| self.is_recharge_single(single))
+            .and_then(|single| single.dimens.get_value::<String>("vehicle_id"))
+            .zip(route.actor.vehicle.dimens.get_id())
+            .map_or(false, |(a, b)| a == b)
+    }
+
+    fn is_recharge_single(&self, single: &Single) -> bool {
+        single.dimens.get_value::<String>("type").map_or(false, |job_type| job_type == "recharge")
+    }
+
+    fn get_state_keys(&self) -> &RechargeKeys {
+        &self.recharge_keys
+    }
+
+    fn get_distance_limit_fn(&self) -> RechargeDistanceLimitFn {
+        self.recharge_distance_limit_fn.clone()
+    }
+
+    fn get_violation_code(&self) -> ViolationCode {
+        VIOLATION_CODE
+    }
+}
+
+fn recharge(location: Location) -> Activity {
+    ActivityBuilder::with_location(location)
+        .job(Some(
+            SingleBuilder::default()
+                .id("recharge")
+                .property("type", "recharge".to_string())
+                .property("vehicle_id", "v1".to_string())
+                .build_shared(),
+        ))
+        .build()
 }
 
 fn create_route_ctx(activities: &[Location], recharges: Vec<(usize, Location)>, is_open_end: bool) -> RouteContext {
-    let fleet = if is_open_end {
-        test_fleet_with_vehicles(vec![Arc::new(test_vehicle_with_no_end("v1"))])
-    } else {
-        test_fleet()
-    };
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicle(if is_open_end { test_ovrp_vehicle("v1") } else { test_vehicle_with_id("v1") })
+        .build();
 
-    let mut route_ctx = RouteContext::new_with_state(
-        create_route_with_activities(
-            &fleet,
-            "v1",
-            activities
-                .iter()
-                .enumerate()
-                .map(|(idx, &location)| Activity {
-                    schedule: Schedule::new(location as f64, location as f64),
-                    job: Some(create_single(&format!("job{}", idx + 1))),
-                    ..create_activity_at_location(location)
-                })
-                .collect(),
-        ),
-        RouteState::default(),
-    );
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(
+            RouteBuilder::default()
+                .with_vehicle(&fleet, "v1")
+                .add_activities(activities.iter().enumerate().map(|(idx, &location)| {
+                    ActivityBuilder::with_location(location)
+                        .schedule(Schedule::new(location as f64, location as f64))
+                        .job(Some(SingleBuilder::default().id(&format!("job{}", idx + 1)).build_shared()))
+                        .build()
+                }))
+                .build(),
+        )
+        .build();
 
     recharges.into_iter().for_each(|(recharge_idx, recharge_location)| {
         route_ctx.route_mut().tour.insert_at(recharge(recharge_location), recharge_idx);
@@ -48,10 +82,11 @@ fn create_feature(limit: Distance) -> (RechargeKeys, Feature) {
     let recharge_keys = RechargeKeys { distance: state_registry.next_key(), intervals: state_registry.next_key() };
     let feature = create_recharge_feature(
         "recharge",
-        Arc::new(move |_: &Actor| Some(limit)),
         TestTransportCost::new_shared(),
-        recharge_keys.clone(),
-        VIOLATION_CODE,
+        TestRechargeAspects {
+            recharge_keys: recharge_keys.clone(),
+            recharge_distance_limit_fn: Arc::new(move |_: &Actor| Some(limit)),
+        },
     )
     .expect("cannot create feature");
 
@@ -133,7 +168,9 @@ fn can_evaluate_insertion_impl(
         activity_ctx: &ActivityContext {
             index,
             prev: route_ctx.route().tour.get(prev).unwrap(),
-            target: &create_activity_at_location(new_location),
+            target: &ActivityBuilder::with_location(new_location)
+                .job(Some(SingleBuilder::default().build_shared()))
+                .build(),
             next: route_ctx.route().tour.get(next),
         },
     });
@@ -160,10 +197,10 @@ fn can_handle_obsolete_intervals_impl(
     activities: Vec<Location>,
     expected: Vec<Location>,
 ) {
-    let mut solution = SolutionContext {
-        routes: vec![create_route_ctx(&activities, recharges, true)],
-        ..create_solution_context_for_fleet(&test_fleet())
-    };
+    let mut solution = InsertionContextBuilder::default()
+        .with_routes(vec![create_route_ctx(&activities, recharges, true)])
+        .build()
+        .solution;
     let (_, feature) = create_feature(limit);
     let state = feature.state.unwrap();
 

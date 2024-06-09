@@ -1,5 +1,8 @@
 use crate::construction::enablers::{BreakTie, JobTie, VehicleTie};
-use vrp_core::construction::features::{BreakAspects, BreakCandidate, BreakPolicy, CompatibilityAspects, GroupAspects};
+use vrp_core::construction::features::{
+    BreakAspects, BreakCandidate, BreakPolicy, CompatibilityAspects, GroupAspects, RechargeAspects,
+    RechargeDistanceLimitFn, RechargeKeys,
+};
 use vrp_core::construction::heuristics::{RouteContext, StateKey};
 use vrp_core::models::common::IdDimension;
 use vrp_core::models::problem::{Job, Single};
@@ -80,6 +83,47 @@ impl GroupAspects for PragmaticGroupAspects {
 
     fn get_state_key(&self) -> StateKey {
         self.state_key
+    }
+
+    fn get_violation_code(&self) -> ViolationCode {
+        self.violation_code
+    }
+}
+
+/// Provides a way to use recharge feature.
+#[derive(Clone)]
+pub struct PragmaticRechargeAspects {
+    recharge_keys: RechargeKeys,
+    violation_code: ViolationCode,
+    distance_limit_fn: RechargeDistanceLimitFn,
+}
+
+impl PragmaticRechargeAspects {
+    /// Creates a new instance of `PragmaticRechargeAspects`.
+    pub fn new(
+        recharge_keys: RechargeKeys,
+        violation_code: ViolationCode,
+        distance_limit_fn: RechargeDistanceLimitFn,
+    ) -> Self {
+        Self { recharge_keys, violation_code, distance_limit_fn }
+    }
+}
+
+impl RechargeAspects for PragmaticRechargeAspects {
+    fn belongs_to_route(&self, route: &Route, job: &Job) -> bool {
+        job.as_single().map_or(false, |single| is_correct_vehicle(route, single))
+    }
+
+    fn is_recharge_single(&self, single: &Single) -> bool {
+        single.dimens.get_job_type().map_or(false, |job_type| job_type == "recharge")
+    }
+
+    fn get_state_keys(&self) -> &RechargeKeys {
+        &self.recharge_keys
+    }
+
+    fn get_distance_limit_fn(&self) -> RechargeDistanceLimitFn {
+        self.distance_limit_fn.clone()
     }
 
     fn get_violation_code(&self) -> ViolationCode {

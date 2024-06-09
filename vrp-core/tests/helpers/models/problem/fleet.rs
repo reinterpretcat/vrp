@@ -50,6 +50,10 @@ pub fn test_vehicle(profile_idx: usize) -> Vehicle {
     }
 }
 
+pub fn test_ovrp_vehicle(id: &str) -> Vehicle {
+    VehicleBuilder::default().id(id).details(vec![VehicleDetail { end: None, ..test_vehicle_detail() }]).build()
+}
+
 pub fn test_fleet() -> Fleet {
     FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build()
 }

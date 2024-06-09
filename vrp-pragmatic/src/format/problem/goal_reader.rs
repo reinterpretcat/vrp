@@ -1,7 +1,9 @@
 use super::*;
 use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::*;
-use crate::format::problem::aspects::{PragmaticBreakAspects, PragmaticCompatibilityAspects, PragmaticGroupAspects};
+use crate::format::problem::aspects::{
+    PragmaticBreakAspects, PragmaticCompatibilityAspects, PragmaticGroupAspects, PragmaticRechargeAspects,
+};
 use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::enablers::{FeatureCombinator, RouteIntervals, ScheduleKeys};
@@ -484,7 +486,11 @@ fn get_recharge_feature(
 
     let recharge_keys = RechargeKeys { distance: state_context.next_key(), intervals: state_context.next_key() };
 
-    create_recharge_feature(name, distance_limit_fn, transport, recharge_keys, RECHARGE_CONSTRAINT_CODE)
+    create_recharge_feature(
+        name,
+        transport,
+        PragmaticRechargeAspects::new(recharge_keys, RECHARGE_CONSTRAINT_CODE, distance_limit_fn),
+    )
 }
 
 fn get_reload_resources<T>(

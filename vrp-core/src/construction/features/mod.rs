@@ -32,6 +32,12 @@ pub use self::locked_jobs::*;
 mod minimize_unassigned;
 pub use self::minimize_unassigned::*;
 
+mod reachable;
+pub use self::reachable::*;
+
+mod recharge;
+pub use self::recharge::*;
+
 mod shared_resource;
 pub use self::shared_resource::*;
 
@@ -50,7 +56,6 @@ pub use self::tour_order::*;
 mod transport;
 pub use self::transport::*;
 
-pub mod reachable;
 mod work_balance;
 
 pub use self::work_balance::*;

@@ -26,10 +26,6 @@ pub fn test_vehicle(id: &str) -> Vehicle {
     test_vehicle_impl(id, false)
 }
 
-pub fn test_vehicle_with_no_end(id: &str) -> Vehicle {
-    test_vehicle_impl(id, true)
-}
-
 fn test_vehicle_impl(id: &str, has_open_end: bool) -> Vehicle {
     let mut dimens = Dimensions::default();
     dimens.set_vehicle_id(id.to_string()).set_vehicle_type(id.to_owned()).set_shift_index(0);

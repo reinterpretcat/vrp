@@ -6,7 +6,7 @@ use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::models::common::*;
-use crate::models::problem::{Fleet, Vehicle, VehicleDetail};
+use crate::models::problem::Fleet;
 
 const VIOLATION_CODE: ViolationCode = 1;
 
@@ -42,10 +42,6 @@ fn create_feature(intervals_key: StateKey, resource_key: StateKey, total_jobs: u
         create_resource_demand_fn(),
     )
     .unwrap()
-}
-
-fn create_ovrp_vehicle(id: &str) -> Vehicle {
-    VehicleBuilder::default().id(id).details(vec![VehicleDetail { end: None, ..test_vehicle_detail() }]).build()
 }
 
 fn create_route_ctx(
@@ -84,7 +80,7 @@ fn create_solution_ctx(
 ) -> SolutionContext {
     let resources = resources.into_iter().collect::<HashMap<usize, _>>();
     let (v1, v2) = if is_ovrp {
-        (create_ovrp_vehicle("v1"), create_ovrp_vehicle("v2"))
+        (test_ovrp_vehicle("v1"), test_ovrp_vehicle("v2"))
     } else {
         (test_vehicle_with_id("v1"), test_vehicle_with_id("v2"))
     };

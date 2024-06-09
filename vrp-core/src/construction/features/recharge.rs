@@ -7,16 +7,34 @@ mod recharge_test;
 
 use super::*;
 use crate::construction::enablers::*;
+use crate::models::solution::Route;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 use std::iter::once;
 use std::sync::Arc;
-use vrp_core::construction::enablers::*;
-use vrp_core::models::solution::Route;
+
+/// Specifies dependencies needed to use recharge feature.
+pub trait RechargeAspects: Clone + Send + Sync {
+    /// Checks whether the job is a recharge job and it can be assigned to the given route.
+    fn belongs_to_route(&self, route: &Route, job: &Job) -> bool;
+
+    /// Checks whether the single job is recharge job.
+    fn is_recharge_single(&self, single: &Single) -> bool;
+
+    /// Gets recharge keys.
+    fn get_state_keys(&self) -> &RechargeKeys;
+
+    /// Gets recharge distance limit function.
+    fn get_distance_limit_fn(&self) -> RechargeDistanceLimitFn;
+
+    /// Returns violation code.
+    fn get_violation_code(&self) -> ViolationCode;
+}
 
 /// Specifies a distance limit function for recharge. It should return a fixed value for the same
 /// actor all the time.
 pub type RechargeDistanceLimitFn = Arc<dyn Fn(&Actor) -> Option<Distance> + Send + Sync>;
+type RechargeSingleFn = Arc<dyn Fn(&Single) -> bool + Send + Sync>;
 
 /// Keeps track of state keys used by the recharge feature.
 #[derive(Clone, Debug)]
@@ -34,15 +52,21 @@ impl RechargeKeys {
 }
 
 /// Creates a feature to insert charge stations along the route.
-pub fn create_recharge_feature(
+pub fn create_recharge_feature<T: RechargeAspects + 'static>(
     name: &str,
-    distance_limit_fn: RechargeDistanceLimitFn,
     transport: Arc<dyn TransportCost + Send + Sync>,
-    recharge_keys: RechargeKeys,
-    code: ViolationCode,
+    aspects: T,
 ) -> Result<Feature, GenericError> {
+    let recharge_keys = aspects.get_state_keys();
     let distance_key = recharge_keys.distance;
     let intervals_key = recharge_keys.intervals;
+    let code = aspects.get_violation_code();
+
+    let distance_limit_fn = aspects.get_distance_limit_fn();
+    let recharge_single_fn: RechargeSingleFn = {
+        let aspects = aspects.clone();
+        Arc::new(move |single| aspects.is_recharge_single(single))
+    };
 
     create_multi_trip_feature(
         name,
@@ -51,7 +75,7 @@ pub fn create_recharge_feature(
         MarkerInsertionPolicy::Any,
         Arc::new(RechargeableMultiTrip {
             route_intervals: RouteIntervals::Multiple {
-                is_marker_single_fn: Arc::new(is_recharge_single),
+                is_marker_single_fn: recharge_single_fn.clone(),
                 is_new_interval_needed_fn: Arc::new({
                     let distance_limit_fn = distance_limit_fn.clone();
                     move |route_ctx| {
@@ -106,13 +130,14 @@ pub fn create_recharge_feature(
                             .map_or(false, |threshold| compare_floats(new_distance, threshold) != Ordering::Greater)
                     }
                 }),
-                is_assignable_fn: Arc::new(is_job_belongs_to_route),
+                is_assignable_fn: Arc::new(move |route, job| aspects.belongs_to_route(route, job)),
                 intervals_key,
             },
             transport,
             code,
             distance_key,
             distance_limit_fn,
+            recharge_single_fn,
         }),
     )
 }
@@ -123,6 +148,7 @@ struct RechargeableMultiTrip {
     code: ViolationCode,
     distance_key: StateKey,
     distance_limit_fn: RechargeDistanceLimitFn,
+    recharge_single_fn: RechargeSingleFn,
 }
 
 impl MultiTrip for RechargeableMultiTrip {
@@ -183,7 +209,7 @@ impl MultiTrip for RechargeableMultiTrip {
             solution_ctx
                 .ignored
                 .iter()
-                .filter(|job| job.as_single().map_or(false, |single| is_recharge_single(single.as_ref())))
+                .filter(|job| job.as_single().map_or(false, |single| (self.recharge_single_fn)(single)))
                 .cloned()
                 .collect()
         } else {
@@ -246,7 +272,8 @@ impl RechargeableMultiTrip {
             .map(|end_idx| self.get_distance(route_ctx, end_idx))
             .expect("invalid markers state");
 
-        let is_new_recharge = activity_ctx.target.job.as_ref().map_or(false, |job| is_recharge_single(job));
+        let is_new_recharge =
+            activity_ctx.target.job.as_ref().map_or(false, |single| (self.recharge_single_fn)(single));
 
         let is_violation = if is_new_recharge {
             let ((prev_to_tar_distance, tar_to_next_distance), _) =
@@ -290,10 +317,6 @@ impl RechargeableMultiTrip {
             .copied()
             .unwrap_or(Distance::default())
     }
-}
-
-fn is_recharge_single(single: &Single) -> bool {
-    single.dimens.get_job_type().map_or(false, |t| t == "recharge")
 }
 
 fn get_end_idx(route_ctx: &RouteContext, end_idx: usize) -> usize {
