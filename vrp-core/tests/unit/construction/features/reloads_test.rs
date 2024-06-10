@@ -1,13 +1,39 @@
 use super::*;
-use crate::helpers::create_single_with_location;
-use crate::helpers::*;
-use vrp_core::construction::features::create_capacity_limit_with_multi_trip_feature;
-use vrp_core::construction::heuristics::*;
-use vrp_core::models::common::{MultiDimLoad, SingleDimLoad};
-use vrp_core::models::problem::*;
-use vrp_core::models::solution::Activity;
+use crate::helpers::construction::features::single_demand_as_multi;
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::models::problem::{test_driver, FleetBuilder, SingleBuilder, VehicleBuilder};
+use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
+use crate::models::solution::Activity;
+use std::marker::PhantomData;
 
 const VIOLATION_CODE: ViolationCode = 1;
+
+#[derive(Clone, Default)]
+struct TestReloadAspects<T: LoadOps> {
+    phantom: PhantomData<T>,
+}
+
+impl<T: LoadOps> ReloadAspects<T> for TestReloadAspects<T> {
+    fn belongs_to_route(&self, route: &Route, job: &Job) -> bool {
+        job.as_single()
+            .filter(|single| self.is_reload_single(single.as_ref()))
+            .and_then(|single| single.dimens.get_value::<String>("vehicle_id"))
+            .zip(route.actor.vehicle.dimens.get_id())
+            .map_or(false, |(a, b)| a == b)
+    }
+
+    fn is_reload_single(&self, single: &Single) -> bool {
+        single.dimens.get_value::<String>("type").map_or(false, |job_type| job_type == "reload")
+    }
+
+    fn get_capacity<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a T> {
+        vehicle.dimens.get_capacity()
+    }
+
+    fn get_demand<'a>(&self, single: &'a Single) -> Option<&'a Demand<T>> {
+        single.dimens.get_demand()
+    }
+}
 
 fn create_activity_with_demand(
     job_id: &str,
@@ -15,11 +41,15 @@ fn create_activity_with_demand(
     delivery: (i32, i32),
     activity_type: &str,
 ) -> Activity {
-    let mut single_shared = create_single_with_type(job_id, activity_type);
-    let single_mut = Arc::get_mut(&mut single_shared).unwrap();
-    single_mut.dimens.set_demand(single_demand_as_multi(pickup, delivery));
-
-    Activity { job: Some(single_shared), ..create_activity_at_location(0) }
+    ActivityBuilder::default()
+        .job(Some(
+            SingleBuilder::default()
+                .id(job_id)
+                .demand(single_demand_as_multi(pickup, delivery))
+                .property("type", activity_type.to_string())
+                .build_shared(),
+        ))
+        .build()
 }
 
 fn pickup(job_id: &str, demand: (i32, i32)) -> Activity {
@@ -31,21 +61,26 @@ fn delivery(job_id: &str, demand: (i32, i32)) -> Activity {
 }
 
 fn reload(reload_id: &str) -> Activity {
-    let mut single_shared = create_single_with_type(reload_id, "reload");
-    let single_mut = Arc::get_mut(&mut single_shared).unwrap();
-    single_mut.dimens.set_shift_index(0).set_vehicle_id("v1".to_string());
-
-    Activity { job: Some(single_shared), ..create_activity_at_location(0) }
+    ActivityBuilder::default()
+        .job(Some(
+            SingleBuilder::default()
+                .id(reload_id)
+                .property("type", "reload".to_string())
+                .property("vehicle_id", "v1".to_string())
+                .build_shared(),
+        ))
+        .build()
 }
 
-fn create_route_context_with_fleet(capacity: Vec<i32>, activities: Vec<Activity>) -> (RouteContext, Fleet) {
-    let mut vehicle = test_vehicle("v1");
-    vehicle.dimens.set_capacity(MultiDimLoad::new(capacity));
-    let fleet = test_fleet_with_vehicles(vec![Arc::new(vehicle)]);
-    let route_ctx =
-        RouteContext::new_with_state(create_route_with_activities(&fleet, "v1", activities), RouteState::default());
+fn create_route_context(capacity: Vec<i32>, activities: Vec<Activity>) -> RouteContext {
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicle(VehicleBuilder::default().id("v1").capacity_mult(capacity).build())
+        .build();
 
-    (route_ctx, fleet)
+    RouteContextBuilder::default()
+        .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").add_activities(activities).build())
+        .build()
 }
 
 fn create_reload_keys() -> ReloadKeys {
@@ -56,7 +91,7 @@ fn create_reload_keys() -> ReloadKeys {
 #[test]
 fn can_handle_reload_jobs_with_merge() {
     let create_reload_job = || Job::Single(reload("reload").job.unwrap());
-    let create_job = || Job::Single(Arc::new(create_single_with_location(None)));
+    let create_job = || SingleBuilder::default().location(None).build_as_job_ref();
     let reload_keys = create_reload_keys();
     let feature = create_simple_reload_multi_trip_feature(
         "reload",
@@ -73,6 +108,7 @@ fn can_handle_reload_jobs_with_merge() {
         },
         Box::new(|_| SingleDimLoad::default()),
         reload_keys,
+        TestReloadAspects::default(),
     );
     let constraint = feature.unwrap().constraint.unwrap();
 
@@ -204,9 +240,11 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
     let threshold = 0.9;
 
     let reload_keys = create_reload_keys();
-    let (route_ctx, fleet) = create_route_context_with_fleet(vec![capacity], activities);
-    let mut solution_ctx = SolutionContext { routes: vec![route_ctx], ..create_solution_context_for_fleet(&fleet) };
-    let reload_feature = create_simple_reload_multi_trip_feature::<MultiDimLoad>(
+    let mut solution_ctx = InsertionContextBuilder::default()
+        .with_routes(vec![create_route_context(vec![capacity], activities)])
+        .build()
+        .solution;
+    let reload_feature = create_simple_reload_multi_trip_feature::<MultiDimLoad, _>(
         "reload",
         Box::new({
             let capacity_keys = reload_keys.capacity_keys.clone();
@@ -221,6 +259,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
         }),
         Box::new(move |capacity| *capacity * threshold),
         reload_keys,
+        TestReloadAspects::default(),
     )
     .unwrap();
     let min_jobs_feature = create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.)).unwrap();
@@ -243,7 +282,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
             .tour
             .all_activities()
             .filter_map(|activity| activity.job.as_ref())
-            .filter_map(|job| job.dimens.get_job_id())
+            .filter_map(|job| job.dimens.get_id())
             .collect::<Vec<_>>(),
         expected
     );
@@ -266,12 +305,13 @@ fn can_handle_new_interval_needed_for_multi_dim_load_impl(
 ) {
     let threshold = 1.;
     let reload_keys = create_reload_keys();
-    let route_intervals = create_reload_route_intervals::<MultiDimLoad>(
+    let route_intervals = create_reload_route_intervals::<MultiDimLoad, _>(
         reload_keys.clone(),
         Box::new(move |capacity| *capacity * threshold),
         None,
+        TestReloadAspects::default(),
     );
-    let (mut route_ctx, _) = create_route_context_with_fleet(vehicle_capacity, Vec::default());
+    let mut route_ctx = create_route_context(vehicle_capacity, Vec::default());
     let (route, state) = route_ctx.as_mut();
     let mut current_capacities = vec![MultiDimLoad::default(); route.tour.total()];
     current_capacities[route.tour.end_idx().unwrap()] = MultiDimLoad::new(current_capacity);

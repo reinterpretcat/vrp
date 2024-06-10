@@ -1,4 +1,4 @@
-use crate::models::common::{Demand, SingleDimLoad};
+use crate::models::common::{Demand, MultiDimLoad, SingleDimLoad};
 
 pub fn create_simple_demand(size: i32) -> Demand<SingleDimLoad> {
     if size > 0 {
@@ -26,4 +26,16 @@ pub fn create_simple_dynamic_demand(size: i32) -> Demand<SingleDimLoad> {
             delivery: (SingleDimLoad::default(), SingleDimLoad::new(-size)),
         }
     }
+}
+
+pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Demand<MultiDimLoad> {
+    let make = |value| {
+        if value == 0 {
+            MultiDimLoad::default()
+        } else {
+            MultiDimLoad::new(vec![value])
+        }
+    };
+
+    Demand { pickup: (make(pickup.0), make(pickup.1)), delivery: (make(delivery.0), make(delivery.1)) }
 }

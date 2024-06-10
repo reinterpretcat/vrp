@@ -14,13 +14,6 @@ const VIOLATION_CODE: ViolationCode = 1;
 struct TestBreakAspects;
 
 impl BreakAspects for TestBreakAspects {
-    fn is_break_job(&self, candidate: BreakCandidate<'_>) -> bool {
-        candidate
-            .as_single()
-            .and_then(|break_single| break_single.dimens.get_value::<String>("type"))
-            .map_or(false, |job_type| job_type == "break")
-    }
-
     fn belongs_to_route(&self, route_ctx: &RouteContext, candidate: BreakCandidate<'_>) -> bool {
         if !self.is_break_job(candidate) {
             return false;
@@ -32,6 +25,13 @@ impl BreakAspects for TestBreakAspects {
         let vehicle_id = route_ctx.route().actor.vehicle.dimens.get_id();
 
         job_vehicle_id.zip(vehicle_id).map_or(false, |(a, b)| a == b)
+    }
+
+    fn is_break_job(&self, candidate: BreakCandidate<'_>) -> bool {
+        candidate
+            .as_single()
+            .and_then(|break_single| break_single.dimens.get_value::<String>("type"))
+            .map_or(false, |job_type| job_type == "break")
     }
 
     fn get_policy(&self, _: BreakCandidate<'_>) -> Option<BreakPolicy> {

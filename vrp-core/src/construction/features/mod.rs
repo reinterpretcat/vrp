@@ -38,6 +38,9 @@ pub use self::reachable::*;
 mod recharge;
 pub use self::recharge::*;
 
+mod reloads;
+pub use self::reloads::*;
+
 mod shared_resource;
 pub use self::shared_resource::*;
 
@@ -57,5 +60,4 @@ mod transport;
 pub use self::transport::*;
 
 mod work_balance;
-
 pub use self::work_balance::*;

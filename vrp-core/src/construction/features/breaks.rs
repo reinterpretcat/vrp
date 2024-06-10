@@ -31,11 +31,11 @@ impl BreakCandidate<'_> {
 
 /// Provides way to work with a break job.
 pub trait BreakAspects: Clone + Send + Sync {
-    /// Checks whether the candidate job is a break job.
-    fn is_break_job(&self, candidate: BreakCandidate<'_>) -> bool;
-
     /// Checks whether the job is a break job and it can be assigned to the given route.
     fn belongs_to_route(&self, route_ctx: &RouteContext, candidate: BreakCandidate<'_>) -> bool;
+
+    /// Checks whether the candidate job is a break job.
+    fn is_break_job(&self, candidate: BreakCandidate<'_>) -> bool;
 
     /// Gets break policy if it is defined.
     fn get_policy(&self, candidate: BreakCandidate<'_>) -> Option<BreakPolicy>;

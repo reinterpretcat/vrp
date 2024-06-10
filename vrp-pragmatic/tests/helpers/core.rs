@@ -49,14 +49,6 @@ pub fn test_fleet() -> Fleet {
     })
 }
 
-pub fn test_fleet_with_vehicles(vehicles: Vec<Arc<Vehicle>>) -> Fleet {
-    Fleet::new(vec![Arc::new(test_driver())], vehicles, |actors| {
-        create_typed_actor_groups(actors, |a| {
-            a.vehicle.dimens.get_vehicle_type().cloned().expect("no vehicle type set")
-        })
-    })
-}
-
 pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {
     let actor = fleet.actors.iter().find(|a| a.vehicle.dimens.get_vehicle_id().unwrap() == vehicle).unwrap().clone();
     let mut tour = Tour::new(&actor);
@@ -89,13 +81,6 @@ pub fn create_activity_with_job_at_location(job: Arc<Single>, location: Location
 pub fn create_single(id: &str) -> Arc<Single> {
     let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
     single.dimens.set_job_id(id.to_string()).set_job_type("delivery".to_string());
-
-    Arc::new(single)
-}
-
-pub fn create_single_with_type(id: &str, activity_type: &str) -> Arc<Single> {
-    let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
-    single.dimens.set_job_id(id.to_string()).set_job_type(activity_type.to_string());
 
     Arc::new(single)
 }

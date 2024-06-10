@@ -97,6 +97,11 @@ impl VehicleBuilder {
         self
     }
 
+    pub fn capacity_mult(&mut self, capacity: Vec<i32>) -> &mut VehicleBuilder {
+        self.0.dimens.set_capacity(MultiDimLoad::new(capacity));
+        self
+    }
+
     pub fn costs(&mut self, costs: Costs) -> &mut VehicleBuilder {
         self.0.costs = costs;
         self

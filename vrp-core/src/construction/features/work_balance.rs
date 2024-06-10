@@ -1,7 +1,7 @@
 //! Provides features to balance work.
 
 use super::*;
-use crate::models::common::{CapacityDimension, LoadOps};
+use crate::models::common::LoadOps;
 use rosomaxa::algorithms::math::get_cv_safe;
 use std::cmp::Ordering;
 

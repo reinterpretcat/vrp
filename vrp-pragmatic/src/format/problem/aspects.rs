@@ -1,11 +1,12 @@
 use crate::construction::enablers::{BreakTie, JobTie, VehicleTie};
+use std::marker::PhantomData;
 use vrp_core::construction::features::{
     BreakAspects, BreakCandidate, BreakPolicy, CompatibilityAspects, GroupAspects, RechargeAspects,
-    RechargeDistanceLimitFn, RechargeKeys,
+    RechargeDistanceLimitFn, RechargeKeys, ReloadAspects,
 };
 use vrp_core::construction::heuristics::{RouteContext, StateKey};
-use vrp_core::models::common::IdDimension;
-use vrp_core::models::problem::{Job, Single};
+use vrp_core::models::common::{CapacityDimension, Demand, DemandDimension, IdDimension, LoadOps};
+use vrp_core::models::problem::{Job, Single, Vehicle};
 use vrp_core::models::solution::Route;
 use vrp_core::models::ViolationCode;
 
@@ -14,19 +15,19 @@ use vrp_core::models::ViolationCode;
 pub struct PragmaticBreakAspects;
 
 impl BreakAspects for PragmaticBreakAspects {
-    fn is_break_job(&self, candidate: BreakCandidate<'_>) -> bool {
-        candidate
-            .as_single()
-            .and_then(|break_single| break_single.dimens.get_job_type())
-            .map_or(false, |job_type| job_type == "break")
-    }
-
     fn belongs_to_route(&self, route_ctx: &RouteContext, candidate: BreakCandidate<'_>) -> bool {
         if self.is_break_job(candidate) {
             candidate.as_single().map_or(false, |single| is_correct_vehicle(route_ctx.route(), single))
         } else {
             false
         }
+    }
+
+    fn is_break_job(&self, candidate: BreakCandidate<'_>) -> bool {
+        candidate
+            .as_single()
+            .and_then(|break_single| break_single.dimens.get_job_type())
+            .map_or(false, |job_type| job_type == "break")
     }
 
     fn get_policy(&self, candidate: BreakCandidate<'_>) -> Option<BreakPolicy> {
@@ -111,7 +112,8 @@ impl PragmaticRechargeAspects {
 
 impl RechargeAspects for PragmaticRechargeAspects {
     fn belongs_to_route(&self, route: &Route, job: &Job) -> bool {
-        job.as_single().map_or(false, |single| is_correct_vehicle(route, single))
+        job.as_single()
+            .map_or(false, |single| self.is_recharge_single(single.as_ref()) && is_correct_vehicle(route, single))
     }
 
     fn is_recharge_single(&self, single: &Single) -> bool {
@@ -128,6 +130,31 @@ impl RechargeAspects for PragmaticRechargeAspects {
 
     fn get_violation_code(&self) -> ViolationCode {
         self.violation_code
+    }
+}
+
+/// Provides a way to use reload feature.
+#[derive(Clone, Default)]
+pub struct PragmaticReloadAspects<T> {
+    phantom: PhantomData<T>,
+}
+
+impl<T: LoadOps> ReloadAspects<T> for PragmaticReloadAspects<T> {
+    fn belongs_to_route(&self, route: &Route, job: &Job) -> bool {
+        job.as_single()
+            .map_or(false, |single| self.is_reload_single(single.as_ref()) && is_correct_vehicle(route, single))
+    }
+
+    fn is_reload_single(&self, single: &Single) -> bool {
+        single.dimens.get_job_type().map_or(false, |job_type| job_type == "reload")
+    }
+
+    fn get_capacity<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a T> {
+        vehicle.dimens.get_capacity()
+    }
+
+    fn get_demand<'a>(&self, single: &'a Single) -> Option<&'a Demand<T>> {
+        single.dimens.get_demand()
     }
 }
 

@@ -1,9 +1,7 @@
 use super::*;
 use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::*;
-use crate::format::problem::aspects::{
-    PragmaticBreakAspects, PragmaticCompatibilityAspects, PragmaticGroupAspects, PragmaticRechargeAspects,
-};
+use crate::format::problem::aspects::*;
 use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::enablers::{FeatureCombinator, RouteIntervals, ScheduleKeys};
@@ -336,6 +334,7 @@ fn get_fast_service_feature(
                 create_simple_reload_route_intervals(
                     Box::new(move |capacity: &MultiDimLoad| *capacity * RELOAD_THRESHOLD),
                     reload_keys,
+                    PragmaticReloadAspects::default(),
                 ),
                 tolerance,
                 state_key,
@@ -348,6 +347,7 @@ fn get_fast_service_feature(
                 create_simple_reload_route_intervals(
                     Box::new(move |capacity: &SingleDimLoad| *capacity * RELOAD_THRESHOLD),
                     reload_keys,
+                    PragmaticReloadAspects::default(),
                 ),
                 tolerance,
                 state_key,
@@ -399,7 +399,13 @@ fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(
 
     let reload_keys = state_context.get_reload_keys();
     if reload_resources.is_empty() {
-        create_simple_reload_multi_trip_feature(name, capacity_feature_factory, load_schedule_threshold_fn, reload_keys)
+        create_simple_reload_multi_trip_feature(
+            name,
+            capacity_feature_factory,
+            load_schedule_threshold_fn,
+            reload_keys,
+            PragmaticReloadAspects::default(),
+        )
     } else {
         create_shared_reload_multi_trip_feature(
             name,
@@ -409,6 +415,7 @@ fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(
             blocks.jobs.size(),
             SharedReloadKeys { resource: state_context.next_key(), reload_keys },
             RELOAD_RESOURCE_CONSTRAINT_CODE,
+            PragmaticReloadAspects::default(),
         )
     }
 }
