@@ -1,6 +1,5 @@
 use super::*;
 use crate::construction::enablers::{JobTie, VehicleTie};
-use crate::construction::features::*;
 use crate::format::problem::aspects::*;
 use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
@@ -67,7 +66,7 @@ pub(super) fn create_goal_context(
     }
 
     if props.has_skills {
-        features.push(create_skills_feature("skills", SKILL_CONSTRAINT_CODE)?)
+        features.push(create_skills_feature("skills", PragmaticJobSkillsAspects::new(SKILL_CONSTRAINT_CODE))?)
     }
 
     if !blocks.locks.is_empty() {

@@ -1,8 +1,7 @@
 //! Specifies different entities as extension points on Dimensions type.
 
-use crate::construction::features::JobSkills;
 use hashbrown::HashSet;
-use vrp_core::construction::features::BreakPolicy;
+use vrp_core::construction::features::{BreakPolicy, JobSkills};
 use vrp_core::models::common::{Dimensions, ValueDimension};
 
 /// Specifies vehicle entity.

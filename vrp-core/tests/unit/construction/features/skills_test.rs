@@ -1,36 +1,54 @@
-use crate::construction::enablers::{JobTie, VehicleTie};
 use crate::construction::features::skills::create_skills_feature;
-use crate::construction::features::JobSkills;
-use crate::helpers::*;
+use crate::construction::features::{JobSkills, JobSkillsAspects};
+use crate::construction::heuristics::MoveContext;
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::models::problem::{test_driver, FleetBuilder, SingleBuilder, VehicleBuilder};
+use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
+use crate::models::common::ValueDimension;
+use crate::models::problem::{Job, Vehicle};
+use crate::models::{ConstraintViolation, ViolationCode};
 use hashbrown::HashSet;
 use std::iter::FromIterator;
-use std::sync::Arc;
-use vrp_core::construction::enablers::create_typed_actor_groups;
-use vrp_core::construction::heuristics::{MoveContext, RouteContext, RouteState};
-use vrp_core::models::problem::{Fleet, Job, Vehicle};
-use vrp_core::models::{ConstraintViolation, ViolationCode};
 
 const VIOLATION_CODE: ViolationCode = 1;
 
-fn create_job_with_skills(all_of: Option<Vec<&str>>, one_of: Option<Vec<&str>>, none_of: Option<Vec<&str>>) -> Job {
-    let mut single = create_single_with_location(None);
-    single.dimens.set_job_skills(Some(JobSkills {
-        all_of: all_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
-        one_of: one_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
-        none_of: none_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
-    }));
+#[derive(Clone)]
+struct TestJobSkillsAspects;
 
-    Job::Single(Arc::new(single))
+impl JobSkillsAspects for TestJobSkillsAspects {
+    fn get_job_skills<'a>(&self, job: &'a Job) -> Option<&'a JobSkills> {
+        job.dimens().get_value("skills")
+    }
+
+    fn get_vehicle_skills<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a HashSet<String>> {
+        vehicle.dimens.get_value("skills")
+    }
+
+    fn get_violation_code(&self) -> ViolationCode {
+        VIOLATION_CODE
+    }
+}
+
+fn create_job_with_skills(all_of: Option<Vec<&str>>, one_of: Option<Vec<&str>>, none_of: Option<Vec<&str>>) -> Job {
+    SingleBuilder::default()
+        .property(
+            "skills",
+            JobSkills {
+                all_of: all_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
+                one_of: one_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
+                none_of: none_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
+            },
+        )
+        .build_as_job_ref()
 }
 
 fn create_vehicle_with_skills(skills: Option<Vec<&str>>) -> Vehicle {
-    let mut vehicle = test_vehicle("v1");
-
+    let mut builder = VehicleBuilder::default();
     if let Some(skills) = skills {
-        vehicle.dimens.set_vehicle_skills(HashSet::<String>::from_iter(skills.iter().map(|s| s.to_string())));
+        builder.property("skills", HashSet::<String>::from_iter(skills.iter().map(|s| s.to_string())));
     }
 
-    vehicle
+    builder.id("v1").build()
 }
 
 fn failure() -> Option<ConstraintViolation> {
@@ -81,21 +99,17 @@ fn can_check_skills_impl(
     vehicle_skills: Option<Vec<&str>>,
     expected: Option<ConstraintViolation>,
 ) {
-    let fleet = Fleet::new(
-        vec![Arc::new(test_driver())],
-        vec![Arc::new(create_vehicle_with_skills(vehicle_skills))],
-        |actors| {
-            create_typed_actor_groups(actors, |a| {
-                a.vehicle.dimens.get_vehicle_type().cloned().expect("no vehicle type set")
-            })
-        },
-    );
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicle(create_vehicle_with_skills(vehicle_skills))
+        .build();
     let route_ctx =
-        RouteContext::new_with_state(create_route_with_activities(&fleet, "v1", vec![]), RouteState::default());
-    let constraint = create_skills_feature("skills", VIOLATION_CODE).unwrap().constraint.unwrap();
+        RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build();
+
+    let constraint = create_skills_feature("skills", TestJobSkillsAspects).unwrap().constraint.unwrap();
 
     let actual = constraint.evaluate(&MoveContext::route(
-        &create_solution_context_for_fleet(&fleet),
+        &InsertionContextBuilder::default().build().solution,
         &route_ctx,
         &create_job_with_skills(all_of, one_of, none_of),
     ));
@@ -125,7 +139,7 @@ can_merge_skills! {
 }
 
 fn can_merge_skills_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
-    let constraint = create_skills_feature("skills", VIOLATION_CODE).unwrap().constraint.unwrap();
+    let constraint = create_skills_feature("skills", TestJobSkillsAspects).unwrap().constraint.unwrap();
 
     let result = constraint.merge(source, candidate).map(|_| ());
 

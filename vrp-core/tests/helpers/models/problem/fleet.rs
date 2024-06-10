@@ -112,6 +112,11 @@ impl VehicleBuilder {
         self
     }
 
+    pub fn property<T: 'static + Sync + Send>(&mut self, key: &str, value: T) -> &mut Self {
+        self.0.dimens.insert(key.to_string(), Arc::new(value));
+        self
+    }
+
     pub fn build(&mut self) -> Vehicle {
         std::mem::replace(&mut self.0, test_vehicle(0))
     }

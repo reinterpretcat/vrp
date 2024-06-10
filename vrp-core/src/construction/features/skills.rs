@@ -5,8 +5,19 @@
 mod skills_test;
 
 use super::*;
-use crate::construction::enablers::{JobTie, VehicleTie};
 use hashbrown::HashSet;
+
+/// Provides a way to work with the job-vehicle skills feature.
+pub trait JobSkillsAspects: Clone + Send + Sync {
+    /// Returns job skills if defined.
+    fn get_job_skills<'a>(&self, job: &'a Job) -> Option<&'a JobSkills>;
+
+    /// Returns job skills for vehicle if defined.
+    fn get_vehicle_skills<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a HashSet<String>>;
+
+    /// Returns a violation code.
+    fn get_violation_code(&self) -> ViolationCode;
+}
 
 /// A job skills limitation for a vehicle.
 pub struct JobSkills {
@@ -29,25 +40,28 @@ impl JobSkills {
 }
 
 /// Creates a skills feature as hard constraint.
-pub fn create_skills_feature(name: &str, code: ViolationCode) -> Result<Feature, GenericError> {
-    FeatureBuilder::default().with_name(name).with_constraint(SkillsConstraint { code }).build()
+pub fn create_skills_feature<A>(name: &str, aspects: A) -> Result<Feature, GenericError>
+where
+    A: JobSkillsAspects + 'static,
+{
+    FeatureBuilder::default().with_name(name).with_constraint(SkillsConstraint { aspects }).build()
 }
 
-struct SkillsConstraint {
-    code: ViolationCode,
+struct SkillsConstraint<A: JobSkillsAspects> {
+    aspects: A,
 }
 
-impl FeatureConstraint for SkillsConstraint {
+impl<A: JobSkillsAspects> FeatureConstraint for SkillsConstraint<A> {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => {
-                if let Some(job_skills) = job.dimens().get_job_skills() {
-                    let vehicle_skills = route_ctx.route().actor.vehicle.dimens.get_vehicle_skills();
+                if let Some(job_skills) = self.aspects.get_job_skills(job) {
+                    let vehicle_skills = self.aspects.get_vehicle_skills(&route_ctx.route().actor.vehicle);
                     let is_ok = check_all_of(job_skills, &vehicle_skills)
                         && check_one_of(job_skills, &vehicle_skills)
                         && check_none_of(job_skills, &vehicle_skills);
                     if !is_ok {
-                        return ConstraintViolation::fail(self.code);
+                        return ConstraintViolation::fail(self.aspects.get_violation_code());
                     }
                 }
 
@@ -58,8 +72,8 @@ impl FeatureConstraint for SkillsConstraint {
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
-        let source_skills = source.dimens().get_job_skills();
-        let candidate_skills = candidate.dimens().get_job_skills();
+        let source_skills = self.aspects.get_job_skills(&source);
+        let candidate_skills = self.aspects.get_job_skills(&candidate);
 
         let check_skill_sets = |source_set: Option<&HashSet<String>>, candidate_set: Option<&HashSet<String>>| match (
             source_set,
@@ -83,7 +97,7 @@ impl FeatureConstraint for SkillsConstraint {
         if has_comparable_skills {
             Ok(source)
         } else {
-            Err(self.code)
+            Err(self.aspects.get_violation_code())
         }
     }
 }

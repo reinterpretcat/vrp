@@ -1,8 +1,9 @@
 use crate::construction::enablers::{BreakTie, JobTie, VehicleTie};
+use hashbrown::HashSet;
 use std::marker::PhantomData;
 use vrp_core::construction::features::{
-    BreakAspects, BreakCandidate, BreakPolicy, CompatibilityAspects, GroupAspects, RechargeAspects,
-    RechargeDistanceLimitFn, RechargeKeys, ReloadAspects,
+    BreakAspects, BreakCandidate, BreakPolicy, CompatibilityAspects, GroupAspects, JobSkills, JobSkillsAspects,
+    RechargeAspects, RechargeDistanceLimitFn, RechargeKeys, ReloadAspects,
 };
 use vrp_core::construction::heuristics::{RouteContext, StateKey};
 use vrp_core::models::common::{CapacityDimension, Demand, DemandDimension, IdDimension, LoadOps};
@@ -155,6 +156,32 @@ impl<T: LoadOps> ReloadAspects<T> for PragmaticReloadAspects<T> {
 
     fn get_demand<'a>(&self, single: &'a Single) -> Option<&'a Demand<T>> {
         single.dimens.get_demand()
+    }
+}
+
+#[derive(Clone)]
+pub struct PragmaticJobSkillsAspects {
+    violation_code: ViolationCode,
+}
+
+impl PragmaticJobSkillsAspects {
+    /// Creates a new instance of `PragmaticJobSkillsAspects`.
+    pub fn new(violation_code: ViolationCode) -> Self {
+        Self { violation_code }
+    }
+}
+
+impl JobSkillsAspects for PragmaticJobSkillsAspects {
+    fn get_job_skills<'a>(&self, job: &'a Job) -> Option<&'a JobSkills> {
+        job.dimens().get_job_skills()
+    }
+
+    fn get_vehicle_skills<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a HashSet<String>> {
+        vehicle.dimens.get_vehicle_skills()
+    }
+
+    fn get_violation_code(&self) -> ViolationCode {
+        self.violation_code
     }
 }
 

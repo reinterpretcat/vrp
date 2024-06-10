@@ -29,7 +29,7 @@ impl BreakCandidate<'_> {
     }
 }
 
-/// Provides way to work with a break job.
+/// Provides a way to work with a break job.
 pub trait BreakAspects: Clone + Send + Sync {
     /// Checks whether the job is a break job and it can be assigned to the given route.
     fn belongs_to_route(&self, route_ctx: &RouteContext, candidate: BreakCandidate<'_>) -> bool;

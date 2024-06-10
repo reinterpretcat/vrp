@@ -44,6 +44,9 @@ pub use self::reloads::*;
 mod shared_resource;
 pub use self::shared_resource::*;
 
+mod skills;
+pub use self::skills::*;
+
 mod total_value;
 pub use self::total_value::*;
 

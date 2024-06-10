@@ -3,7 +3,6 @@ use crate::format::problem::*;
 use crate::format::{CoordIndex, Location};
 use crate::format_time;
 use crate::helpers::ToLocation;
-use std::sync::Arc;
 use vrp_core::models::common::{Distance, Duration, Location as CoreLocation, Profile};
 use vrp_core::models::problem::{TransportCost, TravelTime};
 use vrp_core::models::solution::Route;
@@ -348,12 +347,6 @@ impl TransportCost for TestTransportCost {
 
     fn distance(&self, _: &Route, from: CoreLocation, to: CoreLocation, _: TravelTime) -> Distance {
         fake_routing(from, to)
-    }
-}
-
-impl TestTransportCost {
-    pub fn new_shared() -> Arc<dyn TransportCost + Sync + Send> {
-        Arc::new(Self::default())
     }
 }
 
