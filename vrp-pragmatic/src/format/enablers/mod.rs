@@ -1,7 +1,3 @@
-//! Provides extension logic for building various VRP features.
-
-use std::sync::Arc;
-
 mod entities;
 pub use self::entities::*;
 

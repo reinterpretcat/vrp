@@ -31,7 +31,6 @@ pub use vrp_core as core;
 mod utils;
 
 pub mod checker;
-pub mod construction;
 pub mod format;
 pub mod validation;
 

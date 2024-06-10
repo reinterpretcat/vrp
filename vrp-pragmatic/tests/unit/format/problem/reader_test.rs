@@ -1,4 +1,4 @@
-use crate::construction::enablers::{JobTie, VehicleTie};
+use crate::format::enablers::{JobTie, VehicleTie};
 use crate::format::problem::*;
 use crate::helpers::*;
 use hashbrown::HashSet;

@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::enablers::{JobTie, VehicleTie};
+use crate::format::enablers::{JobTie, VehicleTie};
 use crate::format::problem::aspects::*;
 use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;

@@ -1,4 +1,4 @@
-use crate::construction::enablers::{BreakTie, JobTie, VehicleTie};
+use crate::format::enablers::{BreakTie, JobTie, VehicleTie};
 use hashbrown::HashSet;
 use std::marker::PhantomData;
 use vrp_core::construction::features::{

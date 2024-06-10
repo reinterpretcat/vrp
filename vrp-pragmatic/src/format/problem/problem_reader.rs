@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::enablers::{OnlyVehicleActivityCost, VehicleTie};
+use crate::format::enablers::{OnlyVehicleActivityCost, VehicleTie};
 use crate::format::problem::clustering_reader::create_cluster_config;
 use crate::format::problem::fleet_reader::*;
 use crate::format::problem::goal_reader::create_goal_context;

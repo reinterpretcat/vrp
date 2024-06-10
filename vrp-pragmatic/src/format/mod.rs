@@ -19,6 +19,8 @@ pub use self::coord_index::CoordIndex;
 pub mod problem;
 pub mod solution;
 
+pub(crate) mod enablers;
+
 /// Represents a location type.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]

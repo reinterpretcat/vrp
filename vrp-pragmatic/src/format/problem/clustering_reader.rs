@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::enablers::JobTie;
+use crate::format::enablers::JobTie;
 use crate::format::problem::fleet_reader::get_profile_index_map;
 use hashbrown::HashSet;
 use std::cmp::Ordering;

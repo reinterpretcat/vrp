@@ -1,5 +1,5 @@
-use super::*;
 use crate::format::{CoordIndex, CustomLocationType, Location as ApiLocation};
+use std::sync::Arc;
 use vrp_core::models::common::{Distance, Duration, Location, Profile};
 use vrp_core::models::problem::TransportFallback;
 

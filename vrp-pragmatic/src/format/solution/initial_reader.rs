@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/format/solution/initial_reader_test.rs"]
 mod initial_reader_test;
 
-use crate::construction::enablers::{JobTie, VehicleTie};
+use crate::format::enablers::{JobTie, VehicleTie};
 use crate::format::solution::activity_matcher::{try_match_point_job, JobInfo};
 use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;

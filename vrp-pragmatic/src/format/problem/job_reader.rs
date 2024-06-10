@@ -1,5 +1,5 @@
-use crate::construction::enablers::{BreakTie, JobTie, VehicleTie};
 use crate::format::coord_index::CoordIndex;
+use crate::format::enablers::{BreakTie, JobTie, VehicleTie};
 use crate::format::problem::JobSkills as ApiJobSkills;
 use crate::format::problem::*;
 use crate::format::{JobIndex, Location};

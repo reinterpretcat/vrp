@@ -5,11 +5,11 @@ mod clusters_test;
 use std::io::{BufReader, BufWriter, Read};
 use std::sync::Arc;
 use vrp_core::construction::clustering::dbscan::create_job_clusters;
+use vrp_core::models::common::IdDimension;
 use vrp_core::models::problem::get_job_locations;
 use vrp_core::models::Problem;
 use vrp_core::prelude::GenericError;
 use vrp_core::utils::Environment;
-use vrp_pragmatic::construction::enablers::JobTie;
 use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, PragmaticProblem};
 use vrp_pragmatic::format::solution::serialize_named_locations_as_geojson;
 use vrp_pragmatic::format::{CoordIndexAccessor, MultiFormatError};
@@ -35,7 +35,7 @@ pub fn get_clusters<F: Read>(
         .flat_map(|(cluster_idx, jobs)| {
             jobs.iter()
                 .filter_map(move |job| {
-                    job.dimens().get_job_id().cloned().map(|job_id| {
+                    job.dimens().get_id().cloned().map(|job_id| {
                         get_job_locations(job)
                             .flatten()
                             .filter_map(move |l_idx| coord_index.get_by_idx(l_idx))
