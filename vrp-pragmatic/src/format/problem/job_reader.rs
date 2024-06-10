@@ -1,8 +1,7 @@
 use crate::format::coord_index::CoordIndex;
-use crate::format::enablers::{BreakTie, JobTie, VehicleTie};
 use crate::format::problem::JobSkills as ApiJobSkills;
 use crate::format::problem::*;
-use crate::format::{JobIndex, Location};
+use crate::format::{BreakTie, JobIndex, JobTie, Location, VehicleTie};
 use crate::utils::VariableJobPermutation;
 use hashbrown::HashMap;
 use std::sync::Arc;

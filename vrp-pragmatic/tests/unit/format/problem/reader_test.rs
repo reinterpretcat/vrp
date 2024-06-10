@@ -1,5 +1,5 @@
-use crate::format::enablers::{JobTie, VehicleTie};
 use crate::format::problem::*;
+use crate::format::{JobTie, VehicleTie};
 use crate::helpers::*;
 use hashbrown::HashSet;
 use std::iter::FromIterator;

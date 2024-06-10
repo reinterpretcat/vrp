@@ -1,9 +1,8 @@
-use crate::format::enablers::JobTie;
 use crate::format::problem::VehicleBreak;
 use crate::format::problem::{Problem as FormatProblem, VehicleRequiredBreakTime};
 use crate::format::solution::{Activity as FormatActivity, Schedule as FormatSchedule, Tour as FormatTour};
 use crate::format::solution::{PointStop, TransitStop};
-use crate::format::{CoordIndex, JobIndex};
+use crate::format::{CoordIndex, JobIndex, JobTie};
 use crate::parse_time;
 use hashbrown::HashSet;
 use std::cmp::Ordering;

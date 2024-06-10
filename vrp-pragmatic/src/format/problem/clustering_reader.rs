@@ -1,6 +1,6 @@
 use super::*;
-use crate::format::enablers::JobTie;
 use crate::format::problem::fleet_reader::get_profile_index_map;
+use crate::format::JobTie;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 use vrp_core::construction::clustering::vicinity::*;

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use vrp_core::models::common::{Distance, Duration, Location, Profile};
 use vrp_core::models::problem::TransportFallback;
 
-/// A transport fallback for only custom unknown location type.
+/// A transport fallback for only a custom unknown location type.
 /// Returns zero distance/duration for unknown type locations.
 pub struct UnknownLocationFallback {
     coord_index: Arc<CoordIndex>,

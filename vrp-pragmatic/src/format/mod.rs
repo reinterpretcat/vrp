@@ -16,10 +16,14 @@ use vrp_core::prelude::GenericError;
 mod coord_index;
 pub use self::coord_index::CoordIndex;
 
+mod entities;
+pub use self::entities::*;
+
+mod location_fallback;
+pub use self::location_fallback::*;
+
 pub mod problem;
 pub mod solution;
-
-pub(crate) mod enablers;
 
 /// Represents a location type.
 #[derive(Clone, Debug, Deserialize, Serialize)]

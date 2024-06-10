@@ -1,4 +1,4 @@
-use crate::format::enablers::{JobTie, VehicleTie};
+use crate::format::{JobTie, VehicleTie};
 use std::sync::Arc;
 use vrp_core::construction::enablers::create_typed_actor_groups;
 use vrp_core::models::common::*;

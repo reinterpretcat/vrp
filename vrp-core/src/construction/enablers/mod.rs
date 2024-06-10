@@ -10,8 +10,11 @@ pub use self::departure_time::*;
 mod feature_combinator;
 pub use self::feature_combinator::*;
 
-pub mod multi_trip;
+mod multi_trip;
 pub use self::multi_trip::*;
+
+mod only_vehicle_activity_cost;
+pub use self::only_vehicle_activity_cost::*;
 
 mod route_intervals;
 pub use self::route_intervals::*;

@@ -1,6 +1,6 @@
 use super::*;
-use crate::format::enablers::{JobTie, VehicleTie};
 use crate::format::problem::aspects::*;
+use crate::format::{JobTie, VehicleTie};
 use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::enablers::{FeatureCombinator, RouteIntervals, ScheduleKeys};

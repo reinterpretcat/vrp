@@ -1,10 +1,7 @@
-use crate::format::enablers::{BreakTie, JobTie, VehicleTie};
+use crate::format::{BreakTie, JobTie, VehicleTie};
 use hashbrown::HashSet;
 use std::marker::PhantomData;
-use vrp_core::construction::features::{
-    BreakAspects, BreakCandidate, BreakPolicy, CompatibilityAspects, GroupAspects, JobSkills, JobSkillsAspects,
-    RechargeAspects, RechargeDistanceLimitFn, RechargeKeys, ReloadAspects,
-};
+use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::{RouteContext, StateKey};
 use vrp_core::models::common::{CapacityDimension, Demand, DemandDimension, IdDimension, LoadOps};
 use vrp_core::models::problem::{Job, Single, Vehicle};

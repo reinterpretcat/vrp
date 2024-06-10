@@ -2,11 +2,11 @@
 #[path = "../../../tests/unit/format/solution/writer_test.rs"]
 mod writer_test;
 
-use crate::format::coord_index::CoordIndex;
-use crate::format::enablers::{JobTie, VehicleTie};
 use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
+use crate::format::CoordIndex;
+use crate::format::{JobTie, VehicleTie};
 use vrp_core::construction::enablers::{get_route_intervals, ReservedTimesIndex};
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;

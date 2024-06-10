@@ -2,13 +2,12 @@
 #[path = "../../../tests/unit/format/solution/initial_reader_test.rs"]
 mod initial_reader_test;
 
-use crate::format::enablers::{JobTie, VehicleTie};
 use crate::format::solution::activity_matcher::{try_match_point_job, JobInfo};
 use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
 use crate::format::solution::{deserialize_solution, map_reason_code};
-use crate::format::{get_indices, CoordIndex, JobIndex};
+use crate::format::{get_indices, CoordIndex, JobIndex, JobTie, VehicleTie};
 use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
 use std::io::{BufReader, Read};

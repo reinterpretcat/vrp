@@ -3,7 +3,7 @@
 mod fleet_reader_test;
 
 use super::*;
-use crate::format::enablers::{UnknownLocationFallback, VehicleTie};
+use crate::format::{UnknownLocationFallback, VehicleTie};
 use crate::get_unique_locations;
 use crate::utils::get_approx_transportation;
 use crate::Location as ApiLocation;

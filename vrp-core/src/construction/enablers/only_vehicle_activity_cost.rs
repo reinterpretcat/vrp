@@ -1,7 +1,7 @@
-use crate::core::models::solution::Route;
-use vrp_core::models::common::{Cost, Timestamp};
-use vrp_core::models::problem::{ActivityCost, SimpleActivityCost};
-use vrp_core::models::solution::Activity;
+use crate::models::common::{Cost, Timestamp};
+use crate::models::problem::{ActivityCost, SimpleActivityCost};
+use crate::models::solution::Activity;
+use crate::models::solution::Route;
 
 /// Uses costs only for a vehicle ignoring costs of a driver.
 #[derive(Default)]
