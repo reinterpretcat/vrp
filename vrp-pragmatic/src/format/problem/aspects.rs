@@ -33,6 +33,42 @@ impl BreakAspects for PragmaticBreakAspects {
     }
 }
 
+/// Provides a way to use capacity feature.
+pub struct PragmaticCapacityAspects<T: LoadOps> {
+    state_keys: CapacityStateKeys,
+    violation_code: ViolationCode,
+    phantom: PhantomData<T>,
+}
+
+impl<T: LoadOps> PragmaticCapacityAspects<T> {
+    /// Creates a new instance of `PragmaticCapacityAspects`.
+    pub fn new(state_keys: CapacityStateKeys, violation_code: ViolationCode) -> Self {
+        Self { state_keys, violation_code, phantom: Default::default() }
+    }
+}
+
+impl<T: LoadOps> CapacityAspects<T> for PragmaticCapacityAspects<T> {
+    fn get_capacity<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a T> {
+        vehicle.dimens.get_capacity()
+    }
+
+    fn get_demand<'a>(&self, single: &'a Single) -> Option<&'a Demand<T>> {
+        single.dimens.get_demand()
+    }
+
+    fn set_demand(&self, single: &mut Single, demand: Demand<T>) {
+        single.dimens.set_demand(demand);
+    }
+
+    fn get_state_keys(&self) -> &CapacityStateKeys {
+        &self.state_keys
+    }
+
+    fn get_violation_code(&self) -> ViolationCode {
+        self.violation_code
+    }
+}
+
 /// Provides a way to use compatibility feature.
 #[derive(Clone)]
 pub struct PragmaticCompatibilityAspects {

@@ -308,9 +308,15 @@ fn get_capacity_feature(
             )
         }
     } else if props.has_multi_dimen_capacity {
-        create_capacity_limit_feature::<MultiDimLoad>(name, capacity_keys, CAPACITY_CONSTRAINT_CODE)
+        create_capacity_limit_feature::<MultiDimLoad, _>(
+            name,
+            PragmaticCapacityAspects::new(capacity_keys, CAPACITY_CONSTRAINT_CODE),
+        )
     } else {
-        create_capacity_limit_feature::<SingleDimLoad>(name, capacity_keys, CAPACITY_CONSTRAINT_CODE)
+        create_capacity_limit_feature::<SingleDimLoad, _>(
+            name,
+            PragmaticCapacityAspects::new(capacity_keys, CAPACITY_CONSTRAINT_CODE),
+        )
     }
 }
 
@@ -388,11 +394,10 @@ fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(
     let job_index = blocks.job_index.as_ref().ok_or("misconfiguration in goal reader: job index is not set")?;
     let reload_resources = get_reload_resources(api_problem, job_index, capacity_map);
     let capacity_feature_factory: CapacityFeatureFactoryFn = Box::new(move |name, route_intervals| {
-        create_capacity_limit_with_multi_trip_feature::<T>(
+        create_capacity_limit_with_multi_trip_feature::<T, _>(
             name,
             route_intervals,
-            capacity_keys,
-            CAPACITY_CONSTRAINT_CODE,
+            PragmaticCapacityAspects::new(capacity_keys, CAPACITY_CONSTRAINT_CODE),
         )
     });
 
@@ -615,7 +620,7 @@ struct StateKeyContext<'a> {
     state_registry: &'a mut StateKeyRegistry,
     reload_intervals: Option<StateKey>,
     schedule_keys: ScheduleKeys,
-    capacity_keys: CapacityKeys,
+    capacity_keys: CapacityStateKeys,
 }
 
 impl<'a> StateKeyContext<'a> {

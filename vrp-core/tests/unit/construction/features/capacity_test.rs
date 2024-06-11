@@ -10,8 +10,9 @@ use crate::models::solution::Activity;
 
 const VIOLATION_CODE: ViolationCode = 2;
 
-fn create_feature(capacity_keys: CapacityKeys) -> Feature {
-    create_capacity_limit_feature::<SingleDimLoad>("capacity", capacity_keys, VIOLATION_CODE).unwrap()
+fn create_feature(capacity_keys: CapacityStateKeys) -> Feature {
+    let aspects = TestCapacityAspects::new(capacity_keys, VIOLATION_CODE);
+    create_capacity_limit_feature::<SingleDimLoad, _>("capacity", aspects).unwrap()
 }
 
 fn create_test_vehicle(capacity: i32) -> Vehicle {

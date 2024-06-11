@@ -1,5 +1,5 @@
 use crate::construction::enablers::ScheduleKeys;
-use crate::construction::features::CapacityKeys;
+use crate::construction::features::CapacityStateKeys;
 use crate::construction::heuristics::*;
 use crate::helpers::models::domain::{test_random, TestGoalContextBuilder};
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
@@ -18,8 +18,8 @@ pub fn create_schedule_keys() -> ScheduleKeys {
     ScheduleKeys::from(&mut StateKeyRegistry::default())
 }
 
-pub fn create_capacity_keys() -> CapacityKeys {
-    CapacityKeys::from(&mut StateKeyRegistry::default())
+pub fn create_capacity_keys() -> CapacityStateKeys {
+    CapacityStateKeys::from(&mut StateKeyRegistry::default())
 }
 
 #[derive(Default)]

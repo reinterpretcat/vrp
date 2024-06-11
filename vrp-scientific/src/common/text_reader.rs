@@ -1,3 +1,4 @@
+use crate::common::aspects::ScientificCapacityAspects;
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
@@ -133,12 +134,13 @@ fn get_essential_features(
         extras.get_schedule_keys().cloned().ok_or_else(|| GenericError::from("missing schedule keys set in extras"))?;
     let capacity_keys =
         extras.get_capacity_keys().cloned().ok_or_else(|| GenericError::from("missing capacity keys set in extras"))?;
+    let capacity_aspects = ScientificCapacityAspects::new(capacity_keys, 2);
 
     Ok(vec![
         create_minimize_unassigned_jobs_feature("min_unassigned", Arc::new(|_, _| 1.))?,
         create_minimize_tours_feature("min_tours")?,
         create_minimize_distance_feature("min_distance", transport, activity, schedule_keys, 1)?,
-        create_capacity_limit_feature::<SingleDimLoad>("capacity", capacity_keys, 2)?,
+        create_capacity_limit_feature::<SingleDimLoad, _>("capacity", capacity_aspects)?,
     ])
 }
 

@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::features::*;
-use crate::helpers::construction::features::{create_simple_demand, create_simple_dynamic_demand};
+use crate::helpers::construction::features::{create_simple_demand, create_simple_dynamic_demand, TestCapacityAspects};
 use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::models::common::*;
@@ -94,8 +94,11 @@ fn create_test_problem(
         )
         .add_feature(create_locked_jobs_feature("locked_jobs", &fleet, locks.as_slice(), 4).unwrap())
         .add_feature(
-            create_capacity_limit_feature::<SingleDimLoad>("capacity", extras.get_capacity_keys().cloned().unwrap(), 5)
-                .unwrap(),
+            create_capacity_limit_feature::<SingleDimLoad, _>(
+                "capacity",
+                TestCapacityAspects::new(extras.get_capacity_keys().cloned().unwrap(), 5),
+            )
+            .unwrap(),
         )
         .with_objectives(&["transport"])
         .build();

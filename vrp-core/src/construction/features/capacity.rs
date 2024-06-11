@@ -11,9 +11,27 @@ use std::iter::once;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-/// Combines all keys needed for capacity feature usage.
+/// Provides way to use capacity feature.
+pub trait CapacityAspects<T: LoadOps>: Send + Sync {
+    /// Gets vehicle's capacity.
+    fn get_capacity<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a T>;
+
+    /// Gets job's demand.
+    fn get_demand<'a>(&self, single: &'a Single) -> Option<&'a Demand<T>>;
+
+    /// Sets job's new demand.
+    fn set_demand(&self, single: &mut Single, demand: Demand<T>);
+
+    /// Gets capacity state keys.
+    fn get_state_keys(&self) -> &CapacityStateKeys;
+
+    /// Gets violation code.
+    fn get_violation_code(&self) -> ViolationCode;
+}
+
+/// Combines all state keys needed for capacity feature usage.
 #[derive(Clone, Debug)]
-pub struct CapacityKeys {
+pub struct CapacityStateKeys {
     /// A key which tracks current vehicle capacity.
     pub current_capacity: StateKey,
     /// A key which tracks maximum vehicle capacity ahead in route.
@@ -24,7 +42,7 @@ pub struct CapacityKeys {
     pub max_load: StateKey,
 }
 
-impl From<&mut StateKeyRegistry> for CapacityKeys {
+impl From<&mut StateKeyRegistry> for CapacityStateKeys {
     fn from(state_registry: &mut StateKeyRegistry) -> Self {
         Self {
             current_capacity: state_registry.next_key(),
@@ -35,7 +53,7 @@ impl From<&mut StateKeyRegistry> for CapacityKeys {
     }
 }
 
-impl CapacityKeys {
+impl CapacityStateKeys {
     fn iter(&self) -> impl Iterator<Item = StateKey> {
         once(self.current_capacity)
             .chain(once(self.max_future_capacity))
@@ -45,48 +63,53 @@ impl CapacityKeys {
 }
 
 /// Creates capacity feature as a hard constraint with multi trip functionality as a soft constraint.
-pub fn create_capacity_limit_with_multi_trip_feature<T: LoadOps>(
+pub fn create_capacity_limit_with_multi_trip_feature<T, A>(
     name: &str,
     route_intervals: RouteIntervals,
-    feature_keys: CapacityKeys,
-    capacity_code: ViolationCode,
-) -> Result<Feature, GenericError> {
+    aspects: A,
+) -> Result<Feature, GenericError>
+where
+    T: LoadOps,
+    A: CapacityAspects<T> + 'static,
+{
+    let feature_keys = aspects.get_state_keys().iter().collect::<Vec<_>>();
+    let capacity_code = aspects.get_violation_code();
     create_multi_trip_feature(
         name,
-        feature_keys.iter().collect(),
+        feature_keys.clone(),
         capacity_code,
         MarkerInsertionPolicy::Last,
-        Arc::new(CapacitatedMultiTrip::<T> {
-            route_intervals,
-            feature_keys,
-            capacity_code,
-            phantom: Default::default(),
-        }),
+        Arc::new(CapacitatedMultiTrip::<T, A> { route_intervals, aspects, phantom: Default::default() }),
     )
 }
 
 /// Creates capacity feature as a hard constraint.
-pub fn create_capacity_limit_feature<T: LoadOps>(
-    name: &str,
-    feature_keys: CapacityKeys,
-    capacity_code: ViolationCode,
-) -> Result<Feature, GenericError> {
+pub fn create_capacity_limit_feature<T, A>(name: &str, aspects: A) -> Result<Feature, GenericError>
+where
+    T: LoadOps,
+    A: CapacityAspects<T> + 'static,
+{
+    let feature_keys = aspects.get_state_keys().iter().collect::<Vec<_>>();
+    let capacity_code = aspects.get_violation_code();
     // TODO theoretically, the code can be easily refactored to get opt-out from no-op multi-trip runtime overhead here
     create_multi_trip_feature(
         name,
-        feature_keys.iter().collect(),
+        feature_keys,
         capacity_code,
         MarkerInsertionPolicy::Last,
-        Arc::new(CapacitatedMultiTrip::<T> {
+        Arc::new(CapacitatedMultiTrip::<T, A> {
             route_intervals: RouteIntervals::Single,
-            feature_keys,
-            capacity_code,
+            aspects,
             phantom: Default::default(),
         }),
     )
 }
 
-impl<T: LoadOps> FeatureConstraint for CapacitatedMultiTrip<T> {
+impl<T, A> FeatureConstraint for CapacitatedMultiTrip<T, A>
+where
+    T: LoadOps,
+    A: CapacityAspects<T> + 'static,
+{
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => self.evaluate_job(route_ctx, job),
@@ -107,26 +130,33 @@ impl<T: LoadOps> FeatureConstraint for CapacitatedMultiTrip<T> {
                         let candidate_demand = candidate_demand.cloned().unwrap_or_default();
                         let new_demand = source_demand + candidate_demand;
 
-                        let mut dimens = s_source.dimens.clone();
-                        dimens.set_demand(new_demand);
+                        let mut single = Single { places: s_source.places.clone(), dimens: s_source.dimens.clone() };
+                        self.aspects.set_demand(&mut single, new_demand);
 
-                        Ok(Job::Single(Arc::new(Single { places: s_source.places.clone(), dimens })))
+                        Ok(Job::Single(Arc::new(single)))
                     }
                 }
             }
-            _ => Err(self.capacity_code),
+            _ => Err(self.aspects.get_violation_code()),
         }
     }
 }
 
-struct CapacitatedMultiTrip<T: LoadOps> {
+struct CapacitatedMultiTrip<T, A>
+where
+    T: LoadOps,
+    A: CapacityAspects<T> + 'static,
+{
     route_intervals: RouteIntervals,
-    feature_keys: CapacityKeys,
-    capacity_code: ViolationCode,
+    aspects: A,
     phantom: PhantomData<T>,
 }
 
-impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
+impl<T, A> MultiTrip for CapacitatedMultiTrip<T, A>
+where
+    T: LoadOps,
+    A: CapacityAspects<T> + 'static,
+{
     fn get_route_intervals(&self) -> &RouteIntervals {
         &self.route_intervals
     }
@@ -136,6 +166,8 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
     }
 
     fn recalculate_states(&self, route_ctx: &mut RouteContext) {
+        let state_keys = self.aspects.get_state_keys();
+
         let marker_intervals = self
             .get_route_intervals()
             .get_marker_intervals(route_ctx)
@@ -156,7 +188,7 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
                 let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
                     (acc, T::default()),
                     |acc, activity| {
-                        get_demand(activity)
+                        self.get_demand(activity)
                             .map(|demand| (acc.0 + demand.delivery.0, acc.1 + demand.pickup.0))
                             .unwrap_or_else(|| acc)
                     },
@@ -167,7 +199,7 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
                     (start_delivery, T::default()),
                     |(current, max), (idx, activity)| {
                         let activity_idx = start_idx + idx;
-                        let change = get_demand(activity).map(|demand| demand.change()).unwrap_or_else(T::default);
+                        let change = self.get_demand(activity).map(|demand| demand.change()).unwrap_or_default();
 
                         let current = current + change;
                         let max = max.max_load(current);
@@ -189,12 +221,12 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
                 (current - end_pickup, current_max.max_load(max))
             });
 
-        route_ctx.state_mut().put_activity_states(self.feature_keys.current_capacity, current_capacities);
-        route_ctx.state_mut().put_activity_states(self.feature_keys.max_past_capacity, max_past_capacities);
-        route_ctx.state_mut().put_activity_states(self.feature_keys.max_future_capacity, max_future_capacities);
+        route_ctx.state_mut().put_activity_states(state_keys.current_capacity, current_capacities);
+        route_ctx.state_mut().put_activity_states(state_keys.max_past_capacity, max_past_capacities);
+        route_ctx.state_mut().put_activity_states(state_keys.max_future_capacity, max_future_capacities);
 
         if let Some(capacity) = route_ctx.route().actor.clone().vehicle.dimens.get_capacity() {
-            route_ctx.state_mut().put_route_state(self.feature_keys.max_load, max_load.ratio(capacity));
+            route_ctx.state_mut().put_route_state(state_keys.max_load, max_load.ratio(capacity));
         }
     }
 
@@ -204,7 +236,11 @@ impl<T: LoadOps> MultiTrip for CapacitatedMultiTrip<T> {
     }
 }
 
-impl<T: LoadOps> CapacitatedMultiTrip<T> {
+impl<T, A> CapacitatedMultiTrip<T, A>
+where
+    T: LoadOps,
+    A: CapacityAspects<T> + 'static,
+{
     fn evaluate_job(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
         let can_handle = match job {
             Job::Single(job) => self.can_handle_demand_on_intervals(route_ctx, job.dimens.get_demand(), None),
@@ -216,7 +252,7 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
         if can_handle {
             ConstraintViolation::success()
         } else {
-            ConstraintViolation::fail(self.capacity_code)
+            ConstraintViolation::fail(self.aspects.get_violation_code())
         }
     }
 
@@ -225,7 +261,7 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ConstraintViolation> {
-        let demand = get_demand(activity_ctx.target);
+        let demand = self.get_demand(activity_ctx.target);
 
         let violation = if activity_ctx.target.retrieve_job().map_or(false, |job| job.as_multi().is_some()) {
             // NOTE multi job has dynamic demand which can go in another interval
@@ -238,14 +274,14 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
             has_demand_violation(
                 route_ctx.state(),
                 activity_ctx.index,
-                route_ctx.route().actor.vehicle.dimens.get_capacity(),
+                self.aspects.get_capacity(&route_ctx.route().actor.vehicle),
                 demand,
-                &self.feature_keys,
+                self.aspects.get_state_keys(),
                 !self.has_markers(route_ctx),
             )
         };
 
-        violation.map(|stopped| ConstraintViolation { code: self.capacity_code, stopped })
+        violation.map(|stopped| ConstraintViolation { code: self.aspects.get_violation_code(), stopped })
     }
 
     fn has_markers(&self, route_ctx: &RouteContext) -> bool {
@@ -262,9 +298,9 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
             has_demand_violation(
                 route_ctx.state(),
                 activity_idx,
-                route_ctx.route().actor.vehicle.dimens.get_capacity(),
+                self.aspects.get_capacity(&route_ctx.route().actor.vehicle),
                 demand,
-                &self.feature_keys,
+                self.aspects.get_state_keys(),
                 true,
             )
         };
@@ -293,6 +329,10 @@ impl<T: LoadOps> CapacitatedMultiTrip<T> {
                 }
             })
     }
+
+    fn get_demand<'a>(&self, activity: &'a Activity) -> Option<&'a Demand<T>> {
+        activity.job.as_ref().and_then(|single| self.aspects.get_demand(single))
+    }
 }
 
 fn has_demand_violation<T: LoadOps>(
@@ -300,7 +340,7 @@ fn has_demand_violation<T: LoadOps>(
     pivot_idx: usize,
     capacity: Option<&T>,
     demand: Option<&Demand<T>>,
-    feature_keys: &CapacityKeys,
+    feature_keys: &CapacityStateKeys,
     stopped: bool,
 ) -> Option<bool> {
     let demand = demand?;
@@ -344,8 +384,4 @@ fn has_demand_violation<T: LoadOps>(
     }
 
     None
-}
-
-fn get_demand<T: LoadOps>(activity: &Activity) -> Option<&Demand<T>> {
-    activity.job.as_ref().and_then(|job| job.dimens.get_demand())
 }

@@ -73,6 +73,33 @@ fn create_example_extras() -> Extras {
     ExtrasBuilder::new(&mut registry).build().expect("cannot build example extras")
 }
 
+/// Creates example capacity aspects.
+struct ExampleCapacityAspects {
+    capacity_keys: CapacityStateKeys,
+}
+
+impl CapacityAspects<SingleDimLoad> for ExampleCapacityAspects {
+    fn get_capacity<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a SingleDimLoad> {
+        vehicle.dimens.get_value("capacity")
+    }
+
+    fn get_demand<'a>(&self, single: &'a Single) -> Option<&'a Demand<SingleDimLoad>> {
+        single.dimens.get_value("demand")
+    }
+
+    fn set_demand(&self, single: &mut Single, demand: Demand<SingleDimLoad>) {
+        single.dimens.set_value("demand", demand);
+    }
+
+    fn get_state_keys(&self) -> &CapacityStateKeys {
+        &self.capacity_keys
+    }
+
+    fn get_violation_code(&self) -> ViolationCode {
+        2
+    }
+}
+
 /// Creates and example VRP goal: CVRPTW.
 fn create_example_goal_ctx(
     transport: Arc<dyn TransportCost + Sync + Send>,
@@ -81,16 +108,17 @@ fn create_example_goal_ctx(
 ) -> GenericResult<GoalContext> {
     let schedule_keys = extras.get_schedule_keys().expect("no schedule keys").clone();
     let capacity_keys = extras.get_capacity_keys().expect("no capacity keys").clone();
+    let aspects = ExampleCapacityAspects { capacity_keys };
 
     let features = vec![
         create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.))?,
         create_minimize_tours_feature("min_tours")?,
         create_minimize_distance_feature("min_distance", transport, activity, schedule_keys, 1)?,
-        create_capacity_limit_feature::<SingleDimLoad>("capacity", capacity_keys, 2)?,
+        create_capacity_limit_feature::<SingleDimLoad, _>("capacity", aspects)?,
     ];
 
     GoalContextBuilder::with_features(features)?
-        .set_goal(&["min_jobs", "min_tours", "min_distance"], &["min_jobs", "min_distance"])?
+        .set_goal(&["min_jobs", "min_tours", "min_distance"], &["min_jobs", "min_tours", "min_distance"])?
         .build()
 }
 

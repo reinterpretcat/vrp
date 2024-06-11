@@ -1,5 +1,6 @@
 //! Contains common text reading and writing functionality.
 
+mod aspects;
 mod text_reader;
 
 pub(crate) use self::text_reader::*;
@@ -12,6 +13,7 @@ mod initial_reader;
 pub use self::initial_reader::read_init_solution;
 
 mod routing;
+
 pub use self::routing::{CoordIndex, CoordIndexAccessor};
 
 use vrp_core::models::{Extras, ExtrasBuilder};
