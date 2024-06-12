@@ -6,7 +6,7 @@ use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::enablers::{FeatureCombinator, RouteIntervals, ScheduleKeys};
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::{StateKey, StateKeyRegistry};
-use vrp_core::models::common::{LoadOps, MultiDimLoad, SingleDimLoad};
+use vrp_core::models::common::{CapacityDimension, LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Single, TransportCost};
 use vrp_core::models::{CoreStateKeys, Extras, Feature, GoalContext, GoalContextBuilder};
 
@@ -199,6 +199,9 @@ fn get_objective_features(
 
                                     max_ratio
                                 }),
+                                Arc::new(|vehicle| {
+                                    vehicle.dimens.get_capacity().expect("vehicle has no capacity defined")
+                                }),
                             )
                         } else {
                             create_max_load_balanced_feature::<SingleDimLoad>(
@@ -206,6 +209,9 @@ fn get_objective_features(
                                 get_threshold(options),
                                 load_balance_keys,
                                 Arc::new(|loaded, capacity| loaded.value as f64 / capacity.value as f64),
+                                Arc::new(|vehicle| {
+                                    vehicle.dimens.get_capacity().expect("vehicle has no capacity defined")
+                                }),
                             )
                         }
                     }
@@ -329,57 +335,34 @@ fn get_fast_service_feature(
 ) -> Result<Feature, GenericError> {
     let state_key = state_context.next_key();
     let (transport, activity) = (blocks.transport.clone(), blocks.activity.clone());
-    if props.has_reloads {
+
+    let route_intervals = if props.has_reloads {
         let reload_keys = state_context.get_reload_keys();
         if props.has_multi_dimen_capacity {
-            create_fast_service_feature::<MultiDimLoad>(
-                name,
-                transport,
-                activity,
-                create_simple_reload_route_intervals(
-                    Box::new(move |capacity: &MultiDimLoad| *capacity * RELOAD_THRESHOLD),
-                    reload_keys,
-                    PragmaticReloadAspects::default(),
-                ),
-                tolerance,
-                state_key,
+            create_simple_reload_route_intervals(
+                Box::new(move |capacity: &MultiDimLoad| *capacity * RELOAD_THRESHOLD),
+                reload_keys,
+                PragmaticReloadAspects::default(),
             )
         } else {
-            create_fast_service_feature::<SingleDimLoad>(
-                name,
-                transport,
-                activity,
-                create_simple_reload_route_intervals(
-                    Box::new(move |capacity: &SingleDimLoad| *capacity * RELOAD_THRESHOLD),
-                    reload_keys,
-                    PragmaticReloadAspects::default(),
-                ),
-                tolerance,
-                state_key,
+            create_simple_reload_route_intervals(
+                Box::new(move |capacity: &SingleDimLoad| *capacity * RELOAD_THRESHOLD),
+                reload_keys,
+                PragmaticReloadAspects::default(),
             )
         }
     } else {
-        let route_intervals = RouteIntervals::Single;
-        if props.has_multi_dimen_capacity {
-            create_fast_service_feature::<MultiDimLoad>(
-                name,
-                transport,
-                activity,
-                route_intervals,
-                tolerance,
-                state_key,
-            )
-        } else {
-            create_fast_service_feature::<SingleDimLoad>(
-                name,
-                transport,
-                activity,
-                route_intervals,
-                tolerance,
-                state_key,
-            )
-        }
-    }
+        RouteIntervals::Single
+    };
+
+    create_fast_service_feature(
+        name,
+        transport,
+        activity,
+        route_intervals,
+        tolerance,
+        PragmaticFastServiceAspects::new(state_key),
+    )
 }
 
 fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(

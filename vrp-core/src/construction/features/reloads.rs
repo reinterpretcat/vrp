@@ -231,15 +231,18 @@ where
         constraint_code,
         shared_reload_keys.resource,
         Arc::new(move |route_ctx| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(intervals_key)),
-        Arc::new(move |activity| {
-            activity.job.as_ref().and_then(|job| {
-                if aspects.is_reload_single(job.as_ref()) {
-                    resource_map.get(&Job::Single(job.clone())).cloned()
-                } else {
-                    None
-                }
+        {
+            let aspects = aspects.clone();
+            Arc::new(move |activity| {
+                activity.job.as_ref().and_then(|job| {
+                    if aspects.is_reload_single(job.as_ref()) {
+                        resource_map.get(&Job::Single(job.clone())).cloned()
+                    } else {
+                        None
+                    }
+                })
             })
-        }),
-        Arc::new(|single| single.dimens.get_demand().map(|demand| demand.delivery.0)),
+        },
+        Arc::new(move |single| aspects.get_demand(single).map(|demand| demand.delivery.0)),
     )
 }

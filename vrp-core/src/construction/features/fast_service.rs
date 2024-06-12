@@ -8,21 +8,29 @@ use hashbrown::HashMap;
 use rosomaxa::algorithms::math::relative_distance;
 use std::cmp::Ordering;
 use std::iter::once;
-use std::marker::PhantomData;
+
+/// Specifies an aspects needed to use the feature.
+pub trait FastServiceAspects: Send + Sync {
+    /// Returns a state key used by the feature.
+    fn get_state_key(&self) -> StateKey;
+
+    /// Returns demand type if it is specified.
+    fn get_demand_type(&self, single: &Single) -> Option<DemandType>;
+}
 
 /// Creates a feature to prefer a fast serving of jobs.
-pub fn create_fast_service_feature<T: LoadOps>(
+pub fn create_fast_service_feature<A: FastServiceAspects + 'static>(
     name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     route_intervals: RouteIntervals,
     tolerance: Option<f64>,
-    state_key: StateKey,
+    aspects: A,
 ) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
-        .with_objective(FastServiceObjective::<T>::new(transport, activity, route_intervals, tolerance, state_key))
-        .with_state(FastServiceState::new(state_key))
+        .with_state(FastServiceState::new(aspects.get_state_key()))
+        .with_objective(FastServiceObjective::<A>::new(transport, activity, route_intervals, tolerance, aspects))
         .build()
 }
 
@@ -44,16 +52,15 @@ enum TimeIntervalType {
 /// Keeps track of first and last activity in the tour for specific multi job.
 type MultiJobRanges = HashMap<Job, (usize, usize)>;
 
-struct FastServiceObjective<T> {
+struct FastServiceObjective<A: FastServiceAspects> {
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     route_intervals: RouteIntervals,
     tolerance: Option<f64>,
-    state_key: StateKey,
-    phantom: PhantomData<T>,
+    aspects: A,
 }
 
-impl<T: LoadOps> FeatureObjective for FastServiceObjective<T> {
+impl<A: FastServiceAspects> FeatureObjective for FastServiceObjective<A> {
     fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
         let fitness_a = self.fitness(a);
         let fitness_b = self.fitness(b);
@@ -99,7 +106,7 @@ impl<T: LoadOps> FeatureObjective for FastServiceObjective<T> {
             };
 
         // NOTE: for simplicity, we ignore impact on already inserted jobs on local objective level
-        match get_time_interval_type::<T>(&job, single.as_ref()) {
+        match self.get_time_interval_type(&job, single.as_ref()) {
             TimeIntervalType::FromStart => {
                 self.get_departure(route_ctx, activity_ctx) - self.get_start_time(route_ctx, activity_idx)
             }
@@ -117,15 +124,15 @@ impl<T: LoadOps> FeatureObjective for FastServiceObjective<T> {
     }
 }
 
-impl<T: LoadOps> FastServiceObjective<T> {
+impl<A: FastServiceAspects> FastServiceObjective<A> {
     fn new(
         transport: Arc<dyn TransportCost + Send + Sync>,
         activity: Arc<dyn ActivityCost + Send + Sync>,
         route_intervals: RouteIntervals,
         tolerance: Option<f64>,
-        state_key: StateKey,
+        aspects: A,
     ) -> Self {
-        Self { transport, activity, route_intervals, state_key, tolerance, phantom: Default::default() }
+        Self { transport, activity, route_intervals, tolerance, aspects }
     }
 
     fn get_start_time(&self, route_ctx: &RouteContext, activity_idx: usize) -> Timestamp {
@@ -151,7 +158,7 @@ impl<T: LoadOps> FastServiceObjective<T> {
         let departure = self.get_departure(route_ctx, activity_ctx);
         let range = route_ctx
             .state()
-            .get_route_state::<MultiJobRanges>(self.state_key)
+            .get_route_state::<MultiJobRanges>(self.aspects.get_state_key())
             .zip(activity_ctx.target.retrieve_job())
             .and_then(|(jobs, job)| jobs.get(&job))
             .copied();
@@ -191,7 +198,7 @@ impl<T: LoadOps> FastServiceObjective<T> {
         let activity_idx = tour.index(job).expect("cannot find index for job");
         let activity = &tour[activity_idx];
 
-        (match get_time_interval_type::<T>(job, single) {
+        (match self.get_time_interval_type(job, single) {
             TimeIntervalType::FromStart => activity.schedule.departure - self.get_start_time(route_ctx, activity_idx),
             TimeIntervalType::ToEnd => self.get_end_time(route_ctx, activity_idx) - activity.schedule.departure,
             TimeIntervalType::FromStartToEnd => {
@@ -204,12 +211,25 @@ impl<T: LoadOps> FastServiceObjective<T> {
     fn estimate_multi_job(&self, route_ctx: &RouteContext, job: &Job) -> Cost {
         route_ctx
             .state()
-            .get_route_state::<MultiJobRanges>(self.state_key)
+            .get_route_state::<MultiJobRanges>(self.aspects.get_state_key())
             .and_then(|job_ranges| job_ranges.get(job))
             .map(|&(start_idx, end_idx)| {
                 self.get_end_time(route_ctx, end_idx) - self.get_start_time(route_ctx, start_idx)
             })
             .unwrap_or_default()
+    }
+
+    fn get_time_interval_type(&self, job: &Job, single: &Single) -> TimeIntervalType {
+        if job.as_multi().is_some() {
+            return TimeIntervalType::FromFirstToLast;
+        }
+
+        match self.aspects.get_demand_type(single) {
+            Some(DemandType::Delivery) => TimeIntervalType::FromStart,
+            Some(DemandType::Pickup) => TimeIntervalType::ToEnd,
+            Some(_) => TimeIntervalType::FromStartToEnd,
+            None => TimeIntervalType::FromStart,
+        }
     }
 }
 
@@ -258,20 +278,5 @@ impl FeatureState for FastServiceState {
 
     fn state_keys(&self) -> Iter<StateKey> {
         self.state_keys.iter()
-    }
-}
-
-fn get_time_interval_type<T: LoadOps>(job: &Job, single: &Single) -> TimeIntervalType {
-    if job.as_multi().is_some() {
-        return TimeIntervalType::FromFirstToLast;
-    }
-
-    let demand: &Demand<T> =
-        if let Some(demand) = single.dimens.get_demand() { demand } else { return TimeIntervalType::FromStart };
-
-    match (demand.delivery.0.is_not_empty(), demand.pickup.0.is_not_empty()) {
-        (true, false) => TimeIntervalType::FromStart,
-        (false, true) => TimeIntervalType::ToEnd,
-        _ => TimeIntervalType::FromStartToEnd,
     }
 }

@@ -3,14 +3,28 @@ use crate::helpers::construction::heuristics::create_state_key;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 
+struct TestFastServiceAspects {
+    state_key: StateKey,
+}
+
+impl FastServiceAspects for TestFastServiceAspects {
+    fn get_state_key(&self) -> StateKey {
+        self.state_key
+    }
+
+    fn get_demand_type(&self, single: &Single) -> Option<DemandType> {
+        single.dimens.get_value::<Demand<SingleDimLoad>>("demand").map(|demand| demand.get_type())
+    }
+}
+
 fn create_test_feature(route_intervals: RouteIntervals) -> Feature {
-    create_fast_service_feature::<SingleDimLoad>(
+    create_fast_service_feature::<_>(
         "fast_service",
         TestTransportCost::new_shared(),
         TestActivityCost::new_shared(),
         route_intervals,
         None,
-        create_state_key(),
+        TestFastServiceAspects { state_key: create_state_key() },
     )
     .unwrap()
 }

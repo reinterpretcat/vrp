@@ -8,6 +8,9 @@ use std::cmp::Ordering;
 /// Specifies load function type.
 pub type LoadBalanceFn<T> = Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>;
 
+/// Specifies a vehicle capacity function type.
+pub type VehicleCapacityFn<T> = Arc<dyn Fn(&Vehicle) -> &T + Send + Sync>;
+
 /// Combines all keys needed for transport feature usage.
 #[derive(Clone)]
 pub struct LoadBalanceKeys {
@@ -25,12 +28,13 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
     threshold: Option<f64>,
     feature_keys: LoadBalanceKeys,
     load_balance_fn: LoadBalanceFn<T>,
+    vehicle_capacity_fn: VehicleCapacityFn<T>,
 ) -> Result<Feature, GenericError> {
     let default_capacity = T::default();
     let default_intervals = vec![(0_usize, 0_usize)];
 
     let get_load_ratio = Arc::new(move |route_ctx: &RouteContext| {
-        let capacity = route_ctx.route().actor.vehicle.dimens.get_capacity().unwrap();
+        let capacity = vehicle_capacity_fn(&route_ctx.route().actor.vehicle);
         let intervals = route_ctx
             .state()
             .get_route_state::<Vec<(usize, usize)>>(feature_keys.reload_interval)

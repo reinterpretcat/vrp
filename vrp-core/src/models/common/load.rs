@@ -10,8 +10,8 @@ use std::fmt::{Debug, Display, Formatter};
 use std::iter::Sum;
 use std::ops::{Add, ControlFlow, Mul, Sub};
 
-const CAPACITY_DIMENSION_KEY: &str = "cpc";
-const DEMAND_DIMENSION_KEY: &str = "dmd";
+const CAPACITY_DIMENSION_KEY: &str = "capacity";
+const DEMAND_DIMENSION_KEY: &str = "demand";
 const LOAD_DIMENSION_SIZE: usize = 8;
 
 /// Represents a load type used to represent customer's demand or vehicle's load.
@@ -42,6 +42,31 @@ pub struct Demand<T: LoadOps> {
     pub pickup: (T, T),
     /// Keeps static and dynamic delivery amount.
     pub delivery: (T, T),
+}
+
+impl<T: LoadOps> Demand<T> {
+    /// Returns demand type.
+    pub fn get_type(&self) -> DemandType {
+        match (self.delivery.0.is_not_empty(), self.pickup.0.is_not_empty()) {
+            (true, false) => DemandType::Delivery,
+            (false, true) => DemandType::Pickup,
+            (true, true) => DemandType::Mixed,
+            (false, false) if self.delivery.1.is_not_empty() && self.pickup.1.is_not_empty() => DemandType::Dynamic,
+            _ => DemandType::Mixed,
+        }
+    }
+}
+
+/// Defines a typical demand types.
+pub enum DemandType {
+    /// A static pickup type models a normal pickup job.
+    Pickup,
+    /// A static delivery type models a normal delivery job,
+    Delivery,
+    /// A dynamic type used to model a pickup and delivery job.
+    Dynamic,
+    /// A mixed type reflects the fact that demand is mixed that has currently no meaning.
+    Mixed,
 }
 
 /// A trait to get or set vehicle's capacity.

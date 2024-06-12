@@ -3,7 +3,9 @@ use hashbrown::HashSet;
 use std::marker::PhantomData;
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::{RouteContext, StateKey};
-use vrp_core::models::common::{CapacityDimension, Demand, DemandDimension, IdDimension, LoadOps};
+use vrp_core::models::common::{
+    CapacityDimension, Demand, DemandDimension, DemandType, IdDimension, LoadOps, MultiDimLoad, SingleDimLoad,
+};
 use vrp_core::models::problem::{Job, Single, Vehicle};
 use vrp_core::models::solution::Route;
 use vrp_core::models::ViolationCode;
@@ -94,6 +96,30 @@ impl CompatibilityAspects for PragmaticCompatibilityAspects {
 
     fn get_violation_code(&self) -> ViolationCode {
         self.violation_code
+    }
+}
+
+pub struct PragmaticFastServiceAspects {
+    state_key: StateKey,
+}
+
+impl PragmaticFastServiceAspects {
+    /// Creates a new instance of `PragmaticFastServiceAspects`.
+    pub fn new(state_key: StateKey) -> Self {
+        Self { state_key }
+    }
+}
+
+impl FastServiceAspects for PragmaticFastServiceAspects {
+    fn get_state_key(&self) -> StateKey {
+        self.state_key
+    }
+
+    fn get_demand_type(&self, single: &Single) -> Option<DemandType> {
+        let demand_single: Option<&Demand<SingleDimLoad>> = single.dimens.get_demand();
+        let demand_multi: Option<&Demand<MultiDimLoad>> = single.dimens.get_demand();
+
+        demand_single.map(|d| d.get_type()).or_else(|| demand_multi.map(|d| d.get_type()))
     }
 }
 
