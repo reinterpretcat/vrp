@@ -1,5 +1,5 @@
 use crate::construction::enablers::ScheduleKeys;
-use crate::construction::features::CapacityStateKeys;
+use crate::construction::features::CapacityKeys;
 use crate::construction::heuristics::StateKeyRegistry;
 use crate::models::common::{Dimensions, ValueDimension};
 use crate::solver::HeuristicKeys;
@@ -40,7 +40,7 @@ impl ExtrasBuilder {
 
         builder
             .with_schedule_keys(ScheduleKeys::from(&mut *state_registry))
-            .with_capacity_keys(CapacityStateKeys::from(&mut *state_registry))
+            .with_capacity_keys(CapacityKeys::from(&mut *state_registry))
             .with_heuristic_keys(HeuristicKeys::from(&mut *state_registry));
 
         builder
@@ -53,7 +53,7 @@ impl ExtrasBuilder {
     }
 
     /// Adds capacity keys.
-    pub fn with_capacity_keys(&mut self, capacity_keys: CapacityStateKeys) -> &mut Self {
+    pub fn with_capacity_keys(&mut self, capacity_keys: CapacityKeys) -> &mut Self {
         self.0.set_value("capacity_keys", capacity_keys);
         self
     }
@@ -99,7 +99,7 @@ pub trait CoreStateKeys {
     fn get_schedule_keys(&self) -> Option<&ScheduleKeys>;
 
     /// Gets state keys for capacity feature.
-    fn get_capacity_keys(&self) -> Option<&CapacityStateKeys>;
+    fn get_capacity_keys(&self) -> Option<&CapacityKeys>;
 
     /// Gets state keys for heuristic.
     fn get_heuristic_keys(&self) -> Option<&HeuristicKeys>;
@@ -110,7 +110,7 @@ impl CoreStateKeys for Extras {
         self.get_value("schedule_keys")
     }
 
-    fn get_capacity_keys(&self) -> Option<&CapacityStateKeys> {
+    fn get_capacity_keys(&self) -> Option<&CapacityKeys> {
         self.get_value("capacity_keys")
     }
 

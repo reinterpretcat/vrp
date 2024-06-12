@@ -23,7 +23,7 @@ pub trait CapacityAspects<T: LoadOps>: Send + Sync {
     fn set_demand(&self, single: &mut Single, demand: Demand<T>);
 
     /// Gets capacity state keys.
-    fn get_state_keys(&self) -> &CapacityStateKeys;
+    fn get_state_keys(&self) -> &CapacityKeys;
 
     /// Gets violation code.
     fn get_violation_code(&self) -> ViolationCode;
@@ -31,7 +31,7 @@ pub trait CapacityAspects<T: LoadOps>: Send + Sync {
 
 /// Combines all state keys needed for capacity feature usage.
 #[derive(Clone, Debug)]
-pub struct CapacityStateKeys {
+pub struct CapacityKeys {
     /// A key which tracks current vehicle capacity.
     pub current_capacity: StateKey,
     /// A key which tracks maximum vehicle capacity ahead in route.
@@ -42,7 +42,7 @@ pub struct CapacityStateKeys {
     pub max_load: StateKey,
 }
 
-impl From<&mut StateKeyRegistry> for CapacityStateKeys {
+impl From<&mut StateKeyRegistry> for CapacityKeys {
     fn from(state_registry: &mut StateKeyRegistry) -> Self {
         Self {
             current_capacity: state_registry.next_key(),
@@ -53,7 +53,7 @@ impl From<&mut StateKeyRegistry> for CapacityStateKeys {
     }
 }
 
-impl CapacityStateKeys {
+impl CapacityKeys {
     fn iter(&self) -> impl Iterator<Item = StateKey> {
         once(self.current_capacity)
             .chain(once(self.max_future_capacity))
@@ -244,9 +244,10 @@ where
     fn evaluate_job(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
         let can_handle = match job {
             Job::Single(job) => self.can_handle_demand_on_intervals(route_ctx, self.aspects.get_demand(job), None),
-            Job::Multi(job) => {
-                job.jobs.iter().any(|job| self.can_handle_demand_on_intervals(route_ctx, self.aspects.get_demand(job), None))
-            }
+            Job::Multi(job) => job
+                .jobs
+                .iter()
+                .any(|job| self.can_handle_demand_on_intervals(route_ctx, self.aspects.get_demand(job), None)),
         };
 
         if can_handle {
@@ -340,7 +341,7 @@ fn has_demand_violation<T: LoadOps>(
     pivot_idx: usize,
     capacity: Option<&T>,
     demand: Option<&Demand<T>>,
-    feature_keys: &CapacityStateKeys,
+    feature_keys: &CapacityKeys,
     stopped: bool,
 ) -> Option<bool> {
     let demand = demand?;

@@ -75,7 +75,7 @@ fn create_example_extras() -> Extras {
 
 /// Creates example capacity aspects.
 struct ExampleCapacityAspects {
-    capacity_keys: CapacityStateKeys,
+    capacity_keys: CapacityKeys,
 }
 
 impl CapacityAspects<SingleDimLoad> for ExampleCapacityAspects {
@@ -91,7 +91,7 @@ impl CapacityAspects<SingleDimLoad> for ExampleCapacityAspects {
         single.dimens.set_value("demand", demand);
     }
 
-    fn get_state_keys(&self) -> &CapacityStateKeys {
+    fn get_state_keys(&self) -> &CapacityKeys {
         &self.capacity_keys
     }
 

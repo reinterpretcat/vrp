@@ -1,4 +1,4 @@
-use crate::construction::features::{CapacityAspects, CapacityStateKeys};
+use crate::construction::features::{CapacityAspects, CapacityKeys};
 use crate::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad, ValueDimension};
 use crate::models::problem::{Single, Vehicle};
 use crate::models::ViolationCode;
@@ -46,14 +46,14 @@ pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Deman
 
 /// Creates test capacity aspects.
 pub struct TestCapacityAspects<T: LoadOps> {
-    capacity_keys: CapacityStateKeys,
+    capacity_keys: CapacityKeys,
     violation_code: ViolationCode,
     phantom: PhantomData<T>,
 }
 
 impl<T: LoadOps> TestCapacityAspects<T> {
     /// Creates a new instance of `TestCapacityAspects`.
-    pub fn new(capacity_keys: CapacityStateKeys, violation_code: ViolationCode) -> Self {
+    pub fn new(capacity_keys: CapacityKeys, violation_code: ViolationCode) -> Self {
         Self { capacity_keys, violation_code, phantom: Default::default() }
     }
 }
@@ -71,7 +71,7 @@ impl<T: LoadOps> CapacityAspects<T> for TestCapacityAspects<T> {
         single.dimens.set_value("demand", demand);
     }
 
-    fn get_state_keys(&self) -> &CapacityStateKeys {
+    fn get_state_keys(&self) -> &CapacityKeys {
         &self.capacity_keys
     }
 

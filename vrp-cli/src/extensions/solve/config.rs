@@ -12,7 +12,6 @@ use serde::Deserialize;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::models::common::SingleDimLoad;
 use vrp_core::models::GoalContext;
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::evolution::{InitialOperator, TelemetryMode};
@@ -583,9 +582,7 @@ fn create_recreate_method(
             (Arc::new(RecreateWithSkipBest::new(*start, *end, random)), *weight)
         }
         RecreateMethod::Slice { weight } => (Arc::new(RecreateWithSlice::new(random)), *weight),
-        RecreateMethod::Blinks { weight } => {
-            (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone())), *weight)
-        }
+        RecreateMethod::Blinks { weight } => (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), *weight),
         RecreateMethod::SkipRandom { weight } => (Arc::new(RecreateWithSkipRandom::new(random)), *weight),
         RecreateMethod::Gaps { weight, min, max } => (Arc::new(RecreateWithGaps::new(*min, *max, random)), *weight),
         RecreateMethod::Nearest { weight } => (Arc::new(RecreateWithNearestNeighbor::new(random)), *weight),

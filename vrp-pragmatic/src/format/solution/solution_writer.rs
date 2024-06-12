@@ -67,8 +67,6 @@ fn create_tour(
     reserved_times_index: &ReservedTimesIndex,
 ) -> Tour {
     // TODO reduce complexity
-
-    let is_multi_dimen = has_multi_dim_demand(problem);
     let parking = get_parking_time(problem.extras.as_ref());
 
     let actor = route.actor.as_ref();
@@ -92,7 +90,7 @@ fn create_tour(
                 let (delivery, pickup) = activity
                     .job
                     .as_ref()
-                    .and_then(|job| get_capacity(&job.dimens, is_multi_dimen).map(|d| (d.delivery.0, d.pickup.0)))
+                    .and_then(|job| get_capacity(&job.dimens).map(|d| (d.delivery.0, d.pickup.0)))
                     .unwrap_or((MultiDimLoad::default(), MultiDimLoad::default()));
                 (acc.0 + delivery, acc.1 + pickup)
             },
@@ -220,7 +218,7 @@ fn create_tour(
                     }));
                 }
 
-                let load = calculate_load(prev_load, act, is_multi_dimen);
+                let load = calculate_load(prev_load, act);
 
                 let last = tour.stops.len() - 1;
                 let last = match tour.stops.get_mut(last).unwrap() {
@@ -318,9 +316,9 @@ fn format_schedule(schedule: &DomainSchedule) -> ApiSchedule {
     ApiSchedule { arrival: format_time(schedule.arrival), departure: format_time(schedule.departure) }
 }
 
-fn calculate_load(current: MultiDimLoad, act: &Activity, is_multi_dimen: bool) -> MultiDimLoad {
+fn calculate_load(current: MultiDimLoad, act: &Activity) -> MultiDimLoad {
     let job = act.job.as_ref();
-    let demand = job.and_then(|job| get_capacity(&job.dimens, is_multi_dimen)).unwrap_or_default();
+    let demand = job.and_then(|job| get_capacity(&job.dimens)).unwrap_or_default();
     current - demand.delivery.0 - demand.delivery.1 + demand.pickup.0 + demand.pickup.1
 }
 
@@ -406,22 +404,24 @@ fn get_activity_type(activity: &Activity) -> Option<&String> {
     activity.job.as_ref().and_then(|single| single.dimens.get_job_type())
 }
 
-fn get_capacity(dimens: &Dimensions, is_multi_dimen: bool) -> Option<Demand<MultiDimLoad>> {
-    if is_multi_dimen {
-        dimens.get_demand().cloned()
-    } else {
-        let create_capacity = |capacity: SingleDimLoad| {
-            if capacity.value == 0 {
-                MultiDimLoad::default()
-            } else {
-                MultiDimLoad::new(vec![capacity.value])
-            }
-        };
-        dimens.get_demand().map(|demand: &Demand<SingleDimLoad>| Demand {
-            pickup: (create_capacity(demand.pickup.0), create_capacity(demand.pickup.1)),
-            delivery: (create_capacity(demand.delivery.0), create_capacity(demand.delivery.1)),
-        })
+fn get_capacity(dimens: &Dimensions) -> Option<Demand<MultiDimLoad>> {
+    // NOTE: try to detect whether dimensions stores multidimensional demand
+    let demand: Option<Demand<MultiDimLoad>> = dimens.get_demand().cloned();
+    if let Some(demand) = demand {
+        return Some(demand);
     }
+
+    let create_capacity = |capacity: SingleDimLoad| {
+        if capacity.value == 0 {
+            MultiDimLoad::default()
+        } else {
+            MultiDimLoad::new(vec![capacity.value])
+        }
+    };
+    dimens.get_demand().map(|demand: &Demand<SingleDimLoad>| Demand {
+        pickup: (create_capacity(demand.pickup.0), create_capacity(demand.pickup.1)),
+        delivery: (create_capacity(demand.delivery.0), create_capacity(demand.delivery.1)),
+    })
 }
 
 fn get_parking_time(extras: &DomainExtras) -> f64 {

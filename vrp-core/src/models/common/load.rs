@@ -3,7 +3,6 @@
 mod load_test;
 
 use crate::models::common::{Dimensions, ValueDimension};
-use crate::models::Problem;
 use rosomaxa::prelude::UnwrapValue;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Formatter};
@@ -379,12 +378,4 @@ impl Display for MultiDimLoad {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.load)
     }
-}
-
-/// Returns true if any of the jobs has multi dimensional demand.
-pub fn has_multi_dim_demand(problem: &Problem) -> bool {
-    problem.jobs.all().any(|job| {
-        let demand: Option<&Demand<MultiDimLoad>> = job.dimens().get_demand();
-        demand.is_some()
-    })
 }

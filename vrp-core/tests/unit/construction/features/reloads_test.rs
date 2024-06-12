@@ -10,7 +10,7 @@ const VIOLATION_CODE: ViolationCode = 1;
 
 #[derive(Clone)]
 struct TestReloadAspects<T: LoadOps> {
-    capacity_keys: CapacityStateKeys,
+    capacity_keys: CapacityKeys,
     phantom: PhantomData<T>,
 }
 
@@ -49,7 +49,7 @@ impl<T: LoadOps> CapacityAspects<T> for TestReloadAspects<T> {
         single.dimens.set_demand(demand);
     }
 
-    fn get_state_keys(&self) -> &CapacityStateKeys {
+    fn get_state_keys(&self) -> &CapacityKeys {
         &self.capacity_keys
     }
 
@@ -108,7 +108,7 @@ fn create_route_context(capacity: Vec<i32>, activities: Vec<Activity>) -> RouteC
 
 fn create_reload_keys() -> ReloadKeys {
     let mut state_registry = StateKeyRegistry::default();
-    ReloadKeys { intervals: state_registry.next_key(), capacity_keys: CapacityStateKeys::from(&mut state_registry) }
+    ReloadKeys { intervals: state_registry.next_key(), capacity_keys: CapacityKeys::from(&mut state_registry) }
 }
 
 #[test]

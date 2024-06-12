@@ -1,17 +1,17 @@
-use vrp_core::construction::features::{CapacityAspects, CapacityStateKeys};
+use vrp_core::construction::features::{CapacityAspects, CapacityKeys};
 use vrp_core::models::common::{Demand, SingleDimLoad, ValueDimension};
 use vrp_core::models::problem::{Single, Vehicle};
 use vrp_core::models::ViolationCode;
 
 /// Provides a way to use capacity feature.
 pub struct ScientificCapacityAspects {
-    state_keys: CapacityStateKeys,
+    state_keys: CapacityKeys,
     violation_code: ViolationCode,
 }
 
 impl ScientificCapacityAspects {
     /// Creates a new instance of `ScientificCapacityAspects`.
-    pub fn new(state_keys: CapacityStateKeys, violation_code: ViolationCode) -> Self {
+    pub fn new(state_keys: CapacityKeys, violation_code: ViolationCode) -> Self {
         Self { state_keys, violation_code }
     }
 }
@@ -29,7 +29,7 @@ impl CapacityAspects<SingleDimLoad> for ScientificCapacityAspects {
         single.dimens.set_value("demand", demand);
     }
 
-    fn get_state_keys(&self) -> &CapacityStateKeys {
+    fn get_state_keys(&self) -> &CapacityKeys {
         &self.state_keys
     }
 

@@ -603,7 +603,7 @@ struct StateKeyContext<'a> {
     state_registry: &'a mut StateKeyRegistry,
     reload_intervals: Option<StateKey>,
     schedule_keys: ScheduleKeys,
-    capacity_keys: CapacityStateKeys,
+    capacity_keys: CapacityKeys,
 }
 
 impl<'a> StateKeyContext<'a> {

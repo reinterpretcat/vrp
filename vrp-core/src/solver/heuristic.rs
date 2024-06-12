@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::enablers::ScheduleKeys;
 use crate::construction::heuristics::*;
-use crate::models::common::{has_multi_dim_demand, MultiDimLoad, SingleDimLoad, ValueDimension};
+use crate::models::common::ValueDimension;
 use crate::models::{CoreStateKeys, Extras, GoalContext};
 use crate::rosomaxa::get_default_selection_size;
 use crate::solver::search::*;
@@ -80,19 +80,13 @@ impl HeuristicFilter for Extras {
 pub struct HeuristicKeys {
     /// A key to store rosomaxa weights.
     pub solution_weights: StateKey,
-    /// A key to store dominance order of the solution in the population.
-    pub solution_order: StateKey,
     /// A key to store tabu list used by ruin methods.
     pub tabu_list: StateKey,
 }
 
 impl From<&mut StateKeyRegistry> for HeuristicKeys {
     fn from(state_registry: &mut StateKeyRegistry) -> Self {
-        Self {
-            solution_weights: state_registry.next_key(),
-            solution_order: state_registry.next_key(),
-            tabu_list: state_registry.next_key(),
-        }
+        Self { solution_weights: state_registry.next_key(), tabu_list: state_registry.next_key() }
     }
 }
 
@@ -289,7 +283,6 @@ pub use self::statik::create_default_heuristic_operator;
 
 mod builder {
     use super::*;
-    use crate::models::common::SingleDimLoad;
     use crate::rosomaxa::evolution::InitialOperators;
     use crate::solver::processing::*;
     use crate::solver::RecreateInitialOperator;
@@ -308,7 +301,7 @@ mod builder {
             (wrap(Arc::new(RecreateWithRegret::new(2, 3, random.clone()))), 1),
             (wrap(Arc::new(RecreateWithGaps::new(1, (problem.jobs.size() / 10).max(1), random.clone()))), 1),
             (wrap(Arc::new(RecreateWithSkipBest::new(1, 2, random.clone()))), 1),
-            (wrap(Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone()))), 1),
+            (wrap(Arc::new(RecreateWithBlinks::new_with_defaults(random.clone()))), 1),
             (wrap(Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone()))), 1),
             (wrap(Arc::new(RecreateWithNearestNeighbor::new(random.clone()))), 1),
         ];
@@ -350,17 +343,6 @@ mod builder {
                 Box::<VicinityClustering>::default(),
             ],
         }
-    }
-}
-
-fn create_recreate_with_blinks(
-    problem: &Problem,
-    random: Arc<dyn Random + Send + Sync>,
-) -> Arc<dyn Recreate + Send + Sync> {
-    if has_multi_dim_demand(problem) {
-        Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(random))
-    } else {
-        Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random))
     }
 }
 
@@ -424,7 +406,7 @@ mod statik {
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 10),
             (Arc::new(RecreateWithSkipBest::new(3, 4, random.clone())), 5),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 5),
-            (create_recreate_with_blinks(problem.as_ref(), random.clone()), 5),
+            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), 5),
             (Arc::new(RecreateWithFarthest::new(random.clone())), 2),
             (Arc::new(RecreateWithSkipBest::new(4, 8, random.clone())), 2),
             (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), 1),
@@ -514,7 +496,7 @@ mod dynamic {
             (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), "regret".to_string()),
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), "perturbation".to_string()),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), "gaps".to_string()),
-            (create_recreate_with_blinks(problem, random.clone()), "blinks".to_string()),
+            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), "blinks".to_string()),
             (Arc::new(RecreateWithFarthest::new(random.clone())), "farthest".to_string()),
             (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), "nearest".to_string()),
             (
@@ -668,7 +650,7 @@ mod dynamic {
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 1),
             (Arc::new(RecreateWithSkipBest::new(3, 4, random.clone())), 1),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 1),
-            (create_recreate_with_blinks(problem.as_ref(), random.clone()), 1),
+            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), 1),
             (Arc::new(RecreateWithFarthest::new(random.clone())), 1),
             (Arc::new(RecreateWithSlice::new(random.clone())), 1),
             (Arc::new(RecreateWithSkipRandom::default_explorative_phased(cheapest, random.clone())), 1),
