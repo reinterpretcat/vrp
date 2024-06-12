@@ -120,8 +120,8 @@ where
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
         match (&source, &candidate) {
             (Job::Single(s_source), Job::Single(s_candidate)) => {
-                let source_demand: Option<&Demand<T>> = s_source.dimens.get_demand();
-                let candidate_demand: Option<&Demand<T>> = s_candidate.dimens.get_demand();
+                let source_demand: Option<&Demand<T>> = self.aspects.get_demand(s_source);
+                let candidate_demand: Option<&Demand<T>> = self.aspects.get_demand(s_candidate);
 
                 match (source_demand, candidate_demand) {
                     (None, None) | (Some(_), None) => Ok(source),
@@ -225,7 +225,7 @@ where
         route_ctx.state_mut().put_activity_states(state_keys.max_past_capacity, max_past_capacities);
         route_ctx.state_mut().put_activity_states(state_keys.max_future_capacity, max_future_capacities);
 
-        if let Some(capacity) = route_ctx.route().actor.clone().vehicle.dimens.get_capacity() {
+        if let Some(capacity) = self.aspects.get_capacity(&route_ctx.route().actor.clone().vehicle) {
             route_ctx.state_mut().put_route_state(state_keys.max_load, max_load.ratio(capacity));
         }
     }
@@ -243,9 +243,9 @@ where
 {
     fn evaluate_job(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
         let can_handle = match job {
-            Job::Single(job) => self.can_handle_demand_on_intervals(route_ctx, job.dimens.get_demand(), None),
+            Job::Single(job) => self.can_handle_demand_on_intervals(route_ctx, self.aspects.get_demand(job), None),
             Job::Multi(job) => {
-                job.jobs.iter().any(|job| self.can_handle_demand_on_intervals(route_ctx, job.dimens.get_demand(), None))
+                job.jobs.iter().any(|job| self.can_handle_demand_on_intervals(route_ctx, self.aspects.get_demand(job), None))
             }
         };
 
