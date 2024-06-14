@@ -1,5 +1,8 @@
 //! Common models.
 
+mod dimens;
+pub use self::dimens::*;
+
 mod domain;
 pub use self::domain::*;
 

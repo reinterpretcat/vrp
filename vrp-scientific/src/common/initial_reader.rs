@@ -38,7 +38,7 @@ pub fn read_init_solution<R: Read>(
 
                 let id_map = problem.jobs.all().fold(HashMap::<String, Arc<Single>>::new(), |mut acc, job| {
                     let single = job.to_single().clone();
-                    acc.insert(single.dimens.get_id().unwrap().to_string(), single);
+                    acc.insert(single.dimens.get_job_id().unwrap().to_string(), single);
                     acc
                 });
 

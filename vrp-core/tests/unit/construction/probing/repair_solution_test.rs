@@ -69,7 +69,7 @@ fn create_test_problem(
         .map(|(vehicle_id, order, position, job_ids)| {
             let vehicle_id = vehicle_id.to_string();
             Arc::new(Lock {
-                condition_fn: Arc::new(move |actor| *actor.vehicle.dimens.get_id().unwrap() == vehicle_id),
+                condition_fn: Arc::new(move |actor| *actor.vehicle.dimens.get_vehicle_id().unwrap() == vehicle_id),
                 details: vec![LockDetail {
                     order,
                     position,
@@ -156,7 +156,7 @@ fn add_routes(insertion_ctx: &mut InsertionContext, routes: Vec<(&str, RouteData
 
 fn get_job_by_id<T: Iterator<Item = Job>>(jobs: T, job_id: &str) -> Job {
     let mut jobs = jobs;
-    jobs.find(|job| job.dimens().get_id().unwrap() == job_id).unwrap()
+    jobs.find(|job| job.dimens().get_job_id().unwrap() == job_id).unwrap()
 }
 
 fn get_as_single(problem: &Problem, job_id: &str, index: usize) -> Arc<Single> {
@@ -176,13 +176,13 @@ fn get_routes(insertion_ctx: &InsertionContext) -> Vec<(&str, Vec<&str>)> {
         .iter()
         .map(|route_ctx| {
             (
-                route_ctx.route().actor.vehicle.dimens.get_id().unwrap().as_str(),
+                route_ctx.route().actor.vehicle.dimens.get_vehicle_id().unwrap().as_str(),
                 route_ctx
                     .route()
                     .tour
                     .all_activities()
                     .flat_map(|a| a.job.as_ref())
-                    .map(|single| single.dimens.get_id().unwrap().as_str())
+                    .map(|single| single.dimens.get_job_id().unwrap().as_str())
                     .collect(),
             )
         })

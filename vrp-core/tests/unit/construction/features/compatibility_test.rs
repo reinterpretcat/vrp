@@ -12,9 +12,11 @@ struct TestCompatibilityAspects {
     state_key: StateKey,
 }
 
+struct JobCompatDimenKey;
+
 impl CompatibilityAspects for TestCompatibilityAspects {
     fn get_job_compatibility<'a>(&self, job: &'a Job) -> Option<&'a String> {
-        job.dimens().get_value("compat")
+        job.dimens().get_value::<JobCompatDimenKey, _>()
     }
 
     fn get_state_key(&self) -> StateKey {
@@ -34,7 +36,7 @@ fn create_test_single(compatibility: Option<String>) -> Arc<Single> {
     let mut builder = SingleBuilder::default();
 
     if let Some(compatibility) = compatibility {
-        builder.property("compat", compatibility);
+        builder.property::<JobCompatDimenKey, _>(compatibility);
     }
 
     builder.location(Some(DEFAULT_JOB_LOCATION)).build_shared()
@@ -124,7 +126,8 @@ fn can_merge_jobs_impl(
     let candidate = Job::Single(create_test_single(candidate_compat.map(|v| v.to_string())));
     let constraint = create_feature(state_key).constraint.unwrap();
 
-    let result = constraint.merge(source, candidate).map(|job| job.dimens().get_value("compat").cloned());
+    let result =
+        constraint.merge(source, candidate).map(|job| job.dimens().get_value::<JobCompatDimenKey, _>().cloned());
 
     match (result, expected) {
         (Ok(_), Err(_)) => unreachable!("unexpected err result"),

@@ -97,8 +97,8 @@ impl<R: Read> SolomonReader<R> {
         loop {
             match self.read_customer() {
                 Ok(customer) => {
-                    let mut dimens = create_dimens_with_id("", &customer.id.to_string());
-                    dimens.set_demand(Demand::<SingleDimLoad> {
+                    let mut dimens = Dimensions::default();
+                    dimens.set_job_id(customer.id.to_string().as_str()).set_demand(Demand::<SingleDimLoad> {
                         pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
                         delivery: (SingleDimLoad::new(customer.demand as i32), SingleDimLoad::default()),
                     });

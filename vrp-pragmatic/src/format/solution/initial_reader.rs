@@ -7,14 +7,14 @@ use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
 use crate::format::solution::{deserialize_solution, map_reason_code};
-use crate::format::{get_indices, CoordIndex, JobIndex, JobTie, VehicleTie};
+use crate::format::{get_indices, CoordIndex, JobIndex, ShiftIndexDimension, VehicleTypeDimension};
 use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
-use vrp_core::models::problem::{Actor, Job};
+use vrp_core::models::problem::{Actor, Job, JobIdDimension, VehicleIdDimension};
 use vrp_core::models::solution::Tour as CoreTour;
 use vrp_core::models::solution::{Activity, Registry, Route};
 use vrp_core::prelude::*;
@@ -143,7 +143,7 @@ fn get_actor_key(actor: &Actor) -> ActorKey {
 
     let vehicle_id = dimens.get_vehicle_id().cloned().expect("cannot get vehicle id!");
     let type_id = dimens.get_vehicle_type().cloned().expect("cannot get type id!");
-    let shift_index = dimens.get_shift_index().expect("cannot get shift index!");
+    let shift_index = dimens.get_shift_index().copied().expect("cannot get shift index!");
 
     (vehicle_id, type_id, shift_index)
 }

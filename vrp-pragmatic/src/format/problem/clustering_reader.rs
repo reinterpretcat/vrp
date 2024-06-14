@@ -1,10 +1,10 @@
 use super::*;
 use crate::format::problem::fleet_reader::get_profile_index_map;
-use crate::format::JobTie;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 use vrp_core::construction::clustering::vicinity::*;
 use vrp_core::models::common::Profile;
+use vrp_core::models::problem::JobIdDimension;
 
 /// Creates cluster config if it is defined on the api problem.
 pub(super) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<ClusterConfig>, GenericError> {

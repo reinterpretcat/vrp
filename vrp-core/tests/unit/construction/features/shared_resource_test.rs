@@ -10,6 +10,8 @@ use crate::models::problem::Fleet;
 
 const VIOLATION_CODE: ViolationCode = 1;
 
+struct ResourceIdDimenKey;
+
 fn create_usage_activity(demand: i32) -> Activity {
     let demand = create_simple_demand(-demand);
     let single = SingleBuilder::default().demand(demand).build_shared();
@@ -20,7 +22,7 @@ fn create_usage_activity(demand: i32) -> Activity {
 fn create_resource_activity(capacity: i32, resource_id: Option<SharedResourceId>) -> Activity {
     let mut single = SingleBuilder::default().build();
     if let Some(resource_id) = resource_id {
-        single.dimens.set_value("resource_id", resource_id);
+        single.dimens.set_value::<ResourceIdDimenKey, _>(resource_id);
     }
     single.dimens.set_capacity(SingleDimLoad::new(capacity));
 
@@ -36,7 +38,10 @@ fn create_feature(intervals_key: StateKey, resource_key: StateKey, total_jobs: u
         create_interval_fn(intervals_key),
         Arc::new(|activity| {
             activity.job.as_ref().and_then(|job| {
-                job.dimens.get_capacity().cloned().zip(job.dimens.get_value::<SharedResourceId>("resource_id").cloned())
+                job.dimens
+                    .get_capacity()
+                    .cloned()
+                    .zip(job.dimens.get_value::<ResourceIdDimenKey, SharedResourceId>().cloned())
             })
         }),
         create_resource_demand_fn(),

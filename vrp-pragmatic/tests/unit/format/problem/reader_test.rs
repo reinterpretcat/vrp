@@ -1,11 +1,10 @@
 use crate::format::problem::*;
-use crate::format::{JobTie, VehicleTie};
 use crate::helpers::*;
 use hashbrown::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::models::common::*;
-use vrp_core::models::problem::{Jobs, Multi, Place, Single};
+use vrp_core::models::problem::{JobIdDimension, Jobs, Multi, Place, Single, VehicleIdDimension};
 
 fn get_job(index: usize, jobs: &Jobs) -> vrp_core::models::problem::Job {
     jobs.all().collect::<Vec<_>>().get(index).unwrap().clone()
@@ -192,7 +191,7 @@ fn can_read_complex_problem() {
     assert_eq!(place.duration, 100.);
     assert_eq!(place.location.unwrap(), 0);
     assert_demand(
-        job.dimens.get_demand().unwrap(),
+        job.dimens.get_demand().expect("cannot get demand"),
         &Demand {
             pickup: (MultiDimLoad::default(), MultiDimLoad::default()),
             delivery: (MultiDimLoad::new(vec![0, 1]), MultiDimLoad::default()),

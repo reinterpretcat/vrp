@@ -3,7 +3,6 @@ use crate::format::problem::clustering_reader::create_cluster_config;
 use crate::format::problem::fleet_reader::*;
 use crate::format::problem::goal_reader::create_goal_context;
 use crate::format::problem::job_reader::{read_jobs_with_extra_locks, read_locks};
-use crate::format::VehicleTie;
 use crate::format::{FormatError, JobIndex};
 use crate::validation::ValidationContext;
 use crate::{parse_time, CoordIndex};
@@ -88,7 +87,7 @@ fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> Res
         .iter()
         .filter_map(|actor| {
             let type_id = actor.vehicle.dimens.get_vehicle_type().unwrap().clone();
-            let shift_idx = actor.vehicle.dimens.get_shift_index().unwrap();
+            let shift_idx = actor.vehicle.dimens.get_shift_index().copied().unwrap();
 
             let times = breaks_map
                 .get(&(type_id, shift_idx))

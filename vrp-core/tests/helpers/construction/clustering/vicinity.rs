@@ -2,17 +2,33 @@ use crate::construction::clustering::vicinity::*;
 use crate::construction::heuristics::*;
 use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::problem::{get_job_id, SingleBuilder};
-use crate::models::common::{Duration, IdDimension, Location, Profile, ValueDimension};
-use crate::models::problem::Job;
+use crate::models::common::{Dimensions, Duration, Location, Profile};
+use crate::models::problem::{Job, JobIdDimension};
 use crate::models::*;
 use hashbrown::HashSet;
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
-pub const MERGED_KEY: &str = "merged";
-
 pub type JobPlaces = Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>;
+
+/// Provides the way to set clustered jobs.
+pub trait ClusteredJob {
+    fn get_clustered_jobs(&self) -> Option<&Vec<Job>>;
+
+    fn set_clustered_jobs(&mut self, jobs: Vec<Job>);
+}
+
+struct ClusteredJobDimenKey;
+impl ClusteredJob for Dimensions {
+    fn get_clustered_jobs(&self) -> Option<&Vec<Job>> {
+        self.get_value::<ClusteredJobDimenKey, _>()
+    }
+
+    fn set_clustered_jobs(&mut self, jobs: Vec<Job>) {
+        self.set_value::<ClusteredJobDimenKey, _>(jobs);
+    }
+}
 
 struct VicinityTestFeatureConstraint {
     disallow_merge_list: HashSet<String>,
@@ -22,7 +38,7 @@ impl FeatureConstraint for VicinityTestFeatureConstraint {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
             MoveContext::Route { job, .. } => {
-                if self.disallow_merge_list.contains(job.dimens().get_id().unwrap()) {
+                if self.disallow_merge_list.contains(job.dimens().get_job_id().unwrap()) {
                     ConstraintViolation::fail(1)
                 } else {
                     None
@@ -33,7 +49,7 @@ impl FeatureConstraint for VicinityTestFeatureConstraint {
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
-        if self.disallow_merge_list.contains(candidate.dimens().get_id().unwrap()) {
+        if self.disallow_merge_list.contains(candidate.dimens().get_job_id().unwrap()) {
             Err(1)
         } else {
             let source = source.to_single();
@@ -54,9 +70,9 @@ impl FeatureConstraint for VicinityTestFeatureConstraint {
             );
 
             let mut dimens = source.dimens.clone();
-            let mut merged = dimens.get_value::<Vec<Job>>(MERGED_KEY).cloned().unwrap_or_default();
+            let mut merged = dimens.get_clustered_jobs().cloned().unwrap_or_default();
             merged.push(candidate);
-            dimens.set_value(MERGED_KEY, merged);
+            dimens.set_clustered_jobs(merged);
 
             Ok(SingleBuilder::default().dimens(dimens).places(vec![place]).build_as_job_ref())
         }

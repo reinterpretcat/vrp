@@ -1,7 +1,6 @@
 use super::*;
 use crate::construction::enablers::ScheduleKeys;
 use crate::construction::heuristics::*;
-use crate::models::common::ValueDimension;
 use crate::models::{CoreStateKeys, Extras, GoalContext};
 use crate::rosomaxa::get_default_selection_size;
 use crate::solver::search::*;

@@ -1,6 +1,5 @@
 use super::*;
 use crate::construction::enablers::*;
-use crate::models::common::ValueDimension;
 use crate::models::Extras;
 
 /// A trait to get or set reserved times index.

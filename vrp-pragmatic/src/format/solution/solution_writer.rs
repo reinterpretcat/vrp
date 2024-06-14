@@ -6,11 +6,10 @@ use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::CoordIndex;
-use crate::format::{JobTie, VehicleTie};
 use vrp_core::construction::enablers::{get_route_intervals, ReservedTimesIndex};
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
-use vrp_core::models::problem::{Multi, TravelTime};
+use vrp_core::models::problem::{JobIdDimension, Multi, TravelTime, VehicleIdDimension};
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
 use vrp_core::solver::processing::{ReservedTimeDimension, VicinityDimension};
@@ -76,7 +75,7 @@ fn create_tour(
     let mut tour = Tour {
         vehicle_id: vehicle.dimens.get_vehicle_id().unwrap().clone(),
         type_id: vehicle.dimens.get_vehicle_type().unwrap().clone(),
-        shift_index: vehicle.dimens.get_shift_index().unwrap(),
+        shift_index: vehicle.dimens.get_shift_index().copied().unwrap(),
         stops: vec![],
         statistic: Statistic::default(),
     };
@@ -348,7 +347,7 @@ fn create_unassigned(solution: &DomainSolution) -> Option<Vec<UnassignedJob>> {
                             .map(|(actor, _)| {
                                 let dimens = &actor.vehicle.dimens;
                                 let vehicle_id = dimens.get_vehicle_id().cloned().unwrap();
-                                let shift_index = dimens.get_shift_index().unwrap();
+                                let shift_index = dimens.get_shift_index().copied().unwrap();
                                 (vehicle_id, shift_index)
                             })
                             .collect::<Vec<_>>();
@@ -389,7 +388,7 @@ fn create_violations(solution: &DomainSolution) -> Option<Vec<Violation>> {
         .filter(|(job, _)| job.dimens().get_job_type().map_or(false, |t| t == "break"))
         .map(|(job, _)| Violation::Break {
             vehicle_id: job.dimens().get_vehicle_id().expect("vehicle id").clone(),
-            shift_index: job.dimens().get_shift_index().expect("shift index"),
+            shift_index: job.dimens().get_shift_index().copied().expect("shift index"),
         })
         .collect::<Vec<_>>();
 

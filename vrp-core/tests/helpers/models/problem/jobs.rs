@@ -1,5 +1,5 @@
 use crate::models::common::*;
-use crate::models::problem::{FixedJobPermutation, Job, Multi, Place, Single};
+use crate::models::problem::{FixedJobPermutation, Job, JobIdDimension, Multi, Place, Single};
 use std::sync::Arc;
 
 pub const DEFAULT_JOB_LOCATION: Location = 0;
@@ -11,7 +11,7 @@ pub type TestPlace = (Option<Location>, Duration, Vec<(f64, f64)>);
 
 pub fn test_multi_with_id(id: &str, jobs: Vec<Arc<Single>>) -> Arc<Multi> {
     let mut dimens = Dimensions::default();
-    dimens.set_id(id);
+    dimens.set_job_id(id);
 
     Multi::new_shared(jobs, dimens)
 }
@@ -23,13 +23,13 @@ pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> A
 
 pub fn test_multi_with_permutations(id: &str, jobs: Vec<Arc<Single>>, permutations: Vec<Vec<usize>>) -> Arc<Multi> {
     let mut dimens = Dimensions::default();
-    dimens.set_id(id);
+    dimens.set_job_id(id);
 
     Multi::new_shared_with_permutator(jobs, dimens, Box::new(FixedJobPermutation::new(permutations)))
 }
 
 pub fn get_job_id(job: &Job) -> &String {
-    job.dimens().get_id().unwrap()
+    job.dimens().get_job_id().expect("no job id")
 }
 
 pub struct SingleBuilder(Single);
@@ -46,18 +46,18 @@ impl SingleBuilder {
             places: locations.into_iter().map(test_place_with_location).collect(),
             dimens: Default::default(),
         };
-        single.dimens.set_id("single");
+        single.dimens.set_job_id("single");
 
         Self(single)
     }
 
     pub fn id(&mut self, id: &str) -> &mut Self {
-        self.0.dimens.set_id(id);
+        self.0.dimens.set_job_id(id);
         self
     }
 
-    pub fn property<T: 'static + Sync + Send>(&mut self, key: &str, value: T) -> &mut Self {
-        self.0.dimens.insert(key.to_string(), Arc::new(value));
+    pub fn property<K: 'static, T: 'static + Sync + Send>(&mut self, value: T) -> &mut Self {
+        self.0.dimens.set_value::<K, _>(value);
         self
     }
 
@@ -115,7 +115,7 @@ impl SingleBuilder {
 fn test_single() -> Single {
     let mut single =
         Single { places: vec![test_place_with_location(Some(DEFAULT_JOB_LOCATION))], dimens: Default::default() };
-    single.dimens.set_id("single");
+    single.dimens.set_job_id("single");
     single
 }
 

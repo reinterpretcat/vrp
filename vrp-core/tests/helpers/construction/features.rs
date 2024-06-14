@@ -1,5 +1,5 @@
 use crate::construction::features::{CapacityAspects, CapacityKeys};
-use crate::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad, ValueDimension};
+use crate::models::common::{CapacityDimension, Demand, DemandDimension, LoadOps, MultiDimLoad, SingleDimLoad};
 use crate::models::problem::{Single, Vehicle};
 use crate::models::ViolationCode;
 use std::marker::PhantomData;
@@ -60,15 +60,15 @@ impl<T: LoadOps> TestCapacityAspects<T> {
 
 impl<T: LoadOps> CapacityAspects<T> for TestCapacityAspects<T> {
     fn get_capacity<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a T> {
-        vehicle.dimens.get_value("capacity")
+        vehicle.dimens.get_capacity()
     }
 
     fn get_demand<'a>(&self, single: &'a Single) -> Option<&'a Demand<T>> {
-        single.dimens.get_value("demand")
+        single.dimens.get_demand()
     }
 
     fn set_demand(&self, single: &mut Single, demand: Demand<T>) {
-        single.dimens.set_value("demand", demand);
+        single.dimens.set_demand(demand);
     }
 
     fn get_state_keys(&self) -> &CapacityKeys {

@@ -5,8 +5,8 @@
 mod vicinity_test;
 
 use crate::construction::heuristics::*;
+use crate::models::common::Dimensions;
 use crate::models::common::*;
-use crate::models::common::{Dimensions, ValueDimension};
 use crate::models::problem::{Actor, Job};
 use crate::models::Problem;
 use hashbrown::HashSet;
@@ -19,8 +19,6 @@ mod estimations;
 use self::estimations::*;
 use crate::models::solution::Commute;
 
-const CLUSTER_DIMENSION_KEY: &str = "cls";
-
 /// A trait to get or set cluster info.
 pub trait ClusterDimension {
     /// Sets cluster.
@@ -29,14 +27,15 @@ pub trait ClusterDimension {
     fn get_cluster(&self) -> Option<&Vec<ClusterInfo>>;
 }
 
+struct ClusterDimensionKey;
 impl ClusterDimension for Dimensions {
     fn set_cluster(&mut self, jobs: Vec<ClusterInfo>) -> &mut Self {
-        self.set_value(CLUSTER_DIMENSION_KEY, jobs);
+        self.set_value::<ClusterDimensionKey, _>(jobs);
         self
     }
 
     fn get_cluster(&self) -> Option<&Vec<ClusterInfo>> {
-        self.get_value(CLUSTER_DIMENSION_KEY)
+        self.get_value::<ClusterDimensionKey, _>()
     }
 }
 

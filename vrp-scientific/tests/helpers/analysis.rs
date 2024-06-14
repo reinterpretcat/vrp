@@ -1,6 +1,6 @@
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::*;
-use vrp_core::models::problem::Job;
+use vrp_core::models::problem::{Job, JobIdDimension};
 use vrp_core::models::Problem;
 
 pub fn get_customer_id(job: &Job) -> String {
@@ -8,7 +8,7 @@ pub fn get_customer_id(job: &Job) -> String {
 }
 
 pub fn get_job_id(job: &Job) -> &String {
-    job.dimens().get_id().unwrap()
+    job.dimens().get_job_id().unwrap()
 }
 
 pub fn get_customer_ids_from_routes_sorted(insertion_ctx: &InsertionContext) -> Vec<Vec<String>> {

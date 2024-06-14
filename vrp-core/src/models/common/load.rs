@@ -2,15 +2,13 @@
 #[path = "../../../tests/unit/models/common/load_test.rs"]
 mod load_test;
 
-use crate::models::common::{Dimensions, ValueDimension};
+use crate::models::common::Dimensions;
 use rosomaxa::prelude::UnwrapValue;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::Sum;
 use std::ops::{Add, ControlFlow, Mul, Sub};
 
-const CAPACITY_DIMENSION_KEY: &str = "capacity";
-const DEMAND_DIMENSION_KEY: &str = "demand";
 const LOAD_DIMENSION_SIZE: usize = 8;
 
 /// Represents a load type used to represent customer's demand or vehicle's load.
@@ -114,25 +112,27 @@ impl<T: LoadOps> Add for Demand<T> {
     }
 }
 
+struct CapacityDimenKey;
 impl<T: LoadOps> CapacityDimension<T> for Dimensions {
     fn set_capacity(&mut self, demand: T) -> &mut Self {
-        self.set_value(CAPACITY_DIMENSION_KEY, demand);
+        self.set_value::<CapacityDimenKey, _>(demand);
         self
     }
 
     fn get_capacity(&self) -> Option<&T> {
-        self.get_value(CAPACITY_DIMENSION_KEY)
+        self.get_value::<CapacityDimenKey, _>()
     }
 }
 
+struct DemandDimenKey;
 impl<T: LoadOps> DemandDimension<T> for Dimensions {
     fn set_demand(&mut self, demand: Demand<T>) -> &mut Self {
-        self.set_value(DEMAND_DIMENSION_KEY, demand);
+        self.set_value::<DemandDimenKey, _>(demand);
         self
     }
 
     fn get_demand(&self) -> Option<&Demand<T>> {
-        self.get_value(DEMAND_DIMENSION_KEY)
+        self.get_value::<DemandDimenKey, _>()
     }
 }
 

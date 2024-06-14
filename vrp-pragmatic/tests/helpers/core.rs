@@ -1,4 +1,4 @@
-use crate::format::{JobTie, VehicleTie};
+use crate::format::{JobTypeDimension, ShiftIndexDimension, VehicleTypeDimension};
 use std::sync::Arc;
 use vrp_core::construction::enablers::create_typed_actor_groups;
 use vrp_core::models::common::*;
@@ -23,7 +23,7 @@ pub fn test_vehicle(id: &str) -> Vehicle {
 
 fn test_vehicle_impl(id: &str, has_open_end: bool) -> Vehicle {
     let mut dimens = Dimensions::default();
-    dimens.set_vehicle_id(id.to_string()).set_vehicle_type(id.to_owned()).set_shift_index(0);
+    dimens.set_vehicle_id(id).set_vehicle_type(id.to_owned()).set_shift_index(0);
 
     Vehicle {
         profile: Profile::default(),
@@ -75,7 +75,7 @@ pub fn create_activity_with_job_at_location(job: Arc<Single>, location: Location
 
 pub fn create_single(id: &str) -> Arc<Single> {
     let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
-    single.dimens.set_job_id(id.to_string()).set_job_type("delivery".to_string());
+    single.dimens.set_job_id(id).set_job_type("delivery".to_string());
 
     Arc::new(single)
 }

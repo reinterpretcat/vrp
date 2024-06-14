@@ -16,9 +16,11 @@ struct TestGroupAspects {
     state_key: StateKey,
 }
 
+struct GroupDimenKey;
+
 impl GroupAspects for TestGroupAspects {
     fn get_job_group<'a>(&self, job: &'a Job) -> Option<&'a String> {
-        job.dimens().get_value::<String>("group")
+        job.dimens().get_value::<GroupDimenKey, _>()
     }
 
     fn get_state_key(&self) -> StateKey {
@@ -44,7 +46,7 @@ fn create_test_fleet() -> Fleet {
         .add_vehicle(test_vehicle_with_id("v1"))
         .add_vehicle(test_vehicle_with_id("v2"))
         .with_group_key_fn(Box::new(|actors| {
-            Box::new(create_typed_actor_groups(actors, |a| a.vehicle.dimens.get_id().cloned().unwrap()))
+            Box::new(create_typed_actor_groups(actors, |a| a.vehicle.dimens.get_vehicle_id().cloned().unwrap()))
         }))
         .build()
 }
@@ -53,7 +55,7 @@ fn create_test_single(group: Option<&str>) -> Arc<Single> {
     let mut builder = SingleBuilder::default();
 
     if let Some(group) = group {
-        builder.property("group", group.to_string());
+        builder.property::<GroupDimenKey, _>(group.to_string());
     }
 
     builder.build_shared()
@@ -102,7 +104,7 @@ fn create_test_solution_context(
 }
 
 fn get_actor(fleet: &Fleet, vehicle: &str) -> Arc<Actor> {
-    fleet.actors.iter().find(|actor| actor.vehicle.dimens.get_id().unwrap() == vehicle).unwrap().clone()
+    fleet.actors.iter().find(|actor| actor.vehicle.dimens.get_vehicle_id().unwrap() == vehicle).unwrap().clone()
 }
 
 fn get_actor_groups(solution_ctx: &mut SolutionContext, state_key: StateKey) -> HashMap<String, Arc<Actor>> {

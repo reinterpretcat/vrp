@@ -2,8 +2,8 @@
 #[path = "../../../tests/unit/models/solution/tour_test.rs"]
 mod tour_test;
 
-use crate::models::common::{IdDimension, Schedule};
-use crate::models::problem::{Actor, Job};
+use crate::models::common::Schedule;
+use crate::models::problem::{Actor, Job, JobIdDimension};
 use crate::models::solution::{Activity, Place};
 use crate::models::OP_START_MSG;
 use crate::utils::{short_type_name, Either};
@@ -239,7 +239,7 @@ impl Debug for Tour {
                         idx if self.is_closed && idx == self.activities.len() - 1 => "arrival".to_string(),
                         _ => activity
                             .retrieve_job()
-                            .and_then(|job| job.dimens().get_id().cloned())
+                            .and_then(|job| job.dimens().get_job_id().cloned())
                             .unwrap_or("undef".to_string()),
                     })
                     .collect::<Vec<_>>(),

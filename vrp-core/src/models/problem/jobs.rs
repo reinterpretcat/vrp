@@ -96,7 +96,7 @@ pub struct Single {
 impl Debug for Single {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct(short_type_name::<Single>())
-            .field("id", &self.dimens.get_id().map(|id| id.as_str()).unwrap_or("undef"))
+            .field("id", &self.dimens.get_job_id().map(|id| id.as_str()).unwrap_or("undef"))
             .finish_non_exhaustive()
     }
 }
@@ -116,7 +116,7 @@ pub struct Multi {
 impl Debug for Multi {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct(short_type_name::<Multi>())
-            .field("id", &self.dimens.get_id().map(|id| id.as_str()).unwrap_or("undef"))
+            .field("id", &self.dimens.get_job_id().map(|id| id.as_str()).unwrap_or("undef"))
             .field("jobs", &self.jobs.len())
             .finish_non_exhaustive()
     }
@@ -157,6 +157,27 @@ impl JobPermutation for FixedJobPermutation {
     }
 }
 
+/// A trait to get or set id.
+pub trait JobIdDimension {
+    /// Sets value as id.
+    fn set_job_id(&mut self, id: &str) -> &mut Self;
+
+    /// Gets id value if present.
+    fn get_job_id(&self) -> Option<&String>;
+}
+
+struct JobIdDimensionKey;
+impl JobIdDimension for Dimensions {
+    fn set_job_id(&mut self, id: &str) -> &mut Self {
+        self.set_value::<JobIdDimensionKey, _>(id.to_string());
+        self
+    }
+
+    fn get_job_id(&self) -> Option<&String> {
+        self.get_value::<JobIdDimensionKey, _>()
+    }
+}
+
 impl Multi {
     /// Creates a new multi job from given 'dimens' and `jobs` assuming that jobs has to be
     /// inserted in order they specified.
@@ -190,7 +211,7 @@ impl Multi {
 
     /// Returns parent multi job for given sub-job.
     pub fn roots(single: &Single) -> Option<Arc<Multi>> {
-        single.dimens.get_value::<Weak<Multi>>("rf").and_then(|w| w.upgrade())
+        single.dimens.get_value::<JobLink, Weak<Multi>>().and_then(|w| w.upgrade())
     }
 
     /// Wraps given multi job into [`Arc`] adding reference to it from all sub-jobs.
@@ -200,13 +221,16 @@ impl Multi {
                 Arc::get_mut(single)
                     .expect("Single from Multi should not be shared before binding")
                     .dimens
-                    .set_value("rf", weak_multi.clone());
+                    .set_value::<JobLink, _>(weak_multi.clone());
             });
 
             multi
         })
     }
 }
+
+/// A private type to get/set link between multi job and its children single jobs.
+struct JobLink;
 
 /// Floating type wit less precision, but lower impact on memory footprint.
 type LowPrecisionCost = f32;

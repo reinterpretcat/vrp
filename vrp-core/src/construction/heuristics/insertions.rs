@@ -3,8 +3,8 @@
 mod insertions_test;
 
 use crate::construction::heuristics::*;
-use crate::models::common::{Cost, IdDimension};
-use crate::models::problem::{Actor, Job};
+use crate::models::common::Cost;
+use crate::models::problem::{Actor, Job, JobIdDimension};
 use crate::models::solution::Activity;
 use crate::models::ViolationCode;
 use rosomaxa::prelude::*;
@@ -52,7 +52,7 @@ impl Debug for InsertionSuccess {
                     .map(|(a, idx)| {
                         (
                             a.retrieve_job()
-                                .and_then(|job| job.dimens().get_id().cloned())
+                                .and_then(|job| job.dimens().get_job_id().cloned())
                                 .unwrap_or("undef".to_string()),
                             *idx,
                         )

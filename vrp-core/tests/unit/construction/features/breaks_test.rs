@@ -13,6 +13,9 @@ const VIOLATION_CODE: ViolationCode = 1;
 #[derive(Clone)]
 struct TestBreakAspects;
 
+struct JobTypeDimenKey;
+struct VehicleIdDimenKey;
+
 impl BreakAspects for TestBreakAspects {
     fn belongs_to_route(&self, route_ctx: &RouteContext, candidate: BreakCandidate<'_>) -> bool {
         if !self.is_break_job(candidate) {
@@ -21,8 +24,8 @@ impl BreakAspects for TestBreakAspects {
 
         let Some(single) = candidate.as_single() else { return false };
 
-        let job_vehicle_id = single.dimens.get_value::<String>("vehicle_id");
-        let vehicle_id = route_ctx.route().actor.vehicle.dimens.get_id();
+        let job_vehicle_id = single.dimens.get_value::<VehicleIdDimenKey, String>();
+        let vehicle_id = route_ctx.route().actor.vehicle.dimens.get_vehicle_id();
 
         job_vehicle_id.zip(vehicle_id).map_or(false, |(a, b)| a == b)
     }
@@ -30,7 +33,7 @@ impl BreakAspects for TestBreakAspects {
     fn is_break_job(&self, candidate: BreakCandidate<'_>) -> bool {
         candidate
             .as_single()
-            .and_then(|break_single| break_single.dimens.get_value::<String>("type"))
+            .and_then(|break_single| break_single.dimens.get_value::<JobTypeDimenKey, String>())
             .map_or(false, |job_type| job_type == "break")
     }
 
@@ -48,8 +51,8 @@ fn create_break(vehicle_id: &str, location: Option<Location>) -> Arc<Single> {
         .id("break")
         .location(location)
         .duration(3600.)
-        .property("type", "break".to_string())
-        .property("vehicle_id", vehicle_id.to_string())
+        .property::<JobTypeDimenKey, _>("break".to_string())
+        .property::<VehicleIdDimenKey, _>(vehicle_id.to_string())
         .build_shared()
 }
 
@@ -86,7 +89,7 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
 
     if break_removed {
         assert_eq!(solution_ctx.unassigned.len(), 1);
-        assert_eq!(solution_ctx.unassigned.iter().next().unwrap().0.dimens().get_id().unwrap().clone(), "break");
+        assert_eq!(solution_ctx.unassigned.iter().next().unwrap().0.dimens().get_job_id().unwrap().clone(), "break");
     } else {
         assert!(solution_ctx.unassigned.is_empty());
     }

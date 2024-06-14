@@ -1,17 +1,30 @@
 use crate::construction::enablers::ScheduleKeys;
 use crate::construction::features::CapacityKeys;
 use crate::construction::heuristics::StateKeyRegistry;
-use crate::models::common::{Dimensions, ValueDimension};
 use crate::solver::HeuristicKeys;
+use hashbrown::HashMap;
 use rosomaxa::prelude::GenericError;
+use rustc_hash::FxHasher;
+use std::any::Any;
+use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
 /// Specifies a type used to store any values regarding problem configuration.
 pub struct Extras {
-    index: Dimensions,
+    index: HashMap<String, Arc<dyn Any + Send + Sync>, BuildHasherDefault<FxHasher>>,
 }
 
 impl Extras {
+    /// Gets value for the key if it is stored and has `T` type.
+    pub fn get_value<T: 'static>(&self, key: &str) -> Option<&T> {
+        self.index.get(key).and_then(|any| any.downcast_ref::<T>())
+    }
+
+    /// Sets value using the given key.
+    pub fn set_value<T: 'static + Sync + Send>(&mut self, key: &str, value: T) {
+        self.index.insert(key.to_string(), Arc::new(value));
+    }
+
     /// Returns a shared reference for the value under the given key.
     pub fn get_value_raw<T: 'static + Send + Sync>(&self, key: &str) -> Option<Arc<T>> {
         self.index.get(key).cloned().and_then(|any| any.downcast::<T>().ok())
@@ -116,15 +129,5 @@ impl CoreStateKeys for Extras {
 
     fn get_heuristic_keys(&self) -> Option<&HeuristicKeys> {
         self.get_value("heuristic_keys")
-    }
-}
-
-impl ValueDimension for Extras {
-    fn get_value<T: 'static>(&self, key: &str) -> Option<&T> {
-        self.index.get_value(key)
-    }
-
-    fn set_value<T: 'static + Sync + Send>(&mut self, key: &str, value: T) {
-        self.index.set_value(key, value)
     }
 }

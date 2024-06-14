@@ -3,7 +3,7 @@
 mod fleet_reader_test;
 
 use super::*;
-use crate::format::{UnknownLocationFallback, VehicleTie};
+use crate::format::UnknownLocationFallback;
 use crate::get_unique_locations;
 use crate::utils::get_approx_transportation;
 use crate::Location as ApiLocation;
@@ -141,7 +141,7 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                 dimens
                     .set_vehicle_type(vehicle.type_id.clone())
                     .set_shift_index(shift_index)
-                    .set_vehicle_id(vehicle_id.clone());
+                    .set_vehicle_id(vehicle_id);
 
                 if let Some(tour_size) = tour_size {
                     dimens.set_tour_size(tour_size);

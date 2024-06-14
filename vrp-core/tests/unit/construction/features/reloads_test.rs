@@ -14,17 +14,20 @@ struct TestReloadAspects<T: LoadOps> {
     phantom: PhantomData<T>,
 }
 
+struct VehicleIdDimenKey;
+struct JobTypeDimenKey;
+
 impl<T: LoadOps> ReloadAspects<T> for TestReloadAspects<T> {
     fn belongs_to_route(&self, route: &Route, job: &Job) -> bool {
         job.as_single()
             .filter(|single| self.is_reload_single(single.as_ref()))
-            .and_then(|single| single.dimens.get_value::<String>("vehicle_id"))
-            .zip(route.actor.vehicle.dimens.get_id())
+            .and_then(|single| single.dimens.get_value::<VehicleIdDimenKey, String>())
+            .zip(route.actor.vehicle.dimens.get_vehicle_id())
             .map_or(false, |(a, b)| a == b)
     }
 
     fn is_reload_single(&self, single: &Single) -> bool {
-        single.dimens.get_value::<String>("type").map_or(false, |job_type| job_type == "reload")
+        single.dimens.get_value::<JobTypeDimenKey, String>().map_or(false, |job_type| job_type == "reload")
     }
 
     fn get_capacity<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a T> {
@@ -69,7 +72,7 @@ fn create_activity_with_demand(
             SingleBuilder::default()
                 .id(job_id)
                 .demand(single_demand_as_multi(pickup, delivery))
-                .property("type", activity_type.to_string())
+                .property::<JobTypeDimenKey, _>(activity_type.to_string())
                 .build_shared(),
         ))
         .build()
@@ -88,8 +91,8 @@ fn reload(reload_id: &str) -> Activity {
         .job(Some(
             SingleBuilder::default()
                 .id(reload_id)
-                .property("type", "reload".to_string())
-                .property("vehicle_id", "v1".to_string())
+                .property::<JobTypeDimenKey, _>("reload".to_string())
+                .property::<VehicleIdDimenKey, _>("v1".to_string())
                 .build_shared(),
         ))
         .build()
@@ -303,7 +306,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
             .tour
             .all_activities()
             .filter_map(|activity| activity.job.as_ref())
-            .filter_map(|job| job.dimens.get_id())
+            .filter_map(|job| job.dimens.get_job_id())
             .collect::<Vec<_>>(),
         expected
     );

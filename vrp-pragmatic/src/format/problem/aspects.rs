@@ -1,12 +1,10 @@
-use crate::format::{BreakTie, JobTie, VehicleTie};
+use crate::format::*;
 use hashbrown::HashSet;
 use std::marker::PhantomData;
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::{RouteContext, StateKey};
-use vrp_core::models::common::{
-    CapacityDimension, Demand, DemandDimension, DemandType, IdDimension, LoadOps, MultiDimLoad, SingleDimLoad,
-};
-use vrp_core::models::problem::{Job, Single, Vehicle};
+use vrp_core::models::common::*;
+use vrp_core::models::problem::{Job, Single, Vehicle, VehicleIdDimension};
 use vrp_core::models::solution::Route;
 use vrp_core::models::ViolationCode;
 
@@ -31,7 +29,7 @@ impl BreakAspects for PragmaticBreakAspects {
     }
 
     fn get_policy(&self, candidate: BreakCandidate<'_>) -> Option<BreakPolicy> {
-        candidate.as_single().and_then(|single| single.dimens.get_break_policy())
+        candidate.as_single().and_then(|single| single.dimens.get_break_policy().cloned())
     }
 }
 
@@ -249,7 +247,7 @@ fn is_correct_vehicle(route: &Route, single: &Single) -> bool {
     let job_shift_idx = single.dimens.get_shift_index();
 
     let vehicle = &route.actor.vehicle;
-    let vehicle_id = vehicle.dimens.get_id();
+    let vehicle_id = vehicle.dimens.get_vehicle_id();
     let vehicle_shift_idx = vehicle.dimens.get_shift_index();
 
     job_vehicle_id == vehicle_id && job_shift_idx == vehicle_shift_idx

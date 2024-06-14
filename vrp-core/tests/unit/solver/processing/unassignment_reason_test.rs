@@ -3,8 +3,8 @@ use crate::helpers::construction::heuristics::{create_schedule_keys, InsertionCo
 use crate::helpers::models::domain::{ProblemBuilder, TestGoalContextBuilder};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
-use crate::models::common::{IdDimension, TimeWindow};
-use crate::models::problem::Job;
+use crate::models::common::TimeWindow;
+use crate::models::problem::{Job, JobIdDimension, VehicleIdDimension};
 use crate::solver::processing::UnassignmentReason;
 use rosomaxa::evolution::HeuristicSolutionProcessing;
 
@@ -73,14 +73,14 @@ fn can_combine_vehicle_details_impl(
 
     assert_eq!(insertion_ctx.solution.unassigned.len(), expected_details.len());
     let mut actual_details = insertion_ctx.solution.unassigned.into_iter().collect::<Vec<_>>();
-    actual_details.sort_by(|(a, _), (b, _)| a.dimens().get_id().cmp(&b.dimens().get_id()));
+    actual_details.sort_by(|(a, _), (b, _)| a.dimens().get_job_id().cmp(&b.dimens().get_job_id()));
     actual_details.into_iter().zip(expected_details).for_each(|((job, code), (expected_job_id, expected_details))| {
-        assert_eq!(job.to_single().dimens.get_id().unwrap(), expected_job_id);
+        assert_eq!(job.to_single().dimens.get_job_id().unwrap(), expected_job_id);
         match code {
             UnassignmentInfo::Detailed(details) => {
                 let details = details
                     .iter()
-                    .map(|(actor, code)| (actor.vehicle.dimens.get_id().unwrap().as_str(), *code))
+                    .map(|(actor, code)| (actor.vehicle.dimens.get_vehicle_id().unwrap().as_str(), *code))
                     .collect::<Vec<_>>();
                 assert_eq!(details, expected_details);
             }

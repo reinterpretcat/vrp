@@ -4,7 +4,7 @@ use crate::construction::heuristics::MoveContext;
 use crate::helpers::models::domain::{test_random, TestGoalContextBuilder};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder};
-use crate::models::common::{Cost, IdDimension, Location};
+use crate::models::common::{Cost, Location};
 use crate::models::problem::*;
 use crate::models::solution::{Activity, Registry, Route};
 use crate::models::*;
@@ -211,7 +211,7 @@ impl FeatureConstraint for LegFeatureConstraint {
                 let retrieve_job_id = |activity: Option<&Activity>| {
                     activity.as_ref().and_then(|next| {
                         next.retrieve_job()
-                            .and_then(|job| job.dimens().get_id().cloned())
+                            .and_then(|job| job.dimens().get_job_id().cloned())
                             .or_else(|| Some(self.ignore.clone()))
                     })
                 };

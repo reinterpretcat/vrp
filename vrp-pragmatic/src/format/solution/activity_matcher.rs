@@ -2,14 +2,14 @@ use crate::format::problem::VehicleBreak;
 use crate::format::problem::{Problem as FormatProblem, VehicleRequiredBreakTime};
 use crate::format::solution::{Activity as FormatActivity, Schedule as FormatSchedule, Tour as FormatTour};
 use crate::format::solution::{PointStop, TransitStop};
-use crate::format::{CoordIndex, JobIndex, JobTie};
+use crate::format::{CoordIndex, JobIndex, PlaceTagsDimension};
 use crate::parse_time;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 use std::iter::once;
 use std::sync::Arc;
 use vrp_core::models::common::*;
-use vrp_core::models::problem::{Job, Single};
+use vrp_core::models::problem::{Job, JobIdDimension, Single};
 use vrp_core::models::solution::{Activity, Place};
 use vrp_core::prelude::*;
 

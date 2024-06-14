@@ -2,7 +2,6 @@ use super::*;
 use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::problem::{get_job_id, SingleBuilder};
 use crate::helpers::models::solution::*;
-use crate::models::common::ValueDimension;
 use crate::models::problem::Single;
 
 const VIOLATION_CODE: ViolationCode = 1;
@@ -41,6 +40,7 @@ fn can_estimate_job_value_impl(value: f64, expected: f64) {
 
 #[test]
 fn can_merge_value() {
+    struct ValueDimenKey;
     let constraint = create_maximize_total_job_value_feature(
         "value",
         JobReadValueFn::Left(Arc::new(move |job| match get_job_id(job).as_str() {
@@ -51,7 +51,7 @@ fn can_merge_value() {
         Arc::new(|job, value| {
             let single = job.to_single();
             let mut dimens = single.dimens.clone();
-            dimens.set_value("value", value);
+            dimens.set_value::<ValueDimenKey, _>(value);
 
             Job::Single(Arc::new(Single { places: single.places.clone(), dimens }))
         }),
@@ -65,5 +65,5 @@ fn can_merge_value() {
 
     let merged = constraint.merge(source, candidate).unwrap();
 
-    assert_eq!(merged.dimens().get_value::<f64>("value").cloned(), Some(12.))
+    assert_eq!(merged.dimens().get_value::<ValueDimenKey, f64>().cloned(), Some(12.))
 }

@@ -1,6 +1,5 @@
 use super::*;
 use crate::format::problem::aspects::*;
-use crate::format::{JobTie, VehicleTie};
 use hashbrown::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::enablers::{FeatureCombinator, RouteIntervals, ScheduleKeys};
@@ -82,7 +81,7 @@ pub(super) fn create_goal_context(
         features.push(create_activity_limit_feature(
             "activity_limit",
             TOUR_SIZE_CONSTRAINT_CODE,
-            Arc::new(|actor| actor.vehicle.dimens.get_tour_size()),
+            Arc::new(|actor| actor.vehicle.dimens.get_tour_size().copied()),
         )?);
     }
 
@@ -136,7 +135,7 @@ fn get_objective_features(
                         JobReadValueFn::Left(Arc::new({
                             let break_value = *breaks;
                             move |job| {
-                                job.dimens().get_job_value().unwrap_or_else(|| {
+                                job.dimens().get_job_value().copied().unwrap_or_else(|| {
                                     job.dimens()
                                         .get_job_type()
                                         .zip(break_value)
@@ -149,7 +148,7 @@ fn get_objective_features(
                         Arc::new(|job, value| match job {
                             CoreJob::Single(single) => {
                                 let mut dimens = single.dimens.clone();
-                                dimens.set_job_value(Some(value));
+                                dimens.set_job_value(value);
 
                                 CoreJob::Single(Arc::new(Single { places: single.places.clone(), dimens }))
                             }
@@ -473,7 +472,7 @@ fn get_recharge_feature(
         });
 
     let distance_limit_fn: RechargeDistanceLimitFn = Arc::new(move |actor: &Actor| {
-        actor.vehicle.dimens.get_vehicle_type().zip(actor.vehicle.dimens.get_shift_index()).and_then(
+        actor.vehicle.dimens.get_vehicle_type().zip(actor.vehicle.dimens.get_shift_index().copied()).and_then(
             |(type_id, shift_idx)| distance_limit_index.get(type_id).and_then(|idx| idx.get(&shift_idx).copied()),
         )
     });
@@ -583,7 +582,7 @@ fn get_tour_order_fn() -> TourOrderFn {
             .as_ref()
             .map(|single| &single.dimens)
             .map(|dimens| {
-                dimens.get_job_order().map(|order| OrderResult::Value(order as f64)).unwrap_or_else(|| {
+                dimens.get_job_order().copied().map(|order| OrderResult::Value(order as f64)).unwrap_or_else(|| {
                     dimens.get_job_type().map_or(OrderResult::Default, |v| {
                         match v.as_str() {
                             "break" | "reload" => OrderResult::Ignored,

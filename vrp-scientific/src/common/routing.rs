@@ -3,7 +3,7 @@
 mod routing_test;
 
 use std::sync::Arc;
-use vrp_core::models::common::{Location, ValueDimension};
+use vrp_core::models::common::Location;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData, TransportCost};
 use vrp_core::models::Extras;
 use vrp_core::prelude::GenericError;

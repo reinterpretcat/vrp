@@ -8,7 +8,7 @@ use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use vrp_core::construction::enablers::ReservedTimesIndex;
-use vrp_core::models::common::{Distance, Duration, ValueDimension};
+use vrp_core::models::common::{Distance, Duration};
 use vrp_core::models::problem::Job as CoreJob;
 use vrp_core::models::{Extras as CoreExtras, Problem as CoreProblem};
 use vrp_core::prelude::GenericError;

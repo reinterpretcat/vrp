@@ -3,13 +3,9 @@
 mod domain_test;
 
 use crate::models::common::{Duration, Timestamp};
-use hashbrown::HashMap;
 use rosomaxa::prelude::compare_floats;
-use rustc_hash::FxHasher;
-use std::any::Any;
 use std::cmp::Ordering;
-use std::hash::{BuildHasherDefault, Hash, Hasher};
-use std::sync::Arc;
+use std::hash::{Hash, Hasher};
 
 /// Specifies location type.
 pub type Location = usize;
@@ -216,49 +212,6 @@ impl PartialEq<Schedule> for Schedule {
 }
 
 impl Eq for Schedule {}
-
-/// Multiple named dimensions which can contain anything:
-/// * unit of measure, e.g. volume, mass, size, etc.
-/// * set of skills
-/// * tag.
-pub type Dimensions = HashMap<String, Arc<dyn Any + Send + Sync>, BuildHasherDefault<FxHasher>>;
-
-/// A trait to return arbitrary typed value by its key.
-pub trait ValueDimension {
-    /// Gets value from dimension with given key.
-    fn get_value<T: 'static>(&self, key: &str) -> Option<&T>;
-    /// Sets value in dimension with given key and value.
-    fn set_value<T: 'static + Sync + Send>(&mut self, key: &str, value: T);
-}
-
-impl ValueDimension for Dimensions {
-    fn get_value<T: 'static>(&self, key: &str) -> Option<&T> {
-        self.get(key).and_then(|any| any.downcast_ref::<T>())
-    }
-
-    fn set_value<T: 'static + Sync + Send>(&mut self, key: &str, value: T) {
-        self.insert(key.to_owned(), Arc::new(value));
-    }
-}
-
-/// A trait to get or set id.
-pub trait IdDimension {
-    /// Sets value as id.
-    fn set_id(&mut self, id: &str) -> &mut Self;
-    /// Gets id value if present.
-    fn get_id(&self) -> Option<&String>;
-}
-
-impl IdDimension for Dimensions {
-    fn set_id(&mut self, id: &str) -> &mut Self {
-        self.set_value("id", id.to_string());
-        self
-    }
-
-    fn get_id(&self) -> Option<&String> {
-        self.get_value("id")
-    }
-}
 
 impl Hash for TimeInterval {
     fn hash<H: Hasher>(&self, state: &mut H) {

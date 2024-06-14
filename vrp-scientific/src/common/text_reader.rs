@@ -59,12 +59,14 @@ pub(crate) fn create_fleet_with_distance_costs(
                 per_waiting_time: 0.0,
                 per_service_time: 0.0,
             },
-            dimens: create_dimens_with_id("driver", &0.to_string()),
+            dimens: Default::default(),
             details: Default::default(),
         })],
         (0..number)
             .map(|i| {
-                let mut dimens = create_dimens_with_id("v", &i.to_string());
+                let mut dimens = create_dimens_with_id("v", &i.to_string(), |id, dimens| {
+                    dimens.set_vehicle_id(id);
+                });
                 dimens.set_capacity(SingleDimLoad::new(capacity as i32));
                 Arc::new(Vehicle {
                     profile: Profile::default(),
@@ -93,9 +95,13 @@ pub(crate) fn create_fleet_with_distance_costs(
     )
 }
 
-pub(crate) fn create_dimens_with_id(prefix: &str, id: &str) -> Dimensions {
+pub(crate) fn create_dimens_with_id(
+    prefix: &str,
+    id: &str,
+    id_setter_fn: impl Fn(&str, &mut Dimensions),
+) -> Dimensions {
     let mut dimens = Dimensions::default();
-    dimens.set_id([prefix.to_string(), id.to_string()].concat().as_str());
+    id_setter_fn([prefix.to_string(), id.to_string()].concat().as_str(), &mut dimens);
     dimens
 }
 

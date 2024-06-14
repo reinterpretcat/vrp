@@ -60,13 +60,13 @@ pub fn test_fleet() -> Fleet {
 
 pub fn test_vehicle_with_id(id: &str) -> Vehicle {
     let mut dimens = Dimensions::default();
-    dimens.set_id(id);
+    dimens.set_vehicle_id(id);
 
     Vehicle { profile: Profile::default(), costs: test_costs(), dimens, details: vec![test_vehicle_detail()] }
 }
 
 pub fn get_vehicle_id(vehicle: &Vehicle) -> &String {
-    vehicle.dimens.get_id().unwrap()
+    vehicle.dimens.get_vehicle_id().unwrap()
 }
 
 pub fn get_test_actor_from_fleet(fleet: &Fleet, vehicle_id: &str) -> Arc<Actor> {
@@ -83,7 +83,7 @@ impl Default for VehicleBuilder {
 
 impl VehicleBuilder {
     pub fn id(&mut self, id: &str) -> &mut VehicleBuilder {
-        self.0.dimens.set_id(id);
+        self.0.dimens.set_vehicle_id(id);
         self
     }
 
@@ -112,8 +112,8 @@ impl VehicleBuilder {
         self
     }
 
-    pub fn property<T: 'static + Sync + Send>(&mut self, key: &str, value: T) -> &mut Self {
-        self.0.dimens.insert(key.to_string(), Arc::new(value));
+    pub fn property<K: 'static, T: 'static + Sync + Send>(&mut self, value: T) -> &mut Self {
+        self.0.dimens.set_value::<K, _>(value);
         self
     }
 

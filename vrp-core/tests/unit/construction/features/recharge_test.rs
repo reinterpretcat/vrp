@@ -12,17 +12,20 @@ struct TestRechargeAspects {
     recharge_distance_limit_fn: RechargeDistanceLimitFn,
 }
 
+struct VehicleIdDimenKey;
+struct JobTypeDimenKey;
+
 impl RechargeAspects for TestRechargeAspects {
     fn belongs_to_route(&self, route: &Route, job: &Job) -> bool {
         job.as_single()
             .filter(|single| self.is_recharge_single(single))
-            .and_then(|single| single.dimens.get_value::<String>("vehicle_id"))
-            .zip(route.actor.vehicle.dimens.get_id())
+            .and_then(|single| single.dimens.get_value::<VehicleIdDimenKey, String>())
+            .zip(route.actor.vehicle.dimens.get_vehicle_id())
             .map_or(false, |(a, b)| a == b)
     }
 
     fn is_recharge_single(&self, single: &Single) -> bool {
-        single.dimens.get_value::<String>("type").map_or(false, |job_type| job_type == "recharge")
+        single.dimens.get_value::<JobTypeDimenKey, String>().map_or(false, |job_type| job_type == "recharge")
     }
 
     fn get_state_keys(&self) -> &RechargeKeys {
@@ -43,8 +46,8 @@ fn recharge(location: Location) -> Activity {
         .job(Some(
             SingleBuilder::default()
                 .id("recharge")
-                .property("type", "recharge".to_string())
-                .property("vehicle_id", "v1".to_string())
+                .property::<JobTypeDimenKey, _>("recharge".to_string())
+                .property::<VehicleIdDimenKey, _>("v1".to_string())
                 .build_shared(),
         ))
         .build()

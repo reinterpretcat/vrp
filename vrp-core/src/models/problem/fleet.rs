@@ -105,7 +105,7 @@ pub struct Actor {
 impl Debug for Actor {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct(short_type_name::<Self>())
-            .field("vehicle", &self.vehicle.dimens.get_id().map(|id| id.as_str()).unwrap_or("undef"))
+            .field("vehicle", &self.vehicle.dimens.get_vehicle_id().map(|id| id.as_str()).unwrap_or("undef"))
             .finish_non_exhaustive()
     }
 }
@@ -201,5 +201,26 @@ impl Hash for Actor {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let address = self as *const Actor;
         address.hash(state);
+    }
+}
+
+/// A trait to get or set vehicle id.
+pub trait VehicleIdDimension {
+    /// Sets value as vehicle id.
+    fn set_vehicle_id(&mut self, value: &str) -> &mut Self;
+
+    /// Gets vehicle id value if present.
+    fn get_vehicle_id(&self) -> Option<&String>;
+}
+
+struct VehicleIdDimensionKey;
+impl VehicleIdDimension for Dimensions {
+    fn set_vehicle_id(&mut self, id: &str) -> &mut Self {
+        self.set_value::<VehicleIdDimensionKey, _>(id.to_string());
+        self
+    }
+
+    fn get_vehicle_id(&self) -> Option<&String> {
+        self.get_value::<VehicleIdDimensionKey, _>()
     }
 }

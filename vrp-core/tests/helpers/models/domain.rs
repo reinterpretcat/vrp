@@ -2,8 +2,7 @@ use crate::construction::enablers::ScheduleKeys;
 use crate::construction::features::create_minimize_transport_costs_feature;
 use crate::construction::heuristics::*;
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
-use crate::models::common::IdDimension;
-use crate::models::problem::{Fleet, Job, Jobs};
+use crate::models::problem::{Fleet, Job, JobIdDimension, Jobs};
 use crate::models::{ExtrasBuilder, Feature, GoalContext, GoalContextBuilder, Problem};
 use rosomaxa::utils::{DefaultRandom, Random};
 use std::sync::Arc;
@@ -144,7 +143,7 @@ pub fn get_customer_ids_from_unassigned(insertion_ctx: &InsertionContext) -> Vec
 }
 
 pub fn get_customer_id(job: &Job) -> String {
-    job.dimens().get_id().unwrap().clone()
+    job.dimens().get_job_id().unwrap().clone()
 }
 
 fn create_empty_problem() -> Problem {

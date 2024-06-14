@@ -1,14 +1,16 @@
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::JobSkills as ApiJobSkills;
 use crate::format::problem::*;
-use crate::format::{BreakTie, JobIndex, JobTie, Location, VehicleTie};
+use crate::format::{JobIndex, Location};
 use crate::utils::VariableJobPermutation;
 use hashbrown::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::features::BreakPolicy;
 use vrp_core::construction::features::JobSkills as FeatureJobSkills;
 use vrp_core::models::common::*;
-use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
+use vrp_core::models::problem::{
+    Actor, Fleet, Job, JobIdDimension, Jobs, Multi, Place, Single, TransportCost, VehicleIdDimension,
+};
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
 
 // TODO configure sample size
@@ -126,7 +128,7 @@ fn read_required_jobs(
             .map(|p| (Some(p.location.clone()), p.duration, parse_times(&p.times), p.tag.clone()))
             .collect();
 
-        get_single_with_extras(places, demand, &task.order, activity_type, has_multi_dimens, coord_index)
+        get_single_with_dimens(places, demand, &task.order, activity_type, has_multi_dimens, coord_index)
     };
 
     api_problem.plan.jobs.iter().for_each(|job| {
@@ -340,10 +342,10 @@ fn get_conditional_job(
     let mut single = get_single(places, coord_index);
     single
         .dimens
-        .set_job_id(job_id.to_string())
+        .set_job_id(job_id)
         .set_job_type(job_type.to_string())
         .set_shift_index(shift_index)
-        .set_vehicle_id(vehicle_id);
+        .set_vehicle_id(vehicle_id.as_str());
 
     single
 }
@@ -373,12 +375,12 @@ fn get_single(places: Vec<PlaceData>, coord_index: &CoordIndex) -> Single {
 
     let mut dimens = Dimensions::default();
 
-    dimens.set_place_tags(Some(tags));
+    dimens.set_place_tags(tags);
 
     Single { places, dimens }
 }
 
-fn get_single_with_extras(
+fn get_single_with_dimens(
     places: Vec<PlaceData>,
     demand: Demand<MultiDimLoad>,
     order: &Option<i32>,
@@ -390,27 +392,45 @@ fn get_single_with_extras(
     let dimens = &mut single.dimens;
 
     if has_multi_dimens {
-        dimens.set_demand(demand);
+        dimens.set_demand(demand)
     } else {
         dimens.set_demand(Demand {
             pickup: (SingleDimLoad::new(demand.pickup.0.load[0]), SingleDimLoad::new(demand.pickup.1.load[0])),
             delivery: (SingleDimLoad::new(demand.delivery.0.load[0]), SingleDimLoad::new(demand.delivery.1.load[0])),
-        });
+        })
     }
-    dimens.set_job_type(activity_type.to_string()).set_job_order(*order);
+    .set_job_type(activity_type.to_string());
+
+    if let Some(order) = order {
+        dimens.set_job_order(*order);
+    }
 
     single
 }
 
+fn fill_dimens(job: &ApiJob, dimens: &mut Dimensions) {
+    dimens.set_job_id(job.id.as_str());
+
+    if let Some(value) = job.value {
+        dimens.set_job_value(value);
+    }
+
+    if let Some(group) = job.group.clone() {
+        dimens.set_job_group(group);
+    }
+
+    if let Some(compat) = job.compatibility.clone() {
+        dimens.set_job_compatibility(compat);
+    }
+
+    if let Some(skills) = get_skills(&job.skills) {
+        dimens.set_job_skills(skills);
+    }
+}
+
 fn get_single_job(job: &ApiJob, single: Single) -> Job {
     let mut single = single;
-    single
-        .dimens
-        .set_job_id(job.id.clone())
-        .set_job_value(job.value)
-        .set_job_group(job.group.clone())
-        .set_job_compatibility(job.compatibility.clone())
-        .set_job_skills(get_skills(&job.skills));
+    fill_dimens(job, &mut single.dimens);
 
     Job::Single(Arc::new(single))
 }
@@ -422,12 +442,7 @@ fn get_multi_job(
     random: &Arc<dyn Random + Send + Sync>,
 ) -> Job {
     let mut dimens: Dimensions = Default::default();
-    dimens
-        .set_job_id(job.id.clone())
-        .set_job_value(job.value)
-        .set_job_group(job.group.clone())
-        .set_job_compatibility(job.compatibility.clone())
-        .set_job_skills(get_skills(&job.skills));
+    fill_dimens(job, &mut dimens);
 
     let singles = singles.into_iter().map(Arc::new).collect::<Vec<_>>();
 
@@ -453,7 +468,7 @@ fn get_multi_job(
 fn create_condition(vehicle_id: String, shift_index: usize) -> Arc<dyn Fn(&Actor) -> bool + Sync + Send> {
     Arc::new(move |actor: &Actor| {
         *actor.vehicle.dimens.get_vehicle_id().unwrap() == vehicle_id
-            && actor.vehicle.dimens.get_shift_index().unwrap() == shift_index
+            && actor.vehicle.dimens.get_shift_index().copied().unwrap() == shift_index
     })
 }
 

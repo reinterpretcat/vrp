@@ -4,7 +4,6 @@ use crate::construction::heuristics::MoveContext;
 use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::problem::{test_driver, FleetBuilder, SingleBuilder, VehicleBuilder};
 use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
-use crate::models::common::ValueDimension;
 use crate::models::problem::{Job, Vehicle};
 use crate::models::{ConstraintViolation, ViolationCode};
 use hashbrown::HashSet;
@@ -15,13 +14,16 @@ const VIOLATION_CODE: ViolationCode = 1;
 #[derive(Clone)]
 struct TestJobSkillsAspects;
 
+struct JobSkillsDimenKey;
+struct VehicleSkillsDimenKey;
+
 impl JobSkillsAspects for TestJobSkillsAspects {
     fn get_job_skills<'a>(&self, job: &'a Job) -> Option<&'a JobSkills> {
-        job.dimens().get_value("skills")
+        job.dimens().get_value::<JobSkillsDimenKey, _>()
     }
 
     fn get_vehicle_skills<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a HashSet<String>> {
-        vehicle.dimens.get_value("skills")
+        vehicle.dimens.get_value::<VehicleSkillsDimenKey, _>()
     }
 
     fn get_violation_code(&self) -> ViolationCode {
@@ -31,21 +33,19 @@ impl JobSkillsAspects for TestJobSkillsAspects {
 
 fn create_job_with_skills(all_of: Option<Vec<&str>>, one_of: Option<Vec<&str>>, none_of: Option<Vec<&str>>) -> Job {
     SingleBuilder::default()
-        .property(
-            "skills",
-            JobSkills {
-                all_of: all_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
-                one_of: one_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
-                none_of: none_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
-            },
-        )
+        .property::<JobSkillsDimenKey, _>(JobSkills {
+            all_of: all_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
+            one_of: one_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
+            none_of: none_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
+        })
         .build_as_job_ref()
 }
 
 fn create_vehicle_with_skills(skills: Option<Vec<&str>>) -> Vehicle {
     let mut builder = VehicleBuilder::default();
     if let Some(skills) = skills {
-        builder.property("skills", HashSet::<String>::from_iter(skills.iter().map(|s| s.to_string())));
+        let skills: HashSet<String> = HashSet::from_iter(skills.iter().map(|s| s.to_string()));
+        builder.property::<VehicleSkillsDimenKey, _>(skills);
     }
 
     builder.id("v1").build()
