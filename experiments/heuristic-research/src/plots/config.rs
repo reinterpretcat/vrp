@@ -53,8 +53,6 @@ pub struct Series3D {
 
 /// Specifies drawing configuration for population state.
 pub struct PopulationDrawConfig {
-    /// Axes configuration.
-    pub axes: Axes,
     /// Series configuration.
     pub series: PopulationSeries,
 }

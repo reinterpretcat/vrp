@@ -12,14 +12,15 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
         PopulationSeries::Rosomaxa {
             rows,
             cols,
+            fitness_values,
             fitness_matrices,
             mean_distance,
             u_matrix,
             t_matrix,
             l_matrix,
             n_matrix,
-            ..
         } => {
+            let _fitness_values = fitness_values;
             let plots = fitness_matrices.len() + 5;
             let cols_size = plots / 2 + usize::from(plots % 2 == 1);
 

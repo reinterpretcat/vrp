@@ -50,7 +50,7 @@ can_check_shift_and_distance_limit! {
     case_05: (None, Some(10.), 10, Result::<_, &str>::Ok(())),
     case_06: (None, Some(10.), 9, Result::<_, &str>::Ok(())),
 
-    case_07: (None, None, i64::max_value(), Result::<_, &str>::Ok(())),
+    case_07: (None, None, i64::MAX, Result::<_, &str>::Ok(())),
 }
 
 pub fn can_check_shift_and_distance_limit_impl(

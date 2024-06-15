@@ -237,7 +237,7 @@ where
                     initial.iter().for_each(|individual| network.store(individual.deep_copy(), 0));
 
                     // create gene pool to keep track of population progress
-                    let gene_pool_size = self.config.selection_size.min(8).max(4);
+                    let gene_pool_size = self.config.selection_size.clamp(4, 8);
                     let gene_pool_selection_size = (gene_pool_size / 2).max(4);
                     let mut gene_pool = Elitism::new_with_dedup(
                         self.objective.clone(),

@@ -173,10 +173,7 @@ pub fn draw_population_plots<B: DrawingBackend + 'static>(
     let is_vrp = function_name == "vrp";
     draw_population(
         area,
-        PopulationDrawConfig {
-            axes: Axes { x: (Default::default(), 0.0), y: Default::default(), z: (Default::default(), 0.0) },
-            series: get_population_series(generation),
-        },
+        PopulationDrawConfig { series: get_population_series(generation) },
         if is_vrp && generation != 0 {
             // TODO find a nice way to visualize vrp solutions in 3D plot
             None
