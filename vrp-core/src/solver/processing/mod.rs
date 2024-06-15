@@ -7,10 +7,10 @@ mod advance_departure;
 pub use self::advance_departure::AdvanceDeparture;
 
 mod reschedule_reserved_time;
-pub use self::reschedule_reserved_time::{RescheduleReservedTime, ReservedTimeDimension};
+pub use self::reschedule_reserved_time::{RescheduleReservedTime, ReservedTimeExtras};
 
 mod unassignment_reason;
 pub use self::unassignment_reason::UnassignmentReason;
 
 mod vicinity_clustering;
-pub use self::vicinity_clustering::{VicinityClustering, VicinityDimension};
+pub use self::vicinity_clustering::{VicinityClustering, VicinityDimensionExtras};

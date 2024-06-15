@@ -12,26 +12,27 @@ use crate::solver::RefinementContext;
 use hashbrown::HashSet;
 use std::sync::Arc;
 
-const ORIG_PROBLEM_KEY: &str = "orig_problem";
-
 /// A trait to get or set vicinity config.
-pub trait VicinityDimension {
+pub trait VicinityDimensionExtras {
     /// Sets cluster config.
     fn set_cluster_config(&mut self, config: ClusterConfig) -> &mut Self;
     /// Gets cluster config.
     fn get_cluster_config(&self) -> Option<&ClusterConfig>;
 }
 
-impl VicinityDimension for Extras {
+struct VicinityDimensionExtrasKey;
+impl VicinityDimensionExtras for Extras {
     fn set_cluster_config(&mut self, config: ClusterConfig) -> &mut Self {
-        self.set_value("vicinity", config);
+        self.set_value::<VicinityDimensionExtrasKey, _>(config);
         self
     }
 
     fn get_cluster_config(&self) -> Option<&ClusterConfig> {
-        self.get_value("vicinity")
+        self.get_value::<VicinityDimensionExtrasKey, _>()
     }
 }
+
+struct OriginalProblemExtrasKey;
 
 /// Provides way to change problem definition by reducing total job count using clustering.
 #[derive(Default)]
@@ -66,7 +67,7 @@ impl HeuristicContextProcessing for VicinityClustering {
             let jobs = problem.jobs.all().filter(|job| !clustered_jobs.contains(job)).chain(clusters).collect();
 
             let extras = ExtrasBuilder::from(problem.extras.as_ref())
-                .with_custom_key(ORIG_PROBLEM_KEY, problem.clone())
+                .with_custom_key::<OriginalProblemExtrasKey, _>(problem.clone())
                 .build()
                 .expect("extras is in some invalid state");
 
@@ -92,7 +93,7 @@ impl HeuristicSolutionProcessing for VicinityClustering {
         let mut insertion_ctx = solution;
 
         let config = insertion_ctx.problem.extras.get_cluster_config();
-        let orig_problem = insertion_ctx.problem.extras.get_value_raw(ORIG_PROBLEM_KEY);
+        let orig_problem = insertion_ctx.problem.extras.get_value_raw::<OriginalProblemExtrasKey, _>();
 
         let (config, orig_problem) = if let Some((config, orig_problem)) = config.zip(orig_problem) {
             (config, orig_problem)

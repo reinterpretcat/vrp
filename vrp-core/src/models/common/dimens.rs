@@ -14,12 +14,12 @@ pub struct Dimensions {
 }
 
 impl Dimensions {
-    /// Gets a value using type provided.
+    /// Gets a value using key type provided.
     pub fn get_value<K: 'static, V: 'static>(&self) -> Option<&V> {
         self.index.get(&TypeId::of::<K>()).and_then(|any| any.downcast_ref::<V>())
     }
 
-    /// Sets the value using type provided.
+    /// Sets the value using key type provided.
     pub fn set_value<K: 'static, V: 'static + Sync + Send>(&mut self, value: V) {
         self.index.insert(TypeId::of::<K>(), Arc::new(value));
     }

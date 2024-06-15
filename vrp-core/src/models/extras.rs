@@ -5,29 +5,34 @@ use crate::solver::HeuristicKeys;
 use hashbrown::HashMap;
 use rosomaxa::prelude::GenericError;
 use rustc_hash::FxHasher;
-use std::any::Any;
+use std::any::{Any, TypeId};
 use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
 /// Specifies a type used to store any values regarding problem configuration.
 pub struct Extras {
-    index: HashMap<String, Arc<dyn Any + Send + Sync>, BuildHasherDefault<FxHasher>>,
+    index: HashMap<TypeId, Arc<dyn Any + Send + Sync>, BuildHasherDefault<FxHasher>>,
 }
 
 impl Extras {
-    /// Gets value for the key if it is stored and has `T` type.
-    pub fn get_value<T: 'static>(&self, key: &str) -> Option<&T> {
-        self.index.get(key).and_then(|any| any.downcast_ref::<T>())
+    /// Gets the value from extras using the key type provided.
+    pub fn get_value<K: 'static, V: Send + Sync + 'static>(&self) -> Option<&V> {
+        self.index.get(&TypeId::of::<K>()).and_then(|any| any.downcast_ref::<V>())
     }
 
-    /// Sets value using the given key.
-    pub fn set_value<T: 'static + Sync + Send>(&mut self, key: &str, value: T) {
-        self.index.insert(key.to_string(), Arc::new(value));
+    /// Gets a shared reference to the value from extras using the key type provided.
+    pub fn get_value_raw<K: 'static, V: Send + Sync + 'static>(&self) -> Option<Arc<V>> {
+        self.index.get(&TypeId::of::<K>()).cloned().and_then(|any| any.downcast::<V>().ok())
     }
 
-    /// Returns a shared reference for the value under the given key.
-    pub fn get_value_raw<T: 'static + Send + Sync>(&self, key: &str) -> Option<Arc<T>> {
-        self.index.get(key).cloned().and_then(|any| any.downcast::<T>().ok())
+    /// Sets the value to extras using the key type provided.
+    pub fn set_value<K: 'static, V: 'static + Sync + Send>(&mut self, value: V) {
+        self.index.insert(TypeId::of::<K>(), Arc::new(value));
+    }
+
+    /// Sets the value, passed as shared reference, to extras using key type provided.
+    pub(crate) fn set_value_raw<K: 'static, V: 'static + Sync + Send>(&mut self, value: Arc<V>) {
+        self.index.insert(TypeId::of::<K>(), value);
     }
 }
 
@@ -61,25 +66,25 @@ impl ExtrasBuilder {
 
     /// Adds schedule keys.
     pub fn with_schedule_keys(&mut self, schedule_keys: ScheduleKeys) -> &mut Self {
-        self.0.set_value("schedule_keys", schedule_keys);
+        self.0.set_value::<ScheduleKeys, _>(schedule_keys);
         self
     }
 
     /// Adds capacity keys.
     pub fn with_capacity_keys(&mut self, capacity_keys: CapacityKeys) -> &mut Self {
-        self.0.set_value("capacity_keys", capacity_keys);
+        self.0.set_value::<CapacityKeys, _>(capacity_keys);
         self
     }
 
     /// Adds heuristic keys.
     pub fn with_heuristic_keys(&mut self, heuristic_keys: HeuristicKeys) -> &mut Self {
-        self.0.set_value("heuristic_keys", heuristic_keys);
+        self.0.set_value::<HeuristicKeys, _>(heuristic_keys);
         self
     }
 
     /// Adds a custom key-value pair to extras.
-    pub fn with_custom_key<T: 'static + Sync + Send>(&mut self, key: &str, value: Arc<T>) -> &mut Self {
-        self.0.index.insert(key.to_string(), value);
+    pub fn with_custom_key<K: 'static, T: 'static + Sync + Send>(&mut self, value: Arc<T>) -> &mut Self {
+        self.0.set_value_raw::<K, _>(value);
         self
     }
 
@@ -88,12 +93,14 @@ impl ExtrasBuilder {
         // NOTE: require setting keys below as they are used to calculate important internal
         // metrics such as total cost, rosomaxa weights, etc.
 
-        let error =
-            [("schedule_keys", "schedule keys needs to be set"), ("heuristic_keys", "heuristic keys needs to be set")]
-                .iter()
-                .filter(|(key, _)| !self.0.index.contains_key(*key))
-                .map(|(_, msg)| GenericError::from(*msg))
-                .next();
+        let error = [
+            (TypeId::of::<ScheduleKeys>(), "schedule keys needs to be set"),
+            (TypeId::of::<HeuristicKeys>(), "heuristic keys needs to be set"),
+        ]
+        .iter()
+        .filter(|(key, _)| !self.0.index.contains_key(key))
+        .map(|(_, msg)| GenericError::from(*msg))
+        .next();
 
         if let Some(error) = error {
             return Err(error);
@@ -120,14 +127,14 @@ pub trait CoreStateKeys {
 
 impl CoreStateKeys for Extras {
     fn get_schedule_keys(&self) -> Option<&ScheduleKeys> {
-        self.get_value("schedule_keys")
+        self.get_value::<ScheduleKeys, _>()
     }
 
     fn get_capacity_keys(&self) -> Option<&CapacityKeys> {
-        self.get_value("capacity_keys")
+        self.get_value::<CapacityKeys, _>()
     }
 
     fn get_heuristic_keys(&self) -> Option<&HeuristicKeys> {
-        self.get_value("heuristic_keys")
+        self.get_value::<HeuristicKeys, _>()
     }
 }

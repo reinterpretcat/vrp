@@ -199,7 +199,7 @@ const RECHARGE_CONSTRAINT_CODE: i32 = 15;
 pub type JobIndex = HashMap<String, CoreJob>;
 
 /// Provides way to get/set job index.
-pub trait JobIndexAccessor {
+pub trait JobIndexExtras {
     /// Sets job index.
     fn set_job_index(&mut self, coord_index: JobIndex);
 
@@ -207,18 +207,19 @@ pub trait JobIndexAccessor {
     fn get_job_index(&self) -> Option<Arc<JobIndex>>;
 }
 
-impl JobIndexAccessor for CoreExtras {
+struct JobIndexExtrasKey;
+impl JobIndexExtras for CoreExtras {
     fn set_job_index(&mut self, coord_index: JobIndex) {
-        self.set_value("job_index", coord_index);
+        self.set_value::<JobIndexExtrasKey, _>(coord_index);
     }
 
     fn get_job_index(&self) -> Option<Arc<JobIndex>> {
-        self.get_value_raw("job_index")
+        self.get_value_raw::<JobIndexExtrasKey, _>()
     }
 }
 
 /// Provides way to get/set coord index.
-pub trait CoordIndexAccessor {
+pub trait CoordIndexExtras {
     /// Sets coord index.
     fn set_coord_index(&mut self, coord_index: CoordIndex);
 
@@ -226,13 +227,14 @@ pub trait CoordIndexAccessor {
     fn get_coord_index(&self) -> Option<Arc<CoordIndex>>;
 }
 
-impl CoordIndexAccessor for CoreExtras {
+struct CoordIndexExtrasKey;
+impl CoordIndexExtras for CoreExtras {
     fn set_coord_index(&mut self, coord_index: CoordIndex) {
-        self.set_value("coord_index", coord_index);
+        self.set_value::<CoordIndexExtrasKey, _>(coord_index);
     }
 
     fn get_coord_index(&self) -> Option<Arc<CoordIndex>> {
-        self.get_value_raw("coord_index")
+        self.get_value_raw::<CoordIndexExtrasKey, _>()
     }
 }
 

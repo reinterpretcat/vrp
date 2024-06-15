@@ -29,7 +29,7 @@ are already published. So, I stick to it for now.
 * tweak infeasible search heuristic
 * refactor route intervals and multi trip enablers
 * refactor feature objective
-* refactor dimensions approach
+* refactor dimensions/extras approach to avoid using strings as keys
 
 
 ## [v1.23.0]- 2023-12-22

@@ -16,7 +16,7 @@ pub struct CoordIndex {
 }
 
 /// Provides way to get/set coord index.
-pub trait CoordIndexAccessor {
+pub trait CoordIndexExtras {
     /// Sets coord index.
     fn set_coord_index(&mut self, coord_index: CoordIndex);
 
@@ -24,13 +24,14 @@ pub trait CoordIndexAccessor {
     fn get_coord_index(&self) -> Option<&CoordIndex>;
 }
 
-impl CoordIndexAccessor for Extras {
+struct CoordIndexExtrasKey;
+impl CoordIndexExtras for Extras {
     fn set_coord_index(&mut self, coord_index: CoordIndex) {
-        self.set_value("coord_index", coord_index);
+        self.set_value::<CoordIndexExtrasKey, _>(coord_index);
     }
 
     fn get_coord_index(&self) -> Option<&CoordIndex> {
-        self.get_value("coord_index")
+        self.get_value::<CoordIndexExtrasKey, _>()
     }
 }
 

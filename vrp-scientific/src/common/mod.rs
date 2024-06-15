@@ -14,10 +14,10 @@ pub use self::initial_reader::read_init_solution;
 
 mod routing;
 
-pub use self::routing::{CoordIndex, CoordIndexAccessor};
+pub use self::routing::{CoordIndex, CoordIndexExtras};
 
 use vrp_core::models::{Extras, ExtrasBuilder};
-use vrp_core::solver::HeuristicFilter;
+use vrp_core::solver::HeuristicFilterExtras;
 
 pub(crate) fn get_extras(coord_index: CoordIndex) -> Extras {
     let mut extras = ExtrasBuilder::default().build().expect("cannot build extras");

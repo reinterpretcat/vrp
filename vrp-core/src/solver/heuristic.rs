@@ -57,7 +57,7 @@ pub type HeuristicFilterFn = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 
 /// A type to use a filtering by meta heuristics name.
 /// The corresponding function returns true if heuristic can be used.
-pub trait HeuristicFilter {
+pub trait HeuristicFilterExtras {
     /// Gets heuristic filter.
     fn get_heuristic_filter(&self) -> Option<HeuristicFilterFn>;
 
@@ -65,13 +65,14 @@ pub trait HeuristicFilter {
     fn set_heuristic_filter(&mut self, heuristic_filter: Arc<dyn Fn(&str) -> bool + Send + Sync>);
 }
 
-impl HeuristicFilter for Extras {
+struct HeuristicFilterExtrasKey;
+impl HeuristicFilterExtras for Extras {
     fn get_heuristic_filter(&self) -> Option<HeuristicFilterFn> {
-        self.get_value("heuristic_filter").cloned()
+        self.get_value::<HeuristicFilterExtrasKey, _>().cloned()
     }
 
     fn set_heuristic_filter(&mut self, heuristic_filter: HeuristicFilterFn) {
-        self.set_value("heuristic_filter", heuristic_filter);
+        self.set_value::<HeuristicFilterExtrasKey, _>(heuristic_filter);
     }
 }
 

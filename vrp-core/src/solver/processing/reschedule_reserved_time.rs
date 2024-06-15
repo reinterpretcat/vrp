@@ -3,21 +3,22 @@ use crate::construction::enablers::*;
 use crate::models::Extras;
 
 /// A trait to get or set reserved times index.
-pub trait ReservedTimeDimension {
+pub trait ReservedTimeExtras {
     /// Sets reserved times index.
     fn set_reserved_times(&mut self, reserved_time: ReservedTimesIndex) -> &mut Self;
     /// Gets reserved times index.
     fn get_reserved_times(&self) -> Option<&ReservedTimesIndex>;
 }
 
-impl ReservedTimeDimension for Extras {
+struct ReservedTimeExtrasKey;
+impl ReservedTimeExtras for Extras {
     fn set_reserved_times(&mut self, reserved_times: ReservedTimesIndex) -> &mut Self {
-        self.set_value("reserved_times", reserved_times);
+        self.set_value::<ReservedTimeExtrasKey, _>(reserved_times);
         self
     }
 
     fn get_reserved_times(&self) -> Option<&ReservedTimesIndex> {
-        self.get_value("reserved_times")
+        self.get_value::<ReservedTimeExtrasKey, _>()
     }
 }
 

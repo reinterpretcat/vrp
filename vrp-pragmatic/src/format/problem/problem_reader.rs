@@ -10,7 +10,7 @@ use vrp_core::construction::enablers::*;
 use vrp_core::construction::heuristics::StateKeyRegistry;
 use vrp_core::models::common::{TimeOffset, TimeSpan, TimeWindow};
 use vrp_core::models::ExtrasBuilder;
-use vrp_core::solver::processing::{ReservedTimeDimension, VicinityDimension};
+use vrp_core::solver::processing::{ReservedTimeExtras, VicinityDimensionExtras};
 
 pub(super) fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
     let coord_index = CoordIndex::new(&problem);

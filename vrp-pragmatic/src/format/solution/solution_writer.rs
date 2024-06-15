@@ -12,7 +12,7 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::{JobIdDimension, Multi, TravelTime, VehicleIdDimension};
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
-use vrp_core::solver::processing::{ReservedTimeDimension, VicinityDimension};
+use vrp_core::solver::processing::{ReservedTimeExtras, VicinityDimensionExtras};
 use vrp_core::utils::CollectGroupBy;
 
 struct Leg {
