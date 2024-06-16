@@ -2,7 +2,7 @@ use super::*;
 use crate::construction::heuristics::*;
 use crate::models::common::Schedule;
 use crate::models::solution::{Activity, Place};
-use hashbrown::HashMap;
+use std::collections::HashMap;
 
 /// Promotes given job ids to locked in given context.
 pub fn promote_to_locked(mut insertion_ctx: InsertionContext, job_ids: &[&str]) -> InsertionContext {
@@ -87,7 +87,7 @@ pub fn rearrange_jobs_in_routes(insertion_ctx: &mut InsertionContext, job_order:
         assert_eq!(route_ctx.route().tour.job_count(), 0);
 
         order.iter().for_each(|job_id| {
-            let job = jobs_map.get(&job_id.to_string()).unwrap().to_single().clone();
+            let job = jobs_map.get(*job_id).unwrap().to_single().clone();
             let place_idx = 0;
             let place = &job.places[place_idx];
             route_ctx.route_mut().tour.insert_last(Activity {

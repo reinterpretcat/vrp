@@ -42,8 +42,8 @@ impl FeatureObjective for MinimizeUnassignedObjective {
         solution
             .solution
             .unassigned
-            .iter()
-            .map(|(job, _)| (self.unassigned_job_estimator)(&solution.solution, job))
+            .keys()
+            .map(|job| (self.unassigned_job_estimator)(&solution.solution, job))
             .sum::<f64>()
     }
 

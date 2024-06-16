@@ -1,6 +1,6 @@
-use hashbrown::HashMap;
 use rustc_hash::FxHasher;
 use std::any::{Any, TypeId};
+use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 

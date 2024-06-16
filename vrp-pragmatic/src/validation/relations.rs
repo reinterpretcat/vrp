@@ -4,7 +4,7 @@ mod relations_test;
 
 use super::*;
 use crate::utils::combine_error_results;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 use vrp_core::utils::CollectGroupBy;
 
 /// Checks that relation job ids are defined in plan.

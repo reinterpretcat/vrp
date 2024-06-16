@@ -5,9 +5,9 @@ mod removal_test;
 use crate::construction::heuristics::*;
 use crate::models::problem::{Actor, Job};
 use crate::solver::search::RemovalLimits;
-use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
 use rosomaxa::prelude::Random;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 /// A helper logic to keep amount of jobs/routes removed under control.

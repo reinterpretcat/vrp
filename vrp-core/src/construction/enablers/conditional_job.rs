@@ -1,6 +1,6 @@
 use crate::construction::heuristics::SolutionContext;
 use crate::models::problem::Job;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 
 /// Defines how jobs are moved in solution context. Index of original affected route context is passed.
 pub trait JobContextTransition {

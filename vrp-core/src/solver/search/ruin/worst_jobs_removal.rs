@@ -9,10 +9,10 @@ use crate::models::problem::{Job, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
 use crate::solver::search::{get_route_jobs, JobRemovalTracker, TabuList};
 use crate::solver::RefinementContext;
-use hashbrown::HashMap;
 use rosomaxa::utils::parallel_collect;
 use std::cell::RefCell;
 use std::cmp::Ordering::Less;
+use std::collections::HashMap;
 use std::iter::once;
 use std::sync::Arc;
 

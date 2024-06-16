@@ -4,8 +4,8 @@ use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::search::TabuList;
 use crate::utils::Either;
-use hashbrown::HashMap;
 use rosomaxa::prelude::Random;
+use std::collections::HashMap;
 use std::iter::{empty, once};
 
 pub(crate) fn get_route_jobs(solution: &SolutionContext) -> HashMap<Job, usize> {

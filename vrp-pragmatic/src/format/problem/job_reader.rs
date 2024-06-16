@@ -3,7 +3,7 @@ use crate::format::problem::JobSkills as ApiJobSkills;
 use crate::format::problem::*;
 use crate::format::{JobIndex, Location};
 use crate::utils::VariableJobPermutation;
-use hashbrown::HashMap;
+use std::collections::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::features::BreakPolicy;
 use vrp_core::construction::features::JobSkills as FeatureJobSkills;

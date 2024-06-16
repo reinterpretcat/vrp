@@ -4,9 +4,9 @@ mod fast_service_test;
 
 use super::*;
 use crate::construction::enablers::{calculate_travel, calculate_travel_delta, RouteIntervals};
-use hashbrown::HashMap;
 use rosomaxa::algorithms::math::relative_distance;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::iter::once;
 
 /// Specifies an aspects needed to use the feature.

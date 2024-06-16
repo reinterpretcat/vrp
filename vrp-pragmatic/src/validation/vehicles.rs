@@ -6,8 +6,8 @@ use super::*;
 use crate::utils::combine_error_results;
 use crate::validation::common::get_time_windows;
 use crate::{parse_time, parse_time_safe};
-use hashbrown::HashSet;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use vrp_core::models::common::TimeWindow;
 use vrp_core::utils::compare_floats;
 

@@ -6,8 +6,8 @@ use super::*;
 use crate::format::get_indices;
 use crate::format::solution::activity_matcher::*;
 use crate::utils::combine_error_results;
-use hashbrown::HashSet;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use vrp_core::construction::clustering::vicinity::ServingPolicy;
 use vrp_core::models::solution::Place;
 use vrp_core::prelude::compare_floats;
@@ -134,8 +134,7 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), GenericError> {
         Ok(())
     })?;
 
-    let all_used_job =
-        unique_unassigned_jobs.into_iter().chain(used_jobs.into_iter().map(|(id, _)| id)).collect::<Vec<_>>();
+    let all_used_job = unique_unassigned_jobs.into_iter().chain(used_jobs.into_keys()).collect::<Vec<_>>();
 
     if all_used_job.len() != all_jobs.len() {
         return Err(format!(

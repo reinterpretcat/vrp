@@ -6,11 +6,11 @@ use crate::construction::heuristics::*;
 use crate::models::GoalContext;
 use crate::solver::search::create_environment_with_custom_quota;
 use crate::solver::*;
-use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
 use rosomaxa::utils::parallel_into_collect;
 use std::cell::RefCell;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::iter::{empty, once};
 
 /// A search operator which decomposes original solution into multiple partial solutions,

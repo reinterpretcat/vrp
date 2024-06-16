@@ -1,5 +1,5 @@
 use crate::models::problem::Actor;
-use hashbrown::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 /// An actor group key implementation which creates groups using "type" dimension.

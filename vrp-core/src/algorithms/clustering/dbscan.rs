@@ -5,7 +5,7 @@
 #[path = "../../../tests/unit/algorithms/clustering/dbscan_test.rs"]
 mod dbscan_test;
 
-use hashbrown::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
 /// Represents a cluster of points.
@@ -29,7 +29,7 @@ where
     let mut clusters = Vec::new();
 
     for point in points {
-        if point_types.get(point).is_some() {
+        if point_types.contains_key(point) {
             continue;
         }
 

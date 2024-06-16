@@ -5,7 +5,7 @@
 mod skills_test;
 
 use super::*;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 
 /// Provides a way to work with the job-vehicle skills feature.
 pub trait JobSkillsAspects: Clone + Send + Sync {

@@ -7,9 +7,9 @@ use crate::construction::heuristics::*;
 use crate::models::problem::{Actor, Job};
 use crate::models::*;
 use crate::prelude::Problem;
-use hashbrown::HashMap;
 use rosomaxa::prelude::*;
 use rosomaxa::utils::SelectionSamplingIterator;
+use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::Arc;
 

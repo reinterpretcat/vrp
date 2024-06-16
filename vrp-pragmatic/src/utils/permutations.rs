@@ -1,5 +1,5 @@
-use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
+use std::collections::HashSet;
 use std::sync::Arc;
 use vrp_core::models::problem::JobPermutation;
 use vrp_core::prelude::*;

@@ -4,9 +4,9 @@ mod costs_test;
 
 use crate::models::common::*;
 use crate::models::solution::{Activity, Route};
-use hashbrown::HashMap;
 use rosomaxa::prelude::GenericError;
 use rosomaxa::utils::CollectGroupBy;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 /// Specifies travel time type.

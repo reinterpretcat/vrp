@@ -1,6 +1,6 @@
 use crate::models::common::*;
 use crate::models::problem::*;
-use hashbrown::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 pub const DEFAULT_ACTOR_LOCATION: Location = 0;

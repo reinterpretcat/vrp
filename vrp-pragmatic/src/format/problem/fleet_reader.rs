@@ -7,15 +7,15 @@ use crate::format::UnknownLocationFallback;
 use crate::get_unique_locations;
 use crate::utils::get_approx_transportation;
 use crate::Location as ApiLocation;
-use hashbrown::HashSet;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use vrp_core::construction::enablers::create_typed_actor_groups;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 
 pub(super) fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
     api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
-        if acc.get(&profile.name).is_none() {
+        if !acc.contains_key(&profile.name) {
             acc.insert(profile.name.clone(), acc.len());
         }
         acc

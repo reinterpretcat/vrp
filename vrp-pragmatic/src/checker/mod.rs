@@ -9,7 +9,7 @@ use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::format::{CoordIndex, Location};
 use crate::parse_time;
-use hashbrown::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use vrp_core::construction::clustering::vicinity::ClusterConfig;
 use vrp_core::construction::clustering::vicinity::VisitPolicy;

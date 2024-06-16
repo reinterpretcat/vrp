@@ -8,8 +8,8 @@ mod recharge_test;
 use super::*;
 use crate::construction::enablers::*;
 use crate::models::solution::Route;
-use hashbrown::HashSet;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::iter::once;
 use std::sync::Arc;
 

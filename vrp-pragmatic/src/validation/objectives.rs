@@ -5,7 +5,7 @@ mod objectives_test;
 use super::*;
 use crate::format::problem::Objective::*;
 use crate::utils::combine_error_results;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 
 /// Checks that objective is not empty when specified.
 fn check_e1600_empty_objective(objectives: &[&Objective]) -> Result<(), FormatError> {

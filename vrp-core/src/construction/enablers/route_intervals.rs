@@ -2,7 +2,7 @@ use crate::construction::heuristics::{RouteContext, SolutionContext, StateKey};
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Route};
 use crate::utils::Either;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 use std::iter::once;
 use std::ops::Range;
 use std::sync::Arc;

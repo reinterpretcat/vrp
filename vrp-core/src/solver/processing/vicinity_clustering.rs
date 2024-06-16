@@ -9,7 +9,7 @@ use crate::models::problem::Jobs;
 use crate::models::solution::{Activity, Place};
 use crate::models::{Extras, ExtrasBuilder, GoalContext, Problem};
 use crate::solver::RefinementContext;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 /// A trait to get or set vicinity config.

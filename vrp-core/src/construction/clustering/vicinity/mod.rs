@@ -9,9 +9,9 @@ use crate::models::common::Dimensions;
 use crate::models::common::*;
 use crate::models::problem::{Actor, Job};
 use crate::models::Problem;
-use hashbrown::HashSet;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::ops::ControlFlow;
 use std::sync::Arc;
 

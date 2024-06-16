@@ -6,9 +6,9 @@ use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::solver::search::LocalOperator;
 use crate::solver::RefinementContext;
-use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
 use rosomaxa::prelude::*;
+use std::collections::HashSet;
 use std::ops::ControlFlow;
 
 const MIN_JOBS: usize = 2;

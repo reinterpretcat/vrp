@@ -3,8 +3,8 @@
 mod actor_test;
 
 use crate::models::problem::{Actor, Fleet};
-use hashbrown::{HashMap, HashSet};
 use rosomaxa::prelude::Random;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 /// Specifies an entity responsible for providing actors and keeping track of their usage.

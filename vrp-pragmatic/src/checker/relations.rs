@@ -4,7 +4,7 @@ mod relations_test;
 
 use super::*;
 use crate::utils::combine_error_results;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 
 /// Checks relation rules.
 pub fn check_relations(context: &CheckerContext) -> Result<(), Vec<GenericError>> {

@@ -1,9 +1,9 @@
 use crate::construction::heuristics::*;
 use crate::models::problem::{Actor, Job};
 use crate::models::CoreStateKeys;
-use hashbrown::HashSet;
 use rand::prelude::IteratorRandom;
 use rosomaxa::prelude::Random;
+use std::collections::HashSet;
 use std::hash::Hash;
 use std::sync::Arc;
 

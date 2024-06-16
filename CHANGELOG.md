@@ -14,6 +14,7 @@ are already published. So, I stick to it for now.
 * GitHub sponsors functionality
 * experimental `async-evolution` feature
 * NSGA-II implementation and its usage
+* dependency on `hashbrown` crate
 
 ### Fixed
 

@@ -8,8 +8,8 @@ use super::*;
 use crate::models::common::{MultiDimLoad, SingleDimLoad};
 use crate::models::problem::Single;
 use crate::models::solution::{Activity, Route};
-use hashbrown::HashMap;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::ops::{Add, RangeInclusive, Sub};
 
 /// Represents a shared unique resource.
@@ -166,7 +166,7 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
                         .map(|(_, resource_id)| (self.get_total_demand(route_ctx, start_idx..=end_idx), resource_id));
 
                     if let Some((resource_demand, id)) = resource_demand_with_id {
-                        let entry = acc.entry(id).or_insert_with(T::default);
+                        let entry = acc.entry(id).or_default();
                         *entry = *entry + resource_demand;
                     }
 

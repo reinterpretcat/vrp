@@ -9,7 +9,7 @@ use crate::format::solution::Tour as FormatTour;
 use crate::format::solution::{deserialize_solution, map_reason_code};
 use crate::format::{get_indices, CoordIndex, JobIndex, ShiftIndexDimension, VehicleTypeDimension};
 use crate::parse_time;
-use hashbrown::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::UnassignmentInfo;
@@ -86,9 +86,8 @@ pub fn read_init_solution<R: Read>(
             Ok(acc)
         })?;
 
-    unassigned.extend(
-        problem.jobs.all().filter(|job| added_jobs.get(job).is_none()).map(|job| (job, UnassignmentInfo::Unknown)),
-    );
+    unassigned
+        .extend(problem.jobs.all().filter(|job| !added_jobs.contains(job)).map(|job| (job, UnassignmentInfo::Unknown)));
 
     Ok(Solution { cost: Cost::default(), registry, routes, unassigned, telemetry: None })
 }

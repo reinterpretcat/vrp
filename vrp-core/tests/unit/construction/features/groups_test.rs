@@ -6,7 +6,7 @@ use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteConte
 use crate::models::problem::Actor;
 use crate::models::problem::{Fleet, Single};
 use crate::models::solution::Registry;
-use hashbrown::HashMap;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 const VIOLATION_CODE: ViolationCode = 1;

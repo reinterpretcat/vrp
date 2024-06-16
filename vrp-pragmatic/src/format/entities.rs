@@ -1,6 +1,6 @@
 //! Specifies different entities as extension points on Dimensions type.
 
-use hashbrown::HashSet;
+use std::collections::HashSet;
 use vrp_core::construction::features::{BreakPolicy, JobSkills};
 
 macro_rules! impl_dimension_property {

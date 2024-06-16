@@ -7,9 +7,9 @@ use crate::models::common::TimeSpan;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::Activity;
 use crate::models::GoalContext;
-use hashbrown::{HashMap, HashSet};
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet};
 use std::ops::ControlFlow;
 use std::sync::Arc;
 

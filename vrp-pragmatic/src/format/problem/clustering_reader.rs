@@ -1,7 +1,7 @@
 use super::*;
 use crate::format::problem::fleet_reader::get_profile_index_map;
-use hashbrown::HashSet;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use vrp_core::construction::clustering::vicinity::*;
 use vrp_core::models::common::Profile;
 use vrp_core::models::problem::JobIdDimension;

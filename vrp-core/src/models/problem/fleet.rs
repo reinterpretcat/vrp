@@ -4,8 +4,8 @@ mod fleet_test;
 
 use crate::models::common::*;
 use crate::utils::short_type_name;
-use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering::Less;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;

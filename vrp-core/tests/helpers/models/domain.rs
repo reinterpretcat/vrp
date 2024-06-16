@@ -135,7 +135,7 @@ pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec
 }
 
 pub fn get_customer_ids_from_unassigned(insertion_ctx: &InsertionContext) -> Vec<String> {
-    let mut job_ids = insertion_ctx.solution.unassigned.iter().map(|(job, _)| get_customer_id(job)).collect::<Vec<_>>();
+    let mut job_ids = insertion_ctx.solution.unassigned.keys().map(get_customer_id).collect::<Vec<_>>();
 
     job_ids.sort();
 

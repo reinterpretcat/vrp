@@ -1,6 +1,6 @@
 use crate::format::problem::*;
 use crate::helpers::*;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::models::common::*;

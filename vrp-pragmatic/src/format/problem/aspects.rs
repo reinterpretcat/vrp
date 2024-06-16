@@ -1,5 +1,5 @@
 use crate::format::*;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 use std::marker::PhantomData;
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::{RouteContext, StateKey};

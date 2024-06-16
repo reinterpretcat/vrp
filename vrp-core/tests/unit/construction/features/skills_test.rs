@@ -6,7 +6,7 @@ use crate::helpers::models::problem::{test_driver, FleetBuilder, SingleBuilder, 
 use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
 use crate::models::problem::{Job, Vehicle};
 use crate::models::{ConstraintViolation, ViolationCode};
-use hashbrown::HashSet;
+use std::collections::HashSet;
 use std::iter::FromIterator;
 
 const VIOLATION_CODE: ViolationCode = 1;

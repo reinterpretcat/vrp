@@ -2,10 +2,10 @@ use crate::construction::enablers::ScheduleKeys;
 use crate::construction::features::CapacityKeys;
 use crate::construction::heuristics::StateKeyRegistry;
 use crate::solver::HeuristicKeys;
-use hashbrown::HashMap;
 use rosomaxa::prelude::GenericError;
 use rustc_hash::FxHasher;
 use std::any::{Any, TypeId};
+use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 

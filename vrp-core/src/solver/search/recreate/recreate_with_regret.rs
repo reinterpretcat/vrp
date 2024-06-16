@@ -3,8 +3,8 @@ use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::solver::search::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
-use hashbrown::HashSet;
 use rosomaxa::utils::{CollectGroupBy, Random};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 /// A recreate strategy which computes the difference in cost of inserting customer in its

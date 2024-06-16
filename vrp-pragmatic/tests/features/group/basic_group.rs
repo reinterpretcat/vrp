@@ -1,6 +1,6 @@
 use crate::format::problem::*;
 use crate::helpers::*;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 
 #[test]
 fn can_group_jobs() {

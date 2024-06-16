@@ -8,8 +8,8 @@ use super::*;
 use crate::construction::enablers::{FeatureCombinator, RouteIntervals};
 use crate::models::problem::Single;
 use crate::models::solution::Route;
-use hashbrown::HashMap;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::ops::Range;
 
 /// Specifies dependencies needed to use reload feature.

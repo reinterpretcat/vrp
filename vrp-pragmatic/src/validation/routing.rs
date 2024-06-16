@@ -4,7 +4,7 @@ mod routing_test;
 
 use super::*;
 use crate::utils::combine_error_results;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 
 /// Checks that no duplicated profile names specified.
 fn check_e1500_duplicated_profiles(ctx: &ValidationContext) -> Result<(), FormatError> {

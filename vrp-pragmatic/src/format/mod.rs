@@ -4,8 +4,8 @@
 
 extern crate serde_json;
 
-use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::enablers::ReservedTimesIndex;
 use vrp_core::models::common::{Distance, Duration};

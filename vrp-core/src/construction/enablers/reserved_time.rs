@@ -5,9 +5,9 @@ mod reserved_time_test;
 use crate::models::common::*;
 use crate::models::problem::{ActivityCost, Actor, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
-use hashbrown::HashMap;
 use rosomaxa::prelude::{compare_floats, GenericError};
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 /// Represent a reserved time span entity.

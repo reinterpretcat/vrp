@@ -1,7 +1,7 @@
 //! A feature to model group of jobs.
 
 use super::*;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/features/groups_test.rs"]

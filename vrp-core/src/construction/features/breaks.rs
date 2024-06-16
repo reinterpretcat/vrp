@@ -6,7 +6,7 @@ mod breaks_test;
 
 use super::*;
 use crate::construction::enablers::*;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 use std::iter::once;
 
 /// A helper type to work with a break job represented as a reference to `Single` or `Job` types.
@@ -263,16 +263,16 @@ fn remove_invalid_breaks<BA: BreakAspects>(solution_ctx: &mut SolutionContext, a
 
     solution_ctx.unassigned.extend(breaks_to_remove.into_iter().map(|b| (b, UnassignmentInfo::Unknown)));
 
-    // NOTE remove stale breaks from violation list
-    solution_ctx.ignored.extend(
-        solution_ctx
-            .unassigned
-            .extract_if({
-                let routes = solution_ctx.routes.as_slice();
-                move |job, _| !is_required_job(aspects, routes, None, job, true)
-            })
-            .map(|(job, _)| job),
-    );
+    // NOTE remove stale breaks from the violation list
+    solution_ctx.unassigned.retain(|job, _| {
+        let routes = solution_ctx.routes.as_slice();
+        if !is_required_job(aspects, routes, None, job, true) {
+            solution_ctx.ignored.push(job.clone());
+            false
+        } else {
+            true
+        }
+    });
 }
 
 /// Checks whether break can be scheduled in route.

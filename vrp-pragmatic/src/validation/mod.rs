@@ -31,7 +31,7 @@ use self::relations::validate_relations;
 
 mod routing;
 use self::routing::validate_routing;
-use hashbrown::HashMap;
+use std::collections::HashMap;
 
 impl<'a> ValidationContext<'a> {
     /// Creates an instance of `ValidationContext`.

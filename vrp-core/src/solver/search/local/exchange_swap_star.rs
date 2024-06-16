@@ -6,10 +6,10 @@ use super::*;
 use crate::models::problem::Job;
 use crate::solver::search::create_environment_with_custom_quota;
 use crate::utils::Either;
-use hashbrown::{HashMap, HashSet};
 use rand::seq::SliceRandom;
 use rosomaxa::utils::*;
 use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
 use std::iter::once;
 
 /// Implements a SWAP* algorithm described in "Hybrid Genetic Search for the CVRP:

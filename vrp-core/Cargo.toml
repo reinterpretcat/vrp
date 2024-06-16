@@ -16,7 +16,6 @@ rosomaxa.workspace = true
 
 rand.workspace = true
 rayon.workspace = true
-hashbrown.workspace = true
 rustc-hash.workspace = true
 
 nohash-hasher = "0.2.0"

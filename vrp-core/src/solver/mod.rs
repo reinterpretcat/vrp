@@ -76,11 +76,11 @@ extern crate rand;
 use crate::construction::heuristics::InsertionContext;
 use crate::models::{GoalContext, Problem, Solution};
 use crate::solver::search::Recreate;
-use hashbrown::HashMap;
 use rosomaxa::evolution::*;
 use rosomaxa::prelude::*;
 use rosomaxa::{get_default_population, TelemetryHeuristicContext};
 use std::any::Any;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub use self::heuristic::*;

@@ -3,9 +3,9 @@
 use crate::construction::heuristics::*;
 use crate::models::{GoalContext, Problem};
 use crate::solver::RefinementContext;
-use hashbrown::HashMap;
 use rosomaxa::prelude::SelectionPhase;
 use rosomaxa::HeuristicContext;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 /// A trait which specifies logic to produce a new feasible solution from partial one.

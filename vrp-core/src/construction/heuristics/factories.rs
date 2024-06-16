@@ -4,8 +4,8 @@ use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::OP_START_MSG;
 use crate::models::{LockOrder, Problem, Solution};
-use hashbrown::{HashMap, HashSet};
 use rosomaxa::prelude::Environment;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 type ActivityPlace = crate::models::solution::Place;
@@ -101,7 +101,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
     let required = problem
         .jobs
         .all()
-        .filter(|job| locked.get(job).is_none() && reserved.get(job).is_none() && unassigned.get(job).is_none())
+        .filter(|job| !locked.contains(job) && !reserved.contains(job) && !unassigned.contains_key(job))
         .collect();
 
     let registry = RegistryContext::new(problem.goal.as_ref(), registry);

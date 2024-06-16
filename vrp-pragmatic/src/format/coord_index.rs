@@ -6,8 +6,8 @@ mod coord_index_test;
 
 use crate::format::problem::{Problem, VehicleBreak};
 use crate::format::{CustomLocationType, Location};
-use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering::Less;
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 
 /// A helper struct which keeps track of coordinate mapping.
@@ -91,7 +91,7 @@ impl CoordIndex {
 
     /// Adds location to indices.
     pub(crate) fn add(&mut self, location: &Location) {
-        if self.direct_index.get(location).is_none() {
+        if !self.direct_index.contains_key(location) {
             let value = match location {
                 Location::Coordinate { lat: _, lng: _ } => {
                     self.flags |= 0b0001;

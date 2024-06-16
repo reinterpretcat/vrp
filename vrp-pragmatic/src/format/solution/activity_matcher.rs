@@ -4,8 +4,8 @@ use crate::format::solution::{Activity as FormatActivity, Schedule as FormatSche
 use crate::format::solution::{PointStop, TransitStop};
 use crate::format::{CoordIndex, JobIndex, PlaceTagsDimension};
 use crate::parse_time;
-use hashbrown::HashSet;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::iter::once;
 use std::sync::Arc;
 use vrp_core::models::common::*;

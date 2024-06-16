@@ -1,6 +1,6 @@
 use super::*;
 use crate::format::problem::aspects::*;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::enablers::{FeatureCombinator, RouteIntervals, ScheduleKeys};
 use vrp_core::construction::features::*;

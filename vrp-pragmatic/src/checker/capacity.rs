@@ -136,7 +136,7 @@ fn check_resource_consumption(context: &CheckerContext) -> Result<(), GenericErr
             })
         })
         .fold(HashMap::default(), |mut acc, (resource_id, consumption)| {
-            let entry = acc.entry(resource_id).or_insert_with(MultiDimLoad::default);
+            let entry = acc.entry(resource_id).or_default();
             *entry = *entry + consumption;
 
             acc
