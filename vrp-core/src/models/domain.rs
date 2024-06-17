@@ -8,7 +8,7 @@ use rosomaxa::prelude::*;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
-/// Defines VRP problem.
+/// Defines a VRP problem. You can use a [`ProblemBuilder`] to create the one.
 pub struct Problem {
     /// Specifies used fleet.
     pub fleet: Arc<Fleet>,
@@ -97,11 +97,11 @@ pub struct LockDetail {
 
 /// Contains information about jobs locked to specific actors.
 pub struct Lock {
-    /// Specifies condition when locked jobs can be assigned to specific actor
+    /// Specifies condition when locked jobs can be assigned to a specific actor
     pub condition_fn: Arc<dyn Fn(&Actor) -> bool + Sync + Send>,
     /// Specifies lock details.
     pub details: Vec<LockDetail>,
-    /// Specifies whether route is created or not in solution from beginning.
+    /// Specifies whether route is created or not in solution from the beginning.
     /// True means that route is not created till evaluation.
     pub is_lazy: bool,
 }
@@ -117,5 +117,128 @@ impl Lock {
     /// Creates a new instance of `Lock`.
     pub fn new(condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>, details: Vec<LockDetail>, is_lazy: bool) -> Self {
         Self { condition_fn: condition, details, is_lazy }
+    }
+}
+
+/// Specifies a function to group actors based on their similarity.
+pub type FleetGroupKeyFn = dyn Fn(&Actor) -> usize + Send + Sync;
+
+/// Provides way to build a VRP definition.
+#[derive(Default)]
+pub struct ProblemBuilder {
+    jobs: Vec<Job>,
+    vehicles: Vec<Vehicle>,
+    #[allow(clippy::type_complexity)]
+    group_key_fn: Option<Box<dyn Fn(&[Arc<Actor>]) -> Box<FleetGroupKeyFn>>>,
+    goal: Option<Arc<GoalContext>>,
+    activity: Option<Arc<dyn ActivityCost + Send + Sync>>,
+    transport: Option<Arc<dyn TransportCost + Send + Sync>>,
+    extras: Option<Arc<Extras>>,
+}
+
+impl ProblemBuilder {
+    /// Adds a job to the collection of the things to be done.
+    pub fn add_job(mut self, job: Job) -> Self {
+        self.jobs.push(job);
+        self
+    }
+
+    /// Adds multiple jobs to the collection of the things to be done.
+    pub fn add_jobs(mut self, jobs: impl Iterator<Item = Job>) -> Self {
+        self.jobs.extend(jobs);
+        self
+    }
+
+    /// Add a vehicle to the fleet.
+    /// At least one has to be provided.
+    pub fn add_vehicle(mut self, vehicle: Vehicle) -> Self {
+        self.vehicles.push(vehicle);
+        self
+    }
+
+    /// Add multiple vehicles to the fleet.
+    /// At least one has to be provided.
+    pub fn add_vehicles(mut self, vehicles: impl Iterator<Item = Vehicle>) -> Self {
+        self.vehicles.extend(vehicles);
+        self
+    }
+
+    /// Sets a vehicle similarity function which allows grouping of similar vehicles together.
+    /// That helps the solver to take more effective decisions job-vehicle assignment.
+    /// Optional: when omitted, only vehicles with the same `profile.index` are grouped together.
+    pub fn with_vehicle_similarity(
+        mut self,
+        group_key_fn: impl Fn(&[Arc<Actor>]) -> Box<FleetGroupKeyFn> + 'static,
+    ) -> Self {
+        self.group_key_fn = Some(Box::new(group_key_fn));
+        self
+    }
+
+    /// Adds a goal of optimization. Use [GoalContextBuilder] to create the one.
+    /// A required field.
+    pub fn with_goal(mut self, goal: GoalContext) -> Self {
+        self.goal = Some(Arc::new(goal));
+        self
+    }
+
+    /// Adds a transport distance/duration estimation logic. A typical implementation will normally
+    /// wrap routing distance/duration matrices.
+    /// A required field.
+    pub fn with_transport_cost<T: TransportCost + Send + Sync + 'static>(mut self, transport: T) -> Self {
+        self.transport = Some(Arc::new(transport));
+        self
+    }
+
+    /// Adds an activity service time estimation logic.
+    /// An optional field: [SimpleActivityCost] will be used by default.
+    pub fn with_activity_cost<T: ActivityCost + Send + Sync + 'static>(mut self, activity: T) -> Self {
+        self.activity = Some(Arc::new(activity));
+        self
+    }
+
+    /// Adds an extras: an extension mechanism to pass arbitrary properties associated within
+    /// the problem definition.
+    /// An optional field.
+    pub fn with_extras(mut self, extras: Extras) -> Self {
+        self.extras = Some(Arc::new(extras));
+        self
+    }
+
+    /// Builds a problem definition.
+    /// Returns [Err] in case of an invalid configuration.
+    pub fn build(mut self) -> GenericResult<Problem> {
+        if self.jobs.is_empty() {
+            return Err("empty list of jobs: specify at least one job".into());
+        }
+
+        if self.vehicles.is_empty() {
+            return Err("empty list of vehicles: specify at least one vehicle".into());
+        }
+
+        // analyze user input
+        let transport = self.transport.take().ok_or_else(|| {
+            GenericError::from("no information about routing data: use 'with_transport_cost' method to specify it")
+        })?;
+        let activity = self.activity.take().unwrap_or_else(|| Arc::new(SimpleActivityCost::default()));
+        let goal = self
+            .goal
+            .take()
+            .ok_or_else(|| GenericError::from("unknown goal of optimization: use 'with_goal' method to set it"))?;
+        let extras = self
+            .extras
+            .take()
+            .unwrap_or_else(|| Arc::new(ExtrasBuilder::default().build().expect("cannot use default extras builder")));
+
+        // setup fleet
+        // NOTE: driver concept is not fully supported yet, but we must provide at least one.
+        let driver = Arc::new(Driver::empty());
+        let vehicles = self.vehicles.into_iter().map(Arc::new).collect();
+        let group_key = self.group_key_fn.take().unwrap_or_else(|| Box::new(|_| Box::new(|a| a.vehicle.profile.index)));
+        let fleet = Arc::new(Fleet::new(vec![driver], vehicles, group_key));
+
+        // setup jobs
+        let jobs = Arc::new(Jobs::new(fleet.as_ref(), self.jobs, transport.as_ref()));
+
+        Ok(Problem { fleet, jobs, locks: vec![], goal, activity, transport, extras })
     }
 }

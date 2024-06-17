@@ -266,7 +266,7 @@ impl Solver {
 
     /// Solves a Vehicle Routing Problem and returns a feasible solution in case of success
     /// or error description, if solution cannot be found.
-    pub fn solve(self) -> Result<Solution, GenericError> {
+    pub fn solve(self) -> GenericResult<Solution> {
         (self.config.context.environment.logger)(&format!(
             "total jobs: {}, actors: {}",
             self.problem.jobs.size(),

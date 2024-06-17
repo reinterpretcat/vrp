@@ -46,11 +46,7 @@ fn create_example_jobs(fleet: &Fleet, transport: &(dyn TransportCost + Sync + Se
 
 /// Creates an example fleet used in documentation tests.
 fn create_example_fleet() -> Arc<Fleet> {
-    let drivers = vec![Arc::new(Driver {
-        costs: Costs { fixed: 0., per_distance: 0., per_driving_time: 0., per_waiting_time: 0., per_service_time: 0. },
-        dimens: Default::default(),
-        details: vec![],
-    })];
+    let drivers = vec![Arc::new(Driver::empty())];
     let mut vehicle_dimens = Dimensions::default();
     vehicle_dimens.set_vehicle_id("v1");
     let vehicles = vec![Arc::new(Vehicle {

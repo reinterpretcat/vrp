@@ -21,11 +21,11 @@ pub fn empty_costs() -> Costs {
 }
 
 pub fn test_driver() -> Driver {
-    Driver { costs: test_costs(), dimens: Default::default(), details: vec![] }
+    test_driver_with_costs(test_costs())
 }
 
 pub fn test_driver_with_costs(costs: Costs) -> Driver {
-    Driver { costs, dimens: Default::default(), details: vec![] }
+    Driver { costs, ..Driver::empty() }
 }
 
 pub fn test_vehicle_detail() -> VehicleDetail {

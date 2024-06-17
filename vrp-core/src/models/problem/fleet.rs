@@ -29,21 +29,38 @@ pub struct Costs {
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct DriverDetail {}
 
-/// Represents a driver, person who drives Vehicle. Reserved for future usage, e.g. to allow
-/// reuse same vehicle more than once at different times.
+/// Represents a driver, person who drives a [`Vehicle`].
+/// Reserved for future usage, e.g., to allow reusing the same vehicle more than once at different times.
 pub struct Driver {
-    /// Specifies operating costs for driver.
+    /// Specifies operating costs for a driver.
     pub costs: Costs,
 
-    /// Dimensions which contains extra work requirements.
+    /// Dimensions that contain extra work requirements.
     pub dimens: Dimensions,
 
     /// Specifies driver details.
     pub details: Vec<DriverDetail>,
 }
 
+impl Driver {
+    /// Creates an empty driver definition.
+    pub(crate) fn empty() -> Self {
+        Self {
+            costs: Costs {
+                fixed: 0.,
+                per_distance: 0.,
+                per_driving_time: 0.,
+                per_waiting_time: 0.,
+                per_service_time: 0.,
+            },
+            dimens: Default::default(),
+            details: vec![],
+        }
+    }
+}
+
 /// Specifies a vehicle place.
-#[derive(Clone, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub struct VehiclePlace {
     /// Location of a place.
     pub location: Location,
@@ -53,16 +70,17 @@ pub struct VehiclePlace {
 }
 
 /// Represents a vehicle detail (vehicle shift).
-#[derive(Clone, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub struct VehicleDetail {
-    /// A place where vehicle starts.
+    /// A place where the vehicle starts.
     pub start: Option<VehiclePlace>,
 
-    /// A place where vehicle ends.
+    /// A place where the vehicle ends.
     pub end: Option<VehiclePlace>,
 }
 
 /// Represents a vehicle.
+#[derive(Clone, Debug)]
 pub struct Vehicle {
     /// A vehicle profile.
     pub profile: Profile,
@@ -70,7 +88,7 @@ pub struct Vehicle {
     /// Specifies operating costs for vehicle.
     pub costs: Costs,
 
-    /// Dimensions which contains extra work requirements.
+    /// Dimensions that contain extra work requirements.
     pub dimens: Dimensions,
 
     /// Specifies vehicle details.
@@ -83,19 +101,19 @@ pub struct ActorDetail {
     /// A place where actor's vehicle starts.
     pub start: Option<VehiclePlace>,
 
-    /// A place where actor's vehicle ends.
+    /// A place where the actor's vehicle ends.
     pub end: Option<VehiclePlace>,
 
-    /// Time window when actor allowed to work.
+    /// Time window when an actor allowed working.
     pub time: TimeWindow,
 }
 
 /// Represents an actor: abstraction over vehicle and driver.
 pub struct Actor {
-    /// A vehicle associated within actor.
+    /// A vehicle associated within an actor.
     pub vehicle: Arc<Vehicle>,
 
-    /// A driver associated within actor.
+    /// A driver associated within an actor.
     pub driver: Arc<Driver>,
 
     /// Specifies actor detail.
@@ -109,9 +127,6 @@ impl Debug for Actor {
             .finish_non_exhaustive()
     }
 }
-
-/// A grouping function for collection of actors.
-//pub type ActorGroupKeyFn = Box<dyn Fn(&[Arc<Actor>]) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync>>;
 
 /// Represents available resources to serve jobs.
 pub struct Fleet {

@@ -10,6 +10,7 @@ use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
 /// Specifies a type used to store any values regarding problem configuration.
+#[derive(Debug)]
 pub struct Extras {
     index: HashMap<TypeId, Arc<dyn Any + Send + Sync>, BuildHasherDefault<FxHasher>>,
 }
