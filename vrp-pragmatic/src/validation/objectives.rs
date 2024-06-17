@@ -76,8 +76,14 @@ fn check_e1604_no_jobs_with_order_objective(
     objectives: &[&Objective],
 ) -> Result<(), FormatError> {
     let has_order_objective = objectives.iter().any(|objective| matches!(objective, TourOrder { .. }));
-    let has_no_jobs_with_order =
-        !ctx.problem.plan.jobs.iter().flat_map(get_job_tasks).filter_map(|job| job.order).any(|value| value > 0);
+    let has_no_jobs_with_order = !ctx
+        .problem
+        .plan
+        .jobs
+        .iter()
+        .flat_map(|job| job.all_tasks_iter())
+        .filter_map(|job| job.order)
+        .any(|value| value > 0);
 
     if has_order_objective && has_no_jobs_with_order {
         Err(FormatError::new(
@@ -97,7 +103,7 @@ fn check_e1605_check_positive_value_and_order(ctx: &ValidationContext) -> Result
         .jobs
         .iter()
         .filter(|job| {
-            let has_invalid_order = get_job_tasks(job).filter_map(|task| task.order).any(|value| value < 1);
+            let has_invalid_order = job.all_tasks_iter().filter_map(|task| task.order).any(|value| value < 1);
             let has_invalid_value = job.value.map_or(false, |v| v < 1.);
 
             has_invalid_order || has_invalid_value

@@ -674,6 +674,18 @@ pub struct Matrix {
 
 // endregion
 
+impl Job {
+    /// Returns iterator over all tasks.
+    pub fn all_tasks_iter(&self) -> impl Iterator<Item = &JobTask> {
+        self.pickups
+            .iter()
+            .chain(self.deliveries.iter())
+            .chain(self.services.iter())
+            .chain(self.replacements.iter())
+            .flatten()
+    }
+}
+
 /// Deserializes problem in json format from `BufReader`.
 pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, MultiFormatError> {
     serde_json::from_reader(reader).map_err(|err| {

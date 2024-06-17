@@ -129,13 +129,11 @@ fn to_multi_format_error(error: GenericError) -> MultiFormatError {
 fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> ProblemProperties {
     let has_unreachable_locations = matrices.iter().any(|m| m.error_codes.is_some());
     let has_multi_dimen_capacity = api_problem.fleet.vehicles.iter().any(|t| t.capacity.len() > 1)
-        || api_problem.plan.jobs.iter().any(|job| {
-            job.pickups
-                .iter()
-                .chain(job.deliveries.iter())
-                .flat_map(|tasks| tasks.iter())
-                .any(|task| task.demand.as_ref().map_or(false, |d| d.len() > 1))
-        });
+        || api_problem
+            .plan
+            .jobs
+            .iter()
+            .any(|job| job.all_tasks_iter().any(|task| task.demand.as_ref().map_or(false, |d| d.len() > 1)));
     let has_skills = api_problem.plan.jobs.iter().any(|job| job.skills.is_some());
 
     let shift_has_fn = |shift_has: fn(&VehicleShift) -> bool| {
@@ -150,7 +148,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .plan
         .jobs
         .iter()
-        .flat_map(get_job_tasks)
+        .flat_map(|job| job.all_tasks_iter())
         .filter_map(|job_task| job_task.order)
         .any(|order| order > 0);
 
