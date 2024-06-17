@@ -8,12 +8,13 @@ use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::{CoreStateKeys, GoalContext};
 use crate::models::{Problem, Solution};
-use nohash_hasher::BuildNoHashHasher;
+use nohash_hasher::{BuildNoHashHasher, IsEnabled};
 use rosomaxa::evolution::TelemetryMetrics;
 use rosomaxa::prelude::*;
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
+use std::hash::Hasher;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -112,8 +113,16 @@ impl Debug for InsertionContext {
 }
 
 /// A state key used to retrieve state values associated with a specific activity or with the whole route.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct StateKey(usize);
+
+impl std::hash::Hash for StateKey {
+    fn hash<H: Hasher>(&self, hasher: &mut H) {
+        hasher.write_usize(self.0)
+    }
+}
+
+impl IsEnabled for StateKey {}
 
 /// A state value which can be anything.
 pub type StateValue = Arc<dyn Any + Send + Sync>;
@@ -150,7 +159,7 @@ pub struct SolutionContext {
     pub registry: RegistryContext,
 
     /// A collection of data associated with solution.
-    pub state: HashMap<StateKey, StateValue>,
+    pub state: HashMap<StateKey, StateValue, BuildNoHashHasher<StateKey>>,
 }
 
 impl SolutionContext {
