@@ -11,10 +11,11 @@ use crate::models::{Problem, Solution};
 use nohash_hasher::{BuildNoHashHasher, IsEnabled};
 use rosomaxa::evolution::TelemetryMetrics;
 use rosomaxa::prelude::*;
-use std::any::Any;
+use rustc_hash::FxHasher;
+use std::any::{Any, TypeId};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
-use std::hash::Hasher;
+use std::hash::{BuildHasherDefault, Hasher};
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -255,6 +256,7 @@ pub struct RouteContext {
 #[derive(Clone)]
 pub struct RouteState {
     route_states: HashMap<usize, StateValue, BuildNoHashHasher<usize>>,
+    index: HashMap<TypeId, Arc<dyn Any + Send + Sync>, BuildHasherDefault<FxHasher>>,
 }
 
 impl RouteContext {
@@ -339,7 +341,10 @@ impl Debug for RouteContext {
 
 impl Default for RouteState {
     fn default() -> RouteState {
-        RouteState { route_states: HashMap::with_capacity_and_hasher(4, BuildNoHashHasher::<usize>::default()) }
+        RouteState {
+            route_states: HashMap::with_capacity_and_hasher(4, BuildNoHashHasher::<usize>::default()),
+            index: HashMap::with_capacity_and_hasher(4, BuildHasherDefault::<FxHasher>::default()),
+        }
     }
 }
 
@@ -372,9 +377,40 @@ impl RouteState {
         self.route_states.insert(key.0, Arc::new(values));
     }
 
+    // TODO remove methods above and rename below
+
+    /// Gets a value associated with the tour using `K` type as a key.
+    pub fn get_tour_state_ex<K: 'static, V: Send + Sync + 'static>(&self) -> Option<&V> {
+        self.index.get(&TypeId::of::<K>()).and_then(|any| any.downcast_ref::<V>())
+    }
+
+    /// Sets the value associated with the tour using `K` type as a key.
+    pub fn set_tour_state_ex<K: 'static, V: Send + Sync + 'static>(&mut self, value: V) {
+        self.index.insert(TypeId::of::<K>(), Arc::new(value));
+    }
+
+    /// Gets value associated with a key converted to a given type.
+    pub fn get_activity_state_ex<K: 'static, V: Send + Sync + 'static>(&self, activity_idx: usize) -> Option<&V> {
+        self.index
+            .get(&TypeId::of::<K>())
+            .and_then(|s| s.downcast_ref::<Vec<V>>())
+            .and_then(|activity_states| activity_states.get(activity_idx))
+    }
+
+    /// Gets values associated with key and activities.
+    pub fn get_activity_states_ex<K: 'static, V: Send + Sync + 'static>(&self) -> Option<&Vec<V>> {
+        self.index.get(&TypeId::of::<K>()).and_then(|s| s.downcast_ref::<Vec<V>>())
+    }
+
+    /// Adds values associated with activities.
+    pub fn set_activity_states_ex<K: 'static, V: Send + Sync + 'static>(&mut self, values: Vec<V>) {
+        self.index.insert(TypeId::of::<K>(), Arc::new(values));
+    }
+
     /// Clear all states.
     pub fn clear(&mut self) {
         self.route_states.clear();
+        self.index.clear();
     }
 }
 

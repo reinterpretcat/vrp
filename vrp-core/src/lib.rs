@@ -106,6 +106,8 @@
 #[macro_use]
 pub mod helpers;
 
+#[macro_use]
+pub mod macros;
 pub mod prelude;
 
 pub mod algorithms;

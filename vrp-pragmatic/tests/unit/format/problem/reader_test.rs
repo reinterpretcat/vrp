@@ -3,6 +3,7 @@ use crate::helpers::*;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
+use vrp_core::construction::features::capacity::JobDemandDimension;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{JobIdDimension, Jobs, Multi, Place, Single, VehicleIdDimension};
 
@@ -191,7 +192,7 @@ fn can_read_complex_problem() {
     assert_eq!(place.duration, 100.);
     assert_eq!(place.location.unwrap(), 0);
     assert_demand(
-        job.dimens.get_demand().expect("cannot get demand"),
+        job.dimens.get_job_demand().expect("cannot get demand"),
         &Demand {
             pickup: (MultiDimLoad::default(), MultiDimLoad::default()),
             delivery: (MultiDimLoad::new(vec![0, 1]), MultiDimLoad::default()),
@@ -209,14 +210,14 @@ fn can_read_complex_problem() {
     let place = get_single_place(pickup.as_ref());
     assert_eq!(place.duration, 110.);
     assert_eq!(place.location.unwrap(), 1);
-    assert_demand(pickup.dimens.get_demand().unwrap(), &single_demand_as_multi((0, 2), (0, 0)));
+    assert_demand(pickup.dimens.get_job_demand().unwrap(), &single_demand_as_multi((0, 2), (0, 0)));
     assert_time_spans(&place.times, vec![(10., 30.)]);
 
     let delivery = job.jobs.last().unwrap().clone();
     let place = get_single_place(delivery.as_ref());
     assert_eq!(place.duration, 120.);
     assert_eq!(place.location.unwrap(), 0);
-    assert_demand(delivery.dimens.get_demand().unwrap(), &single_demand_as_multi((0, 0), (0, 2)));
+    assert_demand(delivery.dimens.get_job_demand().unwrap(), &single_demand_as_multi((0, 0), (0, 2)));
     assert_time_spans(&place.times, vec![(50., 60.)]);
 
     // pickup
@@ -225,7 +226,7 @@ fn can_read_complex_problem() {
     assert_eq!(job.dimens.get_job_id().unwrap(), "pickup_job");
     assert_eq!(place.duration, 90.);
     assert_eq!(place.location.unwrap(), 2);
-    assert_demand(job.dimens.get_demand().unwrap(), &single_demand_as_multi((3, 0), (0, 0)));
+    assert_demand(job.dimens.get_job_demand().unwrap(), &single_demand_as_multi((3, 0), (0, 0)));
     assert_time_spans(&place.times, vec![(10., 70.)]);
     assert_job_skills(&job.dimens, Some(vec!["unique2".to_string()]));
 

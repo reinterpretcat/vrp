@@ -39,15 +39,14 @@ pub enum MarkerInsertionPolicy {
 /// Creates a feature with multi trip functionality.
 pub fn create_multi_trip_feature(
     name: &str,
-    state_keys: Vec<StateKey>,
     violation_code: ViolationCode,
     policy: MarkerInsertionPolicy,
     multi_trip: Arc<dyn MultiTrip + Send + Sync>,
 ) -> Result<Feature, GenericError> {
     // NOTE guard from a mistake for not including an interval key. Should we just assert?
     let state_keys = match multi_trip.get_route_intervals().get_interval_key() {
-        Some(key) if !state_keys.contains(&key) => state_keys.iter().copied().chain(once(key)).collect(),
-        _ => state_keys.to_vec(),
+        Some(key) => vec![key],
+        _ => vec![],
     };
 
     FeatureBuilder::default()

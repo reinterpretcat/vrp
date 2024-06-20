@@ -5,6 +5,7 @@ use crate::format::{JobIndex, Location};
 use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
 use std::sync::Arc;
+use vrp_core::construction::features::capacity::JobDemandDimension;
 use vrp_core::construction::features::BreakPolicy;
 use vrp_core::construction::features::JobSkills as FeatureJobSkills;
 use vrp_core::models::common::*;
@@ -392,9 +393,9 @@ fn get_single_with_dimens(
     let dimens = &mut single.dimens;
 
     if has_multi_dimens {
-        dimens.set_demand(demand)
+        dimens.set_job_demand(demand)
     } else {
-        dimens.set_demand(Demand {
+        dimens.set_job_demand(Demand {
             pickup: (SingleDimLoad::new(demand.pickup.0.load[0]), SingleDimLoad::new(demand.pickup.1.load[0])),
             delivery: (SingleDimLoad::new(demand.delivery.0.load[0]), SingleDimLoad::new(demand.delivery.1.load[0])),
         })

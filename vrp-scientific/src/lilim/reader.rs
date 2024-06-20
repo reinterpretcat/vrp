@@ -6,6 +6,7 @@ use crate::common::*;
 use std::collections::HashMap;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
+use vrp_core::construction::features::capacity::JobDemandDimension;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::*;
@@ -136,7 +137,7 @@ impl<R: Read> LilimReader<R> {
         let mut dimens = create_dimens_with_id("c", &customer.id.to_string(), |id, dimens| {
             dimens.set_job_id(id);
         });
-        dimens.set_demand(if customer.demand > 0 {
+        dimens.set_job_demand(if customer.demand > 0 {
             Demand::<SingleDimLoad> {
                 pickup: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand)),
                 delivery: (SingleDimLoad::default(), SingleDimLoad::default()),

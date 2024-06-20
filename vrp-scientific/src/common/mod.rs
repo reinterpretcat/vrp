@@ -1,6 +1,5 @@
 //! Contains common text reading and writing functionality.
 
-mod aspects;
 mod text_reader;
 
 pub(crate) use self::text_reader::*;

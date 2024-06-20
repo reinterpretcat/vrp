@@ -1,7 +1,7 @@
-use crate::common::aspects::ScientificCapacityAspects;
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
+use vrp_core::construction::features::capacity::{create_capacity_limit_feature, VehicleCapacityDimension};
 use vrp_core::construction::features::*;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
@@ -67,7 +67,7 @@ pub(crate) fn create_fleet_with_distance_costs(
                 let mut dimens = create_dimens_with_id("v", &i.to_string(), |id, dimens| {
                     dimens.set_vehicle_id(id);
                 });
-                dimens.set_capacity(SingleDimLoad::new(capacity as i32));
+                dimens.set_vehicle_capacity(SingleDimLoad::new(capacity as i32));
                 Arc::new(Vehicle {
                     profile: Profile::default(),
                     costs: Costs {
@@ -138,15 +138,12 @@ fn get_essential_features(
 ) -> Result<Vec<Feature>, GenericError> {
     let schedule_keys =
         extras.get_schedule_keys().cloned().ok_or_else(|| GenericError::from("missing schedule keys set in extras"))?;
-    let capacity_keys =
-        extras.get_capacity_keys().cloned().ok_or_else(|| GenericError::from("missing capacity keys set in extras"))?;
-    let capacity_aspects = ScientificCapacityAspects::new(capacity_keys, 2);
 
     Ok(vec![
         create_minimize_unassigned_jobs_feature("min_unassigned", Arc::new(|_, _| 1.))?,
         create_minimize_tours_feature("min_tours")?,
         create_minimize_distance_feature("min_distance", transport, activity, schedule_keys, 1)?,
-        create_capacity_limit_feature::<SingleDimLoad, _>("capacity", capacity_aspects)?,
+        create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
     ])
 }
 

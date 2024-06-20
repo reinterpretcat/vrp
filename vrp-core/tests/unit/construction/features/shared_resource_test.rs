@@ -1,6 +1,7 @@
 use self::ActivityType::*;
 use super::*;
 use crate::construction::enablers::get_route_intervals;
+use crate::construction::features::capacity::{JobDemandDimension, VehicleCapacityDimension};
 use crate::helpers::construction::features::create_simple_demand;
 use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::problem::*;
@@ -24,7 +25,7 @@ fn create_resource_activity(capacity: i32, resource_id: Option<SharedResourceId>
     if let Some(resource_id) = resource_id {
         single.dimens.set_value::<ResourceIdDimenKey, _>(resource_id);
     }
-    single.dimens.set_capacity(SingleDimLoad::new(capacity));
+    single.dimens.set_vehicle_capacity(SingleDimLoad::new(capacity));
 
     Activity { job: Some(Arc::new(single)), ..ActivityBuilder::default().build() }
 }
@@ -39,7 +40,7 @@ fn create_feature(intervals_key: StateKey, resource_key: StateKey, total_jobs: u
         Arc::new(|activity| {
             activity.job.as_ref().and_then(|job| {
                 job.dimens
-                    .get_capacity()
+                    .get_vehicle_capacity()
                     .cloned()
                     .zip(job.dimens.get_value::<ResourceIdDimenKey, SharedResourceId>().cloned())
             })
@@ -68,7 +69,7 @@ fn create_route_ctx(
         .build();
     let intervals = get_route_intervals(route_ctx.route(), |activity| {
         activity.job.as_ref().map_or(false, |job| {
-            let capacity: Option<&SingleDimLoad> = job.dimens.get_capacity();
+            let capacity: Option<&SingleDimLoad> = job.dimens.get_vehicle_capacity();
             capacity.is_some()
         })
     });
@@ -108,7 +109,7 @@ fn create_interval_fn(intervals_key: StateKey) -> SharedResourceIntervalFn {
 }
 
 fn create_resource_demand_fn() -> SharedResourceDemandFn<SingleDimLoad> {
-    Arc::new(|single| single.dimens.get_demand().map(|demand| demand.delivery.0))
+    Arc::new(|single| single.dimens.get_job_demand().map(|demand| demand.delivery.0))
 }
 
 fn create_state_keys() -> (StateKey, StateKey) {

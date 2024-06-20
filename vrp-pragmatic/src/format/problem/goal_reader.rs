@@ -3,9 +3,10 @@ use crate::format::problem::aspects::*;
 use std::collections::HashSet;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::enablers::{FeatureCombinator, RouteIntervals, ScheduleKeys};
+use vrp_core::construction::features::capacity::*;
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::{StateKey, StateKeyRegistry};
-use vrp_core::models::common::{CapacityDimension, LoadOps, MultiDimLoad, SingleDimLoad};
+use vrp_core::models::common::{LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Single, TransportCost};
 use vrp_core::models::{CoreStateKeys, Extras, Feature, GoalContext, GoalContextBuilder};
 
@@ -180,7 +181,6 @@ fn get_objective_features(
                     Objective::BalanceMaxLoad { options } => {
                         let load_balance_keys = LoadBalanceKeys {
                             reload_interval: state_context.get_reload_intervals_key(),
-                            max_future_capacity: state_context.capacity_keys.max_future_capacity,
                             balance_max_load: state_context.next_key(),
                         };
                         if props.has_multi_dimen_capacity {
@@ -199,7 +199,7 @@ fn get_objective_features(
                                     max_ratio
                                 }),
                                 Arc::new(|vehicle| {
-                                    vehicle.dimens.get_capacity().expect("vehicle has no capacity defined")
+                                    vehicle.dimens.get_vehicle_capacity().expect("vehicle has no capacity defined")
                                 }),
                             )
                         } else {
@@ -209,7 +209,7 @@ fn get_objective_features(
                                 load_balance_keys,
                                 Arc::new(|loaded, capacity| loaded.value as f64 / capacity.value as f64),
                                 Arc::new(|vehicle| {
-                                    vehicle.dimens.get_capacity().expect("vehicle has no capacity defined")
+                                    vehicle.dimens.get_vehicle_capacity().expect("vehicle has no capacity defined")
                                 }),
                             )
                         }
@@ -291,7 +291,6 @@ fn get_capacity_feature(
     props: &ProblemProperties,
     state_context: &mut StateKeyContext,
 ) -> Result<Feature, GenericError> {
-    let capacity_keys = state_context.capacity_keys.clone();
     if props.has_reloads {
         if props.has_multi_dimen_capacity {
             get_capacity_with_reload_feature::<MultiDimLoad>(
@@ -313,15 +312,9 @@ fn get_capacity_feature(
             )
         }
     } else if props.has_multi_dimen_capacity {
-        create_capacity_limit_feature::<MultiDimLoad, _>(
-            name,
-            PragmaticCapacityAspects::new(capacity_keys, CAPACITY_CONSTRAINT_CODE),
-        )
+        create_capacity_limit_feature::<MultiDimLoad>(name, CAPACITY_CONSTRAINT_CODE)
     } else {
-        create_capacity_limit_feature::<SingleDimLoad, _>(
-            name,
-            PragmaticCapacityAspects::new(capacity_keys, CAPACITY_CONSTRAINT_CODE),
-        )
+        create_capacity_limit_feature::<SingleDimLoad>(name, CAPACITY_CONSTRAINT_CODE)
     }
 }
 
@@ -372,15 +365,10 @@ fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(
     capacity_map: fn(Vec<i32>) -> T,
     load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
 ) -> Result<Feature, GenericError> {
-    let capacity_keys = state_context.capacity_keys.clone();
     let job_index = blocks.job_index.as_ref().ok_or("misconfiguration in goal reader: job index is not set")?;
     let reload_resources = get_reload_resources(api_problem, job_index, capacity_map);
     let capacity_feature_factory: CapacityFeatureFactoryFn = Box::new(move |name, route_intervals| {
-        create_capacity_limit_with_multi_trip_feature::<T, _>(
-            name,
-            route_intervals,
-            PragmaticCapacityAspects::new(capacity_keys, CAPACITY_CONSTRAINT_CODE),
-        )
+        create_capacity_limit_with_multi_trip_feature::<T>(name, route_intervals, CAPACITY_CONSTRAINT_CODE)
     });
 
     let reload_keys = state_context.get_reload_keys();
@@ -602,15 +590,13 @@ struct StateKeyContext<'a> {
     state_registry: &'a mut StateKeyRegistry,
     reload_intervals: Option<StateKey>,
     schedule_keys: ScheduleKeys,
-    capacity_keys: CapacityKeys,
 }
 
 impl<'a> StateKeyContext<'a> {
     pub fn new(extras: &Extras, state_registry: &'a mut StateKeyRegistry) -> Self {
         let schedule_keys = extras.get_schedule_keys().cloned().expect("schedule keys are missing in extras");
-        let capacity_keys = extras.get_capacity_keys().cloned().expect("capacity keys are missing in extras");
 
-        Self { state_registry, reload_intervals: None, capacity_keys, schedule_keys }
+        Self { state_registry, reload_intervals: None, schedule_keys }
     }
 
     pub fn next_key(&mut self) -> StateKey {
@@ -626,6 +612,6 @@ impl<'a> StateKeyContext<'a> {
     }
 
     pub fn get_reload_keys(&mut self) -> ReloadKeys {
-        ReloadKeys { intervals: self.get_reload_intervals_key(), capacity_keys: self.capacity_keys.clone() }
+        ReloadKeys { intervals: self.get_reload_intervals_key() }
     }
 }

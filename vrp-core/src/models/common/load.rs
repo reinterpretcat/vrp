@@ -2,7 +2,6 @@
 #[path = "../../../tests/unit/models/common/load_test.rs"]
 mod load_test;
 
-use crate::models::common::Dimensions;
 use rosomaxa::prelude::UnwrapValue;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Formatter};
@@ -66,22 +65,6 @@ pub enum DemandType {
     Mixed,
 }
 
-/// A trait to get or set vehicle's capacity.
-pub trait CapacityDimension<T: LoadOps> {
-    /// Sets capacity.
-    fn set_capacity(&mut self, demand: T) -> &mut Self;
-    /// Gets capacity.
-    fn get_capacity(&self) -> Option<&T>;
-}
-
-/// A trait to get or set demand.
-pub trait DemandDimension<T: LoadOps> {
-    /// Sets demand.
-    fn set_demand(&mut self, demand: Demand<T>) -> &mut Self;
-    /// Gets demand.
-    fn get_demand(&self) -> Option<&Demand<T>>;
-}
-
 impl<T: LoadOps> Demand<T> {
     /// Returns capacity change as difference between pickup and delivery.
     pub fn change(&self) -> T {
@@ -109,30 +92,6 @@ impl<T: LoadOps> Add for Demand<T> {
             pickup: (self.pickup.0 + rhs.pickup.0, self.pickup.1 + rhs.pickup.1),
             delivery: (self.delivery.0 + rhs.delivery.0, self.delivery.1 + rhs.delivery.1),
         }
-    }
-}
-
-struct CapacityDimenKey;
-impl<T: LoadOps> CapacityDimension<T> for Dimensions {
-    fn set_capacity(&mut self, demand: T) -> &mut Self {
-        self.set_value::<CapacityDimenKey, _>(demand);
-        self
-    }
-
-    fn get_capacity(&self) -> Option<&T> {
-        self.get_value::<CapacityDimenKey, _>()
-    }
-}
-
-struct DemandDimenKey;
-impl<T: LoadOps> DemandDimension<T> for Dimensions {
-    fn set_demand(&mut self, demand: Demand<T>) -> &mut Self {
-        self.set_value::<DemandDimenKey, _>(demand);
-        self
-    }
-
-    fn get_demand(&self) -> Option<&Demand<T>> {
-        self.get_value::<DemandDimenKey, _>()
     }
 }
 

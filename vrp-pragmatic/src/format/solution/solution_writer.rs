@@ -7,6 +7,7 @@ use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::CoordIndex;
 use vrp_core::construction::enablers::{get_route_intervals, ReservedTimesIndex};
+use vrp_core::construction::features::capacity::JobDemandDimension;
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{JobIdDimension, Multi, TravelTime, VehicleIdDimension};
@@ -405,7 +406,7 @@ fn get_activity_type(activity: &Activity) -> Option<&String> {
 
 fn get_capacity(dimens: &Dimensions) -> Option<Demand<MultiDimLoad>> {
     // NOTE: try to detect whether dimensions stores multidimensional demand
-    let demand: Option<Demand<MultiDimLoad>> = dimens.get_demand().cloned();
+    let demand: Option<Demand<MultiDimLoad>> = dimens.get_job_demand().cloned();
     if let Some(demand) = demand {
         return Some(demand);
     }
@@ -417,7 +418,7 @@ fn get_capacity(dimens: &Dimensions) -> Option<Demand<MultiDimLoad>> {
             MultiDimLoad::new(vec![capacity.value])
         }
     };
-    dimens.get_demand().map(|demand: &Demand<SingleDimLoad>| Demand {
+    dimens.get_job_demand().map(|demand: &Demand<SingleDimLoad>| Demand {
         pickup: (create_capacity(demand.pickup.0), create_capacity(demand.pickup.1)),
         delivery: (create_capacity(demand.delivery.0), create_capacity(demand.delivery.1)),
     })

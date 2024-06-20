@@ -1,3 +1,4 @@
+use vrp_core::construction::features::capacity::{JobDemandDimension, VehicleCapacityDimension};
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, JobIdDimension};
@@ -36,7 +37,7 @@ pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec
 }
 
 pub fn get_vehicle_capacity(problem: &Problem) -> i32 {
-    let capacity: &SingleDimLoad = problem.fleet.vehicles.first().unwrap().dimens.get_capacity().unwrap();
+    let capacity: &SingleDimLoad = problem.fleet.vehicles.first().unwrap().dimens.get_vehicle_capacity().unwrap();
     capacity.value
 }
 
@@ -83,6 +84,6 @@ pub fn get_job_simple_demand(job: &Job) -> &Demand<SingleDimLoad> {
         Job::Single(single) => &single.dimens,
         Job::Multi(multi) => &multi.dimens,
     }
-    .get_demand()
+    .get_job_demand()
     .unwrap()
 }

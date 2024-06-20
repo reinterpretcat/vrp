@@ -10,7 +10,6 @@ use crate::construction::enablers::*;
 use crate::models::solution::Route;
 use std::cmp::Ordering;
 use std::collections::HashSet;
-use std::iter::once;
 use std::sync::Arc;
 
 /// Specifies dependencies needed to use recharge feature.
@@ -45,12 +44,6 @@ pub struct RechargeKeys {
     pub intervals: StateKey,
 }
 
-impl RechargeKeys {
-    fn iter(&self) -> impl Iterator<Item = StateKey> {
-        once(self.distance).chain(once(self.intervals))
-    }
-}
-
 /// Creates a feature to insert charge stations along the route.
 pub fn create_recharge_feature<T: RechargeAspects + 'static>(
     name: &str,
@@ -70,7 +63,6 @@ pub fn create_recharge_feature<T: RechargeAspects + 'static>(
 
     create_multi_trip_feature(
         name,
-        recharge_keys.iter().collect(),
         code,
         MarkerInsertionPolicy::Any,
         Arc::new(RechargeableMultiTrip {

@@ -1,3 +1,4 @@
+use crate::construction::features::capacity::MaxVehicleLoadTourState;
 use crate::construction::heuristics::*;
 use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::solution::RouteContextBuilder;
@@ -15,22 +16,22 @@ fn create_insertion_ctx(
     ctx
 }
 
-fn create_route_ctx_with_route_state(key: StateKey, value: f64) -> RouteContext {
+fn create_route_ctx_with_route_state(state_fn: impl FnOnce(&mut RouteState)) -> RouteContext {
     let mut ctx = RouteContextBuilder::default().build();
-    ctx.state_mut().put_route_state(key, value);
+    state_fn(ctx.state_mut());
     ctx
 }
 
 #[test]
 fn can_get_max_load_variance() {
-    let insertion_ctx = create_insertion_ctx(4, &|problem, idx| {
+    let insertion_ctx = create_insertion_ctx(4, &|_, idx| {
         let value = match idx {
             0 => 5.,
             1 => 3.,
             2 => 0.,
             _ => 7.,
         };
-        create_route_ctx_with_route_state(problem.extras.get_capacity_keys().unwrap().max_load, value)
+        create_route_ctx_with_route_state(|state| state.set_max_vehicle_load(value))
     });
 
     let variance = get_max_load_variance(&insertion_ctx);
@@ -46,7 +47,9 @@ fn can_get_duration_mean() {
             1 => 2.,
             _ => 7.,
         };
-        create_route_ctx_with_route_state(problem.extras.get_schedule_keys().unwrap().total_duration, value)
+        create_route_ctx_with_route_state(|state| {
+            state.put_route_state(problem.extras.get_schedule_keys().unwrap().total_duration, value)
+        })
     });
 
     let mean = get_duration_mean(&insertion_ctx);
@@ -62,7 +65,9 @@ fn can_get_distance_mean() {
             1 => 2.,
             _ => 11.,
         };
-        create_route_ctx_with_route_state(problem.extras.get_schedule_keys().unwrap().total_distance, value)
+        create_route_ctx_with_route_state(|state| {
+            state.put_route_state(problem.extras.get_schedule_keys().unwrap().total_distance, value)
+        })
     });
 
     let mean = get_distance_mean(&insertion_ctx);

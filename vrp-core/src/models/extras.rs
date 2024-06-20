@@ -1,5 +1,4 @@
 use crate::construction::enablers::ScheduleKeys;
-use crate::construction::features::CapacityKeys;
 use crate::construction::heuristics::StateKeyRegistry;
 use crate::solver::HeuristicKeys;
 use rosomaxa::prelude::GenericError;
@@ -59,7 +58,6 @@ impl ExtrasBuilder {
 
         builder
             .with_schedule_keys(ScheduleKeys::from(&mut *state_registry))
-            .with_capacity_keys(CapacityKeys::from(&mut *state_registry))
             .with_heuristic_keys(HeuristicKeys::from(&mut *state_registry));
 
         builder
@@ -68,12 +66,6 @@ impl ExtrasBuilder {
     /// Adds schedule keys.
     pub fn with_schedule_keys(&mut self, schedule_keys: ScheduleKeys) -> &mut Self {
         self.0.set_value::<ScheduleKeys, _>(schedule_keys);
-        self
-    }
-
-    /// Adds capacity keys.
-    pub fn with_capacity_keys(&mut self, capacity_keys: CapacityKeys) -> &mut Self {
-        self.0.set_value::<CapacityKeys, _>(capacity_keys);
         self
     }
 
@@ -119,9 +111,6 @@ pub trait CoreStateKeys {
     /// Get state keys for scheduling.
     fn get_schedule_keys(&self) -> Option<&ScheduleKeys>;
 
-    /// Gets state keys for capacity feature.
-    fn get_capacity_keys(&self) -> Option<&CapacityKeys>;
-
     /// Gets state keys for heuristic.
     fn get_heuristic_keys(&self) -> Option<&HeuristicKeys>;
 }
@@ -129,10 +118,6 @@ pub trait CoreStateKeys {
 impl CoreStateKeys for Extras {
     fn get_schedule_keys(&self) -> Option<&ScheduleKeys> {
         self.get_value::<ScheduleKeys, _>()
-    }
-
-    fn get_capacity_keys(&self) -> Option<&CapacityKeys> {
-        self.get_value::<CapacityKeys, _>()
     }
 
     fn get_heuristic_keys(&self) -> Option<&HeuristicKeys> {

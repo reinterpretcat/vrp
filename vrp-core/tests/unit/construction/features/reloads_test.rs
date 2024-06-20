@@ -1,23 +1,20 @@
 use super::*;
+use crate::construction::features::capacity::create_capacity_limit_with_multi_trip_feature;
 use crate::helpers::construction::features::single_demand_as_multi;
 use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::problem::{test_driver, FleetBuilder, SingleBuilder, VehicleBuilder};
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::models::solution::Activity;
-use std::marker::PhantomData;
 
 const VIOLATION_CODE: ViolationCode = 1;
 
-#[derive(Clone)]
-struct TestReloadAspects<T: LoadOps> {
-    capacity_keys: CapacityKeys,
-    phantom: PhantomData<T>,
-}
+#[derive(Clone, Default)]
+struct TestReloadAspects {}
 
 struct VehicleIdDimenKey;
 struct JobTypeDimenKey;
 
-impl<T: LoadOps> ReloadAspects<T> for TestReloadAspects<T> {
+impl ReloadAspects for TestReloadAspects {
     fn belongs_to_route(&self, route: &Route, job: &Job) -> bool {
         job.as_single()
             .filter(|single| self.is_reload_single(single.as_ref()))
@@ -28,36 +25,6 @@ impl<T: LoadOps> ReloadAspects<T> for TestReloadAspects<T> {
 
     fn is_reload_single(&self, single: &Single) -> bool {
         single.dimens.get_value::<JobTypeDimenKey, String>().map_or(false, |job_type| job_type == "reload")
-    }
-
-    fn get_capacity<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a T> {
-        vehicle.dimens.get_capacity()
-    }
-
-    fn get_demand<'a>(&self, single: &'a Single) -> Option<&'a Demand<T>> {
-        single.dimens.get_demand()
-    }
-}
-
-impl<T: LoadOps> CapacityAspects<T> for TestReloadAspects<T> {
-    fn get_capacity<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a T> {
-        vehicle.dimens.get_capacity()
-    }
-
-    fn get_demand<'a>(&self, single: &'a Single) -> Option<&'a Demand<T>> {
-        single.dimens.get_demand()
-    }
-
-    fn set_demand(&self, single: &mut Single, demand: Demand<T>) {
-        single.dimens.set_demand(demand);
-    }
-
-    fn get_state_keys(&self) -> &CapacityKeys {
-        &self.capacity_keys
-    }
-
-    fn get_violation_code(&self) -> ViolationCode {
-        VIOLATION_CODE
     }
 }
 
@@ -111,7 +78,7 @@ fn create_route_context(capacity: Vec<i32>, activities: Vec<Activity>) -> RouteC
 
 fn create_reload_keys() -> ReloadKeys {
     let mut state_registry = StateKeyRegistry::default();
-    ReloadKeys { intervals: state_registry.next_key(), capacity_keys: CapacityKeys::from(&mut state_registry) }
+    ReloadKeys { intervals: state_registry.next_key() }
 }
 
 #[test]
@@ -122,18 +89,13 @@ fn can_handle_reload_jobs_with_merge() {
     let feature = create_simple_reload_multi_trip_feature(
         "reload",
         {
-            let reload_keys = reload_keys.clone();
             Box::new(move |name, route_intervals| {
-                create_capacity_limit_with_multi_trip_feature::<SingleDimLoad, _>(
-                    name,
-                    route_intervals,
-                    TestReloadAspects { capacity_keys: reload_keys.capacity_keys, phantom: Default::default() },
-                )
+                create_capacity_limit_with_multi_trip_feature::<SingleDimLoad>(name, route_intervals, VIOLATION_CODE)
             })
         },
         Box::new(|_| SingleDimLoad::default()),
         reload_keys.clone(),
-        TestReloadAspects { capacity_keys: reload_keys.capacity_keys, phantom: Default::default() },
+        TestReloadAspects::default(),
     );
     let constraint = feature.unwrap().constraint.unwrap();
 
@@ -272,18 +234,13 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
     let reload_feature = create_simple_reload_multi_trip_feature::<MultiDimLoad, _>(
         "reload",
         Box::new({
-            let capacity_keys = reload_keys.capacity_keys.clone();
             move |name, route_intervals| {
-                create_capacity_limit_with_multi_trip_feature::<MultiDimLoad, _>(
-                    name,
-                    route_intervals,
-                    TestReloadAspects { capacity_keys, phantom: Default::default() },
-                )
+                create_capacity_limit_with_multi_trip_feature::<MultiDimLoad>(name, route_intervals, VIOLATION_CODE)
             }
         }),
         Box::new(move |capacity| *capacity * threshold),
         reload_keys.clone(),
-        TestReloadAspects { capacity_keys: reload_keys.capacity_keys, phantom: Default::default() },
+        TestReloadAspects::default(),
     )
     .unwrap();
     let min_jobs_feature = create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.)).unwrap();
@@ -333,13 +290,13 @@ fn can_handle_new_interval_needed_for_multi_dim_load_impl(
         reload_keys.clone(),
         Box::new(move |capacity| *capacity * threshold),
         None,
-        TestReloadAspects { capacity_keys: reload_keys.capacity_keys.clone(), phantom: Default::default() },
+        TestReloadAspects::default(),
     );
     let mut route_ctx = create_route_context(vehicle_capacity, Vec::default());
     let (route, state) = route_ctx.as_mut();
     let mut current_capacities = vec![MultiDimLoad::default(); route.tour.total()];
     current_capacities[route.tour.end_idx().unwrap()] = MultiDimLoad::new(current_capacity);
-    state.put_activity_states(reload_keys.capacity_keys.max_past_capacity, current_capacities);
+    state.set_max_past_capacity_states(current_capacities);
 
     let result = route_intervals.is_new_interval_needed(&route_ctx);
 

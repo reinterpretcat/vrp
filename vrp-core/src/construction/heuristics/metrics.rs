@@ -2,7 +2,8 @@
 #[path = "../../../tests/unit/construction/heuristics/metrics_test.rs"]
 mod metrics_test;
 
-use crate::construction::heuristics::{InsertionContext, RouteContext, StateKey};
+use crate::construction::features::capacity::MaxVehicleLoadTourState;
+use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState};
 use crate::models::problem::{TransportCost, TravelTime};
 use crate::models::CoreStateKeys;
 use rosomaxa::algorithms::math::*;
@@ -11,40 +12,25 @@ use std::cmp::Ordering;
 
 /// Gets max load variance in tours.
 pub fn get_max_load_variance(insertion_ctx: &InsertionContext) -> f64 {
-    let max_load_key = if let Some(capacity_keys) = insertion_ctx.problem.extras.get_capacity_keys() {
-        capacity_keys.max_load
-    } else {
-        return 0.;
-    };
-
-    get_variance(get_values_from_route_state(insertion_ctx, max_load_key).collect::<Vec<_>>().as_slice())
+    get_variance(
+        get_values_from_route_state(insertion_ctx, |state| state.get_max_vehicle_load()).collect::<Vec<_>>().as_slice(),
+    )
 }
 
 /// Gets max load mean in tours.
 pub fn get_max_load_mean(insertion_ctx: &InsertionContext) -> f64 {
-    let max_load_key = if let Some(capacity_keys) = insertion_ctx.problem.extras.get_capacity_keys() {
-        capacity_keys.max_load
-    } else {
-        return 0.;
-    };
-
-    get_mean_iter(get_values_from_route_state(insertion_ctx, max_load_key))
+    get_mean_iter(get_values_from_route_state(insertion_ctx, |state| state.get_max_vehicle_load()))
 }
 
 /// Gets tours with max_load at least 0.9.
 pub fn get_full_load_ratio(insertion_ctx: &InsertionContext) -> f64 {
-    let max_load_key = if let Some(capacity_keys) = insertion_ctx.problem.extras.get_capacity_keys() {
-        capacity_keys.max_load
-    } else {
-        return 0.;
-    };
-
     let total = insertion_ctx.solution.routes.len();
     if total == 0 {
         0.
     } else {
-        let full_capacity =
-            get_values_from_route_state(insertion_ctx, max_load_key).filter(|&max_load| max_load > 0.9).count();
+        let full_capacity = get_values_from_route_state(insertion_ctx, |state| state.get_max_vehicle_load())
+            .filter(|&max_load| max_load > 0.9)
+            .count();
 
         full_capacity as f64 / total as f64
     }
@@ -70,7 +56,7 @@ pub fn get_duration_mean(insertion_ctx: &InsertionContext) -> f64 {
         return 0.;
     };
 
-    get_mean_iter(get_values_from_route_state(insertion_ctx, total_duration_key))
+    get_mean_iter(get_values_from_route_state(insertion_ctx, |state| state.get_route_state(total_duration_key)))
 }
 
 /// Gets mean of route distances.
@@ -81,7 +67,7 @@ pub fn get_distance_mean(insertion_ctx: &InsertionContext) -> f64 {
         return 0.;
     };
 
-    get_mean_iter(get_values_from_route_state(insertion_ctx, total_distance_key))
+    get_mean_iter(get_values_from_route_state(insertion_ctx, |state| state.get_route_state(total_distance_key)))
 }
 
 /// Gets mean of future waiting time.
@@ -285,15 +271,15 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProxi
     )
 }
 
-fn get_values_from_route_state(
-    insertion_ctx: &InsertionContext,
-    state_key: StateKey,
-) -> impl Iterator<Item = f64> + '_ {
+fn get_values_from_route_state<'a>(
+    insertion_ctx: &'a InsertionContext,
+    state_value_fn: impl Fn(&'a RouteState) -> Option<&f64> + 'a,
+) -> impl Iterator<Item = f64> + 'a {
     insertion_ctx
         .solution
         .routes
         .iter()
-        .map(move |route_ctx| route_ctx.state().get_route_state::<f64>(state_key).cloned().unwrap_or(0.))
+        .map(move |route_ctx| state_value_fn(route_ctx.state()).copied().unwrap_or_default())
 }
 
 /// Gets medoid location of given route context.

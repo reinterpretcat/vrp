@@ -11,8 +11,7 @@ use std::sync::Arc;
 mod breaks;
 pub use self::breaks::*;
 
-mod capacity;
-pub use self::capacity::*;
+pub mod capacity;
 
 mod compatibility;
 pub use self::compatibility::*;

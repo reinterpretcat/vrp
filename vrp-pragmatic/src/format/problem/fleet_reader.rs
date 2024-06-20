@@ -10,6 +10,7 @@ use crate::Location as ApiLocation;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use vrp_core::construction::enablers::create_typed_actor_groups;
+use vrp_core::construction::features::capacity::VehicleCapacityDimension;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 
@@ -148,9 +149,9 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                 }
 
                 if props.has_multi_dimen_capacity {
-                    dimens.set_capacity(MultiDimLoad::new(vehicle.capacity.clone()));
+                    dimens.set_vehicle_capacity(MultiDimLoad::new(vehicle.capacity.clone()));
                 } else {
-                    dimens.set_capacity(SingleDimLoad::new(*vehicle.capacity.first().unwrap()));
+                    dimens.set_vehicle_capacity(SingleDimLoad::new(*vehicle.capacity.first().unwrap()));
                 }
 
                 if let Some(skills) = vehicle.skills.as_ref() {

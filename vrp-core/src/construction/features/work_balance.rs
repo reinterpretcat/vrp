@@ -1,6 +1,7 @@
 //! Provides features to balance work.
 
 use super::*;
+use crate::construction::features::capacity::MaxFutureCapacityActivityState;
 use crate::models::common::LoadOps;
 use rosomaxa::algorithms::math::get_cv_safe;
 use std::cmp::Ordering;
@@ -16,8 +17,6 @@ pub type VehicleCapacityFn<T> = Arc<dyn Fn(&Vehicle) -> &T + Send + Sync>;
 pub struct LoadBalanceKeys {
     /// A key which tracks reload intervals.
     pub reload_interval: StateKey,
-    /// A key which tracks maximum vehicle capacity ahead in route.
-    pub max_future_capacity: StateKey,
     /// A key for balancing max load.
     pub balance_max_load: StateKey,
 }
@@ -42,12 +41,7 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
 
         intervals
             .iter()
-            .map(|(start_idx, _)| {
-                route_ctx
-                    .state()
-                    .get_activity_state::<T>(feature_keys.max_future_capacity, *start_idx)
-                    .unwrap_or(&default_capacity)
-            })
+            .map(|(start_idx, _)| route_ctx.state().get_max_future_capacity_at(*start_idx).unwrap_or(&default_capacity))
             .map(|max_load| (load_balance_fn)(max_load, capacity))
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less))
             .unwrap_or(0_f64)

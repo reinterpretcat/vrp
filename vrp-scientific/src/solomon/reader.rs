@@ -5,6 +5,7 @@ mod reader_test;
 use crate::common::*;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
+use vrp_core::construction::features::capacity::JobDemandDimension;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::*;
@@ -98,7 +99,7 @@ impl<R: Read> SolomonReader<R> {
             match self.read_customer() {
                 Ok(customer) => {
                     let mut dimens = Dimensions::default();
-                    dimens.set_job_id(customer.id.to_string().as_str()).set_demand(Demand::<SingleDimLoad> {
+                    dimens.set_job_id(customer.id.to_string().as_str()).set_job_demand(Demand::<SingleDimLoad> {
                         pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
                         delivery: (SingleDimLoad::new(customer.demand as i32), SingleDimLoad::default()),
                     });

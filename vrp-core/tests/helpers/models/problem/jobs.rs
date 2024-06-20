@@ -1,3 +1,4 @@
+use crate::construction::features::capacity::JobDemandDimension;
 use crate::models::common::*;
 use crate::models::problem::{FixedJobPermutation, Job, JobIdDimension, Multi, Place, Single};
 use std::sync::Arc;
@@ -82,7 +83,7 @@ impl SingleBuilder {
     }
 
     pub fn demand<T: LoadOps>(&mut self, demand: Demand<T>) -> &mut Self {
-        self.0.dimens.set_demand(demand);
+        self.0.dimens.set_job_demand(demand);
         self
     }
 

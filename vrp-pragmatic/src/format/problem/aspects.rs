@@ -1,6 +1,6 @@
 use crate::format::*;
 use std::collections::HashSet;
-use std::marker::PhantomData;
+use vrp_core::construction::features::capacity::JobDemandDimension;
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::{RouteContext, StateKey};
 use vrp_core::models::common::*;
@@ -30,42 +30,6 @@ impl BreakAspects for PragmaticBreakAspects {
 
     fn get_policy(&self, candidate: BreakCandidate<'_>) -> Option<BreakPolicy> {
         candidate.as_single().and_then(|single| single.dimens.get_break_policy().cloned())
-    }
-}
-
-/// Provides a way to use capacity feature.
-pub struct PragmaticCapacityAspects<T: LoadOps> {
-    state_keys: CapacityKeys,
-    violation_code: ViolationCode,
-    phantom: PhantomData<T>,
-}
-
-impl<T: LoadOps> PragmaticCapacityAspects<T> {
-    /// Creates a new instance of `PragmaticCapacityAspects`.
-    pub fn new(state_keys: CapacityKeys, violation_code: ViolationCode) -> Self {
-        Self { state_keys, violation_code, phantom: Default::default() }
-    }
-}
-
-impl<T: LoadOps> CapacityAspects<T> for PragmaticCapacityAspects<T> {
-    fn get_capacity<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a T> {
-        vehicle.dimens.get_capacity()
-    }
-
-    fn get_demand<'a>(&self, single: &'a Single) -> Option<&'a Demand<T>> {
-        single.dimens.get_demand()
-    }
-
-    fn set_demand(&self, single: &mut Single, demand: Demand<T>) {
-        single.dimens.set_demand(demand);
-    }
-
-    fn get_state_keys(&self) -> &CapacityKeys {
-        &self.state_keys
-    }
-
-    fn get_violation_code(&self) -> ViolationCode {
-        self.violation_code
     }
 }
 
@@ -114,8 +78,8 @@ impl FastServiceAspects for PragmaticFastServiceAspects {
     }
 
     fn get_demand_type(&self, single: &Single) -> Option<DemandType> {
-        let demand_single: Option<&Demand<SingleDimLoad>> = single.dimens.get_demand();
-        let demand_multi: Option<&Demand<MultiDimLoad>> = single.dimens.get_demand();
+        let demand_single: Option<&Demand<SingleDimLoad>> = single.dimens.get_job_demand();
+        let demand_multi: Option<&Demand<MultiDimLoad>> = single.dimens.get_job_demand();
 
         demand_single.map(|d| d.get_type()).or_else(|| demand_multi.map(|d| d.get_type()))
     }
@@ -193,11 +157,9 @@ impl RechargeAspects for PragmaticRechargeAspects {
 
 /// Provides a way to use reload feature.
 #[derive(Clone, Default)]
-pub struct PragmaticReloadAspects<T> {
-    phantom: PhantomData<T>,
-}
+pub struct PragmaticReloadAspects {}
 
-impl<T: LoadOps> ReloadAspects<T> for PragmaticReloadAspects<T> {
+impl ReloadAspects for PragmaticReloadAspects {
     fn belongs_to_route(&self, route: &Route, job: &Job) -> bool {
         job.as_single()
             .map_or(false, |single| self.is_reload_single(single.as_ref()) && is_correct_vehicle(route, single))
@@ -205,14 +167,6 @@ impl<T: LoadOps> ReloadAspects<T> for PragmaticReloadAspects<T> {
 
     fn is_reload_single(&self, single: &Single) -> bool {
         single.dimens.get_job_type().map_or(false, |job_type| job_type == "reload")
-    }
-
-    fn get_capacity<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a T> {
-        vehicle.dimens.get_capacity()
-    }
-
-    fn get_demand<'a>(&self, single: &'a Single) -> Option<&'a Demand<T>> {
-        single.dimens.get_demand()
     }
 }
 

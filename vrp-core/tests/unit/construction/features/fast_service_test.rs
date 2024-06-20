@@ -1,4 +1,5 @@
 use super::*;
+use crate::construction::features::capacity::JobDemandDimension;
 use crate::helpers::construction::heuristics::create_state_key;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
@@ -13,7 +14,7 @@ impl FastServiceAspects for TestFastServiceAspects {
     }
 
     fn get_demand_type(&self, single: &Single) -> Option<DemandType> {
-        single.dimens.get_demand().map(|demand: &Demand<SingleDimLoad>| demand.get_type())
+        single.dimens.get_job_demand().map(|demand: &Demand<SingleDimLoad>| demand.get_type())
     }
 }
 

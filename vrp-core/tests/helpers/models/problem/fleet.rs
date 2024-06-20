@@ -1,3 +1,4 @@
+use crate::construction::features::capacity::VehicleCapacityDimension;
 use crate::models::common::*;
 use crate::models::problem::*;
 use std::collections::{HashMap, HashSet};
@@ -93,12 +94,12 @@ impl VehicleBuilder {
     }
 
     pub fn capacity(&mut self, capacity: i32) -> &mut VehicleBuilder {
-        self.0.dimens.set_capacity(SingleDimLoad::new(capacity));
+        self.0.dimens.set_vehicle_capacity(SingleDimLoad::new(capacity));
         self
     }
 
     pub fn capacity_mult(&mut self, capacity: Vec<i32>) -> &mut VehicleBuilder {
-        self.0.dimens.set_capacity(MultiDimLoad::new(capacity));
+        self.0.dimens.set_vehicle_capacity(MultiDimLoad::new(capacity));
         self
     }
 

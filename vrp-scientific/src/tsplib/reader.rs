@@ -6,6 +6,7 @@ use crate::common::*;
 use std::collections::HashMap;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
+use vrp_core::construction::features::capacity::JobDemandDimension;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::*;
@@ -210,7 +211,7 @@ impl<R: Read> TsplibReader<R> {
 
     fn create_job(&mut self, id: &str, location: (i32, i32), demand: i32) -> Job {
         let mut dimens = Dimensions::default();
-        dimens.set_job_id(id).set_demand(Demand::<SingleDimLoad> {
+        dimens.set_job_id(id).set_job_demand(Demand::<SingleDimLoad> {
             pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
             delivery: (SingleDimLoad::new(demand), SingleDimLoad::default()),
         });
