@@ -1,13 +1,15 @@
 use super::*;
 use crate::format::problem::aspects::*;
 use std::collections::HashSet;
+use std::ops::Mul;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
-use vrp_core::construction::enablers::{FeatureCombinator, RouteIntervals, ScheduleKeys};
+use vrp_core::construction::enablers::{FeatureCombinator, ScheduleKeys};
 use vrp_core::construction::features::capacity::*;
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::{StateKey, StateKeyRegistry};
-use vrp_core::models::common::{LoadOps, MultiDimLoad, SingleDimLoad};
+use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Single, TransportCost};
+use vrp_core::models::solution::Route;
 use vrp_core::models::{CoreStateKeys, Extras, Feature, GoalContext, GoalContextBuilder};
 
 pub(super) fn create_goal_context(
@@ -32,7 +34,7 @@ pub(super) fn create_goal_context(
         features.push(create_reachable_feature("reachable", blocks.transport.clone(), REACHABLE_CONSTRAINT_CODE)?)
     }
 
-    features.push(get_capacity_feature("capacity", api_problem, blocks, props, &mut state_context)?);
+    features.push(get_capacity_feature("capacity", api_problem, blocks, props)?);
 
     if props.has_tour_travel_limits {
         features.push(get_tour_limit_feature("tour_limit", api_problem, blocks.transport.clone(), &mut state_context)?)
@@ -43,7 +45,7 @@ pub(super) fn create_goal_context(
     }
 
     if props.has_recharges {
-        features.push(get_recharge_feature("recharge", api_problem, blocks.transport.clone(), &mut state_context)?);
+        features.push(get_recharge_feature("recharge", api_problem, blocks.transport.clone())?);
     }
 
     if props.has_order && !global_objective_map.iter().any(|name| *name == "tour_order") {
@@ -179,10 +181,7 @@ fn get_objective_features(
                     ),
                     Objective::MinimizeArrivalTime => create_minimize_arrival_time_feature("min_arrival_time"),
                     Objective::BalanceMaxLoad { options } => {
-                        let load_balance_keys = LoadBalanceKeys {
-                            reload_interval: state_context.get_reload_intervals_key(),
-                            balance_max_load: state_context.next_key(),
-                        };
+                        let load_balance_keys = LoadBalanceKeys { balance_max_load: state_context.next_key() };
                         if props.has_multi_dimen_capacity {
                             create_max_load_balanced_feature::<MultiDimLoad>(
                                 "max_load_balance",
@@ -256,7 +255,7 @@ fn get_objective_features(
                         create_tour_order_soft_feature("tour_order", state_context.next_key(), get_tour_order_fn())
                     }
                     Objective::FastService { tolerance } => {
-                        get_fast_service_feature("fast_service", blocks, props, *tolerance, state_context)
+                        get_fast_service_feature("fast_service", blocks, *tolerance)
                     }
                 })
                 .collect()
@@ -282,34 +281,20 @@ fn get_objectives(api_problem: &ApiProblem, props: &ProblemProperties) -> Vec<Ve
     }
 }
 
-const RELOAD_THRESHOLD: f64 = 0.9;
-
 fn get_capacity_feature(
     name: &str,
     api_problem: &ApiProblem,
     blocks: &ProblemBlocks,
     props: &ProblemProperties,
-    state_context: &mut StateKeyContext,
 ) -> Result<Feature, GenericError> {
+    // NOTE: reload uses capacity feature implicitly
     if props.has_reloads {
         if props.has_multi_dimen_capacity {
-            get_capacity_with_reload_feature::<MultiDimLoad>(
-                name,
-                api_problem,
-                blocks,
-                state_context,
-                MultiDimLoad::new,
-                Box::new(move |capacity| *capacity * RELOAD_THRESHOLD),
-            )
+            create_capacity_with_reload_feature::<MultiDimLoad>(name, api_problem, blocks, MultiDimLoad::new)
         } else {
-            get_capacity_with_reload_feature::<SingleDimLoad>(
-                name,
-                api_problem,
-                blocks,
-                state_context,
-                |capacity| SingleDimLoad::new(capacity.first().cloned().unwrap_or_default()),
-                Box::new(move |capacity| *capacity * RELOAD_THRESHOLD),
-            )
+            create_capacity_with_reload_feature::<SingleDimLoad>(name, api_problem, blocks, |capacity| {
+                SingleDimLoad::new(capacity.first().cloned().unwrap_or_default())
+            })
         }
     } else if props.has_multi_dimen_capacity {
         create_capacity_limit_feature::<MultiDimLoad>(name, CAPACITY_CONSTRAINT_CODE)
@@ -318,79 +303,62 @@ fn get_capacity_feature(
     }
 }
 
-fn get_fast_service_feature(
-    name: &str,
-    blocks: &ProblemBlocks,
-    props: &ProblemProperties,
-    tolerance: Option<f64>,
-    state_context: &mut StateKeyContext,
-) -> Result<Feature, GenericError> {
-    let state_key = state_context.next_key();
+fn get_fast_service_feature(name: &str, blocks: &ProblemBlocks, tolerance: Option<f64>) -> GenericResult<Feature> {
     let (transport, activity) = (blocks.transport.clone(), blocks.activity.clone());
 
-    let route_intervals = if props.has_reloads {
-        let reload_keys = state_context.get_reload_keys();
-        if props.has_multi_dimen_capacity {
-            create_simple_reload_route_intervals(
-                Box::new(move |capacity: &MultiDimLoad| *capacity * RELOAD_THRESHOLD),
-                reload_keys,
-                PragmaticReloadAspects::default(),
-            )
-        } else {
-            create_simple_reload_route_intervals(
-                Box::new(move |capacity: &SingleDimLoad| *capacity * RELOAD_THRESHOLD),
-                reload_keys,
-                PragmaticReloadAspects::default(),
-            )
-        }
-    } else {
-        RouteIntervals::Single
-    };
+    FastServiceFeatureBuilder::new(name)
+        .set_transport(transport)
+        .set_activity(activity)
+        .set_tolerance(tolerance)
+        .set_demand_type_fn(|single| {
+            let demand_single: Option<&Demand<SingleDimLoad>> = single.dimens.get_job_demand();
+            let demand_multi: Option<&Demand<MultiDimLoad>> = single.dimens.get_job_demand();
 
-    create_fast_service_feature(
-        name,
-        transport,
-        activity,
-        route_intervals,
-        tolerance,
-        PragmaticFastServiceAspects::new(state_key),
-    )
+            demand_single.map(|d| d.get_type()).or_else(|| demand_multi.map(|d| d.get_type()))
+        })
+        .set_is_filtered_job(|job| job.dimens().get_job_type().map_or(false, |job_type| job_type == "reload"))
+        .build()
 }
 
-fn get_capacity_with_reload_feature<T: LoadOps + SharedResource>(
+fn create_capacity_with_reload_feature<T: LoadOps + SharedResource + Mul<f64, Output = T>>(
     name: &str,
     api_problem: &ApiProblem,
     blocks: &ProblemBlocks,
-    state_context: &mut StateKeyContext,
     capacity_map: fn(Vec<i32>) -> T,
-    load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
-) -> Result<Feature, GenericError> {
+) -> GenericResult<Feature> {
+    const RELOAD_THRESHOLD: f64 = 0.9;
+
+    fn is_reload_single(single: &Single) -> bool {
+        single.dimens.get_job_type().map_or(false, |job_type| job_type == "reload")
+    }
+
+    let builder = ReloadFeatureFactory::new(name).set_is_reload_single(is_reload_single).set_belongs_to_route(
+        |route: &Route, job: &CoreJob| {
+            job.as_single()
+                .map_or(false, |single| is_reload_single(single.as_ref()) && is_correct_vehicle(route, single))
+        },
+    );
+
     let job_index = blocks.job_index.as_ref().ok_or("misconfiguration in goal reader: job index is not set")?;
     let reload_resources = get_reload_resources(api_problem, job_index, capacity_map);
-    let capacity_feature_factory: CapacityFeatureFactoryFn = Box::new(move |name, route_intervals| {
-        create_capacity_limit_with_multi_trip_feature::<T>(name, route_intervals, CAPACITY_CONSTRAINT_CODE)
-    });
 
-    let reload_keys = state_context.get_reload_keys();
     if reload_resources.is_empty() {
-        create_simple_reload_multi_trip_feature(
-            name,
-            capacity_feature_factory,
-            load_schedule_threshold_fn,
-            reload_keys,
-            PragmaticReloadAspects::default(),
-        )
+        builder.set_violation_code(CAPACITY_CONSTRAINT_CODE).build_simple()
     } else {
-        create_shared_reload_multi_trip_feature(
-            name,
-            capacity_feature_factory,
-            load_schedule_threshold_fn,
-            reload_resources,
-            blocks.jobs.size(),
-            SharedReloadKeys { resource: state_context.next_key(), reload_keys },
-            RELOAD_RESOURCE_CONSTRAINT_CODE,
-            PragmaticReloadAspects::default(),
-        )
+        let total_jobs = blocks.jobs.size();
+        builder
+            .set_violation_code(RELOAD_RESOURCE_CONSTRAINT_CODE)
+            .set_shared_demand_capacity(|single| single.dimens.get_job_demand().map(|demand| demand.delivery.0))
+            .set_shared_resource_capacity(move |activity| {
+                activity
+                    .job
+                    .as_ref()
+                    .filter(|single| is_reload_single(single.as_ref()))
+                    .and_then(|single| reload_resources.get(&CoreJob::Single(single.clone())).cloned())
+            })
+            .set_load_schedule_threshold(move |capacity: &T| *capacity * RELOAD_THRESHOLD)
+            .set_is_partial_solution(move |solution_ctx| solution_ctx.get_jobs_amount() != total_jobs)
+            .build_shared()
     }
 }
 
@@ -441,8 +409,11 @@ fn get_recharge_feature(
     name: &str,
     api_problem: &ApiProblem,
     transport: Arc<dyn TransportCost + Send + Sync>,
-    state_context: &mut StateKeyContext,
-) -> Result<Feature, GenericError> {
+) -> GenericResult<Feature> {
+    fn is_recharge_single(single: &Single) -> bool {
+        single.dimens.get_job_type().map_or(false, |job_type| job_type == "recharge")
+    }
+
     let distance_limit_index: HashMap<_, HashMap<_, _>> =
         api_problem.fleet.vehicles.iter().fold(HashMap::default(), |mut acc, vehicle_type| {
             vehicle_type
@@ -459,19 +430,20 @@ fn get_recharge_feature(
             acc
         });
 
-    let distance_limit_fn: RechargeDistanceLimitFn = Arc::new(move |actor: &Actor| {
-        actor.vehicle.dimens.get_vehicle_type().zip(actor.vehicle.dimens.get_shift_index().copied()).and_then(
-            |(type_id, shift_idx)| distance_limit_index.get(type_id).and_then(|idx| idx.get(&shift_idx).copied()),
-        )
-    });
-
-    let recharge_keys = RechargeKeys { distance: state_context.next_key(), intervals: state_context.next_key() };
-
-    create_recharge_feature(
-        name,
-        transport,
-        PragmaticRechargeAspects::new(recharge_keys, RECHARGE_CONSTRAINT_CODE, distance_limit_fn),
-    )
+    RechargeFeatureBuilder::new(name)
+        .set_violation_code(RECHARGE_CONSTRAINT_CODE)
+        .set_transport(transport)
+        .set_is_recharge_single(is_recharge_single)
+        .set_belongs_to_route(|route, job| {
+            job.as_single()
+                .map_or(false, |single| is_recharge_single(single.as_ref()) && is_correct_vehicle(route, single))
+        })
+        .set_distance_limit(move |actor| {
+            actor.vehicle.dimens.get_vehicle_type().zip(actor.vehicle.dimens.get_shift_index().copied()).and_then(
+                |(type_id, shift_idx)| distance_limit_index.get(type_id).and_then(|idx| idx.get(&shift_idx).copied()),
+            )
+        })
+        .build()
 }
 
 fn get_reload_resources<T>(
@@ -588,7 +560,6 @@ fn get_tour_order_fn() -> TourOrderFn {
 /// Provides way to get unique state keys in lazily manner and share them across multiple features.
 struct StateKeyContext<'a> {
     state_registry: &'a mut StateKeyRegistry,
-    reload_intervals: Option<StateKey>,
     schedule_keys: ScheduleKeys,
 }
 
@@ -596,22 +567,10 @@ impl<'a> StateKeyContext<'a> {
     pub fn new(extras: &Extras, state_registry: &'a mut StateKeyRegistry) -> Self {
         let schedule_keys = extras.get_schedule_keys().cloned().expect("schedule keys are missing in extras");
 
-        Self { state_registry, reload_intervals: None, schedule_keys }
+        Self { state_registry, schedule_keys }
     }
 
     pub fn next_key(&mut self) -> StateKey {
         self.state_registry.next_key()
-    }
-
-    pub fn get_reload_intervals_key(&mut self) -> StateKey {
-        if self.reload_intervals.is_none() {
-            self.reload_intervals = Some(self.state_registry.next_key());
-        }
-
-        self.reload_intervals.unwrap()
-    }
-
-    pub fn get_reload_keys(&mut self) -> ReloadKeys {
-        ReloadKeys { intervals: self.get_reload_intervals_key() }
     }
 }

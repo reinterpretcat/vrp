@@ -15,8 +15,6 @@ pub type VehicleCapacityFn<T> = Arc<dyn Fn(&Vehicle) -> &T + Send + Sync>;
 /// Combines all keys needed for transport feature usage.
 #[derive(Clone)]
 pub struct LoadBalanceKeys {
-    /// A key which tracks reload intervals.
-    pub reload_interval: StateKey,
     /// A key for balancing max load.
     pub balance_max_load: StateKey,
 }
@@ -34,10 +32,7 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
 
     let get_load_ratio = Arc::new(move |route_ctx: &RouteContext| {
         let capacity = vehicle_capacity_fn(&route_ctx.route().actor.vehicle);
-        let intervals = route_ctx
-            .state()
-            .get_route_state::<Vec<(usize, usize)>>(feature_keys.reload_interval)
-            .unwrap_or(&default_intervals);
+        let intervals = route_ctx.state().get_reload_intervals().unwrap_or(&default_intervals);
 
         intervals
             .iter()

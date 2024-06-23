@@ -70,9 +70,9 @@ impl FastServiceFeatureBuilder {
         self
     }
 
-    /// Sets tolerance param for objective.
-    pub fn set_tolerance(mut self, tolerance: f64) -> Self {
-        self.tolerance = Some(tolerance);
+    /// Sets a tolerance param for the objective function.
+    pub fn set_tolerance(mut self, tolerance: Option<f64>) -> Self {
+        self.tolerance = tolerance;
         self
     }
 

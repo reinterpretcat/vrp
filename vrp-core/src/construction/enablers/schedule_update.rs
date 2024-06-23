@@ -1,5 +1,5 @@
-use crate::construction::heuristics::{RouteContext, StateKey, StateKeyRegistry};
-use crate::models::common::{Distance, Schedule, Timestamp};
+use crate::construction::heuristics::{RouteContext, RouteState, StateKey, StateKeyRegistry};
+use crate::models::common::{Distance, Duration, Schedule, Timestamp};
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
 use crate::models::OP_START_MSG;
 
@@ -10,6 +10,7 @@ pub struct ScheduleKeys {
     pub latest_arrival: StateKey,
     /// Waiting time state key.
     pub waiting_time: StateKey,
+
     /// Total route distance state key.
     pub total_distance: StateKey,
     /// Total route duration state key.
@@ -29,6 +30,12 @@ impl From<&mut StateKeyRegistry> for ScheduleKeys {
         }
     }
 }
+
+custom_activity_state!(LatestArrival typeof Timestamp);
+custom_activity_state!(WaitingTime typeof Timestamp);
+custom_tour_state!(TotalDistance typeof Distance);
+custom_tour_state!(TotalDuration typeof Duration);
+custom_tour_state!(LimitDuration typeof Duration);
 
 /// Updates route schedule data.
 pub fn update_route_schedule(
