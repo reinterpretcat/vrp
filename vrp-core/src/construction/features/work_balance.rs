@@ -1,6 +1,7 @@
 //! Provides features to balance work.
 
 use super::*;
+use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState};
 use crate::construction::features::capacity::MaxFutureCapacityActivityState;
 use crate::models::common::LoadOps;
 use rosomaxa::algorithms::math::get_cv_safe;
@@ -75,40 +76,34 @@ pub fn create_activity_balanced_feature(
 pub fn create_duration_balanced_feature(
     name: &str,
     threshold: Option<f64>,
-    total_duration_key: StateKey,
     balance_duration_key: StateKey,
 ) -> Result<Feature, GenericError> {
-    create_transport_balanced_feature(name, threshold, total_duration_key, balance_duration_key)
+    create_transport_balanced_feature(name, threshold, balance_duration_key, |state| state.get_total_duration())
 }
 
 /// Creates a feature which which balances travelled distances across all tours.
 pub fn create_distance_balanced_feature(
     name: &str,
     threshold: Option<f64>,
-    total_distance_key: StateKey,
     balance_distance_key: StateKey,
 ) -> Result<Feature, GenericError> {
-    create_transport_balanced_feature(name, threshold, total_distance_key, balance_distance_key)
+    create_transport_balanced_feature(name, threshold, balance_distance_key, |state| state.get_total_distance())
 }
 
 fn create_transport_balanced_feature(
     name: &str,
     threshold: Option<f64>,
-    value_key: StateKey,
     state_key: StateKey,
+    value_fn: impl Fn(&RouteState) -> Option<&f64> + Send + Sync + 'static,
 ) -> Result<Feature, GenericError> {
-    let route_estimate_fn = Arc::new(move |route_ctx: &RouteContext| {
-        route_ctx.state().get_route_state::<f64>(value_key).cloned().unwrap_or(0.)
-    });
+    let route_estimate_fn =
+        Arc::new(move |route_ctx: &RouteContext| value_fn(route_ctx.state()).cloned().unwrap_or(0.));
 
-    let solution_estimate_fn = Arc::new(move |ctx: &SolutionContext| {
-        get_cv_safe(
-            ctx.routes
-                .iter()
-                .map(|route_ctx| route_ctx.state().get_route_state::<f64>(value_key).cloned().unwrap_or(0.))
-                .collect::<Vec<_>>()
-                .as_slice(),
-        )
+    let solution_estimate_fn = Arc::new({
+        let route_estimate_fn = route_estimate_fn.clone();
+        move |ctx: &SolutionContext| {
+            get_cv_safe(ctx.routes.iter().map(|route_ctx| route_estimate_fn(route_ctx)).collect::<Vec<_>>().as_slice())
+        }
     });
 
     create_feature(name, threshold, state_key, route_estimate_fn, solution_estimate_fn)

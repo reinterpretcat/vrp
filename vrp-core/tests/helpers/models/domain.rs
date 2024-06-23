@@ -1,4 +1,3 @@
-use crate::construction::enablers::ScheduleKeys;
 use crate::construction::features::create_minimize_transport_costs_feature;
 use crate::construction::heuristics::*;
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
@@ -18,14 +17,13 @@ pub struct TestGoalContextBuilder {
 }
 
 impl TestGoalContextBuilder {
-    pub fn with_transport_feature(schedule_keys: ScheduleKeys) -> Self {
+    pub fn with_transport_feature() -> Self {
         Self::default()
             .add_feature(
                 create_minimize_transport_costs_feature(
                     "transport",
                     TestTransportCost::new_shared(),
                     TestActivityCost::new_shared(),
-                    schedule_keys,
                     1,
                 )
                 .unwrap(),

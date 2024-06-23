@@ -1,19 +1,11 @@
 use super::*;
-use crate::construction::enablers::{advance_departure_time, ScheduleKeys};
+use crate::construction::enablers::advance_departure_time;
 use crate::construction::heuristics::InsertionContext;
 use rosomaxa::HeuristicSolution;
 
 /// Provides way to reduce waiting time by advancing departure time.
-pub struct AdvanceDeparture {
-    state_keys: ScheduleKeys,
-}
-
-impl AdvanceDeparture {
-    /// Creates an instance of `AdvanceDeparture`.
-    pub fn new(state_keys: ScheduleKeys) -> Self {
-        Self { state_keys }
-    }
-}
+#[derive(Default)]
+pub struct AdvanceDeparture {}
 
 impl HeuristicSolutionProcessing for AdvanceDeparture {
     type Solution = InsertionContext;
@@ -27,7 +19,7 @@ impl HeuristicSolutionProcessing for AdvanceDeparture {
         let transport = problem.transport.as_ref();
 
         insertion_ctx.solution.routes.iter_mut().for_each(|route_ctx| {
-            advance_departure_time(route_ctx, activity, transport, true, &self.state_keys);
+            advance_departure_time(route_ctx, activity, transport, true);
         });
 
         problem.goal.accept_solution_state(&mut insertion_ctx.solution);

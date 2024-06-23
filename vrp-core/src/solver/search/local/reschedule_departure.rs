@@ -1,4 +1,4 @@
-use crate::construction::enablers::{advance_departure_time, recede_departure_time, ScheduleKeys};
+use crate::construction::enablers::{advance_departure_time, recede_departure_time};
 use crate::construction::heuristics::InsertionContext;
 use crate::models::solution::Activity;
 use crate::solver::search::LocalOperator;
@@ -7,16 +7,8 @@ use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 
 /// Reschedules departure time of the routes in the solution.
-pub struct RescheduleDeparture {
-    state_keys: ScheduleKeys,
-}
-
-impl RescheduleDeparture {
-    /// Creates an instance of `RescheduleDeparture`.
-    pub fn new(state_keys: ScheduleKeys) -> Self {
-        Self { state_keys }
-    }
-}
+#[derive(Default)]
+pub struct RescheduleDeparture {}
 
 impl LocalOperator for RescheduleDeparture {
     fn explore(
@@ -38,9 +30,9 @@ impl LocalOperator for RescheduleDeparture {
 
             match (route_ctx.route().tour.start(), earliest, random.is_head_not_tails()) {
                 (Some(start), Some(earliest), true) if can_recede_departure(start, earliest) => {
-                    recede_departure_time(route_ctx, activity, transport, &self.state_keys)
+                    recede_departure_time(route_ctx, activity, transport)
                 }
-                _ => advance_departure_time(route_ctx, activity, transport, consider_whole_tour, &self.state_keys),
+                _ => advance_departure_time(route_ctx, activity, transport, consider_whole_tour),
             };
         });
 

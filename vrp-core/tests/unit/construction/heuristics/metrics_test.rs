@@ -1,8 +1,9 @@
+use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState};
 use crate::construction::features::capacity::MaxVehicleLoadTourState;
 use crate::construction::heuristics::*;
 use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::solution::RouteContextBuilder;
-use crate::models::{CoreStateKeys, Problem};
+use crate::models::Problem;
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 
@@ -41,15 +42,13 @@ fn can_get_max_load_variance() {
 
 #[test]
 fn can_get_duration_mean() {
-    let insertion_ctx = create_insertion_ctx(3, &|problem, idx| {
+    let insertion_ctx = create_insertion_ctx(3, &|_, idx| {
         let value = match idx {
             0 => 6.,
             1 => 2.,
             _ => 7.,
         };
-        create_route_ctx_with_route_state(|state| {
-            state.put_route_state(problem.extras.get_schedule_keys().unwrap().total_duration, value)
-        })
+        create_route_ctx_with_route_state(|state| state.set_total_duration(value))
     });
 
     let mean = get_duration_mean(&insertion_ctx);
@@ -59,15 +58,13 @@ fn can_get_duration_mean() {
 
 #[test]
 fn can_get_distance_mean() {
-    let insertion_ctx = create_insertion_ctx(3, &|problem, idx| {
+    let insertion_ctx = create_insertion_ctx(3, &|_, idx| {
         let value = match idx {
             0 => 8.,
             1 => 2.,
             _ => 11.,
         };
-        create_route_ctx_with_route_state(|state| {
-            state.put_route_state(problem.extras.get_schedule_keys().unwrap().total_distance, value)
-        })
+        create_route_ctx_with_route_state(|state| state.set_total_distance(value))
     });
 
     let mean = get_distance_mean(&insertion_ctx);

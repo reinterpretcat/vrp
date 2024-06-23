@@ -1,4 +1,3 @@
-use crate::construction::enablers::ScheduleKeys;
 use crate::construction::heuristics::StateKeyRegistry;
 use crate::solver::HeuristicKeys;
 use rosomaxa::prelude::GenericError;
@@ -56,17 +55,9 @@ impl ExtrasBuilder {
     pub fn new(state_registry: &mut StateKeyRegistry) -> Self {
         let mut builder = Self(Extras { index: Default::default() });
 
-        builder
-            .with_schedule_keys(ScheduleKeys::from(&mut *state_registry))
-            .with_heuristic_keys(HeuristicKeys::from(&mut *state_registry));
+        builder.with_heuristic_keys(HeuristicKeys::from(&mut *state_registry));
 
         builder
-    }
-
-    /// Adds schedule keys.
-    pub fn with_schedule_keys(&mut self, schedule_keys: ScheduleKeys) -> &mut Self {
-        self.0.set_value::<ScheduleKeys, _>(schedule_keys);
-        self
     }
 
     /// Adds heuristic keys.
@@ -86,14 +77,11 @@ impl ExtrasBuilder {
         // NOTE: require setting keys below as they are used to calculate important internal
         // metrics such as total cost, rosomaxa weights, etc.
 
-        let error = [
-            (TypeId::of::<ScheduleKeys>(), "schedule keys needs to be set"),
-            (TypeId::of::<HeuristicKeys>(), "heuristic keys needs to be set"),
-        ]
-        .iter()
-        .filter(|(key, _)| !self.0.index.contains_key(key))
-        .map(|(_, msg)| GenericError::from(*msg))
-        .next();
+        let error = [(TypeId::of::<HeuristicKeys>(), "heuristic keys needs to be set")]
+            .iter()
+            .filter(|(key, _)| !self.0.index.contains_key(key))
+            .map(|(_, msg)| GenericError::from(*msg))
+            .next();
 
         if let Some(error) = error {
             return Err(error);
@@ -108,18 +96,11 @@ impl ExtrasBuilder {
 /// For example, transport keys provide information about total duration/distance traveled by vehicle
 /// which can be used in heuristic context to compare different routes.
 pub trait CoreStateKeys {
-    /// Get state keys for scheduling.
-    fn get_schedule_keys(&self) -> Option<&ScheduleKeys>;
-
     /// Gets state keys for heuristic.
     fn get_heuristic_keys(&self) -> Option<&HeuristicKeys>;
 }
 
 impl CoreStateKeys for Extras {
-    fn get_schedule_keys(&self) -> Option<&ScheduleKeys> {
-        self.get_value::<ScheduleKeys, _>()
-    }
-
     fn get_heuristic_keys(&self) -> Option<&HeuristicKeys> {
         self.get_value::<HeuristicKeys, _>()
     }

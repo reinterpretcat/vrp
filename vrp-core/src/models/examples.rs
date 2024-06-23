@@ -74,14 +74,11 @@ fn create_example_extras() -> Extras {
 fn create_example_goal_ctx(
     transport: Arc<dyn TransportCost + Sync + Send>,
     activity: Arc<dyn ActivityCost + Sync + Send>,
-    extras: &Extras,
 ) -> GenericResult<GoalContext> {
-    let schedule_keys = extras.get_schedule_keys().expect("no schedule keys").clone();
-
     let features = vec![
         create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.))?,
         create_minimize_tours_feature("min_tours")?,
-        create_minimize_distance_feature("min_distance", transport, activity, schedule_keys, 1)?,
+        create_minimize_distance_feature("min_distance", transport, activity, 1)?,
         create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
     ];
 
@@ -97,7 +94,7 @@ pub fn create_example_problem() -> Arc<Problem> {
     let transport: Arc<dyn TransportCost + Sync + Send> = Arc::new(ExampleTransportCost {});
     let fleet = create_example_fleet();
     let jobs = create_example_jobs(&fleet, transport.as_ref());
-    let goal = create_example_goal_ctx(transport.clone(), activity.clone(), &extras).unwrap();
+    let goal = create_example_goal_ctx(transport.clone(), activity.clone()).unwrap();
 
     Arc::new(Problem {
         fleet,

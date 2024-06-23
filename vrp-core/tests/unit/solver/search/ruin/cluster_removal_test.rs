@@ -1,6 +1,5 @@
 use super::*;
 use crate::helpers::construction::clustering::dbscan::create_test_distances;
-use crate::helpers::construction::heuristics::create_schedule_keys;
 use crate::helpers::models::domain::{ProblemBuilder, TestGoalContextBuilder};
 use crate::helpers::models::problem::SingleBuilder;
 use crate::helpers::solver::*;
@@ -14,7 +13,7 @@ fn can_create_ruin_cluster_with_default_params() {
         8,
         1,
         false,
-        |_, _, _| TestGoalContextBuilder::with_transport_feature(create_schedule_keys()).build(),
+        |_, _, _| TestGoalContextBuilder::with_transport_feature().build(),
         |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
@@ -51,7 +50,7 @@ fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
         8,
         1,
         false,
-        |_, _, _| TestGoalContextBuilder::with_transport_feature(create_schedule_keys()).build(),
+        |_, _, _| TestGoalContextBuilder::with_transport_feature().build(),
         |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),

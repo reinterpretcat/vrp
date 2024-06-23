@@ -33,13 +33,9 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
         rows,
         cols,
         is_open_vrp,
-        |transport, activity, extras| {
-            let schedule_keys = extras.get_schedule_keys().cloned().expect("no schedule keys");
+        |transport, activity, _| {
             TestGoalContextBuilder::default()
-                .add_feature(
-                    create_minimize_transport_costs_feature("transport", transport, activity, schedule_keys, 1)
-                        .unwrap(),
-                )
+                .add_feature(create_minimize_transport_costs_feature("transport", transport, activity, 1).unwrap())
                 .with_objectives(&["transport"])
                 .build()
         },
@@ -66,14 +62,10 @@ pub fn generate_matrix_routes_with_disallow_list(
         rows,
         cols,
         is_open_vrp,
-        move |transport, activity, extras| {
-            let schedule_keys = extras.get_schedule_keys().cloned().expect("no schedule keys");
+        move |transport, activity, _| {
             let feature_map = &["transport"];
             TestGoalContextBuilder::default()
-                .add_feature(
-                    create_minimize_transport_costs_feature("transport", transport, activity, schedule_keys, 1)
-                        .unwrap(),
-                )
+                .add_feature(create_minimize_transport_costs_feature("transport", transport, activity, 1).unwrap())
                 .add_feature(
                     FeatureBuilder::default()
                         .with_name("leg")

@@ -1,5 +1,4 @@
 use super::*;
-use crate::construction::enablers::ScheduleKeys;
 use crate::construction::heuristics::*;
 use crate::models::{CoreStateKeys, Extras, GoalContext};
 use crate::rosomaxa::get_default_selection_size;
@@ -102,7 +101,7 @@ pub fn create_default_config_builder(
     ProblemConfigBuilder::default()
         .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))
         .with_context(RefinementContext::new(problem.clone(), population, telemetry_mode, environment.clone()))
-        .with_processing(create_default_processing(problem.as_ref()))
+        .with_processing(create_default_processing())
         .with_initial(4, 0.05, create_default_init_operators(problem, environment))
 }
 
@@ -122,7 +121,7 @@ pub fn get_static_heuristic(
     environment: Arc<Environment>,
 ) -> StaticSelective<RefinementContext, GoalContext, InsertionContext> {
     let default_operator = statik::create_default_heuristic_operator(problem.clone(), environment.clone());
-    let local_search = statik::create_default_local_search(problem.as_ref(), environment.random.clone());
+    let local_search = statik::create_default_local_search(environment.random.clone());
 
     let heuristic_group: TargetHeuristicGroup = vec![
         (
@@ -271,10 +270,6 @@ fn get_heuristic_keys(insertion_ctx: &InsertionContext) -> &HeuristicKeys {
     insertion_ctx.problem.extras.get_heuristic_keys().expect("heuristic keys must be set")
 }
 
-fn get_schedule_keys(problem: &Problem) -> &ScheduleKeys {
-    problem.extras.get_schedule_keys().expect("schedule keys must be set")
-}
-
 const SINGLE_HEURISTIC_QUOTA_LIMIT: usize = 200;
 
 pub use self::builder::create_default_init_operators;
@@ -329,15 +324,11 @@ mod builder {
     }
 
     /// Create default processing.
-    pub fn create_default_processing(
-        problem: &Problem,
-    ) -> ProcessingConfig<RefinementContext, GoalContext, InsertionContext> {
-        let schedule_keys = get_schedule_keys(problem).clone();
-
+    pub fn create_default_processing() -> ProcessingConfig<RefinementContext, GoalContext, InsertionContext> {
         ProcessingConfig {
             context: vec![Box::<VicinityClustering>::default()],
             solution: vec![
-                Box::new(AdvanceDeparture::new(schedule_keys)),
+                Box::new(AdvanceDeparture::default()),
                 Box::<RescheduleReservedTime>::default(),
                 Box::<UnassignmentReason>::default(),
                 Box::<VicinityClustering>::default(),
@@ -454,19 +445,14 @@ mod statik {
         Arc::new(WeightedHeuristicOperator::new(
             vec![
                 Arc::new(RuinAndRecreate::new(ruin, recreate)),
-                create_default_local_search(problem.as_ref(), environment.random.clone()),
+                create_default_local_search(environment.random.clone()),
             ],
             vec![100, 10],
         ))
     }
 
     /// Creates default local search operator.
-    pub fn create_default_local_search(
-        problem: &Problem,
-        random: Arc<dyn Random + Send + Sync>,
-    ) -> TargetSearchOperator {
-        let schedule_keys = get_schedule_keys(problem).clone();
-
+    pub fn create_default_local_search(random: Arc<dyn Random + Send + Sync>) -> TargetSearchOperator {
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
             vec![
                 (Arc::new(ExchangeSwapStar::new(random, SINGLE_HEURISTIC_QUOTA_LIMIT)), 200),
@@ -474,7 +460,7 @@ mod statik {
                 (Arc::new(ExchangeSequence::default()), 100),
                 (Arc::new(ExchangeInterRouteRandom::default()), 30),
                 (Arc::new(ExchangeIntraRouteRandom::default()), 30),
-                (Arc::new(RescheduleDeparture::new(schedule_keys)), 20),
+                (Arc::new(RescheduleDeparture::default()), 20),
             ],
             1,
             2,
@@ -540,8 +526,6 @@ mod dynamic {
     }
 
     fn get_mutations(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<(TargetSearchOperator, String, f64)> {
-        let schedule_keys = get_schedule_keys(problem.as_ref());
-
         vec![
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
@@ -559,7 +543,7 @@ mod dynamic {
                 1.,
             ),
             (
-                Arc::new(LocalSearch::new(Arc::new(RescheduleDeparture::new(schedule_keys.clone())))),
+                Arc::new(LocalSearch::new(Arc::new(RescheduleDeparture::default()))),
                 "local_reschedule_departure".to_string(),
                 1.,
             ),

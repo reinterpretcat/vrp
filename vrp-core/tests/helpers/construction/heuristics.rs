@@ -1,4 +1,3 @@
-use crate::construction::enablers::ScheduleKeys;
 use crate::construction::heuristics::*;
 use crate::helpers::models::domain::{test_random, TestGoalContextBuilder};
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
@@ -11,10 +10,6 @@ use std::sync::Arc;
 
 pub fn create_state_key() -> StateKey {
     StateKeyRegistry::default().next_key()
-}
-
-pub fn create_schedule_keys() -> ScheduleKeys {
-    ScheduleKeys::from(&mut StateKeyRegistry::default())
 }
 
 #[derive(Default)]

@@ -1,8 +1,7 @@
 use super::*;
-use crate::construction::enablers::ScheduleKeys;
+use crate::construction::enablers::LatestArrivalActivityState;
 use crate::construction::features::*;
 use crate::construction::heuristics::*;
-use crate::helpers::construction::heuristics::create_schedule_keys;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::problem::*;
@@ -81,8 +80,7 @@ fn create_feature_and_route(
     vehicle_detail_data: VehicleData,
     activities: Vec<ActivityData>,
     reserved_time: ReservedTimeSpan,
-) -> (ReservedTimesFn, ScheduleKeys, Feature, RouteContext) {
-    let schedule_keys = create_schedule_keys();
+) -> (ReservedTimesFn, Feature, RouteContext) {
     let (location_start, location_end, time_start, time_end) = vehicle_detail_data;
 
     let activities = activities.into_iter().map(|(loc, (start, end), dur)| {
@@ -106,19 +104,12 @@ fn create_feature_and_route(
             DynamicTransportCost::new(reserved_times_idx.clone(), Arc::new(TestTransportCost::default())).unwrap(),
         ),
         Arc::new(DynamicActivityCost::new(reserved_times_idx.clone()).unwrap()),
-        schedule_keys.clone(),
         VIOLATION_CODE,
     )
     .unwrap();
     feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
 
-    (create_reserved_times_fn(reserved_times_idx).unwrap(), schedule_keys, feature, route_ctx)
-}
-
-fn get_activity_states(route_ctx: &RouteContext, key: StateKey) -> Vec<Option<f64>> {
-    (0..route_ctx.route().tour.total())
-        .map(|activity_idx| route_ctx.state().get_activity_state::<f64>(key, activity_idx).cloned())
-        .collect()
+    (create_reserved_times_fn(reserved_times_idx).unwrap(), feature, route_ctx)
 }
 
 fn get_schedules(route_ctx: &RouteContext) -> Vec<(Timestamp, Timestamp)> {
@@ -162,10 +153,12 @@ fn can_update_state_for_reserved_time_impl(
     late_arrival_expected: Vec<Option<f64>>,
     expected_schedules: Vec<(Timestamp, Timestamp)>,
 ) {
-    let (_, schedule_keys, _, route_ctx) = create_feature_and_route(vehicle_detail_data, activities, reserved_time);
+    let (_, _, route_ctx) = create_feature_and_route(vehicle_detail_data, activities, reserved_time);
 
     let schedules = get_schedules(&route_ctx);
-    let late_arrival_result = get_activity_states(&route_ctx, schedule_keys.latest_arrival);
+    let late_arrival_result = (0..route_ctx.route().tour.total())
+        .map(|activity_idx| route_ctx.state().get_latest_arrival_at(activity_idx).copied())
+        .collect::<Vec<_>>();
 
     assert_eq!(schedules, expected_schedules);
     assert_eq!(late_arrival_result, late_arrival_expected);
@@ -242,7 +235,7 @@ fn can_evaluate_activity_impl(
     activities: Vec<ActivityData>,
     expected_schedules: Vec<(Timestamp, Timestamp)>,
 ) {
-    let (_, _, feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data, activities, reserved_time);
+    let (_, feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data, activities, reserved_time);
     let (feature_constraint, feature_state) = (feature.constraint.unwrap(), feature.state.unwrap());
     let (loc, (start, end), dur) = target;
     let prev = route_ctx.route().tour.get(0).unwrap();
@@ -287,7 +280,7 @@ fn can_avoid_reserved_time_when_driving_impl(
         time: TimeSpan::Offset(TimeOffset::new(reserved_time.0, reserved_time.1)),
         duration: reserved_time.2,
     };
-    let (reserved_times_fn, _, _, mut route_ctx) =
+    let (reserved_times_fn, _, mut route_ctx) =
         create_feature_and_route(vehicle_detail_data, activities, reserved_time);
 
     avoid_reserved_time_when_driving(route_ctx.route_mut(), &reserved_times_fn);

@@ -1,5 +1,4 @@
 use super::*;
-use crate::helpers::construction::heuristics::create_schedule_keys;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::*;
@@ -82,7 +81,6 @@ fn can_recede_departure_time_impl(
     total_duration_limit: Option<(f64, f64)>,
     expected: Option<f64>,
 ) {
-    let schedule_keys = create_schedule_keys();
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicle(Vehicle {
@@ -103,14 +101,14 @@ fn can_recede_departure_time_impl(
         .build();
     let (route, state) = route_ctx.as_mut();
     route.tour.get_mut(0).unwrap().schedule.departure = start_departure;
-    state.put_activity_states(schedule_keys.latest_arrival, vec![0., latest_first_arrival]);
+    state.set_latest_arrival_states(vec![0., latest_first_arrival]);
 
     if let Some((total, limit)) = total_duration_limit {
-        state.put_route_state::<f64>(schedule_keys.total_duration, total);
-        state.put_route_state(schedule_keys.limit_duration, limit);
+        state.set_total_duration(total);
+        state.set_limit_duration(limit);
     }
 
-    let departure_time = try_recede_departure_time(&route_ctx, &schedule_keys);
+    let departure_time = try_recede_departure_time(&route_ctx);
 
     assert_eq!(departure_time, expected);
 }

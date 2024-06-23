@@ -6,7 +6,7 @@ use crate::helpers::models::problem::SingleBuilder;
 use crate::helpers::solver::{generate_matrix_distances_from_points, generate_matrix_routes};
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Location;
-use crate::models::{CoreStateKeys, Extras, GoalContext};
+use crate::models::{Extras, GoalContext};
 use crate::prelude::{ActivityCost, TransportCost};
 
 type MatrixModFn = fn(Vec<f64>) -> (Vec<f64>, Vec<f64>);
@@ -22,10 +22,9 @@ fn can_get_max_curvature() {
 fn goal_factory(
     _: Arc<dyn TransportCost + Send + Sync>,
     _: Arc<dyn ActivityCost + Send + Sync>,
-    extras: &Extras,
+    _: &Extras,
 ) -> GoalContext {
-    let schedule_keys = extras.get_schedule_keys().cloned().expect("no schedule keys");
-    TestGoalContextBuilder::with_transport_feature(schedule_keys).build()
+    TestGoalContextBuilder::with_transport_feature().build()
 }
 
 parameterized_test! {can_estimate_epsilon, (matrix, nth_neighbor, matrix_modify, expected), {

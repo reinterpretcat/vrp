@@ -1,5 +1,5 @@
 use crate::construction::heuristics::{InsertionContext, UnassignmentInfo};
-use crate::helpers::construction::heuristics::{create_schedule_keys, InsertionContextBuilder};
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::domain::{ProblemBuilder, TestGoalContextBuilder};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
@@ -23,7 +23,7 @@ fn create_test_insertion_ctx(unassigned: Vec<(Job, UnassignmentInfo)>) -> Insert
     let mut insertion_ctx = InsertionContextBuilder::default()
         .with_problem(
             ProblemBuilder::default()
-                .with_goal(TestGoalContextBuilder::with_transport_feature(create_schedule_keys()).build())
+                .with_goal(TestGoalContextBuilder::with_transport_feature().build())
                 .with_fleet(fleet)
                 .with_jobs(unassigned.iter().map(|(job, _)| job.clone()).collect())
                 .build(),

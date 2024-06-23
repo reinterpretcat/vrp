@@ -5,7 +5,7 @@
 mod tour_limits_test;
 
 use super::*;
-use crate::construction::enablers::{calculate_travel_delta, ScheduleKeys};
+use crate::construction::enablers::{calculate_travel_delta, TotalDistanceTourState, TotalDurationTourState};
 use crate::models::common::{Distance, Duration};
 use crate::models::problem::{Actor, TransportCost};
 
@@ -19,8 +19,6 @@ pub type TravelLimitFn<T> = Arc<dyn Fn(&Actor) -> Option<T> + Send + Sync>;
 pub struct TourLimitKeys {
     /// A key to track duration limit.
     pub duration_key: StateKey,
-    /// Schedule keys.
-    pub schedule_keys: ScheduleKeys,
     /// A distance constraint violation code.
     pub distance_code: ViolationCode,
     /// A duration constraint violation code.
@@ -114,7 +112,6 @@ impl FeatureConstraint for TravelLimitConstraint {
         match move_ctx {
             MoveContext::Route { .. } => None,
             MoveContext::Activity { route_ctx, activity_ctx } => {
-                let schedule_keys = &self.limit_keys.schedule_keys;
                 let tour_distance_limit = (self.tour_distance_limit_fn)(route_ctx.route().actor.as_ref());
                 let tour_duration_limit = (self.tour_duration_limit_fn)(route_ctx.route().actor.as_ref());
 
@@ -122,8 +119,7 @@ impl FeatureConstraint for TravelLimitConstraint {
                     let (change_distance, change_duration) = self.calculate_travel(route_ctx, activity_ctx);
 
                     if let Some(distance_limit) = tour_distance_limit {
-                        let curr_dis =
-                            route_ctx.state().get_route_state(schedule_keys.total_distance).cloned().unwrap_or(0.);
+                        let curr_dis = route_ctx.state().get_total_distance().copied().unwrap_or(0.);
                         let total_distance = curr_dis + change_distance;
                         if distance_limit < total_distance {
                             return ConstraintViolation::skip(self.limit_keys.distance_code);
@@ -131,8 +127,7 @@ impl FeatureConstraint for TravelLimitConstraint {
                     }
 
                     if let Some(duration_limit) = tour_duration_limit {
-                        let curr_dur =
-                            route_ctx.state().get_route_state(schedule_keys.total_duration).cloned().unwrap_or(0.);
+                        let curr_dur = route_ctx.state().get_total_duration().copied().unwrap_or(0.);
                         let total_duration = curr_dur + change_duration;
                         if duration_limit < total_duration {
                             return ConstraintViolation::skip(self.limit_keys.duration_code);

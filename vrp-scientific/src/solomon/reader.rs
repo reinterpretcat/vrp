@@ -58,9 +58,8 @@ impl<R: Read> TextReader for SolomonReader<R> {
         &self,
         activity: Arc<SimpleActivityCost>,
         transport: Arc<dyn TransportCost + Send + Sync>,
-        extras: &Extras,
     ) -> Result<GoalContext, GenericError> {
-        create_goal_context_prefer_min_tours(activity, transport, extras)
+        create_goal_context_prefer_min_tours(activity, transport)
     }
 
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError> {

@@ -7,7 +7,7 @@ use crate::helpers::models::problem::*;
 use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Place;
-use crate::models::{CoreStateKeys, ExtrasBuilder, Lock, LockDetail, LockOrder, LockPosition, Problem};
+use crate::models::{ExtrasBuilder, Lock, LockDetail, LockOrder, LockPosition, Problem};
 use rosomaxa::prelude::Environment;
 
 type JobData = (Option<Location>, (f64, f64), Duration, i32);
@@ -84,14 +84,7 @@ fn create_test_problem(
 
     let goal = TestGoalContextBuilder::default()
         .add_feature(
-            create_minimize_transport_costs_feature(
-                "transport",
-                transport.clone(),
-                activity.clone(),
-                extras.get_schedule_keys().cloned().unwrap(),
-                1,
-            )
-            .unwrap(),
+            create_minimize_transport_costs_feature("transport", transport.clone(), activity.clone(), 1).unwrap(),
         )
         .add_feature(create_locked_jobs_feature("locked_jobs", &fleet, locks.as_slice(), 4).unwrap())
         .add_feature(create_capacity_limit_feature::<SingleDimLoad>("capacity", 5).unwrap())

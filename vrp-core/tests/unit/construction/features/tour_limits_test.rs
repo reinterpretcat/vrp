@@ -58,7 +58,7 @@ mod activity {
 
 mod traveling {
     use super::*;
-    use crate::construction::enablers::ScheduleKeys;
+    use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState};
     use crate::construction::features::tour_limits::create_travel_limit_feature;
     use crate::models::common::*;
     use crate::models::problem::Actor;
@@ -72,11 +72,10 @@ mod traveling {
         limit: (Option<Distance>, Option<Duration>),
     ) -> (Feature, RouteContext) {
         let mut state_registry = StateKeyRegistry::default();
-        let schedule_keys = ScheduleKeys::from(&mut state_registry);
         let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
         let mut state = RouteState::default();
-        state.put_route_state(schedule_keys.total_distance, 50.);
-        state.put_route_state(schedule_keys.total_duration, 50.);
+        state.set_total_distance(50.);
+        state.set_total_duration(50.);
         let target = target.to_owned();
         let route_ctx = RouteContextBuilder::default()
             .with_route(RouteBuilder::default().with_vehicle(&fleet, vehicle_id).build())
@@ -110,7 +109,6 @@ mod traveling {
             tour_duration_limit,
             TourLimitKeys {
                 duration_key: state_registry.next_key(),
-                schedule_keys,
                 distance_code: DISTANCE_CODE,
                 duration_code: DURATION_CODE,
             },

@@ -2,11 +2,12 @@
 #[path = "../../../tests/unit/construction/heuristics/context_test.rs"]
 mod context_test;
 
+use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState};
 use crate::construction::heuristics::factories::*;
 use crate::models::common::Cost;
 use crate::models::problem::*;
 use crate::models::solution::*;
-use crate::models::{CoreStateKeys, GoalContext};
+use crate::models::GoalContext;
 use crate::models::{Problem, Solution};
 use nohash_hasher::{BuildNoHashHasher, IsEnabled};
 use rosomaxa::evolution::TelemetryMetrics;
@@ -69,12 +70,10 @@ impl InsertionContext {
                 + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
         };
 
-        let schedule_keys = self.problem.extras.get_schedule_keys()?;
-
         self.solution.routes.iter().try_fold(Cost::default(), |acc, route_ctx| {
             let actor = &route_ctx.route.actor;
-            let distance = route_ctx.state.get_route_state::<Cost>(schedule_keys.total_distance);
-            let duration = route_ctx.state.get_route_state::<Cost>(schedule_keys.total_duration);
+            let distance = route_ctx.state.get_total_distance();
+            let duration = route_ctx.state.get_total_duration();
 
             distance.zip(duration).map(|(&distance, &duration)| {
                 acc + get_cost(&actor.vehicle.costs, distance, duration)

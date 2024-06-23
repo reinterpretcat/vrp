@@ -48,8 +48,7 @@ pub(super) fn map_to_problem(
     blocks.job_index = extras.get_job_index();
 
     let goal = Arc::new(
-        create_goal_context(&api_problem, &blocks, &props, &extras, &mut state_registry)
-            .map_err(to_multi_format_error)?,
+        create_goal_context(&api_problem, &blocks, &props, &mut state_registry).map_err(to_multi_format_error)?,
     );
 
     let ProblemBlocks { jobs, fleet, transport, activity, locks, reserved_times_index, .. } = blocks;

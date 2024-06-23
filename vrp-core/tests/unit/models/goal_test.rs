@@ -202,25 +202,6 @@ fn can_use_objective_total_order_impl(left_fitness: Vec<f64>, right_fitness: Vec
 }
 
 #[test]
-fn can_detect_same_key_usage() {
-    let mut registry = StateKeyRegistry::default();
-    let same_key = registry.next_key();
-
-    let goal_ctx = GoalContextBuilder::with_features(vec![
-        create_distance_balanced_feature("name_1", None, registry.next_key(), same_key).unwrap(),
-        create_distance_balanced_feature("name_2", None, registry.next_key(), registry.next_key()).unwrap(),
-        create_distance_balanced_feature("name_3", None, registry.next_key(), same_key).unwrap(),
-    ]);
-
-    match goal_ctx {
-        Ok(_) => unreachable!(),
-        Err(message) => {
-            assert_eq!(message, GenericError::from("feature name_1 and name_3 shares common state keys for caching"))
-        }
-    }
-}
-
-#[test]
 fn can_detect_same_name_usage() {
     let goal_ctx = GoalContextBuilder::with_features(vec![
         create_objective_feature_with_dynamic_cost("name_1", Arc::new(|_, _| 1.)),

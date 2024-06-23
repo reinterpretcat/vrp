@@ -3,23 +3,22 @@ use crate::format::problem::aspects::*;
 use std::collections::HashSet;
 use std::ops::Mul;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
-use vrp_core::construction::enablers::{FeatureCombinator, ScheduleKeys};
+use vrp_core::construction::enablers::FeatureCombinator;
 use vrp_core::construction::features::capacity::*;
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::{StateKey, StateKeyRegistry};
 use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Single, TransportCost};
 use vrp_core::models::solution::Route;
-use vrp_core::models::{CoreStateKeys, Extras, Feature, GoalContext, GoalContextBuilder};
+use vrp_core::models::{Feature, GoalContext, GoalContextBuilder};
 
 pub(super) fn create_goal_context(
     api_problem: &ApiProblem,
     blocks: &ProblemBlocks,
     props: &ProblemProperties,
-    extras: &Extras,
     state_registry: &mut StateKeyRegistry,
 ) -> GenericResult<GoalContext> {
-    let mut state_context = StateKeyContext::new(extras, state_registry);
+    let mut state_context = StateKeyContext::new(state_registry);
 
     let objective_features = get_objective_features(api_problem, blocks, props, &mut state_context)?;
     // TODO combination should happen inside `get_objective_features` for conflicting objectives
@@ -114,21 +113,18 @@ fn get_objective_features(
                         "min_cost",
                         blocks.transport.clone(),
                         blocks.activity.clone(),
-                        state_context.schedule_keys.clone(),
                         TIME_CONSTRAINT_CODE,
                     ),
                     Objective::MinimizeDistance => create_minimize_distance_feature(
                         "min_distance",
                         blocks.transport.clone(),
                         blocks.activity.clone(),
-                        state_context.schedule_keys.clone(),
                         TIME_CONSTRAINT_CODE,
                     ),
                     Objective::MinimizeDuration => create_minimize_duration_feature(
                         "min_duration",
                         blocks.transport.clone(),
                         blocks.activity.clone(),
-                        state_context.schedule_keys.clone(),
                         TIME_CONSTRAINT_CODE,
                     ),
                     Objective::MinimizeTours => create_minimize_tours_feature("min_tours"),
@@ -222,22 +218,18 @@ fn get_objective_features(
                         )
                     }
                     Objective::BalanceDistance { options } => {
-                        let total_distance_key = state_context.schedule_keys.total_distance;
                         let balance_distance_key = state_context.next_key();
                         create_distance_balanced_feature(
                             "distance_balance",
                             get_threshold(options),
-                            total_distance_key,
                             balance_distance_key,
                         )
                     }
                     Objective::BalanceDuration { options } => {
-                        let total_duration_key = state_context.schedule_keys.total_duration;
                         let balance_duration_key = state_context.next_key();
                         create_duration_balanced_feature(
                             "duration_balance",
                             get_threshold(options),
-                            total_duration_key,
                             balance_duration_key,
                         )
                     }
@@ -400,7 +392,6 @@ fn get_tour_limit_feature(
         get_limit(durations),
         TourLimitKeys {
             duration_key: state_context.next_key(),
-            schedule_keys: state_context.schedule_keys.clone(),
             distance_code: DISTANCE_LIMIT_CONSTRAINT_CODE,
             duration_code: DURATION_LIMIT_CONSTRAINT_CODE,
         },
@@ -562,14 +553,11 @@ fn get_tour_order_fn() -> TourOrderFn {
 /// Provides way to get unique state keys in lazily manner and share them across multiple features.
 struct StateKeyContext<'a> {
     state_registry: &'a mut StateKeyRegistry,
-    schedule_keys: ScheduleKeys,
 }
 
 impl<'a> StateKeyContext<'a> {
-    pub fn new(extras: &Extras, state_registry: &'a mut StateKeyRegistry) -> Self {
-        let schedule_keys = extras.get_schedule_keys().cloned().expect("schedule keys are missing in extras");
-
-        Self { state_registry, schedule_keys }
+    pub fn new(state_registry: &'a mut StateKeyRegistry) -> Self {
+        Self { state_registry }
     }
 
     pub fn next_key(&mut self) -> StateKey {
