@@ -34,7 +34,7 @@ where
     F: Fn(&T) -> T + Send + Sync + 'static,
 {
     ReloadFeatureFactory::new("reload")
-        .set_violation_code(VIOLATION_CODE)
+        .set_capacity_code(VIOLATION_CODE)
         .set_belongs_to_route(belongs_to_route)
         .set_is_reload_single(is_reload_single)
         .set_load_schedule_threshold(load_schedule_threshold)
@@ -282,7 +282,8 @@ fn create_resource_activity(vehicle_id: &str, capacity: i32, resource_id: Option
 
 fn create_shared_reload_builder(total_jobs: usize) -> ReloadFeatureFactory<SingleDimLoad> {
     ReloadFeatureFactory::<SingleDimLoad>::new("shared_reload")
-        .set_violation_code(VIOLATION_CODE)
+        .set_capacity_code(VIOLATION_CODE)
+        .set_resource_code(VIOLATION_CODE)
         .set_belongs_to_route(belongs_to_route)
         .set_is_reload_single(is_reload_single)
         .set_load_schedule_threshold(|capacity| *capacity * 0.9)

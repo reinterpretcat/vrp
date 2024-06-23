@@ -332,22 +332,24 @@ fn create_capacity_with_reload_feature<T: LoadOps + SharedResource + Mul<f64, Ou
         single.dimens.get_job_type().map_or(false, |job_type| job_type == "reload")
     }
 
-    let builder = ReloadFeatureFactory::new(name).set_is_reload_single(is_reload_single).set_belongs_to_route(
-        |route: &Route, job: &CoreJob| {
+    let builder = ReloadFeatureFactory::new(name)
+        .set_capacity_code(CAPACITY_CONSTRAINT_CODE)
+        .set_load_schedule_threshold(move |capacity: &T| *capacity * RELOAD_THRESHOLD)
+        .set_is_reload_single(is_reload_single)
+        .set_belongs_to_route(|route: &Route, job: &CoreJob| {
             job.as_single()
                 .map_or(false, |single| is_reload_single(single.as_ref()) && is_correct_vehicle(route, single))
-        },
-    );
+        });
 
     let job_index = blocks.job_index.as_ref().ok_or("misconfiguration in goal reader: job index is not set")?;
     let reload_resources = get_reload_resources(api_problem, job_index, capacity_map);
 
     if reload_resources.is_empty() {
-        builder.set_violation_code(CAPACITY_CONSTRAINT_CODE).build_simple()
+        builder.build_simple()
     } else {
         let total_jobs = blocks.jobs.size();
         builder
-            .set_violation_code(RELOAD_RESOURCE_CONSTRAINT_CODE)
+            .set_resource_code(RELOAD_RESOURCE_CONSTRAINT_CODE)
             .set_shared_demand_capacity(|single| single.dimens.get_job_demand().map(|demand| demand.delivery.0))
             .set_shared_resource_capacity(move |activity| {
                 activity

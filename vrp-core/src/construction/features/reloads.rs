@@ -31,7 +31,8 @@ pub type SharedResourceId = usize;
 #[allow(clippy::type_complexity)]
 pub struct ReloadFeatureFactory<T: LoadOps> {
     name: String,
-    violation_code: Option<ViolationCode>,
+    capacity_code: Option<ViolationCode>,
+    resource_code: Option<ViolationCode>,
 
     is_reload_single_fn: Option<Arc<dyn Fn(&Single) -> bool + Send + Sync>>,
     belongs_to_route_fn: Option<Arc<dyn Fn(&Route, &Job) -> bool + Send + Sync>>,
@@ -44,6 +45,12 @@ pub struct ReloadFeatureFactory<T: LoadOps> {
 }
 
 impl<T: SharedResource> ReloadFeatureFactory<T> {
+    /// Sets resource constraint violation code which is used to report back the reason of job's unassignment.
+    pub fn set_resource_code(mut self, code: ViolationCode) -> Self {
+        self.resource_code = Some(code);
+        self
+    }
+
     /// Sets a shared resource capacity function.
     pub fn set_shared_resource_capacity<F>(mut self, func: F) -> Self
     where
@@ -73,7 +80,7 @@ impl<T: SharedResource> ReloadFeatureFactory<T> {
 
     /// Builds a shared reload flavor.
     pub fn build_shared(mut self) -> GenericResult<Feature> {
-        let violation_code = self.violation_code.unwrap_or_default();
+        let violation_code = self.resource_code.unwrap_or_default();
 
         // read shared resource flavor properties
         let Some(((resource_capacity_fn, resource_demand_fn), is_partial_solution_fn)) = self
@@ -119,19 +126,20 @@ impl<T: LoadOps> ReloadFeatureFactory<T> {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
+            capacity_code: None,
+            resource_code: None,
             is_reload_single_fn: None,
             belongs_to_route_fn: None,
             load_schedule_threshold_fn: None,
             shared_resource_capacity_fn: None,
             shared_resource_demand_fn: None,
             is_partial_solution_fn: None,
-            violation_code: None,
         }
     }
 
-    /// Sets constraint violation code which is used to report back the reason of job's unassignment.
-    pub fn set_violation_code(mut self, violation_code: ViolationCode) -> Self {
-        self.violation_code = Some(violation_code);
+    /// Sets capacity constraint violation code which is used to report back the reason of job's unassignment.
+    pub fn set_capacity_code(mut self, code: ViolationCode) -> Self {
+        self.capacity_code = Some(code);
         self
     }
 
@@ -248,7 +256,7 @@ impl<T: LoadOps> ReloadFeatureFactory<T> {
             intervals_state: Arc::new(ReloadIntervalsState),
         };
 
-        let violation_code = self.violation_code.unwrap_or_default();
+        let violation_code = self.capacity_code.unwrap_or_default();
 
         // NOTE: all reload feature flavors extend the capacity feature via route intervals
         create_capacity_limit_with_multi_trip_feature::<T>(self.name.as_str(), route_intervals, violation_code)
