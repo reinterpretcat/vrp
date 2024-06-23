@@ -1,141 +1,191 @@
-//! A reloads feature.
+//! This module provides functionality for reloading vehicle with new jobs at some place later in
+//! the tour. This is used to overcome a vehicle capacity limit. The feature has two flavors:
+//!  - simple: a basic reload place with unlimited number of jobs which can be loaded/unloaded from there
+//!  - shared: a resource constrained reload place
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/features/reloads_test.rs"]
 mod reloads_test;
 
-use super::*;
-use crate::construction::enablers::{FeatureCombinator, RouteIntervals};
-use crate::construction::features::capacity::{
-    JobDemandDimension, MaxFutureCapacityActivityState, MaxPastCapacityActivityState, VehicleCapacityDimension,
-};
-use crate::models::problem::Single;
-use crate::models::solution::Route;
+use crate::construction::enablers::{FeatureCombinator, RouteIntervals, RouteIntervalsState};
+use crate::construction::features::capacity::*;
+use crate::construction::heuristics::*;
+use crate::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
+use crate::models::problem::{Job, Single};
+use crate::models::solution::{Activity, Route};
+use crate::models::*;
+use rosomaxa::utils::{GenericError, GenericResult};
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::ops::Range;
+use std::ops::{Add, Range, RangeInclusive, Sub};
+use std::slice::Iter;
+use std::sync::Arc;
 
-/// Specifies dependencies needed to use reload feature.
-pub trait ReloadAspects: Clone + Send + Sync {
-    /// Checks whether the job is a reload job and it can be assigned to the given route.
-    fn belongs_to_route(&self, route: &Route, job: &Job) -> bool;
+/// Represents a shared unique resource which is used to model reload with capacity constraint.
+pub trait SharedResource: LoadOps + Add + Sub + PartialOrd + Copy + Sized + Send + Sync + Default + 'static {}
 
-    /// Checks whether the single job is reload job.
-    fn is_reload_single(&self, single: &Single) -> bool;
+/// Represents a shared resource id.
+pub type SharedResourceId = usize;
+
+/// Provides a way to build reload feature with various parameters.
+#[allow(clippy::type_complexity)]
+pub struct ReloadFeatureFactory<T: LoadOps> {
+    name: String,
+    violation_code: Option<ViolationCode>,
+
+    is_reload_single_fn: Option<Arc<dyn Fn(&Single) -> bool + Send + Sync>>,
+    belongs_to_route_fn: Option<Arc<dyn Fn(&Route, &Job) -> bool + Send + Sync>>,
+    load_schedule_threshold_fn: Option<Box<dyn Fn(&T) -> T + Send + Sync>>,
+
+    // these fields are needed to be set for shared reload flavor
+    shared_resource_capacity_fn: Option<SharedResourceCapacityFn<T>>,
+    shared_resource_demand_fn: Option<SharedResourceDemandFn<T>>,
+    is_partial_solution_fn: Option<PartialSolutionFn>,
 }
 
-/// Specifies load schedule threshold function.
-pub type LoadScheduleThresholdFn<T> = Box<dyn Fn(&T) -> T + Send + Sync>;
-/// A factory function to create capacity feature.
-pub type CapacityFeatureFactoryFn = Box<dyn FnOnce(&str, RouteIntervals) -> Result<Feature, GenericError>>;
-/// Specifies place capacity threshold function.
-type PlaceCapacityThresholdFn<T> = Box<dyn Fn(&RouteContext, usize, &T) -> bool + Send + Sync>;
+impl<T: SharedResource> ReloadFeatureFactory<T> {
+    /// Sets a shared resource capacity function.
+    pub fn set_shared_resource_capacity<F>(mut self, func: F) -> Self
+    where
+        F: Fn(&Activity) -> Option<(T, SharedResourceId)> + Send + Sync + 'static,
+    {
+        self.shared_resource_capacity_fn = Some(Arc::new(func));
+        self
+    }
 
-/// Keys to track state of reload feature.
-#[derive(Clone, Debug)]
-pub struct ReloadKeys {
-    /// Reload intervals key.
-    pub intervals: StateKey,
+    /// Sets a shared resource demand function.
+    pub fn set_shared_demand_capacity<F>(mut self, func: F) -> Self
+    where
+        F: Fn(&Single) -> Option<T> + Send + Sync + 'static,
+    {
+        self.shared_resource_demand_fn = Some(Arc::new(func));
+        self
+    }
+
+    /// Sets a function which tells whether a given solution is partial.
+    pub fn set_is_partial_solution<F>(mut self, func: F) -> Self
+    where
+        F: Fn(&SolutionContext) -> bool + Send + Sync + 'static,
+    {
+        self.is_partial_solution_fn = Some(Arc::new(func));
+        self
+    }
+
+    /// Builds a shared reload flavor.
+    pub fn build_shared(mut self) -> GenericResult<Feature> {
+        let violation_code = self.violation_code.unwrap_or_default();
+
+        // read shared resource flavor properties
+        let Some(((resource_capacity_fn, resource_demand_fn), is_partial_solution_fn)) = self
+            .shared_resource_capacity_fn
+            .take()
+            .zip(self.shared_resource_demand_fn.take())
+            .zip(self.is_partial_solution_fn.take())
+        else {
+            return Err("shared_resource_capacity, shared_resource_demand and partial_solution must be set for shared reload feature".into());
+        };
+
+        let shared_resource_threshold_fn: SharedResourceThresholdFn<T> =
+            Box::new(move |route_ctx: &RouteContext, activity_idx, demand| {
+                route_ctx
+                    .state()
+                    .get_activity_state_ex::<SharedResourceStateKey, T>(activity_idx)
+                    .map_or(true, |resource_available| resource_available.can_fit(demand))
+            });
+
+        let simple_reload = self.build(Some(shared_resource_threshold_fn))?;
+
+        let shared_resource = FeatureBuilder::default()
+            .with_name(self.name.as_str())
+            .with_constraint(SharedResourceConstraint {
+                violation_code,
+                resource_demand_fn: resource_demand_fn.clone(),
+                is_partial_solution_fn: is_partial_solution_fn.clone(),
+            })
+            .with_state(SharedResourceState {
+                state_keys: vec![],
+                resource_capacity_fn,
+                resource_demand_fn,
+                is_partial_solution_fn,
+            })
+            .build()?;
+
+        FeatureCombinator::default().use_name(self.name).add_features(&[simple_reload, shared_resource]).combine()
+    }
 }
 
-/// Keys to track state of reload feature.
-#[derive(Clone, Debug)]
-pub struct SharedReloadKeys {
-    /// Shared resource key.
-    pub resource: StateKey,
-    /// Reload keys.
-    pub reload_keys: ReloadKeys,
-}
+impl<T: LoadOps> ReloadFeatureFactory<T> {
+    /// Creates a new instance of `ReloadFeatureFactory` with the given feature name
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            is_reload_single_fn: None,
+            belongs_to_route_fn: None,
+            load_schedule_threshold_fn: None,
+            shared_resource_capacity_fn: None,
+            shared_resource_demand_fn: None,
+            is_partial_solution_fn: None,
+            violation_code: None,
+        }
+    }
 
-/// Creates a multi trip strategy to use multi trip with reload jobs which shared some resources.
-#[allow(clippy::too_many_arguments)]
-pub fn create_shared_reload_multi_trip_feature<T, A>(
-    name: &str,
-    capacity_feature_factory: CapacityFeatureFactoryFn,
-    load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
-    resource_map: HashMap<Job, (T, SharedResourceId)>,
-    total_jobs: usize,
-    shared_reload_keys: SharedReloadKeys,
-    violation_code: ViolationCode,
-    aspects: A,
-) -> Result<Feature, GenericError>
-where
-    T: SharedResource + LoadOps,
-    A: ReloadAspects + 'static,
-{
-    let shared_resource = create_shared_reload_constraint(
-        name,
-        resource_map,
-        total_jobs,
-        shared_reload_keys.clone(),
-        violation_code,
-        aspects.clone(),
-    )?;
+    /// Sets constraint violation code which is used to report back the reason of job's unassignment.
+    pub fn set_violation_code(mut self, violation_code: ViolationCode) -> Self {
+        self.violation_code = Some(violation_code);
+        self
+    }
 
-    let route_intervals = create_reload_route_intervals(
-        shared_reload_keys.reload_keys.clone(),
-        load_schedule_threshold_fn,
-        Some(Box::new(move |route_ctx, activity_idx, demand| {
-            route_ctx
-                .state()
-                .get_activity_state::<T>(shared_reload_keys.resource, activity_idx)
-                .map_or(true, |resource_available| resource_available.can_fit(demand))
-        })),
-        aspects,
-    );
-    let capacity = (capacity_feature_factory)(name, route_intervals)?;
+    /// Sets a function which specifies whether a given single job can be considered as a reload job.
+    pub fn set_is_reload_single<F>(mut self, func: F) -> Self
+    where
+        F: Fn(&Single) -> bool + Send + Sync + 'static,
+    {
+        self.is_reload_single_fn = Some(Arc::new(func));
+        self
+    }
 
-    FeatureCombinator::default().use_name(name).add_features(&[capacity, shared_resource]).combine()
-}
+    /// Sets a function which specifies whether a given route can serve a given job. This function
+    /// should return false, if the job is not reload.
+    pub fn set_belongs_to_route<F>(mut self, func: F) -> Self
+    where
+        F: Fn(&Route, &Job) -> bool + Send + Sync + 'static,
+    {
+        self.belongs_to_route_fn = Some(Arc::new(func));
+        self
+    }
 
-/// Creates a multi trip feature to use multi trip with reload jobs.
-pub fn create_simple_reload_multi_trip_feature<T, A>(
-    name: &str,
-    capacity_feature_factory: CapacityFeatureFactoryFn,
-    load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
-    reload_keys: ReloadKeys,
-    aspects: A,
-) -> Result<Feature, GenericError>
-where
-    T: SharedResource + LoadOps,
-    A: ReloadAspects + 'static,
-{
-    (capacity_feature_factory)(
-        name,
-        create_simple_reload_route_intervals(load_schedule_threshold_fn, reload_keys, aspects),
-    )
-}
+    /// Sets a function which is used to decide whether reload should be considered for assignment
+    /// based on the left vehicle's capacity.
+    pub fn set_load_schedule_threshold<F>(mut self, func: F) -> Self
+    where
+        F: Fn(&T) -> T + Send + Sync + 'static,
+    {
+        self.load_schedule_threshold_fn = Some(Box::new(func));
+        self
+    }
 
-/// Creates a reload intervals to use with reload jobs.
-pub fn create_simple_reload_route_intervals<T, A>(
-    load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
-    reload_keys: ReloadKeys,
-    aspects: A,
-) -> RouteIntervals
-where
-    T: SharedResource + LoadOps,
-    A: ReloadAspects + 'static,
-{
-    create_reload_route_intervals(reload_keys, load_schedule_threshold_fn, None, aspects)
-}
+    /// Builds a simple reload flavor.
+    pub fn build_simple(mut self) -> GenericResult<Feature> {
+        self.build(None)
+    }
 
-fn create_reload_route_intervals<T, A>(
-    reload_keys: ReloadKeys,
-    load_schedule_threshold_fn: LoadScheduleThresholdFn<T>,
-    place_capacity_threshold: Option<PlaceCapacityThresholdFn<T>>,
-    aspects: A,
-) -> RouteIntervals
-where
-    T: SharedResource + LoadOps,
-    A: ReloadAspects + 'static,
-{
-    RouteIntervals::Multiple {
-        is_marker_single_fn: {
-            let aspects = aspects.clone();
-            Arc::new(move |single| aspects.is_reload_single(single))
-        },
-        is_new_interval_needed_fn: {
-            Arc::new(move |route_ctx| {
+    fn build(&mut self, shared_resource_threshold_fn: Option<SharedResourceThresholdFn<T>>) -> GenericResult<Feature> {
+        // TODO provide reasonable default to simplify code usage?
+
+        // read common properties
+        let is_marker_single_fn =
+            self.is_reload_single_fn.take().ok_or_else(|| GenericError::from("is_reload_single must be set"))?;
+        let is_assignable_fn =
+            self.belongs_to_route_fn.take().ok_or_else(|| GenericError::from("belongs_to_route must be set"))?;
+        let load_schedule_threshold_fn = self
+            .load_schedule_threshold_fn
+            .take()
+            .ok_or_else(|| GenericError::from("load_schedule_threshold must be set"))?;
+
+        // create route intervals used to control how tour is split into multiple sub-tours
+        let route_intervals = RouteIntervals::Multiple {
+            is_marker_single_fn,
+            is_new_interval_needed_fn: Arc::new(move |route_ctx| {
                 route_ctx
                     .route()
                     .tour
@@ -151,10 +201,8 @@ where
                         current.partial_cmp(&threshold_capacity) != Some(Ordering::Less)
                     })
                     .unwrap_or(false)
-            })
-        },
-        is_obsolete_interval_fn: {
-            Arc::new(move |route_ctx, left, right| {
+            }),
+            is_obsolete_interval_fn: Arc::new(move |route_ctx, left, right| {
                 let capacity: T =
                     route_ctx.route().actor.vehicle.dimens.get_vehicle_capacity().cloned().unwrap_or_default();
 
@@ -189,51 +237,234 @@ where
                     capacity.can_fit(&new_max_load_left) && capacity.can_fit(&new_max_load_right);
 
                 has_enough_vehicle_capacity
-                    && place_capacity_threshold.as_ref().map_or(true, |place_capacity_threshold| {
+                    && shared_resource_threshold_fn.as_ref().map_or(true, |shared_resource_threshold_fn| {
                         // total static delivery at left
                         let left_delivery = fold_demand(left.start..right.end, |demand| demand.delivery.0);
 
-                        (place_capacity_threshold)(route_ctx, left.start, &left_delivery)
+                        (shared_resource_threshold_fn)(route_ctx, left.start, &left_delivery)
                     })
-            })
-        },
-        is_assignable_fn: Arc::new(move |route, job| aspects.belongs_to_route(route, job)),
-        intervals_key: reload_keys.intervals,
+            }),
+            is_assignable_fn,
+            intervals_state: Arc::new(ReloadIntervalsState),
+        };
+
+        let violation_code = self.violation_code.unwrap_or_default();
+
+        // NOTE: all reload feature flavors extend the capacity feature via route intervals
+        create_capacity_limit_with_multi_trip_feature::<T>(self.name.as_str(), route_intervals, violation_code)
     }
 }
 
-/// Creates a shared resource constraint module to constraint reload jobs.
-fn create_shared_reload_constraint<T, A>(
-    name: &str,
-    resource_map: HashMap<Job, (T, SharedResourceId)>,
-    total_jobs: usize,
-    shared_reload_keys: SharedReloadKeys,
-    constraint_code: ViolationCode,
-    aspects: A,
-) -> Result<Feature, GenericError>
-where
-    T: SharedResource + LoadOps,
-    A: ReloadAspects + 'static,
-{
-    let intervals_key = shared_reload_keys.reload_keys.intervals;
-    create_shared_resource_feature(
-        name,
-        total_jobs,
-        constraint_code,
-        shared_reload_keys.resource,
-        Arc::new(move |route_ctx| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(intervals_key)),
-        {
-            let aspects = aspects.clone();
-            Arc::new(move |activity| {
-                activity.job.as_ref().and_then(|job| {
-                    if aspects.is_reload_single(job.as_ref()) {
-                        resource_map.get(&Job::Single(job.clone())).cloned()
-                    } else {
-                        None
-                    }
-                })
-            })
-        },
-        Arc::new(move |single| single.dimens.get_job_demand().map(|demand| demand.delivery.0)),
-    )
+custom_route_intervals_state!(pub ReloadIntervals);
+
+// shared reload implementation
+
+// TODO: dedicated macro doesn't support Option<T> to be stored as a type
+struct SharedResourceStateKey;
+
+type SharedResourceCapacityFn<T> = Arc<dyn Fn(&Activity) -> Option<(T, SharedResourceId)> + Send + Sync>;
+type SharedResourceDemandFn<T> = Arc<dyn Fn(&Single) -> Option<T> + Send + Sync>;
+type SharedResourceThresholdFn<T> = Box<dyn Fn(&RouteContext, usize, &T) -> bool + Send + Sync>;
+type PartialSolutionFn = Arc<dyn Fn(&SolutionContext) -> bool + Send + Sync>;
+
+struct SharedResourceConstraint<T: SharedResource> {
+    violation_code: ViolationCode,
+    resource_demand_fn: SharedResourceDemandFn<T>,
+    is_partial_solution_fn: PartialSolutionFn,
 }
+
+impl<T: SharedResource> SharedResourceConstraint<T> {
+    fn evaluate_route(
+        &self,
+        solution_ctx: &SolutionContext,
+        route_ctx: &RouteContext,
+        job: &Job,
+    ) -> Option<ConstraintViolation> {
+        job.as_single()
+            .and_then(|job| {
+                (self.resource_demand_fn)(job)
+                    .zip(route_ctx.state().get_reload_intervals().and_then(|intervals| intervals.first()))
+            })
+            .and_then(|(_, _)| {
+                // NOTE cannot do resource assignment for partial solution
+                if (self.is_partial_solution_fn)(solution_ctx) {
+                    ConstraintViolation::fail(self.violation_code)
+                } else {
+                    ConstraintViolation::success()
+                }
+            })
+    }
+
+    fn evaluate_activity(
+        &self,
+        route_ctx: &RouteContext,
+        activity_ctx: &ActivityContext,
+    ) -> Option<ConstraintViolation> {
+        route_ctx
+            .state()
+            .get_reload_intervals()
+            .iter()
+            .flat_map(|intervals| intervals.iter())
+            .find(|(_, end_idx)| activity_ctx.index <= *end_idx)
+            .and_then(|&(start_idx, _)| {
+                route_ctx
+                    .state()
+                    .get_activity_state_ex::<SharedResourceStateKey, Option<T>>(start_idx)
+                    .and_then(|resource_available| *resource_available)
+                    .and_then(|resource_available| {
+                        let resource_demand = activity_ctx
+                            .target
+                            .job
+                            .as_ref()
+                            .and_then(|job| (self.resource_demand_fn)(job.as_ref()))
+                            .unwrap_or_default();
+
+                        if resource_available
+                            .partial_cmp(&resource_demand)
+                            .map_or(false, |ordering| ordering == Ordering::Less)
+                        {
+                            ConstraintViolation::skip(self.violation_code)
+                        } else {
+                            ConstraintViolation::success()
+                        }
+                    })
+            })
+    }
+}
+
+impl<T: SharedResource> FeatureConstraint for SharedResourceConstraint<T> {
+    fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        match move_ctx {
+            MoveContext::Route { solution_ctx, route_ctx, job } => self.evaluate_route(solution_ctx, route_ctx, job),
+            MoveContext::Activity { route_ctx, activity_ctx } => self.evaluate_activity(route_ctx, activity_ctx),
+        }
+    }
+
+    fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
+        Ok(source)
+    }
+}
+
+struct SharedResourceState<T>
+where
+    T: SharedResource + Add<Output = T> + Sub<Output = T>,
+{
+    state_keys: Vec<StateKey>,
+    resource_capacity_fn: SharedResourceCapacityFn<T>,
+    resource_demand_fn: SharedResourceDemandFn<T>,
+    is_partial_solution_fn: PartialSolutionFn,
+}
+
+impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<T> {
+    /// Calculates available resource based on consumption in the whole solution.
+    fn update_resource_consumption(&self, solution_ctx: &mut SolutionContext) {
+        // NOTE: we cannot estimate resource consumption in partial solutions
+        if (self.is_partial_solution_fn)(solution_ctx) {
+            return;
+        }
+
+        // first pass: get total demand for each shared resource
+        let total_demand = solution_ctx.routes.iter().fold(HashMap::<usize, T>::default(), |acc, route_ctx| {
+            route_ctx.state().get_reload_intervals().iter().flat_map(|intervals| intervals.iter()).fold(
+                acc,
+                |mut acc, &(start_idx, end_idx)| {
+                    // get total resource demand for given interval
+                    let activity = get_activity_by_idx(route_ctx.route(), start_idx);
+                    let resource_demand_with_id = (self.resource_capacity_fn)(activity)
+                        .map(|(_, resource_id)| (self.get_total_demand(route_ctx, start_idx..=end_idx), resource_id));
+
+                    if let Some((resource_demand, id)) = resource_demand_with_id {
+                        let entry = acc.entry(id).or_default();
+                        *entry = *entry + resource_demand;
+                    }
+
+                    acc
+                },
+            )
+        });
+
+        // second pass: store amount of available resources inside activity state
+        solution_ctx.routes.iter_mut().for_each(|route_ctx| {
+            let mut available_resources = vec![None; route_ctx.route().tour.total()];
+            let reload_intervals = route_ctx.state().get_reload_intervals().cloned().unwrap_or_default();
+
+            for (start_idx, _) in reload_intervals {
+                let activity_idx = get_activity_by_idx(route_ctx.route(), start_idx);
+                let resource_available =
+                    (self.resource_capacity_fn)(activity_idx).and_then(|(total_capacity, resource_id)| {
+                        total_demand.get(&resource_id).map(|total_demand| total_capacity - *total_demand)
+                    });
+
+                if let Some(resource_available) = resource_available {
+                    available_resources[start_idx] = Some(resource_available);
+                }
+            }
+
+            route_ctx.state_mut().set_activity_states_ex::<SharedResourceStateKey, Option<T>>(available_resources)
+        });
+    }
+
+    /// Prevents resource consumption in given route by setting available to zero (default).
+    fn prevent_resource_consumption(&self, route_ctx: &mut RouteContext) {
+        let mut empty_resources = vec![None; route_ctx.route().tour.total()];
+
+        route_ctx.state().get_reload_intervals().cloned().unwrap_or_default().into_iter().for_each(
+            |(start_idx, end_idx)| {
+                let activity = get_activity_by_idx(route_ctx.route(), start_idx);
+                let has_resource_demand = (self.resource_capacity_fn)(activity).map_or(false, |(_, _)| {
+                    (start_idx..=end_idx)
+                        .filter_map(|idx| route_ctx.route().tour.get(idx))
+                        .filter_map(|activity| activity.job.as_ref())
+                        .any(|job| (self.resource_demand_fn)(job).is_some())
+                });
+
+                if has_resource_demand {
+                    empty_resources[start_idx] = Some(T::default());
+                }
+            },
+        );
+
+        route_ctx.state_mut().set_activity_states_ex::<SharedResourceStateKey, _>(empty_resources)
+    }
+
+    fn get_total_demand(&self, route_ctx: &RouteContext, range: RangeInclusive<usize>) -> T {
+        range
+            .into_iter()
+            .filter_map(|idx| route_ctx.route().tour.get(idx))
+            .filter_map(|activity| activity.job.as_ref())
+            .fold(T::default(), |acc, job| acc + (self.resource_demand_fn)(job).unwrap_or_default())
+    }
+}
+
+impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> FeatureState for SharedResourceState<T> {
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, _: &Job) {
+        self.accept_route_state(solution_ctx.routes.get_mut(route_index).unwrap());
+        self.update_resource_consumption(solution_ctx);
+    }
+
+    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
+        // NOTE: we need to prevent any insertions with resource consumption in modified route.
+        //       This state will be overridden by update_resource_consumption after other accept
+        //       method calls.
+
+        self.prevent_resource_consumption(route_ctx);
+    }
+
+    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
+        self.update_resource_consumption(solution_ctx);
+    }
+
+    fn state_keys(&self) -> Iter<StateKey> {
+        self.state_keys.iter()
+    }
+}
+
+fn get_activity_by_idx(route: &Route, idx: usize) -> &Activity {
+    route.tour.get(idx).expect("cannot get activity by idx")
+}
+
+/// Implement `SharedResource` for multi dimensional load.
+impl SharedResource for MultiDimLoad {}
+
+/// Implement `SharedResource` for a single dimensional load.
+impl SharedResource for SingleDimLoad {}

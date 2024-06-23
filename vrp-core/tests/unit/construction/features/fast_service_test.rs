@@ -1,37 +1,29 @@
 use super::*;
 use crate::construction::features::capacity::JobDemandDimension;
-use crate::helpers::construction::heuristics::create_state_key;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 
-struct TestFastServiceAspects {
-    state_key: StateKey,
-}
+const INTERVAL_LOCATION: Location = 15;
 
-impl FastServiceAspects for TestFastServiceAspects {
-    fn get_state_key(&self) -> StateKey {
-        self.state_key
-    }
-
-    fn get_demand_type(&self, single: &Single) -> Option<DemandType> {
-        single.dimens.get_job_demand().map(|demand: &Demand<SingleDimLoad>| demand.get_type())
-    }
-}
-
-fn create_test_feature(route_intervals: RouteIntervals) -> Feature {
-    create_fast_service_feature::<_>(
-        "fast_service",
-        TestTransportCost::new_shared(),
-        TestActivityCost::new_shared(),
-        route_intervals,
-        None,
-        TestFastServiceAspects { state_key: create_state_key() },
-    )
-    .unwrap()
-}
-
-fn create_test_feature_no_reload() -> Feature {
-    create_test_feature(RouteIntervals::Single)
+fn create_fast_service_feature(reload_filter_enabled: bool) -> Feature {
+    FastServiceFeatureBuilder::new("fast_service")
+        .set_transport(TestTransportCost::new_shared())
+        .set_activity(TestActivityCost::new_shared())
+        .set_is_filtered_job(move |job| {
+            if reload_filter_enabled {
+                job.as_single()
+                    .iter()
+                    .flat_map(|single| single.places.iter())
+                    .any(|p| p.location == Some(INTERVAL_LOCATION))
+            } else {
+                false
+            }
+        })
+        .set_demand_type_fn(|single| {
+            single.dimens.get_job_demand().map(|demand: &Demand<SingleDimLoad>| demand.get_type())
+        })
+        .build()
+        .unwrap()
 }
 
 mod local_estimation {
@@ -41,9 +33,10 @@ mod local_estimation {
     use std::iter::once;
 
     fn run_estimation_test_case<T>(test_case: InsertionTestCase<T>, job: Arc<Single>, activities: Vec<Activity>) {
+        let reload_filter_enabled = false;
         let InsertionTestCase { target_index, target_location, end_time, expected_cost, .. } = test_case;
         let (objective, state) = {
-            let feature = create_test_feature_no_reload();
+            let feature = create_fast_service_feature(reload_filter_enabled);
             (feature.objective.unwrap(), feature.state.unwrap())
         };
         let mut route_ctx = RouteContextBuilder::default()
@@ -166,7 +159,8 @@ mod global_estimation {
 
     #[test]
     fn can_get_solution_fitness() {
-        let objective = create_test_feature_no_reload().objective.expect("no objective");
+        let reload_filter_enabled = false;
+        let objective = create_fast_service_feature(reload_filter_enabled).objective.expect("no objective");
         let route_ctx = RouteContextBuilder::default()
             .with_route(
                 RouteBuilder::default()
@@ -184,27 +178,20 @@ mod global_estimation {
 
     #[test]
     fn can_get_solution_fitness_with_reload() {
-        const INTERVAL_LOCATION: Location = 15;
-        let state_key = create_state_key();
+        let reload_filter_enabled = true;
 
-        let route_intervals = RouteIntervals::Multiple {
-            is_marker_single_fn: Arc::new(|single| single.places.iter().any(|p| p.location == Some(INTERVAL_LOCATION))),
-            is_new_interval_needed_fn: Arc::new(|_| unreachable!()),
-            is_obsolete_interval_fn: Arc::new(|_, _, _| unreachable!()),
-            is_assignable_fn: Arc::new(|_, _| unreachable!()),
-            intervals_key: state_key,
-        };
-        let objective = create_test_feature(route_intervals).objective.expect("no objective");
+        let objective = create_fast_service_feature(reload_filter_enabled).objective.expect("no objective");
         let route = RouteBuilder::default()
             .add_activity(ActivityBuilder::with_location(10).build())
             .add_activity(ActivityBuilder::with_location(INTERVAL_LOCATION).build())
             .add_activity(ActivityBuilder::with_location(20).build())
             .build();
         let state = RouteStateBuilder::default()
-            .add_route_state(
-                state_key,
-                get_route_intervals(&route, |activity| activity.place.location == INTERVAL_LOCATION),
-            )
+            .set_route_state(|state| {
+                state.set_reload_intervals(get_route_intervals(&route, |activity| {
+                    activity.place.location == INTERVAL_LOCATION
+                }))
+            })
             .build();
         let route_ctx = RouteContextBuilder::default().with_route(route).with_state(state).build();
         let insertion_ctx = InsertionContextBuilder::default().with_routes(vec![route_ctx]).build();

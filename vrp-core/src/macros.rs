@@ -81,3 +81,30 @@ macro_rules! custom_tour_state {
         }
     };
 }
+
+/// A macro to define custom route intervals state used within [crate::construction::enablers::RouteIntervals].
+macro_rules! custom_route_intervals_state {
+    // visibility modifier is provided
+    ($(#[$meta:meta])* $vis:vis $name:ident) => {
+        paste::paste! {
+            custom_tour_state!($name typeof Vec<(usize, usize)>);
+            $(#[$meta])*
+            /// Provides access to route intervals implementation.
+            $vis struct [<$name State>];
+            impl RouteIntervalsState for [<$name State>] {
+                fn get_route_intervals<'a>(&self, route_state: &'a RouteState) -> Option<&'a Vec<(usize, usize)>> {
+                    route_state.[<get_ $name:snake:lower>]()
+                }
+
+                fn set_route_intervals(&self, route_state: &mut RouteState, values: Vec<(usize, usize)>) {
+                    route_state.[<set_ $name:snake:lower>](values);
+                }
+            }
+        }
+    };
+
+    // no visibility modifier is provided
+    ($(#[$meta:meta])* $name:ident) => {
+        custom_route_intervals_state!($(#[$meta])* pub(crate) $name);
+    };
+}

@@ -1,4 +1,4 @@
-//! An experimental feature which provides way to insert recharge stations in the tour to recharge
+//! An experimental feature which provides a way to insert recharge stations in the tour to recharge
 //! (refuel) vehicle.
 
 #[cfg(test)]
@@ -12,133 +12,167 @@ use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-/// Specifies dependencies needed to use recharge feature.
-pub trait RechargeAspects: Clone + Send + Sync {
-    /// Checks whether the job is a recharge job and it can be assigned to the given route.
-    fn belongs_to_route(&self, route: &Route, job: &Job) -> bool;
-
-    /// Checks whether the single job is recharge job.
-    fn is_recharge_single(&self, single: &Single) -> bool;
-
-    /// Gets recharge keys.
-    fn get_state_keys(&self) -> &RechargeKeys;
-
-    /// Gets recharge distance limit function.
-    fn get_distance_limit_fn(&self) -> RechargeDistanceLimitFn;
-
-    /// Returns violation code.
-    fn get_violation_code(&self) -> ViolationCode;
+/// Provides a way to build the recharge/refuel feature.
+#[allow(clippy::type_complexity)]
+pub struct RechargeFeatureBuilder {
+    name: String,
+    violation_code: Option<ViolationCode>,
+    transport: Option<Arc<dyn TransportCost + Send + Sync>>,
+    belongs_to_route_fn: Option<Arc<dyn Fn(&Route, &Job) -> bool + Send + Sync>>,
+    is_recharge_single_fn: Option<RechargeSingleFn>,
+    distance_limit_fn: Option<RechargeDistanceLimitFn>,
 }
 
-/// Specifies a distance limit function for recharge. It should return a fixed value for the same
-/// actor all the time.
-pub type RechargeDistanceLimitFn = Arc<dyn Fn(&Actor) -> Option<Distance> + Send + Sync>;
+impl RechargeFeatureBuilder {
+    /// Creates a new instance of `RechargeFeatureBuilder`.
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            violation_code: None,
+            is_recharge_single_fn: None,
+            belongs_to_route_fn: None,
+            distance_limit_fn: None,
+            transport: None,
+        }
+    }
+
+    /// Sets constraint violation code which is used to report back the reason of job's unassignment.
+    pub fn set_violation_code(mut self, violation_code: ViolationCode) -> Self {
+        self.violation_code = Some(violation_code);
+        self
+    }
+
+    /// Sets transport costs to estimate distance.
+    pub fn set_transport(mut self, transport: Arc<dyn TransportCost + Send + Sync>) -> Self {
+        self.transport = Some(transport);
+        self
+    }
+
+    /// Sets a function which specifies whether a given single job can be considered as a recharge job.
+    pub fn set_is_recharge_single<F>(mut self, func: F) -> Self
+    where
+        F: Fn(&Single) -> bool + Send + Sync + 'static,
+    {
+        self.is_recharge_single_fn = Some(Arc::new(func));
+        self
+    }
+
+    /// Sets a function which specifies whether a given route can serve a given job. This function
+    /// should return false, if the job is not recharge.
+    pub fn set_belongs_to_route<F>(mut self, func: F) -> Self
+    where
+        F: Fn(&Route, &Job) -> bool + Send + Sync + 'static,
+    {
+        self.belongs_to_route_fn = Some(Arc::new(func));
+        self
+    }
+
+    /// Specifies a distance limit function for recharge. It should return a fixed value for the same
+    /// actor all the time.
+    pub fn set_distance_limit<F>(mut self, func: F) -> Self
+    where
+        F: Fn(&Actor) -> Option<Distance> + Send + Sync + 'static,
+    {
+        self.distance_limit_fn = Some(Arc::new(func));
+        self
+    }
+
+    /// Builds the recharge feature if all dependencies are set.
+    pub fn build(&mut self) -> GenericResult<Feature> {
+        let is_marker_single_fn =
+            self.is_recharge_single_fn.take().ok_or_else(|| GenericError::from("is_reload_single must be set"))?;
+        let is_assignable_fn =
+            self.belongs_to_route_fn.take().ok_or_else(|| GenericError::from("belongs_to_route must be set"))?;
+
+        let transport = self.transport.take().ok_or_else(|| GenericError::from("transport must be set"))?;
+        let distance_limit_fn =
+            self.distance_limit_fn.take().ok_or_else(|| GenericError::from("distance_limit must be set"))?;
+
+        let code = self.violation_code.unwrap_or_default();
+
+        create_multi_trip_feature(
+            self.name.as_str(),
+            code,
+            MarkerInsertionPolicy::Any,
+            Arc::new(RechargeableMultiTrip {
+                route_intervals: RouteIntervals::Multiple {
+                    is_marker_single_fn: is_marker_single_fn.clone(),
+                    is_new_interval_needed_fn: Arc::new({
+                        let distance_limit_fn = distance_limit_fn.clone();
+                        move |route_ctx| {
+                            route_ctx
+                                .route()
+                                .tour
+                                .end_idx()
+                                .map(|end_idx| {
+                                    let current: Distance = route_ctx
+                                        .state()
+                                        .get_recharge_distance_at(end_idx)
+                                        .copied()
+                                        .unwrap_or_default();
+
+                                    (distance_limit_fn)(route_ctx.route().actor.as_ref())
+                                        .map_or(false, |threshold| current > threshold)
+                                })
+                                .unwrap_or(false)
+                        }
+                    }),
+                    is_obsolete_interval_fn: Arc::new({
+                        let distance_limit_fn = distance_limit_fn.clone();
+                        let transport = transport.clone();
+                        let get_counter = move |route_ctx: &RouteContext, activity_idx: usize| {
+                            route_ctx
+                                .state()
+                                .get_recharge_distance_at(activity_idx)
+                                .copied()
+                                .unwrap_or(Distance::default())
+                        };
+                        let get_distance = move |route: &Route, from_idx: usize, to_idx: usize| {
+                            route.tour.get(from_idx).zip(route.tour.get(to_idx)).map_or(
+                                Distance::default(),
+                                |(from, to)| {
+                                    transport.distance(
+                                        route,
+                                        from.place.location,
+                                        to.place.location,
+                                        TravelTime::Departure(from.schedule.departure),
+                                    )
+                                },
+                            )
+                        };
+                        move |route_ctx, left, right| {
+                            let end_idx = get_end_idx(route_ctx, right.end);
+
+                            let new_distance = get_counter(route_ctx, left.end) + get_counter(route_ctx, end_idx)
+                                - get_counter(route_ctx, right.start + 1)
+                                + get_distance(route_ctx.route(), left.end, right.start + 1);
+
+                            (distance_limit_fn)(route_ctx.route().actor.as_ref())
+                                .map_or(false, |threshold| compare_floats(new_distance, threshold) != Ordering::Greater)
+                        }
+                    }),
+                    is_assignable_fn,
+                    intervals_state: Arc::new(RechargeIntervalsState),
+                },
+                transport,
+                code,
+                distance_limit_fn,
+                recharge_single_fn: is_marker_single_fn.clone(),
+            }),
+        )
+    }
+}
+
+type RechargeDistanceLimitFn = Arc<dyn Fn(&Actor) -> Option<Distance> + Send + Sync>;
 type RechargeSingleFn = Arc<dyn Fn(&Single) -> bool + Send + Sync>;
 
-/// Keeps track of state keys used by the recharge feature.
-#[derive(Clone, Debug)]
-pub struct RechargeKeys {
-    /// A distance limit key.
-    pub distance: StateKey,
-    /// A recharge station interval key.
-    pub intervals: StateKey,
-}
-
-/// Creates a feature to insert charge stations along the route.
-pub fn create_recharge_feature<T: RechargeAspects + 'static>(
-    name: &str,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    aspects: T,
-) -> Result<Feature, GenericError> {
-    let recharge_keys = aspects.get_state_keys();
-    let distance_key = recharge_keys.distance;
-    let intervals_key = recharge_keys.intervals;
-    let code = aspects.get_violation_code();
-
-    let distance_limit_fn = aspects.get_distance_limit_fn();
-    let recharge_single_fn: RechargeSingleFn = {
-        let aspects = aspects.clone();
-        Arc::new(move |single| aspects.is_recharge_single(single))
-    };
-
-    create_multi_trip_feature(
-        name,
-        code,
-        MarkerInsertionPolicy::Any,
-        Arc::new(RechargeableMultiTrip {
-            route_intervals: RouteIntervals::Multiple {
-                is_marker_single_fn: recharge_single_fn.clone(),
-                is_new_interval_needed_fn: Arc::new({
-                    let distance_limit_fn = distance_limit_fn.clone();
-                    move |route_ctx| {
-                        route_ctx
-                            .route()
-                            .tour
-                            .end_idx()
-                            .map(|end_idx| {
-                                let current: Distance = route_ctx
-                                    .state()
-                                    .get_activity_state(distance_key, end_idx)
-                                    .copied()
-                                    .unwrap_or_default();
-
-                                (distance_limit_fn)(route_ctx.route().actor.as_ref())
-                                    .map_or(false, |threshold| current > threshold)
-                            })
-                            .unwrap_or(false)
-                    }
-                }),
-                is_obsolete_interval_fn: Arc::new({
-                    let distance_limit_fn = distance_limit_fn.clone();
-                    let transport = transport.clone();
-                    let get_counter = move |route_ctx: &RouteContext, activity_idx: usize| {
-                        route_ctx
-                            .state()
-                            .get_activity_state(distance_key, activity_idx)
-                            .copied()
-                            .unwrap_or(Distance::default())
-                    };
-                    let get_distance = move |route: &Route, from_idx: usize, to_idx: usize| {
-                        route.tour.get(from_idx).zip(route.tour.get(to_idx)).map_or(
-                            Distance::default(),
-                            |(from, to)| {
-                                transport.distance(
-                                    route,
-                                    from.place.location,
-                                    to.place.location,
-                                    TravelTime::Departure(from.schedule.departure),
-                                )
-                            },
-                        )
-                    };
-                    move |route_ctx, left, right| {
-                        let end_idx = get_end_idx(route_ctx, right.end);
-
-                        let new_distance = get_counter(route_ctx, left.end) + get_counter(route_ctx, end_idx)
-                            - get_counter(route_ctx, right.start + 1)
-                            + get_distance(route_ctx.route(), left.end, right.start + 1);
-
-                        (distance_limit_fn)(route_ctx.route().actor.as_ref())
-                            .map_or(false, |threshold| compare_floats(new_distance, threshold) != Ordering::Greater)
-                    }
-                }),
-                is_assignable_fn: Arc::new(move |route, job| aspects.belongs_to_route(route, job)),
-                intervals_key,
-            },
-            transport,
-            code,
-            distance_key,
-            distance_limit_fn,
-            recharge_single_fn,
-        }),
-    )
-}
+custom_route_intervals_state!(RechargeIntervals);
+custom_activity_state!(RechargeDistance typeof Distance);
 
 struct RechargeableMultiTrip {
     route_intervals: RouteIntervals,
     transport: Arc<dyn TransportCost + Send + Sync>,
     code: ViolationCode,
-    distance_key: StateKey,
     distance_limit_fn: RechargeDistanceLimitFn,
     recharge_single_fn: RechargeSingleFn,
 }
@@ -191,7 +225,7 @@ impl MultiTrip for RechargeableMultiTrip {
                 });
         });
 
-        route_ctx.state_mut().put_activity_states(self.distance_key, distance_counters);
+        route_ctx.state_mut().set_recharge_distance_states(distance_counters);
     }
 
     fn try_recover(&self, solution_ctx: &mut SolutionContext, route_indices: &[usize], _: &[Job]) -> bool {
@@ -303,11 +337,7 @@ impl RechargeableMultiTrip {
 
 impl RechargeableMultiTrip {
     fn get_distance(&self, route_ctx: &RouteContext, activity_idx: usize) -> Distance {
-        route_ctx
-            .state()
-            .get_activity_state::<Distance>(self.distance_key, activity_idx)
-            .copied()
-            .unwrap_or(Distance::default())
+        route_ctx.state().get_recharge_distance_at(activity_idx).copied().unwrap_or(Distance::default())
     }
 }
 

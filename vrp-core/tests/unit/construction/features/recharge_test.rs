@@ -6,39 +6,28 @@ use crate::models::solution::Activity;
 
 const VIOLATION_CODE: ViolationCode = 1;
 
-#[derive(Clone)]
-struct TestRechargeAspects {
-    recharge_keys: RechargeKeys,
-    recharge_distance_limit_fn: RechargeDistanceLimitFn,
-}
-
 struct VehicleIdDimenKey;
 struct JobTypeDimenKey;
 
-impl RechargeAspects for TestRechargeAspects {
-    fn belongs_to_route(&self, route: &Route, job: &Job) -> bool {
-        job.as_single()
-            .filter(|single| self.is_recharge_single(single))
-            .and_then(|single| single.dimens.get_value::<VehicleIdDimenKey, String>())
-            .zip(route.actor.vehicle.dimens.get_vehicle_id())
-            .map_or(false, |(a, b)| a == b)
-    }
-
-    fn is_recharge_single(&self, single: &Single) -> bool {
+fn create_recharge_feature(limit: Distance) -> Feature {
+    fn is_recharge_single(single: &Single) -> bool {
         single.dimens.get_value::<JobTypeDimenKey, String>().map_or(false, |job_type| job_type == "recharge")
     }
 
-    fn get_state_keys(&self) -> &RechargeKeys {
-        &self.recharge_keys
-    }
-
-    fn get_distance_limit_fn(&self) -> RechargeDistanceLimitFn {
-        self.recharge_distance_limit_fn.clone()
-    }
-
-    fn get_violation_code(&self) -> ViolationCode {
-        VIOLATION_CODE
-    }
+    RechargeFeatureBuilder::new("recharge")
+        .set_transport(TestTransportCost::new_shared())
+        .set_violation_code(VIOLATION_CODE)
+        .set_distance_limit(move |_: &Actor| Some(limit))
+        .set_is_recharge_single(is_recharge_single)
+        .set_belongs_to_route(|route, job| {
+            job.as_single()
+                .filter(|single| is_recharge_single(single))
+                .and_then(|single| single.dimens.get_value::<VehicleIdDimenKey, String>())
+                .zip(route.actor.vehicle.dimens.get_vehicle_id())
+                .map_or(false, |(a, b)| a == b)
+        })
+        .build()
+        .unwrap()
 }
 
 fn recharge(location: Location) -> Activity {
@@ -80,22 +69,6 @@ fn create_route_ctx(activities: &[Location], recharges: Vec<(usize, Location)>, 
     route_ctx
 }
 
-fn create_feature(limit: Distance) -> (RechargeKeys, Feature) {
-    let mut state_registry = StateKeyRegistry::default();
-    let recharge_keys = RechargeKeys { distance: state_registry.next_key(), intervals: state_registry.next_key() };
-    let feature = create_recharge_feature(
-        "recharge",
-        TestTransportCost::new_shared(),
-        TestRechargeAspects {
-            recharge_keys: recharge_keys.clone(),
-            recharge_distance_limit_fn: Arc::new(move |_: &Actor| Some(limit)),
-        },
-    )
-    .expect("cannot create feature");
-
-    (recharge_keys, feature)
-}
-
 parameterized_test! {can_accumulate_distance, (limit, recharges, activities, expected_counters), {
     can_accumulate_distance_impl(limit, recharges, activities, expected_counters);
 }}
@@ -125,17 +98,13 @@ fn can_accumulate_distance_impl(
     expected_counters: Vec<Distance>,
 ) {
     let mut route_ctx = create_route_ctx(&activities, recharges, true);
-    let (recharge_keys, feature) = create_feature(limit);
+    let feature = create_recharge_feature(limit);
     let state = feature.state.unwrap();
 
     state.accept_route_state(&mut route_ctx);
 
     (0..route_ctx.route().tour.total()).for_each(|activity_idx| {
-        let counter = route_ctx
-            .state()
-            .get_activity_state::<Distance>(recharge_keys.distance, activity_idx)
-            .copied()
-            .unwrap_or_default();
+        let counter = route_ctx.state().get_recharge_distance_at(activity_idx).copied().unwrap_or_default();
         assert_eq!(counter, expected_counters[activity_idx], "doesn't match for: {activity_idx}");
     });
 }
@@ -162,7 +131,7 @@ fn can_evaluate_insertion_impl(
 ) {
     let (index, new_location, (prev, next)) = insertion_data;
     let mut route_ctx = create_route_ctx(&activities, recharges, true);
-    let (_, feature) = create_feature(limit);
+    let feature = create_recharge_feature(limit);
     let (constraint, state) = (feature.constraint.unwrap(), feature.state.unwrap());
     state.accept_route_state(&mut route_ctx);
 
@@ -204,7 +173,7 @@ fn can_handle_obsolete_intervals_impl(
         .with_routes(vec![create_route_ctx(&activities, recharges, true)])
         .build()
         .solution;
-    let (_, feature) = create_feature(limit);
+    let feature = create_recharge_feature(limit);
     let state = feature.state.unwrap();
 
     state.accept_solution_state(&mut solution);
@@ -219,7 +188,7 @@ fn can_handle_obsolete_intervals_impl(
 fn can_accept_recharge_in_long_empty_route() {
     let mut route_ctx = create_route_ctx(&[], vec![], false);
     route_ctx.route_mut().tour.get_mut(1).unwrap().place.location = 100;
-    let (_, feature) = create_feature(55.);
+    let feature = create_recharge_feature(55.);
     let (constraint, state) = (feature.constraint.unwrap(), feature.state.unwrap());
     state.accept_route_state(&mut route_ctx);
 

@@ -3,35 +3,103 @@
 mod fast_service_test;
 
 use super::*;
-use crate::construction::enablers::{calculate_travel, calculate_travel_delta, RouteIntervals};
+use crate::construction::enablers::{calculate_travel, calculate_travel_delta};
 use rosomaxa::algorithms::math::relative_distance;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::iter::once;
 
-/// Specifies an aspects needed to use the feature.
-pub trait FastServiceAspects: Send + Sync {
-    /// Returns a state key used by the feature.
-    fn get_state_key(&self) -> StateKey;
-
-    /// Returns demand type if it is specified.
-    fn get_demand_type(&self, single: &Single) -> Option<DemandType>;
+/// Provides the way to build fast service feature.
+pub struct FastServiceFeatureBuilder {
+    name: String,
+    violation_code: Option<ViolationCode>,
+    demand_type_fn: Option<DemandTypeFn>,
+    is_filtered_job_fn: Option<IsFilteredJobFn>,
+    transport: Option<Arc<dyn TransportCost + Send + Sync>>,
+    activity: Option<Arc<dyn ActivityCost + Send + Sync>>,
+    tolerance: Option<f64>,
 }
 
-/// Creates a feature to prefer a fast serving of jobs.
-pub fn create_fast_service_feature<A: FastServiceAspects + 'static>(
-    name: &str,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
-    route_intervals: RouteIntervals,
-    tolerance: Option<f64>,
-    aspects: A,
-) -> Result<Feature, GenericError> {
-    FeatureBuilder::default()
-        .with_name(name)
-        .with_state(FastServiceState::new(aspects.get_state_key()))
-        .with_objective(FastServiceObjective::<A>::new(transport, activity, route_intervals, tolerance, aspects))
-        .build()
+impl FastServiceFeatureBuilder {
+    /// Creates a new instance of `RechargeFeatureBuilder`.
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            violation_code: None,
+            demand_type_fn: None,
+            is_filtered_job_fn: None,
+            transport: None,
+            activity: None,
+            tolerance: None,
+        }
+    }
+
+    /// Sets constraint violation code which is used to report back the reason of job's unassignment.
+    pub fn set_violation_code(mut self, violation_code: ViolationCode) -> Self {
+        self.violation_code = Some(violation_code);
+        self
+    }
+
+    /// Sets a function to get job's demand type.
+    pub fn set_demand_type_fn<F>(mut self, func: F) -> Self
+    where
+        F: Fn(&Single) -> Option<DemandType> + Send + Sync + 'static,
+    {
+        self.demand_type_fn = Some(Arc::new(func));
+        self
+    }
+
+    /// Sets a function which tells whether the job should NOT be considered for estimation.
+    pub fn set_is_filtered_job<F>(mut self, func: F) -> Self
+    where
+        F: Fn(&Job) -> bool + Send + Sync + 'static,
+    {
+        self.is_filtered_job_fn = Some(Arc::new(func));
+        self
+    }
+
+    /// Sets transport costs to estimate distance.
+    pub fn set_transport(mut self, transport: Arc<dyn TransportCost + Send + Sync>) -> Self {
+        self.transport = Some(transport);
+        self
+    }
+
+    /// Sets activity costs to estimate job start/end time.
+    pub fn set_activity(mut self, activity: Arc<dyn ActivityCost + Send + Sync>) -> Self {
+        self.activity = Some(activity);
+        self
+    }
+
+    /// Sets tolerance param for objective.
+    pub fn set_tolerance(mut self, tolerance: f64) -> Self {
+        self.tolerance = Some(tolerance);
+        self
+    }
+
+    /// Builds fast service feature.
+    pub fn build(mut self) -> GenericResult<Feature> {
+        let tolerance = self.tolerance.take();
+
+        let transport = self.transport.take().ok_or_else(|| GenericError::from("transport must be set"))?;
+        let activity = self.activity.take().ok_or_else(|| GenericError::from("activity must be set"))?;
+
+        let demand_type_fn =
+            self.demand_type_fn.take().ok_or_else(|| GenericError::from("demand_type_fn must be set"))?;
+
+        let is_filtered_job_fn = self.is_filtered_job_fn.take().unwrap_or_else(|| Arc::new(|_| false));
+
+        FeatureBuilder::default()
+            .with_name(self.name.as_str())
+            .with_state(FastServiceState::default())
+            .with_objective(FastServiceObjective::new(
+                demand_type_fn,
+                is_filtered_job_fn,
+                transport,
+                activity,
+                tolerance,
+            ))
+            .build()
+    }
 }
 
 /// Defines how time interval should be calculated for different types of the jobs specified by their
@@ -51,16 +119,22 @@ enum TimeIntervalType {
 
 /// Keeps track of first and last activity in the tour for specific multi job.
 type MultiJobRanges = HashMap<Job, (usize, usize)>;
+/// A function to get a demand type from the job.
+type DemandTypeFn = Arc<dyn Fn(&Single) -> Option<DemandType> + Send + Sync>;
+/// Returns true if job should not be considered for estimation.
+type IsFilteredJobFn = Arc<dyn Fn(&Job) -> bool + Send + Sync>;
 
-struct FastServiceObjective<A: FastServiceAspects> {
+custom_tour_state!(MultiJobRanges typeof MultiJobRanges);
+
+struct FastServiceObjective {
+    demand_type_fn: DemandTypeFn,
+    is_filtered_job_fn: IsFilteredJobFn,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
-    route_intervals: RouteIntervals,
     tolerance: Option<f64>,
-    aspects: A,
 }
 
-impl<A: FastServiceAspects> FeatureObjective for FastServiceObjective<A> {
+impl FeatureObjective for FastServiceObjective {
     fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
         let fitness_a = self.fitness(a);
         let fitness_b = self.fitness(b);
@@ -80,12 +154,10 @@ impl<A: FastServiceAspects> FeatureObjective for FastServiceObjective<A> {
             .routes
             .iter()
             .flat_map(|route_ctx| {
-                route_ctx.route().tour.jobs().filter(|job| !self.route_intervals.is_marker_job(job)).map(
-                    |job| match job {
-                        Job::Single(_) => self.estimate_single_job(route_ctx, job),
-                        Job::Multi(_) => self.estimate_multi_job(route_ctx, job),
-                    },
-                )
+                route_ctx.route().tour.jobs().filter(|job| !(self.is_filtered_job_fn)(job)).map(|job| match job {
+                    Job::Single(_) => self.estimate_single_job(route_ctx, job),
+                    Job::Multi(_) => self.estimate_multi_job(route_ctx, job),
+                })
             })
             .sum::<Cost>()
     }
@@ -124,15 +196,15 @@ impl<A: FastServiceAspects> FeatureObjective for FastServiceObjective<A> {
     }
 }
 
-impl<A: FastServiceAspects> FastServiceObjective<A> {
+impl FastServiceObjective {
     fn new(
+        demand_type_fn: DemandTypeFn,
+        is_filtered_job_fn: IsFilteredJobFn,
         transport: Arc<dyn TransportCost + Send + Sync>,
         activity: Arc<dyn ActivityCost + Send + Sync>,
-        route_intervals: RouteIntervals,
         tolerance: Option<f64>,
-        aspects: A,
     ) -> Self {
-        Self { transport, activity, route_intervals, tolerance, aspects }
+        Self { demand_type_fn, is_filtered_job_fn, transport, activity, tolerance }
     }
 
     fn get_start_time(&self, route_ctx: &RouteContext, activity_idx: usize) -> Timestamp {
@@ -158,7 +230,7 @@ impl<A: FastServiceAspects> FastServiceObjective<A> {
         let departure = self.get_departure(route_ctx, activity_ctx);
         let range = route_ctx
             .state()
-            .get_route_state::<MultiJobRanges>(self.aspects.get_state_key())
+            .get_multi_job_ranges()
             .zip(activity_ctx.target.retrieve_job())
             .and_then(|(jobs, job)| jobs.get(&job))
             .copied();
@@ -185,8 +257,10 @@ impl<A: FastServiceAspects> FastServiceObjective<A> {
 
     fn get_route_interval(&self, route_ctx: &RouteContext, activity_idx: usize) -> (usize, usize) {
         let last_idx = (route_ctx.route().tour.total() as i32 - 1).max(0) as usize;
-        self.route_intervals
-            .get_marker_intervals(route_ctx)
+
+        route_ctx
+            .state()
+            .get_reload_intervals()
             .and_then(|intervals| intervals.iter().find(|(start, end)| *start <= activity_idx && *end > activity_idx))
             .copied()
             .unwrap_or((0, last_idx))
@@ -211,7 +285,7 @@ impl<A: FastServiceAspects> FastServiceObjective<A> {
     fn estimate_multi_job(&self, route_ctx: &RouteContext, job: &Job) -> Cost {
         route_ctx
             .state()
-            .get_route_state::<MultiJobRanges>(self.aspects.get_state_key())
+            .get_multi_job_ranges()
             .and_then(|job_ranges| job_ranges.get(job))
             .map(|&(start_idx, end_idx)| {
                 self.get_end_time(route_ctx, end_idx) - self.get_start_time(route_ctx, start_idx)
@@ -224,7 +298,7 @@ impl<A: FastServiceAspects> FastServiceObjective<A> {
             return TimeIntervalType::FromFirstToLast;
         }
 
-        match self.aspects.get_demand_type(single) {
+        match (self.demand_type_fn)(single) {
             Some(DemandType::Delivery) => TimeIntervalType::FromStart,
             Some(DemandType::Pickup) => TimeIntervalType::ToEnd,
             Some(_) => TimeIntervalType::FromStartToEnd,
@@ -233,14 +307,9 @@ impl<A: FastServiceAspects> FastServiceObjective<A> {
     }
 }
 
+#[derive(Default)]
 struct FastServiceState {
-    state_keys: [StateKey; 1],
-}
-
-impl FastServiceState {
-    pub fn new(state_key: StateKey) -> Self {
-        Self { state_keys: [state_key] }
-    }
+    state_keys: Vec<StateKey>,
 }
 
 impl FeatureState for FastServiceState {
@@ -265,7 +334,7 @@ impl FeatureState for FastServiceState {
             .collect();
 
         // NOTE: always override existing state to avoid stale information about multi-jobs
-        route_ctx.state_mut().put_route_state(self.state_keys[0], multi_job_ranges);
+        route_ctx.state_mut().set_multi_job_ranges(multi_job_ranges);
     }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {

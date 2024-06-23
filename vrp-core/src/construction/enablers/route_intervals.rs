@@ -1,4 +1,4 @@
-use crate::construction::heuristics::{RouteContext, SolutionContext, StateKey};
+use crate::construction::heuristics::{RouteContext, RouteState, SolutionContext};
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Route};
 use crate::utils::Either;
@@ -6,6 +6,17 @@ use std::collections::HashSet;
 use std::iter::once;
 use std::ops::Range;
 use std::sync::Arc;
+
+/// Provides the way to get/set route intervals on the route state.
+/// Depending on the feature, route intervals can be different. So, each feature needs to implement
+/// state management independently.
+pub trait RouteIntervalsState: Send + Sync {
+    /// Gets route indices specified by `start` end `end` activity index.
+    fn get_route_intervals<'a>(&self, route_state: &'a RouteState) -> Option<&'a Vec<(usize, usize)>>;
+
+    /// Sets route indices specified by `start` end `end` activity index.
+    fn set_route_intervals(&self, route_state: &mut RouteState, values: Vec<(usize, usize)>);
+}
 
 /// Provides a way to logically split route into intervals using specific marker jobs.
 #[derive(Clone)]
@@ -28,8 +39,8 @@ pub enum RouteIntervals {
         /// Specifies a function which checks whether job can be assigned to a given route.
         is_assignable_fn: Arc<dyn Fn(&Route, &Job) -> bool + Send + Sync>,
 
-        /// An intervals state key.
-        intervals_key: StateKey,
+        /// Specifies a specific implementation to get/set route intervals on `RouteState`.
+        intervals_state: Arc<dyn RouteIntervalsState>,
     },
 }
 
@@ -67,9 +78,9 @@ impl RouteIntervals {
     pub fn get_marker_intervals<'a>(&self, route_ctx: &'a RouteContext) -> Option<&'a Vec<(usize, usize)>> {
         match self {
             RouteIntervals::Single => None,
-            RouteIntervals::Multiple { .. } => self
-                .get_interval_key()
-                .and_then(|state_key| route_ctx.state().get_route_state::<Vec<(usize, usize)>>(state_key)),
+            RouteIntervals::Multiple { .. } => {
+                self.get_interval_fn().and_then(|interval_fn| interval_fn.get_route_intervals(route_ctx.state()))
+            }
         }
     }
 
@@ -85,11 +96,11 @@ impl RouteIntervals {
             .unwrap_or_else(|| Either::Right(once((0, last_idx))))
     }
 
-    /// Gets interval state key if present.
-    pub fn get_interval_key(&self) -> Option<StateKey> {
+    /// Gets interval function if present.
+    pub fn get_interval_fn(&self) -> Option<Arc<dyn RouteIntervalsState>> {
         match self {
             RouteIntervals::Single => None,
-            RouteIntervals::Multiple { intervals_key, .. } => Some(*intervals_key),
+            RouteIntervals::Multiple { intervals_state: intervals_fn, .. } => Some(intervals_fn.clone()),
         }
     }
 

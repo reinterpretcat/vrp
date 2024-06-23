@@ -40,9 +40,6 @@ pub use self::recharge::*;
 mod reloads;
 pub use self::reloads::*;
 
-mod shared_resource;
-pub use self::shared_resource::*;
-
 mod skills;
 pub use self::skills::*;
 
