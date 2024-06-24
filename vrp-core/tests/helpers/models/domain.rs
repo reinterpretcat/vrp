@@ -1,4 +1,4 @@
-use crate::construction::features::create_minimize_transport_costs_feature;
+use crate::construction::features::TransportFeatureBuilder;
 use crate::construction::heuristics::*;
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
 use crate::models::problem::{Fleet, Job, JobIdDimension, Jobs};
@@ -20,13 +20,12 @@ impl TestGoalContextBuilder {
     pub fn with_transport_feature() -> Self {
         Self::default()
             .add_feature(
-                create_minimize_transport_costs_feature(
-                    "transport",
-                    TestTransportCost::new_shared(),
-                    TestActivityCost::new_shared(),
-                    1,
-                )
-                .unwrap(),
+                TransportFeatureBuilder::new("transport")
+                    .set_violation_code(1)
+                    .set_transport(TestTransportCost::new_shared())
+                    .set_activity(TestActivityCost::new_shared())
+                    .build_minimize_cost()
+                    .unwrap(),
             )
             .with_objectives(&["transport"])
     }

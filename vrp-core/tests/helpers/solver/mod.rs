@@ -1,5 +1,5 @@
 use crate::algorithms::geometry::Point;
-use crate::construction::features::create_minimize_transport_costs_feature;
+use crate::construction::features::TransportFeatureBuilder;
 use crate::construction::heuristics::MoveContext;
 use crate::helpers::models::domain::{test_random, TestGoalContextBuilder};
 use crate::helpers::models::problem::*;
@@ -35,7 +35,14 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
         is_open_vrp,
         |transport, activity, _| {
             TestGoalContextBuilder::default()
-                .add_feature(create_minimize_transport_costs_feature("transport", transport, activity, 1).unwrap())
+                .add_feature(
+                    TransportFeatureBuilder::new("transport")
+                        .set_violation_code(1)
+                        .set_transport(transport)
+                        .set_activity(activity)
+                        .build_minimize_cost()
+                        .unwrap(),
+                )
                 .with_objectives(&["transport"])
                 .build()
         },
@@ -65,7 +72,14 @@ pub fn generate_matrix_routes_with_disallow_list(
         move |transport, activity, _| {
             let feature_map = &["transport"];
             TestGoalContextBuilder::default()
-                .add_feature(create_minimize_transport_costs_feature("transport", transport, activity, 1).unwrap())
+                .add_feature(
+                    TransportFeatureBuilder::new("transport")
+                        .set_violation_code(1)
+                        .set_transport(transport)
+                        .set_activity(activity)
+                        .build_minimize_cost()
+                        .unwrap(),
+                )
                 .add_feature(
                     FeatureBuilder::default()
                         .with_name("leg")

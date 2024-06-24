@@ -33,13 +33,12 @@ mod timing {
     use std::cmp::Ordering;
 
     fn create_feature() -> Feature {
-        create_minimize_transport_costs_feature(
-            "transport",
-            TestTransportCost::new_shared(),
-            TestActivityCost::new_shared(),
-            VIOLATION_CODE,
-        )
-        .unwrap()
+        TransportFeatureBuilder::new("transport")
+            .set_violation_code(VIOLATION_CODE)
+            .set_transport(TestTransportCost::new_shared())
+            .set_activity(TestActivityCost::new_shared())
+            .build_minimize_cost()
+            .unwrap()
     }
 
     fn create_feature_and_route(vehicle_detail_data: VehicleData) -> (Feature, RouteContext) {

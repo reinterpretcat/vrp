@@ -96,24 +96,21 @@ fn get_objective_features(
             objectives
                 .iter()
                 .map(|objective| match objective {
-                    Objective::MinimizeCost => create_minimize_transport_costs_feature(
-                        "min_cost",
-                        blocks.transport.clone(),
-                        blocks.activity.clone(),
-                        TIME_CONSTRAINT_CODE,
-                    ),
-                    Objective::MinimizeDistance => create_minimize_distance_feature(
-                        "min_distance",
-                        blocks.transport.clone(),
-                        blocks.activity.clone(),
-                        TIME_CONSTRAINT_CODE,
-                    ),
-                    Objective::MinimizeDuration => create_minimize_duration_feature(
-                        "min_duration",
-                        blocks.transport.clone(),
-                        blocks.activity.clone(),
-                        TIME_CONSTRAINT_CODE,
-                    ),
+                    Objective::MinimizeCost => TransportFeatureBuilder::new("min_cost")
+                        .set_violation_code(TIME_CONSTRAINT_CODE)
+                        .set_transport(blocks.transport.clone())
+                        .set_activity(blocks.activity.clone())
+                        .build_minimize_cost(),
+                    Objective::MinimizeDistance => TransportFeatureBuilder::new("min_distance")
+                        .set_violation_code(TIME_CONSTRAINT_CODE)
+                        .set_transport(blocks.transport.clone())
+                        .set_activity(blocks.activity.clone())
+                        .build_minimize_distance(),
+                    Objective::MinimizeDuration => TransportFeatureBuilder::new("min_duration")
+                        .set_violation_code(TIME_CONSTRAINT_CODE)
+                        .set_transport(blocks.transport.clone())
+                        .set_activity(blocks.activity.clone())
+                        .build_minimize_duration(),
                     Objective::MinimizeTours => create_minimize_tours_feature("min_tours"),
                     Objective::MaximizeTours => create_maximize_tours_feature("max_tours"),
                     Objective::MaximizeValue { breaks } => create_maximize_total_job_value_feature(

@@ -84,7 +84,12 @@ fn create_test_problem(
 
     let goal = TestGoalContextBuilder::default()
         .add_feature(
-            create_minimize_transport_costs_feature("transport", transport.clone(), activity.clone(), 1).unwrap(),
+            TransportFeatureBuilder::new("transport")
+                .set_violation_code(1)
+                .set_transport(transport.clone())
+                .set_activity(activity.clone())
+                .build_minimize_cost()
+                .unwrap(),
         )
         .add_feature(create_locked_jobs_feature("locked_jobs", &fleet, locks.as_slice(), 4).unwrap())
         .add_feature(create_capacity_limit_feature::<SingleDimLoad>("capacity", 5).unwrap())

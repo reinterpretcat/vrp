@@ -70,7 +70,10 @@ fn create_example_goal_ctx(
     let features = vec![
         create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.))?,
         create_minimize_tours_feature("min_tours")?,
-        create_minimize_distance_feature("min_distance", transport, activity, 1)?,
+        TransportFeatureBuilder::new("min_distance")
+            .set_transport(transport)
+            .set_activity(activity)
+            .build_minimize_distance()?,
         create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
     ];
 

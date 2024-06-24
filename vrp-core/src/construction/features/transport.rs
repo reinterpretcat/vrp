@@ -14,62 +14,117 @@ use crate::models::solution::Activity;
 //  remove get_total_cost, get_route_costs, get_max_cost methods from contexts
 //  add validation rule which ensures usage of only one of these methods.
 
-/// Creates a travel costs feature which considers distance and duration for minimization.
-pub fn create_minimize_transport_costs_feature(
-    name: &str,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
-    time_window_code: ViolationCode,
-) -> Result<Feature, GenericError> {
-    create_feature(
-        name,
-        transport,
-        activity,
-        time_window_code,
-        Box::new(|insertion_ctx| insertion_ctx.get_total_cost().unwrap_or_default()),
-    )
+/// Provides a way to build different flavors of time window feature.
+pub struct TransportFeatureBuilder {
+    name: String,
+    transport: Option<Arc<dyn TransportCost + Send + Sync>>,
+    activity: Option<Arc<dyn ActivityCost + Send + Sync>>,
+    code: Option<ViolationCode>,
+    is_constrained: bool,
 }
 
-/// Creates a travel costs feature which considers duration for minimization as global objective.
-/// NOTE: distance costs is still considered on local level.
-pub fn create_minimize_duration_feature(
-    name: &str,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
-    time_window_code: ViolationCode,
-) -> Result<Feature, GenericError> {
-    create_feature(
-        name,
-        transport,
-        activity,
-        time_window_code,
-        Box::new(move |insertion_ctx| {
-            insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
-                acc + route_ctx.state().get_total_duration().cloned().unwrap_or(0.)
-            })
-        }),
-    )
-}
+impl TransportFeatureBuilder {
+    /// Creates a new instance of `TransportFeatureBuilder`.
+    pub fn new(name: &str) -> Self {
+        Self { name: name.to_string(), transport: None, activity: None, code: None, is_constrained: true }
+    }
 
-/// Creates a travel costs feature which considers distance for minimization as global objective.
-/// NOTE: duration costs is still considered on local level.
-pub fn create_minimize_distance_feature(
-    name: &str,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
-    time_window_code: ViolationCode,
-) -> Result<Feature, GenericError> {
-    create_feature(
-        name,
-        transport,
-        activity,
-        time_window_code,
-        Box::new(move |insertion_ctx| {
-            insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
-                acc + route_ctx.state().get_total_distance().copied().unwrap_or(0.)
-            })
-        }),
-    )
+    /// Sets constraint violation code which is used to report back the reason of job's unassignment.
+    /// If not set, the default violation code is used.
+    pub fn set_violation_code(mut self, code: ViolationCode) -> Self {
+        self.code = Some(code);
+        self
+    }
+
+    /// Marks feature as non-constrained meaning that there no need to consider time as a hard constraint.
+    /// Ignored for schedule_updater feature flavor.
+    /// Default is unconstrained = false.
+    pub fn set_unconstrained(mut self) -> Self {
+        self.is_constrained = true;
+        self
+    }
+
+    /// Sets transport costs to estimate distance.
+    pub fn set_transport(mut self, transport: Arc<dyn TransportCost + Send + Sync>) -> Self {
+        self.transport = Some(transport);
+        self
+    }
+
+    /// Sets activity costs to estimate job start/end time.
+    pub fn set_activity(mut self, activity: Arc<dyn ActivityCost + Send + Sync>) -> Self {
+        self.activity = Some(activity);
+        self
+    }
+
+    /// Builds a flavor of transport feature which only updates activity schedules. No objective, no constraint.
+    pub fn build_schedule_updater(mut self) -> GenericResult<Feature> {
+        let (transport, activity) = self.get_costs()?;
+
+        FeatureBuilder::default()
+            .with_name(self.name.as_str())
+            .with_state(TransportState::new(transport, activity))
+            .build()
+    }
+
+    /// Creates the transport feature which considers duration for minimization as a global objective.
+    /// TODO: distance costs are still considered on local level.
+    pub fn build_minimize_duration(mut self) -> GenericResult<Feature> {
+        let (transport, activity) = self.get_costs()?;
+
+        create_feature(
+            self.name.as_str(),
+            transport,
+            activity,
+            self.code.unwrap_or_default(),
+            self.is_constrained,
+            Box::new(move |insertion_ctx| {
+                insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
+                    acc + route_ctx.state().get_total_duration().cloned().unwrap_or(0.)
+                })
+            }),
+        )
+    }
+
+    /// Creates the transport feature which considers distance for minimization as a global objective.
+    /// TODO: duration costs are still considered on local level.
+    pub fn build_minimize_distance(mut self) -> GenericResult<Feature> {
+        let (transport, activity) = self.get_costs()?;
+        create_feature(
+            self.name.as_str(),
+            transport,
+            activity,
+            self.code.unwrap_or_default(),
+            self.is_constrained,
+            Box::new(move |insertion_ctx| {
+                insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
+                    acc + route_ctx.state().get_total_distance().copied().unwrap_or(0.)
+                })
+            }),
+        )
+    }
+
+    /// Creates the transport feature which considers distance and duration for minimization.
+    pub fn build_minimize_cost(mut self) -> GenericResult<Feature> {
+        let (transport, activity) = self.get_costs()?;
+
+        create_feature(
+            self.name.as_str(),
+            transport,
+            activity,
+            self.code.unwrap_or_default(),
+            self.is_constrained,
+            Box::new(|insertion_ctx| insertion_ctx.get_total_cost().unwrap_or_default()),
+        )
+    }
+
+    fn get_costs(
+        &mut self,
+    ) -> GenericResult<(Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>)> {
+        let transport = self.transport.take().ok_or_else(|| GenericError::from("transport must be set"))?;
+        let activity = self.activity.take().ok_or_else(|| GenericError::from("activity must be set"))?;
+
+        Ok((transport, activity))
+    }
 }
 
 fn create_feature(
@@ -77,18 +132,25 @@ fn create_feature(
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     time_window_code: ViolationCode,
+    is_constrained: bool,
     fitness_fn: Box<dyn Fn(&InsertionContext) -> f64 + Send + Sync>,
 ) -> Result<Feature, GenericError> {
-    FeatureBuilder::default()
+    let builder = FeatureBuilder::default()
         .with_name(name)
-        .with_constraint(TransportConstraint {
-            transport: transport.clone(),
-            activity: activity.clone(),
-            time_window_code,
-        })
         .with_state(TransportState::new(transport.clone(), activity.clone()))
-        .with_objective(TransportObjective { activity, transport, fitness_fn })
-        .build()
+        .with_objective(TransportObjective { transport: transport.clone(), activity: activity.clone(), fitness_fn });
+
+    if is_constrained {
+        builder
+            .with_constraint(TransportConstraint {
+                transport: transport.clone(),
+                activity: activity.clone(),
+                time_window_code,
+            })
+            .build()
+    } else {
+        builder.build()
+    }
 }
 
 struct TransportConstraint {

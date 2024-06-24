@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::enablers::LatestArrivalActivityState;
-use crate::construction::features::*;
+use crate::construction::features::TransportFeatureBuilder;
 use crate::construction::heuristics::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
@@ -98,15 +98,14 @@ fn create_feature_and_route(
     let mut route_ctx = RouteContextBuilder::default()
         .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").add_activities(activities).build())
         .build();
-    let feature = create_minimize_transport_costs_feature(
-        "minimize_costs",
-        Arc::new(
+    let feature = TransportFeatureBuilder::new("minimize_costs")
+        .set_violation_code(VIOLATION_CODE)
+        .set_transport(Arc::new(
             DynamicTransportCost::new(reserved_times_idx.clone(), Arc::new(TestTransportCost::default())).unwrap(),
-        ),
-        Arc::new(DynamicActivityCost::new(reserved_times_idx.clone()).unwrap()),
-        VIOLATION_CODE,
-    )
-    .unwrap();
+        ))
+        .set_activity(Arc::new(DynamicActivityCost::new(reserved_times_idx.clone()).unwrap()))
+        .build_minimize_cost()
+        .unwrap();
     feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
 
     (create_reserved_times_fn(reserved_times_idx).unwrap(), feature, route_ctx)
