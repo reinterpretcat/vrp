@@ -5,25 +5,16 @@
 mod tour_limits_test;
 
 use super::*;
-use crate::construction::enablers::{calculate_travel_delta, TotalDistanceTourState, TotalDurationTourState};
+use crate::construction::enablers::{
+    calculate_travel_delta, LimitDurationTourState, TotalDistanceTourState, TotalDurationTourState,
+};
 use crate::models::common::{Distance, Duration};
 use crate::models::problem::{Actor, TransportCost};
 
-/// A function which returns activity size limit for given actor.
+/// A function which returns activity size limit for a given actor.
 pub type ActivitySizeResolver = Arc<dyn Fn(&Actor) -> Option<usize> + Sync + Send>;
 /// A function to resolve travel limit.
 pub type TravelLimitFn<T> = Arc<dyn Fn(&Actor) -> Option<T> + Send + Sync>;
-
-/// Combines all keys needed for tour limits feature usage.
-#[derive(Clone)]
-pub struct TourLimitKeys {
-    /// A key to track duration limit.
-    pub duration_key: StateKey,
-    /// A distance constraint violation code.
-    pub distance_code: ViolationCode,
-    /// A duration constraint violation code.
-    pub duration_code: ViolationCode,
-}
 
 /// Creates a limit for activity amount in a tour.
 /// This is a hard constraint.
@@ -43,21 +34,21 @@ pub fn create_activity_limit_feature(
 pub fn create_travel_limit_feature(
     name: &str,
     transport: Arc<dyn TransportCost + Send + Sync>,
+    distance_code: ViolationCode,
+    duration_code: ViolationCode,
     tour_distance_limit_fn: TravelLimitFn<Distance>,
     tour_duration_limit_fn: TravelLimitFn<Duration>,
-    limit_keys: TourLimitKeys,
 ) -> Result<Feature, GenericError> {
-    let duration_key = limit_keys.duration_key;
-
     FeatureBuilder::default()
         .with_name(name)
         .with_constraint(TravelLimitConstraint {
             transport,
             tour_distance_limit_fn,
             tour_duration_limit_fn: tour_duration_limit_fn.clone(),
-            limit_keys,
+            distance_code,
+            duration_code,
         })
-        .with_state(TravelLimitState { tour_duration_limit_fn, duration_key, state_keys: vec![] })
+        .with_state(TravelLimitState { tour_duration_limit_fn })
         .build()
 }
 
@@ -98,7 +89,8 @@ struct TravelLimitConstraint {
     transport: Arc<dyn TransportCost + Send + Sync>,
     tour_distance_limit_fn: TravelLimitFn<Distance>,
     tour_duration_limit_fn: TravelLimitFn<Duration>,
-    limit_keys: TourLimitKeys,
+    distance_code: ViolationCode,
+    duration_code: ViolationCode,
 }
 
 impl TravelLimitConstraint {
@@ -122,7 +114,7 @@ impl FeatureConstraint for TravelLimitConstraint {
                         let curr_dis = route_ctx.state().get_total_distance().copied().unwrap_or(0.);
                         let total_distance = curr_dis + change_distance;
                         if distance_limit < total_distance {
-                            return ConstraintViolation::skip(self.limit_keys.distance_code);
+                            return ConstraintViolation::skip(self.distance_code);
                         }
                     }
 
@@ -130,7 +122,7 @@ impl FeatureConstraint for TravelLimitConstraint {
                         let curr_dur = route_ctx.state().get_total_duration().copied().unwrap_or(0.);
                         let total_duration = curr_dur + change_duration;
                         if duration_limit < total_duration {
-                            return ConstraintViolation::skip(self.limit_keys.duration_code);
+                            return ConstraintViolation::skip(self.duration_code);
                         }
                     }
                 }
@@ -147,8 +139,6 @@ impl FeatureConstraint for TravelLimitConstraint {
 
 struct TravelLimitState {
     tour_duration_limit_fn: TravelLimitFn<Duration>,
-    duration_key: StateKey,
-    state_keys: Vec<StateKey>,
 }
 
 impl FeatureState for TravelLimitState {
@@ -156,13 +146,9 @@ impl FeatureState for TravelLimitState {
 
     fn accept_route_state(&self, route_ctx: &mut RouteContext) {
         if let Some(limit_duration) = (self.tour_duration_limit_fn)(route_ctx.route().actor.as_ref()) {
-            route_ctx.state_mut().put_route_state(self.duration_key, limit_duration);
+            route_ctx.state_mut().set_limit_duration(limit_duration);
         }
     }
 
     fn accept_solution_state(&self, _: &mut SolutionContext) {}
-
-    fn state_keys(&self) -> Iter<StateKey> {
-        self.state_keys.iter()
-    }
 }

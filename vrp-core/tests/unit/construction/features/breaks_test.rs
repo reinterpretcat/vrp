@@ -1,5 +1,4 @@
 use super::*;
-use crate::construction::heuristics::RouteContext;
 use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::problem::SingleBuilder;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
@@ -10,36 +9,27 @@ use std::sync::Arc;
 
 const VIOLATION_CODE: ViolationCode = 1;
 
-#[derive(Clone)]
-struct TestBreakAspects;
-
 struct JobTypeDimenKey;
 struct VehicleIdDimenKey;
 
-impl BreakAspects for TestBreakAspects {
-    fn belongs_to_route(&self, route_ctx: &RouteContext, candidate: BreakCandidate<'_>) -> bool {
-        if !self.is_break_job(candidate) {
-            return false;
-        }
-
-        let Some(single) = candidate.as_single() else { return false };
-
-        let job_vehicle_id = single.dimens.get_value::<VehicleIdDimenKey, String>();
-        let vehicle_id = route_ctx.route().actor.vehicle.dimens.get_vehicle_id();
-
-        job_vehicle_id.zip(vehicle_id).map_or(false, |(a, b)| a == b)
+fn create_break_feature() -> Feature {
+    fn is_break_job(single: &Single) -> bool {
+        single.dimens.get_value::<JobTypeDimenKey, String>().map_or(false, |job_type| job_type == "break")
     }
 
-    fn is_break_job(&self, candidate: BreakCandidate<'_>) -> bool {
-        candidate
-            .as_single()
-            .and_then(|break_single| break_single.dimens.get_value::<JobTypeDimenKey, String>())
-            .map_or(false, |job_type| job_type == "break")
-    }
+    BreakFeatureBuilder::new("break")
+        .set_violation_code(VIOLATION_CODE)
+        .set_is_break_single(is_break_job)
+        .set_belongs_to_route(|route, job| {
+            let Some(single) = job.as_single().filter(|single| is_break_job(single)) else { return false };
 
-    fn get_policy(&self, _: BreakCandidate<'_>) -> Option<BreakPolicy> {
-        None
-    }
+            let job_vehicle_id = single.dimens.get_value::<VehicleIdDimenKey, String>();
+            let vehicle_id = route.actor.vehicle.dimens.get_vehicle_id();
+
+            job_vehicle_id.zip(vehicle_id).map_or(false, |(a, b)| a == b)
+        })
+        .build()
+        .unwrap()
 }
 
 fn create_single(id: &str, location: Location) -> Arc<Single> {
@@ -83,7 +73,7 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
             .build()])
         .build()
         .solution;
-    let feature = create_optional_break_feature("break", VIOLATION_CODE, TestBreakAspects).unwrap();
+    let feature = create_break_feature();
 
     feature.state.unwrap().accept_solution_state(&mut solution_ctx);
 
@@ -112,10 +102,9 @@ can_skip_merge_breaks! {
 }
 
 fn can_skip_merge_breaks_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
-    let constraint =
-        create_optional_break_feature("break", VIOLATION_CODE, TestBreakAspects).unwrap().constraint.unwrap();
+    let feature = create_break_feature();
 
-    let result = constraint.merge(source, candidate).map(|_| ());
+    let result = feature.constraint.unwrap().merge(source, candidate).map(|_| ());
 
     assert_eq!(result, expected);
 }

@@ -8,10 +8,6 @@ use crate::prelude::Jobs;
 use rosomaxa::prelude::Environment;
 use std::sync::Arc;
 
-pub fn create_state_key() -> StateKey {
-    StateKeyRegistry::default().next_key()
-}
-
 #[derive(Default)]
 pub struct InsertionContextBuilder {
     problem: Option<Problem>,

@@ -18,7 +18,6 @@ use rosomaxa::utils::{GenericError, GenericResult};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::ops::{Add, Range, RangeInclusive, Sub};
-use std::slice::Iter;
 use std::sync::Arc;
 
 /// Represents a shared unique resource which is used to model reload with capacity constraint.
@@ -96,7 +95,7 @@ impl<T: SharedResource> ReloadFeatureFactory<T> {
             Box::new(move |route_ctx: &RouteContext, activity_idx, demand| {
                 route_ctx
                     .state()
-                    .get_activity_state_ex::<SharedResourceStateKey, T>(activity_idx)
+                    .get_activity_state::<SharedResourceStateKey, T>(activity_idx)
                     .map_or(true, |resource_available| resource_available.can_fit(demand))
             });
 
@@ -109,12 +108,7 @@ impl<T: SharedResource> ReloadFeatureFactory<T> {
                 resource_demand_fn: resource_demand_fn.clone(),
                 is_partial_solution_fn: is_partial_solution_fn.clone(),
             })
-            .with_state(SharedResourceState {
-                state_keys: vec![],
-                resource_capacity_fn,
-                resource_demand_fn,
-                is_partial_solution_fn,
-            })
+            .with_state(SharedResourceState { resource_capacity_fn, resource_demand_fn, is_partial_solution_fn })
             .build()?;
 
         FeatureCombinator::default().use_name(self.name).add_features(&[simple_reload, shared_resource]).combine()
@@ -317,7 +311,7 @@ impl<T: SharedResource> SharedResourceConstraint<T> {
             .and_then(|&(start_idx, _)| {
                 route_ctx
                     .state()
-                    .get_activity_state_ex::<SharedResourceStateKey, Option<T>>(start_idx)
+                    .get_activity_state::<SharedResourceStateKey, Option<T>>(start_idx)
                     .and_then(|resource_available| *resource_available)
                     .and_then(|resource_available| {
                         let resource_demand = activity_ctx
@@ -357,7 +351,6 @@ struct SharedResourceState<T>
 where
     T: SharedResource + Add<Output = T> + Sub<Output = T>,
 {
-    state_keys: Vec<StateKey>,
     resource_capacity_fn: SharedResourceCapacityFn<T>,
     resource_demand_fn: SharedResourceDemandFn<T>,
     is_partial_solution_fn: PartialSolutionFn,
@@ -408,7 +401,7 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
                 }
             }
 
-            route_ctx.state_mut().set_activity_states_ex::<SharedResourceStateKey, Option<T>>(available_resources)
+            route_ctx.state_mut().set_activity_states::<SharedResourceStateKey, Option<T>>(available_resources)
         });
     }
 
@@ -432,7 +425,7 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
             },
         );
 
-        route_ctx.state_mut().set_activity_states_ex::<SharedResourceStateKey, _>(empty_resources)
+        route_ctx.state_mut().set_activity_states::<SharedResourceStateKey, _>(empty_resources)
     }
 
     fn get_total_demand(&self, route_ctx: &RouteContext, range: RangeInclusive<usize>) -> T {
@@ -460,10 +453,6 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> FeatureState for Sha
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         self.update_resource_consumption(solution_ctx);
-    }
-
-    fn state_keys(&self) -> Iter<StateKey> {
-        self.state_keys.iter()
     }
 }
 

@@ -6,8 +6,8 @@ use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::features::capacity::JobDemandDimension;
-use vrp_core::construction::features::BreakPolicy;
-use vrp_core::construction::features::JobSkills as FeatureJobSkills;
+use vrp_core::construction::features::{BreakPolicy, JobCompatibilityDimension, JobSkillsDimension};
+use vrp_core::construction::features::{JobGroupDimension, JobSkills as FeatureJobSkills};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{
     Actor, Fleet, Job, JobIdDimension, Jobs, Multi, Place, Single, TransportCost, VehicleIdDimension,

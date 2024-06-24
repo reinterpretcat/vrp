@@ -1,5 +1,5 @@
 use crate::construction::features::skills::create_skills_feature;
-use crate::construction::features::{JobSkills, JobSkillsAspects};
+use crate::construction::features::{JobSkills, JobSkillsDimension, VehicleSkillsDimension};
 use crate::construction::heuristics::MoveContext;
 use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::problem::{test_driver, FleetBuilder, SingleBuilder, VehicleBuilder};
@@ -11,41 +11,23 @@ use std::iter::FromIterator;
 
 const VIOLATION_CODE: ViolationCode = 1;
 
-#[derive(Clone)]
-struct TestJobSkillsAspects;
-
-struct JobSkillsDimenKey;
-struct VehicleSkillsDimenKey;
-
-impl JobSkillsAspects for TestJobSkillsAspects {
-    fn get_job_skills<'a>(&self, job: &'a Job) -> Option<&'a JobSkills> {
-        job.dimens().get_value::<JobSkillsDimenKey, _>()
-    }
-
-    fn get_vehicle_skills<'a>(&self, vehicle: &'a Vehicle) -> Option<&'a HashSet<String>> {
-        vehicle.dimens.get_value::<VehicleSkillsDimenKey, _>()
-    }
-
-    fn get_violation_code(&self) -> ViolationCode {
-        VIOLATION_CODE
-    }
-}
-
 fn create_job_with_skills(all_of: Option<Vec<&str>>, one_of: Option<Vec<&str>>, none_of: Option<Vec<&str>>) -> Job {
-    SingleBuilder::default()
-        .property::<JobSkillsDimenKey, _>(JobSkills {
-            all_of: all_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
-            one_of: one_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
-            none_of: none_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
-        })
-        .build_as_job_ref()
+    let mut builder = SingleBuilder::default();
+    builder.dimens_mut().set_job_skills(JobSkills {
+        all_of: all_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
+        one_of: one_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
+        none_of: none_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
+    });
+
+    builder.build_as_job_ref()
 }
 
 fn create_vehicle_with_skills(skills: Option<Vec<&str>>) -> Vehicle {
     let mut builder = VehicleBuilder::default();
+
     if let Some(skills) = skills {
         let skills: HashSet<String> = HashSet::from_iter(skills.iter().map(|s| s.to_string()));
-        builder.property::<VehicleSkillsDimenKey, _>(skills);
+        builder.dimens_mut().set_vehicle_skills(skills);
     }
 
     builder.id("v1").build()
@@ -106,7 +88,7 @@ fn can_check_skills_impl(
     let route_ctx =
         RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build();
 
-    let constraint = create_skills_feature("skills", TestJobSkillsAspects).unwrap().constraint.unwrap();
+    let constraint = create_skills_feature("skills", VIOLATION_CODE).unwrap().constraint.unwrap();
 
     let actual = constraint.evaluate(&MoveContext::route(
         &InsertionContextBuilder::default().build().solution,
@@ -139,7 +121,7 @@ can_merge_skills! {
 }
 
 fn can_merge_skills_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
-    let constraint = create_skills_feature("skills", TestJobSkillsAspects).unwrap().constraint.unwrap();
+    let constraint = create_skills_feature("skills", VIOLATION_CODE).unwrap().constraint.unwrap();
 
     let result = constraint.merge(source, candidate).map(|_| ());
 

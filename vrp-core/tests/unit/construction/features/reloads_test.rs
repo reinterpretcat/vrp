@@ -411,7 +411,7 @@ fn can_update_resource_consumption_impl(
                 .map(|activity_idx| {
                     route_ctx
                         .state()
-                        .get_activity_state_ex::<SharedResourceStateKey, Option<SingleDimLoad>>(activity_idx)
+                        .get_activity_state::<SharedResourceStateKey, Option<SingleDimLoad>>(activity_idx)
                         .and_then(|resource| *resource)
                         .map(|resource| resource.value)
                 })
@@ -534,7 +534,6 @@ fn can_constraint_activity_impl(
         is_partial_solution_fn: builder.is_partial_solution_fn.as_ref().cloned().unwrap(),
     };
     let state = SharedResourceState {
-        state_keys: vec![],
         resource_capacity_fn: builder.shared_resource_capacity_fn.unwrap(),
         resource_demand_fn: builder.shared_resource_demand_fn.unwrap(),
         is_partial_solution_fn: builder.is_partial_solution_fn.unwrap(),

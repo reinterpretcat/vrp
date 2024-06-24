@@ -56,20 +56,6 @@ pub type HeuristicFilterFn = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 
 custom_extra_property!(HeuristicFilter typeof HeuristicFilterFn);
 
-/// Specifies keys used by heuristic.
-pub struct HeuristicKeys {
-    /// A key to store rosomaxa weights.
-    pub solution_weights: StateKey,
-    /// A key to store tabu list used by ruin methods.
-    pub tabu_list: StateKey,
-}
-
-impl From<&mut StateKeyRegistry> for HeuristicKeys {
-    fn from(state_registry: &mut StateKeyRegistry) -> Self {
-        Self { solution_weights: state_registry.next_key(), tabu_list: state_registry.next_key() }
-    }
-}
-
 /// Creates config builder with default settings.
 pub fn create_default_config_builder(
     problem: Arc<Problem>,

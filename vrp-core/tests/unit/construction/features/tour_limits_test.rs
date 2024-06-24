@@ -71,7 +71,6 @@ mod traveling {
         target: &str,
         limit: (Option<Distance>, Option<Duration>),
     ) -> (Feature, RouteContext) {
-        let mut state_registry = StateKeyRegistry::default();
         let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
         let mut state = RouteState::default();
         state.set_total_distance(50.);
@@ -105,13 +104,10 @@ mod traveling {
         let feature = create_travel_limit_feature(
             "travel_limit",
             transport,
+            DISTANCE_CODE,
+            DURATION_CODE,
             tour_distance_limit,
             tour_duration_limit,
-            TourLimitKeys {
-                duration_key: state_registry.next_key(),
-                distance_code: DISTANCE_CODE,
-                duration_code: DURATION_CODE,
-            },
         )
         .unwrap();
 

@@ -118,6 +118,10 @@ impl VehicleBuilder {
         self
     }
 
+    pub fn dimens_mut(&mut self) -> &mut Dimensions {
+        &mut self.0.dimens
+    }
+
     pub fn build(&mut self) -> Vehicle {
         std::mem::replace(&mut self.0, test_vehicle(0))
     }

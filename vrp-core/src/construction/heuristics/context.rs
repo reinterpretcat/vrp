@@ -9,14 +9,13 @@ use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::GoalContext;
 use crate::models::{Problem, Solution};
-use nohash_hasher::{BuildNoHashHasher, IsEnabled};
 use rosomaxa::evolution::TelemetryMetrics;
 use rosomaxa::prelude::*;
 use rustc_hash::FxHasher;
 use std::any::{Any, TypeId};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
-use std::hash::{BuildHasherDefault, Hasher};
+use std::hash::BuildHasherDefault;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -111,21 +110,6 @@ impl Debug for InsertionContext {
             .finish_non_exhaustive()
     }
 }
-
-/// A state key used to retrieve state values associated with a specific activity or with the whole route.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct StateKey(usize);
-
-impl std::hash::Hash for StateKey {
-    fn hash<H: Hasher>(&self, hasher: &mut H) {
-        hasher.write_usize(self.0)
-    }
-}
-
-impl IsEnabled for StateKey {}
-
-/// A state value which can be anything.
-pub type StateValue = Arc<dyn Any + Send + Sync>;
 
 /// Keeps information about unassigned reason code.
 #[derive(Clone, Debug)]
@@ -245,7 +229,7 @@ impl From<(InsertionContext, Option<TelemetryMetrics>)> for Solution {
 /// Keeps track of some solution state values.
 #[derive(Clone, Default)]
 pub struct SolutionState {
-    index: HashMap<TypeId, Arc<dyn Any + Send + Sync>, BuildNoHashHasher<StateKey>>,
+    index: HashMap<TypeId, Arc<dyn Any + Send + Sync>, BuildHasherDefault<FxHasher>>,
 }
 
 impl SolutionState {
@@ -266,12 +250,11 @@ pub struct RouteContext {
     cache: RouteCache,
 }
 
-/// Provides the way to associate arbitrary data within route or/and activity.
-/// NOTE: do not put any state which is not refreshed after `accept_route_state` call: it will be
+/// Provides a way to associate arbitrary data within route or/and activity.
+/// NOTE: do not put any state that is not refreshed after `accept_route_state` call: it will be
 /// wiped out at some point.
 #[derive(Clone)]
 pub struct RouteState {
-    route_states: HashMap<usize, StateValue, BuildNoHashHasher<usize>>,
     index: HashMap<TypeId, Arc<dyn Any + Send + Sync>, BuildHasherDefault<FxHasher>>,
 }
 
@@ -357,56 +340,29 @@ impl Debug for RouteContext {
 
 impl Default for RouteState {
     fn default() -> RouteState {
-        RouteState {
-            route_states: HashMap::with_capacity_and_hasher(4, BuildNoHashHasher::<usize>::default()),
-            index: HashMap::with_capacity_and_hasher(4, BuildHasherDefault::<FxHasher>::default()),
-        }
+        RouteState { index: HashMap::with_capacity_and_hasher(4, BuildHasherDefault::<FxHasher>::default()) }
     }
 }
 
 impl RouteState {
-    /// Gets value associated with key converted to given type.
-    pub fn get_route_state<T: Send + Sync + 'static>(&self, key: StateKey) -> Option<&T> {
-        self.route_states.get(&key.0).and_then(|s| s.downcast_ref::<T>())
-    }
-
-    /// Gets value associated with key converted to given type.
-    pub fn get_activity_state<T: Send + Sync + 'static>(&self, key: StateKey, activity_idx: usize) -> Option<&T> {
-        self.route_states
-            .get(&key.0)
-            .and_then(|s| s.downcast_ref::<Vec<T>>())
-            .and_then(|activity_states| activity_states.get(activity_idx))
-    }
-
-    /// Gets values associated with key and activities.
-    pub fn get_activity_states<T: Send + Sync + 'static>(&self, key: StateKey) -> Option<&Vec<T>> {
-        self.route_states.get(&key.0).and_then(|s| s.downcast_ref::<Vec<T>>())
-    }
-
-    /// Puts value associated with key.
-    pub fn put_route_state<T: Send + Sync + 'static>(&mut self, key: StateKey, value: T) {
-        self.route_states.insert(key.0, Arc::new(value));
-    }
-
-    /// Adds values associated with activities.
-    pub fn put_activity_states<T: Send + Sync + 'static>(&mut self, key: StateKey, values: Vec<T>) {
-        self.route_states.insert(key.0, Arc::new(values));
-    }
-
-    // TODO remove methods above and rename below
-
     /// Gets a value associated with the tour using `K` type as a key.
-    pub fn get_tour_state_ex<K: 'static, V: Send + Sync + 'static>(&self) -> Option<&V> {
+    pub fn get_tour_state<K: 'static, V: Send + Sync + 'static>(&self) -> Option<&V> {
         self.index.get(&TypeId::of::<K>()).and_then(|any| any.downcast_ref::<V>())
     }
 
     /// Sets the value associated with the tour using `K` type as a key.
-    pub fn set_tour_state_ex<K: 'static, V: Send + Sync + 'static>(&mut self, value: V) {
+    pub fn set_tour_state<K: 'static, V: Send + Sync + 'static>(&mut self, value: V) {
         self.index.insert(TypeId::of::<K>(), Arc::new(value));
     }
 
+    /// Removes the value associated with the tour using `K` type as a key. Returns true if the
+    /// value was present.
+    pub fn remove_tour_state<K: 'static>(&mut self) -> bool {
+        self.index.remove(&TypeId::of::<K>()).is_some()
+    }
+
     /// Gets value associated with a key converted to a given type.
-    pub fn get_activity_state_ex<K: 'static, V: Send + Sync + 'static>(&self, activity_idx: usize) -> Option<&V> {
+    pub fn get_activity_state<K: 'static, V: Send + Sync + 'static>(&self, activity_idx: usize) -> Option<&V> {
         self.index
             .get(&TypeId::of::<K>())
             .and_then(|s| s.downcast_ref::<Vec<V>>())
@@ -414,18 +370,17 @@ impl RouteState {
     }
 
     /// Gets values associated with key and activities.
-    pub fn get_activity_states_ex<K: 'static, V: Send + Sync + 'static>(&self) -> Option<&Vec<V>> {
+    pub fn get_activity_states<K: 'static, V: Send + Sync + 'static>(&self) -> Option<&Vec<V>> {
         self.index.get(&TypeId::of::<K>()).and_then(|s| s.downcast_ref::<Vec<V>>())
     }
 
     /// Adds values associated with activities.
-    pub fn set_activity_states_ex<K: 'static, V: Send + Sync + 'static>(&mut self, values: Vec<V>) {
+    pub fn set_activity_states<K: 'static, V: Send + Sync + 'static>(&mut self, values: Vec<V>) {
         self.index.insert(TypeId::of::<K>(), Arc::new(values));
     }
 
     /// Clear all states.
     pub fn clear(&mut self) {
-        self.route_states.clear();
         self.index.clear();
     }
 }
@@ -556,24 +511,5 @@ impl<'a> MoveContext<'a> {
     /// Creates a route variant for `MoveContext`.
     pub fn activity(route_ctx: &'a RouteContext, activity_ctx: &'a ActivityContext) -> MoveContext<'a> {
         MoveContext::Activity { route_ctx, activity_ctx }
-    }
-}
-
-/// Provides the way to get state keys.
-///
-/// From performance implications, it is better to avoid using many keys: each key requires a slot
-/// in route/activity state tracking collections.
-#[derive(Debug, Default)]
-pub struct StateKeyRegistry {
-    next: usize,
-}
-
-impl StateKeyRegistry {
-    /// Generates a next state key.
-    /// Do not call this method if state key is not going to be used in any feature.
-    pub fn next_key(&mut self) -> StateKey {
-        self.next += 1;
-
-        StateKey(self.next)
     }
 }

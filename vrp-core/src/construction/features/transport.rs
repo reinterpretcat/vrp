@@ -328,8 +328,4 @@ impl FeatureState for TransportState {
             update_route_schedule(route_ctx, self.activity.as_ref(), self.transport.as_ref());
         })
     }
-
-    fn state_keys(&self) -> Iter<StateKey> {
-        [].iter()
-    }
 }

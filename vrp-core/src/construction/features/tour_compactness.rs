@@ -99,10 +99,6 @@ impl FeatureState for TourCompactnessState {
 
         solution_ctx.state.set_tour_compactness(fitness);
     }
-
-    fn state_keys(&self) -> Iter<StateKey> {
-        [].iter()
-    }
 }
 
 fn count_shared_neighbours(item: (&SolutionContext, &RouteContext, &Job), jobs: &Jobs, job_radius: usize) -> usize {

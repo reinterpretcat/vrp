@@ -308,9 +308,7 @@ impl FastServiceObjective {
 }
 
 #[derive(Default)]
-struct FastServiceState {
-    state_keys: Vec<StateKey>,
-}
+struct FastServiceState {}
 
 impl FeatureState for FastServiceState {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, _: &Job) {
@@ -343,9 +341,5 @@ impl FeatureState for FastServiceState {
             .iter_mut()
             .filter(|route_ctx| route_ctx.is_stale())
             .for_each(|route_ctx| self.accept_route_state(route_ctx))
-    }
-
-    fn state_keys(&self) -> Iter<StateKey> {
-        self.state_keys.iter()
     }
 }

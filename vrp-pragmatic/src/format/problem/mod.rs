@@ -11,8 +11,6 @@ use vrp_core::utils::*;
 
 pub(crate) type ApiProblem = Problem;
 
-mod aspects;
-
 mod model;
 pub use self::model::*;
 

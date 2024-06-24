@@ -8,7 +8,6 @@ use rosomaxa::evolution::objectives::dominance_order;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::ops::ControlFlow;
-use std::slice::Iter;
 use std::sync::Arc;
 
 /// Specifies a type for injecting custom objective combination logic.
@@ -101,13 +100,11 @@ fn combine_features(
 
 struct CombinedFeatureState {
     states: Vec<Arc<dyn FeatureState>>,
-    state_keys: Vec<StateKey>,
 }
 
 impl CombinedFeatureState {
     pub fn new(states: Vec<Arc<dyn FeatureState>>) -> Self {
-        let state_keys = states.iter().flat_map(|state| state.state_keys().cloned()).collect();
-        Self { states, state_keys }
+        Self { states }
     }
 }
 
@@ -122,10 +119,6 @@ impl FeatureState for CombinedFeatureState {
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         accept_solution_state_with_states(&self.states, solution_ctx)
-    }
-
-    fn state_keys(&self) -> Iter<StateKey> {
-        self.state_keys.iter()
     }
 }
 

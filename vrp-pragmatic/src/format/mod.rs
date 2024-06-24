@@ -9,15 +9,16 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::enablers::ReservedTimesIndex;
 use vrp_core::models::common::{Distance, Duration};
-use vrp_core::models::problem::Job as CoreJob;
+use vrp_core::models::problem::{Job as CoreJob, Single, VehicleIdDimension};
+use vrp_core::models::solution::Route;
 use vrp_core::models::{Extras as CoreExtras, Problem as CoreProblem};
 use vrp_core::prelude::GenericError;
 
 mod coord_index;
 pub use self::coord_index::CoordIndex;
 
-mod entities;
-pub use self::entities::*;
+mod dimensions;
+pub use self::dimensions::*;
 
 mod location_fallback;
 pub use self::location_fallback::*;
@@ -215,4 +216,17 @@ pub fn get_indices(extras: &CoreExtras) -> Result<(Arc<JobIndex>, Arc<CoordIndex
     let coord_index = extras.get_coord_index().ok_or_else(|| GenericError::from("cannot get coord index"))?;
 
     Ok((job_index, coord_index))
+}
+
+/// Checks whether the given single job can be assigned to the given route taking into consideration
+/// its id and shift index.
+pub(crate) fn is_correct_vehicle(route: &Route, single: &Single) -> bool {
+    let job_vehicle_id = single.dimens.get_vehicle_id();
+    let job_shift_idx = single.dimens.get_shift_index();
+
+    let vehicle = &route.actor.vehicle;
+    let vehicle_id = vehicle.dimens.get_vehicle_id();
+    let vehicle_shift_idx = vehicle.dimens.get_shift_index();
+
+    job_vehicle_id == vehicle_id && job_shift_idx == vehicle_shift_idx
 }

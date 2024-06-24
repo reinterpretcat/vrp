@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 type ConditionMap = HashMap<Job, Arc<dyn Fn(&Actor) -> bool + Sync + Send>>;
 
-/// Creates a feature which allows to lock specific actors within specific jobs using different rules.
+/// Creates a feature which allows locking specific actors within specific jobs using different rules.
 /// It is a hard constraint, so locking cannot be violated.
 pub fn create_locked_jobs_feature(
     name: &str,

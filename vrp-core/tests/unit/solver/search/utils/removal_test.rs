@@ -1,5 +1,5 @@
 use super::*;
-use crate::helpers::construction::heuristics::{create_state_key, InsertionContextBuilder};
+use crate::helpers::construction::heuristics::InsertionContextBuilder;
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::{test_fleet, SingleBuilder};
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
@@ -51,7 +51,7 @@ fn create_route_with_jobs_activities(fleet: &Fleet, jobs: usize, activities: usi
         .with_route(RouteBuilder::default().with_vehicle(fleet, "v1").add_activities(activities).build())
         .build();
 
-    route_ctx.state_mut().put_route_state(create_state_key(), multi_jobs);
+    route_ctx.state_mut().set_tour_state::<(), _>(multi_jobs);
 
     route_ctx
 }

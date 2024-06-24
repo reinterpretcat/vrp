@@ -15,6 +15,7 @@ are already published. So, I stick to it for now.
 * experimental `async-evolution` feature
 * NSGA-II implementation and its usage
 * dependency on `hashbrown` crate
+* state keys
 
 ### Fixed
 

@@ -106,11 +106,11 @@ macro_rules! custom_activity_state {
             struct [<$name ActivityStateKey>];
             impl [<$name ActivityState>] for RouteState {
                 fn [<get_ $name:snake:lower _at>]$(<$type : $gen>)?(&self, activity_idx: usize) -> Option<&$type> {
-                    self.get_activity_state_ex::<[<$name ActivityStateKey>], _>(activity_idx)
+                    self.get_activity_state::<[<$name ActivityStateKey>], _>(activity_idx)
                 }
 
                 fn [<set_ $name:snake:lower _states>]$(<$type : $gen>)?(&mut self, values: Vec<$type>) {
-                    self.set_activity_states_ex::<[<$name ActivityStateKey>], _>(values);
+                    self.set_activity_states::<[<$name ActivityStateKey>], _>(values);
                 }
             }
         }
@@ -128,17 +128,25 @@ macro_rules! custom_tour_state {
                 fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<&$type>;
                 #[doc = " Sets `"$name "` tour state."]
                 fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: $type);
+
+                #[doc = " Removes `"$name "` tour state."]
+                #[allow(dead_code)]
+                fn [<remove_ $name:snake:lower>](&mut self) -> bool;
             }
 
             // Define a dummy struct type which is used as a key
             struct [<$name TourStateKey>];
             impl [<$name TourState>] for RouteState {
                 fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<&$type> {
-                    self.get_tour_state_ex::<[<$name TourStateKey>], _>()
+                    self.get_tour_state::<[<$name TourStateKey>], _>()
                 }
 
                 fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: $type) {
-                    self.set_tour_state_ex::<[<$name TourStateKey>], _>(value);
+                    self.set_tour_state::<[<$name TourStateKey>], _>(value);
+                }
+
+                fn [<remove_ $name:snake:lower>](&mut self) -> bool {
+                    self.remove_tour_state::<[<$name TourStateKey>]>()
                 }
             }
         }

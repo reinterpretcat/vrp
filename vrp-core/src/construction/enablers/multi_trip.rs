@@ -9,7 +9,6 @@ use crate::models::*;
 use rosomaxa::prelude::*;
 use std::collections::HashSet;
 use std::iter::once;
-use std::slice::Iter;
 use std::sync::Arc;
 
 /// Specifies multi trip extension behavior.
@@ -112,7 +111,6 @@ impl MultiTripConstraint {
 struct MultiTripState {
     multi_trip: Arc<dyn MultiTrip + Send + Sync>,
     context_transition: Box<dyn JobContextTransition + Send + Sync>,
-    state_keys: Vec<StateKey>,
     code: ViolationCode,
 }
 
@@ -131,7 +129,7 @@ impl MultiTripState {
             },
         });
 
-        Self { multi_trip, context_transition, state_keys: vec![], code }
+        Self { multi_trip, context_transition, code }
     }
 
     fn filter_markers<'a>(&'a self, route: &'a Route, jobs: &'a [Job]) -> impl Iterator<Item = Job> + 'a + Send + Sync {
@@ -199,9 +197,5 @@ impl FeatureState for MultiTripState {
         });
 
         self.multi_trip.get_route_intervals().update_solution_intervals(solution_ctx);
-    }
-
-    fn state_keys(&self) -> Iter<StateKey> {
-        self.state_keys.iter()
     }
 }

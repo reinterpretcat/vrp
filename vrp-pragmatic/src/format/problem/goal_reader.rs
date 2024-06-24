@@ -1,12 +1,10 @@
 use super::*;
-use crate::format::problem::aspects::*;
 use std::collections::HashSet;
 use std::ops::Mul;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::enablers::FeatureCombinator;
 use vrp_core::construction::features::capacity::*;
 use vrp_core::construction::features::*;
-use vrp_core::construction::heuristics::{StateKey, StateKeyRegistry};
 use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Single, TransportCost};
 use vrp_core::models::solution::Route;
@@ -16,10 +14,7 @@ pub(super) fn create_goal_context(
     api_problem: &ApiProblem,
     blocks: &ProblemBlocks,
     props: &ProblemProperties,
-    state_registry: &mut StateKeyRegistry,
 ) -> GenericResult<GoalContext> {
-    let mut state_context = StateKeyContext::new(state_registry);
-
     let objective_features = get_objective_features(api_problem, blocks, props)?;
     // TODO combination should happen inside `get_objective_features` for conflicting objectives
     let mut features = objective_features
@@ -36,11 +31,11 @@ pub(super) fn create_goal_context(
     features.push(get_capacity_feature("capacity", api_problem, blocks, props)?);
 
     if props.has_tour_travel_limits {
-        features.push(get_tour_limit_feature("tour_limit", api_problem, blocks.transport.clone(), &mut state_context)?)
+        features.push(get_tour_limit_feature("tour_limit", api_problem, blocks.transport.clone())?)
     }
 
     if props.has_breaks {
-        features.push(create_optional_break_feature("break", BREAK_CONSTRAINT_CODE, PragmaticBreakAspects)?)
+        features.push(create_optional_break_feature("break")?)
     }
 
     if props.has_recharges {
@@ -52,22 +47,15 @@ pub(super) fn create_goal_context(
     }
 
     if props.has_compatibility {
-        features.push(create_compatibility_feature(
-            "compatibility",
-            PragmaticCompatibilityAspects::new(state_context.next_key(), COMPATIBILITY_CONSTRAINT_CODE),
-        )?);
+        features.push(create_compatibility_feature("compatibility", COMPATIBILITY_CONSTRAINT_CODE)?);
     }
 
     if props.has_group {
-        features.push(create_group_feature(
-            "group",
-            blocks.jobs.size(),
-            PragmaticGroupAspects::new(state_context.next_key(), GROUP_CONSTRAINT_CODE),
-        )?);
+        features.push(create_group_feature("group", blocks.jobs.size(), GROUP_CONSTRAINT_CODE)?);
     }
 
     if props.has_skills {
-        features.push(create_skills_feature("skills", PragmaticJobSkillsAspects::new(SKILL_CONSTRAINT_CODE))?)
+        features.push(create_skills_feature("skills", SKILL_CONSTRAINT_CODE)?)
     }
 
     if !blocks.locks.is_empty() {
@@ -338,8 +326,7 @@ fn get_tour_limit_feature(
     name: &str,
     api_problem: &ApiProblem,
     transport: Arc<dyn TransportCost + Send + Sync>,
-    state_context: &mut StateKeyContext,
-) -> Result<Feature, GenericError> {
+) -> GenericResult<Feature> {
     let (distances, durations) = api_problem
         .fleet
         .vehicles
@@ -366,13 +353,10 @@ fn get_tour_limit_feature(
     create_travel_limit_feature(
         name,
         transport.clone(),
+        DISTANCE_LIMIT_CONSTRAINT_CODE,
+        DURATION_LIMIT_CONSTRAINT_CODE,
         get_limit(distances),
         get_limit(durations),
-        TourLimitKeys {
-            duration_key: state_context.next_key(),
-            distance_code: DISTANCE_LIMIT_CONSTRAINT_CODE,
-            duration_code: DURATION_LIMIT_CONSTRAINT_CODE,
-        },
     )
 }
 
@@ -480,8 +464,24 @@ where
         .collect()
 }
 
+fn create_optional_break_feature(name: &str) -> GenericResult<Feature> {
+    fn is_break_job(single: &Single) -> bool {
+        single.dimens.get_job_type().map_or(false, |job_type| job_type == "break")
+    }
+
+    BreakFeatureBuilder::new(name)
+        .set_violation_code(BREAK_CONSTRAINT_CODE)
+        .set_is_break_single(is_break_job)
+        .set_belongs_to_route(|route, job| {
+            let Some(single) = job.as_single().filter(|single| is_break_job(single)) else { return false };
+            is_correct_vehicle(route, single)
+        })
+        .set_policy(|single| single.dimens.get_break_policy().cloned().unwrap_or(BreakPolicy::SkipIfNoIntersection))
+        .build()
+}
+
 #[allow(clippy::type_complexity)]
-fn extract_feature_map(features: &[Feature]) -> Result<(Vec<String>, Vec<String>), GenericError> {
+fn extract_feature_map(features: &[Feature]) -> GenericResult<(Vec<String>, Vec<String>)> {
     let global_objective_map =
         features.iter().filter_map(|f| f.objective.as_ref().map(|_| f.name.clone())).collect::<Vec<_>>();
 
@@ -509,36 +509,14 @@ fn get_threshold(options: &Option<BalanceOptions>) -> Option<f64> {
 
 fn get_tour_order_fn() -> TourOrderFn {
     TourOrderFn::Left(Arc::new(|single| {
-        single
-            .as_ref()
-            .map(|single| &single.dimens)
-            .map(|dimens| {
-                dimens.get_job_order().copied().map(|order| OrderResult::Value(order as f64)).unwrap_or_else(|| {
-                    dimens.get_job_type().map_or(OrderResult::Default, |v| {
-                        match v.as_str() {
-                            "break" | "reload" => OrderResult::Ignored,
-                            // job without value
-                            _ => OrderResult::Default,
-                        }
-                    })
-                })
+        single.dimens.get_job_order().copied().map(|order| OrderResult::Value(order as f64)).unwrap_or_else(|| {
+            single.dimens.get_job_type().map_or(OrderResult::Default, |v| {
+                match v.as_str() {
+                    "break" | "reload" => OrderResult::Ignored,
+                    // job without value
+                    _ => OrderResult::Default,
+                }
             })
-            // departure and arrival
-            .unwrap_or(OrderResult::Ignored)
+        })
     }))
-}
-
-/// Provides way to get unique state keys in lazily manner and share them across multiple features.
-struct StateKeyContext<'a> {
-    state_registry: &'a mut StateKeyRegistry,
-}
-
-impl<'a> StateKeyContext<'a> {
-    pub fn new(state_registry: &'a mut StateKeyRegistry) -> Self {
-        Self { state_registry }
-    }
-
-    pub fn next_key(&mut self) -> StateKey {
-        self.state_registry.next_key()
-    }
 }

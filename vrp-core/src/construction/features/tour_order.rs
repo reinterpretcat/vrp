@@ -42,11 +42,11 @@ pub enum OrderResult {
     Ignored,
 }
 
-/// Specifies an activity order function which takes into account actor and single job.
-pub type ActorTourOrderFn = Arc<dyn Fn(&Actor, Option<&Single>) -> OrderResult + Send + Sync>;
+/// Specifies an activity order function which takes into an account actor and single job.
+pub type ActorTourOrderFn = Arc<dyn Fn(&Actor, &Single) -> OrderResult + Send + Sync>;
 
-/// Specifies an activity order function which takes into account only single job.
-pub type SingleTourOrderFn = Arc<dyn Fn(Option<&Single>) -> OrderResult + Send + Sync>;
+/// Specifies an activity order function which takes into account only a single job.
+pub type SingleTourOrderFn = Arc<dyn Fn(&Single) -> OrderResult + Send + Sync>;
 
 /// Specifies an order func as a variant of two functions.
 pub type TourOrderFn = Either<SingleTourOrderFn, ActorTourOrderFn>;
@@ -76,8 +76,8 @@ impl FeatureConstraint for TourOrderConstraint {
         match &self.order_fn {
             Either::Left(order_fn) => {
                 let order_fn_cmp = |source: &Single, candidate: &Single| {
-                    let source = (order_fn)(Some(source));
-                    let candidate = (order_fn)(Some(candidate));
+                    let source = (order_fn)(source);
+                    let candidate = (order_fn)(candidate);
                     match (source, candidate) {
                         (OrderResult::Value(s), OrderResult::Value(c)) => compare_floats(s, c) == Ordering::Equal,
                         (OrderResult::Default, OrderResult::Default) | (OrderResult::Ignored, OrderResult::Ignored) => {
@@ -151,10 +151,6 @@ impl FeatureState for TourOrderState {
         let violations = get_violations(solution_ctx.routes.as_slice(), &self.order_fn);
         solution_ctx.state.set_tour_order_violations(violations);
     }
-
-    fn state_keys(&self) -> Iter<StateKey> {
-        [].iter()
-    }
 }
 
 fn evaluate_result<T>(
@@ -163,20 +159,24 @@ fn evaluate_result<T>(
     order_fn: &TourOrderFn,
     check_order: &(dyn Fn(OrderResult, OrderResult, bool) -> Option<T>),
 ) -> Option<T> {
-    let get_order = |single: Option<&Single>| match &order_fn {
+    let get_order = |single: &Single| match &order_fn {
         Either::Left(left) => (left)(single),
         Either::Right(right) => (right)(route_ctx.route().actor.as_ref(), single),
     };
-    let get_order_by_idx = |idx: usize| get_order(route_ctx.route().tour.get(idx).and_then(get_single));
-    let target = get_order(get_single(activity_ctx.target));
+
+    let target_order = activity_ctx.target.job.as_ref().map(|single| get_order(single)).unwrap_or(OrderResult::Ignored);
+
+    let get_order_by_idx = |idx: usize| {
+        route_ctx.route().tour.get(idx).and_then(get_single).map(get_order).unwrap_or(OrderResult::Ignored)
+    };
 
     (0..=activity_ctx.index)
         .map(get_order_by_idx)
-        .map(|early| (early, target, true))
+        .map(|early| (early, target_order, true))
         .chain(
             (activity_ctx.index + 1..route_ctx.route().tour.total())
                 .map(get_order_by_idx)
-                .map(|late| (target, late, false)),
+                .map(|late| (target_order, late, false)),
         )
         .try_fold(None, |_, (left, right, stopped)| {
             let result = (check_order)(left, right, stopped);
@@ -199,8 +199,8 @@ fn get_violations(routes: &[RouteContext], order_fn: &TourOrderFn) -> usize {
                 .all_activities()
                 .filter_map(|activity| activity.job.as_ref())
                 .map(|single| match order_fn {
-                    Either::Left(left) => (left)(Some(single.as_ref())),
-                    Either::Right(right) => (right)(route_ctx.route().actor.as_ref(), Some(single.as_ref())),
+                    Either::Left(left) => (left)(single.as_ref()),
+                    Either::Right(right) => (right)(route_ctx.route().actor.as_ref(), single.as_ref()),
                 })
                 .filter(|order| !matches!(order, OrderResult::Ignored))
                 .collect::<Vec<OrderResult>>();

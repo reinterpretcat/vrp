@@ -154,7 +154,7 @@ impl<K: Send + Sync + 'static> FeatureObjective for WorkBalanceObjective<K> {
             MoveContext::Route { route_ctx, .. } => {
                 let value = route_ctx
                     .state()
-                    .get_tour_state_ex::<K, f64>()
+                    .get_tour_state::<K, f64>()
                     .cloned()
                     .unwrap_or_else(|| (self.route_estimate_fn)(route_ctx));
 
@@ -184,16 +184,12 @@ impl<K: Send + Sync + 'static> FeatureState for WorkBalanceState<K> {
     fn accept_route_state(&self, route_ctx: &mut RouteContext) {
         let value = (self.route_estimate_fn)(route_ctx);
 
-        route_ctx.state_mut().set_tour_state_ex::<K, _>(value);
+        route_ctx.state_mut().set_tour_state::<K, _>(value);
     }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         let value = (self.solution_estimate_fn)(solution_ctx);
 
         solution_ctx.state.set_value::<K, _>(value);
-    }
-
-    fn state_keys(&self) -> Iter<StateKey> {
-        [].iter()
     }
 }
