@@ -16,21 +16,18 @@ use std::fmt::{Debug, Formatter};
 use std::ops::ControlFlow;
 use std::sync::Arc;
 
-/// A type alias for a list of feature objectives.
-type Objectives = Vec<Arc<dyn FeatureObjective>>;
-
 /// Defines Vehicle Routing Problem variant by global and local objectives:
-/// A **global objective** defines the way two VRP solutions are compared in order to select better one:
-/// for example, given the same amount of assigned jobs, prefer less tours used instead of total
+/// A **global objective** defines the way two VRP solutions are compared to select better one:
+/// for example, given the same number of assigned jobs, prefer fewer tours used instead of total
 /// solution cost.
 ///
-/// A **local objective** defines how single VRP solution is created/modified. It specifies hard
-/// constraints such as vehicle capacity, time windows, skills, etc. Also it defines soft constraints
-/// which are used to guide search in preferred by global objective direction: reduce amount of tours
-/// served, maximize total value of assigned jobs, etc.
+/// A **local objective** defines how a single VRP solution is created/modified. It specifies hard
+/// constraints such as vehicle capacity, time windows, skills, etc. Also, it defines soft constraints
+/// which are used to guide search in preferred by global objective direction: reduce the number of tours
+/// served, maximize the total value of assigned jobs, etc.
 ///
 /// Both, global and local objectives, are specified by individual **features**. In general, a **Feature**
-/// encapsulates a single VRP aspect, such as capacity constraint for job' demand, time limitations
+/// encapsulates a single VRP aspect, such as capacity constraint for job's demand, time limitations
 /// for vehicles/jobs, etc.
 #[derive(Clone, Default)]
 pub struct GoalContext {
@@ -40,6 +37,9 @@ pub struct GoalContext {
     constraints: Vec<Arc<dyn FeatureConstraint>>,
     states: Vec<Arc<dyn FeatureState>>,
 }
+
+/// A type alias for a list of feature objectives.
+type Objectives = Vec<Arc<dyn FeatureObjective>>;
 
 impl GoalContext {
     /// Creates a new instance of `GoalContext` with given feature constraints.
@@ -76,7 +76,7 @@ pub struct GoalContextBuilder {
 }
 
 impl GoalContextBuilder {
-    /// Creates a `GoalBuilder` with the given list of features.
+    /// Creates a `GoalContextBuilder` with the given list of features.
     pub fn with_features(features: Vec<Feature>) -> GenericResult<Self> {
         let ids_all = features.iter().map(|feature| feature.name.as_str()).collect::<Vec<_>>();
         let ids_unique = ids_all.iter().collect::<HashSet<_>>();
@@ -165,7 +165,7 @@ impl GoalContextBuilder {
     }
 }
 
-/// An individual feature which is used to build a specific VRP variant, e.g. capacity restriction,
+/// An individual feature which is used to build a specific VRP variant, e.g., capacity restriction,
 /// job values, etc. Each feature consists of three optional parts (but at least one should be defined):
 ///
 /// * **constraint**: an invariant which should be hold to have a feasible VRP solution in the end.
@@ -178,10 +178,10 @@ impl GoalContextBuilder {
 ///  find out which one is "better") and local objective level (e.g. which job should be inserted next
 ///  into specific solution).
 ///
-/// * **state**: the corresponding cached data of constraint/objective to speedup/control their evaluations.
+/// * **state**: the corresponding cached data of constraint/objective to speed up/control their evaluations.
 ///
 /// As mentioned above, at least one part should be defined. Some rules of thumb:
-/// * each soft constraint requires an objective so that goal of optimization is reflected on global
+/// * each soft constraint requires an objective so that the goal of optimization is reflected on global
 ///   and local levels
 /// * hard constraint can be defined without objective as this is an invariant
 /// * state should be used to avoid expensive calculations during insertion evaluation phase.
@@ -199,7 +199,7 @@ pub struct Feature {
     pub state: Option<Arc<dyn FeatureState>>,
 }
 
-/// Specifies result of hard route constraint check.
+/// Specifies a result of hard route constraint check.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConstraintViolation {
     /// Violation code which is used as marker of specific constraint violated.
@@ -233,7 +233,7 @@ pub type ViolationCode = i32;
 pub struct FeatureBuilder(Feature);
 
 impl FeatureBuilder {
-    /// Creates a builder from another feature
+    /// Creates a builder from another feature.
     pub fn from_feature(feature: Feature) -> Self {
         Self(feature)
     }
@@ -262,7 +262,7 @@ impl FeatureBuilder {
         self
     }
 
-    /// Tries to builds a feature.
+    /// Tries to build a feature.
     pub fn build(self) -> Result<Feature, GenericError> {
         let feature = self.0;
 
@@ -285,28 +285,28 @@ pub trait FeatureState: Send + Sync {
     /// constraints and, generally, can modify solution context.
     /// If some action was taken which might help to assign given jobs to given routes, then true
     /// should be returned. **Please note**, if this method wrongly returns true, it might cause infinite
-    /// loops in insertion evaluation process.
-    /// Default implementation returns false which is safe and ok for most of the features.
+    /// loops in an insertion evaluation process.
+    /// The default implementation returns false, which is safe and ok for most of the features.
     fn notify_failure(&self, _solution_ctx: &mut SolutionContext, _route_indices: &[usize], _jobs: &[Job]) -> bool {
         false
     }
 
-    /// Accept insertion of specific job into the route.
-    /// Called once job has been inserted into solution represented via `solution_ctx`.
+    /// Accept insertion of a specific job into the route.
+    /// Called once a job has been inserted into a solution represented via `solution_ctx`.
     /// Target route is defined by `route_index` which refers to `routes` collection in solution context.
     /// Inserted job is `job`.
     /// This method can call `accept_route_state` internally.
-    /// This method should NOT modify amount of job activities in the tour.
+    /// This method should NOT modify the number of job activities in the tour.
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job);
 
     /// Accept route and updates its state to allow more efficient constraint checks.
-    /// This method should NOT modify amount of job activities in the tour.
+    /// This method should NOT modify the number of job activities in the tour.
     fn accept_route_state(&self, route_ctx: &mut RouteContext);
 
     /// Accepts insertion solution context allowing to update job insertion data.
     /// This method called twice: before insertion of all jobs starts and when it ends.
-    /// Please note, that it is important to update only stale routes as this allows to avoid
-    /// updating non changed route states.
+    /// Please note that it is important to update only stale routes as this allows avoiding
+    /// update of non-changed route states.
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext);
 }
 
@@ -316,8 +316,8 @@ pub trait FeatureConstraint: Send + Sync {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation>;
 
     /// Tries to merge two jobs taking into account common constraints.
-    /// Returns a new job, if it is possible to merge them together having theoretically assignable
-    /// job. Otherwise returns violation error code.
+    /// Returns a new job, if it is possible to merge them having a theoretically assignable
+    /// job. Otherwise, returns violation error code.
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode>;
 }
 
@@ -331,7 +331,7 @@ pub trait FeatureObjective: Send + Sync {
     /// An objective fitness values for given `solution`.
     fn fitness(&self, solution: &InsertionContext) -> f64;
 
-    /// Estimates a cost of insertion.
+    /// Estimates the cost of insertion.
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost;
 }
 
@@ -412,7 +412,7 @@ impl GoalContext {
         accept_solution_state_with_states(&self.states, solution_ctx);
     }
 
-    /// Notifies about failed attempt to insert given jobs into given routes (indices).
+    /// Notifies about a failed attempt to insert given jobs into given routes (indices).
     /// Returns true if failure is some attempt to handle failure was performed and retry can be
     /// performed.
     pub fn notify_failure(&self, solution_ctx: &mut SolutionContext, route_indices: &[usize], jobs: &[Job]) -> bool {
@@ -420,7 +420,7 @@ impl GoalContext {
     }
 
     /// Tries to merge two jobs taking into account common constraints.
-    /// Returns a new job, if it is possible to merge them together having theoretically assignable
+    /// Returns a new job, if it is possible to merge them having a theoretically assignable
     /// job. Otherwise returns violation error code.
     pub fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
         merge_with_constraints(&self.constraints, source, candidate)
