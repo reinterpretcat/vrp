@@ -2,25 +2,7 @@ use super::*;
 use crate::construction::enablers::*;
 use crate::models::Extras;
 
-/// A trait to get or set reserved times index.
-pub trait ReservedTimeExtras {
-    /// Sets reserved times index.
-    fn set_reserved_times(&mut self, reserved_time: ReservedTimesIndex) -> &mut Self;
-    /// Gets reserved times index.
-    fn get_reserved_times(&self) -> Option<&ReservedTimesIndex>;
-}
-
-struct ReservedTimeExtrasKey;
-impl ReservedTimeExtras for Extras {
-    fn set_reserved_times(&mut self, reserved_times: ReservedTimesIndex) -> &mut Self {
-        self.set_value::<ReservedTimeExtrasKey, _>(reserved_times);
-        self
-    }
-
-    fn get_reserved_times(&self) -> Option<&ReservedTimesIndex> {
-        self.get_value::<ReservedTimeExtrasKey, _>()
-    }
-}
+custom_extra_property!(ReservedTimes typeof ReservedTimesIndex);
 
 /// Reschedules reserved time duration in more optimal way:
 /// - try to avoid it during travel by moving it to earlier time on point stop
@@ -53,7 +35,8 @@ impl HeuristicSolutionProcessing for RescheduleReservedTime {
 }
 
 fn get_reserved_times_index_and_fn(insertion_ctx: &InsertionContext) -> Option<(ReservedTimesIndex, ReservedTimesFn)> {
-    insertion_ctx.problem.extras.get_reserved_times().cloned().and_then(|reserved_times_idx| {
+    insertion_ctx.problem.extras.get_reserved_times().and_then(|reserved_times_idx| {
+        let reserved_times_idx = reserved_times_idx.as_ref().clone();
         create_reserved_times_fn(reserved_times_idx.clone())
             .ok()
             .map(|reserved_times_fn| (reserved_times_idx, reserved_times_fn))

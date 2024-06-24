@@ -37,6 +37,7 @@ serde_json = "1.0.117"
 rand = { version = "0.8.5", features = ["small_rng"] }
 rayon = "1.10.0"
 rustc-hash = "1.1.0"
+paste = "1.0.15"
 
 [profile.release]
 lto = "fat"       # enables "fat" LTO, for faster release builds

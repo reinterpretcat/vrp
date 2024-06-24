@@ -26,7 +26,7 @@ fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<
     let orig_problem = Arc::new(Problem {
         extras: Arc::new({
             let mut extras = orig_problem.extras.as_ref().clone();
-            extras.set_cluster_config(config);
+            extras.set_cluster_config(Arc::new(config));
             extras
         }),
         ..orig_problem

@@ -198,44 +198,15 @@ const RECHARGE_CONSTRAINT_CODE: i32 = 15;
 /// An job id to job index.
 pub type JobIndex = HashMap<String, CoreJob>;
 
-/// Provides way to get/set job index.
-pub trait JobIndexExtras {
-    /// Sets job index.
-    fn set_job_index(&mut self, coord_index: JobIndex);
+pub use self::properties::{CoordIndexExtraProperty, JobIndexExtraProperty};
 
-    /// Gets job index.
-    fn get_job_index(&self) -> Option<Arc<JobIndex>>;
-}
+mod properties {
+    use crate::format::{CoordIndex, JobIndex};
+    use vrp_core::custom_extra_property;
+    use vrp_core::models::Extras;
 
-struct JobIndexExtrasKey;
-impl JobIndexExtras for CoreExtras {
-    fn set_job_index(&mut self, coord_index: JobIndex) {
-        self.set_value::<JobIndexExtrasKey, _>(coord_index);
-    }
-
-    fn get_job_index(&self) -> Option<Arc<JobIndex>> {
-        self.get_value_raw::<JobIndexExtrasKey, _>()
-    }
-}
-
-/// Provides way to get/set coord index.
-pub trait CoordIndexExtras {
-    /// Sets coord index.
-    fn set_coord_index(&mut self, coord_index: CoordIndex);
-
-    /// Gets coord index as shared reference.
-    fn get_coord_index(&self) -> Option<Arc<CoordIndex>>;
-}
-
-struct CoordIndexExtrasKey;
-impl CoordIndexExtras for CoreExtras {
-    fn set_coord_index(&mut self, coord_index: CoordIndex) {
-        self.set_value::<CoordIndexExtrasKey, _>(coord_index);
-    }
-
-    fn get_coord_index(&self) -> Option<Arc<CoordIndex>> {
-        self.get_value_raw::<CoordIndexExtrasKey, _>()
-    }
+    custom_extra_property!(JobIndex typeof JobIndex);
+    custom_extra_property!(CoordIndex typeof CoordIndex);
 }
 
 /// Get job and coord indices from extras

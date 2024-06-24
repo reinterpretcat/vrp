@@ -11,7 +11,7 @@ use vrp_core::prelude::GenericError;
 use vrp_core::utils::Environment;
 use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, PragmaticProblem};
 use vrp_pragmatic::format::solution::serialize_named_locations_as_geojson;
-use vrp_pragmatic::format::{CoordIndexExtras, MultiFormatError};
+use vrp_pragmatic::format::{CoordIndexExtraProperty, MultiFormatError};
 
 /// Gets job clusters.
 pub fn get_clusters<F: Read>(

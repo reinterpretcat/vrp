@@ -13,7 +13,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 custom_extra_property!(ClusterConfig typeof ClusterConfig);
-custom_extra_property!(OriginalProblem typeof Arc<Problem>);
+custom_extra_property!(OriginalProblem typeof Problem);
 
 /// Provides a way to change problem definition by reducing total job count using clustering.
 #[derive(Default)]
@@ -30,7 +30,7 @@ impl HeuristicContextProcessing for VicinityClustering {
 
         let config = if let Some(config) = problem.extras.get_cluster_config() { config } else { return context };
 
-        let clusters = create_job_clusters(problem.clone(), environment, config);
+        let clusters = create_job_clusters(problem.clone(), environment, &config);
 
         if clusters.is_empty() {
             context

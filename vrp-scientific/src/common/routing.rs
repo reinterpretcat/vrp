@@ -3,36 +3,19 @@
 mod routing_test;
 
 use std::sync::Arc;
+use vrp_core::custom_extra_property;
 use vrp_core::models::common::Location;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData, TransportCost};
 use vrp_core::models::Extras;
 use vrp_core::prelude::GenericError;
+
+custom_extra_property!(CoordIndex typeof CoordIndex);
 
 /// Represents a coord index which can be used to analyze customer's locations.
 #[derive(Clone, Default)]
 pub struct CoordIndex {
     /// Keeps track of locations.
     pub locations: Vec<(i32, i32)>,
-}
-
-/// Provides way to get/set coord index.
-pub trait CoordIndexExtras {
-    /// Sets coord index.
-    fn set_coord_index(&mut self, coord_index: CoordIndex);
-
-    /// Gets coord index.
-    fn get_coord_index(&self) -> Option<&CoordIndex>;
-}
-
-struct CoordIndexExtrasKey;
-impl CoordIndexExtras for Extras {
-    fn set_coord_index(&mut self, coord_index: CoordIndex) {
-        self.set_value::<CoordIndexExtrasKey, _>(coord_index);
-    }
-
-    fn get_coord_index(&self) -> Option<&CoordIndex> {
-        self.get_value::<CoordIndexExtrasKey, _>()
-    }
 }
 
 impl CoordIndex {

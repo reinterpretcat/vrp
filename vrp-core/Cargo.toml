@@ -17,7 +17,7 @@ rosomaxa.workspace = true
 rand.workspace = true
 rayon.workspace = true
 rustc-hash.workspace = true
+paste.workspace = true
 
 nohash-hasher = "0.2.0"
 tinyvec = { version = "1.6.0", features = ["alloc"] }
-paste = "1.0.15"

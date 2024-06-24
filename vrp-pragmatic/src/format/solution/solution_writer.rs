@@ -13,7 +13,7 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::{JobIdDimension, Multi, TravelTime, VehicleIdDimension};
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
-use vrp_core::solver::processing::{ClusterConfigExtraProperty, ReservedTimeExtras};
+use vrp_core::solver::processing::{ClusterConfigExtraProperty, ReservedTimesExtraProperty};
 use vrp_core::utils::CollectGroupBy;
 
 struct Leg {
@@ -39,8 +39,10 @@ pub(crate) fn create_solution(
     output_type: &PragmaticOutputType,
 ) -> ApiSolution {
     let coord_index = problem.extras.get_coord_index().expect("no coord index");
+
     let empty_reserved_times = Default::default();
-    let reserved_times_index = problem.extras.get_reserved_times().unwrap_or(&empty_reserved_times);
+    let reserved_times_index = problem.extras.get_reserved_times();
+    let reserved_times_index = reserved_times_index.as_ref().unwrap_or(&empty_reserved_times);
 
     let tours = solution
         .routes

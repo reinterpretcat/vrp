@@ -1,41 +1,29 @@
 //! Provides some useful macros to avoid repetitive code.
 
 /// A macro to define a custom property on [crate::models::Extras].
+#[macro_export]
 macro_rules! custom_extra_property {
     ($name:ident typeof $type:ty $(: $gen:ident)?) => {
         paste::paste! {
             #[doc = " Extends [Extras] within a new ["[<$name ExtraProperty>]"]."]
             pub trait [<$name ExtraProperty>] {
-                #[doc = " Gets "$name " property."]
-                fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<&$type>;
-
                 #[doc = " Gets "$name " property as a shared reference."]
-                fn [<get_ $name:snake:lower _raw>]$(<$type : $gen>)?(&self) -> Option<Arc<$type>>;
+                fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<std::sync::Arc<$type>>;
 
-                #[doc = " Sets "$name " property."]
-                fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: $type) -> &mut Self;
                 #[doc = " Sets "$name " property using a shared reference."]
-                fn [<set_ $name:snake:lower _raw>]$(<$type : $gen>)?(&mut self, value: Arc<$type>) -> &mut Self;
+                fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: std::sync::Arc<$type>) -> &mut Self;
             }
 
             // Define a dummy struct type which is used as a key.
             struct [<$name ExtraPropertyKey>];
             impl [<$name ExtraProperty>] for Extras {
-                fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<&$type> {
+
+                fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<std::sync::Arc<$type>> {
                     self.get_value::<[<$name ExtraPropertyKey>], _>()
                 }
 
-                fn [<get_ $name:snake:lower _raw>]$(<$type : $gen>)?(&self) -> Option<Arc<$type>> {
-                    self.get_value_raw::<[<$name ExtraPropertyKey>], _>()
-                }
-
-                fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: $type) -> &mut Self {
+                fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: std::sync::Arc<$type>) -> &mut Self {
                     self.set_value::<[<$name ExtraPropertyKey>], _>(value);
-                    self
-                }
-
-                fn [<set_ $name:snake:lower _raw>]$(<$type : $gen>)?(&mut self, value: Arc<$type>) -> &mut Self {
-                    self.set_value_raw::<[<$name ExtraPropertyKey>], _>(value);
                     self
                 }
             }
@@ -44,6 +32,7 @@ macro_rules! custom_extra_property {
 }
 
 /// A macro to define a custom solution state on [crate::construction::heuristics::SolutionState].
+#[macro_export]
 macro_rules! custom_solution_state {
     ($name:ident typeof $type:ty $(: $gen:ident)?) => {
         paste::paste! {
@@ -72,6 +61,7 @@ macro_rules! custom_solution_state {
 }
 
 /// A macro to define a custom dimension on [crate::models::common::Dimensions].
+#[macro_export]
 macro_rules! custom_dimension {
     ($name:ident typeof $type:ty $(: $gen:ident)?) => {
         paste::paste! {
@@ -100,6 +90,7 @@ macro_rules! custom_dimension {
 }
 
 /// A macro to define a custom activity state on [crate::construction::heuristics::RouteState].
+#[macro_export]
 macro_rules! custom_activity_state {
     ($name:ident typeof $type:ty $(: $gen:ident)?) => {
         paste::paste! {
@@ -127,6 +118,7 @@ macro_rules! custom_activity_state {
 }
 
 /// A macro to define custom route state on [crate::construction::heuristics::RouteState].
+#[macro_export]
 macro_rules! custom_tour_state {
     ($name:ident typeof $type:ty $(: $gen:ident)?) => {
         paste::paste! {
@@ -154,6 +146,7 @@ macro_rules! custom_tour_state {
 }
 
 /// A macro to define custom route intervals state used within [crate::construction::enablers::RouteIntervals].
+#[macro_export]
 macro_rules! custom_route_intervals_state {
     // visibility modifier is provided
     ($(#[$meta:meta])* $vis:vis $name:ident) => {

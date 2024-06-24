@@ -11,23 +11,13 @@ pub struct Extras {
 }
 
 impl Extras {
-    /// Gets the value from extras using the key type provided.
-    pub fn get_value<K: 'static, V: Send + Sync + 'static>(&self) -> Option<&V> {
-        self.index.get(&TypeId::of::<K>()).and_then(|any| any.downcast_ref::<V>())
-    }
-
     /// Gets a shared reference to the value from extras using the key type provided.
-    pub fn get_value_raw<K: 'static, V: Send + Sync + 'static>(&self) -> Option<Arc<V>> {
+    pub fn get_value<K: 'static, V: Send + Sync + 'static>(&self) -> Option<Arc<V>> {
         self.index.get(&TypeId::of::<K>()).cloned().and_then(|any| any.downcast::<V>().ok())
     }
 
-    /// Sets the value to extras using the key type provided.
-    pub fn set_value<K: 'static, V: 'static + Sync + Send>(&mut self, value: V) {
-        self.index.insert(TypeId::of::<K>(), Arc::new(value));
-    }
-
     /// Sets the value, passed as shared reference, to extras using key type provided.
-    pub(crate) fn set_value_raw<K: 'static, V: 'static + Sync + Send>(&mut self, value: Arc<V>) {
+    pub fn set_value<K: 'static, V: 'static + Sync + Send>(&mut self, value: Arc<V>) {
         self.index.insert(TypeId::of::<K>(), value);
     }
 }

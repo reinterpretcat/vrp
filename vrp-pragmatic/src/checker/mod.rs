@@ -54,7 +54,7 @@ impl CheckerContext {
         solution: Solution,
     ) -> Result<Self, Vec<GenericError>> {
         let job_map = problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect();
-        let clustering = core_problem.extras.get_cluster_config().cloned();
+        let clustering = core_problem.extras.get_cluster_config().map(|config| config.as_ref().clone());
         let coord_index = CoordIndex::new(&problem);
         let profile_index = if matrices.is_none() {
             HashMap::new()

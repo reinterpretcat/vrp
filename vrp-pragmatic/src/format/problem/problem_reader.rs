@@ -10,7 +10,7 @@ use vrp_core::construction::enablers::*;
 use vrp_core::construction::heuristics::StateKeyRegistry;
 use vrp_core::models::common::{TimeOffset, TimeSpan, TimeWindow};
 use vrp_core::models::Extras;
-use vrp_core::solver::processing::{ClusterConfigExtraProperty, ReservedTimeExtras};
+use vrp_core::solver::processing::{ClusterConfigExtraProperty, ReservedTimesExtraProperty};
 
 pub(super) fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
     let coord_index = CoordIndex::new(&problem);
@@ -36,7 +36,7 @@ pub(super) fn map_to_problem(
     let mut state_registry = StateKeyRegistry::default();
     let mut extras = Extras::default();
 
-    extras.set_coord_index(coord_index);
+    extras.set_coord_index(Arc::new(coord_index));
 
     let coord_index = extras.get_coord_index().expect("cannot get coord index");
     let mut job_index = JobIndex::default();
@@ -44,8 +44,9 @@ pub(super) fn map_to_problem(
     let props = get_problem_properties(&api_problem, &matrices);
     let mut blocks = get_problem_blocks(&api_problem, matrices, coord_index, &mut job_index, &props)?;
 
-    extras.set_job_index(job_index);
-    blocks.job_index = extras.get_job_index();
+    let job_index = Arc::new(job_index);
+    extras.set_job_index(job_index.clone());
+    blocks.job_index = Some(job_index);
 
     let goal = Arc::new(
         create_goal_context(&api_problem, &blocks, &props, &mut state_registry).map_err(to_multi_format_error)?,
@@ -54,11 +55,11 @@ pub(super) fn map_to_problem(
     let ProblemBlocks { jobs, fleet, transport, activity, locks, reserved_times_index, .. } = blocks;
 
     if let Some(config) = create_cluster_config(&api_problem).map_err(to_multi_format_error)? {
-        extras.set_cluster_config(config);
+        extras.set_cluster_config(Arc::new(config));
     }
 
     if !reserved_times_index.is_empty() {
-        extras.set_reserved_times(reserved_times_index);
+        extras.set_reserved_times(Arc::new(reserved_times_index));
     }
 
     Ok(CoreProblem { fleet, jobs, locks, goal, activity, transport, extras: Arc::new(extras) })

@@ -13,3 +13,4 @@ edition.workspace = true
 
 [dependencies]
 vrp-core.workspace = true
+paste.workspace = true

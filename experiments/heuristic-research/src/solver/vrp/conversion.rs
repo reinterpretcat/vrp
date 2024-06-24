@@ -1,5 +1,5 @@
 use crate::{DataGraph, GraphEdge, GraphNode, ObservationData};
-use vrp_scientific::common::CoordIndexExtras;
+use vrp_scientific::common::CoordIndexExtraProperty;
 use vrp_scientific::core::construction::heuristics::InsertionContext;
 
 impl From<&InsertionContext> for DataGraph {

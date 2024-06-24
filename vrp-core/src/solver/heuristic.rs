@@ -54,26 +54,7 @@ pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, GoalCo
 /// A type to filter meta heuristics by name. Returns true if heuristic can be used.
 pub type HeuristicFilterFn = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 
-/// A type to use a filtering by meta heuristics name.
-/// The corresponding function returns true if heuristic can be used.
-pub trait HeuristicFilterExtras {
-    /// Gets heuristic filter.
-    fn get_heuristic_filter(&self) -> Option<HeuristicFilterFn>;
-
-    /// Sets heuristic filter.
-    fn set_heuristic_filter(&mut self, heuristic_filter: Arc<dyn Fn(&str) -> bool + Send + Sync>);
-}
-
-struct HeuristicFilterExtrasKey;
-impl HeuristicFilterExtras for Extras {
-    fn get_heuristic_filter(&self) -> Option<HeuristicFilterFn> {
-        self.get_value::<HeuristicFilterExtrasKey, _>().cloned()
-    }
-
-    fn set_heuristic_filter(&mut self, heuristic_filter: HeuristicFilterFn) {
-        self.set_value::<HeuristicFilterExtrasKey, _>(heuristic_filter);
-    }
-}
+custom_extra_property!(HeuristicFilter typeof HeuristicFilterFn);
 
 /// Specifies keys used by heuristic.
 pub struct HeuristicKeys {
