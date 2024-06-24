@@ -1,11 +1,12 @@
 use crate::construction::heuristics::*;
 use crate::models::problem::{Actor, Job};
-use crate::models::CoreStateKeys;
 use rand::prelude::IteratorRandom;
 use rosomaxa::prelude::Random;
 use std::collections::HashSet;
 use std::hash::Hash;
 use std::sync::Arc;
+
+custom_solution_state!(TabuList typeof TabuList);
 
 /// A simple solution's tabu list to keep track of recently affected jobs and actors.
 #[derive(Clone)]
@@ -18,31 +19,29 @@ pub struct TabuList {
 }
 
 impl TabuList {
-    /// Adds job to tabu list.
+    /// Adds a job to the tabu list.
     pub fn add_job(&mut self, job: Job) {
         add_with_limits(job, &mut self.jobs, self.max_jobs, self.random.as_ref());
     }
 
-    /// Adds actor to tabu list.
+    /// Adds an actor to the tabu list.
     pub fn add_actor(&mut self, actor: Arc<Actor>) {
         add_with_limits(actor, &mut self.actors, self.max_actors, self.random.as_ref());
     }
 
-    /// Checks whether given actor is in tabu list.
+    /// Checks whether given an actor is in the tabu list.
     pub fn is_actor_tabu(&self, actor: &Actor) -> bool {
         self.actors.contains(actor)
     }
 
-    /// Checks whether given job is in tabu list.
+    /// Checks whether given a job is in the tabu list.
     pub fn is_job_tabu(&self, job: &Job) -> bool {
         self.jobs.contains(job)
     }
 
     /// Stores tabu list in insertion ctx.
     pub fn inject(self, insertion_ctx: &mut InsertionContext) {
-        if let Some(heuristic_keys) = insertion_ctx.problem.extras.get_heuristic_keys() {
-            insertion_ctx.solution.state.insert(heuristic_keys.tabu_list, Arc::new(self));
-        }
+        insertion_ctx.solution.state.set_tabu_list(self);
     }
 }
 
@@ -62,20 +61,13 @@ impl From<&InsertionContext> for TabuList {
             _ => (jobs as f64 * 0.5).trunc() as usize,
         };
 
-        let other_tabu_list = insertion_cxt
-            .problem
-            .extras
-            .get_heuristic_keys()
-            .and_then(|heuristic_keys| solution_ctx.state.get(&heuristic_keys.tabu_list))
-            .and_then(|s| s.downcast_ref::<TabuList>())
-            .cloned()
-            .unwrap_or_else(|| TabuList {
-                actors: Default::default(),
-                jobs: Default::default(),
-                max_actors,
-                max_jobs,
-                random: insertion_cxt.environment.random.clone(),
-            });
+        let other_tabu_list = solution_ctx.state.get_tabu_list().cloned().unwrap_or_else(|| TabuList {
+            actors: Default::default(),
+            jobs: Default::default(),
+            max_actors,
+            max_jobs,
+            random: insertion_cxt.environment.random.clone(),
+        });
 
         TabuList { max_actors, max_jobs, ..other_tabu_list }
     }

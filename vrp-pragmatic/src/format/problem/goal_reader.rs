@@ -20,7 +20,7 @@ pub(super) fn create_goal_context(
 ) -> GenericResult<GoalContext> {
     let mut state_context = StateKeyContext::new(state_registry);
 
-    let objective_features = get_objective_features(api_problem, blocks, props, &mut state_context)?;
+    let objective_features = get_objective_features(api_problem, blocks, props)?;
     // TODO combination should happen inside `get_objective_features` for conflicting objectives
     let mut features = objective_features
         .into_iter()
@@ -99,7 +99,6 @@ fn get_objective_features(
     api_problem: &ApiProblem,
     blocks: &ProblemBlocks,
     props: &ProblemProperties,
-    state_context: &mut StateKeyContext,
 ) -> Result<Vec<Vec<Feature>>, GenericError> {
     let objectives = get_objectives(api_problem, props);
 
@@ -177,13 +176,11 @@ fn get_objective_features(
                     ),
                     Objective::MinimizeArrivalTime => create_minimize_arrival_time_feature("min_arrival_time"),
                     Objective::BalanceMaxLoad { options } => {
-                        let load_balance_keys = LoadBalanceKeys { balance_max_load: state_context.next_key() };
                         if props.has_multi_dimen_capacity {
                             create_max_load_balanced_feature::<MultiDimLoad>(
                                 "max_load_balance",
                                 get_threshold(options),
-                                load_balance_keys,
-                                Arc::new(|loaded, capacity| {
+                                |loaded, capacity| {
                                     let mut max_ratio = 0_f64;
 
                                     for (idx, value) in capacity.load.iter().enumerate() {
@@ -192,46 +189,30 @@ fn get_objective_features(
                                     }
 
                                     max_ratio
-                                }),
-                                Arc::new(|vehicle| {
+                                },
+                                |vehicle| {
                                     vehicle.dimens.get_vehicle_capacity().expect("vehicle has no capacity defined")
-                                }),
+                                },
                             )
                         } else {
                             create_max_load_balanced_feature::<SingleDimLoad>(
                                 "max_load_balance",
                                 get_threshold(options),
-                                load_balance_keys,
-                                Arc::new(|loaded, capacity| loaded.value as f64 / capacity.value as f64),
-                                Arc::new(|vehicle| {
+                                |loaded, capacity| loaded.value as f64 / capacity.value as f64,
+                                |vehicle| {
                                     vehicle.dimens.get_vehicle_capacity().expect("vehicle has no capacity defined")
-                                }),
+                                },
                             )
                         }
                     }
                     Objective::BalanceActivities { options } => {
-                        let balance_activities_key = state_context.next_key();
-                        create_activity_balanced_feature(
-                            "activity_balance",
-                            get_threshold(options),
-                            balance_activities_key,
-                        )
+                        create_activity_balanced_feature("activity_balance", get_threshold(options))
                     }
                     Objective::BalanceDistance { options } => {
-                        let balance_distance_key = state_context.next_key();
-                        create_distance_balanced_feature(
-                            "distance_balance",
-                            get_threshold(options),
-                            balance_distance_key,
-                        )
+                        create_distance_balanced_feature("distance_balance", get_threshold(options))
                     }
                     Objective::BalanceDuration { options } => {
-                        let balance_duration_key = state_context.next_key();
-                        create_duration_balanced_feature(
-                            "duration_balance",
-                            get_threshold(options),
-                            balance_duration_key,
-                        )
+                        create_duration_balanced_feature("duration_balance", get_threshold(options))
                     }
                     Objective::CompactTour { options } => {
                         let thresholds = Some((options.threshold, options.distance));
@@ -239,13 +220,10 @@ fn get_objective_features(
                             "tour_compact",
                             blocks.jobs.clone(),
                             options.job_radius,
-                            state_context.next_key(),
                             thresholds,
                         )
                     }
-                    Objective::TourOrder => {
-                        create_tour_order_soft_feature("tour_order", state_context.next_key(), get_tour_order_fn())
-                    }
+                    Objective::TourOrder => create_tour_order_soft_feature("tour_order", get_tour_order_fn()),
                     Objective::FastService { tolerance } => {
                         get_fast_service_feature("fast_service", blocks, *tolerance)
                     }

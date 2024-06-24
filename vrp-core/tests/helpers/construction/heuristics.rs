@@ -3,7 +3,7 @@ use crate::helpers::models::domain::{test_random, TestGoalContextBuilder};
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
 use crate::models::problem::Job;
 use crate::models::solution::Registry;
-use crate::models::{ExtrasBuilder, GoalContext, Problem};
+use crate::models::{Extras, GoalContext, Problem};
 use crate::prelude::Jobs;
 use rosomaxa::prelude::Environment;
 use std::sync::Arc;
@@ -82,8 +82,8 @@ impl InsertionContextBuilder {
         self
     }
 
-    pub fn with_state<T: 'static + Sync + Send>(&mut self, state_key: StateKey, value: T) -> &mut Self {
-        self.ensure_solution().state.insert(state_key, Arc::new(value));
+    pub fn with_state(&mut self, state_fn: impl FnOnce(&mut SolutionState)) -> &mut Self {
+        state_fn(&mut self.ensure_solution().state);
         self
     }
 
@@ -115,7 +115,7 @@ fn create_empty_problem() -> Problem {
         goal: Arc::new(TestGoalContextBuilder::default().build()),
         activity: Arc::new(TestActivityCost::default()),
         transport,
-        extras: Arc::new(ExtrasBuilder::default().build().expect("cannot build default extras")),
+        extras: Arc::new(Extras::default()),
     }
 }
 

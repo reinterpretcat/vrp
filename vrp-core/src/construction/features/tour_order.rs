@@ -11,6 +11,8 @@ use crate::utils::Either;
 use std::cmp::Ordering;
 use std::ops::ControlFlow;
 
+custom_solution_state!(TourOrderViolations typeof usize);
+
 /// Creates a tour order feature as hard constraint.
 pub fn create_tour_order_hard_feature(
     name: &str,
@@ -21,15 +23,11 @@ pub fn create_tour_order_hard_feature(
 }
 
 /// Creates a tour order as soft constraint.
-pub fn create_tour_order_soft_feature(
-    name: &str,
-    state_key: StateKey,
-    order_fn: TourOrderFn,
-) -> Result<Feature, GenericError> {
+pub fn create_tour_order_soft_feature(name: &str, order_fn: TourOrderFn) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
-        .with_objective(TourOrderObjective { state_key, order_fn: order_fn.clone() })
-        .with_state(TourOrderState { state_key, state_keys: vec![state_key], order_fn })
+        .with_objective(TourOrderObjective { order_fn: order_fn.clone() })
+        .with_state(TourOrderState { order_fn })
         .build()
 }
 
@@ -102,7 +100,6 @@ impl FeatureConstraint for TourOrderConstraint {
 }
 
 struct TourOrderObjective {
-    state_key: StateKey,
     order_fn: TourOrderFn,
 }
 
@@ -112,9 +109,8 @@ impl FeatureObjective for TourOrderObjective {
 
         solution
             .state
-            .get(&self.state_key)
-            .and_then(|s| s.downcast_ref::<usize>())
-            .cloned()
+            .get_tour_order_violations()
+            .copied()
             .unwrap_or_else(|| get_violations(solution.routes.as_slice(), &self.order_fn)) as f64
     }
 
@@ -143,8 +139,6 @@ impl FeatureObjective for TourOrderObjective {
 }
 
 struct TourOrderState {
-    state_key: StateKey,
-    state_keys: Vec<StateKey>,
     order_fn: TourOrderFn,
 }
 
@@ -155,11 +149,11 @@ impl FeatureState for TourOrderState {
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         let violations = get_violations(solution_ctx.routes.as_slice(), &self.order_fn);
-        solution_ctx.state.insert(self.state_key, Arc::new(violations));
+        solution_ctx.state.set_tour_order_violations(violations);
     }
 
     fn state_keys(&self) -> Iter<StateKey> {
-        self.state_keys.iter()
+        [].iter()
     }
 }
 

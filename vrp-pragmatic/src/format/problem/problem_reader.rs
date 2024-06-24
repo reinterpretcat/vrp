@@ -9,8 +9,8 @@ use crate::{parse_time, CoordIndex};
 use vrp_core::construction::enablers::*;
 use vrp_core::construction::heuristics::StateKeyRegistry;
 use vrp_core::models::common::{TimeOffset, TimeSpan, TimeWindow};
-use vrp_core::models::ExtrasBuilder;
-use vrp_core::solver::processing::{ReservedTimeExtras, VicinityDimensionExtras};
+use vrp_core::models::Extras;
+use vrp_core::solver::processing::{ClusterConfigExtraProperty, ReservedTimeExtras};
 
 pub(super) fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
     let coord_index = CoordIndex::new(&problem);
@@ -34,7 +34,7 @@ pub(super) fn map_to_problem(
     ValidationContext::new(&api_problem, Some(&matrices), &coord_index).validate()?;
 
     let mut state_registry = StateKeyRegistry::default();
-    let mut extras = ExtrasBuilder::new(&mut state_registry).build().map_err(to_multi_format_error)?;
+    let mut extras = Extras::default();
 
     extras.set_coord_index(coord_index);
 

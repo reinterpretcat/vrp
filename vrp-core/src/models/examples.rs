@@ -1,6 +1,5 @@
 use crate::construction::features::capacity::*;
 use crate::construction::features::*;
-use crate::construction::heuristics::StateKeyRegistry;
 use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Route;
@@ -63,13 +62,6 @@ fn create_example_fleet() -> Arc<Fleet> {
     Arc::new(Fleet::new(drivers, vehicles, |_| |_| 0))
 }
 
-/// Creates an extras with all necessary data
-fn create_example_extras() -> Extras {
-    let mut registry = StateKeyRegistry::default();
-
-    ExtrasBuilder::new(&mut registry).build().expect("cannot build example extras")
-}
-
 /// Creates and example VRP goal: CVRPTW.
 fn create_example_goal_ctx(
     transport: Arc<dyn TransportCost + Sync + Send>,
@@ -89,7 +81,6 @@ fn create_example_goal_ctx(
 
 /// Creates an example problem used in documentation tests.
 pub fn create_example_problem() -> Arc<Problem> {
-    let extras = create_example_extras();
     let activity: Arc<dyn ActivityCost + Sync + Send> = Arc::new(SimpleActivityCost::default());
     let transport: Arc<dyn TransportCost + Sync + Send> = Arc::new(ExampleTransportCost {});
     let fleet = create_example_fleet();
@@ -103,6 +94,6 @@ pub fn create_example_problem() -> Arc<Problem> {
         goal: Arc::new(goal),
         activity,
         transport,
-        extras: Arc::new(extras),
+        extras: Arc::new(Extras::default()),
     })
 }

@@ -7,34 +7,15 @@ use crate::construction::clustering::vicinity::*;
 use crate::models::common::Schedule;
 use crate::models::problem::Jobs;
 use crate::models::solution::{Activity, Place};
-use crate::models::{Extras, ExtrasBuilder, GoalContext, Problem};
+use crate::models::{Extras, GoalContext, Problem};
 use crate::solver::RefinementContext;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-/// A trait to get or set vicinity config.
-pub trait VicinityDimensionExtras {
-    /// Sets cluster config.
-    fn set_cluster_config(&mut self, config: ClusterConfig) -> &mut Self;
-    /// Gets cluster config.
-    fn get_cluster_config(&self) -> Option<&ClusterConfig>;
-}
+custom_extra_property!(ClusterConfig typeof ClusterConfig);
+custom_extra_property!(OriginalProblem typeof Arc<Problem>);
 
-struct VicinityDimensionExtrasKey;
-impl VicinityDimensionExtras for Extras {
-    fn set_cluster_config(&mut self, config: ClusterConfig) -> &mut Self {
-        self.set_value::<VicinityDimensionExtrasKey, _>(config);
-        self
-    }
-
-    fn get_cluster_config(&self) -> Option<&ClusterConfig> {
-        self.get_value::<VicinityDimensionExtrasKey, _>()
-    }
-}
-
-struct OriginalProblemExtrasKey;
-
-/// Provides way to change problem definition by reducing total job count using clustering.
+/// Provides a way to change problem definition by reducing total job count using clustering.
 #[derive(Default)]
 pub struct VicinityClustering {}
 
@@ -66,10 +47,8 @@ impl HeuristicContextProcessing for VicinityClustering {
 
             let jobs = problem.jobs.all().filter(|job| !clustered_jobs.contains(job)).chain(clusters).collect();
 
-            let extras = ExtrasBuilder::from(problem.extras.as_ref())
-                .with_custom_key::<OriginalProblemExtrasKey, _>(problem.clone())
-                .build()
-                .expect("extras is in some invalid state");
+            let mut extras: Extras = problem.extras.as_ref().clone();
+            extras.set_original_problem(problem.clone());
 
             let problem = Arc::new(Problem {
                 fleet: problem.fleet.clone(),
@@ -93,7 +72,7 @@ impl HeuristicSolutionProcessing for VicinityClustering {
         let mut insertion_ctx = solution;
 
         let config = insertion_ctx.problem.extras.get_cluster_config();
-        let orig_problem = insertion_ctx.problem.extras.get_value_raw::<OriginalProblemExtrasKey, _>();
+        let orig_problem = insertion_ctx.problem.extras.get_original_problem();
 
         let (config, orig_problem) = if let Some((config, orig_problem)) = config.zip(orig_problem) {
             (config, orig_problem)
@@ -174,7 +153,7 @@ impl HeuristicSolutionProcessing for VicinityClustering {
             })
             .collect();
 
-        insertion_ctx.problem = orig_problem;
+        insertion_ctx.problem = orig_problem.clone();
 
         insertion_ctx
     }

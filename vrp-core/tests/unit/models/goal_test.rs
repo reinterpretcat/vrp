@@ -175,17 +175,13 @@ can_use_objective_total_order! {
 }
 
 fn can_use_objective_total_order_impl(left_fitness: Vec<f64>, right_fitness: Vec<f64>, expected: Ordering) {
-    let mut keys = StateKeyRegistry::default();
-    let state_keys = [keys.next_key(), keys.next_key(), keys.next_key(), keys.next_key()];
     let fitness_fn = Arc::new(move |name: &str, insertion_ctx: &InsertionContext| {
-        let state_key = state_keys[name.parse::<usize>().unwrap()];
-        insertion_ctx.solution.state.get(&state_key).and_then(|s| s.downcast_ref::<f64>()).copied().unwrap()
+        let idx = name.parse::<usize>().unwrap();
+        insertion_ctx.solution.state.get_value::<(), Vec<f64>>().unwrap()[idx]
     });
     let create_insertion_ctx_with_fitness_state = |fitness: Vec<f64>| {
         let mut insertion_ctx = InsertionContextBuilder::default().build();
-        fitness.into_iter().enumerate().for_each(|(idx, value)| {
-            insertion_ctx.solution.state.insert(state_keys[idx], Arc::new(value));
-        });
+        insertion_ctx.solution.state.set_value::<(), _>(fitness);
         insertion_ctx
     };
     let goal_ctx = TestGoalContextBuilder::default()

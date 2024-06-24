@@ -224,10 +224,7 @@ impl ProblemBuilder {
             .goal
             .take()
             .ok_or_else(|| GenericError::from("unknown goal of optimization: use 'with_goal' method to set it"))?;
-        let extras = self
-            .extras
-            .take()
-            .unwrap_or_else(|| Arc::new(ExtrasBuilder::default().build().expect("cannot use default extras builder")));
+        let extras = self.extras.take().unwrap_or_else(|| Arc::new(Extras::default()));
 
         // setup fleet
         // NOTE: driver concept is not fully supported yet, but we must provide at least one.

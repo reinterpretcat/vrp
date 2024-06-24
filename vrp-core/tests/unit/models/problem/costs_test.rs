@@ -116,8 +116,8 @@ fn can_interpolate_durations() {
 
 mod objective {
     use super::*;
-    use crate::construction::heuristics::{InsertionContext, MoveContext, StateKeyRegistry};
-    use crate::helpers::construction::heuristics::{create_state_key, InsertionContextBuilder};
+    use crate::construction::heuristics::{InsertionContext, MoveContext};
+    use crate::helpers::construction::heuristics::InsertionContextBuilder;
     use crate::models::{Feature, FeatureBuilder, FeatureObjective, GoalContextBuilder};
     use rosomaxa::prelude::{compare_floats, HeuristicObjective};
     use std::cmp::Ordering;
@@ -135,14 +135,7 @@ mod objective {
         }
 
         fn fitness(&self, solution: &InsertionContext) -> f64 {
-            solution
-                .solution
-                .state
-                .get(&create_state_key())
-                .and_then(|any| any.downcast_ref::<Vec<f64>>())
-                .and_then(|data| data.get(self.index))
-                .cloned()
-                .unwrap()
+            solution.solution.state.get_value::<(), Vec<f64>>().and_then(|data| data.get(self.index)).cloned().unwrap()
         }
 
         fn estimate(&self, _: &MoveContext<'_>) -> Cost {
@@ -159,7 +152,7 @@ mod objective {
     }
 
     fn create_individual(data: Vec<f64>) -> InsertionContext {
-        InsertionContextBuilder::default().with_state(StateKeyRegistry::default().next_key(), data).build()
+        InsertionContextBuilder::default().with_state(|state| state.set_value::<(), _>(data)).build()
     }
 
     parameterized_test! {can_use_total_order, (data_a, data_b, expected), {

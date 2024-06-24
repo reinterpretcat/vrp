@@ -5,6 +5,8 @@ mod tour_compactness_test;
 use super::*;
 use std::cmp::Ordering;
 
+custom_solution_state!(TourCompactness typeof Cost);
+
 /// Creates a feature which tries to keep routes compact by reducing amount of jobs in their
 /// neighbourhood served by different routes.
 ///
@@ -16,7 +18,6 @@ pub fn create_tour_compactness_feature(
     name: &str,
     jobs: Arc<Jobs>,
     job_radius: usize,
-    state_key: StateKey,
     thresholds: Option<(usize, f64)>,
 ) -> Result<Feature, GenericError> {
     if job_radius < 1 {
@@ -27,15 +28,14 @@ pub fn create_tour_compactness_feature(
 
     FeatureBuilder::default()
         .with_name(name)
-        .with_objective(TourCompactnessObjective { jobs: jobs.clone(), job_radius, state_key, thresholds })
-        .with_state(TourCompactnessState { jobs, job_radius, state_keys: vec![state_key] })
+        .with_objective(TourCompactnessObjective { jobs: jobs.clone(), job_radius, thresholds })
+        .with_state(TourCompactnessState { jobs, job_radius })
         .build()
 }
 
 struct TourCompactnessObjective {
     jobs: Arc<Jobs>,
     job_radius: usize,
-    state_key: StateKey,
     thresholds: Option<(f64, f64)>,
 }
 
@@ -64,7 +64,7 @@ impl FeatureObjective for TourCompactnessObjective {
     }
 
     fn fitness(&self, solution: &InsertionContext) -> f64 {
-        solution.solution.state.get(&self.state_key).and_then(|s| s.downcast_ref::<Cost>()).copied().unwrap_or_default()
+        solution.solution.state.get_tour_compactness().copied().unwrap_or_default()
     }
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
@@ -80,7 +80,6 @@ impl FeatureObjective for TourCompactnessObjective {
 struct TourCompactnessState {
     jobs: Arc<Jobs>,
     job_radius: usize,
-    state_keys: Vec<StateKey>,
 }
 
 impl FeatureState for TourCompactnessState {
@@ -98,11 +97,11 @@ impl FeatureState for TourCompactnessState {
                 .sum::<usize>() as Cost
         }) / 2.;
 
-        solution_ctx.state.insert(self.state_keys[0], Arc::new(fitness));
+        solution_ctx.state.set_tour_compactness(fitness);
     }
 
     fn state_keys(&self) -> Iter<StateKey> {
-        self.state_keys.iter()
+        [].iter()
     }
 }
 

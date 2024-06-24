@@ -7,7 +7,7 @@ use crate::helpers::models::problem::*;
 use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Place;
-use crate::models::{ExtrasBuilder, Lock, LockDetail, LockOrder, LockPosition, Problem};
+use crate::models::{Extras, Lock, LockDetail, LockOrder, LockPosition, Problem};
 use rosomaxa::prelude::Environment;
 
 type JobData = (Option<Location>, (f64, f64), Duration, i32);
@@ -80,7 +80,7 @@ fn create_test_problem(
             })
         })
         .collect::<Vec<_>>();
-    let extras = ExtrasBuilder::default().build().expect("cannot build extras");
+    let extras = Extras::default();
 
     let goal = TestGoalContextBuilder::default()
         .add_feature(

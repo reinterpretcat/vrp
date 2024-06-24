@@ -125,7 +125,7 @@ pub fn generate_matrix_routes(
     let mut routes: Vec<Route> = Default::default();
     let mut jobs: Vec<Job> = Default::default();
 
-    let extras = ExtrasBuilder::default().build().expect("cannot build extras");
+    let extras = Extras::default();
 
     (0..cols).for_each(|i| {
         routes.push(RouteBuilder::default().with_vehicle(fleet.as_ref(), i.to_string().as_str()).build());

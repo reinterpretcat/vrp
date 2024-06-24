@@ -158,13 +158,13 @@ pub struct SolutionContext {
     /// Keeps track of used routes and resources.
     pub registry: RegistryContext,
 
-    /// A collection of data associated with solution.
-    pub state: HashMap<StateKey, StateValue, BuildNoHashHasher<StateKey>>,
+    /// A collection of data associated with a solution.
+    pub state: SolutionState,
 }
 
 impl SolutionContext {
-    /// Returns amount of jobs considered by solution context.
-    /// NOTE: the amount can be different for partially solved problem from original problem.
+    /// Returns number of jobs considered by solution context.
+    /// NOTE: the amount can be different for a partially solved problem from an original problem.
     pub fn get_jobs_amount(&self) -> usize {
         let assigned = self.routes.iter().map(|route_ctx| route_ctx.route().tour.job_count()).sum::<usize>();
 
@@ -239,6 +239,23 @@ impl From<(InsertionContext, Option<TelemetryMetrics>)> for Solution {
                 .collect(),
             telemetry,
         }
+    }
+}
+
+/// Keeps track of some solution state values.
+#[derive(Clone, Default)]
+pub struct SolutionState {
+    index: HashMap<TypeId, Arc<dyn Any + Send + Sync>, BuildNoHashHasher<StateKey>>,
+}
+
+impl SolutionState {
+    /// Gets the value from solution state using the key type provided.
+    pub fn get_value<K: 'static, V: Send + Sync + 'static>(&self) -> Option<&V> {
+        self.index.get(&TypeId::of::<K>()).and_then(|any| any.downcast_ref::<V>())
+    }
+    /// Sets the value to solution state using the key type provided.
+    pub fn set_value<K: 'static, V: 'static + Sync + Send>(&mut self, value: V) {
+        self.index.insert(TypeId::of::<K>(), Arc::new(value));
     }
 }
 

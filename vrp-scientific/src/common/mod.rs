@@ -15,11 +15,11 @@ mod routing;
 
 pub use self::routing::{CoordIndex, CoordIndexExtras};
 
-use vrp_core::models::{Extras, ExtrasBuilder};
+use vrp_core::models::Extras;
 use vrp_core::solver::HeuristicFilterExtras;
 
 pub(crate) fn get_extras(coord_index: CoordIndex) -> Extras {
-    let mut extras = ExtrasBuilder::default().build().expect("cannot build extras");
+    let mut extras = Extras::default();
 
     extras.set_coord_index(coord_index);
     extras.set_heuristic_filter(Arc::new(|name| name != "local_reschedule_departure"));

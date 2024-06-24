@@ -25,7 +25,7 @@ fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<
         ProblemBuilder::default().with_goal(create_goal_context_with_vicinity(vec![])).with_jobs(jobs).build();
     let orig_problem = Arc::new(Problem {
         extras: Arc::new({
-            let mut extras = ExtrasBuilder::from(orig_problem.extras.as_ref()).build().expect("cannot build extras");
+            let mut extras = orig_problem.extras.as_ref().clone();
             extras.set_cluster_config(config);
             extras
         }),

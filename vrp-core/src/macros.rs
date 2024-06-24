@@ -1,6 +1,77 @@
 //! Provides some useful macros to avoid repetitive code.
 
-/// A macro to define custom dimension on [crate::models::common::Dimensions].
+/// A macro to define a custom property on [crate::models::Extras].
+macro_rules! custom_extra_property {
+    ($name:ident typeof $type:ty $(: $gen:ident)?) => {
+        paste::paste! {
+            #[doc = " Extends [Extras] within a new ["[<$name ExtraProperty>]"]."]
+            pub trait [<$name ExtraProperty>] {
+                #[doc = " Gets "$name " property."]
+                fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<&$type>;
+
+                #[doc = " Gets "$name " property as a shared reference."]
+                fn [<get_ $name:snake:lower _raw>]$(<$type : $gen>)?(&self) -> Option<Arc<$type>>;
+
+                #[doc = " Sets "$name " property."]
+                fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: $type) -> &mut Self;
+                #[doc = " Sets "$name " property using a shared reference."]
+                fn [<set_ $name:snake:lower _raw>]$(<$type : $gen>)?(&mut self, value: Arc<$type>) -> &mut Self;
+            }
+
+            // Define a dummy struct type which is used as a key.
+            struct [<$name ExtraPropertyKey>];
+            impl [<$name ExtraProperty>] for Extras {
+                fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<&$type> {
+                    self.get_value::<[<$name ExtraPropertyKey>], _>()
+                }
+
+                fn [<get_ $name:snake:lower _raw>]$(<$type : $gen>)?(&self) -> Option<Arc<$type>> {
+                    self.get_value_raw::<[<$name ExtraPropertyKey>], _>()
+                }
+
+                fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: $type) -> &mut Self {
+                    self.set_value::<[<$name ExtraPropertyKey>], _>(value);
+                    self
+                }
+
+                fn [<set_ $name:snake:lower _raw>]$(<$type : $gen>)?(&mut self, value: Arc<$type>) -> &mut Self {
+                    self.set_value_raw::<[<$name ExtraPropertyKey>], _>(value);
+                    self
+                }
+            }
+        }
+    };
+}
+
+/// A macro to define a custom solution state on [crate::construction::heuristics::SolutionState].
+macro_rules! custom_solution_state {
+    ($name:ident typeof $type:ty $(: $gen:ident)?) => {
+        paste::paste! {
+            #[doc = " Extends [SolutionState] within a new ["[<$name SolutionState>]"]."]
+            pub trait [<$name SolutionState>] {
+                #[doc = " Gets "$name " property."]
+                fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<&$type>;
+                #[doc = " Sets "$name " property."]
+                fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: $type) -> &mut Self;
+            }
+
+            // Define a dummy struct type which is used as a key.
+            struct [<$name SolutionStateKey>];
+            impl [<$name SolutionState>] for SolutionState {
+                fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<&$type> {
+                    self.get_value::<[<$name SolutionStateKey>], _>()
+                }
+
+                fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: $type) -> &mut Self {
+                    self.set_value::<[<$name SolutionStateKey>], _>(value);
+                    self
+                }
+            }
+        }
+    };
+}
+
+/// A macro to define a custom dimension on [crate::models::common::Dimensions].
 macro_rules! custom_dimension {
     ($name:ident typeof $type:ty $(: $gen:ident)?) => {
         paste::paste! {
@@ -28,7 +99,7 @@ macro_rules! custom_dimension {
     };
 }
 
-/// A macro to define custom activity state on [crate::construction::heuristics::RouteState].
+/// A macro to define a custom activity state on [crate::construction::heuristics::RouteState].
 macro_rules! custom_activity_state {
     ($name:ident typeof $type:ty $(: $gen:ident)?) => {
         paste::paste! {

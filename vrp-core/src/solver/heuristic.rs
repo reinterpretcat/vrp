@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::heuristics::*;
-use crate::models::{CoreStateKeys, Extras, GoalContext};
+use crate::models::{Extras, GoalContext};
 use crate::rosomaxa::get_default_selection_size;
 use crate::solver::search::*;
 use rosomaxa::algorithms::gsom::Input;
@@ -177,6 +177,8 @@ pub fn create_elitism_population(
     Elitism::new(objective, environment.random.clone(), 4, selection_size)
 }
 
+custom_solution_state!(SolutionWeights typeof Vec<f64>);
+
 impl RosomaxaWeighted for InsertionContext {
     fn init_weights(&mut self) {
         // built a feature vector which is used to classify solution in population
@@ -205,21 +207,13 @@ impl RosomaxaWeighted for InsertionContext {
             self.get_total_cost().unwrap_or_default(),
         ];
 
-        let heuristic_keys = get_heuristic_keys(self);
-        self.solution.state.insert(heuristic_keys.solution_weights, Arc::new(weights));
+        self.solution.state.set_solution_weights(weights);
     }
 }
 
 impl Input for InsertionContext {
     fn weights(&self) -> &[f64] {
-        let heuristic_keys = self.problem.extras.get_heuristic_keys().expect("heuristic keys must be set");
-
-        self.solution
-            .state
-            .get(&heuristic_keys.solution_weights)
-            .and_then(|s| s.downcast_ref::<Vec<f64>>())
-            .unwrap()
-            .as_slice()
+        self.solution.state.get_solution_weights().unwrap().as_slice()
     }
 }
 
@@ -264,10 +258,6 @@ fn get_limits(problem: &Problem) -> (RemovalLimits, RemovalLimits) {
     };
 
     (normal_limits, small_limits)
-}
-
-fn get_heuristic_keys(insertion_ctx: &InsertionContext) -> &HeuristicKeys {
-    insertion_ctx.problem.extras.get_heuristic_keys().expect("heuristic keys must be set")
 }
 
 const SINGLE_HEURISTIC_QUOTA_LIMIT: usize = 200;

@@ -2,7 +2,7 @@ use crate::construction::features::create_minimize_transport_costs_feature;
 use crate::construction::heuristics::*;
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
 use crate::models::problem::{Fleet, Job, JobIdDimension, Jobs};
-use crate::models::{ExtrasBuilder, Feature, GoalContext, GoalContextBuilder, Problem};
+use crate::models::{Extras, Feature, GoalContext, GoalContextBuilder, Problem};
 use rosomaxa::utils::{DefaultRandom, Random};
 use std::sync::Arc;
 
@@ -156,6 +156,6 @@ fn create_empty_problem() -> Problem {
         goal: Arc::new(TestGoalContextBuilder::default().build()),
         activity: TestActivityCost::new_shared(),
         transport,
-        extras: Arc::new(ExtrasBuilder::default().build().expect("cannot build default")),
+        extras: Arc::new(Extras::default()),
     }
 }

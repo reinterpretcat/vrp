@@ -17,7 +17,7 @@ use vrp_core::models::common::{Duration, Profile, TimeWindow};
 use vrp_core::models::solution::{Commute as DomainCommute, CommuteInfo as DomainCommuteInfo};
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::prelude::GenericError;
-use vrp_core::solver::processing::VicinityDimensionExtras;
+use vrp_core::solver::processing::ClusterConfigExtraProperty;
 
 /// Stores problem and solution together and provides some helper methods.
 pub struct CheckerContext {

@@ -1,4 +1,4 @@
-//! Provides features to balance work.
+//! Provides the way to build one of the flavors of the work balance feature.
 
 use super::*;
 use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState};
@@ -6,28 +6,20 @@ use crate::construction::features::capacity::MaxFutureCapacityActivityState;
 use crate::models::common::LoadOps;
 use rosomaxa::algorithms::math::get_cv_safe;
 use std::cmp::Ordering;
-
-/// Specifies load function type.
-pub type LoadBalanceFn<T> = Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>;
-
-/// Specifies a vehicle capacity function type.
-pub type VehicleCapacityFn<T> = Arc<dyn Fn(&Vehicle) -> &T + Send + Sync>;
-
-/// Combines all keys needed for transport feature usage.
-#[derive(Clone)]
-pub struct LoadBalanceKeys {
-    /// A key for balancing max load.
-    pub balance_max_load: StateKey,
-}
+use std::marker::PhantomData;
 
 /// Creates a feature which balances max load across all tours.
-pub fn create_max_load_balanced_feature<T: LoadOps>(
+pub fn create_max_load_balanced_feature<T>(
     name: &str,
     threshold: Option<f64>,
-    feature_keys: LoadBalanceKeys,
-    load_balance_fn: LoadBalanceFn<T>,
-    vehicle_capacity_fn: VehicleCapacityFn<T>,
-) -> Result<Feature, GenericError> {
+    load_balance_fn: impl Fn(&T, &T) -> f64 + Send + Sync + 'static,
+    vehicle_capacity_fn: impl Fn(&Vehicle) -> &T + Send + Sync + 'static,
+) -> Result<Feature, GenericError>
+where
+    T: LoadOps,
+{
+    struct MaxLoadBalancedKey;
+
     let default_capacity = T::default();
     let default_intervals = vec![(0_usize, 0_usize)];
 
@@ -48,15 +40,13 @@ pub fn create_max_load_balanced_feature<T: LoadOps>(
         get_cv_safe(ctx.routes.iter().map(|route_ctx| get_load_ratio(route_ctx)).collect::<Vec<_>>().as_slice())
     });
 
-    create_feature(name, threshold, feature_keys.balance_max_load, route_estimate_fn, solution_estimate_fn)
+    create_feature::<MaxLoadBalancedKey>(name, threshold, route_estimate_fn, solution_estimate_fn)
 }
 
 /// Creates a feature which balances activities across all tours.
-pub fn create_activity_balanced_feature(
-    name: &str,
-    threshold: Option<f64>,
-    balance_activities_key: StateKey,
-) -> Result<Feature, GenericError> {
+pub fn create_activity_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, GenericError> {
+    struct ActivityBalancedKey;
+
     let route_estimate_fn = Arc::new(|route_ctx: &RouteContext| route_ctx.route().tour.job_activity_count() as f64);
     let solution_estimate_fn = Arc::new(|solution_ctx: &SolutionContext| {
         get_cv_safe(
@@ -69,31 +59,25 @@ pub fn create_activity_balanced_feature(
         )
     });
 
-    create_feature(name, threshold, balance_activities_key, route_estimate_fn, solution_estimate_fn)
+    create_feature::<ActivityBalancedKey>(name, threshold, route_estimate_fn, solution_estimate_fn)
 }
 
 /// Creates a feature which which balances travelled durations across all tours.
-pub fn create_duration_balanced_feature(
-    name: &str,
-    threshold: Option<f64>,
-    balance_duration_key: StateKey,
-) -> Result<Feature, GenericError> {
-    create_transport_balanced_feature(name, threshold, balance_duration_key, |state| state.get_total_duration())
+pub fn create_duration_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, GenericError> {
+    struct DurationBalancedKey;
+
+    create_transport_balanced_feature::<DurationBalancedKey>(name, threshold, |state| state.get_total_duration())
 }
 
 /// Creates a feature which which balances travelled distances across all tours.
-pub fn create_distance_balanced_feature(
-    name: &str,
-    threshold: Option<f64>,
-    balance_distance_key: StateKey,
-) -> Result<Feature, GenericError> {
-    create_transport_balanced_feature(name, threshold, balance_distance_key, |state| state.get_total_distance())
+pub fn create_distance_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, GenericError> {
+    struct DistanceBalancedKey;
+    create_transport_balanced_feature::<DistanceBalancedKey>(name, threshold, |state| state.get_total_distance())
 }
 
-fn create_transport_balanced_feature(
+fn create_transport_balanced_feature<K: Send + Sync + 'static>(
     name: &str,
     threshold: Option<f64>,
-    state_key: StateKey,
     value_fn: impl Fn(&RouteState) -> Option<&f64> + Send + Sync + 'static,
 ) -> Result<Feature, GenericError> {
     let route_estimate_fn =
@@ -106,13 +90,12 @@ fn create_transport_balanced_feature(
         }
     });
 
-    create_feature(name, threshold, state_key, route_estimate_fn, solution_estimate_fn)
+    create_feature::<K>(name, threshold, route_estimate_fn, solution_estimate_fn)
 }
 
-fn create_feature(
+fn create_feature<K: Send + Sync + 'static>(
     name: &str,
     threshold: Option<f64>,
-    state_key: StateKey,
     route_estimate_fn: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
     solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
 ) -> Result<Feature, GenericError> {
@@ -120,27 +103,22 @@ fn create_feature(
         .with_name(name)
         .with_objective(WorkBalanceObjective {
             threshold,
-            state_key,
             route_estimate_fn: route_estimate_fn.clone(),
             solution_estimate_fn: solution_estimate_fn.clone(),
+            phantom_data: PhantomData::<K>,
         })
-        .with_state(WorkBalanceState {
-            state_key,
-            state_keys: vec![state_key],
-            route_estimate_fn,
-            solution_estimate_fn,
-        })
+        .with_state(WorkBalanceState { route_estimate_fn, solution_estimate_fn, phantom_data: PhantomData::<K> })
         .build()
 }
 
-struct WorkBalanceObjective {
+struct WorkBalanceObjective<K: Send + Sync + 'static> {
     threshold: Option<f64>,
-    state_key: StateKey,
     route_estimate_fn: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
     solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
+    phantom_data: PhantomData<K>,
 }
 
-impl FeatureObjective for WorkBalanceObjective {
+impl<K: Send + Sync + 'static> FeatureObjective for WorkBalanceObjective<K> {
     fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
         let fitness_a = self.fitness(a);
         let fitness_b = self.fitness(b);
@@ -166,8 +144,7 @@ impl FeatureObjective for WorkBalanceObjective {
         solution
             .solution
             .state
-            .get(&self.state_key)
-            .and_then(|s| s.downcast_ref::<f64>())
+            .get_value::<K, f64>()
             .cloned()
             .unwrap_or_else(|| (self.solution_estimate_fn)(&solution.solution))
     }
@@ -177,7 +154,7 @@ impl FeatureObjective for WorkBalanceObjective {
             MoveContext::Route { route_ctx, .. } => {
                 let value = route_ctx
                     .state()
-                    .get_route_state::<f64>(self.state_key)
+                    .get_tour_state_ex::<K, f64>()
                     .cloned()
                     .unwrap_or_else(|| (self.route_estimate_fn)(route_ctx));
 
@@ -193,14 +170,13 @@ impl FeatureObjective for WorkBalanceObjective {
     }
 }
 
-struct WorkBalanceState {
-    state_key: StateKey,
-    state_keys: Vec<StateKey>,
+struct WorkBalanceState<K: Send + Sync + 'static> {
     route_estimate_fn: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
     solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
+    phantom_data: PhantomData<K>,
 }
 
-impl FeatureState for WorkBalanceState {
+impl<K: Send + Sync + 'static> FeatureState for WorkBalanceState<K> {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, _: &Job) {
         self.accept_route_state(solution_ctx.routes.get_mut(route_index).unwrap());
     }
@@ -208,16 +184,16 @@ impl FeatureState for WorkBalanceState {
     fn accept_route_state(&self, route_ctx: &mut RouteContext) {
         let value = (self.route_estimate_fn)(route_ctx);
 
-        route_ctx.state_mut().put_route_state(self.state_key, value);
+        route_ctx.state_mut().set_tour_state_ex::<K, _>(value);
     }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         let value = (self.solution_estimate_fn)(solution_ctx);
 
-        solution_ctx.state.insert(self.state_key, Arc::new(value));
+        solution_ctx.state.set_value::<K, _>(value);
     }
 
     fn state_keys(&self) -> Iter<StateKey> {
-        self.state_keys.iter()
+        [].iter()
     }
 }
