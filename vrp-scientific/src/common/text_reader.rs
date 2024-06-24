@@ -106,8 +106,9 @@ pub(crate) fn create_dimens_with_id(
 pub(crate) fn create_goal_context_prefer_min_tours(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
+    is_time_constrained: bool,
 ) -> GenericResult<GoalContext> {
-    let features = get_essential_features(activity, transport)?;
+    let features = get_essential_features(activity, transport, is_time_constrained)?;
 
     GoalContextBuilder::with_features(features)?
         .set_goal(&["min_unassigned", "min_tours", "min_distance"], &["min_tours", "min_distance"])?
@@ -118,8 +119,9 @@ pub(crate) fn create_goal_context_prefer_min_tours(
 pub(crate) fn create_goal_context_distance_only(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
+    is_time_constrained: bool,
 ) -> Result<GoalContext, GenericError> {
-    let features = get_essential_features(activity, transport)?;
+    let features = get_essential_features(activity, transport, is_time_constrained)?;
 
     GoalContextBuilder::with_features(features)?
         .set_goal(&["min_unassigned", "min_distance"], &["min_distance"])?
@@ -130,12 +132,14 @@ pub(crate) fn create_goal_context_distance_only(
 fn get_essential_features(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost + Send + Sync>,
+    is_time_constrained: bool,
 ) -> Result<Vec<Feature>, GenericError> {
     Ok(vec![
         create_minimize_unassigned_jobs_feature("min_unassigned", Arc::new(|_, _| 1.))?,
         create_minimize_tours_feature("min_tours")?,
         TransportFeatureBuilder::new("min_distance")
             .set_violation_code(1)
+            .set_constrained(is_time_constrained)
             .set_transport(transport)
             .set_activity(activity)
             .build_minimize_distance()?,

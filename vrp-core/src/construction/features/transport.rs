@@ -39,8 +39,8 @@ impl TransportFeatureBuilder {
     /// Marks feature as non-constrained meaning that there no need to consider time as a hard constraint.
     /// Ignored for schedule_updater feature flavor.
     /// Default is unconstrained = false.
-    pub fn set_unconstrained(mut self) -> Self {
-        self.is_constrained = true;
+    pub fn set_constrained(mut self, is_constrained: bool) -> Self {
+        self.is_constrained = is_constrained;
         self
     }
 

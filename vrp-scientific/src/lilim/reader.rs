@@ -63,7 +63,8 @@ impl<R: Read> TextReader for LilimReader<R> {
         activity: Arc<SimpleActivityCost>,
         transport: Arc<dyn TransportCost + Send + Sync>,
     ) -> Result<GoalContext, GenericError> {
-        create_goal_context_prefer_min_tours(activity, transport)
+        let is_time_constrained = true;
+        create_goal_context_prefer_min_tours(activity, transport, is_time_constrained)
     }
 
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError> {
