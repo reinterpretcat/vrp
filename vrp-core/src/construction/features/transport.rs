@@ -51,6 +51,7 @@ impl TransportFeatureBuilder {
     }
 
     /// Sets activity costs to estimate job start/end time.
+    /// If omitted, then [SimpleActivityCost] is used by default.
     pub fn set_activity(mut self, activity: Arc<dyn ActivityCost + Send + Sync>) -> Self {
         self.activity = Some(activity);
         self
@@ -121,7 +122,7 @@ impl TransportFeatureBuilder {
         &mut self,
     ) -> GenericResult<(Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>)> {
         let transport = self.transport.take().ok_or_else(|| GenericError::from("transport must be set"))?;
-        let activity = self.activity.take().ok_or_else(|| GenericError::from("activity must be set"))?;
+        let activity = self.activity.take().unwrap_or_else(|| Arc::new(SimpleActivityCost::default()));
 
         Ok((transport, activity))
     }

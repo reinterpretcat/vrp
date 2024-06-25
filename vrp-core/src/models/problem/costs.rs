@@ -4,7 +4,7 @@ mod costs_test;
 
 use crate::models::common::*;
 use crate::models::solution::{Activity, Route};
-use rosomaxa::prelude::GenericError;
+use rosomaxa::prelude::{GenericError, GenericResult};
 use rosomaxa::utils::CollectGroupBy;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -76,6 +76,45 @@ pub trait TransportCost {
 
     /// Returns time-dependent travel distance between locations specific for given actor.
     fn distance(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Distance;
+}
+
+/// A simple implementation of transport costs around a single matrix.
+/// This implementation is used to support examples and simple use cases.
+pub struct SimpleTransportCost {
+    durations: Vec<Duration>,
+    distances: Vec<Distance>,
+    size: usize,
+}
+
+impl SimpleTransportCost {
+    /// Creates a new instance of `SimpleTransportCost`.
+    pub fn new(durations: Vec<Duration>, distances: Vec<Distance>) -> GenericResult<Self> {
+        let size = (durations.len() as f64).sqrt().round() as usize;
+
+        if (distances.len() as f64).sqrt().round() as usize != size {
+            return Err("distance-duration lengths don't match".into());
+        }
+
+        Ok(Self { durations, distances, size })
+    }
+}
+
+impl TransportCost for SimpleTransportCost {
+    fn duration_approx(&self, _: &Profile, from: Location, to: Location) -> Duration {
+        self.durations.get(from * self.size + to).copied().unwrap_or(0.)
+    }
+
+    fn distance_approx(&self, _: &Profile, from: Location, to: Location) -> Distance {
+        self.distances.get(from * self.size + to).copied().unwrap_or(0.)
+    }
+
+    fn duration(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Duration {
+        self.duration_approx(&route.actor.vehicle.profile, from, to)
+    }
+
+    fn distance(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
+        self.distance_approx(&route.actor.vehicle.profile, from, to)
+    }
 }
 
 /// Contains matrix routing data for specific profile and, optionally, time.
