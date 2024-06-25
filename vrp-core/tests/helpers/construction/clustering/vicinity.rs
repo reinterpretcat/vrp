@@ -1,7 +1,7 @@
 use crate::construction::clustering::vicinity::*;
 use crate::construction::heuristics::*;
 use crate::helpers::models::domain::TestGoalContextBuilder;
-use crate::helpers::models::problem::{get_job_id, SingleBuilder};
+use crate::helpers::models::problem::{get_job_id, TestSingleBuilder};
 use crate::models::common::{Dimensions, Duration, Location, Profile};
 use crate::models::problem::{Job, JobIdDimension};
 use crate::models::*;
@@ -74,7 +74,7 @@ impl FeatureConstraint for VicinityTestFeatureConstraint {
             merged.push(candidate);
             dimens.set_clustered_jobs(merged);
 
-            Ok(SingleBuilder::default().dimens(dimens).places(vec![place]).build_as_job_ref())
+            Ok(TestSingleBuilder::default().dimens(dimens).places(vec![place]).build_as_job_ref())
         }
     }
 }

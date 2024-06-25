@@ -97,7 +97,7 @@ fn create_costs() -> Costs {
 
 #[test]
 fn all_returns_all_jobs() {
-    let jobs = vec![SingleBuilder::default().build_as_job_ref(), SingleBuilder::default().build_as_job_ref()];
+    let jobs = vec![TestSingleBuilder::default().build_as_job_ref(), TestSingleBuilder::default().build_as_job_ref()];
 
     assert_eq!(Jobs::new(&test_fleet(), jobs, create_only_distance_transport_cost().as_ref()).all().count(), 2)
 }
@@ -112,11 +112,11 @@ parameterized_test! {calculates_proper_cost_between_single_jobs, (left, right, e
 }}
 
 calculates_proper_cost_between_single_jobs! {
-    case1: (SingleBuilder::default().location(Some(0)).build_shared(), SingleBuilder::default().location(Some(10)).build_shared(), 10.0),
-    case2: (SingleBuilder::default().location(Some(0)).build_shared(), SingleBuilder::default().location(None).build_shared(), 0.0),
-    case3: (SingleBuilder::default().location(None).build_shared(), SingleBuilder::default().location(None).build_shared(), 0.0),
-    case4: (SingleBuilder::default().location(Some(3)).build_shared(), SingleBuilder::with_locations(vec![Some(5), Some(2)]).build_shared(), 1.0),
-    case5: (SingleBuilder::with_locations(vec![Some(2), Some(1)]).build_shared(), SingleBuilder::with_locations(vec![Some(10), Some(9)]).build_shared(), 7.0),
+    case1: (TestSingleBuilder::default().location(Some(0)).build_shared(), TestSingleBuilder::default().location(Some(10)).build_shared(), 10.0),
+    case2: (TestSingleBuilder::default().location(Some(0)).build_shared(), TestSingleBuilder::default().location(None).build_shared(), 0.0),
+    case3: (TestSingleBuilder::default().location(None).build_shared(), TestSingleBuilder::default().location(None).build_shared(), 0.0),
+    case4: (TestSingleBuilder::default().location(Some(3)).build_shared(), TestSingleBuilder::with_locations(vec![Some(5), Some(2)]).build_shared(), 1.0),
+    case5: (TestSingleBuilder::with_locations(vec![Some(2), Some(1)]).build_shared(), TestSingleBuilder::with_locations(vec![Some(10), Some(9)]).build_shared(), 7.0),
 }
 
 parameterized_test! {calculates_proper_cost_between_multi_jobs, (left, right, expected), {
@@ -151,16 +151,16 @@ fn returns_proper_job_neighbours_impl(index: usize, expected: Vec<String>) {
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicles(vec![
-            VehicleBuilder::default().id("v1").profile(p1.clone()).details(vec![test_vehicle_detail()]).build(),
-            VehicleBuilder::default().id("v2").profile(p1.clone()).details(vec![test_vehicle_detail()]).build(),
+            TestVehicleBuilder::default().id("v1").profile(p1.clone()).details(vec![test_vehicle_detail()]).build(),
+            TestVehicleBuilder::default().id("v2").profile(p1.clone()).details(vec![test_vehicle_detail()]).build(),
         ])
         .build();
     let species = vec![
-        SingleBuilder::default().id("s0").location(Some(0)).build_as_job_ref(),
-        SingleBuilder::default().id("s1").location(Some(1)).build_as_job_ref(),
-        SingleBuilder::default().id("s2").location(Some(2)).build_as_job_ref(),
-        SingleBuilder::default().id("s3").location(Some(3)).build_as_job_ref(),
-        SingleBuilder::default().id("s4").location(Some(4)).build_as_job_ref(),
+        TestSingleBuilder::default().id("s0").location(Some(0)).build_as_job_ref(),
+        TestSingleBuilder::default().id("s1").location(Some(1)).build_as_job_ref(),
+        TestSingleBuilder::default().id("s2").location(Some(2)).build_as_job_ref(),
+        TestSingleBuilder::default().id("s3").location(Some(3)).build_as_job_ref(),
+        TestSingleBuilder::default().id("s4").location(Some(4)).build_as_job_ref(),
     ];
     let jobs = Jobs::new(&fleet, species.clone(), create_profile_aware_transport_cost().as_ref());
 
@@ -196,16 +196,20 @@ fn returns_proper_job_ranks_impl(index: usize, profile_index: usize, expected: D
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicles(vec![
-            VehicleBuilder::default().id("v1_1").profile(p1.clone()).details(vec![create_vehicle_detail(0)]).build(),
-            VehicleBuilder::default().id("v1_2").profile(p1).details(vec![create_vehicle_detail(15)]).build(),
-            VehicleBuilder::default().id("v2_1").profile(p3).details(vec![create_vehicle_detail(30)]).build(),
+            TestVehicleBuilder::default()
+                .id("v1_1")
+                .profile(p1.clone())
+                .details(vec![create_vehicle_detail(0)])
+                .build(),
+            TestVehicleBuilder::default().id("v1_2").profile(p1).details(vec![create_vehicle_detail(15)]).build(),
+            TestVehicleBuilder::default().id("v2_1").profile(p3).details(vec![create_vehicle_detail(30)]).build(),
         ])
         .build();
     let species = vec![
-        SingleBuilder::default().id("s0").location(Some(0)).build_as_job_ref(),
-        SingleBuilder::default().id("s1").location(Some(10)).build_as_job_ref(),
-        SingleBuilder::default().id("s2").location(Some(21)).build_as_job_ref(),
-        SingleBuilder::default().id("s3").location(Some(31)).build_as_job_ref(),
+        TestSingleBuilder::default().id("s0").location(Some(0)).build_as_job_ref(),
+        TestSingleBuilder::default().id("s1").location(Some(10)).build_as_job_ref(),
+        TestSingleBuilder::default().id("s2").location(Some(21)).build_as_job_ref(),
+        TestSingleBuilder::default().id("s3").location(Some(31)).build_as_job_ref(),
     ];
     let jobs = Jobs::new(&fleet, species.clone(), create_profile_aware_transport_cost().as_ref());
 
@@ -239,8 +243,8 @@ can_handle_negative_distances_durations! {
 fn can_handle_negative_distances_durations_impl(transport_costs: Arc<dyn TransportCost + Send + Sync>) {
     let profile = Profile::default();
     let species = vec![
-        SingleBuilder::default().id("s0").location(Some(0)).build_as_job_ref(),
-        SingleBuilder::default().id("s1").location(Some(1)).build_as_job_ref(),
+        TestSingleBuilder::default().id("s0").location(Some(0)).build_as_job_ref(),
+        TestSingleBuilder::default().id("s1").location(Some(1)).build_as_job_ref(),
     ];
 
     let jobs = Jobs::new(&test_fleet(), species.clone(), transport_costs.as_ref());

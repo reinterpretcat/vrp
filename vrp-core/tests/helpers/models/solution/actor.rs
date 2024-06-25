@@ -30,7 +30,7 @@ pub fn test_actor_with_profile(profile_idx: usize) -> Arc<Actor> {
 pub fn create_test_registry() -> Registry {
     let fleet = FleetBuilder::default()
         .add_driver(test_driver_with_costs(empty_costs()))
-        .add_vehicle(VehicleBuilder::default().id("v1").build())
+        .add_vehicle(TestVehicleBuilder::default().id("v1").build())
         .build();
     Registry::new(&fleet, test_random())
 }

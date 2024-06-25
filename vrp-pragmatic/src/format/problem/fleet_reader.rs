@@ -143,7 +143,7 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                 dimens
                     .set_vehicle_type(vehicle.type_id.clone())
                     .set_shift_index(shift_index)
-                    .set_vehicle_id(vehicle_id);
+                    .set_vehicle_id(vehicle_id.to_string());
 
                 if let Some(tour_size) = tour_size {
                     dimens.set_tour_size(tour_size);

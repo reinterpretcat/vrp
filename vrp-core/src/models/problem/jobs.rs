@@ -12,6 +12,8 @@ use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Weak};
 
+custom_dimension!(JobId typeof String);
+
 /// Represents a job variant.
 #[derive(Clone)]
 pub enum Job {
@@ -154,27 +156,6 @@ impl JobPermutation for FixedJobPermutation {
         self.permutations
             .iter()
             .any(|prm| prm.len() == permutation.len() && prm.iter().zip(permutation.iter()).all(|(&a, &b)| a == b))
-    }
-}
-
-/// A trait to get or set id.
-pub trait JobIdDimension {
-    /// Sets value as id.
-    fn set_job_id(&mut self, id: &str) -> &mut Self;
-
-    /// Gets id value if present.
-    fn get_job_id(&self) -> Option<&String>;
-}
-
-struct JobIdDimensionKey;
-impl JobIdDimension for Dimensions {
-    fn set_job_id(&mut self, id: &str) -> &mut Self {
-        self.set_value::<JobIdDimensionKey, _>(id.to_string());
-        self
-    }
-
-    fn get_job_id(&self) -> Option<&String> {
-        self.get_value::<JobIdDimensionKey, _>()
     }
 }
 

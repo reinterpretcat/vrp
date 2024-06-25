@@ -3,7 +3,7 @@ use super::*;
 use crate::construction::enablers::get_route_intervals;
 use crate::construction::features::create_minimize_unassigned_jobs_feature;
 use crate::helpers::construction::features::{create_simple_demand, single_demand_as_multi};
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::models::problem::{JobIdDimension, VehicleIdDimension};
@@ -50,7 +50,7 @@ fn create_activity_with_demand(
 ) -> Activity {
     ActivityBuilder::default()
         .job(Some(
-            SingleBuilder::default()
+            TestSingleBuilder::default()
                 .id(job_id)
                 .demand(single_demand_as_multi(pickup, delivery))
                 .property::<JobTypeDimenKey, _>(activity_type.to_string())
@@ -70,7 +70,7 @@ fn delivery(job_id: &str, demand: (i32, i32)) -> Activity {
 fn reload(reload_id: &str) -> Activity {
     ActivityBuilder::default()
         .job(Some(
-            SingleBuilder::default()
+            TestSingleBuilder::default()
                 .id(reload_id)
                 .property::<JobTypeDimenKey, _>("reload".to_string())
                 .property::<VehicleIdDimenKey, _>("v1".to_string())
@@ -82,7 +82,7 @@ fn reload(reload_id: &str) -> Activity {
 fn create_route_context(capacity: Vec<i32>, activities: Vec<Activity>) -> RouteContext {
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
-        .add_vehicle(VehicleBuilder::default().id("v1").capacity_mult(capacity).build())
+        .add_vehicle(TestVehicleBuilder::default().id("v1").capacity_mult(capacity).build())
         .build();
 
     RouteContextBuilder::default()
@@ -93,7 +93,7 @@ fn create_route_context(capacity: Vec<i32>, activities: Vec<Activity>) -> RouteC
 #[test]
 fn can_handle_reload_jobs_with_merge() {
     let create_reload_job = || Job::Single(reload("reload").job.unwrap());
-    let create_job = || SingleBuilder::default().location(None).build_as_job_ref();
+    let create_job = || TestSingleBuilder::default().location(None).build_as_job_ref();
     let feature = create_simple_reload_feature(|_| SingleDimLoad::default());
     let constraint = feature.constraint.unwrap();
 
@@ -223,7 +223,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
     expected: Vec<&str>,
 ) {
     let threshold = 0.9;
-    let mut solution_ctx = InsertionContextBuilder::default()
+    let mut solution_ctx = TestInsertionContextBuilder::default()
         .with_routes(vec![create_route_context(vec![capacity], activities)])
         .build()
         .solution;
@@ -259,13 +259,13 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
 
 fn create_usage_activity(demand: i32) -> Activity {
     let demand = create_simple_demand(-demand);
-    let single = SingleBuilder::default().demand(demand).build_shared();
+    let single = TestSingleBuilder::default().demand(demand).build_shared();
 
     Activity { job: Some(single), ..ActivityBuilder::default().build() }
 }
 
 fn create_resource_activity(vehicle_id: &str, capacity: i32, resource_id: Option<SharedResourceId>) -> Activity {
-    let mut builder = SingleBuilder::default();
+    let mut builder = TestSingleBuilder::default();
 
     builder
         .property::<JobTypeDimenKey, _>("reload".to_string())
@@ -352,7 +352,7 @@ fn create_solution_ctx(
         .map(|(idx, activities)| create_route_ctx(&fleet, format!("v{}", idx + 1).as_str(), &resources, &activities))
         .collect();
 
-    InsertionContextBuilder::default().with_routes(routes).build().solution
+    TestInsertionContextBuilder::default().with_routes(routes).build().solution
 }
 
 enum ActivityType {
@@ -451,8 +451,8 @@ fn can_constraint_route_impl(
     expected: Option<i32>,
 ) {
     let job = Job::Single(job_demand.map_or_else(
-        || SingleBuilder::default().id("job1").build_shared(),
-        |demand| SingleBuilder::default().demand(create_simple_demand(-demand)).build_shared(),
+        || TestSingleBuilder::default().id("job1").build_shared(),
+        |demand| TestSingleBuilder::default().demand(create_simple_demand(-demand)).build_shared(),
     ));
     // NOTE can use feature but test was written initially without full setup
     let builder = create_shared_reload_builder(total_jobs);

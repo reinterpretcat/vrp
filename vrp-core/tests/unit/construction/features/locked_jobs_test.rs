@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::heuristics::ActivityContext;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::problem::{Job, Single};
@@ -24,7 +24,7 @@ can_lock_jobs_to_actor! {
 }
 
 fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<ConstraintViolation>) {
-    let job = SingleBuilder::default().id("s1").build_as_job_ref();
+    let job = TestSingleBuilder::default().id("s1").build_as_job_ref();
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicle(test_vehicle_with_id("v1"))
@@ -35,7 +35,7 @@ fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<Co
         vec![LockDetail::new(LockOrder::Any, LockPosition::Any, vec![job.clone()])],
         false,
     ))];
-    let solution_ctx = InsertionContextBuilder::default().build().solution;
+    let solution_ctx = TestInsertionContextBuilder::default().build().solution;
     let route_ctx = RouteContextBuilder::default()
         .with_route(RouteBuilder::default().with_vehicle(&fleet, used.as_str()).build())
         .build();
@@ -55,8 +55,8 @@ fn some_activity() -> Activity {
 }
 
 parameterized_test! {can_lock_jobs_to_position_in_tour, (position, activities_func, expected), {
-    let s1 = SingleBuilder::default().id("s1").build_shared();
-    let s2 = SingleBuilder::default().id("s2").build_shared();
+    let s1 = TestSingleBuilder::default().id("s1").build_shared();
+    let s2 = TestSingleBuilder::default().id("s2").build_shared();
     let activities = activities_func(s1.clone(), s2.clone());
     let jobs = vec![Job::Single(s1), Job::Single(s2)];
 
@@ -177,7 +177,9 @@ fn can_lock_jobs_to_position_in_tour_impl(
         &ActivityContext {
             index: 0,
             prev: &prev,
-            target: &ActivityBuilder::default().job(Some(SingleBuilder::default().id("new").build_shared())).build(),
+            target: &ActivityBuilder::default()
+                .job(Some(TestSingleBuilder::default().id("new").build_shared()))
+                .build(),
             next: Some(&next),
         },
     ));
@@ -187,9 +189,9 @@ fn can_lock_jobs_to_position_in_tour_impl(
 
 #[test]
 fn can_handle_merge_locked_jobs() {
-    let source = SingleBuilder::default().id("source").build_as_job_ref();
-    let candidate1 = SingleBuilder::default().id("candidate1").build_as_job_ref();
-    let candidate2 = SingleBuilder::default().id("candidate2").build_as_job_ref();
+    let source = TestSingleBuilder::default().id("source").build_as_job_ref();
+    let candidate1 = TestSingleBuilder::default().id("candidate1").build_as_job_ref();
+    let candidate2 = TestSingleBuilder::default().id("candidate2").build_as_job_ref();
     let locks = vec![Arc::new(Lock::new(
         Arc::new(|_| true),
         vec![LockDetail::new(LockOrder::Strict, LockPosition::Any, vec![candidate1.clone()])],

@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::enablers::create_typed_actor_groups;
 use crate::helpers::models::domain::{test_random, TestGoalContextBuilder};
-use crate::helpers::models::problem::{test_driver, test_vehicle_with_id, FleetBuilder, SingleBuilder};
+use crate::helpers::models::problem::{test_driver, test_vehicle_with_id, FleetBuilder, TestSingleBuilder};
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder, RouteStateBuilder};
 use crate::models::problem::Actor;
 use crate::models::problem::{Fleet, Single};
@@ -31,7 +31,7 @@ fn create_test_fleet() -> Fleet {
 }
 
 fn create_test_single(group: Option<&str>) -> Arc<Single> {
-    let mut builder = SingleBuilder::default();
+    let mut builder = TestSingleBuilder::default();
 
     if let Some(group) = group {
         builder.dimens_mut().set_job_group(group.to_string());

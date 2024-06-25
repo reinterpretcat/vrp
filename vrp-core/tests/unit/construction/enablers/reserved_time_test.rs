@@ -88,7 +88,7 @@ fn create_feature_and_route(
     });
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
-        .add_vehicles(vec![VehicleBuilder::default()
+        .add_vehicles(vec![TestVehicleBuilder::default()
             .id("v1")
             .details(vec![create_detail((Some(location_start), Some(location_end)), Some((time_start, time_end)))])
             .build()])

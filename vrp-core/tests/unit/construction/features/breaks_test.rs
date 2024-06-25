@@ -1,6 +1,6 @@
 use super::*;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
-use crate::helpers::models::problem::SingleBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
+use crate::helpers::models::problem::TestSingleBuilder;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::models::common::Location;
 use crate::models::problem::Job;
@@ -33,11 +33,11 @@ fn create_break_feature() -> Feature {
 }
 
 fn create_single(id: &str, location: Location) -> Arc<Single> {
-    SingleBuilder::default().id(id).location(Some(location)).build_shared()
+    TestSingleBuilder::default().id(id).location(Some(location)).build_shared()
 }
 
 fn create_break(vehicle_id: &str, location: Option<Location>) -> Arc<Single> {
-    SingleBuilder::default()
+    TestSingleBuilder::default()
         .id("break")
         .location(location)
         .duration(3600.)
@@ -57,7 +57,7 @@ can_remove_orphan_break! {
 }
 
 fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_loc: Location, break_removed: bool) {
-    let mut solution_ctx = InsertionContextBuilder::default()
+    let mut solution_ctx = TestInsertionContextBuilder::default()
         .with_routes(vec![RouteContextBuilder::default()
             .with_route(
                 RouteBuilder::with_default_vehicle()

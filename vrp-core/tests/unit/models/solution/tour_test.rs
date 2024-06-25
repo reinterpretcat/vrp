@@ -1,5 +1,5 @@
 use super::*;
-use crate::helpers::models::problem::SingleBuilder;
+use crate::helpers::models::problem::TestSingleBuilder;
 use crate::helpers::models::solution::*;
 use crate::models::problem::Job;
 
@@ -145,7 +145,7 @@ fn can_get_job_index() {
     let mut tour = Tour::default();
     tour.set_start(ActivityBuilder::default().job(None).build());
     tour.set_end(ActivityBuilder::default().job(None).build());
-    let job = SingleBuilder::default().build_shared();
+    let job = TestSingleBuilder::default().build_shared();
     tour.insert_last(ActivityBuilder::default().build());
     tour.insert_last(ActivityBuilder::default().job(Some(job.clone())).build());
     tour.insert_last(ActivityBuilder::default().build());

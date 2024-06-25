@@ -12,19 +12,20 @@ pub type TestPlace = (Option<Location>, Duration, Vec<(f64, f64)>);
 
 pub fn test_multi_with_id(id: &str, jobs: Vec<Arc<Single>>) -> Arc<Multi> {
     let mut dimens = Dimensions::default();
-    dimens.set_job_id(id);
+    dimens.set_job_id(id.to_string());
 
     Multi::new_shared(jobs, dimens)
 }
 
 pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> Arc<Multi> {
-    let jobs = locations.into_iter().map(|locations| SingleBuilder::with_locations(locations).build_shared()).collect();
+    let jobs =
+        locations.into_iter().map(|locations| TestSingleBuilder::with_locations(locations).build_shared()).collect();
     Multi::new_shared(jobs, Default::default())
 }
 
 pub fn test_multi_with_permutations(id: &str, jobs: Vec<Arc<Single>>, permutations: Vec<Vec<usize>>) -> Arc<Multi> {
     let mut dimens = Dimensions::default();
-    dimens.set_job_id(id);
+    dimens.set_job_id(id.to_string());
 
     Multi::new_shared_with_permutator(jobs, dimens, Box::new(FixedJobPermutation::new(permutations)))
 }
@@ -33,27 +34,27 @@ pub fn get_job_id(job: &Job) -> &String {
     job.dimens().get_job_id().expect("no job id")
 }
 
-pub struct SingleBuilder(Single);
+pub struct TestSingleBuilder(Single);
 
-impl Default for SingleBuilder {
+impl Default for TestSingleBuilder {
     fn default() -> Self {
         Self(test_single())
     }
 }
 
-impl SingleBuilder {
+impl TestSingleBuilder {
     pub fn with_locations(locations: Vec<Option<Location>>) -> Self {
         let mut single = Single {
             places: locations.into_iter().map(test_place_with_location).collect(),
             dimens: Default::default(),
         };
-        single.dimens.set_job_id("single");
+        single.dimens.set_job_id("single".to_string());
 
         Self(single)
     }
 
     pub fn id(&mut self, id: &str) -> &mut Self {
-        self.0.dimens.set_job_id(id);
+        self.0.dimens.set_job_id(id.to_string());
         self
     }
 
@@ -120,7 +121,7 @@ impl SingleBuilder {
 fn test_single() -> Single {
     let mut single =
         Single { places: vec![test_place_with_location(Some(DEFAULT_JOB_LOCATION))], dimens: Default::default() };
-    single.dimens.set_job_id("single");
+    single.dimens.set_job_id("single".to_string());
     single
 }
 

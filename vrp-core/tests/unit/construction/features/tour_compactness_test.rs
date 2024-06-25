@@ -1,6 +1,6 @@
 use crate::construction::features::{create_tour_compactness_feature, TourCompactnessSolutionState};
 use crate::construction::heuristics::{InsertionContext, MoveContext};
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::ProblemBuilder;
 use crate::helpers::solver::{generate_matrix_routes_with_defaults, get_job_by_id};
 use crate::models::common::Cost;
@@ -29,7 +29,7 @@ fn can_compare_solutions_with_thresholds_impl(
 ) {
     let (left_state, right_state) = states;
     let create_insertion_ctx_fn = |state_value: Cost| {
-        InsertionContextBuilder::default()
+        TestInsertionContextBuilder::default()
             .with_state(|state| {
                 state.set_tour_compactness(state_value);
             })

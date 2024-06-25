@@ -1,5 +1,5 @@
 use crate::construction::heuristics::{InsertionContext, UnassignmentInfo};
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::{ProblemBuilder, TestGoalContextBuilder};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
@@ -20,7 +20,7 @@ fn create_test_insertion_ctx(unassigned: Vec<(Job, UnassignmentInfo)>) -> Insert
         RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build(),
         RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v2").build()).build(),
     ];
-    let mut insertion_ctx = InsertionContextBuilder::default()
+    let mut insertion_ctx = TestInsertionContextBuilder::default()
         .with_problem(
             ProblemBuilder::default()
                 .with_goal(TestGoalContextBuilder::with_transport_feature().build())
@@ -37,11 +37,11 @@ fn create_test_insertion_ctx(unassigned: Vec<(Job, UnassignmentInfo)>) -> Insert
 }
 
 fn create_early_delivery(id: &str) -> Job {
-    SingleBuilder::default().times(vec![TimeWindow::new(0., 0.)]).location(Some(10)).id(id).build_as_job_ref()
+    TestSingleBuilder::default().times(vec![TimeWindow::new(0., 0.)]).location(Some(10)).id(id).build_as_job_ref()
 }
 
 fn create_assignable_delivery(id: &str) -> Job {
-    SingleBuilder::default().id(id).build_as_job_ref()
+    TestSingleBuilder::default().id(id).build_as_job_ref()
 }
 
 parameterized_test! {can_combine_vehicle_details, (unassigned, expected_details), {

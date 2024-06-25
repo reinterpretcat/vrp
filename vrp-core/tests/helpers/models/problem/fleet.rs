@@ -52,7 +52,7 @@ pub fn test_vehicle(profile_idx: usize) -> Vehicle {
 }
 
 pub fn test_ovrp_vehicle(id: &str) -> Vehicle {
-    VehicleBuilder::default().id(id).details(vec![VehicleDetail { end: None, ..test_vehicle_detail() }]).build()
+    TestVehicleBuilder::default().id(id).details(vec![VehicleDetail { end: None, ..test_vehicle_detail() }]).build()
 }
 
 pub fn test_fleet() -> Fleet {
@@ -61,7 +61,7 @@ pub fn test_fleet() -> Fleet {
 
 pub fn test_vehicle_with_id(id: &str) -> Vehicle {
     let mut dimens = Dimensions::default();
-    dimens.set_vehicle_id(id);
+    dimens.set_vehicle_id(id.to_string());
 
     Vehicle { profile: Profile::default(), costs: test_costs(), dimens, details: vec![test_vehicle_detail()] }
 }
@@ -74,41 +74,41 @@ pub fn get_test_actor_from_fleet(fleet: &Fleet, vehicle_id: &str) -> Arc<Actor> 
     fleet.actors.iter().find(|actor| get_vehicle_id(&actor.vehicle) == vehicle_id).unwrap().clone()
 }
 
-pub struct VehicleBuilder(Vehicle);
+pub struct TestVehicleBuilder(Vehicle);
 
-impl Default for VehicleBuilder {
-    fn default() -> VehicleBuilder {
+impl Default for TestVehicleBuilder {
+    fn default() -> Self {
         Self(test_vehicle(0))
     }
 }
 
-impl VehicleBuilder {
-    pub fn id(&mut self, id: &str) -> &mut VehicleBuilder {
-        self.0.dimens.set_vehicle_id(id);
+impl TestVehicleBuilder {
+    pub fn id(&mut self, id: &str) -> &mut Self {
+        self.0.dimens.set_vehicle_id(id.to_string());
         self
     }
 
-    pub fn profile(&mut self, profile: Profile) -> &mut VehicleBuilder {
+    pub fn profile(&mut self, profile: Profile) -> &mut Self {
         self.0.profile = profile;
         self
     }
 
-    pub fn capacity(&mut self, capacity: i32) -> &mut VehicleBuilder {
+    pub fn capacity(&mut self, capacity: i32) -> &mut Self {
         self.0.dimens.set_vehicle_capacity(SingleDimLoad::new(capacity));
         self
     }
 
-    pub fn capacity_mult(&mut self, capacity: Vec<i32>) -> &mut VehicleBuilder {
+    pub fn capacity_mult(&mut self, capacity: Vec<i32>) -> &mut Self {
         self.0.dimens.set_vehicle_capacity(MultiDimLoad::new(capacity));
         self
     }
 
-    pub fn costs(&mut self, costs: Costs) -> &mut VehicleBuilder {
+    pub fn costs(&mut self, costs: Costs) -> &mut Self {
         self.0.costs = costs;
         self
     }
 
-    pub fn details(&mut self, details: Vec<VehicleDetail>) -> &mut VehicleBuilder {
+    pub fn details(&mut self, details: Vec<VehicleDetail>) -> &mut Self {
         self.0.details = details;
         self
     }

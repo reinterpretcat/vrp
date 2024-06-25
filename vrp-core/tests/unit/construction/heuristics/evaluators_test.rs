@@ -1,5 +1,5 @@
 use crate::construction::heuristics::*;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::ActivityBuilder;
@@ -14,12 +14,12 @@ type JobPlace = crate::models::problem::Place;
 fn create_test_insertion_ctx() -> InsertionContext {
     let fleet = FleetBuilder::default()
         .add_driver(test_driver_with_costs(empty_costs()))
-        .add_vehicle(VehicleBuilder::default().id("v1").build())
+        .add_vehicle(TestVehicleBuilder::default().id("v1").build())
         .build();
     let route =
         RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build();
 
-    InsertionContextBuilder::default()
+    TestInsertionContextBuilder::default()
         .with_goal(TestGoalContextBuilder::with_transport_feature().build())
         .with_routes(vec![route])
         .build()
@@ -67,15 +67,15 @@ mod single {
     }}
 
     can_insert_job_with_location_into_empty_tour! {
-        case01: (SingleBuilder::default().build_as_job_ref(), InsertionPosition::Any, true),
-        case02: (SingleBuilder::default().location(None).build_as_job_ref(), InsertionPosition::Any, true),
+        case01: (TestSingleBuilder::default().build_as_job_ref(), InsertionPosition::Any, true),
+        case02: (TestSingleBuilder::default().location(None).build_as_job_ref(), InsertionPosition::Any, true),
 
-        case03: (SingleBuilder::default().build_as_job_ref(), InsertionPosition::Concrete(0), true),
-        case04: (SingleBuilder::default().location(None).build_as_job_ref(), InsertionPosition::Concrete(0), true),
-        case05: (SingleBuilder::default().build_as_job_ref(), InsertionPosition::Concrete(1), false),
+        case03: (TestSingleBuilder::default().build_as_job_ref(), InsertionPosition::Concrete(0), true),
+        case04: (TestSingleBuilder::default().location(None).build_as_job_ref(), InsertionPosition::Concrete(0), true),
+        case05: (TestSingleBuilder::default().build_as_job_ref(), InsertionPosition::Concrete(1), false),
 
-        case06: (SingleBuilder::default().build_as_job_ref(), InsertionPosition::Last, true),
-        case07: (SingleBuilder::default().location(None).build_as_job_ref(), InsertionPosition::Last, true),
+        case06: (TestSingleBuilder::default().build_as_job_ref(), InsertionPosition::Last, true),
+        case07: (TestSingleBuilder::default().location(None).build_as_job_ref(), InsertionPosition::Last, true),
     }
 
     fn can_insert_job_with_location_into_empty_tour_impl(job: Job, position: InsertionPosition, has_result: bool) {
@@ -131,7 +131,7 @@ mod single {
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
         registry.use_actor(&route_ctx.route().actor);
         route_ctx.route_mut().tour.insert_at(create_activity_at(5), 1).insert_at(create_activity_at(10), 2);
-        let mut ctx = InsertionContextBuilder::default()
+        let mut ctx = TestInsertionContextBuilder::default()
             .with_goal(TestGoalContextBuilder::with_transport_feature().build())
             .with_registry(registry)
             .with_routes(vec![route_ctx])
@@ -165,7 +165,7 @@ mod single {
         let fleet = FleetBuilder::default()
             .add_driver(test_driver_with_costs(empty_costs()))
             .add_vehicles(vec![
-                VehicleBuilder::default()
+                TestVehicleBuilder::default()
                     .id("v1")
                     .details(vec![VehicleDetail {
                         start: Some(VehiclePlace {
@@ -178,7 +178,7 @@ mod single {
                         }),
                     }])
                     .build(),
-                VehicleBuilder::default()
+                TestVehicleBuilder::default()
                     .id("v2")
                     .details(vec![VehicleDetail {
                         start: Some(VehiclePlace {
@@ -194,8 +194,8 @@ mod single {
             ])
             .build();
         let registry = Registry::new(&fleet, test_random());
-        let job = SingleBuilder::default().location(Some(job_location)).build_as_job_ref();
-        let mut ctx = InsertionContextBuilder::default()
+        let job = TestSingleBuilder::default().location(Some(job_location)).build_as_job_ref();
+        let mut ctx = TestInsertionContextBuilder::default()
             .with_goal(TestGoalContextBuilder::with_transport_feature().build())
             .with_registry(registry)
             .with_routes(vec![RouteContextBuilder::default()
@@ -213,7 +213,7 @@ mod single {
 
     #[test]
     fn can_detect_and_return_insertion_violation() {
-        let job = SingleBuilder::default().location(Some(1111)).build_as_job_ref();
+        let job = TestSingleBuilder::default().location(Some(1111)).build_as_job_ref();
         let mut ctx = create_test_insertion_ctx();
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
@@ -245,8 +245,8 @@ mod multi {
         let job = Job::Multi(test_multi_with_id(
             "multi",
             vec![
-                SingleBuilder::default().id("s1").location(Some(3)).build_shared(),
-                SingleBuilder::default().id("s2").location(Some(7)).build_shared(),
+                TestSingleBuilder::default().id("s1").location(Some(3)).build_shared(),
+                TestSingleBuilder::default().id("s2").location(Some(7)).build_shared(),
             ],
         ));
         let mut ctx = create_test_insertion_ctx();
@@ -274,7 +274,7 @@ mod multi {
                 .iter()
                 .zip(0..)
                 .map(|((_, loc), index)| {
-                    SingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build_shared()
+                    TestSingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build_shared()
                 })
                 .collect(),
         ));
@@ -322,7 +322,7 @@ mod multi {
         existing.iter().for_each(|&(index, loc)| {
             route_ctx.route_mut().tour.insert_at(create_activity_at(loc), index);
         });
-        let mut ctx = InsertionContextBuilder::default()
+        let mut ctx = TestInsertionContextBuilder::default()
             .with_goal(TestGoalContextBuilder::with_transport_feature().build())
             .with_routes(vec![route_ctx])
             .build();
@@ -333,7 +333,7 @@ mod multi {
                 .iter()
                 .zip(0usize..)
                 .map(|((_, loc), index)| {
-                    SingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build_shared()
+                    TestSingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build_shared()
                 })
                 .collect(),
         ));
@@ -352,9 +352,9 @@ mod multi {
         let job = Job::Multi(test_multi_with_permutations(
             "multi",
             vec![
-                SingleBuilder::default().id("s1").location(Some(10)).build_shared(),
-                SingleBuilder::default().id("s2").location(Some(5)).build_shared(),
-                SingleBuilder::default().id("s3").location(Some(15)).build_shared(),
+                TestSingleBuilder::default().id("s1").location(Some(10)).build_shared(),
+                TestSingleBuilder::default().id("s2").location(Some(5)).build_shared(),
+                TestSingleBuilder::default().id("s3").location(Some(15)).build_shared(),
             ],
             vec![vec![0, 1, 2], vec![1, 0, 2], vec![2, 1, 0]],
         ));

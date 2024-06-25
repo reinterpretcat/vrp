@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::features::capacity::create_capacity_limit_feature;
 use crate::construction::features::*;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::solution::{test_actor, ActivityBuilder};
 use crate::models::common::SingleDimLoad;
@@ -180,7 +180,7 @@ fn can_use_objective_total_order_impl(left_fitness: Vec<f64>, right_fitness: Vec
         insertion_ctx.solution.state.get_value::<(), Vec<f64>>().unwrap()[idx]
     });
     let create_insertion_ctx_with_fitness_state = |fitness: Vec<f64>| {
-        let mut insertion_ctx = InsertionContextBuilder::default().build();
+        let mut insertion_ctx = TestInsertionContextBuilder::default().build();
         insertion_ctx.solution.state.set_value::<(), _>(fitness);
         insertion_ctx
     };

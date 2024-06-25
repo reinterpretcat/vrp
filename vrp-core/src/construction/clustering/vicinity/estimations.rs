@@ -60,7 +60,7 @@ pub(crate) fn get_clusters(
         if let Some(new_cluster) = new_cluster {
             let new_cluster_jobs = new_cluster
                 .dimens()
-                .get_cluster()
+                .get_cluster_info()
                 .expect("expected to have jobs in a cluster")
                 .iter()
                 .map(|info| info.job.clone())
@@ -76,7 +76,7 @@ pub(crate) fn get_clusters(
 
                 let is_cluster_affected = cluster
                     .as_ref()
-                    .and_then(|cluster| cluster.dimens().get_cluster())
+                    .and_then(|cluster| cluster.dimens().get_cluster_info())
                     .map_or(false, |cluster_jobs| cluster_jobs.iter().any(|info| used_jobs.contains(&info.job)));
 
                 if is_cluster_affected {
@@ -352,7 +352,7 @@ where
     let cluster_times = filter_times(cluster_place.times.as_slice());
     let cluster_last_duration = cluster
         .dimens
-        .get_cluster()
+        .get_cluster_info()
         .and_then(|jobs| jobs.last())
         .and_then(|info| {
             info.job
@@ -484,10 +484,10 @@ fn with_cluster_dimension(cluster: Job, visit_info: ClusterInfo) -> Job {
 
     let mut cluster = Single { places: cluster.places.clone(), dimens: cluster.dimens.clone() };
 
-    let mut jobs = cluster.dimens.get_cluster().cloned().unwrap_or_default();
+    let mut jobs = cluster.dimens.get_cluster_info().cloned().unwrap_or_default();
     jobs.push(visit_info);
 
-    cluster.dimens.set_cluster(jobs);
+    cluster.dimens.set_cluster_info(jobs);
 
     Job::Single(Arc::new(cluster))
 }
@@ -496,7 +496,7 @@ fn finish_cluster<F>(cluster: Job, config: &ClusterConfig, center_commute: F) ->
 where
     F: Fn(&ClusterInfo) -> Commute,
 {
-    let clustered_jobs = cluster.dimens().get_cluster();
+    let clustered_jobs = cluster.dimens().get_cluster_info();
 
     match (&config.visiting, clustered_jobs) {
         (VisitPolicy::ClosedContinuation, Some(clustered)) => {
@@ -515,7 +515,7 @@ where
             last_info.commute.backward = commute.backward;
 
             let mut dimens = cluster.dimens.clone();
-            dimens.set_cluster(clustered);
+            dimens.set_cluster_info(clustered);
 
             Job::Single(Arc::new(Single { places: vec![place], dimens }))
         }

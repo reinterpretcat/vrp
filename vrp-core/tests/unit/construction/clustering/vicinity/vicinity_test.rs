@@ -1,6 +1,6 @@
 use super::*;
 use crate::helpers::construction::clustering::vicinity::*;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
 
@@ -8,14 +8,14 @@ use crate::helpers::models::problem::*;
 fn can_get_check_insertion() {
     let disallow_merge_list = vec!["job2"];
     let jobs = vec![
-        SingleBuilder::default().id("job1").build_as_job_ref(),
-        SingleBuilder::default().id("job2").build_as_job_ref(),
+        TestSingleBuilder::default().id("job1").build_as_job_ref(),
+        TestSingleBuilder::default().id("job2").build_as_job_ref(),
     ];
     let problem = ProblemBuilder::default()
         .with_jobs(jobs.clone())
         .with_goal(create_goal_context_with_vicinity(disallow_merge_list))
         .build();
-    let insertion_ctx = InsertionContextBuilder::default().with_problem(problem).build();
+    let insertion_ctx = TestInsertionContextBuilder::default().with_problem(problem).build();
     let actor_filter = Arc::new(|_: &Actor| true);
 
     let check_insertion = get_check_insertion_fn(insertion_ctx, actor_filter);
@@ -27,9 +27,9 @@ fn can_get_check_insertion() {
 #[test]
 pub fn can_create_job_clusters() {
     let jobs = vec![
-        SingleBuilder::default().id("job1").build_as_job_ref(),
-        SingleBuilder::default().id("job2").build_as_job_ref(),
-        SingleBuilder::default().id("job3").build_as_job_ref(),
+        TestSingleBuilder::default().id("job1").build_as_job_ref(),
+        TestSingleBuilder::default().id("job2").build_as_job_ref(),
+        TestSingleBuilder::default().id("job3").build_as_job_ref(),
     ];
     let filtering =
         FilterPolicy { job_filter: Arc::new(|job| get_job_id(job) != "job3"), actor_filter: Arc::new(|_| true) };

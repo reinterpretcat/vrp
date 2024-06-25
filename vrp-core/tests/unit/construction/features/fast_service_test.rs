@@ -91,7 +91,7 @@ mod local_estimation {
     }
 
     fn can_estimate_single_job_insertion_without_reload_impl(test_case: InsertionTestCase<Location>) {
-        let job = SingleBuilder::default()
+        let job = TestSingleBuilder::default()
             .location(Some(test_case.target_location))
             .demand(create_simple_demand(test_case.demand))
             .build_shared();
@@ -121,12 +121,12 @@ mod local_estimation {
     }
 
     fn can_estimate_multi_job_insertion_without_reload_impl(test_case: InsertionTestCase<(Location, Option<i32>)>) {
-        let job = SingleBuilder::default()
+        let job = TestSingleBuilder::default()
             .location(Some(test_case.target_location))
             .demand(create_simple_dynamic_demand(test_case.demand))
             .build_shared();
         let jobs = test_case.activities.iter().filter_map(|(l, demand)| demand.map(|d| (l, d))).map(|(l, d)| {
-            SingleBuilder::default().location(Some(*l)).demand(create_simple_dynamic_demand(d)).build_shared()
+            TestSingleBuilder::default().location(Some(*l)).demand(create_simple_dynamic_demand(d)).build_shared()
         });
         let jobs = once(job).chain(jobs).collect::<Vec<_>>();
         let multi = Multi::new_shared(jobs, Default::default());
@@ -155,7 +155,7 @@ mod local_estimation {
 mod global_estimation {
     use super::*;
     use crate::construction::enablers::get_route_intervals;
-    use crate::helpers::construction::heuristics::InsertionContextBuilder;
+    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 
     #[test]
     fn can_get_solution_fitness() {
@@ -169,7 +169,7 @@ mod global_estimation {
                     .build(),
             )
             .build();
-        let insertion_ctx = InsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
+        let insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
 
         let fitness = objective.fitness(&insertion_ctx);
 
@@ -194,7 +194,7 @@ mod global_estimation {
             })
             .build();
         let route_ctx = RouteContextBuilder::default().with_route(route).with_state(state).build();
-        let insertion_ctx = InsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
+        let insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
 
         let fitness = objective.fitness(&insertion_ctx);
 

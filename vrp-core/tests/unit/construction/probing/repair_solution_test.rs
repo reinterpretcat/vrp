@@ -23,7 +23,7 @@ fn create_test_problem(
     locks: Vec<LockData>,
 ) -> Problem {
     let create_single = |id: &str, (location, (tw_start, tw_end), duration, demand), is_multi| {
-        SingleBuilder::default()
+        TestSingleBuilder::default()
             .id(id)
             .location(location)
             .duration(duration)
@@ -44,7 +44,7 @@ fn create_test_problem(
     let vehicles = vehicles
         .into_iter()
         .map(|(id, (capacity, (start_location, start_earliest, start_latest), end))| {
-            VehicleBuilder::default()
+            TestVehicleBuilder::default()
                 .id(id)
                 .details(vec![VehicleDetail {
                     start: Some(VehiclePlace {

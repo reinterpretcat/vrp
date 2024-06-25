@@ -7,13 +7,13 @@ use std::sync::Arc;
 
 mod noise_checks {
     use super::*;
-    use crate::helpers::construction::heuristics::InsertionContextBuilder;
-    use crate::helpers::models::problem::SingleBuilder;
+    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
+    use crate::helpers::models::problem::TestSingleBuilder;
 
     fn make_success(cost: Cost) -> InsertionResult {
         InsertionResult::make_success(
             InsertionCost::new(&[cost]),
-            SingleBuilder::default().id("job1").build_as_job_ref(),
+            TestSingleBuilder::default().id("job1").build_as_job_ref(),
             vec![],
             &RouteContextBuilder::default().build(),
         )
@@ -43,7 +43,7 @@ mod noise_checks {
         let noise_range = (0.9, 1.2);
         let random = Arc::new(FakeRandom::new(vec![2], reals));
         let noise = Noise::new_with_ratio(noise_probability, noise_range, random);
-        let insertion_ctx = InsertionContextBuilder::default().build();
+        let insertion_ctx = TestInsertionContextBuilder::default().build();
 
         let actual_result = NoiseResultSelector::new(noise).select_insertion(&insertion_ctx, left, right);
 
@@ -68,7 +68,7 @@ mod iterators {
 
 mod selections {
     use super::*;
-    use crate::helpers::models::problem::SingleBuilder;
+    use crate::helpers::models::problem::TestSingleBuilder;
 
     parameterized_test! {can_use_stochastic_selection_mode, (skip, activities, expected_threshold), {
         can_use_stochastic_selection_mode_impl(skip, activities, expected_threshold);
@@ -88,7 +88,7 @@ mod selections {
 
         let _ = selection_mode.sample_best(
             &route_ctx,
-            &SingleBuilder::default().build_as_job_ref(),
+            &TestSingleBuilder::default().build_as_job_ref(),
             skip,
             -1,
             &mut |leg: Leg, _| {
@@ -115,8 +115,8 @@ mod selections {
 
 mod positions {
     use super::*;
-    use crate::helpers::construction::heuristics::InsertionContextBuilder;
-    use crate::helpers::models::problem::SingleBuilder;
+    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
+    use crate::helpers::models::problem::TestSingleBuilder;
 
     parameterized_test! {can_decide_how_to_fold, (jobs, routes, expected_result), {
         can_decide_how_to_fold_impl(jobs, routes, expected_result);
@@ -129,9 +129,9 @@ mod positions {
     }
 
     fn can_decide_how_to_fold_impl(jobs: usize, routes: usize, expected_result: bool) {
-        let insertion_ctx = InsertionContextBuilder::default()
+        let insertion_ctx = TestInsertionContextBuilder::default()
             .with_routes((0..routes).map(|_| RouteContextBuilder::default().build()).collect())
-            .with_required((0..jobs).map(|_| SingleBuilder::default().build_as_job_ref()).collect())
+            .with_required((0..jobs).map(|_| TestSingleBuilder::default().build_as_job_ref()).collect())
             .build();
 
         assert_eq!(PositionInsertionEvaluator::is_fold_jobs(&insertion_ctx), expected_result);

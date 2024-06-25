@@ -19,25 +19,7 @@ mod estimations;
 use self::estimations::*;
 use crate::models::solution::Commute;
 
-/// A trait to get or set cluster info.
-pub trait ClusterDimension {
-    /// Sets cluster.
-    fn set_cluster(&mut self, jobs: Vec<ClusterInfo>) -> &mut Self;
-    /// Gets cluster.
-    fn get_cluster(&self) -> Option<&Vec<ClusterInfo>>;
-}
-
-struct ClusterDimensionKey;
-impl ClusterDimension for Dimensions {
-    fn set_cluster(&mut self, jobs: Vec<ClusterInfo>) -> &mut Self {
-        self.set_value::<ClusterDimensionKey, _>(jobs);
-        self
-    }
-
-    fn get_cluster(&self) -> Option<&Vec<ClusterInfo>> {
-        self.get_value::<ClusterDimensionKey, _>()
-    }
-}
+custom_dimension!(ClusterInfo typeof Vec<ClusterInfo>);
 
 /// Holds center job and its neighbor jobs.
 pub type ClusterCandidate<'a> = (&'a Job, &'a HashSet<Job>);

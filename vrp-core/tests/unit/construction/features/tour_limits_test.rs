@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 mod activity {
     use super::*;
-    use crate::helpers::construction::heuristics::InsertionContextBuilder;
+    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 
     const VIOLATION_CODE: ViolationCode = 1;
 
@@ -32,11 +32,11 @@ mod activity {
         expected: Option<ConstraintViolation>,
     ) {
         let job = if job_size == 1 {
-            SingleBuilder::default().id("job1").build_as_job_ref()
+            TestSingleBuilder::default().id("job1").build_as_job_ref()
         } else {
             Job::Multi(test_multi_job_with_locations((0..job_size).map(|idx| vec![Some(idx as Location)]).collect()))
         };
-        let solution_ctx = InsertionContextBuilder::default().build().solution;
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
         let route_ctx = RouteContextBuilder::default()
             .with_route(
                 RouteBuilder::default()

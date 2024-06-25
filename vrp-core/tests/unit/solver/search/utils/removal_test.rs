@@ -1,7 +1,7 @@
 use super::*;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::test_random;
-use crate::helpers::models::problem::{test_fleet, SingleBuilder};
+use crate::helpers::models::problem::{test_fleet, TestSingleBuilder};
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Dimensions;
@@ -18,7 +18,7 @@ fn create_route_with_jobs_activities(fleet: &Fleet, jobs: usize, activities: usi
     let left_overs = activities - activities_per_job * jobs;
     let get_activity = |job_idx: usize| {
         ActivityBuilder::default()
-            .job(Some(SingleBuilder::default().id(format!("{job_idx}").as_str()).build_shared()))
+            .job(Some(TestSingleBuilder::default().id(format!("{job_idx}").as_str()).build_shared()))
             .build()
     };
     // NOTE need to keep multi-jobs somewhere to keep weak reference in sub-jobs alive
@@ -29,7 +29,7 @@ fn create_route_with_jobs_activities(fleet: &Fleet, jobs: usize, activities: usi
             if activities_per_job > 1 {
                 let singles = (0..activities_per_job)
                     .map(|activity_idx| {
-                        SingleBuilder::default().id(format!("{job_idx}_{activity_idx}").as_str()).build_shared()
+                        TestSingleBuilder::default().id(format!("{job_idx}_{activity_idx}").as_str()).build_shared()
                     })
                     .collect::<Vec<_>>();
                 let multi = Multi::new_shared(singles, Dimensions::default());
@@ -61,7 +61,7 @@ fn create_solution_ctx(jobs: usize, activities: usize) -> SolutionContext {
     let route_ctx = create_route_with_jobs_activities(&fleet, jobs, activities);
     let actor = route_ctx.route().actor.clone();
 
-    let mut solution_ctx = InsertionContextBuilder::default()
+    let mut solution_ctx = TestInsertionContextBuilder::default()
         .with_registry(Registry::new(&fleet, test_random()))
         .with_routes(vec![route_ctx])
         .build()

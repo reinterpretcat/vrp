@@ -139,7 +139,7 @@ impl ActivityBuilder {
         Self(Activity {
             place: Place { idx: 0, location, duration, time: tw },
             schedule: Schedule::new(location as f64, location as f64 + duration),
-            job: Some(SingleBuilder::default().location(Some(location)).build_shared()),
+            job: Some(TestSingleBuilder::default().location(Some(location)).build_shared()),
             commute: None,
         })
     }
@@ -185,7 +185,7 @@ fn test_activity() -> Activity {
             time: DEFAULT_ACTIVITY_TIME_WINDOW,
         },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
-        job: Some(SingleBuilder::default().build_shared()),
+        job: Some(TestSingleBuilder::default().build_shared()),
         commute: None,
     }
 }

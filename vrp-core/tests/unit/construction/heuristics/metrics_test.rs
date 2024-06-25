@@ -1,7 +1,7 @@
 use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState};
 use crate::construction::features::capacity::MaxVehicleLoadTourState;
 use crate::construction::heuristics::*;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::solution::RouteContextBuilder;
 use crate::models::Problem;
 use rosomaxa::prelude::compare_floats;
@@ -11,7 +11,7 @@ fn create_insertion_ctx(
     route_amount: usize,
     route_factory: &(dyn Fn(&Problem, usize) -> RouteContext),
 ) -> InsertionContext {
-    let mut ctx = InsertionContextBuilder::default().build();
+    let mut ctx = TestInsertionContextBuilder::default().build();
     let problem = ctx.problem.clone();
     ctx.solution.routes.extend((0..route_amount).map(|idx| route_factory(problem.as_ref(), idx)));
     ctx

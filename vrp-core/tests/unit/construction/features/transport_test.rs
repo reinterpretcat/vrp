@@ -26,7 +26,7 @@ fn create_detail(
 
 mod timing {
     use super::*;
-    use crate::helpers::construction::heuristics::InsertionContextBuilder;
+    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
     use crate::helpers::models::domain::test_random;
     use crate::models::solution::{Activity, Place, Registry};
     use rosomaxa::prelude::compare_floats;
@@ -46,7 +46,7 @@ mod timing {
 
         let fleet = FleetBuilder::default()
             .add_driver(test_driver())
-            .add_vehicles(vec![VehicleBuilder::default()
+            .add_vehicles(vec![TestVehicleBuilder::default()
                 .id("v1")
                 .details(vec![create_detail((Some(location_start), Some(location_end)), Some((time_start, time_end)))])
                 .build()])
@@ -135,9 +135,9 @@ mod timing {
     fn can_update_activity_schedule() {
         let fleet = FleetBuilder::default()
             .add_driver(test_driver())
-            .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
+            .add_vehicles(vec![TestVehicleBuilder::default().id("v1").build()])
             .build();
-        let insertion_ctx = InsertionContextBuilder::default()
+        let insertion_ctx = TestInsertionContextBuilder::default()
             .with_routes(vec![RouteContextBuilder::default()
                 .with_route(
                     RouteBuilder::default()
@@ -182,7 +182,7 @@ mod timing {
     fn can_calculate_soft_activity_cost_for_empty_tour() {
         let fleet = FleetBuilder::default()
             .add_driver(test_driver_with_costs(empty_costs()))
-            .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
+            .add_vehicles(vec![TestVehicleBuilder::default().id("v1").build()])
             .build();
         let route_ctx = RouteContextBuilder::default()
             .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
@@ -209,7 +209,7 @@ mod timing {
     fn can_calculate_soft_activity_cost_for_non_empty_tour() {
         let fleet = FleetBuilder::default()
             .add_driver(test_driver_with_costs(empty_costs()))
-            .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
+            .add_vehicles(vec![TestVehicleBuilder::default().id("v1").build()])
             .build();
         let route_ctx = RouteContextBuilder::default()
             .with_route(
@@ -261,14 +261,14 @@ mod timing {
     fn can_stop_with_time_route_constraint() {
         let fleet = FleetBuilder::default()
             .add_driver(test_driver())
-            .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
+            .add_vehicles(vec![TestVehicleBuilder::default().id("v1").build()])
             .build();
-        let insertion_ctx = InsertionContextBuilder::default().build();
+        let insertion_ctx = TestInsertionContextBuilder::default().build();
         let solution_ctx = insertion_ctx.solution;
         let route_ctx = RouteContextBuilder::default()
             .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
             .build();
-        let job = SingleBuilder::default().times(vec![TimeWindow::new(2000., 3000.)]).build_as_job_ref();
+        let job = TestSingleBuilder::default().times(vec![TimeWindow::new(2000., 3000.)]).build_as_job_ref();
 
         let result =
             create_feature().constraint.unwrap().evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));

@@ -1,6 +1,6 @@
 use super::*;
 use crate::helpers::construction::clustering::vicinity::*;
-use crate::helpers::models::problem::{get_job_id, SingleBuilder, TestPlace, TestTransportCost};
+use crate::helpers::models::problem::{get_job_id, TestPlace, TestSingleBuilder, TestTransportCost};
 use crate::models::problem::JobIdDimension;
 
 fn get_check_insertion_fn(disallow_insertion_list: Vec<&str>) -> Arc<CheckInsertionFn> {
@@ -37,7 +37,7 @@ fn create_cluster_info(
 }
 
 fn create_single_job(job_id: &str, places: Vec<TestPlace>) -> Job {
-    SingleBuilder::default().id(job_id).places(places).build_as_job_ref()
+    TestSingleBuilder::default().id(job_id).places(places).build_as_job_ref()
 }
 
 fn compare_visit_info(result: &ClusterInfo, expected: &ClusterInfo) {
@@ -74,7 +74,7 @@ parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, thres
     };
     let expected = expected.into_iter()
       .map(|e: (usize, usize, Duration, (Location, Duration, Distance), (Location, Duration, Distance))| {
-        let dummy_job = SingleBuilder::default().build_as_job_ref();
+        let dummy_job = TestSingleBuilder::default().build_as_job_ref();
         (e.0, create_cluster_info(dummy_job, e.2, e.1, e.3, e.4))
       })
       .collect();
@@ -200,7 +200,7 @@ fn can_get_dissimilarities_impl(
 
 parameterized_test! {can_add_job, (center_places, candidate_places, is_disallowed_to_merge, is_disallowed_to_insert, visiting, smallest_time_window, expected), {
     let expected = expected.map(|e: (usize, Duration, (Location, Duration, Distance), (Location, Duration, Distance))| {
-        let dummy_job = SingleBuilder::default().build_as_job_ref();
+        let dummy_job = TestSingleBuilder::default().build_as_job_ref();
         create_cluster_info(dummy_job, e.1, e.0, e.2, e.3)
     });
     let threshold = create_cluster_config().threshold;
@@ -397,7 +397,7 @@ fn can_build_job_cluster_impl(
             assert_eq!(result_place.duration, expected_duration);
 
             let result_clustered_jobs =
-                result_job.dimens.get_cluster().unwrap().iter().map(|info| info.job.clone()).collect::<Vec<_>>();
+                result_job.dimens.get_cluster_info().unwrap().iter().map(|info| info.job.clone()).collect::<Vec<_>>();
             let expected_jobs = expected_indices.into_iter().map(|idx| jobs.get(idx).unwrap()).collect::<Vec<_>>();
             assert_eq!(result_clustered_jobs.len(), expected_jobs.len());
             result_clustered_jobs.iter().zip(expected_jobs.iter()).for_each(|(a, &b)| {

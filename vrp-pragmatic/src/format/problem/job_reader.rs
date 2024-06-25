@@ -343,10 +343,10 @@ fn get_conditional_job(
     let mut single = get_single(places, coord_index);
     single
         .dimens
-        .set_job_id(job_id)
+        .set_job_id(job_id.to_string())
         .set_job_type(job_type.to_string())
         .set_shift_index(shift_index)
-        .set_vehicle_id(vehicle_id.as_str());
+        .set_vehicle_id(vehicle_id);
 
     single
 }
@@ -410,7 +410,7 @@ fn get_single_with_dimens(
 }
 
 fn fill_dimens(job: &ApiJob, dimens: &mut Dimensions) {
-    dimens.set_job_id(job.id.as_str());
+    dimens.set_job_id(job.id.clone());
 
     if let Some(value) = job.value {
         dimens.set_job_value(value);

@@ -1,8 +1,8 @@
 use crate::construction::features::skills::create_skills_feature;
 use crate::construction::features::{JobSkills, JobSkillsDimension, VehicleSkillsDimension};
 use crate::construction::heuristics::MoveContext;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
-use crate::helpers::models::problem::{test_driver, FleetBuilder, SingleBuilder, VehicleBuilder};
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
+use crate::helpers::models::problem::{test_driver, FleetBuilder, TestSingleBuilder, TestVehicleBuilder};
 use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
 use crate::models::problem::{Job, Vehicle};
 use crate::models::{ConstraintViolation, ViolationCode};
@@ -12,7 +12,7 @@ use std::iter::FromIterator;
 const VIOLATION_CODE: ViolationCode = 1;
 
 fn create_job_with_skills(all_of: Option<Vec<&str>>, one_of: Option<Vec<&str>>, none_of: Option<Vec<&str>>) -> Job {
-    let mut builder = SingleBuilder::default();
+    let mut builder = TestSingleBuilder::default();
     builder.dimens_mut().set_job_skills(JobSkills {
         all_of: all_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
         one_of: one_of.map(|skills| skills.iter().map(|s| s.to_string()).collect()),
@@ -23,7 +23,7 @@ fn create_job_with_skills(all_of: Option<Vec<&str>>, one_of: Option<Vec<&str>>, 
 }
 
 fn create_vehicle_with_skills(skills: Option<Vec<&str>>) -> Vehicle {
-    let mut builder = VehicleBuilder::default();
+    let mut builder = TestVehicleBuilder::default();
 
     if let Some(skills) = skills {
         let skills: HashSet<String> = HashSet::from_iter(skills.iter().map(|s| s.to_string()));
@@ -91,7 +91,7 @@ fn can_check_skills_impl(
     let constraint = create_skills_feature("skills", VIOLATION_CODE).unwrap().constraint.unwrap();
 
     let actual = constraint.evaluate(&MoveContext::route(
-        &InsertionContextBuilder::default().build().solution,
+        &TestInsertionContextBuilder::default().build().solution,
         &route_ctx,
         &create_job_with_skills(all_of, one_of, none_of),
     ));

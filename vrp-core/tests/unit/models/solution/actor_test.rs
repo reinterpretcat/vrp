@@ -1,5 +1,5 @@
 use crate::helpers::models::domain::test_random;
-use crate::helpers::models::problem::{test_driver, test_vehicle_detail, FleetBuilder, VehicleBuilder};
+use crate::helpers::models::problem::{test_driver, test_vehicle_detail, FleetBuilder, TestVehicleBuilder};
 use crate::models::common::TimeInterval;
 use crate::models::problem::{Actor, VehicleDetail, VehiclePlace};
 use crate::models::solution::Registry;
@@ -21,8 +21,8 @@ fn can_provide_available_actors_from_registry_impl(count: usize, expected: usize
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicles(vec![
-            VehicleBuilder::default().id("v1").details(vec![test_vehicle_detail()]).build(),
-            VehicleBuilder::default().id("v2").details(create_two_test_vehicle_details()).build(),
+            TestVehicleBuilder::default().id("v1").details(vec![test_vehicle_detail()]).build(),
+            TestVehicleBuilder::default().id("v2").details(create_two_test_vehicle_details()).build(),
         ])
         .build();
     let mut registry = Registry::new(&fleet, test_random());
@@ -39,9 +39,9 @@ fn can_provide_next_actors_from_registry() {
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicles(vec![
-            VehicleBuilder::default().id("v1").details(vec![test_vehicle_detail()]).build(),
-            VehicleBuilder::default().id("v2").details(create_two_test_vehicle_details()).build(),
-            VehicleBuilder::default().id("v3").details(vec![test_vehicle_detail()]).build(),
+            TestVehicleBuilder::default().id("v1").details(vec![test_vehicle_detail()]).build(),
+            TestVehicleBuilder::default().id("v2").details(create_two_test_vehicle_details()).build(),
+            TestVehicleBuilder::default().id("v3").details(vec![test_vehicle_detail()]).build(),
         ])
         .build();
     let registry = Registry::new(&fleet, test_random());

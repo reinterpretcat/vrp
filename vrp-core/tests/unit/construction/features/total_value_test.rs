@@ -1,6 +1,6 @@
 use super::*;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
-use crate::helpers::models::problem::{get_job_id, SingleBuilder};
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
+use crate::helpers::models::problem::{get_job_id, TestSingleBuilder};
 use crate::helpers::models::solution::*;
 use crate::models::problem::Single;
 
@@ -27,12 +27,12 @@ fn can_estimate_job_value_impl(value: f64, expected: f64) {
     .objective
     .unwrap();
     let route_ctx = RouteContextBuilder::default().build();
-    let solution_ctx = InsertionContextBuilder::default().build().solution;
+    let solution_ctx = TestInsertionContextBuilder::default().build().solution;
 
     let result = objective.estimate(&MoveContext::route(
         &solution_ctx,
         &route_ctx,
-        &SingleBuilder::default().id("job").build_as_job_ref(),
+        &TestSingleBuilder::default().id("job").build_as_job_ref(),
     ));
 
     assert_eq!(result, expected);
@@ -60,8 +60,8 @@ fn can_merge_value() {
     .unwrap()
     .constraint
     .unwrap();
-    let source = SingleBuilder::default().id("source").build_as_job_ref();
-    let candidate = SingleBuilder::default().id("candidate").build_as_job_ref();
+    let source = TestSingleBuilder::default().id("source").build_as_job_ref();
+    let candidate = TestSingleBuilder::default().id("candidate").build_as_job_ref();
 
     let merged = constraint.merge(source, candidate).unwrap();
 

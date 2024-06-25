@@ -1,6 +1,6 @@
 use super::*;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
-use crate::helpers::models::problem::SingleBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
+use crate::helpers::models::problem::TestSingleBuilder;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder, RouteStateBuilder};
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ fn create_feature() -> Feature {
 }
 
 fn create_test_single(compatibility: Option<String>) -> Arc<Single> {
-    let mut builder = SingleBuilder::default();
+    let mut builder = TestSingleBuilder::default();
 
     if let Some(compatibility) = compatibility {
         builder.dimens_mut().set_job_compatibility(compatibility);
@@ -54,7 +54,7 @@ can_use_compatibility! {
 }
 
 fn can_use_compatibility_impl(job_compat: Option<&str>, route_compat: Option<&str>, expected: Option<()>) {
-    let solution_ctx = InsertionContextBuilder::default()
+    let solution_ctx = TestInsertionContextBuilder::default()
         .with_routes(vec![create_test_route_ctx(route_compat.map(|v| v.to_string()))])
         .build()
         .solution;

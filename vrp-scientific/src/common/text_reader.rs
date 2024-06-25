@@ -63,7 +63,7 @@ pub(crate) fn create_fleet_with_distance_costs(
         (0..number)
             .map(|i| {
                 let mut dimens = create_dimens_with_id("v", &i.to_string(), |id, dimens| {
-                    dimens.set_vehicle_id(id);
+                    dimens.set_vehicle_id(id.to_string());
                 });
                 dimens.set_vehicle_capacity(SingleDimLoad::new(capacity as i32));
                 Arc::new(Vehicle {

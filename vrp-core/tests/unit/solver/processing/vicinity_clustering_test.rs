@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::heuristics::UnassignmentInfo;
 use crate::helpers::construction::clustering::vicinity::*;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
@@ -11,10 +11,10 @@ use crate::models::solution::{Commute, CommuteInfo};
 
 fn create_test_jobs() -> Vec<Job> {
     vec![
-        SingleBuilder::default().id("job1").location(Some(1)).duration(2.).build_as_job_ref(),
-        SingleBuilder::default().id("job2").location(Some(2)).duration(2.).build_as_job_ref(),
-        SingleBuilder::default().id("job3").location(Some(3)).duration(2.).build_as_job_ref(),
-        SingleBuilder::default().id("job4_outlier").location(Some(20)).duration(2.).build_as_job_ref(),
+        TestSingleBuilder::default().id("job1").location(Some(1)).duration(2.).build_as_job_ref(),
+        TestSingleBuilder::default().id("job2").location(Some(2)).duration(2.).build_as_job_ref(),
+        TestSingleBuilder::default().id("job3").location(Some(3)).duration(2.).build_as_job_ref(),
+        TestSingleBuilder::default().id("job4_outlier").location(Some(20)).duration(2.).build_as_job_ref(),
     ]
 }
 
@@ -49,7 +49,7 @@ fn can_create_problem_with_clusters_on_pre_process() {
     let jobs = jobs
         .iter()
         .find(|job| get_job_id(job) == "job3")
-        .and_then(|job| job.dimens().get_cluster().cloned())
+        .and_then(|job| job.dimens().get_cluster_info().cloned())
         .unwrap()
         .into_iter()
         .map(|info| get_job_id(&info.job).clone())
@@ -78,7 +78,7 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
     let clustered_time = clustered_single.places.first().unwrap().clone().times.first().unwrap().to_time_window(0.);
     let insertion_ctx = InsertionContext {
         problem: new_problem.clone(),
-        ..InsertionContextBuilder::default()
+        ..TestInsertionContextBuilder::default()
             .with_routes(vec![RouteContextBuilder::default()
                 .with_route(
                     RouteBuilder::default()
@@ -128,7 +128,7 @@ fn can_unwrap_clusters_in_unassigned_on_post_process() {
     let unclustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job4_outlier").unwrap();
     let insertion_ctx = InsertionContext {
         problem: new_problem,
-        ..InsertionContextBuilder::default()
+        ..TestInsertionContextBuilder::default()
             .with_unassigned(
                 vec![(clustered_job, UnassignmentInfo::Simple(1)), (unclustered_job, UnassignmentInfo::Simple(2))]
                     .into_iter()

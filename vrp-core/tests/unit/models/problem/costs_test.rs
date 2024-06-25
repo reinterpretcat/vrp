@@ -117,7 +117,7 @@ fn can_interpolate_durations() {
 mod objective {
     use super::*;
     use crate::construction::heuristics::{InsertionContext, MoveContext};
-    use crate::helpers::construction::heuristics::InsertionContextBuilder;
+    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
     use crate::models::{Feature, FeatureBuilder, FeatureObjective, GoalContextBuilder};
     use rosomaxa::prelude::{compare_floats, HeuristicObjective};
     use std::cmp::Ordering;
@@ -152,7 +152,7 @@ mod objective {
     }
 
     fn create_individual(data: Vec<f64>) -> InsertionContext {
-        InsertionContextBuilder::default().with_state(|state| state.set_value::<(), _>(data)).build()
+        TestInsertionContextBuilder::default().with_state(|state| state.set_value::<(), _>(data)).build()
     }
 
     parameterized_test! {can_use_total_order, (data_a, data_b, expected), {

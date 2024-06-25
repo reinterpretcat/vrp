@@ -48,7 +48,7 @@ fn create_example_jobs(fleet: &Fleet, transport: &(dyn TransportCost + Sync + Se
 fn create_example_fleet() -> Arc<Fleet> {
     let drivers = vec![Arc::new(Driver::empty())];
     let mut vehicle_dimens = Dimensions::default();
-    vehicle_dimens.set_vehicle_id("v1");
+    vehicle_dimens.set_vehicle_id("v1".to_string());
     let vehicles = vec![Arc::new(Vehicle {
         profile: Profile::default(),
         costs: Costs { fixed: 0., per_distance: 1., per_driving_time: 0., per_waiting_time: 0., per_service_time: 0. },

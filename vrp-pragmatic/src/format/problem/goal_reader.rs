@@ -1,7 +1,7 @@
 use super::*;
 use std::collections::HashSet;
 use std::ops::Mul;
-use vrp_core::construction::clustering::vicinity::ClusterDimension;
+use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
 use vrp_core::construction::enablers::FeatureCombinator;
 use vrp_core::construction::features::capacity::*;
 use vrp_core::construction::features::*;
@@ -145,7 +145,7 @@ fn get_objective_features(
                             let break_value = *breaks;
                             let default_value = 1.;
                             move |_, job| {
-                                if let Some(clusters) = job.dimens().get_cluster() {
+                                if let Some(clusters) = job.dimens().get_cluster_info() {
                                     clusters.len() as f64 * default_value
                                 } else {
                                     job.dimens().get_job_type().map_or(default_value, |job_type| {

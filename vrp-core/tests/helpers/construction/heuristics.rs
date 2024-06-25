@@ -9,13 +9,13 @@ use rosomaxa::prelude::Environment;
 use std::sync::Arc;
 
 #[derive(Default)]
-pub struct InsertionContextBuilder {
+pub struct TestInsertionContextBuilder {
     problem: Option<Problem>,
     solution: Option<SolutionContext>,
     environment: Option<Environment>,
 }
 
-impl InsertionContextBuilder {
+impl TestInsertionContextBuilder {
     fn ensure_problem(&mut self) -> &mut Problem {
         if self.problem.is_none() {
             self.problem = Some(create_empty_problem());

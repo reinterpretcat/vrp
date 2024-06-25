@@ -1,5 +1,8 @@
 //! Problem domain models.
 
+mod builders;
+pub use self::builders::*;
+
 mod costs;
 pub use self::costs::*;
 

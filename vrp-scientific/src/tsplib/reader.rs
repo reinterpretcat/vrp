@@ -211,7 +211,7 @@ impl<R: Read> TsplibReader<R> {
 
     fn create_job(&mut self, id: &str, location: (i32, i32), demand: i32) -> Job {
         let mut dimens = Dimensions::default();
-        dimens.set_job_id(id).set_job_demand(Demand::<SingleDimLoad> {
+        dimens.set_job_id(id.to_string()).set_job_demand(Demand::<SingleDimLoad> {
             pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
             delivery: (SingleDimLoad::new(demand), SingleDimLoad::default()),
         });

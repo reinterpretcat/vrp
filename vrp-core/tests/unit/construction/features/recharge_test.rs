@@ -1,5 +1,5 @@
 use super::*;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::models::solution::Activity;
@@ -33,7 +33,7 @@ fn create_recharge_feature(limit: Distance) -> Feature {
 fn recharge(location: Location) -> Activity {
     ActivityBuilder::with_location(location)
         .job(Some(
-            SingleBuilder::default()
+            TestSingleBuilder::default()
                 .id("recharge")
                 .property::<JobTypeDimenKey, _>("recharge".to_string())
                 .property::<VehicleIdDimenKey, _>("v1".to_string())
@@ -55,7 +55,7 @@ fn create_route_ctx(activities: &[Location], recharges: Vec<(usize, Location)>, 
                 .add_activities(activities.iter().enumerate().map(|(idx, &location)| {
                     ActivityBuilder::with_location(location)
                         .schedule(Schedule::new(location as f64, location as f64))
-                        .job(Some(SingleBuilder::default().id(&format!("job{}", idx + 1)).build_shared()))
+                        .job(Some(TestSingleBuilder::default().id(&format!("job{}", idx + 1)).build_shared()))
                         .build()
                 }))
                 .build(),
@@ -141,7 +141,7 @@ fn can_evaluate_insertion_impl(
             index,
             prev: route_ctx.route().tour.get(prev).unwrap(),
             target: &ActivityBuilder::with_location(new_location)
-                .job(Some(SingleBuilder::default().build_shared()))
+                .job(Some(TestSingleBuilder::default().build_shared()))
                 .build(),
             next: route_ctx.route().tour.get(next),
         },
@@ -169,7 +169,7 @@ fn can_handle_obsolete_intervals_impl(
     activities: Vec<Location>,
     expected: Vec<Location>,
 ) {
-    let mut solution = InsertionContextBuilder::default()
+    let mut solution = TestInsertionContextBuilder::default()
         .with_routes(vec![create_route_ctx(&activities, recharges, true)])
         .build()
         .solution;

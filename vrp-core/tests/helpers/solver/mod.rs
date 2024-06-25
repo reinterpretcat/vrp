@@ -46,7 +46,7 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
                 .with_objectives(&["transport"])
                 .build()
         },
-        |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
+        |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |data| (data.clone(), data),
     )
@@ -90,7 +90,7 @@ pub fn generate_matrix_routes_with_disallow_list(
                 .with_objectives(feature_map)
                 .build()
         },
-        |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
+        |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |data| (data.clone(), data),
     )

@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::heuristics::{ActivityContext, RouteState};
 use crate::helpers::construction::features::*;
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::{Demand, SingleDimLoad};
@@ -15,7 +15,7 @@ fn create_feature() -> Feature {
 }
 
 fn create_test_vehicle(capacity: i32) -> Vehicle {
-    VehicleBuilder::default().id("v1").capacity(capacity).build()
+    TestVehicleBuilder::default().id("v1").capacity(capacity).build()
 }
 
 fn create_constraint_violation(stopped: bool) -> Option<ConstraintViolation> {
@@ -23,7 +23,7 @@ fn create_constraint_violation(stopped: bool) -> Option<ConstraintViolation> {
 }
 
 fn create_activity_with_simple_demand(size: i32) -> Activity {
-    let job = SingleBuilder::default().demand(create_simple_demand(size)).build_shared();
+    let job = TestSingleBuilder::default().demand(create_simple_demand(size)).build_shared();
     ActivityBuilder::default().job(Some(job)).build()
 }
 
@@ -86,10 +86,10 @@ can_evaluate_demand_on_route! {
 
 fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<ConstraintViolation>) {
     let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
-    let insertion_ctx = InsertionContextBuilder::default().build();
+    let insertion_ctx = TestInsertionContextBuilder::default().build();
     let route_ctx =
         RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build();
-    let job = SingleBuilder::default().demand(create_simple_demand(size)).build_as_job_ref();
+    let job = TestSingleBuilder::default().demand(create_simple_demand(size)).build_as_job_ref();
 
     let result =
         create_feature().constraint.unwrap().evaluate(&MoveContext::route(&insertion_ctx.solution, &route_ctx, &job));
@@ -167,14 +167,14 @@ fn can_merge_jobs_with_demand_impl(
         delivery: (SingleDimLoad::new(demand.2), SingleDimLoad::new(demand.3)),
     };
     let cluster = Job::Single(if let Some(cluster) = cluster {
-        SingleBuilder::default().demand(create_demand(cluster)).build_shared()
+        TestSingleBuilder::default().demand(create_demand(cluster)).build_shared()
     } else {
-        SingleBuilder::default().build_shared()
+        TestSingleBuilder::default().build_shared()
     });
     let candidate = Job::Single(if let Some(candidate) = candidate {
-        SingleBuilder::default().demand(create_demand(candidate)).build_shared()
+        TestSingleBuilder::default().demand(create_demand(candidate)).build_shared()
     } else {
-        SingleBuilder::default().build_shared()
+        TestSingleBuilder::default().build_shared()
     });
     let constraint = create_feature().constraint.unwrap();
 

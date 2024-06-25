@@ -8,7 +8,7 @@ const VIOLATION_CODE: ViolationCode = 1;
 struct OrderDimenKey;
 
 fn create_single_with_order(id: &str, order: Option<f64>) -> Arc<Single> {
-    let mut single = SingleBuilder::default().id(id).build();
+    let mut single = TestSingleBuilder::default().id(id).build();
 
     if let Some(order) = order {
         single.dimens.set_value::<OrderDimenKey, _>(order);

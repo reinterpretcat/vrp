@@ -1,7 +1,7 @@
 use crate::construction::heuristics::{RouteState, UnassignmentInfo};
-use crate::helpers::construction::heuristics::InsertionContextBuilder;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::TestGoalContextBuilder;
-use crate::helpers::models::problem::{test_fleet, SingleBuilder};
+use crate::helpers::models::problem::{test_fleet, TestSingleBuilder};
 use crate::helpers::models::solution::*;
 
 #[test]
@@ -58,7 +58,7 @@ fn can_use_stale_flag() {
 
 #[test]
 fn can_use_debug_fmt_for_insertion_ctx() {
-    let insertion_ctx = InsertionContextBuilder::default()
+    let insertion_ctx = TestInsertionContextBuilder::default()
         .with_goal(TestGoalContextBuilder::with_transport_feature().build())
         .with_routes(vec![RouteContextBuilder::default()
             .with_route(
@@ -68,7 +68,7 @@ fn can_use_debug_fmt_for_insertion_ctx() {
                     .build(),
             )
             .build()])
-        .with_unassigned(vec![(SingleBuilder::default().build_as_job_ref(), UnassignmentInfo::Unknown)])
+        .with_unassigned(vec![(TestSingleBuilder::default().build_as_job_ref(), UnassignmentInfo::Unknown)])
         .build();
 
     let result = format!("{insertion_ctx:#?}");

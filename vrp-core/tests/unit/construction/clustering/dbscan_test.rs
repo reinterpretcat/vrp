@@ -2,7 +2,7 @@ use super::*;
 use crate::helpers::construction::clustering::dbscan::create_test_distances;
 use crate::helpers::construction::clustering::p;
 use crate::helpers::models::domain::TestGoalContextBuilder;
-use crate::helpers::models::problem::SingleBuilder;
+use crate::helpers::models::problem::TestSingleBuilder;
 use crate::helpers::solver::{generate_matrix_distances_from_points, generate_matrix_routes};
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Location;
@@ -51,7 +51,7 @@ fn can_estimate_epsilon_impl(matrix: (usize, usize), nth_neighbor: usize, matrix
         matrix.1,
         false,
         goal_factory,
-        |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
+        |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         matrix_modify,
     );
@@ -76,7 +76,7 @@ fn can_estimate_epsilon_having_zero_costs_impl(min_points: usize) {
         1,
         false,
         goal_factory,
-        |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
+        |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |_| {
             let distances = generate_matrix_distances_from_points(&[
@@ -115,7 +115,7 @@ fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>])
         1,
         false,
         goal_factory,
-        |id, location| SingleBuilder::default().id(id).location(location).build_shared(),
+        |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
     );

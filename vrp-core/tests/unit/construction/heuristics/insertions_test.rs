@@ -95,7 +95,7 @@ mod costs {
 
 mod debug {
     use super::*;
-    use crate::helpers::models::problem::SingleBuilder;
+    use crate::helpers::models::problem::TestSingleBuilder;
     use crate::helpers::models::solution::{ActivityBuilder, RouteContextBuilder};
 
     #[test]
@@ -123,7 +123,7 @@ mod debug {
     fn can_use_debug_fmt_for_insertion_result_with_success() {
         let result = InsertionResult::make_success(
             InsertionCost::new(&[1., 2., 3.]),
-            SingleBuilder::default().build_as_job_ref(),
+            TestSingleBuilder::default().build_as_job_ref(),
             vec![(ActivityBuilder::default().build(), 1)],
             &RouteContextBuilder::default().build(),
         );
