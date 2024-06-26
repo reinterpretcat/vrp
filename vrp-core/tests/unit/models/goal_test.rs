@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::features::capacity::create_capacity_limit_feature;
+use crate::construction::features::capacity::CapacityFeatureBuilder;
 use crate::construction::features::*;
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::TestGoalContextBuilder;
@@ -81,7 +81,7 @@ pub fn can_create_goal_context_with_objective() -> GenericResult<()> {
 
 #[test]
 pub fn cannot_create_goal_context_without_objectives() -> GenericResult<()> {
-    let features = vec![create_capacity_limit_feature::<SingleDimLoad>("capacity", 0).unwrap()];
+    let features = vec![CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").build().unwrap()];
 
     assert!(GoalContextBuilder::with_features(features)?.build().is_err());
     Ok(())

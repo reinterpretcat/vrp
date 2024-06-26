@@ -100,10 +100,10 @@ fn create_feature_and_route(
         .build();
     let feature = TransportFeatureBuilder::new("minimize_costs")
         .set_violation_code(VIOLATION_CODE)
-        .set_transport(Arc::new(
+        .set_transport_cost(Arc::new(
             DynamicTransportCost::new(reserved_times_idx.clone(), Arc::new(TestTransportCost::default())).unwrap(),
         ))
-        .set_activity(Arc::new(DynamicActivityCost::new(reserved_times_idx.clone()).unwrap()))
+        .set_activity_cost(Arc::new(DynamicActivityCost::new(reserved_times_idx.clone()).unwrap()))
         .build_minimize_cost()
         .unwrap();
     feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);

@@ -1,7 +1,7 @@
 use self::ActivityType::*;
 use super::*;
 use crate::construction::enablers::get_route_intervals;
-use crate::construction::features::create_minimize_unassigned_jobs_feature;
+use crate::construction::features::MinimizeUnassignedBuilder;
 use crate::helpers::construction::features::{create_simple_demand, single_demand_as_multi};
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::problem::*;
@@ -229,7 +229,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
         .solution;
     let reload_feature = create_simple_reload_feature::<MultiDimLoad, _>(move |capacity| *capacity * threshold);
 
-    let min_jobs_feature = create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.)).unwrap();
+    let min_jobs_feature = MinimizeUnassignedBuilder::new("min_jobs").build().unwrap();
     let goal = GoalContextBuilder::with_features(vec![reload_feature, min_jobs_feature])
         .unwrap()
         .set_goal(&["min_jobs"], &["min_jobs"])

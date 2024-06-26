@@ -1,8 +1,8 @@
 //! This module reimports a common used types.
 
 // Reimport core types
-pub use crate::solver::create_default_config_builder;
 pub use crate::solver::Solver;
+pub use crate::solver::VrpConfigBuilder;
 
 pub use crate::models::problem::ActivityCost;
 pub use crate::models::problem::Fleet;

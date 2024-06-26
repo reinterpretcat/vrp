@@ -56,20 +56,47 @@ pub type HeuristicFilterFn = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 
 custom_extra_property!(HeuristicFilter typeof HeuristicFilterFn);
 
-/// Creates config builder with default settings.
-pub fn create_default_config_builder(
+/// Provides the way to get [ProblemConfigBuilder] with reasonable defaults for VRP domain.
+pub struct VrpConfigBuilder {
     problem: Arc<Problem>,
-    environment: Arc<Environment>,
-    telemetry_mode: TelemetryMode,
-) -> ProblemConfigBuilder {
-    let selection_size = get_default_selection_size(environment.as_ref());
-    let population = get_default_population(problem.goal.clone(), environment.clone(), selection_size);
+    environment: Option<Arc<Environment>>,
+    telemetry_mode: Option<TelemetryMode>,
+}
 
-    ProblemConfigBuilder::default()
-        .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))
-        .with_context(RefinementContext::new(problem.clone(), population, telemetry_mode, environment.clone()))
-        .with_processing(create_default_processing())
-        .with_initial(4, 0.05, create_default_init_operators(problem, environment))
+impl VrpConfigBuilder {
+    /// Creates a new instance of `VrpConfigBuilder`.
+    pub fn new(problem: Arc<Problem>) -> Self {
+        Self { problem, environment: None, telemetry_mode: None }
+    }
+
+    /// Sets [Environment] instance to be used.
+    pub fn set_environment(mut self, environment: Arc<Environment>) -> Self {
+        self.environment = Some(environment);
+        self
+    }
+
+    /// Sets [TelemetryMode] to be used.
+    pub fn set_telemetry_mode(mut self, mode: TelemetryMode) -> Self {
+        self.telemetry_mode = Some(mode);
+        self
+    }
+
+    /// Builds a preconfigured instance of [ProblemConfigBuilder] for further usage.
+    pub fn prebuild(self) -> GenericResult<ProblemConfigBuilder> {
+        let problem = self.problem;
+        let environment = self.environment.unwrap_or_else(|| Arc::new(Environment::default()));
+        let telemetry_mode =
+            self.telemetry_mode.unwrap_or_else(|| get_default_telemetry_mode(environment.logger.clone()));
+
+        let selection_size = get_default_selection_size(environment.as_ref());
+        let population = get_default_population(problem.goal.clone(), environment.clone(), selection_size);
+
+        Ok(ProblemConfigBuilder::default()
+            .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))
+            .with_context(RefinementContext::new(problem.clone(), population, telemetry_mode, environment.clone()))
+            .with_processing(create_default_processing())
+            .with_initial(4, 0.05, create_default_init_operators(problem, environment)))
+    }
 }
 
 /// Creates default telemetry mode.B

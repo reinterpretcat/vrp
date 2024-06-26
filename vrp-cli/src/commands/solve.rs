@@ -376,7 +376,7 @@ fn read_init_solution(
     environment: Arc<Environment>,
     file: File,
     InitSolutionReader(init_reader): &InitSolutionReader,
-) -> Result<Vec<InsertionContext>, GenericError> {
+) -> GenericResult<Vec<InsertionContext>> {
     init_reader(file, problem.clone())
         .map_err(|err| format!("cannot read initial solution '{err}'").into())
         .map(|solution| vec![InsertionContext::new_from_solution(problem.clone(), (solution, None), environment)])
@@ -386,7 +386,7 @@ fn from_config_parameters(
     problem: Arc<Problem>,
     init_solutions: Vec<InsertionContext>,
     config: File,
-) -> Result<Solver, GenericError> {
+) -> GenericResult<Solver> {
     create_builder_from_config_file(problem.clone(), init_solutions, BufReader::new(config))
         .and_then(|builder| builder.build())
         .map(|config| Solver::new(problem.clone(), config))
@@ -398,7 +398,7 @@ fn from_cli_parameters(
     environment: Arc<Environment>,
     init_solutions: Vec<InsertionContext>,
     matches: &ArgMatches,
-) -> Result<Solver, GenericError> {
+) -> GenericResult<Solver> {
     let max_time = parse_int_value::<usize>(matches, TIME_ARG_NAME, "max time")?;
 
     let max_generations = parse_int_value::<usize>(matches, GENERATIONS_ARG_NAME, "max generations")?;
@@ -411,7 +411,10 @@ fn from_cli_parameters(
     let init_size = get_init_size(matches)?;
     let mode = matches.get_one::<String>(SEARCH_MODE_ARG_NAME);
 
-    let config = create_default_config_builder(problem.clone(), environment.clone(), telemetry_mode.clone())
+    let config = VrpConfigBuilder::new(problem.clone())
+        .set_environment(environment.clone())
+        .set_telemetry_mode(telemetry_mode.clone())
+        .prebuild()?
         .with_init_solutions(init_solutions, init_size)
         .with_max_generations(max_generations)
         .with_max_time(max_time)
@@ -428,7 +431,7 @@ fn from_cli_parameters(
     Ok(Solver::new(problem.clone(), config))
 }
 
-fn get_min_cv(matches: &ArgMatches) -> Result<Option<(String, usize, f64, bool)>, GenericError> {
+fn get_min_cv(matches: &ArgMatches) -> GenericResult<Option<(String, usize, f64, bool)>> {
     let err_result = Err("cannot parse min_cv parameter".into());
     matches
         .get_one::<String>(MIN_CV_ARG_NAME)
@@ -448,7 +451,7 @@ fn get_min_cv(matches: &ArgMatches) -> Result<Option<(String, usize, f64, bool)>
         .unwrap_or(Ok(None))
 }
 
-fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, GenericError> {
+fn get_init_size(matches: &ArgMatches) -> GenericResult<Option<usize>> {
     matches
         .get_one::<String>(INIT_SIZE_ARG_NAME)
         .map(|size| {
@@ -462,7 +465,7 @@ fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, GenericError> {
         .unwrap_or(Ok(None))
 }
 
-fn get_environment(matches: &ArgMatches) -> Result<Arc<Environment>, GenericError> {
+fn get_environment(matches: &ArgMatches) -> GenericResult<Arc<Environment>> {
     let max_time = parse_int_value::<usize>(matches, TIME_ARG_NAME, "max time")?;
     let quota = Some(create_interruption_quota(max_time));
     let is_experimental = matches.get_one::<bool>(EXPERIMENTAL_ARG_NAME).copied().unwrap_or(false);
@@ -516,7 +519,7 @@ fn get_heuristic(
     matches: &ArgMatches,
     problem: Arc<Problem>,
     environment: Arc<Environment>,
-) -> Result<TargetHeuristic, GenericError> {
+) -> GenericResult<TargetHeuristic> {
     match matches.get_one::<String>(HEURISTIC_ARG_NAME).map(String::as_str) {
         Some("dynamic") => Ok(Box::new(get_dynamic_heuristic(problem, environment))),
         Some("static") => Ok(Box::new(get_static_heuristic(problem, environment))),
@@ -525,7 +528,7 @@ fn get_heuristic(
     }
 }
 
-fn check_pragmatic_solution_with_args(matches: &ArgMatches) -> Result<(), GenericError> {
+fn check_pragmatic_solution_with_args(matches: &ArgMatches) -> GenericResult<()> {
     check_solution(matches, "pragmatic", PROBLEM_ARG_NAME, OUT_RESULT_ARG_NAME, MATRIX_ARG_NAME)
 }
 

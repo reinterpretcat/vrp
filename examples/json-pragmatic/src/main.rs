@@ -8,7 +8,6 @@ use std::sync::Arc;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::core::models::{Problem as CoreProblem, Solution as CoreSolution};
 use vrp_pragmatic::core::prelude::*;
-use vrp_pragmatic::core::solver::get_default_telemetry_mode;
 use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, Matrix, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, write_pragmatic, Solution};
 
@@ -40,7 +39,6 @@ fn run_examples(base_path: &str) {
     ];
 
     for (name, matrices) in names {
-        let environment = Arc::new(Environment::default());
         let problem = get_pragmatic_problem(base_path, name);
 
         let (core_problem, problem, matrices) = if let Some(matrices) = matrices {
@@ -57,8 +55,9 @@ fn run_examples(base_path: &str) {
         let core_problem =
             Arc::new(core_problem.unwrap_or_else(|errors| panic!("cannot read pragmatic problem: {errors}")));
 
-        let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
-        let config = create_default_config_builder(core_problem.clone(), environment, telemetry_mode)
+        let config = VrpConfigBuilder::new(core_problem.clone())
+            .prebuild()
+            .expect("cannot prebuild vrp configuration")
             .with_max_generations(Some(100))
             .build()
             .unwrap_or_else(|err| panic!("cannot build default solver configuration: {err}"));

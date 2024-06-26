@@ -1,7 +1,7 @@
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::construction::features::capacity::{create_capacity_limit_feature, VehicleCapacityDimension};
+use vrp_core::construction::features::capacity::{CapacityFeatureBuilder, VehicleCapacityDimension};
 use vrp_core::construction::features::*;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
@@ -135,15 +135,14 @@ fn get_essential_features(
     is_time_constrained: bool,
 ) -> Result<Vec<Feature>, GenericError> {
     Ok(vec![
-        create_minimize_unassigned_jobs_feature("min_unassigned", Arc::new(|_, _| 1.))?,
+        MinimizeUnassignedBuilder::new("min_unassigned").build()?,
         create_minimize_tours_feature("min_tours")?,
         TransportFeatureBuilder::new("min_distance")
-            .set_violation_code(1)
             .set_constrained(is_time_constrained)
-            .set_transport(transport)
-            .set_activity(activity)
+            .set_transport_cost(transport)
+            .set_activity_cost(activity)
             .build_minimize_distance()?,
-        create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
+        CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").build()?,
     ])
 }
 

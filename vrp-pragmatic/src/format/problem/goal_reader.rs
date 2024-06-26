@@ -98,18 +98,18 @@ fn get_objective_features(
                 .map(|objective| match objective {
                     Objective::MinimizeCost => TransportFeatureBuilder::new("min_cost")
                         .set_violation_code(TIME_CONSTRAINT_CODE)
-                        .set_transport(blocks.transport.clone())
-                        .set_activity(blocks.activity.clone())
+                        .set_transport_cost(blocks.transport.clone())
+                        .set_activity_cost(blocks.activity.clone())
                         .build_minimize_cost(),
                     Objective::MinimizeDistance => TransportFeatureBuilder::new("min_distance")
                         .set_violation_code(TIME_CONSTRAINT_CODE)
-                        .set_transport(blocks.transport.clone())
-                        .set_activity(blocks.activity.clone())
+                        .set_transport_cost(blocks.transport.clone())
+                        .set_activity_cost(blocks.activity.clone())
                         .build_minimize_distance(),
                     Objective::MinimizeDuration => TransportFeatureBuilder::new("min_duration")
                         .set_violation_code(TIME_CONSTRAINT_CODE)
-                        .set_transport(blocks.transport.clone())
-                        .set_activity(blocks.activity.clone())
+                        .set_transport_cost(blocks.transport.clone())
+                        .set_activity_cost(blocks.activity.clone())
                         .build_minimize_duration(),
                     Objective::MinimizeTours => create_minimize_tours_feature("min_tours"),
                     Objective::MaximizeTours => create_maximize_tours_feature("max_tours"),
@@ -139,9 +139,8 @@ fn get_objective_features(
                         }),
                         -1,
                     ),
-                    Objective::MinimizeUnassigned { breaks } => create_minimize_unassigned_jobs_feature(
-                        "min_unassigned",
-                        Arc::new({
+                    Objective::MinimizeUnassigned { breaks } => MinimizeUnassignedBuilder::new("min_unassigned")
+                        .set_job_estimator({
                             let break_value = *breaks;
                             let default_value = 1.;
                             move |_, job| {
@@ -157,8 +156,9 @@ fn get_objective_features(
                                     })
                                 }
                             }
-                        }),
-                    ),
+                        })
+                        .build(),
+
                     Objective::MinimizeArrivalTime => create_minimize_arrival_time_feature("min_arrival_time"),
                     Objective::BalanceMaxLoad { options } => {
                         if props.has_multi_dimen_capacity {
@@ -252,9 +252,9 @@ fn get_capacity_feature(
             })
         }
     } else if props.has_multi_dimen_capacity {
-        create_capacity_limit_feature::<MultiDimLoad>(name, CAPACITY_CONSTRAINT_CODE)
+        CapacityFeatureBuilder::<MultiDimLoad>::new(name).set_violation_code(CAPACITY_CONSTRAINT_CODE).build()
     } else {
-        create_capacity_limit_feature::<SingleDimLoad>(name, CAPACITY_CONSTRAINT_CODE)
+        CapacityFeatureBuilder::<SingleDimLoad>::new(name).set_violation_code(CAPACITY_CONSTRAINT_CODE).build()
     }
 }
 

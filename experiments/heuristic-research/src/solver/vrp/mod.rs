@@ -74,7 +74,11 @@ pub fn solve_vrp(
         dump_population: false,
     };
 
-    let config = create_default_config_builder(problem.clone(), environment.clone(), telemetry_mode.clone())
+    let config = VrpConfigBuilder::new(problem.clone())
+        .set_environment(environment.clone())
+        .set_telemetry_mode(telemetry_mode.clone())
+        .prebuild()
+        .expect("cannot prebuild vrp configuration")
         .with_max_generations(Some(generations))
         .with_context(RefinementContext::new(problem.clone(), population, telemetry_mode, environment))
         .build()

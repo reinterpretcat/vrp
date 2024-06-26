@@ -8,8 +8,8 @@ use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
 use vrp_core::rosomaxa::evolution::TelemetryMode;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
-use vrp_core::solver::{create_default_config_builder, create_elitism_population, Solver};
-use vrp_core::solver::{get_default_telemetry_mode, RefinementContext};
+use vrp_core::solver::RefinementContext;
+use vrp_core::solver::{create_elitism_population, Solver, VrpConfigBuilder};
 use vrp_core::utils::{Environment, GenericError, Parallelism};
 
 /// Runs solver with cheapest insertion heuristic.
@@ -56,15 +56,17 @@ pub fn solve(problem: Problem, matrices: Option<Vec<Matrix>>, generations: usize
     get_core_solution(problem, matrices, perform_check, |problem: Arc<CoreProblem>| {
         let environment =
             Arc::new(Environment { parallelism: Parallelism::new_with_cpus(AVAILABLE_CPUS), ..Environment::default() });
-        let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
 
-        create_default_config_builder(problem.clone(), environment, telemetry_mode)
+        VrpConfigBuilder::new(problem.clone())
+            .set_environment(environment)
+            .prebuild()
+            .expect("cannot prebuild vrp configuration")
             .with_max_generations(Some(generations))
             .build()
             .map(|config| Solver::new(problem, config))
-            .unwrap_or_else(|err| panic!("cannot build solver: {err}"))
+            .expect("cannot build solver")
             .solve()
-            .unwrap_or_else(|err| panic!("cannot solve the problem: {err}"))
+            .expect("cannot solve the problem")
     })
 }
 

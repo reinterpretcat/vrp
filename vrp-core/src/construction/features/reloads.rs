@@ -253,7 +253,10 @@ impl<T: LoadOps> ReloadFeatureFactory<T> {
         let violation_code = self.capacity_code.unwrap_or_default();
 
         // NOTE: all reload feature flavors extend the capacity feature via route intervals
-        create_capacity_limit_with_multi_trip_feature::<T>(self.name.as_str(), route_intervals, violation_code)
+        CapacityFeatureBuilder::<T>::new(self.name.as_str())
+            .set_violation_code(violation_code)
+            .set_route_intervals(route_intervals)
+            .build()
     }
 }
 

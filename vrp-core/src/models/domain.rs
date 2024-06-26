@@ -184,15 +184,15 @@ impl ProblemBuilder {
     /// Adds a transport distance/duration estimation logic. A typical implementation will normally
     /// wrap routing distance/duration matrices.
     /// A required field.
-    pub fn with_transport_cost<T: TransportCost + Send + Sync + 'static>(mut self, transport: T) -> Self {
-        self.transport = Some(Arc::new(transport));
+    pub fn with_transport_cost(mut self, transport: Arc<dyn TransportCost + Send + Sync>) -> Self {
+        self.transport = Some(transport);
         self
     }
 
     /// Adds an activity service time estimation logic.
     /// An optional field: [SimpleActivityCost] will be used by default.
-    pub fn with_activity_cost<T: ActivityCost + Send + Sync + 'static>(mut self, activity: T) -> Self {
-        self.activity = Some(Arc::new(activity));
+    pub fn with_activity_cost(mut self, activity: Arc<dyn ActivityCost + Send + Sync>) -> Self {
+        self.activity = Some(activity);
         self
     }
 

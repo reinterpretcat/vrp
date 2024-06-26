@@ -791,7 +791,7 @@ fn configure_from_environment(
 }
 
 /// Reads config from reader.
-pub fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, GenericError> {
+pub fn read_config<R: Read>(reader: BufReader<R>) -> GenericResult<Config> {
     serde_json::from_reader(reader).map_err(|err| format!("cannot deserialize config: '{err}'").into())
 }
 
@@ -800,7 +800,7 @@ pub fn create_builder_from_config_file<R>(
     problem: Arc<Problem>,
     solutions: Vec<InsertionContext>,
     reader: BufReader<R>,
-) -> Result<ProblemConfigBuilder, GenericError>
+) -> GenericResult<ProblemConfigBuilder>
 where
     R: Read,
 {
@@ -812,11 +812,14 @@ pub fn create_builder_from_config(
     problem: Arc<Problem>,
     solutions: Vec<InsertionContext>,
     config: &Config,
-) -> Result<ProblemConfigBuilder, GenericError> {
+) -> GenericResult<ProblemConfigBuilder> {
     let environment =
         configure_from_environment(&config.environment, config.termination.as_ref().and_then(|t| t.max_time));
     let telemetry_mode = get_telemetry_mode(environment.clone(), &config.telemetry);
-    let mut builder = create_default_config_builder(problem.clone(), environment.clone(), telemetry_mode.clone())
+    let mut builder = VrpConfigBuilder::new(problem.clone())
+        .set_environment(environment.clone())
+        .set_telemetry_mode(telemetry_mode.clone())
+        .prebuild()?
         .with_init_solutions(solutions, None);
 
     builder =

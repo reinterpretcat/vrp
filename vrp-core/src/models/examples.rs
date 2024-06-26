@@ -1,4 +1,4 @@
-use crate::construction::features::capacity::*;
+use crate::construction::features::capacity::CapacityFeatureBuilder;
 use crate::construction::features::*;
 use crate::models::common::*;
 use crate::models::problem::*;
@@ -68,13 +68,13 @@ fn create_example_goal_ctx(
     activity: Arc<dyn ActivityCost + Sync + Send>,
 ) -> GenericResult<GoalContext> {
     let features = vec![
-        create_minimize_unassigned_jobs_feature("min_jobs", Arc::new(|_, _| 1.))?,
+        MinimizeUnassignedBuilder::new("min_jobs").build()?,
         create_minimize_tours_feature("min_tours")?,
         TransportFeatureBuilder::new("min_distance")
-            .set_transport(transport)
-            .set_activity(activity)
+            .set_transport_cost(transport)
+            .set_activity_cost(activity)
             .build_minimize_distance()?,
-        create_capacity_limit_feature::<SingleDimLoad>("capacity", 2)?,
+        CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").build()?,
     ];
 
     GoalContextBuilder::with_features(features)?

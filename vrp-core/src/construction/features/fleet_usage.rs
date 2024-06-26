@@ -7,7 +7,7 @@ mod fleet_usage_test;
 use super::*;
 
 /// Creates a feature to minimize used fleet size (affects amount of tours in solution).
-pub fn create_minimize_tours_feature(name: &str) -> Result<Feature, GenericError> {
+pub fn create_minimize_tours_feature(name: &str) -> GenericResult<Feature> {
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(FleetUsageObjective {
@@ -18,7 +18,7 @@ pub fn create_minimize_tours_feature(name: &str) -> Result<Feature, GenericError
 }
 
 /// Creates a feature to maximize used fleet size (affects amount of tours in solution).
-pub fn create_maximize_tours_feature(name: &str) -> Result<Feature, GenericError> {
+pub fn create_maximize_tours_feature(name: &str) -> GenericResult<Feature> {
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(FleetUsageObjective {
@@ -29,7 +29,7 @@ pub fn create_maximize_tours_feature(name: &str) -> Result<Feature, GenericError
 }
 
 /// Creates a feature to tries to minimize arrival time of used fleet.
-pub fn create_minimize_arrival_time_feature(name: &str) -> Result<Feature, GenericError> {
+pub fn create_minimize_arrival_time_feature(name: &str) -> GenericResult<Feature> {
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(FleetUsageObjective {

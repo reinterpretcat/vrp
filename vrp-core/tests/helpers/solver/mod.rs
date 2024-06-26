@@ -38,8 +38,8 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
                 .add_feature(
                     TransportFeatureBuilder::new("transport")
                         .set_violation_code(1)
-                        .set_transport(transport)
-                        .set_activity(activity)
+                        .set_transport_cost(transport)
+                        .set_activity_cost(activity)
                         .build_minimize_cost()
                         .unwrap(),
                 )
@@ -75,8 +75,8 @@ pub fn generate_matrix_routes_with_disallow_list(
                 .add_feature(
                     TransportFeatureBuilder::new("transport")
                         .set_violation_code(1)
-                        .set_transport(transport)
-                        .set_activity(activity)
+                        .set_transport_cost(transport)
+                        .set_activity_cost(activity)
                         .build_minimize_cost()
                         .unwrap(),
                 )

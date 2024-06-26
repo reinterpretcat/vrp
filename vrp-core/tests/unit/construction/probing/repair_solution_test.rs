@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::features::capacity::create_capacity_limit_feature;
+use crate::construction::features::capacity::CapacityFeatureBuilder;
 use crate::construction::features::*;
 use crate::helpers::construction::features::{create_simple_demand, create_simple_dynamic_demand};
 use crate::helpers::models::domain::TestGoalContextBuilder;
@@ -86,13 +86,13 @@ fn create_test_problem(
         .add_feature(
             TransportFeatureBuilder::new("transport")
                 .set_violation_code(1)
-                .set_transport(transport.clone())
-                .set_activity(activity.clone())
+                .set_transport_cost(transport.clone())
+                .set_activity_cost(activity.clone())
                 .build_minimize_cost()
                 .unwrap(),
         )
         .add_feature(create_locked_jobs_feature("locked_jobs", &fleet, locks.as_slice(), 4).unwrap())
-        .add_feature(create_capacity_limit_feature::<SingleDimLoad>("capacity", 5).unwrap())
+        .add_feature(CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").set_violation_code(5).build().unwrap())
         .with_objectives(&["transport"])
         .build();
 

@@ -95,6 +95,24 @@ impl<T: LoadOps> Add for Demand<T> {
     }
 }
 
+impl Demand<SingleDimLoad> {
+    /// Creates a normal (static) pickup demand.
+    pub fn pickup(value: i32) -> Self {
+        Self {
+            pickup: (SingleDimLoad::new(value), SingleDimLoad::default()),
+            delivery: (SingleDimLoad::default(), SingleDimLoad::default()),
+        }
+    }
+
+    /// Creates a normal (static) delivery demand.
+    pub fn delivery(value: i32) -> Self {
+        Self {
+            pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
+            delivery: (SingleDimLoad::new(value), SingleDimLoad::default()),
+        }
+    }
+}
+
 /// Specifies single dimensional load type.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SingleDimLoad {

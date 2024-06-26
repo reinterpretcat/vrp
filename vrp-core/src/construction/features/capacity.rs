@@ -29,39 +29,57 @@ pub trait JobDemandDimension {
     fn get_job_demand<T: LoadOps>(&self) -> Option<&Demand<T>>;
 }
 
-/// Creates capacity feature as a hard constraint with multi trip functionality as a soft constraint.
-pub fn create_capacity_limit_with_multi_trip_feature<T>(
-    name: &str,
-    route_intervals: RouteIntervals,
-    violation_code: ViolationCode,
-) -> Result<Feature, GenericError>
-where
-    T: LoadOps,
-{
-    create_multi_trip_feature(
-        name,
-        violation_code,
-        MarkerInsertionPolicy::Last,
-        Arc::new(CapacitatedMultiTrip::<T> { route_intervals, violation_code, phantom: Default::default() }),
-    )
+/// Provides a way to build capacity limit feature.
+pub struct CapacityFeatureBuilder<T: LoadOps> {
+    name: String,
+    route_intervals: Option<RouteIntervals>,
+    violation_code: Option<ViolationCode>,
+    phantom_data: PhantomData<T>,
 }
 
-/// Creates capacity feature as a hard constraint.
-pub fn create_capacity_limit_feature<T>(name: &str, violation_code: ViolationCode) -> Result<Feature, GenericError>
-where
-    T: LoadOps,
-{
-    // TODO theoretically, the code can be easily refactored to get opt-out from no-op multi-trip runtime overhead here
-    create_multi_trip_feature(
-        name,
-        violation_code,
-        MarkerInsertionPolicy::Last,
-        Arc::new(CapacitatedMultiTrip::<T> {
-            route_intervals: RouteIntervals::Single,
-            violation_code,
-            phantom: Default::default(),
-        }),
-    )
+impl<T: LoadOps> CapacityFeatureBuilder<T> {
+    /// Creates a new instance of `CapacityFeatureBuilder`
+    pub fn new(name: &str) -> Self {
+        Self { name: name.to_string(), route_intervals: None, violation_code: None, phantom_data: Default::default() }
+    }
+
+    /// Sets constraint violation code which is used to report back the reason of job's unassignment.
+    pub fn set_violation_code(mut self, violation_code: ViolationCode) -> Self {
+        self.violation_code = Some(violation_code);
+        self
+    }
+
+    /// Sets route intervals to trigger multi trip behavior (used with reload flavors).
+    pub fn set_route_intervals(mut self, route_intervals: RouteIntervals) -> Self {
+        self.route_intervals = Some(route_intervals);
+        self
+    }
+
+    /// Builds a feature.
+    pub fn build(self) -> GenericResult<Feature> {
+        let name = self.name.as_str();
+        let violation_code = self.violation_code.unwrap_or_default();
+
+        if let Some(route_intervals) = self.route_intervals {
+            create_multi_trip_feature(
+                name,
+                violation_code,
+                MarkerInsertionPolicy::Last,
+                Arc::new(CapacitatedMultiTrip::<T> { route_intervals, violation_code, phantom: Default::default() }),
+            )
+        } else {
+            create_multi_trip_feature(
+                name,
+                violation_code,
+                MarkerInsertionPolicy::Last,
+                Arc::new(CapacitatedMultiTrip::<T> {
+                    route_intervals: RouteIntervals::Single,
+                    violation_code,
+                    phantom: Default::default(),
+                }),
+            )
+        }
+    }
 }
 
 impl<T> FeatureConstraint for CapacitatedMultiTrip<T>

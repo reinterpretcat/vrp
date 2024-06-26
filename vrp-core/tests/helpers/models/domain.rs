@@ -22,8 +22,8 @@ impl TestGoalContextBuilder {
             .add_feature(
                 TransportFeatureBuilder::new("transport")
                     .set_violation_code(1)
-                    .set_transport(TestTransportCost::new_shared())
-                    .set_activity(TestActivityCost::new_shared())
+                    .set_transport_cost(TestTransportCost::new_shared())
+                    .set_activity_cost(TestActivityCost::new_shared())
                     .build_minimize_cost()
                     .unwrap(),
             )

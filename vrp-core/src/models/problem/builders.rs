@@ -1,6 +1,6 @@
 //! Provides a way to build some of the core models using the builder pattern.
 
-use crate::construction::features::capacity::JobDemandDimension;
+use crate::construction::features::capacity::{JobDemandDimension, VehicleCapacityDimension};
 use crate::models::common::{Cost, Demand, Dimensions, Duration, LoadOps, Location, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::{
     Costs, Job, JobIdDimension, JobPermutation, Multi, Place, Single, Vehicle, VehicleDetail, VehicleIdDimension,
@@ -46,9 +46,10 @@ impl SingleBuilder {
     }
 
     /// A simple api to set location of the first place.
+    /// Normally, location is represented as an index in routing matrix.
     /// Fails if used with more than one place, creates a new place if no places are specified.
-    pub fn location(mut self, loc: Option<Location>) -> GenericResult<Self> {
-        self.ensure_single_place()?.location = loc;
+    pub fn location(mut self, location: Location) -> GenericResult<Self> {
+        self.ensure_single_place()?.location = Some(location);
         Ok(self)
     }
 
@@ -234,6 +235,12 @@ impl VehicleBuilder {
         self
     }
 
+    /// Sets a vehicle capacity dimension.
+    pub fn capacity<T: LoadOps>(mut self, value: T) -> Self {
+        self.0.dimens.set_vehicle_capacity(value);
+        self
+    }
+
     /// A simple api to associate arbitrary property within the vehicle.
     pub fn dimension(mut self, func: impl FnOnce(&mut Dimensions)) -> Self {
         func(&mut self.0.dimens);
@@ -243,7 +250,7 @@ impl VehicleBuilder {
     /// Builds a [Vehicle].
     pub fn build(self) -> GenericResult<Vehicle> {
         if self.0.details.is_empty() {
-            Err("at least one vehicle detail needs to be add, use `VehicleDetailBuilder` and `add_detail` function"
+            Err("at least one vehicle detail needs to be added, use `VehicleDetailBuilder` and `add_detail` function"
                 .into())
         } else {
             Ok(self.0)
@@ -297,5 +304,14 @@ impl VehicleDetailBuilder {
             self.0.end = Some(VehiclePlace { location: 0, time: Default::default() });
         }
         self.0.end.as_mut().unwrap()
+    }
+
+    /// Builds vehicle detail.
+    pub fn build(self) -> GenericResult<VehicleDetail> {
+        if self.0.start.is_none() {
+            Err("start place must be defined for vehicle detail".into())
+        } else {
+            Ok(self.0)
+        }
     }
 }

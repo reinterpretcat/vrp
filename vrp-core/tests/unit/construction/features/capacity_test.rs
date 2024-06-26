@@ -11,7 +11,7 @@ use crate::models::solution::Activity;
 const VIOLATION_CODE: ViolationCode = 2;
 
 fn create_feature() -> Feature {
-    create_capacity_limit_feature::<SingleDimLoad>("capacity", VIOLATION_CODE).unwrap()
+    CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").set_violation_code(VIOLATION_CODE).build().unwrap()
 }
 
 fn create_test_vehicle(capacity: i32) -> Vehicle {

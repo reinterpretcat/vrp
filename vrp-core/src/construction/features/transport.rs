@@ -45,14 +45,14 @@ impl TransportFeatureBuilder {
     }
 
     /// Sets transport costs to estimate distance.
-    pub fn set_transport(mut self, transport: Arc<dyn TransportCost + Send + Sync>) -> Self {
+    pub fn set_transport_cost(mut self, transport: Arc<dyn TransportCost + Send + Sync>) -> Self {
         self.transport = Some(transport);
         self
     }
 
     /// Sets activity costs to estimate job start/end time.
     /// If omitted, then [SimpleActivityCost] is used by default.
-    pub fn set_activity(mut self, activity: Arc<dyn ActivityCost + Send + Sync>) -> Self {
+    pub fn set_activity_cost(mut self, activity: Arc<dyn ActivityCost + Send + Sync>) -> Self {
         self.activity = Some(activity);
         self
     }
