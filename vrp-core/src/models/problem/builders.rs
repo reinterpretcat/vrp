@@ -27,6 +27,12 @@ impl SingleBuilder {
         self
     }
 
+    /// Adds new places to single job's `places` collection.
+    pub fn add_places(mut self, places: impl Iterator<Item = Place>) -> Self {
+        self.0.places.extend(places);
+        self
+    }
+
     /// Sets a job id dimension.
     pub fn id(mut self, id: &str) -> Self {
         self.0.dimens.set_job_id(id.to_string());

@@ -28,37 +28,22 @@ impl TransportCost for ExampleTransportCost {
 }
 
 /// Creates an example jobs used in documentation tests.
-fn create_example_jobs(fleet: &Fleet, transport: &(dyn TransportCost + Sync + Send)) -> Arc<Jobs> {
-    Arc::new(Jobs::new(
-        fleet,
-        vec![Job::Single(Arc::new(Single {
-            places: vec![Place {
-                location: Some(1),
-                duration: 0.0,
-                times: vec![TimeSpan::Window(TimeWindow::new(0., 100.))],
-            }],
-            dimens: Default::default(),
-        }))],
-        transport,
-    ))
+fn create_example_jobs() -> GenericResult<Vec<Job>> {
+    Ok(vec![SingleBuilder::default()
+        .location(1)?
+        .times(vec![TimeWindow::new(0., 100.)])?
+        .demand(Demand::delivery(1))
+        .build_as_job()?])
 }
 
-/// Creates an example fleet used in documentation tests.
-fn create_example_fleet() -> Arc<Fleet> {
-    let drivers = vec![Arc::new(Driver::empty())];
-    let mut vehicle_dimens = Dimensions::default();
-    vehicle_dimens.set_vehicle_id("v1".to_string());
-    let vehicles = vec![Arc::new(Vehicle {
-        profile: Profile::default(),
-        costs: Costs { fixed: 0., per_distance: 1., per_driving_time: 0., per_waiting_time: 0., per_service_time: 0. },
-        dimens: vehicle_dimens,
-        details: vec![VehicleDetail {
-            start: Some(VehiclePlace { location: 0, time: TimeInterval::default() }),
-            end: None,
-        }],
-    })];
-
-    Arc::new(Fleet::new(drivers, vehicles, |_| |_| 0))
+/// Creates an example vehicles used in documentation tests.
+fn create_example_vehicles() -> GenericResult<Vec<Vehicle>> {
+    Ok(vec![VehicleBuilder::default()
+        .id("v1")
+        .set_distance_cost(1.)
+        .capacity(SingleDimLoad::new(2))
+        .add_detail(VehicleDetailBuilder::default().set_start_location(0).build()?)
+        .build()?])
 }
 
 /// Creates and example VRP goal: CVRPTW.
@@ -81,21 +66,24 @@ fn create_example_goal_ctx(
         .build()
 }
 
-/// Creates an example problem used in documentation tests.
-pub fn create_example_problem() -> Arc<Problem> {
+pub fn build_example_problem() -> GenericResult<Arc<Problem>> {
     let activity: Arc<dyn ActivityCost + Sync + Send> = Arc::new(SimpleActivityCost::default());
     let transport: Arc<dyn TransportCost + Sync + Send> = Arc::new(ExampleTransportCost {});
-    let fleet = create_example_fleet();
-    let jobs = create_example_jobs(&fleet, transport.as_ref());
-    let goal = create_example_goal_ctx(transport.clone(), activity.clone()).unwrap();
+    let vehicles = create_example_vehicles()?;
+    let jobs = create_example_jobs()?;
+    let goal = create_example_goal_ctx(transport.clone(), activity.clone())?;
 
-    Arc::new(Problem {
-        fleet,
-        jobs,
-        locks: vec![],
-        goal: Arc::new(goal),
-        activity,
-        transport,
-        extras: Arc::new(Extras::default()),
-    })
+    ProblemBuilder::default()
+        .add_jobs(jobs.into_iter())
+        .add_vehicles(vehicles.into_iter())
+        .with_transport_cost(transport)
+        .with_activity_cost(activity)
+        .with_goal(goal)
+        .build()
+        .map(Arc::new)
+}
+
+/// Creates an example problem used in documentation tests.
+pub fn create_example_problem() -> Arc<Problem> {
+    build_example_problem().expect("cannot build example problem")
 }

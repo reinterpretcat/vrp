@@ -29,7 +29,7 @@ fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost + Send + S
             SingleBuilder::default()
                 .id(format!("job_{idx}").as_str())
                 // each job is delivery job with demand=1
-                .demand::<SingleDimLoad>(Demand::delivery(1))
+                .demand(Demand::delivery(1))
                 // job has location, which is an index in routing matrix
                 .location(idx)?
                 .build_as_job()
