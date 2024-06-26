@@ -10,7 +10,10 @@ use std::sync::Arc;
 mod breaks;
 pub use self::breaks::*;
 
-pub mod capacity;
+mod capacity;
+pub use self::capacity::{
+    CapacityFeatureBuilder, JobDemandDimension, MaxVehicleLoadTourState, VehicleCapacityDimension,
+};
 
 mod compatibility;
 pub use self::compatibility::{create_compatibility_feature, JobCompatibilityDimension};

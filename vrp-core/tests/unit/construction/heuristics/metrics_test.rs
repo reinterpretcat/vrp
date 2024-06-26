@@ -1,5 +1,5 @@
 use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState};
-use crate::construction::features::capacity::MaxVehicleLoadTourState;
+use crate::construction::features::MaxVehicleLoadTourState;
 use crate::construction::heuristics::*;
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::solution::RouteContextBuilder;

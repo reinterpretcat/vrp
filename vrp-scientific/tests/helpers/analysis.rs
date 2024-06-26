@@ -1,4 +1,4 @@
-use vrp_core::construction::features::capacity::{JobDemandDimension, VehicleCapacityDimension};
+use vrp_core::construction::features::{JobDemandDimension, VehicleCapacityDimension};
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, JobIdDimension};

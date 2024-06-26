@@ -10,8 +10,7 @@ use crate::Location as ApiLocation;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use vrp_core::construction::enablers::create_typed_actor_groups;
-use vrp_core::construction::features::capacity::VehicleCapacityDimension;
-use vrp_core::construction::features::VehicleSkillsDimension;
+use vrp_core::construction::features::{VehicleCapacityDimension, VehicleSkillsDimension};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 

@@ -7,7 +7,7 @@ use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::CoordIndex;
 use vrp_core::construction::enablers::{get_route_intervals, ReservedTimesIndex};
-use vrp_core::construction::features::capacity::JobDemandDimension;
+use vrp_core::construction::features::JobDemandDimension;
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{JobIdDimension, Multi, TravelTime, VehicleIdDimension};

@@ -5,7 +5,7 @@ mod reader_test;
 use crate::common::*;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::construction::features::capacity::JobDemandDimension;
+use vrp_core::construction::features::JobDemandDimension;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::*;

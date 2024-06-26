@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use std::ops::Mul;
 use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
 use vrp_core::construction::enablers::FeatureCombinator;
-use vrp_core::construction::features::capacity::*;
 use vrp_core::construction::features::*;
 use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Single, TransportCost};

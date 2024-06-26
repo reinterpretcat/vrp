@@ -1,22 +1,21 @@
-//! This module reimports a common used types.
+//! This module reimports commonly used types.
 
 // Reimport core types
-pub use crate::solver::Solver;
-pub use crate::solver::VrpConfigBuilder;
+pub use crate::solver::{Solver, VrpConfigBuilder};
 
-pub use crate::models::problem::ActivityCost;
-pub use crate::models::problem::Fleet;
-pub use crate::models::problem::Jobs;
-pub use crate::models::problem::TransportCost;
-pub use crate::models::Solution;
-pub use crate::models::{GoalContext, GoalContextBuilder, Problem, ProblemBuilder};
+pub use crate::construction::features::{CapacityFeatureBuilder, MinimizeUnassignedBuilder, TransportFeatureBuilder};
 
-pub use rosomaxa::evolution::EvolutionConfigBuilder;
+pub use crate::models::{
+    common::{Demand, SingleDimLoad},
+    problem::{
+        ActivityCost, Fleet, Jobs, SimpleTransportCost, SingleBuilder, TransportCost, VehicleBuilder,
+        VehicleDetailBuilder,
+    },
+    {GoalContext, GoalContextBuilder, Problem, ProblemBuilder, Solution},
+};
 
-// Reimport rosomaxa utils
-pub use rosomaxa::utils::compare_floats;
-pub use rosomaxa::utils::DefaultRandom;
-pub use rosomaxa::utils::Environment;
-pub use rosomaxa::utils::InfoLogger;
-pub use rosomaxa::utils::Random;
-pub use rosomaxa::utils::{GenericError, GenericResult};
+// Reimport rosomaxa types
+pub use rosomaxa::{
+    evolution::EvolutionConfigBuilder,
+    utils::{compare_floats, DefaultRandom, Environment, GenericError, GenericResult, InfoLogger, Random},
+};

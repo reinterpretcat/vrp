@@ -1,6 +1,6 @@
 //! Provides a way to build some of the core models using the builder pattern.
 
-use crate::construction::features::capacity::{JobDemandDimension, VehicleCapacityDimension};
+use crate::construction::features::{JobDemandDimension, VehicleCapacityDimension};
 use crate::models::common::{Cost, Demand, Dimensions, Duration, LoadOps, Location, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::{
     Costs, Job, JobIdDimension, JobPermutation, Multi, Place, Single, Vehicle, VehicleDetail, VehicleIdDimension,

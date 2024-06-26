@@ -1,5 +1,4 @@
 use super::*;
-use crate::construction::features::capacity::CapacityFeatureBuilder;
 use crate::construction::features::*;
 use crate::helpers::construction::features::{create_simple_demand, create_simple_dynamic_demand};
 use crate::helpers::models::domain::TestGoalContextBuilder;

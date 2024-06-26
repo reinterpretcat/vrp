@@ -1,4 +1,4 @@
-use crate::construction::features::capacity::JobDemandDimension;
+use crate::construction::features::JobDemandDimension;
 use crate::models::common::*;
 use crate::models::problem::{FixedJobPermutation, Job, JobIdDimension, Multi, Place, Single};
 use std::sync::Arc;

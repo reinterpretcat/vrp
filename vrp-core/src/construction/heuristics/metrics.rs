@@ -3,7 +3,7 @@
 mod metrics_test;
 
 use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState, WaitingTimeActivityState};
-use crate::construction::features::capacity::MaxVehicleLoadTourState;
+use crate::construction::features::MaxVehicleLoadTourState;
 use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState};
 use crate::models::problem::{TransportCost, TravelTime};
 use rosomaxa::algorithms::math::*;

@@ -3,8 +3,7 @@ use crate::helpers::*;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
-use vrp_core::construction::features::capacity::JobDemandDimension;
-use vrp_core::construction::features::{JobSkillsDimension, VehicleSkillsDimension};
+use vrp_core::construction::features::{JobDemandDimension, JobSkillsDimension, VehicleSkillsDimension};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{JobIdDimension, Jobs, Multi, Place, Single, VehicleIdDimension};
 

@@ -1,4 +1,4 @@
-use crate::construction::features::capacity::VehicleCapacityDimension;
+use crate::construction::features::VehicleCapacityDimension;
 use crate::models::common::*;
 use crate::models::problem::*;
 use std::collections::{HashMap, HashSet};

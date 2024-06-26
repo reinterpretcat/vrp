@@ -5,14 +5,17 @@ use crate::format::{JobIndex, Location};
 use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
 use std::sync::Arc;
-use vrp_core::construction::features::capacity::JobDemandDimension;
-use vrp_core::construction::features::{BreakPolicy, JobCompatibilityDimension, JobSkillsDimension};
-use vrp_core::construction::features::{JobGroupDimension, JobSkills as FeatureJobSkills};
-use vrp_core::models::common::*;
-use vrp_core::models::problem::{
-    Actor, Fleet, Job, JobIdDimension, Jobs, Multi, Place, Single, TransportCost, VehicleIdDimension,
+use vrp_core::{
+    construction::features::{
+        BreakPolicy, JobCompatibilityDimension, JobDemandDimension, JobGroupDimension, JobSkills as FeatureJobSkills,
+        JobSkillsDimension,
+    },
+    models::common::*,
+    models::problem::{
+        Actor, Fleet, Job, JobIdDimension, Jobs, Multi, Place, Single, TransportCost, VehicleIdDimension,
+    },
+    models::{Lock, LockDetail, LockOrder, LockPosition},
 };
-use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
 
 // TODO configure sample size
 const MULTI_JOB_SAMPLE_SIZE: usize = 3;

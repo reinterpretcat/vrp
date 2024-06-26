@@ -1,5 +1,4 @@
 use super::*;
-use crate::construction::features::capacity::CapacityFeatureBuilder;
 use crate::construction::features::*;
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::TestGoalContextBuilder;

@@ -1,4 +1,3 @@
-use crate::construction::features::capacity::CapacityFeatureBuilder;
 use crate::construction::features::*;
 use crate::models::common::*;
 use crate::models::problem::*;
