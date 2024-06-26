@@ -105,5 +105,10 @@ fn main() -> GenericResult<()> {
     assert_eq!(solution.routes.len(), 2, "two tours are expected");
     assert_eq!(solution.cost, 2135., "unexpected cost (total distance traveled)");
 
+    println!(
+        "\nIn solution, locations are visited in the following order:\n{:?}\n",
+        solution.get_locations().map(Iterator::collect::<Vec<_>>).collect::<Vec<_>>()
+    );
+
     Ok(())
 }

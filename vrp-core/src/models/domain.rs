@@ -1,5 +1,5 @@
 use crate::construction::heuristics::UnassignmentInfo;
-use crate::models::common::Cost;
+use crate::models::common::{Cost, Location};
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
 use crate::models::*;
@@ -237,5 +237,12 @@ impl ProblemBuilder {
         let jobs = Arc::new(Jobs::new(fleet.as_ref(), self.jobs, transport.as_ref()));
 
         Ok(Problem { fleet, jobs, locks: vec![], goal, activity, transport, extras })
+    }
+}
+
+impl Solution {
+    /// Iterates through all tours and returns locations of each activity in the order they are visited.
+    pub fn get_locations(&self) -> impl Iterator<Item = impl Iterator<Item = Location> + '_> + '_ {
+        self.routes.iter().map(|route| route.tour.all_activities().map(|activity| activity.place.location))
     }
 }

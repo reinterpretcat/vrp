@@ -216,40 +216,6 @@ impl InitialOperator for RecreateInitialOperator {
 
 /// Solves a Vehicle Routing Problem and returns a _(solution, its cost)_ pair in case of success
 /// or error description, if solution cannot be found.
-///
-/// A newly created builder instance is pre-configured with some reasonable defaults for mid-size
-/// problems (~200), so there is no need to call any of its methods.
-///
-///
-/// # Examples
-///
-/// This example shows how to construct default configuration for the solver, override some of default
-/// metaheuristic parameters using fluent interface methods, and run the solver:
-///
-/// ```
-/// # use vrp_core::models::examples::create_example_problem;
-/// # use vrp_core::solver::get_default_telemetry_mode;
-/// # use std::sync::Arc;
-/// use vrp_core::prelude::*;
-///
-/// // create your VRP problem
-/// let problem: Arc<Problem> = create_example_problem();
-/// let environment = Arc::new(Environment::new_with_time_quota(Some(60)));
-/// let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
-/// // build solver config using pre-build builder with defaults and then override some parameters
-/// let config = create_default_config_builder(problem.clone(), environment, telemetry_mode)
-///     .with_max_time(Some(60))
-///     .with_max_generations(Some(100))
-///     .build()?;
-///
-/// // run solver and get the best known solution.
-/// let solution = Solver::new(problem, config).solve()?;
-///
-/// assert_eq!(solution.cost, 42.);
-/// assert_eq!(solution.routes.len(), 1);
-/// assert_eq!(solution.unassigned.len(), 0);
-/// # Ok::<(), GenericError>(())
-/// ```
 pub struct Solver {
     problem: Arc<Problem>,
     config: EvolutionConfig<RefinementContext, GoalContext, InsertionContext>,

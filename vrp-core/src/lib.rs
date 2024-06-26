@@ -70,24 +70,25 @@
 //!
 //! # Examples
 //!
-//! The most simple way to run solver is to use `Builder`. You can tweak metaheuristic parameters by
-//! calling corresponding methods of the builder instance:
+//! Detailed examples for some of the VRP variants can be found in `examples` folder.
+//!
+//! Here, the example shows how to construct default configuration for the solver, override some
+//! of the default metaheuristic parameters using fluent interface methods, and run the solver:
 //!
 //! ```
 //! # use vrp_core::models::examples::create_example_problem;
-//! # use vrp_core::solver::get_default_telemetry_mode;
 //! # use std::sync::Arc;
 //! use vrp_core::prelude::*;
 //!
 //! // create your VRP problem
-//! let problem = create_example_problem();
-//! let environment = Arc::new(Environment::new_with_time_quota(Some(10)));
-//! let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
-//! // build solver config to run 10 secs or 1000 generation
-//! let config = create_default_config_builder(problem.clone(), environment, telemetry_mode)
-//!     .with_max_time(Some(10))
-//!     .with_max_generations(Some(10))
+//! let problem: Arc<Problem> = create_example_problem();
+//! // build solver config using pre-build builder with defaults and then override some parameters
+//! let config = VrpConfigBuilder::new(problem.clone())
+//!     .prebuild()?
+//!     .with_max_time(Some(60))
+//!     .with_max_generations(Some(100))
 //!     .build()?;
+//!
 //! // run solver and get the best known solution.
 //! let solution = Solver::new(problem, config).solve()?;
 //!

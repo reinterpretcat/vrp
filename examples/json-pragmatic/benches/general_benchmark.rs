@@ -3,12 +3,10 @@ use std::fs::File;
 use std::io::BufReader;
 use std::sync::Arc;
 use vrp_pragmatic::core::construction::heuristics::InsertionContext;
-use vrp_pragmatic::core::models::Solution;
-use vrp_pragmatic::core::prelude::{create_default_config_builder, Problem, Solver};
+use vrp_pragmatic::core::prelude::*;
 use vrp_pragmatic::core::rosomaxa::evolution::TelemetryMode;
 use vrp_pragmatic::core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_pragmatic::core::solver::{create_elitism_population, RefinementContext};
-use vrp_pragmatic::core::utils::Environment;
 use vrp_pragmatic::format::problem::PragmaticProblem;
 
 fn get_problem(problem_path: &str) -> Arc<Problem> {
@@ -20,17 +18,20 @@ fn get_problem(problem_path: &str) -> Arc<Problem> {
     )
 }
 
-/// Runs solver with specific amount of generations. It involves some non-determenism.
+/// Runs solver with specific number of generations. It involves some non-determenism.
 fn solve_problem_with_max_generations(problem_path: &str, generations: usize) -> Solution {
     let problem = get_problem(problem_path);
 
-    create_default_config_builder(problem.clone(), Arc::new(Environment::default()), TelemetryMode::None)
+    VrpConfigBuilder::new(problem.clone())
+        .set_telemetry_mode(TelemetryMode::None)
+        .prebuild()
+        .expect("cannot prebuild configuration")
         .with_max_generations(Some(generations))
         .build()
         .map(|config| Solver::new(problem, config))
-        .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
+        .expect("cannot build solver")
         .solve()
-        .unwrap_or_else(|err| panic!("cannot solver problem: {}", err))
+        .expect("cannot solver problem: {}")
 }
 
 /// Solve problem using cheapest insertion heuristic and returns one solution.
