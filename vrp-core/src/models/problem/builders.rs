@@ -178,7 +178,8 @@ impl MultiBuilder {
 }
 
 fn empty_place() -> Place {
-    Place { location: None, duration: 0.0, times: vec![] }
+    // NOTE a time window must be present as it is expected in evaluator logic.
+    Place { location: None, duration: 0.0, times: vec![TimeSpan::Window(TimeWindow::max())] }
 }
 
 /// Provides a way to build a [Vehicle].
