@@ -1,17 +1,24 @@
 //! This module reimports commonly used types.
 
 // Reimport core types
-pub use crate::solver::{Solver, VrpConfigBuilder};
 
-pub use crate::construction::features::{CapacityFeatureBuilder, MinimizeUnassignedBuilder, TransportFeatureBuilder};
+pub use crate::construction::{
+    features::{CapacityFeatureBuilder, MinimizeUnassignedBuilder, TransportFeatureBuilder},
+    heuristics::{InsertionContext, MoveContext, RouteContext, RouteState, SolutionContext, SolutionState},
+};
+pub use crate::solver::{Solver, VrpConfigBuilder};
+pub use crate::{
+    custom_activity_state, custom_dimension, custom_extra_property, custom_solution_state, custom_tour_state,
+};
 
 pub use crate::models::{
-    common::{Demand, SingleDimLoad},
+    common::{Cost, Demand, Dimensions, SingleDimLoad},
     problem::{
-        ActivityCost, Fleet, Jobs, SimpleTransportCost, SingleBuilder, TransportCost, VehicleBuilder,
-        VehicleDetailBuilder,
+        ActivityCost, Fleet, Job, Jobs, MultiBuilder, SimpleTransportCost, SingleBuilder, TransportCost, Vehicle,
+        VehicleBuilder, VehicleDetailBuilder,
     },
-    {GoalContext, GoalContextBuilder, Problem, ProblemBuilder, Solution},
+    {ConstraintViolation, Feature, FeatureBuilder, FeatureConstraint, FeatureObjective, FeatureState, ViolationCode},
+    {Extras, GoalContext, GoalContextBuilder, Problem, ProblemBuilder, Solution},
 };
 
 // Reimport rosomaxa types

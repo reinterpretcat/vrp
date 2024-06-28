@@ -284,6 +284,14 @@ impl VehicleDetailBuilder {
     /// Sets earliest departure time for start location.
     pub fn set_start_time(mut self, earliest: Timestamp) -> Self {
         self.ensure_start().time.earliest = Some(earliest);
+        // NOTE disable departure time optimization
+        self.ensure_start().time.latest = Some(earliest);
+        self
+    }
+
+    /// Sets a latest departure time to enable departure time optimization (disabled implicitly with `set_start_time` call).
+    pub fn set_start_time_latest(mut self, latest: Timestamp) -> Self {
+        self.ensure_start().time.latest = Some(latest);
         self
     }
 

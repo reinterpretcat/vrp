@@ -1,33 +1,28 @@
 //! This example shows how to model Capacitated Vehicle Routing Problem (CVRP) variant where multiple vehicles
-//! of the same type are constrained only be their capacity.
+//! of the same type are constrained only be their capacity and job demand.
+//!
+//! Key points here:
+//! - how to create jobs, vehicles and define [Problem]
+//! - how to define a goal of optimization considering capacity/demand constraints and distance minimization
+//! - how to define routing matrix
+//! - how to compose all building blocks together
+//! - how to run the solver
+//!
+
+#[path = "./common/routing.rs"]
+mod common;
+use crate::common::define_routing_data;
 
 use std::sync::Arc;
 use vrp_core::prelude::*;
 
-fn define_routing_data() -> GenericResult<impl TransportCost + Send + Sync> {
-    // define distance/duration matrix (use same data for both)
-    // as we have five locations (4 for jobs, 1 for vehicle), we need to define 5x5 matrix, flatten to 1 dimension:
-    #[rustfmt::skip]
-    let routing_data = vec![
-     //  0     1     2     3     4
-        0.,  500., 520., 530., 540.,  // 0
-        500.,  0.,  30.,  40.,  50.,  // 1
-        520., 30.,   0.,  20.,  25.,  // 2
-        530., 40.,  20.,   0.,  15.,  // 3
-        540., 50.,  25.,  15.,   0.   // 4
-    ];
-    let (durations, distances) = (routing_data.clone(), routing_data);
-
-    SimpleTransportCost::new(durations, distances)
-}
-
-/// Specifies problem variant: 4 delivery jobs with demand=1 and 4 vehicles with capacity=2 in each.
+/// Specifies a CVRP problem variant: 4 delivery jobs with demand=1 and 4 vehicles with capacity=2 in each.
 fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult<Problem> {
     // create 4 jobs with location indices from 1 to 4
     let single_jobs = (1..=4)
         .map(|idx| {
             SingleBuilder::default()
-                .id(format!("job_{idx}").as_str())
+                .id(format!("job{idx}").as_str())
                 // each job is delivery job with demand=1
                 .demand(Demand::delivery(1))
                 // job has location, which is an index in routing matrix
@@ -86,25 +81,28 @@ fn define_goal(transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult
 }
 
 fn main() -> GenericResult<()> {
-    // specify CVRP variant as problem definition and goal of optimization
+    // get routing data, see `./common/routing.rs` for details
     let transport = Arc::new(define_routing_data()?);
+
+    // specify CVRP variant as problem definition and the goal of optimization
     let goal = define_goal(transport.clone())?;
     let problem = Arc::new(define_problem(goal, transport)?);
 
-    // build solver config with predefined settings to run 5 secs or 10 generations
+    // build a solver config with the predefined settings to run 5 secs or 10 generations at most
     let config = VrpConfigBuilder::new(problem.clone())
         .prebuild()?
         .with_max_time(Some(5))
         .with_max_generations(Some(10))
         .build()?;
 
-    // run solver and get the best known solution.
+    // run the VRP solver and get the best known solution
     let solution = Solver::new(problem, config).solve()?;
 
     assert!(solution.unassigned.is_empty(), "has unassigned jobs, but all jobs must be assigned");
     assert_eq!(solution.routes.len(), 2, "two tours are expected");
     assert_eq!(solution.cost, 2135., "unexpected cost (total distance traveled)");
 
+    // simple way to explore the solution, more advanced are available too
     println!(
         "\nIn solution, locations are visited in the following order:\n{:?}\n",
         solution.get_locations().map(Iterator::collect::<Vec<_>>).collect::<Vec<_>>()

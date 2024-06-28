@@ -104,11 +104,27 @@ impl Demand<SingleDimLoad> {
         }
     }
 
+    /// Creates a PUDO (dynamic) pickup demand.
+    pub fn pudo_pickup(value: i32) -> Self {
+        Self {
+            pickup: (SingleDimLoad::default(), SingleDimLoad::new(value)),
+            delivery: (SingleDimLoad::default(), SingleDimLoad::default()),
+        }
+    }
+
     /// Creates a normal (static) delivery demand.
     pub fn delivery(value: i32) -> Self {
         Self {
             pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
             delivery: (SingleDimLoad::new(value), SingleDimLoad::default()),
+        }
+    }
+
+    /// Creates a PUDO (dynamic) delivery demand.
+    pub fn pudo_delivery(value: i32) -> Self {
+        Self {
+            pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
+            delivery: (SingleDimLoad::default(), SingleDimLoad::new(value)),
         }
     }
 }

@@ -9,6 +9,13 @@ are already published. So, I stick to it for now.
 
 ## [Unreleased]
 
+This release focuses on refactorings to simplify code usage and overall maintainability.
+
+### Added
+
+* examples how to extend the library (`vrp-core/examples`)
+
+
 ### Removed
 
 * GitHub sponsors functionality

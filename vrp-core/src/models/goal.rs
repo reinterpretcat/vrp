@@ -318,7 +318,10 @@ pub trait FeatureConstraint: Send + Sync {
     /// Tries to merge two jobs taking into account common constraints.
     /// Returns a new job, if it is possible to merge them having a theoretically assignable
     /// job. Otherwise, returns violation error code.
-    fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode>;
+    /// Default implementation returns an error with default [ViolationCode].
+    fn merge(&self, _source: Job, _candidate: Job) -> Result<Job, ViolationCode> {
+        Err(ViolationCode::default())
+    }
 }
 
 /// Defines feature objective behavior.

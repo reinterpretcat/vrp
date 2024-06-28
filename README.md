@@ -11,7 +11,7 @@
 
 # Description
 
-This project provides the way to solve multiple variations of **Vehicle Routing Problem** known as rich VRP. It provides
+This project provides a way to solve multiple variations of **Vehicle Routing Problem** known as rich VRP. It provides
 custom hyper- and meta-heuristic implementations, shortly described [here](https://reinterpretcat.github.io/vrp/internals/index.html).
 
 If you use the project in academic work, please consider citing:
@@ -41,6 +41,8 @@ and full description of the usage is presented in [A Vehicle Routing Problem Sol
 
 Probably, the easiest way to learn how to use the solver, would be to play with [interactive tutorial](https://github.com/reinterpretcat/vrp/tree/master/examples/python-interop/tutorial.ipynb),
 written as jupyter notebook.
+
+See `vrp-core/examples` for basic code examples.
 
 # Installation
 
@@ -100,9 +102,11 @@ Once pulled the source code, you can build it using `cargo`:
 
     cargo build --release
 
-Built binaries can be found in the `./target/release` directory.
+Built binaries can be found in the `./target/release` directory and can be run using `vrp-cli` executable, e.g.:
 
-Alternatively, you can try to run the following script from the project root:
+    ./target/release/vrp-cli solve solomon examples/data/scientific/solomon/C101.100.txt --log
+
+Alternatively, you can try to run the following script from the project root (with `pragmatic` format only):
 
     ./solve_problem.sh examples/data/pragmatic/objectives/berlin.default.problem.json
 
@@ -112,9 +116,25 @@ stored in the folder where a problem definition is located.
 
 # Usage
 
-You can use vrp solver either from command line or from code:
+## Using from code
 
-## Use from command line
+If you're using rust, you have multiple options for how the project can be used:
+
+### Use customization capabilities
+
+The `vrp-core` provides API to compose a VRP formulation from various building blocks and even add your own. Start with
+basic `vrp-core/examples`, then check the user documentation and code for more details.
+
+### Use built-in formats
+
+You can use `vrp-scientific`, `vrp-pragmatic` crates to solve VRP problem defined in `pragmatic` or `scientific`
+format using default metaheuristic. Or you can use CLI interface for that (see below).
+
+If you're using some other language, e.g. java, kotlin, javascript, python, please check
+[interop](https://reinterpretcat.github.io/vrp/examples/interop/index.html) section in documentation examples to see how
+to call the library from it (currently, limited to `pragmatic` format).
+
+## Using from command line
 
 `vrp-cli` crate is designed to use on problems defined in scientific or custom json (aka `pragmatic`) format:
 
@@ -123,15 +143,6 @@ You can use vrp solver either from command line or from code:
 Please refer to [getting started](https://reinterpretcat.github.io/vrp/getting-started/index.html) section in
 the documentation for more details.
 
-## Use from code
-
-If you're using rust, then you can simply use `vrp-scientific`, `vrp-pragmatic` crates to solve VRP problem
-defined in `pragmatic` or `scientific` format using default metaheuristic. For more complex scenarios, please refer to
-`vrp-core` documentation.
-
-If you're using some other language, e.g. java, kotlin, javascript, python, please check
-[interop](https://reinterpretcat.github.io/vrp/examples/interop/index.html) section in documentation examples to see how
-to call the library from it.
 
 # Contribution policy
 
