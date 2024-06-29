@@ -30,6 +30,7 @@ impl TransportCost for ExampleTransportCost {
 /// Creates an example jobs used in documentation tests.
 fn create_example_jobs() -> GenericResult<Vec<Job>> {
     Ok(vec![SingleBuilder::default()
+        .id("job1")
         .location(1)?
         .times(vec![TimeWindow::new(0., 100.)])?
         .demand(Demand::delivery(1))
@@ -42,7 +43,14 @@ fn create_example_vehicles() -> GenericResult<Vec<Vehicle>> {
         .id("v1")
         .set_distance_cost(1.)
         .capacity(SingleDimLoad::new(2))
-        .add_detail(VehicleDetailBuilder::default().set_start_location(0).build()?)
+        .add_detail(
+            VehicleDetailBuilder::default()
+                .set_start_location(0)
+                .set_start_time(0.)
+                .set_end_location(0)
+                .set_end_time(1000.)
+                .build()?,
+        )
         .build()?])
 }
 
@@ -62,7 +70,7 @@ fn create_example_goal_ctx(
     ];
 
     GoalContextBuilder::with_features(features)?
-        .set_goal(&["min_jobs", "min_tours", "min_distance"], &["min_jobs", "min_tours", "min_distance"])?
+        .set_goal(&["min_jobs", "min_tours", "min_distance"], &["min_tours", "min_distance"])?
         .build()
 }
 

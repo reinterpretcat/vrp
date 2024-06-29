@@ -82,7 +82,7 @@ const COST_DIMENSION: usize = 6;
 /// A size of a cost array used by `InsertionCost`.
 type CostArray = [Cost; COST_DIMENSION];
 
-/// A hierarchical cost of job's insertion.
+/// A lexicographical cost of job's insertion.
 #[derive(Clone, Default)]
 pub struct InsertionCost {
     data: TinyVec<CostArray>,

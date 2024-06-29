@@ -20,14 +20,14 @@ use vrp_core::prelude::*;
 // a property for the job priority: true if it is a high prio job
 custom_dimension!(JobPriority typeof bool);
 // a state property to keep track of solution fitness for the priority feature
-custom_solution_state!(PriorityFitness typeof f64);
+custom_solution_state!(PriorityFitness typeof Cost);
 
 /// Provides a way to guide the search to achieve a goal of optimization considering priority jobs
 /// assignment as the most important aspect.
 struct PriorityObjective;
 
 impl FeatureObjective for PriorityObjective {
-    fn fitness(&self, solution: &InsertionContext) -> f64 {
+    fn fitness(&self, solution: &InsertionContext) -> Cost {
         // estimate global objective fitness: get the number of jobs with top priority in the solution
 
         let solution_ctx = &solution.solution;
@@ -75,7 +75,7 @@ fn estimate_job_cost(job: &Job) -> Cost {
 
 /// Estimates solution fitness: iterate over every inserted job in the solution,
 /// estimate the cost of its insertion and sum it.
-fn calculate_solution_fitness(solution_ctx: &SolutionContext) -> f64 {
+fn calculate_solution_fitness(solution_ctx: &SolutionContext) -> Cost {
     solution_ctx.routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).map(estimate_job_cost).sum::<Cost>()
 }
 

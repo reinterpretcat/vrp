@@ -1,5 +1,5 @@
 mod single {
-    use crate::models::common::{Load, SingleDimLoad};
+    use crate::models::common::{Demand, Load, SingleDimLoad};
 
     fn from_value(load: i32) -> SingleDimLoad {
         SingleDimLoad::new(load)
@@ -45,6 +45,36 @@ mod single {
 
         assert!(from_value(10).can_fit(&from_value(5)));
         assert!(!from_value(5).can_fit(&from_value(10)));
+    }
+
+    #[test]
+    fn can_use_pudo_simple_ctors() {
+        let pickup = Demand::pickup(1);
+        assert_eq!(pickup.pickup.0, SingleDimLoad::new(1));
+        assert_eq!(pickup.pickup.1, SingleDimLoad::default());
+        assert_eq!(pickup.delivery.0, SingleDimLoad::default());
+        assert_eq!(pickup.delivery.1, SingleDimLoad::default());
+
+        let dropoff = Demand::delivery(1);
+        assert_eq!(dropoff.pickup.0, SingleDimLoad::default());
+        assert_eq!(dropoff.pickup.1, SingleDimLoad::default());
+        assert_eq!(dropoff.delivery.0, SingleDimLoad::new(1));
+        assert_eq!(dropoff.delivery.1, SingleDimLoad::default());
+    }
+
+    #[test]
+    fn can_use_pudo_demand_ctors() {
+        let pickup = Demand::pudo_pickup(1);
+        assert_eq!(pickup.pickup.0, SingleDimLoad::default());
+        assert_eq!(pickup.pickup.1, SingleDimLoad::new(1));
+        assert_eq!(pickup.delivery.0, SingleDimLoad::default());
+        assert_eq!(pickup.delivery.1, SingleDimLoad::default());
+
+        let dropoff = Demand::pudo_delivery(1);
+        assert_eq!(dropoff.pickup.0, SingleDimLoad::default());
+        assert_eq!(dropoff.pickup.1, SingleDimLoad::default());
+        assert_eq!(dropoff.delivery.0, SingleDimLoad::default());
+        assert_eq!(dropoff.delivery.1, SingleDimLoad::new(1));
     }
 }
 
