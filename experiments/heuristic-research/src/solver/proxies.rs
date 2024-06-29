@@ -52,8 +52,9 @@ where
         if TypeId::of::<S>() == TypeId::of::<VectorSolution>() {
             // SAFETY: type id check above ensures that S-type is the right one
             let solution = unsafe { std::mem::transmute::<&S, &VectorSolution>(solution) };
+            let fitness = solution.fitness().next().expect("should have fitness");
             assert_eq!(solution.data.len(), 2);
-            return ObservationData::Function(DataPoint3D(solution.data[0], solution.fitness(), solution.data[1]));
+            return ObservationData::Function(DataPoint3D(solution.data[0], fitness, solution.data[1]));
         }
 
         if TypeId::of::<S>() == TypeId::of::<InsertionContext>() {

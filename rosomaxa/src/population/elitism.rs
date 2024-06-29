@@ -124,8 +124,8 @@ where
             random,
             max_population_size,
             selection_size,
-            Box::new(|objective, a, b| {
-                let distance = relative_distance(objective.fitness(a), objective.fitness(b));
+            Box::new(|_, a, b| {
+                let distance = relative_distance(a.fitness(), b.fitness());
                 distance < DEFAULT_DEDUP_FN_THRESHOLD
             }),
         )

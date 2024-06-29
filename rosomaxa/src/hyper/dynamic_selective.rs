@@ -413,9 +413,9 @@ where
         Ordering::Equal => return 0.,
     };
 
-    let idx = objective
-        .fitness(a)
-        .zip(objective.fitness(b))
+    let idx = a
+        .fitness()
+        .zip(b.fitness())
         .enumerate()
         .find(|(_, (fitness_a, fitness_b))| compare_floats_refs(fitness_a, fitness_b) != Ordering::Equal)
         .map(|(idx, _)| idx);
@@ -426,7 +426,7 @@ where
         return 0.;
     };
 
-    let total_objectives = objective.fitness(a).count();
+    let total_objectives = a.fitness().count();
     assert_ne!(total_objectives, 0, "cannot have an empty objective here");
     assert_ne!(total_objectives, idx, "cannot have the index equal to total amount of objectives");
     let priority_amplifier = (total_objectives - idx) as f64;

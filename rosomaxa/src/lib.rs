@@ -222,20 +222,14 @@ where
 
     fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: f64, generation_time: Timer) {
         let is_improved = self.population.add_all(offspring);
-        self.telemetry.on_generation(
-            self.objective.as_ref(),
-            self.population.as_ref(),
-            termination_estimate,
-            generation_time,
-            is_improved,
-        );
+        self.telemetry.on_generation(self.population.as_ref(), termination_estimate, generation_time, is_improved);
         self.population.on_generation(self.telemetry.get_statistics());
     }
 
     fn on_result(self) -> Result<(Box<DynHeuristicPopulation<O, S>>, Option<TelemetryMetrics>), GenericError> {
         let mut telemetry = self.telemetry;
 
-        telemetry.on_result(self.objective.as_ref(), self.population.as_ref());
+        telemetry.on_result(self.population.as_ref());
 
         Ok((self.population, telemetry.take_metrics()))
     }

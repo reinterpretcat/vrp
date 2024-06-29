@@ -16,9 +16,6 @@ pub trait HeuristicObjective: Send + Sync {
     /// This answers the question, is solution `a` better, equal or worse than solution `b`,
     /// according to the objective.
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering;
-
-    /// An objective fitness values for given `solution`.
-    fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a>;
 }
 
 /// Calculates dominance order of two solutions using ordering functions.

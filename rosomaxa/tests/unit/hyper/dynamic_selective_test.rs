@@ -1,6 +1,6 @@
 use super::*;
 use crate::example::{VectorContext, VectorObjective, VectorSolution};
-use crate::helpers::example::{create_default_heuristic_context, create_example_objective};
+use crate::helpers::example::create_default_heuristic_context;
 use std::ops::Range;
 use std::time::Duration;
 
@@ -32,7 +32,7 @@ fn can_estimate_median() {
     }
     let environment = Environment::default();
     let random = environment.random.clone();
-    let solution = VectorSolution::new(vec![0., 0.], create_example_objective());
+    let solution = VectorSolution::new(vec![0., 0.], 0., vec![0., 0.]);
     let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
         vec![
             (
@@ -75,8 +75,7 @@ fn can_estimate_reward_multiplier_impl(
     expected: f64,
 ) {
     let heuristic_ctx = create_default_heuristic_context();
-    let objective = create_example_objective();
-    let solution = VectorSolution::new(vec![], objective);
+    let solution = VectorSolution::new(vec![], 0., vec![]);
     let search_ctx = SearchContext {
         heuristic_ctx: &heuristic_ctx,
         from: SearchState::BestKnown,
@@ -117,10 +116,6 @@ fn can_handle_when_objective_lies() {
         fn total_order(&self, _: &Self::Solution, _: &Self::Solution) -> Ordering {
             // that is where it lies based on some non-fitness related factors for total order
             Ordering::Greater
-        }
-
-        fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
-            Box::new(solution.fitness())
         }
     }
 

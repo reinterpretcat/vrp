@@ -3,7 +3,7 @@ use crate::example::*;
 use crate::helpers::example::create_example_objective;
 
 fn get_best_fitness(population: &Greedy<VectorObjective, VectorSolution>) -> f64 {
-    population.ranked().next().unwrap().fitness()
+    population.ranked().next().unwrap().fitness().next().unwrap()
 }
 
 #[test]
@@ -11,15 +11,15 @@ fn can_keep_best_solution() {
     let objective = create_example_objective();
     let mut population = Greedy::<_, _>::new(objective.clone(), 1, None);
 
-    population.add(VectorSolution::new(vec![-1., -1.], objective.clone()));
+    population.add(VectorSolution::new_with_objective(vec![-1., -1.], objective.as_ref()));
     assert_eq!(population.size(), 1);
     assert_eq!(get_best_fitness(&population), 404.);
 
-    population.add(VectorSolution::new(vec![2., 2.], objective.clone()));
+    population.add(VectorSolution::new_with_objective(vec![2., 2.], objective.as_ref()));
     assert_eq!(population.size(), 1);
     assert_eq!(get_best_fitness(&population), 401.);
 
-    population.add(VectorSolution::new(vec![-2., -2.], objective));
+    population.add(VectorSolution::new_with_objective(vec![-2., -2.], objective.as_ref()));
     assert_eq!(population.size(), 1);
     assert_eq!(get_best_fitness(&population), 401.);
 }
@@ -36,7 +36,7 @@ fn can_format_empty_population() {
 #[test]
 fn can_format_filled_population() {
     let objective = create_example_objective();
-    let solution = VectorSolution::new(vec![-1., -1.], objective.clone());
+    let solution = VectorSolution::new_with_objective(vec![-1., -1.], objective.as_ref());
     let population = Greedy::<_, _>::new(objective, 1, Some(solution));
 
     let formatted = format!("{population}");
@@ -57,7 +57,7 @@ fn can_select_when_empty() {
 #[test]
 fn can_compare_individuals() {
     let objective = create_example_objective();
-    let create_individual = |data: Vec<f64>| VectorSolution::new(data, objective.clone());
+    let create_individual = |data: Vec<f64>| VectorSolution::new_with_objective(data, objective.as_ref());
     let population = Greedy::<_, _>::new(objective.clone(), 1, None);
 
     assert_eq!(population.cmp(&create_individual(vec![-1., -1.]), &create_individual(vec![-1., -1.])), Ordering::Equal);

@@ -352,10 +352,6 @@ impl HeuristicObjective for GoalContext {
             })
             .unwrap_value()
     }
-
-    fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(self.global_objectives.iter().map(|o| o.fitness(solution)))
-    }
 }
 
 impl Shuffled for GoalContext {
@@ -437,6 +433,11 @@ impl GoalContext {
     /// Estimates insertion cost (penalty) of the refinement move.
     pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> InsertionCost {
         self.local_objectives.iter().map(|objective| objective.estimate(move_ctx)).collect()
+    }
+
+    /// Calcuates solution's fitness.
+    pub fn fitness<'a>(&'a self, solution: &'a InsertionContext) -> impl Iterator<Item = f64> + 'a {
+        self.global_objectives.iter().map(|o| o.fitness(solution))
     }
 }
 

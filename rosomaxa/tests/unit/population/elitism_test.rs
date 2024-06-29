@@ -3,11 +3,11 @@ use crate::example::*;
 use crate::helpers::example::create_example_objective;
 
 fn get_best_fitness(population: &Elitism<VectorObjective, VectorSolution>) -> f64 {
-    population.ranked().next().unwrap().fitness()
+    population.ranked().next().unwrap().fitness().next().unwrap()
 }
 
 fn get_all_fitness(population: &Elitism<VectorObjective, VectorSolution>) -> Vec<f64> {
-    population.ranked().map(|s| s.fitness()).collect()
+    population.ranked().flat_map(|s| s.fitness()).collect()
 }
 
 fn create_objective_population(
@@ -25,15 +25,15 @@ fn create_objective_population(
 fn can_maintain_best_order() {
     let (objective, mut population) = create_objective_population(3, 1);
 
-    population.add(VectorSolution::new(vec![0.5, 0.5], objective.clone()));
+    population.add(VectorSolution::new_with_objective(vec![0.5, 0.5], objective.as_ref()));
     assert_eq!(population.size(), 1);
     assert_eq!(get_best_fitness(&population), 6.5);
 
-    population.add(VectorSolution::new(vec![0., 0.], objective.clone()));
+    population.add(VectorSolution::new_with_objective(vec![0., 0.], objective.as_ref()));
     assert_eq!(population.size(), 2);
     assert_eq!(get_best_fitness(&population), 1.);
 
-    population.add(VectorSolution::new(vec![-0.5, -0.5], objective));
+    population.add(VectorSolution::new_with_objective(vec![-0.5, -0.5], objective.as_ref()));
     assert_eq!(population.size(), 3);
     assert_eq!(get_best_fitness(&population), 1.);
     assert_eq!(get_all_fitness(&population), &[1., 6.5, 58.5]);
@@ -43,28 +43,28 @@ fn can_maintain_best_order() {
 fn can_maintain_diversity_with_one_objective() {
     let (objective, mut population) = create_objective_population(4, 1);
 
-    population.add(VectorSolution::new(vec![0., 0.], objective.clone()));
+    population.add(VectorSolution::new_with_objective(vec![0., 0.], objective.as_ref()));
     assert_eq!(population.size(), 1);
 
-    population.add(VectorSolution::new(vec![0.5, 0.5], objective.clone()));
+    population.add(VectorSolution::new_with_objective(vec![0.5, 0.5], objective.as_ref()));
     assert_eq!(get_all_fitness(&population), &[1., 6.5]);
 
-    population.add(VectorSolution::new(vec![0., 0.], objective.clone()));
+    population.add(VectorSolution::new_with_objective(vec![0., 0.], objective.as_ref()));
     assert_eq!(get_all_fitness(&population), &[1., 6.5]);
 
-    population.add(VectorSolution::new(vec![0.5, 0.5], objective.clone()));
+    population.add(VectorSolution::new_with_objective(vec![0.5, 0.5], objective.as_ref()));
     assert_eq!(get_all_fitness(&population), &[1., 6.5]);
 
-    population.add(VectorSolution::new(vec![0.5, 0.5], objective.clone()));
+    population.add(VectorSolution::new_with_objective(vec![0.5, 0.5], objective.as_ref()));
     assert_eq!(get_all_fitness(&population), &[1., 6.5]);
 
-    population.add(VectorSolution::new(vec![-0.5, -0.5], objective.clone()));
+    population.add(VectorSolution::new_with_objective(vec![-0.5, -0.5], objective.as_ref()));
     assert_eq!(get_all_fitness(&population), &[1., 6.5, 58.5]);
 
-    population.add(VectorSolution::new(vec![1., 1.], objective.clone()));
+    population.add(VectorSolution::new_with_objective(vec![1., 1.], objective.as_ref()));
     assert_eq!(get_all_fitness(&population), &[0., 1., 6.5, 58.5]);
 
-    population.add(VectorSolution::new(vec![0.5, 0.5], objective));
+    population.add(VectorSolution::new_with_objective(vec![0.5, 0.5], objective.as_ref()));
     assert_eq!(get_all_fitness(&population), &[0., 1., 6.5, 58.5])
 }
 
@@ -72,24 +72,24 @@ fn can_maintain_diversity_with_one_objective() {
 fn can_check_improvement() {
     let (objective, mut population) = create_objective_population(4, 1);
 
-    assert!(population.add(VectorSolution::new(vec![-1., -1.], objective.clone())));
-    assert!(!population.add(VectorSolution::new(vec![-1., -1.], objective.clone())));
-    assert!(!population.add(VectorSolution::new(vec![-2., -2.], objective.clone())));
-    assert!(!population.add(VectorSolution::new(vec![-1., -1.], objective.clone())));
-    assert!(population.add(VectorSolution::new(vec![0.5, 0.5], objective.clone())));
-    assert!(!population.add(VectorSolution::new(vec![2., 2.], objective.clone())));
-    assert!(!population.add(VectorSolution::new(vec![-0.5, -0.5], objective.clone())));
-    assert!(population.add(VectorSolution::new(vec![0., 0.], objective.clone())));
+    assert!(population.add(VectorSolution::new_with_objective(vec![-1., -1.], objective.as_ref())));
+    assert!(!population.add(VectorSolution::new_with_objective(vec![-1., -1.], objective.as_ref())));
+    assert!(!population.add(VectorSolution::new_with_objective(vec![-2., -2.], objective.as_ref())));
+    assert!(!population.add(VectorSolution::new_with_objective(vec![-1., -1.], objective.as_ref())));
+    assert!(population.add(VectorSolution::new_with_objective(vec![0.5, 0.5], objective.as_ref())));
+    assert!(!population.add(VectorSolution::new_with_objective(vec![2., 2.], objective.as_ref())));
+    assert!(!population.add(VectorSolution::new_with_objective(vec![-0.5, -0.5], objective.as_ref())));
+    assert!(population.add(VectorSolution::new_with_objective(vec![0., 0.], objective.as_ref())));
 
     assert!(!population.add_all(vec![
-        VectorSolution::new(vec![-1., -1.], objective.clone()),
-        VectorSolution::new(vec![-2., -2.], objective.clone()),
-        VectorSolution::new(vec![0., 0.], objective.clone()),
+        VectorSolution::new_with_objective(vec![-1., -1.], objective.as_ref()),
+        VectorSolution::new_with_objective(vec![-2., -2.], objective.as_ref()),
+        VectorSolution::new_with_objective(vec![0., 0.], objective.as_ref()),
     ],));
     assert!(population.add_all(vec![
-        VectorSolution::new(vec![-1., -1.], objective.clone()),
-        VectorSolution::new(vec![1., 1.], objective.clone()),
-        VectorSolution::new(vec![0., 0.], objective),
+        VectorSolution::new_with_objective(vec![-1., -1.], objective.as_ref()),
+        VectorSolution::new_with_objective(vec![1., 1.], objective.as_ref()),
+        VectorSolution::new_with_objective(vec![0., 0.], objective.as_ref()),
     ]));
 }
 
@@ -98,10 +98,10 @@ fn can_select_individuals() {
     let (objective, mut population) = create_objective_population(4, 3);
 
     population.add_all(vec![
-        VectorSolution::new(vec![-1., -1.], objective.clone()),
-        VectorSolution::new(vec![1., 1.], objective.clone()),
-        VectorSolution::new(vec![0., 0.], objective.clone()),
-        VectorSolution::new(vec![-2., -2.], objective),
+        VectorSolution::new_with_objective(vec![-1., -1.], objective.as_ref()),
+        VectorSolution::new_with_objective(vec![1., 1.], objective.as_ref()),
+        VectorSolution::new_with_objective(vec![0., 0.], objective.as_ref()),
+        VectorSolution::new_with_objective(vec![-2., -2.], objective.as_ref()),
     ]);
 
     let parents = population.select().count();
@@ -142,10 +142,12 @@ fn can_detect_improvement_impl(new_individuals: Vec<Vec<f64>>, expected: bool) {
         Arc::new(|data: &[f64]| data.to_vec()),
     ));
     let mut population = Elitism::<_, _>::new(objective.clone(), Environment::default().random, 2, 1);
-    population.add(VectorSolution::new(vec![0.5, 0.5], objective.clone()));
+    population.add(VectorSolution::new_with_objective(vec![0.5, 0.5], objective.as_ref()));
 
     assert_eq!(
-        population.add_with_iter(new_individuals.into_iter().map(|data| VectorSolution::new(data, objective.clone()))),
+        population.add_with_iter(
+            new_individuals.into_iter().map(|data| VectorSolution::new_with_objective(data, objective.as_ref()))
+        ),
         expected
     )
 }

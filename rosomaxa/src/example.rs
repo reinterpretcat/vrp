@@ -34,9 +34,10 @@ pub struct VectorContext {
 }
 
 /// An example heuristic objective.
+#[derive(Clone)]
 pub struct VectorObjective {
-    fitness_fn: FitnessFn,
-    weight_fn: WeightFn,
+    pub(crate) fitness_fn: FitnessFn,
+    pub(crate) weight_fn: WeightFn,
 }
 
 /// An example heuristic solution.
@@ -45,14 +46,7 @@ pub struct VectorSolution {
     /// Solution payload.
     pub data: Vec<f64>,
     weights: Vec<f64>,
-    objective: Arc<VectorObjective>,
-}
-
-impl VectorSolution {
-    /// Returns a fitness value of given solution.
-    pub fn fitness(&self) -> f64 {
-        HeuristicObjective::fitness(self.objective.as_ref(), self).next().expect("at least one value should be present")
-    }
+    fitness: f64,
 }
 
 impl VectorContext {
@@ -139,33 +133,29 @@ impl HeuristicObjective for VectorObjective {
     type Solution = VectorSolution;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        compare_floats((self.fitness_fn)(a.data.as_slice()), (self.fitness_fn)(b.data.as_slice()))
-    }
-
-    fn fitness<'a>(&'a self, solution: &'a Self::Solution) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(once((self.fitness_fn)(solution.data.as_slice())))
+        a.fitness().next().zip(b.fitness().next()).map(|(a, b)| compare_floats(a, b)).expect("expecting fitness")
     }
 }
 
 impl Shuffled for VectorObjective {
     fn get_shuffled(&self, _: &(dyn Random + Send + Sync)) -> Self {
-        Self::new(self.fitness_fn.clone(), self.weight_fn.clone())
+        self.clone()
     }
 }
 
 impl HeuristicSolution for VectorSolution {
     fn fitness(&self) -> impl Iterator<Item = f64> {
-        self.objective.fitness(self)
+        once(self.fitness)
     }
 
     fn deep_copy(&self) -> Self {
-        Self { data: self.data.clone(), weights: self.weights.clone(), objective: self.objective.clone() }
+        self.clone()
     }
 }
 
 impl RosomaxaWeighted for VectorSolution {
     fn init_weights(&mut self) {
-        self.weights = (self.objective.weight_fn)(self.data.as_slice());
+        // already initialized at creation time
     }
 }
 
@@ -177,8 +167,15 @@ impl Input for VectorSolution {
 
 impl VectorSolution {
     /// Creates a new instance of `VectorSolution`.
-    pub fn new(data: Vec<f64>, objective: Arc<VectorObjective>) -> Self {
-        Self { data, objective, weights: Vec::default() }
+    pub fn new(data: Vec<f64>, fitness: f64, weights: Vec<f64>) -> Self {
+        Self { data, fitness, weights }
+    }
+
+    /// Creates a new instance of `VectorSolution` calculating fitness and weights using objective.
+    pub fn new_with_objective(data: Vec<f64>, objective: &VectorObjective) -> Self {
+        let fitness = (objective.fitness_fn)(data.as_slice());
+        let weights = (objective.weight_fn)(data.as_slice());
+        Self { data, fitness, weights }
     }
 }
 
@@ -200,7 +197,9 @@ impl InitialOperator for VectorInitialOperator {
     type Solution = VectorSolution;
 
     fn create(&self, context: &Self::Context) -> Self::Solution {
-        Self::Solution::new(self.data.clone(), context.inner_context.objective.clone())
+        let fitness = (context.objective.fitness_fn)(self.data.as_slice());
+        let weights = (context.objective.weight_fn)(self.data.as_slice());
+        Self::Solution::new(self.data.clone(), fitness, weights)
     }
 }
 
@@ -225,25 +224,26 @@ impl HeuristicSearchOperator for VectorHeuristicOperator {
     type Solution = VectorSolution;
 
     fn search(&self, context: &Self::Context, solution: &Self::Solution) -> Self::Solution {
-        Self::Solution::new(
-            match &self.mode {
-                VectorHeuristicOperatorMode::JustNoise(noise) => {
-                    solution.data.iter().map(|&d| d + noise.generate(d)).collect()
-                }
-                VectorHeuristicOperatorMode::DimensionNoise(noise, dimens) => solution
-                    .data
-                    .iter()
-                    .enumerate()
-                    .map(|(idx, &d)| if dimens.contains(&idx) { d + noise.generate(d) } else { d })
-                    .collect(),
-                VectorHeuristicOperatorMode::JustDelta(range) => solution
-                    .data
-                    .iter()
-                    .map(|&d| d + context.environment().random.uniform_real(range.start, range.end))
-                    .collect(),
-            },
-            context.objective.clone(),
-        )
+        let data: Vec<f64> = match &self.mode {
+            VectorHeuristicOperatorMode::JustNoise(noise) => {
+                solution.data.iter().map(|&d| d + noise.generate(d)).collect()
+            }
+            VectorHeuristicOperatorMode::DimensionNoise(noise, dimens) => solution
+                .data
+                .iter()
+                .enumerate()
+                .map(|(idx, &d)| if dimens.contains(&idx) { d + noise.generate(d) } else { d })
+                .collect(),
+            VectorHeuristicOperatorMode::JustDelta(range) => solution
+                .data
+                .iter()
+                .map(|&d| d + context.environment().random.uniform_real(range.start, range.end))
+                .collect(),
+        };
+        let fitness = (context.objective.fitness_fn)(data.as_slice());
+        let weights = (context.objective.weight_fn)(data.as_slice());
+
+        Self::Solution::new(data, fitness, weights)
     }
 }
 
@@ -469,7 +469,7 @@ impl Solver {
         let solutions = solutions
             .into_iter()
             .map(|s| {
-                let fitness = s.fitness();
+                let fitness = s.fitness().next().expect("expecting fitness");
                 (s.data, fitness)
             })
             .collect();

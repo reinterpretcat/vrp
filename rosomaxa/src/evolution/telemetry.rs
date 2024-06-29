@@ -146,7 +146,6 @@ where
     /// Reports generation statistics.
     pub fn on_generation(
         &mut self,
-        objective: &O,
         population: &DynHeuristicPopulation<O, S>,
         termination_estimate: f64,
         generation_time: Timer,
@@ -186,18 +185,12 @@ where
 
             if should_log_best {
                 self.log_individual(
-                    &self.get_individual_metrics(objective, population, best_individual),
+                    &self.get_individual_metrics(population, best_individual),
                     Some((generation, generation_time)),
                 )
             }
 
-            self.on_population(
-                objective,
-                population,
-                should_log_population,
-                should_track_population,
-                should_dump_population,
-            );
+            self.on_population(population, should_log_population, should_track_population, should_dump_population);
         } else {
             self.log("no progress yet");
         }
@@ -206,7 +199,6 @@ where
     /// Reports population state.
     fn on_population(
         &mut self,
-        objective: &O,
         population: &DynHeuristicPopulation<O, S>,
         should_log_population: bool,
         should_track_population: bool,
@@ -238,8 +230,7 @@ where
             );
         }
 
-        let individuals =
-            population.ranked().map(|s| self.get_individual_metrics(objective, population, s)).collect::<Vec<_>>();
+        let individuals = population.ranked().map(|s| self.get_individual_metrics(population, s)).collect::<Vec<_>>();
 
         if should_log_population {
             individuals.iter().for_each(|metrics| self.log_individual(metrics, None));
@@ -263,7 +254,7 @@ where
     }
 
     /// Reports final statistic.
-    pub fn on_result(&mut self, objective: &O, population: &DynHeuristicPopulation<O, S>) {
+    pub fn on_result(&mut self, population: &DynHeuristicPopulation<O, S>) {
         let generations = self.statistics.generation;
 
         let (should_log_population, should_track_population) = match &self.mode {
@@ -273,7 +264,7 @@ where
             _ => return,
         };
 
-        self.on_population(objective, population, should_log_population, should_track_population, false);
+        self.on_population(population, should_log_population, should_track_population, false);
 
         let elapsed = self.time.elapsed_secs() as usize;
         let speed = generations as f64 / self.time.elapsed_secs_as_f64();
@@ -306,15 +297,10 @@ where
         &self.statistics
     }
 
-    fn get_individual_metrics(
-        &self,
-        objective: &O,
-        population: &DynHeuristicPopulation<O, S>,
-        solution: &S,
-    ) -> TelemetryIndividual {
+    fn get_individual_metrics(&self, population: &DynHeuristicPopulation<O, S>, solution: &S) -> TelemetryIndividual {
         let fitness = solution.fitness().collect::<Vec<_>>();
 
-        let difference = get_fitness_change(objective, population, solution);
+        let difference = get_fitness_change(population, solution);
 
         TelemetryIndividual { difference, fitness }
     }
@@ -445,7 +431,7 @@ impl SpeedTracker {
     }
 }
 
-fn get_fitness_change<O, S>(objective: &O, population: &DynHeuristicPopulation<O, S>, solution: &S) -> f64
+fn get_fitness_change<O, S>(population: &DynHeuristicPopulation<O, S>, solution: &S) -> f64
 where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
@@ -453,9 +439,9 @@ where
     let fitness_change = population
         .ranked()
         .next()
-        .map(|best_ctx| objective.fitness(best_ctx))
+        .map(|best_ctx| best_ctx.fitness())
         .map(|best_fitness| {
-            let fitness_value = objective.fitness(solution);
+            let fitness_value = solution.fitness();
             relative_distance(fitness_value, best_fitness)
         })
         .unwrap_or(0.);

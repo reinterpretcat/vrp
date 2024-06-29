@@ -24,7 +24,14 @@ pub fn create_heuristic_context_with_solutions(solutions: Vec<Vec<f64>>) -> Vect
 
     let mut population = get_default_population(objective.clone(), environment.clone(), selection_size);
 
-    let solutions = solutions.into_iter().map(|data| VectorSolution::new(data, objective.clone())).collect();
+    let solutions = solutions
+        .into_iter()
+        .map(|data| {
+            let fitness = (objective.fitness_fn)(data.as_slice());
+            let weights = (objective.weight_fn)(data.as_slice());
+            VectorSolution::new(data, fitness, weights)
+        })
+        .collect();
     population.add_all(solutions);
 
     VectorContext::new(objective, population, TelemetryMode::None, environment)

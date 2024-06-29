@@ -36,11 +36,11 @@ fn can_switch_phases() {
 
     (0..4).for_each(|_| {
         assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Initial);
-        rosomaxa.add_all(vec![VectorSolution::new(vec![-1., -1.], objective.clone())]);
+        rosomaxa.add_all(vec![VectorSolution::new_with_objective(vec![-1., -1.], objective.as_ref())]);
         rosomaxa.update_phase(&create_statistics(0., 0))
     });
 
-    rosomaxa.add(VectorSolution::new(vec![-1., -1.], objective));
+    rosomaxa.add(VectorSolution::new_with_objective(vec![-1., -1.], objective.as_ref()));
     assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
 
     for (idx, (termination_estimate, phase)) in
@@ -55,7 +55,7 @@ fn can_switch_phases() {
 fn can_select_individuals_in_different_phases() {
     let (objective, mut rosomaxa) = create_rosomaxa(10);
     (0..10).for_each(|idx| {
-        rosomaxa.add_all(vec![VectorSolution::new(vec![-1., -1.], objective.clone())]);
+        rosomaxa.add_all(vec![VectorSolution::new_with_objective(vec![-1., -1.], objective.as_ref())]);
         rosomaxa.update_phase(&create_statistics(0.75, idx))
     });
 
@@ -75,11 +75,11 @@ fn can_optimize_network() {
     let (objective, mut rosomaxa) = create_rosomaxa(2);
     (0..10).for_each(|idx| {
         let value = idx as f64 - 5.;
-        rosomaxa.add_all(vec![VectorSolution::new(vec![value, value], objective.clone())]);
+        rosomaxa.add_all(vec![VectorSolution::new_with_objective(vec![value, value], objective.as_ref())]);
         rosomaxa.update_phase(&create_statistics(termination_estimate, idx))
     });
 
-    rosomaxa.add(VectorSolution::new(vec![0.5, 0.5], objective));
+    rosomaxa.add(VectorSolution::new_with_objective(vec![0.5, 0.5], objective.as_ref()));
     rosomaxa.update_phase(&create_statistics(termination_estimate, 10));
 
     assert!(get_network(&rosomaxa).get_nodes().next().is_some());
@@ -88,7 +88,7 @@ fn can_optimize_network() {
 #[test]
 fn can_format_network() {
     let (objective, mut rosomaxa) = create_rosomaxa(4);
-    rosomaxa.add_all(vec![VectorSolution::new(vec![0.5, 0.5], objective)]);
+    rosomaxa.add_all(vec![VectorSolution::new_with_objective(vec![0.5, 0.5], objective.as_ref())]);
 
     let str = format!("{rosomaxa}");
 
