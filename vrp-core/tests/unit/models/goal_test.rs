@@ -11,7 +11,7 @@ fn create_feature(name: &str, cost: Cost, violation: Option<ConstraintViolation>
     }
 
     impl FeatureObjective for TestFeatureObjective {
-        fn fitness(&self, _: &InsertionContext) -> f64 {
+        fn fitness(&self, _: &InsertionContext) -> Cost {
             self.cost
         }
 
@@ -51,7 +51,7 @@ fn create_objective_feature_with_dynamic_cost(name: &str, fitness_fn: FitnessFn)
     }
 
     impl FeatureObjective for TestFeatureObjective {
-        fn fitness(&self, solution: &InsertionContext) -> f64 {
+        fn fitness(&self, solution: &InsertionContext) -> Cost {
             (self.fitness_fn)(self.name.as_str(), solution)
         }
 

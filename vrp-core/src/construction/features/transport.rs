@@ -352,7 +352,7 @@ impl TransportObjective {
 }
 
 impl FeatureObjective for TransportObjective {
-    fn fitness(&self, solution: &InsertionContext) -> f64 {
+    fn fitness(&self, solution: &InsertionContext) -> Cost {
         (self.fitness_fn)(solution)
     }
 

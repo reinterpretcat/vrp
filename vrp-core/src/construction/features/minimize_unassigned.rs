@@ -47,7 +47,7 @@ struct MinimizeUnassignedObjective {
 }
 
 impl FeatureObjective for MinimizeUnassignedObjective {
-    fn fitness(&self, solution: &InsertionContext) -> f64 {
+    fn fitness(&self, solution: &InsertionContext) -> Cost {
         solution
             .solution
             .unassigned

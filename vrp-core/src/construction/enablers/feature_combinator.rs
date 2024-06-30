@@ -139,7 +139,7 @@ struct CombinedFeatureObjective {
 }
 
 impl FeatureObjective for CombinedFeatureObjective {
-    fn fitness(&self, solution: &InsertionContext) -> f64 {
+    fn fitness(&self, solution: &InsertionContext) -> Cost {
         // NOTE: just summing all objective values together
         self.objectives.iter().map(|o| o.fitness(solution)).sum::<Cost>()
     }

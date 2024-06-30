@@ -323,10 +323,10 @@ pub trait FeatureConstraint: Send + Sync {
     }
 }
 
-/// Defines feature objective behavior.
+/// Defines feature's objective function behavior.
 pub trait FeatureObjective: Send + Sync {
-    /// An objective fitness values for given `solution`.
-    fn fitness(&self, solution: &InsertionContext) -> f64;
+    /// An objective fitness value for the given `solution`.
+    fn fitness(&self, solution: &InsertionContext) -> Cost;
 
     /// Estimates the cost of insertion.
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost;

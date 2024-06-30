@@ -32,7 +32,7 @@ struct TourCompactnessObjective {
 }
 
 impl FeatureObjective for TourCompactnessObjective {
-    fn fitness(&self, solution: &InsertionContext) -> f64 {
+    fn fitness(&self, solution: &InsertionContext) -> Cost {
         solution.solution.state.get_tour_compactness().copied().unwrap_or_default()
     }
 

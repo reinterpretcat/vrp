@@ -37,7 +37,7 @@ This release focuses on refactorings to simplify code usage and overall maintain
 * tweak job index
 * tweak infeasible search heuristic
 * refactor route intervals and multi trip enablers
-* refactor feature objective
+* refactor feature objective trait
 * refactor dimensions/extras approach to avoid using strings as keys
 
 

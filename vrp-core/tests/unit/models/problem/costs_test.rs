@@ -127,7 +127,7 @@ mod objective {
     }
 
     impl FeatureObjective for TestObjective {
-        fn fitness(&self, solution: &InsertionContext) -> f64 {
+        fn fitness(&self, solution: &InsertionContext) -> Cost {
             solution.solution.state.get_value::<(), Vec<f64>>().and_then(|data| data.get(self.index)).cloned().unwrap()
         }
 

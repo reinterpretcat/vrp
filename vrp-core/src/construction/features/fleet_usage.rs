@@ -58,7 +58,7 @@ struct FleetUsageObjective {
 }
 
 impl FeatureObjective for FleetUsageObjective {
-    fn fitness(&self, solution: &InsertionContext) -> f64 {
+    fn fitness(&self, solution: &InsertionContext) -> Cost {
         (self.solution_estimate_fn)(&solution.solution)
     }
 

@@ -114,7 +114,7 @@ struct WorkBalanceObjective<K: Send + Sync + 'static> {
 }
 
 impl<K: Send + Sync + 'static> FeatureObjective for WorkBalanceObjective<K> {
-    fn fitness(&self, solution: &InsertionContext) -> f64 {
+    fn fitness(&self, solution: &InsertionContext) -> Cost {
         solution
             .solution
             .state

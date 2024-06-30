@@ -115,7 +115,7 @@ struct FastServiceObjective {
 }
 
 impl FeatureObjective for FastServiceObjective {
-    fn fitness(&self, solution: &InsertionContext) -> f64 {
+    fn fitness(&self, solution: &InsertionContext) -> Cost {
         solution
             .solution
             .routes
