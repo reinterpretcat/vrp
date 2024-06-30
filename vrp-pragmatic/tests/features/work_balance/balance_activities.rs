@@ -10,17 +10,8 @@ fn get_activities_count(tour: &Tour) -> usize {
         .sum()
 }
 
-parameterized_test! {can_balance_activities_with_threshold, (threshold, expected_lowest), {
-    can_balance_activities_with_threshold_impl(threshold, expected_lowest);
-}}
-
-can_balance_activities_with_threshold! {
-    case01: (None, 3),
-    case02: (Some(0.1), 3),
-    case03: (Some(1.), 2),
-}
-
-fn can_balance_activities_with_threshold_impl(threshold: Option<f64>, expected_lowest: usize) {
+#[test]
+fn can_balance_activities() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -51,11 +42,7 @@ fn can_balance_activities_with_threshold_impl(threshold: Option<f64>, expected_l
             ],
             ..create_default_fleet()
         },
-        objectives: Some(vec![
-            vec![MinimizeUnassigned { breaks: None }],
-            vec![BalanceActivities { options: Some(BalanceOptions { threshold }) }],
-            vec![MinimizeCost],
-        ]),
+        objectives: Some(vec![vec![MinimizeUnassigned { breaks: None }], vec![BalanceActivities], vec![MinimizeCost]]),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -63,6 +50,6 @@ fn can_balance_activities_with_threshold_impl(threshold: Option<f64>, expected_l
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert_eq!(solution.tours.len(), 2);
-    assert_eq!(solution.tours.iter().map(get_activities_count).min().unwrap(), expected_lowest);
-    assert_eq!(solution.tours.iter().map(get_activities_count).max().unwrap(), 6 - expected_lowest);
+    assert_eq!(solution.tours.iter().map(get_activities_count).min().unwrap(), 3);
+    assert_eq!(solution.tours.iter().map(get_activities_count).max().unwrap(), 3);
 }

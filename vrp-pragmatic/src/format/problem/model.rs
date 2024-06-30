@@ -527,7 +527,7 @@ pub struct Fleet {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum Objective {
-    /// An objective to minimize total cost as linear combination of total time and distance.
+    /// An objective to minimize total cost as a linear combination of total time and distance.
     MinimizeCost,
 
     /// An objective to minimize total distance.
@@ -549,7 +549,7 @@ pub enum Objective {
         breaks: Option<f64>,
     },
 
-    /// An objective to minimize amount of unassigned jobs.
+    /// An objective to minimize number of unassigned jobs.
     MinimizeUnassigned {
         /// A skipped break weight to increase/decrease break is importance.
         /// Default is 1.
@@ -561,75 +561,28 @@ pub enum Objective {
     MinimizeArrivalTime,
 
     /// An objective to balance max load across all tours.
-    BalanceMaxLoad {
-        /// A relative load in single tour before balancing takes place.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        options: Option<BalanceOptions>,
-    },
+    BalanceMaxLoad,
 
     /// An objective to balance activities across all tours.
-    BalanceActivities {
-        /// An options which can be used to specify minimum activity amount in a tour before
-        /// it considered for balancing.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        options: Option<BalanceOptions>,
-    },
+    BalanceActivities,
 
     /// An objective to balance distance across all tours.
-    BalanceDistance {
-        /// An options which can be used to specify minimum distance of a tour before
-        /// it considered for balancing.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        options: Option<BalanceOptions>,
-    },
+    BalanceDistance,
 
     /// An objective to balance duration across all tours.
-    BalanceDuration {
-        /// An options which can be used to specify minimum duration of a tour before
-        /// it considered for balancing.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        options: Option<BalanceOptions>,
-    },
+    BalanceDuration,
 
     /// An objective to control how tours are built.
     CompactTour {
-        /// Options used to relax objective's impact.
-        options: CompactOptions,
+        /// Specifies radius of neighbourhood. Min is 1.
+        job_radius: usize,
     },
 
     /// An objective to control order of job activities in the tour.
     TourOrder,
 
     /// An objective to prefer jobs to be served as soon as possible.
-    FastService {
-        /// An objective tolerance specifies how different objective values have to be
-        /// to consider them different. Relative distance metric is used.
-        tolerance: Option<f64>,
-    },
-}
-
-/// Specifies balance objective options. At the moment, it uses coefficient of variation as
-/// balancing measure.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct BalanceOptions {
-    /// A balancing threshold specifies desired balancing level. Lower values can be ignored in
-    /// favor of another objective.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub threshold: Option<f64>,
-}
-
-/// Specifies tour compactness options to relax impact of objective.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CompactOptions {
-    /// Specifies radius of neighbourhood. Min is 1.
-    pub job_radius: usize,
-
-    /// A threshold specifies a minimum shared jobs count per solution.
-    pub threshold: usize,
-
-    /// Distance specifies a minimum relative distance between solutions to consider them different.
-    pub distance: f64,
+    FastService,
 }
 
 // endregion

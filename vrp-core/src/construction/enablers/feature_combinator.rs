@@ -4,9 +4,7 @@ use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::models::*;
-use rosomaxa::evolution::objectives::dominance_order;
 use rosomaxa::prelude::*;
-use std::cmp::Ordering;
 use std::ops::ControlFlow;
 use std::sync::Arc;
 
@@ -141,10 +139,6 @@ struct CombinedFeatureObjective {
 }
 
 impl FeatureObjective for CombinedFeatureObjective {
-    fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
-        dominance_order(a, b, self.objectives.iter().map(|o| |a, b| o.total_order(a, b)))
-    }
-
     fn fitness(&self, solution: &InsertionContext) -> f64 {
         // NOTE: just summing all objective values together
         self.objectives.iter().map(|o| o.fitness(solution)).sum::<Cost>()

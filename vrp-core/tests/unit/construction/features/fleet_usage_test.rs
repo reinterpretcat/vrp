@@ -19,20 +19,6 @@ fn create_test_insertion_ctx(routes: &[f64]) -> InsertionContext {
     insertion_ctx
 }
 
-#[test]
-fn can_properly_estimate_empty_solution() {
-    let empty = TestInsertionContextBuilder::default().build();
-    let non_empty = create_test_insertion_ctx(&[10.]);
-
-    let result = create_minimize_arrival_time_feature("minimize_arrival")
-        .unwrap()
-        .objective
-        .unwrap()
-        .total_order(&empty, &non_empty);
-
-    assert_eq!(result, Ordering::Less);
-}
-
 parameterized_test! {can_properly_estimate_solutions, (left, right, expected), {
     can_properly_estimate_solutions_impl(left, right, expected);
 }}
@@ -49,9 +35,10 @@ can_properly_estimate_solutions! {
 fn can_properly_estimate_solutions_impl(left: &[f64], right: &[f64], expected: Ordering) {
     let left = create_test_insertion_ctx(left);
     let right = create_test_insertion_ctx(right);
+    let objective = create_minimize_arrival_time_feature("minimize_arrival").unwrap().objective.unwrap();
 
-    let result =
-        create_minimize_arrival_time_feature("minimize_arrival").unwrap().objective.unwrap().total_order(&left, &right);
+    let left = objective.fitness(&left);
+    let right = objective.fitness(&right);
 
-    assert_eq!(result, expected);
+    assert_eq!(left.total_cmp(&right), expected);
 }

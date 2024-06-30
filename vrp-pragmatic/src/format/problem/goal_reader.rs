@@ -159,11 +159,10 @@ fn get_objective_features(
                         .build(),
 
                     Objective::MinimizeArrivalTime => create_minimize_arrival_time_feature("min_arrival_time"),
-                    Objective::BalanceMaxLoad { options } => {
+                    Objective::BalanceMaxLoad => {
                         if props.has_multi_dimen_capacity {
                             create_max_load_balanced_feature::<MultiDimLoad>(
                                 "max_load_balance",
-                                get_threshold(options),
                                 |loaded, capacity| {
                                     let mut max_ratio = 0_f64;
 
@@ -181,7 +180,6 @@ fn get_objective_features(
                         } else {
                             create_max_load_balanced_feature::<SingleDimLoad>(
                                 "max_load_balance",
-                                get_threshold(options),
                                 |loaded, capacity| loaded.value as f64 / capacity.value as f64,
                                 |vehicle| {
                                     vehicle.dimens.get_vehicle_capacity().expect("vehicle has no capacity defined")
@@ -189,28 +187,14 @@ fn get_objective_features(
                             )
                         }
                     }
-                    Objective::BalanceActivities { options } => {
-                        create_activity_balanced_feature("activity_balance", get_threshold(options))
-                    }
-                    Objective::BalanceDistance { options } => {
-                        create_distance_balanced_feature("distance_balance", get_threshold(options))
-                    }
-                    Objective::BalanceDuration { options } => {
-                        create_duration_balanced_feature("duration_balance", get_threshold(options))
-                    }
-                    Objective::CompactTour { options } => {
-                        let thresholds = Some((options.threshold, options.distance));
-                        create_tour_compactness_feature(
-                            "tour_compact",
-                            blocks.jobs.clone(),
-                            options.job_radius,
-                            thresholds,
-                        )
+                    Objective::BalanceActivities => create_activity_balanced_feature("activity_balance"),
+                    Objective::BalanceDistance => create_distance_balanced_feature("distance_balance"),
+                    Objective::BalanceDuration => create_duration_balanced_feature("duration_balance"),
+                    Objective::CompactTour { job_radius } => {
+                        create_tour_compactness_feature("tour_compact", blocks.jobs.clone(), *job_radius)
                     }
                     Objective::TourOrder => create_tour_order_soft_feature("tour_order", get_tour_order_fn()),
-                    Objective::FastService { tolerance } => {
-                        get_fast_service_feature("fast_service", blocks, *tolerance)
-                    }
+                    Objective::FastService => get_fast_service_feature("fast_service", blocks),
                 })
                 .collect()
         })
@@ -257,13 +241,12 @@ fn get_capacity_feature(
     }
 }
 
-fn get_fast_service_feature(name: &str, blocks: &ProblemBlocks, tolerance: Option<f64>) -> GenericResult<Feature> {
+fn get_fast_service_feature(name: &str, blocks: &ProblemBlocks) -> GenericResult<Feature> {
     let (transport, activity) = (blocks.transport.clone(), blocks.activity.clone());
 
     FastServiceFeatureBuilder::new(name)
         .set_transport(transport)
         .set_activity(activity)
-        .set_tolerance(tolerance)
         .set_demand_type_fn(|single| {
             let demand_single: Option<&Demand<SingleDimLoad>> = single.dimens.get_job_demand();
             let demand_multi: Option<&Demand<MultiDimLoad>> = single.dimens.get_job_demand();
@@ -497,10 +480,6 @@ fn extract_feature_map(features: &[Feature]) -> GenericResult<(Vec<String>, Vec<
     }
 
     Ok((global_objective_map, local_objective_map))
-}
-
-fn get_threshold(options: &Option<BalanceOptions>) -> Option<f64> {
-    options.as_ref().and_then(|o| o.threshold)
 }
 
 fn get_tour_order_fn() -> TourOrderFn {

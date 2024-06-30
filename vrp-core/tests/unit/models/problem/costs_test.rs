@@ -119,7 +119,7 @@ mod objective {
     use crate::construction::heuristics::{InsertionContext, MoveContext};
     use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
     use crate::models::{Feature, FeatureBuilder, FeatureObjective, GoalContextBuilder};
-    use rosomaxa::prelude::{compare_floats, HeuristicObjective};
+    use rosomaxa::prelude::HeuristicObjective;
     use std::cmp::Ordering;
 
     struct TestObjective {
@@ -127,13 +127,6 @@ mod objective {
     }
 
     impl FeatureObjective for TestObjective {
-        fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
-            let a = self.fitness(a);
-            let b = self.fitness(b);
-
-            compare_floats(a, b)
-        }
-
         fn fitness(&self, solution: &InsertionContext) -> f64 {
             solution.solution.state.get_value::<(), Vec<f64>>().and_then(|data| data.get(self.index)).cloned().unwrap()
         }

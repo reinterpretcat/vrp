@@ -2,11 +2,7 @@
 
 use std::cmp::Ordering;
 
-/// An *objective* function defines a *total ordering relation* and a *fitness metrics* on a set of
-/// `solutions`. Given any two solutions, an objective answers the following two questions:
-///
-/// - "which solution is the better one" (total order)
-/// - "how are two solutions close to each other" (fitness vector metrics)
+/// A *heuristic objective* function defines a *total ordering relation* between any two solutions.
 pub trait HeuristicObjective: Send + Sync {
     /// The solution value type that we define the objective on.
     type Solution;

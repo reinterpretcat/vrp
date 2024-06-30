@@ -23,11 +23,7 @@ fn can_balance_duration() {
             }],
             ..create_default_fleet()
         },
-        objectives: Some(vec![
-            vec![MinimizeUnassigned { breaks: None }],
-            vec![BalanceDuration { options: None }],
-            vec![MinimizeCost],
-        ]),
+        objectives: Some(vec![vec![MinimizeUnassigned { breaks: None }], vec![BalanceDuration], vec![MinimizeCost]]),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);

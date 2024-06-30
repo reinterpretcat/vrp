@@ -1,50 +1,9 @@
-use crate::construction::features::{create_tour_compactness_feature, TourCompactnessSolutionState};
+use crate::construction::features::create_tour_compactness_feature;
 use crate::construction::heuristics::{InsertionContext, MoveContext};
-use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::ProblemBuilder;
 use crate::helpers::solver::{generate_matrix_routes_with_defaults, get_job_by_id};
-use crate::models::common::Cost;
 use rosomaxa::utils::Environment;
-use std::cmp::Ordering;
 use std::sync::Arc;
-
-parameterized_test! {can_compare_solutions_with_thresholds, (thresholds, states, expected), {
-    can_compare_solutions_with_thresholds_impl(thresholds, states, expected);
-}}
-
-can_compare_solutions_with_thresholds! {
-    case_01_above_thresholds: (Some((3, 0.)), (5., 10.), Ordering::Less),
-    case_02_below_thresholds: (Some((3, 0.1)), (10., 10.), Ordering::Equal),
-    case_03_below_min_considered_equal: (Some((10, 0.1)), (9., 5.), Ordering::Equal),
-
-    case_04_above_min_consider_difference: (Some((3, 0.1)), (10., 9.1), Ordering::Equal),
-    case_05_above_min_consider_difference: (Some((3, 0.05)), (10., 9.1), Ordering::Greater),
-    case_06_above_min_consider_difference: (Some((3, 0.05)), (9.1, 10.), Ordering::Less),
-}
-
-fn can_compare_solutions_with_thresholds_impl(
-    thresholds: Option<(usize, f64)>,
-    states: (f64, f64),
-    expected: Ordering,
-) {
-    let (left_state, right_state) = states;
-    let create_insertion_ctx_fn = |state_value: Cost| {
-        TestInsertionContextBuilder::default()
-            .with_state(|state| {
-                state.set_tour_compactness(state_value);
-            })
-            .build()
-    };
-    let jobs = ProblemBuilder::default().build().jobs;
-    let objective = create_tour_compactness_feature("compact", jobs, 3, thresholds)
-        .expect("cannot create feature")
-        .objective
-        .unwrap();
-
-    let result = objective.total_order(&create_insertion_ctx_fn(left_state), &create_insertion_ctx_fn(right_state));
-
-    assert_eq!(result, expected);
-}
 
 parameterized_test! {can_count_neighbours_in_route, (routes, job_radius, candidate, expected), {
     can_count_neighbours_in_route_impl(routes, job_radius, candidate, expected);
@@ -78,7 +37,7 @@ fn can_count_neighbours_in_route_impl(
     let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(rows, cols, false);
     let mut insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
-    let feature = create_tour_compactness_feature("compact", insertion_ctx.problem.jobs.clone(), job_radius, None)
+    let feature = create_tour_compactness_feature("compact", insertion_ctx.problem.jobs.clone(), job_radius)
         .expect("cannot create feature");
     let (state, objective) = { (feature.state.as_ref().unwrap(), feature.objective.as_ref().unwrap()) };
 
@@ -98,7 +57,7 @@ fn can_count_neighbours_in_route_impl(
 fn can_return_err_if_feature_cannot_be_created() {
     let jobs = ProblemBuilder::default().build().jobs;
 
-    let result = create_tour_compactness_feature("compact", jobs, 0, None);
+    let result = create_tour_compactness_feature("compact", jobs, 0);
 
     assert!(result.is_err());
 }

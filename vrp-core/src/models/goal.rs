@@ -7,7 +7,6 @@ use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use rand::prelude::SliceRandom;
-use rosomaxa::evolution::objectives::dominance_order;
 use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
@@ -326,11 +325,6 @@ pub trait FeatureConstraint: Send + Sync {
 
 /// Defines feature objective behavior.
 pub trait FeatureObjective: Send + Sync {
-    /// An objective defines a total ordering between any two solution values.
-    fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
-        compare_floats(self.fitness(a), self.fitness(b))
-    }
-
     /// An objective fitness values for given `solution`.
     fn fitness(&self, solution: &InsertionContext) -> f64;
 
@@ -345,7 +339,10 @@ impl HeuristicObjective for GoalContext {
         self.global_objectives
             .iter()
             .try_fold(Ordering::Equal, |_, objective| {
-                match dominance_order(a, b, std::iter::once(|a, b| objective.total_order(a, b))) {
+                let fitness_a = objective.fitness(a);
+                let fitness_b = objective.fitness(b);
+
+                match compare_floats(fitness_a, fitness_b) {
                     Ordering::Equal => ControlFlow::Continue(Ordering::Equal),
                     order => ControlFlow::Break(order),
                 }
@@ -435,7 +432,7 @@ impl GoalContext {
         self.local_objectives.iter().map(|objective| objective.estimate(move_ctx)).collect()
     }
 
-    /// Calcuates solution's fitness.
+    /// Calculates solution's fitness.
     pub fn fitness<'a>(&'a self, solution: &'a InsertionContext) -> impl Iterator<Item = f64> + 'a {
         self.global_objectives.iter().map(|o| o.fitness(solution))
     }

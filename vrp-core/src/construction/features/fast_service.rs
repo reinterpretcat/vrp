@@ -4,10 +4,7 @@ mod fast_service_test;
 
 use super::*;
 use crate::construction::enablers::{calculate_travel, calculate_travel_delta};
-use rosomaxa::algorithms::math::relative_distance;
-use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::iter::once;
 
 /// Provides the way to build fast service feature.
 pub struct FastServiceFeatureBuilder {
@@ -17,7 +14,6 @@ pub struct FastServiceFeatureBuilder {
     is_filtered_job_fn: Option<IsFilteredJobFn>,
     transport: Option<Arc<dyn TransportCost + Send + Sync>>,
     activity: Option<Arc<dyn ActivityCost + Send + Sync>>,
-    tolerance: Option<f64>,
 }
 
 impl FastServiceFeatureBuilder {
@@ -30,7 +26,6 @@ impl FastServiceFeatureBuilder {
             is_filtered_job_fn: None,
             transport: None,
             activity: None,
-            tolerance: None,
         }
     }
 
@@ -70,16 +65,8 @@ impl FastServiceFeatureBuilder {
         self
     }
 
-    /// Sets a tolerance param for the objective function.
-    pub fn set_tolerance(mut self, tolerance: Option<f64>) -> Self {
-        self.tolerance = tolerance;
-        self
-    }
-
     /// Builds fast service feature.
     pub fn build(mut self) -> GenericResult<Feature> {
-        let tolerance = self.tolerance.take();
-
         let transport = self.transport.take().ok_or_else(|| GenericError::from("transport must be set"))?;
         let activity = self.activity.take().ok_or_else(|| GenericError::from("activity must be set"))?;
 
@@ -91,13 +78,7 @@ impl FastServiceFeatureBuilder {
         FeatureBuilder::default()
             .with_name(self.name.as_str())
             .with_state(FastServiceState::default())
-            .with_objective(FastServiceObjective::new(
-                demand_type_fn,
-                is_filtered_job_fn,
-                transport,
-                activity,
-                tolerance,
-            ))
+            .with_objective(FastServiceObjective::new(demand_type_fn, is_filtered_job_fn, transport, activity))
             .build()
     }
 }
@@ -131,23 +112,9 @@ struct FastServiceObjective {
     is_filtered_job_fn: IsFilteredJobFn,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
-    tolerance: Option<f64>,
 }
 
 impl FeatureObjective for FastServiceObjective {
-    fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
-        let fitness_a = self.fitness(a);
-        let fitness_b = self.fitness(b);
-
-        if let Some(tolerance) = self.tolerance {
-            if relative_distance(once(fitness_a), once(fitness_b)) < tolerance {
-                return Ordering::Equal;
-            }
-        }
-
-        compare_floats(fitness_a, fitness_b)
-    }
-
     fn fitness(&self, solution: &InsertionContext) -> f64 {
         solution
             .solution
@@ -202,9 +169,8 @@ impl FastServiceObjective {
         is_filtered_job_fn: IsFilteredJobFn,
         transport: Arc<dyn TransportCost + Send + Sync>,
         activity: Arc<dyn ActivityCost + Send + Sync>,
-        tolerance: Option<f64>,
     ) -> Self {
-        Self { demand_type_fn, is_filtered_job_fn, transport, activity, tolerance }
+        Self { demand_type_fn, is_filtered_job_fn, transport, activity }
     }
 
     fn get_start_time(&self, route_ctx: &RouteContext, activity_idx: usize) -> Timestamp {

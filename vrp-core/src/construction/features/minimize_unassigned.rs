@@ -5,7 +5,6 @@
 mod minimize_unassigned_test;
 
 use super::*;
-use std::cmp::Ordering;
 
 /// Provides a way to build a feature to minimize amount of unassigned jobs.
 pub struct MinimizeUnassignedBuilder {
@@ -48,18 +47,6 @@ struct MinimizeUnassignedObjective {
 }
 
 impl FeatureObjective for MinimizeUnassignedObjective {
-    fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
-        let fitness_a = self.fitness(a);
-        let fitness_b = self.fitness(b);
-
-        let order = compare_floats(fitness_a, fitness_b);
-
-        match (is_edge_case(a, b, fitness_a, fitness_b), order) {
-            (true, _) => b.solution.routes.len().cmp(&a.solution.routes.len()),
-            _ => order,
-        }
-    }
-
     fn fitness(&self, solution: &InsertionContext) -> f64 {
         solution
             .solution
@@ -75,13 +62,4 @@ impl FeatureObjective for MinimizeUnassignedObjective {
             MoveContext::Activity { .. } => Cost::default(),
         }
     }
-}
-
-/// Checks the edge case when at least one solution has no routes and amount of unassigned is
-/// equal to another solution (can happen with conditional jobs).
-fn is_edge_case(a: &InsertionContext, b: &InsertionContext, fitness_a: f64, fitness_b: f64) -> bool {
-    let with_empty_routes = a.solution.routes.is_empty() || b.solution.routes.is_empty();
-    let with_same_fitness = compare_floats(fitness_a, fitness_b) == Ordering::Equal;
-
-    with_same_fitness && with_empty_routes
 }

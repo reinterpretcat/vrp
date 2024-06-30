@@ -11,7 +11,6 @@ use std::marker::PhantomData;
 /// Creates a feature which balances max load across all tours.
 pub fn create_max_load_balanced_feature<T>(
     name: &str,
-    threshold: Option<f64>,
     load_balance_fn: impl Fn(&T, &T) -> f64 + Send + Sync + 'static,
     vehicle_capacity_fn: impl Fn(&Vehicle) -> &T + Send + Sync + 'static,
 ) -> Result<Feature, GenericError>
@@ -40,11 +39,11 @@ where
         get_cv_safe(ctx.routes.iter().map(|route_ctx| get_load_ratio(route_ctx)).collect::<Vec<_>>().as_slice())
     });
 
-    create_feature::<MaxLoadBalancedKey>(name, threshold, route_estimate_fn, solution_estimate_fn)
+    create_feature::<MaxLoadBalancedKey>(name, route_estimate_fn, solution_estimate_fn)
 }
 
 /// Creates a feature which balances activities across all tours.
-pub fn create_activity_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, GenericError> {
+pub fn create_activity_balanced_feature(name: &str) -> Result<Feature, GenericError> {
     struct ActivityBalancedKey;
 
     let route_estimate_fn = Arc::new(|route_ctx: &RouteContext| route_ctx.route().tour.job_activity_count() as f64);
@@ -59,25 +58,24 @@ pub fn create_activity_balanced_feature(name: &str, threshold: Option<f64>) -> R
         )
     });
 
-    create_feature::<ActivityBalancedKey>(name, threshold, route_estimate_fn, solution_estimate_fn)
+    create_feature::<ActivityBalancedKey>(name, route_estimate_fn, solution_estimate_fn)
 }
 
 /// Creates a feature which which balances travelled durations across all tours.
-pub fn create_duration_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, GenericError> {
+pub fn create_duration_balanced_feature(name: &str) -> Result<Feature, GenericError> {
     struct DurationBalancedKey;
 
-    create_transport_balanced_feature::<DurationBalancedKey>(name, threshold, |state| state.get_total_duration())
+    create_transport_balanced_feature::<DurationBalancedKey>(name, |state| state.get_total_duration())
 }
 
 /// Creates a feature which which balances travelled distances across all tours.
-pub fn create_distance_balanced_feature(name: &str, threshold: Option<f64>) -> Result<Feature, GenericError> {
+pub fn create_distance_balanced_feature(name: &str) -> Result<Feature, GenericError> {
     struct DistanceBalancedKey;
-    create_transport_balanced_feature::<DistanceBalancedKey>(name, threshold, |state| state.get_total_distance())
+    create_transport_balanced_feature::<DistanceBalancedKey>(name, |state| state.get_total_distance())
 }
 
 fn create_transport_balanced_feature<K: Send + Sync + 'static>(
     name: &str,
-    threshold: Option<f64>,
     value_fn: impl Fn(&RouteState) -> Option<&f64> + Send + Sync + 'static,
 ) -> Result<Feature, GenericError> {
     let route_estimate_fn =
@@ -90,19 +88,17 @@ fn create_transport_balanced_feature<K: Send + Sync + 'static>(
         }
     });
 
-    create_feature::<K>(name, threshold, route_estimate_fn, solution_estimate_fn)
+    create_feature::<K>(name, route_estimate_fn, solution_estimate_fn)
 }
 
 fn create_feature<K: Send + Sync + 'static>(
     name: &str,
-    threshold: Option<f64>,
     route_estimate_fn: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
     solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
 ) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(WorkBalanceObjective {
-            threshold,
             route_estimate_fn: route_estimate_fn.clone(),
             solution_estimate_fn: solution_estimate_fn.clone(),
             phantom_data: PhantomData::<K>,
@@ -112,34 +108,12 @@ fn create_feature<K: Send + Sync + 'static>(
 }
 
 struct WorkBalanceObjective<K: Send + Sync + 'static> {
-    threshold: Option<f64>,
     route_estimate_fn: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
     solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
     phantom_data: PhantomData<K>,
 }
 
 impl<K: Send + Sync + 'static> FeatureObjective for WorkBalanceObjective<K> {
-    fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
-        let fitness_a = self.fitness(a);
-        let fitness_b = self.fitness(b);
-
-        if let Some(threshold) = self.threshold {
-            if fitness_a < threshold && fitness_b < threshold {
-                return Ordering::Equal;
-            }
-
-            if fitness_a < threshold {
-                return Ordering::Less;
-            }
-
-            if fitness_b < threshold {
-                return Ordering::Greater;
-            }
-        }
-
-        compare_floats(fitness_a, fitness_b)
-    }
-
     fn fitness(&self, solution: &InsertionContext) -> f64 {
         solution
             .solution
@@ -159,7 +133,7 @@ impl<K: Send + Sync + 'static> FeatureObjective for WorkBalanceObjective<K> {
                     .unwrap_or_else(|| (self.route_estimate_fn)(route_ctx));
 
                 // NOTE: this value doesn't consider a route state after insertion of given job
-                if value.is_finite() && self.threshold.map_or(true, |threshold| value > threshold) {
+                if value.is_finite() {
                     value
                 } else {
                     Cost::default()

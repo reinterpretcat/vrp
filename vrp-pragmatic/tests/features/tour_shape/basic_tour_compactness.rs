@@ -39,7 +39,7 @@ fn can_compact_tour() {
         objectives: Some(vec![
             vec![MinimizeUnassigned { breaks: None }],
             vec![MinimizeTours],
-            vec![CompactTour { options: CompactOptions { job_radius: 2, threshold: 2, distance: 0. } }],
+            vec![CompactTour { job_radius: 2 }],
             vec![MinimizeCost],
         ]),
         ..create_empty_problem()

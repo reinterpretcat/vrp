@@ -3,14 +3,6 @@ use crate::format::problem::Objective::*;
 use crate::helpers::create_empty_problem;
 use crate::helpers::*;
 
-fn min_cost() -> Objective {
-    MinimizeCost
-}
-
-fn balance_dist() -> Objective {
-    BalanceDistance { options: None }
-}
-
 #[test]
 fn can_fallback_to_default() {
     let problem = Problem { objectives: None, ..create_empty_problem() };
@@ -29,8 +21,8 @@ parameterized_test! {can_detect_empty_objective, (objectives, expected), {
 can_detect_empty_objective! {
     case01: (Some(vec![vec![]]), Some(())),
     case02: (Some(vec![]), Some(())),
-    case03: (Some(vec![vec![min_cost()]]), None),
-    case04: (Some(vec![vec![], vec![min_cost() ]]), None),
+    case03: (Some(vec![vec![MinimizeCost]]), None),
+    case04: (Some(vec![vec![], vec![MinimizeCost ]]), None),
 }
 
 fn can_detect_empty_objective_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<()>) {
@@ -49,11 +41,11 @@ parameterized_test! {can_detect_duplicates, (objectives, expected), {
 }}
 
 can_detect_duplicates! {
-    case01: (Some(vec![vec![min_cost()]]), None),
-    case02: (Some(vec![vec![min_cost()], vec![min_cost() ]]), Some("minimize-cost".to_owned())),
+    case01: (Some(vec![vec![MinimizeCost]]), None),
+    case02: (Some(vec![vec![MinimizeCost], vec![MinimizeCost ]]), Some("minimize-cost".to_owned())),
     case03: (Some(vec![
-                vec![min_cost(), balance_dist(), balance_dist()],
-                vec![min_cost()]
+                vec![MinimizeCost, BalanceDistance, BalanceDistance],
+                vec![MinimizeCost]
             ]),
         Some("balance-distance,minimize-cost".to_owned())),
 }
@@ -74,11 +66,11 @@ parameterized_test! {can_detect_missing_cost_objective, (objectives, expected), 
 }}
 
 can_detect_missing_cost_objective! {
-    case01: (Some(vec![vec![min_cost()]]), None),
+    case01: (Some(vec![vec![MinimizeCost]]), None),
     case02: (Some(vec![vec![MinimizeDuration]]), None),
     case03: (Some(vec![vec![MinimizeDistance]]), None),
-    case04: (Some(vec![vec![balance_dist()]]), Some(())),
-    case05: (Some(vec![vec![], vec![balance_dist()]]), Some(())),
+    case04: (Some(vec![vec![BalanceDistance]]), Some(())),
+    case05: (Some(vec![vec![], vec![BalanceDistance]]), Some(())),
 }
 
 fn can_detect_missing_cost_objective_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<()>) {
@@ -162,10 +154,10 @@ parameterized_test! {can_detect_multiple_cost_objective, (objectives, expected),
 }}
 
 can_detect_multiple_cost_objective! {
-    case01: (Some(vec![vec![min_cost()]]), None),
-    case02: (Some(vec![vec![min_cost(), min_cost()]]), Some(())),
-    case03: (Some(vec![vec![min_cost(), MinimizeDuration]]), Some(())),
-    case04: (Some(vec![vec![min_cost(), MinimizeDistance]]), Some(())),
+    case01: (Some(vec![vec![MinimizeCost]]), None),
+    case02: (Some(vec![vec![MinimizeCost, MinimizeCost]]), Some(())),
+    case03: (Some(vec![vec![MinimizeCost, MinimizeDuration]]), Some(())),
+    case04: (Some(vec![vec![MinimizeCost, MinimizeDistance]]), Some(())),
     case05: (Some(vec![vec![MinimizeDuration, MinimizeDistance]]), Some(())),
 }
 
