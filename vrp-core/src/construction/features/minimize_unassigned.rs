@@ -5,6 +5,8 @@
 mod minimize_unassigned_test;
 
 use super::*;
+use crate::utils::Either;
+use std::iter::empty;
 
 /// Provides a way to build a feature to minimize amount of unassigned jobs.
 pub struct MinimizeUnassignedBuilder {
@@ -39,7 +41,7 @@ impl MinimizeUnassignedBuilder {
     }
 }
 
-/// A type which allows to control how job is estimated in objective fitness.
+/// A type that allows controlling how a job is estimated in objective fitness.
 type UnassignedJobEstimator = Arc<dyn Fn(&SolutionContext, &Job) -> f64 + Send + Sync>;
 
 struct MinimizeUnassignedObjective {
@@ -48,12 +50,16 @@ struct MinimizeUnassignedObjective {
 
 impl FeatureObjective for MinimizeUnassignedObjective {
     fn fitness(&self, solution: &InsertionContext) -> Cost {
-        solution
-            .solution
-            .unassigned
-            .keys()
-            .map(|job| (self.unassigned_job_estimator)(&solution.solution, job))
-            .sum::<f64>()
+        if solution.solution.routes.is_empty() {
+            // NOTE: when some solution is empty, then it might look better by the number of unassigned jobs
+            //       if we do not estimate ignored jobs.
+            Either::Left(solution.solution.ignored.iter())
+        } else {
+            Either::Right(empty())
+        }
+        .chain(solution.solution.unassigned.keys())
+        .map(|job| (self.unassigned_job_estimator)(&solution.solution, job))
+        .sum::<f64>()
     }
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
