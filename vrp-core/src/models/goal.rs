@@ -10,7 +10,7 @@ use rand::prelude::SliceRandom;
 use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
 use std::ops::ControlFlow;
 use std::sync::Arc;
@@ -28,17 +28,13 @@ use std::sync::Arc;
 /// Both, global and local objectives, are specified by individual **features**. In general, a **Feature**
 /// encapsulates a single VRP aspect, such as capacity constraint for job's demand, time limitations
 /// for vehicles/jobs, etc.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct GoalContext {
-    global_objectives: Objectives,
-    local_objectives: Objectives,
-    alternatives: Vec<(Objectives, Objectives, f64)>,
+    goal: Goal,
+    alternative_goals: Vec<(Goal, f64)>,
     constraints: Vec<Arc<dyn FeatureConstraint>>,
     states: Vec<Arc<dyn FeatureState>>,
 }
-
-/// A type alias for a list of feature objectives.
-type Objectives = Vec<Arc<dyn FeatureObjective>>;
 
 impl GoalContext {
     /// Creates a new instance of `GoalContext` with given feature constraints.
@@ -58,9 +54,8 @@ impl GoalContext {
 impl Debug for GoalContext {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct(short_type_name::<Self>())
-            .field("global", &self.global_objectives.len())
-            .field("local", &self.local_objectives.len())
-            .field("alternatives", &self.alternatives.len())
+            .field("goal layers", &self.goal.layers.len())
+            .field("alternatives", &self.alternative_goals.len())
             .field("constraints", &self.constraints.len())
             .field("states", &self.states.len())
             .finish()
@@ -69,14 +64,15 @@ impl Debug for GoalContext {
 
 /// Provides a customizable way to build goal context.
 pub struct GoalContextBuilder {
-    main_goal: Option<(Vec<Feature>, Vec<Feature>)>,
-    alternative_goals: Vec<(Vec<Feature>, Vec<Feature>, f64)>,
+    main_goal: Option<Goal>,
+    alternative_goals: Vec<(Goal, f64)>,
     features: Vec<Feature>,
 }
 
 impl GoalContextBuilder {
     /// Creates a `GoalContextBuilder` with the given list of features.
-    pub fn with_features(features: Vec<Feature>) -> GenericResult<Self> {
+    pub fn with_features(features: &[Feature]) -> GenericResult<Self> {
+        let features = features.to_vec();
         let ids_all = features.iter().map(|feature| feature.name.as_str()).collect::<Vec<_>>();
         let ids_unique = ids_all.iter().collect::<HashSet<_>>();
 
@@ -88,79 +84,159 @@ impl GoalContextBuilder {
             .into());
         }
 
-        Ok(Self { main_goal: None, alternative_goals: Vec::default(), features })
+        let goal = Goal::simple(&features)?;
+
+        Ok(Self { main_goal: Some(goal), alternative_goals: Vec::default(), features })
     }
 
     /// Sets a main goal of optimization.
-    pub fn set_goal(mut self, global: &[&str], local: &[&str]) -> GenericResult<Self> {
-        let global = self.get_features(global)?;
-        let local = self.get_features(local)?;
-
-        self.main_goal = Some((global, local));
-
-        Ok(self)
+    pub fn set_main_goal(mut self, goal: Goal) -> Self {
+        self.main_goal = Some(goal);
+        self
     }
 
     /// Sets an alternative goal of optimization.
-    pub fn add_alternative(mut self, global: &[&str], local: &[&str], weight: f64) -> GenericResult<Self> {
-        let global = self.get_features(global)?;
-        let local = self.get_features(local)?;
-
-        self.alternative_goals.push((global, local, weight));
-
-        Ok(self)
-    }
-
-    fn get_features(&self, names: &[&str]) -> GenericResult<Vec<Feature>> {
-        names
-            .iter()
-            .map(|n| {
-                self.features
-                    .iter()
-                    .find(|f| f.name.eq(n))
-                    .cloned()
-                    .ok_or_else(|| GenericError::from(format!("unknown feature name: '{n}'")))
-            })
-            .collect::<Result<Vec<_>, _>>()
+    pub fn add_alternative_goal(mut self, goal: Goal, weight: f64) -> Self {
+        self.alternative_goals.push((goal, weight));
+        self
     }
 
     /// Builds goal context.
     pub fn build(self) -> GenericResult<GoalContext> {
-        let feature_objective_map = self
-            .features
-            .iter()
-            .filter_map(|feature| feature.objective.as_ref().map(|objective| (feature.name.clone(), objective.clone())))
-            .collect::<HashMap<_, _>>();
-
-        let remap_objectives = |features: &[Feature]| -> GenericResult<Vec<_>> {
-            features
-                .iter()
-                .map(|f| {
-                    if let Some(objective) = feature_objective_map.get(&f.name) {
-                        Ok(objective.clone())
-                    } else {
-                        Err(format!("cannot find objective for feature with name: {}", f.name).into())
-                    }
-                })
-                .collect::<Result<_, GenericError>>()
-        };
-
-        let (global_objectives, local_objectives) = if let Some((global, local)) = self.main_goal {
-            (remap_objectives(&global)?, remap_objectives(&local)?)
-        } else {
-            return Err("missing main goal of optimization".into());
-        };
-
-        let alternatives = self
-            .alternative_goals
-            .into_iter()
-            .map(|(global, local, weight)| Ok((remap_objectives(&global)?, remap_objectives(&local)?, weight)))
-            .collect::<GenericResult<Vec<_>>>()?;
-
+        let goal = self.main_goal.ok_or_else(|| GenericError::from("missing goal of optimization"))?;
+        let alternative_goals = self.alternative_goals;
         let states = self.features.iter().filter_map(|feature| feature.state.clone()).collect();
         let constraints = self.features.iter().filter_map(|feature| feature.constraint.clone()).collect();
 
-        Ok(GoalContext { global_objectives, local_objectives, alternatives, constraints, states })
+        Ok(GoalContext { goal, alternative_goals, constraints, states })
+    }
+}
+
+type TotalOrderFn =
+    Arc<dyn Fn(&[Arc<dyn FeatureObjective>], &InsertionContext, &InsertionContext) -> Ordering + Send + Sync>;
+type CostEstimateFn = Arc<dyn Fn(&[Arc<dyn FeatureObjective>], &MoveContext<'_>) -> Cost + Send + Sync>;
+type ObjectiveLayer = (TotalOrderFn, CostEstimateFn, Vec<Arc<dyn FeatureObjective>>);
+
+/// Specifies a goal of optimization as a list of `Feature` objectives with rules in lexicographical order.
+#[derive(Clone)]
+pub struct Goal {
+    layers: Vec<ObjectiveLayer>,
+}
+
+impl Goal {
+    /// Creates a goal using objectives from given list of features in lexicographical order.
+    /// See [GoalBuilder] for more complex options.
+    pub fn simple(features: &[Feature]) -> GenericResult<Self> {
+        let mut builder = GoalBuilder::new(features);
+        let names = features.iter().filter(|f| f.objective.is_some()).map(|f| f.name.as_str());
+        for name in names {
+            builder = builder.add_single(name.as_ref())
+        }
+        builder.build()
+    }
+
+    /// Creates a goal using feature names from the given list. Objectives are defined in lexicographical order.
+    pub fn subset_of<S: AsRef<str>>(features: &[Feature], names: &[S]) -> GenericResult<Self> {
+        let mut builder = GoalBuilder::new(features);
+        for name in names {
+            builder = builder.add_single(name.as_ref())
+        }
+        builder.build()
+    }
+}
+
+impl Goal {
+    /// Compares two solutions from optimization goal point of view and returns their comparison order.
+    pub fn total_order(&self, a: &InsertionContext, b: &InsertionContext) -> Ordering {
+        self.layers
+            .iter()
+            .try_fold(Ordering::Equal, |_, (total_order_fn, _, objectives)| {
+                match (total_order_fn)(objectives.as_slice(), a, b) {
+                    Ordering::Equal => ControlFlow::Continue(Ordering::Equal),
+                    order => ControlFlow::Break(order),
+                }
+            })
+            .unwrap_value()
+    }
+
+    /// Estimates insertion cost (penalty) of the refinement move.
+    pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> InsertionCost {
+        self.layers.iter().map(|(_, estimate_fn, objectives)| (estimate_fn)(objectives.as_slice(), move_ctx)).collect()
+    }
+
+    /// Calculates solution's fitness.
+    pub fn fitness<'a>(&'a self, solution: &'a InsertionContext) -> impl Iterator<Item = f64> + 'a {
+        self.layers.iter().flat_map(|(_, _, objectives)| objectives.iter()).map(|objective| objective.fitness(solution))
+    }
+}
+
+/// Builds a [Goal] - a goal of optimization - composing multiple layers from objective functions
+/// in lexicographical order.
+pub struct GoalBuilder {
+    features: Vec<Feature>,
+    layers: Vec<(TotalOrderFn, CostEstimateFn, Vec<String>)>,
+}
+
+impl GoalBuilder {
+    /// Creates a new instance of `GoalBuilder`.
+    pub fn new(features: &[Feature]) -> Self {
+        Self { features: features.to_vec(), layers: vec![] }
+    }
+
+    /// Add a layer which consists of one objective function with a given feature name.
+    pub fn add_single(mut self, name: &str) -> Self {
+        // NOTE: indices are controlled internally
+        self.layers.push((
+            Arc::new(|objectives, a, b| {
+                let fitness_a = objectives[0].fitness(a);
+                let fitness_b = objectives[0].fitness(b);
+
+                compare_floats(fitness_a, fitness_b)
+            }),
+            Arc::new(|objectives, move_ctx| objectives[0].estimate(move_ctx)),
+            vec![name.to_string()],
+        ));
+        self
+    }
+
+    /// Add a layer which consists of one or many objective function with a given feature name and
+    /// a custom `GoalResolver`.
+    pub fn add_multi<TO, CE>(mut self, names: &[&str], total_order_fn: TO, cost_estimate_fn: CE) -> Self
+    where
+        TO: Fn(&[Arc<dyn FeatureObjective>], &InsertionContext, &InsertionContext) -> Ordering + Send + Sync + 'static,
+        CE: Fn(&[Arc<dyn FeatureObjective>], &MoveContext<'_>) -> Cost + Send + Sync + 'static,
+    {
+        self.layers.push((
+            Arc::new(total_order_fn),
+            Arc::new(cost_estimate_fn),
+            names.iter().map(|n| n.to_string()).collect(),
+        ));
+        self
+    }
+
+    /// Builds a [Goal] of optimization.
+    pub fn build(self) -> GenericResult<Goal> {
+        let layers =
+            self.layers
+                .into_iter()
+                .map(|(total_order_fn, cost_estimate_fn, names)| {
+                    let features = names
+                        .into_iter()
+                        .map(|name| {
+                            self.features.iter().find(|f| f.name == name).and_then(|f| f.objective.clone()).ok_or_else(
+                                || GenericError::from(format!("cannot find a feature objective with '{name}'")),
+                            )
+                        })
+                        .collect::<Result<Vec<_>, GenericError>>()?;
+                    Ok((total_order_fn, cost_estimate_fn, features))
+                })
+                .collect::<Result<Vec<_>, GenericError>>()?;
+
+        if layers.is_empty() {
+            return Err(GenericError::from("no objectives specified in the goal"));
+        }
+
+        Ok(Goal { layers })
     }
 }
 
@@ -336,18 +412,7 @@ impl HeuristicObjective for GoalContext {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        self.global_objectives
-            .iter()
-            .try_fold(Ordering::Equal, |_, objective| {
-                let fitness_a = objective.fitness(a);
-                let fitness_b = objective.fitness(b);
-
-                match compare_floats(fitness_a, fitness_b) {
-                    Ordering::Equal => ControlFlow::Continue(Ordering::Equal),
-                    order => ControlFlow::Break(order),
-                }
-            })
-            .unwrap_value()
+        self.goal.total_order(a, b)
     }
 }
 
@@ -356,8 +421,8 @@ impl Shuffled for GoalContext {
         const RANDOM_ALTERNATIVE_PROBABILITY: f64 = 0.05;
         const RANDOM_SHUFFLE_PROBABILITY: f64 = 0.001;
 
-        if !self.alternatives.is_empty() && random.is_hit(RANDOM_ALTERNATIVE_PROBABILITY) {
-            let idx = random.uniform_int(0, self.alternatives.len() as i32 - 1) as usize;
+        if !self.alternative_goals.is_empty() && random.is_hit(RANDOM_ALTERNATIVE_PROBABILITY) {
+            let idx = random.uniform_int(0, self.alternative_goals.len() as i32 - 1) as usize;
             return self.get_alternative(idx);
         }
 
@@ -371,26 +436,23 @@ impl Shuffled for GoalContext {
 
 impl GoalContext {
     fn get_alternative(&self, idx: usize) -> Self {
-        let (global_objectives, local_objectives, _) = self.alternatives[idx].clone();
+        let (goal, _) = self.alternative_goals[idx].clone();
 
-        Self { global_objectives, local_objectives, ..self.clone() }
+        Self { goal, ..self.clone() }
     }
 
     fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
         let instance = self.clone();
 
-        let mut global_objectives = self.global_objectives.clone();
-        let mut local_objectives = self.local_objectives.clone();
+        let mut layers = self.goal.layers.clone();
+        layers.shuffle(&mut random.get_rng());
 
-        global_objectives.shuffle(&mut random.get_rng());
-        local_objectives.shuffle(&mut random.get_rng());
-
-        Self { global_objectives, local_objectives, ..instance }
+        Self { goal: Goal { layers }, ..instance }
     }
 
     /// Returns goals with alternative objectives.
     pub(crate) fn get_alternatives(&self) -> impl Iterator<Item = Self> + '_ {
-        self.alternatives.iter().enumerate().map(|(idx, _)| self.get_alternative(idx))
+        self.alternative_goals.iter().enumerate().map(|(idx, _)| self.get_alternative(idx))
     }
 
     /// Accepts job insertion.
@@ -429,12 +491,12 @@ impl GoalContext {
 
     /// Estimates insertion cost (penalty) of the refinement move.
     pub fn estimate(&self, move_ctx: &MoveContext<'_>) -> InsertionCost {
-        self.local_objectives.iter().map(|objective| objective.estimate(move_ctx)).collect()
+        self.goal.estimate(move_ctx)
     }
 
     /// Calculates solution's fitness.
     pub fn fitness<'a>(&'a self, solution: &'a InsertionContext) -> impl Iterator<Item = f64> + 'a {
-        self.global_objectives.iter().map(|o| o.fitness(solution))
+        self.goal.fitness(solution)
     }
 }
 

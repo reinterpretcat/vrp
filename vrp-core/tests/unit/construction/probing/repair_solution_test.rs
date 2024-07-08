@@ -92,7 +92,6 @@ fn create_test_problem(
         )
         .add_feature(create_locked_jobs_feature("locked_jobs", &fleet, locks.as_slice(), 4).unwrap())
         .add_feature(CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").set_violation_code(5).build().unwrap())
-        .with_objectives(&["transport"])
         .build();
 
     Problem {

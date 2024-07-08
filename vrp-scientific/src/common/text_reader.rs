@@ -109,9 +109,9 @@ pub(crate) fn create_goal_context_prefer_min_tours(
 ) -> GenericResult<GoalContext> {
     let features = get_essential_features(activity, transport, is_time_constrained)?;
 
-    GoalContextBuilder::with_features(features)?
-        .set_goal(&["min_unassigned", "min_tours", "min_distance"], &["min_tours", "min_distance"])?
-        .add_alternative(&["min_unassigned", "min_distance"], &["min_distance"], 0.1)?
+    GoalContextBuilder::with_features(&features)?
+        .set_main_goal(Goal::subset_of(&features, &["min_unassigned", "min_tours", "min_distance"])?)
+        .add_alternative_goal(Goal::subset_of(&features, &["min_unassigned", "min_distance"])?, 0.1)
         .build()
 }
 
@@ -122,9 +122,9 @@ pub(crate) fn create_goal_context_distance_only(
 ) -> Result<GoalContext, GenericError> {
     let features = get_essential_features(activity, transport, is_time_constrained)?;
 
-    GoalContextBuilder::with_features(features)?
-        .set_goal(&["min_unassigned", "min_distance"], &["min_distance"])?
-        .add_alternative(&["min_unassigned", "min_tours", "min_distance"], &["min_tours", "min_distance"], 0.1)?
+    GoalContextBuilder::with_features(&features)?
+        .set_main_goal(Goal::subset_of(&features, &["min_unassigned", "min_distance"])?)
+        .add_alternative_goal(Goal::subset_of(&features, &["min_unassigned", "min_tours", "min_distance"])?, 0.1)
         .build()
 }
 

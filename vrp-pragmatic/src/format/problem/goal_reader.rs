@@ -1,5 +1,4 @@
 use super::*;
-use std::collections::HashSet;
 use std::ops::Mul;
 use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
 use vrp_core::construction::enablers::FeatureCombinator;
@@ -7,7 +6,7 @@ use vrp_core::construction::features::*;
 use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Single, TransportCost};
 use vrp_core::models::solution::Route;
-use vrp_core::models::{Feature, GoalContext, GoalContextBuilder};
+use vrp_core::models::{Feature, Goal, GoalContext, GoalContextBuilder};
 
 pub(super) fn create_goal_context(
     api_problem: &ApiProblem,
@@ -21,7 +20,7 @@ pub(super) fn create_goal_context(
         .map(|features| FeatureCombinator::default().add_features(features.as_slice()).combine())
         .collect::<GenericResult<Vec<_>>>()?;
 
-    let (global_objective_map, local_objective_map) = extract_feature_map(features.as_slice())?;
+    let objective_map = extract_feature_map(features.as_slice())?;
 
     if props.has_unreachable_locations {
         features.push(create_reachable_feature("reachable", blocks.transport.clone(), REACHABLE_CONSTRAINT_CODE)?)
@@ -41,7 +40,7 @@ pub(super) fn create_goal_context(
         features.push(get_recharge_feature("recharge", api_problem, blocks.transport.clone())?);
     }
 
-    if props.has_order && !global_objective_map.iter().any(|name| *name == "tour_order") {
+    if props.has_order && !objective_map.iter().any(|name| *name == "tour_order") {
         features.push(create_tour_order_hard_feature("tour_order", TOUR_ORDER_CONSTRAINT_CODE, get_tour_order_fn())?)
     }
 
@@ -74,11 +73,9 @@ pub(super) fn create_goal_context(
         )?);
     }
 
-    GoalContextBuilder::with_features(features)?
-        .set_goal(
-            Vec::from_iter(global_objective_map.iter().map(String::as_str)).as_slice(),
-            Vec::from_iter(local_objective_map.iter().map(String::as_str)).as_slice(),
-        )?
+    // TODO refactor how objectives are specified considering feature combinator
+    GoalContextBuilder::with_features(&features)?
+        .set_main_goal(Goal::subset_of(&features, objective_map.as_slice())?)
         .build()
 }
 
@@ -149,7 +146,6 @@ fn get_objective_features(
                                     job.dimens().get_job_type().map_or(default_value, |job_type| {
                                         match job_type.as_str() {
                                             "break" => break_value.unwrap_or(default_value),
-                                            "reload" => 0.,
                                             _ => default_value,
                                         }
                                     })
@@ -460,26 +456,16 @@ fn create_optional_break_feature(name: &str) -> GenericResult<Feature> {
 }
 
 #[allow(clippy::type_complexity)]
-fn extract_feature_map(features: &[Feature]) -> GenericResult<(Vec<String>, Vec<String>)> {
-    let global_objective_map =
+fn extract_feature_map(features: &[Feature]) -> GenericResult<Vec<String>> {
+    let objective_map =
         features.iter().filter_map(|f| f.objective.as_ref().map(|_| f.name.clone())).collect::<Vec<_>>();
 
-    // NOTE: this is more performance optimization: we want to minimize the size of InsertionCost
-    //       which has the same size as local_objective_map. So, we exclude some objectives which
-    //       are not really needed to be present here.
-    let exclusion_set = &["min_unassigned"].into_iter().collect::<HashSet<_>>();
-    let local_objective_map = features
-        .iter()
-        .filter_map(|f| f.objective.as_ref().map(|_| f.name.clone()))
-        .filter(|name| !exclusion_set.contains(name.as_str()))
-        .collect::<Vec<_>>();
-
     // NOTE COST_DIMENSION variable in vrp-core is responsible for that
-    if local_objective_map.len() > 6 {
-        println!("WARN: the size of local objectives ({}) exceeds pre-allocated stack size", local_objective_map.len());
+    if objective_map.len() > 6 {
+        println!("WARN: the size of objectives ({}) exceeds pre-allocated stack size", objective_map.len());
     }
 
-    Ok((global_objective_map, local_objective_map))
+    Ok(objective_map)
 }
 
 fn get_tour_order_fn() -> TourOrderFn {

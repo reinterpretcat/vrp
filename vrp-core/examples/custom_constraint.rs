@@ -113,8 +113,7 @@ fn define_goal(transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult
         .build()?;
 
     // configure goal of optimization
-    GoalContextBuilder::with_features(vec![minimize_unassigned, transport_feature, capacity_feature, hardware_feature])?
-        .set_goal(&["min-unassigned", "min-distance"], &["min-distance"])?
+    GoalContextBuilder::with_features(&[minimize_unassigned, transport_feature, capacity_feature, hardware_feature])?
         .build()
 }
 

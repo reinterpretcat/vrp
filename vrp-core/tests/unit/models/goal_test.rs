@@ -69,10 +69,7 @@ fn create_objective_feature_with_dynamic_cost(name: &str, fitness_fn: FitnessFn)
 
 #[test]
 pub fn can_create_goal_context_with_objective() -> GenericResult<()> {
-    let features = vec![create_minimize_tours_feature("min_tours").unwrap()];
-
-    GoalContextBuilder::with_features(features)?
-        .set_goal(&["min_tours"], &["min_tours"])?
+    GoalContextBuilder::with_features(&[create_minimize_tours_feature("min-tours").unwrap()])?
         .build()
         .expect("cannot build context");
     Ok(())
@@ -82,7 +79,7 @@ pub fn can_create_goal_context_with_objective() -> GenericResult<()> {
 pub fn cannot_create_goal_context_without_objectives() -> GenericResult<()> {
     let features = vec![CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").build().unwrap()];
 
-    assert!(GoalContextBuilder::with_features(features)?.build().is_err());
+    assert!(GoalContextBuilder::with_features(&features).is_err());
     Ok(())
 }
 
@@ -97,33 +94,36 @@ pub fn can_evaluate_constraints() -> GenericResult<()> {
     };
     let move_ctx = MoveContext::activity(&route_ctx, &activity_ctx);
 
+    let features = vec![create_feature("c_1", 0., ConstraintViolation::success())];
     assert_eq!(
-        GoalContextBuilder::with_features(vec![create_feature("c_1", 0., ConstraintViolation::success())])?
-            .set_goal(&["c_1"], &["c_1"])?
+        GoalContextBuilder::with_features(&features)?
+            .set_main_goal(Goal::subset_of(&features, &["c_1"])?)
             .build()?
             .evaluate(&move_ctx),
         None
     );
 
+    let features = vec![
+        create_feature("c_1", 0., ConstraintViolation::success()),
+        create_feature("c_2", 0., ConstraintViolation::fail(1)),
+    ];
     assert_eq!(
-        GoalContextBuilder::with_features(vec![
-            create_feature("c_1", 0., ConstraintViolation::success()),
-            create_feature("c_2", 0., ConstraintViolation::fail(1)),
-        ])?
-        .set_goal(&["c_1"], &["c_1"])?
-        .build()?
-        .evaluate(&move_ctx),
+        GoalContextBuilder::with_features(&features)?
+            .set_main_goal(Goal::subset_of(&features, &["c_1"])?)
+            .build()?
+            .evaluate(&move_ctx),
         ConstraintViolation::fail(1)
     );
 
+    let features = vec![
+        create_feature("c_1", 0., ConstraintViolation::skip(1)),
+        create_feature("c_2", 0., ConstraintViolation::success()),
+    ];
     assert_eq!(
-        GoalContextBuilder::with_features(vec![
-            create_feature("c_1", 0., ConstraintViolation::skip(1)),
-            create_feature("c_2", 0., ConstraintViolation::success()),
-        ])?
-        .set_goal(&["c_1"], &["c_1"])?
-        .build()?
-        .evaluate(&move_ctx),
+        GoalContextBuilder::with_features(&features)?
+            .set_main_goal(Goal::subset_of(&features, &["c_1"])?)
+            .build()?
+            .evaluate(&move_ctx),
         ConstraintViolation::skip(1)
     );
 
@@ -154,11 +154,7 @@ fn can_use_objective_estimate_impl(feature_map: &[&str], expected_cost: &[Cost])
     let move_ctx = MoveContext::activity(&route_ctx, &activity_ctx);
     let features = feature_map.iter().map(|name| create_feature(name, 1., None)).collect();
 
-    let result = TestGoalContextBuilder::default()
-        .add_features(features)
-        .with_objectives(feature_map)
-        .build()
-        .estimate(&move_ctx);
+    let result = TestGoalContextBuilder::empty().add_features(features).build().estimate(&move_ctx);
 
     assert_eq!(result, InsertionCost::new(expected_cost));
 }
@@ -188,7 +184,6 @@ fn can_use_objective_total_order_impl(left_fitness: Vec<f64>, right_fitness: Vec
         .add_feature(create_objective_feature_with_dynamic_cost("1", fitness_fn.clone()))
         .add_feature(create_objective_feature_with_dynamic_cost("2", fitness_fn.clone()))
         .add_feature(create_objective_feature_with_dynamic_cost("3", fitness_fn))
-        .with_objectives(&["0", "1", "2", "3"])
         .build();
     let left = create_insertion_ctx_with_fitness_state(left_fitness);
     let right = create_insertion_ctx_with_fitness_state(right_fitness);
@@ -198,7 +193,7 @@ fn can_use_objective_total_order_impl(left_fitness: Vec<f64>, right_fitness: Vec
 
 #[test]
 fn can_detect_same_name_usage() {
-    let goal_ctx = GoalContextBuilder::with_features(vec![
+    let goal_ctx = GoalContextBuilder::with_features(&[
         create_objective_feature_with_dynamic_cost("name_1", Arc::new(|_, _| 1.)),
         create_objective_feature_with_dynamic_cost("name_2", Arc::new(|_, _| 1.)),
         create_objective_feature_with_dynamic_cost("name_1", Arc::new(|_, _| 1.)),

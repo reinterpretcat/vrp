@@ -230,10 +230,10 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
     let reload_feature = create_simple_reload_feature::<MultiDimLoad, _>(move |capacity| *capacity * threshold);
 
     let min_jobs_feature = MinimizeUnassignedBuilder::new("min_jobs").build().unwrap();
-    let goal = GoalContextBuilder::with_features(vec![reload_feature, min_jobs_feature])
+    let features = vec![reload_feature, min_jobs_feature];
+    let goal = GoalContextBuilder::with_features(&features)
         .unwrap()
-        .set_goal(&["min_jobs"], &["min_jobs"])
-        .unwrap()
+        .set_main_goal(GoalBuilder::new(&features).add_single("min_jobs").build().unwrap())
         .build()
         .unwrap();
 

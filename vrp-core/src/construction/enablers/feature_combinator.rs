@@ -115,8 +115,19 @@ impl FeatureState for CombinedFeatureState {
         accept_route_state_with_states(&self.states, route_ctx)
     }
 
-    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
-        accept_solution_state_with_states(&self.states, solution_ctx)
+    fn accept_solution_state(&self, ctx: &mut SolutionContext) {
+        // NOTE should not use a version with fallback to avoid hiding changes for other states
+        self.states.iter().try_for_each(|state| {
+            let previous_state = (ctx.required.len(), ctx.ignored.len(), ctx.unassigned.len());
+
+            state.accept_solution_state(ctx);
+
+            if has_changes(ctx, previous_state) {
+                ControlFlow::Break(())
+            } else {
+                ControlFlow::Continue(())
+            }
+        });
     }
 }
 
@@ -183,11 +194,6 @@ pub(crate) fn accept_route_state_with_states(states: &[Arc<dyn FeatureState>], r
 }
 
 pub(crate) fn accept_solution_state_with_states(states: &[Arc<dyn FeatureState>], solution_ctx: &mut SolutionContext) {
-    let has_changes = |ctx: &SolutionContext, previous_state: (usize, usize, usize)| {
-        let (required, ignored, unassigned) = previous_state;
-        required != ctx.required.len() || ignored != ctx.ignored.len() || unassigned != ctx.unassigned.len()
-    };
-
     let _ = (0..).try_fold((usize::MAX, usize::MAX, usize::MAX), |(required, ignored, unassigned), counter| {
         // NOTE if any job promotion occurs, then we might need to recalculate states.
         // As it is hard to maintain dependencies between different modules, we reset process to
@@ -243,4 +249,12 @@ pub(crate) fn evaluate_with_constraints(
                 .unwrap_or_else(|| ControlFlow::Continue(None))
         })
         .unwrap_value()
+}
+
+fn has_changes(solution_ctx: &SolutionContext, previous_state: (usize, usize, usize)) -> bool {
+    let (required, ignored, unassigned) = previous_state;
+
+    required != solution_ctx.required.len()
+        || ignored != solution_ctx.ignored.len()
+        || unassigned != solution_ctx.unassigned.len()
 }

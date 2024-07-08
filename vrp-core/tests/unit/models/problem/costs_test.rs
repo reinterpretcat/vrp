@@ -161,22 +161,16 @@ mod objective {
     }
 
     fn can_use_total_order_impl(data_a: Vec<f64>, data_b: Vec<f64>, expected: Ordering) {
-        let objective_map = vec!["test_0", "test_1", "test_2"];
-        let goal = GoalContextBuilder::with_features(vec![
-            create_objective_feature(0),
-            create_objective_feature(1),
-            create_objective_feature(2),
-        ])
-        .expect("cannot create builder")
-        .set_goal(objective_map.as_slice(), objective_map.as_slice())
-        .expect("cannot set goal")
-        .build()
-        .expect("cannot build context");
+        let features = vec![create_objective_feature(0), create_objective_feature(1), create_objective_feature(2)];
+        let goal_ctx = GoalContextBuilder::with_features(&features)
+            .expect("cannot create builder")
+            .build()
+            .expect("cannot build context");
 
         let a = create_individual(data_a);
         let b = create_individual(data_b);
 
-        let result = goal.total_order(&a, &b);
+        let result = goal_ctx.total_order(&a, &b);
 
         assert_eq!(result, expected);
     }

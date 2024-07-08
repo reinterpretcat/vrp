@@ -43,7 +43,6 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
                         .build_minimize_cost()
                         .unwrap(),
                 )
-                .with_objectives(&["transport"])
                 .build()
         },
         |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),
@@ -70,8 +69,7 @@ pub fn generate_matrix_routes_with_disallow_list(
         cols,
         is_open_vrp,
         move |transport, activity, _| {
-            let feature_map = &["transport"];
-            TestGoalContextBuilder::default()
+            TestGoalContextBuilder::empty()
                 .add_feature(
                     TransportFeatureBuilder::new("transport")
                         .set_violation_code(1)
@@ -87,7 +85,6 @@ pub fn generate_matrix_routes_with_disallow_list(
                         .build()
                         .unwrap(),
                 )
-                .with_objectives(feature_map)
                 .build()
         },
         |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),

@@ -2,7 +2,8 @@ use crate::construction::features::TransportFeatureBuilder;
 use crate::construction::heuristics::*;
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
 use crate::models::problem::{Fleet, Job, JobIdDimension, Jobs};
-use crate::models::{Extras, Feature, GoalContext, GoalContextBuilder, Problem};
+use crate::models::{Extras, Feature, FeatureBuilder, GoalContext, GoalContextBuilder, Problem};
+use crate::prelude::{Cost, FeatureObjective};
 use rosomaxa::utils::{DefaultRandom, Random};
 use std::sync::Arc;
 
@@ -10,24 +11,36 @@ pub fn test_random() -> Arc<dyn Random + Send + Sync> {
     Arc::new(DefaultRandom::default())
 }
 
-#[derive(Default)]
 pub struct TestGoalContextBuilder {
     features: Vec<Feature>,
-    goal: Option<(Vec<String>, Vec<String>)>,
+}
+
+impl Default for TestGoalContextBuilder {
+    fn default() -> Self {
+        Self {
+            features: vec![FeatureBuilder::default()
+                .with_name("default")
+                .with_objective(TestObjective)
+                .build()
+                .unwrap()],
+        }
+    }
 }
 
 impl TestGoalContextBuilder {
+    pub fn empty() -> Self {
+        Self { features: vec![] }
+    }
+
     pub fn with_transport_feature() -> Self {
-        Self::default()
-            .add_feature(
-                TransportFeatureBuilder::new("transport")
-                    .set_violation_code(1)
-                    .set_transport_cost(TestTransportCost::new_shared())
-                    .set_activity_cost(TestActivityCost::new_shared())
-                    .build_minimize_cost()
-                    .unwrap(),
-            )
-            .with_objectives(&["transport"])
+        Self {
+            features: vec![TransportFeatureBuilder::new("transport")
+                .set_violation_code(1)
+                .set_transport_cost(TestTransportCost::new_shared())
+                .set_activity_cost(TestActivityCost::new_shared())
+                .build_minimize_cost()
+                .unwrap()],
+        }
     }
 
     pub fn add_feature(mut self, feature: Feature) -> Self {
@@ -40,28 +53,9 @@ impl TestGoalContextBuilder {
         self
     }
 
-    pub fn with_objectives(mut self, objectives: &[&str]) -> Self {
-        let objectives: Vec<_> = objectives.iter().map(|name| name.to_string()).collect();
-
-        self.goal = Some((objectives.clone(), objectives));
-
-        self
-    }
-
     pub fn build(self) -> GoalContext {
-        let (global, local) = if let Some(goal) = self.goal.as_ref() {
-            (
-                goal.0.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
-                goal.1.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
-            )
-        } else {
-            (vec![], vec![])
-        };
-
-        GoalContextBuilder::with_features(self.features)
+        GoalContextBuilder::with_features(&self.features)
             .expect("cannot create builder")
-            .set_goal(global.as_slice(), local.as_slice())
-            .expect("cannot set goal")
             .build()
             .expect("cannot build context")
     }
@@ -156,5 +150,17 @@ fn create_empty_problem() -> Problem {
         activity: TestActivityCost::new_shared(),
         transport,
         extras: Arc::new(Extras::default()),
+    }
+}
+
+struct TestObjective;
+
+impl FeatureObjective for TestObjective {
+    fn fitness(&self, _: &InsertionContext) -> Cost {
+        Cost::default()
+    }
+
+    fn estimate(&self, _: &MoveContext<'_>) -> Cost {
+        Cost::default()
     }
 }

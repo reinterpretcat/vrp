@@ -69,9 +69,7 @@ fn create_example_goal_ctx(
         CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").build()?,
     ];
 
-    GoalContextBuilder::with_features(features)?
-        .set_goal(&["min_jobs", "min_tours", "min_distance"], &["min_tours", "min_distance"])?
-        .build()
+    GoalContextBuilder::with_features(&features)?.build()
 }
 
 pub fn build_example_problem() -> GenericResult<Arc<Problem>> {

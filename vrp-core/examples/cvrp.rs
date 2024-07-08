@@ -69,15 +69,10 @@ fn define_goal(transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult
         .set_time_constrained(false)
         .build_minimize_distance()?;
 
-    // configure goal of optimization
-    GoalContextBuilder::with_features(vec![minimize_unassigned, transport_feature, capacity_feature])?
-        // the goal is split into global and local parts:
-        // - on global level we prefer solutions where:
-        //   1. minimum of unassigned jobs
-        //   2. minimum distance traveled
-        // - on local level, as all jobs have the same weight, we prefer jobs that introduce a minimal distance change
-        .set_goal(&["min-unassigned", "min-distance"], &["min-distance"])?
-        .build()
+    // configure goal of optimization: features with objectives are read from ordered feature list. Here we have:
+    //   1. minimum of unassigned jobs as the main objective
+    //   2. minimum distance traveled
+    GoalContextBuilder::with_features(&[minimize_unassigned, transport_feature, capacity_feature])?.build()
 }
 
 fn main() -> GenericResult<()> {

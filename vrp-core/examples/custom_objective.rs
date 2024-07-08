@@ -130,13 +130,7 @@ fn define_goal(transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult
         .build()?;
 
     // configure goal of optimization
-    GoalContextBuilder::with_features(vec![priority_feature, minimize_unassigned, transport_feature, capacity_feature])?
-        .set_goal(
-            // on global level, prefer more maximized jobs over anything else
-            &["maximize-priority", "min-unassigned", "min-distance"],
-            // on local level, prefer it over min-distance as distance is less important
-            &["maximize-priority", "min-distance"],
-        )?
+    GoalContextBuilder::with_features(&[priority_feature, minimize_unassigned, transport_feature, capacity_feature])?
         .build()
 }
 
