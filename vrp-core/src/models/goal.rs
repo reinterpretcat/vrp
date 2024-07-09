@@ -127,21 +127,40 @@ impl Goal {
     /// Creates a goal using objectives from given list of features in lexicographical order.
     /// See [GoalBuilder] for more complex options.
     pub fn simple(features: &[Feature]) -> GenericResult<Self> {
-        let mut builder = GoalBuilder::new(features);
-        let names = features.iter().filter(|f| f.objective.is_some()).map(|f| f.name.as_str());
+        let mut builder = GoalBuilder::default();
+        let names = features.iter().filter(|f| f.objective.is_some()).map(|f| &f.name);
+
         for name in names {
-            builder = builder.add_single(name.as_ref())
+            builder = Self::add_with_name(builder, features, name)?;
         }
+
         builder.build()
     }
 
     /// Creates a goal using feature names from the given list. Objectives are defined in lexicographical order.
     pub fn subset_of<S: AsRef<str>>(features: &[Feature], names: &[S]) -> GenericResult<Self> {
-        let mut builder = GoalBuilder::new(features);
+        let mut builder = GoalBuilder::default();
+
         for name in names {
-            builder = builder.add_single(name.as_ref())
+            builder = Self::add_with_name(builder, features, name.as_ref())?;
         }
+
         builder.build()
+    }
+
+    fn add_with_name(builder: GoalBuilder, features: &[Feature], name: &str) -> GenericResult<GoalBuilder> {
+        let feature = features
+            .iter()
+            .find(|f| f.name == name)
+            .ok_or_else(|| GenericError::from(format!("cannot find a feature with given name: '{name}'")))?;
+
+        let objective = feature
+            .objective
+            .clone()
+            .take()
+            .ok_or_else(|| GenericError::from(format!("feature '{name}' has no objective")))?;
+
+        Ok(builder.add_single(objective))
     }
 }
 
@@ -172,19 +191,14 @@ impl Goal {
 
 /// Builds a [Goal] - a goal of optimization - composing multiple layers from objective functions
 /// in lexicographical order.
+#[derive(Default)]
 pub struct GoalBuilder {
-    features: Vec<Feature>,
-    layers: Vec<(TotalOrderFn, CostEstimateFn, Vec<String>)>,
+    layers: Vec<ObjectiveLayer>,
 }
 
 impl GoalBuilder {
-    /// Creates a new instance of `GoalBuilder`.
-    pub fn new(features: &[Feature]) -> Self {
-        Self { features: features.to_vec(), layers: vec![] }
-    }
-
     /// Add a layer which consists of one objective function with a given feature name.
-    pub fn add_single(mut self, name: &str) -> Self {
+    pub fn add_single(mut self, objective: Arc<dyn FeatureObjective>) -> Self {
         // NOTE: indices are controlled internally
         self.layers.push((
             Arc::new(|objectives, a, b| {
@@ -194,49 +208,34 @@ impl GoalBuilder {
                 compare_floats(fitness_a, fitness_b)
             }),
             Arc::new(|objectives, move_ctx| objectives[0].estimate(move_ctx)),
-            vec![name.to_string()],
+            vec![objective],
         ));
         self
     }
 
     /// Add a layer which consists of one or many objective function with a given feature name and
     /// a custom `GoalResolver`.
-    pub fn add_multi<TO, CE>(mut self, names: &[&str], total_order_fn: TO, cost_estimate_fn: CE) -> Self
+    pub fn add_multi<TO, CE>(
+        mut self,
+        objectives: &[Arc<dyn FeatureObjective>],
+        total_order_fn: TO,
+        cost_estimate_fn: CE,
+    ) -> Self
     where
         TO: Fn(&[Arc<dyn FeatureObjective>], &InsertionContext, &InsertionContext) -> Ordering + Send + Sync + 'static,
         CE: Fn(&[Arc<dyn FeatureObjective>], &MoveContext<'_>) -> Cost + Send + Sync + 'static,
     {
-        self.layers.push((
-            Arc::new(total_order_fn),
-            Arc::new(cost_estimate_fn),
-            names.iter().map(|n| n.to_string()).collect(),
-        ));
+        self.layers.push((Arc::new(total_order_fn), Arc::new(cost_estimate_fn), objectives.to_vec()));
         self
     }
 
-    /// Builds a [Goal] of optimization.
+    /// Builds a [Goal] of optimization using features provided.
     pub fn build(self) -> GenericResult<Goal> {
-        let layers =
-            self.layers
-                .into_iter()
-                .map(|(total_order_fn, cost_estimate_fn, names)| {
-                    let features = names
-                        .into_iter()
-                        .map(|name| {
-                            self.features.iter().find(|f| f.name == name).and_then(|f| f.objective.clone()).ok_or_else(
-                                || GenericError::from(format!("cannot find a feature objective with '{name}'")),
-                            )
-                        })
-                        .collect::<Result<Vec<_>, GenericError>>()?;
-                    Ok((total_order_fn, cost_estimate_fn, features))
-                })
-                .collect::<Result<Vec<_>, GenericError>>()?;
-
-        if layers.is_empty() {
+        if self.layers.is_empty() {
             return Err(GenericError::from("no objectives specified in the goal"));
         }
 
-        Ok(Goal { layers })
+        Ok(Goal { layers: self.layers })
     }
 }
 

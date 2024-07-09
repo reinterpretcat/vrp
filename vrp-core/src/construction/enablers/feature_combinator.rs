@@ -9,7 +9,7 @@ use std::ops::ControlFlow;
 use std::sync::Arc;
 
 /// Specifies a type for injecting custom objective combination logic.
-pub type ObjectiveCombinator = dyn Fn(&[(&str, Arc<dyn FeatureObjective>)]) -> Arc<dyn FeatureObjective>;
+pub type ObjectiveCombinator = dyn Fn(&[(&str, Arc<dyn FeatureObjective>)]) -> Option<Arc<dyn FeatureObjective>>;
 
 /// Provides the way to group multiple features having more fine grained control over result.
 #[derive(Default)]
@@ -39,9 +39,12 @@ impl FeatureCombinator {
         self
     }
 
-    /// Provides custom objective combinator
-    pub fn use_objective_combinator(mut self, objective_combinator: Box<ObjectiveCombinator>) -> Self {
-        self.objective_combinator = Some(objective_combinator);
+    /// Sets a custom objective combinator logic.
+    pub fn set_objective_combinator<F>(mut self, objective_combinator: F) -> Self
+    where
+        F: Fn(&[(&str, Arc<dyn FeatureObjective>)]) -> Option<Arc<dyn FeatureObjective>> + 'static,
+    {
+        self.objective_combinator = Some(Box::new(objective_combinator));
         self
     }
 
@@ -49,10 +52,11 @@ impl FeatureCombinator {
     pub fn combine(self) -> Result<Feature, GenericError> {
         let name =
             self.name.unwrap_or_else(|| self.features.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join("+"));
+
         let objective_combinator = self.objective_combinator.unwrap_or_else(|| {
             Box::new(|objectives| {
                 let objectives = objectives.iter().map(|(_, o)| o.clone()).collect::<Vec<_>>();
-                Arc::new(CombinedFeatureObjective { objectives })
+                Some(Arc::new(SumFeatureObjective { objectives }))
             })
         });
 
@@ -73,7 +77,7 @@ fn combine_features(
     let objective = match objectives.len() {
         0 => None,
         1 => objectives.first().map(|(_, o)| o.clone()),
-        _ => Some(objective_combinator(objectives.as_slice())),
+        _ => objective_combinator(objectives.as_slice()),
     };
 
     let constraints = features.iter().filter_map(|feature| feature.constraint.clone()).collect::<Vec<_>>();
@@ -145,11 +149,11 @@ impl FeatureConstraint for CombinedFeatureConstraint {
     }
 }
 
-struct CombinedFeatureObjective {
+struct SumFeatureObjective {
     objectives: Vec<Arc<dyn FeatureObjective>>,
 }
 
-impl FeatureObjective for CombinedFeatureObjective {
+impl FeatureObjective for SumFeatureObjective {
     fn fitness(&self, solution: &InsertionContext) -> Cost {
         // NOTE: just summing all objective values together
         self.objectives.iter().map(|o| o.fitness(solution)).sum::<Cost>()

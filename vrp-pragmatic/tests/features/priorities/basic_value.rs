@@ -9,14 +9,14 @@ parameterized_test! {can_prefer_jobs_with_more_value, objectives, {
 
 can_prefer_jobs_with_more_value! {
     case01: Some(vec![
-        vec![MinimizeUnassigned { breaks: None }],
-        vec![MaximizeValue { breaks: None }],
-        vec![MinimizeCost],
+        MinimizeUnassigned { breaks: None },
+        MaximizeValue { breaks: None },
+        MinimizeCost,
     ]),
     case02: None,
 }
 
-fn can_prefer_jobs_with_more_value_impl(objectives: Option<Vec<Vec<Objective>>>) {
+fn can_prefer_jobs_with_more_value_impl(objectives: Option<Vec<Objective>>) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job_with_value("job2", (2., 0.), 100.)],

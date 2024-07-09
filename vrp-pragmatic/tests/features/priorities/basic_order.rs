@@ -18,19 +18,15 @@ fn create_test_limit() -> Option<VehicleLimits> {
     Some(VehicleLimits { max_distance: Some(15.), max_duration: None, tour_size: None })
 }
 
-fn create_order_objective(is_constrained: bool) -> Vec<Vec<Objective>> {
+fn create_order_objective(is_constrained: bool) -> Vec<Objective> {
     if is_constrained {
-        vec![
-            vec![Objective::MinimizeUnassigned { breaks: None }],
-            vec![Objective::MinimizeTours],
-            vec![Objective::MinimizeCost],
-        ]
+        vec![Objective::MinimizeUnassigned { breaks: None }, Objective::MinimizeTours, Objective::MinimizeCost]
     } else {
         vec![
-            vec![Objective::MinimizeUnassigned { breaks: None }],
-            vec![Objective::MinimizeTours],
-            vec![Objective::TourOrder],
-            vec![Objective::MinimizeCost],
+            Objective::MinimizeUnassigned { breaks: None },
+            Objective::MinimizeTours,
+            Objective::TourOrder,
+            Objective::MinimizeCost,
         ]
     }
 }

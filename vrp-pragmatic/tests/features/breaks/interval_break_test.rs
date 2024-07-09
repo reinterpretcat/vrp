@@ -3,8 +3,8 @@ use crate::format::problem::*;
 use crate::format_time;
 use crate::helpers::*;
 
-fn create_test_objectives() -> Option<Vec<Vec<Objective>>> {
-    Some(vec![vec![MinimizeUnassigned { breaks: Some(10.) }], vec![MinimizeCost]])
+fn create_test_objectives() -> Option<Vec<Objective>> {
+    Some(vec![MinimizeUnassigned { breaks: Some(10.) }, MinimizeCost])
 }
 
 #[test]

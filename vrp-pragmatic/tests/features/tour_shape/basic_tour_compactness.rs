@@ -37,10 +37,10 @@ fn can_compact_tour() {
             ..create_default_fleet()
         },
         objectives: Some(vec![
-            vec![MinimizeUnassigned { breaks: None }],
-            vec![MinimizeTours],
-            vec![CompactTour { job_radius: 2 }],
-            vec![MinimizeCost],
+            MinimizeUnassigned { breaks: None },
+            MinimizeTours,
+            CompactTour { job_radius: 2 },
+            MinimizeCost,
         ]),
         ..create_empty_problem()
     };

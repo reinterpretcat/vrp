@@ -6,21 +6,17 @@ use vrp_core::construction::features::*;
 use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Single, TransportCost};
 use vrp_core::models::solution::Route;
-use vrp_core::models::{Feature, Goal, GoalContext, GoalContextBuilder};
+use vrp_core::models::{Feature, FeatureObjective, GoalBuilder, GoalContext, GoalContextBuilder};
+use vrp_core::rosomaxa::evolution::objectives::dominance_order;
 
 pub(super) fn create_goal_context(
     api_problem: &ApiProblem,
     blocks: &ProblemBlocks,
     props: &ProblemProperties,
 ) -> GenericResult<GoalContext> {
-    let objective_features = get_objective_features(api_problem, blocks, props)?;
-    // TODO combination should happen inside `get_objective_features` for conflicting objectives
-    let mut features = objective_features
-        .into_iter()
-        .map(|features| FeatureCombinator::default().add_features(features.as_slice()).combine())
-        .collect::<GenericResult<Vec<_>>>()?;
-
-    let objective_map = extract_feature_map(features.as_slice())?;
+    // determine features from objective definition
+    let feature_layers = get_objective_feature_layers(api_problem, blocks, props)?;
+    let (mut features, goal_builder) = get_features_with_goal(&feature_layers)?;
 
     if props.has_unreachable_locations {
         features.push(create_reachable_feature("reachable", blocks.transport.clone(), REACHABLE_CONSTRAINT_CODE)?)
@@ -40,7 +36,7 @@ pub(super) fn create_goal_context(
         features.push(get_recharge_feature("recharge", api_problem, blocks.transport.clone())?);
     }
 
-    if props.has_order && !objective_map.iter().any(|name| *name == "tour_order") {
+    if props.has_order && !features.iter().any(|f| f.name == "tour_order") {
         features.push(create_tour_order_hard_feature("tour_order", TOUR_ORDER_CONSTRAINT_CODE, get_tour_order_fn())?)
     }
 
@@ -73,146 +69,235 @@ pub(super) fn create_goal_context(
         )?);
     }
 
-    // TODO refactor how objectives are specified considering feature combinator
-    GoalContextBuilder::with_features(&features)?
-        .set_main_goal(Goal::subset_of(&features, objective_map.as_slice())?)
-        .build()
+    GoalContextBuilder::with_features(&features)?.set_main_goal(goal_builder.build()?).build()
 }
 
-fn get_objective_features(
+/// Layer retains information about whether a feature is defined as standalone or as having some competitive.
+enum FeatureLayer {
+    /// A single feature layer: no competitive objectives.
+    Single(Feature),
+
+    /// A multi feature layer: multiple competitive objectives are available for multiple features.
+    Multi { composition_type: CompositionType, features: Vec<Feature> },
+}
+
+fn get_objective_feature_layers(
     api_problem: &ApiProblem,
     blocks: &ProblemBlocks,
     props: &ProblemProperties,
-) -> Result<Vec<Vec<Feature>>, GenericError> {
+) -> GenericResult<Vec<FeatureLayer>> {
     let objectives = get_objectives(api_problem, props);
 
     objectives
         .iter()
-        .map(|objectives| {
-            objectives
-                .iter()
-                .map(|objective| match objective {
-                    Objective::MinimizeCost => TransportFeatureBuilder::new("min_cost")
-                        .set_violation_code(TIME_CONSTRAINT_CODE)
-                        .set_transport_cost(blocks.transport.clone())
-                        .set_activity_cost(blocks.activity.clone())
-                        .build_minimize_cost(),
-                    Objective::MinimizeDistance => TransportFeatureBuilder::new("min_distance")
-                        .set_violation_code(TIME_CONSTRAINT_CODE)
-                        .set_transport_cost(blocks.transport.clone())
-                        .set_activity_cost(blocks.activity.clone())
-                        .build_minimize_distance(),
-                    Objective::MinimizeDuration => TransportFeatureBuilder::new("min_duration")
-                        .set_violation_code(TIME_CONSTRAINT_CODE)
-                        .set_transport_cost(blocks.transport.clone())
-                        .set_activity_cost(blocks.activity.clone())
-                        .build_minimize_duration(),
-                    Objective::MinimizeTours => create_minimize_tours_feature("min_tours"),
-                    Objective::MaximizeTours => create_maximize_tours_feature("max_tours"),
-                    Objective::MaximizeValue { breaks } => create_maximize_total_job_value_feature(
-                        "max_value",
-                        JobReadValueFn::Left(Arc::new({
-                            let break_value = *breaks;
-                            move |job| {
-                                job.dimens().get_job_value().copied().unwrap_or_else(|| {
-                                    job.dimens()
-                                        .get_job_type()
-                                        .zip(break_value)
-                                        .filter(|(job_type, _)| *job_type == "break")
-                                        .map(|(_, break_value)| break_value)
-                                        .unwrap_or(0.)
-                                })
-                            }
-                        })),
-                        Arc::new(|job, value| match job {
-                            CoreJob::Single(single) => {
-                                let mut dimens = single.dimens.clone();
-                                dimens.set_job_value(value);
-
-                                CoreJob::Single(Arc::new(Single { places: single.places.clone(), dimens }))
-                            }
-                            _ => job.clone(),
-                        }),
-                        -1,
-                    ),
-                    Objective::MinimizeUnassigned { breaks } => MinimizeUnassignedBuilder::new("min_unassigned")
-                        .set_job_estimator({
-                            let break_value = *breaks;
-                            let default_value = 1.;
-                            move |_, job| {
-                                if let Some(clusters) = job.dimens().get_cluster_info() {
-                                    clusters.len() as f64 * default_value
-                                } else {
-                                    job.dimens().get_job_type().map_or(default_value, |job_type| {
-                                        match job_type.as_str() {
-                                            "break" => break_value.unwrap_or(default_value),
-                                            _ => default_value,
-                                        }
-                                    })
-                                }
-                            }
-                        })
-                        .build(),
-
-                    Objective::MinimizeArrivalTime => create_minimize_arrival_time_feature("min_arrival_time"),
-                    Objective::BalanceMaxLoad => {
-                        if props.has_multi_dimen_capacity {
-                            create_max_load_balanced_feature::<MultiDimLoad>(
-                                "max_load_balance",
-                                |loaded, capacity| {
-                                    let mut max_ratio = 0_f64;
-
-                                    for (idx, value) in capacity.load.iter().enumerate() {
-                                        let ratio = loaded.load[idx] as f64 / *value as f64;
-                                        max_ratio = max_ratio.max(ratio);
-                                    }
-
-                                    max_ratio
-                                },
-                                |vehicle| {
-                                    vehicle.dimens.get_vehicle_capacity().expect("vehicle has no capacity defined")
-                                },
-                            )
-                        } else {
-                            create_max_load_balanced_feature::<SingleDimLoad>(
-                                "max_load_balance",
-                                |loaded, capacity| loaded.value as f64 / capacity.value as f64,
-                                |vehicle| {
-                                    vehicle.dimens.get_vehicle_capacity().expect("vehicle has no capacity defined")
-                                },
-                            )
-                        }
-                    }
-                    Objective::BalanceActivities => create_activity_balanced_feature("activity_balance"),
-                    Objective::BalanceDistance => create_distance_balanced_feature("distance_balance"),
-                    Objective::BalanceDuration => create_duration_balanced_feature("duration_balance"),
-                    Objective::CompactTour { job_radius } => {
-                        create_tour_compactness_feature("tour_compact", blocks.jobs.clone(), *job_radius)
-                    }
-                    Objective::TourOrder => create_tour_order_soft_feature("tour_order", get_tour_order_fn()),
-                    Objective::FastService => get_fast_service_feature("fast_service", blocks),
-                })
-                .collect()
-        })
-        .collect()
+        .map(|objective| get_objective_feature_layer(objective, blocks, props))
+        .collect::<GenericResult<_>>()
 }
 
-fn get_objectives(api_problem: &ApiProblem, props: &ProblemProperties) -> Vec<Vec<Objective>> {
+fn get_objective_feature_layer(
+    objective: &Objective,
+    blocks: &ProblemBlocks,
+    props: &ProblemProperties,
+) -> GenericResult<FeatureLayer> {
+    let feature = match objective {
+        Objective::MinimizeCost => TransportFeatureBuilder::new("min_cost")
+            .set_violation_code(TIME_CONSTRAINT_CODE)
+            .set_transport_cost(blocks.transport.clone())
+            .set_activity_cost(blocks.activity.clone())
+            .build_minimize_cost(),
+        Objective::MinimizeDistance => TransportFeatureBuilder::new("min_distance")
+            .set_violation_code(TIME_CONSTRAINT_CODE)
+            .set_transport_cost(blocks.transport.clone())
+            .set_activity_cost(blocks.activity.clone())
+            .build_minimize_distance(),
+        Objective::MinimizeDuration => TransportFeatureBuilder::new("min_duration")
+            .set_violation_code(TIME_CONSTRAINT_CODE)
+            .set_transport_cost(blocks.transport.clone())
+            .set_activity_cost(blocks.activity.clone())
+            .build_minimize_duration(),
+        Objective::MinimizeTours => create_minimize_tours_feature("min_tours"),
+        Objective::MaximizeTours => create_maximize_tours_feature("max_tours"),
+        Objective::MaximizeValue { breaks } => create_maximize_total_job_value_feature(
+            "max_value",
+            JobReadValueFn::Left(Arc::new({
+                let break_value = *breaks;
+                move |job| {
+                    job.dimens().get_job_value().copied().unwrap_or_else(|| {
+                        job.dimens()
+                            .get_job_type()
+                            .zip(break_value)
+                            .filter(|(job_type, _)| *job_type == "break")
+                            .map(|(_, break_value)| break_value)
+                            .unwrap_or(0.)
+                    })
+                }
+            })),
+            Arc::new(|job, value| match job {
+                CoreJob::Single(single) => {
+                    let mut dimens = single.dimens.clone();
+                    dimens.set_job_value(value);
+
+                    CoreJob::Single(Arc::new(Single { places: single.places.clone(), dimens }))
+                }
+                _ => job.clone(),
+            }),
+            -1,
+        ),
+        Objective::MinimizeUnassigned { breaks } => MinimizeUnassignedBuilder::new("min_unassigned")
+            .set_job_estimator({
+                let break_value = *breaks;
+                let default_value = 1.;
+                move |_, job| {
+                    if let Some(clusters) = job.dimens().get_cluster_info() {
+                        clusters.len() as f64 * default_value
+                    } else {
+                        job.dimens().get_job_type().map_or(default_value, |job_type| match job_type.as_str() {
+                            "break" => break_value.unwrap_or(default_value),
+                            _ => default_value,
+                        })
+                    }
+                }
+            })
+            .build(),
+
+        Objective::MinimizeArrivalTime => create_minimize_arrival_time_feature("min_arrival_time"),
+        Objective::BalanceMaxLoad => {
+            if props.has_multi_dimen_capacity {
+                create_max_load_balanced_feature::<MultiDimLoad>(
+                    "max_load_balance",
+                    |loaded, capacity| {
+                        let mut max_ratio = 0_f64;
+
+                        for (idx, value) in capacity.load.iter().enumerate() {
+                            let ratio = loaded.load[idx] as f64 / *value as f64;
+                            max_ratio = max_ratio.max(ratio);
+                        }
+
+                        max_ratio
+                    },
+                    |vehicle| vehicle.dimens.get_vehicle_capacity().expect("vehicle has no capacity defined"),
+                )
+            } else {
+                create_max_load_balanced_feature::<SingleDimLoad>(
+                    "max_load_balance",
+                    |loaded, capacity| loaded.value as f64 / capacity.value as f64,
+                    |vehicle| vehicle.dimens.get_vehicle_capacity().expect("vehicle has no capacity defined"),
+                )
+            }
+        }
+        Objective::BalanceActivities => create_activity_balanced_feature("activity_balance"),
+        Objective::BalanceDistance => create_distance_balanced_feature("distance_balance"),
+        Objective::BalanceDuration => create_duration_balanced_feature("duration_balance"),
+        Objective::CompactTour { job_radius } => {
+            create_tour_compactness_feature("tour_compact", blocks.jobs.clone(), *job_radius)
+        }
+        Objective::TourOrder => create_tour_order_soft_feature("tour_order", get_tour_order_fn()),
+        Objective::FastService => get_fast_service_feature("fast_service", blocks),
+        Objective::Composite { objectives, composition_type } => {
+            let features = objectives
+                .iter()
+                .map(|o| get_objective_feature_layer(o, blocks, props))
+                .map(|layer| match layer {
+                    Ok(FeatureLayer::Single(feature)) => Ok(feature),
+                    Ok(FeatureLayer::Multi { .. }) => {
+                        Err(GenericError::from("nested composite objectives are not supported"))
+                    }
+                    Err(err) => Err(err),
+                })
+                .collect::<GenericResult<Vec<_>>>()?;
+            let composition_type = composition_type.clone();
+
+            return Ok(FeatureLayer::Multi { features, composition_type });
+        }
+    }?;
+
+    Ok(FeatureLayer::Single(feature))
+}
+
+fn get_objectives(api_problem: &ApiProblem, props: &ProblemProperties) -> Vec<Objective> {
     if let Some(objectives) = api_problem.objectives.clone() {
         objectives
     } else {
-        let mut objectives = vec![
-            vec![Objective::MinimizeUnassigned { breaks: Some(1.) }],
-            vec![Objective::MinimizeTours],
-            vec![Objective::MinimizeCost],
-        ];
+        let mut objectives =
+            vec![Objective::MinimizeUnassigned { breaks: Some(1.) }, Objective::MinimizeTours, Objective::MinimizeCost];
 
         if props.has_value {
-            objectives.insert(0, vec![Objective::MaximizeValue { breaks: None }])
+            objectives.insert(0, Objective::MaximizeValue { breaks: None })
         }
 
         objectives
     }
+}
+
+fn get_features_with_goal(feature_layers: &[FeatureLayer]) -> GenericResult<(Vec<Feature>, GoalBuilder)> {
+    feature_layers.iter().try_fold((Vec::default(), GoalBuilder::default()), |(mut all_features, builder), layer| {
+        Ok(match layer {
+            FeatureLayer::Single(feature) => {
+                let objective = feature
+                    .objective
+                    .clone()
+                    .ok_or_else(|| format!("feature '{}' has no objective while used as objective", feature.name))?;
+
+                all_features.push(feature.clone());
+
+                (all_features, builder.add_single(objective))
+            }
+            FeatureLayer::Multi { composition_type, features } => {
+                let objectives = features
+                    .iter()
+                    .map(|f| {
+                        f.objective.clone().ok_or_else(|| {
+                            format!("feature '{}' has no objective while used as objective", f.name).into()
+                        })
+                    })
+                    .collect::<GenericResult<Vec<_>>>()?;
+
+                all_features.push(
+                    FeatureCombinator::default()
+                        .add_features(features)
+                        // objectives are combined using [eval_objective_composition_type] function
+                        .set_objective_combinator(|_| None)
+                        .combine()?,
+                );
+
+                (all_features, eval_objective_composition_type(&objectives, composition_type, builder)?)
+            }
+        })
+    })
+}
+
+fn eval_objective_composition_type(
+    objectives: &[Arc<dyn FeatureObjective>],
+    composition_type: &CompositionType,
+    builder: GoalBuilder,
+) -> GenericResult<GoalBuilder> {
+    Ok(match composition_type {
+        CompositionType::Sum => builder.add_multi(
+            objectives,
+            |os, a, b| dominance_order(a, b, os.iter().map(|o| |a, b| compare_floats(o.fitness(a), o.fitness(b)))),
+            |os, move_ctx| os.iter().map(|o| o.estimate(move_ctx)).sum(),
+        ),
+
+        CompositionType::WeightedSum { weights } => {
+            if objectives.len() != weights.len() {
+                return Err(format!(
+                    "weighted sum requires same amount of weights as objective count: {} vs {}",
+                    weights.len(),
+                    objectives.len()
+                )
+                .into());
+            }
+
+            builder.add_multi(
+                objectives,
+                |os, a, b| dominance_order(a, b, os.iter().map(|o| |a, b| compare_floats(o.fitness(a), o.fitness(b)))),
+                {
+                    let weights = weights.clone();
+                    move |os, move_ctx| os.iter().enumerate().map(|(idx, o)| o.estimate(move_ctx) * weights[idx]).sum()
+                },
+            )
+        }
+    })
 }
 
 fn get_capacity_feature(
@@ -453,19 +538,6 @@ fn create_optional_break_feature(name: &str) -> GenericResult<Feature> {
         })
         .set_policy(|single| single.dimens.get_break_policy().cloned().unwrap_or(BreakPolicy::SkipIfNoIntersection))
         .build()
-}
-
-#[allow(clippy::type_complexity)]
-fn extract_feature_map(features: &[Feature]) -> GenericResult<Vec<String>> {
-    let objective_map =
-        features.iter().filter_map(|f| f.objective.as_ref().map(|_| f.name.clone())).collect::<Vec<_>>();
-
-    // NOTE COST_DIMENSION variable in vrp-core is responsible for that
-    if objective_map.len() > 6 {
-        println!("WARN: the size of objectives ({}) exceeds pre-allocated stack size", objective_map.len());
-    }
-
-    Ok(objective_map)
 }
 
 fn get_tour_order_fn() -> TourOrderFn {

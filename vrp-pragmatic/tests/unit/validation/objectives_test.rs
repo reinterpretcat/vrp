@@ -19,13 +19,11 @@ parameterized_test! {can_detect_empty_objective, (objectives, expected), {
 }}
 
 can_detect_empty_objective! {
-    case01: (Some(vec![vec![]]), Some(())),
-    case02: (Some(vec![]), Some(())),
-    case03: (Some(vec![vec![MinimizeCost]]), None),
-    case04: (Some(vec![vec![], vec![MinimizeCost ]]), None),
+    case01: (Some(vec![]), Some(())),
+    case03: (Some(vec![MinimizeCost]), None),
 }
 
-fn can_detect_empty_objective_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<()>) {
+fn can_detect_empty_objective_impl(objectives: Option<Vec<Objective>>, expected: Option<()>) {
     let problem = Problem { objectives, ..create_empty_problem() };
     let coord_index = CoordIndex::new(&problem);
     let ctx = ValidationContext::new(&problem, None, &coord_index);
@@ -41,16 +39,19 @@ parameterized_test! {can_detect_duplicates, (objectives, expected), {
 }}
 
 can_detect_duplicates! {
-    case01: (Some(vec![vec![MinimizeCost]]), None),
-    case02: (Some(vec![vec![MinimizeCost], vec![MinimizeCost ]]), Some("minimize-cost".to_owned())),
+    case01: (Some(vec![MinimizeCost]), None),
+    case02: (Some(vec![MinimizeCost, MinimizeCost]), Some("minimize-cost".to_owned())),
     case03: (Some(vec![
-                vec![MinimizeCost, BalanceDistance, BalanceDistance],
-                vec![MinimizeCost]
+                MinimizeCost,
+                BalanceDistance,
+                Composite {
+                    composition_type: CompositionType::Sum,
+                    objectives: vec![MinimizeCost, BalanceDistance],}
             ]),
         Some("balance-distance,minimize-cost".to_owned())),
 }
 
-fn can_detect_duplicates_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<String>) {
+fn can_detect_duplicates_impl(objectives: Option<Vec<Objective>>, expected: Option<String>) {
     let problem = Problem { objectives, ..create_empty_problem() };
     let coord_index = CoordIndex::new(&problem);
     let ctx = ValidationContext::new(&problem, None, &coord_index);
@@ -66,14 +67,13 @@ parameterized_test! {can_detect_missing_cost_objective, (objectives, expected), 
 }}
 
 can_detect_missing_cost_objective! {
-    case01: (Some(vec![vec![MinimizeCost]]), None),
-    case02: (Some(vec![vec![MinimizeDuration]]), None),
-    case03: (Some(vec![vec![MinimizeDistance]]), None),
-    case04: (Some(vec![vec![BalanceDistance]]), Some(())),
-    case05: (Some(vec![vec![], vec![BalanceDistance]]), Some(())),
+    case01: (Some(vec![MinimizeCost]), None),
+    case02: (Some(vec![MinimizeDuration]), None),
+    case03: (Some(vec![MinimizeDistance]), None),
+    case04: (Some(vec![BalanceDistance]), Some(())),
 }
 
-fn can_detect_missing_cost_objective_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<()>) {
+fn can_detect_missing_cost_objective_impl(objectives: Option<Vec<Objective>>, expected: Option<()>) {
     let problem = Problem { objectives, ..create_empty_problem() };
     let coord_index = CoordIndex::new(&problem);
     let ctx = ValidationContext::new(&problem, None, &coord_index);
@@ -87,11 +87,7 @@ fn can_detect_missing_cost_objective_impl(objectives: Option<Vec<Vec<Objective>>
 #[test]
 fn can_detect_missing_value_jobs() {
     let problem = Problem {
-        objectives: Some(vec![
-            vec![MinimizeUnassigned { breaks: None }],
-            vec![MaximizeValue { breaks: None }],
-            vec![MinimizeCost],
-        ]),
+        objectives: Some(vec![MinimizeUnassigned { breaks: None }, MaximizeValue { breaks: None }, MinimizeCost]),
         ..create_empty_problem()
     };
     let coord_index = CoordIndex::new(&problem);
@@ -106,7 +102,7 @@ fn can_detect_missing_value_jobs() {
 #[test]
 fn can_detect_missing_order_jobs() {
     let problem = Problem {
-        objectives: Some(vec![vec![MinimizeUnassigned { breaks: None }], vec![TourOrder], vec![MinimizeCost]]),
+        objectives: Some(vec![MinimizeUnassigned { breaks: None }, TourOrder, MinimizeCost]),
         ..create_empty_problem()
     };
     let coord_index = CoordIndex::new(&problem);
@@ -154,14 +150,14 @@ parameterized_test! {can_detect_multiple_cost_objective, (objectives, expected),
 }}
 
 can_detect_multiple_cost_objective! {
-    case01: (Some(vec![vec![MinimizeCost]]), None),
-    case02: (Some(vec![vec![MinimizeCost, MinimizeCost]]), Some(())),
-    case03: (Some(vec![vec![MinimizeCost, MinimizeDuration]]), Some(())),
-    case04: (Some(vec![vec![MinimizeCost, MinimizeDistance]]), Some(())),
-    case05: (Some(vec![vec![MinimizeDuration, MinimizeDistance]]), Some(())),
+    case01: (Some(vec![MinimizeCost]), None),
+    case02: (Some(vec![MinimizeCost, MinimizeCost]), Some(())),
+    case03: (Some(vec![MinimizeCost, MinimizeDuration]), Some(())),
+    case04: (Some(vec![MinimizeCost, MinimizeDistance]), Some(())),
+    case05: (Some(vec![MinimizeDuration, MinimizeDistance]), Some(())),
 }
 
-fn can_detect_multiple_cost_objective_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<()>) {
+fn can_detect_multiple_cost_objective_impl(objectives: Option<Vec<Objective>>, expected: Option<()>) {
     let problem = Problem { objectives, ..create_empty_problem() };
     let coord_index = CoordIndex::new(&problem);
     let ctx = ValidationContext::new(&problem, None, &coord_index);
@@ -178,18 +174,18 @@ parameterized_test! {can_detect_missing_value_objective, (objectives, expected),
 
 can_detect_missing_value_objective! {
     case01: (Some(vec![
-                vec![MinimizeUnassigned { breaks: None }],
-                vec![MinimizeCost],
+                MinimizeUnassigned { breaks: None },
+                MinimizeCost,
             ]), Some("E1607".to_string())),
     case02: (Some(vec![
-                vec![MinimizeUnassigned { breaks: None }],
-                vec![MaximizeValue { breaks: None }],
-                vec![MinimizeCost],
+                MinimizeUnassigned { breaks: None },
+                MaximizeValue { breaks: None },
+                MinimizeCost,
             ]), None),
     case03: (None, None),
 }
 
-fn can_detect_missing_value_objective_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<String>) {
+fn can_detect_missing_value_objective_impl(objectives: Option<Vec<Objective>>, expected: Option<String>) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![Job {

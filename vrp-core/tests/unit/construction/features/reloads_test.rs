@@ -231,11 +231,7 @@ fn can_remove_trivial_reloads_when_used_from_capacity_constraint_impl(
 
     let min_jobs_feature = MinimizeUnassignedBuilder::new("min_jobs").build().unwrap();
     let features = vec![reload_feature, min_jobs_feature];
-    let goal = GoalContextBuilder::with_features(&features)
-        .unwrap()
-        .set_main_goal(GoalBuilder::new(&features).add_single("min_jobs").build().unwrap())
-        .build()
-        .unwrap();
+    let goal = GoalContextBuilder::with_features(&features).unwrap().build().unwrap();
 
     goal.accept_route_state(solution_ctx.routes.get_mut(0).unwrap());
     goal.accept_solution_state(&mut solution_ctx);

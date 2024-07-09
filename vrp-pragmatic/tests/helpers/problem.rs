@@ -265,8 +265,8 @@ pub fn create_default_matrix_profiles() -> Vec<MatrixProfile> {
     vec![MatrixProfile { name: "car".to_string(), speed: None }]
 }
 
-pub fn create_min_jobs_cost_objective() -> Option<Vec<Vec<Objective>>> {
-    Some(vec![vec![MinimizeUnassigned { breaks: None }], vec![MinimizeCost]])
+pub fn create_min_jobs_cost_objective() -> Option<Vec<Objective>> {
+    Some(vec![MinimizeUnassigned { breaks: None }, MinimizeCost])
 }
 
 pub fn create_empty_plan() -> Plan {

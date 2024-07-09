@@ -42,7 +42,7 @@ fn can_balance_activities() {
             ],
             ..create_default_fleet()
         },
-        objectives: Some(vec![vec![MinimizeUnassigned { breaks: None }], vec![BalanceActivities], vec![MinimizeCost]]),
+        objectives: Some(vec![MinimizeUnassigned { breaks: None }, BalanceActivities, MinimizeCost]),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);

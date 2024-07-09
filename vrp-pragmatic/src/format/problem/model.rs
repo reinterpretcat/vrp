@@ -583,6 +583,28 @@ pub enum Objective {
 
     /// An objective to prefer jobs to be served as soon as possible.
     FastService,
+
+    /// A composite objective allows to define multiple competitive objectives at the same layer of hierarchy.
+    Composite {
+        /// An objective composition type.
+        composition_type: CompositionType,
+        /// Competitive objectives except `Composite` type (nesting is currently not supported).
+        objectives: Vec<Objective>,
+    },
+}
+
+/// An objective composition type specifies how competitive objective functions are compared among each other.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(tag = "type", rename_all = "kebab-case")]
+pub enum CompositionType {
+    /// A sum composition type simply sums all objective values together.
+    Sum,
+
+    /// A weighted sum composition type uses linear combination of weights and the corresponding fitness values.
+    WeightedSum {
+        /// Individual weights. Size of vector must be the same as amount of objective functions.
+        weights: Vec<f64>,
+    },
 }
 
 // endregion
@@ -598,9 +620,9 @@ pub struct Problem {
     /// Problem resources: vehicles to be used, routing info.
     pub fleet: Fleet,
 
-    /// Specifies objective function hierarchy.
+    /// Specifies objective functions in lexicographical order.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub objectives: Option<Vec<Vec<Objective>>>,
+    pub objectives: Option<Vec<Objective>>,
 }
 
 /// A routing matrix.

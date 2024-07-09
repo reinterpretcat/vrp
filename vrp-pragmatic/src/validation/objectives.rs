@@ -165,7 +165,7 @@ fn check_e1607_jobs_with_value_but_no_objective(
 }
 
 fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> {
-    ctx.problem.objectives.as_ref().map(|objectives| objectives.iter().flatten().collect())
+    ctx.problem.objectives.as_ref().map(|objectives| objectives.iter().collect())
 }
 
 pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
