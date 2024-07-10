@@ -9,7 +9,8 @@ are already published. So, I stick to it for now.
 
 ## [Unreleased]
 
-This release focuses on refactorings to simplify code usage and overall maintainability.
+This release focuses on refactorings to simplify API, code usage, extendability and overall maintainability. It contains
+a lot of internal changes and has overall significant improvements. 
 
 ### Added
 
