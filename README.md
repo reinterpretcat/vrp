@@ -36,17 +36,17 @@ points: custom constraints, objective functions, acceptance criteria, etc.
 
 # Getting started
 
-For general installation steps and basic usage options, please check next sections. More detailed overview of features
+For general installation steps and basic usage options, please check the next sections. More detailed overview of the features
 and full description of the usage is presented in [A Vehicle Routing Problem Solver Documentation](https://reinterpretcat.github.io/vrp).
 
-Probably, the easiest way to learn how to use the solver, would be to play with [interactive tutorial](https://github.com/reinterpretcat/vrp/tree/master/examples/python-interop/tutorial.ipynb),
+Probably, the easiest way to learn how to use the solver `as is`, would be to play with [interactive tutorial](https://github.com/reinterpretcat/vrp/tree/master/examples/python-interop/tutorial.ipynb),
 written as jupyter notebook.
 
-See `vrp-core/examples` for basic code examples.
+Additionally, you can check `vrp-core/examples` to see how to use the library and extend it within a new functionality.
 
 # Installation
 
-You can install vrp solver using four different ways:
+You can install the latest release of the vrp solver using four different ways:
 
 ## Install with Python
 
@@ -113,6 +113,7 @@ Alternatively, you can try to run the following script from the project root (wi
 It will build the executable and automatically launch the solver with the specified VRP definition. Results are
 stored in the folder where a problem definition is located.
 
+Please note, that `master` branch normally contains not yet released changes.
 
 # Usage
 
@@ -127,7 +128,7 @@ basic `vrp-core/examples`, then check the user documentation and code for more d
 
 ### Use built-in formats
 
-You can use `vrp-scientific`, `vrp-pragmatic` crates to solve VRP problem defined in `pragmatic` or `scientific`
+You can use `vrp-scientific`, `vrp-pragmatic` crates to solve a VRP problem defined in `pragmatic` or `scientific`
 format using default metaheuristic. Or you can use CLI interface for that (see below).
 
 If you're using some other language, e.g. java, kotlin, javascript, python, please check
@@ -155,4 +156,4 @@ if you have ideas for improvement.
 
 # Status
 
-Experimental. Active development is on pause, so very limited support at this time.
+Permanently experimental. This is my pet project, and I'm not paid for it, so expect a very limited support.
