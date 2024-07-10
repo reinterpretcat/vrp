@@ -607,19 +607,15 @@ objective is set, e.g.:
 ```json
 {
   "objectives": [
-    [
-      {
-        "type": "minimize-unassigned"
-      },
-      {
-        "type": "minimize-unassigned"
-      }
-    ],
-    [
-      {
-        "type": "minimize-cost"
-      }
-    ]
+    {
+      "type": "minimize-unassigned"
+    },
+    {
+      "type": "minimize-unassigned"
+    },
+    {
+      "type": "minimize-cost"
+    }
   ]
 }
 ```
@@ -634,11 +630,9 @@ To fix this issue, just remove one, e.g. `minimize-unassigned`.
 ```json
 {
   "objectives": [
-    [
-      {
-        "type": "minimize-unassigned"
-      }
-    ]
+    {
+      "type": "minimize-unassigned"
+    }
   ]
 }
 ```

@@ -7,10 +7,9 @@ of multi objective.
 
 ## Understanding multi objective structure
 
-A multi objective is defined by `objectives` property which has array of array type and defines some kind of "hierarchical"
-objective function. Here, priority of objectives decreases from first to the last element of outer array. So, these objectives
-are optimized in lexicographical order. Objectives inside the same inner array have the same priority and are processed
-considering Pareto optimality.
+A multi objective is defined by `objectives` property which has array of objectives and defines lexicographical ordered
+objective function. Here, priority of objectives decreases from first to the last element of the array. For the same
+priority (or in other words, competitive) objectives, a special `multi-objective` type can be used.
 
 
 ## Available objectives
@@ -74,36 +73,30 @@ There are four work balance objectives available:
 * `balance-distance`: balances travelled distance per tour
 * `balance-duration`: balances tour durations
 
-Each objective has optional parameters defined by `option` property:
-* `threshold`: a target coefficient of variation (scale invariant statistical measure of dispersion) value which specifies
-desired minimum balancing level. All values below threshold are considered equal which helps the search algorithm to
-optimize conflicting objectives. This similar to ε-Constraint Method optimization (in some degree).
-
-It is recommended to set `threshold` option to guide the search towards optimum for conflicting objectives, e.g. cost
-minimization and any of work balance.
+Typically, you need to use these objective with one from the cost group combined under single `multi-objective`.
 
 An usage example:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.balance-load.problem.json:156:161}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.balance-load.problem.json:148:161}}
 ```
 
 ## Default behaviour
 
-By default, decision maker minimizes amount of unassigned jobs, routes and then total cost. This is equal to the following
-definition:
+By default, decision maker minimizes the number of unassigned jobs, routes and then total cost. This is equal to the
+following definition:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.default.problem.json:141:157}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.default.problem.json:141:151}}
 ```
 
-Here, cost minimization is a secondary objective which corresponds to a classical hierarchical objective used
+Here, cost minimization is a secondary objective that corresponds to a classical hierarchical objective used, for example,
 by `Solomon` benchmark.
 
 If at least one job has non-zero value associated, then the following objective is used:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.maximize-value.problem.json:143:165}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.maximize-value.problem.json:143:156}}
 ```
 
 If order on job task is specified, then it is also added to the list of objectives after `minimize-tours` objective.
@@ -112,31 +105,30 @@ If order on job task is specified, then it is also added to the list of objectiv
 ## Hints
 
 * pay attention to the order of objectives
-* if you're using balancing objective and getting high cost or non-realistic, but balanced routes, try to add a threshold to balancing objective:
+* if you're using balancing objective and getting high cost or non-realistic, but balanced routes, try to use multi-objective:
 
 ```json
 "objectives": [
-    [
-      {
-        "type": "minimize-unassigned"
-      }
-    ],
-    [
-      {
-        "type": "minimize-tours"
-      }
-    ],
-    [
+  {
+    "type": "minimize-unassigned"
+  },
+  {
+    "type": "minimize-tours"
+  },
+  {
+    "type": "multi-objective",
+    "strategy": {
+      "name": "sum"
+    },
+    "objectives": [
       {
         "type": "minimize-cost"
       },
       {
-        "type": "balance-distance",
-        "options": {
-          "threshold": 0.01
-        }
+        "type": "balance-max-load"
       }
     ]
+  }
 ]
 ```
 

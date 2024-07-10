@@ -8,11 +8,11 @@ The following crates are "the heart" of VRP solver:
 
 * [`rosomaxa`](https://docs.rs/rosomaxa/latest): contains key algorithms for solving optimization problems __without__
   locking to the VRP domain such as hyper heuristics, evolution strategies, etc.
-* [`vrp_core`](https://docs.rs/vrp_core/latest): this crate provides all core VRP models with various meta heuristics to
+* [`vrp_core`](https://docs.rs/vrp_core/latest): this crate provides all core VRP models / features with various meta heuristics to
   solve rich VRP
 * [`vrp_scientific`](https://docs.rs/vrp_scientific/latest): has a building blocks to solve problems from some of scientific
   benchmarks. It is useful to evaluate the solver performance in terms of solution quality, search stability and running time.
-* [`vrp_pragmatic`](https://docs.rs/vrp_pragmatic/latest): provides models and features to support rich VRP. It includes:
+* [`vrp_pragmatic`](https://docs.rs/vrp_pragmatic/latest): provides models to support rich VRP. It includes:
   * pragmatic model, serializable in json
   * solution checker
   * problem validator

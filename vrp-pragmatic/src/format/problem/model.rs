@@ -584,23 +584,24 @@ pub enum Objective {
     /// An objective to prefer jobs to be served as soon as possible.
     FastService,
 
-    /// A composite objective allows to define multiple competitive objectives at the same layer of hierarchy.
-    Composite {
+    /// A multi objective allows to define multiple competitive objectives at the same layer of hierarchy.
+    MultiObjective {
         /// An objective composition type.
-        composition_type: CompositionType,
+        strategy: MultiStrategy,
         /// Competitive objectives except `Composite` type (nesting is currently not supported).
         objectives: Vec<Objective>,
     },
 }
 
-/// An objective composition type specifies how competitive objective functions are compared among each other.
+/// An mupltiple objective strategy type specifies how competitive objective functions are compared
+/// among each other.
 #[derive(Clone, Deserialize, Debug, Serialize)]
-#[serde(tag = "type", rename_all = "kebab-case")]
-pub enum CompositionType {
-    /// A sum composition type simply sums all objective values together.
+#[serde(tag = "name", rename_all = "kebab-case")]
+pub enum MultiStrategy {
+    /// A sum type simply sums all objective values together.
     Sum,
 
-    /// A weighted sum composition type uses linear combination of weights and the corresponding fitness values.
+    /// A weighted sum type uses linear combination of weights and the corresponding fitness values.
     WeightedSum {
         /// Individual weights. Size of vector must be the same as amount of objective functions.
         weights: Vec<f64>,

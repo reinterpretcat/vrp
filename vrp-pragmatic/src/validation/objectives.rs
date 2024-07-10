@@ -6,6 +6,7 @@ use super::*;
 use crate::format::problem::Objective::*;
 use crate::utils::combine_error_results;
 use std::collections::HashSet;
+use vrp_core::utils::Either;
 
 /// Checks that objective is not empty when specified.
 fn check_e1600_empty_objective(objectives: &[&Objective]) -> Result<(), FormatError> {
@@ -22,9 +23,10 @@ fn check_e1600_empty_objective(objectives: &[&Objective]) -> Result<(), FormatEr
 
 /// Checks that each objective type specified only once.
 fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), FormatError> {
-    let unique = objectives.iter().cloned().map(std::mem::discriminant).collect::<HashSet<_>>();
+    let original_count = get_objectives_flattened(objectives).count();
+    let unique = get_objectives_flattened(objectives).map(std::mem::discriminant).collect::<HashSet<_>>();
 
-    if unique.len() == objectives.len() {
+    if unique.len() == original_count {
         Ok(())
     } else {
         Err(FormatError::new(
@@ -37,8 +39,8 @@ fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), For
 
 /// Checks that cost objective is specified.
 fn check_e1602_no_cost_objective(objectives: &[&Objective]) -> Result<(), FormatError> {
-    let no_min_cost =
-        !objectives.iter().any(|objective| matches!(objective, MinimizeCost | MinimizeDistance | MinimizeDuration));
+    let no_min_cost = !get_objectives_flattened(objectives)
+        .any(|objective| matches!(objective, MinimizeCost | MinimizeDistance | MinimizeDuration));
 
     if no_min_cost {
         Err(FormatError::new(
@@ -166,6 +168,13 @@ fn check_e1607_jobs_with_value_but_no_objective(
 
 fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> {
     ctx.problem.objectives.as_ref().map(|objectives| objectives.iter().collect())
+}
+
+fn get_objectives_flattened<'a>(objectives: &'a [&Objective]) -> impl Iterator<Item = &'a Objective> + 'a {
+    objectives.iter().flat_map(|&o| match o {
+        MultiObjective { objectives, .. } => Either::Left(objectives.iter()),
+        _ => Either::Right(std::iter::once(o)),
+    })
 }
 
 pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), MultiFormatError> {

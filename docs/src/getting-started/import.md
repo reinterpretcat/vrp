@@ -66,3 +66,8 @@ This is example of such csv:
 Please note, to keep csv format simple and easy to use, it's limited to just a few, really basic features known as
 _Capacitated Vehicle Routing Problem with Time Windows_ (CVRPTW). However, for a few jobs/vehices, you can modify the
 file manually as post-processing step.
+
+
+### Code usage
+
+You can use the library from the code, check [code examples](https://github.com/reinterpretcat/vrp/tree/master/vrp-core/examples) to see how.

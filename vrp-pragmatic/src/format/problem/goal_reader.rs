@@ -78,7 +78,7 @@ enum FeatureLayer {
     Single(Feature),
 
     /// A multi feature layer: multiple competitive objectives are available for multiple features.
-    Multi { composition_type: CompositionType, features: Vec<Feature> },
+    Multi { composition_type: MultiStrategy, features: Vec<Feature> },
 }
 
 fn get_objective_feature_layers(
@@ -193,7 +193,7 @@ fn get_objective_feature_layer(
         }
         Objective::TourOrder => create_tour_order_soft_feature("tour_order", get_tour_order_fn()),
         Objective::FastService => get_fast_service_feature("fast_service", blocks),
-        Objective::Composite { objectives, composition_type } => {
+        Objective::MultiObjective { objectives, strategy: composition_type } => {
             let features = objectives
                 .iter()
                 .map(|o| get_objective_feature_layer(o, blocks, props))
@@ -255,30 +255,30 @@ fn get_features_with_goal(feature_layers: &[FeatureLayer]) -> GenericResult<(Vec
                 all_features.push(
                     FeatureCombinator::default()
                         .add_features(features)
-                        // objectives are combined using [eval_objective_composition_type] function
+                        // objectives will be combined below using [eval_multi_objective_strategy] function
                         .set_objective_combinator(|_| None)
                         .combine()?,
                 );
 
-                (all_features, eval_objective_composition_type(&objectives, composition_type, builder)?)
+                (all_features, eval_multi_objective_strategy(&objectives, composition_type, builder)?)
             }
         })
     })
 }
 
-fn eval_objective_composition_type(
+fn eval_multi_objective_strategy(
     objectives: &[Arc<dyn FeatureObjective>],
-    composition_type: &CompositionType,
+    composition_type: &MultiStrategy,
     builder: GoalBuilder,
 ) -> GenericResult<GoalBuilder> {
     Ok(match composition_type {
-        CompositionType::Sum => builder.add_multi(
+        MultiStrategy::Sum => builder.add_multi(
             objectives,
             |os, a, b| dominance_order(a, b, os.iter().map(|o| |a, b| compare_floats(o.fitness(a), o.fitness(b)))),
             |os, move_ctx| os.iter().map(|o| o.estimate(move_ctx)).sum(),
         ),
 
-        CompositionType::WeightedSum { weights } => {
+        MultiStrategy::WeightedSum { weights } => {
             if objectives.len() != weights.len() {
                 return Err(format!(
                     "weighted sum requires same amount of weights as objective count: {} vs {}",

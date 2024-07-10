@@ -44,8 +44,8 @@ can_detect_duplicates! {
     case03: (Some(vec![
                 MinimizeCost,
                 BalanceDistance,
-                Composite {
-                    composition_type: CompositionType::Sum,
+                MultiObjective {
+                    strategy: MultiStrategy::Sum,
                     objectives: vec![MinimizeCost, BalanceDistance],}
             ]),
         Some("balance-distance,minimize-cost".to_owned())),

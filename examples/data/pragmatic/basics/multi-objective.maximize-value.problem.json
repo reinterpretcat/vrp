@@ -141,26 +141,18 @@
     ]
   },
   "objectives": [
-    [
-      {
-        "type": "maximize-value",
-        "reductionFactor": 0.1
-      }
-    ],
-    [
-      {
-        "type": "minimize-unassigned"
-      }
-    ],
-    [
-      {
-        "type": "minimize-tours"
-      }
-    ],
-    [
-      {
-        "type": "minimize-cost"
-      }
-    ]
+    {
+      "type": "maximize-value",
+      "reductionFactor": 0.1
+    },
+    {
+      "type": "minimize-unassigned"
+    },
+    {
+      "type": "minimize-tours"
+    },
+    {
+      "type": "minimize-cost"
+    }
   ]
 }

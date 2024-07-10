@@ -139,20 +139,14 @@
     ]
   },
   "objectives": [
-    [
-      {
-        "type": "minimize-unassigned"
-      }
-    ],
-    [
-      {
-        "type": "minimize-tours"
-      }
-    ],
-    [
-      {
-        "type": "minimize-cost"
-      }
-    ]
+    {
+      "type": "minimize-unassigned"
+    },
+    {
+      "type": "minimize-tours"
+    },
+    {
+      "type": "minimize-cost"
+    }
   ]
 }

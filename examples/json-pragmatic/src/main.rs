@@ -32,10 +32,16 @@ fn run_examples(base_path: &str) {
         ("basics/relation-any.basic", None),
         ("basics/reload.basic", None),
         ("basics/reload.multi", None),
-        ("simple.basic", None),
-        ("simple.index", Some(vec!["simple.basic.matrix"])),
         ("basics/skills.basic", None),
         ("basics/unassigned.unreachable", None),
+        ("simple.basic", None),
+        ("simple.index", Some(vec!["simple.basic.matrix"])),
+        ("clustering/berlin.vicinity-continue", Some(vec!["clustering/berlin.vicinity-continue.matrix"])),
+        ("clustering/berlin.vicinity-return", Some(vec!["clustering/berlin.vicinity-return.matrix"])),
+        ("objectives/berlin.default", None),
+        ("objectives/berlin.balance-activities", None),
+        ("objectives/berlin.balance-distance", None),
+        ("objectives/berlin.balance-max-load", None),
     ];
 
     for (name, matrices) in names {

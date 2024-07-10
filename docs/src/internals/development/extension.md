@@ -39,6 +39,6 @@ This builder gets:
 - dedicated `objective function` which counts value and prefers solutions where it is maximized
 - a dedicated `constraint` which enforces some problem invariants regarding job value (in this case, only for proximity clustering)
 
-Additionally, the builder accepts `FeatureState`. Check existing features for more details.
+Additionally, the builder accepts `FeatureState`. Check existing features and `vrp-core/examples` for more details.
 
 TODO: expand example

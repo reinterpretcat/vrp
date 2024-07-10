@@ -39,7 +39,8 @@ This release focuses on refactorings to simplify code usage and overall maintain
 * refactor route intervals and multi trip enablers
 * refactor feature objective trait
 * refactor dimensions/extras approach to avoid using strings as keys
-* how goal of optimization is defined
+* how the goal of optimization is defined
+* flatten objectives in the pragmatic format
 
 
 ## [v1.23.0]- 2023-12-22
