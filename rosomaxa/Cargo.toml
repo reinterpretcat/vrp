@@ -1,6 +1,6 @@
 [package]
 name = "rosomaxa"
-version = "0.7.2"
+version = "0.8.0"
 description = "A rosomaxa algorithm and other building blocks for creating a solver for optimization problems"
 authors.workspace = true
 license.workspace = true

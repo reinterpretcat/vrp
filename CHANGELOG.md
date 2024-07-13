@@ -2,12 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-Please note, while the major version has reached 1, breaking changes can be introduced within any minor version.
+Please note, while the major version has reached 1, breaking changes can be still introduced within any minor version.
 I would prefer to downgrade the major version back to 0 to be more consistent with semantic versioning, but the crates
 are already published. So, I stick to it for now.
 
-
 ## [Unreleased]
+
+
+## [1.24.0] 2024-07-13
 
 This release focuses on refactorings to simplify API, code usage, extendability and overall maintainability. It contains
 a lot of internal changes and has overall significant improvements. 
@@ -15,7 +17,6 @@ a lot of internal changes and has overall significant improvements.
 ### Added
 
 * examples how to extend the library (`vrp-core/examples`)
-
 
 ### Removed
 
@@ -760,7 +761,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.23.0...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.24.0...HEAD
+[v1.24.0]: https://github.com/reinterpretcat/vrp/compare/v1.23.0...v1.24.0
 [v1.23.0]: https://github.com/reinterpretcat/vrp/compare/v1.22.1...v1.23.0
 [v1.22.1]: https://github.com/reinterpretcat/vrp/compare/v1.22.0...v1.22.1
 [v1.22.0]: https://github.com/reinterpretcat/vrp/compare/v1.21.1...v1.22.0
