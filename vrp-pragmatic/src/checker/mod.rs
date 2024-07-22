@@ -16,7 +16,7 @@ use vrp_core::construction::clustering::vicinity::VisitPolicy;
 use vrp_core::models::common::{Duration, Profile, TimeWindow};
 use vrp_core::models::solution::{Commute as DomainCommute, CommuteInfo as DomainCommuteInfo};
 use vrp_core::models::Problem as CoreProblem;
-use vrp_core::prelude::GenericError;
+use vrp_core::prelude::{GenericError, GenericResult};
 use vrp_core::solver::processing::ClusterConfigExtraProperty;
 
 /// Stores problem and solution together and provides some helper methods.
@@ -96,7 +96,7 @@ impl CheckerContext {
     }
 
     /// Gets vehicle by its id.
-    fn get_vehicle(&self, vehicle_id: &str) -> Result<&VehicleType, GenericError> {
+    fn get_vehicle(&self, vehicle_id: &str) -> GenericResult<&VehicleType> {
         self.problem
             .fleet
             .vehicles
@@ -105,7 +105,7 @@ impl CheckerContext {
             .ok_or_else(|| format!("cannot find vehicle with id '{vehicle_id}'").into())
     }
 
-    fn get_vehicle_profile(&self, vehicle_id: &str) -> Result<Profile, GenericError> {
+    fn get_vehicle_profile(&self, vehicle_id: &str) -> GenericResult<Profile> {
         let profile = &self.get_vehicle(vehicle_id)?.profile;
         let index = self
             .profile_index
@@ -137,7 +137,7 @@ impl CheckerContext {
     }
 
     /// Gets vehicle shift where activity is used.
-    fn get_vehicle_shift(&self, tour: &Tour) -> Result<VehicleShift, GenericError> {
+    fn get_vehicle_shift(&self, tour: &Tour) -> GenericResult<VehicleShift> {
         let tour_time = TimeWindow::new(
             parse_time(
                 &tour.stops.first().as_ref().ok_or_else(|| "cannot get first activity".to_string())?.schedule().arrival,
@@ -167,7 +167,7 @@ impl CheckerContext {
     }
 
     /// Gets wrapped activity type.
-    fn get_activity_type(&self, tour: &Tour, stop: &Stop, activity: &Activity) -> Result<ActivityType, GenericError> {
+    fn get_activity_type(&self, tour: &Tour, stop: &Stop, activity: &Activity) -> GenericResult<ActivityType> {
         let shift = self.get_vehicle_shift(tour)?;
         let time = self.get_activity_time(stop, activity);
         let location = self.get_activity_location(stop, activity);
@@ -231,7 +231,7 @@ impl CheckerContext {
         parking: Duration,
         stop: &PointStop,
         activity_idx: usize,
-    ) -> Result<Option<DomainCommute>, GenericError> {
+    ) -> GenericResult<Option<DomainCommute>> {
         let get_activity_location_by_idx = |idx: usize| {
             stop.activities
                 .get(idx)
@@ -314,7 +314,7 @@ impl CheckerContext {
         activity_type: &ActivityType,
         job_visitor: F1,
         other_visitor: F2,
-    ) -> Result<R, GenericError>
+    ) -> GenericResult<R>
     where
         F1: Fn(&Job, &JobTask) -> R,
         F2: Fn() -> R,
@@ -346,13 +346,13 @@ impl CheckerContext {
         }
     }
 
-    fn get_location_index(&self, location: &Location) -> Result<usize, GenericError> {
+    fn get_location_index(&self, location: &Location) -> GenericResult<usize> {
         self.coord_index
             .get_by_loc(location)
             .ok_or_else(|| format!("cannot find coordinate in coord index: {location:?}").into())
     }
 
-    fn get_matrix_data(&self, profile: &Profile, from_idx: usize, to_idx: usize) -> Result<(i64, i64), GenericError> {
+    fn get_matrix_data(&self, profile: &Profile, from_idx: usize, to_idx: usize) -> GenericResult<(i64, i64)> {
         let matrices = get_matrices(&self.matrices)?;
         let matrix =
             matrices.get(profile.index).ok_or_else(|| format!("cannot find matrix with index {}", profile.index))?;
@@ -414,14 +414,14 @@ fn get_matrix_size(matrices: &[Matrix]) -> usize {
     (matrices.first().unwrap().travel_times.len() as f64).sqrt().round() as usize
 }
 
-fn get_matrix_value(idx: usize, matrix_values: &[i64]) -> Result<i64, GenericError> {
+fn get_matrix_value(idx: usize, matrix_values: &[i64]) -> GenericResult<i64> {
     matrix_values
         .get(idx)
         .cloned()
         .ok_or_else(|| format!("attempt to get value out of bounds: {} vs {}", idx, matrix_values.len()).into())
 }
 
-fn get_matrices(matrices: &Option<Vec<Matrix>>) -> Result<&Vec<Matrix>, GenericError> {
+fn get_matrices(matrices: &Option<Vec<Matrix>>) -> GenericResult<&Vec<Matrix>> {
     let matrices = matrices.as_ref().unwrap();
 
     if matrices.iter().any(|matrix| matrix.timestamp.is_some()) {
@@ -431,7 +431,7 @@ fn get_matrices(matrices: &Option<Vec<Matrix>>) -> Result<&Vec<Matrix>, GenericE
     Ok(matrices)
 }
 
-fn get_profile_index(problem: &Problem, matrices: &[Matrix]) -> Result<HashMap<String, usize>, GenericError> {
+fn get_profile_index(problem: &Problem, matrices: &[Matrix]) -> GenericResult<HashMap<String, usize>> {
     let profiles = problem.fleet.profiles.len();
     if profiles != matrices.len() {
         return Err(format!(

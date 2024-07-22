@@ -60,6 +60,28 @@ prop_compose! {
     }
 }
 
+prop_compose! {
+    pub fn generate_recharge_station(
+      locations: impl Strategy<Value = Location>,
+      durations: impl Strategy<Value = f64>,
+      tags: impl Strategy<Value = Option<String>>,
+      time_windows: impl Strategy<Value = Option<Vec<Vec<String>>>>,
+    )
+    (
+     location in locations,
+     duration in durations,
+     tag in tags,
+     times in time_windows
+    ) -> VehicleRechargeStation {
+        VehicleRechargeStation {
+          times,
+          location,
+          duration,
+          tag,
+        }
+    }
+}
+
 /// Generates shifts.
 pub fn generate_shifts(
     shift_proto: impl Strategy<Value = VehicleShift>,

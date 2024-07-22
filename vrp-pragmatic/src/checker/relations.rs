@@ -5,13 +5,14 @@ mod relations_test;
 use super::*;
 use crate::utils::combine_error_results;
 use std::collections::HashSet;
+use vrp_core::prelude::GenericResult;
 
 /// Checks relation rules.
 pub fn check_relations(context: &CheckerContext) -> Result<(), Vec<GenericError>> {
     combine_error_results(&[check_relations_assignment(context)])
 }
 
-fn check_relations_assignment(context: &CheckerContext) -> Result<(), GenericError> {
+fn check_relations_assignment(context: &CheckerContext) -> GenericResult<()> {
     let reserved_ids = vec!["departure", "arrival", "break", "reload"].into_iter().collect::<HashSet<_>>();
 
     (0_usize..)
@@ -94,11 +95,7 @@ fn check_relations_assignment(context: &CheckerContext) -> Result<(), GenericErr
     Ok(())
 }
 
-fn get_tour_by_vehicle_id(
-    vehicle_id: &str,
-    shift_index: Option<usize>,
-    solution: &Solution,
-) -> Result<Tour, GenericError> {
+fn get_tour_by_vehicle_id(vehicle_id: &str, shift_index: Option<usize>, solution: &Solution) -> GenericResult<Tour> {
     solution
         .tours
         .iter()

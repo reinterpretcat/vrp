@@ -164,3 +164,67 @@ fn can_check_shift_time() {
 
     assert_eq!(result, Err("tour time is outside shift time, vehicle id 'my_vehicle_1', shift index: 0".into()));
 }
+
+#[test]
+fn can_check_recharge_distance() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job("job2", (10., 0.))],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
+                    end: None,
+                    recharges: Some(VehicleRecharges {
+                        max_distance: 8.,
+                        stations: vec![VehicleRechargeStation {
+                            location: (8., 0.).to_loc(),
+                            duration: 0.,
+                            times: None,
+                            tag: None,
+                        }],
+                    }),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+
+    let solution = SolutionBuilder::default()
+        .tour(
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![2]).build_departure(),
+                    StopBuilder::default()
+                        .coordinate((1., 0.))
+                        .schedule_stamp(1., 2.)
+                        .load(vec![1])
+                        .distance(1)
+                        .build_single("job1", "delivery"),
+                    StopBuilder::default()
+                        .coordinate((10., 0.))
+                        .schedule_stamp(11., 12.)
+                        .load(vec![0])
+                        .distance(10)
+                        .build_single("job2", "delivery"),
+                ])
+                .statistic(StatisticBuilder::default().driving(10).serving(2).waiting(0).build())
+                .build(),
+        )
+        .build();
+    let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
+    let ctx = CheckerContext::new(core_problem, problem, None, solution).unwrap();
+
+    let result = check_recharge_limits(&ctx);
+
+    assert_eq!(
+        result,
+        Err("recharge distance violation: expected limit is 8, got 10, vehicle id 'my_vehicle_1', shift index: 0"
+            .into())
+    );
+}

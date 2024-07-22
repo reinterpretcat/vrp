@@ -6,6 +6,7 @@ use super::*;
 use crate::utils::combine_error_results;
 use std::iter::once;
 use vrp_core::models::common::{Load, MultiDimLoad};
+use vrp_core::prelude::GenericResult;
 
 /// Checks that vehicle load is assigned correctly. The following rules are checked:
 /// * max vehicle's capacity is not violated
@@ -14,16 +15,16 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), Vec<GenericErr
     combine_error_results(&[check_vehicle_load_assignment(context), check_resource_consumption(context)])
 }
 
-fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), GenericError> {
-    context.solution.tours.iter().try_for_each::<_, Result<_, GenericError>>(|tour| {
+fn check_vehicle_load_assignment(context: &CheckerContext) -> GenericResult<()> {
+    context.solution.tours.iter().try_for_each::<_, GenericResult<_>>(|tour| {
         let capacity = MultiDimLoad::new(context.get_vehicle(&tour.vehicle_id)?.capacity.clone());
         let intervals = get_intervals(context, tour);
 
         intervals
             .iter()
-            .try_fold::<_, _, Result<_, GenericError>>(MultiDimLoad::default(), |acc, interval| {
+            .try_fold::<_, _, GenericResult<_>>(MultiDimLoad::default(), |acc, interval| {
                 let (start_delivery, end_pickup) = get_activities_from_interval(context, tour, interval.as_slice())
-                    .try_fold::<_, _, Result<_, GenericError>>(
+                    .try_fold::<_, _, GenericResult<_>>(
                     (acc, MultiDimLoad::default()),
                     |acc, (activity, activity_type)| {
                         let activity_type = activity_type?;
@@ -37,9 +38,8 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), Generic
                     },
                 )?;
 
-                let end_capacity = interval.iter().try_fold::<_, _, Result<_, GenericError>>(
-                    start_delivery,
-                    |acc, (idx, (from, to))| {
+                let end_capacity =
+                    interval.iter().try_fold::<_, _, GenericResult<_>>(start_delivery, |acc, (idx, (from, to))| {
                         let from_load = MultiDimLoad::new(from.load().clone());
                         let to_load = MultiDimLoad::new(to.load().clone());
 
@@ -47,7 +47,7 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), Generic
                             return Err(format!("load exceeds capacity in tour '{}'", tour.vehicle_id).into());
                         }
 
-                        let change = to.activities().iter().try_fold::<_, _, Result<_, GenericError>>(
+                        let change = to.activities().iter().try_fold::<_, _, GenericResult<_>>(
                             MultiDimLoad::default(),
                             |acc, activity| {
                                 let activity_type = context.get_activity_type(tour, to, activity)?;
@@ -80,8 +80,7 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), Generic
 
                             Err(format!("load mismatch {} in tour '{}'", message, tour.vehicle_id).into())
                         }
-                    },
-                )?;
+                    })?;
 
                 Ok(end_capacity - end_pickup)
             })
@@ -89,7 +88,7 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), Generic
     })
 }
 
-fn check_resource_consumption(context: &CheckerContext) -> Result<(), GenericError> {
+fn check_resource_consumption(context: &CheckerContext) -> GenericResult<()> {
     let resources = context
         .problem
         .fleet
@@ -170,7 +169,7 @@ fn get_demand(
     context: &CheckerContext,
     activity: &Activity,
     activity_type: &ActivityType,
-) -> Result<(DemandType, MultiDimLoad), GenericError> {
+) -> GenericResult<(DemandType, MultiDimLoad)> {
     let (is_dynamic, demand) = context.visit_job(
         activity,
         activity_type,
@@ -235,7 +234,7 @@ fn get_activities_from_interval<'a>(
     context: &'a CheckerContext,
     tour: &'a Tour,
     interval: &'a [(usize, (&Stop, &Stop))],
-) -> impl Iterator<Item = (Activity, Result<ActivityType, GenericError>)> + 'a {
+) -> impl Iterator<Item = (Activity, GenericResult<ActivityType>)> + 'a {
     interval
         .iter()
         .flat_map(|(_, (from, to))| once(from).chain(once(to)))

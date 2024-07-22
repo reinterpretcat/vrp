@@ -5,6 +5,7 @@ mod breaks_test;
 use super::*;
 use crate::utils::combine_error_results;
 use std::iter::once;
+use vrp_core::prelude::GenericResult;
 use vrp_core::utils::GenericError;
 
 /// Checks that breaks are properly assigned.
@@ -12,7 +13,7 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), Vec<GenericError>> {
     combine_error_results(&[check_break_assignment(context)])
 }
 
-fn check_break_assignment(context: &CheckerContext) -> Result<(), GenericError> {
+fn check_break_assignment(context: &CheckerContext) -> GenericResult<()> {
     context.solution.tours.iter().try_for_each(|tour| {
         let vehicle_shift = context.get_vehicle_shift(tour)?;
         let actual_break_count = tour
@@ -25,7 +26,7 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), GenericError> 
             stop.activities()
                 .windows(stop.activities().len().min(2))
                 .flat_map(|leg| as_leg_info_with_break(context, tour, stop, leg))
-                .try_fold::<_, _, Result<_, GenericError>>(
+                .try_fold::<_, _, GenericResult<_>>(
                     acc,
                     |acc, (from_loc, (from, to), (break_activity, vehicle_break))| {
                         // check time
@@ -167,7 +168,7 @@ fn as_leg_info_with_break<'a>(
 }
 
 /// Gets break time window.
-pub(crate) fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<TimeWindow, GenericError> {
+pub(crate) fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -> GenericResult<TimeWindow> {
     let departure = tour
         .stops
         .first()

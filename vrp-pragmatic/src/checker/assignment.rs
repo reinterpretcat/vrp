@@ -10,7 +10,7 @@ use std::cmp::Ordering;
 use std::collections::HashSet;
 use vrp_core::construction::clustering::vicinity::ServingPolicy;
 use vrp_core::models::solution::Place;
-use vrp_core::prelude::compare_floats;
+use vrp_core::prelude::{compare_floats, GenericResult};
 use vrp_core::utils::GenericError;
 
 /// Checks assignment of jobs and vehicles.
@@ -19,7 +19,7 @@ pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<GenericError>> {
 }
 
 /// Checks that vehicles in each tour are used once per shift and they are known in problem.
-fn check_vehicles(ctx: &CheckerContext) -> Result<(), GenericError> {
+fn check_vehicles(ctx: &CheckerContext) -> GenericResult<()> {
     let all_vehicles: HashSet<_> = ctx.problem.fleet.vehicles.iter().flat_map(|v| v.vehicle_ids.iter()).collect();
     let mut used_vehicles = HashSet::<(String, usize)>::new();
 
@@ -39,7 +39,7 @@ fn check_vehicles(ctx: &CheckerContext) -> Result<(), GenericError> {
 }
 
 /// Checks job task rules.
-fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), GenericError> {
+fn check_jobs_presence(ctx: &CheckerContext) -> GenericResult<()> {
     struct JobAssignment {
         pub tour_info: (String, usize),
         pub pickups: Vec<usize>,
@@ -122,7 +122,7 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), GenericError> {
         return Err("duplicated job ids in the list of unassigned jobs".into());
     }
 
-    unique_unassigned_jobs.iter().try_for_each::<_, Result<_, GenericError>>(|job_id| {
+    unique_unassigned_jobs.iter().try_for_each::<_, GenericResult<_>>(|job_id| {
         if !all_jobs.contains_key(job_id) {
             return Err(format!("unknown job id in the list of unassigned jobs: '{job_id}'").into());
         }
@@ -149,7 +149,7 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), GenericError> {
 }
 
 /// Checks job constraint violations.
-fn check_jobs_match(ctx: &CheckerContext) -> Result<(), GenericError> {
+fn check_jobs_match(ctx: &CheckerContext) -> GenericResult<()> {
     let (job_index, coord_index) = get_indices(&ctx.core_problem.extras)?;
     let (job_index, coord_index) = (job_index.as_ref(), coord_index.as_ref());
 
@@ -256,7 +256,7 @@ fn is_valid_job_info(
     }
 }
 
-fn check_groups(ctx: &CheckerContext) -> Result<(), GenericError> {
+fn check_groups(ctx: &CheckerContext) -> GenericResult<()> {
     let violations = ctx
         .solution
         .tours

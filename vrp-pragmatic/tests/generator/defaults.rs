@@ -9,6 +9,7 @@ use crate::{format_time, parse_time};
 
 pub const START_DAY: &str = "2020-07-04T00:00:00Z";
 
+/// Approximately, 32km by Haversine formula
 pub const DEFAULT_BOUNDING_BOX: ((f64, f64), (f64, f64)) = ((52.4240, 13.2148), (52.5937, 13.5970));
 
 pub fn get_default_bounding_box_radius() -> f64 {
