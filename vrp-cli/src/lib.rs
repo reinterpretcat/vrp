@@ -338,7 +338,7 @@ mod c_interop {
 }
 
 #[cfg(feature = "py_bindings")]
-#[cfg(all(not(target_arch = "wasm32"), not(tarpaulin)))]
+#[cfg(not(target_arch = "wasm32"))]
 mod py_interop {
     use super::*;
     use crate::extensions::solve::config::read_config;

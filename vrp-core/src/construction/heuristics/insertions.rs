@@ -255,14 +255,12 @@ impl InsertionHeuristic {
     /// Runs common insertion heuristic algorithm using given selector specializations.
     pub fn process(
         &self,
-        insertion_ctx: InsertionContext,
+        mut insertion_ctx: InsertionContext,
         job_selector: &(dyn JobSelector + Send + Sync),
         route_selector: &(dyn RouteSelector + Send + Sync),
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionContext {
-        let mut insertion_ctx = insertion_ctx;
-
         prepare_insertion_ctx(&mut insertion_ctx);
 
         while !insertion_ctx.solution.required.is_empty()

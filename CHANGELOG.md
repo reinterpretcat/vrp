@@ -8,6 +8,10 @@ are already published. So, I stick to it for now.
 
 ## [Unreleased]
 
+### Changed
+
+* update rust version
+
 
 ## [1.24.0] 2024-07-13
 

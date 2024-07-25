@@ -11,9 +11,9 @@ pub type RemedianUsize = Remedian<usize, fn(&usize, &usize) -> Ordering>;
 ///
 /// References:
 /// - P.J. Rousseeuw, G.W. Bassett Jr., "The remedian: A robust averaging method for large data sets",
-/// Journal of the American Statistical  Association, vol. 85 (1990), pp. 97-104
+///   Journal of the American Statistical  Association, vol. 85 (1990), pp. 97-104
 /// - Domenico Cantone, Micha Hofri, "Further analysis of the remedian algorithm", Theoretical Computer
-/// Science, vol. 495 (2013), pp. 1-16
+///   Science, vol. 495 (2013), pp. 1-16
 pub struct Remedian<T, F>
 where
     T: Clone,

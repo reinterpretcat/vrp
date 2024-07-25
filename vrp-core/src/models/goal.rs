@@ -243,14 +243,14 @@ impl GoalBuilder {
 /// job values, etc. Each feature consists of three optional parts (but at least one should be defined):
 ///
 /// * **constraint**: an invariant which should be hold to have a feasible VRP solution in the end.
-/// A good examples are hard constraints such as capacity, time, travel limits, etc.
+///   A good examples are hard constraints such as capacity, time, travel limits, etc.
 ///
 /// * **objective**: an objective of the optimization such as minimization of unassigned jobs or tours.
-///  All objectives form together a hierarchy which describes a goal of optimization, including
-///  various soft constraints: assignment of preferred jobs, optional breaks, etc. This helps to
-///  guide the search on the global objective level (e.g. comparison of various solutions in order to
-///  find out which one is "better") and local objective level (e.g. which job should be inserted next
-///  into specific solution).
+///   All objectives form together a hierarchy which describes a goal of optimization, including
+///   various soft constraints: assignment of preferred jobs, optional breaks, etc. This helps to
+///   guide the search on the global objective level (e.g. comparison of various solutions in order to
+///   find out which one is "better") and local objective level (e.g. which job should be inserted next
+///   into specific solution).
 ///
 /// * **state**: the corresponding cached data of constraint/objective to speed up/control their evaluations.
 ///
@@ -260,7 +260,7 @@ impl GoalBuilder {
 /// * hard constraint can be defined without objective as this is an invariant
 /// * state should be used to avoid expensive calculations during insertion evaluation phase.
 ///   `FeatureObjective::estimate` and `FeatureConstraint::evaluate` methods are called during this phase.
-///  Additionally, it can be used to do some solution modifications at `FeatureState::accept_solution_state`.
+///   Additionally, it can be used to do some solution modifications at `FeatureState::accept_solution_state`.
 #[derive(Clone, Default)]
 pub struct Feature {
     /// An unique id of the feature.
