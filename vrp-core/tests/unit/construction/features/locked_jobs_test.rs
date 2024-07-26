@@ -8,7 +8,7 @@ use crate::models::solution::Activity;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition};
 use std::sync::Arc;
 
-const VIOLATION_CODE: ViolationCode = 1;
+const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 
 fn create_feature_constraint(fleet: &Fleet, locks: &[Arc<Lock>]) -> Arc<dyn FeatureConstraint> {
     create_locked_jobs_feature("locked_jobs", fleet, locks, VIOLATION_CODE).unwrap().constraint.unwrap()
@@ -47,7 +47,7 @@ fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<Co
 }
 
 fn stop() -> Option<ConstraintViolation> {
-    Some(ConstraintViolation { code: 1, stopped: false })
+    Some(ConstraintViolation { code: ViolationCode(1), stopped: false })
 }
 
 fn some_activity() -> Activity {

@@ -1,10 +1,7 @@
 use crate::construction::features::TransportFeatureBuilder;
-use crate::construction::heuristics::*;
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
-use crate::models::problem::{Fleet, Job, JobIdDimension, Jobs};
-use crate::models::{Extras, Feature, FeatureBuilder, GoalContext, GoalContextBuilder, Problem};
-use crate::prelude::{Cost, FeatureObjective};
-use rosomaxa::utils::{DefaultRandom, Random};
+use crate::models::problem::JobIdDimension;
+use crate::prelude::*;
 use std::sync::Arc;
 
 pub fn test_random() -> Arc<dyn Random + Send + Sync> {
@@ -35,7 +32,7 @@ impl TestGoalContextBuilder {
     pub fn with_transport_feature() -> Self {
         Self {
             features: vec![TransportFeatureBuilder::new("transport")
-                .set_violation_code(1)
+                .set_violation_code(ViolationCode(1))
                 .set_transport_cost(TestTransportCost::new_shared())
                 .set_activity_cost(TestActivityCost::new_shared())
                 .build_minimize_cost()

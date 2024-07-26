@@ -8,6 +8,7 @@ use crate::helpers::models::solution::*;
 use crate::helpers::solver::create_default_refinement_ctx;
 use crate::models::problem::{Job, JobIdDimension};
 use crate::models::solution::{Commute, CommuteInfo};
+use crate::prelude::ViolationCode;
 
 fn create_test_jobs() -> Vec<Job> {
     vec![
@@ -130,9 +131,12 @@ fn can_unwrap_clusters_in_unassigned_on_post_process() {
         problem: new_problem,
         ..TestInsertionContextBuilder::default()
             .with_unassigned(
-                vec![(clustered_job, UnassignmentInfo::Simple(1)), (unclustered_job, UnassignmentInfo::Simple(2))]
-                    .into_iter()
-                    .collect(),
+                vec![
+                    (clustered_job, UnassignmentInfo::Simple(ViolationCode(1))),
+                    (unclustered_job, UnassignmentInfo::Simple(ViolationCode(2))),
+                ]
+                .into_iter()
+                .collect(),
             )
             .build()
     };

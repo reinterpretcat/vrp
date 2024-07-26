@@ -11,7 +11,7 @@ fn get_check_insertion_fn(disallow_insertion_list: Vec<&str>) -> Arc<CheckInsert
         let id = job_to_check.dimens().get_job_id();
 
         if id.map_or(false, |id| disallow_insertion_list.contains(id)) {
-            Err(-1)
+            Err(ViolationCode::unknown())
         } else {
             Ok(())
         }

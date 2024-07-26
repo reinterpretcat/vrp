@@ -5,10 +5,11 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
 use crate::models::common::TimeWindow;
 use crate::models::problem::{Job, JobIdDimension, VehicleIdDimension};
+use crate::models::ViolationCode;
 use crate::solver::processing::UnassignmentReason;
 use rosomaxa::evolution::HeuristicSolutionProcessing;
 
-const UNASSIGNMENT_CODE: i32 = 1;
+const UNASSIGNMENT_CODE: ViolationCode = ViolationCode(1);
 
 fn create_test_insertion_ctx(unassigned: Vec<(Job, UnassignmentInfo)>) -> InsertionContext {
     let fleet = FleetBuilder::default()
@@ -65,7 +66,7 @@ can_combine_vehicle_details! {
 
 fn can_combine_vehicle_details_impl(
     unassigned: Vec<(Job, UnassignmentInfo)>,
-    expected_details: Vec<(&str, Vec<(&str, i32)>)>,
+    expected_details: Vec<(&str, Vec<(&str, ViolationCode)>)>,
 ) {
     let insertion_ctx = create_test_insertion_ctx(unassigned);
 
@@ -96,7 +97,7 @@ parameterized_test! {can_handle_assignable_job, code, {
 can_handle_assignable_job! {
     case_01_unknown_code: UnassignmentInfo::Unknown,
     case_02_same_code: UnassignmentInfo::Simple(UNASSIGNMENT_CODE),
-    case_03_different_code: UnassignmentInfo::Simple(2),
+    case_03_different_code: UnassignmentInfo::Simple(ViolationCode(2)),
 }
 
 fn can_handle_assignable_job_impl(code: UnassignmentInfo) {

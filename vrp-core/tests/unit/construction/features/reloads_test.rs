@@ -10,7 +10,7 @@ use crate::models::problem::{JobIdDimension, VehicleIdDimension};
 use crate::models::solution::Activity;
 use crate::prelude::Fleet;
 
-const VIOLATION_CODE: ViolationCode = 1;
+const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 
 struct VehicleIdDimenKey;
 struct JobTypeDimenKey;
@@ -444,7 +444,7 @@ fn can_constraint_route_impl(
     activities: Vec<ActivityType>,
     total_jobs: usize,
     job_demand: Option<i32>,
-    expected: Option<i32>,
+    expected: Option<ViolationCode>,
 ) {
     let job = Job::Single(job_demand.map_or_else(
         || TestSingleBuilder::default().id("job1").build_shared(),
@@ -516,7 +516,7 @@ fn can_constraint_activity_impl(
     insertion_idx: usize,
     is_ovrp: bool,
     demand: Option<i32>,
-    expected: Option<i32>,
+    expected: Option<ViolationCode>,
 ) {
     let target = demand.map_or_else(|| ActivityBuilder::default().build(), create_usage_activity);
     let total_jobs = activities[0].len() + activities[1].len();

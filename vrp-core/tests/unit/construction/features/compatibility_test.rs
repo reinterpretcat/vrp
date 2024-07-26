@@ -4,7 +4,7 @@ use crate::helpers::models::problem::TestSingleBuilder;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder, RouteStateBuilder};
 use std::sync::Arc;
 
-const VIOLATION_CODE: i32 = 1;
+const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 const DEFAULT_JOB_LOCATION: Location = 1;
 
 fn create_feature() -> Feature {
@@ -103,7 +103,7 @@ can_merge_jobs! {
 fn can_merge_jobs_impl(
     source_compat: Option<&str>,
     candidate_compat: Option<&str>,
-    expected: Result<Option<String>, i32>,
+    expected: Result<Option<String>, ViolationCode>,
 ) {
     let source = Job::Single(create_test_single(source_compat.map(|v| v.to_string())));
     let candidate = Job::Single(create_test_single(candidate_compat.map(|v| v.to_string())));

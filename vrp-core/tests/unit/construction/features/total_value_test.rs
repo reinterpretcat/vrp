@@ -4,7 +4,7 @@ use crate::helpers::models::problem::{get_job_id, TestSingleBuilder};
 use crate::helpers::models::solution::*;
 use crate::models::problem::Single;
 
-const VIOLATION_CODE: ViolationCode = 1;
+const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 
 parameterized_test! {can_estimate_job_value, (value, expected), {
     can_estimate_job_value_impl(value, expected);

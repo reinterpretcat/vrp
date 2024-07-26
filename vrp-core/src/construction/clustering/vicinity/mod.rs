@@ -18,13 +18,14 @@ use std::sync::Arc;
 mod estimations;
 use self::estimations::*;
 use crate::models::solution::Commute;
+use crate::prelude::ViolationCode;
 
 custom_dimension!(ClusterInfo typeof Vec<ClusterInfo>);
 
 /// Holds center job and its neighbor jobs.
 pub type ClusterCandidate<'a> = (&'a Job, &'a HashSet<Job>);
 
-type CheckInsertionFn = (dyn Fn(&Job) -> Result<(), i32> + Send + Sync);
+type CheckInsertionFn = (dyn Fn(&Job) -> Result<(), ViolationCode> + Send + Sync);
 
 /// Specifies clustering algorithm configuration.
 #[derive(Clone)]
@@ -163,8 +164,8 @@ pub fn create_job_clusters(
 fn get_check_insertion_fn(
     insertion_ctx: InsertionContext,
     actor_filter: Arc<dyn Fn(&Actor) -> bool + Send + Sync>,
-) -> impl Fn(&Job) -> Result<(), i32> {
-    move |job: &Job| -> Result<(), i32> {
+) -> impl Fn(&Job) -> Result<(), ViolationCode> {
+    move |job: &Job| -> Result<(), ViolationCode> {
         let eval_ctx = EvaluationContext {
             goal: &insertion_ctx.problem.goal,
             job,
@@ -177,7 +178,7 @@ fn get_check_insertion_fn(
             .registry
             .next_route()
             .filter(|route_ctx| (actor_filter)(&route_ctx.route().actor))
-            .try_fold(Err(-1), |_, route_ctx| {
+            .try_fold(Err(ViolationCode::unknown()), |_, route_ctx| {
                 let result = eval_job_insertion_in_route(
                     &insertion_ctx,
                     &eval_ctx,

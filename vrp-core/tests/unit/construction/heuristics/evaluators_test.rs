@@ -61,6 +61,7 @@ mod single {
     use crate::helpers::models::solution::RouteBuilder;
     use crate::models::common::TimeInterval;
     use crate::models::problem::VehiclePlace;
+    use crate::prelude::ViolationCode;
 
     parameterized_test! {can_insert_job_with_location_into_empty_tour, (job, position, has_result), {
         can_insert_job_with_location_into_empty_tour_impl(job, position, has_result);
@@ -219,7 +220,7 @@ mod single {
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
         if let InsertionResult::Failure(failure) = result {
-            assert_eq!(failure.constraint, 1);
+            assert_eq!(failure.constraint, ViolationCode(1));
         } else {
             unreachable!()
         }
@@ -229,6 +230,7 @@ mod single {
 mod multi {
     use super::*;
     use crate::construction::heuristics::evaluators::InsertionPosition;
+    use crate::models::ViolationCode;
 
     type InsertionData = (usize, Location);
 
@@ -283,7 +285,7 @@ mod multi {
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
         if let InsertionResult::Failure(failure) = result {
-            assert_eq!(failure.constraint, 1);
+            assert_eq!(failure.constraint, ViolationCode(1));
         } else {
             unreachable!()
         }

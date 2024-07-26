@@ -325,7 +325,7 @@ fn calculate_load(current: MultiDimLoad, act: &Activity) -> MultiDimLoad {
 }
 
 fn create_unassigned(solution: &DomainSolution) -> Option<Vec<UnassignedJob>> {
-    let create_simple_reasons = |code: i32| {
+    let create_simple_reasons = |code: ViolationCode| {
         let (code, reason) = map_code_reason(code);
         vec![UnassignedJobReason { code: code.to_string(), description: reason.to_string(), details: None }]
     };
@@ -369,7 +369,7 @@ fn create_unassigned(solution: &DomainSolution) -> Option<Vec<UnassignedJob>> {
                         }
                     })
                     .collect(),
-                _ => create_simple_reasons(0),
+                _ => create_simple_reasons(ViolationCode(0)),
             };
 
             UnassignedJob { job_id, reasons }

@@ -9,7 +9,7 @@ use crate::models::solution::Registry;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-const VIOLATION_CODE: ViolationCode = 1;
+const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 
 fn create_test_group_feature(total_jobs: usize) -> Feature {
     create_group_feature("group", total_jobs, VIOLATION_CODE).unwrap()
@@ -168,7 +168,7 @@ fn can_evaluate_job_impl(
     routes: Vec<(&str, Vec<Option<&str>>)>,
     route_idx: usize,
     job_group: Option<&str>,
-    expected: Option<i32>,
+    expected: Option<ViolationCode>,
 ) {
     let total_jobs = get_total_jobs(&routes) + 1;
     let fleet = create_test_fleet();
@@ -194,7 +194,7 @@ can_merge_groups! {
     case_05: (create_test_single(None), create_test_single(None), Ok(())),
 }
 
-fn can_merge_groups_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
+fn can_merge_groups_impl(source: Job, candidate: Job, expected: Result<(), ViolationCode>) {
     let total_jobs = 1;
     let constraint = create_test_group_feature(total_jobs).constraint.unwrap();
 

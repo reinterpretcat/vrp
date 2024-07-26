@@ -141,7 +141,7 @@ fn get_objective_feature_layer(
                 }
                 _ => job.clone(),
             }),
-            -1,
+            ViolationCode::unknown(),
         ),
         Objective::MinimizeUnassigned { breaks } => MinimizeUnassignedBuilder::new("min_unassigned")
             .set_job_estimator({

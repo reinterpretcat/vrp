@@ -4,7 +4,7 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::models::solution::Activity;
 
-const VIOLATION_CODE: ViolationCode = 1;
+const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 
 struct VehicleIdDimenKey;
 struct JobTypeDimenKey;

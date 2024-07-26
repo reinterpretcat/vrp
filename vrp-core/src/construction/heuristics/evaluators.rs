@@ -9,7 +9,7 @@ use std::sync::Arc;
 use crate::construction::heuristics::*;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Leg, Place};
-use crate::models::{ConstraintViolation, GoalContext};
+use crate::models::{ConstraintViolation, GoalContext, ViolationCode};
 use crate::utils::Either;
 
 /// Specifies an evaluation context data.
@@ -145,7 +145,7 @@ fn eval_single(
         let activities = vec![(activity, result.index)];
         InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx)
     } else {
-        let (code, stopped) = result.violation.map_or((0, false), |v| (v.code, v.stopped));
+        let (code, stopped) = result.violation.map_or((ViolationCode::unknown(), false), |v| (v.code, v.stopped));
         InsertionResult::make_failure_with_code(code, stopped, Some(job))
     }
 }
@@ -218,7 +218,7 @@ fn eval_multi(
         let activities = result.activities.unwrap();
         InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx)
     } else {
-        let (code, stopped) = result.violation.map_or((0, false), |v| (v.code, v.stopped));
+        let (code, stopped) = result.violation.map_or((ViolationCode::unknown(), false), |v| (v.code, v.stopped));
         InsertionResult::make_failure_with_code(code, stopped, Some(job))
     }
 }
@@ -420,8 +420,9 @@ impl MultiContext {
 
     /// Creates failed insertion context within reason code.
     fn fail(err_ctx: SingleContext, other_ctx: MultiContext) -> ControlFlow<Self, Self> {
-        let (code, stopped) =
-            err_ctx.violation.map_or((0, false), |v| (v.code, v.stopped && other_ctx.activities.is_none()));
+        let (code, stopped) = err_ctx
+            .violation
+            .map_or((ViolationCode::unknown(), false), |v| (v.code, v.stopped && other_ctx.activities.is_none()));
 
         ControlFlow::Break(Self {
             violation: Some(ConstraintViolation { code, stopped }),

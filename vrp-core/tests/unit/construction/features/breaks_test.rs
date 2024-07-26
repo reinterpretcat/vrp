@@ -7,7 +7,7 @@ use crate::models::problem::Job;
 use crate::models::problem::Single;
 use std::sync::Arc;
 
-const VIOLATION_CODE: ViolationCode = 1;
+const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 
 struct JobTypeDimenKey;
 struct VehicleIdDimenKey;
@@ -101,7 +101,7 @@ can_skip_merge_breaks! {
     case_03: (create_single("source", 0), create_single("candidate", 1), Ok(())),
 }
 
-fn can_skip_merge_breaks_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
+fn can_skip_merge_breaks_impl(source: Job, candidate: Job, expected: Result<(), ViolationCode>) {
     let feature = create_break_feature();
 
     let result = feature.constraint.unwrap().merge(source, candidate).map(|_| ());

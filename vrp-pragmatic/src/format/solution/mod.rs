@@ -74,7 +74,7 @@ pub fn write_pragmatic<W: Write>(
     Ok(())
 }
 
-fn map_code_reason(code: i32) -> (&'static str, &'static str) {
+fn map_code_reason(code: ViolationCode) -> (&'static str, &'static str) {
     match code {
         SKILL_CONSTRAINT_CODE => ("SKILL_CONSTRAINT", "cannot serve required skill"),
         TIME_CONSTRAINT_CODE => ("TIME_WINDOW_CONSTRAINT", "cannot be visited within time window"),
@@ -105,7 +105,7 @@ fn map_code_reason(code: i32) -> (&'static str, &'static str) {
     }
 }
 
-fn map_reason_code(reason: &str) -> i32 {
+fn map_reason_code(reason: &str) -> ViolationCode {
     match reason {
         "SKILL_CONSTRAINT" => SKILL_CONSTRAINT_CODE,
         "TIME_WINDOW_CONSTRAINT" => TIME_CONSTRAINT_CODE,
@@ -122,6 +122,6 @@ fn map_reason_code(reason: &str) -> i32 {
         "COMPATIBILITY_CONSTRAINT" => COMPATIBILITY_CONSTRAINT_CODE,
         "RELOAD_RESOURCE_CONSTRAINT" => RELOAD_RESOURCE_CONSTRAINT_CODE,
         "RECHARGE_CONSTRAINT_CODE" => RECHARGE_CONSTRAINT_CODE,
-        _ => -1,
+        _ => ViolationCode::unknown(),
     }
 }

@@ -8,7 +8,7 @@ use crate::models::common::{Demand, SingleDimLoad};
 use crate::models::problem::{Job, Vehicle};
 use crate::models::solution::Activity;
 
-const VIOLATION_CODE: ViolationCode = 2;
+const VIOLATION_CODE: ViolationCode = ViolationCode(2);
 
 fn create_feature() -> Feature {
     CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").set_violation_code(VIOLATION_CODE).build().unwrap()
@@ -178,8 +178,9 @@ fn can_merge_jobs_with_demand_impl(
     });
     let constraint = create_feature().constraint.unwrap();
 
-    let result: Result<Demand<SingleDimLoad>, i32> =
-        constraint.merge(cluster, candidate).and_then(|job| job.dimens().get_job_demand().cloned().ok_or(-1));
+    let result: Result<Demand<SingleDimLoad>, ViolationCode> = constraint
+        .merge(cluster, candidate)
+        .and_then(|job| job.dimens().get_job_demand().cloned().ok_or(ViolationCode::unknown()));
 
     match (result, expected) {
         (Ok(result), Ok((pickup0, pickup1, delivery0, delivery1))) => {
@@ -190,6 +191,6 @@ fn can_merge_jobs_with_demand_impl(
         }
         (Ok(_), Err(err)) => unreachable!("unexpected ok, when err '{}' expected", err),
         (Err(err), Ok(_)) => unreachable!("unexpected err: '{}'", err),
-        (Err(result), Err(expected)) => assert_eq!(result, expected),
+        (Err(ViolationCode(result)), Err(expected)) => assert_eq!(result, expected),
     }
 }

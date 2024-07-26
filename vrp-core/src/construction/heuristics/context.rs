@@ -9,6 +9,7 @@ use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::GoalContext;
 use crate::models::{Problem, Solution};
+use crate::prelude::ViolationCode;
 use rosomaxa::evolution::TelemetryMetrics;
 use rosomaxa::prelude::*;
 use rustc_hash::FxHasher;
@@ -117,9 +118,9 @@ pub enum UnassignmentInfo {
     /// No code is available.
     Unknown,
     /// Only single code is available.
-    Simple(i32),
+    Simple(ViolationCode),
     /// A collection of actor-code pairs is available.
-    Detailed(Vec<(Arc<Actor>, i32)>),
+    Detailed(Vec<(Arc<Actor>, ViolationCode)>),
 }
 
 /// Contains information regarding discovered solution.

@@ -11,7 +11,7 @@ use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::collections::HashSet;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::ControlFlow;
 use std::sync::Arc;
 
@@ -300,7 +300,32 @@ impl ConstraintViolation {
 }
 
 /// Specifies a type for constraint violation code.
-pub type ViolationCode = i32;
+#[derive(Clone, Copy, Debug, Default, Hash, Eq, PartialEq)]
+pub struct ViolationCode(pub i32);
+
+impl ViolationCode {
+    /// Returns an unknown violation code.
+    pub fn unknown() -> Self {
+        Self(-1)
+    }
+
+    /// Checks whether violation code is unknown.
+    pub fn is_unknown(&self) -> bool {
+        self.0 == -1
+    }
+}
+
+impl From<i32> for ViolationCode {
+    fn from(value: i32) -> Self {
+        Self(value)
+    }
+}
+
+impl Display for ViolationCode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}", self.0))
+    }
+}
 
 /// Provides a way to build feature with some checks.
 #[derive(Default)]

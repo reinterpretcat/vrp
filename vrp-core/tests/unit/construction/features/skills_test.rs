@@ -9,7 +9,7 @@ use crate::models::{ConstraintViolation, ViolationCode};
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
-const VIOLATION_CODE: ViolationCode = 1;
+const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 
 fn create_job_with_skills(all_of: Option<Vec<&str>>, one_of: Option<Vec<&str>>, none_of: Option<Vec<&str>>) -> Job {
     let mut builder = TestSingleBuilder::default();
@@ -110,17 +110,17 @@ can_merge_skills! {
     case_03: (create_job_with_skills(None, Some(vec!["skill"]), None), create_job_with_skills(None, None, None), Ok(())),
     case_04: (create_job_with_skills(None, None, Some(vec!["skill"])), create_job_with_skills(None, None, None), Ok(())),
 
-    case_05: (create_job_with_skills(None, None, None), create_job_with_skills(Some(vec!["skill"]), None, None), Err(1)),
-    case_06: (create_job_with_skills(None, None, None), create_job_with_skills(None, Some(vec!["skill"]), None), Err(1)),
-    case_07: (create_job_with_skills(None, None, None), create_job_with_skills(None, None, Some(vec!["skill"])), Err(1)),
+    case_05: (create_job_with_skills(None, None, None), create_job_with_skills(Some(vec!["skill"]), None, None), Err(VIOLATION_CODE)),
+    case_06: (create_job_with_skills(None, None, None), create_job_with_skills(None, Some(vec!["skill"]), None), Err(VIOLATION_CODE)),
+    case_07: (create_job_with_skills(None, None, None), create_job_with_skills(None, None, Some(vec!["skill"])), Err(VIOLATION_CODE)),
 
     case_08: (create_job_with_skills(Some(vec!["skill"]), None, None), create_job_with_skills(Some(vec!["skill"]), None, None), Ok(())),
-    case_09: (create_job_with_skills(Some(vec!["skill"]), None, None), create_job_with_skills(None, Some(vec!["skill"]), None), Err(1)),
+    case_09: (create_job_with_skills(Some(vec!["skill"]), None, None), create_job_with_skills(None, Some(vec!["skill"]), None), Err(VIOLATION_CODE)),
     case_10: (create_job_with_skills(Some(vec!["skill1", "skill2"]), None, None), create_job_with_skills(Some(vec!["skill1"]), None, None), Ok(())),
-    case_11: (create_job_with_skills(Some(vec!["skill1"]), None, None), create_job_with_skills(Some(vec!["skill1", "skill2"]), None, None), Err(1)),
+    case_11: (create_job_with_skills(Some(vec!["skill1"]), None, None), create_job_with_skills(Some(vec!["skill1", "skill2"]), None, None), Err(VIOLATION_CODE)),
 }
 
-fn can_merge_skills_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
+fn can_merge_skills_impl(source: Job, candidate: Job, expected: Result<(), ViolationCode>) {
     let constraint = create_skills_feature("skills", VIOLATION_CODE).unwrap().constraint.unwrap();
 
     let result = constraint.merge(source, candidate).map(|_| ());

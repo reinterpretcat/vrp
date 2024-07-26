@@ -306,11 +306,11 @@ impl InsertionResult {
 
     /// Creates result which represents insertion failure.
     pub fn make_failure() -> Self {
-        Self::make_failure_with_code(-1, false, None)
+        Self::make_failure_with_code(ViolationCode::unknown(), false, None)
     }
 
     /// Creates result which represents insertion failure with given code.
-    pub fn make_failure_with_code(code: i32, stopped: bool, job: Option<Job>) -> Self {
+    pub fn make_failure_with_code(code: ViolationCode, stopped: bool, job: Option<Job>) -> Self {
         Self::Failure(InsertionFailure { constraint: code, stopped, job })
     }
 
@@ -327,7 +327,7 @@ impl InsertionResult {
                 }
             }
             (Self::Failure(_), Self::Failure(rhs)) => {
-                if rhs.constraint == -1 {
+                if rhs.constraint == ViolationCode::unknown() {
                     left
                 } else {
                     right

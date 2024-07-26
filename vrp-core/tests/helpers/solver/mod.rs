@@ -37,7 +37,7 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
             TestGoalContextBuilder::default()
                 .add_feature(
                     TransportFeatureBuilder::new("transport")
-                        .set_violation_code(1)
+                        .set_violation_code(ViolationCode(1))
                         .set_transport_cost(transport)
                         .set_activity_cost(activity)
                         .build_minimize_cost()
@@ -72,7 +72,7 @@ pub fn generate_matrix_routes_with_disallow_list(
             TestGoalContextBuilder::empty()
                 .add_feature(
                     TransportFeatureBuilder::new("transport")
-                        .set_violation_code(1)
+                        .set_violation_code(ViolationCode(1))
                         .set_transport_cost(transport)
                         .set_activity_cost(activity)
                         .build_minimize_cost()
@@ -229,7 +229,7 @@ impl FeatureConstraint for LegFeatureConstraint {
                         });
 
                         if is_disallowed {
-                            ConstraintViolation::skip(7)
+                            ConstraintViolation::skip(ViolationCode(7))
                         } else {
                             None
                         }

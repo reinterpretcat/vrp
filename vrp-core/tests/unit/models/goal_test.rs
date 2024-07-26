@@ -105,18 +105,18 @@ pub fn can_evaluate_constraints() -> GenericResult<()> {
 
     let features = vec![
         create_feature("c_1", 0., ConstraintViolation::success()),
-        create_feature("c_2", 0., ConstraintViolation::fail(1)),
+        create_feature("c_2", 0., ConstraintViolation::fail(ViolationCode(1))),
     ];
     assert_eq!(
         GoalContextBuilder::with_features(&features)?
             .set_main_goal(Goal::subset_of(&features, &["c_1"])?)
             .build()?
             .evaluate(&move_ctx),
-        ConstraintViolation::fail(1)
+        ConstraintViolation::fail(ViolationCode(1))
     );
 
     let features = vec![
-        create_feature("c_1", 0., ConstraintViolation::skip(1)),
+        create_feature("c_1", 0., ConstraintViolation::skip(ViolationCode(1))),
         create_feature("c_2", 0., ConstraintViolation::success()),
     ];
     assert_eq!(
@@ -124,7 +124,7 @@ pub fn can_evaluate_constraints() -> GenericResult<()> {
             .set_main_goal(Goal::subset_of(&features, &["c_1"])?)
             .build()?
             .evaluate(&move_ctx),
-        ConstraintViolation::skip(1)
+        ConstraintViolation::skip(ViolationCode(1))
     );
 
     Ok(())

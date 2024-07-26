@@ -3,7 +3,7 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::solution::Activity;
 
-const VIOLATION_CODE: ViolationCode = 1;
+const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 
 struct OrderDimenKey;
 
@@ -52,7 +52,7 @@ can_merge_order! {
     case_05: (Some(1.), Some(2.), Err(VIOLATION_CODE)),
 }
 
-fn can_merge_order_impl(source: Option<f64>, candidate: Option<f64>, expected: Result<Option<f64>, i32>) {
+fn can_merge_order_impl(source: Option<f64>, candidate: Option<f64>, expected: Result<Option<f64>, ViolationCode>) {
     let constraint =
         create_tour_order_hard_feature("tour_order", VIOLATION_CODE, get_order_fn()).unwrap().constraint.unwrap();
     let source_job = Job::Single(create_single_with_order("source", source));

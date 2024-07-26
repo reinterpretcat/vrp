@@ -7,7 +7,7 @@ use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Place;
 use crate::models::{Extras, Lock, LockDetail, LockOrder, LockPosition, Problem};
-use rosomaxa::prelude::Environment;
+use crate::prelude::*;
 
 type JobData = (Option<Location>, (f64, f64), Duration, i32);
 type VehicleData = (i32, (Location, Option<f64>, Option<f64>), Option<(Location, Option<f64>, Option<f64>)>);
@@ -84,14 +84,19 @@ fn create_test_problem(
     let goal = TestGoalContextBuilder::default()
         .add_feature(
             TransportFeatureBuilder::new("transport")
-                .set_violation_code(1)
+                .set_violation_code(ViolationCode(1))
                 .set_transport_cost(transport.clone())
                 .set_activity_cost(activity.clone())
                 .build_minimize_cost()
                 .unwrap(),
         )
-        .add_feature(create_locked_jobs_feature("locked_jobs", &fleet, locks.as_slice(), 4).unwrap())
-        .add_feature(CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").set_violation_code(5).build().unwrap())
+        .add_feature(create_locked_jobs_feature("locked_jobs", &fleet, locks.as_slice(), ViolationCode(4)).unwrap())
+        .add_feature(
+            CapacityFeatureBuilder::<SingleDimLoad>::new("capacity")
+                .set_violation_code(ViolationCode(5))
+                .build()
+                .unwrap(),
+        )
         .build();
 
     Problem {

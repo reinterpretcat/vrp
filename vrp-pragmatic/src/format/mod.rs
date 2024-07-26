@@ -11,7 +11,7 @@ use vrp_core::construction::enablers::ReservedTimesIndex;
 use vrp_core::models::common::{Distance, Duration};
 use vrp_core::models::problem::{Job as CoreJob, Single, VehicleIdDimension};
 use vrp_core::models::solution::Route;
-use vrp_core::models::{Extras as CoreExtras, Problem as CoreProblem};
+use vrp_core::models::{Extras as CoreExtras, Problem as CoreProblem, ViolationCode};
 use vrp_core::prelude::GenericError;
 
 mod coord_index;
@@ -180,21 +180,21 @@ impl IntoIterator for MultiFormatError {
     }
 }
 
-const TIME_CONSTRAINT_CODE: i32 = 1;
-const DISTANCE_LIMIT_CONSTRAINT_CODE: i32 = 2;
-const DURATION_LIMIT_CONSTRAINT_CODE: i32 = 3;
-const CAPACITY_CONSTRAINT_CODE: i32 = 4;
-const BREAK_CONSTRAINT_CODE: i32 = 5;
-const SKILL_CONSTRAINT_CODE: i32 = 6;
-const LOCKING_CONSTRAINT_CODE: i32 = 7;
-const REACHABLE_CONSTRAINT_CODE: i32 = 8;
-const AREA_CONSTRAINT_CODE: i32 = 9;
-const TOUR_SIZE_CONSTRAINT_CODE: i32 = 10;
-const TOUR_ORDER_CONSTRAINT_CODE: i32 = 11;
-const GROUP_CONSTRAINT_CODE: i32 = 12;
-const COMPATIBILITY_CONSTRAINT_CODE: i32 = 13;
-const RELOAD_RESOURCE_CONSTRAINT_CODE: i32 = 14;
-const RECHARGE_CONSTRAINT_CODE: i32 = 15;
+const TIME_CONSTRAINT_CODE: ViolationCode = ViolationCode(1);
+const DISTANCE_LIMIT_CONSTRAINT_CODE: ViolationCode = ViolationCode(2);
+const DURATION_LIMIT_CONSTRAINT_CODE: ViolationCode = ViolationCode(3);
+const CAPACITY_CONSTRAINT_CODE: ViolationCode = ViolationCode(4);
+const BREAK_CONSTRAINT_CODE: ViolationCode = ViolationCode(5);
+const SKILL_CONSTRAINT_CODE: ViolationCode = ViolationCode(6);
+const LOCKING_CONSTRAINT_CODE: ViolationCode = ViolationCode(7);
+const REACHABLE_CONSTRAINT_CODE: ViolationCode = ViolationCode(8);
+const AREA_CONSTRAINT_CODE: ViolationCode = ViolationCode(9);
+const TOUR_SIZE_CONSTRAINT_CODE: ViolationCode = ViolationCode(10);
+const TOUR_ORDER_CONSTRAINT_CODE: ViolationCode = ViolationCode(11);
+const GROUP_CONSTRAINT_CODE: ViolationCode = ViolationCode(12);
+const COMPATIBILITY_CONSTRAINT_CODE: ViolationCode = ViolationCode(13);
+const RELOAD_RESOURCE_CONSTRAINT_CODE: ViolationCode = ViolationCode(14);
+const RECHARGE_CONSTRAINT_CODE: ViolationCode = ViolationCode(15);
 
 /// An job id to job index.
 pub type JobIndex = HashMap<String, CoreJob>;

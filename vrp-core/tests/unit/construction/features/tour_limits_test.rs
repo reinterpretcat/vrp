@@ -9,7 +9,7 @@ mod activity {
     use super::*;
     use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 
-    const VIOLATION_CODE: ViolationCode = 1;
+    const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 
     parameterized_test! {can_limit_by_job_activities, (activities, job_size, limit, expected), {
         can_limit_by_job_activities_impl(activities, job_size, limit, expected);
@@ -63,8 +63,8 @@ mod traveling {
     use crate::models::common::*;
     use crate::models::problem::Actor;
 
-    const DISTANCE_CODE: ViolationCode = 2;
-    const DURATION_CODE: ViolationCode = 3;
+    const DISTANCE_CODE: ViolationCode = ViolationCode(2);
+    const DURATION_CODE: ViolationCode = ViolationCode(3);
 
     fn create_test_data(
         vehicle_id: &str,

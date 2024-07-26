@@ -39,7 +39,7 @@ impl FeatureConstraint for VicinityTestFeatureConstraint {
         match move_ctx {
             MoveContext::Route { job, .. } => {
                 if self.disallow_merge_list.contains(job.dimens().get_job_id().unwrap()) {
-                    ConstraintViolation::fail(1)
+                    ConstraintViolation::fail(ViolationCode(1))
                 } else {
                     None
                 }
@@ -50,7 +50,7 @@ impl FeatureConstraint for VicinityTestFeatureConstraint {
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
         if self.disallow_merge_list.contains(candidate.dimens().get_job_id().unwrap()) {
-            Err(1)
+            Err(ViolationCode(1))
         } else {
             let source = source.to_single();
             assert_eq!(source.places.len(), 1);

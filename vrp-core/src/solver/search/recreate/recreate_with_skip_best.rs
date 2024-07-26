@@ -103,9 +103,9 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
             (
                 InsertionResult::Failure(InsertionFailure { constraint: left, .. }),
                 InsertionResult::Failure(InsertionFailure { constraint: right, .. }),
-            ) => match (left, right) {
-                (-1, _) => Greater,
-                (_, -1) => Less,
+            ) => match (left.is_unknown(), right.is_unknown()) {
+                (true, _) => Greater,
+                (_, true) => Less,
                 _ => Equal,
             },
         });

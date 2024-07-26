@@ -114,7 +114,7 @@ mod debug {
         let result = format!("{result:?}");
 
         assert!(!result.contains("::"));
-        assert!(result.contains("constraint: -1"));
+        assert!(result.contains("constraint: ViolationCode(-1)"));
         assert!(result.contains("stopped: false"));
         assert!(result.contains("job: None"));
     }

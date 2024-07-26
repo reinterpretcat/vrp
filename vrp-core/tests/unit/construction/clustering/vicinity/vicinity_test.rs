@@ -21,7 +21,7 @@ fn can_get_check_insertion() {
     let check_insertion = get_check_insertion_fn(insertion_ctx, actor_filter);
 
     assert_eq!(check_insertion(jobs.first().unwrap()), Ok(()));
-    assert_eq!(check_insertion(jobs.get(1).unwrap()), Err(1));
+    assert_eq!(check_insertion(jobs.get(1).unwrap()), Err(ViolationCode(1)));
 }
 
 #[test]

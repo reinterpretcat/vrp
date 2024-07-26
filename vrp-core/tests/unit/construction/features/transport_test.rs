@@ -4,7 +4,7 @@ use crate::helpers::models::solution::*;
 use crate::models::common::*;
 use crate::models::problem::{VehicleDetail, VehiclePlace};
 
-const VIOLATION_CODE: ViolationCode = 1;
+const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 type VehicleData = (Location, Location, Timestamp, Timestamp);
 
 fn create_detail(
