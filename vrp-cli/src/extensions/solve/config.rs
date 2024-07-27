@@ -570,10 +570,7 @@ fn configure_from_termination(
     builder
 }
 
-fn create_recreate_method(
-    method: &RecreateMethod,
-    environment: Arc<Environment>,
-) -> (Arc<dyn Recreate + Send + Sync>, usize) {
+fn create_recreate_method(method: &RecreateMethod, environment: Arc<Environment>) -> (Arc<dyn Recreate>, usize) {
     let random = environment.random.clone();
     match method {
         RecreateMethod::Cheapest { weight } => (Arc::new(RecreateWithCheapest::new(random)), *weight),
@@ -637,7 +634,7 @@ fn create_operator(
 
 fn create_operator_probability(
     probability: &OperatorProbabilityType,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
 ) -> TargetHeuristicProbability {
     match probability {
         OperatorProbabilityType::Scalar { scalar } => create_scalar_operator_probability(*scalar, random),
@@ -665,7 +662,7 @@ fn create_ruin_method(
     problem: &Arc<Problem>,
     environment: Arc<Environment>,
     method: &RuinMethod,
-) -> (Arc<dyn Ruin + Send + Sync>, f64) {
+) -> (Arc<dyn Ruin>, f64) {
     let limits = RemovalLimits::new(problem.as_ref());
     let get_limits = |min: usize, max: usize| RemovalLimits {
         removed_activities_range: min..max,
@@ -700,11 +697,11 @@ fn create_ruin_method(
 fn create_local_search(
     times: &MinMaxConfig,
     inners: &[LocalOperatorType],
-    random: Arc<dyn Random + Send + Sync>,
-) -> Arc<dyn LocalOperator + Send + Sync> {
+    random: Arc<dyn Random>,
+) -> Arc<dyn LocalOperator> {
     let operators = inners
         .iter()
-        .map::<(Arc<dyn LocalOperator + Send + Sync>, usize), _>(|op| match op {
+        .map::<(Arc<dyn LocalOperator>, usize), _>(|op| match op {
             LocalOperatorType::SwapStar { weight } => (Arc::new(ExchangeSwapStar::new(random.clone(), 200)), *weight),
             LocalOperatorType::InterRouteBest { weight, noise } => {
                 (Arc::new(ExchangeInterRouteBest::new(noise.probability, noise.min, noise.max)), *weight)

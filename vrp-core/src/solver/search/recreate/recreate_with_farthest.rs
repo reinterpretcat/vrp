@@ -14,7 +14,7 @@ pub struct RecreateWithFarthest {
 
 impl RecreateWithFarthest {
     /// Creates a new instance of `RecreateWithFarthest`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: Arc<dyn Random>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::<AllJobSelector>::default(),

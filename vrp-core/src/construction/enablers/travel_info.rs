@@ -7,7 +7,7 @@ use crate::models::solution::{Activity, Route};
 pub fn calculate_travel(
     route_ctx: &RouteContext,
     activity_ctx: &ActivityContext,
-    transport: &(dyn TransportCost + Send + Sync),
+    transport: &(dyn TransportCost),
 ) -> ((Distance, Distance), (Duration, Duration)) {
     let route = route_ctx.route();
     let prev = activity_ctx.prev;
@@ -33,7 +33,7 @@ pub fn calculate_travel(
 pub fn calculate_travel_delta(
     route_ctx: &RouteContext,
     activity_ctx: &ActivityContext,
-    transport: &(dyn TransportCost + Send + Sync),
+    transport: &(dyn TransportCost),
 ) -> (Distance, Duration) {
     // NOTE accept some code duplication between methods in that module as they are called often,
     //      generalization might require some redundancy in calculations
@@ -65,7 +65,7 @@ fn calculate_travel_leg(
     first: &Activity,
     second: &Activity,
     departure: Timestamp,
-    transport: &(dyn TransportCost + Send + Sync),
+    transport: &(dyn TransportCost),
 ) -> (Distance, Duration) {
     let first_to_second_dis =
         transport.distance(route, first.place.location, second.place.location, TravelTime::Departure(departure));

@@ -19,11 +19,7 @@ fn can_get_max_curvature() {
     assert_eq!(get_max_curvature(values), 2.);
 }
 
-fn goal_factory(
-    _: Arc<dyn TransportCost + Send + Sync>,
-    _: Arc<dyn ActivityCost + Send + Sync>,
-    _: &Extras,
-) -> GoalContext {
+fn goal_factory(_: Arc<dyn TransportCost>, _: Arc<dyn ActivityCost>, _: &Extras) -> GoalContext {
     TestGoalContextBuilder::with_transport_feature().build()
 }
 
@@ -119,7 +115,7 @@ fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>])
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
     );
-    let random: Arc<dyn Random + Send + Sync> = Arc::new(FakeRandom::new(vec![0, 0], vec![epsilon]));
+    let random: Arc<dyn Random> = Arc::new(FakeRandom::new(vec![0, 0], vec![epsilon]));
 
     let clusters = create_job_clusters(&problem, random.as_ref(), Some(min_points), Some(epsilon))
         .iter()

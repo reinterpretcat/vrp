@@ -114,7 +114,7 @@ fn get_cost_savings(
     start: &Activity,
     middle: &Activity,
     end: &Activity,
-    transport: &Arc<dyn TransportCost + Send + Sync>,
+    transport: &Arc<dyn TransportCost>,
 ) -> Cost {
     let actor = route.actor.as_ref();
 
@@ -128,6 +128,6 @@ fn get_cost_savings(
 }
 
 #[inline(always)]
-fn get_cost(route: &Route, from: &Activity, to: &Activity, transport: &Arc<dyn TransportCost + Send + Sync>) -> Cost {
+fn get_cost(route: &Route, from: &Activity, to: &Activity, transport: &Arc<dyn TransportCost>) -> Cost {
     transport.cost(route, from.place.location, to.place.location, TravelTime::Departure(from.schedule.departure))
 }

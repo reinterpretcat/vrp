@@ -338,11 +338,7 @@ where
         network.smooth(1);
     }
 
-    fn fill_populations(
-        network: &IndividualNetwork<O, S>,
-        coordinates: &mut Vec<Coordinate>,
-        random: &(dyn Random + Send + Sync),
-    ) {
+    fn fill_populations(network: &IndividualNetwork<O, S>, coordinates: &mut Vec<Coordinate>, random: &(dyn Random)) {
         coordinates.clear();
         coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
             if node.storage.population.size() > 0 {
@@ -455,7 +451,7 @@ where
     S: HeuristicSolution + RosomaxaWeighted,
 {
     node_size: usize,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
     objective: Arc<O>,
 }
 

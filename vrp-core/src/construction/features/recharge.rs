@@ -17,7 +17,7 @@ use std::sync::Arc;
 pub struct RechargeFeatureBuilder {
     name: String,
     violation_code: Option<ViolationCode>,
-    transport: Option<Arc<dyn TransportCost + Send + Sync>>,
+    transport: Option<Arc<dyn TransportCost>>,
     belongs_to_route_fn: Option<Arc<dyn Fn(&Route, &Job) -> bool + Send + Sync>>,
     is_recharge_single_fn: Option<RechargeSingleFn>,
     distance_limit_fn: Option<RechargeDistanceLimitFn>,
@@ -43,7 +43,7 @@ impl RechargeFeatureBuilder {
     }
 
     /// Sets transport costs to estimate distance.
-    pub fn set_transport(mut self, transport: Arc<dyn TransportCost + Send + Sync>) -> Self {
+    pub fn set_transport(mut self, transport: Arc<dyn TransportCost>) -> Self {
         self.transport = Some(transport);
         self
     }
@@ -171,7 +171,7 @@ custom_activity_state!(RechargeDistance typeof Distance);
 
 struct RechargeableMultiTrip {
     route_intervals: RouteIntervals,
-    transport: Arc<dyn TransportCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
     code: ViolationCode,
     distance_limit_fn: RechargeDistanceLimitFn,
     recharge_single_fn: RechargeSingleFn,

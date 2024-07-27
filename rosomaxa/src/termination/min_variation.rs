@@ -145,7 +145,7 @@ where
     C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
-    K: Hash + Eq + Clone,
+    K: Hash + Eq + Clone + Send + Sync,
 {
     type Context = C;
     type Objective = O;

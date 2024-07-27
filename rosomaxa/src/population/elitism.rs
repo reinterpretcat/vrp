@@ -26,7 +26,7 @@ where
     S: HeuristicSolution,
 {
     objective: Arc<O>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
     selection_size: usize,
     max_population_size: usize,
     individuals: Vec<S>,
@@ -39,7 +39,7 @@ where
 /// Provides way to get a new objective by shuffling existing one.
 pub trait Shuffled {
     /// Returns a new objective, potentially shuffled.
-    fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self;
+    fn get_shuffled(&self, random: &(dyn Random)) -> Self;
 }
 
 impl<O, S> HeuristicPopulation for Elitism<O, S>
@@ -113,12 +113,7 @@ where
     S: HeuristicSolution,
 {
     /// Creates a new instance of `Elitism`.
-    pub fn new(
-        objective: Arc<O>,
-        random: Arc<dyn Random + Send + Sync>,
-        max_population_size: usize,
-        selection_size: usize,
-    ) -> Self {
+    pub fn new(objective: Arc<O>, random: Arc<dyn Random>, max_population_size: usize, selection_size: usize) -> Self {
         Self::new_with_dedup(
             objective,
             random,
@@ -147,7 +142,7 @@ where
     /// Creates a new instance of `Elitism` with custom deduplication function.
     pub fn new_with_dedup(
         objective: Arc<O>,
-        random: Arc<dyn Random + Send + Sync>,
+        random: Arc<dyn Random>,
         max_population_size: usize,
         selection_size: usize,
         dedup_fn: DedupFn<O, S>,

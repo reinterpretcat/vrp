@@ -12,12 +12,12 @@ pub struct Registry {
     available: HashMap<usize, HashSet<Arc<Actor>>>,
     index: HashMap<Arc<Actor>, usize>,
     all: Vec<Arc<Actor>>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
 }
 
 impl Registry {
     /// Creates a new instance of `Registry`
-    pub fn new(fleet: &Fleet, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(fleet: &Fleet, random: Arc<dyn Random>) -> Self {
         let index = fleet
             .groups
             .iter()

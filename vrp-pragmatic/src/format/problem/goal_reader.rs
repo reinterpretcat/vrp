@@ -385,7 +385,7 @@ fn create_capacity_with_reload_feature<T: LoadOps + SharedResource + Mul<f64, Ou
 fn get_tour_limit_feature(
     name: &str,
     api_problem: &ApiProblem,
-    transport: Arc<dyn TransportCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
 ) -> GenericResult<Feature> {
     let (distances, durations) = api_problem
         .fleet
@@ -423,7 +423,7 @@ fn get_tour_limit_feature(
 fn get_recharge_feature(
     name: &str,
     api_problem: &ApiProblem,
-    transport: Arc<dyn TransportCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
 ) -> GenericResult<Feature> {
     fn is_recharge_single(single: &Single) -> bool {
         single.dimens.get_job_type().map_or(false, |job_type| job_type == "recharge")

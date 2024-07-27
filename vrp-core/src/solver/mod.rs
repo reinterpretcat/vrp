@@ -193,12 +193,12 @@ impl Stateful for RefinementContext {
 
 /// Wraps recreate method as `InitialOperator`
 pub struct RecreateInitialOperator {
-    recreate: Arc<dyn Recreate + Send + Sync>,
+    recreate: Arc<dyn Recreate>,
 }
 
 impl RecreateInitialOperator {
     /// Creates a new instance of `RecreateInitialOperator`.
-    pub fn new(recreate: Arc<dyn Recreate + Send + Sync>) -> Self {
+    pub fn new(recreate: Arc<dyn Recreate>) -> Self {
         Self { recreate }
     }
 }

@@ -10,7 +10,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 /// A trait which specifies logic to destroy parts of solution.
-pub trait Ruin {
+pub trait Ruin: Send + Sync {
     /// Ruins given solution and returns a new one with less jobs assigned.
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
@@ -34,7 +34,7 @@ mod worst_jobs_removal;
 pub use self::worst_jobs_removal::WorstJobRemoval;
 
 /// A type which specifies a group of multiple ruin strategies with their probability.
-pub type RuinGroup = (Vec<(Arc<dyn Ruin + Send + Sync>, f64)>, usize);
+pub type RuinGroup = (Vec<(Arc<dyn Ruin>, f64)>, usize);
 
 /// Provides the way to pick one ruin from the group ruin methods.
 pub struct WeightedRuin {
@@ -83,12 +83,12 @@ impl Ruin for WeightedRuin {
 
 /// Provides the way to run multiple ruin methods one by one on the same solution.
 pub struct CompositeRuin {
-    ruins: Vec<(Arc<dyn Ruin + Send + Sync>, f64)>,
+    ruins: Vec<(Arc<dyn Ruin>, f64)>,
 }
 
 impl CompositeRuin {
     /// Creates a new instance of `CompositeRuin` using list of ruin strategies.
-    pub fn new(ruins: Vec<(Arc<dyn Ruin + Send + Sync>, f64)>) -> Self {
+    pub fn new(ruins: Vec<(Arc<dyn Ruin>, f64)>) -> Self {
         Self { ruins }
     }
 }

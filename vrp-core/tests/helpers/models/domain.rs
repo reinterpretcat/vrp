@@ -4,7 +4,7 @@ use crate::models::problem::JobIdDimension;
 use crate::prelude::*;
 use std::sync::Arc;
 
-pub fn test_random() -> Arc<dyn Random + Send + Sync> {
+pub fn test_random() -> Arc<dyn Random> {
     Arc::new(DefaultRandom::default())
 }
 

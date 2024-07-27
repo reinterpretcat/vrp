@@ -17,12 +17,12 @@ use std::sync::Arc;
 /// the same routes again.
 /// The main idea is to introduce a bit more diversity in the population.
 pub struct RedistributeSearch {
-    recreate: Arc<dyn Recreate + Send + Sync>,
+    recreate: Arc<dyn Recreate>,
 }
 
 impl RedistributeSearch {
     /// Creates a new instance of `RedistributeSearch`.
-    pub fn new(recreate: Arc<dyn Recreate + Send + Sync>) -> Self {
+    pub fn new(recreate: Arc<dyn Recreate>) -> Self {
         Self { recreate }
     }
 }

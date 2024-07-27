@@ -120,8 +120,8 @@ struct ProblemBlocks {
     jobs: Arc<CoreJobs>,
     fleet: Arc<CoreFleet>,
     job_index: Option<Arc<JobIndex>>,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
+    activity: Arc<dyn ActivityCost>,
     locks: Vec<Arc<Lock>>,
     reserved_times_index: ReservedTimesIndex,
 }

@@ -41,7 +41,7 @@ impl AdjustedStringRemoval {
     }
 
     /// Calculates initial parameters from paper using 5,6,7 equations.
-    fn calculate_limits(&self, routes: &[RouteContext], random: &Arc<dyn Random + Send + Sync>) -> (usize, usize) {
+    fn calculate_limits(&self, routes: &[RouteContext], random: &Arc<dyn Random>) -> (usize, usize) {
         // Equation 5: max removed string cardinality for each tour
         let lsmax = calculate_average_tour_cardinality(routes).min(self.lmax as f64);
 
@@ -115,7 +115,7 @@ fn select_string<'a>(
     seed_tour: (&'a Tour, usize),
     cardinality: usize,
     alpha: f64,
-    random: &Arc<dyn Random + Send + Sync>,
+    random: &Arc<dyn Random>,
 ) -> JobIter<'a> {
     if random.is_head_not_tails() {
         sequential_string(seed_tour, cardinality, random)
@@ -125,11 +125,7 @@ fn select_string<'a>(
 }
 
 /// Selects sequential string.
-fn sequential_string<'a>(
-    seed_tour: (&'a Tour, usize),
-    cardinality: usize,
-    random: &Arc<dyn Random + Send + Sync>,
-) -> JobIter<'a> {
+fn sequential_string<'a>(seed_tour: (&'a Tour, usize), cardinality: usize, random: &Arc<dyn Random>) -> JobIter<'a> {
     let (begin, end) = lower_bounds(cardinality, seed_tour.0.job_activity_count(), seed_tour.1);
     let start = random.uniform_int(begin as i32, end as i32) as usize;
 
@@ -141,7 +137,7 @@ fn preserved_string<'a>(
     seed_tour: (&'a Tour, usize),
     cardinality: usize,
     alpha: f64,
-    random: &Arc<dyn Random + Send + Sync>,
+    random: &Arc<dyn Random>,
 ) -> JobIter<'a> {
     let size = seed_tour.0.job_activity_count();
     let index = seed_tour.1;
@@ -180,12 +176,7 @@ fn lower_bounds(string_crd: usize, tour_crd: usize, index: usize) -> (usize, usi
 }
 
 /// Calculates preserved substring cardinality.
-fn preserved_cardinality(
-    string_crd: usize,
-    tour_crd: usize,
-    alpha: f64,
-    random: &Arc<dyn Random + Send + Sync>,
-) -> usize {
+fn preserved_cardinality(string_crd: usize, tour_crd: usize, alpha: f64, random: &Arc<dyn Random>) -> usize {
     if string_crd == tour_crd {
         return 0;
     }

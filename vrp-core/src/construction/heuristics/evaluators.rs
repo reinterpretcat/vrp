@@ -21,7 +21,7 @@ pub struct EvaluationContext<'a> {
     /// A leg selection mode.
     pub leg_selection: &'a LegSelection,
     /// A result selector.
-    pub result_selector: &'a (dyn ResultSelector + Send + Sync),
+    pub result_selector: &'a (dyn ResultSelector),
 }
 
 /// Specifies allowed insertion position in route for the job.

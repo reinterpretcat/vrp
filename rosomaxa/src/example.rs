@@ -138,7 +138,7 @@ impl HeuristicObjective for VectorObjective {
 }
 
 impl Shuffled for VectorObjective {
-    fn get_shuffled(&self, _: &(dyn Random + Send + Sync)) -> Self {
+    fn get_shuffled(&self, _: &(dyn Random)) -> Self {
         self.clone()
     }
 }

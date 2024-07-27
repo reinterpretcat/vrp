@@ -19,7 +19,7 @@ pub trait DistributionSampler {
 }
 
 /// Provides the way to use randomized values in generic way.
-pub trait Random {
+pub trait Random: Send + Sync {
     /// Produces integral random value, uniformly distributed on the closed interval [min, max]
     fn uniform_int(&self, min: i32, max: i32) -> i32;
 
@@ -43,11 +43,11 @@ pub trait Random {
 
 /// Provides way to sample from different distributions.
 #[derive(Clone)]
-pub struct DefaultDistributionSampler(Arc<dyn Random + Send + Sync>);
+pub struct DefaultDistributionSampler(Arc<dyn Random>);
 
 impl DefaultDistributionSampler {
     /// Creates a new instance of `DefaultDistributionSampler`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: Arc<dyn Random>) -> Self {
         Self(random)
     }
 }

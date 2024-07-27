@@ -4,7 +4,7 @@
 use crate::prelude::*;
 
 /// A trait which specifies criteria when metaheuristic should stop searching for improved solution.
-pub trait Termination {
+pub trait Termination: Send + Sync {
     /// A heuristic objective function type.
     type Context: HeuristicContext<Objective = Self::Objective>;
 
@@ -37,7 +37,7 @@ where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>>,
+    terminations: Vec<Box<dyn Termination<Context = C, Objective = O>>>,
 }
 
 impl<C, O, S> CompositeTermination<C, O, S>
@@ -47,7 +47,7 @@ where
     S: HeuristicSolution,
 {
     /// Creates a new instance of `CompositeTermination`.
-    pub fn new(terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>>) -> Self {
+    pub fn new(terminations: Vec<Box<dyn Termination<Context = C, Objective = O>>>) -> Self {
         Self { terminations }
     }
 }

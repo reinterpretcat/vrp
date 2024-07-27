@@ -3,7 +3,7 @@
 use vrp_core::prelude::*;
 
 /// Gets a routing matrix for 5 unique locations.
-pub fn define_routing_data() -> GenericResult<impl TransportCost + Send + Sync> {
+pub fn define_routing_data() -> GenericResult<impl TransportCost> {
     // define distance/duration matrix (use the same data for both)
     // as we have five locations, we need to define 5x5 matrix, flatten to 1 dimension:
     #[rustfmt::skip]

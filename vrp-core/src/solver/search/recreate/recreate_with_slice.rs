@@ -14,7 +14,7 @@ pub struct RecreateWithSlice {
 
 impl RecreateWithSlice {
     /// Creates a new instance of `RecreateWithSlice`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: Arc<dyn Random>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::<SliceJobSelector>::default(),

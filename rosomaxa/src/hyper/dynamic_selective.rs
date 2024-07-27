@@ -187,7 +187,7 @@ where
 struct SearchAgent<'a, C, O, S> {
     slot_machines: HashMap<SearchState, SlotMachines<'a, C, O, S>>,
     tracker: HeuristicTracker,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
 }
 
 impl<'a, C, O, S> SearchAgent<'a, C, O, S>

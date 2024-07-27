@@ -61,7 +61,7 @@ impl<R: Read> TextReader for LilimReader<R> {
     fn create_goal_context(
         &self,
         activity: Arc<SimpleActivityCost>,
-        transport: Arc<dyn TransportCost + Send + Sync>,
+        transport: Arc<dyn TransportCost>,
     ) -> Result<GoalContext, GenericError> {
         let is_time_constrained = true;
         create_goal_context_prefer_min_tours(activity, transport, is_time_constrained)
@@ -74,7 +74,7 @@ impl<R: Read> TextReader for LilimReader<R> {
         Ok((jobs, fleet))
     }
 
-    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, GenericError> {
+    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost>, GenericError> {
         self.coord_index.create_transport(is_rounded)
     }
 

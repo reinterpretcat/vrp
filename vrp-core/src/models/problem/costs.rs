@@ -19,7 +19,7 @@ pub enum TravelTime {
 }
 
 /// Provides the way to get cost information for specific activities done by specific actor.
-pub trait ActivityCost {
+pub trait ActivityCost: Send + Sync {
     /// Returns cost to perform activity.
     fn cost(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> Cost {
         let actor = route.actor.as_ref();
@@ -53,7 +53,7 @@ impl ActivityCost for SimpleActivityCost {
 }
 
 /// Provides the way to get routing information for specific locations and actor.
-pub trait TransportCost {
+pub trait TransportCost: Send + Sync {
     /// Returns time-dependent transport cost between two locations for given actor.
     fn cost(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Cost {
         let actor = route.actor.as_ref();
@@ -160,9 +160,7 @@ impl TransportFallback for NoFallback {
 
 /// Creates time agnostic or time aware routing costs based on matrix data passed.
 /// Panics at runtime if given route path is not present in matrix data.
-pub fn create_matrix_transport_cost(
-    costs: Vec<MatrixData>,
-) -> Result<Arc<dyn TransportCost + Send + Sync>, GenericError> {
+pub fn create_matrix_transport_cost(costs: Vec<MatrixData>) -> GenericResult<Arc<dyn TransportCost>> {
     create_matrix_transport_cost_with_fallback(costs, NoFallback)
 }
 
@@ -171,7 +169,7 @@ pub fn create_matrix_transport_cost(
 pub fn create_matrix_transport_cost_with_fallback<T: TransportFallback + 'static>(
     costs: Vec<MatrixData>,
     fallback: T,
-) -> Result<Arc<dyn TransportCost + Send + Sync>, GenericError> {
+) -> GenericResult<Arc<dyn TransportCost>> {
     if costs.is_empty() {
         return Err("no matrix data found".into());
     }

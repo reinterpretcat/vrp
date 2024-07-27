@@ -67,7 +67,7 @@ struct LocationWriter(pub Box<dyn Fn(File, BufWriter<Box<dyn Write>>) -> Result<
 #[allow(clippy::type_complexity)]
 type FormatMap<'a> = HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter, LocationWriter)>;
 
-fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) {
+fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn Random>) {
     if cfg!(feature = "scientific-format") {
         use vrp_scientific::common::read_init_solution;
         use vrp_scientific::lilim::{LilimProblem, LilimSolution};
@@ -119,7 +119,7 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
     }
 }
 
-fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>) {
+fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random>) {
     use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
     use vrp_pragmatic::format::solution::read_init_solution as read_init_pragmatic;
 
@@ -156,7 +156,7 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
     );
 }
 
-fn get_formats<'a>(matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) -> FormatMap<'a> {
+fn get_formats<'a>(matches: &ArgMatches, random: Arc<dyn Random>) -> FormatMap<'a> {
     let mut formats = FormatMap::default();
 
     add_scientific(&mut formats, matches, random.clone());
@@ -533,9 +533,9 @@ fn check_pragmatic_solution_with_args(matches: &ArgMatches) -> GenericResult<()>
 }
 
 /// Creates interruption quota.
-pub fn create_interruption_quota(max_time: Option<usize>) -> Arc<dyn Quota + Send + Sync> {
+pub fn create_interruption_quota(max_time: Option<usize>) -> Arc<dyn Quota> {
     struct InterruptionQuota {
-        inner: Option<Arc<dyn Quota + Send + Sync>>,
+        inner: Option<Arc<dyn Quota>>,
         should_interrupt: Arc<AtomicBool>,
     }
 
@@ -546,7 +546,7 @@ pub fn create_interruption_quota(max_time: Option<usize>) -> Arc<dyn Quota + Sen
         }
     }
 
-    let inner = max_time.map::<Arc<dyn Quota + Send + Sync>, _>(|time| Arc::new(TimeQuota::new(time as f64)));
+    let inner = max_time.map::<Arc<dyn Quota>, _>(|time| Arc::new(TimeQuota::new(time as f64)));
     let should_interrupt = Arc::new(AtomicBool::new(false));
 
     // NOTE ignore error which happens in unit tests

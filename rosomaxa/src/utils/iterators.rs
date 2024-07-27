@@ -47,12 +47,12 @@ pub struct SelectionSamplingIterator<I: Iterator> {
     needed: usize,
     size: usize,
     iterator: I,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
 }
 
 impl<I: Iterator> SelectionSamplingIterator<I> {
     /// Creates a new instance of `SelectionSamplingIterator`.
-    pub fn new(iterator: I, amount: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(iterator: I, amount: usize, random: Arc<dyn Random>) -> Self {
         assert!(amount > 0);
         Self {
             // NOTE relying on lower bound size hint!
@@ -93,7 +93,7 @@ impl<I: Iterator> Iterator for SelectionSamplingIterator<I> {
 pub fn create_range_sampling_iter<I: Iterator>(
     iterator: I,
     sample_size: usize,
-    random: &(dyn Random + Send + Sync),
+    random: &(dyn Random),
 ) -> impl Iterator<Item = I::Item> {
     let iterator_size = iterator.size_hint().0 as f64;
     let sample_count = (iterator_size / sample_size as f64).max(1.) - 1.;
@@ -131,7 +131,7 @@ pub trait SelectionSamplingSearch: Iterator {
     fn sample_search<'a, T, R, FM, FI, FC>(
         self,
         sample_size: usize,
-        random: Arc<dyn Random + Send + Sync>,
+        random: Arc<dyn Random>,
         mut map_fn: FM,
         index_fn: FI,
         compare_fn: FC,

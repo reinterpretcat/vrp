@@ -30,7 +30,7 @@ pub struct RecreateWithGaps {
 
 impl RecreateWithGaps {
     /// Creates a new instance of `RecreateWithGaps`.
-    pub fn new(min_jobs: usize, max_jobs: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(min_jobs: usize, max_jobs: usize, random: Arc<dyn Random>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::new(GapsJobSelector { min_jobs, max_jobs }),

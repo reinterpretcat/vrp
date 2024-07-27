@@ -238,8 +238,8 @@ where
         max_time: Option<usize>,
         min_cv: Option<(String, usize, f64, bool, K)>,
         target_proximity: Option<(Vec<f64>, f64)>,
-    ) -> Result<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>, GenericError> {
-        let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = match (
+    ) -> Result<Box<dyn Termination<Context = C, Objective = O>>, GenericError> {
+        let terminations: Vec<Box<dyn Termination<Context = C, Objective = O>>> = match (
             max_generations,
             max_time,
             &min_cv,
@@ -250,7 +250,7 @@ where
                 vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))]
             }
             _ => {
-                let mut terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = vec![];
+                let mut terminations: Vec<Box<dyn Termination<Context = C, Objective = O>>> = vec![];
 
                 if let Some(limit) = max_generations {
                     (logger)(format!("configured to use max-generations: {limit}").as_str());
@@ -270,16 +270,15 @@ where
                             .as_str(),
                         );
 
-                    let variation: Box<dyn Termination<Context = C, Objective = O> + Send + Sync> =
-                        match interval_type.as_str() {
-                            "sample" => {
-                                Box::new(MinVariation::<C, O, S, K>::new_with_sample(value, threshold, is_global, key))
-                            }
-                            "period" => {
-                                Box::new(MinVariation::<C, O, S, K>::new_with_period(value, threshold, is_global, key))
-                            }
-                            _ => return Err(format!("unknown variation interval type: {interval_type}").into()),
-                        };
+                    let variation: Box<dyn Termination<Context = C, Objective = O>> = match interval_type.as_str() {
+                        "sample" => {
+                            Box::new(MinVariation::<C, O, S, K>::new_with_sample(value, threshold, is_global, key))
+                        }
+                        "period" => {
+                            Box::new(MinVariation::<C, O, S, K>::new_with_period(value, threshold, is_global, key))
+                        }
+                        _ => return Err(format!("unknown variation interval type: {interval_type}").into()),
+                    };
 
                     terminations.push(variation)
                 }

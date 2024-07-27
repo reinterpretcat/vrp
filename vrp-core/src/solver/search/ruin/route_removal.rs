@@ -139,7 +139,7 @@ impl Ruin for WorstRouteRemoval {
 fn remove_routes_with_actors<Iter>(
     solution_ctx: &mut SolutionContext,
     limits: &RemovalLimits,
-    random: &(dyn Random + Send + Sync),
+    random: &(dyn Random),
     actors: Iter,
 ) where
     Iter: Iterator<Item = Arc<Actor>>,

@@ -135,7 +135,7 @@ impl JobPlaceBuilder {
 pub struct MultiBuilder {
     jobs: Vec<Arc<Single>>,
     dimens: Dimensions,
-    permutator: Option<Box<dyn JobPermutation + Send + Sync>>,
+    permutator: Option<Box<dyn JobPermutation>>,
 }
 
 impl MultiBuilder {
@@ -159,7 +159,7 @@ impl MultiBuilder {
 
     /// Sets a permutation logic which tells allowed order of sub-jobs assignment.
     /// If omitted, sub-jobs can be assigned only in the order of addition.
-    pub fn permutation(mut self, permutation: impl JobPermutation + Send + Sync + 'static) -> Self {
+    pub fn permutation(mut self, permutation: impl JobPermutation + 'static) -> Self {
         self.permutator = Some(Box::new(permutation));
         self
     }

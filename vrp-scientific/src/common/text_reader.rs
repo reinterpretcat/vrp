@@ -31,12 +31,12 @@ pub(crate) trait TextReader {
     fn create_goal_context(
         &self,
         activity: Arc<SimpleActivityCost>,
-        transport: Arc<dyn TransportCost + Send + Sync>,
+        transport: Arc<dyn TransportCost>,
     ) -> Result<GoalContext, GenericError>;
 
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError>;
 
-    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, GenericError>;
+    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost>, GenericError>;
 
     fn create_extras(&self) -> Extras;
 }
@@ -104,7 +104,7 @@ pub(crate) fn create_dimens_with_id(
 
 pub(crate) fn create_goal_context_prefer_min_tours(
     activity: Arc<SimpleActivityCost>,
-    transport: Arc<dyn TransportCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
     is_time_constrained: bool,
 ) -> GenericResult<GoalContext> {
     let features = get_essential_features(activity, transport, is_time_constrained)?;
@@ -117,7 +117,7 @@ pub(crate) fn create_goal_context_prefer_min_tours(
 
 pub(crate) fn create_goal_context_distance_only(
     activity: Arc<SimpleActivityCost>,
-    transport: Arc<dyn TransportCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
     is_time_constrained: bool,
 ) -> Result<GoalContext, GenericError> {
     let features = get_essential_features(activity, transport, is_time_constrained)?;
@@ -130,7 +130,7 @@ pub(crate) fn create_goal_context_distance_only(
 
 fn get_essential_features(
     activity: Arc<SimpleActivityCost>,
-    transport: Arc<dyn TransportCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
     is_time_constrained: bool,
 ) -> Result<Vec<Feature>, GenericError> {
     Ok(vec![

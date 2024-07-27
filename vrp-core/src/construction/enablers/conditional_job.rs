@@ -3,7 +3,7 @@ use crate::models::problem::Job;
 use std::collections::HashSet;
 
 /// Defines how jobs are moved in solution context. Index of original affected route context is passed.
-pub trait JobContextTransition {
+pub trait JobContextTransition: Send + Sync {
     /// Returns true if job is moved from required to ignored.
     fn remove_from_required(&self, solution_ctx: &SolutionContext, route_index: Option<usize>, job: &Job) -> bool;
 
@@ -20,10 +20,10 @@ pub trait JobContextTransition {
 /// A concrete implementation of `JobContextTransition` which allows to use lambdas.
 pub struct ConcreteJobContextTransition<FRemoveRequired, FPromoteRequired, FRemoveLocked, FPromoteLocked>
 where
-    FRemoveRequired: Fn(&SolutionContext, Option<usize>, &Job) -> bool,
-    FPromoteRequired: Fn(&SolutionContext, Option<usize>, &Job) -> bool,
-    FRemoveLocked: Fn(&SolutionContext, Option<usize>, &Job) -> bool,
-    FPromoteLocked: Fn(&SolutionContext, Option<usize>, &Job) -> bool,
+    FRemoveRequired: Fn(&SolutionContext, Option<usize>, &Job) -> bool + Send + Sync,
+    FPromoteRequired: Fn(&SolutionContext, Option<usize>, &Job) -> bool + Send + Sync,
+    FRemoveLocked: Fn(&SolutionContext, Option<usize>, &Job) -> bool + Send + Sync,
+    FPromoteLocked: Fn(&SolutionContext, Option<usize>, &Job) -> bool + Send + Sync,
 {
     /// A function which removes job from required list.
     pub remove_required: FRemoveRequired,
@@ -38,10 +38,10 @@ where
 impl<FRemoveRequired, FPromoteRequired, FRemoveLocked, FPromoteLocked> JobContextTransition
     for ConcreteJobContextTransition<FRemoveRequired, FPromoteRequired, FRemoveLocked, FPromoteLocked>
 where
-    FRemoveRequired: Fn(&SolutionContext, Option<usize>, &Job) -> bool,
-    FPromoteRequired: Fn(&SolutionContext, Option<usize>, &Job) -> bool,
-    FRemoveLocked: Fn(&SolutionContext, Option<usize>, &Job) -> bool,
-    FPromoteLocked: Fn(&SolutionContext, Option<usize>, &Job) -> bool,
+    FRemoveRequired: Fn(&SolutionContext, Option<usize>, &Job) -> bool + Send + Sync,
+    FPromoteRequired: Fn(&SolutionContext, Option<usize>, &Job) -> bool + Send + Sync,
+    FRemoveLocked: Fn(&SolutionContext, Option<usize>, &Job) -> bool + Send + Sync,
+    FPromoteLocked: Fn(&SolutionContext, Option<usize>, &Job) -> bool + Send + Sync,
 {
     fn remove_from_required(&self, solution_ctx: &SolutionContext, route_index: Option<usize>, job: &Job) -> bool {
         (self.remove_required)(solution_ctx, route_index, job)
@@ -64,7 +64,7 @@ where
 pub fn process_conditional_jobs(
     solution_ctx: &mut SolutionContext,
     route_index: Option<usize>,
-    context_transition: &(dyn JobContextTransition + Send + Sync),
+    context_transition: &(dyn JobContextTransition),
 ) {
     // analyzed required/ignored
     let ignored: HashSet<Job> = solution_ctx

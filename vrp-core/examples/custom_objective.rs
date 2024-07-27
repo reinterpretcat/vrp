@@ -81,7 +81,7 @@ fn calculate_solution_fitness(solution_ctx: &SolutionContext) -> Cost {
 
 /// Specifies four delivery jobs with demand=1 (two of them are with top priority) and a single vehicle
 /// with capacity=2 which doesn't need to return to the depot.
-fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult<Problem> {
+fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost>) -> GenericResult<Problem> {
     // create 4 jobs where two are having top prio
     let single_jobs = (1..=4)
         .map(|idx| {
@@ -114,7 +114,7 @@ fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost + Send + S
 }
 
 /// Defines optimization goal as CVRP variant with a priority objective function on top.
-fn define_goal(transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult<GoalContext> {
+fn define_goal(transport: Arc<dyn TransportCost>) -> GenericResult<GoalContext> {
     let minimize_unassigned = MinimizeUnassignedBuilder::new("min-unassigned").build()?;
     let capacity_feature = CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").build()?;
     let transport_feature = TransportFeatureBuilder::new("min-distance")

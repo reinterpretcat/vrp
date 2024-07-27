@@ -33,7 +33,7 @@ pub fn create_activity_limit_feature(
 /// This is a hard constraint.
 pub fn create_travel_limit_feature(
     name: &str,
-    transport: Arc<dyn TransportCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
     distance_code: ViolationCode,
     duration_code: ViolationCode,
     tour_distance_limit_fn: TravelLimitFn<Distance>,
@@ -86,7 +86,7 @@ impl FeatureConstraint for ActivityLimitConstraint {
 }
 
 struct TravelLimitConstraint {
-    transport: Arc<dyn TransportCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
     tour_distance_limit_fn: TravelLimitFn<Distance>,
     tour_duration_limit_fn: TravelLimitFn<Duration>,
     distance_code: ViolationCode,

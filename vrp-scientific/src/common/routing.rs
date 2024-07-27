@@ -31,7 +31,7 @@ impl CoordIndex {
     }
 
     /// Creates transport.
-    pub fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, GenericError> {
+    pub fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost>, GenericError> {
         let matrix_values = self
             .locations
             .iter()

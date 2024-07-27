@@ -9,7 +9,7 @@ use std::sync::Arc;
 /// A mutation operator which performs search in infeasible space.
 pub struct InfeasibleSearch {
     inner_search: TargetSearchOperator,
-    recovery_operator: Arc<dyn Recreate + Send + Sync>,
+    recovery_operator: Arc<dyn Recreate>,
     max_repeat_count: usize,
     shuffle_objectives_probability: (f64, f64),
     skip_constraint_check_probability: (f64, f64),
@@ -19,7 +19,7 @@ impl InfeasibleSearch {
     /// Creates a new instance of `InfeasibleSearch`.
     pub fn new(
         inner_search: TargetSearchOperator,
-        recovery_operator: Arc<dyn Recreate + Send + Sync>,
+        recovery_operator: Arc<dyn Recreate>,
         max_repeat_count: usize,
         shuffle_objectives_probability: (f64, f64),
         skip_constraint_check_probability: (f64, f64),
@@ -125,7 +125,7 @@ fn create_relaxed_insertion_ctx(
 
 fn create_modified_variant(
     original: &GoalContext,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
     skip_probability: f64,
     shuffle_probability: f64,
 ) -> Arc<GoalContext> {
@@ -156,7 +156,7 @@ fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionCo
 
 struct StochasticFeatureConstraint {
     inner: Arc<dyn FeatureConstraint>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
     probability: f64,
 }
 

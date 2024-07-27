@@ -256,10 +256,10 @@ impl InsertionHeuristic {
     pub fn process(
         &self,
         mut insertion_ctx: InsertionContext,
-        job_selector: &(dyn JobSelector + Send + Sync),
-        route_selector: &(dyn RouteSelector + Send + Sync),
+        job_selector: &(dyn JobSelector),
+        route_selector: &(dyn RouteSelector),
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector + Send + Sync),
+        result_selector: &(dyn ResultSelector),
     ) -> InsertionContext {
         prepare_insertion_ctx(&mut insertion_ctx);
 

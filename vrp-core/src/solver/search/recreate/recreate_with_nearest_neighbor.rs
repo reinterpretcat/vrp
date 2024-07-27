@@ -12,7 +12,7 @@ pub struct RecreateWithNearestNeighbor {
 
 impl RecreateWithNearestNeighbor {
     /// Creates a new instance of `RecreateWithNearestNeighbor`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(random: Arc<dyn Random>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::<AllJobSelector>::default(),

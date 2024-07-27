@@ -214,7 +214,7 @@ impl Input for InsertionContext {
 /// Creates a heuristic operator probability which uses `is_hit` method from passed random object.
 pub fn create_scalar_operator_probability(
     scalar_probability: f64,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
 ) -> TargetHeuristicProbability {
     (Box::new(move |_, _| random.is_hit(scalar_probability)), PhantomData)
 }
@@ -224,7 +224,7 @@ pub fn create_context_operator_probability(
     jobs_threshold: usize,
     routes_threshold: usize,
     phases: Vec<(SelectionPhase, f64)>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
 ) -> TargetHeuristicProbability {
     let phases = phases.into_iter().collect::<HashMap<_, _>>();
     (
@@ -272,7 +272,7 @@ mod builder {
         environment: Arc<Environment>,
     ) -> InitialOperators<RefinementContext, GoalContext, InsertionContext> {
         let random = environment.random.clone();
-        let wrap = |recreate: Arc<dyn Recreate + Send + Sync>| Box::new(RecreateInitialOperator::new(recreate));
+        let wrap = |recreate: Arc<dyn Recreate>| Box::new(RecreateInitialOperator::new(recreate));
 
         let mut main: InitialOperators<_, _, _> = vec![
             (wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 1),
@@ -327,7 +327,7 @@ fn create_diversify_operators(
 ) -> HeuristicDiversifyOperators<RefinementContext, GoalContext, InsertionContext> {
     let random = environment.random.clone();
 
-    let recreates: Vec<(Arc<dyn Recreate + Send + Sync>, usize)> = vec![
+    let recreates: Vec<(Arc<dyn Recreate>, usize)> = vec![
         (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 1),
         (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), 1),
         (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 1),
@@ -436,7 +436,7 @@ mod statik {
     }
 
     /// Creates default local search operator.
-    pub fn create_default_local_search(random: Arc<dyn Random + Send + Sync>) -> TargetSearchOperator {
+    pub fn create_default_local_search(random: Arc<dyn Random>) -> TargetSearchOperator {
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
             vec![
                 (Arc::new(ExchangeSwapStar::new(random, SINGLE_HEURISTIC_QUOTA_LIMIT)), 200),
@@ -455,11 +455,8 @@ mod statik {
 mod dynamic {
     use super::*;
 
-    fn get_recreates(
-        problem: &Problem,
-        random: Arc<dyn Random + Send + Sync>,
-    ) -> Vec<(Arc<dyn Recreate + Send + Sync>, String)> {
-        let cheapest: Arc<dyn Recreate + Send + Sync> = Arc::new(RecreateWithCheapest::new(random.clone()));
+    fn get_recreates(problem: &Problem, random: Arc<dyn Random>) -> Vec<(Arc<dyn Recreate>, String)> {
+        let cheapest: Arc<dyn Recreate> = Arc::new(RecreateWithCheapest::new(random.clone()));
         vec![
             (cheapest.clone(), "cheapest".to_string()),
             (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best".to_string()),
@@ -492,7 +489,7 @@ mod dynamic {
         environment: Arc<Environment>,
         limits: RemovalLimits,
         prefix: &str,
-    ) -> Vec<(Arc<dyn Ruin + Send + Sync>, String, f64)> {
+    ) -> Vec<(Arc<dyn Ruin>, String, f64)> {
         vec![
             (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), format!("{prefix}_asr"), 2.),
             (Arc::new(NeighbourRemoval::new(limits.clone())), format!("{prefix}_neighbour_removal"), 5.),
@@ -578,7 +575,7 @@ mod dynamic {
         // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
         let ruins = ruins
             .into_iter()
-            .map::<(Arc<dyn Ruin + Send + Sync>, String, f64), _>(|(ruin, name, weight)| {
+            .map::<(Arc<dyn Ruin>, String, f64), _>(|(ruin, name, weight)| {
                 (Arc::new(CompositeRuin::new(vec![(ruin, 1.), (extra_random_job.clone(), 0.1)])), name, weight)
             })
             .collect::<Vec<_>>();
@@ -648,7 +645,7 @@ mod dynamic {
         Arc::new(RuinAndRecreate::new(ruin, recreate))
     }
 
-    pub fn create_default_local_search(random: Arc<dyn Random + Send + Sync>) -> Arc<LocalSearch> {
+    pub fn create_default_local_search(random: Arc<dyn Random>) -> Arc<LocalSearch> {
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
             vec![
                 (Arc::new(ExchangeSwapStar::new(random, SINGLE_HEURISTIC_QUOTA_LIMIT / 4)), 2),
@@ -666,12 +663,12 @@ mod dynamic {
 fn get_recreate_with_alternative_goal<T, F>(
     original_goal: &GoalContext,
     recreate_fn: F,
-) -> impl Iterator<Item = Arc<dyn Recreate + Send + Sync>> + '_
+) -> impl Iterator<Item = Arc<dyn Recreate>> + '_
 where
     T: Recreate + Send + Sync + 'static,
     F: Fn() -> T + 'static,
 {
-    original_goal.get_alternatives().map::<Arc<dyn Recreate + Send + Sync>, _>(move |goal| {
-        Arc::new(RecreateWithGoal::new(Arc::new(goal), recreate_fn()))
-    })
+    original_goal
+        .get_alternatives()
+        .map::<Arc<dyn Recreate>, _>(move |goal| Arc::new(RecreateWithGoal::new(Arc::new(goal), recreate_fn())))
 }

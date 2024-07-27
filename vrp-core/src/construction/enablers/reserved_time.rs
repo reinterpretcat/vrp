@@ -101,15 +101,12 @@ impl ActivityCost for DynamicActivityCost {
 /// Provides way to calculate transport costs which might contain reserved time.
 pub struct DynamicTransportCost {
     reserved_times_fn: ReservedTimesFn,
-    inner: Arc<dyn TransportCost + Send + Sync>,
+    inner: Arc<dyn TransportCost>,
 }
 
 impl DynamicTransportCost {
     /// Creates a new instance of `DynamicTransportCost`.
-    pub fn new(
-        reserved_times_index: ReservedTimesIndex,
-        inner: Arc<dyn TransportCost + Send + Sync>,
-    ) -> Result<Self, GenericError> {
+    pub fn new(reserved_times_index: ReservedTimesIndex, inner: Arc<dyn TransportCost>) -> Result<Self, GenericError> {
         Ok(Self { reserved_times_fn: create_reserved_times_fn(reserved_times_index)?, inner })
     }
 }

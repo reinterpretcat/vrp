@@ -104,11 +104,7 @@ pub fn generate_matrix_routes(
     rows: usize,
     cols: usize,
     is_open_vrp: bool,
-    goal_factory: impl FnOnce(
-        Arc<dyn TransportCost + Send + Sync>,
-        Arc<dyn ActivityCost + Send + Sync>,
-        &Extras,
-    ) -> GoalContext,
+    goal_factory: impl FnOnce(Arc<dyn TransportCost>, Arc<dyn ActivityCost>, &Extras) -> GoalContext,
     job_factory: impl Fn(&str, Option<Location>) -> Arc<Single>,
     vehicle_modify: impl Fn(Vehicle) -> Vehicle,
     matrix_modify: impl Fn(Vec<f64>) -> (Vec<f64>, Vec<f64>),

@@ -21,7 +21,7 @@ pub struct JobRemovalTracker {
 
 impl JobRemovalTracker {
     /// Creates a new instance of `JobRemoval`.
-    pub fn new(limits: &RemovalLimits, random: &(dyn Random + Send + Sync)) -> Self {
+    pub fn new(limits: &RemovalLimits, random: &(dyn Random)) -> Self {
         Self {
             activities_left: random
                 .uniform_int(limits.removed_activities_range.start as i32, limits.removed_activities_range.end as i32),
@@ -81,7 +81,7 @@ impl JobRemovalTracker {
         &mut self,
         solution: &mut SolutionContext,
         route_idx: usize,
-        random: &(dyn Random + Send + Sync),
+        random: &(dyn Random),
     ) -> bool {
         if self.routes_left == 0 || self.activities_left == 0 {
             return false;
@@ -96,12 +96,7 @@ impl JobRemovalTracker {
         }
     }
 
-    fn can_remove_full_route(
-        &self,
-        solution: &SolutionContext,
-        route_idx: usize,
-        random: &(dyn Random + Send + Sync),
-    ) -> bool {
+    fn can_remove_full_route(&self, solution: &SolutionContext, route_idx: usize, random: &(dyn Random)) -> bool {
         let route_ctx = solution.routes.get(route_idx).expect("invalid route index");
 
         // check locked jobs
@@ -148,7 +143,7 @@ impl JobRemovalTracker {
         &mut self,
         solution: &mut SolutionContext,
         route_idx: usize,
-        random: &(dyn Random + Send + Sync),
+        random: &(dyn Random),
     ) -> bool {
         let locked = solution.locked.clone();
         let route_ctx = solution.routes.get(route_idx).expect("invalid route index");

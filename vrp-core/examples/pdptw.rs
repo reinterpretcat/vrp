@@ -19,7 +19,7 @@ use vrp_core::models::common::TimeWindow;
 use vrp_core::prelude::*;
 
 /// Specifies a PDPTW problem variant: two PUDO (pick up/drop off) jobs with demand=1 and 1 vehicle with capacity 1
-fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult<Problem> {
+fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost>) -> GenericResult<Problem> {
     // build two PUDO (pick up/drop off) jobs with demand=1 and permissive time windows (just to show API usage)
     let pudos = (1..=2)
         .map(|idx| {
@@ -72,7 +72,7 @@ fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost + Send + S
 }
 
 /// Defines PDPTW variant as a goal of optimization.
-fn define_goal(transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult<GoalContext> {
+fn define_goal(transport: Arc<dyn TransportCost>) -> GenericResult<GoalContext> {
     // configure features needed to model PDPTW
     let minimize_unassigned = MinimizeUnassignedBuilder::new("min-unassigned").build()?;
     let capacity_feature = CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").build()?;

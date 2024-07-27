@@ -12,8 +12,8 @@ pub struct FastServiceFeatureBuilder {
     violation_code: Option<ViolationCode>,
     demand_type_fn: Option<DemandTypeFn>,
     is_filtered_job_fn: Option<IsFilteredJobFn>,
-    transport: Option<Arc<dyn TransportCost + Send + Sync>>,
-    activity: Option<Arc<dyn ActivityCost + Send + Sync>>,
+    transport: Option<Arc<dyn TransportCost>>,
+    activity: Option<Arc<dyn ActivityCost>>,
 }
 
 impl FastServiceFeatureBuilder {
@@ -54,13 +54,13 @@ impl FastServiceFeatureBuilder {
     }
 
     /// Sets transport costs to estimate distance.
-    pub fn set_transport(mut self, transport: Arc<dyn TransportCost + Send + Sync>) -> Self {
+    pub fn set_transport(mut self, transport: Arc<dyn TransportCost>) -> Self {
         self.transport = Some(transport);
         self
     }
 
     /// Sets activity costs to estimate job start/end time.
-    pub fn set_activity(mut self, activity: Arc<dyn ActivityCost + Send + Sync>) -> Self {
+    pub fn set_activity(mut self, activity: Arc<dyn ActivityCost>) -> Self {
         self.activity = Some(activity);
         self
     }
@@ -110,8 +110,8 @@ custom_tour_state!(MultiJobRanges typeof MultiJobRanges);
 struct FastServiceObjective {
     demand_type_fn: DemandTypeFn,
     is_filtered_job_fn: IsFilteredJobFn,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
+    activity: Arc<dyn ActivityCost>,
 }
 
 impl FeatureObjective for FastServiceObjective {
@@ -167,8 +167,8 @@ impl FastServiceObjective {
     fn new(
         demand_type_fn: DemandTypeFn,
         is_filtered_job_fn: IsFilteredJobFn,
-        transport: Arc<dyn TransportCost + Send + Sync>,
-        activity: Arc<dyn ActivityCost + Send + Sync>,
+        transport: Arc<dyn TransportCost>,
+        activity: Arc<dyn ActivityCost>,
     ) -> Self {
         Self { demand_type_fn, is_filtered_job_fn, transport, activity }
     }

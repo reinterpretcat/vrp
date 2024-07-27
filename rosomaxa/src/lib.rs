@@ -296,7 +296,7 @@ pub fn get_default_population<O, S>(
     objective: Arc<O>,
     environment: Arc<Environment>,
     selection_size: usize,
-) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
+) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S>>
 where
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
     S: HeuristicSolution + RosomaxaWeighted + 'static,

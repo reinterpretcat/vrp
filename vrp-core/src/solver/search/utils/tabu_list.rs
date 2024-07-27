@@ -15,7 +15,7 @@ pub struct TabuList {
     jobs: HashSet<Job>,
     max_actors: usize,
     max_jobs: usize,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
 }
 
 impl TabuList {
@@ -77,7 +77,7 @@ fn add_with_limits<T: Clone + Eq + PartialEq + Hash>(
     new_item: T,
     old_items: &mut HashSet<T>,
     limits: usize,
-    random: &(dyn Random + Send + Sync),
+    random: &(dyn Random),
 ) {
     // NOTE do not use tabu list when limit is zero
     if limits == 0 {

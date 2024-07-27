@@ -42,7 +42,7 @@ impl<R: Read> TextReader for TsplibReader<R> {
     fn create_goal_context(
         &self,
         activity: Arc<SimpleActivityCost>,
-        transport: Arc<dyn TransportCost + Send + Sync>,
+        transport: Arc<dyn TransportCost>,
     ) -> Result<GoalContext, GenericError> {
         let is_time_constrained = false;
         create_goal_context_distance_only(activity, transport, is_time_constrained)
@@ -81,7 +81,7 @@ impl<R: Read> TextReader for TsplibReader<R> {
         Ok((jobs, fleet))
     }
 
-    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, GenericError> {
+    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost>, GenericError> {
         self.coord_index.create_transport(is_rounded)
     }
 

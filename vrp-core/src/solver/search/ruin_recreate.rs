@@ -7,13 +7,13 @@ use std::sync::Arc;
 
 /// A mutation operator based on ruin and recreate principle.
 pub struct RuinAndRecreate {
-    ruin: Arc<dyn Ruin + Send + Sync>,
-    recreate: Arc<dyn Recreate + Send + Sync>,
+    ruin: Arc<dyn Ruin>,
+    recreate: Arc<dyn Recreate>,
 }
 
 impl RuinAndRecreate {
     /// Creates a new instance of `RuinAndRecreate` using given ruin and recreate methods.
-    pub fn new(ruin: Arc<dyn Ruin + Send + Sync>, recreate: Arc<dyn Recreate + Send + Sync>) -> Self {
+    pub fn new(ruin: Arc<dyn Ruin>, recreate: Arc<dyn Recreate>) -> Self {
         Self { ruin, recreate }
     }
 }

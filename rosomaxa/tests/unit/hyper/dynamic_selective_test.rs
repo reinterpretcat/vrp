@@ -8,7 +8,7 @@ use std::time::Duration;
 fn can_estimate_median() {
     struct DelayableHeuristicOperator {
         delay_range: Range<i32>,
-        random: Arc<dyn Random + Send + Sync>,
+        random: Arc<dyn Random>,
     }
     impl HeuristicSearchOperator for DelayableHeuristicOperator {
         type Context = VectorContext;

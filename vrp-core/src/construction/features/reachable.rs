@@ -9,14 +9,14 @@ use std::sync::Arc;
 /// Creates a feature to check reachability of the jobs. It is a hard constraint.
 pub fn create_reachable_feature(
     name: &str,
-    transport: Arc<dyn TransportCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
     code: ViolationCode,
 ) -> Result<Feature, GenericError> {
     FeatureBuilder::default().with_name(name).with_constraint(ReachableConstraint { transport, code }).build()
 }
 
 struct ReachableConstraint {
-    transport: Arc<dyn TransportCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
     code: ViolationCode,
 }
 

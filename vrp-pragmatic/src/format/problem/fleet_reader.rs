@@ -27,7 +27,7 @@ pub(super) fn create_transport_costs(
     api_problem: &ApiProblem,
     matrices: &[Matrix],
     coord_index: Arc<CoordIndex>,
-) -> Result<Arc<dyn TransportCost + Sync + Send>, GenericError> {
+) -> GenericResult<Arc<dyn TransportCost>> {
     if !matrices.iter().all(|m| m.profile.is_some()) && !matrices.iter().all(|m| m.profile.is_none()) {
         return Err("all matrices should have profile set or none of them".into());
     }

@@ -12,8 +12,8 @@ custom_tour_state!(LimitDuration typeof Duration);
 /// Updates route schedule data.
 pub fn update_route_schedule(
     route_ctx: &mut RouteContext,
-    activity: &(dyn ActivityCost + Send + Sync),
-    transport: &(dyn TransportCost + Send + Sync),
+    activity: &(dyn ActivityCost),
+    transport: &(dyn TransportCost),
 ) {
     update_schedules(route_ctx, activity, transport);
     update_states(route_ctx, activity, transport);
@@ -23,8 +23,8 @@ pub fn update_route_schedule(
 /// Updates route departure to the new one.
 pub fn update_route_departure(
     route_ctx: &mut RouteContext,
-    activity: &(dyn ActivityCost + Send + Sync),
-    transport: &(dyn TransportCost + Send + Sync),
+    activity: &(dyn ActivityCost),
+    transport: &(dyn TransportCost),
     new_departure_time: Timestamp,
 ) {
     let start = route_ctx.route_mut().tour.get_mut(0).unwrap();
@@ -33,11 +33,7 @@ pub fn update_route_departure(
     update_route_schedule(route_ctx, activity, transport);
 }
 
-fn update_schedules(
-    route_ctx: &mut RouteContext,
-    activity: &(dyn ActivityCost + Send + Sync),
-    transport: &(dyn TransportCost + Send + Sync),
-) {
+fn update_schedules(route_ctx: &mut RouteContext, activity: &(dyn ActivityCost), transport: &(dyn TransportCost)) {
     let init = {
         let start = route_ctx.route().tour.start().unwrap();
         (start.place.location, start.schedule.departure)
@@ -59,11 +55,7 @@ fn update_schedules(
     });
 }
 
-fn update_states(
-    route_ctx: &mut RouteContext,
-    activity: &(dyn ActivityCost + Send + Sync),
-    transport: &(dyn TransportCost + Send + Sync),
-) {
+fn update_states(route_ctx: &mut RouteContext, activity: &(dyn ActivityCost), transport: &(dyn TransportCost)) {
     // update latest arrival and waiting states of non-terminate (jobs) activities
     let actor = route_ctx.route().actor.clone();
     let init = (
@@ -117,7 +109,7 @@ fn update_states(
     route_ctx.state_mut().set_waiting_time_states(waiting_times);
 }
 
-fn update_statistics(route_ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
+fn update_statistics(route_ctx: &mut RouteContext, transport: &(dyn TransportCost)) {
     let (route, state) = route_ctx.as_mut();
 
     let start = route.tour.start().unwrap();

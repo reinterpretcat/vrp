@@ -266,7 +266,7 @@ fn get_values_from_route_state<'a>(
 }
 
 /// Gets medoid location of given route context.
-fn get_medoid(route_ctx: &RouteContext, transport: &(dyn TransportCost + Send + Sync)) -> Option<usize> {
+fn get_medoid(route_ctx: &RouteContext, transport: &(dyn TransportCost)) -> Option<usize> {
     let profile = &route_ctx.route().actor.vehicle.profile;
     let locations = route_ctx.route().tour.all_activities().map(|activity| activity.place.location).collect::<Vec<_>>();
     locations

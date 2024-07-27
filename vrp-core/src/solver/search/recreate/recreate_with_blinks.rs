@@ -62,20 +62,17 @@ impl JobSelector for RankedJobSelector {
 /// A recreate method as described in "Slack Induction by String Removals for
 /// Vehicle Routing Problems" (aka SISR) paper by Jan Christiaens, Greet Vanden Berghe.
 pub struct RecreateWithBlinks {
-    job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
-    route_selector: Box<dyn RouteSelector + Send + Sync>,
+    job_selectors: Vec<Box<dyn JobSelector>>,
+    route_selector: Box<dyn RouteSelector>,
     leg_selection: LegSelection,
-    result_selector: Box<dyn ResultSelector + Send + Sync>,
+    result_selector: Box<dyn ResultSelector>,
     insertion_heuristic: InsertionHeuristic,
     weights: Vec<usize>,
 }
 
 impl RecreateWithBlinks {
     /// Creates a new instance of `RecreateWithBlinks`.
-    pub fn new(
-        selectors: Vec<(Box<dyn JobSelector + Send + Sync>, usize)>,
-        random: Arc<dyn Random + Send + Sync>,
-    ) -> Self {
+    pub fn new(selectors: Vec<(Box<dyn JobSelector>, usize)>, random: Arc<dyn Random>) -> Self {
         let weights = selectors.iter().map(|(_, weight)| *weight).collect();
         Self {
             job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
@@ -88,7 +85,7 @@ impl RecreateWithBlinks {
     }
 
     /// Creates a new instance of `RecreateWithBlinks` with default prameters.
-    pub fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new_with_defaults(random: Arc<dyn Random>) -> Self {
         Self::new(
             vec![
                 (Box::<AllJobSelector>::default(), 10),

@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 /// A trait which specifies logic to produce a new feasible solution from partial one.
-pub trait Recreate {
+pub trait Recreate: Send + Sync {
     /// Recreates a new solution from the given.
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
@@ -46,13 +46,13 @@ pub use self::recreate_with_slice::RecreateWithSlice;
 
 /// Provides the way to run one of multiple recreate methods.
 pub struct WeightedRecreate {
-    recreates: Vec<Arc<dyn Recreate + Send + Sync>>,
+    recreates: Vec<Arc<dyn Recreate>>,
     weights: Vec<usize>,
 }
 
 impl WeightedRecreate {
     /// Creates a new instance of `WeightedRecreate` using list of recreate strategies.
-    pub fn new(recreates: Vec<(Arc<dyn Recreate + Send + Sync>, usize)>) -> Self {
+    pub fn new(recreates: Vec<(Arc<dyn Recreate>, usize)>) -> Self {
         let (recreates, weights) = recreates.into_iter().unzip();
         Self { recreates, weights }
     }
@@ -67,8 +67,8 @@ impl Recreate for WeightedRecreate {
 
 /// Provides way to reuse generic behaviour.
 pub struct ConfigurableRecreate {
-    job_selector: Box<dyn JobSelector + Send + Sync>,
-    route_selector: Box<dyn RouteSelector + Send + Sync>,
+    job_selector: Box<dyn JobSelector>,
+    route_selector: Box<dyn RouteSelector>,
     leg_selection: LegSelection,
     result_selection: ResultSelection,
     insertion_heuristic: InsertionHeuristic,
@@ -77,8 +77,8 @@ pub struct ConfigurableRecreate {
 impl ConfigurableRecreate {
     /// Creates a new instance of `ConfigurableRecreate`.
     pub fn new(
-        job_selector: Box<dyn JobSelector + Send + Sync>,
-        route_selector: Box<dyn RouteSelector + Send + Sync>,
+        job_selector: Box<dyn JobSelector>,
+        route_selector: Box<dyn RouteSelector>,
         leg_selection: LegSelection,
         result_selection: ResultSelection,
         insertion_heuristic: InsertionHeuristic,
@@ -106,12 +106,12 @@ impl Recreate for ConfigurableRecreate {
 
 /// Provides way to use different recreate methods on different selection phases.
 pub struct PhasedRecreate {
-    recreates: HashMap<SelectionPhase, Arc<dyn Recreate + Send + Sync>>,
+    recreates: HashMap<SelectionPhase, Arc<dyn Recreate>>,
 }
 
 impl PhasedRecreate {
     /// Creates a new instance of `PhasedRecreate`.
-    pub fn new(recreates: HashMap<SelectionPhase, Arc<dyn Recreate + Send + Sync>>) -> Self {
+    pub fn new(recreates: HashMap<SelectionPhase, Arc<dyn Recreate>>) -> Self {
         assert!([SelectionPhase::Initial, SelectionPhase::Exploration, SelectionPhase::Exploitation]
             .iter()
             .all(|key| recreates.contains_key(key)));
@@ -126,19 +126,19 @@ impl Recreate for PhasedRecreate {
     }
 }
 
-pub(crate) struct RecreateWithGoal<T: Recreate + Send + Sync> {
+pub(crate) struct RecreateWithGoal<T: Recreate> {
     goal: Arc<GoalContext>,
     inner: T,
 }
 
-impl<T: Recreate + Send + Sync> RecreateWithGoal<T> {
+impl<T: Recreate> RecreateWithGoal<T> {
     /// Creates a new instance of `RecreateWithGoal`.
     pub fn new(goal: Arc<GoalContext>, inner: T) -> Self {
         Self { goal, inner }
     }
 }
 
-impl<T: Recreate + Send + Sync> Recreate for RecreateWithGoal<T> {
+impl<T: Recreate> Recreate for RecreateWithGoal<T> {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
 

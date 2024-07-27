@@ -17,7 +17,7 @@ use std::sync::Arc;
 use vrp_core::prelude::*;
 
 /// Specifies a CVRP problem variant: 4 delivery jobs with demand=1 and 4 vehicles with capacity=2 in each.
-fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult<Problem> {
+fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost>) -> GenericResult<Problem> {
     // create 4 jobs with location indices from 1 to 4
     let single_jobs = (1..=4)
         .map(|idx| {
@@ -59,7 +59,7 @@ fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost + Send + S
 }
 
 /// Defines CVRP variant as a goal of optimization.
-fn define_goal(transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult<GoalContext> {
+fn define_goal(transport: Arc<dyn TransportCost>) -> GenericResult<GoalContext> {
     // configure features needed to model CVRP
     let minimize_unassigned = MinimizeUnassignedBuilder::new("min-unassigned").build()?;
     let capacity_feature = CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").build()?;

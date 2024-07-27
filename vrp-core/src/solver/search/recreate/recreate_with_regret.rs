@@ -22,7 +22,7 @@ impl Recreate for RecreateWithRegret {
 
 impl RecreateWithRegret {
     /// Creates a new instance of `RecreateWithRegret`.
-    pub fn new(min: usize, max: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(min: usize, max: usize, random: Arc<dyn Random>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::<AllJobSelector>::default(),
@@ -58,7 +58,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
         job: &Job,
         routes: &[&RouteContext],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector + Send + Sync),
+        result_selector: &(dyn ResultSelector),
     ) -> InsertionResult {
         self.fallback_evaluator.evaluate_job(insertion_ctx, job, routes, leg_selection, result_selector)
     }
@@ -69,7 +69,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
         route_ctx: &RouteContext,
         jobs: &[&Job],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector + Send + Sync),
+        result_selector: &(dyn ResultSelector),
     ) -> InsertionResult {
         self.fallback_evaluator.evaluate_route(insertion_ctx, route_ctx, jobs, leg_selection, result_selector)
     }
@@ -80,7 +80,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
         jobs: &[&Job],
         routes: &[&RouteContext],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector + Send + Sync),
+        result_selector: &(dyn ResultSelector),
     ) -> InsertionResult {
         let regret_index = insertion_ctx.environment.random.uniform_int(self.min as i32, self.max as i32) as usize;
 

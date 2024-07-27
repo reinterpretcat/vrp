@@ -49,7 +49,7 @@ impl FeatureConstraint for HardwareConstraint {
 }
 
 /// Specifies a CVRP problem variant: 4 delivery jobs with demand=1 and 2 vehicles with capacity=2 in each.
-fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult<Problem> {
+fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost>) -> GenericResult<Problem> {
     // create 4 jobs when second and forth have fridge requirement
     let single_jobs = (1..=4)
         .map(|idx| {
@@ -99,7 +99,7 @@ fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost + Send + S
 }
 
 /// Defines CVRP variant with a custom constraint as a goal of optimization.
-fn define_goal(transport: Arc<dyn TransportCost + Send + Sync>) -> GenericResult<GoalContext> {
+fn define_goal(transport: Arc<dyn TransportCost>) -> GenericResult<GoalContext> {
     let minimize_unassigned = MinimizeUnassignedBuilder::new("min-unassigned").build()?;
     let capacity_feature = CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").build()?;
     let transport_feature = TransportFeatureBuilder::new("min-distance")

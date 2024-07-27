@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 /// On each insertion step, selects a list of routes where jobs can be inserted.
 /// It is up to implementation to decide whether list consists of all possible routes or just some subset.
-pub trait RouteSelector {
+pub trait RouteSelector: Send + Sync {
     /// This method is called before select. It allows to apply some changes on mutable context
     /// before immutable borrowing could happen within select method.
     /// Default implementation simply shuffles existing routes.
@@ -46,7 +46,7 @@ impl RouteSelector for AllRouteSelector {
 
 /// On each insertion step, selects a list of jobs to be inserted.
 /// It is up to implementation to decide whether list consists of all jobs or just some subset.
-pub trait JobSelector {
+pub trait JobSelector: Send + Sync {
     /// This method is called before select. It allows to apply some changes on mutable context
     /// before immutable borrowing could happen within select method.
     /// Default implementation simply shuffles jobs in required collection.
@@ -67,7 +67,7 @@ pub struct AllJobSelector {}
 impl JobSelector for AllJobSelector {}
 
 /// Evaluates insertion.
-pub trait InsertionEvaluator {
+pub trait InsertionEvaluator: Send + Sync {
     /// Evaluates insertion of a single job into given collection of routes.
     fn evaluate_job(
         &self,
@@ -75,7 +75,7 @@ pub trait InsertionEvaluator {
         job: &Job,
         routes: &[&RouteContext],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector + Send + Sync),
+        result_selector: &(dyn ResultSelector),
     ) -> InsertionResult;
 
     /// Evaluates insertion of multiple jobs into given route.
@@ -85,7 +85,7 @@ pub trait InsertionEvaluator {
         route_ctx: &RouteContext,
         jobs: &[&Job],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector + Send + Sync),
+        result_selector: &(dyn ResultSelector),
     ) -> InsertionResult;
 
     /// Evaluates insertion of a job collection into given collection of routes.
@@ -95,7 +95,7 @@ pub trait InsertionEvaluator {
         jobs: &[&Job],
         routes: &[&RouteContext],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector + Send + Sync),
+        result_selector: &(dyn ResultSelector),
     ) -> InsertionResult;
 }
 
@@ -123,7 +123,7 @@ impl PositionInsertionEvaluator {
         jobs: &[&Job],
         routes: &[&RouteContext],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector + Send + Sync),
+        result_selector: &(dyn ResultSelector),
     ) -> Vec<InsertionResult> {
         if Self::is_fold_jobs(insertion_ctx) {
             parallel_collect(jobs, |job| self.evaluate_job(insertion_ctx, job, routes, leg_selection, result_selector))
@@ -146,7 +146,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         job: &Job,
         routes: &[&RouteContext],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector + Send + Sync),
+        result_selector: &(dyn ResultSelector),
     ) -> InsertionResult {
         let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
 
@@ -161,7 +161,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         route_ctx: &RouteContext,
         jobs: &[&Job],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector + Send + Sync),
+        result_selector: &(dyn ResultSelector),
     ) -> InsertionResult {
         jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
             let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
@@ -175,7 +175,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         jobs: &[&Job],
         routes: &[&RouteContext],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector + Send + Sync),
+        result_selector: &(dyn ResultSelector),
     ) -> InsertionResult {
         if Self::is_fold_jobs(insertion_ctx) {
             map_reduce(
@@ -196,7 +196,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
 }
 
 /// Insertion result selector.
-pub trait ResultSelector {
+pub trait ResultSelector: Send + Sync {
     /// Selects one insertion result from two to promote as best.
     fn select_insertion(
         &self,
@@ -318,18 +318,18 @@ impl ResultSelector for FarthestResultSelector {
 /// A result selector strategy inspired by "Slack Induction by String Removals for Vehicle
 /// Routing Problems", Jan Christiaens, Greet Vanden Berghe.
 pub struct BlinkResultSelector {
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
     ratio: f64,
 }
 
 impl BlinkResultSelector {
     /// Creates an instance of `BlinkResultSelector`.
-    pub fn new(ratio: f64, random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new(ratio: f64, random: Arc<dyn Random>) -> Self {
         Self { random, ratio }
     }
 
     /// Creates an instance of `BlinkResultSelector` with default values.
-    pub fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new_with_defaults(random: Arc<dyn Random>) -> Self {
         Self::new(0.01, random)
     }
 }
@@ -371,19 +371,19 @@ pub enum ResultSelection {
     Stochastic(ResultSelectorProvider),
 
     /// Returns concrete instance of result selector to be used.
-    Concrete(Box<dyn ResultSelector + Send + Sync>),
+    Concrete(Box<dyn ResultSelector>),
 }
 
 /// Provides way to access one of built-in result selectors non-deterministically.
 pub struct ResultSelectorProvider {
-    inners: Vec<Box<dyn ResultSelector + Send + Sync>>,
+    inners: Vec<Box<dyn ResultSelector>>,
     weights: Vec<usize>,
-    random: Arc<dyn Random + Send + Sync>,
+    random: Arc<dyn Random>,
 }
 
 impl ResultSelectorProvider {
     /// Creates a new instance of `StochasticResultSelectorFn`
-    pub fn new_default(random: Arc<dyn Random + Send + Sync>) -> Self {
+    pub fn new_default(random: Arc<dyn Random>) -> Self {
         Self {
             inners: vec![
                 Box::<BestResultSelector>::default(),
@@ -397,7 +397,7 @@ impl ResultSelectorProvider {
     }
 
     /// Returns random result selector from the list.
-    pub fn pick(&self) -> &(dyn ResultSelector + Send + Sync) {
+    pub fn pick(&self) -> &(dyn ResultSelector) {
         self.inners[self.random.weighted(self.weights.as_slice())].as_ref()
     }
 }
@@ -406,7 +406,7 @@ impl ResultSelectorProvider {
 #[derive(Clone)]
 pub enum LegSelection {
     /// Stochastic mode: depending on route size, not all legs could be selected.
-    Stochastic(Arc<dyn Random + Send + Sync>),
+    Stochastic(Arc<dyn Random>),
     /// Exhaustive mode: all legs are selected.
     Exhaustive,
 }
@@ -447,12 +447,7 @@ impl LegSelection {
     }
 
     /// Returns a sample data for stochastic mode.
-    fn get_sample_data(
-        &self,
-        route_ctx: &RouteContext,
-        job: &Job,
-        skip: usize,
-    ) -> Option<(usize, Arc<dyn Random + Send + Sync>)> {
+    fn get_sample_data(&self, route_ctx: &RouteContext, job: &Job, skip: usize) -> Option<(usize, Arc<dyn Random>)> {
         match self {
             Self::Stochastic(random) => {
                 let gen_usize = |min: i32, max: i32| random.uniform_int(min, max) as usize;

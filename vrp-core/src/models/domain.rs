@@ -23,10 +23,10 @@ pub struct Problem {
     pub goal: Arc<GoalContext>,
 
     /// Specifies activity costs.
-    pub activity: Arc<dyn ActivityCost + Send + Sync>,
+    pub activity: Arc<dyn ActivityCost>,
 
     /// Specifies transport costs.
-    pub transport: Arc<dyn TransportCost + Send + Sync>,
+    pub transport: Arc<dyn TransportCost>,
 
     /// Specifies index for storing extra parameters of arbitrary type.
     pub extras: Arc<Extras>,
@@ -131,8 +131,8 @@ pub struct ProblemBuilder {
     #[allow(clippy::type_complexity)]
     group_key_fn: Option<Box<dyn Fn(&[Arc<Actor>]) -> Box<FleetGroupKeyFn>>>,
     goal: Option<Arc<GoalContext>>,
-    activity: Option<Arc<dyn ActivityCost + Send + Sync>>,
-    transport: Option<Arc<dyn TransportCost + Send + Sync>>,
+    activity: Option<Arc<dyn ActivityCost>>,
+    transport: Option<Arc<dyn TransportCost>>,
     extras: Option<Arc<Extras>>,
 }
 
@@ -184,14 +184,14 @@ impl ProblemBuilder {
     /// Adds a transport distance/duration estimation logic. A typical implementation will normally
     /// wrap routing distance/duration matrices.
     /// A required field.
-    pub fn with_transport_cost(mut self, transport: Arc<dyn TransportCost + Send + Sync>) -> Self {
+    pub fn with_transport_cost(mut self, transport: Arc<dyn TransportCost>) -> Self {
         self.transport = Some(transport);
         self
     }
 
     /// Adds an activity service time estimation logic.
     /// An optional field: [SimpleActivityCost] will be used by default.
-    pub fn with_activity_cost(mut self, activity: Arc<dyn ActivityCost + Send + Sync>) -> Self {
+    pub fn with_activity_cost(mut self, activity: Arc<dyn ActivityCost>) -> Self {
         self.activity = Some(activity);
         self
     }

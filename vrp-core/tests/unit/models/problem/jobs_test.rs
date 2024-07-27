@@ -78,7 +78,7 @@ impl TransportCost for FixedTransportCost {
 }
 
 impl FixedTransportCost {
-    pub fn new_shared(duration_cost: f64, distance_cost: f64) -> Arc<dyn TransportCost + Send + Sync> {
+    pub fn new_shared(duration_cost: f64, distance_cost: f64) -> Arc<dyn TransportCost> {
         Arc::new(Self { duration_cost, distance_cost })
     }
 }
@@ -240,7 +240,7 @@ can_handle_negative_distances_durations! {
     case04: (-1., 0.),
 }
 
-fn can_handle_negative_distances_durations_impl(transport_costs: Arc<dyn TransportCost + Send + Sync>) {
+fn can_handle_negative_distances_durations_impl(transport_costs: Arc<dyn TransportCost>) {
     let profile = Profile::default();
     let species = vec![
         TestSingleBuilder::default().id("s0").location(Some(0)).build_as_job_ref(),

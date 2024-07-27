@@ -112,7 +112,7 @@ pub struct Multi {
     /// Dimensions which contains extra work requirements.
     pub dimens: Dimensions,
     /// Permutation generator.
-    permutator: Box<dyn JobPermutation + Send + Sync>,
+    permutator: Box<dyn JobPermutation>,
 }
 
 impl Debug for Multi {
@@ -126,7 +126,7 @@ impl Debug for Multi {
 
 /// Defines a trait to work with multi job's permutations. Essentially, it specifies valid combinations
 /// of sub-jobs inside multi-job.
-pub trait JobPermutation {
+pub trait JobPermutation: Send + Sync {
     // TODO fix all implementations to support returning reference
     /// Returns a valid permutation.
     fn get(&self) -> Vec<Vec<usize>>;
@@ -171,7 +171,7 @@ impl Multi {
     pub fn new_shared_with_permutator(
         jobs: Vec<Arc<Single>>,
         dimens: Dimensions,
-        permutator: Box<dyn JobPermutation + Send + Sync>,
+        permutator: Box<dyn JobPermutation>,
     ) -> Arc<Self> {
         Self::bind(Self { jobs, dimens, permutator })
     }
@@ -236,7 +236,7 @@ pub struct Jobs {
 
 impl Jobs {
     /// Creates a new [`Jobs`].
-    pub fn new(fleet: &Fleet, jobs: Vec<Job>, transport: &(dyn TransportCost + Send + Sync)) -> Jobs {
+    pub fn new(fleet: &Fleet, jobs: Vec<Job>, transport: &(dyn TransportCost)) -> Jobs {
         Jobs { jobs: jobs.clone(), index: create_index(fleet, jobs, transport) }
     }
 
@@ -302,11 +302,7 @@ pub fn get_job_locations(job: &Job) -> impl Iterator<Item = Option<Location>> + 
 }
 
 /// Creates job index.
-fn create_index(
-    fleet: &Fleet,
-    jobs: Vec<Job>,
-    transport: &(dyn TransportCost + Send + Sync),
-) -> HashMap<usize, JobIndex> {
+fn create_index(fleet: &Fleet, jobs: Vec<Job>, transport: &(dyn TransportCost)) -> HashMap<usize, JobIndex> {
     let avg_profile_costs = get_avg_profile_costs(fleet);
 
     fleet.profiles.iter().fold(HashMap::new(), |mut acc, profile| {
@@ -351,7 +347,7 @@ fn create_index(
 fn get_cost_between_locations(
     profile: &Profile,
     costs: &Costs,
-    transport: &(dyn TransportCost + Send + Sync),
+    transport: &(dyn TransportCost),
     from: Location,
     to: Location,
 ) -> LowPrecisionCost {
@@ -370,7 +366,7 @@ fn get_cost_between_locations(
 fn get_cost_between_job_and_location(
     profile: &Profile,
     costs: &Costs,
-    transport: &(dyn TransportCost + Send + Sync),
+    transport: &(dyn TransportCost),
     job: &Job,
     to: Location,
 ) -> LowPrecisionCost {
@@ -385,7 +381,7 @@ fn get_cost_between_job_and_location(
 fn get_cost_between_jobs(
     profile: &Profile,
     costs: &Costs,
-    transport: &(dyn TransportCost + Send + Sync),
+    transport: &(dyn TransportCost),
     lhs: &Job,
     rhs: &Job,
 ) -> LowPrecisionCost {

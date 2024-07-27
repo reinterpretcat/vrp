@@ -441,7 +441,7 @@ impl HeuristicObjective for GoalContext {
 }
 
 impl Shuffled for GoalContext {
-    fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
+    fn get_shuffled(&self, random: &(dyn Random)) -> Self {
         const RANDOM_ALTERNATIVE_PROBABILITY: f64 = 0.05;
         const RANDOM_SHUFFLE_PROBABILITY: f64 = 0.001;
 
@@ -465,7 +465,7 @@ impl GoalContext {
         Self { goal, ..self.clone() }
     }
 
-    fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
+    fn get_shuffled(&self, random: &(dyn Random)) -> Self {
         let instance = self.clone();
 
         let mut layers = self.goal.layers.clone();

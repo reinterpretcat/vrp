@@ -3,7 +3,7 @@ use rosomaxa::utils::*;
 use std::sync::Arc;
 
 struct CompositeTimeQuota {
-    inner: Arc<dyn Quota + Send + Sync>,
+    inner: Arc<dyn Quota>,
     limit: usize,
     timer: Timer,
 }

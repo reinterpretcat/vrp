@@ -96,7 +96,7 @@ pub(crate) fn get_clusters(
 /// Gets jobs dissimilarities.
 pub(crate) fn get_jobs_dissimilarities(
     jobs: &[Job],
-    transport: &(dyn TransportCost + Send + Sync),
+    transport: &(dyn TransportCost),
     config: &ClusterConfig,
 ) -> HashMap<Job, DissimilarityIndex> {
     jobs.iter()
@@ -121,7 +121,7 @@ pub(crate) fn get_jobs_dissimilarities(
 fn get_dissimilarities(
     outer: &Job,
     inner: &Job,
-    transport: &(dyn TransportCost + Send + Sync),
+    transport: &(dyn TransportCost),
     config: &ClusterConfig,
 ) -> Vec<DissimilarityInfo> {
     let min_shared_time = config.threshold.min_shared_time.unwrap_or(0.);

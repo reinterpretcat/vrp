@@ -17,10 +17,10 @@ pub trait Quota: Send + Sync {
 #[derive(Clone)]
 pub struct Environment {
     /// A wrapper on random generator.
-    pub random: Arc<dyn Random + Send + Sync>,
+    pub random: Arc<dyn Random>,
 
     /// A global execution quota.
-    pub quota: Option<Arc<dyn Quota + Send + Sync>>,
+    pub quota: Option<Arc<dyn Quota>>,
 
     /// Keeps data parallelism settings.
     pub parallelism: Parallelism,
@@ -36,15 +36,15 @@ impl Environment {
     /// Creates an instance of `Environment` using optional time quota and defaults.
     pub fn new_with_time_quota(max_time: Option<usize>) -> Self {
         Self {
-            quota: max_time.map::<Arc<dyn Quota + Send + Sync>, _>(|time| Arc::new(TimeQuota::new(time as f64))),
+            quota: max_time.map::<Arc<dyn Quota>, _>(|time| Arc::new(TimeQuota::new(time as f64))),
             ..Self::default()
         }
     }
 
     /// Creates an instance of `Environment`.
     pub fn new(
-        random: Arc<dyn Random + Send + Sync>,
-        quota: Option<Arc<dyn Quota + Send + Sync>>,
+        random: Arc<dyn Random>,
+        quota: Option<Arc<dyn Quota>>,
         parallelism: Parallelism,
         logger: InfoLogger,
         is_experimental: bool,

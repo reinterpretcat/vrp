@@ -12,7 +12,7 @@ use std::iter::once;
 use std::sync::Arc;
 
 /// Specifies multi trip extension behavior.
-pub trait MultiTrip {
+pub trait MultiTrip: Send + Sync {
     /// Gets an actual route intervals.
     fn get_route_intervals(&self) -> &RouteIntervals;
 
@@ -40,7 +40,7 @@ pub fn create_multi_trip_feature(
     name: &str,
     violation_code: ViolationCode,
     policy: MarkerInsertionPolicy,
-    multi_trip: Arc<dyn MultiTrip + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip>,
 ) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
@@ -52,7 +52,7 @@ pub fn create_multi_trip_feature(
 struct MultiTripConstraint {
     code: ViolationCode,
     policy: MarkerInsertionPolicy,
-    multi_trip: Arc<dyn MultiTrip + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip>,
 }
 
 impl FeatureConstraint for MultiTripConstraint {
@@ -103,19 +103,19 @@ impl FeatureConstraint for MultiTripConstraint {
 }
 
 impl MultiTripConstraint {
-    fn new(code: ViolationCode, policy: MarkerInsertionPolicy, multi_trip: Arc<dyn MultiTrip + Send + Sync>) -> Self {
+    fn new(code: ViolationCode, policy: MarkerInsertionPolicy, multi_trip: Arc<dyn MultiTrip>) -> Self {
         Self { code, policy, multi_trip }
     }
 }
 
 struct MultiTripState {
-    multi_trip: Arc<dyn MultiTrip + Send + Sync>,
-    context_transition: Box<dyn JobContextTransition + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip>,
+    context_transition: Box<dyn JobContextTransition>,
     code: ViolationCode,
 }
 
 impl MultiTripState {
-    pub fn new(code: ViolationCode, multi_trip: Arc<dyn MultiTrip + Send + Sync>) -> Self {
+    pub fn new(code: ViolationCode, multi_trip: Arc<dyn MultiTrip>) -> Self {
         let context_transition = Box::new(ConcreteJobContextTransition {
             remove_required: {
                 let multi_trip = multi_trip.clone();

@@ -17,8 +17,8 @@ use crate::models::solution::Activity;
 /// Provides a way to build different flavors of time window feature.
 pub struct TransportFeatureBuilder {
     name: String,
-    transport: Option<Arc<dyn TransportCost + Send + Sync>>,
-    activity: Option<Arc<dyn ActivityCost + Send + Sync>>,
+    transport: Option<Arc<dyn TransportCost>>,
+    activity: Option<Arc<dyn ActivityCost>>,
     code: Option<ViolationCode>,
     is_constrained: bool,
 }
@@ -44,14 +44,14 @@ impl TransportFeatureBuilder {
     }
 
     /// Sets transport costs to estimate distance.
-    pub fn set_transport_cost(mut self, transport: Arc<dyn TransportCost + Send + Sync>) -> Self {
+    pub fn set_transport_cost(mut self, transport: Arc<dyn TransportCost>) -> Self {
         self.transport = Some(transport);
         self
     }
 
     /// Sets activity costs to estimate job start/end time.
     /// If omitted, then [SimpleActivityCost] is used by default.
-    pub fn set_activity_cost(mut self, activity: Arc<dyn ActivityCost + Send + Sync>) -> Self {
+    pub fn set_activity_cost(mut self, activity: Arc<dyn ActivityCost>) -> Self {
         self.activity = Some(activity);
         self
     }
@@ -117,9 +117,7 @@ impl TransportFeatureBuilder {
         )
     }
 
-    fn get_costs(
-        &mut self,
-    ) -> GenericResult<(Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>)> {
+    fn get_costs(&mut self) -> GenericResult<(Arc<dyn TransportCost>, Arc<dyn ActivityCost>)> {
         let transport = self.transport.take().ok_or_else(|| GenericError::from("transport must be set"))?;
         let activity = self.activity.take().unwrap_or_else(|| Arc::new(SimpleActivityCost::default()));
 
@@ -129,8 +127,8 @@ impl TransportFeatureBuilder {
 
 fn create_feature(
     name: &str,
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
+    activity: Arc<dyn ActivityCost>,
     time_window_code: ViolationCode,
     is_constrained: bool,
     fitness_fn: Box<dyn Fn(&InsertionContext) -> f64 + Send + Sync>,
@@ -154,8 +152,8 @@ fn create_feature(
 }
 
 struct TransportConstraint {
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
+    activity: Arc<dyn ActivityCost>,
     time_window_code: ViolationCode,
 }
 
@@ -281,8 +279,8 @@ impl FeatureConstraint for TransportConstraint {
 }
 
 struct TransportObjective {
-    activity: Arc<dyn ActivityCost + Send + Sync>,
-    transport: Arc<dyn TransportCost + Send + Sync>,
+    activity: Arc<dyn ActivityCost>,
+    transport: Arc<dyn TransportCost>,
     fitness_fn: Box<dyn Fn(&InsertionContext) -> f64 + Send + Sync>,
 }
 
@@ -365,12 +363,12 @@ impl FeatureObjective for TransportObjective {
 }
 
 struct TransportState {
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
+    transport: Arc<dyn TransportCost>,
+    activity: Arc<dyn ActivityCost>,
 }
 
 impl TransportState {
-    fn new(transport: Arc<dyn TransportCost + Send + Sync>, activity: Arc<dyn ActivityCost + Send + Sync>) -> Self {
+    fn new(transport: Arc<dyn TransportCost>, activity: Arc<dyn ActivityCost>) -> Self {
         Self { transport, activity }
     }
 }
