@@ -21,7 +21,7 @@ pub struct JobRemovalTracker {
 
 impl JobRemovalTracker {
     /// Creates a new instance of `JobRemoval`.
-    pub fn new(limits: &RemovalLimits, random: &(dyn Random)) -> Self {
+    pub fn new(limits: &RemovalLimits, random: &dyn Random) -> Self {
         Self {
             activities_left: random
                 .uniform_int(limits.removed_activities_range.start as i32, limits.removed_activities_range.end as i32),

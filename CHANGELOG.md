@@ -11,6 +11,7 @@ are already published. So, I stick to it for now.
 ### Changed
 
 * update rust version
+* apply some minor code refactorings
 
 
 ## [1.24.0] 2024-07-13

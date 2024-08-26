@@ -110,7 +110,7 @@ fn can_handle_assignable_job_impl(code: UnassignmentInfo) {
     let (actual_job, actual_code) = insertion_ctx.solution.unassigned.into_iter().next().unwrap();
 
     let (expected_job, expected_code) = expected;
-    assert!(actual_job == expected_job);
+    assert_eq!(actual_job, expected_job);
     match (actual_code, expected_code) {
         (UnassignmentInfo::Unknown, UnassignmentInfo::Unknown) => {}
         (UnassignmentInfo::Simple(actual_code), UnassignmentInfo::Simple(expected_code)) => {

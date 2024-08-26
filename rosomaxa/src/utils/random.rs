@@ -50,19 +50,29 @@ impl DefaultDistributionSampler {
     pub fn new(random: Arc<dyn Random>) -> Self {
         Self(random)
     }
+
+    /// Returns a sample from gamma distribution.
+    pub fn sample_gamma(shape: f64, scale: f64, random: &dyn Random) -> f64 {
+        Gamma::new(shape, scale)
+            .unwrap_or_else(|_| panic!("cannot create gamma dist: shape={shape}, scale={scale}"))
+            .sample(&mut random.get_rng())
+    }
+
+    /// Returns a sample from normal distribution.
+    pub fn sample_normal(mean: f64, std_dev: f64, random: &dyn Random) -> f64 {
+        Normal::new(mean, std_dev)
+            .unwrap_or_else(|_| panic!("cannot create normal dist: mean={mean}, std_dev={std_dev}"))
+            .sample(&mut random.get_rng())
+    }
 }
 
 impl DistributionSampler for DefaultDistributionSampler {
     fn gamma(&self, shape: f64, scale: f64) -> f64 {
-        Gamma::new(shape, scale)
-            .unwrap_or_else(|_| panic!("cannot create gamma dist: shape={shape}, scale={scale}"))
-            .sample(&mut self.0.get_rng())
+        Self::sample_gamma(shape, scale, self.0.as_ref())
     }
 
     fn normal(&self, mean: f64, std_dev: f64) -> f64 {
-        Normal::new(mean, std_dev)
-            .unwrap_or_else(|_| panic!("cannot create normal dist: mean={mean}, std_dev={std_dev}"))
-            .sample(&mut self.0.get_rng())
+        Self::sample_normal(mean, std_dev, self.0.as_ref())
     }
 }
 

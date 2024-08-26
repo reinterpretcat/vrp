@@ -401,7 +401,7 @@ fn can_build_job_cluster_impl(
             let expected_jobs = expected_indices.into_iter().map(|idx| jobs.get(idx).unwrap()).collect::<Vec<_>>();
             assert_eq!(result_clustered_jobs.len(), expected_jobs.len());
             result_clustered_jobs.iter().zip(expected_jobs.iter()).for_each(|(a, &b)| {
-                assert!(a == b);
+                assert_eq!(a, b);
             });
         }
         (Some(_), None) => unreachable!("unexpected some result"),
@@ -466,7 +466,7 @@ pub fn can_get_clusters_impl(
             result_clustered.sort_by(|a, b| get_job_id(a).cmp(get_job_id(b)));
             expected_clustered.sort_by(|a, b| get_job_id(a).cmp(get_job_id(b)));
             result_clustered.iter().zip(expected_clustered.iter()).for_each(|(a, &b)| {
-                assert!(a == b);
+                assert_eq!(a, b);
             });
         },
     );

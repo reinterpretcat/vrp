@@ -109,7 +109,7 @@ fn can_try_remove_job_with_job_limit_impl(
     if expected_removed_activities > 0 {
         assert!(result);
         assert_eq!(solution_ctx.required.len(), 1);
-        assert!(solution_ctx.required[0] == job);
+        assert_eq!(solution_ctx.required[0], job);
         assert_eq!(solution_ctx.routes[0].route().tour.job_activity_count(), activities - expected_removed_activities);
         assert_eq!(removal.activities_left, (ruined_activities - expected_removed_activities) as i32);
         assert!(removal.removed_jobs.contains(&job));
