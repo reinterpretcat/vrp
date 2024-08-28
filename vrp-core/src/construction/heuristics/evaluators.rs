@@ -7,6 +7,7 @@ use std::ops::ControlFlow;
 use std::sync::Arc;
 
 use crate::construction::heuristics::*;
+use crate::models::common::Timestamp;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Leg, Place};
 use crate::models::{ConstraintViolation, GoalContext, ViolationCode};
@@ -140,10 +141,10 @@ fn eval_single(
     );
 
     let job = eval_ctx.job.clone();
-    if result.is_success() {
-        activity.place = result.place.unwrap();
+    if let Some(place) = result.place {
+        activity.place = place;
         let activities = vec![(activity, result.index)];
-        InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx)
+        InsertionResult::make_success(result.cost.unwrap_or_default(), job, activities, route_ctx)
     } else {
         let (code, stopped) = result.violation.map_or((ViolationCode::unknown(), false), |v| (v.code, v.stopped));
         InsertionResult::make_failure_with_code(code, stopped, Some(job))
@@ -191,12 +192,12 @@ fn eval_multi(
                                 SingleContext::new(None, in1.next_index),
                             );
 
-                            if srv_res.is_success() {
-                                activity.place = srv_res.place.unwrap();
+                            if let Some(place) = srv_res.place {
+                                activity.place = place;
                                 let activity = shadow.insert(activity, srv_res.index);
                                 let activities = concat_activities(in1.activities, (activity, srv_res.index));
                                 return MultiContext::success(
-                                    in1.cost.unwrap_or_else(|| route_costs.clone()) + srv_res.cost.unwrap(),
+                                    in1.cost.unwrap_or_else(|| route_costs.clone()) + srv_res.cost.unwrap_or_default(),
                                     activities,
                                 );
                             }
@@ -215,8 +216,8 @@ fn eval_multi(
 
     let job = eval_ctx.job.clone();
     if result.is_success() {
-        let activities = result.activities.unwrap();
-        InsertionResult::make_success(result.cost.unwrap(), job, activities, route_ctx)
+        let activities = result.activities.unwrap_or_default();
+        InsertionResult::make_success(result.cost.unwrap_or_default(), job, activities, route_ctx)
     } else {
         let (code, stopped) = result.violation.map_or((ViolationCode::unknown(), false), |v| (v.code, v.stopped));
         InsertionResult::make_failure_with_code(code, stopped, Some(job))
@@ -276,9 +277,9 @@ fn analyze_insertion_in_route_leg(
     let (prev, next) = match items {
         [prev] => (prev, None),
         [prev, next] => (prev, Some(next)),
-        _ => panic!("Unexpected route leg configuration."),
+        _ => return ControlFlow::Break(init),
     };
-    let start_time = route_ctx.route().tour.start().unwrap().schedule.departure;
+    let start_time = route_ctx.route().tour.start().map_or(Timestamp::default(), |act| act.schedule.departure);
     // analyze service details
     single.places.iter().enumerate().try_fold(init, |acc, (idx, detail)| {
         // analyze detail time windows
@@ -354,10 +355,6 @@ impl SingleContext {
     fn skip(other: SingleContext) -> ControlFlow<Self, Self> {
         ControlFlow::Continue(other)
     }
-
-    fn is_success(&self) -> bool {
-        self.place.is_some()
-    }
 }
 
 /// Stores information needed for multi job insertion.
@@ -419,6 +416,7 @@ impl MultiContext {
     }
 
     /// Creates failed insertion context within reason code.
+    #[inline]
     fn fail(err_ctx: SingleContext, other_ctx: MultiContext) -> ControlFlow<Self, Self> {
         let (code, stopped) = err_ctx
             .violation
@@ -434,18 +432,23 @@ impl MultiContext {
     }
 
     /// Creates successful insertion context.
-    #[allow(clippy::unnecessary_wraps)]
+    #[inline]
     fn success(cost: InsertionCost, activities: Vec<(Activity, usize)>) -> ControlFlow<Self, Self> {
+        // NOTE avoid stack unwinding
+        let start_index = activities.first().map_or(0, |act| act.1);
+        let next_index = activities.last().map_or(0, |act| act.1) + 1;
+
         ControlFlow::Continue(Self {
             violation: None,
-            start_index: activities.first().unwrap().1,
-            next_index: activities.last().unwrap().1 + 1,
+            start_index,
+            next_index,
             cost: Some(cost),
             activities: Some(activities),
         })
     }
 
     /// Creates next insertion context from existing one.
+    #[inline]
     fn next(&self) -> Self {
         Self {
             violation: None,
@@ -457,11 +460,13 @@ impl MultiContext {
     }
 
     /// Checks whether insertion is found.
+    #[inline]
     fn is_success(&self) -> bool {
         self.violation.is_none() && self.cost.is_some() && self.activities.is_some()
     }
 
     /// Checks whether insertion is failed.
+    #[inline]
     fn is_failure(&self, index: usize) -> bool {
         self.violation.as_ref().map_or(false, |v| v.stopped) || (self.start_index > index)
     }
