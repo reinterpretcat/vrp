@@ -16,7 +16,7 @@ edition.workspace = true
 vrp-pragmatic.workspace = true
 
 [dev-dependencies]
-criterion = "0.5.1"
+criterion.workspace = true
 
 [[bench]]
 name = "general_benchmark"

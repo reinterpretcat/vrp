@@ -14,3 +14,10 @@ edition.workspace = true
 [dependencies]
 vrp-core.workspace = true
 paste.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+name = "solomon_goal"
+harness = false

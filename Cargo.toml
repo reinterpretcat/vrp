@@ -39,6 +39,9 @@ rayon = "1.10.0"
 rustc-hash = "2.0.0"
 paste = "1.0.15"
 
+# dev dependencies
+criterion = "0.5.1"
+
 [profile.release]
 lto = "fat"       # enables "fat" LTO, for faster release builds
 codegen-units = 1 # makes sure that all code is compiled together, for LTO
