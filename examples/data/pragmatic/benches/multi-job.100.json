@@ -5441,26 +5441,25 @@
     ]
   },
   "objectives": [
-    [
-      {
-        "type": "minimize-unassigned"
-      }
-    ],
-    [
-      {
-        "type": "minimize-tours"
-      }
-    ],
-    [
-      {
-        "type": "minimize-cost"
+    {
+      "type": "minimize-unassigned"
+    },
+    {
+      "type": "minimize-tours"
+    },
+    {
+      "type": "multi-objective",
+      "strategy": {
+        "name": "sum"
       },
-      {
-        "type": "balance-distance",
-        "options": {
-          "threshold": 0.1
+      "objectives": [
+        {
+          "type": "minimize-cost"
+        },
+        {
+          "type": "balance-distance"
         }
-      }
-    ]
+      ]
+    }
   ]
 }
