@@ -1,26 +1,12 @@
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::construction::heuristics::*;
-use vrp_core::models::problem::JobIdDimension;
 use vrp_core::models::Problem;
 use vrp_core::rosomaxa::evolution::TelemetryMode;
 use vrp_core::solver::create_elitism_population;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::RefinementContext;
 use vrp_core::utils::Environment;
-
-#[derive(Default)]
-struct StableJobSelector {}
-
-impl JobSelector for StableJobSelector {
-    fn prepare(&self, insertion_ctx: &mut InsertionContext) {
-        insertion_ctx
-            .solution
-            .required
-            .sort_by(|a, b| a.dimens().get_job_id().unwrap().cmp(b.dimens().get_job_id().unwrap()));
-    }
-}
 
 parameterized_test! {can_solve_problem_with_cheapest_insertion_heuristic, (problem, expected, cost), {
     can_solve_problem_with_cheapest_insertion_heuristic_impl(Arc::new(problem), expected, cost);

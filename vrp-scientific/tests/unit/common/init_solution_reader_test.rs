@@ -10,8 +10,9 @@ pub fn can_read_init_solution() {
     let file = get_test_resource("../../examples/data/scientific/solomon/C101.100.best.txt").unwrap();
 
     let solution = read_init_solution(BufReader::new(file), problem.clone(), environment.random.clone())
-        .expect("Cannot read initial solution");
+        .expect("cannot read initial solution");
     assert_eq!(solution.routes.len(), 10);
+    assert!(solution.unassigned.is_empty());
 
     let insertion_ctx = InsertionContext::new_from_solution(problem, (solution, None), environment);
     assert_eq!(insertion_ctx.get_total_cost().unwrap_or_default().round(), 828.936f64.round());

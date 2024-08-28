@@ -3,9 +3,10 @@
 mod init_solution_reader_test;
 
 use crate::common::read_line;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, Read};
 use std::sync::Arc;
+use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::{Activity, Registry, Route, Tour};
@@ -27,6 +28,8 @@ pub fn read_init_solution<R: Read>(
         unassigned: Default::default(),
         telemetry: None,
     };
+
+    let mut not_used_jobs = problem.jobs.all().collect::<HashSet<_>>();
 
     loop {
         match read_line(&mut reader, &mut buffer) {
@@ -60,6 +63,8 @@ pub fn read_init_solution<R: Read>(
                         job: Some(single.clone()),
                         commute: None,
                     });
+
+                    not_used_jobs.remove(&Job::Single(single.clone()));
                 });
 
                 solution.registry.use_actor(&actor);
@@ -75,6 +80,8 @@ pub fn read_init_solution<R: Read>(
             }
         }
     }
+
+    solution.unassigned = not_used_jobs.into_iter().map(|job| (job, UnassignmentInfo::Unknown)).collect();
 
     Ok(solution)
 }
