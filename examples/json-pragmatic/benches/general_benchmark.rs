@@ -18,8 +18,7 @@ fn get_problem(problem_path: &str) -> Arc<Problem> {
     )
 }
 
-/// Runs solver with specific number of generations. It involves some non-determenism.
-fn solve_problem_with_max_generations(problem_path: &str, generations: usize) -> Solution {
+fn get_solver(problem_path: &str, generations: usize) -> Solver {
     let problem = get_problem(problem_path);
 
     VrpConfigBuilder::new(problem.clone())
@@ -30,63 +29,58 @@ fn solve_problem_with_max_generations(problem_path: &str, generations: usize) ->
         .build()
         .map(|config| Solver::new(problem, config))
         .expect("cannot build solver")
-        .solve()
-        .expect("cannot solver problem: {}")
 }
 
-/// Solve problem using cheapest insertion heuristic and returns one solution.
-fn solve_problem_with_init(problem_path: &str) {
+fn get_refinement_ctx(problem_path: &str) -> RefinementContext {
     let problem = get_problem(problem_path);
 
     let environment = Arc::new(Environment::default());
-    let refinement_ctx = RefinementContext::new(
+    RefinementContext::new(
         problem.clone(),
         Box::new(create_elitism_population(problem.goal.clone(), environment.clone())),
         TelemetryMode::None,
         environment.clone(),
-    );
+    )
+}
 
-    let _ = RecreateWithCheapest::new(environment.random.clone())
-        .run(&refinement_ctx, InsertionContext::new(problem.clone(), environment));
+/// Solve problem using cheapest insertion heuristic and returns one solution.
+fn solve_problem_with_recreate_cheapest(refinement_ctx: &RefinementContext) -> InsertionContext {
+    RecreateWithCheapest::new(refinement_ctx.environment.random.clone())
+        .run(&refinement_ctx, InsertionContext::new(refinement_ctx.problem.clone(), refinement_ctx.environment.clone()))
 }
 
 fn simple_deliveries_100_benchmark(c: &mut Criterion) {
     c.bench_function("a problem with 100 trivial deliveries", |b| {
-        b.iter(|| {
-            solve_problem_with_max_generations("../data/pragmatic/benches/simple.deliveries.100.json", black_box(100))
-        })
+        let solver = get_solver("../data/pragmatic/benches/simple.deliveries.100.json", 100);
+        b.iter(|| black_box(solver.solve().expect("cannot solve the problem")))
     });
 }
 
 fn simple_reload_100_benchmark(c: &mut Criterion) {
     c.bench_function("a problem with 100 trivial deliveries and one reload", |b| {
-        b.iter(|| {
-            solve_problem_with_max_generations("../data/pragmatic/benches/simple.reload.100.json", black_box(100))
-        })
+        let solver = get_solver("../data/pragmatic/benches/simple.reload.100.json", 100);
+        b.iter(|| black_box(solver.solve().expect("cannot solve the problem")))
     });
 }
 
 fn simple_multi_job_100_benchmark(c: &mut Criterion) {
     c.bench_function("a problem with 50 multi jobs", |b| {
-        b.iter(|| solve_problem_with_max_generations("../data/pragmatic/benches/multi-job.100.json", black_box(10)))
+        let solver = get_solver("../data/pragmatic/benches/multi-job.100.json", 100);
+        b.iter(|| black_box(solver.solve().expect("cannot solve the problem")))
     });
 }
 
 fn init_deliveries_100_benchmark(c: &mut Criterion) {
     c.bench_function("init solution for a problem with 100 trivial deliveries", |b| {
-        b.iter(|| {
-            solve_problem_with_init("../data/pragmatic/benches/simple.deliveries.100.json");
-            black_box(())
-        })
+        let insertion_ctx = get_refinement_ctx("../data/pragmatic/benches/simple.deliveries.100.json");
+        b.iter(|| black_box(solve_problem_with_recreate_cheapest(&insertion_ctx)))
     });
 }
 
 fn init_multi_job_100_benchmark(c: &mut Criterion) {
     c.bench_function("init solution for a problem with 50 multi jobs", |b| {
-        b.iter(|| {
-            solve_problem_with_init("../data/pragmatic/benches/multi-job.100.json");
-            black_box(())
-        })
+        let insertion_ctx = get_refinement_ctx("../data/pragmatic/benches/multi-job.100.json");
+        b.iter(|| black_box(solve_problem_with_recreate_cheapest(&insertion_ctx)))
     });
 }
 
