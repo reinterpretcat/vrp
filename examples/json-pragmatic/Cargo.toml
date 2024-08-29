@@ -14,10 +14,3 @@ edition.workspace = true
 
 [dependencies]
 vrp-pragmatic.workspace = true
-
-[dev-dependencies]
-criterion.workspace = true
-
-[[bench]]
-name = "general_benchmark"
-harness = false

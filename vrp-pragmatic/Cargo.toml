@@ -22,5 +22,11 @@ time = { version = "0.3.36", features = ["parsing", "formatting"] }
 paste = "1.0.15"
 
 [dev-dependencies]
+criterion.workspace = true
+
 proptest = "1.5.0"
 uuid = { version = "1.10.0", features = ["v4"] }
+
+[[bench]]
+name = "pragmatic_simple"
+harness = false
