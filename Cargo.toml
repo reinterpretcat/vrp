@@ -32,8 +32,8 @@ vrp-pragmatic = { path = "vrp-pragmatic", version = "1.24.0" }
 vrp-cli = { path = "vrp-cli", version = "1.24.0" }
 
 # external dependencies
-serde = { version = "1.0.204", features = ["derive"] }
-serde_json = "1.0.120"
+serde = { version = "1.0.209", features = ["derive"] }
+serde_json = "1.0.127"
 rand = { version = "0.8.5", features = ["small_rng"] }
 rayon = "1.10.0"
 rustc-hash = "2.0.0"
