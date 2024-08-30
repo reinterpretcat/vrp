@@ -2,6 +2,7 @@ use super::*;
 use crate::format::problem::Objective::*;
 use crate::helpers::create_empty_problem;
 use crate::helpers::*;
+use vrp_core::prelude::Float;
 
 #[test]
 fn can_fallback_to_default() {
@@ -125,7 +126,7 @@ can_detect_invalid_value_or_order! {
     case04: (None, Some(0), Some("E1605".to_string())),
 }
 
-fn can_detect_invalid_value_or_order_impl(value: Option<f64>, order: Option<i32>, expected: Option<String>) {
+fn can_detect_invalid_value_or_order_impl(value: Option<Float>, order: Option<i32>, expected: Option<String>) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![Job {

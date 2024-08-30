@@ -60,16 +60,15 @@ pub mod utils;
 use crate::algorithms::math::RemedianUsize;
 use crate::evolution::{Telemetry, TelemetryMetrics, TelemetryMode};
 use crate::population::*;
-use crate::prelude::HeuristicObjective;
+use crate::prelude::*;
 use crate::utils::Timer;
-use crate::utils::{Environment, GenericError};
 use std::hash::Hash;
 use std::sync::Arc;
 
 /// Represents solution in population defined as actual solution.
 pub trait HeuristicSolution: Send + Sync {
     /// Get fitness values of a given solution.
-    fn fitness(&self) -> impl Iterator<Item = f64>;
+    fn fitness(&self) -> impl Iterator<Item = Float>;
     /// Creates a deep copy of the solution.
     fn deep_copy(&self) -> Self;
 }
@@ -108,7 +107,7 @@ pub trait HeuristicContext: Send + Sync {
     fn on_initial(&mut self, solution: Self::Solution, item_time: Timer);
 
     /// Updates population with a new offspring.
-    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: f64, generation_time: Timer);
+    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer);
 
     /// Returns final population and telemetry metrics
     fn on_result(self) -> HeuristicResult<Self::Objective, Self::Solution>;
@@ -127,13 +126,13 @@ pub struct HeuristicStatistics {
     pub speed: HeuristicSpeed,
 
     /// An improvement ratio from beginning.
-    pub improvement_all_ratio: f64,
+    pub improvement_all_ratio: Float,
 
     /// An improvement ratio over last 1000 iterations.
-    pub improvement_1000_ratio: f64,
+    pub improvement_1000_ratio: Float,
 
     /// A progress till algorithm's termination.
-    pub termination_estimate: f64,
+    pub termination_estimate: Float,
 }
 
 impl Default for HeuristicStatistics {
@@ -220,7 +219,7 @@ where
         self.population.add(solution);
     }
 
-    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: f64, generation_time: Timer) {
+    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer) {
         let is_improved = self.population.add_all(offspring);
         self.telemetry.on_generation(self.population.as_ref(), termination_estimate, generation_time, is_improved);
         self.population.on_generation(self.telemetry.get_statistics());
@@ -244,9 +243,9 @@ pub enum HeuristicSpeed {
     /// Slow speed.
     Slow {
         /// Ratio.
-        ratio: f64,
+        ratio: Float,
         /// Average refinement speed in generations per second.
-        average: f64,
+        average: Float,
         /// Median estimation of running time for each generation (in ms).
         median: Option<usize>,
     },
@@ -254,7 +253,7 @@ pub enum HeuristicSpeed {
     /// Moderate speed.
     Moderate {
         /// Average refinement speed in generations per second.
-        average: f64,
+        average: Float,
         /// Median estimation of running time for each generation (in ms).
         median: Option<usize>,
     },

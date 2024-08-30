@@ -6,7 +6,7 @@ use crate::construction::enablers::*;
 use crate::construction::heuristics::RouteContext;
 use crate::models::common::Timestamp;
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
-use rosomaxa::prelude::compare_floats;
+use rosomaxa::prelude::{compare_floats, Float};
 use std::cmp::Ordering;
 
 /// Tries to move forward route's departure time.
@@ -42,12 +42,12 @@ fn try_advance_departure_time(
     let first = route.tour.get(1)?;
     let start = route.tour.start()?;
 
-    let latest_allowed_departure = route.actor.detail.start.as_ref().and_then(|s| s.time.latest).unwrap_or(f64::MAX);
+    let latest_allowed_departure = route.actor.detail.start.as_ref().and_then(|s| s.time.latest).unwrap_or(Float::MAX);
     let last_departure_time = start.schedule.departure;
 
     let new_departure_time = if optimize_whole_tour {
         let (total_waiting_time, max_shift) =
-            route.tour.all_activities().rev().fold((0., f64::MAX), |(total_waiting_time, max_shift), activity| {
+            route.tour.all_activities().rev().fold((0., Float::MAX), |(total_waiting_time, max_shift), activity| {
                 let waiting_time = (activity.place.time.start - activity.schedule.arrival).max(0.);
                 let remaining_time = (activity.place.time.end - activity.schedule.arrival - waiting_time).max(0.);
 

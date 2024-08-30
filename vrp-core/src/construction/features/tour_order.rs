@@ -35,7 +35,7 @@ pub fn create_tour_order_soft_feature(name: &str, order_fn: TourOrderFn) -> Resu
 #[derive(Copy, Clone)]
 pub enum OrderResult {
     /// Returns a specified value.
-    Value(f64),
+    Value(Float),
     /// No value specified.
     Default,
     /// No value specified, but constraint should be ignored
@@ -111,7 +111,7 @@ impl FeatureObjective for TourOrderObjective {
             .state
             .get_tour_order_violations()
             .copied()
-            .unwrap_or_else(|| get_violations(solution.routes.as_slice(), &self.order_fn)) as f64
+            .unwrap_or_else(|| get_violations(solution.routes.as_slice(), &self.order_fn)) as Float
     }
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {

@@ -3,15 +3,16 @@
 mod node_test;
 
 use super::*;
+use crate::utils::Float;
 use std::collections::VecDeque;
 use std::fmt::Formatter;
 
 /// Represents a node in network.
 pub struct Node<I: Input, S: Storage<Item = I>> {
     /// A weight vector.
-    pub weights: Vec<f64>,
+    pub weights: Vec<Float>,
     /// An error of the neuron.
-    pub error: f64,
+    pub error: Float,
     /// Tracks amount of times node is selected as BU.
     pub total_hits: usize,
     /// Tracks last hits,
@@ -30,7 +31,7 @@ pub struct Coordinate(pub i32, pub i32);
 
 impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     /// Creates a new instance of `Node`.
-    pub fn new(coordinate: Coordinate, weights: &[f64], error: f64, hit_memory_size: usize, storage: S) -> Self {
+    pub fn new(coordinate: Coordinate, weights: &[Float], error: Float, hit_memory_size: usize, storage: S) -> Self {
         Self {
             weights: weights.to_vec(),
             error,
@@ -43,7 +44,7 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     }
 
     /// Adjusts the weights of the node.
-    pub fn adjust(&mut self, target: &[f64], learning_rate: f64) {
+    pub fn adjust(&mut self, target: &[Float], learning_rate: Float) {
         debug_assert!(self.weights.len() == target.len());
 
         for (idx, value) in target.iter().enumerate() {
@@ -52,7 +53,7 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     }
 
     /// Returns distance to the given weights.
-    pub fn distance(&self, weights: &[f64]) -> f64 {
+    pub fn distance(&self, weights: &[Float]) -> Float {
         self.storage.distance(self.weights.as_slice(), weights)
     }
 
@@ -102,7 +103,7 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     }
 
     /// Gets unified distance.
-    pub fn unified_distance<F: StorageFactory<I, S>>(&self, network: &Network<I, S, F>, radius: usize) -> f64 {
+    pub fn unified_distance<F: StorageFactory<I, S>>(&self, network: &Network<I, S, F>, radius: usize) -> Float {
         let (sum, count) = self
             .neighbours(network, radius)
             .filter_map(|(coord, _)| coord.and_then(|coord| network.find(&coord)))
@@ -112,34 +113,38 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
             });
 
         if count > 0 {
-            sum / count as f64
+            sum / count as Float
         } else {
             0.
         }
     }
 
     /// Returns distance between underlying item (if any) and node weight's.
-    pub fn node_distance(&self) -> Option<f64> {
+    pub fn node_distance(&self) -> Option<Float> {
         self.storage.iter().next().map(|item| self.storage.distance(self.weights.as_slice(), item.weights()))
     }
 
     /// Calculates mean squared error of the node.
-    pub fn mse(&self) -> f64 {
+    pub fn mse(&self) -> Float {
         let (count, sum) = self
             .storage
             .iter()
             // NOTE try only first item so far
             .take(1)
             .fold((0, 0.), |(items, acc), data| {
-                let err =
-                    data.weights().iter().zip(self.weights.iter()).map(|(&w1, &w2)| (w1 - w2) * (w1 - w2)).sum::<f64>()
-                        / self.weights.len() as f64;
+                let err = data
+                    .weights()
+                    .iter()
+                    .zip(self.weights.iter())
+                    .map(|(&w1, &w2)| (w1 - w2) * (w1 - w2))
+                    .sum::<Float>()
+                    / self.weights.len() as Float;
 
                 (items + 1, acc + err)
             });
 
         if count > 0 {
-            sum / count as f64
+            sum / count as Float
         } else {
             sum
         }

@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 /// A collection of heuristic search operators with their name and initial weight.
 pub type HeuristicSearchOperators<C, O, S> =
-    Vec<(Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String, f64)>;
+    Vec<(Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String, Float)>;
 
 /// A collection of heuristic diversify operators.
 pub type HeuristicDiversifyOperators<C, O, S> =
@@ -126,7 +126,7 @@ struct SearchFeedback<S> {
 }
 
 impl<S> SlotFeedback for SearchFeedback<S> {
-    fn reward(&self) -> f64 {
+    fn reward(&self) -> Float {
         self.sample.reward
     }
 }
@@ -331,7 +331,7 @@ where
 /// Returns a reward estimation in `[0, 6]` range. This range consists of:
 /// - a initial distance improvement gives `[0, 2]`
 /// - a best known improvement gives `[0, 2]` * BEST_DISCOVERY_REWARD_MULTIPLIER
-fn estimate_distance_reward<C, O, S>(heuristic_ctx: &C, initial_solution: &S, new_solution: &S) -> f64
+fn estimate_distance_reward<C, O, S>(heuristic_ctx: &C, initial_solution: &S, new_solution: &S) -> Float
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
@@ -341,8 +341,8 @@ where
         .ranked()
         .next()
         .map(|best_known| {
-            const BEST_DISCOVERY_REWARD_MULTIPLIER: f64 = 2.;
-            const DIVERSE_DISCOVERY_REWARD_MULTIPLIER: f64 = 0.05;
+            const BEST_DISCOVERY_REWARD_MULTIPLIER: Float = 2.;
+            const DIVERSE_DISCOVERY_REWARD_MULTIPLIER: Float = 0.05;
 
             let objective = heuristic_ctx.objective();
 
@@ -367,7 +367,7 @@ fn estimate_reward_perf_multiplier<C, O, S>(
     search_ctx: &SearchContext<C, O, S>,
     duration: usize,
     has_improvement: bool,
-) -> f64
+) -> Float
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
@@ -376,7 +376,7 @@ where
     let improvement_ratio = search_ctx.heuristic_ctx.statistics().improvement_1000_ratio;
     let approx_median = &search_ctx.approx_median;
     let median_ratio =
-        approx_median.map_or(1., |median| if median == 0 { 1. } else { duration as f64 / median as f64 });
+        approx_median.map_or(1., |median| if median == 0 { 1. } else { duration as Float / median as Float });
 
     let median_ratio = match median_ratio.clamp(0.5, 2.) {
         ratio if ratio < 0.75 => 1.5, // Allegro
@@ -400,7 +400,7 @@ where
 /// Returns distance in `[-N., N]` where:
 ///  - N: in range `[1, total amount of objectives]`
 ///  - sign specifies whether a solution is better (positive) or worse (negative).
-fn get_relative_distance<O, S>(objective: &O, a: &S, b: &S) -> f64
+fn get_relative_distance<O, S>(objective: &O, a: &S, b: &S) -> Float
 where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
@@ -429,7 +429,7 @@ where
     let total_objectives = a.fitness().count();
     assert_ne!(total_objectives, 0, "cannot have an empty objective here");
     assert_ne!(total_objectives, idx, "cannot have the index equal to total amount of objectives");
-    let priority_amplifier = (total_objectives - idx) as f64;
+    let priority_amplifier = (total_objectives - idx) as Float;
 
     let value = a
         .fitness()
@@ -446,17 +446,17 @@ where
 struct SearchSample {
     name: String,
     duration: usize,
-    reward: f64,
+    reward: Float,
     transition: (SearchState, SearchState),
 }
 
 struct HeuristicSample {
     state: SearchState,
     name: String,
-    alpha: f64,
-    beta: f64,
-    mu: f64,
-    v: f64,
+    alpha: Float,
+    beta: Float,
+    mu: Float,
+    v: Float,
     n: usize,
 }
 

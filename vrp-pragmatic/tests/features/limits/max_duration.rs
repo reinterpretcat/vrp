@@ -1,8 +1,9 @@
 use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::helpers::*;
+use vrp_core::prelude::Float;
 
-fn create_vehicle_type_with_max_duration_limit(max_duration: f64) -> VehicleType {
+fn create_vehicle_type_with_max_duration_limit(max_duration: Float) -> VehicleType {
     VehicleType {
         limits: Some(VehicleLimits { max_distance: None, max_duration: Some(max_duration), tour_size: None }),
         ..create_default_vehicle_type()

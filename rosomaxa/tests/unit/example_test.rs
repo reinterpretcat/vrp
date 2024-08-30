@@ -1,12 +1,12 @@
 use super::*;
 
-fn just_noise(probability: f64, range: (f64, f64), random: Arc<dyn Random>) -> VectorHeuristicOperatorMode {
+fn just_noise(probability: Float, range: (Float, Float), random: Arc<dyn Random>) -> VectorHeuristicOperatorMode {
     VectorHeuristicOperatorMode::JustNoise(Noise::new_with_ratio(probability, range, random))
 }
 
 fn dimen_noise(
-    probability: f64,
-    range: (f64, f64),
+    probability: Float,
+    range: (Float, Float),
     dimen: usize,
     random: Arc<dyn Random>,
 ) -> VectorHeuristicOperatorMode {

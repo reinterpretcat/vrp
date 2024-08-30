@@ -54,7 +54,7 @@ fn create_route_ctx(activities: &[Location], recharges: Vec<(usize, Location)>, 
                 .with_vehicle(&fleet, "v1")
                 .add_activities(activities.iter().enumerate().map(|(idx, &location)| {
                     ActivityBuilder::with_location(location)
-                        .schedule(Schedule::new(location as f64, location as f64))
+                        .schedule(Schedule::new(location as Float, location as Float))
                         .job(Some(TestSingleBuilder::default().id(&format!("job{}", idx + 1)).build_shared()))
                         .build()
                 }))

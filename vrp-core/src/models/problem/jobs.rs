@@ -5,6 +5,7 @@ mod jobs_test;
 use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
 use crate::utils::{short_type_name, Either};
+use rosomaxa::prelude::Float;
 use rosomaxa::utils::compare_floats_f32;
 use std::cmp::Ordering::Less;
 use std::collections::HashMap;
@@ -251,7 +252,7 @@ impl Jobs {
         let index = self.index.get(&profile.index).expect("no profile index");
         let (neighbours_info, _) = index.get(job).expect("no job in profile index");
 
-        neighbours_info.iter().map(|(job, cost)| (job, *cost as f64))
+        neighbours_info.iter().map(|(job, cost)| (job, *cost as Float))
     }
 
     /// Returns job rank as relative cost from any vehicle's start position.
@@ -259,7 +260,7 @@ impl Jobs {
         let index = self.index.get(&profile.index).expect("no profile index");
         let &(_, cost) = index.get(job).expect("no job in profile index");
 
-        cost as f64
+        cost as Float
     }
 
     /// Returns amount of jobs.
@@ -404,8 +405,8 @@ fn get_cost_between_jobs(
 }
 
 fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<usize, Costs> {
-    let get_avg_by = |costs: &Vec<Costs>, map_cost_fn: fn(&Costs) -> f64| -> f64 {
-        costs.iter().map(map_cost_fn).sum::<f64>() / (costs.len() as f64)
+    let get_avg_by = |costs: &Vec<Costs>, map_cost_fn: fn(&Costs) -> Float| -> Float {
+        costs.iter().map(map_cost_fn).sum::<Float>() / (costs.len() as Float)
     };
     fleet
         .vehicles

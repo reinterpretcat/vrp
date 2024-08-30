@@ -11,19 +11,19 @@ use rosomaxa::utils::map_reduce;
 
 /// A local search operator which tries to exchange jobs in best way between different routes.
 pub struct ExchangeInterRouteBest {
-    noise_probability: f64,
-    noise_range: (f64, f64),
+    noise_probability: Float,
+    noise_range: (Float, Float),
 }
 
 /// A local search operator which tries to exchange random jobs between different routes.
 pub struct ExchangeInterRouteRandom {
-    noise_probability: f64,
-    noise_range: (f64, f64),
+    noise_probability: Float,
+    noise_range: (Float, Float),
 }
 
 impl ExchangeInterRouteBest {
     /// Creates a new instance of `ExchangeInterRouteBest`.
-    pub fn new(noise_probability: f64, min: f64, max: f64) -> Self {
+    pub fn new(noise_probability: Float, min: Float, max: Float) -> Self {
         Self { noise_probability, noise_range: (min, max) }
     }
 }
@@ -51,7 +51,7 @@ impl LocalOperator for ExchangeInterRouteBest {
 
 impl ExchangeInterRouteRandom {
     /// Creates a new instance of `ExchangeInterRouteRandom`.
-    pub fn new(noise_probability: f64, min: f64, max: f64) -> Self {
+    pub fn new(noise_probability: Float, min: Float, max: Float) -> Self {
         Self { noise_probability, noise_range: (min, max) }
     }
 }

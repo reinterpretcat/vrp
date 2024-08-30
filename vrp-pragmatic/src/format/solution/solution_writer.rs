@@ -12,6 +12,7 @@ use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{JobIdDimension, Multi, TravelTime, VehicleIdDimension};
 use vrp_core::models::solution::{Activity, Route};
+use vrp_core::prelude::Float;
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
 use vrp_core::solver::processing::{ClusterConfigExtraProperty, ReservedTimesExtraProperty};
 use vrp_core::utils::CollectGroupBy;
@@ -426,7 +427,7 @@ fn get_capacity(dimens: &Dimensions) -> Option<Demand<MultiDimLoad>> {
     })
 }
 
-fn get_parking_time(extras: &DomainExtras) -> f64 {
+fn get_parking_time(extras: &DomainExtras) -> Float {
     extras.get_cluster_config().map_or(0., |config| config.serving.get_parking())
 }
 

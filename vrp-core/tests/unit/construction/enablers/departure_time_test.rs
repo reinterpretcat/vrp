@@ -3,6 +3,7 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::*;
 use crate::models::problem::*;
+use rosomaxa::prelude::Float;
 
 parameterized_test! {can_advance_departure_time, (latest, optimize_whole_tour, tws, expected), {
     let tws = tws.into_iter().map(|(start, end)| TimeWindow::new(start, end)).collect::<Vec<_>>();
@@ -21,10 +22,10 @@ can_advance_departure_time! {
 }
 
 fn can_advance_departure_time_impl(
-    latest: Option<f64>,
+    latest: Option<Float>,
     optimize_whole_tour: bool,
     tws: Vec<TimeWindow>,
-    expected: Option<f64>,
+    expected: Option<Float>,
 ) {
     if let [tw1, tw2, tw3] = tws.as_slice() {
         let fleet = FleetBuilder::default()
@@ -74,12 +75,12 @@ can_recede_departure_time! {
 }
 
 fn can_recede_departure_time_impl(
-    earliest: Option<f64>,
-    start_departure: f64,
-    latest_first_arrival: f64,
+    earliest: Option<Float>,
+    start_departure: Float,
+    latest_first_arrival: Float,
     tw: TimeWindow,
-    total_duration_limit: Option<(f64, f64)>,
-    expected: Option<f64>,
+    total_duration_limit: Option<(Float, Float)>,
+    expected: Option<Float>,
 ) {
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())

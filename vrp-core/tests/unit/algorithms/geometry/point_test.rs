@@ -1,6 +1,6 @@
 use super::*;
 
-fn round(value: f64) -> f64 {
+fn round(value: Float) -> Float {
     (value * 1000.).round() / 1000.
 }
 
@@ -27,5 +27,5 @@ pub fn can_calculate_distance_to_segment() {
     let b = Point::new(1., 0.);
     let c = Point::new(4., 2.);
 
-    assert_eq!(round(c.distance_to_segment(&a, &b)), round(13_f64.sqrt()));
+    assert_eq!(round(c.distance_to_segment(&a, &b)), round(Float::sqrt(13.)));
 }

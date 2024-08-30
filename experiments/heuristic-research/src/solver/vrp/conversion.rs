@@ -1,4 +1,5 @@
 use crate::{DataGraph, GraphEdge, GraphNode, ObservationData};
+use rosomaxa::prelude::Float;
 use vrp_scientific::common::CoordIndexExtraProperty;
 use vrp_scientific::core::construction::heuristics::InsertionContext;
 
@@ -6,7 +7,7 @@ impl From<&InsertionContext> for DataGraph {
     fn from(insertion_ctx: &InsertionContext) -> Self {
         let coord_index = insertion_ctx.problem.extras.get_coord_index().expect("cannot get coord index!");
 
-        let nodes = coord_index.locations.iter().map(|(x, y)| GraphNode { x: *x as f64, y: *y as f64 }).collect();
+        let nodes = coord_index.locations.iter().map(|(x, y)| GraphNode { x: *x as Float, y: *y as Float }).collect();
         let edges = insertion_ctx
             .solution
             .routes

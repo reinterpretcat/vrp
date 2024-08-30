@@ -57,7 +57,7 @@ mod range_sampling {
             self.value
         }
 
-        fn uniform_real(&self, _: f64, _: f64) -> f64 {
+        fn uniform_real(&self, _: Float, _: Float) -> Float {
             unimplemented!()
         }
 
@@ -65,7 +65,7 @@ mod range_sampling {
             unimplemented!()
         }
 
-        fn is_hit(&self, _: f64) -> bool {
+        fn is_hit(&self, _: Float) -> bool {
             unimplemented!()
         }
 

@@ -6,13 +6,14 @@ use crate::format::Location;
 use crate::helpers::create_default_matrix_profiles;
 use crate::utils::get_haversine_distance;
 use crate::{format_time, parse_time};
+use vrp_core::prelude::Float;
 
 pub const START_DAY: &str = "2020-07-04T00:00:00Z";
 
 /// Approximately, 32km by Haversine formula
 pub const DEFAULT_BOUNDING_BOX: ((f64, f64), (f64, f64)) = ((52.4240, 13.2148), (52.5937, 13.5970));
 
-pub fn get_default_bounding_box_radius() -> f64 {
+pub fn get_default_bounding_box_radius() -> Float {
     let center_lat = DEFAULT_BOUNDING_BOX.0 .0 + (DEFAULT_BOUNDING_BOX.1 .0 - DEFAULT_BOUNDING_BOX.0 .0) / 2.;
     let center_lng = DEFAULT_BOUNDING_BOX.0 .1 + (DEFAULT_BOUNDING_BOX.1 .1 - DEFAULT_BOUNDING_BOX.0 .1) / 2.;
 
@@ -23,7 +24,7 @@ pub fn get_default_bounding_box_radius() -> f64 {
 }
 
 pub fn default_time_plus_offset(offset: i32) -> String {
-    format_time(parse_time(START_DAY) + from_hours(offset).as_secs_f64())
+    format_time(parse_time(START_DAY) + from_hours(offset).as_secs_f64() as Float)
 }
 
 pub fn default_job_single_day_time_windows() -> impl Strategy<Value = Option<Vec<Vec<String>>>> {

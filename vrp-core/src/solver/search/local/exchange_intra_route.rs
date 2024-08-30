@@ -4,17 +4,17 @@ use crate::solver::search::LocalOperator;
 use crate::solver::RefinementContext;
 use crate::utils::Noise;
 use rand::prelude::SliceRandom;
-use rosomaxa::HeuristicSolution;
+use rosomaxa::prelude::{Float, HeuristicSolution};
 
 /// A local search operator which tries to exchange jobs in random way inside one route.
 pub struct ExchangeIntraRouteRandom {
-    probability: f64,
-    noise_range: (f64, f64),
+    probability: Float,
+    noise_range: (Float, Float),
 }
 
 impl ExchangeIntraRouteRandom {
     /// Creates a new instance of `ExchangeIntraRouteRandom`.
-    pub fn new(probability: f64, min: f64, max: f64) -> Self {
+    pub fn new(probability: Float, min: Float, max: Float) -> Self {
         Self { probability, noise_range: (min, max) }
     }
 }

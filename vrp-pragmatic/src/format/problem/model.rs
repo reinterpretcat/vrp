@@ -7,7 +7,7 @@ extern crate serde_json;
 use crate::format::{FormatError, Location, MultiFormatError};
 use serde::{Deserialize, Serialize};
 use std::io::{BufReader, BufWriter, Error, Read, Write};
-
+use vrp_core::prelude::Float;
 // region Plan
 
 /// Relation type.
@@ -59,7 +59,7 @@ pub struct JobPlace {
     /// A job place location.
     pub location: Location,
     /// A job place duration (service time).
-    pub duration: f64,
+    pub duration: Float,
     /// A list of job place time windows with time specified in RFC3339 format.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub times: Option<Vec<Vec<String>>>,
@@ -113,7 +113,7 @@ pub struct Job {
 
     /// Job value, bigger value - more chances for assignment.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub value: Option<f64>,
+    pub value: Option<Float>,
 
     /// Job group: jobs of the same group are assigned to the same tour or unassigned.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -152,13 +152,13 @@ pub enum Clustering {
 #[serde(rename_all = "camelCase")]
 pub struct VicinityThresholdPolicy {
     /// Moving duration limit.
-    pub duration: f64,
+    pub duration: Float,
     /// Moving distance limit.
-    pub distance: f64,
+    pub distance: Float,
     /// Minimum shared time for jobs (non-inclusive).
-    pub min_shared_time: Option<f64>,
+    pub min_shared_time: Option<Float>,
     /// The smallest time window of the cluster after service time shrinking.
-    pub smallest_time_window: Option<f64>,
+    pub smallest_time_window: Option<Float>,
     /// The maximum amount of jobs per cluster.
     pub max_jobs_per_cluster: Option<usize>,
 }
@@ -182,23 +182,23 @@ pub enum VicinityServingPolicy {
     #[serde(rename(deserialize = "original", serialize = "original"))]
     Original {
         /// Parking time.
-        parking: f64,
+        parking: Float,
     },
     /// Correct service time by some multiplier.
     #[serde(rename(deserialize = "multiplier", serialize = "multiplier"))]
     Multiplier {
         /// Multiplier value applied to original job's duration.
-        value: f64,
+        value: Float,
         /// Parking time.
-        parking: f64,
+        parking: Float,
     },
     /// Use fixed value for all clustered jobs.
     #[serde(rename(deserialize = "fixed", serialize = "fixed"))]
     Fixed {
         /// Fixed value used for all jobs in the cluster.
-        value: f64,
+        value: Float,
         /// Parking time.
-        parking: f64,
+        parking: Float,
     },
 }
 
@@ -236,13 +236,13 @@ pub struct Plan {
 pub struct VehicleCosts {
     /// Fixed is cost of vehicle usage per tour.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub fixed: Option<f64>,
+    pub fixed: Option<Float>,
 
     /// Cost per distance unit.
-    pub distance: f64,
+    pub distance: Float,
 
     /// Cost per time unit.
-    pub time: f64,
+    pub time: Float,
 }
 
 /// Specifies vehicle shift start.
@@ -308,7 +308,7 @@ pub struct VehicleReload {
     pub location: Location,
 
     /// A total loading/reloading duration (service time).
-    pub duration: f64,
+    pub duration: Float,
 
     /// A list of time windows with time specified in RFC3339 format.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -328,7 +328,7 @@ pub struct VehicleReload {
 #[serde(rename_all = "camelCase")]
 pub struct VehicleRecharges {
     /// Maximum traveled distance before recharge station has to be visited.
-    pub max_distance: f64,
+    pub max_distance: Float,
 
     /// Specifies list of recharge station. Each can be visited only once.
     pub stations: Vec<VehicleRechargeStation>,
@@ -344,13 +344,13 @@ pub struct VehicleLimits {
     /// Max traveling distance per shift/tour.
     /// No distance restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_distance: Option<f64>,
+    pub max_distance: Option<Float>,
 
     /// Max duration per tour.
     /// No time restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(alias = "shiftTime")]
-    pub max_duration: Option<f64>,
+    pub max_duration: Option<Float>,
 
     /// Max amount job activities.
     /// No job activities restrictions when omitted.
@@ -365,7 +365,7 @@ pub enum VehicleOptionalBreakTime {
     /// Break time is defined by a time window with time specified in RFC3339 format.
     TimeWindow(Vec<String>),
     /// Break time is defined by a time offset range.
-    TimeOffset(Vec<f64>),
+    TimeOffset(Vec<Float>),
 }
 
 /// Vehicle required break time variant.
@@ -384,9 +384,9 @@ pub enum VehicleRequiredBreakTime {
     /// Break should be taken not earlier and not later than time range specified.
     OffsetTime {
         /// Start of the range.
-        earliest: f64,
+        earliest: Float,
         /// End of the range.
-        latest: f64,
+        latest: Float,
     },
 }
 
@@ -394,7 +394,7 @@ pub enum VehicleRequiredBreakTime {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VehicleOptionalBreakPlace {
     /// Break duration.
-    pub duration: f64,
+    pub duration: Float,
     /// Break location.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub location: Option<Location>,
@@ -432,7 +432,7 @@ pub enum VehicleBreak {
         /// Break time.
         time: VehicleRequiredBreakTime,
         /// Break duration.
-        duration: f64,
+        duration: Float,
     },
 }
 
@@ -476,7 +476,7 @@ pub struct VehicleProfile {
     /// Traveling duration scale factor.
     /// Default value is 1.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub scale: Option<f64>,
+    pub scale: Option<Float>,
 }
 
 /// Specifies routing matrix profile.
@@ -488,7 +488,7 @@ pub struct MatrixProfile {
     /// Approximation speed (meters per second). Used only when routing matrix is not specified.
     /// Default value is 10.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub speed: Option<f64>,
+    pub speed: Option<Float>,
 }
 
 /// Specifies vehicle resource type.
@@ -546,7 +546,7 @@ pub enum Objective {
     MaximizeValue {
         /// Specifies a weight of skipped breaks.
         #[serde(skip_serializing_if = "Option::is_none")]
-        breaks: Option<f64>,
+        breaks: Option<Float>,
     },
 
     /// An objective to minimize number of unassigned jobs.
@@ -554,7 +554,7 @@ pub enum Objective {
         /// A skipped break weight to increase/decrease break is importance.
         /// Default is 1.
         #[serde(skip_serializing_if = "Option::is_none")]
-        breaks: Option<f64>,
+        breaks: Option<Float>,
     },
 
     /// An objective to minimize sum of arrival times from all routes.
@@ -604,7 +604,7 @@ pub enum MultiStrategy {
     /// A weighted sum type uses linear combination of weights and the corresponding fitness values.
     WeightedSum {
         /// Individual weights. Size of vector must be the same as amount of objective functions.
-        weights: Vec<f64>,
+        weights: Vec<Float>,
     },
 }
 

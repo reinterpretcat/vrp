@@ -3,7 +3,7 @@
 mod plan_test;
 
 use super::get_random_item;
-use vrp_core::prelude::GenericError;
+use vrp_core::prelude::{Float, GenericError};
 use vrp_core::utils::{DefaultRandom, Random};
 use vrp_pragmatic::format::problem::{Job, JobPlace, JobTask, Plan, Problem};
 use vrp_pragmatic::format::Location;
@@ -15,7 +15,7 @@ pub(crate) fn generate_plan(
     problem_proto: &Problem,
     locations: Option<Vec<Location>>,
     jobs_size: usize,
-    area_size: Option<f64>,
+    area_size: Option<Float>,
 ) -> Result<Plan, GenericError> {
     let rnd = DefaultRandom::default();
 
@@ -81,7 +81,7 @@ type LocationFn = Box<dyn Fn(&DefaultRandom) -> Location>;
 fn get_location_fn(
     problem_proto: &Problem,
     locations: Option<Vec<Location>>,
-    area_size: Option<f64>,
+    area_size: Option<Float>,
 ) -> Result<LocationFn, GenericError> {
     if let Some(locations) = locations {
         Ok(Box::new(move |rnd| get_random_item(locations.as_slice(), rnd).cloned().expect("cannot get any location")))
@@ -97,8 +97,8 @@ fn get_location_fn(
         };
         Ok(Box::new(move |rnd| {
             // TODO allow to configure distribution
-            let lat = rnd.uniform_real((bounding_box.0).0, (bounding_box.1).0);
-            let lng = rnd.uniform_real((bounding_box.0).1, (bounding_box.1).1);
+            let lat = rnd.uniform_real((bounding_box.0).0 as Float, (bounding_box.1).0 as Float) as f64;
+            let lng = rnd.uniform_real((bounding_box.0).1 as Float, (bounding_box.1).1 as Float) as f64;
 
             Location::Coordinate { lat, lng }
         }))
@@ -122,7 +122,9 @@ fn get_bounding_box_from_plan(plan: &Plan) -> ((f64, f64), (f64, f64)) {
     ((lat_min, lng_min), (lat_max, lng_max))
 }
 
-fn get_bounding_box_from_size(plan: &Plan, area_size: f64) -> ((f64, f64), (f64, f64)) {
+fn get_bounding_box_from_size(plan: &Plan, area_size: Float) -> ((f64, f64), (f64, f64)) {
+    #![allow(clippy::unnecessary_cast)]
+
     const WGS84_A: f64 = 6_378_137.0;
     const WGS84_B: f64 = 6_356_752.3;
     let deg_to_rad = |deg| std::f64::consts::PI * deg / 180.;
@@ -141,7 +143,7 @@ fn get_bounding_box_from_size(plan: &Plan, area_size: f64) -> ((f64, f64), (f64,
     let ad = WGS84_A * lat.cos();
     let bd = WGS84_B * lat.sin();
 
-    let half_size = area_size;
+    let half_size = area_size as f64;
 
     let radius = ((an * an + bn * bn) / (ad * ad + bd * bd)).sqrt();
     let pradius = radius * lat.cos();
@@ -162,7 +164,7 @@ fn get_plan_demands(plan: &Plan) -> Vec<Vec<i32>> {
     plan.jobs.iter().flat_map(get_job_tasks).filter_map(|job_task| job_task.demand.as_ref()).cloned().collect()
 }
 
-fn get_plan_durations(plan: &Plan) -> Vec<f64> {
+fn get_plan_durations(plan: &Plan) -> Vec<Float> {
     get_plan_places(plan).map(|job_place| job_place.duration).collect()
 }
 

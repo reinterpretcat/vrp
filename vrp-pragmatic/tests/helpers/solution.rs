@@ -11,7 +11,7 @@ use std::sync::Arc;
 use vrp_core::models::common::{Cost, Timestamp};
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
-use vrp_core::prelude::GenericError;
+use vrp_core::prelude::{Float, GenericError};
 use vrp_core::utils::{DefaultRandom, Random};
 
 /// Provides way to build a stop with one or multiple activities.
@@ -306,7 +306,8 @@ impl StatisticBuilder {
         statistic.duration =
             times.driving + times.serving + times.waiting + times.break_time + times.parking + times.commuting;
         statistic.distance = statistic.times.driving;
-        statistic.cost = self.fixed + statistic.distance as f64 * per_distance + statistic.duration as f64 * per_time;
+        statistic.cost =
+            self.fixed + statistic.distance as Float * per_distance + statistic.duration as Float * per_time;
 
         statistic
     }

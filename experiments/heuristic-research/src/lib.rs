@@ -4,6 +4,7 @@
 extern crate lazy_static;
 
 use crate::solver::*;
+use rosomaxa::prelude::Float;
 use serde::de::{Error, Unexpected, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
@@ -69,7 +70,7 @@ impl<'de> Visitor<'de> for CoordinateVisitor {
 }
 
 /// Specifies a matrix data type.
-pub type MatrixData = HashMap<Coordinate, f64>;
+pub type MatrixData = HashMap<Coordinate, Float>;
 
 /// Represents a single experiment observation data.
 #[derive(Serialize, Deserialize)]
@@ -94,7 +95,7 @@ lazy_static! {
 
 /// Runs 3D functions experiment.
 #[wasm_bindgen]
-pub fn run_function_experiment(function_name: &str, population_type: &str, x: f64, z: f64, generations: usize) {
+pub fn run_function_experiment(function_name: &str, population_type: &str, x: Float, z: Float, generations: usize) {
     let selection_size = 8;
     let logger = Arc::new(|message: &str| {
         web_sys::console::log_1(&message.into());

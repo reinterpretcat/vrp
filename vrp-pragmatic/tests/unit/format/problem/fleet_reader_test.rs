@@ -8,7 +8,7 @@ use vrp_core::models::problem::TravelTime;
 use vrp_core::models::problem::{Actor, ActorDetail, Vehicle};
 use vrp_core::models::solution::Route;
 
-fn matrix(profile: Option<&str>, timestamp: Option<f64>, fill_value: i64, size: usize) -> Matrix {
+fn matrix(profile: Option<&str>, timestamp: Option<Float>, fill_value: i64, size: usize) -> Matrix {
     Matrix {
         profile: profile.map(|p| p.to_string()),
         timestamp: timestamp.map(format_time),

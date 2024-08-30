@@ -16,7 +16,7 @@ can_estimate_job_value! {
     case_03: (0., 0.),
 }
 
-fn can_estimate_job_value_impl(value: f64, expected: f64) {
+fn can_estimate_job_value_impl(value: Float, expected: Float) {
     let objective = create_maximize_total_job_value_feature(
         "value",
         JobReadValueFn::Left(Arc::new(move |_| value)),
@@ -65,5 +65,5 @@ fn can_merge_value() {
 
     let merged = constraint.merge(source, candidate).unwrap();
 
-    assert_eq!(merged.dimens().get_value::<ValueDimenKey, f64>().cloned(), Some(12.))
+    assert_eq!(merged.dimens().get_value::<ValueDimenKey, Float>().cloned(), Some(12.))
 }

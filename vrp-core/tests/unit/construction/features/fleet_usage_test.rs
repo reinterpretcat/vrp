@@ -3,7 +3,7 @@ use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::solution::*;
 use std::cmp::Ordering;
 
-fn create_test_insertion_ctx(routes: &[f64]) -> InsertionContext {
+fn create_test_insertion_ctx(routes: &[Float]) -> InsertionContext {
     let mut insertion_ctx = TestInsertionContextBuilder::default().build();
     let problem = insertion_ctx.problem.clone();
 
@@ -32,7 +32,7 @@ can_properly_estimate_solutions! {
     case_06: (&[10.], &[10., 11.], Ordering::Less),
 }
 
-fn can_properly_estimate_solutions_impl(left: &[f64], right: &[f64], expected: Ordering) {
+fn can_properly_estimate_solutions_impl(left: &[Float], right: &[Float], expected: Ordering) {
     let left = create_test_insertion_ctx(left);
     let right = create_test_insertion_ctx(right);
     let objective = create_minimize_arrival_time_feature("minimize_arrival").unwrap().objective.unwrap();

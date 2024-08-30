@@ -1,6 +1,6 @@
 use super::*;
 use itertools::{Itertools, MinMaxResult};
-use rosomaxa::prelude::{compare_floats, compare_floats_refs};
+use rosomaxa::prelude::{compare_floats, compare_floats_refs, Float};
 use std::cmp::Ordering;
 
 /// Draws rosomaxa population state.
@@ -8,6 +8,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
     config: &PopulationDrawConfig,
 ) -> DrawResult<()> {
+    #![allow(clippy::unnecessary_cast)]
     match &config.series {
         PopulationSeries::Rosomaxa {
             rows,
@@ -30,7 +31,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
             let mut sub_areas = area.split_evenly((2, cols_size));
             // draw series using colored rectangles
             let draw_series2d = |area: &mut DrawingArea<B, Shift>,
-                                 caption_fn: &dyn Fn(f64, f64) -> String,
+                                 caption_fn: &dyn Fn(Float, Float) -> String,
                                  series: &Series2D|
              -> DrawResult<()> {
                 let matrix: MatrixData = (series.matrix_fn)();
@@ -53,7 +54,10 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                     let points = [(x, y), (x + 1, y + 1)];
 
                     if let Some(v) = matrix.get(&Coordinate(x, y)).cloned() {
-                        Rectangle::new(points, HSLColor(240. / 360. - 240. / 360. * (v - min) / size, 1., 0.7).filled())
+                        Rectangle::new(
+                            points,
+                            HSLColor((240. / 360. - 240. / 360. * (v - min) / size) as f64, 1., 0.7).filled(),
+                        )
                     } else {
                         Rectangle::new(points, WHITE)
                     }
@@ -71,8 +75,8 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                 let (w, h) = area.dim_in_pixel();
                 let h = h - vertical_offset;
 
-                let x_step = (w as f64 / (rows.len()) as f64).round();
-                let y_step = (h as f64 / (cols.len()) as f64).round();
+                let x_step = (w as Float / (rows.len()) as Float).round();
+                let y_step = (h as Float / (cols.len()) as Float).round();
 
                 area.fill(&WHITE)?;
 
@@ -84,7 +88,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                     })
                 };
 
-                let compare_fitness = |left: &[f64], right: &[f64]| {
+                let compare_fitness = |left: &[Float], right: &[Float]| {
                     (left.iter())
                         .zip(right.iter())
                         .map(|(lhs, rhs)| compare_floats_refs(lhs, rhs))
@@ -119,12 +123,12 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                 };
 
                 let translate = |x: i32, y: i32| {
-                    let x = ((x - rows.start) as f64 * x_step).round() as i32;
+                    let x = ((x - rows.start) as Float * x_step).round() as i32;
                     let x_offset = (x_step / 2.).round() as i32;
                     let x = x + x_offset;
 
                     let y = y - cols.start;
-                    let y = (y as f64 * y_step).round() as i32;
+                    let y = (y as Float * y_step).round() as i32;
                     let y_offset = (y_step / 2.).round() as i32;
                     let y = (vertical_offset + h) as i32 - (y + y_offset);
 
@@ -185,11 +189,11 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
 
             let get_caption_float = |caption: &str| {
                 let caption = caption.to_string();
-                move |min: f64, max: f64| format!("{caption} [{min:.2}..{max:.2}]")
+                move |min: Float, max: Float| format!("{caption} [{min:.2}..{max:.2}]")
             };
             let get_caption_usize = |caption: &str| {
                 let caption = caption.to_string();
-                move |min: f64, max: f64| format!("{} [{}..{}]", caption, min as usize, max as usize)
+                move |min: Float, max: Float| format!("{} [{}..{}]", caption, min as usize, max as usize)
             };
 
             let len = fitness_matrices.len();
@@ -223,7 +227,7 @@ enum ArrowDirection {
 }
 
 impl ArrowDirection {
-    pub fn get_points(&self, _aspect: f64) -> [(i32, i32); 3] {
+    pub fn get_points(&self, _aspect: Float) -> [(i32, i32); 3] {
         // TODO translate x and y if aspect ratio != 1
         let data = [(-2, 8), (0, 0), (2, 8)];
 

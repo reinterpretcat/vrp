@@ -6,6 +6,7 @@ use std::io::{BufReader, BufWriter, Error, Read, Write};
 use vrp_core::models::common::{Duration, Timestamp};
 use vrp_core::models::solution::Commute as DomainCommute;
 use vrp_core::models::solution::CommuteInfo as DomainCommuteInfo;
+use vrp_core::prelude::Float;
 
 /// Timing statistic.
 #[derive(Clone, Default, Deserialize, Serialize, PartialEq, Eq, Debug)]
@@ -31,7 +32,7 @@ pub struct Timing {
 #[derive(Clone, Deserialize, Default, Serialize, PartialEq, Debug)]
 pub struct Statistic {
     /// Total cost.
-    pub cost: f64,
+    pub cost: Float,
     /// Total distance.
     pub distance: i64,
     /// Total duration.
@@ -75,7 +76,7 @@ pub struct CommuteInfo {
     /// Commute location.
     pub location: Location,
     /// Travelled distance.
-    pub distance: f64,
+    pub distance: Float,
     /// Travel time.
     pub time: Interval,
 }
@@ -288,7 +289,7 @@ pub struct Metrics {
     /// Total amount of generations.
     pub generations: usize,
     /// Speed: generations per second.
-    pub speed: f64,
+    pub speed: Float,
     /// Evolution progress.
     pub evolution: Vec<Generation>,
 }
@@ -300,11 +301,11 @@ pub struct Generation {
     /// Generation sequence number.
     pub number: usize,
     /// Time since evolution started.
-    pub timestamp: f64,
+    pub timestamp: Float,
     /// Overall improvement ratio.
-    pub i_all_ratio: f64,
+    pub i_all_ratio: Float,
     /// Improvement ratio last 1000 generations.
-    pub i_1000_ratio: f64,
+    pub i_1000_ratio: Float,
     /// True if this generation considered as improvement.
     pub is_improvement: bool,
     /// Population state.
@@ -316,9 +317,9 @@ pub struct Generation {
 #[serde(rename_all = "camelCase")]
 pub struct Individual {
     /// Solution cost difference from best individual.
-    pub difference: f64,
+    pub difference: Float,
     /// Objectives fitness values.
-    pub fitness: Vec<f64>,
+    pub fitness: Vec<Float>,
 }
 
 /// Holds population state.

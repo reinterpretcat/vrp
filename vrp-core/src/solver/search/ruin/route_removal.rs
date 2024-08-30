@@ -120,7 +120,7 @@ impl Ruin for WorstRouteRemoval {
         route_sizes.sort_by(|(_, job_count_left), (_, job_count_right)| job_count_left.cmp(job_count_right));
         route_sizes.truncate(8);
 
-        let shuffle_amount = (route_sizes.len() as f64 * 0.25) as usize;
+        let shuffle_amount = (route_sizes.len() as Float * 0.25) as usize;
         route_sizes.partial_shuffle(&mut random.get_rng(), shuffle_amount);
 
         #[allow(clippy::needless_collect)]

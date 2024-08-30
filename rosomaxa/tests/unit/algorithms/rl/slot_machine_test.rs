@@ -6,7 +6,7 @@ use crate::utils::{random_argmax, DefaultDistributionSampler};
 struct TestAction(DefaultDistributionSampler);
 
 impl SlotAction for TestAction {
-    type Context = (f64, f64);
+    type Context = (Float, Float);
     type Feedback = TestFeedback;
 
     fn take(&self, context: Self::Context) -> Self::Feedback {
@@ -17,10 +17,10 @@ impl SlotAction for TestAction {
     }
 }
 
-struct TestFeedback(f64);
+struct TestFeedback(Float);
 
 impl SlotFeedback for TestFeedback {
-    fn reward(&self) -> f64 {
+    fn reward(&self) -> Float {
         self.0
     }
 }
@@ -29,11 +29,11 @@ impl SlotFeedback for TestFeedback {
 fn can_find_proper_estimations() {
     let sockets = 5;
     let total_episodes = 100;
-    let expected_failures_threshold = (0.3 * (sockets * total_episodes) as f64) as usize;
+    let expected_failures_threshold = (0.3 * (sockets * total_episodes) as Float) as usize;
     let failed_slot_estimations: usize = (0..total_episodes)
         .map(|_| {
-            let slot_means = &[5.0_f64, 9., 7., 13., 11.];
-            let slot_vars = &[2.0_f64, 3., 4., 6., 1.];
+            let slot_means: &[Float; 5] = &[5., 9., 7., 13., 11.];
+            let slot_vars: &[Float; 5] = &[2., 3., 4., 6., 1.];
             let prior_mean = 1.;
             let attempts = 1000;
             let delta = 2.;

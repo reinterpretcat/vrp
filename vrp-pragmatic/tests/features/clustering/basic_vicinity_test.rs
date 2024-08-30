@@ -52,8 +52,8 @@ fn can_cluster_simple_jobs_impl(
     visiting: VicinityVisitPolicy,
     serving: VicinityServingPolicy,
     stop2: StopData,
-    stop3_schedule: (f64, f64),
-    statistic_data: (f64, i64, i64, (i64, i64, i64, i64)),
+    stop3_schedule: (Float, Float),
+    statistic_data: (Float, i64, i64, (i64, i64, i64, i64)),
 ) {
     let statistic = create_statistic(statistic_data);
     let problem = create_test_problem(
@@ -169,7 +169,7 @@ fn can_handle_two_clusters_impl(
     serving: VicinityServingPolicy,
     ignore_job_ids: bool,
     stops: Vec<StopData>,
-    statistic_data: (f64, i64, i64, (i64, i64, i64, i64)),
+    statistic_data: (Float, i64, i64, (i64, i64, i64, i64)),
 ) {
     let statistic = create_statistic(statistic_data);
     let problem = create_test_problem(

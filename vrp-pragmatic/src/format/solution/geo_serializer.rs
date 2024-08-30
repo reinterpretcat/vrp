@@ -51,8 +51,8 @@ impl Eq for Geometry {}
 impl PartialEq for Geometry {
     fn eq(&self, other: &Self) -> bool {
         let compare_pair = |l_coord: &(f64, f64), r_coord: &(f64, f64)| {
-            compare_floats(l_coord.0, r_coord.0) == Ordering::Equal
-                && compare_floats(l_coord.1, r_coord.1) == Ordering::Equal
+            l_coord.0.partial_cmp(&r_coord.0) == Some(Ordering::Equal)
+                && l_coord.1.partial_cmp(&r_coord.1) == Some(Ordering::Equal)
         };
 
         match (self, other) {

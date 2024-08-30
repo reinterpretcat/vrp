@@ -12,9 +12,9 @@ can_use_target_proximity! {
 }
 
 fn can_use_target_proximity_impl(
-    solutions: Vec<Vec<f64>>,
-    target_fitness: Vec<f64>,
-    distance_threshold: f64,
+    solutions: Vec<Vec<Float>>,
+    target_fitness: Vec<Float>,
+    distance_threshold: Float,
     expected: bool,
 ) {
     let mut context = create_heuristic_context_with_solutions(solutions);

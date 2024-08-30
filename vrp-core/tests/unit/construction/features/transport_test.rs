@@ -85,7 +85,7 @@ mod timing {
         case09: ((40, 40, 0., 100.), 2, 80.),
     }
 
-    fn can_properly_calculate_latest_arrival_impl(vehicle_detail_data: VehicleData, activity_idx: usize, time: f64) {
+    fn can_properly_calculate_latest_arrival_impl(vehicle_detail_data: VehicleData, activity_idx: usize, time: Float) {
         let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data);
         feature.state.unwrap().accept_route_state(&mut route_ctx);
 

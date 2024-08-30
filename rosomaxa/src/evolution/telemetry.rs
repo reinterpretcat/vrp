@@ -19,7 +19,7 @@ pub struct TelemetryMetrics {
     /// Total amount of generations.
     pub generations: usize,
     /// Speed: generations per second.
-    pub speed: f64,
+    pub speed: Float,
     /// Evolution progress.
     pub evolution: Vec<TelemetryGeneration>,
 }
@@ -29,11 +29,11 @@ pub struct TelemetryGeneration {
     /// Generation sequence number.
     pub number: usize,
     /// Time since evolution started.
-    pub timestamp: f64,
+    pub timestamp: Float,
     /// Overall improvement ratio.
-    pub i_all_ratio: f64,
+    pub i_all_ratio: Float,
     /// Improvement ratio last 1000 generations.
-    pub i_1000_ratio: f64,
+    pub i_1000_ratio: Float,
     /// True if this generation considered as improvement.
     pub is_improvement: bool,
     /// Population state.
@@ -43,9 +43,9 @@ pub struct TelemetryGeneration {
 /// Keeps essential information about particular individual in population.
 pub struct TelemetryIndividual {
     /// Solution difference from best individual.
-    pub difference: f64,
+    pub difference: Float,
     /// Objectives fitness values.
-    pub fitness: Vec<f64>,
+    pub fitness: Vec<Float>,
 }
 
 /// Holds population state.
@@ -147,7 +147,7 @@ where
     pub fn on_generation(
         &mut self,
         population: &DynHeuristicPopulation<O, S>,
-        termination_estimate: f64,
+        termination_estimate: Float,
         generation_time: Timer,
         is_improved: bool,
     ) {
@@ -222,7 +222,7 @@ where
                     "[{}s] population state (phase: {}, speed: {:.2} gen/sec, improvement ratio: {:.3}:{:.3}):",
                     self.time.elapsed_secs(),
                     selection_phase,
-                    generation as f64 / self.time.elapsed_secs_as_f64(),
+                    generation as Float / self.time.elapsed_secs_as_float(),
                     self.improvement_tracker.i_all_ratio,
                     self.improvement_tracker.i_1000_ratio,
                 )
@@ -244,7 +244,7 @@ where
         if should_track_population {
             self.metrics.evolution.push(TelemetryGeneration {
                 number: generation,
-                timestamp: self.time.elapsed_secs_as_f64(),
+                timestamp: self.time.elapsed_secs_as_float(),
                 i_all_ratio: self.improvement_tracker.i_all_ratio,
                 i_1000_ratio: self.improvement_tracker.i_1000_ratio,
                 is_improvement: self.improvement_tracker.is_last_improved,
@@ -267,7 +267,7 @@ where
         self.on_population(population, should_log_population, should_track_population, false);
 
         let elapsed = self.time.elapsed_secs() as usize;
-        let speed = generations as f64 / self.time.elapsed_secs_as_f64();
+        let speed = generations as Float / self.time.elapsed_secs_as_float();
 
         self.log(format!("[{elapsed}s] total generations: {generations}, speed: {speed:.2} gen/sec",).as_str());
 
@@ -329,8 +329,8 @@ struct ImprovementTracker {
     buffer: Vec<bool>,
     total_improvements: usize,
 
-    pub i_all_ratio: f64,
-    pub i_1000_ratio: f64,
+    pub i_all_ratio: Float,
+    pub i_1000_ratio: Float,
     pub is_last_improved: bool,
 }
 
@@ -357,15 +357,15 @@ impl ImprovementTracker {
 
         let improvements = (0..generation + 1).zip(self.buffer.iter()).filter(|(_, is_improved)| **is_improved).count();
 
-        self.i_all_ratio = (self.total_improvements as f64) / ((generation + 1) as f64);
-        self.i_1000_ratio = (improvements as f64) / ((generation + 1).min(self.buffer.len()) as f64);
+        self.i_all_ratio = (self.total_improvements as Float) / ((generation + 1) as Float);
+        self.i_1000_ratio = (improvements as Float) / ((generation + 1).min(self.buffer.len()) as Float);
     }
 }
 
 struct SpeedTracker {
-    initial_estimate: f64,
-    initial_time: f64,
-    last_time: f64,
+    initial_estimate: Float,
+    initial_time: Float,
+    last_time: Float,
     median: RemedianUsize,
     speed: HeuristicSpeed,
 }
@@ -383,8 +383,8 @@ impl Default for SpeedTracker {
 }
 
 impl SpeedTracker {
-    pub fn track(&mut self, generation: usize, time: &Timer, termination_estimate: f64) {
-        let elapsed = (time.elapsed_millis() as f64) * 1000.;
+    pub fn track(&mut self, generation: usize, time: &Timer, termination_estimate: Float) {
+        let elapsed = (time.elapsed_millis() as Float) * 1000.;
         if generation == 0 {
             self.initial_estimate = termination_estimate;
             self.initial_time = elapsed;
@@ -396,7 +396,7 @@ impl SpeedTracker {
 
             // average gen/sec speed excluding initial solutions
             let average = if elapsed > self.initial_time {
-                generation as f64 / ((elapsed - self.initial_time) / 1_000_000.)
+                generation as Float / ((elapsed - self.initial_time) / 1_000_000.)
             } else {
                 1000.
             };
@@ -431,7 +431,7 @@ impl SpeedTracker {
     }
 }
 
-fn get_fitness_change<O, S>(population: &DynHeuristicPopulation<O, S>, solution: &S) -> f64
+fn get_fitness_change<O, S>(population: &DynHeuristicPopulation<O, S>, solution: &S) -> Float
 where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
@@ -449,6 +449,6 @@ where
     fitness_change
 }
 
-fn format_fitness(fitness: impl Iterator<Item = f64>) -> String {
+fn format_fitness(fitness: impl Iterator<Item = Float>) -> String {
     fitness.map(|v| format!("{v:.3}")).collect::<Vec<_>>().join(", ")
 }

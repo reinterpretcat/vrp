@@ -23,12 +23,12 @@ fn get_single_place(single: &Single) -> &Place {
     single.places.first().unwrap()
 }
 
-fn assert_time_window(tw: &TimeWindow, expected: &(f64, f64)) {
+fn assert_time_window(tw: &TimeWindow, expected: &(Float, Float)) {
     assert_eq!(tw.start, expected.0);
     assert_eq!(tw.end, expected.1);
 }
 
-fn assert_time_spans(tws: &[TimeSpan], expected: Vec<(f64, f64)>) {
+fn assert_time_spans(tws: &[TimeSpan], expected: Vec<(Float, Float)>) {
     assert_eq!(tws.len(), expected.len());
     (0..tws.len()).for_each(|index| {
         assert_time_window(&tws.get(index).and_then(|tw| tw.as_time_window()).unwrap(), expected.get(index).unwrap());

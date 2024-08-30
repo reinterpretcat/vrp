@@ -431,13 +431,13 @@ fn from_cli_parameters(
     Ok(Solver::new(problem.clone(), config))
 }
 
-fn get_min_cv(matches: &ArgMatches) -> GenericResult<Option<(String, usize, f64, bool)>> {
+fn get_min_cv(matches: &ArgMatches) -> GenericResult<Option<(String, usize, Float, bool)>> {
     let err_result = Err("cannot parse min_cv parameter".into());
     matches
         .get_one::<String>(MIN_CV_ARG_NAME)
         .map(|arg| match arg.split(',').collect::<Vec<_>>().as_slice() {
             [cv_type, sample, threshold, is_global] => {
-                match (*cv_type, sample.parse::<usize>(), threshold.parse::<f64>(), is_global.parse::<bool>()) {
+                match (*cv_type, sample.parse::<usize>(), threshold.parse::<Float>(), is_global.parse::<bool>()) {
                     (cv_type, Ok(sample), Ok(threshold), Ok(is_global))
                         if cv_type == "sample" || cv_type == "period" =>
                     {
@@ -546,7 +546,7 @@ pub fn create_interruption_quota(max_time: Option<usize>) -> Arc<dyn Quota> {
         }
     }
 
-    let inner = max_time.map::<Arc<dyn Quota>, _>(|time| Arc::new(TimeQuota::new(time as f64)));
+    let inner = max_time.map::<Arc<dyn Quota>, _>(|time| Arc::new(TimeQuota::new(time as Float)));
     let should_interrupt = Arc::new(AtomicBool::new(false));
 
     // NOTE ignore error which happens in unit tests

@@ -1,7 +1,7 @@
 use crate::construction::heuristics::*;
 use crate::models::problem::{Actor, Job};
 use rand::prelude::IteratorRandom;
-use rosomaxa::prelude::Random;
+use rosomaxa::prelude::{Float, Random};
 use std::collections::HashSet;
 use std::hash::Hash;
 use std::sync::Arc;
@@ -53,12 +53,12 @@ impl From<&InsertionContext> for TabuList {
 
         let max_actors = match routes {
             _ if routes <= 1 => 0,
-            _ => (routes as f64 * 0.5).trunc() as usize,
+            _ => (routes as Float * 0.5).trunc() as usize,
         };
 
         let max_jobs = match jobs {
             _ if jobs <= 1 => 0,
-            _ => (jobs as f64 * 0.5).trunc() as usize,
+            _ => (jobs as Float * 0.5).trunc() as usize,
         };
 
         let other_tabu_list = solution_ctx.state.get_tabu_list().cloned().unwrap_or_else(|| TabuList {

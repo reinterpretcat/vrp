@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 /// Creates a feature which balances max load across all tours.
 pub fn create_max_load_balanced_feature<T>(
     name: &str,
-    load_balance_fn: impl Fn(&T, &T) -> f64 + Send + Sync + 'static,
+    load_balance_fn: impl Fn(&T, &T) -> Float + Send + Sync + 'static,
     vehicle_capacity_fn: impl Fn(&Vehicle) -> &T + Send + Sync + 'static,
 ) -> Result<Feature, GenericError>
 where
@@ -31,7 +31,7 @@ where
             .map(|(start_idx, _)| route_ctx.state().get_max_future_capacity_at(*start_idx).unwrap_or(&default_capacity))
             .map(|max_load| (load_balance_fn)(max_load, capacity))
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less))
-            .unwrap_or(0_f64)
+            .unwrap_or(Float::default())
     });
 
     let route_estimate_fn = get_load_ratio.clone();
@@ -46,13 +46,13 @@ where
 pub fn create_activity_balanced_feature(name: &str) -> Result<Feature, GenericError> {
     struct ActivityBalancedKey;
 
-    let route_estimate_fn = Arc::new(|route_ctx: &RouteContext| route_ctx.route().tour.job_activity_count() as f64);
+    let route_estimate_fn = Arc::new(|route_ctx: &RouteContext| route_ctx.route().tour.job_activity_count() as Float);
     let solution_estimate_fn = Arc::new(|solution_ctx: &SolutionContext| {
         get_cv_safe(
             solution_ctx
                 .routes
                 .iter()
-                .map(|route_ctx| route_ctx.route().tour.job_activity_count() as f64)
+                .map(|route_ctx| route_ctx.route().tour.job_activity_count() as Float)
                 .collect::<Vec<_>>()
                 .as_slice(),
         )
@@ -76,7 +76,7 @@ pub fn create_distance_balanced_feature(name: &str) -> Result<Feature, GenericEr
 
 fn create_transport_balanced_feature<K: Send + Sync + 'static>(
     name: &str,
-    value_fn: impl Fn(&RouteState) -> Option<&f64> + Send + Sync + 'static,
+    value_fn: impl Fn(&RouteState) -> Option<&Float> + Send + Sync + 'static,
 ) -> Result<Feature, GenericError> {
     let route_estimate_fn =
         Arc::new(move |route_ctx: &RouteContext| value_fn(route_ctx.state()).cloned().unwrap_or(0.));
@@ -93,8 +93,8 @@ fn create_transport_balanced_feature<K: Send + Sync + 'static>(
 
 fn create_feature<K: Send + Sync + 'static>(
     name: &str,
-    route_estimate_fn: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
-    solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
+    route_estimate_fn: Arc<dyn Fn(&RouteContext) -> Float + Send + Sync>,
+    solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> Float + Send + Sync>,
 ) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
@@ -108,8 +108,8 @@ fn create_feature<K: Send + Sync + 'static>(
 }
 
 struct WorkBalanceObjective<K: Send + Sync + 'static> {
-    route_estimate_fn: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
-    solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
+    route_estimate_fn: Arc<dyn Fn(&RouteContext) -> Float + Send + Sync>,
+    solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> Float + Send + Sync>,
     phantom_data: PhantomData<K>,
 }
 
@@ -118,7 +118,7 @@ impl<K: Send + Sync + 'static> FeatureObjective for WorkBalanceObjective<K> {
         solution
             .solution
             .state
-            .get_value::<K, f64>()
+            .get_value::<K, Float>()
             .cloned()
             .unwrap_or_else(|| (self.solution_estimate_fn)(&solution.solution))
     }
@@ -128,7 +128,7 @@ impl<K: Send + Sync + 'static> FeatureObjective for WorkBalanceObjective<K> {
             MoveContext::Route { route_ctx, .. } => {
                 let value = route_ctx
                     .state()
-                    .get_tour_state::<K, f64>()
+                    .get_tour_state::<K, Float>()
                     .cloned()
                     .unwrap_or_else(|| (self.route_estimate_fn)(route_ctx));
 
@@ -145,8 +145,8 @@ impl<K: Send + Sync + 'static> FeatureObjective for WorkBalanceObjective<K> {
 }
 
 struct WorkBalanceState<K: Send + Sync + 'static> {
-    route_estimate_fn: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
-    solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
+    route_estimate_fn: Arc<dyn Fn(&RouteContext) -> Float + Send + Sync>,
+    solution_estimate_fn: Arc<dyn Fn(&SolutionContext) -> Float + Send + Sync>,
     phantom_data: PhantomData<K>,
 }
 

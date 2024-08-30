@@ -6,6 +6,12 @@ use std::fmt;
 use std::fmt::Formatter;
 use std::ops::ControlFlow;
 
+/// Alias to a scalar floating type.
+///
+/// NOTE: Currently, prefer to use `f64` as a default floating type  as switching to `f32` leads
+/// to precision issues within solution checker (at least). No clear performance benefits were not found.
+pub type Float = f64;
+
 /// Unwraps value from inner state.
 pub trait UnwrapValue {
     /// A value type.

@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/models/common/load_test.rs"]
 mod load_test;
 
-use rosomaxa::prelude::UnwrapValue;
+use rosomaxa::prelude::{Float, UnwrapValue};
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::Sum;
@@ -22,7 +22,7 @@ pub trait Load: Add + Sub + PartialOrd + Copy + Default + Debug + Send + Sync {
     fn can_fit(&self, other: &Self) -> bool;
 
     /// Returns ratio.
-    fn ratio(&self, other: &Self) -> f64;
+    fn ratio(&self, other: &Self) -> Float;
 }
 
 /// Specifies constraints on Load operations.
@@ -159,8 +159,8 @@ impl Load for SingleDimLoad {
         self.value >= other.value
     }
 
-    fn ratio(&self, other: &Self) -> f64 {
-        self.value as f64 / other.value as f64
+    fn ratio(&self, other: &Self) -> Float {
+        self.value as Float / other.value as Float
     }
 }
 
@@ -202,11 +202,11 @@ impl PartialEq for SingleDimLoad {
     }
 }
 
-impl Mul<f64> for SingleDimLoad {
+impl Mul<Float> for SingleDimLoad {
     type Output = Self;
 
-    fn mul(self, value: f64) -> Self::Output {
-        Self::new((self.value as f64 * value).round() as i32)
+    fn mul(self, value: Float) -> Self::Output {
+        Self::new((self.value as Float * value).round() as i32)
     }
 }
 
@@ -268,8 +268,8 @@ impl Load for MultiDimLoad {
         self.load.iter().zip(other.load.iter()).all(|(a, b)| a >= b)
     }
 
-    fn ratio(&self, other: &Self) -> f64 {
-        self.load.iter().zip(other.load.iter()).fold(0., |acc, (a, b)| (*a as f64 / *b as f64).max(acc))
+    fn ratio(&self, other: &Self) -> Float {
+        self.load.iter().zip(other.load.iter()).fold(0., |acc, (a, b)| (*a as Float / *b as Float).max(acc))
     }
 }
 
@@ -347,14 +347,14 @@ impl PartialEq for MultiDimLoad {
     }
 }
 
-impl Mul<f64> for MultiDimLoad {
+impl Mul<Float> for MultiDimLoad {
     type Output = Self;
 
-    fn mul(self, value: f64) -> Self::Output {
+    fn mul(self, value: Float) -> Self::Output {
         let mut dimens = self;
 
         dimens.load.iter_mut().for_each(|item| {
-            *item = (*item as f64 * value).round() as i32;
+            *item = (*item as Float * value).round() as i32;
         });
 
         dimens

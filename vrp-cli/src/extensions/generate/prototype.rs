@@ -3,6 +3,7 @@
 mod prototype_test;
 
 use super::*;
+use vrp_core::prelude::Float;
 use vrp_pragmatic::format::problem::Problem;
 use vrp_pragmatic::format::Location;
 
@@ -16,7 +17,7 @@ pub(crate) fn generate_from_prototype(
     locations: Option<Vec<Location>>,
     jobs_size: usize,
     vehicle_types_size: usize,
-    area_size: Option<f64>,
+    area_size: Option<Float>,
 ) -> Result<Problem, GenericError> {
     if problem.plan.jobs.len() < 3 {
         return Err("at least three jobs should be defined".into());

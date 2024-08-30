@@ -25,10 +25,10 @@ where
     /// Data dimension.
     dimension: usize,
     /// Growth threshold.
-    growing_threshold: f64,
+    growing_threshold: Float,
     /// The factor of distribution (FD), used in error distribution stage, 0 < FD < 1
-    distribution_factor: f64,
-    learning_rate: f64,
+    distribution_factor: Float,
+    learning_rate: Float,
     time: usize,
     rebalance_memory: usize,
     min_max_weights: MinMaxWeights,
@@ -40,11 +40,11 @@ where
 /// GSOM network configuration.
 pub struct NetworkConfig {
     /// A spread factor.
-    pub spread_factor: f64,
+    pub spread_factor: Float,
     /// The factor of distribution (FD), used in error distribution stage, 0 < FD < 1
-    pub distribution_factor: f64,
+    pub distribution_factor: Float,
     /// Initial learning rate.
-    pub learning_rate: f64,
+    pub learning_rate: Float,
     /// A rebalance memory.
     pub rebalance_memory: usize,
     /// If set to true, initial nodes have error set to the value equal to growing threshold.
@@ -52,7 +52,7 @@ pub struct NetworkConfig {
 }
 
 /// Specifies min max weights type.
-type MinMaxWeights = (Vec<f64>, Vec<f64>);
+type MinMaxWeights = (Vec<Float>, Vec<Float>);
 
 impl<I, S, F> Network<I, S, F>
 where
@@ -68,7 +68,7 @@ where
         assert!(config.distribution_factor > 0. && config.distribution_factor < 1.);
         assert!(config.spread_factor > 0. && config.spread_factor < 1.);
 
-        let growing_threshold = -1. * dimension as f64 * config.spread_factor.log2();
+        let growing_threshold = -1. * dimension as Float * config.spread_factor.log2();
         let initial_error = if config.has_initial_error { growing_threshold } else { 0. };
         let noise = Noise::new_with_ratio(1., (0.75, 1.25), random.clone());
 
@@ -90,12 +90,12 @@ where
     }
 
     /// Sets a new learning rate.
-    pub fn set_learning_rate(&mut self, learning_rate: f64) {
+    pub fn set_learning_rate(&mut self, learning_rate: Float) {
         self.learning_rate = learning_rate;
     }
 
     /// Gets current learning rate.
-    pub fn get_learning_rate(&self) -> f64 {
+    pub fn get_learning_rate(&self) -> Float {
         self.learning_rate
     }
 
@@ -170,19 +170,19 @@ where
     }
 
     /// Calculates mean distance of nodes with individuals.
-    pub fn mean_distance(&self) -> f64 {
+    pub fn mean_distance(&self) -> Float {
         get_mean_iter(self.nodes.iter().filter_map(|(_, node)| node.node_distance()))
     }
 
     /// Calculates mean squared error of the whole network.
-    pub fn mse(&self) -> f64 {
-        let n = if self.nodes.is_empty() { 1 } else { self.nodes.len() } as f64;
+    pub fn mse(&self) -> Float {
+        let n = if self.nodes.is_empty() { 1 } else { self.nodes.len() } as Float;
 
         self.nodes.iter().fold(0., |acc, (_, node)| acc + node.mse()) / n
     }
 
     /// Returns max unified distance of the network.
-    pub fn max_unified_distance(&self) -> f64 {
+    pub fn max_unified_distance(&self) -> Float {
         self.get_nodes().map(|node| node.unified_distance(self, 1)).max_by(compare_floats_refs).unwrap_or(0.)
     }
 
@@ -201,7 +201,7 @@ where
     }
 
     /// Trains network on inputs.
-    fn train_batch(&mut self, nodes_data: Vec<(Coordinate, f64, I)>, is_new_input: bool) {
+    fn train_batch(&mut self, nodes_data: Vec<(Coordinate, Float, I)>, is_new_input: bool) {
         nodes_data.into_iter().for_each(|(bmu_coord, error, input)| {
             self.update(&bmu_coord, &input, error, is_new_input);
             self.nodes.get_mut(&bmu_coord).unwrap().storage.add(input);
@@ -230,7 +230,7 @@ where
     }
 
     /// Updates network according to the error.
-    fn update(&mut self, coord: &Coordinate, input: &I, error: f64, is_new_input: bool) {
+    fn update(&mut self, coord: &Coordinate, input: &I, error: Float, is_new_input: bool) {
         let radius = if is_new_input { 2 } else { 3 };
 
         let (exceeds_ae, can_grow) = {
@@ -270,7 +270,7 @@ where
                     .neighbours(self, radius)
                     .filter_map(|(coord, offset)| coord.map(|coord| (coord, offset)))
                     .map(|(coord, (x, y))| {
-                        let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as f64;
+                        let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as Float;
                         (coord, Some(distribution_factor))
                     }),
             )
@@ -286,7 +286,7 @@ where
         });
     }
 
-    fn grow_nodes(&self, coord: &Coordinate) -> Vec<(Coordinate, Vec<f64>)> {
+    fn grow_nodes(&self, coord: &Coordinate) -> Vec<(Coordinate, Vec<Float>)> {
         let node = self.nodes.get(coord).unwrap();
         let coord = node.coordinate;
         let weights = node.weights.clone();
@@ -349,16 +349,16 @@ where
             .collect()
     }
 
-    fn adjust_weights(&mut self, coord: &Coordinate, weights: &[f64], radius: usize, is_new_input: bool) {
+    fn adjust_weights(&mut self, coord: &Coordinate, weights: &[Float], radius: usize, is_new_input: bool) {
         let node = self.nodes.get(coord).expect("invalid coordinate");
-        let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
+        let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as Float));
         let learning_rate = if is_new_input { learning_rate } else { 0.25 * learning_rate };
 
         let nodes = once((*coord, weights, learning_rate))
             .chain(node.neighbours(self, radius).filter_map(|(coord, offset)| coord.map(|coord| (coord, offset))).map(
                 |(coord, offset)| {
                     let distance = offset.0.abs() + offset.1.abs();
-                    let learning_rate = learning_rate / distance as f64;
+                    let learning_rate = learning_rate / distance as Float;
                     (coord, weights, learning_rate)
                 },
             ))
@@ -375,7 +375,7 @@ where
     }
 
     /// Inserts new neighbors if necessary.
-    pub(super) fn insert(&mut self, coord: Coordinate, weights: &[f64]) {
+    pub(super) fn insert(&mut self, coord: Coordinate, weights: &[Float]) {
         update_min_max(&mut self.min_max_weights, weights);
         self.nodes.insert(coord, self.create_node(coord, weights, 0.));
     }
@@ -397,14 +397,14 @@ where
     }
 
     /// Creates a new node for given data.
-    fn create_node(&self, coord: Coordinate, weights: &[f64], error: f64) -> Node<I, S> {
+    fn create_node(&self, coord: Coordinate, weights: &[Float], error: Float) -> Node<I, S> {
         Node::new(coord, weights, error, self.rebalance_memory, self.storage_factory.eval())
     }
 
     /// Creates nodes for initial topology.
     fn create_initial_nodes(
         roots: [I; 4],
-        initial_error: f64,
+        initial_error: Float,
         rebalance_memory: usize,
         noise: &Noise,
         storage_factory: &F,
@@ -427,7 +427,7 @@ where
         let n10 = create_node(Coordinate(1, 0), n10);
 
         let min_max_weights = [&n00, &n01, &n11, &n10].into_iter().fold(
-            (vec![f64::MAX; dimension], vec![f64::MIN; dimension]),
+            (vec![Float::MAX; dimension], vec![Float::MIN; dimension]),
             |mut min_max_weights, node| {
                 update_min_max(&mut min_max_weights, node.weights.as_slice());
 
@@ -449,7 +449,7 @@ fn compare_input<I: Input>(left: &I, right: &I) -> Ordering {
         .unwrap_or(Ordering::Equal)
 }
 
-fn update_min_max(min_max_weights: &mut (Vec<f64>, Vec<f64>), weights: &[f64]) {
+fn update_min_max(min_max_weights: &mut (Vec<Float>, Vec<Float>), weights: &[Float]) {
     min_max_weights.0.iter_mut().zip(weights.iter()).for_each(|(curr, v)| *curr = curr.min(*v));
     min_max_weights.1.iter_mut().zip(weights.iter()).for_each(|(curr, v)| *curr = curr.max(*v));
 }

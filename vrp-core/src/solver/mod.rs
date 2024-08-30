@@ -108,7 +108,7 @@ pub struct RefinementContext {
 #[derive(Clone)]
 pub enum RefinementSpeed {
     /// Slow speed with ratio estimation
-    Slow(f64),
+    Slow(Float),
 
     /// Moderate speed.
     Moderate,
@@ -165,7 +165,7 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.on_initial(solution, item_time)
     }
 
-    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: f64, generation_time: Timer) {
+    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer) {
         self.inner_context.on_generation(offspring, termination_estimate, generation_time)
     }
 

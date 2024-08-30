@@ -9,7 +9,7 @@ use crate::models::common::Location;
 use crate::models::{Extras, GoalContext};
 use crate::prelude::{ActivityCost, TransportCost};
 
-type MatrixModFn = fn(Vec<f64>) -> (Vec<f64>, Vec<f64>);
+type MatrixModFn = fn(Vec<Float>) -> (Vec<Float>, Vec<Float>);
 
 #[test]
 fn can_get_max_curvature() {
@@ -28,20 +28,20 @@ parameterized_test! {can_estimate_epsilon, (matrix, nth_neighbor, matrix_modify,
 }}
 
 can_estimate_epsilon! {
-    case_00: ((8, 8), 1, |data: Vec<f64>| (data.clone(), data), 1.),
+    case_00: ((8, 8), 1, |data: Vec<Float>| (data.clone(), data), 1.),
 
-    case_01: ((8, 8), 3,  |data: Vec<f64>| (data.clone(), data), 1.5),
-    case_02: ((8, 8), 6,  |data: Vec<f64>| (data.clone(), data), 2.237),
-    case_03: ((8, 8), 18, |data: Vec<f64>| (data.clone(), data), 4.079),
+    case_01: ((8, 8), 3,  |data: Vec<Float>| (data.clone(), data), 1.5),
+    case_02: ((8, 8), 6,  |data: Vec<Float>| (data.clone(), data), 2.237),
+    case_03: ((8, 8), 18, |data: Vec<Float>| (data.clone(), data), 4.079),
 
-    case_04:  ((8, 1), 3, |data: Vec<f64>| (data.clone(), data), 2.0),
-    case_05:  ((8, 1), 6, |data: Vec<f64>| (data.clone(), data), 4.571),
+    case_04:  ((8, 1), 3, |data: Vec<Float>| (data.clone(), data), 2.0),
+    case_05:  ((8, 1), 6, |data: Vec<Float>| (data.clone(), data), 4.571),
 
-    case_06:  ((8, 1), 2, |_: Vec<f64>| (vec![0.; 64], create_test_distances()), 6.084),
-    case_07:  ((8, 1), 3, |_: Vec<f64>| (vec![0.; 64], create_test_distances()), 10.419),
+    case_06:  ((8, 1), 2, |_: Vec<Float>| (vec![0.; 64], create_test_distances()), 6.084),
+    case_07:  ((8, 1), 3, |_: Vec<Float>| (vec![0.; 64], create_test_distances()), 10.419),
 }
 
-fn can_estimate_epsilon_impl(matrix: (usize, usize), nth_neighbor: usize, matrix_modify: MatrixModFn, expected: f64) {
+fn can_estimate_epsilon_impl(matrix: (usize, usize), nth_neighbor: usize, matrix_modify: MatrixModFn, expected: Float) {
     let (problem, _) = generate_matrix_routes(
         matrix.0,
         matrix.1,
@@ -104,7 +104,7 @@ can_create_job_clusters! {
     case_03: ((3, 25.00), &[vec![0, 1, 2, 3, 5, 6, 7]]),
 }
 
-fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>]) {
+fn can_create_job_clusters_impl(param: (usize, Float), expected: &[Vec<Location>]) {
     let (min_points, epsilon) = param;
     let (problem, _) = generate_matrix_routes(
         8,

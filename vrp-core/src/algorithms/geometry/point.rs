@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/algorithms/geometry/point_test.rs"]
 mod point_test;
 
-use rosomaxa::prelude::compare_floats;
+use rosomaxa::prelude::{compare_floats, Float};
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 
@@ -10,19 +10,19 @@ use std::hash::{Hash, Hasher};
 #[derive(Clone, Debug)]
 pub struct Point {
     /// X value.
-    pub x: f64,
+    pub x: Float,
     /// Y value.
-    pub y: f64,
+    pub y: Float,
 }
 
 impl Point {
     /// Creates a new instance of `Point`.
-    pub fn new(x: f64, y: f64) -> Self {
+    pub fn new(x: Float, y: Float) -> Self {
         Self { x, y }
     }
 
     /// Computes distance from given point to `other`
-    pub fn distance_to_point(&self, other: &Point) -> f64 {
+    pub fn distance_to_point(&self, other: &Point) -> Float {
         let delta_x = self.x - other.x;
         let delta_y = self.y - other.y;
 
@@ -30,7 +30,7 @@ impl Point {
     }
 
     /// Computes distance from line, drawn by points a and b, to the point.
-    pub fn distance_to_line(&self, a: &Point, b: &Point) -> f64 {
+    pub fn distance_to_line(&self, a: &Point, b: &Point) -> Float {
         let a_b_distance = a.distance_to_point(b);
 
         if compare_floats(a_b_distance, 0.) == Ordering::Equal {
@@ -41,7 +41,7 @@ impl Point {
     }
 
     /// Computes distance from segment to the point.
-    pub fn distance_to_segment(&self, a: &Point, b: &Point) -> f64 {
+    pub fn distance_to_segment(&self, a: &Point, b: &Point) -> Float {
         if Self::dot_product(a, b, self) > 0. {
             return b.distance_to_point(self);
         }
@@ -54,7 +54,7 @@ impl Point {
     }
 
     /// Computes the dot product AB . BC
-    pub fn dot_product(a: &Point, b: &Point, c: &Point) -> f64 {
+    pub fn dot_product(a: &Point, b: &Point, c: &Point) -> Float {
         let ab_x = b.x - a.x;
         let ab_y = b.y - a.y;
         let bc_x = c.x - b.x;
@@ -64,7 +64,7 @@ impl Point {
     }
 
     /// Computes the cross product AB x AC
-    pub fn cross_product(a: &Point, b: &Point, c: &Point) -> f64 {
+    pub fn cross_product(a: &Point, b: &Point, c: &Point) -> Float {
         let ab_x = b.x - a.x;
         let ab_y = b.y - a.y;
         let ac_x = c.x - a.x;

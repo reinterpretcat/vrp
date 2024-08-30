@@ -59,7 +59,7 @@ impl InsertionContext {
     ///
     /// Returns None if cost cannot be calculate as the context is in non-consistent state.
     pub fn get_total_cost(&self) -> Option<Cost> {
-        let get_cost = |costs: &Costs, distance: f64, duration: f64| {
+        let get_cost = |costs: &Costs, distance: Float, duration: Float| {
             costs.fixed
                 + costs.per_distance * distance
                 // NOTE this is incorrect when timing costs are different: fitness value will be
@@ -90,7 +90,7 @@ impl InsertionContext {
 }
 
 impl HeuristicSolution for InsertionContext {
-    fn fitness(&self) -> impl Iterator<Item = f64> {
+    fn fitness(&self) -> impl Iterator<Item = Float> {
         self.problem.goal.fitness(self)
     }
 

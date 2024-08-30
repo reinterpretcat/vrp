@@ -362,7 +362,7 @@ fn can_build_job_cluster_impl(
     disallow_insertion_list: Vec<&str>,
     used_jobs: Vec<usize>,
     jobs_places: Vec<JobPlaces>,
-    expected: Option<(Vec<usize>, f64, (f64, f64))>,
+    expected: Option<(Vec<usize>, Float, (Float, Float))>,
 ) {
     let transport = TestTransportCost::default();
     let config = ClusterConfig { visiting, ..create_cluster_config() };
@@ -427,7 +427,7 @@ can_get_clusters! {
 
 pub fn can_get_clusters_impl(
     jobs_amount: usize,
-    moving_duration: f64,
+    moving_duration: Float,
     max_jobs_per_cluster: Option<usize>,
     expected: Vec<(usize, Vec<usize>)>,
 ) {

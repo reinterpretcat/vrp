@@ -42,7 +42,7 @@ fn create_feature(name: &str, cost: Cost, violation: Option<ConstraintViolation>
         .unwrap()
 }
 
-type FitnessFn = Arc<dyn Fn(&str, &InsertionContext) -> f64 + Send + Sync>;
+type FitnessFn = Arc<dyn Fn(&str, &InsertionContext) -> Float + Send + Sync>;
 
 fn create_objective_feature_with_dynamic_cost(name: &str, fitness_fn: FitnessFn) -> Feature {
     struct TestFeatureObjective {
@@ -169,12 +169,12 @@ can_use_objective_total_order! {
     case03_great: (vec![5., 5., 0., 0.], vec![5., 3., 0., 0.], Ordering::Greater),
 }
 
-fn can_use_objective_total_order_impl(left_fitness: Vec<f64>, right_fitness: Vec<f64>, expected: Ordering) {
+fn can_use_objective_total_order_impl(left_fitness: Vec<Float>, right_fitness: Vec<Float>, expected: Ordering) {
     let fitness_fn = Arc::new(move |name: &str, insertion_ctx: &InsertionContext| {
         let idx = name.parse::<usize>().unwrap();
-        insertion_ctx.solution.state.get_value::<(), Vec<f64>>().unwrap()[idx]
+        insertion_ctx.solution.state.get_value::<(), Vec<Float>>().unwrap()[idx]
     });
-    let create_insertion_ctx_with_fitness_state = |fitness: Vec<f64>| {
+    let create_insertion_ctx_with_fitness_state = |fitness: Vec<Float>| {
         let mut insertion_ctx = TestInsertionContextBuilder::default().build();
         insertion_ctx.solution.state.set_value::<(), _>(fitness);
         insertion_ctx

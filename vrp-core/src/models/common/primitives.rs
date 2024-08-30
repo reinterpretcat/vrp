@@ -1,8 +1,10 @@
+use rosomaxa::prelude::Float;
+
 /// Represents a time duration.
-pub type Duration = f64;
+pub type Duration = Float;
 
 /// Represents a timestamp.
-pub type Timestamp = f64;
+pub type Timestamp = Float;
 
 /// Represents a distance.
-pub type Distance = f64;
+pub type Distance = Float;

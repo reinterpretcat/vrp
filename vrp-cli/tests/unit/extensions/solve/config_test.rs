@@ -157,7 +157,7 @@ fn can_configure_telemetry_metrics() {
     assert_eq!(metrics.evolution.len(), 10 + 1);
 }
 
-fn as_scalar_probability(probability: &OperatorProbabilityType) -> f64 {
+fn as_scalar_probability(probability: &OperatorProbabilityType) -> Float {
     match probability {
         OperatorProbabilityType::Scalar { scalar } => *scalar,
         _ => unreachable!(),

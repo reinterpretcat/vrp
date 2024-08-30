@@ -20,7 +20,7 @@ where
     K: Hash + Eq + Clone,
 {
     interval_type: IntervalType,
-    threshold: f64,
+    threshold: Float,
     is_global: bool,
     key: K,
     _marker: (PhantomData<C>, PhantomData<O>, PhantomData<S>),
@@ -39,18 +39,18 @@ where
     K: Hash + Eq + Clone,
 {
     /// Creates a new instance of `MinVariation` with sample interval type.
-    pub fn new_with_sample(sample: usize, threshold: f64, is_global: bool, key: K) -> Self {
+    pub fn new_with_sample(sample: usize, threshold: Float, is_global: bool, key: K) -> Self {
         assert_ne!(sample, 0);
         Self::new(IntervalType::Sample(sample), threshold, is_global, key)
     }
 
     /// Creates a new instance of `MinVariation` with period interval type.
-    pub fn new_with_period(period: usize, threshold: f64, is_global: bool, key: K) -> Self {
+    pub fn new_with_period(period: usize, threshold: Float, is_global: bool, key: K) -> Self {
         assert_ne!(period, 0);
         Self::new(IntervalType::Period(period as u128 * 1000), threshold, is_global, key)
     }
 
-    fn new(interval_type: IntervalType, threshold: f64, is_global: bool, key: K) -> Self {
+    fn new(interval_type: IntervalType, threshold: Float, is_global: bool, key: K) -> Self {
         Self {
             interval_type,
             threshold,
@@ -60,13 +60,13 @@ where
         }
     }
 
-    fn update_and_check(&self, heuristic_ctx: &mut C, fitness: Vec<f64>) -> bool {
+    fn update_and_check(&self, heuristic_ctx: &mut C, fitness: Vec<Float>) -> bool {
         match &self.interval_type {
             IntervalType::Sample(sample) => {
                 let generation = heuristic_ctx.statistics().generation;
 
                 let values = heuristic_ctx
-                    .state_mut::<Vec<Vec<f64>>, _>(self.key.clone(), || vec![vec![0.; fitness.len()]; *sample]);
+                    .state_mut::<Vec<Vec<Float>>, _>(self.key.clone(), || vec![vec![0.; fitness.len()]; *sample]);
 
                 values[generation % sample] = fitness;
 
@@ -82,7 +82,7 @@ where
                 let mut rng = random.get_rng();
 
                 let values = heuristic_ctx
-                    .state_mut::<Vec<(u128, Vec<f64>)>, _>(self.key.clone(), Vec::<(u128, Vec<f64>)>::default);
+                    .state_mut::<Vec<(u128, Vec<Float>)>, _>(self.key.clone(), Vec::<(u128, Vec<Float>)>::default);
 
                 values.push((elapsed_time, fitness));
 
@@ -122,7 +122,7 @@ where
 
     fn check_threshold<'a, I>(&self, values: I) -> bool
     where
-        I: Iterator<Item = &'a Vec<f64>>,
+        I: Iterator<Item = &'a Vec<Float>>,
     {
         values
             .flat_map(|values| values.iter().cloned().enumerate())
@@ -166,7 +166,7 @@ where
         }
     }
 
-    fn estimate(&self, _: &Self::Context) -> f64 {
+    fn estimate(&self, _: &Self::Context) -> Float {
         0.
     }
 }

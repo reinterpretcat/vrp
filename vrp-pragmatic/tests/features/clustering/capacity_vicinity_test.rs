@@ -103,7 +103,7 @@ fn can_vary_cluster_size_based_on_capacity_impl(
     capacity: i32,
     stops: Vec<StopData>,
     unassigned: Option<Vec<&str>>,
-    statistic_data: (f64, i64, i64, (i64, i64, i64, i64)),
+    statistic_data: (Float, i64, i64, (i64, i64, i64, i64)),
 ) {
     let statistic = create_statistic(statistic_data);
     let problem = create_test_problem(

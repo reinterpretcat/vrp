@@ -131,7 +131,7 @@ fn create_feature(
     activity: Arc<dyn ActivityCost>,
     time_window_code: ViolationCode,
     is_constrained: bool,
-    fitness_fn: Box<dyn Fn(&InsertionContext) -> f64 + Send + Sync>,
+    fitness_fn: Box<dyn Fn(&InsertionContext) -> Float + Send + Sync>,
 ) -> Result<Feature, GenericError> {
     let builder = FeatureBuilder::default()
         .with_name(name)
@@ -281,11 +281,11 @@ impl FeatureConstraint for TransportConstraint {
 struct TransportObjective {
     activity: Arc<dyn ActivityCost>,
     transport: Arc<dyn TransportCost>,
-    fitness_fn: Box<dyn Fn(&InsertionContext) -> f64 + Send + Sync>,
+    fitness_fn: Box<dyn Fn(&InsertionContext) -> Float + Send + Sync>,
 }
 
 impl TransportObjective {
-    fn estimate_route(&self, route_ctx: &RouteContext) -> f64 {
+    fn estimate_route(&self, route_ctx: &RouteContext) -> Float {
         if route_ctx.route().tour.has_jobs() {
             0.
         } else {
@@ -293,7 +293,7 @@ impl TransportObjective {
         }
     }
 
-    fn estimate_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> f64 {
+    fn estimate_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Float {
         let prev = activity_ctx.prev;
         let target = activity_ctx.target;
         let next = activity_ctx.next;
@@ -320,7 +320,7 @@ impl TransportObjective {
         let (tp_cost_old, act_cost_old, dep_time_old) =
             self.analyze_route_leg(route_ctx, prev, next, prev.schedule.departure);
 
-        let waiting_cost = waiting_time.min(0.0_f64.max(dep_time_right - dep_time_old))
+        let waiting_cost = waiting_time.min(Float::default().max(dep_time_right - dep_time_old))
             * route_ctx.route().actor.vehicle.costs.per_waiting_time;
 
         let old_costs = tp_cost_old + act_cost_old + waiting_cost;

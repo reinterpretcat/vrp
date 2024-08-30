@@ -9,8 +9,8 @@ use crate::models::solution::Place;
 use crate::models::{Extras, Lock, LockDetail, LockOrder, LockPosition, Problem};
 use crate::prelude::*;
 
-type JobData = (Option<Location>, (f64, f64), Duration, i32);
-type VehicleData = (i32, (Location, Option<f64>, Option<f64>), Option<(Location, Option<f64>, Option<f64>)>);
+type JobData = (Option<Location>, (Float, Float), Duration, i32);
+type VehicleData = (i32, (Location, Option<Float>, Option<Float>), Option<(Location, Option<Float>, Option<Float>)>);
 type ActivityData = (Location, Duration, (Timestamp, Timestamp), Arc<Single>);
 type RouteData<'a> = Vec<(&'a str, Location, Duration, (Timestamp, Timestamp), usize)>;
 type LockData<'a> = (&'a str, LockOrder, LockPosition, Vec<&'a str>);

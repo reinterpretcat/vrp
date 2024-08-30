@@ -76,7 +76,7 @@ impl<I: Iterator> Iterator for SelectionSamplingIterator<I> {
                 return None;
             };
 
-            let probability = self.needed as f64 / left as f64;
+            let probability = self.needed as Float / left as Float;
 
             self.processed += 1;
             let next = self.iterator.next();
@@ -95,8 +95,8 @@ pub fn create_range_sampling_iter<I: Iterator>(
     sample_size: usize,
     random: &(dyn Random),
 ) -> impl Iterator<Item = I::Item> {
-    let iterator_size = iterator.size_hint().0 as f64;
-    let sample_count = (iterator_size / sample_size as f64).max(1.) - 1.;
+    let iterator_size = iterator.size_hint().0 as Float;
+    let sample_count = (iterator_size / sample_size as Float).max(1.) - 1.;
     let offset = random.uniform_int(0, sample_count as i32) as usize * sample_size;
 
     iterator.skip(offset).take(sample_size)

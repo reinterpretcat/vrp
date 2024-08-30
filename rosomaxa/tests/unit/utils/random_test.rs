@@ -14,8 +14,8 @@ fn can_return_weights() {
     });
 
     weights.iter().enumerate().for_each(|(idx, weight)| {
-        let actual_ratio = counter[idx] as f64 / experiments as f64;
-        let expected_ratio = *weight as f64 / total_sum as f64;
+        let actual_ratio = counter[idx] as Float / experiments as Float;
+        let expected_ratio = *weight as Float / total_sum as Float;
 
         assert!((actual_ratio - expected_ratio).abs() < 0.05);
     });

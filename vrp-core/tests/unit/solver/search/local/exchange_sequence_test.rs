@@ -59,7 +59,7 @@ fn can_insert_jobs_impl(
     start_idx: i32,
     insert_job_ids: &[&str],
     disallowed_pairs: Vec<(&str, &str)>,
-    reverse_probability: f64,
+    reverse_probability: Float,
     expected_route_ids: &[Vec<&str>],
     expected_unassigned_ids: &[Vec<&str>],
 ) {

@@ -14,7 +14,7 @@ pub enum PopulationState {
     /// Unknown (or unimplemented) population type.
     Unknown {
         /// Best fitness values.
-        fitness_values: Vec<f64>,
+        fitness_values: Vec<Float>,
     },
     /// Rosomaxa type.
     Rosomaxa {
@@ -23,9 +23,9 @@ pub enum PopulationState {
         /// Cols range.
         cols: Range<i32>,
         /// Mean distance.
-        mean_distance: f64,
+        mean_distance: Float,
         /// Best fitness values.
-        fitness_values: Vec<f64>,
+        fitness_values: Vec<Float>,
         /// Overall fitness values data split into separate matrices.
         fitness_matrices: Vec<MatrixData>,
         /// U-matrix values data.
@@ -59,7 +59,7 @@ where
     }
 }
 
-fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<f64>) -> PopulationState {
+fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<Float>) -> PopulationState {
     let (rows, cols, _) = network_state.shape;
 
     let rosomaxa = PopulationState::Rosomaxa {
@@ -90,7 +90,7 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<f64>) 
                 let fitness = match (node.dump.starts_with("[["), node.dump.find(']')) {
                     (true, Some(value)) => node.dump[2..value]
                         .split(',')
-                        .map(|value| value.parse::<f64>())
+                        .map(|value| value.parse::<Float>())
                         .collect::<Result<Vec<_>, _>>()
                         .ok(),
                     _ => None,
@@ -108,8 +108,8 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<f64>) 
                 }
 
                 u_matrix.insert(coordinate, node.unified_distance);
-                t_matrix.insert(coordinate, node.total_hits as f64);
-                l_matrix.insert(coordinate, node.last_hits as f64);
+                t_matrix.insert(coordinate, node.total_hits as Float);
+                l_matrix.insert(coordinate, node.last_hits as Float);
                 *mean_distance = network_state.mean_distance;
             }
             _ => unreachable!(),
@@ -121,11 +121,11 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<f64>) 
 
 /// Search state result represented as (name idx, reward, (from state idx, to state idx), duration).
 #[derive(Default, Serialize, Deserialize)]
-pub struct SearchResult(pub usize, pub f64, pub (usize, usize), pub usize);
+pub struct SearchResult(pub usize, pub Float, pub (usize, usize), pub usize);
 
 /// Heuristic state result represented as (state idx, name idx, alpha, beta, mu, v, n).
 #[derive(Default, Serialize, Deserialize)]
-pub struct HeuristicResult(pub usize, pub usize, pub f64, pub f64, pub f64, pub f64, pub usize);
+pub struct HeuristicResult(pub usize, pub usize, pub Float, pub Float, pub Float, pub Float, pub usize);
 
 /// Keeps track of dynamic selective hyper heuristic state.
 #[derive(Default, Serialize, Deserialize)]

@@ -54,10 +54,10 @@ where
     // NOTE: this is unfortunate, probably, compact was called too often on low amount of nodes
     if network.size() == 0 {
         let dimension = network.dimension();
-        let get_weights = |idx: usize| -> Vec<f64> {
+        let get_weights = |idx: usize| -> Vec<Float> {
             data.get(idx).map_or_else(
                 // NOTE: probably, very bad initialization..
-                || (0..dimension).map(|_| idx as f64).collect(),
+                || (0..dimension).map(|_| idx as Float).collect(),
                 |data| data.weights().to_vec(),
             )
         };

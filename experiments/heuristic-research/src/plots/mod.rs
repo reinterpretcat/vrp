@@ -4,7 +4,7 @@ use super::*;
 use plotters::coord::Shift;
 use plotters::prelude::*;
 use plotters_canvas::CanvasBackend;
-use rosomaxa::prelude::GenericError;
+use rosomaxa::prelude::{Float, GenericError};
 use web_sys::HtmlCanvasElement;
 
 /// Type alias for the result of a drawing function.
@@ -33,7 +33,7 @@ impl Chart {
     }
 
     /// Draws plot for rosenbrock function.
-    pub fn rosenbrock(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
+    pub fn rosenbrock(canvas: HtmlCanvasElement, generation: usize, pitch: Float, yaw: Float) -> Result<(), JsValue> {
         let axes = Axes { x: (-2.0..2.0, 0.15), y: (0.0..3610.), z: (-2.0..2.0, 0.15) };
         draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rosenbrock")
             .map_err(|err| JsValue::from_str(&err.to_string()))?;
@@ -41,7 +41,7 @@ impl Chart {
     }
 
     /// Draws plot for rastrigin function.
-    pub fn rastrigin(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
+    pub fn rastrigin(canvas: HtmlCanvasElement, generation: usize, pitch: Float, yaw: Float) -> Result<(), JsValue> {
         let axes = Axes { x: (-5.12..5.12, 0.2), y: (0.0..80.), z: (-5.12..5.12, 0.2) };
         draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rastrigin")
             .map_err(|err| JsValue::from_str(&err.to_string()))?;
@@ -49,7 +49,7 @@ impl Chart {
     }
 
     /// Draws plot for himmelblau function.
-    pub fn himmelblau(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
+    pub fn himmelblau(canvas: HtmlCanvasElement, generation: usize, pitch: Float, yaw: Float) -> Result<(), JsValue> {
         let axes = Axes { x: (-5.0..5.0, 0.2), y: (0.0..700.), z: (-5.0..5.0, 0.2) };
         draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "himmelblau")
             .map_err(|err| JsValue::from_str(&err.to_string()))?;
@@ -57,7 +57,7 @@ impl Chart {
     }
 
     /// Draws plot for ackley function.
-    pub fn ackley(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
+    pub fn ackley(canvas: HtmlCanvasElement, generation: usize, pitch: Float, yaw: Float) -> Result<(), JsValue> {
         let axes = Axes { x: (-5.0..5.0, 0.2), y: (0.0..14.), z: (-5.0..5.0, 0.2) };
         draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "ackley")
             .map_err(|err| JsValue::from_str(&err.to_string()))?;
@@ -65,7 +65,7 @@ impl Chart {
     }
 
     /// Draws plot for matyas function.
-    pub fn matyas(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
+    pub fn matyas(canvas: HtmlCanvasElement, generation: usize, pitch: Float, yaw: Float) -> Result<(), JsValue> {
         let axes = Axes { x: (-10.0..10.0, 0.4), y: (0.0..100.), z: (-10.0..10.0, 0.4) };
         draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "matyas")
             .map_err(|err| JsValue::from_str(&err.to_string()))?;
@@ -73,7 +73,7 @@ impl Chart {
     }
 
     /// Draws plot for VRP problem.
-    pub fn vrp(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
+    pub fn vrp(canvas: HtmlCanvasElement, generation: usize, pitch: Float, yaw: Float) -> Result<(), JsValue> {
         let (max_x, max_y, max_z) = get_axis_sizes();
         let axes = Axes { x: (0.0..max_x.max(10.), 0.5), y: (0.0..max_y.max(10.)), z: (0.0..max_z.max(10.), 0.5) };
         draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "vrp")
@@ -165,8 +165,8 @@ pub fn draw_search_overall_statistics_plots<B: DrawingBackend + 'static>(
 pub fn draw_population_plots<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
     generation: usize,
-    pitch: f64,
-    yaw: f64,
+    pitch: Float,
+    yaw: Float,
     axes: Axes,
     function_name: &str,
 ) -> Result<(), GenericError> {
@@ -185,7 +185,7 @@ pub fn draw_population_plots<B: DrawingBackend + 'static>(
                     surface: {
                         let fitness_fn = {
                             if function_name == "vrp" {
-                                Arc::new(|_: &[f64]| 0.)
+                                Arc::new(|_: &[Float]| 0.)
                             } else {
                                 get_fitness_fn_by_name(function_name)
                             }
@@ -204,7 +204,7 @@ fn get_canvas_drawing_area(canvas: HtmlCanvasElement) -> DrawingArea<CanvasBacke
     CanvasBackend::with_canvas_object(canvas).unwrap().into_drawing_area()
 }
 
-fn get_best_known_fitness() -> Vec<(usize, Vec<f64>)> {
+fn get_best_known_fitness() -> Vec<(usize, Vec<Float>)> {
     EXPERIMENT_DATA
         .lock()
         .ok()
@@ -388,14 +388,17 @@ fn get_population_series(generation: usize) -> PopulationSeries {
         .unwrap_or(PopulationSeries::Unknown)
 }
 
-fn get_axis_sizes() -> (f64, f64, f64) {
-    EXPERIMENT_DATA.lock().unwrap().on_generation.iter().fold((0_f64, 0_f64, 0_f64), |acc, (_, (_, data))| {
-        data.iter().fold(acc, |(max_x, max_y, max_z), data| {
-            let &DataPoint3D(x, y, z) = match data {
-                ObservationData::Function(point) => point,
-                ObservationData::Vrp { point, .. } => point,
-            };
-            (max_x.max(x), max_y.max(y), max_z.max(z))
-        })
-    })
+fn get_axis_sizes() -> (Float, Float, Float) {
+    EXPERIMENT_DATA.lock().unwrap().on_generation.iter().fold(
+        (Float::default(), Float::default(), Float::default()),
+        |acc, (_, (_, data))| {
+            data.iter().fold(acc, |(max_x, max_y, max_z), data| {
+                let &DataPoint3D(x, y, z) = match data {
+                    ObservationData::Function(point) => point,
+                    ObservationData::Vrp { point, .. } => point,
+                };
+                (max_x.max(x), max_y.max(y), max_z.max(z))
+            })
+        },
+    )
 }

@@ -128,7 +128,13 @@ mod objective {
 
     impl FeatureObjective for TestObjective {
         fn fitness(&self, solution: &InsertionContext) -> Cost {
-            solution.solution.state.get_value::<(), Vec<f64>>().and_then(|data| data.get(self.index)).cloned().unwrap()
+            solution
+                .solution
+                .state
+                .get_value::<(), Vec<Float>>()
+                .and_then(|data| data.get(self.index))
+                .cloned()
+                .unwrap()
         }
 
         fn estimate(&self, _: &MoveContext<'_>) -> Cost {
@@ -144,7 +150,7 @@ mod objective {
             .unwrap()
     }
 
-    fn create_individual(data: Vec<f64>) -> InsertionContext {
+    fn create_individual(data: Vec<Float>) -> InsertionContext {
         TestInsertionContextBuilder::default().with_state(|state| state.set_value::<(), _>(data)).build()
     }
 
@@ -160,7 +166,7 @@ mod objective {
         case05: (vec![0., 2., 2.], vec![1., 0., 0.], Ordering::Less),
     }
 
-    fn can_use_total_order_impl(data_a: Vec<f64>, data_b: Vec<f64>, expected: Ordering) {
+    fn can_use_total_order_impl(data_a: Vec<Float>, data_b: Vec<Float>, expected: Ordering) {
         let features = vec![create_objective_feature(0), create_objective_feature(1), create_objective_feature(2)];
         let goal_ctx = GoalContextBuilder::with_features(&features)
             .expect("cannot create builder")

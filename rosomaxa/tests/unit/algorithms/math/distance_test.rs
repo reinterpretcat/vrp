@@ -7,5 +7,6 @@ fn can_handle_different_scale() {
 
     let distance = relative_distance(a.into_iter(), b.into_iter());
 
-    assert!(distance < (0.01 * 2_f64).sqrt())
+    let threshold = (0.01 * 2_f64).sqrt() as Float;
+    assert!(distance < threshold);
 }

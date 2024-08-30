@@ -4,12 +4,12 @@ mod costs_test;
 
 use crate::models::common::*;
 use crate::models::solution::{Activity, Route};
-use rosomaxa::prelude::{GenericError, GenericResult};
+use rosomaxa::prelude::{Float, GenericError, GenericResult};
 use rosomaxa::utils::CollectGroupBy;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// Specifies travel time type.
+/// Specifies a travel time type.
 #[derive(Copy, Clone)]
 pub enum TravelTime {
     /// Arrival time type.
@@ -89,9 +89,9 @@ pub struct SimpleTransportCost {
 impl SimpleTransportCost {
     /// Creates a new instance of `SimpleTransportCost`.
     pub fn new(durations: Vec<Duration>, distances: Vec<Distance>) -> GenericResult<Self> {
-        let size = (durations.len() as f64).sqrt().round() as usize;
+        let size = (durations.len() as Float).sqrt().round() as usize;
 
-        if (distances.len() as f64).sqrt().round() as usize != size {
+        if (distances.len() as Float).sqrt().round() as usize != size {
             return Err("distance-duration lengths don't match".into());
         }
 
@@ -174,17 +174,17 @@ pub fn create_matrix_transport_cost_with_fallback<T: TransportFallback + 'static
         return Err("no matrix data found".into());
     }
 
-    let size = (costs.first().unwrap().durations.len() as f64).sqrt().round() as usize;
+    let size = (costs.first().unwrap().durations.len() as Float).sqrt().round() as usize;
 
     if costs.iter().any(|matrix| matrix.distances.len() != matrix.durations.len()) {
         return Err("distance and duration collections have different length".into());
     }
 
-    if costs.iter().any(|matrix| (matrix.distances.len() as f64).sqrt().round() as usize != size) {
+    if costs.iter().any(|matrix| (matrix.distances.len() as Float).sqrt().round() as usize != size) {
         return Err("distance lengths don't match".into());
     }
 
-    if costs.iter().any(|matrix| (matrix.durations.len() as f64).sqrt().round() as usize != size) {
+    if costs.iter().any(|matrix| (matrix.durations.len() as Float).sqrt().round() as usize != size) {
         return Err("duration lengths don't match".into());
     }
 

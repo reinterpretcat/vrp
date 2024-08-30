@@ -1,7 +1,8 @@
 use crate::helpers::construction::clustering::p;
 use crate::helpers::solver::generate_matrix_distances_from_points;
+use rosomaxa::prelude::Float;
 
-pub fn create_test_distances() -> Vec<f64> {
+pub fn create_test_distances() -> Vec<Float> {
     generate_matrix_distances_from_points(&[
         p(0., 0.), // A
         p(5., 5.),

@@ -7,6 +7,7 @@ pub type Timer = actual::Timer;
 #[cfg(not(target_arch = "wasm32"))]
 mod actual {
     use super::*;
+    use crate::utils::Float;
     use std::time::Instant;
 
     #[derive(Clone)]
@@ -23,8 +24,8 @@ mod actual {
             (Instant::now() - self.start).as_secs()
         }
 
-        pub fn elapsed_secs_as_f64(&self) -> f64 {
-            (Instant::now() - self.start).as_secs_f64()
+        pub fn elapsed_secs_as_float(&self) -> Float {
+            (Instant::now() - self.start).as_secs_f64() as Float
         }
 
         pub fn elapsed_millis(&self) -> u128 {
@@ -43,7 +44,7 @@ mod actual {
 
     #[derive(Clone)]
     pub struct Timer {
-        start: f64,
+        start: Float,
     }
 
     impl Timer {
@@ -52,10 +53,10 @@ mod actual {
         }
 
         pub fn elapsed_secs(&self) -> u64 {
-            self.elapsed_secs_as_f64().round() as u64
+            self.elapsed_secs_as_float().round() as u64
         }
 
-        pub fn elapsed_secs_as_f64(&self) -> f64 {
+        pub fn elapsed_secs_as_float(&self) -> Float {
             (now() - self.start) / 1000.
         }
 
@@ -68,8 +69,8 @@ mod actual {
         }
     }
 
-    fn now() -> f64 {
-        js_sys::Date::new_0().get_time() as f64
+    fn now() -> Float {
+        js_sys::Date::new_0().get_time() as Float
     }
 }
 

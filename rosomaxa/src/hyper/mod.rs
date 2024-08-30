@@ -65,7 +65,7 @@ pub trait HyperHeuristic: Display {
 }
 
 /// Gets probability to run diversify search.
-fn get_diversify_probability<C, O, S>(heuristic_ctx: &C) -> f64
+fn get_diversify_probability<C, O, S>(heuristic_ctx: &C) -> Float
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,

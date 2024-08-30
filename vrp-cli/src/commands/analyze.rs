@@ -4,6 +4,7 @@ mod analyze_test;
 
 use super::*;
 use vrp_cli::extensions::analyze::get_clusters;
+use vrp_core::prelude::Float;
 use vrp_core::utils::GenericError;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
@@ -78,7 +79,7 @@ pub fn run_analyze(
                 .map(|paths| paths.map(|path| BufReader::new(open_file(path, "routing matrix"))).collect());
 
             let min_points = parse_int_value::<usize>(clusters_matches, MIN_POINTS_ARG_NAME, "min points")?;
-            let epsilon = parse_float_value::<f64>(clusters_matches, EPSILON_ARG_NAME, "epsilon")?;
+            let epsilon = parse_float_value::<Float>(clusters_matches, EPSILON_ARG_NAME, "epsilon")?;
 
             let clusters = get_clusters(problem_reader, matrices_readers, min_points, epsilon)
                 .map_err(|err| GenericError::from(format!("cannot get clusters: '{err}'")))?;

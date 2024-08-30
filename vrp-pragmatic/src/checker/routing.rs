@@ -107,11 +107,12 @@ fn check_stop_statistic(
     tour: &Tour,
     skip_distance_check: bool,
 ) -> GenericResult<()> {
+    #![allow(clippy::unnecessary_cast)]
     if (arrival_time - parse_time(&schedule.arrival) as i64).abs() > 1 {
         return Err(format!(
             "arrival time mismatch for {stop_idx} stop in the tour: {}, expected: '{}', got: '{}'",
             tour.vehicle_id,
-            format_time(arrival_time as f64),
+            format_time(arrival_time as Float),
             schedule.arrival
         )
         .into());

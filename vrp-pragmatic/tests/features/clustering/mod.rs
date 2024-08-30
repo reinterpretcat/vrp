@@ -1,10 +1,10 @@
-use vrp_core::models::common::{Distance, Timestamp};
-
 use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
+use vrp_core::models::common::{Distance, Timestamp};
+use vrp_core::prelude::Float;
 
 type CommuteData = Option<(f64, Distance, Timestamp, Timestamp)>;
 
@@ -78,7 +78,10 @@ impl From<StopData> for Stop {
             time: Schedule { arrival: format_time(stop.time.0), departure: format_time(stop.time.1) },
             distance: stop.distance,
             parking: if stop.parking > 0 {
-                Some(Interval { start: format_time(stop.time.0), end: format_time(stop.time.0 + stop.parking as f64) })
+                Some(Interval {
+                    start: format_time(stop.time.0),
+                    end: format_time(stop.time.0 + stop.parking as Float),
+                })
             } else {
                 None
             },
@@ -88,7 +91,7 @@ impl From<StopData> for Stop {
     }
 }
 
-fn create_statistic(data: (f64, i64, i64, (i64, i64, i64, i64))) -> Statistic {
+fn create_statistic(data: (Float, i64, i64, (i64, i64, i64, i64))) -> Statistic {
     Statistic {
         cost: data.0,
         distance: data.1,

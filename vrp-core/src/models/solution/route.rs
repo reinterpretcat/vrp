@@ -2,7 +2,7 @@ use crate::models::common::{Distance, Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Job, Multi, Single};
 use crate::models::solution::Tour;
 use crate::utils::short_type_name;
-use rosomaxa::prelude::compare_floats;
+use rosomaxa::prelude::{compare_floats, Float};
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
@@ -89,7 +89,7 @@ impl Activity {
     /// Creates an activity with a job.
     pub fn new_with_job(job: Arc<Single>) -> Self {
         Activity {
-            place: Place { idx: 0, location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: f64::MAX } },
+            place: Place { idx: 0, location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: Float::MAX } },
             schedule: Schedule { arrival: 0.0, departure: 0.0 },
             job: Some(job),
             commute: None,

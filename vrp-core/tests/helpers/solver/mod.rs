@@ -11,7 +11,7 @@ use crate::models::*;
 use crate::models::{Problem, Solution};
 use crate::solver::{create_elitism_population, RefinementContext};
 use rosomaxa::evolution::TelemetryMode;
-use rosomaxa::prelude::Environment;
+use rosomaxa::prelude::{Environment, Float};
 use std::sync::Arc;
 
 mod mutation;
@@ -51,7 +51,7 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
     )
 }
 
-pub fn generate_matrix_distances_from_points(points: &[Point]) -> Vec<f64> {
+pub fn generate_matrix_distances_from_points(points: &[Point]) -> Vec<Float> {
     points.iter().cloned().flat_map(|p_a| points.iter().map(move |p_b| p_a.distance_to_point(p_b))).collect()
 }
 
@@ -107,7 +107,7 @@ pub fn generate_matrix_routes(
     goal_factory: impl FnOnce(Arc<dyn TransportCost>, Arc<dyn ActivityCost>, &Extras) -> GoalContext,
     job_factory: impl Fn(&str, Option<Location>) -> Arc<Single>,
     vehicle_modify: impl Fn(Vehicle) -> Vehicle,
-    matrix_modify: impl Fn(Vec<f64>) -> (Vec<f64>, Vec<f64>),
+    matrix_modify: impl Fn(Vec<Float>) -> (Vec<Float>, Vec<Float>),
 ) -> (Problem, Solution) {
     let fleet = Arc::new(
         FleetBuilder::default()
@@ -174,7 +174,7 @@ pub fn generate_matrix_routes(
     (problem, solution)
 }
 
-fn generate_matrix_from_sizes(rows: usize, cols: usize) -> Vec<f64> {
+fn generate_matrix_from_sizes(rows: usize, cols: usize) -> Vec<Float> {
     let size = cols * rows;
     let mut data = vec![0.; size * size];
 
@@ -182,8 +182,8 @@ fn generate_matrix_from_sizes(rows: usize, cols: usize) -> Vec<f64> {
         let (left1, right1) = (i / rows, i % rows);
         ((i + 1)..size).for_each(|j| {
             let (left2, right2) = (j / rows, j % rows);
-            let left_delta = left1 as f64 - left2 as f64;
-            let right_delta = right1 as f64 - right2 as f64;
+            let left_delta = left1 as Float - left2 as Float;
+            let right_delta = right1 as Float - right2 as Float;
 
             let value = (left_delta * left_delta + right_delta * right_delta).sqrt();
 

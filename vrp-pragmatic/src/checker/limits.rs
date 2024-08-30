@@ -21,7 +21,7 @@ fn check_shift_limits(context: &CheckerContext) -> GenericResult<()> {
 
         if let Some(ref limits) = vehicle.limits {
             if let Some(max_distance) = limits.max_distance {
-                if tour.statistic.distance as f64 > max_distance {
+                if tour.statistic.distance as Float > max_distance {
                     return Err(format!(
                         "max distance limit violation, expected: not more than {}, got: {}, vehicle id '{}', shift index: {}",
                         max_distance, tour.statistic.distance, tour.vehicle_id, tour.shift_index
@@ -30,7 +30,7 @@ fn check_shift_limits(context: &CheckerContext) -> GenericResult<()> {
             }
 
             if let Some(max_duration) = limits.max_duration {
-                if tour.statistic.duration as f64 > max_duration {
+                if tour.statistic.duration as Float > max_duration {
                     return Err(format!(
                         "shift time limit violation, expected: not more than {}, got: {}, vehicle id '{}', shift index: {}",
                         max_duration, tour.statistic.duration, tour.vehicle_id, tour.shift_index
@@ -72,7 +72,7 @@ fn check_shift_time(context: &CheckerContext) -> GenericResult<()> {
             .iter()
             .map(|shift| {
                 let start = parse_time(&shift.start.earliest);
-                let end = shift.end.as_ref().map(|end| parse_time(&end.latest)).unwrap_or(f64::MAX);
+                let end = shift.end.as_ref().map(|end| parse_time(&end.latest)).unwrap_or(Float::MAX);
 
                 (start, end)
             })

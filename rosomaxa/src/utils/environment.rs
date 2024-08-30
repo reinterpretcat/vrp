@@ -1,6 +1,6 @@
 //! Contains environment specific logic.
 
-use crate::utils::{DefaultRandom, Random, ThreadPool, Timer};
+use crate::utils::{DefaultRandom, Float, Random, ThreadPool, Timer};
 use std::sync::Arc;
 
 /// A logger type which is called with various information.
@@ -36,7 +36,7 @@ impl Environment {
     /// Creates an instance of `Environment` using optional time quota and defaults.
     pub fn new_with_time_quota(max_time: Option<usize>) -> Self {
         Self {
-            quota: max_time.map::<Arc<dyn Quota>, _>(|time| Arc::new(TimeQuota::new(time as f64))),
+            quota: max_time.map::<Arc<dyn Quota>, _>(|time| Arc::new(TimeQuota::new(time as Float))),
             ..Self::default()
         }
     }
@@ -68,19 +68,19 @@ impl Default for Environment {
 /// A time quota.
 pub struct TimeQuota {
     start: Timer,
-    limit_in_secs: f64,
+    limit_in_secs: Float,
 }
 
 impl TimeQuota {
     /// Creates a new instance of `TimeQuota`.
-    pub fn new(limit_in_secs: f64) -> Self {
+    pub fn new(limit_in_secs: Float) -> Self {
         Self { start: Timer::start(), limit_in_secs }
     }
 }
 
 impl Quota for TimeQuota {
     fn is_reached(&self) -> bool {
-        self.start.elapsed_secs_as_f64() > self.limit_in_secs
+        self.start.elapsed_secs_as_float() > self.limit_in_secs
     }
 }
 

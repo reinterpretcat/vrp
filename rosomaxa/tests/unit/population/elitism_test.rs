@@ -2,11 +2,11 @@ use super::*;
 use crate::example::*;
 use crate::helpers::example::create_example_objective;
 
-fn get_best_fitness(population: &Elitism<VectorObjective, VectorSolution>) -> f64 {
+fn get_best_fitness(population: &Elitism<VectorObjective, VectorSolution>) -> Float {
     population.ranked().next().unwrap().fitness().next().unwrap()
 }
 
-fn get_all_fitness(population: &Elitism<VectorObjective, VectorSolution>) -> Vec<f64> {
+fn get_all_fitness(population: &Elitism<VectorObjective, VectorSolution>) -> Vec<Float> {
     population.ranked().flat_map(|s| s.fitness()).collect()
 }
 
@@ -136,10 +136,10 @@ can_detect_improvement! {
     case_08_add_more_mixed: (vec![vec![0.5, 0.4], vec![0.5, 0.7], vec![0.5, 0.5]], true),
 }
 
-fn can_detect_improvement_impl(new_individuals: Vec<Vec<f64>>, expected: bool) {
+fn can_detect_improvement_impl(new_individuals: Vec<Vec<Float>>, expected: bool) {
     let objective = Arc::new(VectorObjective::new(
-        Arc::new(|data| data.iter().map(|&a| a * a).sum::<f64>().sqrt()),
-        Arc::new(|data: &[f64]| data.to_vec()),
+        Arc::new(|data| data.iter().map(|&a| a * a).sum::<Float>().sqrt()),
+        Arc::new(|data: &[Float]| data.to_vec()),
     ));
     let mut population = Elitism::<_, _>::new(objective.clone(), Environment::default().random, 2, 1);
     population.add(VectorSolution::new_with_objective(vec![0.5, 0.5], objective.as_ref()));

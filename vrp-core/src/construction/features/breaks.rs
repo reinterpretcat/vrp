@@ -194,7 +194,7 @@ impl FeatureObjective for OptionalBreakObjective {
             .flat_map(|route_ctx| route_ctx.route().tour.jobs())
             .filter_map(|job| job.as_single())
             .filter(|single| (self.break_fns.is_break_single_fn)(single))
-            .count() as f64
+            .count() as Float
     }
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
@@ -348,7 +348,7 @@ fn can_be_scheduled(route_ctx: &RouteContext, break_single: &Single, policy_fn: 
     })
 }
 
-fn get_break_time_windows(break_single: &'_ Single, departure: f64) -> impl Iterator<Item = TimeWindow> + '_ {
+fn get_break_time_windows(break_single: &'_ Single, departure: Timestamp) -> impl Iterator<Item = TimeWindow> + '_ {
     break_single
         .places
         .first()

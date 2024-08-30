@@ -54,7 +54,7 @@ pub struct ThresholdPolicy {
     /// Minimum shared time for jobs (non-inclusive).
     pub min_shared_time: Option<Duration>,
     /// The smallest time window of the cluster after service time shrinking.
-    pub smallest_time_window: Option<f64>,
+    pub smallest_time_window: Option<Duration>,
     /// The maximum amount of jobs per cluster.
     pub max_jobs_per_cluster: Option<usize>,
 }
@@ -89,21 +89,21 @@ pub enum ServingPolicy {
     /// Keep original service time.
     Original {
         /// Parking time.
-        parking: f64,
+        parking: Duration,
     },
     /// Correct service time by some multiplier.
     Multiplier {
         /// Multiplier value applied to original job's duration.
-        multiplier: f64,
+        multiplier: Float,
         /// Parking time.
-        parking: f64,
+        parking: Duration,
     },
     /// Use fixed value for all clustered jobs.
     Fixed {
         /// Fixed value used for all jobs in the cluster.
-        value: f64,
+        value: Duration,
         /// Parking time.
-        parking: f64,
+        parking: Duration,
     },
 }
 
@@ -198,7 +198,7 @@ fn get_check_insertion_fn(
 
 impl ServingPolicy {
     /// Gets parking time.
-    pub fn get_parking(&self) -> f64 {
+    pub fn get_parking(&self) -> Duration {
         match &self {
             Self::Original { parking } => *parking,
             Self::Multiplier { parking, .. } => *parking,

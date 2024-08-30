@@ -2,6 +2,7 @@ use crate::format::problem::*;
 use crate::format::solution::Violation;
 use crate::format_time;
 use crate::helpers::*;
+use vrp_core::models::common::Timestamp;
 
 parameterized_test! {can_skip_break_when_vehicle_not_used, policy, {
     can_skip_break_when_vehicle_not_used_impl(policy);
@@ -264,7 +265,7 @@ can_skip_break_depending_on_policy! {
 fn can_skip_break_depending_on_policy_impl(
     policy: Option<VehicleOptionalBreakPolicy>,
     location: f64,
-    time: (f64, f64),
+    time: (Timestamp, Timestamp),
     expected: i64,
 ) {
     let problem = Problem {

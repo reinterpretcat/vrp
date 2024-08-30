@@ -11,6 +11,7 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::*;
 use vrp_core::prelude::GenericError;
+use vrp_core::utils::Float;
 
 /// A trait to read tsplib95 problem. Please note that it is very basic implementation of the format specification.
 pub trait TsplibProblem {
@@ -227,7 +228,7 @@ impl<R: Read> TsplibReader<R> {
 }
 
 fn parse_int(data: &str, err_msg: &str) -> Result<i32, GenericError> {
-    data.parse::<f64>()
+    data.parse::<Float>()
         // NOTE observed that some input files might have coordinates like 28.00000
         .map(|value| value.round() as i32)
         .map_err(|err| format!("{err_msg}: '{err}'").into())

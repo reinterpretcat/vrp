@@ -2,10 +2,13 @@ use super::*;
 use crate::helpers::algorithms::gsom::*;
 
 fn insert(coord: (i32, i32), network: &mut Network<Data, DataStorage, DataStorageFactory>) {
-    network.insert(coord.into(), &[coord.0 as f64, coord.1 as f64, 0.]);
+    network.insert(coord.into(), &[coord.0 as Float, coord.1 as Float, 0.]);
 }
 
-fn assert_network(expected: Vec<((i32, i32), (f64, f64))>, network: &Network<Data, DataStorage, DataStorageFactory>) {
+fn assert_network(
+    expected: Vec<((i32, i32), (Float, Float))>,
+    network: &Network<Data, DataStorage, DataStorageFactory>,
+) {
     expected.into_iter().for_each(|(new_coord, old_coord)| {
         let weights = network.find(&new_coord.into()).unwrap().weights.clone();
         assert_eq!(weights, vec![old_coord.0, old_coord.1, 0.])
@@ -31,7 +34,7 @@ can_contract_small_network! {
 fn can_contract_small_network_impl(
     decimation: (i32, i32),
     coords: Vec<(i32, i32)>,
-    expected: Vec<((i32, i32), (f64, f64))>,
+    expected: Vec<((i32, i32), (Float, Float))>,
 ) {
     let mut network = create_test_network(false);
     coords.into_iter().for_each(|coord| insert(coord, &mut network));

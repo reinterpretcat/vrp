@@ -1,23 +1,23 @@
 use crate::algorithms::gsom::{Input, Network, NetworkConfig, Storage, StorageFactory};
 use crate::algorithms::math::relative_distance;
-use crate::utils::DefaultRandom;
+use crate::utils::{DefaultRandom, Float};
 use std::fmt::{Display, Formatter};
 use std::ops::RangeBounds;
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Data {
-    pub values: Vec<f64>,
+    pub values: Vec<Float>,
 }
 
 impl Input for Data {
-    fn weights(&self) -> &[f64] {
+    fn weights(&self) -> &[Float] {
         self.values.as_slice()
     }
 }
 
 impl Data {
-    pub fn new(x: f64, y: f64, z: f64) -> Self {
+    pub fn new(x: Float, y: Float, z: Float) -> Self {
         Self { values: vec![x, y, z] }
     }
 }
@@ -46,7 +46,7 @@ impl Storage for DataStorage {
         self.data.drain(range).collect()
     }
 
-    fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
+    fn distance(&self, a: &[Float], b: &[Float]) -> Float {
         relative_distance(a.iter().cloned(), b.iter().cloned())
     }
 
@@ -72,10 +72,10 @@ impl StorageFactory<Data, DataStorage> for DataStorageFactory {
 pub fn create_test_network(has_initial_error: bool) -> Network<Data, DataStorage, DataStorageFactory> {
     Network::new(
         [
-            Data::new(0.23052992, 0.95666552, 0.48200831),
-            Data::new(0.40077599, 0.14291798, 0.55551944),
-            Data::new(0.26027299, 0.17534256, 0.19371101),
-            Data::new(0.18671211, 0.16638008, 0.77362103),
+            Data::new(0.230529, 0.956665, 0.482008),
+            Data::new(0.400775, 0.142917, 0.555519),
+            Data::new(0.260272, 0.175342, 0.193711),
+            Data::new(0.186712, 0.166380, 0.773621),
         ],
         NetworkConfig {
             spread_factor: 0.25,

@@ -1,5 +1,6 @@
 //! Provides customized implementation of Growing Self Organizing Map.
 
+use crate::utils::Float;
 use std::fmt::Display;
 use std::ops::RangeBounds;
 
@@ -18,7 +19,7 @@ pub use self::state::*;
 /// Represents an input for network.
 pub trait Input: Send + Sync {
     /// Returns weights.
-    fn weights(&self) -> &[f64];
+    fn weights(&self) -> &[Float];
 }
 
 /// Represents input data storage.
@@ -38,7 +39,7 @@ pub trait Storage: Display + Send + Sync {
         R: RangeBounds<usize>;
 
     /// Returns a distance between two input weights.
-    fn distance(&self, a: &[f64], b: &[f64]) -> f64;
+    fn distance(&self, a: &[Float], b: &[Float]) -> Float;
 
     /// Returns size of the storage.
     fn size(&self) -> usize;

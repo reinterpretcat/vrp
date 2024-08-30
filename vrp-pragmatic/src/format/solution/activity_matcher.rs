@@ -179,7 +179,7 @@ fn match_place(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &Activ
     }
 }
 
-pub(crate) fn get_extra_time(stop: &PointStop, activity: &FormatActivity, place: &Place) -> Option<f64> {
+pub(crate) fn get_extra_time(stop: &PointStop, activity: &FormatActivity, place: &Place) -> Option<Float> {
     let activity_time = get_activity_time(activity, &stop.time);
     stop.activities
         .iter()

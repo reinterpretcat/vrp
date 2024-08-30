@@ -6,7 +6,7 @@ use vrp_core::rosomaxa::evolution::TelemetryMode;
 use vrp_core::solver::create_elitism_population;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::RefinementContext;
-use vrp_core::utils::Environment;
+use vrp_core::utils::{Environment, Float};
 
 parameterized_test! {can_solve_problem_with_cheapest_insertion_heuristic, (problem, expected, cost), {
     can_solve_problem_with_cheapest_insertion_heuristic_impl(Arc::new(problem), expected, cost);
@@ -41,7 +41,7 @@ can_solve_problem_with_cheapest_insertion_heuristic! {
 fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     problem: Arc<Problem>,
     expected: Vec<Vec<&str>>,
-    cost: f64,
+    cost: Float,
 ) {
     let environment = Arc::new(Environment::default());
     let refinement_ctx = RefinementContext::new(

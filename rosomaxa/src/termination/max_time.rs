@@ -10,7 +10,7 @@ where
     S: HeuristicSolution,
 {
     start: Timer,
-    limit_in_secs: f64,
+    limit_in_secs: Float,
     _marker: (PhantomData<C>, PhantomData<O>, PhantomData<S>),
 }
 
@@ -21,7 +21,7 @@ where
     S: HeuristicSolution,
 {
     /// Creates a new instance of `MaxTime`.
-    pub fn new(limit_in_secs: f64) -> Self {
+    pub fn new(limit_in_secs: Float) -> Self {
         Self {
             start: Timer::start(),
             limit_in_secs,
@@ -40,10 +40,10 @@ where
     type Objective = O;
 
     fn is_termination(&self, _: &mut Self::Context) -> bool {
-        self.start.elapsed_secs_as_f64() > self.limit_in_secs
+        self.start.elapsed_secs_as_float() > self.limit_in_secs
     }
 
-    fn estimate(&self, _: &Self::Context) -> f64 {
-        (self.start.elapsed_secs_as_f64() / self.limit_in_secs).min(1.)
+    fn estimate(&self, _: &Self::Context) -> Float {
+        (self.start.elapsed_secs_as_float() / self.limit_in_secs).min(1.)
     }
 }

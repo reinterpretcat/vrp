@@ -20,6 +20,7 @@ use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_rout
 use crate::helpers::utils::create_test_environment_with_random;
 use crate::helpers::utils::random::FakeRandom;
 use crate::solver::search::{RemovalLimits, Ruin};
+use rosomaxa::prelude::Float;
 use std::sync::Arc;
 
 parameterized_test! {can_ruin_solution_with_matrix_routes, (matrix, ints, reals, expected_ids), {
@@ -42,7 +43,7 @@ can_ruin_solution_with_matrix_routes! {
 fn can_ruin_solution_with_matrix_routes_impl(
     matrix: (usize, usize),
     ints: Vec<i32>,
-    reals: Vec<f64>,
+    reals: Vec<Float>,
     expected_ids: Vec<&str>,
 ) {
     let limits = RemovalLimits { removed_activities_range: 10..10, affected_routes_range: 5..5 };

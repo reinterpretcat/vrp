@@ -1,12 +1,12 @@
 use crate::example::*;
-use crate::utils::Environment;
+use crate::utils::{Environment, Float};
 use crate::{get_default_population, get_default_selection_size, TelemetryMode};
 use std::sync::Arc;
 
 /// Creates an example objective.
 pub fn create_example_objective() -> Arc<VectorObjective> {
     let fitness_fn = create_rosenbrock_function();
-    let weight_fn = Arc::new(|data: &[f64]| data.to_vec());
+    let weight_fn = Arc::new(|data: &[Float]| data.to_vec());
 
     Arc::new(VectorObjective::new(fitness_fn, weight_fn))
 }
@@ -17,7 +17,7 @@ pub fn create_default_heuristic_context() -> VectorContext {
 }
 
 /// A helper method to create an example of VectorContext with given solutions and objective function.
-pub fn create_heuristic_context_with_solutions(solutions: Vec<Vec<f64>>) -> VectorContext {
+pub fn create_heuristic_context_with_solutions(solutions: Vec<Vec<Float>>) -> VectorContext {
     let environment = Arc::new(Environment::default());
     let objective = create_example_objective();
     let selection_size = get_default_selection_size(environment.as_ref());

@@ -319,12 +319,12 @@ impl ResultSelector for FarthestResultSelector {
 /// Routing Problems", Jan Christiaens, Greet Vanden Berghe.
 pub struct BlinkResultSelector {
     random: Arc<dyn Random>,
-    ratio: f64,
+    ratio: Float,
 }
 
 impl BlinkResultSelector {
     /// Creates an instance of `BlinkResultSelector`.
-    pub fn new(ratio: f64, random: Arc<dyn Random>) -> Self {
+    pub fn new(ratio: Float, random: Arc<dyn Random>) -> Self {
         Self { random, ratio }
     }
 

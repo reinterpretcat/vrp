@@ -15,7 +15,7 @@ pub trait Termination: Send + Sync {
     fn is_termination(&self, heuristic_ctx: &mut Self::Context) -> bool;
 
     /// Returns a relative estimation till termination. Value is in the `[0, 1]` range.
-    fn estimate(&self, heuristic_ctx: &Self::Context) -> f64;
+    fn estimate(&self, heuristic_ctx: &Self::Context) -> Float;
 }
 
 mod min_variation;
@@ -65,7 +65,7 @@ where
         self.terminations.iter().any(|t| t.is_termination(heuristic_ctx))
     }
 
-    fn estimate(&self, heuristic_ctx: &Self::Context) -> f64 {
+    fn estimate(&self, heuristic_ctx: &Self::Context) -> Float {
         self.terminations.iter().map(|t| t.estimate(heuristic_ctx)).max_by(compare_floats_refs).unwrap_or(0.)
     }
 }

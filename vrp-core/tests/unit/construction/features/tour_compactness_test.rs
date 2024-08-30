@@ -2,6 +2,7 @@ use crate::construction::features::create_tour_compactness_feature;
 use crate::construction::heuristics::{InsertionContext, MoveContext};
 use crate::helpers::models::domain::ProblemBuilder;
 use crate::helpers::solver::{generate_matrix_routes_with_defaults, get_job_by_id};
+use rosomaxa::prelude::Float;
 use rosomaxa::utils::Environment;
 use std::sync::Arc;
 
@@ -29,7 +30,7 @@ fn can_count_neighbours_in_route_impl(
     routes: (usize, usize),
     job_radius: usize,
     candidate: (usize, &str),
-    expected: (f64, f64),
+    expected: (Float, Float),
 ) {
     let (route_idx, job_id) = candidate;
     let (expected_estimation, expected_fitness) = expected;

@@ -27,8 +27,8 @@ pub struct DataGraph {
 /// Node of a graph.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct GraphNode {
-    pub x: f64,
-    pub y: f64,
+    pub x: Float,
+    pub y: Float,
 }
 
 /// Edge of a graph.

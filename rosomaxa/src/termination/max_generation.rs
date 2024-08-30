@@ -41,7 +41,7 @@ where
         heuristic_ctx.statistics().generation >= self.limit
     }
 
-    fn estimate(&self, heuristic_ctx: &Self::Context) -> f64 {
-        (heuristic_ctx.statistics().generation as f64 / self.limit as f64).min(1.)
+    fn estimate(&self, heuristic_ctx: &Self::Context) -> Float {
+        (heuristic_ctx.statistics().generation as Float / self.limit as Float).min(1.)
     }
 }

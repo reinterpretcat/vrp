@@ -20,11 +20,11 @@ fn get_total_break_error_msg(expected: usize, actual: usize) -> Result<(), Vec<G
     ).into()])
 }
 
-fn get_offset_break(start: f64, end: f64) -> VehicleOptionalBreakTime {
+fn get_offset_break(start: Float, end: Float) -> VehicleOptionalBreakTime {
     VehicleOptionalBreakTime::TimeOffset(vec![start, end])
 }
 
-fn get_time_break(start: f64, end: f64) -> VehicleOptionalBreakTime {
+fn get_time_break(start: Float, end: Float) -> VehicleOptionalBreakTime {
     VehicleOptionalBreakTime::TimeWindow(vec![format_time(start), format_time(end)])
 }
 

@@ -24,13 +24,13 @@ pub struct RosomaxaConfig {
     /// Node population size.
     pub node_size: usize,
     /// Spread factor of GSOM.
-    pub spread_factor: f64,
+    pub spread_factor: Float,
     /// Distribution factor of GSOM.
-    pub distribution_factor: f64,
+    pub distribution_factor: Float,
     /// A node rebalance memory of GSOM.
     pub rebalance_memory: usize,
     /// A ratio of exploration phase.
-    pub exploration_ratio: f64,
+    pub exploration_ratio: Float,
 }
 
 impl RosomaxaConfig {
@@ -125,18 +125,20 @@ where
     }
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+        #![allow(clippy::unnecessary_cast)]
         match &self.phase {
             RosomaxaPhases::Exploration { network, coordinates, selection_size, statistics, .. } => {
                 let random = self.environment.random.as_ref();
 
                 let (elite_explore_size, node_explore_size) = match *selection_size {
                     value if value > 6 => {
-                        let ratio = statistics.improvement_1000_ratio;
-                        let elite_exlr_prob = 1. - 1. / (1. + E.powf(-10. * (ratio - 0.166)));
-                        let elite_size = (1..=2)
-                            .fold(0, |acc, idx| acc + if random.is_hit(elite_exlr_prob / idx as f64) { 2 } else { 1 });
+                        let ratio = statistics.improvement_1000_ratio as f64;
+                        let elite_exlr_prob = (1. - 1. / (1. + E.powf(-10. * (ratio - 0.166)))) as Float;
+                        let elite_size = (1..=2).fold(0, |acc, idx| {
+                            acc + if random.is_hit(elite_exlr_prob / idx as Float) { 2 } else { 1 }
+                        });
 
-                        const NODE_EXPLORE_PROB: f64 = 0.1;
+                        const NODE_EXPLORE_PROB: Float = 0.1;
                         let node_size = if random.is_hit(NODE_EXPLORE_PROB) { 2 } else { 1 };
 
                         (elite_size, node_size)
@@ -219,7 +221,9 @@ where
     fn update_phase(&mut self, statistics: &HeuristicStatistics) {
         let selection_size = match statistics.speed {
             HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } => self.config.selection_size,
-            HeuristicSpeed::Slow { ratio, .. } => (self.config.selection_size as f64 * ratio).max(1.).round() as usize,
+            HeuristicSpeed::Slow { ratio, .. } => {
+                (self.config.selection_size as Float * ratio).max(1.).round() as usize
+            }
         };
 
         match &mut self.phase {
@@ -505,7 +509,7 @@ where
         self.population.drain(range).into_iter().collect()
     }
 
-    fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
+    fn distance(&self, a: &[Float], b: &[Float]) -> Float {
         relative_distance(a.iter().cloned(), b.iter().cloned())
     }
 
@@ -524,7 +528,7 @@ where
     }
 }
 
-fn create_dedup_fn<O, S>(threshold: f64) -> DedupFn<O, S>
+fn create_dedup_fn<O, S>(threshold: Float) -> DedupFn<O, S>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
     S: HeuristicSolution + RosomaxaWeighted,
@@ -549,22 +553,25 @@ where
 
 /// Gets network size to keep.
 /// Slowly decrease size of network from `3 * rebalance_memory` to `rebalance_memory`.
-fn get_keep_size(rebalance_memory: usize, termination_estimate: f64) -> usize {
-    let termination_estimate = termination_estimate.clamp(0., 0.8);
+fn get_keep_size(rebalance_memory: usize, termination_estimate: Float) -> usize {
+    #![allow(clippy::unnecessary_cast)]
+    let termination_estimate = termination_estimate.clamp(0., 0.8) as f64;
     // Sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
     let rate = 1. / (1. + E.powf(-10. * (termination_estimate - 0.5)));
     let keep_ratio = 2. * (1. - rate);
 
-    rebalance_memory + (rebalance_memory as f64 * keep_ratio) as usize
+    rebalance_memory + (rebalance_memory as Float * keep_ratio as Float) as usize
 }
 
 /// Gets learning rate decay using cosine annealing.
 /// `Cosine Annealing` is a type of learning rate schedule that has the effect of starting with a large
 /// learning rate that is relatively rapidly decreased to a minimum value before being increased rapidly again.
-fn get_learning_rate(termination_estimate: f64) -> f64 {
-    const PERIOD: f64 = 0.25;
-    const MIN_LEARNING_RATE: f64 = 0.1;
-    const MAX_LEARNING_RATE: f64 = 1.0;
+fn get_learning_rate(termination_estimate: Float) -> Float {
+    #![allow(clippy::unnecessary_cast)]
+
+    const PERIOD: Float = 0.25;
+    const MIN_LEARNING_RATE: Float = 0.1;
+    const MAX_LEARNING_RATE: Float = 1.0;
 
     assert!((0. ..=1.).contains(&termination_estimate), "termination estimate must be in [0, 1]");
 
@@ -573,6 +580,7 @@ fn get_learning_rate(termination_estimate: f64) -> f64 {
 
     let progress = termination_estimate % PERIOD;
     let progress = progress / PERIOD;
+    let progress_pi = (progress as f64 * PI) as Float;
 
-    min_lr + 0.5 * (max_lr - min_lr) * (1. + (progress * PI).cos())
+    min_lr + 0.5 * (max_lr - min_lr) * (1. + progress_pi.cos())
 }

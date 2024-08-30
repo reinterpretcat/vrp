@@ -134,15 +134,15 @@ can_merge_activities_with_commute_in_one_stop! {
 
 #[allow(clippy::type_complexity)]
 fn can_merge_activities_with_commute_in_one_stop_impl(
-    jobs_data: Vec<(usize, Option<(f64, f64)>)>,
-    expected: Vec<(usize, Vec<(Option<usize>, Option<(f64, f64)>)>)>,
+    jobs_data: Vec<(usize, Option<(Float, Float)>)>,
+    expected: Vec<(usize, Vec<(Option<usize>, Option<(Float, Float)>)>)>,
 ) {
     let (problem, mut coord_index) = create_test_problem_and_coord_index();
     let activities = jobs_data
         .into_iter()
         .map(|(index, commute)| {
             coord_index.add(&Location::Reference { index });
-            let arrival = index as f64;
+            let arrival = index as Float;
             let commute = commute.map(|(f, b)| DomainCommute {
                 forward: DomainCommuteInfo { location: 0, distance: f, duration: f },
                 backward: DomainCommuteInfo { location: 0, distance: b, duration: b },
@@ -169,7 +169,7 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
 
             match (commute, &actual.commute) {
                 (Some(expected), Some(actual)) => {
-                    let check_commute = |expected: f64, info: Option<&CommuteInfo>| {
+                    let check_commute = |expected: Float, info: Option<&CommuteInfo>| {
                         if compare_floats(expected, 0.) == Ordering::Equal {
                             assert!(info.is_none())
                         } else {

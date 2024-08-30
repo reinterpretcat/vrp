@@ -18,7 +18,7 @@ pub fn create_job_clusters(
     problem: &Problem,
     random: &(dyn Random),
     min_points: Option<usize>,
-    epsilon: Option<f64>,
+    epsilon: Option<Float>,
 ) -> Vec<Vec<Job>> {
     let min_points = min_points.unwrap_or(3).max(2);
     let epsilon = epsilon.unwrap_or_else(|| estimate_epsilon(problem, min_points));
@@ -46,16 +46,16 @@ pub fn create_job_clusters(
 }
 
 /// Estimates DBSCAN epsilon parameter.
-fn estimate_epsilon(problem: &Problem, min_points: usize) -> f64 {
+fn estimate_epsilon(problem: &Problem, min_points: usize) -> Float {
     let costs = get_average_costs(problem, min_points);
-    let curve = costs.into_iter().enumerate().map(|(idx, cost)| Point::new(idx as f64, cost)).collect::<Vec<_>>();
+    let curve = costs.into_iter().enumerate().map(|(idx, cost)| Point::new(idx as Float, cost)).collect::<Vec<_>>();
 
     // get max curvature approximation and return it as a guess for optimal epsilon value
     get_max_curvature(curve.as_slice())
 }
 
 /// Gets average costs across all profiles.
-fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<f64> {
+fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<Float> {
     let jobs = problem.jobs.as_ref();
     let mut costs = problem.fleet.profiles.iter().fold(vec![0.; jobs.size()], |mut acc, profile| {
         jobs.all().enumerate().for_each(|(idx, job)| {
@@ -66,12 +66,12 @@ fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<f64> {
                 .map(|(_, cost)| cost)
                 .fold((0., 1), |(sum, idx), cost| (sum + cost, idx + 1));
 
-            acc[idx] += sum / count as f64;
+            acc[idx] += sum / count as Float;
         });
         acc
     });
 
-    costs.iter_mut().for_each(|cost| *cost /= problem.fleet.profiles.len() as f64);
+    costs.iter_mut().for_each(|cost| *cost /= problem.fleet.profiles.len() as Float);
 
     // sort all distances in ascending order
     costs.sort_by(compare_floats_refs);
@@ -82,7 +82,7 @@ fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<f64> {
 
 /// Gets max curvature approximation: for each point p on the curve, find the one with the maximum
 /// distance d to a line drawn from the first to the last point of the curves.
-fn get_max_curvature(values: &[Point]) -> f64 {
+fn get_max_curvature(values: &[Point]) -> Float {
     if values.is_empty() {
         return 0.;
     }
@@ -92,7 +92,7 @@ fn get_max_curvature(values: &[Point]) -> f64 {
 
     values
         .iter()
-        .fold((0., f64::MIN), |acc, p| {
+        .fold((0., Float::MIN), |acc, p| {
             let distance = p.distance_to_line(first, last);
 
             if distance > acc.1 {

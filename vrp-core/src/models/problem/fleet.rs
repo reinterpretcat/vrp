@@ -4,6 +4,7 @@ mod fleet_test;
 
 use crate::models::common::*;
 use crate::utils::short_type_name;
+use rosomaxa::prelude::Float;
 use std::cmp::Ordering::Less;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
@@ -16,15 +17,15 @@ custom_dimension!(VehicleId typeof String);
 #[derive(Clone, Debug)]
 pub struct Costs {
     /// A fixed cost to use an actor.
-    pub fixed: f64,
+    pub fixed: Float,
     /// Cost per distance unit.
-    pub per_distance: f64,
+    pub per_distance: Float,
     /// Cost per driving time unit.
-    pub per_driving_time: f64,
+    pub per_driving_time: Float,
     /// Cost per waiting time unit.
-    pub per_waiting_time: f64,
+    pub per_waiting_time: Float,
     /// Cost per service time unit.
-    pub per_service_time: f64,
+    pub per_service_time: Float,
 }
 
 /// Represents driver detail (reserved for future use).
@@ -176,7 +177,7 @@ impl Fleet {
                             end: detail.end.clone(),
                             time: TimeWindow {
                                 start: detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(0.),
-                                end: detail.end.as_ref().and_then(|e| e.time.latest).unwrap_or(f64::MAX),
+                                end: detail.end.as_ref().and_then(|e| e.time.latest).unwrap_or(Float::MAX),
                             },
                         },
                     })

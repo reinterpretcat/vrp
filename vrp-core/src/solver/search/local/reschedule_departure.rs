@@ -44,6 +44,6 @@ impl LocalOperator for RescheduleDeparture {
     }
 }
 
-fn can_recede_departure(start: &Activity, earliest: f64) -> bool {
+fn can_recede_departure(start: &Activity, earliest: Float) -> bool {
     compare_floats(start.schedule.departure, earliest) != Ordering::Equal
 }

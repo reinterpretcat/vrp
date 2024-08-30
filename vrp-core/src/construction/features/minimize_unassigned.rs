@@ -24,7 +24,7 @@ impl MinimizeUnassignedBuilder {
     /// Optional. Default is the implementation which gives 1 as estimate to any unassisgned job.
     pub fn set_job_estimator<F>(mut self, func: F) -> Self
     where
-        F: Fn(&SolutionContext, &Job) -> f64 + Send + Sync + 'static,
+        F: Fn(&SolutionContext, &Job) -> Float + Send + Sync + 'static,
     {
         self.job_estimator = Some(Arc::new(func));
         self
@@ -42,7 +42,7 @@ impl MinimizeUnassignedBuilder {
 }
 
 /// A type that allows controlling how a job is estimated in objective fitness.
-type UnassignedJobEstimator = Arc<dyn Fn(&SolutionContext, &Job) -> f64 + Send + Sync>;
+type UnassignedJobEstimator = Arc<dyn Fn(&SolutionContext, &Job) -> Float + Send + Sync>;
 
 struct MinimizeUnassignedObjective {
     unassigned_job_estimator: UnassignedJobEstimator,
@@ -59,7 +59,7 @@ impl FeatureObjective for MinimizeUnassignedObjective {
         }
         .chain(solution.solution.unassigned.keys())
         .map(|job| (self.unassigned_job_estimator)(&solution.solution, job))
-        .sum::<f64>()
+        .sum::<Float>()
     }
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {

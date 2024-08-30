@@ -1,6 +1,7 @@
 use super::*;
 use crate::format_time;
 use crate::helpers::*;
+use vrp_core::prelude::Float;
 
 #[test]
 fn can_detect_invalid_break_time() {
@@ -39,7 +40,7 @@ can_detect_zero_costs! {
     case04: ((0., 0.), Some("E1306".to_string())),
 }
 
-fn can_detect_zero_costs_impl(costs: (f64, f64), expected: Option<String>) {
+fn can_detect_zero_costs_impl(costs: (Float, Float), expected: Option<String>) {
     let (distance, time) = costs;
     let problem = Problem {
         fleet: Fleet {
@@ -68,7 +69,7 @@ can_handle_rescheduling_with_required_break! {
     case03: (Some(0.), None),
 }
 
-fn can_handle_rescheduling_with_required_break_impl(latest: Option<f64>, expected: Option<String>) {
+fn can_handle_rescheduling_with_required_break_impl(latest: Option<Float>, expected: Option<String>) {
     let problem = Problem {
         fleet: Fleet {
             vehicles: vec![VehicleType {

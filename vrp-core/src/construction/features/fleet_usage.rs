@@ -38,14 +38,14 @@ pub fn create_minimize_arrival_time_feature(name: &str) -> GenericResult<Feature
                 if solution_ctx.routes.is_empty() {
                     0.
                 } else {
-                    let total: f64 = solution_ctx
+                    let total: Float = solution_ctx
                         .routes
                         .iter()
                         .filter_map(|route_ctx| route_ctx.route().tour.end())
                         .map(|end| end.schedule.arrival)
                         .sum();
 
-                    total / solution_ctx.routes.len() as f64
+                    total / solution_ctx.routes.len() as Float
                 }
             }),
         })

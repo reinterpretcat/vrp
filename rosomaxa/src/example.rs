@@ -10,7 +10,7 @@ use crate::evolution::*;
 use crate::hyper::*;
 use crate::population::{RosomaxaWeighted, Shuffled};
 use crate::prelude::*;
-use crate::utils::Noise;
+use crate::utils::{Float, Noise};
 use crate::*;
 use std::any::Any;
 use std::cmp::Ordering;
@@ -20,9 +20,9 @@ use std::ops::Range;
 use std::sync::Arc;
 
 /// An objective function which calculates a fitness of a vector.
-pub type FitnessFn = Arc<dyn Fn(&[f64]) -> f64 + Send + Sync>;
+pub type FitnessFn = Arc<dyn Fn(&[Float]) -> Float + Send + Sync>;
 /// A weight function which calculates rosomaxa weights of a vector.
-pub type WeightFn = Arc<dyn Fn(&[f64]) -> Vec<f64> + Send + Sync>;
+pub type WeightFn = Arc<dyn Fn(&[Float]) -> Vec<Float> + Send + Sync>;
 /// Specifies a population type which stores vector solutions.
 pub type VectorPopulation = DynHeuristicPopulation<VectorObjective, VectorSolution>;
 
@@ -44,9 +44,9 @@ pub struct VectorObjective {
 #[derive(Clone)]
 pub struct VectorSolution {
     /// Solution payload.
-    pub data: Vec<f64>,
-    weights: Vec<f64>,
-    fitness: f64,
+    pub data: Vec<Float>,
+    weights: Vec<Float>,
+    fitness: Float,
 }
 
 impl VectorContext {
@@ -97,7 +97,7 @@ impl HeuristicContext for VectorContext {
         self.inner_context.on_initial(solution, item_time)
     }
 
-    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: f64, generation_time: Timer) {
+    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer) {
         self.inner_context.on_generation(offspring, termination_estimate, generation_time)
     }
 
@@ -144,7 +144,7 @@ impl Shuffled for VectorObjective {
 }
 
 impl HeuristicSolution for VectorSolution {
-    fn fitness(&self) -> impl Iterator<Item = f64> {
+    fn fitness(&self) -> impl Iterator<Item = Float> {
         once(self.fitness)
     }
 
@@ -160,19 +160,19 @@ impl RosomaxaWeighted for VectorSolution {
 }
 
 impl Input for VectorSolution {
-    fn weights(&self) -> &[f64] {
+    fn weights(&self) -> &[Float] {
         self.weights.as_slice()
     }
 }
 
 impl VectorSolution {
     /// Creates a new instance of `VectorSolution`.
-    pub fn new(data: Vec<f64>, fitness: f64, weights: Vec<f64>) -> Self {
+    pub fn new(data: Vec<Float>, fitness: Float, weights: Vec<Float>) -> Self {
         Self { data, fitness, weights }
     }
 
     /// Creates a new instance of `VectorSolution` calculating fitness and weights using objective.
-    pub fn new_with_objective(data: Vec<f64>, objective: &VectorObjective) -> Self {
+    pub fn new_with_objective(data: Vec<Float>, objective: &VectorObjective) -> Self {
         let fitness = (objective.fitness_fn)(data.as_slice());
         let weights = (objective.weight_fn)(data.as_slice());
         Self { data, fitness, weights }
@@ -181,12 +181,12 @@ impl VectorSolution {
 
 /// An example initial operator
 pub struct VectorInitialOperator {
-    data: Vec<f64>,
+    data: Vec<Float>,
 }
 
 impl VectorInitialOperator {
     /// Creates a new instance of `VectorInitialOperator`.
-    pub fn new(data: Vec<f64>) -> Self {
+    pub fn new(data: Vec<Float>) -> Self {
         Self { data }
     }
 }
@@ -210,7 +210,7 @@ pub enum VectorHeuristicOperatorMode {
     /// Adds some noice to specific dimensions.
     DimensionNoise(Noise, HashSet<usize>),
     /// Adds a delta for each dimension.
-    JustDelta(Range<f64>),
+    JustDelta(Range<Float>),
 }
 
 /// A naive implementation of heuristic search operator in vector space.
@@ -224,7 +224,7 @@ impl HeuristicSearchOperator for VectorHeuristicOperator {
     type Solution = VectorSolution;
 
     fn search(&self, context: &Self::Context, solution: &Self::Solution) -> Self::Solution {
-        let data: Vec<f64> = match &self.mode {
+        let data: Vec<Float> = match &self.mode {
             VectorHeuristicOperatorMode::JustNoise(noise) => {
                 solution.data.iter().map(|&d| d + noise.generate(d)).collect()
             }
@@ -278,7 +278,7 @@ type TargetHeuristic =
     Box<dyn HyperHeuristic<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution>>;
 
 /// Specifies solver solutions.
-pub type SolverSolutions = Vec<(Vec<f64>, f64)>;
+pub type SolverSolutions = Vec<(Vec<Float>, Float)>;
 /// Specifies heuristic context factory type.
 pub type ContextFactory = Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>) -> VectorContext>;
 
@@ -287,15 +287,15 @@ pub struct Solver {
     is_experimental: bool,
     logger: Option<InfoLogger>,
     use_static_heuristic: bool,
-    initial_solutions: Vec<Vec<f64>>,
-    initial_params: (usize, f64),
+    initial_solutions: Vec<Vec<Float>>,
+    initial_params: (usize, Float),
     fitness_fn: Option<FitnessFn>,
     weight_fn: Option<WeightFn>,
     max_time: Option<usize>,
     max_generations: Option<usize>,
-    min_cv: Option<(String, usize, f64, bool)>,
-    target_proximity: Option<(Vec<f64>, f64)>,
-    search_operators: Vec<(TargetSearchOperator, String, f64)>,
+    min_cv: Option<(String, usize, Float, bool)>,
+    target_proximity: Option<(Vec<Float>, Float)>,
+    search_operators: Vec<(TargetSearchOperator, String, Float)>,
     diversify_operators: Vec<TargetDiversifyOperator>,
     context_factory: Option<ContextFactory>,
 }
@@ -341,13 +341,13 @@ impl Solver {
     }
 
     /// Sets initial parameters.
-    pub fn with_init_params(mut self, max_size: usize, quota: f64) -> Self {
+    pub fn with_init_params(mut self, max_size: usize, quota: Float) -> Self {
         self.initial_params = (max_size, quota);
         self
     }
 
     /// Sets initial solutions.
-    pub fn with_init_solutions(mut self, init_solutions: Vec<Vec<f64>>) -> Self {
+    pub fn with_init_solutions(mut self, init_solutions: Vec<Vec<Float>>) -> Self {
         self.initial_solutions = init_solutions;
         self
     }
@@ -359,8 +359,8 @@ impl Solver {
         mut self,
         max_time: Option<usize>,
         max_generations: Option<usize>,
-        min_cv: Option<(String, usize, f64, bool)>,
-        target_proximity: Option<(Vec<f64>, f64)>,
+        min_cv: Option<(String, usize, Float, bool)>,
+        target_proximity: Option<(Vec<Float>, Float)>,
     ) -> Self {
         self.max_time = max_time;
         self.max_generations = max_generations;
@@ -371,7 +371,7 @@ impl Solver {
     }
 
     /// Sets search operator.
-    pub fn with_search_operator(mut self, mode: VectorHeuristicOperatorMode, name: &str, probability: f64) -> Self {
+    pub fn with_search_operator(mut self, mode: VectorHeuristicOperatorMode, name: &str, probability: Float) -> Self {
         self.search_operators.push((Arc::new(VectorHeuristicOperator { mode }), name.to_string(), probability));
         self
     }

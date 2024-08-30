@@ -1,6 +1,6 @@
 use crate::algorithms::gsom::{Coordinate, Network};
 use crate::helpers::algorithms::gsom::{Data, DataStorage, DataStorageFactory};
-use crate::utils::Random;
+use crate::utils::{Float, Random};
 
 type NetworkType = Network<Data, DataStorage, DataStorageFactory>;
 
@@ -52,7 +52,7 @@ mod common {
         assert_eq!(network.size(), size);
     }
 
-    fn get_coord_data(coord: (i32, i32), offset: (i32, i32), network: &NetworkType) -> (Coordinate, Vec<f64>) {
+    fn get_coord_data(coord: (i32, i32), offset: (i32, i32), network: &NetworkType) -> (Coordinate, Vec<Float>) {
         let node = network.nodes.get(&Coordinate(coord.0 + offset.0, coord.1 + offset.1)).unwrap();
         let coordinate = node.coordinate;
         let weights = node.weights.clone();
@@ -61,7 +61,7 @@ mod common {
     }
 
     fn add_node(x: i32, y: i32, network: &mut NetworkType) {
-        network.insert(Coordinate(x, y), &[x as f64, y as f64]);
+        network.insert(Coordinate(x, y), &[x as Float, y as Float]);
     }
 
     fn update_zero_neighborhood(network: &mut NetworkType) {
@@ -156,7 +156,7 @@ mod node_growing {
                 unreachable!()
             }
 
-            fn uniform_real(&self, _: f64, _: f64) -> f64 {
+            fn uniform_real(&self, _: Float, _: Float) -> Float {
                 unreachable!()
             }
 
@@ -164,7 +164,7 @@ mod node_growing {
                 unreachable!()
             }
 
-            fn is_hit(&self, _: f64) -> bool {
+            fn is_hit(&self, _: Float) -> bool {
                 false
             }
 
@@ -199,7 +199,7 @@ mod node_growing {
         network.nodes.get(&Coordinate(coord.0, coord.1))
     }
 
-    fn round_weights(weights: &[f64]) -> Vec<f64> {
+    fn round_weights(weights: &[Float]) -> Vec<Float> {
         weights.iter().map(|w| (w * 1000.).round() / 1000.).collect()
     }
 
@@ -214,7 +214,10 @@ mod node_growing {
         case04: ((1, 1), vec![((1, 0), vec![3.927, 10.67, 4.89]), ((0, 1), vec![-2.791, 12.539, 11.581])]),
     }
 
-    fn can_grow_initial_nodes_properly_impl(target_coord: (i32, i32), expected_new_nodes: Vec<((i32, i32), Vec<f64>)>) {
+    fn can_grow_initial_nodes_properly_impl(
+        target_coord: (i32, i32),
+        expected_new_nodes: Vec<((i32, i32), Vec<Float>)>,
+    ) {
         let mut network = create_trivial_network(true);
 
         network.update(&Coordinate(target_coord.0, target_coord.1), &Data::new(2., 2., 2.), 2., true);
@@ -271,7 +274,7 @@ mod node_growing {
         case05_bd_cases: ((-2, 1), vec![(Coordinate(-3, 1), vec![5., 4.5, 8.]), (Coordinate(-2, 0), vec![5., 4.5, 8.]), (Coordinate(-2, 2), vec![5., 4.5, 8.]), (Coordinate(-1, 1), vec![1.5, 4., 11.5])]),
     }
 
-    fn can_grow_nodes_with_proper_weights_impl(coord: (i32, i32), expected: Vec<(Coordinate, Vec<f64>)>) {
+    fn can_grow_nodes_with_proper_weights_impl(coord: (i32, i32), expected: Vec<(Coordinate, Vec<Float>)>) {
         // n(-2,1)(1., 3., 14.) xx  n01(2., 5., 9.) n11(3., 8., 7.)
         //                          n00(1., 4., 8.) n10(9., 3., 2.)
         //                                         n1-1(5., 1., 3.)

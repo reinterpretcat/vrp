@@ -26,12 +26,12 @@ impl TransportCost for OnlyDistanceCost {
 
 struct ProfileAwareTransportCost {
     #[allow(clippy::type_complexity)]
-    func: Box<dyn Fn(&Profile, f64) -> f64 + Sync + Send>,
+    func: Box<dyn Fn(&Profile, Float) -> Float + Sync + Send>,
 }
 
 impl ProfileAwareTransportCost {
     #[allow(clippy::type_complexity)]
-    pub fn new(func: Box<dyn Fn(&Profile, f64) -> f64 + Sync + Send>) -> ProfileAwareTransportCost {
+    pub fn new(func: Box<dyn Fn(&Profile, Float) -> Float + Sync + Send>) -> ProfileAwareTransportCost {
         ProfileAwareTransportCost { func }
     }
 }
@@ -55,8 +55,8 @@ impl TransportCost for ProfileAwareTransportCost {
 }
 
 struct FixedTransportCost {
-    duration_cost: f64,
-    distance_cost: f64,
+    duration_cost: Float,
+    distance_cost: Float,
 }
 
 impl TransportCost for FixedTransportCost {
@@ -78,7 +78,7 @@ impl TransportCost for FixedTransportCost {
 }
 
 impl FixedTransportCost {
-    pub fn new_shared(duration_cost: f64, distance_cost: f64) -> Arc<dyn TransportCost> {
+    pub fn new_shared(duration_cost: Float, distance_cost: Float) -> Arc<dyn TransportCost> {
         Arc::new(Self { duration_cost, distance_cost })
     }
 }

@@ -149,7 +149,7 @@ fn get_objective_feature_layer(
                 let default_value = 1.;
                 move |_, job| {
                     if let Some(clusters) = job.dimens().get_cluster_info() {
-                        clusters.len() as f64 * default_value
+                        clusters.len() as Float * default_value
                     } else {
                         job.dimens().get_job_type().map_or(default_value, |job_type| match job_type.as_str() {
                             "break" => break_value.unwrap_or(default_value),
@@ -166,10 +166,10 @@ fn get_objective_feature_layer(
                 create_max_load_balanced_feature::<MultiDimLoad>(
                     "max_load_balance",
                     |loaded, capacity| {
-                        let mut max_ratio = 0_f64;
+                        let mut max_ratio = Float::default();
 
                         for (idx, value) in capacity.load.iter().enumerate() {
-                            let ratio = loaded.load[idx] as f64 / *value as f64;
+                            let ratio = loaded.load[idx] as Float / *value as Float;
                             max_ratio = max_ratio.max(ratio);
                         }
 
@@ -180,7 +180,7 @@ fn get_objective_feature_layer(
             } else {
                 create_max_load_balanced_feature::<SingleDimLoad>(
                     "max_load_balance",
-                    |loaded, capacity| loaded.value as f64 / capacity.value as f64,
+                    |loaded, capacity| loaded.value as Float / capacity.value as Float,
                     |vehicle| vehicle.dimens.get_vehicle_capacity().expect("vehicle has no capacity defined"),
                 )
             }
@@ -338,13 +338,13 @@ fn get_fast_service_feature(name: &str, blocks: &ProblemBlocks) -> GenericResult
         .build()
 }
 
-fn create_capacity_with_reload_feature<T: LoadOps + SharedResource + Mul<f64, Output = T>>(
+fn create_capacity_with_reload_feature<T: LoadOps + SharedResource + Mul<Float, Output = T>>(
     name: &str,
     api_problem: &ApiProblem,
     blocks: &ProblemBlocks,
     capacity_map: fn(Vec<i32>) -> T,
 ) -> GenericResult<Feature> {
-    const RELOAD_THRESHOLD: f64 = 0.9;
+    const RELOAD_THRESHOLD: Float = 0.9;
 
     fn is_reload_single(single: &Single) -> bool {
         single.dimens.get_job_type().map_or(false, |job_type| job_type == "reload")
@@ -404,7 +404,7 @@ fn get_tour_limit_feature(
             (distances, durations)
         });
 
-    let get_limit = |limit_map: HashMap<String, f64>| {
+    let get_limit = |limit_map: HashMap<String, Float>| {
         Arc::new(move |actor: &Actor| {
             actor.vehicle.dimens.get_vehicle_type().and_then(|v_type| limit_map.get(v_type)).cloned()
         })
@@ -542,7 +542,7 @@ fn create_optional_break_feature(name: &str) -> GenericResult<Feature> {
 
 fn get_tour_order_fn() -> TourOrderFn {
     TourOrderFn::Left(Arc::new(|single| {
-        single.dimens.get_job_order().copied().map(|order| OrderResult::Value(order as f64)).unwrap_or_else(|| {
+        single.dimens.get_job_order().copied().map(|order| OrderResult::Value(order as Float)).unwrap_or_else(|| {
             single.dimens.get_job_type().map_or(OrderResult::Default, |v| {
                 match v.as_str() {
                     "break" | "reload" => OrderResult::Ignored,

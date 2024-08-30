@@ -5,12 +5,12 @@ use crate::helpers::models::problem::{get_job_id, TestSingleBuilder};
 use crate::models::common::{Dimensions, Duration, Location, Profile};
 use crate::models::problem::{Job, JobIdDimension};
 use crate::models::*;
-use rosomaxa::prelude::compare_floats;
+use rosomaxa::prelude::{compare_floats, Float};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-pub type JobPlaces = Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>;
+pub type JobPlaces = Vec<(Option<Location>, Duration, Vec<(Float, Float)>)>;
 
 /// Provides the way to set clustered jobs.
 pub trait ClusteredJob {

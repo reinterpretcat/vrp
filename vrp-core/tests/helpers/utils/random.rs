@@ -1,4 +1,4 @@
-use rosomaxa::prelude::{Random, RandomGen};
+use rosomaxa::prelude::{Float, Random, RandomGen};
 use std::sync::RwLock;
 
 struct FakeDistribution<T> {
@@ -19,11 +19,11 @@ impl<T> FakeDistribution<T> {
 
 pub struct FakeRandom {
     ints: RwLock<FakeDistribution<i32>>,
-    reals: RwLock<FakeDistribution<f64>>,
+    reals: RwLock<FakeDistribution<Float>>,
 }
 
 impl FakeRandom {
-    pub fn new(ints: Vec<i32>, reals: Vec<f64>) -> Self {
+    pub fn new(ints: Vec<i32>, reals: Vec<Float>) -> Self {
         Self { ints: RwLock::new(FakeDistribution::new(ints)), reals: RwLock::new(FakeDistribution::new(reals)) }
     }
 }
@@ -34,7 +34,7 @@ impl Random for FakeRandom {
         self.ints.write().unwrap().next()
     }
 
-    fn uniform_real(&self, min: f64, max: f64) -> f64 {
+    fn uniform_real(&self, min: Float, max: Float) -> Float {
         assert!(min < max);
         self.reals.write().unwrap().next()
     }
@@ -43,7 +43,7 @@ impl Random for FakeRandom {
         self.uniform_int(1, 2) == 1
     }
 
-    fn is_hit(&self, probability: f64) -> bool {
+    fn is_hit(&self, probability: Float) -> bool {
         self.uniform_real(0., 1.) < probability
     }
 

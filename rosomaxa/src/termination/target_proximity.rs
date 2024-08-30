@@ -13,8 +13,8 @@ where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    target_fitness: Vec<f64>,
-    distance_threshold: f64,
+    target_fitness: Vec<Float>,
+    distance_threshold: Float,
     _marker: (PhantomData<C>, PhantomData<O>, PhantomData<S>),
 }
 
@@ -25,7 +25,7 @@ where
     S: HeuristicSolution,
 {
     /// Creates a new instance of `TargetProximity`.
-    pub fn new(target_fitness: Vec<f64>, distance_threshold: f64) -> Self {
+    pub fn new(target_fitness: Vec<Float>, distance_threshold: Float) -> Self {
         Self {
             target_fitness,
             distance_threshold,
@@ -51,7 +51,7 @@ where
         })
     }
 
-    fn estimate(&self, _: &Self::Context) -> f64 {
+    fn estimate(&self, _: &Self::Context) -> Float {
         0.
     }
 }

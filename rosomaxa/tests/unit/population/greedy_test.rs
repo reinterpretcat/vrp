@@ -2,7 +2,7 @@ use super::*;
 use crate::example::*;
 use crate::helpers::example::create_example_objective;
 
-fn get_best_fitness(population: &Greedy<VectorObjective, VectorSolution>) -> f64 {
+fn get_best_fitness(population: &Greedy<VectorObjective, VectorSolution>) -> Float {
     population.ranked().next().unwrap().fitness().next().unwrap()
 }
 
@@ -57,7 +57,7 @@ fn can_select_when_empty() {
 #[test]
 fn can_compare_individuals() {
     let objective = create_example_objective();
-    let create_individual = |data: Vec<f64>| VectorSolution::new_with_objective(data, objective.as_ref());
+    let create_individual = |data: Vec<Float>| VectorSolution::new_with_objective(data, objective.as_ref());
     let population = Greedy::<_, _>::new(objective.clone(), 1, None);
 
     assert_eq!(population.cmp(&create_individual(vec![-1., -1.]), &create_individual(vec![-1., -1.])), Ordering::Equal);

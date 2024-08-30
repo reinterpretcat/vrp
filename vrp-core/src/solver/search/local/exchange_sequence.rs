@@ -16,13 +16,13 @@ const MIN_JOBS: usize = 2;
 /// A local search operator which tries to exchange sequence of jobs between routes.
 pub struct ExchangeSequence {
     max_sequence_size: usize,
-    reverse_prob: f64,
-    shuffle_prob: f64,
+    reverse_prob: Float,
+    shuffle_prob: Float,
 }
 
 impl ExchangeSequence {
     /// Creates a new instance of `ExchangeSequence`.
-    pub fn new(max_sequence_size: usize, reverse_prob: f64, shuffle_prob: f64) -> Self {
+    pub fn new(max_sequence_size: usize, reverse_prob: Float, shuffle_prob: Float) -> Self {
         assert!(max_sequence_size >= MIN_JOBS);
 
         Self { max_sequence_size, reverse_prob, shuffle_prob }
@@ -81,8 +81,8 @@ fn exchange_jobs(
     insertion_ctx: &mut InsertionContext,
     route_indices: &[usize],
     max_sequence_size: usize,
-    reverse_prob: f64,
-    shuffle_prob: f64,
+    reverse_prob: Float,
+    shuffle_prob: Float,
 ) {
     let get_route_idx = |insertion_ctx: &InsertionContext| {
         let idx = insertion_ctx.environment.random.uniform_int(0, route_indices.len() as i32 - 1) as usize;
@@ -155,8 +155,8 @@ fn insert_jobs(
     insertion_ctx: &mut InsertionContext,
     route_idx: usize,
     jobs: Vec<Job>,
-    reverse_prob: f64,
-    shuffle_prob: f64,
+    reverse_prob: Float,
+    shuffle_prob: Float,
 ) {
     let random = &insertion_ctx.environment.random;
     let leg_selection = LegSelection::Stochastic(random.clone());

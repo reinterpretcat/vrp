@@ -12,7 +12,7 @@ fn create_rosomaxa(rebalance_memory: usize) -> (Arc<VectorObjective>, Rosomaxa<V
     (objective, population)
 }
 
-fn create_statistics(termination_estimate: f64, generation: usize) -> HeuristicStatistics {
+fn create_statistics(termination_estimate: Float, generation: usize) -> HeuristicStatistics {
     HeuristicStatistics {
         termination_estimate,
         generation,
@@ -74,7 +74,7 @@ fn can_optimize_network() {
     let termination_estimate = 0.75;
     let (objective, mut rosomaxa) = create_rosomaxa(2);
     (0..10).for_each(|idx| {
-        let value = idx as f64 - 5.;
+        let value = idx as Float - 5.;
         rosomaxa.add_all(vec![VectorSolution::new_with_objective(vec![value, value], objective.as_ref())]);
         rosomaxa.update_phase(&create_statistics(termination_estimate, idx))
     });

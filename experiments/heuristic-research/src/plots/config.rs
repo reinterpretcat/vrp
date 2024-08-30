@@ -1,5 +1,6 @@
 use crate::{DataPoint3D, MatrixData};
 use plotters::style::RGBColor;
+use rosomaxa::prelude::Float;
 use std::ops::Range;
 
 /// Specifies a data point with color type.
@@ -16,11 +17,11 @@ pub enum PointType {
 /// A projection configuration.
 pub struct Projection {
     /// Pitch.
-    pub pitch: f64,
+    pub pitch: Float,
     /// Yaw.
-    pub yaw: f64,
+    pub yaw: Float,
     /// Chart scale.
-    pub scale: f64,
+    pub scale: Float,
 }
 
 /// A drawing configuration for solution space visualization.
@@ -36,17 +37,17 @@ pub struct SolutionDrawConfig {
 /// A 3D axes configuration.
 pub struct Axes {
     /// X axis.
-    pub x: (Range<f64>, f64),
+    pub x: (Range<Float>, Float),
     /// Y axis.
-    pub y: Range<f64>,
+    pub y: Range<Float>,
     /// Z axis.
-    pub z: (Range<f64>, f64),
+    pub z: (Range<Float>, Float),
 }
 
 /// A series configuration.
 pub struct Series3D {
     /// Surface function.
-    pub surface: Box<dyn Fn(f64, f64) -> f64>,
+    pub surface: Box<dyn Fn(Float, Float) -> Float>,
     /// Points iterator.
     pub points: Box<dyn Fn() -> Vec<ColoredDataPoint3D>>,
 }
@@ -68,9 +69,9 @@ pub enum PopulationSeries {
         /// Columns range.
         cols: Range<i32>,
         /// Mean node distance.
-        mean_distance: f64,
+        mean_distance: Float,
         /// Best fitness values.
-        fitness_values: Vec<f64>,
+        fitness_values: Vec<Float>,
         /// Objective values chart series.
         fitness_matrices: Vec<Series2D>,
         /// U-matrix values chart series.
@@ -89,7 +90,7 @@ pub struct FitnessDrawConfig {
     /// Fitness labels.
     pub labels: Vec<String>,
     /// Objective values for each generation.
-    pub fitness: Vec<(usize, Vec<f64>)>,
+    pub fitness: Vec<(usize, Vec<Float>)>,
     /// The most variable objective to be used to initialize axis.
     /// Typically, it is the cost (or distance/duration) minimization.
     pub target_idx: usize,
@@ -99,7 +100,7 @@ pub struct FitnessDrawConfig {
 #[derive(Default)]
 pub struct SearchDrawConfig {
     /// Actual estimations with respective labels.
-    pub estimations: Vec<(String, f64)>,
+    pub estimations: Vec<(String, Float)>,
     /// Number of discovered best known solutions with the respective label.
     pub best: Vec<(String, usize)>,
     /// Overall calls of specific heuristics.

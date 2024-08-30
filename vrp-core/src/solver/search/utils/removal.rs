@@ -6,7 +6,7 @@ use crate::construction::heuristics::*;
 use crate::models::problem::{Actor, Job};
 use crate::solver::search::RemovalLimits;
 use rand::prelude::SliceRandom;
-use rosomaxa::prelude::Random;
+use rosomaxa::prelude::{Float, Random};
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -112,7 +112,7 @@ impl JobRemovalTracker {
 
         // try at least once remove a route completely
         if !self.has_fully_removed_routes {
-            return random.is_hit(1. / self.routes_left.max(1) as f64);
+            return random.is_hit(1. / self.routes_left.max(1) as Float);
         }
 
         false

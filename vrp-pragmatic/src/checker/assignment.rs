@@ -215,7 +215,7 @@ fn is_valid_job_info(
     place: Place,
     time: TimeWindow,
 ) -> bool {
-    let not_equal = |left: f64, right: f64| compare_floats(left, right) != Ordering::Equal;
+    let not_equal = |left: Float, right: Float| compare_floats(left, right) != Ordering::Equal;
     let parking = ctx.clustering.as_ref().map(|config| config.serving.get_parking()).unwrap_or(0.);
     let commute_profile = ctx.clustering.as_ref().map(|config| config.profile.clone());
     let domain_commute = ctx.get_commute_info(commute_profile, parking, stop, activity_idx);

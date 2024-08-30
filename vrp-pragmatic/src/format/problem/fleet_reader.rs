@@ -65,15 +65,15 @@ pub(super) fn create_transport_costs(
                         durations.push(-1.);
                         distances.push(-1.);
                     } else {
-                        durations.push(*matrix.travel_times.get(i).unwrap() as f64);
-                        distances.push(*matrix.distances.get(i).unwrap() as f64);
+                        durations.push(*matrix.travel_times.get(i).unwrap() as Float);
+                        distances.push(*matrix.distances.get(i).unwrap() as Float);
                     }
                 }
                 (durations, distances)
             } else {
                 (
-                    matrix.travel_times.iter().map(|d| *d as f64).collect(),
-                    matrix.distances.iter().map(|d| *d as f64).collect(),
+                    matrix.travel_times.iter().map(|d| *d as Float).collect(),
+                    matrix.distances.iter().map(|d| *d as Float).collect(),
                 )
             };
 
@@ -189,7 +189,7 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
 
 /// Creates a matrices using approximation.
 pub fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
-    const DEFAULT_SPEED: f64 = 10.;
+    const DEFAULT_SPEED: Float = 10.;
     // get each speed value once
     let speeds = problem
         .fleet
@@ -197,8 +197,8 @@ pub fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
         .iter()
         .map(|profile| profile.speed.unwrap_or(DEFAULT_SPEED))
         .map(|speed| speed.to_bits())
-        .collect::<HashSet<u64>>();
-    let speeds = speeds.into_iter().map(f64::from_bits).collect::<Vec<_>>();
+        .collect::<HashSet<_>>();
+    let speeds = speeds.into_iter().map(Float::from_bits).collect::<Vec<_>>();
 
     let locations = get_unique_locations(problem)
         .into_iter()

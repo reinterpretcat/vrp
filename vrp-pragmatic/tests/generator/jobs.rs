@@ -4,12 +4,13 @@ use crate::format::Location;
 use crate::helpers::create_empty_plan;
 use std::ops::Range;
 use uuid::Uuid;
+use vrp_core::prelude::Float;
 
 /// Creates delivery job prototype.
 pub fn delivery_job_prototype(
     task_proto: impl Strategy<Value = JobTask>,
     skills_proto: impl Strategy<Value = Option<JobSkills>>,
-    value_proto: impl Strategy<Value = Option<f64>>,
+    value_proto: impl Strategy<Value = Option<Float>>,
     group_proto: impl Strategy<Value = Option<String>>,
     compat_proto: impl Strategy<Value = Option<String>>,
 ) -> impl Strategy<Value = Job> {
@@ -29,7 +30,7 @@ pub fn delivery_job_prototype(
 pub fn pickup_job_prototype(
     task_proto: impl Strategy<Value = JobTask>,
     skills_proto: impl Strategy<Value = Option<JobSkills>>,
-    value_proto: impl Strategy<Value = Option<f64>>,
+    value_proto: impl Strategy<Value = Option<Float>>,
     group_proto: impl Strategy<Value = Option<String>>,
     compat_proto: impl Strategy<Value = Option<String>>,
 ) -> impl Strategy<Value = Job> {
@@ -53,7 +54,7 @@ prop_compose! {
         demand_proto: impl Strategy<Value = Option<Vec<i32>>>,
         order_proto: impl Strategy<Value = Option<i32>>,
         skills_proto: impl Strategy<Value = Option<JobSkills>>,
-        value_proto: impl Strategy<Value = Option<f64>>,
+        value_proto: impl Strategy<Value = Option<Float >>,
         group_proto: impl Strategy<Value = Option<String>>,
         compat_proto: impl Strategy<Value = Option<String>>,
     )
@@ -113,7 +114,7 @@ prop_compose! {
         replacements_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
         services_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
         skills_proto: impl Strategy<Value = Option<JobSkills>>,
-        value_proto: impl Strategy<Value = Option<f64>>,
+        value_proto: impl Strategy<Value = Option<Float >>,
         group_proto: impl Strategy<Value = Option<String>>,
         compat_proto: impl Strategy<Value = Option<String>>,
     )
@@ -159,7 +160,7 @@ prop_compose! {
 prop_compose! {
     pub fn job_place_prototype(
         locations: impl Strategy<Value = Location>,
-        durations: impl Strategy<Value = f64>,
+        durations: impl Strategy<Value = Float>,
         time_windows: impl Strategy<Value = Option<Vec<Vec<String>>>>,
         tags: impl Strategy<Value = Option<String>>,
     )
@@ -210,7 +211,7 @@ prop_compose! {
 
 prop_compose! {
     /// Generates no job value.
-    pub fn generate_no_jobs_value()(_ in ".*") -> Option<f64> {
+    pub fn generate_no_jobs_value()(_ in ".*") -> Option<Float> {
         None
     }
 }

@@ -1,4 +1,4 @@
-//! This module reimports a common used types.
+//! This module reimports a commonly used types.
 
 pub use crate::HeuristicContext;
 pub use crate::HeuristicResult;
@@ -27,6 +27,7 @@ pub use crate::termination::Termination;
 
 pub use crate::utils::DefaultRandom;
 pub use crate::utils::Environment;
+pub use crate::utils::Float;
 pub use crate::utils::InfoLogger;
 pub use crate::utils::Noise;
 pub use crate::utils::Quota;

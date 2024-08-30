@@ -5,6 +5,7 @@
 #[path = "../../../tests/unit/algorithms/clustering/dbscan_test.rs"]
 mod dbscan_test;
 
+use rosomaxa::prelude::Float;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
@@ -12,13 +13,13 @@ use std::hash::Hash;
 pub type Cluster<'a, T> = Vec<&'a T>;
 
 /// A function which returns neighbors of given point with given epsilon.
-pub type NeighborhoodFn<'a, T> = Box<dyn Fn(&'a T, f64) -> Box<dyn Iterator<Item = &'a T> + 'a> + 'a>;
+pub type NeighborhoodFn<'a, T> = Box<dyn Fn(&'a T, Float) -> Box<dyn Iterator<Item = &'a T> + 'a> + 'a>;
 
 /// Creates clusters of points using DBSCAN (Density-Based Spatial Clustering of Applications with Noise)
 /// algorithm. NOTE: `neighborhood_fn` shall return point itself.
 pub fn create_clusters<'a, T>(
     points: &'a [T],
-    epsilon: f64,
+    epsilon: Float,
     min_points: usize,
     neighborhood_fn: &NeighborhoodFn<'a, T>,
 ) -> Vec<Cluster<'a, T>>

@@ -3,6 +3,7 @@ use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, JobIdDimension};
 use vrp_core::models::Problem;
+use vrp_core::utils::Float;
 
 pub fn get_customer_id(job: &Job) -> String {
     get_job_id(job).to_owned()
@@ -41,7 +42,7 @@ pub fn get_vehicle_capacity(problem: &Problem) -> i32 {
     capacity.value
 }
 
-pub fn get_job_time_windows(problem: &Problem) -> Vec<(f64, f64)> {
+pub fn get_job_time_windows(problem: &Problem) -> Vec<(Float, Float)> {
     problem
         .jobs
         .all()
@@ -68,7 +69,7 @@ pub fn get_job_demands(problem: &Problem) -> Vec<i32> {
     problem.jobs.all().map(|j| get_job_simple_demand(&j).delivery.0).map(|d| d.value).collect()
 }
 
-pub fn get_job_durations(problem: &Problem) -> Vec<f64> {
+pub fn get_job_durations(problem: &Problem) -> Vec<Float> {
     problem
         .jobs
         .all()

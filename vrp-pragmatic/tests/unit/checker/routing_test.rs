@@ -17,7 +17,7 @@ fn create_test_statistic() -> Statistic {
     Statistic { cost: 10., distance: 4, duration: 6, times: Timing { driving: 4, serving: 2, ..Timing::default() } }
 }
 
-fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> Solution {
+fn create_test_solution(statistic: Statistic, stop_data: &[(Float, i64); 3]) -> Solution {
     let [first, second, third] = stop_data;
     SolutionBuilder::default()
         .tour(
@@ -78,7 +78,7 @@ can_check_stop! {
     case_09: (&[(1., 1), (3., 2), (6., 6)], Err(vec![distance_error(3, 6, 4)])),
 }
 
-fn can_check_stop_impl(stop_data: &[(f64, i64); 3], expected_result: Result<(), Vec<GenericError>>) {
+fn can_check_stop_impl(stop_data: &[(Float, i64); 3], expected_result: Result<(), Vec<GenericError>>) {
     let problem = create_test_problem();
     let matrix = create_matrix_from_problem(&problem);
     let solution = create_test_solution(create_test_statistic(), stop_data);

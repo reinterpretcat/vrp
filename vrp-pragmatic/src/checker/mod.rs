@@ -18,6 +18,7 @@ use vrp_core::models::solution::{Commute as DomainCommute, CommuteInfo as Domain
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::prelude::{GenericError, GenericResult};
 use vrp_core::solver::processing::ClusterConfigExtraProperty;
+use vrp_core::utils::Float;
 
 /// Stores problem and solution together and provides some helper methods.
 pub struct CheckerContext {
@@ -153,7 +154,7 @@ impl CheckerContext {
             .find(|shift| {
                 let shift_time = TimeWindow::new(
                     parse_time(&shift.start.earliest),
-                    shift.end.as_ref().map_or_else(|| f64::MAX, |place| parse_time(&place.latest)),
+                    shift.end.as_ref().map_or_else(|| Float::MAX, |place| parse_time(&place.latest)),
                 );
                 shift_time.intersects(&tour_time)
             })
@@ -284,18 +285,18 @@ impl CheckerContext {
                                 };
 
                                 // NOTE parking correction
-                                let f_duration = if f_duration == 0 { parking } else { f_duration as f64 };
+                                let f_duration = if f_duration == 0 { parking } else { f_duration as Float };
 
                                 Ok(Some(DomainCommute {
                                     forward: DomainCommuteInfo {
                                         location: prev_location,
-                                        distance: f_distance as f64,
+                                        distance: f_distance as Float,
                                         duration: f_duration,
                                     },
                                     backward: DomainCommuteInfo {
                                         location: b_location,
-                                        distance: b_distance as f64,
-                                        duration: b_duration as f64,
+                                        distance: b_distance as Float,
+                                        duration: b_duration as Float,
                                     },
                                 }))
                             }
@@ -370,7 +371,7 @@ impl CheckerContext {
 
         let distance = get_matrix_value(matrix_idx, &matrix.distances)?;
         let duration = get_matrix_value(matrix_idx, &matrix.travel_times)?;
-        let duration = (duration as f64 * profile.scale) as i64;
+        let duration = (duration as Float * profile.scale) as i64;
 
         Ok((distance, duration))
     }
@@ -411,7 +412,7 @@ fn get_time_window(stop: &Stop, activity: &Activity) -> TimeWindow {
 }
 
 fn get_matrix_size(matrices: &[Matrix]) -> usize {
-    (matrices.first().unwrap().travel_times.len() as f64).sqrt().round() as usize
+    (matrices.first().unwrap().travel_times.len() as Float).sqrt().round() as usize
 }
 
 fn get_matrix_value(idx: usize, matrix_values: &[i64]) -> GenericResult<i64> {

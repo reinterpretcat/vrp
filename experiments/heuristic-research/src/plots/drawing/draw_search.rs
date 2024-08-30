@@ -1,6 +1,6 @@
 use super::*;
 use plotters::style::full_palette::BLUE_200;
-use rosomaxa::prelude::compare_floats_refs;
+use rosomaxa::prelude::{compare_floats_refs, Float};
 
 const TOP_SIZE: usize = 25;
 
@@ -46,8 +46,8 @@ fn draw_search_statistics<B: DrawingBackend + 'static>(
 
     statistics.sort_by(|(_, a), (_, b)| b.cmp(a));
 
-    let (labels, data): (Vec<String>, Vec<f64>) =
-        statistics.into_iter().take(TOP_SIZE).map(|(label, data)| (label, data as f64)).unzip();
+    let (labels, data): (Vec<String>, Vec<Float>) =
+        statistics.into_iter().take(TOP_SIZE).map(|(label, data)| (label, data as Float)).unzip();
 
     draw_bar_plot(area, labels.as_slice(), data.as_slice())
 }
@@ -55,7 +55,7 @@ fn draw_search_statistics<B: DrawingBackend + 'static>(
 fn draw_bar_plot<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
     labels: &[String],
-    data: &[f64],
+    data: &[Float],
 ) -> DrawResult<()> {
     area.fill(&WHITE)?;
 

@@ -11,8 +11,8 @@ pub struct InfeasibleSearch {
     inner_search: TargetSearchOperator,
     recovery_operator: Arc<dyn Recreate>,
     max_repeat_count: usize,
-    shuffle_objectives_probability: (f64, f64),
-    skip_constraint_check_probability: (f64, f64),
+    shuffle_objectives_probability: (Float, Float),
+    skip_constraint_check_probability: (Float, Float),
 }
 
 impl InfeasibleSearch {
@@ -21,8 +21,8 @@ impl InfeasibleSearch {
         inner_search: TargetSearchOperator,
         recovery_operator: Arc<dyn Recreate>,
         max_repeat_count: usize,
-        shuffle_objectives_probability: (f64, f64),
-        skip_constraint_check_probability: (f64, f64),
+        shuffle_objectives_probability: (Float, Float),
+        skip_constraint_check_probability: (Float, Float),
     ) -> Self {
         Self {
             inner_search,
@@ -98,8 +98,8 @@ fn create_relaxed_refinement_ctx(new_insertion_ctx: &InsertionContext) -> Refine
 
 fn create_relaxed_insertion_ctx(
     insertion_ctx: &InsertionContext,
-    shuffle_objectives_probability: (f64, f64),
-    skip_constraint_check_probability: (f64, f64),
+    shuffle_objectives_probability: (Float, Float),
+    skip_constraint_check_probability: (Float, Float),
 ) -> InsertionContext {
     let problem = &insertion_ctx.problem;
     let random = &insertion_ctx.environment.random;
@@ -126,8 +126,8 @@ fn create_relaxed_insertion_ctx(
 fn create_modified_variant(
     original: &GoalContext,
     random: Arc<dyn Random>,
-    skip_probability: f64,
-    shuffle_probability: f64,
+    skip_probability: Float,
+    shuffle_probability: Float,
 ) -> Arc<GoalContext> {
     let shuffled =
         if random.is_hit(shuffle_probability) { original.get_shuffled(random.as_ref()) } else { original.clone() };
@@ -157,7 +157,7 @@ fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionCo
 struct StochasticFeatureConstraint {
     inner: Arc<dyn FeatureConstraint>,
     random: Arc<dyn Random>,
-    probability: f64,
+    probability: Float,
 }
 
 impl FeatureConstraint for StochasticFeatureConstraint {

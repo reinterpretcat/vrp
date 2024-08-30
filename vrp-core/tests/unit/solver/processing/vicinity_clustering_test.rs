@@ -70,8 +70,8 @@ can_unwrap_clusters_in_route_on_post_process! {
 
 fn can_unwrap_clusters_in_route_on_post_process_impl(
     visiting: VisitPolicy,
-    duration: f64,
-    expected: Vec<(&str, (f64, f64))>,
+    duration: Float,
+    expected: Vec<(&str, (Float, Float))>,
 ) {
     let problem_jobs = create_test_jobs();
     let (_, new_problem) = create_problems(ClusterConfig { visiting, ..create_cluster_config() }, problem_jobs);

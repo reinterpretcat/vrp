@@ -16,8 +16,8 @@ can_detect_termination_with_sample! {
 
 fn can_detect_termination_with_sample_impl(
     sample: usize,
-    threshold: f64,
-    delta: f64,
+    threshold: Float,
+    delta: Float,
     no_other_variance: bool,
     expected: Vec<bool>,
 ) {
@@ -26,8 +26,8 @@ fn can_detect_termination_with_sample_impl(
 
     let result = (0..sample)
         .map(|i| {
-            let other = if no_other_variance { 0. } else { i as f64 };
-            let cost = 1. + (i + 1) as f64 * delta;
+            let other = if no_other_variance { 0. } else { i as Float };
+            let cost = 1. + (i + 1) as Float * delta;
 
             context.on_generation(vec![], 0.1, Timer::start());
 
@@ -51,7 +51,7 @@ fn can_detect_termination_with_period() {
 
     let result = (0..iterations)
         .map(|i| {
-            let cost = 1. + (i + 1) as f64 * delta;
+            let cost = 1. + (i + 1) as Float * delta;
             let result = termination.update_and_check(&mut context, vec![0., 0., cost]);
             sleep(Duration::from_secs(1));
 
@@ -76,12 +76,12 @@ can_maintain_period_buffer_size! {
 fn can_maintain_period_buffer_size_impl(size: u128, check_sorted: bool) {
     let key = 0;
     let mut context = create_default_heuristic_context();
-    context.set_state(key, (0..size).map(|i| (i, vec![0., 0.])).collect::<Vec<_>>());
+    context.set_state(key, (0..size).map(|i| (i, vec![Float::default(), Float::default()])).collect::<Vec<_>>());
     let termination = MinVariation::<_, _, _, _>::new_with_period(300, 0.01, false, key);
 
-    termination.update_and_check(&mut context, vec![0., 0.]);
+    termination.update_and_check(&mut context, vec![Float::default(), Float::default()]);
 
-    let values = context.get_state::<Vec<(u128, Vec<f64>)>>(&key).unwrap();
+    let values = context.get_state::<Vec<(u128, Vec<Float>)>>(&key).unwrap();
     if check_sorted {
         let all_sorted = values.windows(2).all(|data| {
             let (a, b) = match data {

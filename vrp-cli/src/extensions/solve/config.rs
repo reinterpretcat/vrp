@@ -81,13 +81,13 @@ pub enum PopulationType {
         /// Node population size. Default is 4.
         max_node_size: Option<usize>,
         /// Spread factor. Default is 0.75.
-        spread_factor: Option<f64>,
+        spread_factor: Option<Float>,
         /// Distribution factor. Default is 0.75.
-        distribution_factor: Option<f64>,
+        distribution_factor: Option<Float>,
         /// A rebalance memory. Default is 100.
         rebalance_memory: Option<usize>,
         /// An exploration phase ratio. Default is 0.9.
-        exploration_ratio: Option<f64>,
+        exploration_ratio: Option<Float>,
     },
 }
 
@@ -104,7 +104,7 @@ pub struct InitialConfig {
 pub struct InitialAlternativesConfig {
     pub methods: Vec<RecreateMethod>,
     pub max_size: usize,
-    pub quota: f64,
+    pub quota: Float,
 }
 
 /// A selection operator configuration.
@@ -182,7 +182,7 @@ pub enum OperatorProbabilityType {
     /// A scalar probability based type.
     Scalar {
         /// Probability value of the operator.
-        scalar: f64,
+        scalar: Float,
     },
 
     /// A context specific probability type.
@@ -211,21 +211,21 @@ pub enum ContextPhase {
     #[serde(rename(deserialize = "initial"))]
     Initial {
         /// A chance defined by probability.
-        chance: f64,
+        chance: Float,
     },
 
     /// Exploration search phase.
     #[serde(rename(deserialize = "exploration"))]
     Exploration {
         /// A chance defined by probability.
-        chance: f64,
+        chance: Float,
     },
 
     /// Exploitation search phase.
     #[serde(rename(deserialize = "exploitation"))]
     Exploitation {
         /// A chance defined by probability.
-        chance: f64,
+        chance: Float,
     },
 }
 
@@ -244,28 +244,28 @@ pub struct RuinGroupConfig {
 pub enum RuinMethod {
     /// Adjusted string removal method.
     #[serde(rename(deserialize = "adjusted-string"))]
-    AdjustedString { probability: f64, lmax: usize, cavg: usize, alpha: f64 },
+    AdjustedString { probability: Float, lmax: usize, cavg: usize, alpha: Float },
     /// Neighbour jobs method
     #[serde(rename(deserialize = "neighbour"))]
-    Neighbour { probability: f64, min: usize, max: usize },
+    Neighbour { probability: Float, min: usize, max: usize },
     /// Random job removal method.
     #[serde(rename(deserialize = "random-job"))]
-    RandomJob { probability: f64, min: usize, max: usize },
+    RandomJob { probability: Float, min: usize, max: usize },
     /// Random route removal method.
     #[serde(rename(deserialize = "random-route"))]
-    RandomRoute { probability: f64, min: usize, max: usize },
+    RandomRoute { probability: Float, min: usize, max: usize },
     /// Close route removal method.
     #[serde(rename(deserialize = "close-route"))]
-    CloseRoute { probability: f64 },
+    CloseRoute { probability: Float },
     #[serde(rename(deserialize = "worst-route"))]
-    WorstRoute { probability: f64 },
+    WorstRoute { probability: Float },
     /// Worst job removal method.
     #[serde(rename(deserialize = "worst-job"))]
-    WorstJob { probability: f64, min: usize, max: usize, skip: usize },
+    WorstJob { probability: Float, min: usize, max: usize, skip: usize },
     /// Clustered jobs removal method.
     #[serde(rename(deserialize = "cluster"))]
     #[serde(rename_all = "camelCase")]
-    Cluster { probability: f64, min: usize, max: usize, min_items: usize },
+    Cluster { probability: Float, min: usize, max: usize, min_items: usize },
 }
 
 /// Specifies recreate methods with their probability weight and specific parameters.
@@ -298,7 +298,7 @@ pub enum RecreateMethod {
     Farthest { weight: usize },
     /// Insertion with perturbation method.
     #[serde(rename(deserialize = "perturbation"))]
-    Perturbation { weight: usize, probability: f64, min: f64, max: f64 },
+    Perturbation { weight: usize, probability: Float, min: Float, max: Float },
     /// Insertion with regret method.
     #[serde(rename(deserialize = "regret"))]
     Regret { weight: usize, start: usize, end: usize },
@@ -326,9 +326,9 @@ pub enum LocalOperatorType {
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct NoiseConfig {
-    probability: f64,
-    min: f64,
-    max: f64,
+    probability: Float,
+    min: Float,
+    max: Float,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -344,7 +344,7 @@ pub struct TerminationConfig {
 pub struct VariationConfig {
     interval_type: String,
     value: usize,
-    cv: f64,
+    cv: Float,
     is_global: bool,
 }
 
@@ -662,7 +662,7 @@ fn create_ruin_method(
     problem: &Arc<Problem>,
     environment: Arc<Environment>,
     method: &RuinMethod,
-) -> (Arc<dyn Ruin>, f64) {
+) -> (Arc<dyn Ruin>, Float) {
     let limits = RemovalLimits::new(problem.as_ref());
     let get_limits = |min: usize, max: usize| RemovalLimits {
         removed_activities_range: min..max,

@@ -5,6 +5,7 @@ mod routing_test;
 use super::*;
 use crate::utils::combine_error_results;
 use std::collections::HashSet;
+use vrp_core::prelude::Float;
 
 /// Checks that no duplicated profile names specified.
 fn check_e1500_duplicated_profiles(ctx: &ValidationContext) -> Result<(), FormatError> {
@@ -70,7 +71,7 @@ fn check_e1504_index_size_mismatch(ctx: &ValidationContext) -> Result<(), Format
     let (matrix_size, is_correct_index) = ctx
         .matrices
         .and_then(|matrices| matrices.first())
-        .map(|matrix| (matrix.distances.len() as f64).sqrt().round() as usize)
+        .map(|matrix| (matrix.distances.len() as Float).sqrt().round() as usize)
         .map_or((0_usize, true), |matrix_size| (matrix_size, max_index + 1 == matrix_size));
 
     if !is_correct_index {

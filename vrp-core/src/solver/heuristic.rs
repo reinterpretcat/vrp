@@ -171,7 +171,7 @@ pub fn create_elitism_population(
     Elitism::new(objective, environment.random.clone(), 4, selection_size)
 }
 
-custom_solution_state!(SolutionWeights typeof Vec<f64>);
+custom_solution_state!(SolutionWeights typeof Vec<Float>);
 
 impl RosomaxaWeighted for InsertionContext {
     fn init_weights(&mut self) {
@@ -196,8 +196,8 @@ impl RosomaxaWeighted for InsertionContext {
             // tour related features
             get_customers_deviation(self),
             // default objective related
-            self.solution.unassigned.len() as f64,
-            self.solution.routes.len() as f64,
+            self.solution.unassigned.len() as Float,
+            self.solution.routes.len() as Float,
             self.get_total_cost().unwrap_or_default(),
         ];
 
@@ -206,14 +206,14 @@ impl RosomaxaWeighted for InsertionContext {
 }
 
 impl Input for InsertionContext {
-    fn weights(&self) -> &[f64] {
+    fn weights(&self) -> &[Float] {
         self.solution.state.get_solution_weights().unwrap().as_slice()
     }
 }
 
 /// Creates a heuristic operator probability which uses `is_hit` method from passed random object.
 pub fn create_scalar_operator_probability(
-    scalar_probability: f64,
+    scalar_probability: Float,
     random: Arc<dyn Random>,
 ) -> TargetHeuristicProbability {
     (Box::new(move |_, _| random.is_hit(scalar_probability)), PhantomData)
@@ -223,7 +223,7 @@ pub fn create_scalar_operator_probability(
 pub fn create_context_operator_probability(
     jobs_threshold: usize,
     routes_threshold: usize,
-    phases: Vec<(SelectionPhase, f64)>,
+    phases: Vec<(SelectionPhase, Float)>,
     random: Arc<dyn Random>,
 ) -> TargetHeuristicProbability {
     let phases = phases.into_iter().collect::<HashMap<_, _>>();
@@ -489,7 +489,7 @@ mod dynamic {
         environment: Arc<Environment>,
         limits: RemovalLimits,
         prefix: &str,
-    ) -> Vec<(Arc<dyn Ruin>, String, f64)> {
+    ) -> Vec<(Arc<dyn Ruin>, String, Float)> {
         vec![
             (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), format!("{prefix}_asr"), 2.),
             (Arc::new(NeighbourRemoval::new(limits.clone())), format!("{prefix}_neighbour_removal"), 5.),
@@ -506,7 +506,10 @@ mod dynamic {
         ]
     }
 
-    fn get_mutations(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<(TargetSearchOperator, String, f64)> {
+    fn get_mutations(
+        problem: Arc<Problem>,
+        environment: Arc<Environment>,
+    ) -> Vec<(TargetSearchOperator, String, Float)> {
         vec![
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
@@ -558,7 +561,7 @@ mod dynamic {
     pub fn get_operators(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
-    ) -> Vec<(TargetSearchOperator, String, f64)> {
+    ) -> Vec<(TargetSearchOperator, String, Float)> {
         let (normal_limits, small_limits) = get_limits(problem.as_ref());
         let random = environment.random.clone();
 
@@ -575,7 +578,7 @@ mod dynamic {
         // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
         let ruins = ruins
             .into_iter()
-            .map::<(Arc<dyn Ruin>, String, f64), _>(|(ruin, name, weight)| {
+            .map::<(Arc<dyn Ruin>, String, Float), _>(|(ruin, name, weight)| {
                 (Arc::new(CompositeRuin::new(vec![(ruin, 1.), (extra_random_job.clone(), 0.1)])), name, weight)
             })
             .collect::<Vec<_>>();
@@ -587,7 +590,7 @@ mod dynamic {
         recreates
             .iter()
             .flat_map(|(recreate, recreate_name)| {
-                ruins.iter().map::<(TargetSearchOperator, String, f64), _>(move |(ruin, ruin_name, weight)| {
+                ruins.iter().map::<(TargetSearchOperator, String, Float), _>(move |(ruin, ruin_name, weight)| {
                     (
                         Arc::new(RuinAndRecreate::new(ruin.clone(), recreate.clone())),
                         format!("{ruin_name}+{recreate_name}"),

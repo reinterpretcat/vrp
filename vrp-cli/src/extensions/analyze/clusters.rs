@@ -7,7 +7,7 @@ use std::sync::Arc;
 use vrp_core::construction::clustering::dbscan::create_job_clusters;
 use vrp_core::models::problem::{get_job_locations, JobIdDimension};
 use vrp_core::models::Problem;
-use vrp_core::prelude::GenericError;
+use vrp_core::prelude::{Float, GenericError};
 use vrp_core::utils::Environment;
 use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, PragmaticProblem};
 use vrp_pragmatic::format::solution::serialize_named_locations_as_geojson;
@@ -18,7 +18,7 @@ pub fn get_clusters<F: Read>(
     problem_reader: BufReader<F>,
     matrices_readers: Option<Vec<BufReader<F>>>,
     min_points: Option<usize>,
-    epsilon: Option<f64>,
+    epsilon: Option<Float>,
 ) -> Result<String, GenericError> {
     let problem = Arc::new(get_core_problem(problem_reader, matrices_readers).map_err(|errs| errs.to_string())?);
 

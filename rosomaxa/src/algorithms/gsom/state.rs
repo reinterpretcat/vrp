@@ -12,7 +12,7 @@ pub struct NetworkState {
     /// Shape of the network as (rows, cols, num of weights).
     pub shape: (Range<i32>, Range<i32>, usize),
     /// Mean of node distance.
-    pub mean_distance: f64,
+    pub mean_distance: Float,
     /// Nodes of the network.
     pub nodes: Vec<NodeState>,
 }
@@ -22,11 +22,11 @@ pub struct NodeState {
     /// Node coordinate in network.
     pub coordinate: (i32, i32),
     /// Unified distance to neighbors.
-    pub unified_distance: f64,
+    pub unified_distance: Float,
     /// Distance between weights of individual and node weights.
-    pub node_distance: Option<f64>,
+    pub node_distance: Option<Float>,
     /// Node weights.
-    pub weights: Vec<f64>,
+    pub weights: Vec<Float>,
     /// Total hits.
     pub total_hits: usize,
     /// Last hits.

@@ -1,7 +1,8 @@
 use crate::format::problem::*;
 use crate::helpers::*;
+use vrp_core::prelude::Float;
 
-fn create_vehicle_type(type_id: &str, scale: Option<f64>) -> VehicleType {
+fn create_vehicle_type(type_id: &str, scale: Option<Float>) -> VehicleType {
     VehicleType {
         type_id: type_id.to_string(),
         profile: VehicleProfile { matrix: "car".to_string(), scale },

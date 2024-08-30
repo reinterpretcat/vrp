@@ -1,4 +1,5 @@
 use super::*;
+use rosomaxa::prelude::Float;
 
 /// Draws best known fitness over search progression.
 pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
@@ -18,7 +19,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
 
     // get min/max values for each dimension
     let (min_values, max_values) = fitness.iter().fold(
-        (vec![f64::INFINITY; dimensions], vec![f64::NEG_INFINITY; dimensions]),
+        (vec![Float::INFINITY; dimensions], vec![Float::NEG_INFINITY; dimensions]),
         |(mut min, mut max), (_, row)| {
             assert_eq!(row.len(), dimensions);
 
@@ -39,7 +40,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
         .set_label_area_size(LabelAreaPosition::Left, (8).percent())
         .set_label_area_size(LabelAreaPosition::Bottom, (4).percent())
         .margin((1).percent())
-        .build_cartesian_2d(0.0..generations as f64, x_min..x_max)?;
+        .build_cartesian_2d(0.0..generations as Float, x_min..x_max)?;
 
     chart.configure_mesh().draw()?;
 
@@ -58,7 +59,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                         (value - min_value) / (max_value - min_value) * (new_max - new_min) + new_min
                     };
 
-                    (*generation as f64, fitness)
+                    (*generation as Float, fitness)
                 }),
                 &color,
             ))?

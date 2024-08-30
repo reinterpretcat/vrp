@@ -8,14 +8,14 @@ pub use self::objectives::*;
 
 /// Specifies a data point type for 3D chart.
 #[derive(Clone, Serialize, Deserialize)]
-pub struct DataPoint3D(pub f64, pub f64, pub f64);
+pub struct DataPoint3D(pub Float, pub Float, pub Float);
 
 /// Runs the solver to minimize objective function with given name.
 pub fn solve_function(
     function_name: &str,
     population_type: &str,
     selection_size: usize,
-    init_solution: Vec<f64>,
+    init_solution: Vec<Float>,
     generations: usize,
     logger: InfoLogger,
 ) {

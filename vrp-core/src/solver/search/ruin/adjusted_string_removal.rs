@@ -8,7 +8,7 @@ use crate::models::problem::Job;
 use crate::models::solution::Tour;
 use crate::solver::search::*;
 use crate::solver::RefinementContext;
-use rosomaxa::prelude::Random;
+use rosomaxa::prelude::{Float, Random};
 use std::cell::RefCell;
 use std::sync::Arc;
 
@@ -23,15 +23,15 @@ pub struct AdjustedStringRemoval {
     lmax: usize,
     /// Specifies average number of removed customers.
     cavg: usize,
-    /// Preserved customers ratio.
-    alpha: f64,
+    /// Preserved customers' ratio.
+    alpha: Float,
     /// Limits.
     limits: RemovalLimits,
 }
 
 impl AdjustedStringRemoval {
     /// Creates a new instance of [`AdjustedStringRemoval`].
-    pub fn new(lmax: usize, cavg: usize, alpha: f64, limits: RemovalLimits) -> Self {
+    pub fn new(lmax: usize, cavg: usize, alpha: Float, limits: RemovalLimits) -> Self {
         Self { lmax, cavg, alpha, limits }
     }
 
@@ -43,10 +43,10 @@ impl AdjustedStringRemoval {
     /// Calculates initial parameters from paper using 5,6,7 equations.
     fn calculate_limits(&self, routes: &[RouteContext], random: &Arc<dyn Random>) -> (usize, usize) {
         // Equation 5: max removed string cardinality for each tour
-        let lsmax = calculate_average_tour_cardinality(routes).min(self.lmax as f64);
+        let lsmax = calculate_average_tour_cardinality(routes).min(self.lmax as Float);
 
         // Equation 6: max number of strings
-        let ksmax = 4. * (self.cavg as f64) / (1. + lsmax) - 1.;
+        let ksmax = 4. * (self.cavg as Float) / (1. + lsmax) - 1.;
 
         // Equation 7: number of string to be removed
         let ks = random.uniform_real(1., ksmax + 1.).floor() as usize;
@@ -79,7 +79,7 @@ impl Ruin for AdjustedStringRemoval {
 
                     // Equations 8, 9: calculate cardinality of the string removed from the tour
                     let ltmax = route_ctx.route().tour.job_activity_count().min(lsmax);
-                    let lt = random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
+                    let lt = random.uniform_real(1.0, ltmax as Float + 1.).floor() as usize;
 
                     if let Some(index) = route_ctx.route().tour.index(&job) {
                         select_string((&route_ctx.route().tour, index), lt, self.alpha, &random)
@@ -104,9 +104,9 @@ impl Ruin for AdjustedStringRemoval {
 type JobIter<'a> = Box<dyn Iterator<Item = Job> + 'a>;
 
 /// Calculates average tour cardinality rounded to nearest integral value.
-fn calculate_average_tour_cardinality(routes: &[RouteContext]) -> f64 {
-    (routes.iter().map(|route_ctx| route_ctx.route().tour.job_activity_count() as f64).sum::<f64>()
-        / (routes.len() as f64))
+fn calculate_average_tour_cardinality(routes: &[RouteContext]) -> Float {
+    (routes.iter().map(|route_ctx| route_ctx.route().tour.job_activity_count() as Float).sum::<Float>()
+        / (routes.len() as Float))
         .round()
 }
 
@@ -114,7 +114,7 @@ fn calculate_average_tour_cardinality(routes: &[RouteContext]) -> f64 {
 fn select_string<'a>(
     seed_tour: (&'a Tour, usize),
     cardinality: usize,
-    alpha: f64,
+    alpha: Float,
     random: &Arc<dyn Random>,
 ) -> JobIter<'a> {
     if random.is_head_not_tails() {
@@ -136,7 +136,7 @@ fn sequential_string<'a>(seed_tour: (&'a Tour, usize), cardinality: usize, rando
 fn preserved_string<'a>(
     seed_tour: (&'a Tour, usize),
     cardinality: usize,
-    alpha: f64,
+    alpha: Float,
     random: &Arc<dyn Random>,
 ) -> JobIter<'a> {
     let size = seed_tour.0.job_activity_count();
@@ -176,7 +176,7 @@ fn lower_bounds(string_crd: usize, tour_crd: usize, index: usize) -> (usize, usi
 }
 
 /// Calculates preserved substring cardinality.
-fn preserved_cardinality(string_crd: usize, tour_crd: usize, alpha: f64, random: &Arc<dyn Random>) -> usize {
+fn preserved_cardinality(string_crd: usize, tour_crd: usize, alpha: Float, random: &Arc<dyn Random>) -> usize {
     if string_crd == tour_crd {
         return 0;
     }

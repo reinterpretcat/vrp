@@ -31,7 +31,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct GoalContext {
     goal: Goal,
-    alternative_goals: Vec<(Goal, f64)>,
+    alternative_goals: Vec<(Goal, Float)>,
     constraints: Vec<Arc<dyn FeatureConstraint>>,
     states: Vec<Arc<dyn FeatureState>>,
 }
@@ -65,7 +65,7 @@ impl Debug for GoalContext {
 /// Provides a customizable way to build goal context.
 pub struct GoalContextBuilder {
     main_goal: Option<Goal>,
-    alternative_goals: Vec<(Goal, f64)>,
+    alternative_goals: Vec<(Goal, Float)>,
     features: Vec<Feature>,
 }
 
@@ -96,7 +96,7 @@ impl GoalContextBuilder {
     }
 
     /// Sets an alternative goal of optimization.
-    pub fn add_alternative_goal(mut self, goal: Goal, weight: f64) -> Self {
+    pub fn add_alternative_goal(mut self, goal: Goal, weight: Float) -> Self {
         self.alternative_goals.push((goal, weight));
         self
     }
@@ -184,7 +184,7 @@ impl Goal {
     }
 
     /// Calculates solution's fitness.
-    pub fn fitness<'a>(&'a self, solution: &'a InsertionContext) -> impl Iterator<Item = f64> + 'a {
+    pub fn fitness<'a>(&'a self, solution: &'a InsertionContext) -> impl Iterator<Item = Float> + 'a {
         self.layers.iter().flat_map(|(_, _, objectives)| objectives.iter()).map(|objective| objective.fitness(solution))
     }
 }
@@ -442,8 +442,8 @@ impl HeuristicObjective for GoalContext {
 
 impl Shuffled for GoalContext {
     fn get_shuffled(&self, random: &(dyn Random)) -> Self {
-        const RANDOM_ALTERNATIVE_PROBABILITY: f64 = 0.05;
-        const RANDOM_SHUFFLE_PROBABILITY: f64 = 0.001;
+        const RANDOM_ALTERNATIVE_PROBABILITY: Float = 0.05;
+        const RANDOM_SHUFFLE_PROBABILITY: Float = 0.001;
 
         if !self.alternative_goals.is_empty() && random.is_hit(RANDOM_ALTERNATIVE_PROBABILITY) {
             let idx = random.uniform_int(0, self.alternative_goals.len() as i32 - 1) as usize;
@@ -519,7 +519,7 @@ impl GoalContext {
     }
 
     /// Calculates solution's fitness.
-    pub fn fitness<'a>(&'a self, solution: &'a InsertionContext) -> impl Iterator<Item = f64> + 'a {
+    pub fn fitness<'a>(&'a self, solution: &'a InsertionContext) -> impl Iterator<Item = Float> + 'a {
         self.goal.fitness(solution)
     }
 }

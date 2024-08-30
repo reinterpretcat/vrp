@@ -16,7 +16,7 @@ use std::sync::Arc;
 pub type DedupFn<O, S> = Box<dyn Fn(&O, &S, &S) -> bool + Send + Sync>;
 
 /// Specifies default deduplication threshold used when no dedup function is specified.
-const DEFAULT_DEDUP_FN_THRESHOLD: f64 = 0.05;
+const DEFAULT_DEDUP_FN_THRESHOLD: Float = 0.05;
 
 /// A simple evolution aware implementation of `Population` trait which keeps predefined amount
 /// of best known individuals.
@@ -72,7 +72,7 @@ where
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         let selection_size = match &self.speed {
-            Some(HeuristicSpeed::Slow { ratio, .. }) => (self.selection_size as f64 * ratio).max(1.).round() as usize,
+            Some(HeuristicSpeed::Slow { ratio, .. }) => (self.selection_size as Float * ratio).max(1.).round() as usize,
             _ => self.selection_size,
         };
 
@@ -175,7 +175,7 @@ where
         }
     }
 
-    fn is_improved(&self, best_known_fitness: Option<Vec<f64>>) -> bool {
+    fn is_improved(&self, best_known_fitness: Option<Vec<Float>>) -> bool {
         best_known_fitness.zip(self.individuals.first()).map_or(true, |(best_known_fitness, new_best_known)| {
             best_known_fitness
                 .into_iter()

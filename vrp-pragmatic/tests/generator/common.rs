@@ -5,6 +5,7 @@ use std::cmp::Ordering::Less;
 use std::ops::Range;
 use std::time::Duration;
 use vrp_core::models::common::TimeWindow;
+use vrp_core::prelude::Float;
 
 /// Creates `Duration` from hours amount.
 pub fn from_hours(hours: i32) -> Duration {
@@ -24,14 +25,14 @@ prop_compose! {
 
 prop_compose! {
     /// Generates time window.
-    fn generate_time_window_fixed_raw(day: f64, start_offsets: Vec<u64>, durations: Vec<u64>)
+    fn generate_time_window_fixed_raw(day: Float, start_offsets: Vec<u64>, durations: Vec<u64>)
     (
      start_offset in from_uints(start_offsets),
      duration in from_uints(durations)
     ) -> TimeWindow {
 
-        let start = day + start_offset as f64;
-        let end = start + duration as f64;
+        let start = day + start_offset as Float;
+        let end = start + duration as Float;
 
         TimeWindow::new(start, end)
     }
@@ -67,8 +68,8 @@ prop_compose! {
 
 prop_compose! {
     /// Generates durations in range.
-    pub fn generate_durations(range: Range<i32>)(duration in range) -> f64 {
-        duration as f64
+    pub fn generate_durations(range: Range<i32>)(duration in range) -> Float {
+        duration as Float
     }
 }
 

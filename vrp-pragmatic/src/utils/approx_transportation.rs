@@ -4,10 +4,10 @@ mod approx_transportation_test;
 
 use crate::format::{CustomLocationType, Location};
 use vrp_core::models::common::Distance;
-use vrp_core::utils::parallel_collect;
+use vrp_core::utils::{parallel_collect, Float};
 
 /// Gets approximated durations and distances rounded to nearest integer.
-pub fn get_approx_transportation(locations: &[Location], speeds: &[f64]) -> Vec<(Vec<i64>, Vec<i64>)> {
+pub fn get_approx_transportation(locations: &[Location], speeds: &[Float]) -> Vec<(Vec<i64>, Vec<i64>)> {
     assert!(!speeds.is_empty());
     assert!(speeds.iter().all(|&speed| speed > 0.));
 
@@ -26,7 +26,7 @@ pub fn get_approx_transportation(locations: &[Location], speeds: &[f64]) -> Vec<
 }
 
 /// Gets distance between two points using haversine formula.
-pub(crate) fn get_haversine_distance(p1: &Location, p2: &Location) -> f64 {
+pub(crate) fn get_haversine_distance(p1: &Location, p2: &Location) -> Float {
     if matches!(p1, Location::Custom { r#type: CustomLocationType::Unknown })
         || matches!(p2, Location::Custom { r#type: CustomLocationType::Unknown })
     {
@@ -48,7 +48,7 @@ pub(crate) fn get_haversine_distance(p1: &Location, p2: &Location) -> f64 {
 
     let radius = wgs84_earth_radius(d_lat);
 
-    radius * c
+    (radius * c) as Float
 }
 
 /// Converts degrees to radians.

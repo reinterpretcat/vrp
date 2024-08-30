@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use vrp_core::construction::enablers::ReservedTimesIndex;
 use vrp_core::models::common::{Cost, TimeWindow};
 use vrp_core::models::solution::Route;
+use vrp_core::prelude::Float;
 use vrp_core::utils::compare_floats;
 
 /// Converts reserved time duration applied to activity or travel time to break activity.
@@ -61,7 +62,7 @@ pub(super) fn insert_reserved_times_as_breaks(
             }
 
             let break_time = reserved_time.duration as i64;
-            let break_cost = break_time as f64 * route.actor.vehicle.costs.per_service_time;
+            let break_cost = break_time as Float * route.actor.vehicle.costs.per_service_time;
 
             for (stop_idx, stop) in tour.stops.iter_mut().enumerate() {
                 let stop_tw =

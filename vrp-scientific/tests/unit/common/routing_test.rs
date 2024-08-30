@@ -15,7 +15,7 @@ fn can_create_transport_without_rounding() {
 
     let transport = index.create_transport(false).unwrap();
 
-    assert_eq!(transport.distance_approx(&Profile::new(0, None), 0, 1), 2.23606797749979);
+    assert!((transport.distance_approx(&Profile::new(0, None), 0, 1) - 2.23606).abs() < 1E-5);
 }
 
 #[test]

@@ -56,7 +56,7 @@ where
     /// Initial size of population to be generated.
     pub max_size: usize,
     /// Quota for initial solution generation.
-    pub quota: f64,
+    pub quota: Float,
     /// Initial individuals in population.
     pub individuals: Vec<S>,
 }
@@ -84,8 +84,8 @@ where
 {
     max_generations: Option<usize>,
     max_time: Option<usize>,
-    min_cv: Option<(String, usize, f64, bool, K)>,
-    target_proximity: Option<(Vec<f64>, f64)>,
+    min_cv: Option<(String, usize, Float, bool, K)>,
+    target_proximity: Option<(Vec<Float>, Float)>,
     heuristic: Option<Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>>,
     context: Option<C>,
     termination: Option<Box<dyn Termination<Context = C, Objective = O>>>,
@@ -146,19 +146,19 @@ where
     }
 
     /// Sets variation coefficient termination criteria. Default is None.
-    pub fn with_min_cv(mut self, min_cv: Option<(String, usize, f64, bool)>, key: K) -> Self {
+    pub fn with_min_cv(mut self, min_cv: Option<(String, usize, Float, bool)>, key: K) -> Self {
         self.min_cv = min_cv.map(|min_cv| (min_cv.0, min_cv.1, min_cv.2, min_cv.3, key));
         self
     }
 
     /// Sets target fitness and distance threshold as termination criteria.
-    pub fn with_target_proximity(mut self, target_proximity: Option<(Vec<f64>, f64)>) -> Self {
+    pub fn with_target_proximity(mut self, target_proximity: Option<(Vec<Float>, Float)>) -> Self {
         self.target_proximity = target_proximity;
         self
     }
 
     /// Sets initial parameters used to construct initial population.
-    pub fn with_initial(mut self, max_size: usize, quota: f64, operators: InitialOperators<C, O, S>) -> Self {
+    pub fn with_initial(mut self, max_size: usize, quota: Float, operators: InitialOperators<C, O, S>) -> Self {
         self.initial.max_size = max_size;
         self.initial.quota = quota;
         self.initial.operators = operators;
@@ -236,8 +236,8 @@ where
         logger: &InfoLogger,
         max_generations: Option<usize>,
         max_time: Option<usize>,
-        min_cv: Option<(String, usize, f64, bool, K)>,
-        target_proximity: Option<(Vec<f64>, f64)>,
+        min_cv: Option<(String, usize, Float, bool, K)>,
+        target_proximity: Option<(Vec<Float>, Float)>,
     ) -> Result<Box<dyn Termination<Context = C, Objective = O>>, GenericError> {
         let terminations: Vec<Box<dyn Termination<Context = C, Objective = O>>> = match (
             max_generations,
@@ -259,7 +259,7 @@ where
 
                 if let Some(limit) = max_time {
                     (logger)(format!("configured to use max-time: {limit}s").as_str());
-                    terminations.push(Box::new(MaxTime::new(limit as f64)));
+                    terminations.push(Box::new(MaxTime::new(limit as Float)));
                 }
 
                 if let Some((interval_type, value, threshold, is_global, key)) = min_cv.clone() {

@@ -36,8 +36,8 @@ mod noise_checks {
     fn can_compare_insertion_result_with_noise_impl(
         left: InsertionResult,
         right: InsertionResult,
-        reals: Vec<f64>,
-        expected_result: Option<f64>,
+        reals: Vec<Float>,
+        expected_result: Option<Float>,
     ) {
         let noise_probability = 0.1;
         let noise_range = (0.9, 1.2);

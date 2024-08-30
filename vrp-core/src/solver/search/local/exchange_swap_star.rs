@@ -108,7 +108,7 @@ fn create_route_pairs(insertion_ctx: &InsertionContext, route_pairs_threshold: u
                 .into_iter()
                 .enumerate()
                 .flat_map(|(outer_idx, mut route_group_distance)| {
-                    let shuffle_amount = (route_group_distance.len() as f64 * 0.1) as usize;
+                    let shuffle_amount = (route_group_distance.len() as Float * 0.1) as usize;
                     route_group_distance.partial_shuffle(&mut random.get_rng(), shuffle_amount);
                     route_group_distance
                         .iter()

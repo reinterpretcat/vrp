@@ -7,7 +7,7 @@ const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 
 struct OrderDimenKey;
 
-fn create_single_with_order(id: &str, order: Option<f64>) -> Arc<Single> {
+fn create_single_with_order(id: &str, order: Option<Float>) -> Arc<Single> {
     let mut single = TestSingleBuilder::default().id(id).build();
 
     if let Some(order) = order {
@@ -17,7 +17,7 @@ fn create_single_with_order(id: &str, order: Option<f64>) -> Arc<Single> {
     Arc::new(single)
 }
 
-fn create_activity_for_job_with_order(id: &str, order: Option<f64>) -> Activity {
+fn create_activity_for_job_with_order(id: &str, order: Option<Float>) -> Activity {
     Activity { job: Some(create_single_with_order(id, order)), ..ActivityBuilder::default().build() }
 }
 
@@ -52,7 +52,11 @@ can_merge_order! {
     case_05: (Some(1.), Some(2.), Err(VIOLATION_CODE)),
 }
 
-fn can_merge_order_impl(source: Option<f64>, candidate: Option<f64>, expected: Result<Option<f64>, ViolationCode>) {
+fn can_merge_order_impl(
+    source: Option<Float>,
+    candidate: Option<Float>,
+    expected: Result<Option<Float>, ViolationCode>,
+) {
     let constraint =
         create_tour_order_hard_feature("tour_order", VIOLATION_CODE, get_order_fn()).unwrap().constraint.unwrap();
     let source_job = Job::Single(create_single_with_order("source", source));
@@ -60,13 +64,13 @@ fn can_merge_order_impl(source: Option<f64>, candidate: Option<f64>, expected: R
 
     let result = constraint
         .merge(source_job, candidate_job)
-        .map(|merged| merged.dimens().get_value::<OrderDimenKey, f64>().cloned());
+        .map(|merged| merged.dimens().get_value::<OrderDimenKey, Float>().cloned());
 
     assert_eq!(result, expected);
 }
 
 fn get_order_fn() -> TourOrderFn {
-    Either::Left(Arc::new(|single| match single.dimens.get_value::<OrderDimenKey, f64>() {
+    Either::Left(Arc::new(|single| match single.dimens.get_value::<OrderDimenKey, Float>() {
         Some(value) => OrderResult::Value(*value),
         _ => OrderResult::Default,
     }))

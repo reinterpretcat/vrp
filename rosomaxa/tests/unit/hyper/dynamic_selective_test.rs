@@ -72,7 +72,7 @@ fn can_estimate_reward_multiplier_impl(
     approx_median: Option<usize>,
     duration: usize,
     has_improvement: bool,
-    expected: f64,
+    expected: Float,
 ) {
     let heuristic_ctx = create_default_heuristic_context();
     let solution = VectorSolution::new(vec![], 0., vec![]);
@@ -122,7 +122,7 @@ fn can_handle_when_objective_lies() {
     struct TestData;
 
     impl HeuristicSolution for TestData {
-        fn fitness(&self) -> impl Iterator<Item = f64> {
+        fn fitness(&self) -> impl Iterator<Item = Float> {
             // fitness is the same
             Box::new(once(1.))
         }

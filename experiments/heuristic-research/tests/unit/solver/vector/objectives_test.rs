@@ -1,6 +1,6 @@
 use super::*;
 
-const FITNESS_EPSILON: f64 = 1E-09;
+const FITNESS_EPSILON: Float = 1E-05;
 
 #[test]
 fn can_find_rosenbrock_optimum() {
@@ -22,7 +22,7 @@ fn can_find_himmelblau_optimum() {
 
     assert!((himmelblau_fn)(&[3., 2.]).abs() < FITNESS_EPSILON);
     assert!((himmelblau_fn)(&[-2.805118, 3.131312]).abs() < FITNESS_EPSILON);
-    assert!((himmelblau_fn)(&[-3.779310, -3.283186]).abs() < FITNESS_EPSILON);
+    assert!((himmelblau_fn)(&[-3.77931, -3.28318]).abs() < FITNESS_EPSILON);
     assert!((himmelblau_fn)(&[3.584428, -1.848126]).abs() < FITNESS_EPSILON);
 }
 

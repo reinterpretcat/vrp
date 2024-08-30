@@ -6,6 +6,7 @@ use crate::helpers::ToLocation;
 use vrp_core::models::common::{Distance, Duration, Location as CoreLocation, Profile};
 use vrp_core::models::problem::{TransportCost, TravelTime};
 use vrp_core::models::solution::Route;
+use vrp_core::prelude::Float;
 
 pub fn create_job_place(location: (f64, f64), tag: Option<String>) -> JobPlace {
     JobPlace { times: None, location: location.to_loc(), duration: 1., tag }
@@ -76,7 +77,7 @@ pub fn create_delivery_job_with_demand(id: &str, location: (f64, f64), demand: V
     Job { deliveries: Some(vec![JobTask { demand: Some(demand), ..create_task(location, None) }]), ..create_job(id) }
 }
 
-pub fn create_delivery_job_with_duration(id: &str, location: (f64, f64), duration: f64) -> Job {
+pub fn create_delivery_job_with_duration(id: &str, location: (f64, f64), duration: Duration) -> Job {
     Job {
         deliveries: Some(vec![JobTask {
             places: vec![JobPlace { duration, ..create_job_place(location, None) }],
@@ -87,7 +88,12 @@ pub fn create_delivery_job_with_duration(id: &str, location: (f64, f64), duratio
     }
 }
 
-pub fn create_delivery_job_with_times(id: &str, location: (f64, f64), times: Vec<(i32, i32)>, duration: f64) -> Job {
+pub fn create_delivery_job_with_times(
+    id: &str,
+    location: (f64, f64),
+    times: Vec<(i32, i32)>,
+    duration: Duration,
+) -> Job {
     Job {
         deliveries: Some(vec![JobTask {
             places: vec![JobPlace { duration, times: convert_times(&times), ..create_job_place(location, None) }],
@@ -98,7 +104,7 @@ pub fn create_delivery_job_with_times(id: &str, location: (f64, f64), times: Vec
     }
 }
 
-pub fn create_delivery_job_with_value(id: &str, location: (f64, f64), value: f64) -> Job {
+pub fn create_delivery_job_with_value(id: &str, location: (f64, f64), value: Float) -> Job {
     Job { deliveries: Some(vec![create_task(location, None)]), value: Some(value), ..create_job(id) }
 }
 
@@ -129,8 +135,8 @@ pub fn create_pickup_delivery_job(id: &str, pickup_location: (f64, f64), deliver
 pub fn create_pickup_delivery_job_with_params(
     id: &str,
     demand: Vec<i32>,
-    pickup: ((f64, f64), f64, Vec<(i32, i32)>),
-    delivery: ((f64, f64), f64, Vec<(i32, i32)>),
+    pickup: ((f64, f64), Duration, Vec<(i32, i32)>),
+    delivery: ((f64, f64), Duration, Vec<(i32, i32)>),
 ) -> Job {
     Job {
         pickups: Some(vec![JobTask {
@@ -169,10 +175,10 @@ pub fn create_delivery_job_with_index(id: &str, index: usize) -> Job {
 
 pub fn create_multi_job(
     id: &str,
-    pickups: Vec<((f64, f64), f64, Vec<i32>)>,
-    deliveries: Vec<((f64, f64), f64, Vec<i32>)>,
+    pickups: Vec<((f64, f64), Duration, Vec<i32>)>,
+    deliveries: Vec<((f64, f64), Duration, Vec<i32>)>,
 ) -> Job {
-    let create_tasks = |tasks: Vec<((f64, f64), f64, Vec<i32>)>, prefix: &str| {
+    let create_tasks = |tasks: Vec<((f64, f64), Duration, Vec<i32>)>, prefix: &str| {
         let tasks = tasks
             .into_iter()
             .enumerate()
@@ -282,7 +288,7 @@ pub fn create_empty_problem() -> Problem {
 }
 
 pub fn create_matrix(data: Vec<i64>) -> Matrix {
-    let size = (data.len() as f64).sqrt() as i32;
+    let size = (data.len() as Float).sqrt() as i32;
 
     assert_eq!((size * size) as usize, data.len());
 
@@ -325,7 +331,7 @@ fn convert_times(times: &[(i32, i32)]) -> Option<Vec<Vec<String>>> {
     if times.is_empty() {
         None
     } else {
-        Some(times.iter().map(|tw| vec![format_time(tw.0 as f64), format_time(tw.1 as f64)]).collect())
+        Some(times.iter().map(|tw| vec![format_time(tw.0 as Float), format_time(tw.1 as Float)]).collect())
     }
 }
 
@@ -350,6 +356,6 @@ impl TransportCost for TestTransportCost {
     }
 }
 
-fn fake_routing(from: CoreLocation, to: CoreLocation) -> f64 {
-    (if to > from { to - from } else { from - to }) as f64
+fn fake_routing(from: CoreLocation, to: CoreLocation) -> Float {
+    (if to > from { to - from } else { from - to }) as Float
 }

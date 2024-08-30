@@ -5,7 +5,7 @@ mod generate_test;
 use super::*;
 use std::io::BufReader;
 use vrp_cli::extensions::generate::generate_problem;
-use vrp_core::prelude::GenericError;
+use vrp_core::prelude::{Float, GenericError};
 use vrp_pragmatic::format::problem::{serialize_problem, Problem};
 use vrp_pragmatic::format::CoordIndex;
 use vrp_pragmatic::validation::ValidationContext;
@@ -95,7 +95,7 @@ fn generate_problem_from_args(matches: &ArgMatches) -> Result<(Problem, String),
 
     let jobs_size = parse_int_value::<usize>(matches, JOBS_SIZE_ARG_NAME, "jobs size")?.unwrap();
     let vehicles_size = parse_int_value::<usize>(matches, VEHICLES_SIZE_ARG_NAME, "vehicles size")?.unwrap();
-    let area_size = parse_float_value::<f64>(matches, AREA_SIZE_ARG_NAME, "area size")?;
+    let area_size = parse_float_value::<Float>(matches, AREA_SIZE_ARG_NAME, "area size")?;
 
     generate_problem(input_format, input_files, locations_file, jobs_size, vehicles_size, area_size).and_then(
         |problem| {

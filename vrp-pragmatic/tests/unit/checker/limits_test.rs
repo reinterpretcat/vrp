@@ -54,8 +54,8 @@ can_check_shift_and_distance_limit! {
 }
 
 pub fn can_check_shift_and_distance_limit_impl(
-    max_distance: Option<f64>,
-    max_duration: Option<f64>,
+    max_distance: Option<Float>,
+    max_duration: Option<Float>,
     actual: i64,
     expected: Result<(), GenericError>,
 ) {

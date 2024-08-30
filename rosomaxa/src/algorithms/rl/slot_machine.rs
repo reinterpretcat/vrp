@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/algorithms/rl/slot_machine_test.rs"]
 mod slot_machine_test;
 
-use crate::utils::DistributionSampler;
+use crate::utils::{DistributionSampler, Float};
 use std::fmt::{Display, Formatter};
 
 /// Represents an action on slot machine;
@@ -19,7 +19,7 @@ pub trait SlotAction {
 /// Provides a feedback for taking an action on a slot.
 pub trait SlotFeedback {
     /// A reward for taking an action on a slot machine.
-    fn reward(&self) -> f64;
+    fn reward(&self) -> Float;
 }
 
 /// Simulates a slot machine.
@@ -29,13 +29,13 @@ pub struct SlotMachine<A, S> {
     /// The number of times this slot machine has been tried.
     n: usize,
     /// Gamma shape parameter.
-    alpha: f64,
+    alpha: Float,
     /// Gamma rate parameter.
-    beta: f64,
+    beta: Float,
     /// Estimated mean.
-    mu: f64,
+    mu: Float,
     /// Estimated variance.
-    v: f64,
+    v: Float,
     /// Sampler: used to provide samples from underlying estimated distribution.
     sampler: S,
     /// Actual slot action function.
@@ -48,7 +48,7 @@ where
     S: DistributionSampler + Clone,
 {
     /// Creates a new instance of `SlotMachine`.
-    pub fn new(prior_mean: f64, action: A, sampler: S) -> Self {
+    pub fn new(prior_mean: Float, action: A, sampler: S) -> Self {
         let alpha = 1.;
         let beta = 10.;
         let mu = prior_mean;
@@ -58,7 +58,7 @@ where
     }
 
     /// Samples from estimated normal distribution.
-    pub fn sample(&self) -> f64 {
+    pub fn sample(&self) -> Float {
         let precision = self.sampler.gamma(self.alpha, 1. / self.beta);
         let precision = if precision == 0. || self.n == 0 { 0.001 } else { precision };
         let variance = 1. / precision;
@@ -76,7 +76,7 @@ where
         let reward = feedback.reward();
 
         let n = 1.;
-        let v = self.n as f64;
+        let v = self.n as Float;
 
         self.alpha += n / 2.;
         self.beta += (n * v / (v + n)) * (reward - self.mu).powi(2) / 2.;
@@ -84,11 +84,11 @@ where
         // estimate the variance: calculate running mean from the gamma hyper-parameters
         self.v = self.beta / (self.alpha + 1.);
         self.n += 1;
-        self.mu += (reward - self.mu) / self.n as f64;
+        self.mu += (reward - self.mu) / self.n as Float;
     }
 
     /// Gets learned params (alpha, beta, mean and variants) and usage amount.
-    pub fn get_params(&self) -> (f64, f64, f64, f64, usize) {
+    pub fn get_params(&self) -> (Float, Float, Float, Float, usize) {
         (self.alpha, self.beta, self.mu, self.v, self.n)
     }
 }

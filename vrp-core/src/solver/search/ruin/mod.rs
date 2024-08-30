@@ -34,7 +34,7 @@ mod worst_jobs_removal;
 pub use self::worst_jobs_removal::WorstJobRemoval;
 
 /// A type which specifies a group of multiple ruin strategies with their probability.
-pub type RuinGroup = (Vec<(Arc<dyn Ruin>, f64)>, usize);
+pub type RuinGroup = (Vec<(Arc<dyn Ruin>, Float)>, usize);
 
 /// Provides the way to pick one ruin from the group ruin methods.
 pub struct WeightedRuin {
@@ -54,7 +54,7 @@ pub struct RemovalLimits {
 impl RemovalLimits {
     /// Creates a new instance of `RemovalLimits`.
     pub fn new(problem: &Problem) -> Self {
-        let jobs_size = problem.jobs.size() as f64;
+        let jobs_size = problem.jobs.size() as Float;
 
         let min_activities = ((jobs_size * 0.05) as usize).clamp(1, 8);
         let max_activities = ((jobs_size * 0.5) as usize).clamp(8, 32);
@@ -83,12 +83,12 @@ impl Ruin for WeightedRuin {
 
 /// Provides the way to run multiple ruin methods one by one on the same solution.
 pub struct CompositeRuin {
-    ruins: Vec<(Arc<dyn Ruin>, f64)>,
+    ruins: Vec<(Arc<dyn Ruin>, Float)>,
 }
 
 impl CompositeRuin {
     /// Creates a new instance of `CompositeRuin` using list of ruin strategies.
-    pub fn new(ruins: Vec<(Arc<dyn Ruin>, f64)>) -> Self {
+    pub fn new(ruins: Vec<(Arc<dyn Ruin>, Float)>) -> Self {
         Self { ruins }
     }
 }

@@ -3,6 +3,7 @@ use crate::format::solution::*;
 use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
+use vrp_core::prelude::Float;
 
 fn get_permissive_break_time() -> VehicleOptionalBreakTime {
     VehicleOptionalBreakTime::TimeWindow(vec![format_time(0.), format_time(1000.)])
@@ -14,7 +15,7 @@ fn get_challenging_break_time() -> VehicleOptionalBreakTime {
 
 fn get_solution(
     relation_type: RelationType,
-    job_duration: f64,
+    job_duration: Float,
     break_location: Option<Location>,
     break_time: VehicleOptionalBreakTime,
     jobs: Vec<String>,

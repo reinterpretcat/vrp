@@ -13,7 +13,7 @@ mod time_window {
         case_03: ((12., 20.), (0., 11.), 1.),
     }
 
-    fn can_get_distance_impl(first: TimeWindow, second: TimeWindow, expected: f64) {
+    fn can_get_distance_impl(first: TimeWindow, second: TimeWindow, expected: Float) {
         assert_eq!(first.distance(&second), expected);
     }
 
@@ -45,7 +45,7 @@ mod time_window {
         case_03: ((10., 10.), 0.),
     }
 
-    fn can_get_duration_impl(time: TimeWindow, expected: f64) {
+    fn can_get_duration_impl(time: TimeWindow, expected: Float) {
         assert_eq!(time.duration(), expected);
     }
 }

@@ -16,7 +16,7 @@ custom_activity_state!(MaxFutureCapacity typeof T: LoadOps);
 
 custom_activity_state!(MaxPastCapacity typeof T: LoadOps);
 
-custom_tour_state!(MaxVehicleLoad typeof f64);
+custom_tour_state!(MaxVehicleLoad typeof Float);
 
 custom_dimension!(VehicleCapacity typeof T: LoadOps);
 

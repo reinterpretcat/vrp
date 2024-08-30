@@ -149,7 +149,7 @@ fn can_update_state_for_reserved_time_impl(
     vehicle_detail_data: VehicleData,
     reserved_time: ReservedTimeSpan,
     activities: Vec<ActivityData>,
-    late_arrival_expected: Vec<Option<f64>>,
+    late_arrival_expected: Vec<Option<Float>>,
     expected_schedules: Vec<(Timestamp, Timestamp)>,
 ) {
     let (_, _, route_ctx) = create_feature_and_route(vehicle_detail_data, activities, reserved_time);

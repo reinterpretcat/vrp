@@ -12,7 +12,7 @@ use vrp_core::models::common::{Distance, Duration};
 use vrp_core::models::problem::{Job as CoreJob, Single, VehicleIdDimension};
 use vrp_core::models::solution::Route;
 use vrp_core::models::{Extras as CoreExtras, Problem as CoreProblem, ViolationCode};
-use vrp_core::prelude::GenericError;
+use vrp_core::prelude::{Float, GenericError};
 
 mod coord_index;
 pub use self::coord_index::CoordIndex;

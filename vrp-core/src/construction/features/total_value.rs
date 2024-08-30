@@ -10,15 +10,15 @@ use crate::utils::Either;
 use std::cmp::Ordering;
 
 /// Specifies a job value function which takes into account actor and job.
-pub type ActorValueFn = Arc<dyn Fn(&Actor, &Job) -> f64 + Send + Sync>;
+pub type ActorValueFn = Arc<dyn Fn(&Actor, &Job) -> Float + Send + Sync>;
 /// Specifies a job value function which takes into account only a job.
-pub type SimpleValueFn = Arc<dyn Fn(&Job) -> f64 + Send + Sync>;
+pub type SimpleValueFn = Arc<dyn Fn(&Job) -> Float + Send + Sync>;
 /// Specifies a job value reader as a variant of two functions.
 pub type JobReadValueFn = Either<SimpleValueFn, ActorValueFn>;
 /// Specifies a job write value.
-pub type JobWriteValueFn = Arc<dyn Fn(Job, f64) -> Job + Send + Sync>;
+pub type JobWriteValueFn = Arc<dyn Fn(Job, Float) -> Job + Send + Sync>;
 /// A job value estimation function.
-type EstimateValueFn = Arc<dyn Fn(&RouteContext, &Job) -> f64 + Send + Sync>;
+type EstimateValueFn = Arc<dyn Fn(&RouteContext, &Job) -> Float + Send + Sync>;
 
 /// Maximizes a total value of served jobs.
 pub fn create_maximize_total_job_value_feature(

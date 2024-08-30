@@ -1,6 +1,7 @@
 use crate::models::common::{Distance, Duration, Location, Profile, Timestamp};
 use crate::models::problem::{ActivityCost, SimpleActivityCost, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
+use rosomaxa::prelude::Float;
 use std::sync::Arc;
 
 #[derive(Default)]
@@ -30,8 +31,8 @@ impl TestTransportCost {
     }
 }
 
-pub fn fake_routing(from: Location, to: Location) -> f64 {
-    (if to > from { to - from } else { from - to }) as f64
+pub fn fake_routing(from: Location, to: Location) -> Float {
+    (if to > from { to - from } else { from - to }) as Float
 }
 
 #[derive(Default)]

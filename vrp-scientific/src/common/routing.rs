@@ -8,6 +8,7 @@ use vrp_core::models::common::Location;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData, TransportCost};
 use vrp_core::models::Extras;
 use vrp_core::prelude::GenericError;
+use vrp_core::utils::Float;
 
 custom_extra_property!(CoordIndex typeof CoordIndex);
 
@@ -37,8 +38,8 @@ impl CoordIndex {
             .iter()
             .flat_map(|&(x1, y1)| {
                 self.locations.iter().map(move |&(x2, y2)| {
-                    let x = x1 as f64 - x2 as f64;
-                    let y = y1 as f64 - y2 as f64;
+                    let x = x1 as Float - x2 as Float;
+                    let y = y1 as Float - y2 as Float;
                     let value = (x * x + y * y).sqrt();
 
                     if is_rounded {
@@ -48,7 +49,7 @@ impl CoordIndex {
                     }
                 })
             })
-            .collect::<Vec<f64>>();
+            .collect::<Vec<Float>>();
 
         let matrix_data = MatrixData::new(0, None, matrix_values.clone(), matrix_values);
 

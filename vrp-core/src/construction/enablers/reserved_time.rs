@@ -5,7 +5,7 @@ mod reserved_time_test;
 use crate::models::common::*;
 use crate::models::problem::{ActivityCost, Actor, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
-use rosomaxa::prelude::{compare_floats, GenericError};
+use rosomaxa::prelude::{compare_floats, Float, GenericError};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -82,7 +82,7 @@ impl ActivityCost for DynamicActivityCost {
             if activity_start + extra_duration > activity.place.time.end {
                 // TODO this branch is the reason why departure rescheduling is disabled.
                 //      theoretically, rescheduling should be aware somehow about dynamic costs
-                f64::MAX
+                Float::MAX
             } else {
                 departure + extra_duration
             }

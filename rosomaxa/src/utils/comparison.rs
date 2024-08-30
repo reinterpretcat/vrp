@@ -1,3 +1,4 @@
+use crate::utils::Float;
 use std::cmp::{Ordering, PartialOrd};
 
 macro_rules! compare_float_types {
@@ -17,6 +18,10 @@ macro_rules! compare_float_types {
     };
 }
 
-compare_float_types! { compare_floats, f64}
-compare_float_types! { compare_floats_refs, &f64}
+compare_float_types! { compare_floats, Float}
+compare_float_types! { compare_floats_refs, &Float}
+
 compare_float_types! { compare_floats_f32, f32}
+compare_float_types! { compare_floats_f32_refs, &f32}
+compare_float_types! { compare_floats_f64, f64}
+compare_float_types! { compare_floats_f64_refs, &f64}

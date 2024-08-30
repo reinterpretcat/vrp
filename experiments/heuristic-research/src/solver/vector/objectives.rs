@@ -5,6 +5,7 @@
 mod objectives_test;
 
 use rosomaxa::example::{create_rosenbrock_function, FitnessFn};
+use rosomaxa::prelude::Float;
 use std::sync::Arc;
 
 /// Returns objective function by its name.
@@ -25,11 +26,14 @@ pub fn get_fitness_fn_by_name(name: &str) -> FitnessFn {
 /// trapped. The function’s only globally best solution 0 is found at f(i)=[0,0,…,0] within the
 /// domain of [-5.12,5.12].
 fn create_rastrigin_function() -> FitnessFn {
+    #![allow(clippy::unnecessary_cast)]
     Arc::new(|input| {
         let a = 10.;
         input
             .iter()
-            .fold(a * input.len() as f64, |acc, &item| acc + item * item - a * (2. * std::f64::consts::PI * item).cos())
+            .map(|&input| input as f64)
+            .fold(a * input.len() as f64, |acc, item| acc + item * item - a * (2. * std::f64::consts::PI * item).cos())
+            as Float
     })
 }
 
@@ -58,16 +62,17 @@ fn create_himmelblau_function() -> FitnessFn {
 /// deep narrow basin in the middle. The best solution 0 is found at f(xi)=[0,0,…,0] in domain
 /// [-32,32].
 fn create_ackley_function() -> FitnessFn {
+    #![allow(clippy::unnecessary_cast)]
     Arc::new(|input| {
         let n = input.len() as f64;
 
-        let square_sum = input.iter().fold(0., |acc, &item| acc + item * item);
-        let cosine_sum = input.iter().fold(0., |acc, &item| acc + (2. * std::f64::consts::PI * item).cos());
+        let square_sum = input.iter().map(|&i| i as f64).fold(0., |acc, i| acc + i * i);
+        let cosine_sum = input.iter().map(|&i| i as f64).fold(0., |acc, i| acc + (2. * std::f64::consts::PI * i).cos());
 
         let fx = -20. * (-0.2 * (square_sum / n).sqrt()).exp();
         let fx = fx - (cosine_sum / n).exp();
 
-        fx + std::f64::consts::E + 20.
+        (fx + std::f64::consts::E + 20.) as Float
     })
 }
 
