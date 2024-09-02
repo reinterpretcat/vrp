@@ -369,9 +369,9 @@ impl CheckerContext {
         let matrix_size = get_matrix_size(matrices.as_slice());
         let matrix_idx = from_idx * matrix_size + to_idx;
 
-        let distance = get_matrix_value(matrix_idx, &matrix.distances)?;
+        let distance = get_matrix_value(matrix_idx, &matrix.distances)? as Distance;
         let duration = get_matrix_value(matrix_idx, &matrix.travel_times)?;
-        let duration = (duration as Float * profile.scale) as i64;
+        let duration = (duration as Float * profile.scale) as Duration;
 
         Ok((distance, duration))
     }
@@ -415,7 +415,7 @@ fn get_matrix_size(matrices: &[Matrix]) -> usize {
     (matrices.first().unwrap().travel_times.len() as Float).sqrt().round() as usize
 }
 
-fn get_matrix_value(idx: usize, matrix_values: &[i64]) -> GenericResult<i64> {
+fn get_matrix_value(idx: usize, matrix_values: &[i32]) -> GenericResult<i32> {
     matrix_values
         .get(idx)
         .cloned()

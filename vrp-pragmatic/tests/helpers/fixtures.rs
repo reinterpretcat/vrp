@@ -12,7 +12,7 @@ pub const SIMPLE_PROBLEM: &str = r#"
                   "lat": 52.5622847,
                   "lng": 13.4023099
                 },
-                "duration": 240.0,
+                "duration": 240,
                 "times": [
                   [
                     "2019-07-04T10:00:00Z",
@@ -37,7 +37,7 @@ pub const SIMPLE_PROBLEM: &str = r#"
                   "lat": 52.5622847,
                   "lng": 13.4023099
                 },
-                "duration": 240.0,
+                "duration": 240,
                 "tag": "p1"
               }
             ],
@@ -52,7 +52,7 @@ pub const SIMPLE_PROBLEM: &str = r#"
                   "lat": 52.5330881,
                   "lng": 13.3973059
                 },
-                "duration": 240.0,
+                "duration": 240,
                 "tag": "p2"
               }
             ],
@@ -69,7 +69,7 @@ pub const SIMPLE_PROBLEM: &str = r#"
                   "lat": 52.5252832,
                   "lng": 13.4188422
                 },
-                "duration": 240.0,
+                "duration": 240,
                 "tag": "d1"
               }
             ],

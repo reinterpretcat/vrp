@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::enablers::ReservedTimesIndex;
-use vrp_core::models::common::{Distance, Duration};
+use vrp_core::models::common::Duration;
 use vrp_core::models::problem::{Job as CoreJob, Single, VehicleIdDimension};
 use vrp_core::models::solution::Route;
 use vrp_core::models::{Extras as CoreExtras, Problem as CoreProblem, ViolationCode};

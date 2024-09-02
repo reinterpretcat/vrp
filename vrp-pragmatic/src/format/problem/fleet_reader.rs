@@ -58,15 +58,15 @@ pub(super) fn create_transport_costs(
             let (durations, distances) = if let Some(error_codes) = &matrix.error_codes {
                 let capacity = matrix.distances.len();
 
-                let mut durations: Vec<Duration> = Vec::with_capacity(capacity);
-                let mut distances: Vec<Distance> = Vec::with_capacity(capacity);
+                let mut durations: Vec<i32> = Vec::with_capacity(capacity);
+                let mut distances: Vec<i32> = Vec::with_capacity(capacity);
                 for (i, error) in error_codes.iter().enumerate() {
                     if *error > 0 {
                         durations.push(-1);
                         distances.push(-1);
                     } else {
-                        durations.push(*matrix.travel_times.get(i).unwrap());
-                        distances.push(*matrix.distances.get(i).unwrap());
+                        durations.push(*matrix.travel_times.get(i).unwrap() as i32);
+                        distances.push(*matrix.distances.get(i).unwrap() as i32);
                     }
                 }
                 (durations, distances)

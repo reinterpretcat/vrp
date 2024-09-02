@@ -6,7 +6,7 @@ use crate::format::{CustomLocationType, Location};
 use vrp_core::utils::{parallel_collect, Float};
 
 /// Gets approximated durations and distances rounded to nearest integer.
-pub fn get_approx_transportation(locations: &[Location], speeds: &[Float]) -> Vec<(Vec<i64>, Vec<i64>)> {
+pub fn get_approx_transportation(locations: &[Location], speeds: &[Float]) -> Vec<(Vec<i32>, Vec<i32>)> {
     assert!(!speeds.is_empty());
     assert!(speeds.iter().all(|&speed| speed > 0.));
 
@@ -15,10 +15,10 @@ pub fn get_approx_transportation(locations: &[Location], speeds: &[Float]) -> Ve
         .flat_map(|l1| locations.iter().map(move |l2| get_haversine_distance(l1, l2)))
         .collect::<Vec<_>>();
 
-    let distances_rounded = distances.iter().map(|distance| distance.round() as i64).collect::<Vec<_>>();
+    let distances_rounded = distances.iter().map(|distance| distance.round() as i32).collect::<Vec<_>>();
 
     parallel_collect(speeds, |speed| {
-        let durations = distances.iter().map(|distance| (distance / speed).round() as i64).collect::<Vec<_>>();
+        let durations = distances.iter().map(|distance| (distance / speed).round() as i32).collect::<Vec<_>>();
 
         (durations, distances_rounded.clone())
     })

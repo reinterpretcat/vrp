@@ -263,7 +263,8 @@ fn can_read_complex_problem() {
 
 #[test]
 fn can_deserialize_minimal_problem_and_matrix() {
-    let problem = (SIMPLE_PROBLEM.to_string(), vec![SIMPLE_MATRIX.to_string()]).read_pragmatic().ok().unwrap();
+    let problem =
+        (SIMPLE_PROBLEM.to_string(), vec![SIMPLE_MATRIX.to_string()]).read_pragmatic().expect("cannot read pragmatic");
 
     assert_eq!(problem.fleet.vehicles.len(), 1);
     assert_eq!(problem.jobs.all().count(), 2);

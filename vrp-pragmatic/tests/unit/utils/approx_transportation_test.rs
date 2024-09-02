@@ -29,7 +29,7 @@ fn can_use_approximated_with_matrix_costs() {
     let approx_data = get_approx_transportation(&locations, &[speed]);
     assert_eq!(approx_data.len(), 1);
 
-    let (durations, distances) = approx_data.first().unwrap();
+    let (durations, distances) = approx_data.first().unwrap().clone();
     let costs = create_matrix_transport_cost(vec![MatrixData::new(profile.index, None, durations, distances)])
         .expect("Cannot create matrix transport costs");
 

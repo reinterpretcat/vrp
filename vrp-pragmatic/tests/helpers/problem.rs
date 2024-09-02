@@ -287,10 +287,10 @@ pub fn create_empty_problem() -> Problem {
     }
 }
 
-pub fn create_matrix(data: Vec<i64>) -> Matrix {
-    let size = (data.len() as Float).sqrt() as i32;
+pub fn create_matrix(data: Vec<i32>) -> Matrix {
+    let size = (data.len() as Float).sqrt() as usize;
 
-    assert_eq!((size * size) as usize, data.len());
+    assert_eq!(size * size, data.len());
 
     Matrix {
         profile: Some("car".to_owned()),
@@ -304,14 +304,14 @@ pub fn create_matrix(data: Vec<i64>) -> Matrix {
 pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
     let unique = CoordIndex::new(problem).unique();
 
-    let data: Vec<i64> = unique
+    let data: Vec<i32> = unique
         .iter()
         .cloned()
         .flat_map(|a| {
             let (a_lat, a_lng) = a.to_lat_lng();
             unique.iter().map(move |b| {
                 let (b_lat, b_lng) = b.to_lat_lng();
-                ((a_lat - b_lat).powf(2.) + (a_lng - b_lng).powf(2.)).sqrt().round() as i64
+                ((a_lat - b_lat).powf(2.) + (a_lng - b_lng).powf(2.)).sqrt().round() as i32
             })
         })
         .collect();

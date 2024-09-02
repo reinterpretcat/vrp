@@ -640,14 +640,14 @@ pub struct Matrix {
 
     /// Travel distances (used to be in seconds).
     #[serde(alias = "durations")]
-    pub travel_times: Vec<i64>,
+    pub travel_times: Vec<i32>,
 
     /// Travel durations (use to be in meters).
-    pub distances: Vec<i64>,
+    pub distances: Vec<i32>,
 
     /// Error codes to mark unreachable locations.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_codes: Option<Vec<i64>>,
+    pub error_codes: Option<Vec<i32>>,
 }
 
 // endregion
