@@ -10,8 +10,8 @@ fn create_matrix_data(
     MatrixData {
         index: profile.index,
         timestamp,
-        durations: vec![duration.0; duration.1],
-        distances: vec![distance.0; distance.1],
+        durations: vec![duration.0 as i32; duration.1],
+        distances: vec![distance.0 as i32; distance.1],
     }
 }
 

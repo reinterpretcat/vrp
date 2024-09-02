@@ -32,7 +32,7 @@ impl CoordIndex {
     }
 
     /// Creates transport.
-    pub fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost>, GenericError> {
+    pub fn create_transport(&self) -> Result<Arc<dyn TransportCost>, GenericError> {
         let matrix_values = self
             .locations
             .iter()
@@ -42,14 +42,10 @@ impl CoordIndex {
                     let y = y1 as Float - y2 as Float;
                     let value = (x * x + y * y).sqrt();
 
-                    if is_rounded {
-                        value.round()
-                    } else {
-                        value
-                    }
+                    value.round() as i32
                 })
             })
-            .collect::<Vec<Float>>();
+            .collect::<Vec<i32>>();
 
         let matrix_data = MatrixData::new(0, None, matrix_values.clone(), matrix_values);
 

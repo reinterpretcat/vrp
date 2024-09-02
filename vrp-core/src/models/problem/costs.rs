@@ -126,14 +126,14 @@ pub struct MatrixData {
     /// A timestamp for which routing info is applicable.
     pub timestamp: Option<Timestamp>,
     /// Travel durations.
-    pub durations: Vec<Duration>,
+    pub durations: Vec<i32>,
     /// Travel distances.
-    pub distances: Vec<Distance>,
+    pub distances: Vec<i32>,
 }
 
 impl MatrixData {
     /// Creates `MatrixData` instance.
-    pub fn new(index: usize, timestamp: Option<Timestamp>, durations: Vec<Duration>, distances: Vec<Distance>) -> Self {
+    pub fn new(index: usize, timestamp: Option<Timestamp>, durations: Vec<i32>, distances: Vec<i32>) -> Self {
         Self { index, timestamp, durations, distances }
     }
 }
@@ -199,8 +199,8 @@ pub fn create_matrix_transport_cost_with_fallback<T: TransportFallback + 'static
 
 /// A time agnostic matrix routing costs.
 struct TimeAgnosticMatrixTransportCost<T: TransportFallback> {
-    durations: Vec<Vec<Duration>>,
-    distances: Vec<Vec<Distance>>,
+    durations: Vec<Vec<i32>>,
+    distances: Vec<Vec<i32>>,
     size: usize,
     fallback: T,
 }
@@ -238,7 +238,7 @@ impl<T: TransportFallback> TransportCost for TimeAgnosticMatrixTransportCost<T> 
             .unwrap()
             .get(from * self.size + to)
             .copied()
-            .unwrap_or_else(|| self.fallback.duration(profile, from, to)) as Float
+            .unwrap_or_else(|| self.fallback.duration(profile, from, to) as i32) as Float
             * profile.scale)
             .round() as Duration
     }
@@ -249,7 +249,7 @@ impl<T: TransportFallback> TransportCost for TimeAgnosticMatrixTransportCost<T> 
             .unwrap()
             .get(from * self.size + to)
             .copied()
-            .unwrap_or_else(|| self.fallback.distance(profile, from, to))
+            .unwrap_or_else(|| self.fallback.distance(profile, from, to) as i32) as Distance
     }
 
     fn duration(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Duration {
@@ -310,10 +310,10 @@ impl<T: TransportFallback> TimeAwareMatrixTransportCost<T> {
         let data_idx = from * self.size + to;
 
         let duration = match timestamps.binary_search(&(timestamp as u64)) {
-            Ok(matrix_idx) => matrices.get(matrix_idx).unwrap().durations.get(data_idx).copied(),
-            Err(0) => matrices.first().unwrap().durations.get(data_idx).copied(),
+            Ok(matrix_idx) => matrices.get(matrix_idx).unwrap().durations.get(data_idx).copied().map(|v| v as Float),
+            Err(0) => matrices.first().unwrap().durations.get(data_idx).copied().map(|v| v as Float),
             Err(matrix_idx) if matrix_idx == matrices.len() => {
-                matrices.last().unwrap().durations.get(data_idx).copied()
+                matrices.last().unwrap().durations.get(data_idx).copied().map(|v| v as Float)
             }
             Err(matrix_idx) => {
                 let left_matrix = matrices.get(matrix_idx - 1).unwrap();
@@ -326,17 +326,20 @@ impl<T: TransportFallback> TimeAwareMatrixTransportCost<T> {
                     .get(data_idx)
                     .zip(matrices.get(matrix_idx).unwrap().durations.get(data_idx))
                     .map(|(&left_value, &right_value)| {
+                        let left_value = left_value as Float;
+                        let right_value = right_value as Float;
+
                         // perform linear interpolation
-                        let ratio = (timestamp - left_matrix.timestamp.unwrap())
-                            / (right_matrix.timestamp.unwrap() - left_matrix.timestamp.unwrap());
+                        let ratio = (timestamp - left_matrix.timestamp.unwrap()) as Float
+                            / (right_matrix.timestamp.unwrap() - left_matrix.timestamp.unwrap()) as Float;
 
                         left_value + ratio * (right_value - left_value)
                     })
             }
         }
-        .unwrap_or_else(|| self.fallback.duration(profile, from, to));
+        .unwrap_or_else(|| self.fallback.duration(profile, from, to) as Float);
 
-        (duration as Float * profile.scale).round() as Duration
+        (duration * profile.scale).round() as Duration
     }
 
     fn interpolate_distance(
@@ -361,7 +364,7 @@ impl<T: TransportFallback> TimeAwareMatrixTransportCost<T> {
             Err(matrix_idx) => matrices.get(matrix_idx - 1).unwrap().distances.get(data_idx),
         }
         .copied()
-        .unwrap_or_else(|| self.fallback.distance(profile, from, to))
+        .unwrap_or_else(|| self.fallback.distance(profile, from, to) as i32) as Distance
     }
 }
 

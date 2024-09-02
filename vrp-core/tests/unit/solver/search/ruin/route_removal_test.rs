@@ -14,7 +14,7 @@ fn can_remove_whole_random_routes_from_context() {
     let matrix = (4, 4);
     let ints = vec![10, 2, 0, 2];
 
-    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, false);
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, 1000., false);
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
@@ -33,7 +33,7 @@ fn can_remove_parts_random_routes_from_context() {
     let matrix = (8, 1);
     let ints = vec![10, 1, 0, 2];
 
-    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, false);
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, 1000., false);
     let problem = Problem {
         jobs: problem.jobs.clone(),
         locks: vec![Arc::new(Lock {
@@ -70,7 +70,7 @@ fn can_remove_worst_route() {
     let ints = vec![3, 1];
     let reals = vec![1.];
 
-    let (problem, mut solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, false);
+    let (problem, mut solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, 1000., false);
     solution.routes[2].tour.remove_activity_at(1);
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),

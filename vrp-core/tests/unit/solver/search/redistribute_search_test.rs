@@ -16,7 +16,7 @@ fn can_add_extra_constraint() {
 #[test]
 fn can_remove_jobs() {
     let environment = Arc::new(Environment::default());
-    let (problem, solution) = generate_matrix_routes_with_defaults(5, 6, false);
+    let (problem, solution) = generate_matrix_routes_with_defaults(5, 6, 1000., false);
     let mut insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
     let orig_total_jobs: usize =
         insertion_ctx.solution.routes.iter().map(|route_ctx| route_ctx.route().tour.job_count()).sum();

@@ -6,7 +6,7 @@ use rosomaxa::prelude::*;
 #[test]
 fn can_create_multiple_insertion_ctxs_without_unassigned() {
     let environment = Arc::new(Environment::default());
-    let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
+    let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, 1000., false);
     let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
 
     let individuals = create_multiple_insertion_contexts(&individual, environment, (2, 2)).unwrap();
@@ -21,7 +21,7 @@ fn can_create_multiple_insertion_ctxs_without_unassigned() {
 #[test]
 fn can_create_multiple_insertion_ctxs_with_unassigned() {
     let environment = Arc::new(Environment::default());
-    let (problem, mut solution) = generate_matrix_routes_with_defaults(5, 6, false);
+    let (problem, mut solution) = generate_matrix_routes_with_defaults(5, 6, 1000., false);
     solution.registry.free_actor(&solution.routes[0].actor);
     solution.unassigned.extend(solution.routes[0].tour.jobs().cloned().map(|job| (job, UnassignmentInfo::Unknown)));
     solution.routes.remove(0);
@@ -47,7 +47,7 @@ fn can_create_multiple_insertion_ctxs_with_unassigned() {
 #[test]
 fn can_perform_search() {
     let environment = Arc::new(Environment::default());
-    let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
+    let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, 1000., false);
     let problem = Arc::new(problem);
     let population = Box::new(GreedyPopulation::new(problem.goal.clone(), 1, None));
 

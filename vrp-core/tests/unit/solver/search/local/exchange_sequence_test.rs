@@ -24,7 +24,7 @@ fn can_extract_jobs_impl(
     expected_route_ids: &[Vec<&str>],
     expected_extracted_ids: &[Vec<&str>],
 ) {
-    let (problem, solution) = generate_matrix_routes_with_defaults(5, 2, false);
+    let (problem, solution) = generate_matrix_routes_with_defaults(5, 2, 1000., false);
     let mut insertion_ctx = promote_to_locked(
         InsertionContext::new_from_solution(
             Arc::new(problem),
@@ -114,7 +114,7 @@ fn can_exchange_jobs_impl(
         first_insertion_idx,
         second_insertion_idx,
     ];
-    let (problem, solution) = generate_matrix_routes_with_defaults(5, 2, false);
+    let (problem, solution) = generate_matrix_routes_with_defaults(5, 2, 1000., false);
     let mut insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
@@ -137,7 +137,7 @@ can_get_route_indices! {
 }
 
 fn can_get_route_indices_impl(rows: usize, locked_ids: &[&str], expected: &[usize]) {
-    let (problem, solution) = generate_matrix_routes_with_defaults(rows, 2, false);
+    let (problem, solution) = generate_matrix_routes_with_defaults(rows, 2, 1000., false);
     let insertion_ctx = promote_to_locked(
         InsertionContext::new_from_solution(Arc::new(problem), (solution, None), Arc::new(Environment::default())),
         locked_ids,
@@ -158,7 +158,7 @@ can_exchange_sequence! {
 }
 
 fn can_exchange_sequence_impl(locked_ids: &[&str], expected: Option<()>) {
-    let (problem, solution) = generate_matrix_routes_with_defaults(5, 2, false);
+    let (problem, solution) = generate_matrix_routes_with_defaults(5, 2, 1000., false);
     let insertion_ctx = promote_to_locked(
         InsertionContext::new_from_solution(Arc::new(problem), (solution, None), Arc::new(Environment::default())),
         locked_ids,

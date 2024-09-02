@@ -16,7 +16,7 @@ fn can_create_ruin_cluster_with_default_params() {
         |_, _, _| TestGoalContextBuilder::with_transport_feature().build(),
         |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
-        |_| (vec![0.; 64], create_test_distances()),
+        |_| (vec![0; 64], create_test_distances(1.)),
     );
 
     let removal = ClusterRemoval::new_with_defaults(Arc::new(problem), environment);
@@ -53,7 +53,7 @@ fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
         |_, _, _| TestGoalContextBuilder::with_transport_feature().build(),
         |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
-        |_| (vec![0.; 64], create_test_distances()),
+        |_| (vec![0; 64], create_test_distances(1.)),
     );
     let problem = Arc::new(problem);
     let environment = Arc::new(Environment::default());

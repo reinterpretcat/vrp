@@ -60,7 +60,7 @@ mod iterators {
 
     #[test]
     fn can_get_size_hint_for_tour_legs() {
-        let (_, solution) = generate_matrix_routes_with_defaults(5, 1, false);
+        let (_, solution) = generate_matrix_routes_with_defaults(5, 1, 1000., false);
 
         assert_eq!(solution.routes[0].tour.legs().skip(2).size_hint().0, 4);
     }
@@ -82,7 +82,7 @@ mod selections {
     fn can_use_stochastic_selection_mode_impl(skip: usize, activities: usize, expected_threshold: usize) {
         let target = 10;
         let selection_mode = LegSelection::Stochastic(Environment::default().random);
-        let (_, solution) = generate_matrix_routes_with_defaults(activities, 1, false);
+        let (_, solution) = generate_matrix_routes_with_defaults(activities, 1, 1000., false);
         let route_ctx = RouteContext::new_with_state(solution.routes.into_iter().next().unwrap(), Default::default());
         let mut counter = 0;
 

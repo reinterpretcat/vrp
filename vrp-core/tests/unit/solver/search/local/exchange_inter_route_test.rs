@@ -30,7 +30,7 @@ fn can_use_exchange_inter_route_best_operator_impl(
     let ints = [seed_route, seed_job].into_iter().chain([16; 1024]).collect();
     let reals = vec![1.; 1024];
 
-    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, 1000., true);
     let insertion_ctx = promote_to_locked(
         InsertionContext::new_from_solution(
             Arc::new(problem),

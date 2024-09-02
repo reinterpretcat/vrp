@@ -19,7 +19,7 @@ can_ruin_solution_with_matrix_routes! {
 fn can_ruin_solution_with_matrix_routes_impl(matrix: (usize, usize), ints: Vec<i32>, expected_ids: Vec<&str>) {
     let reals = vec![];
 
-    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, false);
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, 1000., false);
     let limits = RemovalLimits { removed_activities_range: 10..10, affected_routes_range: 2..2 };
     let insertion_ctx: InsertionContext = InsertionContext::new_from_solution(
         Arc::new(problem),

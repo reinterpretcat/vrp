@@ -69,7 +69,7 @@ can_use_exchange_swap_star! {
 fn can_use_exchange_swap_star_impl(jobs_order: Vec<Vec<&str>>, expected: Vec<Vec<&str>>) {
     let matrix = (3, 3);
     let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], vec![0.; 9])));
-    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, 1000., true);
     let mut insertion_ctx =
         InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
     rearrange_jobs_in_routes(&mut insertion_ctx, jobs_order.as_slice());
@@ -94,7 +94,7 @@ fn can_keep_locked_jobs_in_place() {
     let locked_ids = vec!["c2", "c3"];
     let matrix = (3, 3);
     let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], vec![0.; 9])));
-    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, 1000., true);
     let mut insertion_ctx = promote_to_locked(
         InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone()),
         locked_ids.as_slice(),
@@ -272,7 +272,7 @@ fn can_create_route_pairs_impl(route_pairs_threshold: usize, is_proximity: bool,
     let reals = once(i32::from(is_proximity)).chain([0; 9]).map(|value| value as Float).collect();
     let matrix = (3, 3);
     let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], reals)));
-    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, 1000., true);
     let insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
 
     let pairs = create_route_pairs(&insertion_ctx, route_pairs_threshold);

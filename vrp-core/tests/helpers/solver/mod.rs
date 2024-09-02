@@ -28,7 +28,12 @@ pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext
 }
 
 /// Generates matrix routes. See `generate_matrix_routes`.
-pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vrp: bool) -> (Problem, Solution) {
+pub fn generate_matrix_routes_with_defaults(
+    rows: usize,
+    cols: usize,
+    scale: Float,
+    is_open_vrp: bool,
+) -> (Problem, Solution) {
     generate_matrix_routes(
         rows,
         cols,
@@ -47,12 +52,20 @@ pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vr
         },
         |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
-        |data| (data.clone(), data),
+        |data| {
+            let data = data.into_iter().map(|i| (i * scale).round() as i32).collect::<Vec<_>>();
+            (data.clone(), data)
+        },
     )
 }
 
-pub fn generate_matrix_distances_from_points(points: &[Point]) -> Vec<Float> {
-    points.iter().cloned().flat_map(|p_a| points.iter().map(move |p_b| p_a.distance_to_point(p_b))).collect()
+/// Generates matrix distances from points. Please note that the distances are rounded.
+pub fn generate_matrix_distances_from_points(points: &[Point], scale: Float) -> Vec<i32> {
+    points
+        .iter()
+        .cloned()
+        .flat_map(|p_a| points.iter().map(move |p_b| (p_a.distance_to_point(p_b) * scale).round() as i32))
+        .collect()
 }
 
 pub fn generate_matrix_routes_with_disallow_list(
@@ -89,7 +102,10 @@ pub fn generate_matrix_routes_with_disallow_list(
         },
         |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
-        |data| (data.clone(), data),
+        |data| {
+            let data = data.into_iter().map(|i| i.round() as i32).collect::<Vec<_>>();
+            (data.clone(), data)
+        },
     )
 }
 
@@ -107,7 +123,7 @@ pub fn generate_matrix_routes(
     goal_factory: impl FnOnce(Arc<dyn TransportCost>, Arc<dyn ActivityCost>, &Extras) -> GoalContext,
     job_factory: impl Fn(&str, Option<Location>) -> Arc<Single>,
     vehicle_modify: impl Fn(Vehicle) -> Vehicle,
-    matrix_modify: impl Fn(Vec<Float>) -> (Vec<Float>, Vec<Float>),
+    matrix_modify: impl Fn(Vec<Float>) -> (Vec<i32>, Vec<i32>),
 ) -> (Problem, Solution) {
     let fleet = Arc::new(
         FleetBuilder::default()

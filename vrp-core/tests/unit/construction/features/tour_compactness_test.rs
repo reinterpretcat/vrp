@@ -36,7 +36,7 @@ fn can_count_neighbours_in_route_impl(
     let (expected_estimation, expected_fitness) = expected;
     let (rows, cols) = routes;
     let environment = Arc::new(Environment::default());
-    let (problem, solution) = generate_matrix_routes_with_defaults(rows, cols, false);
+    let (problem, solution) = generate_matrix_routes_with_defaults(rows, cols, 1000., false);
     let mut insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
     let feature = create_tour_compactness_feature("compact", insertion_ctx.problem.jobs.clone(), job_radius)
         .expect("cannot create feature");

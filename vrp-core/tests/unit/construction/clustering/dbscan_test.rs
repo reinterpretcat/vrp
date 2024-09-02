@@ -9,7 +9,7 @@ use crate::models::common::Location;
 use crate::models::{Extras, GoalContext};
 use crate::prelude::{ActivityCost, TransportCost};
 
-type MatrixModFn = fn(Vec<Float>) -> (Vec<Float>, Vec<Float>);
+type MatrixModFn = fn(Vec<Float>) -> (Vec<i32>, Vec<i32>);
 
 #[test]
 fn can_get_max_curvature() {
@@ -23,22 +23,27 @@ fn goal_factory(_: Arc<dyn TransportCost>, _: Arc<dyn ActivityCost>, _: &Extras)
     TestGoalContextBuilder::with_transport_feature().build()
 }
 
+fn scale_matrix_by_power_of_three(data: Vec<Float>) -> (Vec<i32>, Vec<i32>) {
+    let data = data.into_iter().map(|i| (i * 1000.).round() as i32).collect::<Vec<_>>();
+    (data.clone(), data)
+}
+
 parameterized_test! {can_estimate_epsilon, (matrix, nth_neighbor, matrix_modify, expected), {
     can_estimate_epsilon_impl(matrix, nth_neighbor, matrix_modify, expected);
 }}
 
 can_estimate_epsilon! {
-    case_00: ((8, 8), 1, |data: Vec<Float>| (data.clone(), data), 1.),
+    case_00: ((8, 8), 1, scale_matrix_by_power_of_three, 1000.),
 
-    case_01: ((8, 8), 3,  |data: Vec<Float>| (data.clone(), data), 1.5),
-    case_02: ((8, 8), 6,  |data: Vec<Float>| (data.clone(), data), 2.237),
-    case_03: ((8, 8), 18, |data: Vec<Float>| (data.clone(), data), 4.079),
+    case_01: ((8, 8), 3,  scale_matrix_by_power_of_three, 1500.),
+    case_02: ((8, 8), 6,  scale_matrix_by_power_of_three, 2237.),
+    case_03: ((8, 8), 18, scale_matrix_by_power_of_three, 4079.),
 
-    case_04:  ((8, 1), 3, |data: Vec<Float>| (data.clone(), data), 2.0),
-    case_05:  ((8, 1), 6, |data: Vec<Float>| (data.clone(), data), 4.571),
+    case_04:  ((8, 1), 3, scale_matrix_by_power_of_three, 2000.),
+    case_05:  ((8, 1), 6, scale_matrix_by_power_of_three, 3714.),
 
-    case_06:  ((8, 1), 2, |_: Vec<Float>| (vec![0.; 64], create_test_distances()), 6.084),
-    case_07:  ((8, 1), 3, |_: Vec<Float>| (vec![0.; 64], create_test_distances()), 10.419),
+    case_06:  ((8, 1), 2, |_: Vec<Float>| (vec![0; 64], create_test_distances(1000.)), 6084.),
+    case_07:  ((8, 1), 3, |_: Vec<Float>| (vec![0; 64], create_test_distances(1000.)), 10419.),
 }
 
 fn can_estimate_epsilon_impl(matrix: (usize, usize), nth_neighbor: usize, matrix_modify: MatrixModFn, expected: Float) {
@@ -52,7 +57,7 @@ fn can_estimate_epsilon_impl(matrix: (usize, usize), nth_neighbor: usize, matrix
         matrix_modify,
     );
 
-    assert_eq!((estimate_epsilon(&problem, nth_neighbor) * 1000.).round() / 1000., expected);
+    assert_eq!(estimate_epsilon(&problem, nth_neighbor).round(), expected.round());
 }
 
 parameterized_test! {can_estimate_epsilon_having_zero_costs, min_points, {
@@ -75,17 +80,11 @@ fn can_estimate_epsilon_having_zero_costs_impl(min_points: usize) {
         |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
         |_| {
-            let distances = generate_matrix_distances_from_points(&[
-                p(0., 0.),
-                p(0., 0.),
-                p(0., 0.),
-                p(0., 0.),
-                p(5., 0.),
-                p(10., 0.),
-                p(20., 0.),
-                p(30., 0.),
-            ]);
-            (vec![0.; 64], distances)
+            let distances = generate_matrix_distances_from_points(
+                &[p(0., 0.), p(0., 0.), p(0., 0.), p(0., 0.), p(5., 0.), p(10., 0.), p(20., 0.), p(30., 0.)],
+                1.,
+            );
+            (vec![0; 64], distances)
         },
     );
 
@@ -113,7 +112,7 @@ fn can_create_job_clusters_impl(param: (usize, Float), expected: &[Vec<Location>
         goal_factory,
         |id, location| TestSingleBuilder::default().id(id).location(location).build_shared(),
         |v| v,
-        |_| (vec![0.; 64], create_test_distances()),
+        |_| (vec![0; 64], create_test_distances(1.)),
     );
     let random: Arc<dyn Random> = Arc::new(FakeRandom::new(vec![0, 0], vec![epsilon]));
 
