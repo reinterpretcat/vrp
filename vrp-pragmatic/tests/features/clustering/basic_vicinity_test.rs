@@ -7,43 +7,43 @@ parameterized_test! {can_cluster_simple_jobs, (visiting, serving, stop2, stop3_s
 
 can_cluster_simple_jobs! {
     case_01_continue: (
-        VicinityVisitPolicy::Continue, VicinityServingPolicy::Original { parking: 0. },
-        (3., 3, 1, 0, (3., 10.), vec![
-          ActivityData::new(("job3", Some(3.), "delivery", Some((3., 4.)), Some((None, None)))),
-          ActivityData::new(("job2", Some(2.), "delivery", Some((5., 6.)), Some((Some((3., 1., 4., 5.)), None)))),
-          ActivityData::new(("job1", Some(1.), "delivery", Some((7., 8.)), Some((Some((2., 1., 6., 7.)), Some((3., 2., 8., 10.)))))),
+        VicinityVisitPolicy::Continue, VicinityServingPolicy::Original { parking: 0 },
+        (3., 3, 1, 0, (3, 10), vec![
+          ActivityData::new(("job3", Some(3.), "delivery", Some((3, 4)), Some((None, None)))),
+          ActivityData::new(("job2", Some(2.), "delivery", Some((5, 6)), Some((Some((3., 1, 4, 5)), None)))),
+          ActivityData::new(("job1", Some(1.), "delivery", Some((7, 8)), Some((Some((2., 1, 6, 7)), Some((3., 2, 8, 10)))))),
         ]),
-        (17., 18.),
+        (17, 18),
         (38., 10, 18, (10, 4, 4, 0)),
     ),
     case_02_return: (
-       VicinityVisitPolicy::Return, VicinityServingPolicy::Original { parking: 0. },
-        (3., 3, 1, 0, (3., 12.), vec![
-          ActivityData::new(("job3", Some(3.), "delivery", Some((3., 4.)), Some((None, None)))),
-          ActivityData::new(("job2", Some(2.), "delivery", Some((5., 6.)), Some((Some((3., 1., 4., 5.)), Some((3., 1., 6., 7.)))))),
-          ActivityData::new(("job1", Some(1.), "delivery", Some((9., 10.)), Some((Some((3., 2., 7., 9.)), Some((3., 2., 10., 12.)))))),
+       VicinityVisitPolicy::Return, VicinityServingPolicy::Original { parking: 0 },
+        (3., 3, 1, 0, (3, 12), vec![
+          ActivityData::new(("job3", Some(3.), "delivery", Some((3, 4)), Some((None, None)))),
+          ActivityData::new(("job2", Some(2.), "delivery", Some((5, 6)), Some((Some((3., 1, 4, 5)), Some((3., 1, 6, 7)))))),
+          ActivityData::new(("job1", Some(1.), "delivery", Some((9, 10)), Some((Some((3., 2, 7, 9)), Some((3., 2, 10, 12)))))),
         ]),
-        (19., 20.),
+        (19, 20),
         (40., 10, 20, (10, 4, 6, 0)),
     ),
     case_03_fixed: (
-       VicinityVisitPolicy::Continue, VicinityServingPolicy::Fixed { value: 5., parking: 0. },
-        (3., 3, 1, 0, (3., 22.), vec![
-          ActivityData::new(("job3", Some(3.), "delivery", Some((3., 8.)), Some((None, None)))),
-          ActivityData::new(("job2", Some(2.), "delivery", Some((9., 14.)), Some((Some((3., 1., 8., 9.)), None)))),
-          ActivityData::new(("job1", Some(1.), "delivery", Some((15., 20.)), Some((Some((2., 1., 14., 15.)), Some((3., 2., 20., 22.)))))),
+       VicinityVisitPolicy::Continue, VicinityServingPolicy::Fixed { value: 5, parking: 0 },
+        (3., 3, 1, 0, (3, 22), vec![
+          ActivityData::new(("job3", Some(3.), "delivery", Some((3, 8)), Some((None, None)))),
+          ActivityData::new(("job2", Some(2.), "delivery", Some((9, 14)), Some((Some((3., 1, 8, 9)), None)))),
+          ActivityData::new(("job1", Some(1.), "delivery", Some((15, 20)), Some((Some((2., 1, 14, 15)), Some((3., 2, 20, 22)))))),
         ]),
-        (29., 30.),
+        (29, 30),
         (50., 10, 30, (10, 16, 4, 0))
     ),
     case_04_multiplier: (
-       VicinityVisitPolicy::Continue, VicinityServingPolicy::Multiplier { value: 5., parking: 0. },
-        (3., 3, 1, 0, (3., 22.), vec![
-          ActivityData::new(("job3", Some(3.), "delivery", Some((3., 8.)), Some((None, None)))),
-          ActivityData::new(("job2", Some(2.), "delivery", Some((9., 14.)), Some((Some((3., 1., 8., 9.)), None)))),
-          ActivityData::new(("job1", Some(1.), "delivery", Some((15., 20.)), Some((Some((2., 1., 14., 15.)), Some((3., 2., 20., 22.)))))),
+       VicinityVisitPolicy::Continue, VicinityServingPolicy::Multiplier { value: 5., parking: 0 },
+        (3., 3, 1, 0, (3, 22), vec![
+          ActivityData::new(("job3", Some(3.), "delivery", Some((3, 8)), Some((None, None)))),
+          ActivityData::new(("job2", Some(2.), "delivery", Some((9, 14)), Some((Some((3., 1, 8, 9)), None)))),
+          ActivityData::new(("job1", Some(1.), "delivery", Some((15, 20)), Some((Some((2., 1, 14, 15)), Some((3., 2, 20, 22)))))),
         ]),
-        (29., 30.),
+        (29, 30),
         (50., 10, 30, (10, 16, 4, 0))
     ),
 }
@@ -52,7 +52,7 @@ fn can_cluster_simple_jobs_impl(
     visiting: VicinityVisitPolicy,
     serving: VicinityServingPolicy,
     stop2: StopData,
-    stop3_schedule: (Float, Float),
+    stop3_schedule: (Timestamp, Timestamp),
     statistic_data: (Float, i64, i64, (i64, i64, i64, i64)),
 ) {
     let statistic = create_statistic(statistic_data);
@@ -62,8 +62,8 @@ fn can_cluster_simple_jobs_impl(
         Clustering::Vicinity {
             profile: VehicleProfile { matrix: "car".to_string(), scale: None },
             threshold: VicinityThresholdPolicy {
-                duration: 3.,
-                distance: 3.,
+                duration: 3,
+                distance: 3,
                 min_shared_time: None,
                 smallest_time_window: None,
                 max_jobs_per_cluster: None,
@@ -85,7 +85,7 @@ fn can_cluster_simple_jobs_impl(
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![4])
                             .build_departure(),
                         stop2.into(),
@@ -110,54 +110,54 @@ parameterized_test! {can_handle_two_clusters, (job_locations, serving, ignore_jo
 
 can_handle_two_clusters! {
     case_01_diff_stops: (
-        &[1., 2., 3., 4.], VicinityServingPolicy::Original { parking: 0. }, false,
+        &[1., 2., 3., 4.], VicinityServingPolicy::Original { parking: 0 }, false,
         vec![
-          (2., 2, 2, 0, (2., 6.), vec![
-            ActivityData::new(("job2", Some(2.), "delivery", Some((2., 3.)), Some((None, None)))),
-            ActivityData::new(("job1", Some(1.), "delivery", Some((4., 5.)), Some((Some((2., 1., 3., 4.)), Some((2., 1., 5., 6.)))))),
+          (2., 2, 2, 0, (2, 6), vec![
+            ActivityData::new(("job2", Some(2.), "delivery", Some((2, 3)), Some((None, None)))),
+            ActivityData::new(("job1", Some(1.), "delivery", Some((4, 5)), Some((Some((2., 1, 3, 4)), Some((2., 1, 5, 6)))))),
           ]),
-          (4., 4, 0, 0, (8., 12.), vec![
-            ActivityData::new(("job4", Some(4.), "delivery", Some((8., 9.)), Some((None, None)))),
-            ActivityData::new(("job3", Some(3.), "delivery", Some((10., 11.)), Some((Some((4., 1., 9., 10.)), Some((4., 1., 11., 12.)))))),
+          (4., 4, 0, 0, (8, 12), vec![
+            ActivityData::new(("job4", Some(4.), "delivery", Some((8, 9)), Some((None, None)))),
+            ActivityData::new(("job3", Some(3.), "delivery", Some((10, 11)), Some((Some((4., 1, 9, 10)), Some((4., 1, 11, 12)))))),
           ])
         ],
         (26., 4, 12, (4, 4, 4, 0)),
     ),
     case_02_same_stops: (
-        &[1., 1., 1., 1.], VicinityServingPolicy::Fixed { value: 2., parking: 0. }, true,
+        &[1., 1., 1., 1.], VicinityServingPolicy::Fixed { value: 2, parking: 0 }, true,
         vec![
-          (1., 1, 0, 0, (1., 9.), vec![
-            ActivityData::new(("x", Some(1.), "delivery", Some((1., 3.)), Some((None, None)))),
-            ActivityData::new(("x", Some(1.), "delivery", Some((3., 5.)), Some((None, None)))),
-            ActivityData::new(("x", Some(1.), "delivery", Some((5., 7.)), Some((None, None)))),
-            ActivityData::new(("x", Some(1.), "delivery", Some((7., 9.)), Some((None, None)))),
+          (1., 1, 0, 0, (1, 9), vec![
+            ActivityData::new(("x", Some(1.), "delivery", Some((1, 3)), Some((None, None)))),
+            ActivityData::new(("x", Some(1.), "delivery", Some((3, 5)), Some((None, None)))),
+            ActivityData::new(("x", Some(1.), "delivery", Some((5, 7)), Some((None, None)))),
+            ActivityData::new(("x", Some(1.), "delivery", Some((7, 9)), Some((None, None)))),
           ])
         ],
         (20., 1, 9, (1, 8, 0, 0)),
     ),
 
     case_03_diff_stops_parking: (
-        &[1., 2., 3., 4.], VicinityServingPolicy::Original { parking: 4. }, false,
+        &[1., 2., 3., 4.], VicinityServingPolicy::Original { parking: 4 }, false,
         vec![
-          (2., 2, 2, 4, (2., 10.), vec![
-            ActivityData::new(("job2", Some(2.), "delivery", Some((6., 7.)), Some((None, None)))),
-            ActivityData::new(("job1", Some(1.), "delivery", Some((8., 9.)), Some((Some((2., 1., 7., 8.)), Some((2., 1., 9., 10.)))))),
+          (2., 2, 2, 4, (2, 10), vec![
+            ActivityData::new(("job2", Some(2.), "delivery", Some((6, 7)), Some((None, None)))),
+            ActivityData::new(("job1", Some(1.), "delivery", Some((8, 9)), Some((Some((2., 1, 7, 8)), Some((2., 1, 9, 10)))))),
           ]),
-          (4., 4, 0, 4, (12., 20.), vec![
-            ActivityData::new(("job4", Some(4.), "delivery", Some((16., 17.)), Some((None, None)))),
-            ActivityData::new(("job3", Some(3.), "delivery", Some((18., 19.)), Some((Some((4., 1., 17., 18.)), Some((4., 1., 19., 20.)))))),
+          (4., 4, 0, 4, (12, 20), vec![
+            ActivityData::new(("job4", Some(4.), "delivery", Some((16, 17)), Some((None, None)))),
+            ActivityData::new(("job3", Some(3.), "delivery", Some((18, 19)), Some((Some((4., 1, 17, 18)), Some((4., 1, 19, 20)))))),
           ])
         ],
         (34., 4, 20, (4, 4, 4, 8)),
     ),
     case_04_same_stops_parking: (
-        &[1., 1., 1., 1.], VicinityServingPolicy::Fixed { value: 2., parking: 4. }, true,
+        &[1., 1., 1., 1.], VicinityServingPolicy::Fixed { value: 2, parking: 4 }, true,
         vec![
-          (1., 1, 0, 4, (1., 17.), vec![
-            ActivityData::new(("x", Some(1.), "delivery", Some((5., 7.)), Some((None, None)))),
-            ActivityData::new(("x", Some(1.), "delivery", Some((7., 9.)), Some((None, None)))),
-            ActivityData::new(("x", Some(1.), "delivery", Some((9., 15.)), Some((None, None)))),
-            ActivityData::new(("x", Some(1.), "delivery", Some((15., 17.)), Some((None, None)))),
+          (1., 1, 0, 4, (1, 17), vec![
+            ActivityData::new(("x", Some(1.), "delivery", Some((5, 7)), Some((None, None)))),
+            ActivityData::new(("x", Some(1.), "delivery", Some((7, 9)), Some((None, None)))),
+            ActivityData::new(("x", Some(1.), "delivery", Some((9, 15)), Some((None, None)))),
+            ActivityData::new(("x", Some(1.), "delivery", Some((15, 17)), Some((None, None)))),
           ])
         ],
         (28., 1, 17, (1, 12, 0, 4)),
@@ -178,8 +178,8 @@ fn can_handle_two_clusters_impl(
         Clustering::Vicinity {
             profile: VehicleProfile { matrix: "car".to_string(), scale: None },
             threshold: VicinityThresholdPolicy {
-                duration: 5.,
-                distance: 5.,
+                duration: 5,
+                distance: 5,
                 min_shared_time: None,
                 smallest_time_window: None,
                 max_jobs_per_cluster: Some(2),
@@ -220,7 +220,7 @@ fn can_handle_two_clusters_impl(
                         once(
                             StopBuilder::default()
                                 .coordinate((0., 0.))
-                                .schedule_stamp(0., 0.)
+                                .schedule_stamp(0, 0)
                                 .load(vec![4])
                                 .build_departure(),
                         )

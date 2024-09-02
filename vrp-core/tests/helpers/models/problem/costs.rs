@@ -9,19 +9,19 @@ pub struct TestTransportCost {}
 
 impl TransportCost for TestTransportCost {
     fn duration_approx(&self, _: &Profile, from: Location, to: Location) -> Duration {
-        fake_routing(from, to)
+        fake_routing(from, to) as Duration
     }
 
     fn distance_approx(&self, _: &Profile, from: Location, to: Location) -> Distance {
-        fake_routing(from, to)
+        fake_routing(from, to) as Distance
     }
 
     fn duration(&self, _: &Route, from: Location, to: Location, _: TravelTime) -> Duration {
-        fake_routing(from, to)
+        fake_routing(from, to) as Duration
     }
 
     fn distance(&self, _: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
-        fake_routing(from, to)
+        fake_routing(from, to) as Distance
     }
 }
 

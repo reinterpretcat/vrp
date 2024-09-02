@@ -34,11 +34,11 @@ parameterized_test! {can_search_for_reserved_time, (times, tests), {
 }}
 
 can_search_for_reserved_time! {
-    case01: (vec![((5., 5.), 5.), ((20., 20.), 10.)],
-        vec![((6., 6.), Some(0)), ((2., 6.), Some(0)), ((10., 11.), None), ((2., 4.), None),
-             ((10., 21.), Some(1)), ((25., 27.), Some(1)), ((29., 31.), Some(1)),
-             ((0., 3.), None), ((31., 33.), None)]),
-    case02: (vec![((0.,0.), 10.), ((5., 5.), 10.)], vec![]),
+    case01: (vec![((5, 5), 5), ((20, 20), 10)],
+        vec![((6, 6), Some(0)), ((2, 6), Some(0)), ((10, 11), None), ((2, 4), None),
+             ((10, 21), Some(1)), ((25, 27), Some(1)), ((29, 31), Some(1)),
+             ((0, 3), None), ((31, 33), None)]),
+    case02: (vec![((0, 0), 10), ((5, 5), 10)], vec![]),
 }
 
 fn can_search_for_reserved_time_impl(
@@ -124,32 +124,32 @@ parameterized_test! {can_update_state_for_reserved_time, (vehicle_detail_data, r
 }}
 
 can_update_state_for_reserved_time! {
-    case01_single_outside: ((0, 0, 0., 100.), (25., 30.),
-              vec![(10, (0., 100.), 10.)],
-              vec![Some(0.), Some(80.), None],
-              vec![(0., 0.), (10., 20.), (35., 35.)]),
+    case01_single_outside: ((0, 0, 0, 100), (25, 30),
+              vec![(10, (0, 100), 10)],
+              vec![Some(0), Some(80), None],
+              vec![(0, 0), (10, 20), (35, 35)]),
 
-    case02_single_inside: ((0, 0, 0., 100.), (25., 30.),
-              vec![(20, (0., 25.), 10.)],
-              vec![Some(0.), Some(20.), None],
-              vec![(0., 0.), (20., 35.), (55., 55.)]),
+    case02_single_inside: ((0, 0, 0, 100), (25, 30),
+              vec![(20, (0, 25), 10)],
+              vec![Some(0), Some(20), None],
+              vec![(0, 0), (20, 35), (55, 55)]),
 
-    case03_two_inside_travel: ((0, 0, 0., 100.), (25., 30.),
-              vec![(10, (0., 20.), 10.), (20, (0., 40.), 10.)],
-              vec![Some(0.), Some(15.), Some(40.), None],
-              vec![(0., 0.), (10., 20.), (35., 45.), (65., 65.)]),
+    case03_two_inside_travel: ((0, 0, 0, 100), (25, 30),
+              vec![(10, (0, 20), 10), (20, (0, 40), 10)],
+              vec![Some(0), Some(15), Some(40), None],
+              vec![(0, 0), (10, 20), (35, 45), (65, 65)]),
 
-    case04_two_inside_service: ((0, 0, 0., 100.), (35., 40.),
-              vec![(10, (0., 20.), 10.), (20, (0., 50.), 10.)],
-              vec![Some(0.), Some(15.), Some(50.), None],
-              vec![(0., 0.), (10., 20.), (30., 45.), (65., 65.)]),
+    case04_two_inside_service: ((0, 0, 0, 100), (35, 40),
+              vec![(10, (0, 20), 10), (20, (0, 50), 10)],
+              vec![Some(0), Some(15), Some(50), None],
+              vec![(0, 0), (10, 20), (30, 45), (65, 65)]),
 }
 
 fn can_update_state_for_reserved_time_impl(
     vehicle_detail_data: VehicleData,
     reserved_time: ReservedTimeSpan,
     activities: Vec<ActivityData>,
-    late_arrival_expected: Vec<Option<Float>>,
+    late_arrival_expected: Vec<Option<Timestamp>>,
     expected_schedules: Vec<(Timestamp, Timestamp)>,
 ) {
     let (_, _, route_ctx) = create_feature_and_route(vehicle_detail_data, activities, reserved_time);
@@ -173,57 +173,57 @@ parameterized_test! {can_evaluate_activity, (vehicle_detail_data, reserved_time,
 
 can_evaluate_activity! {
     case01_break_starts_at_target_then_next_at_end:
-        ((0, 0, 0., 100.), (10., 20.),
-        (10, (0., 100.), 10.),
-        vec![(20, (0., 40.), 10.)],
-        vec![(0., 0.), (10., 30.), (40., 50.), (70., 70.)]),
+        ((0, 0, 0, 100), (10, 20),
+        (10, (0, 100), 10),
+        vec![(20, (0, 40), 10)],
+        vec![(0, 0), (10, 30), (40, 50), (70, 70)]),
 
     case02_break_starts_at_target_then_next_is_late:
-        ((0, 0, 0., 100.), (10., 20.),
-        (10, (0., 100.), 10.),
-        vec![(20, (0., 39.), 10.)],
+        ((0, 0, 0, 100), (10, 20),
+        (10, (0, 100), 10),
+        vec![(20, (0, 39), 10)],
         vec![]),
 
     case03_break_with_waiting_time:
-        ((0, 0, 0., 100.), (10., 20.),
-        (10, (20., 100.), 10.),
-        vec![(20, (0., 100.), 10.)],
-        vec![(0., 0.), (10., 30.), (40., 50.), (70., 70.)]),
+        ((0, 0, 0, 100), (10, 20),
+        (10, (20, 100), 10),
+        vec![(20, (0, 100), 10)],
+        vec![(0, 0), (10, 30), (40, 50), (70, 70)]),
 
     case04_break_during_traveling:
-        ((0, 0, 0., 100.), (5., 10.),
-        (10, (0., 100.), 10.),
-        vec![(20, (0., 100.), 10.)],
-        vec![(0., 0.), (15., 25.), (35., 45.), (65., 65.)]),
+        ((0, 0, 0, 100), (5, 10),
+        (10, (0, 100), 10),
+        vec![(20, (0, 100), 10)],
+        vec![(0, 0), (15, 25), (35, 45), (65, 65)]),
 
     case05_break_on_whole_time_window_exclusive:
-        ((0, 0, 0., 100.), (10., 20.),
-        (10, (0., 20.), 10.),
-        vec![(20, (0., 100.), 10.)],
-        vec![(0., 0.), (10., 30.), (40., 50.), (70., 70.)]),
+        ((0, 0, 0, 100), (10, 20),
+        (10, (0, 20), 10),
+        vec![(20, (0, 100), 10)],
+        vec![(0, 0), (10, 30), (40, 50), (70, 70)]),
 
     case06_break_on_whole_time_window_inclusive:
-        ((0, 0, 0., 100.), (10., 21.),
-        (10, (0., 20.), 10.),
-        vec![(20, (0., 100.), 10.)],
+        ((0, 0, 0, 100), (10, 21),
+        (10, (0, 20), 10),
+        vec![(20, (0, 100), 10)],
         vec![]),
 
     case07_break_on_whole_time_window_inclusive:
-        ((0, 0, 0., 100.), (9., 21.),
-        (10, (10., 20.), 10.),
-        vec![(20, (0., 100.), 10.)],
+        ((0, 0, 0, 100), (9, 21),
+        (10, (10, 20), 10),
+        vec![(20, (0, 100), 10)],
         vec![]),
 
     case08_break_constraints_next:
-        ((0, 0, 0., 100.), (50., 60.),
-        (30, (0., 100.), 10.),
-        vec![(20, (0., 50.), 10.)],
+        ((0, 0, 0, 100), (50, 60),
+        (30, (0, 100), 10),
+        vec![(20, (0, 50), 10)],
         vec![]),
 
     case09_break_constraints_next:
-        ((0, 0, 0., 100.), (45., 60.),
-        (30, (0., 100.), 10.),
-        vec![(20, (0., 50.), 10.)],
+        ((0, 0, 0, 100), (45, 60),
+        (30, (0, 100), 10),
+        vec![(20, (0, 50), 10)],
         vec![]),
 }
 
@@ -258,14 +258,14 @@ parameterized_test! {can_avoid_reserved_time_when_driving, (vehicle_detail_data,
 
 can_avoid_reserved_time_when_driving! {
     case01_should_move_duration_to_serving: (
-        (0, 0, 0., 100.), (10., 40., 5.),
-        vec![(10, (0., 100.), 10.), (50, (0., 100.), 10.)],
-        vec![(0., 0.), (10., 25.), (65., 75.), (125., 125.)]
+        (0, 0, 0, 100), (10, 40, 5),
+        vec![(10, (0, 100), 10), (50, (0, 100), 10)],
+        vec![(0, 0), (10, 25), (65, 75), (125, 125)]
     ),
     case02_should_keep_duration_at_driving: (
-        (0, 0, 0., 100.), (30., 40., 5.),
-        vec![(10, (0., 100.), 10.), (50, (0., 100.), 10.)],
-        vec![(0., 0.), (10., 20.), (65., 75.), (125., 125.)]
+        (0, 0, 0, 100), (30, 40, 5),
+        vec![(10, (0, 100), 10), (50, (0, 100), 10)],
+        vec![(0, 0), (10, 20), (65, 75), (125, 125)]
     ),
 }
 

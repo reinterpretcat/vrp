@@ -4,10 +4,8 @@ mod departure_time_test;
 
 use crate::construction::enablers::*;
 use crate::construction::heuristics::RouteContext;
-use crate::models::common::Timestamp;
+use crate::models::common::{Duration, Timestamp};
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
-use rosomaxa::prelude::{compare_floats, Float};
-use std::cmp::Ordering;
 
 /// Tries to move forward route's departure time.
 pub fn advance_departure_time(
@@ -42,17 +40,21 @@ fn try_advance_departure_time(
     let first = route.tour.get(1)?;
     let start = route.tour.start()?;
 
-    let latest_allowed_departure = route.actor.detail.start.as_ref().and_then(|s| s.time.latest).unwrap_or(Float::MAX);
+    let latest_allowed_departure =
+        route.actor.detail.start.as_ref().and_then(|s| s.time.latest).unwrap_or(Timestamp::MAX);
     let last_departure_time = start.schedule.departure;
 
     let new_departure_time = if optimize_whole_tour {
-        let (total_waiting_time, max_shift) =
-            route.tour.all_activities().rev().fold((0., Float::MAX), |(total_waiting_time, max_shift), activity| {
-                let waiting_time = (activity.place.time.start - activity.schedule.arrival).max(0.);
-                let remaining_time = (activity.place.time.end - activity.schedule.arrival - waiting_time).max(0.);
+        let (total_waiting_time, max_shift) = route.tour.all_activities().rev().fold(
+            (Duration::default(), Duration::MAX),
+            |(total_waiting_time, max_shift), activity| {
+                let waiting_time = (activity.place.time.start - activity.schedule.arrival).max(Duration::default());
+                let remaining_time =
+                    (activity.place.time.end - activity.schedule.arrival - waiting_time).max(Duration::default());
 
                 (total_waiting_time + waiting_time, waiting_time + remaining_time.min(max_shift))
-            });
+            },
+        );
         let departure_shift = total_waiting_time.min(max_shift);
 
         (start.schedule.departure + departure_shift).min(latest_allowed_departure)
@@ -93,8 +95,9 @@ fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
         .map(|(&total, &limit)| (limit - total).min(max_change))
         .unwrap_or(max_change);
 
-    match compare_floats(max_change, 0.) {
-        Ordering::Greater => Some(start.schedule.departure - max_change),
-        _ => None,
+    if max_change > Duration::default() {
+        Some(start.schedule.departure - max_change)
+    } else {
+        None
     }
 }

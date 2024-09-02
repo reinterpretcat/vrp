@@ -12,10 +12,10 @@ use crate::prelude::ViolationCode;
 
 fn create_test_jobs() -> Vec<Job> {
     vec![
-        TestSingleBuilder::default().id("job1").location(Some(1)).duration(2.).build_as_job_ref(),
-        TestSingleBuilder::default().id("job2").location(Some(2)).duration(2.).build_as_job_ref(),
-        TestSingleBuilder::default().id("job3").location(Some(3)).duration(2.).build_as_job_ref(),
-        TestSingleBuilder::default().id("job4_outlier").location(Some(20)).duration(2.).build_as_job_ref(),
+        TestSingleBuilder::default().id("job1").location(Some(1)).duration(2).build_as_job_ref(),
+        TestSingleBuilder::default().id("job2").location(Some(2)).duration(2).build_as_job_ref(),
+        TestSingleBuilder::default().id("job3").location(Some(3)).duration(2).build_as_job_ref(),
+        TestSingleBuilder::default().id("job4_outlier").location(Some(20)).duration(2).build_as_job_ref(),
     ]
 }
 
@@ -63,20 +63,20 @@ parameterized_test! {can_unwrap_clusters_in_route_on_post_process, (visiting, du
 }}
 
 can_unwrap_clusters_in_route_on_post_process! {
-    case_01: (VisitPolicy::ClosedContinuation, 10., vec![("job3", (3., 5.)), ("job2", (5., 8.)), ("job1", (8., 13.))]),
-    case_02: (VisitPolicy::OpenContinuation, 8., vec![("job3", (3., 5.)), ("job2", (5., 8.)), ("job1", (8., 11.))]),
-    case_03: (VisitPolicy::Return, 12., vec![("job3", (3., 5.)), ("job2", (5., 9.)), ("job1", (9., 15.))]),
+    case_01: (VisitPolicy::ClosedContinuation, 10, vec![("job3", (3, 5)), ("job2", (5, 8)), ("job1", (8, 13))]),
+    case_02: (VisitPolicy::OpenContinuation, 8, vec![("job3", (3, 5)), ("job2", (5, 8)), ("job1", (8, 11))]),
+    case_03: (VisitPolicy::Return, 12, vec![("job3", (3, 5)), ("job2", (5, 9)), ("job1", (9, 15))]),
 }
 
 fn can_unwrap_clusters_in_route_on_post_process_impl(
     visiting: VisitPolicy,
-    duration: Float,
-    expected: Vec<(&str, (Float, Float))>,
+    duration: Duration,
+    expected: Vec<(&str, (Duration, Duration))>,
 ) {
     let problem_jobs = create_test_jobs();
     let (_, new_problem) = create_problems(ClusterConfig { visiting, ..create_cluster_config() }, problem_jobs);
     let clustered_single = new_problem.jobs.all().find(|job| get_job_id(job) == "job3").unwrap().to_single().clone();
-    let clustered_time = clustered_single.places.first().unwrap().clone().times.first().unwrap().to_time_window(0.);
+    let clustered_time = clustered_single.places.first().unwrap().clone().times.first().unwrap().to_time_window(0);
     let insertion_ctx = InsertionContext {
         problem: new_problem.clone(),
         ..TestInsertionContextBuilder::default()
@@ -84,20 +84,20 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
                 .with_route(
                     RouteBuilder::default()
                         .with_vehicle(new_problem.fleet.as_ref(), "v1")
-                        .with_start(ActivityBuilder::default().schedule(Schedule::new(0., 0.)).job(None).build())
-                        .with_end(ActivityBuilder::default().schedule(Schedule::new(0., 0.)).job(None).build())
+                        .with_start(ActivityBuilder::default().schedule(Schedule::new(0, 0)).job(None).build())
+                        .with_end(ActivityBuilder::default().schedule(Schedule::new(0, 0)).job(None).build())
                         .add_activity(Activity {
                             place: Place {
                                 idx: 0,
                                 location: 3,
-                                duration: DEFAULT_JOB_DURATION * 3.,
+                                duration: DEFAULT_JOB_DURATION * 3,
                                 time: clustered_time,
                             },
-                            schedule: Schedule::new(3., 3. + duration),
+                            schedule: Schedule::new(3, 3 + duration),
                             job: Some(clustered_single),
                             commute: Some(Commute {
-                                forward: CommuteInfo { location: 3, duration: 0., distance: 0. },
-                                backward: CommuteInfo { location: 3, duration: 0., distance: 0. },
+                                forward: CommuteInfo { location: 3, duration: 0, distance: 0 },
+                                backward: CommuteInfo { location: 3, duration: 0, distance: 0 },
                             }),
                         })
                         .build(),

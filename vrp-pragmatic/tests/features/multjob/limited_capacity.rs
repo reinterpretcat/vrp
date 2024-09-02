@@ -9,13 +9,13 @@ fn can_handle_limited_capacity() {
             jobs: vec![
                 create_multi_job(
                     "multi_1",
-                    vec![((1., 0.), 1., vec![1]), ((2., 0.), 1., vec![1])],
-                    vec![((10., 0.), 1., vec![2])],
+                    vec![((1., 0.), 1, vec![1]), ((2., 0.), 1, vec![1])],
+                    vec![((10., 0.), 1, vec![2])],
                 ),
                 create_multi_job(
                     "multi_2",
-                    vec![((3., 0.), 1., vec![1]), ((4., 0.), 1., vec![1])],
-                    vec![((11., 0.), 1., vec![2])],
+                    vec![((3., 0.), 1, vec![1]), ((4., 0.), 1, vec![1])],
+                    vec![((11., 0.), 1, vec![2])],
                 ),
             ],
             ..create_empty_plan()

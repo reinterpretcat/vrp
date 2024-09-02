@@ -17,8 +17,8 @@ fn can_read_solomon_built_from_builder() {
     assert_eq!(get_job_ids(&problem), vec!["1", "2", "3"]);
     assert_eq!(get_job_demands(&problem), vec![1, 2, 1]);
     assert_eq!(get_vehicle_capacity(&problem), 10);
-    assert_eq!(get_job_time_windows(&problem), vec![(5., 1000.), (0., 1002.), (0., 1000.)]);
-    assert_eq!(get_job_durations(&problem), vec![5., 11., 12.]);
+    assert_eq!(get_job_time_windows(&problem), vec![(5, 1000), (0, 1002), (0, 1000)]);
+    assert_eq!(get_job_durations(&problem), vec![5, 11, 12]);
 
     assert_eq!(problem.fleet.drivers.len(), 1);
     assert_eq!(problem.fleet.vehicles.len(), 2);

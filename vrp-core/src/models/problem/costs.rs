@@ -24,8 +24,10 @@ pub trait ActivityCost: Send + Sync {
     fn cost(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> Cost {
         let actor = route.actor.as_ref();
 
-        let waiting = if activity.place.time.start > arrival { activity.place.time.start - arrival } else { 0. };
-        let service = activity.place.duration;
+        let waiting =
+            if activity.place.time.start > arrival { activity.place.time.start - arrival } else { Duration::default() }
+                as Float;
+        let service = activity.place.duration as Float;
 
         waiting * (actor.driver.costs.per_waiting_time + actor.vehicle.costs.per_waiting_time)
             + service * (actor.driver.costs.per_service_time + actor.vehicle.costs.per_service_time)
@@ -58,8 +60,8 @@ pub trait TransportCost: Send + Sync {
     fn cost(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Cost {
         let actor = route.actor.as_ref();
 
-        let distance = self.distance(route, from, to, travel_time);
-        let duration = self.duration(route, from, to, travel_time);
+        let distance = self.distance(route, from, to, travel_time) as Float;
+        let duration = self.duration(route, from, to, travel_time) as Float;
 
         distance * (actor.driver.costs.per_distance + actor.vehicle.costs.per_distance)
             + duration * (actor.driver.costs.per_driving_time + actor.vehicle.costs.per_driving_time)
@@ -101,11 +103,11 @@ impl SimpleTransportCost {
 
 impl TransportCost for SimpleTransportCost {
     fn duration_approx(&self, _: &Profile, from: Location, to: Location) -> Duration {
-        self.durations.get(from * self.size + to).copied().unwrap_or(0.)
+        self.durations.get(from * self.size + to).copied().unwrap_or_default()
     }
 
     fn distance_approx(&self, _: &Profile, from: Location, to: Location) -> Distance {
-        self.distances.get(from * self.size + to).copied().unwrap_or(0.)
+        self.distances.get(from * self.size + to).copied().unwrap_or_default()
     }
 
     fn duration(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Duration {
@@ -230,13 +232,15 @@ impl<T: TransportFallback> TimeAgnosticMatrixTransportCost<T> {
 
 impl<T: TransportFallback> TransportCost for TimeAgnosticMatrixTransportCost<T> {
     fn duration_approx(&self, profile: &Profile, from: Location, to: Location) -> Duration {
-        self.durations
+        (self
+            .durations
             .get(profile.index)
             .unwrap()
             .get(from * self.size + to)
             .copied()
-            .unwrap_or_else(|| self.fallback.duration(profile, from, to))
-            * profile.scale
+            .unwrap_or_else(|| self.fallback.duration(profile, from, to)) as Float
+            * profile.scale)
+            .round() as Duration
     }
 
     fn distance_approx(&self, profile: &Profile, from: Location, to: Location) -> Distance {
@@ -332,7 +336,7 @@ impl<T: TransportFallback> TimeAwareMatrixTransportCost<T> {
         }
         .unwrap_or_else(|| self.fallback.duration(profile, from, to));
 
-        duration * profile.scale
+        (duration as Float * profile.scale).round() as Duration
     }
 
     fn interpolate_distance(
@@ -363,11 +367,11 @@ impl<T: TransportFallback> TimeAwareMatrixTransportCost<T> {
 
 impl<T: TransportFallback> TransportCost for TimeAwareMatrixTransportCost<T> {
     fn duration_approx(&self, profile: &Profile, from: Location, to: Location) -> Duration {
-        self.interpolate_duration(profile, from, to, TravelTime::Departure(0.))
+        self.interpolate_duration(profile, from, to, TravelTime::Departure(Timestamp::default()))
     }
 
     fn distance_approx(&self, profile: &Profile, from: Location, to: Location) -> Distance {
-        self.interpolate_distance(profile, from, to, TravelTime::Departure(0.))
+        self.interpolate_distance(profile, from, to, TravelTime::Departure(Timestamp::default()))
     }
 
     fn duration(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Duration {

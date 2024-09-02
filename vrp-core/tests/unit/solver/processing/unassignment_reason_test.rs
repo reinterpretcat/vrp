@@ -38,7 +38,7 @@ fn create_test_insertion_ctx(unassigned: Vec<(Job, UnassignmentInfo)>) -> Insert
 }
 
 fn create_early_delivery(id: &str) -> Job {
-    TestSingleBuilder::default().times(vec![TimeWindow::new(0., 0.)]).location(Some(10)).id(id).build_as_job_ref()
+    TestSingleBuilder::default().times(vec![TimeWindow::new(0, 0)]).location(Some(10)).id(id).build_as_job_ref()
 }
 
 fn create_assignable_delivery(id: &str) -> Job {

@@ -12,7 +12,6 @@ use vrp_core::models::problem::*;
 use vrp_core::models::*;
 use vrp_core::models::{Extras, Problem};
 use vrp_core::prelude::GenericError;
-use vrp_core::utils::Float;
 
 /// A trait to read lilim problem.
 pub trait LilimProblem {
@@ -153,7 +152,7 @@ impl<R: Read> LilimReader<R> {
         Arc::new(Single {
             places: vec![Place {
                 location: Some(self.coord_index.collect(customer.location)),
-                duration: customer.service as Float,
+                duration: customer.service as Duration,
                 times: vec![TimeSpan::Window(customer.tw.clone())],
             }],
             dimens: Default::default(),
@@ -184,7 +183,7 @@ impl<R: Read> LilimReader<R> {
             id: id as usize,
             location: (x, y),
             demand,
-            tw: TimeWindow::new(start as Float, end as Float),
+            tw: TimeWindow::new(start as Timestamp, end as Timestamp),
             service: service as usize,
             relation: relation as usize,
         })

@@ -3,7 +3,7 @@ use super::*;
 use crate::format::problem::*;
 use crate::format::Location;
 use core::ops::Range;
-use vrp_core::prelude::Float;
+use vrp_core::models::common::Duration;
 
 prop_compose! {
     pub fn generate_vehicle(
@@ -41,7 +41,7 @@ prop_compose! {
 prop_compose! {
     pub fn generate_reload(
       locations: impl Strategy<Value = Location>,
-      durations: impl Strategy<Value = Float>,
+      durations: impl Strategy<Value = Duration>,
       tags: impl Strategy<Value = Option<String>>,
       time_windows: impl Strategy<Value = Option<Vec<Vec<String>>>>,
     )
@@ -54,7 +54,7 @@ prop_compose! {
         VehicleReload {
           times,
           location,
-          duration,
+          duration: duration as Duration,
           tag,
           resource_id: None,
         }
@@ -64,7 +64,7 @@ prop_compose! {
 prop_compose! {
     pub fn generate_recharge_station(
       locations: impl Strategy<Value = Location>,
-      durations: impl Strategy<Value = Float>,
+      durations: impl Strategy<Value = Duration>,
       tags: impl Strategy<Value = Option<String>>,
       time_windows: impl Strategy<Value = Option<Vec<Vec<String>>>>,
     )

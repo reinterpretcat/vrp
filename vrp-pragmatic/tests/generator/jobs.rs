@@ -4,6 +4,7 @@ use crate::format::Location;
 use crate::helpers::create_empty_plan;
 use std::ops::Range;
 use uuid::Uuid;
+use vrp_core::models::common::Duration;
 use vrp_core::prelude::Float;
 
 /// Creates delivery job prototype.
@@ -160,7 +161,7 @@ prop_compose! {
 prop_compose! {
     pub fn job_place_prototype(
         locations: impl Strategy<Value = Location>,
-        durations: impl Strategy<Value = Float>,
+        durations: impl Strategy<Value = Duration>,
         time_windows: impl Strategy<Value = Option<Vec<Vec<String>>>>,
         tags: impl Strategy<Value = Option<String>>,
     )

@@ -14,7 +14,7 @@ fn can_use_location_index() {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
-                        earliest: format_time(0.),
+                        earliest: format_time(0),
                         latest: None,
                         location: Location::Reference { index: 2 },
                     },
@@ -42,16 +42,16 @@ fn can_use_location_index() {
             .tour(
                 TourBuilder::default()
                     .stops(vec![
-                        StopBuilder::default().reference(2).schedule_stamp(0., 0.).load(vec![2]).build_departure(),
+                        StopBuilder::default().reference(2).schedule_stamp(0, 0).load(vec![2]).build_departure(),
                         StopBuilder::default()
                             .reference(1)
-                            .schedule_stamp(2., 3.)
+                            .schedule_stamp(2, 3)
                             .load(vec![1])
                             .distance(2)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .reference(0)
-                            .schedule_stamp(4., 5.)
+                            .schedule_stamp(4, 5)
                             .load(vec![0])
                             .distance(3)
                             .build_single("job1", "delivery"),

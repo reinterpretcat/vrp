@@ -1,8 +1,7 @@
 use crate::format::{CoordIndex, CustomLocationType, Location as ApiLocation};
 use std::sync::Arc;
-use vrp_core::models::common::{Distance, Duration, Location, Profile};
+use vrp_core::models::common::{Distance, Duration, Location, Profile, Timestamp};
 use vrp_core::models::problem::TransportFallback;
-use vrp_core::prelude::Float;
 
 /// A transport fallback for only a custom unknown location type.
 /// Returns zero distance/duration for unknown type locations.
@@ -16,12 +15,12 @@ impl UnknownLocationFallback {
         Self { coord_index }
     }
 
-    fn get_default_value(&self, from: Location, to: Location) -> Float {
+    fn get_default_value(&self, from: Location, to: Location) -> Timestamp {
         let (from, to) = (self.coord_index.get_by_idx(from), self.coord_index.get_by_idx(to));
 
         match (from, to) {
             (Some(ApiLocation::Custom { r#type: CustomLocationType::Unknown }), _)
-            | (_, Some(ApiLocation::Custom { r#type: CustomLocationType::Unknown })) => Float::default(),
+            | (_, Some(ApiLocation::Custom { r#type: CustomLocationType::Unknown })) => Timestamp::default(),
             _ => panic!("fallback is only for locations of custom unknown type"),
         }
     }

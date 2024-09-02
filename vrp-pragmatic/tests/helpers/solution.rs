@@ -23,7 +23,7 @@ impl StopBuilder {
     pub fn new_transit() -> Self {
         Self {
             stop: Stop::Transit(TransitStop {
-                time: Schedule { arrival: format_time(0.), departure: format_time(0.) },
+                time: Schedule { arrival: format_time(0), departure: format_time(0) },
                 load: vec![],
                 activities: vec![],
             }),
@@ -166,7 +166,7 @@ impl Default for StopBuilder {
         Self {
             stop: Stop::Point(PointStop {
                 location: Location::Coordinate { lat: 0., lng: 0. },
-                time: Schedule { arrival: format_time(0.), departure: format_time(0.) },
+                time: Schedule { arrival: format_time(0), departure: format_time(0) },
                 distance: 0,
                 load: vec![],
                 parking: None,

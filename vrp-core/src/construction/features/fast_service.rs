@@ -141,23 +141,24 @@ impl FeatureObjective for FastServiceObjective {
             if let Some((single, job)) = activity_ctx.target.job.as_ref().zip(activity_ctx.target.retrieve_job()) {
                 (single, job)
             } else {
-                return self.get_departure(route_ctx, activity_ctx) - self.get_start_time(route_ctx, activity_idx);
+                return (self.get_departure(route_ctx, activity_ctx) - self.get_start_time(route_ctx, activity_idx))
+                    as Cost;
             };
 
         // NOTE: for simplicity, we ignore impact on already inserted jobs on local objective level
         match self.get_time_interval_type(&job, single.as_ref()) {
             TimeIntervalType::FromStart => {
-                self.get_departure(route_ctx, activity_ctx) - self.get_start_time(route_ctx, activity_idx)
+                (self.get_departure(route_ctx, activity_ctx) - self.get_start_time(route_ctx, activity_idx)) as Cost
             }
             TimeIntervalType::ToEnd => {
                 let departure = self.get_departure(route_ctx, activity_ctx);
                 let (_, duration_delta) = calculate_travel_delta(route_ctx, activity_ctx, self.transport.as_ref());
 
-                self.get_end_time(route_ctx, activity_idx) + duration_delta - departure
+                (self.get_end_time(route_ctx, activity_idx) + duration_delta - departure) as Cost
             }
             TimeIntervalType::FromFirstToLast => self.get_cost_for_multi_job(route_ctx, activity_ctx),
             TimeIntervalType::FromStartToEnd => {
-                self.get_end_time(route_ctx, activity_idx) - self.get_start_time(route_ctx, activity_idx)
+                (self.get_end_time(route_ctx, activity_idx) - self.get_start_time(route_ctx, activity_idx)) as Cost
             }
         }
     }
@@ -204,7 +205,7 @@ impl FastServiceObjective {
         let (start_idx, end_idx) = if let Some(range) = range {
             (range.0, range.1)
         } else {
-            return departure - self.get_start_time(route_ctx, activity_ctx.index);
+            return (departure - self.get_start_time(route_ctx, activity_ctx.index)) as Cost;
         };
 
         let (_, duration_delta) = calculate_travel_delta(route_ctx, activity_ctx, self.transport.as_ref());
@@ -212,10 +213,10 @@ impl FastServiceObjective {
         // NOTE ignore impact of insertion
         match (start_idx, activity_ctx.index, end_idx) {
             (start_idx, activity_idx, end_idx) if activity_idx <= start_idx => {
-                route_ctx.route().tour[end_idx].schedule.departure - departure + duration_delta
+                (route_ctx.route().tour[end_idx].schedule.departure - departure + duration_delta) as Cost
             }
             (start_idx, activity_idx, end_idx) if activity_idx >= end_idx => {
-                departure - route_ctx.route().tour[start_idx].schedule.departure + duration_delta
+                (departure - route_ctx.route().tour[start_idx].schedule.departure + duration_delta) as Cost
             }
             _ => Cost::default(),
         }
@@ -254,7 +255,7 @@ impl FastServiceObjective {
             .get_multi_job_ranges()
             .and_then(|job_ranges| job_ranges.get(job))
             .map(|&(start_idx, end_idx)| {
-                self.get_end_time(route_ctx, end_idx) - self.get_start_time(route_ctx, start_idx)
+                (self.get_end_time(route_ctx, end_idx) - self.get_start_time(route_ctx, start_idx)) as Cost
             })
             .unwrap_or_default()
     }

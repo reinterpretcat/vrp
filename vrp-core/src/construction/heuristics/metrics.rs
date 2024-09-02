@@ -5,6 +5,7 @@ mod metrics_test;
 use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState, WaitingTimeActivityState};
 use crate::construction::features::MaxVehicleLoadTourState;
 use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState};
+use crate::models::common::Distance;
 use crate::models::problem::{TransportCost, TravelTime};
 use rosomaxa::algorithms::math::*;
 use rosomaxa::prelude::*;
@@ -13,13 +14,15 @@ use std::cmp::Ordering;
 /// Gets max load variance in tours.
 pub fn get_max_load_variance(insertion_ctx: &InsertionContext) -> Float {
     get_variance(
-        get_values_from_route_state(insertion_ctx, |state| state.get_max_vehicle_load()).collect::<Vec<_>>().as_slice(),
+        get_values_from_route_state(insertion_ctx, |state| state.get_max_vehicle_load().copied())
+            .collect::<Vec<_>>()
+            .as_slice(),
     )
 }
 
 /// Gets max load mean in tours.
 pub fn get_max_load_mean(insertion_ctx: &InsertionContext) -> Float {
-    get_mean_iter(get_values_from_route_state(insertion_ctx, |state| state.get_max_vehicle_load()))
+    get_mean_iter(get_values_from_route_state(insertion_ctx, |state| state.get_max_vehicle_load().copied()))
 }
 
 /// Gets tours with max_load at least 0.9.
@@ -28,7 +31,7 @@ pub fn get_full_load_ratio(insertion_ctx: &InsertionContext) -> Float {
     if total == 0 {
         0.
     } else {
-        let full_capacity = get_values_from_route_state(insertion_ctx, |state| state.get_max_vehicle_load())
+        let full_capacity = get_values_from_route_state(insertion_ctx, |state| state.get_max_vehicle_load().copied())
             .filter(|&max_load| max_load > 0.9)
             .count();
 
@@ -50,12 +53,16 @@ pub fn get_customers_deviation(insertion_ctx: &InsertionContext) -> Float {
 
 /// Gets mean of route durations.
 pub fn get_duration_mean(insertion_ctx: &InsertionContext) -> Float {
-    get_mean_iter(get_values_from_route_state(insertion_ctx, |state| state.get_total_duration()))
+    get_mean_iter(get_values_from_route_state(insertion_ctx, |state| {
+        state.get_total_duration().copied().map(|d| d as Float)
+    }))
 }
 
 /// Gets mean of route distances.
 pub fn get_distance_mean(insertion_ctx: &InsertionContext) -> Float {
-    get_mean_iter(get_values_from_route_state(insertion_ctx, |state| state.get_total_distance()))
+    get_mean_iter(get_values_from_route_state(insertion_ctx, |state| {
+        state.get_total_distance().copied().map(|d| d as Float)
+    }))
 }
 
 /// Gets mean of future waiting time.
@@ -66,14 +73,14 @@ pub fn get_waiting_mean(insertion_ctx: &InsertionContext) -> Float {
             .routes
             .iter()
             .filter(|route_ctx| route_ctx.route().tour.get(1).is_some())
-            .map(|route_ctx| route_ctx.state().get_waiting_time_at(1).copied().unwrap_or(0.)),
+            .map(|route_ctx| route_ctx.state().get_waiting_time_at(1).copied().unwrap_or_default() as Float),
     )
 }
 /// Gets longest distance between two connected customers (mean, S2).
 pub fn get_longest_distance_between_customers_mean(insertion_ctx: &InsertionContext) -> Float {
     let transport = insertion_ctx.problem.transport.as_ref();
     get_mean_iter(insertion_ctx.solution.routes.iter().map(|route_ctx| {
-        route_ctx.route().tour.legs().fold(0., |acc, (activities, _)| match activities {
+        route_ctx.route().tour.legs().fold(Distance::default(), |acc, (activities, _)| match activities {
             [_] => acc,
             [prev, next] => transport
                 .distance(
@@ -126,7 +133,7 @@ pub fn get_longest_distance_between_depot_customer_mean(insertion_ctx: &Insertio
                     TravelTime::Departure(depot.schedule.departure),
                 )
             })
-            .max_by(compare_floats_refs)
+            .max()
     }))
 }
 
@@ -191,9 +198,9 @@ pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> Float {
 
         for i in 0..medoids.len() {
             for j in (i + 1)..medoids.len() {
-                let distance = transport.distance_approx(profile, medoids[i], medoids[j]);
+                let distance = transport.distance_approx(profile, medoids[i], medoids[j]) as Float;
                 // NOTE assume that negative distance is used between unroutable locations
-                distances.push(distance.max(0.));
+                distances.push(distance.max(Float::default()));
             }
         }
 
@@ -204,7 +211,7 @@ pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> Float {
 }
 
 /// A type which represents routes grouped by their proximity.
-pub type RouteProximityGroup = Option<Vec<Vec<(usize, Option<Float>)>>>;
+pub type RouteProximityGroup = Option<Vec<Vec<(usize, Option<Distance>)>>>;
 
 /// Estimates distances between all routes using their medoids and returns the sorted groups.
 pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProximityGroup {
@@ -230,7 +237,7 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProxi
                         let distance = match (outer_medoid, inner_medoid) {
                             (Some(outer_medoid), Some(inner_medoid)) => {
                                 let distance = transport.distance_approx(profile, *outer_medoid, *inner_medoid);
-                                if distance < 0. {
+                                if distance < Distance::default() {
                                     None
                                 } else {
                                     Some(distance)
@@ -243,7 +250,7 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProxi
                     .collect::<Vec<_>>();
 
                 route_distances.sort_by(|(_, a_distance), (_, b_distance)| match (a_distance, b_distance) {
-                    (Some(a_distance), Some(b_distance)) => compare_floats(*a_distance, *b_distance),
+                    (Some(a_distance), Some(b_distance)) => a_distance.cmp(b_distance),
                     (Some(_), None) => Ordering::Less,
                     _ => Ordering::Greater,
                 });
@@ -256,13 +263,9 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProxi
 
 fn get_values_from_route_state<'a>(
     insertion_ctx: &'a InsertionContext,
-    state_value_fn: impl Fn(&'a RouteState) -> Option<&Float> + 'a,
+    state_value_fn: impl Fn(&'a RouteState) -> Option<Float> + 'a,
 ) -> impl Iterator<Item = Float> + 'a {
-    insertion_ctx
-        .solution
-        .routes
-        .iter()
-        .map(move |route_ctx| state_value_fn(route_ctx.state()).copied().unwrap_or_default())
+    insertion_ctx.solution.routes.iter().map(move |route_ctx| state_value_fn(route_ctx.state()).unwrap_or_default())
 }
 
 /// Gets medoid location of given route context.
@@ -275,9 +278,9 @@ fn get_medoid(route_ctx: &RouteContext, transport: &(dyn TransportCost)) -> Opti
             let sum = locations
                 .iter()
                 .map(|inner_loc| transport.distance_approx(profile, *outer_loc, *inner_loc))
-                .sum::<Float>();
+                .sum::<Distance>();
             (sum, *outer_loc)
         })
-        .min_by(|(sum_a, _), (sum_b, _)| compare_floats(*sum_a, *sum_b))
+        .min_by(|(sum_a, _), (sum_b, _)| sum_a.cmp(sum_b))
         .map(|(_, location)| location)
 }

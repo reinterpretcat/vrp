@@ -15,11 +15,11 @@ fn can_use_multi_dim_capacity() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
-                    end: Some(ShiftEnd { earliest: None, latest: format_time(100.), location: (0., 0.).to_loc() }),
+                    start: ShiftStart { earliest: format_time(0), latest: None, location: (0., 0.).to_loc() },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(100), location: (0., 0.).to_loc() }),
                     reloads: Some(vec![VehicleReload {
                         location: (0., 0.).to_loc(),
-                        duration: 2.0,
+                        duration: 2,
                         ..create_default_reload()
                     }]),
                     ..create_default_vehicle_shift()
@@ -43,30 +43,30 @@ fn can_use_multi_dim_capacity() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![1, 1])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(1., 2.)
+                            .schedule_stamp(1, 2)
                             .load(vec![0, 0])
                             .distance(1)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(3., 5.)
+                            .schedule_stamp(3, 5)
                             .load(vec![1, 1])
                             .distance(2)
                             .build_single("reload", "reload"),
                         StopBuilder::default()
                             .coordinate((2., 0.))
-                            .schedule_stamp(7., 8.)
+                            .schedule_stamp(7, 8)
                             .load(vec![0, 0])
                             .distance(4)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(10., 10.)
+                            .schedule_stamp(10, 10)
                             .load(vec![0, 0])
                             .distance(6)
                             .build_arrival(),

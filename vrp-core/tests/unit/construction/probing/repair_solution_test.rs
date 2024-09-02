@@ -9,8 +9,9 @@ use crate::models::solution::Place;
 use crate::models::{Extras, Lock, LockDetail, LockOrder, LockPosition, Problem};
 use crate::prelude::*;
 
-type JobData = (Option<Location>, (Float, Float), Duration, i32);
-type VehicleData = (i32, (Location, Option<Float>, Option<Float>), Option<(Location, Option<Float>, Option<Float>)>);
+type JobData = (Option<Location>, (Timestamp, Timestamp), Duration, i32);
+type VehicleData =
+    (i32, (Location, Option<Timestamp>, Option<Timestamp>), Option<(Location, Option<Timestamp>, Option<Timestamp>)>);
 type ActivityData = (Location, Duration, (Timestamp, Timestamp), Arc<Single>);
 type RouteData<'a> = Vec<(&'a str, Location, Duration, (Timestamp, Timestamp), usize)>;
 type LockData<'a> = (&'a str, LockOrder, LockPosition, Vec<&'a str>);
@@ -123,7 +124,7 @@ fn add_new_route(insertion_ctx: &mut InsertionContext, vehicle_id: &str, activit
     activities.into_iter().for_each(|(location, duration, (tw_start, tw_end), single)| {
         tour.insert_last(Activity {
             place: Place { idx: 0, location, duration, time: TimeWindow::new(tw_start, tw_end) },
-            schedule: Schedule::new(0., 0.),
+            schedule: Schedule::new(0, 0),
             job: Some(single),
             commute: None,
         });
@@ -194,114 +195,114 @@ parameterized_test! {can_restore_solution, (singles, mutlies, locks, vehicles, r
 }}
 
 can_restore_solution! {
-    case01_single_all_correct: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (2., 4.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
+    case01_single_all_correct: (vec![("job1", (Some(1), (1, 3), 1, 1)), ("job2", (Some(2), (2, 4), 1, 1)), ("job3", (Some(3), (3, 5), 1, 1))],
         vec![], vec![],
-        vec![("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.)))))],
-        vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job2", 2, 1., (2., 4.), 0), ("job3", 3, 1., (3., 5.), 0)])],
+        vec![("v1", (10, (0, Some(0), None), Some((0, None, Some(10)))))],
+        vec![("v1", vec![ ("job1", 1, 1, (1, 3), 0), ("job2", 2, 1, (2, 4), 0), ("job3", 3, 1, (3, 5), 0)])],
         ((0, 0), vec![("v1", vec!["job1", "job2", "job3"])])),
 
-    case02_single_invalid_second_job_tw: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (0., 1.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
+    case02_single_invalid_second_job_tw: (vec![("job1", (Some(1), (1, 3), 1, 1)), ("job2", (Some(2), (0, 1), 1, 1)), ("job3", (Some(3), (3, 5), 1, 1))],
         vec![], vec![],
-        vec![("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.)))))],
-        vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job2", 2, 1., (0., 1.), 0), ("job3", 3, 1., (3., 5.), 0)])],
+        vec![("v1", (10, (0, Some(0), None), Some((0, None, Some(10)))))],
+        vec![("v1", vec![ ("job1", 1, 1, (1, 3), 0), ("job2", 2, 1, (0, 1), 0), ("job3", 3, 1, (3, 5), 0)])],
         ((1, 0), vec![("v1", vec!["job1", "job3"])])),
 
-    case03_single_multi_assignment_in_one_route: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1))],
+    case03_single_multi_assignment_in_one_route: (vec![("job1", (Some(1), (0, 10), 1, 1)), ("job2", (Some(2), (0, 10), 1, 1))],
         vec![], vec![],
-        vec![("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.)))))],
-        vec![("v1", vec![ ("job1", 1, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0)])],
+        vec![("v1", (10, (0, Some(0), None), Some((0, None, Some(10)))))],
+        vec![("v1", vec![ ("job1", 1, 1, (0, 10), 0), ("job2", 2, 1, (0, 10), 0), ("job2", 2, 1, (0, 10), 0)])],
         ((0, 0), vec![("v1", vec!["job1", "job2"])])),
 
-    case04_single_multi_assignment_in_different_routes: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1))],
+    case04_single_multi_assignment_in_different_routes: (vec![("job1", (Some(1), (0, 10), 1, 1)), ("job2", (Some(2), (0, 10), 1, 1))],
         vec![], vec![],
         vec![
-            ("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.))))),
-            ("v2", (10, (0, Some(0.), None), Some((0, None, Some(10.))))),
+            ("v1", (10, (0, Some(0), None), Some((0, None, Some(10))))),
+            ("v2", (10, (0, Some(0), None), Some((0, None, Some(10))))),
         ],
         vec![
-            ("v1", vec![ ("job1", 1, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0)]),
-            ("v2", vec![ ("job1", 1, 1., (0., 10.), 0)]),
+            ("v1", vec![ ("job1", 1, 1, (0, 10), 0), ("job2", 2, 1, (0, 10), 0)]),
+            ("v2", vec![ ("job1", 1, 1, (0, 10), 0)]),
         ],
         ((0, 0), vec![("v1", vec!["job1", "job2"])])),
 
     case05_multi_all_correct: (vec![],
-        vec![("job1", vec![(Some(1), (1., 3.), 1., 1),  (Some(2), (2., 4.), 1., 1), (Some(3), (3., 5.), 1., 1)])],
+        vec![("job1", vec![(Some(1), (1, 3), 1, 1),  (Some(2), (2, 4), 1, 1), (Some(3), (3, 5), 1, 1)])],
         vec![],
-        vec![("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.)))))],
-        vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job1", 2, 1., (2., 4.), 1), ("job1", 3, 1., (3., 5.), 2)])],
+        vec![("v1", (10, (0, Some(0), None), Some((0, None, Some(10)))))],
+        vec![("v1", vec![ ("job1", 1, 1, (1, 3), 0), ("job1", 2, 1, (2, 4), 1), ("job1", 3, 1, (3, 5), 2)])],
         ((0, 0), vec![("v1", vec!["job1", "job1", "job1"])])),
 
     case06_multi_invalid_second_index: (vec![],
-        vec![("job1", vec![(Some(1), (1., 3.), 1., 1),  (Some(2), (2., 4.), 1., 1), (Some(3), (3., 5.), 1., 1)])],
+        vec![("job1", vec![(Some(1), (1, 3), 1, 1),  (Some(2), (2, 4), 1, 1), (Some(3), (3, 5), 1, 1)])],
         vec![],
-        vec![("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.)))))],
-        vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job1", 2, 1., (2., 4.), 0), ("job1", 3, 1., (3., 5.), 2)])],
+        vec![("v1", (10, (0, Some(0), None), Some((0, None, Some(10)))))],
+        vec![("v1", vec![ ("job1", 1, 1, (1, 3), 0), ("job1", 2, 1, (2, 4), 0), ("job1", 3, 1, (3, 5), 2)])],
         ((1, 0), vec![])),
 
     case07_multi_partial_assignment: (vec![],
-        vec![("job1", vec![(Some(1), (1., 3.), 1., 1),  (Some(2), (2., 4.), 1., 1), (Some(3), (3., 5.), 1., 1)])],
+        vec![("job1", vec![(Some(1), (1, 3), 1, 1),  (Some(2), (2, 4), 1, 1), (Some(3), (3, 5), 1, 1)])],
         vec![],
-        vec![("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.)))))],
-        vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0),  ("job1", 2, 1., (2., 4.), 1), ])],
+        vec![("v1", (10, (0, Some(0), None), Some((0, None, Some(10)))))],
+        vec![("v1", vec![ ("job1", 1, 1, (1, 3), 0),  ("job1", 2, 1, (2, 4), 1), ])],
         ((1, 0), vec![])),
 
     case08_multi_invalid_permutation: (vec![],
-        vec![("job1", vec![(Some(1), (0., 10.), 1., 1), (Some(2), (0., 10.), 1., 1)])],
+        vec![("job1", vec![(Some(1), (0, 10), 1, 1), (Some(2), (0, 10), 1, 1)])],
         vec![],
-        vec![("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.)))))],
-        vec![("v1", vec![ ("job1", 2, 1., (0., 10.), 1), ("job1", 1, 1., (0., 10.), 0)])],
+        vec![("v1", (10, (0, Some(0), None), Some((0, None, Some(10)))))],
+        vec![("v1", vec![ ("job1", 2, 1, (0, 10), 1), ("job1", 1, 1, (0, 10), 0)])],
         ((1, 0), vec![])),
 
-    case09_relation_all_correct: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (2., 4.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
+    case09_relation_all_correct: (vec![("job1", (Some(1), (1, 3), 1, 1)), ("job2", (Some(2), (2, 4), 1, 1)), ("job3", (Some(3), (3, 5), 1, 1))],
         vec![],
         vec![("v1", LockOrder::Sequence, LockPosition::Departure, vec!["job1", "job2"])],
-        vec![("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.)))))],
-        vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job2", 2, 1., (2., 4.), 0), ("job3", 3, 1., (3., 5.), 0)])],
+        vec![("v1", (10, (0, Some(0), None), Some((0, None, Some(10)))))],
+        vec![("v1", vec![ ("job1", 1, 1, (1, 3), 0), ("job2", 2, 1, (2, 4), 0), ("job3", 3, 1, (3, 5), 0)])],
         ((0, 0), vec![("v1", vec!["job1", "job2", "job3"])])),
 
-    case10_relation_sequence_middle: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1)), ("job3", (Some(3), (0., 10.), 1., 1))],
+    case10_relation_sequence_middle: (vec![("job1", (Some(1), (0, 10), 1, 1)), ("job2", (Some(2), (0, 10), 1, 1)), ("job3", (Some(3), (0, 10), 1, 1))],
         vec![],
         vec![("v1", LockOrder::Sequence, LockPosition::Departure, vec!["job1", "job2"])],
-        vec![("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.)))))],
-        vec![("v1", vec![ ("job1", 1, 1., (0., 10.), 0), ("job3", 3, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0)])],
+        vec![("v1", (10, (0, Some(0), None), Some((0, None, Some(10)))))],
+        vec![("v1", vec![ ("job1", 1, 1, (0, 10), 0), ("job3", 3, 1, (0, 10), 0), ("job2", 2, 1, (0, 10), 0)])],
         ((0, 0), vec![("v1", vec!["job1", "job2", "job3"])])),
 
-    case11_relation_strict_end: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1)), ("job3", (Some(3), (0., 10.), 1., 1))],
+    case11_relation_strict_end: (vec![("job1", (Some(1), (0, 10), 1, 1)), ("job2", (Some(2), (0, 10), 1, 1)), ("job3", (Some(3), (0, 10), 1, 1))],
         vec![],
         vec![("v1", LockOrder::Strict, LockPosition::Arrival, vec!["job1", "job2"])],
-        vec![("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.)))))],
-        vec![("v1", vec![ ("job1", 1, 1., (0., 10.), 0), ("job3", 3, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0)])],
+        vec![("v1", (10, (0, Some(0), None), Some((0, None, Some(10)))))],
+        vec![("v1", vec![ ("job1", 1, 1, (0, 10), 0), ("job3", 3, 1, (0, 10), 0), ("job2", 2, 1, (0, 10), 0)])],
         ((1, 0), vec![("v1", vec!["job1", "job2"])])),
 
-    case12_relation_strict_another_route: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1)), ("job3", (Some(3), (0., 10.), 1., 1))],
+    case12_relation_strict_another_route: (vec![("job1", (Some(1), (0, 10), 1, 1)), ("job2", (Some(2), (0, 10), 1, 1)), ("job3", (Some(3), (0, 10), 1, 1))],
         vec![],
         vec![("v2", LockOrder::Strict, LockPosition::Arrival, vec!["job1", "job2"])],
         vec![
-            ("v1", (10, (0, Some(0.), None), Some((0, None, Some(10.))))),
-            ("v2", (10, (0, Some(0.), None), Some((0, None, Some(10.)))))
+            ("v1", (10, (0, Some(0), None), Some((0, None, Some(10))))),
+            ("v2", (10, (0, Some(0), None), Some((0, None, Some(10)))))
         ],
         vec![
-            ("v1", vec![ ("job1", 1, 1., (0., 10.), 0), ("job3", 3, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0)]),
-            ("v2", vec![ ("job1", 1, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0), ("job3", 3, 1., (0., 10.), 0)])
+            ("v1", vec![ ("job1", 1, 1, (0, 10), 0), ("job3", 3, 1, (0, 10), 0), ("job2", 2, 1, (0, 10), 0)]),
+            ("v2", vec![ ("job1", 1, 1, (0, 10), 0), ("job2", 2, 1, (0, 10), 0), ("job3", 3, 1, (0, 10), 0)])
         ],
         ((0, 0), vec![("v1", vec!["job3"]), ("v2", vec!["job1", "job2"])])),
 
     case13_multi_job_early_rejection: (vec![],
         vec![
-            ("job1", vec![(Some(1), (0., 100.), 0., 1), (Some(2), (0., 100.), 0., -1)]),
-            ("job2", vec![(Some(3), (0., 100.), 0., 2), (Some(4), (0., 100.), 0., -2)]),
-            ("job3", vec![(Some(5), (0., 100.), 0., 2), (Some(6), (0., 100.), 0., -2)])
+            ("job1", vec![(Some(1), (0, 100), 0, 1), (Some(2), (0, 100), 0, -1)]),
+            ("job2", vec![(Some(3), (0, 100), 0, 2), (Some(4), (0, 100), 0, -2)]),
+            ("job3", vec![(Some(5), (0, 100), 0, 2), (Some(6), (0, 100), 0, -2)])
         ],
         vec![],
-        vec![("v1", (2, (0, Some(0.), None), Some((0, None, Some(100.)))))],
+        vec![("v1", (2, (0, Some(0), None), Some((0, None, Some(100)))))],
         vec![
             ("v1", vec![
-                ("job1", 1, 0., (0., 100.), 0),
-                ("job2", 3, 0., (0., 100.), 0),
-                ("job2", 4, 0., (0., 100.), 1),
-                ("job3", 5, 0., (0., 100.), 0),
-                ("job3", 6, 0., (0., 100.), 1),
-                ("job1", 2, 0., (0., 100.), 1)
+                ("job1", 1, 0, (0, 100), 0),
+                ("job2", 3, 0, (0, 100), 0),
+                ("job2", 4, 0, (0, 100), 1),
+                ("job3", 5, 0, (0, 100), 0),
+                ("job3", 6, 0, (0, 100), 1),
+                ("job1", 2, 0, (0, 100), 1)
             ]),
         ],
         ((2, 0), vec![("v1", vec!["job1", "job1"])]),

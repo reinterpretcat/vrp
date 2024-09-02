@@ -2,7 +2,6 @@ use crate::construction::heuristics::{RouteContext, RouteState};
 use crate::models::common::{Distance, Duration, Schedule, Timestamp};
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
 use crate::models::OP_START_MSG;
-use rosomaxa::prelude::Float;
 
 custom_activity_state!(LatestArrival typeof Timestamp);
 custom_activity_state!(WaitingTime typeof Timestamp);
@@ -67,7 +66,7 @@ fn update_states(route_ctx: &mut RouteContext, activity: &(dyn ActivityCost), tr
             .as_ref()
             .unwrap_or_else(|| actor.detail.start.as_ref().unwrap_or_else(|| panic!("{}", OP_START_MSG)))
             .location,
-        Float::default(),
+        Duration::default(),
     );
 
     let route = route_ctx.route();
@@ -82,14 +81,14 @@ fn update_states(route_ctx: &mut RouteContext, activity: &(dyn ActivityCost), tr
         }
 
         let (end_time, prev_loc, waiting) = acc;
-        let latest_arrival_time = if end_time == Float::MAX {
+        let latest_arrival_time = if end_time == Timestamp::MAX {
             act.place.time.end
         } else {
             let latest_departure =
                 end_time - transport.duration(route, act.place.location, prev_loc, TravelTime::Arrival(end_time));
             activity.estimate_arrival(route, act, latest_departure)
         };
-        let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0.);
+        let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(Duration::default());
 
         latest_arrivals.push(latest_arrival_time);
         waiting_times.push(future_waiting);

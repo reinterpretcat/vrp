@@ -140,7 +140,7 @@ fn check_e1106_negative_duration(ctx: &ValidationContext) -> Result<(), FormatEr
             ctx.tasks(job)
                 .iter()
                 .flat_map(|task| task.places.iter().map(|place| place.duration))
-                .any(|duration| duration.is_sign_negative())
+                .any(|duration| duration.is_negative())
         })
         .map(|job| job.id.clone())
         .collect::<Vec<_>>();

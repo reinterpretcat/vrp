@@ -86,16 +86,16 @@ mod single {
                     profile: create_default_vehicle_profile(),
                     costs: create_default_vehicle_costs(),
                     shifts: vec![VehicleShift {
-                        start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
-                        end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (0., 0.).to_loc() }),
+                        start: ShiftStart { earliest: format_time(0), latest: None, location: (0., 0.).to_loc() },
+                        end: Some(ShiftEnd { earliest: None, latest: format_time(1000), location: (0., 0.).to_loc() }),
                         breaks: Some(vec![VehicleBreak::Optional {
-                            time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(0.), format_time(1000.)]),
-                            places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
+                            time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(0), format_time(1000)]),
+                            places: vec![VehicleOptionalBreakPlace { duration: 2, location: None, tag: None }],
                             policy: None,
                         }]),
                         reloads: Some(vec![VehicleReload {
                             location: (0., 0.).to_loc(),
-                            duration: 2.0,
+                            duration: 2,
                             ..create_default_reload()
                         }]),
                         recharges: None,
@@ -114,18 +114,18 @@ mod single {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![2])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(1., 2.)
+                            .schedule_stamp(1, 2)
                             .load(vec![1])
                             .distance(1)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((2., 0.))
-                            .schedule_stamp(3., 6.)
+                            .schedule_stamp(3, 6)
                             .load(vec![0])
                             .distance(2)
                             .activity(ActivityBuilder::delivery().job_id("job2").build())
@@ -133,31 +133,31 @@ mod single {
                             .build(),
                         StopBuilder::default()
                             .coordinate((3., 0.))
-                            .schedule_stamp(7., 8.)
+                            .schedule_stamp(7, 8)
                             .load(vec![1])
                             .distance(3)
                             .build_single("job3", "pickup"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(11., 13.)
+                            .schedule_stamp(11, 13)
                             .load(vec![1])
                             .distance(6)
                             .build_single("reload", "reload"),
                         StopBuilder::default()
                             .coordinate((4., 0.))
-                            .schedule_stamp(17., 18.)
+                            .schedule_stamp(17, 18)
                             .load(vec![0])
                             .distance(10)
                             .build_single("job4", "delivery"),
                         StopBuilder::default()
                             .coordinate((5., 0.))
-                            .schedule_stamp(19., 20.)
+                            .schedule_stamp(19, 20)
                             .load(vec![1])
                             .distance(11)
                             .build_single("job5", "pickup"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(25., 2.)
+                            .schedule_stamp(25, 2)
                             .load(vec![0])
                             .distance(16)
                             .build_arrival(),

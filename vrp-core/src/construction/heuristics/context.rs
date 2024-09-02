@@ -4,7 +4,7 @@ mod context_test;
 
 use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState};
 use crate::construction::heuristics::factories::*;
-use crate::models::common::Cost;
+use crate::models::common::{Cost, Distance, Duration};
 use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::GoalContext;
@@ -59,7 +59,10 @@ impl InsertionContext {
     ///
     /// Returns None if cost cannot be calculate as the context is in non-consistent state.
     pub fn get_total_cost(&self) -> Option<Cost> {
-        let get_cost = |costs: &Costs, distance: Float, duration: Float| {
+        let get_cost = |costs: &Costs, distance: Distance, duration: Duration| {
+            let distance = distance as Float;
+            let duration = duration as Float;
+
             costs.fixed
                 + costs.per_distance * distance
                 // NOTE this is incorrect when timing costs are different: fitness value will be

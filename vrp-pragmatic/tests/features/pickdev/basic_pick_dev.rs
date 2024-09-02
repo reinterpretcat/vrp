@@ -20,24 +20,24 @@ fn can_use_one_pickup_delivery_job_with_one_vehicle() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![0])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(1., 2.)
+                            .schedule_stamp(1, 2)
                             .load(vec![1])
                             .distance(1)
                             .build_single_tag("job1", "pickup", "p1"),
                         StopBuilder::default()
                             .coordinate((2., 0.))
-                            .schedule_stamp(3., 4.)
+                            .schedule_stamp(3, 4)
                             .load(vec![0])
                             .distance(2)
                             .build_single_tag("job1", "delivery", "d1"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(6., 6.)
+                            .schedule_stamp(6, 6)
                             .load(vec![0])
                             .distance(4)
                             .build_arrival(),

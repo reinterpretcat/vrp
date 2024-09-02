@@ -14,8 +14,8 @@ fn create_basic_problem(breaks: Option<Vec<VehicleBreak>>) -> Problem {
                 create_delivery_job("job1", (1., 0.)),
                 create_multi_job(
                     "job2",
-                    vec![((2., 0.), 1., vec![1]), ((3., 0.), 1., vec![1])],
-                    vec![((4., 0.), 1., vec![2])],
+                    vec![((2., 0.), 1, vec![1]), ((3., 0.), 1, vec![1])],
+                    vec![((4., 0.), 1, vec![2])],
                 ),
                 create_pickup_job("job3", (5., 0.)),
             ],
@@ -35,8 +35,8 @@ fn create_basic_problem(breaks: Option<Vec<VehicleBreak>>) -> Problem {
 
 fn create_default_breaks() -> Option<Vec<VehicleBreak>> {
     Some(vec![VehicleBreak::Optional {
-        time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
-        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
+        time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5), format_time(10)]),
+        places: vec![VehicleOptionalBreakPlace { duration: 2, location: None, tag: None }],
         policy: None,
     }])
 }
@@ -87,43 +87,43 @@ fn can_read_basic_init_solution() {
         .tour(
             TourBuilder::default()
                 .stops(vec![
-                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![1]).build_departure(),
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0, 0).load(vec![1]).build_departure(),
                     StopBuilder::default()
                         .coordinate((1., 0.))
-                        .schedule_stamp(1., 2.)
+                        .schedule_stamp(1, 2)
                         .load(vec![0])
                         .distance(1)
                         .build_single("job1", "delivery"),
                     StopBuilder::default()
                         .coordinate((2., 0.))
-                        .schedule_stamp(3., 4.)
+                        .schedule_stamp(3, 4)
                         .load(vec![1])
                         .distance(2)
                         .build_single_tag("job2", "pickup", "p1"),
                     StopBuilder::default()
                         .coordinate((3., 0.))
-                        .schedule_stamp(5., 8.)
+                        .schedule_stamp(5, 8)
                         .load(vec![2])
                         .distance(3)
                         .activity(
                             ActivityBuilder::pickup()
                                 .job_id("job2")
                                 .coordinate((3., 0.))
-                                .time_stamp(5., 6.)
+                                .time_stamp(5, 6)
                                 .tag("p2")
                                 .build(),
                         )
-                        .activity(ActivityBuilder::break_type().coordinate((3., 0.)).time_stamp(6., 8.).build())
+                        .activity(ActivityBuilder::break_type().coordinate((3., 0.)).time_stamp(6, 8).build())
                         .build(),
                     StopBuilder::default()
                         .coordinate((4., 0.))
-                        .schedule_stamp(9., 10.)
+                        .schedule_stamp(9, 10)
                         .load(vec![0])
                         .distance(4)
                         .build_single_tag("job2", "delivery", "d1"),
                     StopBuilder::default()
                         .coordinate((0., 0.))
-                        .schedule_stamp(14., 14.)
+                        .schedule_stamp(14, 14)
                         .load(vec![0])
                         .distance(8)
                         .build_arrival(),
@@ -165,17 +165,17 @@ fn can_handle_commute_error_in_init_solution() {
         .tour(
             TourBuilder::default()
                 .stops(vec![
-                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![1]).build_departure(),
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0, 0).load(vec![1]).build_departure(),
                     StopBuilder::default()
                         .coordinate((1., 0.))
-                        .schedule_stamp(1., 2.)
+                        .schedule_stamp(1, 2)
                         .load(vec![0])
                         .distance(1)
                         .activity(
                             ActivityBuilder::delivery()
                                 .job_id("job1")
                                 .coordinate((1., 0.))
-                                .time_stamp(1., 2.)
+                                .time_stamp(1, 2)
                                 .commute(Commute { forward: None, backward: None })
                                 .build(),
                         )

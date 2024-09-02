@@ -7,8 +7,8 @@ fn can_wait_for_job_start() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_times("job1", (1., 0.), vec![(0, 1)], 0.),
-                create_delivery_job_with_times("job2", (2., 0.), vec![(10, 20)], 0.),
+                create_delivery_job_with_times("job1", (1., 0.), vec![(0, 1)], 0),
+                create_delivery_job_with_times("job2", (2., 0.), vec![(10, 20)], 0),
             ],
             ..create_empty_plan()
         },
@@ -27,24 +27,24 @@ fn can_wait_for_job_start() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![2])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(1., 1.)
+                            .schedule_stamp(1, 1)
                             .load(vec![1])
                             .distance(1)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((2., 0.))
-                            .schedule_stamp(2., 10.)
+                            .schedule_stamp(2, 10)
                             .load(vec![0])
                             .distance(2)
-                            .build_single_time("job2", "delivery", (10., 10.)),
+                            .build_single_time("job2", "delivery", (10, 10)),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(12., 12.)
+                            .schedule_stamp(12, 12)
                             .load(vec![0])
                             .distance(4)
                             .build_arrival(),
@@ -60,7 +60,7 @@ fn can_wait_for_job_start() {
 fn can_skip_initial_waiting() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(10, 20)], 10.)],
+            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(10, 20)], 10)],
             ..create_empty_plan()
         },
         fleet: create_default_fleet(),
@@ -78,18 +78,18 @@ fn can_skip_initial_waiting() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 9.)
+                            .schedule_stamp(0, 9)
                             .load(vec![1])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(10., 20.)
+                            .schedule_stamp(10, 20)
                             .load(vec![0])
                             .distance(1)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(21., 21.)
+                            .schedule_stamp(21, 21)
                             .load(vec![0])
                             .distance(2)
                             .build_arrival(),
@@ -105,7 +105,7 @@ fn can_skip_initial_waiting() {
 fn can_consider_latest_departure_time() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(10, 20)], 10.)],
+            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(10, 20)], 10)],
             ..create_empty_plan()
         },
         fleet: Fleet {
@@ -136,18 +136,18 @@ fn can_consider_latest_departure_time() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 5.)
+                            .schedule_stamp(0, 5)
                             .load(vec![1])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(6., 20.)
+                            .schedule_stamp(6, 20)
                             .load(vec![0])
                             .distance(1)
-                            .build_single_time("job1", "delivery", (10., 20.)),
+                            .build_single_time("job1", "delivery", (10, 20)),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(21., 21.)
+                            .schedule_stamp(21, 21)
                             .load(vec![0])
                             .distance(2)
                             .build_arrival(),

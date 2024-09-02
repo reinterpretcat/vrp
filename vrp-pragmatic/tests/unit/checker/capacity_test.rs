@@ -36,12 +36,12 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Gen
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
-                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (0., 0.).to_loc() }),
+                    start: ShiftStart { earliest: format_time(0), latest: None, location: (0., 0.).to_loc() },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000), location: (0., 0.).to_loc() }),
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         location: (0., 0.).to_loc(),
-                        duration: 2.0,
+                        duration: 2,
                         ..create_default_reload()
                     }]),
                     recharges: None,
@@ -59,12 +59,12 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Gen
                 .stops(vec![
                     StopBuilder::default()
                         .coordinate((0., 0.))
-                        .schedule_stamp(0., 0.)
+                        .schedule_stamp(0, 0)
                         .load(vec![*stop_loads.first().unwrap()])
                         .build_departure(),
                     StopBuilder::default()
                         .coordinate((1., 0.))
-                        .schedule_stamp(3., 5.)
+                        .schedule_stamp(3, 5)
                         .load(vec![*stop_loads.get(1).unwrap()])
                         .distance(1)
                         .activity(ActivityBuilder::delivery().job_id("job1").build())
@@ -72,37 +72,37 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Gen
                         .build(),
                     StopBuilder::default()
                         .coordinate((0., 0.))
-                        .schedule_stamp(3., 5.)
+                        .schedule_stamp(3, 5)
                         .load(vec![*stop_loads.get(2).unwrap()])
                         .distance(1)
                         .build_single("reload", "reload"),
                     StopBuilder::default()
                         .coordinate((2., 0.))
-                        .schedule_stamp(7., 8.)
+                        .schedule_stamp(7, 8)
                         .load(vec![*stop_loads.get(3).unwrap()])
                         .distance(3)
                         .activity(
-                            ActivityBuilder::delivery().job_id("job2").coordinate((2., 0.)).time_stamp(8., 9.).build(),
+                            ActivityBuilder::delivery().job_id("job2").coordinate((2., 0.)).time_stamp(8, 9).build(),
                         )
                         .activity(
-                            ActivityBuilder::delivery().job_id("job3").coordinate((3., 0.)).time_stamp(9., 10.).build(),
+                            ActivityBuilder::delivery().job_id("job3").coordinate((3., 0.)).time_stamp(9, 10).build(),
                         )
                         .build(),
                     StopBuilder::default()
                         .coordinate((4., 0.))
-                        .schedule_stamp(11., 12.)
+                        .schedule_stamp(11, 12)
                         .load(vec![*stop_loads.get(4).unwrap()])
                         .distance(5)
                         .build_single("job4", "pickup"),
                     StopBuilder::default()
                         .coordinate((5., 0.))
-                        .schedule_stamp(13., 14.)
+                        .schedule_stamp(13, 14)
                         .load(vec![*stop_loads.get(5).unwrap()])
                         .distance(6)
                         .build_single_tag("job5", "delivery", "d1"),
                     StopBuilder::default()
                         .coordinate((0., 0.))
-                        .schedule_stamp(19., 19.)
+                        .schedule_stamp(19, 19)
                         .load(vec![*stop_loads.get(6).unwrap()])
                         .distance(11)
                         .build_arrival(),
@@ -132,7 +132,7 @@ fn can_check_load_when_departure_has_other_activity() {
                 .stops(vec![
                     StopBuilder::default()
                         .coordinate((1., 0.))
-                        .schedule_stamp(0., 1.)
+                        .schedule_stamp(0, 1)
                         .load(vec![1])
                         .distance(0)
                         .activity(ActivityBuilder::default().job_id("departure").activity_type("departure").build())
@@ -140,13 +140,13 @@ fn can_check_load_when_departure_has_other_activity() {
                         .build(),
                     StopBuilder::default()
                         .coordinate((1., 0.))
-                        .schedule_stamp(2., 3.)
+                        .schedule_stamp(2, 3)
                         .load(vec![0])
                         .distance(1)
                         .build_single_tag("job1", "delivery", "d1"),
                     StopBuilder::default()
                         .coordinate((0., 0.))
-                        .schedule_stamp(4., 4.)
+                        .schedule_stamp(4, 4)
                         .load(vec![0])
                         .distance(2)
                         .build_arrival(),
@@ -194,28 +194,28 @@ fn can_check_resource_consumption() {
         .tour(
             TourBuilder::default()
                 .stops(vec![
-                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![1]).build_departure(),
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0, 0).load(vec![1]).build_departure(),
                     StopBuilder::default()
                         .coordinate((1., 0.))
-                        .schedule_stamp(1., 2.)
+                        .schedule_stamp(1, 2)
                         .load(vec![0])
                         .distance(1)
                         .build_single("job1", "delivery"),
                     StopBuilder::default()
                         .coordinate((4., 0.))
-                        .schedule_stamp(5., 7.)
+                        .schedule_stamp(5, 7)
                         .load(vec![2])
                         .distance(4)
                         .build_single("reload", "reload"),
                     StopBuilder::default()
                         .coordinate((3., 0.))
-                        .schedule_stamp(8., 9.)
+                        .schedule_stamp(8, 9)
                         .load(vec![1])
                         .distance(5)
                         .build_single("job3", "delivery"),
                     StopBuilder::default()
                         .coordinate((2., 0.))
-                        .schedule_stamp(10., 11.)
+                        .schedule_stamp(10, 11)
                         .load(vec![0])
                         .distance(6)
                         .build_single("job2", "delivery"),

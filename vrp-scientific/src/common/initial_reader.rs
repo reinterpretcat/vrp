@@ -59,7 +59,7 @@ pub fn read_init_solution<R: Read>(
                             duration: place.duration,
                             time: place.times.first().and_then(|span| span.as_time_window()).unwrap(),
                         },
-                        schedule: Schedule::new(0.0, 0.0),
+                        schedule: Schedule::new(0, 0),
                         job: Some(single.clone()),
                         commute: None,
                     });

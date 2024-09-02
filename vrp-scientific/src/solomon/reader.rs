@@ -11,7 +11,6 @@ use vrp_core::models::problem::*;
 use vrp_core::models::*;
 use vrp_core::models::{Extras, Problem};
 use vrp_core::prelude::GenericError;
-use vrp_core::utils::Float;
 
 /// A trait read write solomon problem.
 pub trait SolomonProblem {
@@ -107,7 +106,7 @@ impl<R: Read> SolomonReader<R> {
                     jobs.push(Job::Single(Arc::new(Single {
                         places: vec![Place {
                             location: Some(self.coord_index.collect(customer.location)),
-                            duration: customer.service as Float,
+                            duration: customer.service as Duration,
                             times: vec![TimeSpan::Window(customer.tw.clone())],
                         }],
                         dimens,
@@ -150,7 +149,7 @@ impl<R: Read> SolomonReader<R> {
             id: id as usize,
             location: (x, y),
             demand: demand as usize,
-            tw: TimeWindow::new(start as Float, end as Float),
+            tw: TimeWindow::new(start as Timestamp, end as Timestamp),
             service: service as usize,
         })
     }

@@ -33,19 +33,19 @@ pub fn create_minimize_arrival_time_feature(name: &str) -> GenericResult<Feature
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(FleetUsageObjective {
-            route_estimate_fn: Box::new(|route_ctx| route_ctx.route().actor.detail.time.start),
+            route_estimate_fn: Box::new(|route_ctx| route_ctx.route().actor.detail.time.start as Cost),
             solution_estimate_fn: Box::new(|solution_ctx| {
                 if solution_ctx.routes.is_empty() {
                     0.
                 } else {
-                    let total: Float = solution_ctx
+                    let total = solution_ctx
                         .routes
                         .iter()
                         .filter_map(|route_ctx| route_ctx.route().tour.end())
                         .map(|end| end.schedule.arrival)
-                        .sum();
+                        .sum::<Timestamp>();
 
-                    total / solution_ctx.routes.len() as Float
+                    total as Float / solution_ctx.routes.len() as Float
                 }
             }),
         })

@@ -355,11 +355,11 @@ fn get_cost_between_locations(
     let distance = transport.distance_approx(profile, from, to);
     let duration = transport.duration_approx(profile, from, to);
 
-    if distance < 0. || duration < 0. {
+    if distance < Distance::default() || duration < Duration::default() {
         // NOTE this happens if matrix uses negative values as a marker of unreachable location
         UNREACHABLE_COST
     } else {
-        (distance * costs.per_distance + duration * costs.per_driving_time) as LowPrecisionCost
+        (distance as Float * costs.per_distance + duration as Float * costs.per_driving_time) as LowPrecisionCost
     }
 }
 

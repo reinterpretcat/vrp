@@ -124,7 +124,7 @@ fn get_dissimilarities(
     transport: &(dyn TransportCost),
     config: &ClusterConfig,
 ) -> Vec<DissimilarityInfo> {
-    let min_shared_time = config.threshold.min_shared_time.unwrap_or(0.);
+    let min_shared_time = config.threshold.min_shared_time.unwrap_or_default();
     outer
         .to_single()
         .places
@@ -141,8 +141,8 @@ fn get_dissimilarities(
                                 outer_time.overlapping(inner_time).map(|tw| tw.duration())
                             })
                         })
-                        .max_by(compare_floats_refs)
-                        .unwrap_or(0.);
+                        .max()
+                        .unwrap_or(Duration::default());
 
                     if shared_time > min_shared_time {
                         let fwd_distance = transport.distance_approx(&config.profile, outer_loc, inner_loc);
@@ -151,14 +151,13 @@ fn get_dissimilarities(
                         let bck_distance = transport.distance_approx(&config.profile, inner_loc, outer_loc);
                         let bck_duration = transport.duration_approx(&config.profile, inner_loc, outer_loc);
 
-                        let reachable = compare_floats(fwd_distance, 0.) != Ordering::Less
-                            && compare_floats(bck_distance, 0.) != Ordering::Less;
+                        let reachable = fwd_distance >= Distance::default() && bck_distance >= Distance::default();
 
                         let reachable = reachable
-                            && (fwd_duration - config.threshold.moving_duration < 0.)
-                            && (fwd_distance - config.threshold.moving_distance < 0.)
-                            && (bck_duration - config.threshold.moving_duration < 0.)
-                            && (bck_distance - config.threshold.moving_distance < 0.);
+                            && (fwd_duration - config.threshold.moving_duration < Duration::default())
+                            && (fwd_distance - config.threshold.moving_distance < Duration::default())
+                            && (bck_duration - config.threshold.moving_duration < Duration::default())
+                            && (bck_distance - config.threshold.moving_distance < Duration::default());
 
                         let (service_time, _) = get_service_time(inner_duration, &config.serving);
 
@@ -214,7 +213,7 @@ fn build_job_cluster(
             let new_duration = new_duration + parking;
 
             // NOTE as parking time is part of service time in the cluster, we need to shrink time window
-            let center_times = if parking > 0. {
+            let center_times = if parking > Duration::default() {
                 center_times.into_iter().map(|tw| TimeWindow::new(tw.start, tw.end - parking)).collect()
             } else {
                 center_times
@@ -226,8 +225,16 @@ fn build_job_cluster(
                 service_time: new_duration,
                 place_idx: center_place_idx,
                 commute: Commute {
-                    forward: CommuteInfo { location: center_place_idx, distance: 0., duration: 0. },
-                    backward: CommuteInfo { location: center_place_idx, distance: 0., duration: 0. },
+                    forward: CommuteInfo {
+                        location: center_place_idx,
+                        distance: Distance::default(),
+                        duration: Duration::default(),
+                    },
+                    backward: CommuteInfo {
+                        location: center_place_idx,
+                        distance: Distance::default(),
+                        duration: Duration::default(),
+                    },
                 },
             };
             let center_commute = |original_info: &ClusterInfo| {
@@ -346,7 +353,8 @@ fn try_add_job<F>(
 where
     F: Fn(&ClusterInfo) -> Commute,
 {
-    let time_window_threshold = config.threshold.smallest_time_window.unwrap_or(0.).max(config.serving.get_parking());
+    let time_window_threshold =
+        config.threshold.smallest_time_window.unwrap_or_default().max(config.serving.get_parking());
     let cluster = cluster.to_single();
     let cluster_place = cluster.places.first().expect("expect one place in cluster");
     let cluster_times = filter_times(cluster_place.times.as_slice());
@@ -362,7 +370,11 @@ where
         })
         .map_or(cluster_place.duration, |(place, info)| {
             place.duration
-                + if matches!(config.visiting, VisitPolicy::Return) { info.commute.backward.duration } else { 0. }
+                + if matches!(config.visiting, VisitPolicy::Return) {
+                    info.commute.backward.duration
+                } else {
+                    Duration::default()
+                }
         });
 
     let job = candidate.0.to_single();
@@ -384,8 +396,8 @@ where
                     forward: info.commute.forward,
                     backward: CommuteInfo {
                         location: place.location.expect("no location"),
-                        distance: 0.,
-                        duration: 0.,
+                        distance: Distance::default(),
+                        duration: Duration::default(),
                     },
                 }
             };
@@ -537,7 +549,9 @@ fn create_single_job(location: Option<Location>, duration: Duration, times: &[Ti
 fn get_service_time(original: Duration, policy: &ServingPolicy) -> (Duration, Duration) {
     match *policy {
         ServingPolicy::Original { parking } => (original, parking),
-        ServingPolicy::Multiplier { multiplier, parking } => (original * multiplier, parking),
+        ServingPolicy::Multiplier { multiplier, parking } => {
+            ((original as Float * multiplier).round() as Duration, parking)
+        }
         ServingPolicy::Fixed { value, parking } => (value, parking),
     }
 }

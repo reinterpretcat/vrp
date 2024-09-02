@@ -15,7 +15,7 @@ fn create_test_plan_with_three_jobs() -> Plan {
 }
 
 fn create_test_limit() -> Option<VehicleLimits> {
-    Some(VehicleLimits { max_distance: Some(15.), max_duration: None, tour_size: None })
+    Some(VehicleLimits { max_distance: Some(15), max_duration: None, tour_size: None })
 }
 
 fn create_order_objective(is_constrained: bool) -> Vec<Objective> {
@@ -59,30 +59,30 @@ fn can_follow_orders() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![3])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((5., 0.))
-                            .schedule_stamp(5., 6.)
+                            .schedule_stamp(5, 6)
                             .load(vec![2])
                             .distance(5)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((2., 0.))
-                            .schedule_stamp(9., 10.)
+                            .schedule_stamp(9, 10)
                             .load(vec![1])
                             .distance(8)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((7., 0.))
-                            .schedule_stamp(15., 16.)
+                            .schedule_stamp(15, 16)
                             .load(vec![0])
                             .distance(13)
                             .build_single("job3", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(23., 23.)
+                            .schedule_stamp(23, 23)
                             .load(vec![0])
                             .distance(20)
                             .build_arrival(),
@@ -143,7 +143,7 @@ fn can_follow_order_when_prioritized_property_set() {
 fn can_handle_order_between_special_activities() {
     let create_test_job = |id: &str, location: (f64, f64), order: i32| Job {
         deliveries: Some(vec![JobTask {
-            places: vec![JobPlace { times: None, location: location.to_loc(), duration: 100., tag: None }],
+            places: vec![JobPlace { times: None, location: location.to_loc(), duration: 100, tag: None }],
             demand: Some(vec![1]),
             order: Some(order),
         }]),
@@ -157,11 +157,11 @@ fn can_handle_order_between_special_activities() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (10., 0.).to_loc() }),
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000), location: (10., 0.).to_loc() }),
                     breaks: Some(vec![VehicleBreak::Optional {
-                        time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(100.), format_time(200.)]),
+                        time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(100), format_time(200)]),
                         places: vec![VehicleOptionalBreakPlace {
-                            duration: 1.,
+                            duration: 1,
                             location: Some((0., 0.).to_loc()),
                             tag: None,
                         }],

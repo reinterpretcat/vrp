@@ -1,15 +1,14 @@
 use crate::construction::features::JobDemandDimension;
 use crate::models::common::*;
 use crate::models::problem::{FixedJobPermutation, Job, JobIdDimension, Multi, Place, Single};
-use rosomaxa::prelude::Float;
 use std::sync::Arc;
 
 pub const DEFAULT_JOB_LOCATION: Location = 0;
-pub const DEFAULT_JOB_DURATION: Duration = 0.0;
-pub const DEFAULT_JOB_TIME_SPAN: TimeSpan = TimeSpan::Window(TimeWindow { start: 0., end: 1000. });
-pub const DEFAULT_ACTIVITY_TIME_WINDOW: TimeWindow = TimeWindow { start: 0., end: 1000. };
+pub const DEFAULT_JOB_DURATION: Duration = 0;
+pub const DEFAULT_JOB_TIME_SPAN: TimeSpan = TimeSpan::Window(TimeWindow { start: 0, end: 1000 });
+pub const DEFAULT_ACTIVITY_TIME_WINDOW: TimeWindow = TimeWindow { start: 0, end: 1000 };
 
-pub type TestPlace = (Option<Location>, Duration, Vec<(Float, Float)>);
+pub type TestPlace = (Option<Location>, Duration, Vec<(Timestamp, Timestamp)>);
 
 pub fn test_multi_with_id(id: &str, jobs: Vec<Arc<Single>>) -> Arc<Multi> {
     let mut dimens = Dimensions::default();

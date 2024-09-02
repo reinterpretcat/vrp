@@ -13,16 +13,16 @@ fn can_remove_duplicates_in_error_list() {
             TourBuilder::default()
                 .vehicle_id("my_vehicle_11")
                 .stops(vec![
-                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![1]).build_departure(),
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0, 0).load(vec![1]).build_departure(),
                     StopBuilder::default()
                         .coordinate((2., 0.))
-                        .schedule_stamp(2., 3.)
+                        .schedule_stamp(2, 3)
                         .load(vec![0])
                         .distance(2)
                         .build_single("job1", "delivery"),
                     StopBuilder::default()
                         .coordinate((0., 0.))
-                        .schedule_stamp(5., 5.)
+                        .schedule_stamp(5, 5)
                         .load(vec![0])
                         .distance(4)
                         .build_arrival(),

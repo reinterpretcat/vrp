@@ -3,8 +3,7 @@
 mod domain_test;
 
 use crate::models::common::{Duration, Timestamp};
-use rosomaxa::prelude::{compare_floats, Float};
-use std::cmp::Ordering;
+use rosomaxa::prelude::Float;
 use std::hash::{Hash, Hasher};
 
 /// Specifies location type.
@@ -79,30 +78,28 @@ impl TimeWindow {
 
     /// Returns unlimited time window.
     pub fn max() -> Self {
-        Self { start: 0., end: Float::MAX }
+        Self { start: 0, end: Timestamp::MAX }
     }
 
     /// Checks whether time window has intersection with another one (inclusive).
     pub fn intersects(&self, other: &Self) -> bool {
-        compare_floats(self.start, other.end) != Ordering::Greater
-            && compare_floats(other.start, self.end) != Ordering::Greater
+        self.start <= other.end && other.start <= self.end
     }
 
     /// Checks whether time window has intersection with another one (exclusive).
     pub fn intersects_exclusive(&self, other: &Self) -> bool {
-        compare_floats(self.start, other.end) == Ordering::Less
-            && compare_floats(other.start, self.end) == Ordering::Less
+        self.start < other.end && other.start < self.end
     }
 
     /// Checks whether time window contains given time.
     pub fn contains(&self, time: Timestamp) -> bool {
-        compare_floats(time, self.start) != Ordering::Less && compare_floats(time, self.end) != Ordering::Greater
+        time >= self.start && time <= self.end
     }
 
     /// Returns distance between two time windows.
-    pub fn distance(&self, other: &Self) -> Timestamp {
+    pub fn distance(&self, other: &Self) -> Duration {
         if self.intersects(other) {
-            0.
+            Duration::default()
         } else {
             // [other.s other.e] [self.s self.e]
             if self.start > other.start {
@@ -134,8 +131,7 @@ impl TimeWindow {
 
 impl PartialEq<TimeWindow> for TimeWindow {
     fn eq(&self, other: &TimeWindow) -> bool {
-        compare_floats(self.start, other.start) == Ordering::Equal
-            && compare_floats(self.end, other.end) == Ordering::Equal
+        self.start == other.start && self.end == other.end
     }
 }
 
@@ -143,11 +139,8 @@ impl Eq for TimeWindow {}
 
 impl Hash for TimeWindow {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let start = self.start.to_bits() as i64;
-        let end = self.end.to_bits() as i64;
-
-        start.hash(state);
-        end.hash(state);
+        self.start.hash(state);
+        self.end.hash(state);
     }
 }
 
@@ -184,7 +177,7 @@ impl TimeSpan {
 impl TimeInterval {
     /// Converts time interval to time window.
     pub fn to_time_window(&self) -> TimeWindow {
-        TimeWindow { start: self.earliest.unwrap_or(0.), end: self.latest.unwrap_or(Float::MAX) }
+        TimeWindow { start: self.earliest.unwrap_or_default(), end: self.latest.unwrap_or(Timestamp::MAX) }
     }
 }
 
@@ -206,8 +199,7 @@ impl Schedule {
 
 impl PartialEq<Schedule> for Schedule {
     fn eq(&self, other: &Schedule) -> bool {
-        compare_floats(self.arrival, other.arrival) == Ordering::Equal
-            && compare_floats(self.departure, other.departure) == Ordering::Equal
+        self.arrival == other.arrival && self.departure == other.departure
     }
 }
 
@@ -215,11 +207,8 @@ impl Eq for Schedule {}
 
 impl Hash for TimeInterval {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let earliest = self.earliest.unwrap_or(0.).to_bits() as i64;
-        let latest = self.latest.unwrap_or(Float::MAX).to_bits() as i64;
-
-        earliest.hash(state);
-        latest.hash(state);
+        self.earliest.unwrap_or_default().hash(state);
+        self.latest.unwrap_or(Timestamp::MAX).hash(state);
     }
 }
 

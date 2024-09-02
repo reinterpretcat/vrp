@@ -27,7 +27,7 @@ fn create_test_insertion_ctx() -> InsertionContext {
 
 fn create_activity_at(loc_and_time: usize) -> Activity {
     ActivityBuilder::default()
-        .place(Place { idx: 0, location: loc_and_time, duration: 0.0, time: DEFAULT_JOB_TIME_SPAN.to_time_window(0.) })
+        .place(Place { idx: 0, location: loc_and_time, duration: 0, time: DEFAULT_JOB_TIME_SPAN.to_time_window(0) })
         .schedule(Schedule { arrival: loc_and_time as Timestamp, departure: loc_and_time as Timestamp })
         .build()
 }
@@ -100,26 +100,26 @@ mod single {
 
     can_insert_job_with_location_into_tour_with_two_activities_and_variations! {
         // vary times
-        case01: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 3, 0),
-        case02: (vec![JobPlace { location: Some(8), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 8, 1),
-        case03: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeSpan::Window(TimeWindow::new(15.0, 20.0))] }], InsertionPosition::Any, 7, 2),
-        case04: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeSpan::Window(TimeWindow::new(15.0, 20.0)),
-                                                                               TimeSpan::Window(TimeWindow::new(7.0, 8.0))] }], InsertionPosition::Any, 7, 1),
+        case01: (vec![JobPlace { location: Some(3), duration: 0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 3, 0),
+        case02: (vec![JobPlace { location: Some(8), duration: 0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 8, 1),
+        case03: (vec![JobPlace { location: Some(7), duration: 0, times: vec![TimeSpan::Window(TimeWindow::new(15, 20))] }], InsertionPosition::Any, 7, 2),
+        case04: (vec![JobPlace { location: Some(7), duration: 0, times: vec![TimeSpan::Window(TimeWindow::new(15, 20)),
+                                                                               TimeSpan::Window(TimeWindow::new(7, 8))] }], InsertionPosition::Any, 7, 1),
 
         // vary locations
-        case05: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 3, 0),
-        case06: (vec![JobPlace { location: Some(20), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] },
-                      JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 3, 0),
+        case05: (vec![JobPlace { location: Some(3), duration: 0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 3, 0),
+        case06: (vec![JobPlace { location: Some(20), duration: 0, times: vec![DEFAULT_JOB_TIME_SPAN] },
+                      JobPlace { location: Some(3), duration: 0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 3, 0),
 
         // vary locations and times
-        case07: (vec![JobPlace { location: Some(20), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] },
-                      JobPlace { location: Some(3), duration: 0.0, times: vec![TimeSpan::Window(TimeWindow::new(0.0, 2.0))] }], InsertionPosition::Any, 20, 1),
-        case08: (vec![JobPlace { location: Some(12), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] },
-                      JobPlace { location: Some(11), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 11, 1),
+        case07: (vec![JobPlace { location: Some(20), duration: 0, times: vec![DEFAULT_JOB_TIME_SPAN] },
+                      JobPlace { location: Some(3), duration: 0, times: vec![TimeSpan::Window(TimeWindow::new(0, 2))] }], InsertionPosition::Any, 20, 1),
+        case08: (vec![JobPlace { location: Some(12), duration: 0, times: vec![DEFAULT_JOB_TIME_SPAN] },
+                      JobPlace { location: Some(11), duration: 0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 11, 1),
 
         // vary insertion position
-        case09: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Last, 3, 2),
-        case10: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Concrete(1), 3, 1),
+        case09: (vec![JobPlace { location: Some(3), duration: 0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Last, 3, 2),
+        case10: (vec![JobPlace { location: Some(3), duration: 0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Concrete(1), 3, 1),
     }
 
     fn can_insert_job_with_location_into_tour_with_two_activities_and_variations_impl(
@@ -171,11 +171,11 @@ mod single {
                     .details(vec![VehicleDetail {
                         start: Some(VehiclePlace {
                             location: 0,
-                            time: TimeInterval { earliest: Some(0.), latest: None },
+                            time: TimeInterval { earliest: Some(0), latest: None },
                         }),
                         end: Some(VehiclePlace {
                             location: v1_end_location,
-                            time: TimeInterval { earliest: None, latest: Some(100.) },
+                            time: TimeInterval { earliest: None, latest: Some(100) },
                         }),
                     }])
                     .build(),
@@ -184,11 +184,11 @@ mod single {
                     .details(vec![VehicleDetail {
                         start: Some(VehiclePlace {
                             location: 20,
-                            time: TimeInterval { earliest: Some(0.), latest: None },
+                            time: TimeInterval { earliest: Some(0), latest: None },
                         }),
                         end: Some(VehiclePlace {
                             location: v2_end_location,
-                            time: TimeInterval { earliest: None, latest: Some(100.) },
+                            time: TimeInterval { earliest: None, latest: Some(100) },
                         }),
                     }])
                     .build(),

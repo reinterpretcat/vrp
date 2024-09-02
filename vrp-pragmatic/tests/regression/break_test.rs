@@ -16,7 +16,7 @@ fn can_handle_properly_invalid_break_removal() {
                         deliveries: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: Location::Coordinate { lat: 52.437842517427846, lng: 13.3829646081322 },
-                                duration: 1.0,
+                                duration: 1,
                                 times: Some(vec![vec![
                                     "2020-07-04T09:00:00Z".to_string(),
                                     "2020-07-04T13:00:00Z".to_string(),
@@ -32,7 +32,7 @@ fn can_handle_properly_invalid_break_removal() {
                         deliveries: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: Location::Coordinate { lat: 52.504574435265766, lng: 13.512204487216097 },
-                                duration: 2.0,
+                                duration: 2,
                                 times: Some(vec![vec![
                                     "2020-07-04T09:00:00Z".to_string(),
                                     "2020-07-04T11:00:00Z".to_string(),
@@ -48,7 +48,7 @@ fn can_handle_properly_invalid_break_removal() {
                         pickups: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: Location::Coordinate { lat: 52.51627010959871, lng: 13.515165894434492 },
-                                duration: 3.0,
+                                duration: 3,
                                 times: Some(vec![
                                     vec!["2020-07-04T09:00:00Z".to_string(), "2020-07-04T13:00:00Z".to_string()],
                                     vec!["2020-07-04T14:00:00Z".to_string(), "2020-07-04T16:00:00Z".to_string()],
@@ -64,7 +64,7 @@ fn can_handle_properly_invalid_break_removal() {
                         pickups: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: Location::Coordinate { lat: 52.49739587223939, lng: 13.499267072502096 },
-                                duration: 4.0,
+                                duration: 4,
                                 times: Some(vec![vec![
                                     "2020-07-04T14:00:00Z".to_string(),
                                     "2020-07-04T16:00:00Z".to_string(),
@@ -80,7 +80,7 @@ fn can_handle_properly_invalid_break_removal() {
                         deliveries: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: Location::Coordinate { lat: 52.47816437518683, lng: 13.480325156196248 },
-                                duration: 5.0,
+                                duration: 5,
                                 times: Some(vec![
                                     vec!["2020-07-04T09:00:00Z".to_string(), "2020-07-04T11:00:00Z".to_string()],
                                     vec!["2020-07-04T14:00:00Z".to_string(), "2020-07-04T16:00:00Z".to_string()],
@@ -96,7 +96,7 @@ fn can_handle_properly_invalid_break_removal() {
                         pickups: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: Location::Coordinate { lat: 52.44030727908021, lng: 13.433537947080476 },
-                                duration: 6.0,
+                                duration: 6,
                                 times: Some(vec![vec![
                                     "2020-07-04T14:00:00Z".to_string(),
                                     "2020-07-04T18:00:00Z".to_string(),
@@ -133,7 +133,7 @@ fn can_handle_properly_invalid_break_removal() {
                                 "2020-07-04T12:00:00Z".to_string(),
                                 "2020-07-04T14:00:00Z".to_string(),
                             ]),
-                            places: vec![VehicleOptionalBreakPlace { duration: 3600.0, location: None, tag: None }],
+                            places: vec![VehicleOptionalBreakPlace { duration: 3600, location: None, tag: None }],
                             policy: None,
                         }]),
                         reloads: None,

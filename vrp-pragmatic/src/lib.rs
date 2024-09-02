@@ -38,7 +38,8 @@ use crate::format::problem::Problem;
 use crate::format::{CoordIndex, Location};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
-use vrp_core::prelude::{Float, GenericError};
+use vrp_core::models::common::Timestamp;
+use vrp_core::prelude::GenericError;
 
 /// Get lists of unique locations in the problem. Use it to request routing matrix from outside.
 /// NOTE: it includes all locations of all types, so you might need to filter it if types are mixed.
@@ -46,17 +47,17 @@ pub fn get_unique_locations(problem: &Problem) -> Vec<Location> {
     CoordIndex::new(problem).unique()
 }
 
-fn format_time(time: Float) -> String {
+fn format_time(time: Timestamp) -> String {
     // TODO avoid using implicitly unwrap
-    OffsetDateTime::from_unix_timestamp(time as i64).map(|time| time.format(&Rfc3339).unwrap()).unwrap()
+    OffsetDateTime::from_unix_timestamp(time).map(|time| time.format(&Rfc3339).unwrap()).unwrap()
 }
 
-fn parse_time(time: &str) -> Float {
+fn parse_time(time: &str) -> Timestamp {
     parse_time_safe(time).unwrap()
 }
 
-fn parse_time_safe(time: &str) -> Result<Float, GenericError> {
+fn parse_time_safe(time: &str) -> Result<Timestamp, GenericError> {
     OffsetDateTime::parse(time, &Rfc3339)
-        .map(|time| time.unix_timestamp() as Float)
+        .map(|time| time.unix_timestamp() as Timestamp)
         .map_err(|err| format!("cannot parse date: {err}").into())
 }

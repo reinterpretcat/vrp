@@ -84,92 +84,92 @@ parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, thres
 
 can_get_dissimilarities! {
     case_01_one_place: (
-        vec![(Some(1), 2., vec![(0., 10.)])],
-        vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., None), ServingPolicy::Original { parking: 0. },
-        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.))]
+        vec![(Some(1), 2, vec![(0, 10)])],
+        vec![(Some(2), 3, vec![(5, 15)])],
+        (5, 5, None), ServingPolicy::Original { parking: 0 },
+        vec![(0, 0, 3, (1, 1, 1), (1, 1, 1))]
     ),
     case_02_two_places: (
-        vec![(Some(1), 2., vec![(0., 10.)]), (Some(1), 3., vec![(20., 30.)])],
-        vec![(Some(2), 3., vec![(5., 15.)]), (Some(2), 2., vec![(20., 40.)])],
-        (5., 5., None), ServingPolicy::Original { parking: 0. },
-        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.)), (1, 1, 2., (1, 1., 1.), (1, 1., 1.))]
+        vec![(Some(1), 2, vec![(0, 10)]), (Some(1), 3, vec![(20, 30)])],
+        vec![(Some(2), 3, vec![(5, 15)]), (Some(2), 2, vec![(20, 40)])],
+        (5, 5, None), ServingPolicy::Original { parking: 0 },
+        vec![(0, 0, 3, (1, 1, 1), (1, 1, 1)), (1, 1, 2, (1, 1, 1), (1, 1, 1))]
     ),
     case_03_two_places: (
-        vec![(Some(1), 2., vec![(0., 10.)]), (Some(1), 3., vec![(20., 30.)])],
-        vec![(Some(2), 3., vec![(5., 15.)]), (Some(2), 2., vec![(50., 60.)])],
-        (5., 5., None), ServingPolicy::Original { parking: 0. },
-        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.))]
+        vec![(Some(1), 2, vec![(0, 10)]), (Some(1), 3, vec![(20, 30)])],
+        vec![(Some(2), 3, vec![(5, 15)]), (Some(2), 2, vec![(50, 60)])],
+        (5, 5, None), ServingPolicy::Original { parking: 0 },
+        vec![(0, 0, 3, (1, 1, 1), (1, 1, 1))]
     ),
 
     case_04_serving_policy: (
-        vec![(Some(1), 2., vec![(0., 10.)])],
-        vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., None), ServingPolicy::Multiplier { multiplier: 0.5, parking: 0. },
-        vec![(0, 0, 1.5, (1, 1., 1.), (1, 1., 1.))]
+        vec![(Some(1), 2, vec![(0, 10)])],
+        vec![(Some(2), 3, vec![(5, 15)])],
+        (5, 5, None), ServingPolicy::Multiplier { multiplier: 0.5, parking: 0 },
+        vec![(0, 0, 1, (1, 1, 1), (1, 1, 1))]
     ),
     case_05_serving_policy: (
-        vec![(Some(1), 2., vec![(0., 10.)])],
-        vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., None), ServingPolicy::Fixed  { value: 20., parking: 0. },
-        vec![(0, 0, 20., (1, 1., 1.), (1, 1., 1.))]
+        vec![(Some(1), 2, vec![(0, 10)])],
+        vec![(Some(2), 3, vec![(5, 15)])],
+        (5, 5, None), ServingPolicy::Fixed  { value: 20, parking: 0 },
+        vec![(0, 0, 20, (1, 1, 1), (1, 1, 1))]
     ),
 
     case_06_threshold: (
-        vec![(Some(1), 2., vec![(0., 10.)])],
-        vec![(Some(5), 3., vec![(5., 15.)])],
-        (2., 5., None), ServingPolicy::Original { parking: 0. },
+        vec![(Some(1), 2, vec![(0, 10)])],
+        vec![(Some(5), 3, vec![(5, 15)])],
+        (2, 5, None), ServingPolicy::Original { parking: 0 },
         Vec::default(),
     ),
     case_07_threshold: (
-        vec![(Some(1), 2., vec![(0., 10.)])],
-        vec![(Some(5), 3., vec![(5., 15.)])],
-        (5., 2., None), ServingPolicy::Original { parking: 0. },
+        vec![(Some(1), 2, vec![(0, 10)])],
+        vec![(Some(5), 3, vec![(5, 15)])],
+        (5, 2, None), ServingPolicy::Original { parking: 0 },
         Vec::default(),
     ),
 
     case_08_shared_time: (
-        vec![(Some(1), 2., vec![(0., 10.)])],
-        vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., Some(4.9)), ServingPolicy::Original { parking: 0. },
-        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.))]
+        vec![(Some(1), 2, vec![(0, 10)])],
+        vec![(Some(2), 3, vec![(5, 15)])],
+        (5, 5, Some(4)), ServingPolicy::Original { parking: 0 },
+        vec![(0, 0, 3, (1, 1, 1), (1, 1, 1))]
     ),
     case_09_shared_time: (
-        vec![(Some(1), 2., vec![(0., 10.)])],
-        vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., Some(5.)), ServingPolicy::Original { parking: 0. },
+        vec![(Some(1), 2, vec![(0, 10)])],
+        vec![(Some(2), 3, vec![(5, 15)])],
+        (5, 5, Some(5)), ServingPolicy::Original { parking: 0 },
         Vec::default(),
     ),
     case_10_shared_time: (
-        vec![(Some(1), 2., vec![(0., 10.)])],
-        vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., Some(6.)), ServingPolicy::Original { parking: 0. },
+        vec![(Some(1), 2, vec![(0, 10)])],
+        vec![(Some(2), 3, vec![(5, 15)])],
+        (5, 5, Some(6)), ServingPolicy::Original { parking: 0 },
         Vec::default(),
     ),
 
     case_11_wide_time_windows: (
-        vec![(Some(1), 2., vec![(0., 100.)])],
-        vec![(Some(2), 3., vec![(5., 15.)]), (Some(5), 3., vec![(20., 40.)])],
-        (5., 5., None), ServingPolicy::Original { parking: 0. },
-        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.)), (0, 1, 3., (1, 4., 4.), (1, 4., 4.))]
+        vec![(Some(1), 2, vec![(0, 100)])],
+        vec![(Some(2), 3, vec![(5, 15)]), (Some(5), 3, vec![(20, 40)])],
+        (5, 5, None), ServingPolicy::Original { parking: 0 },
+        vec![(0, 0, 3, (1, 1, 1), (1, 1, 1)), (0, 1, 3, (1, 4, 4), (1, 4, 4))]
     ),
     case_12_wide_time_windows: (
-        vec![(Some(1), 2., vec![(0., 10.)]), (Some(4), 2., vec![(20., 30.)])],
-        vec![(Some(2), 3., vec![(0., 100.)])],
-        (5., 5., None), ServingPolicy::Original { parking: 0. },
-        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.)), (1, 0, 3., (4, 2., 2.), (4, 2., 2.))]
+        vec![(Some(1), 2, vec![(0, 10)]), (Some(4), 2, vec![(20, 30)])],
+        vec![(Some(2), 3, vec![(0, 100)])],
+        (5, 5, None), ServingPolicy::Original { parking: 0 },
+        vec![(0, 0, 3, (1, 1, 1), (1, 1, 1)), (1, 0, 3, (4, 2, 2), (4, 2, 2))]
     ),
 
     case_13_sorting_shared_time: (
-        vec![(Some(1), 2., vec![(0., 100.)])],
-        vec![(Some(2), 3., vec![(5., 15.), (20., 40.)])],
-        (5., 5., Some(10.)), ServingPolicy::Original { parking: 0. },
-        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.))]
+        vec![(Some(1), 2, vec![(0, 100)])],
+        vec![(Some(2), 3, vec![(5, 15), (20, 40)])],
+        (5, 5, Some(10)), ServingPolicy::Original { parking: 0 },
+        vec![(0, 0, 3, (1, 1, 1), (1, 1, 1))]
     ),
     case_14_sorting_shared_time: (
-        vec![(Some(1), 2., vec![(0., 30.)])],
-        vec![(Some(2), 3., vec![(5., 15.), (20., 40.)])],
-        (5., 5., Some(10.)), ServingPolicy::Original { parking: 0. },
+        vec![(Some(1), 2, vec![(0, 30)])],
+        vec![(Some(2), 3, vec![(5, 15), (20, 40)])],
+        (5, 5, Some(10)), ServingPolicy::Original { parking: 0 },
         Vec::default(),
     ),
 }
@@ -211,35 +211,35 @@ parameterized_test! {can_add_job, (center_places, candidate_places, is_disallowe
 
 can_add_job! {
     case_01_trivial: (
-        vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
-        false, false, VisitPolicy::ClosedContinuation, None, Some((0, 4., (1, 4., 4.), (5, 0., 0.))),
+        vec![(Some(1), 2, vec![(0, 100)])], vec![(Some(5), 2, vec![(0, 100)])],
+        false, false, VisitPolicy::ClosedContinuation, None, Some((0, 4, (1, 4, 4), (5, 0, 0))),
     ),
     case_02_two_places: (
-        vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)]), (Some(3), 3., vec![(0., 100.)])],
-        false, false, VisitPolicy::ClosedContinuation, None,Some((1, 5., (1, 2., 2.), (3, 0., 0.))),
+        vec![(Some(1), 2, vec![(0, 100)])], vec![(Some(5), 2, vec![(0, 100)]), (Some(3), 3, vec![(0, 100)])],
+        false, false, VisitPolicy::ClosedContinuation, None,Some((1, 5, (1, 2, 2), (3, 0, 0))),
     ),
 
     case_03_disallowed_insertion: (
-        vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
+        vec![(Some(1), 2, vec![(0, 100)])], vec![(Some(5), 2, vec![(0, 100)])],
         false, true, VisitPolicy::ClosedContinuation, None, None,
     ),
-   case_04_disallowed_merge: (
-        vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
+    case_04_disallowed_merge: (
+        vec![(Some(1), 2, vec![(0, 100)])], vec![(Some(5), 2, vec![(0, 100)])],
         true, false, VisitPolicy::ClosedContinuation, None, None,
     ),
 
     case_05_visit_repetition: (
-        vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
-        false, false, VisitPolicy::Return, None, Some((0, 8., (1, 4., 4.), (1, 4., 4.))),
+        vec![(Some(1), 2, vec![(0, 100)])], vec![(Some(5), 2, vec![(0, 100)])],
+        false, false, VisitPolicy::Return, None, Some((0, 8, (1, 4, 4), (1, 4, 4))),
     ),
 
     case_06_time_window_threshold_above: (
-        vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
-        false, false, VisitPolicy::ClosedContinuation, Some(101.), None,
+        vec![(Some(1), 2, vec![(0, 100)])], vec![(Some(5), 2, vec![(0, 100)])],
+        false, false, VisitPolicy::ClosedContinuation, Some(101), None,
     ),
     case_07_time_window_threshold_below: (
-        vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
-        false, false, VisitPolicy::ClosedContinuation, Some(94.), Some((0, 4., (1, 4., 4.), (5, 0., 0.))),
+        vec![(Some(1), 2, vec![(0, 100)])], vec![(Some(5), 2, vec![(0, 100)])],
+        false, false, VisitPolicy::ClosedContinuation, Some(94), Some((0, 4, (1, 4, 4), (5, 0, 0))),
     ),
 }
 
@@ -285,75 +285,75 @@ fn can_add_job_impl(
 
 parameterized_test! {can_build_job_cluster_with_policy, (visiting, expected), {
     let job_places = vec![
-        vec![(Some(1), 2., vec![(0., 100.)])],
-        vec![(Some(2), 2., vec![(0., 100.)])],
-        vec![(Some(3), 2., vec![(0., 100.)])],
-        vec![(Some(4), 2., vec![(0., 100.)])],
+        vec![(Some(1), 2, vec![(0, 100)])],
+        vec![(Some(2), 2, vec![(0, 100)])],
+        vec![(Some(3), 2, vec![(0, 100)])],
+        vec![(Some(4), 2, vec![(0, 100)])],
     ];
     can_build_job_cluster_impl(visiting, vec![], vec![], vec![], job_places, expected);
 }}
 
 can_build_job_cluster_with_policy! {
-    case_01_closed: (VisitPolicy::ClosedContinuation, Some((vec![0, 1, 2, 3], 14., (0., 91.)))),
-    case_02_open: (VisitPolicy::OpenContinuation, Some((vec![0, 1, 2, 3], 11., (0., 91.)))),
+    case_01_closed: (VisitPolicy::ClosedContinuation, Some((vec![0, 1, 2, 3], 14, (0, 91)))),
+    case_02_open: (VisitPolicy::OpenContinuation, Some((vec![0, 1, 2, 3], 11, (0, 91)))),
     // 100 -2s -1f 97 -2s -1b -2f 92 -2s -2b -3f 85 -2s -3b
-    case_03_return: (VisitPolicy::Return, Some((vec![0, 1, 2, 3], 20., (0., 85.)))),
+    case_03_return: (VisitPolicy::Return, Some((vec![0, 1, 2, 3], 20, (0, 85)))),
 }
 
 parameterized_test! {can_build_job_cluster_with_time_windows, (times, expected), {
     let job_places = vec![
-        vec![(Some(1), 2., times.get(0).unwrap().clone())],
-        vec![(Some(2), 2., times.get(1).unwrap().clone())],
-        vec![(Some(3), 2., times.get(2).unwrap().clone())],
-        vec![(Some(4), 2., times.get(3).unwrap().clone())],
+        vec![(Some(1), 2, times.get(0).unwrap().clone())],
+        vec![(Some(2), 2, times.get(1).unwrap().clone())],
+        vec![(Some(3), 2, times.get(2).unwrap().clone())],
+        vec![(Some(4), 2, times.get(3).unwrap().clone())],
     ];
     can_build_job_cluster_impl(VisitPolicy::ClosedContinuation, vec![], vec![], vec![], job_places, expected);
 }}
 
 can_build_job_cluster_with_time_windows! {
-    case_01_same:   (vec![vec![(0., 100.)], vec![(0., 100.)], vec![(0., 100.)], vec![(0., 100.)]],
-                     Some((vec![0, 1, 2, 3], 14., (0., 91.)))),
-    case_02_diff:   (vec![vec![(0., 100.)], vec![(0., 50.)], vec![(0., 120.)], vec![(0., 100.)]],
-                     Some((vec![0, 1, 2, 3], 14., (0., 41.)))),
-    case_03_diff:   (vec![vec![(50., 100.)], vec![(20., 80.)], vec![(30., 60.)], vec![(0., 100.)]],
+    case_01_same:   (vec![vec![(0, 100)], vec![(0, 100)], vec![(0, 100)], vec![(0, 100)]],
+                     Some((vec![0, 1, 2, 3], 14, (0, 91)))),
+    case_02_diff:   (vec![vec![(0, 100)], vec![(0, 50)], vec![(0, 120)], vec![(0, 100)]],
+                     Some((vec![0, 1, 2, 3], 14, (0, 41)))),
+    case_03_diff:   (vec![vec![(50, 100)], vec![(20, 80)], vec![(30, 60)], vec![(0, 100)]],
                      // NOTE ideally it can be: 54 +2s +1f 57 +2s +1f 60 ..
-                     Some((vec![0, 1, 2, 3], 14., (50., 51.)))),
+                     Some((vec![0, 1, 2, 3], 14, (50, 51)))),
 
-    case_04_skip:   (vec![vec![(20., 50.)], vec![(80., 100.)], vec![(0., 40.)], vec![(10., 30.)]],
+    case_04_skip:   (vec![vec![(20, 50)], vec![(80, 100)], vec![(0, 40)], vec![(10, 30)]],
                      // 23 +2s +2f 27 +1f +2s 30 ..
-                     Some((vec![0, 2, 3], 12., (20., 23.)))),
-    case_05_skip:   (vec![vec![(20., 50.)], vec![(80., 100.)], vec![(10., 30.)], vec![(0., 40.)]],
-                     Some((vec![0, 2, 3], 12., (20., 23.)))),
-    case_06_skip:   (vec![vec![(10., 30.)], vec![(80., 100.)], vec![(20., 50.)], vec![(0., 40.)]],
-                     Some((vec![0, 2, 3], 12., (18., 23.)))),
-    case_07_skip:   (vec![vec![(55., 100.)], vec![(20., 80.)], vec![(30., 60.)], vec![(0., 100.)]],
-                     Some((vec![0, 1, 3], 12., (55., 73.)))),
+                     Some((vec![0, 2, 3], 12, (20, 23)))),
+    case_05_skip:   (vec![vec![(20, 50)], vec![(80, 100)], vec![(10, 30)], vec![(0, 40)]],
+                     Some((vec![0, 2, 3], 12, (20, 23)))),
+    case_06_skip:   (vec![vec![(10, 30)], vec![(80, 100)], vec![(20, 50)], vec![(0, 40)]],
+                     Some((vec![0, 2, 3], 12, (18, 23)))),
+    case_07_skip:   (vec![vec![(55, 100)], vec![(20, 80)], vec![(30, 60)], vec![(0, 100)]],
+                     Some((vec![0, 1, 3], 12, (55, 73)))),
 
-    case_08_multi:  (vec![vec![(0., 40.)], vec![(100., 200.), (10., 30.)], vec![(20., 50.), (60., 80.)], vec![(0., 100.)]],
-                     Some((vec![0, 1, 2, 3], 14., (19., 21.)))),
+    case_08_multi:  (vec![vec![(0, 40)], vec![(100, 200), (10, 30)], vec![(20, 50), (60, 80)], vec![(0, 100)]],
+                     Some((vec![0, 1, 2, 3], 14, (19, 21)))),
 
-    case_09_shrink: (vec![vec![(0., 100.)], vec![(10., 90.)], vec![(20., 80.)], vec![(30., 70.)]],
-                     Some((vec![0, 1, 2, 3], 14., (29., 61.)))),
-    case_10_shrink: (vec![vec![(10., 90.)], vec![(20., 80.)], vec![(0., 100.)], vec![(30., 70.)]],
-                     Some((vec![0, 1, 2, 3], 14., (29., 61.)))),
+    case_09_shrink: (vec![vec![(0, 100)], vec![(10, 90)], vec![(20, 80)], vec![(30, 70)]],
+                     Some((vec![0, 1, 2, 3], 14, (29, 61)))),
+    case_10_shrink: (vec![vec![(10, 90)], vec![(20, 80)], vec![(0, 100)], vec![(30, 70)]],
+                     Some((vec![0, 1, 2, 3], 14, (29, 61)))),
 }
 
 parameterized_test! {can_build_job_cluster_skipping_jobs, (merge, insertion, used_jobs, expected), {
     let job_places = vec![
-        vec![(Some(1), 2., vec![(0., 100.)])],
-        vec![(Some(2), 2., vec![(0., 100.)])],
-        vec![(Some(3), 2., vec![(0., 100.)])],
-        vec![(Some(4), 2., vec![(0., 100.)])],
+        vec![(Some(1), 2, vec![(0, 100)])],
+        vec![(Some(2), 2, vec![(0, 100)])],
+        vec![(Some(3), 2, vec![(0, 100)])],
+        vec![(Some(4), 2, vec![(0, 100)])],
     ];
     can_build_job_cluster_impl(VisitPolicy::ClosedContinuation, merge, insertion, used_jobs, job_places, expected);
 }}
 
 can_build_job_cluster_skipping_jobs! {
-    case_01_empty:     (vec![], vec![], vec![], Some((vec![0, 1, 2, 3], 14., (0., 91.)))),
-    case_02_merge:     (vec!["job2", "job4"], vec![], vec![], Some((vec![0, 2], 8., (0., 96.)))),
-    case_03_insertion: (vec![], vec!["job2", "job4"], vec![], Some((vec![0, 2], 8., (0., 96.)))),
+    case_01_empty:     (vec![], vec![], vec![], Some((vec![0, 1, 2, 3], 14, (0, 91)))),
+    case_02_merge:     (vec!["job2", "job4"], vec![], vec![], Some((vec![0, 2], 8, (0, 96)))),
+    case_03_insertion: (vec![], vec!["job2", "job4"], vec![], Some((vec![0, 2], 8, (0, 96)))),
     case_04_all:       (vec!["job2", "job3", "job4"], vec![], vec![], None),
-    case_05_used:      (vec![], vec![], vec![1, 3], Some((vec![0, 2], 8., (0., 96.)))),
+    case_05_used:      (vec![], vec![], vec![1, 3], Some((vec![0, 2], 8, (0, 96)))),
 }
 
 fn can_build_job_cluster_impl(
@@ -362,7 +362,7 @@ fn can_build_job_cluster_impl(
     disallow_insertion_list: Vec<&str>,
     used_jobs: Vec<usize>,
     jobs_places: Vec<JobPlaces>,
-    expected: Option<(Vec<usize>, Float, (Float, Float))>,
+    expected: Option<(Vec<usize>, Timestamp, (Timestamp, Timestamp))>,
 ) {
     let transport = TestTransportCost::default();
     let config = ClusterConfig { visiting, ..create_cluster_config() };
@@ -415,32 +415,32 @@ parameterized_test! {can_get_clusters, (jobs_amount, moving_duration, max_jobs_p
 }}
 
 can_get_clusters! {
-    case_01: (13, 2.5, None, vec![(8, vec![8, 9, 10, 7, 6]), (3, vec![3, 2, 1, 4, 5]), (12, vec![12, 11])]),
-    case_02: (8, 2.5, None, vec![(5, vec![5, 4, 3, 6, 7]), (2, vec![2, 1, 0])]),
-    case_03: (7, 2.5, None, vec![(4, vec![4, 3, 2, 5, 6]), (1, vec![1, 0])]),
-    case_04: (6, 2.5, None, vec![(3, vec![3, 2, 1, 4, 5])]),
-    case_05: (6, 3.5, None, vec![(3, vec![3, 2, 1, 0, 4, 5])]),
-    case_06: (6, 0.5, None, vec![]),
+    case_01: (13, 3, None, vec![(8, vec![8, 9, 10, 7, 6]), (3, vec![3, 2, 1, 4, 5]), (12, vec![12, 11])]),
+    case_02: (8, 3, None, vec![(5, vec![5, 4, 3, 6, 7]), (2, vec![2, 1, 0])]),
+    case_03: (7, 3, None, vec![(4, vec![4, 3, 2, 5, 6]), (1, vec![1, 0])]),
+    case_04: (6, 3, None, vec![(3, vec![3, 2, 1, 4, 5])]),
+    case_05: (6, 4, None, vec![(3, vec![3, 2, 1, 0, 4, 5])]),
+    case_06: (6, 1, None, vec![]),
     // TODO improve such use cases
-    case_07: (6, 3.5, Some(3), vec![(3, vec![3, 2, 4]), (1, vec![1, 0])]),
+    case_07: (6, 4, Some(3), vec![(3, vec![3, 2, 4]), (1, vec![1, 0])]),
 }
 
 pub fn can_get_clusters_impl(
     jobs_amount: usize,
-    moving_duration: Float,
+    moving_duration: Duration,
     max_jobs_per_cluster: Option<usize>,
     expected: Vec<(usize, Vec<usize>)>,
 ) {
     let threshold = ThresholdPolicy {
         moving_duration,
-        moving_distance: 10.0,
+        moving_distance: 10,
         min_shared_time: None,
         smallest_time_window: None,
         max_jobs_per_cluster,
     };
     let disallow_merge_list = vec![];
     let disallow_insertion_list = vec![];
-    let jobs_places = (0..jobs_amount).map(|idx| vec![(Some(idx), 2., vec![(0., 100.)])]).collect();
+    let jobs_places = (0..jobs_amount).map(|idx| vec![(Some(idx), 2, vec![(0, 100)])]).collect();
     let transport = TestTransportCost::default();
     let config = ClusterConfig { threshold, ..create_cluster_config() };
     let constraint = create_goal_context_with_vicinity(disallow_merge_list);

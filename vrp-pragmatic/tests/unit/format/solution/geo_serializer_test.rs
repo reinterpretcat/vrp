@@ -62,7 +62,7 @@ fn can_create_geo_json_from_named_locations() {
 fn can_create_geo_json_for_cluster_geometry() {
     let stop = PointStop {
         location: Location::Coordinate { lat: 1., lng: 0. },
-        time: Schedule { arrival: format_time(0.), departure: format_time(10.) },
+        time: Schedule { arrival: format_time(0), departure: format_time(10) },
         distance: 0,
         load: vec![],
         parking: None,
@@ -71,7 +71,7 @@ fn can_create_geo_json_for_cluster_geometry() {
                 job_id: "job1".to_string(),
                 activity_type: "delivery".to_string(),
                 location: Some(Location::Coordinate { lat: 1., lng: 0.0 }),
-                time: Some(Interval { start: format_time(0.), end: format_time(1.) }),
+                time: Some(Interval { start: format_time(0), end: format_time(1) }),
                 job_tag: None,
                 commute: Some(Commute { forward: None, backward: None }),
             },
@@ -79,18 +79,18 @@ fn can_create_geo_json_for_cluster_geometry() {
                 job_id: "job2".to_string(),
                 activity_type: "delivery".to_string(),
                 location: Some(Location::Coordinate { lat: 2., lng: 0.0 }),
-                time: Some(Interval { start: format_time(2.), end: format_time(3.) }),
+                time: Some(Interval { start: format_time(2), end: format_time(3) }),
                 job_tag: None,
                 commute: Some(Commute {
                     forward: Some(CommuteInfo {
                         location: Location::Coordinate { lat: 1., lng: 0.0 },
-                        distance: 10.,
-                        time: Interval { start: format_time(1.), end: format_time(2.) },
+                        distance: 10,
+                        time: Interval { start: format_time(1), end: format_time(2) },
                     }),
                     backward: Some(CommuteInfo {
                         location: Location::Coordinate { lat: 1., lng: 0.0 },
-                        distance: 10.,
-                        time: Interval { start: format_time(3.), end: format_time(4.) },
+                        distance: 10,
+                        time: Interval { start: format_time(3), end: format_time(4) },
                     }),
                 }),
             },

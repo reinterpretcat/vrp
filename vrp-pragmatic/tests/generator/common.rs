@@ -3,13 +3,11 @@ use crate::format::Location;
 use crate::{format_time, parse_time};
 use std::cmp::Ordering::Less;
 use std::ops::Range;
-use std::time::Duration;
-use vrp_core::models::common::TimeWindow;
-use vrp_core::prelude::Float;
+use vrp_core::models::common::{Duration, TimeWindow, Timestamp};
 
-/// Creates `Duration` from hours amount.
-pub fn from_hours(hours: i32) -> Duration {
-    Duration::from_secs((hours as u64) * 3600)
+/// Creates `std::time::Duration` from hours amount.
+pub fn from_hours(hours: i32) -> std::time::Duration {
+    std::time::Duration::from_secs((hours as u64) * 3600)
 }
 
 prop_compose! {
@@ -25,14 +23,14 @@ prop_compose! {
 
 prop_compose! {
     /// Generates time window.
-    fn generate_time_window_fixed_raw(day: Float, start_offsets: Vec<u64>, durations: Vec<u64>)
+    fn generate_time_window_fixed_raw(day: Timestamp, start_offsets: Vec<Timestamp>, durations: Vec<Duration>)
     (
-     start_offset in from_uints(start_offsets),
-     duration in from_uints(durations)
+     start_offset in from_long(start_offsets),
+     duration in from_long(durations)
     ) -> TimeWindow {
 
-        let start = day + start_offset as Float;
-        let end = start + duration as Float;
+        let start = day + start_offset;
+        let end = start + duration;
 
         TimeWindow::new(start, end)
     }
@@ -41,13 +39,13 @@ prop_compose! {
 prop_compose! {
     /// Generates multiple time windows.
     pub fn generate_multiple_time_windows_fixed(start_date: &str,
-                                           start_offsets: Vec<Duration>,
-                                           durations: Vec<Duration>,
+                                           start_offsets: Vec<std::time::Duration>,
+                                           durations: Vec<std::time::Duration>,
                                            amount_range: Range<usize>)
     (time_windows in prop::collection::vec(generate_time_window_fixed_raw(
                                             parse_time(start_date),
-                                            start_offsets.iter().map(|d| d.as_secs()).collect(),
-                                            durations.iter().map(|d| d.as_secs()).collect()),
+                                            start_offsets.iter().map(|d| d.as_secs() as Duration).collect(),
+                                            durations.iter().map(|d| d.as_secs() as Duration).collect()),
                                            amount_range)
     .prop_filter("Filter out time window intersections.", |tws| {
         Some((0..).zip(tws.iter())).map(|tws| {
@@ -68,8 +66,8 @@ prop_compose! {
 
 prop_compose! {
     /// Generates durations in range.
-    pub fn generate_durations(range: Range<i32>)(duration in range) -> Float {
-        duration as Float
+    pub fn generate_durations(range: Range<Duration>)(duration in range) -> Duration {
+        duration
     }
 }
 

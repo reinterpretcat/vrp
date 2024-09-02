@@ -7,7 +7,9 @@ extern crate serde_json;
 use crate::format::{FormatError, Location, MultiFormatError};
 use serde::{Deserialize, Serialize};
 use std::io::{BufReader, BufWriter, Error, Read, Write};
+use vrp_core::models::common::{Distance, Duration, Timestamp};
 use vrp_core::prelude::Float;
+
 // region Plan
 
 /// Relation type.
@@ -59,7 +61,7 @@ pub struct JobPlace {
     /// A job place location.
     pub location: Location,
     /// A job place duration (service time).
-    pub duration: Float,
+    pub duration: Duration,
     /// A list of job place time windows with time specified in RFC3339 format.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub times: Option<Vec<Vec<String>>>,
@@ -152,13 +154,13 @@ pub enum Clustering {
 #[serde(rename_all = "camelCase")]
 pub struct VicinityThresholdPolicy {
     /// Moving duration limit.
-    pub duration: Float,
+    pub duration: Duration,
     /// Moving distance limit.
-    pub distance: Float,
+    pub distance: Distance,
     /// Minimum shared time for jobs (non-inclusive).
-    pub min_shared_time: Option<Float>,
+    pub min_shared_time: Option<Duration>,
     /// The smallest time window of the cluster after service time shrinking.
-    pub smallest_time_window: Option<Float>,
+    pub smallest_time_window: Option<Duration>,
     /// The maximum amount of jobs per cluster.
     pub max_jobs_per_cluster: Option<usize>,
 }
@@ -182,7 +184,7 @@ pub enum VicinityServingPolicy {
     #[serde(rename(deserialize = "original", serialize = "original"))]
     Original {
         /// Parking time.
-        parking: Float,
+        parking: Duration,
     },
     /// Correct service time by some multiplier.
     #[serde(rename(deserialize = "multiplier", serialize = "multiplier"))]
@@ -190,15 +192,15 @@ pub enum VicinityServingPolicy {
         /// Multiplier value applied to original job's duration.
         value: Float,
         /// Parking time.
-        parking: Float,
+        parking: Duration,
     },
     /// Use fixed value for all clustered jobs.
     #[serde(rename(deserialize = "fixed", serialize = "fixed"))]
     Fixed {
         /// Fixed value used for all jobs in the cluster.
-        value: Float,
+        value: Duration,
         /// Parking time.
-        parking: Float,
+        parking: Duration,
     },
 }
 
@@ -308,7 +310,7 @@ pub struct VehicleReload {
     pub location: Location,
 
     /// A total loading/reloading duration (service time).
-    pub duration: Float,
+    pub duration: Duration,
 
     /// A list of time windows with time specified in RFC3339 format.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -328,7 +330,7 @@ pub struct VehicleReload {
 #[serde(rename_all = "camelCase")]
 pub struct VehicleRecharges {
     /// Maximum traveled distance before recharge station has to be visited.
-    pub max_distance: Float,
+    pub max_distance: Distance,
 
     /// Specifies list of recharge station. Each can be visited only once.
     pub stations: Vec<VehicleRechargeStation>,
@@ -344,13 +346,13 @@ pub struct VehicleLimits {
     /// Max traveling distance per shift/tour.
     /// No distance restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_distance: Option<Float>,
+    pub max_distance: Option<Distance>,
 
     /// Max duration per tour.
     /// No time restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(alias = "shiftTime")]
-    pub max_duration: Option<Float>,
+    pub max_duration: Option<Duration>,
 
     /// Max amount job activities.
     /// No job activities restrictions when omitted.
@@ -365,7 +367,7 @@ pub enum VehicleOptionalBreakTime {
     /// Break time is defined by a time window with time specified in RFC3339 format.
     TimeWindow(Vec<String>),
     /// Break time is defined by a time offset range.
-    TimeOffset(Vec<Float>),
+    TimeOffset(Vec<Timestamp>),
 }
 
 /// Vehicle required break time variant.
@@ -384,9 +386,9 @@ pub enum VehicleRequiredBreakTime {
     /// Break should be taken not earlier and not later than time range specified.
     OffsetTime {
         /// Start of the range.
-        earliest: Float,
+        earliest: Timestamp,
         /// End of the range.
-        latest: Float,
+        latest: Timestamp,
     },
 }
 
@@ -394,7 +396,7 @@ pub enum VehicleRequiredBreakTime {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VehicleOptionalBreakPlace {
     /// Break duration.
-    pub duration: Float,
+    pub duration: Duration,
     /// Break location.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub location: Option<Location>,
@@ -432,7 +434,7 @@ pub enum VehicleBreak {
         /// Break time.
         time: VehicleRequiredBreakTime,
         /// Break duration.
-        duration: Float,
+        duration: Duration,
     },
 }
 

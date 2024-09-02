@@ -337,7 +337,7 @@ fn is_required_single(
 /// Checks whether break can be scheduled in route.
 fn can_be_scheduled(route_ctx: &RouteContext, break_single: &Single, policy_fn: &BreakPolicyFn) -> bool {
     let departure = route_ctx.route().tour.start().unwrap().schedule.departure;
-    let arrival = route_ctx.route().tour.end().map_or(0., |end| end.schedule.arrival);
+    let arrival = route_ctx.route().tour.end().map_or(Timestamp::default(), |end| end.schedule.arrival);
     let tour_tw = TimeWindow::new(departure, arrival);
 
     let policy = policy_fn(break_single);

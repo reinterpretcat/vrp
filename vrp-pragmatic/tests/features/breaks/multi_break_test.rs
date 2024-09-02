@@ -13,23 +13,23 @@ fn can_use_two_breaks() {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
-                        earliest: format_time(0.),
-                        latest: Some(format_time(0.)),
+                        earliest: format_time(0),
+                        latest: Some(format_time(0)),
                         location: (0., 0.).to_loc(),
                     },
                     breaks: Some(vec![
                         VehicleBreak::Optional {
-                            time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
+                            time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5), format_time(10)]),
                             places: vec![VehicleOptionalBreakPlace {
-                                duration: 2.0,
+                                duration: 2,
                                 location: Some((6., 0.).to_loc()),
                                 tag: None,
                             }],
                             policy: None,
                         },
                         VehicleBreak::Optional {
-                            time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(100.), format_time(120.)]),
-                            places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
+                            time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(100), format_time(120)]),
+                            places: vec![VehicleOptionalBreakPlace { duration: 2, location: None, tag: None }],
                             policy: None,
                         },
                     ]),
@@ -53,40 +53,38 @@ fn can_use_two_breaks() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![2])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((5., 0.))
-                            .schedule_stamp(5., 6.)
+                            .schedule_stamp(5, 6)
                             .load(vec![1])
                             .distance(5)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((6., 0.))
-                            .schedule_stamp(7., 9.)
+                            .schedule_stamp(7, 9)
                             .load(vec![1])
                             .distance(6)
                             .build_single("break", "break"),
                         StopBuilder::default()
                             .coordinate((99., 0.))
-                            .schedule_stamp(102., 105.)
+                            .schedule_stamp(102, 105)
                             .load(vec![0])
                             .distance(99)
                             .activity(
                                 ActivityBuilder::delivery()
                                     .job_id("job2")
                                     .coordinate((99., 0.))
-                                    .time_stamp(102., 103.)
+                                    .time_stamp(102, 103)
                                     .build()
                             )
-                            .activity(
-                                ActivityBuilder::break_type().coordinate((99., 0.)).time_stamp(103., 105.).build()
-                            )
+                            .activity(ActivityBuilder::break_type().coordinate((99., 0.)).time_stamp(103, 105).build())
                             .build(),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(204., 204.)
+                            .schedule_stamp(204, 204)
                             .load(vec![0])
                             .distance(198)
                             .build_arrival(),

@@ -6,11 +6,11 @@ fn can_use_sequence_relation_with_strict_time_windows() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_times("job1", (10., 0.), vec![(150, 170)], 10.),
-                create_delivery_job_with_times("job2", (20., 0.), vec![(20, 30)], 10.),
-                create_delivery_job_with_times("job3", (30., 0.), vec![(40, 50)], 10.),
-                create_delivery_job_with_times("job4", (40., 0.), vec![(60, 150)], 10.),
-                create_delivery_job_with_times("job5", (50., 0.), vec![(70, 80)], 10.),
+                create_delivery_job_with_times("job1", (10., 0.), vec![(150, 170)], 10),
+                create_delivery_job_with_times("job2", (20., 0.), vec![(20, 30)], 10),
+                create_delivery_job_with_times("job3", (30., 0.), vec![(40, 50)], 10),
+                create_delivery_job_with_times("job4", (40., 0.), vec![(60, 150)], 10),
+                create_delivery_job_with_times("job5", (50., 0.), vec![(70, 80)], 10),
             ],
             relations: Some(vec![Relation {
                 type_field: RelationType::Sequence,
@@ -42,42 +42,42 @@ fn can_use_sequence_relation_with_strict_time_windows() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 10.)
+                            .schedule_stamp(0, 10)
                             .load(vec![5])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((20., 0.))
-                            .schedule_stamp(30., 40.)
+                            .schedule_stamp(30, 40)
                             .load(vec![4])
                             .distance(20)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((30., 0.))
-                            .schedule_stamp(50., 60.)
+                            .schedule_stamp(50, 60)
                             .load(vec![3])
                             .distance(30)
                             .build_single("job3", "delivery"),
                         StopBuilder::default()
                             .coordinate((50., 0.))
-                            .schedule_stamp(80., 90.)
+                            .schedule_stamp(80, 90)
                             .load(vec![2])
                             .distance(50)
                             .build_single("job5", "delivery"),
                         StopBuilder::default()
                             .coordinate((40., 0.))
-                            .schedule_stamp(100., 110.)
+                            .schedule_stamp(100, 110)
                             .load(vec![1])
                             .distance(60)
                             .build_single("job4", "delivery"),
                         StopBuilder::default()
                             .coordinate((10., 0.))
-                            .schedule_stamp(140., 160.)
+                            .schedule_stamp(140, 160)
                             .load(vec![0])
                             .distance(90)
-                            .build_single_time("job1", "delivery", (150., 160.)),
+                            .build_single_time("job1", "delivery", (150, 160)),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(170., 170.)
+                            .schedule_stamp(170, 170)
                             .load(vec![0])
                             .distance(100)
                             .build_arrival(),

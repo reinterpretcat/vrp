@@ -1,6 +1,7 @@
 //! A feature to detect filter jobs based on their reachability.
 
 use crate::construction::heuristics::MoveContext;
+use crate::models::common::Distance;
 use crate::models::problem::{Job, TransportCost, TravelTime};
 use crate::models::{ConstraintViolation, Feature, FeatureBuilder, FeatureConstraint, ViolationCode};
 use rosomaxa::utils::GenericError;
@@ -36,7 +37,7 @@ impl FeatureConstraint for ReachableConstraint {
                     TravelTime::Departure(prev.schedule.departure),
                 );
 
-                if prev_to_target < 0. {
+                if prev_to_target < Distance::default() {
                     return ConstraintViolation::skip(self.code);
                 }
 
@@ -47,7 +48,7 @@ impl FeatureConstraint for ReachableConstraint {
                         next.place.location,
                         TravelTime::Departure(target.schedule.departure),
                     );
-                    if target_to_next < 0. {
+                    if target_to_next < Distance::default() {
                         return ConstraintViolation::skip(self.code);
                     }
                 }
@@ -58,7 +59,7 @@ impl FeatureConstraint for ReachableConstraint {
     }
 
     fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
-        // NOTE it is responsibility of the caller to check whether jobs are reachable
+        // NOTE it is the responsibility of the caller to check whether jobs are reachable
         Ok(source)
     }
 }

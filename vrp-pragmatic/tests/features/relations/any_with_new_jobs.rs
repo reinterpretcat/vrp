@@ -45,24 +45,24 @@ fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![3])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(1., 2.)
+                            .schedule_stamp(1, 2)
                             .load(vec![2])
                             .distance(1)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((2., 0.))
-                            .schedule_stamp(3., 4.)
+                            .schedule_stamp(3, 4)
                             .load(vec![1])
                             .distance(2)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((3., 0.))
-                            .schedule_stamp(5., 6.)
+                            .schedule_stamp(5, 6)
                             .load(vec![0])
                             .distance(3)
                             .build_single("job3", "delivery"),

@@ -65,21 +65,24 @@ pub fn create_activity_balanced_feature(name: &str) -> Result<Feature, GenericEr
 pub fn create_duration_balanced_feature(name: &str) -> Result<Feature, GenericError> {
     struct DurationBalancedKey;
 
-    create_transport_balanced_feature::<DurationBalancedKey>(name, |state| state.get_total_duration())
+    create_transport_balanced_feature::<DurationBalancedKey>(name, |state| {
+        state.get_total_duration().copied().map(|d| d as Float)
+    })
 }
 
 /// Creates a feature which which balances travelled distances across all tours.
 pub fn create_distance_balanced_feature(name: &str) -> Result<Feature, GenericError> {
     struct DistanceBalancedKey;
-    create_transport_balanced_feature::<DistanceBalancedKey>(name, |state| state.get_total_distance())
+    create_transport_balanced_feature::<DistanceBalancedKey>(name, |state| {
+        state.get_total_distance().copied().map(|d| d as Float)
+    })
 }
 
 fn create_transport_balanced_feature<K: Send + Sync + 'static>(
     name: &str,
-    value_fn: impl Fn(&RouteState) -> Option<&Float> + Send + Sync + 'static,
+    value_fn: impl Fn(&RouteState) -> Option<Float> + Send + Sync + 'static,
 ) -> Result<Feature, GenericError> {
-    let route_estimate_fn =
-        Arc::new(move |route_ctx: &RouteContext| value_fn(route_ctx.state()).cloned().unwrap_or(0.));
+    let route_estimate_fn = Arc::new(move |route_ctx: &RouteContext| value_fn(route_ctx.state()).unwrap_or_default());
 
     let solution_estimate_fn = Arc::new({
         let route_estimate_fn = route_estimate_fn.clone();

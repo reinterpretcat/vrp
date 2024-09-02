@@ -8,7 +8,7 @@ use vrp_core::models::problem::TravelTime;
 use vrp_core::models::problem::{Actor, ActorDetail, Vehicle};
 use vrp_core::models::solution::Route;
 
-fn matrix(profile: Option<&str>, timestamp: Option<Float>, fill_value: i64, size: usize) -> Matrix {
+fn matrix(profile: Option<&str>, timestamp: Option<Timestamp>, fill_value: i64, size: usize) -> Matrix {
     Matrix {
         profile: profile.map(|p| p.to_string()),
         timestamp: timestamp.map(format_time),
@@ -75,7 +75,7 @@ can_create_transport_costs_negative_cases! {
         ),
         case07: (
             &["car1"],
-            &[matrix(Some("car1"), None, 1, 4), matrix(Some("car1"), Some(0.), 2, 4)],
+            &[matrix(Some("car1"), None, 1, 4), matrix(Some("car1"), Some(0), 2, 4)],
             "time-aware routing requires all matrices to have timestamp"
         ),
         case08: (
@@ -85,12 +85,12 @@ can_create_transport_costs_negative_cases! {
         ),
         case09: (
             &["car1"],
-            &[matrix(None, Some(0.), 1, 4)],
+            &[matrix(None, Some(0), 1, 4)],
             "when timestamp is set, all matrices should have profile set"
         ),
         case10: (
             &["car1", "car2"],
-            &[matrix(None, Some(0.), 1, 4), matrix(None, Some(0.), 2, 4)],
+            &[matrix(None, Some(0), 1, 4), matrix(None, Some(0), 2, 4)],
             "when timestamp is set, all matrices should have profile set"
         ),
 }
@@ -112,40 +112,40 @@ can_create_transport_costs_positive_cases! {
        case01: (
             &["car"],
             &[matrix(Some("car1"), None, 1, 4)],
-            &[(0, 0., 1.)]
+            &[(0, 0, 1)]
         ),
         case02: (
             &["car"],
             &[matrix(None, None, 1, 4)],
-            &[(0, 0., 1.)]
+            &[(0, 0, 1)]
         ),
         case03: (
             &["car1", "car2"],
             &[matrix(None, None, 1, 4), matrix(None, None, 2, 4)],
-            &[(0, 0., 1.), (1, 0., 2.)]
+            &[(0, 0, 1), (1, 0, 2)]
         ),
         case04: (
             &["car1", "car2"],
             &[matrix(Some("car1"), None, 1, 4), matrix(Some("car2"), None, 2, 4)],
-            &[(0, 0., 1.), (1, 0., 2.)]
+            &[(0, 0, 1), (1, 0, 2)]
         ),
         case05: (
             &["car1", "car2"],
             &[matrix(Some("car2"), None, 2, 4), matrix(Some("car1"), None, 1, 4)],
-            &[(0, 0., 1.), (1, 0., 2.)]
+            &[(0, 0, 1), (1, 0, 2)]
         ),
         case06: (
             &["car"],
-            &[matrix(Some("car"), Some(0.), 1, 4), matrix(Some("car"), Some(10.), 2, 4)],
-            &[(0, 0., 1.), (0, 10., 2.)]
+            &[matrix(Some("car"), Some(0), 1, 4), matrix(Some("car"), Some(10), 2, 4)],
+            &[(0, 0, 1), (0, 10, 2)]
         ),
         case07: (
             &["car1", "car2"],
-            &[matrix(Some("car1"), Some(0.), 1, 4),
-              matrix(Some("car2"), Some(0.), 3, 4),
-              matrix(Some("car1"), Some(10.), 2, 4),
-              matrix(Some("car2"), Some(10.), 4, 4)],
-            &[(0, 0., 1.), (0, 10., 2.), (1, 0., 3.), (1, 10., 4.)]
+            &[matrix(Some("car1"), Some(0), 1, 4),
+              matrix(Some("car2"), Some(0), 3, 4),
+              matrix(Some("car1"), Some(10), 2, 4),
+              matrix(Some("car2"), Some(10), 4, 4)],
+            &[(0, 0, 1), (0, 10, 2), (1, 0, 3), (1, 10, 4)]
         ),
 }
 
@@ -164,7 +164,7 @@ fn can_create_transport_costs_positive_cases_impl(
             actor: Arc::new(Actor {
                 vehicle: Arc::new(Vehicle { profile: CoreProfile::new(profile_idx, None), ..test_vehicle("v1") }),
                 driver: Arc::new(test_driver()),
-                detail: ActorDetail { start: None, end: None, time: TimeWindow::new(0., 1.) },
+                detail: ActorDetail { start: None, end: None, time: TimeWindow::new(0, 1) },
             }),
             tour: Default::default(),
         };

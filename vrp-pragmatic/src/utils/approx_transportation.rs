@@ -3,7 +3,6 @@
 mod approx_transportation_test;
 
 use crate::format::{CustomLocationType, Location};
-use vrp_core::models::common::Distance;
 use vrp_core::utils::{parallel_collect, Float};
 
 /// Gets approximated durations and distances rounded to nearest integer.
@@ -30,7 +29,7 @@ pub(crate) fn get_haversine_distance(p1: &Location, p2: &Location) -> Float {
     if matches!(p1, Location::Custom { r#type: CustomLocationType::Unknown })
         || matches!(p2, Location::Custom { r#type: CustomLocationType::Unknown })
     {
-        return Distance::default();
+        return Float::default();
     }
 
     let (p1_lat, p1_lng) = as_lat_lon(p1.clone());

@@ -20,11 +20,11 @@ fn get_total_break_error_msg(expected: usize, actual: usize) -> Result<(), Vec<G
     ).into()])
 }
 
-fn get_offset_break(start: Float, end: Float) -> VehicleOptionalBreakTime {
+fn get_offset_break(start: Timestamp, end: Timestamp) -> VehicleOptionalBreakTime {
     VehicleOptionalBreakTime::TimeOffset(vec![start, end])
 }
 
-fn get_time_break(start: Float, end: Float) -> VehicleOptionalBreakTime {
+fn get_time_break(start: Timestamp, end: Timestamp) -> VehicleOptionalBreakTime {
     VehicleOptionalBreakTime::TimeWindow(vec![format_time(start), format_time(end)])
 }
 
@@ -33,34 +33,34 @@ parameterized_test! {can_check_breaks, (break_times, violations, has_break, expe
 }}
 
 can_check_breaks! {
-    case01: (get_offset_break(2., 5.), None, true, Ok(())),
-    case02: (get_offset_break(2., 5.), test_violations(), true, get_total_break_error_msg(1, 2)),
-    case03: (get_offset_break(2., 5.), None, false, get_total_break_error_msg(1, 0)),
+    case01: (get_offset_break(2, 5), None, true, Ok(())),
+    case02: (get_offset_break(2, 5), test_violations(), true, get_total_break_error_msg(1, 2)),
+    case03: (get_offset_break(2, 5), None, false, get_total_break_error_msg(1, 0)),
 
-    case04: (get_offset_break(3., 6.), None, true, Ok(())),
+    case04: (get_offset_break(3, 6), None, true, Ok(())),
 
-    case05: (get_offset_break(0., 1.), None, true, get_matched_break_error_msg(0, 1)),
-    case06: (get_offset_break(0., 1.), test_violations(), true, get_matched_break_error_msg(0, 1)),
-    case07: (get_offset_break(0., 1.), None, false, get_total_break_error_msg(1, 0)),
-    case08: (get_offset_break(0., 1.), test_violations(), false, Ok(())),
+    case05: (get_offset_break(0, 1), None, true, get_matched_break_error_msg(0, 1)),
+    case06: (get_offset_break(0, 1), test_violations(), true, get_matched_break_error_msg(0, 1)),
+    case07: (get_offset_break(0, 1), None, false, get_total_break_error_msg(1, 0)),
+    case08: (get_offset_break(0, 1), test_violations(), false, Ok(())),
 
-    case09: (get_offset_break(0., 1.), None, true, get_matched_break_error_msg(0, 1)),
+    case09: (get_offset_break(0, 1), None, true, get_matched_break_error_msg(0, 1)),
 
-    case10: (get_offset_break(7., 10.), test_violations(), false, Ok(())),
-    case11: (get_offset_break(7., 10.), None, true, get_matched_break_error_msg(0, 1)),
+    case10: (get_offset_break(7, 10), test_violations(), false, Ok(())),
+    case11: (get_offset_break(7, 10), None, true, get_matched_break_error_msg(0, 1)),
 
-    case12: (get_time_break(2., 5.), None, true, Ok(())),
+    case12: (get_time_break(2, 5), None, true, Ok(())),
 
-    case13: (get_time_break(3., 6.), None, true, Ok(())),
-    case14: (get_time_break(3., 6.), test_violations(), true, get_total_break_error_msg(1, 2)),
+    case13: (get_time_break(3, 6), None, true, Ok(())),
+    case14: (get_time_break(3, 6), test_violations(), true, get_total_break_error_msg(1, 2)),
 
-    case15: (get_time_break(0., 1.), test_violations(), false, Ok(())),
-    case16: (get_time_break(0., 1.), test_violations(), true, get_matched_break_error_msg(0, 1)),
-    case17: (get_time_break(0., 1.), None, true, get_matched_break_error_msg(0, 1)),
+    case15: (get_time_break(0, 1), test_violations(), false, Ok(())),
+    case16: (get_time_break(0, 1), test_violations(), true, get_matched_break_error_msg(0, 1)),
+    case17: (get_time_break(0, 1), None, true, get_matched_break_error_msg(0, 1)),
 
-    case18: (get_time_break(7., 10.), test_violations(), false, Ok(())),
-    case19: (get_time_break(7., 10.), test_violations(), true, get_matched_break_error_msg(0, 1)),
-    case20: (get_time_break(7., 10.), None, true, get_matched_break_error_msg(0, 1)),
+    case18: (get_time_break(7, 10), test_violations(), false, Ok(())),
+    case19: (get_time_break(7, 10), test_violations(), true, get_matched_break_error_msg(0, 1)),
+    case20: (get_time_break(7, 10), None, true, get_matched_break_error_msg(0, 1)),
 }
 
 fn can_check_breaks_impl(
@@ -77,11 +77,11 @@ fn can_check_breaks_impl(
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
-                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (0., 0.).to_loc() }),
+                    start: ShiftStart { earliest: format_time(0), latest: None, location: (0., 0.).to_loc() },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000), location: (0., 0.).to_loc() }),
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: break_times,
-                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
+                        places: vec![VehicleOptionalBreakPlace { duration: 2, location: None, tag: None }],
                         policy: None,
                     }]),
                     reloads: None,
@@ -118,23 +118,23 @@ fn can_check_breaks_impl(
         .tour(
             TourBuilder::default()
                 .stops(vec![
-                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![2]).build_departure(),
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0, 0).load(vec![2]).build_departure(),
                     StopBuilder::default()
                         .coordinate((1., 0.))
-                        .schedule_stamp(1., 2.)
+                        .schedule_stamp(1, 2)
                         .load(vec![1])
                         .distance(1)
                         .build_single("job1", "delivery"),
                     StopBuilder::default()
                         .coordinate((2., 0.))
-                        .schedule_stamp(3., 6.)
+                        .schedule_stamp(3, 6)
                         .load(vec![0])
                         .distance(2)
                         .activities(activities)
                         .build(),
                     StopBuilder::default()
                         .coordinate((0., 0.))
-                        .schedule_stamp(8., 8.)
+                        .schedule_stamp(8, 8)
                         .load(vec![0])
                         .distance(4)
                         .build_arrival(),

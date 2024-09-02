@@ -42,20 +42,20 @@ parameterized_test! {can_check_shift_and_distance_limit, (max_distance, shift_ti
 }}
 
 can_check_shift_and_distance_limit! {
-    case_01: (Some(10.), None, 11, Result::<(), _>::Err("max distance limit")),
-    case_02: (Some(10.), None, 10, Result::<_, &str>::Ok(())),
-    case_03: (Some(10.), None, 9, Result::<_, &str>::Ok(())),
+    case_01: (Some(10), None, 11, Result::<(), _>::Err("max distance limit")),
+    case_02: (Some(10), None, 10, Result::<_, &str>::Ok(())),
+    case_03: (Some(10), None, 9, Result::<_, &str>::Ok(())),
 
-    case_04: (None, Some(10.), 11, Result::<(), _>::Err("shift time limit")),
-    case_05: (None, Some(10.), 10, Result::<_, &str>::Ok(())),
-    case_06: (None, Some(10.), 9, Result::<_, &str>::Ok(())),
+    case_04: (None, Some(10), 11, Result::<(), _>::Err("shift time limit")),
+    case_05: (None, Some(10), 10, Result::<_, &str>::Ok(())),
+    case_06: (None, Some(10), 9, Result::<_, &str>::Ok(())),
 
     case_07: (None, None, i64::MAX, Result::<_, &str>::Ok(())),
 }
 
 pub fn can_check_shift_and_distance_limit_impl(
-    max_distance: Option<Float>,
-    max_duration: Option<Float>,
+    max_distance: Option<Distance>,
+    max_duration: Option<Duration>,
     actual: i64,
     expected: Result<(), GenericError>,
 ) {
@@ -76,31 +76,26 @@ pub fn can_check_tour_size_limit() {
     let solution = create_test_solution(
         Statistic::default(),
         vec![
-            StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![3]).build_departure(),
+            StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0, 0).load(vec![3]).build_departure(),
             StopBuilder::default()
                 .coordinate((1., 0.))
-                .schedule_stamp(1., 1.)
+                .schedule_stamp(1, 1)
                 .load(vec![2])
                 .distance(1)
                 .build_single("job1", "delivery"),
             StopBuilder::default()
                 .coordinate((2., 0.))
-                .schedule_stamp(2., 2.)
+                .schedule_stamp(2, 2)
                 .load(vec![1])
                 .distance(2)
                 .build_single("job2", "delivery"),
             StopBuilder::default()
                 .coordinate((3., 0.))
-                .schedule_stamp(3., 3.)
+                .schedule_stamp(3, 3)
                 .load(vec![0])
                 .distance(3)
                 .build_single("job3", "delivery"),
-            StopBuilder::default()
-                .coordinate((0., 0.))
-                .schedule_stamp(6., 6.)
-                .load(vec![0])
-                .distance(6)
-                .build_arrival(),
+            StopBuilder::default().coordinate((0., 0.)).schedule_stamp(6, 6).load(vec![0]).distance(6).build_arrival(),
         ],
     );
     let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
@@ -118,14 +113,14 @@ pub fn can_check_tour_size_limit() {
 fn can_check_shift_time() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(5, 10)], 1.)],
+            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(5, 10)], 1)],
             ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
-                    end: Some(ShiftEnd { earliest: None, latest: format_time(5.), location: (0., 0.).to_loc() }),
+                    start: ShiftStart { earliest: format_time(0), latest: None, location: (0., 0.).to_loc() },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(5), location: (0., 0.).to_loc() }),
                     ..create_default_vehicle_shift()
                 }],
                 ..create_default_vehicle_type()
@@ -139,16 +134,16 @@ fn can_check_shift_time() {
         .tour(
             TourBuilder::default()
                 .stops(vec![
-                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(2., 2.).load(vec![1]).build_departure(),
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(2, 2).load(vec![1]).build_departure(),
                     StopBuilder::default()
                         .coordinate((1., 0.))
-                        .schedule_stamp(5., 6.)
+                        .schedule_stamp(5, 6)
                         .load(vec![0])
                         .distance(1)
                         .build_single("job1", "delivery"),
                     StopBuilder::default()
                         .coordinate((0., 0.))
-                        .schedule_stamp(7., 7.)
+                        .schedule_stamp(7, 7)
                         .load(vec![0])
                         .distance(2)
                         .build_arrival(),
@@ -175,13 +170,13 @@ fn can_check_recharge_distance() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
+                    start: ShiftStart { earliest: format_time(0), latest: None, location: (0., 0.).to_loc() },
                     end: None,
                     recharges: Some(VehicleRecharges {
-                        max_distance: 8.,
+                        max_distance: 8,
                         stations: vec![VehicleRechargeStation {
                             location: (8., 0.).to_loc(),
-                            duration: 0.,
+                            duration: 0,
                             times: None,
                             tag: None,
                         }],
@@ -199,16 +194,16 @@ fn can_check_recharge_distance() {
         .tour(
             TourBuilder::default()
                 .stops(vec![
-                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![2]).build_departure(),
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0, 0).load(vec![2]).build_departure(),
                     StopBuilder::default()
                         .coordinate((1., 0.))
-                        .schedule_stamp(1., 2.)
+                        .schedule_stamp(1, 2)
                         .load(vec![1])
                         .distance(1)
                         .build_single("job1", "delivery"),
                     StopBuilder::default()
                         .coordinate((10., 0.))
-                        .schedule_stamp(11., 12.)
+                        .schedule_stamp(11, 12)
                         .load(vec![0])
                         .distance(10)
                         .build_single("job2", "delivery"),

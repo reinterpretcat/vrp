@@ -11,19 +11,19 @@ struct ExampleTransportCost {}
 
 impl TransportCost for ExampleTransportCost {
     fn duration_approx(&self, _: &Profile, _: Location, _: Location) -> Duration {
-        42.
+        42
     }
 
     fn distance_approx(&self, _: &Profile, _: Location, _: Location) -> Distance {
-        42.
+        42
     }
 
     fn duration(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Duration {
-        42.
+        42
     }
 
     fn distance(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Distance {
-        42.
+        42
     }
 }
 
@@ -32,7 +32,7 @@ fn create_example_jobs() -> GenericResult<Vec<Job>> {
     Ok(vec![SingleBuilder::default()
         .id("job1")
         .location(1)?
-        .times(vec![TimeWindow::new(0., 100.)])?
+        .times(vec![TimeWindow::new(0, 100)])?
         .demand(Demand::delivery(1))
         .build_as_job()?])
 }
@@ -46,9 +46,9 @@ fn create_example_vehicles() -> GenericResult<Vec<Vehicle>> {
         .add_detail(
             VehicleDetailBuilder::default()
                 .set_start_location(0)
-                .set_start_time(0.)
+                .set_start_time(0)
                 .set_end_location(0)
-                .set_end_time(1000.)
+                .set_end_time(1000)
                 .build()?,
         )
         .build()?])

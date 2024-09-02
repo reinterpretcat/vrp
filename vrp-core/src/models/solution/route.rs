@@ -2,8 +2,6 @@ use crate::models::common::{Distance, Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Job, Multi, Single};
 use crate::models::solution::Tour;
 use crate::utils::short_type_name;
-use rosomaxa::prelude::{compare_floats, Float};
-use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
@@ -18,7 +16,7 @@ pub struct Commute {
 }
 
 /// Commute information.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct CommuteInfo {
     /// A previous or next location.
     pub location: Location,
@@ -89,8 +87,8 @@ impl Activity {
     /// Creates an activity with a job.
     pub fn new_with_job(job: Arc<Single>) -> Self {
         Activity {
-            place: Place { idx: 0, location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: Float::MAX } },
-            schedule: Schedule { arrival: 0.0, departure: 0.0 },
+            place: Place { idx: 0, location: 0, duration: 0, time: TimeWindow::max() },
+            schedule: Schedule { arrival: 0, departure: 0 },
             job: Some(job),
             commute: None,
         }
@@ -137,18 +135,12 @@ impl Commute {
     }
 }
 
-impl Default for CommuteInfo {
-    fn default() -> Self {
-        Self { location: 0, distance: 0., duration: 0. }
-    }
-}
-
 impl CommuteInfo {
     /// Checks whether there is no distance costs for part of commute.
     pub fn is_zero_distance(&self) -> bool {
-        let is_zero_distance = compare_floats(self.distance, 0.) == Ordering::Equal;
+        let is_zero_distance = self.distance == 0;
 
-        if is_zero_distance && compare_floats(self.duration, 0.) != Ordering::Equal {
+        if is_zero_distance && self.duration != 0 {
             unreachable!("expected to have duration to be zero, got: {}", self.duration);
         }
 

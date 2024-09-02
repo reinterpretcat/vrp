@@ -61,8 +61,8 @@ fn create_two_test_vehicle_details() -> Vec<VehicleDetail> {
     vec![
         test_vehicle_detail(),
         VehicleDetail {
-            start: Some(VehiclePlace { location: 1, time: TimeInterval { earliest: Some(0.), latest: None } }),
-            end: Some(VehiclePlace { location: 0, time: TimeInterval { earliest: None, latest: Some(50.) } }),
+            start: Some(VehiclePlace { location: 1, time: TimeInterval { earliest: Some(0), latest: None } }),
+            end: Some(VehiclePlace { location: 0, time: TimeInterval { earliest: None, latest: Some(50) } }),
         },
     ]
 }

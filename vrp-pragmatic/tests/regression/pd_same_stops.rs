@@ -2,6 +2,7 @@ use crate::format::problem::*;
 use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
+use vrp_core::models::common::Duration;
 
 /// Checks whether two p&d jobs can be assigned to two stops as they share the same locations.
 /// The unusual part here is routing: it returns faster duration for the path with intermediate location.
@@ -10,7 +11,7 @@ fn can_handle_two_pd_jobs_with_same_locations_and_unusual_routing() {
     let create_test_task_with_loc_ref = |index: usize, tag: &str| JobTask {
         places: vec![JobPlace {
             location: Location::Reference { index },
-            duration: 0.,
+            duration: Duration::default(),
             times: None,
             tag: Some(tag.to_string()),
         }],
@@ -39,13 +40,13 @@ fn can_handle_two_pd_jobs_with_same_locations_and_unusual_routing() {
                 costs: VehicleCosts { fixed: None, distance: 0.0, time: 1.0 },
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
-                        earliest: format_time(0.),
+                        earliest: format_time(0),
                         latest: None,
                         location: Location::Reference { index: 2 },
                     },
                     end: Some(ShiftEnd {
                         earliest: None,
-                        latest: format_time(7200.),
+                        latest: format_time(7200),
                         location: Location::Reference { index: 2 },
                     }),
                     ..create_default_vehicle_shift()

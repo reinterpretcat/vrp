@@ -111,7 +111,7 @@ impl FeatureConstraint for TravelLimitConstraint {
                     let (change_distance, change_duration) = self.calculate_travel(route_ctx, activity_ctx);
 
                     if let Some(distance_limit) = tour_distance_limit {
-                        let curr_dis = route_ctx.state().get_total_distance().copied().unwrap_or(0.);
+                        let curr_dis = route_ctx.state().get_total_distance().copied().unwrap_or_default();
                         let total_distance = curr_dis + change_distance;
                         if distance_limit < total_distance {
                             return ConstraintViolation::skip(self.distance_code);
@@ -119,7 +119,7 @@ impl FeatureConstraint for TravelLimitConstraint {
                     }
 
                     if let Some(duration_limit) = tour_duration_limit {
-                        let curr_dur = route_ctx.state().get_total_duration().copied().unwrap_or(0.);
+                        let curr_dur = route_ctx.state().get_total_duration().copied().unwrap_or_default();
                         let total_duration = curr_dur + change_duration;
                         if duration_limit < total_duration {
                             return ConstraintViolation::skip(self.duration_code);

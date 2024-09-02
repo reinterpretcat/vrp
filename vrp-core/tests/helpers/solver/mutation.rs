@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::heuristics::*;
-use crate::models::common::Schedule;
+use crate::models::common::{Schedule, Timestamp};
 use crate::models::solution::{Activity, Place};
 use std::collections::HashMap;
 
@@ -95,9 +95,9 @@ pub fn rearrange_jobs_in_routes(insertion_ctx: &mut InsertionContext, job_order:
                     idx: place_idx,
                     location: place.location.unwrap(),
                     duration: place.duration,
-                    time: place.times.first().unwrap().to_time_window(0.),
+                    time: place.times.first().unwrap().to_time_window(Timestamp::default()),
                 },
-                schedule: Schedule::new(0., 0.),
+                schedule: Schedule::new(Timestamp::default(), Timestamp::default()),
                 job: Some(job),
                 commute: None,
             });

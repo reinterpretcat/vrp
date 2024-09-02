@@ -14,9 +14,9 @@ fn can_assign_break_between_jobs() {
                 costs: create_default_vehicle_costs(),
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
-                        time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
+                        time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5), format_time(10)]),
                         places: vec![VehicleOptionalBreakPlace {
-                            duration: 2.0,
+                            duration: 2,
                             location: Some((6., 0.).to_loc()),
                             tag: Some("break_tag".to_string()),
                         }],
@@ -42,30 +42,30 @@ fn can_assign_break_between_jobs() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![2])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((5., 0.))
-                            .schedule_stamp(5., 6.)
+                            .schedule_stamp(5, 6)
                             .load(vec![1])
                             .distance(5)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((6., 0.))
-                            .schedule_stamp(7., 9.)
+                            .schedule_stamp(7, 9)
                             .load(vec![1])
                             .distance(6)
                             .build_single_tag("break", "break", "break_tag"),
                         StopBuilder::default()
                             .coordinate((10., 0.))
-                            .schedule_stamp(13., 14.)
+                            .schedule_stamp(13, 14)
                             .load(vec![0])
                             .distance(10)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(24., 24.)
+                            .schedule_stamp(24, 24)
                             .load(vec![0])
                             .distance(20)
                             .build_arrival(),

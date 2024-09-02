@@ -49,7 +49,7 @@ fn can_detect_empty_job() {
 #[test]
 fn can_detect_negative_duration() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", (1., 0.), -10.)], ..create_empty_plan() },
+        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", (1., 0.), -10)], ..create_empty_plan() },
         ..create_empty_problem()
     };
 

@@ -18,13 +18,13 @@ fn can_assign_interval_break_between_jobs() {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
-                        earliest: format_time(0.),
-                        latest: Some(format_time(0.)),
+                        earliest: format_time(0),
+                        latest: Some(format_time(0)),
                         location: (0., 0.).to_loc(),
                     },
                     breaks: Some(vec![VehicleBreak::Optional {
-                        time: VehicleOptionalBreakTime::TimeOffset(vec![5., 10.]),
-                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
+                        time: VehicleOptionalBreakTime::TimeOffset(vec![5, 10]),
+                        places: vec![VehicleOptionalBreakPlace { duration: 2, location: None, tag: None }],
                         policy: None,
                     }]),
                     ..create_default_vehicle_shift()
@@ -47,32 +47,32 @@ fn can_assign_interval_break_between_jobs() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![2])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((5., 0.))
-                            .schedule_stamp(5., 8.)
+                            .schedule_stamp(5, 8)
                             .load(vec![1])
                             .distance(5)
                             .activity(
                                 ActivityBuilder::delivery()
                                     .job_id("job1")
                                     .coordinate((5., 0.))
-                                    .time_stamp(5., 6.)
+                                    .time_stamp(5, 6)
                                     .build()
                             )
-                            .activity(ActivityBuilder::break_type().coordinate((5., 0.)).time_stamp(6., 8.).build())
+                            .activity(ActivityBuilder::break_type().coordinate((5., 0.)).time_stamp(6, 8).build())
                             .build(),
                         StopBuilder::default()
                             .coordinate((15., 0.))
-                            .schedule_stamp(18., 19.)
+                            .schedule_stamp(18, 19)
                             .load(vec![0])
                             .distance(15)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(34., 34.)
+                            .schedule_stamp(34, 34)
                             .load(vec![0])
                             .distance(30)
                             .build_arrival(),
@@ -100,20 +100,20 @@ fn can_assign_interval_break_with_reload() {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
-                        earliest: format_time(0.),
-                        latest: Some(format_time(0.)),
+                        earliest: format_time(0),
+                        latest: Some(format_time(0)),
                         location: (0., 0.).to_loc(),
                     },
-                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (30., 0.).to_loc() }),
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000), location: (30., 0.).to_loc() }),
                     breaks: Some(vec![VehicleBreak::Optional {
-                        time: VehicleOptionalBreakTime::TimeOffset(vec![8., 12.]),
-                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
+                        time: VehicleOptionalBreakTime::TimeOffset(vec![8, 12]),
+                        places: vec![VehicleOptionalBreakPlace { duration: 2, location: None, tag: None }],
                         policy: None,
                     }]),
                     reloads: Some(vec![VehicleReload {
-                        times: Some(vec![vec![format_time(0.), format_time(1000.)]]),
+                        times: Some(vec![vec![format_time(0), format_time(1000)]]),
                         location: (0., 0.).to_loc(),
-                        duration: 3.0,
+                        duration: 3,
                         ..create_default_reload()
                     }]),
                     recharges: None,
@@ -138,50 +138,50 @@ fn can_assign_interval_break_with_reload() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![2])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((10., 0.))
-                            .schedule_stamp(10., 13.)
+                            .schedule_stamp(10, 13)
                             .load(vec![1])
                             .distance(10)
                             .activity(
                                 ActivityBuilder::delivery()
                                     .job_id("job1")
                                     .coordinate((10., 0.))
-                                    .time_stamp(10., 11.)
+                                    .time_stamp(10, 11)
                                     .build()
                             )
-                            .activity(ActivityBuilder::break_type().coordinate((10., 0.)).time_stamp(11., 13.).build())
+                            .activity(ActivityBuilder::break_type().coordinate((10., 0.)).time_stamp(11, 13).build())
                             .build(),
                         StopBuilder::default()
                             .coordinate((15., 0.))
-                            .schedule_stamp(18., 19.)
+                            .schedule_stamp(18, 19)
                             .load(vec![0])
                             .distance(15)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(34., 37.)
+                            .schedule_stamp(34, 37)
                             .load(vec![2])
                             .distance(30)
                             .build_single("reload", "reload"),
                         StopBuilder::default()
                             .coordinate((20., 0.))
-                            .schedule_stamp(57., 58.)
+                            .schedule_stamp(57, 58)
                             .load(vec![1])
                             .distance(50)
                             .build_single("job3", "delivery"),
                         StopBuilder::default()
                             .coordinate((25., 0.))
-                            .schedule_stamp(63., 64.)
+                            .schedule_stamp(63, 64)
                             .load(vec![0])
                             .distance(55)
                             .build_single("job4", "delivery"),
                         StopBuilder::default()
                             .coordinate((30., 0.))
-                            .schedule_stamp(69., 69.)
+                            .schedule_stamp(69, 69)
                             .load(vec![0])
                             .distance(60)
                             .build_arrival(),
@@ -199,8 +199,8 @@ fn can_consider_departure_rescheduling() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_times("job1", (5., 0.), vec![(10, 10)], 1.),
-                create_delivery_job_with_times("job2", (10., 0.), vec![(10, 30)], 1.),
+                create_delivery_job_with_times("job1", (5., 0.), vec![(10, 10)], 1),
+                create_delivery_job_with_times("job2", (10., 0.), vec![(10, 30)], 1),
             ],
             ..create_empty_plan()
         },
@@ -208,8 +208,8 @@ fn can_consider_departure_rescheduling() {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
-                        time: VehicleOptionalBreakTime::TimeOffset(vec![10., 12.]),
-                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
+                        time: VehicleOptionalBreakTime::TimeOffset(vec![10, 12]),
+                        places: vec![VehicleOptionalBreakPlace { duration: 2, location: None, tag: None }],
                         policy: None,
                     }]),
                     ..create_default_vehicle_shift()

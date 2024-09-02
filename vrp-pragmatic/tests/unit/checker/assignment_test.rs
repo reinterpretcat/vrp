@@ -128,7 +128,7 @@ fn check_jobs_impl(
             .map(|(idx, _)| JobTask {
                 places: vec![JobPlace {
                     location: Location::Coordinate { lat: 0.0, lng: 0.0 },
-                    duration: 0.0,
+                    duration: Duration::default(),
                     times: None,
                     tag: Some(format!("{tgt}{idx}")),
                 }],
@@ -184,7 +184,7 @@ fn check_jobs_impl(
 fn can_detect_time_window_violation() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(1, 2)], 1.)],
+            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(1, 2)], 1)],
             ..create_empty_plan()
         },
         fleet: create_default_fleet(),
@@ -194,16 +194,16 @@ fn can_detect_time_window_violation() {
         .tour(
             TourBuilder::default()
                 .stops(vec![
-                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(2., 2.).load(vec![1]).build_departure(),
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(2, 2).load(vec![1]).build_departure(),
                     StopBuilder::default()
                         .coordinate((1., 0.))
-                        .schedule_stamp(3., 4.)
+                        .schedule_stamp(3, 4)
                         .load(vec![0])
                         .distance(1)
                         .build_single("job1", "delivery"),
                     StopBuilder::default()
                         .coordinate((0., 0.))
-                        .schedule_stamp(5., 5.)
+                        .schedule_stamp(5, 5)
                         .load(vec![0])
                         .distance(2)
                         .build_arrival(),
@@ -224,7 +224,7 @@ fn can_detect_time_window_violation() {
 fn can_detect_job_duration_violation() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(5, 10)], 1.)],
+            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(5, 10)], 1)],
             ..create_empty_plan()
         },
         fleet: create_default_fleet(),
@@ -234,16 +234,16 @@ fn can_detect_job_duration_violation() {
         .tour(
             TourBuilder::default()
                 .stops(vec![
-                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(2., 2.).load(vec![1]).build_departure(),
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(2, 2).load(vec![1]).build_departure(),
                     StopBuilder::default()
                         .coordinate((1., 0.))
-                        .schedule_stamp(5., 7.)
+                        .schedule_stamp(5, 7)
                         .load(vec![0])
                         .distance(1)
                         .build_single("job1", "delivery"),
                     StopBuilder::default()
                         .coordinate((0., 0.))
-                        .schedule_stamp(8., 8.)
+                        .schedule_stamp(8, 8)
                         .load(vec![0])
                         .distance(2)
                         .build_arrival(),
@@ -284,16 +284,16 @@ fn can_detect_group_violations() {
         TourBuilder::default()
             .vehicle_id(vehicle_id)
             .stops(vec![
-                StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![1]).build_departure(),
+                StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0, 0).load(vec![1]).build_departure(),
                 StopBuilder::default()
                     .coordinate((1., 0.))
-                    .schedule_stamp(1., 2.)
+                    .schedule_stamp(1, 2)
                     .load(vec![0])
                     .distance(1)
                     .build_single(job_id, "delivery"),
                 StopBuilder::default()
                     .coordinate((0., 0.))
-                    .schedule_stamp(3., 3.)
+                    .schedule_stamp(3, 3)
                     .load(vec![0])
                     .distance(2)
                     .build_arrival(),

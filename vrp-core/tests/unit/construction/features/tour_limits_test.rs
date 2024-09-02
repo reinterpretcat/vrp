@@ -73,8 +73,8 @@ mod traveling {
     ) -> (Feature, RouteContext) {
         let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
         let mut state = RouteState::default();
-        state.set_total_distance(50.);
-        state.set_total_duration(50.);
+        state.set_total_distance(50);
+        state.set_total_duration(50);
         let target = target.to_owned();
         let route_ctx = RouteContextBuilder::default()
             .with_route(RouteBuilder::default().with_vehicle(&fleet, vehicle_id).build())
@@ -119,13 +119,13 @@ mod traveling {
     }}
 
     can_check_traveling_limits! {
-        case01: ("v1", "v1", 76, (Some(100.), None), ConstraintViolation::skip(DISTANCE_CODE)),
-        case02: ("v1", "v1", 74, (Some(100.), None), None),
-        case03: ("v1", "v2", 76, (Some(100.), None), None),
+        case01: ("v1", "v1", 76, (Some(100), None), ConstraintViolation::skip(DISTANCE_CODE)),
+        case02: ("v1", "v1", 74, (Some(100), None), None),
+        case03: ("v1", "v2", 76, (Some(100), None), None),
 
-        case04: ("v1", "v1", 76, (None, Some(100.)), ConstraintViolation::skip(DURATION_CODE)),
-        case05: ("v1", "v1", 74, (None, Some(100.)), None),
-        case06: ("v1", "v2", 76, (None, Some(100.)), None),
+        case04: ("v1", "v1", 76, (None, Some(100)), ConstraintViolation::skip(DURATION_CODE)),
+        case05: ("v1", "v1", 74, (None, Some(100)), None),
+        case06: ("v1", "v2", 76, (None, Some(100)), None),
     }
 
     fn can_check_traveling_limits_impl(
@@ -152,14 +152,14 @@ mod traveling {
 
     #[test]
     fn can_consider_waiting_time() {
-        let (feature, route_ctx) = create_test_data("v1", "v1", (None, Some(100.)));
+        let (feature, route_ctx) = create_test_data("v1", "v1", (None, Some(100)));
 
         let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(
             &route_ctx,
             &ActivityContext {
                 index: 0,
                 prev: &ActivityBuilder::with_location(50).build(),
-                target: &ActivityBuilder::with_location_and_tw(75, TimeWindow::new(100., 100.)).build(),
+                target: &ActivityBuilder::with_location_and_tw(75, TimeWindow::new(100, 100)).build(),
                 next: Some(&ActivityBuilder::with_location(50).build()),
             },
         ));

@@ -17,14 +17,14 @@ fn can_handle_job_in_relation_with_vicinity_cluster_impl(type_field: RelationTyp
             clustering: Some(Clustering::Vicinity {
                 profile: VehicleProfile { matrix: "car".to_string(), scale: None },
                 threshold: VicinityThresholdPolicy {
-                    duration: 10.,
-                    distance: 10.,
+                    duration: 10,
+                    distance: 10,
                     min_shared_time: None,
                     smallest_time_window: None,
                     max_jobs_per_cluster: None,
                 },
                 visiting: VicinityVisitPolicy::Continue,
-                serving: VicinityServingPolicy::Original { parking: 300. },
+                serving: VicinityServingPolicy::Original { parking: 300 },
                 filtering: None,
             }),
             relations: Some(vec![Relation {

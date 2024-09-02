@@ -176,8 +176,8 @@ impl Fleet {
                             start: detail.start.clone(),
                             end: detail.end.clone(),
                             time: TimeWindow {
-                                start: detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(0.),
-                                end: detail.end.as_ref().and_then(|e| e.time.latest).unwrap_or(Float::MAX),
+                                start: detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or_default(),
+                                end: detail.end.as_ref().and_then(|e| e.time.latest).unwrap_or(Timestamp::MAX),
                             },
                         },
                     })

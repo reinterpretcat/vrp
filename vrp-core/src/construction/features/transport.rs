@@ -79,7 +79,7 @@ impl TransportFeatureBuilder {
             self.is_constrained,
             Box::new(move |insertion_ctx| {
                 insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
-                    acc + route_ctx.state().get_total_duration().cloned().unwrap_or(0.)
+                    acc + route_ctx.state().get_total_duration().cloned().unwrap_or_default() as Float
                 })
             }),
         )
@@ -97,7 +97,7 @@ impl TransportFeatureBuilder {
             self.is_constrained,
             Box::new(move |insertion_ctx| {
                 insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
-                    acc + route_ctx.state().get_total_distance().copied().unwrap_or(0.)
+                    acc + route_ctx.state().get_total_distance().copied().unwrap_or_default() as Float
                 })
             }),
         )
@@ -281,19 +281,19 @@ impl FeatureConstraint for TransportConstraint {
 struct TransportObjective {
     activity: Arc<dyn ActivityCost>,
     transport: Arc<dyn TransportCost>,
-    fitness_fn: Box<dyn Fn(&InsertionContext) -> Float + Send + Sync>,
+    fitness_fn: Box<dyn Fn(&InsertionContext) -> Cost + Send + Sync>,
 }
 
 impl TransportObjective {
-    fn estimate_route(&self, route_ctx: &RouteContext) -> Float {
+    fn estimate_route(&self, route_ctx: &RouteContext) -> Cost {
         if route_ctx.route().tour.has_jobs() {
-            0.
+            Cost::default()
         } else {
             route_ctx.route().actor.driver.costs.fixed + route_ctx.route().actor.vehicle.costs.fixed
         }
     }
 
-    fn estimate_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Float {
+    fn estimate_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Cost {
         let prev = activity_ctx.prev;
         let target = activity_ctx.target;
         let next = activity_ctx.next;
@@ -304,7 +304,7 @@ impl TransportObjective {
         let (tp_cost_right, act_cost_right, dep_time_right) = if let Some(next) = next {
             self.analyze_route_leg(route_ctx, target, next, dep_time_left)
         } else {
-            (0., 0., 0.)
+            (Cost::default(), Cost::default(), Timestamp::default())
         };
 
         let new_costs = tp_cost_left + tp_cost_right + act_cost_left + act_cost_right;
@@ -320,7 +320,7 @@ impl TransportObjective {
         let (tp_cost_old, act_cost_old, dep_time_old) =
             self.analyze_route_leg(route_ctx, prev, next, prev.schedule.departure);
 
-        let waiting_cost = waiting_time.min(Float::default().max(dep_time_right - dep_time_old))
+        let waiting_cost = waiting_time.min(Duration::default().max(dep_time_right - dep_time_old)) as Cost
             * route_ctx.route().actor.vehicle.costs.per_waiting_time;
 
         let old_costs = tp_cost_old + act_cost_old + waiting_cost;

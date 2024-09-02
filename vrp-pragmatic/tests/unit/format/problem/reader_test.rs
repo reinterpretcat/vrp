@@ -23,12 +23,12 @@ fn get_single_place(single: &Single) -> &Place {
     single.places.first().unwrap()
 }
 
-fn assert_time_window(tw: &TimeWindow, expected: &(Float, Float)) {
+fn assert_time_window(tw: &TimeWindow, expected: &(Timestamp, Timestamp)) {
     assert_eq!(tw.start, expected.0);
     assert_eq!(tw.end, expected.1);
 }
 
-fn assert_time_spans(tws: &[TimeSpan], expected: Vec<(Float, Float)>) {
+fn assert_time_spans(tws: &[TimeSpan], expected: Vec<(Timestamp, Timestamp)>) {
     assert_eq!(tws.len(), expected.len());
     (0..tws.len()).for_each(|index| {
         assert_time_window(&tws.get(index).and_then(|tw| tw.as_time_window()).unwrap(), expected.get(index).unwrap());
@@ -75,7 +75,7 @@ fn can_read_complex_problem() {
                                 vec!["1970-01-01T00:01:50Z".to_string(), "1970-01-01T00:02:00Z".to_string()],
                             ]),
                             location: (52.48325, 13.4436).to_loc(),
-                            duration: 100.0,
+                            duration: 100,
                             tag: Some("my_delivery".to_string()),
                         }],
                         demand: Some(vec![0, 1]),
@@ -92,7 +92,7 @@ fn can_read_complex_problem() {
                                 "1970-01-01T00:00:30Z".to_string(),
                             ]]),
                             location: (52.48300, 13.4420).to_loc(),
-                            duration: 110.0,
+                            duration: 110,
                             tag: None,
                         }],
                         demand: Some(vec![2]),
@@ -105,7 +105,7 @@ fn can_read_complex_problem() {
                                 "1970-01-01T00:01:00Z".to_string(),
                             ]]),
                             location: (52.48325, 13.4436).to_loc(),
-                            duration: 120.0,
+                            duration: 120,
                             tag: None,
                         }],
                         demand: Some(vec![2]),
@@ -121,7 +121,7 @@ fn can_read_complex_problem() {
                                 "1970-01-01T00:01:10Z".to_string(),
                             ]]),
                             location: (52.48321, 13.4438).to_loc(),
-                            duration: 90.0,
+                            duration: 90,
                             tag: None,
                         }],
                         demand: Some(vec![3]),
@@ -156,7 +156,7 @@ fn can_read_complex_problem() {
                             "1970-01-01T00:01:20Z".to_string(),
                         ]),
                         places: vec![VehicleOptionalBreakPlace {
-                            duration: 100.0,
+                            duration: 100,
                             location: Some((52.48315, 13.4330).to_loc()),
                             tag: None,
                         }],
@@ -167,7 +167,7 @@ fn can_read_complex_problem() {
                 }],
                 capacity: vec![10, 1],
                 skills: Some(vec!["unique1".to_string(), "unique2".to_string()]),
-                limits: Some(VehicleLimits { max_distance: Some(123.1), max_duration: Some(100.), tour_size: Some(3) }),
+                limits: Some(VehicleLimits { max_distance: Some(123), max_duration: Some(100), tour_size: Some(3) }),
             }],
             ..create_default_fleet()
         },
@@ -189,7 +189,7 @@ fn can_read_complex_problem() {
     let job = get_single_job(0, problem.jobs.as_ref());
     let place = get_single_place(job.as_ref());
     assert_eq!(job.dimens.get_job_id().unwrap(), "delivery_job");
-    assert_eq!(place.duration, 100.);
+    assert_eq!(place.duration, 100);
     assert_eq!(place.location.unwrap(), 0);
     assert_demand(
         job.dimens.get_job_demand().expect("cannot get demand"),
@@ -198,7 +198,7 @@ fn can_read_complex_problem() {
             delivery: (MultiDimLoad::new(vec![0, 1]), MultiDimLoad::default()),
         },
     );
-    assert_time_spans(&place.times, vec![(0., 100.), (110., 120.)]);
+    assert_time_spans(&place.times, vec![(0, 100), (110, 120)]);
     assert_job_skills(&job.dimens, Some(vec!["unique".to_string()]));
 
     // shipment
@@ -208,26 +208,26 @@ fn can_read_complex_problem() {
 
     let pickup = job.jobs.first().unwrap().clone();
     let place = get_single_place(pickup.as_ref());
-    assert_eq!(place.duration, 110.);
+    assert_eq!(place.duration, 110);
     assert_eq!(place.location.unwrap(), 1);
     assert_demand(pickup.dimens.get_job_demand().unwrap(), &single_demand_as_multi((0, 2), (0, 0)));
-    assert_time_spans(&place.times, vec![(10., 30.)]);
+    assert_time_spans(&place.times, vec![(10, 30)]);
 
     let delivery = job.jobs.last().unwrap().clone();
     let place = get_single_place(delivery.as_ref());
-    assert_eq!(place.duration, 120.);
+    assert_eq!(place.duration, 120);
     assert_eq!(place.location.unwrap(), 0);
     assert_demand(delivery.dimens.get_job_demand().unwrap(), &single_demand_as_multi((0, 0), (0, 2)));
-    assert_time_spans(&place.times, vec![(50., 60.)]);
+    assert_time_spans(&place.times, vec![(50, 60)]);
 
     // pickup
     let job = get_single_job(2, problem.jobs.as_ref());
     let place = get_single_place(job.as_ref());
     assert_eq!(job.dimens.get_job_id().unwrap(), "pickup_job");
-    assert_eq!(place.duration, 90.);
+    assert_eq!(place.duration, 90);
     assert_eq!(place.location.unwrap(), 2);
     assert_demand(job.dimens.get_job_demand().unwrap(), &single_demand_as_multi((3, 0), (0, 0)));
-    assert_time_spans(&place.times, vec![(10., 70.)]);
+    assert_time_spans(&place.times, vec![(10, 70)]);
     assert_job_skills(&job.dimens, Some(vec!["unique2".to_string()]));
 
     // fleet
@@ -255,7 +255,7 @@ fn can_read_complex_problem() {
                 detail.start.as_ref().unwrap().time.earliest.unwrap(),
                 detail.end.as_ref().unwrap().time.latest.unwrap(),
             ),
-            &(0., 100.),
+            &(0, 100),
         );
         assert_vehicle_skills(&vehicle.dimens, Some(vec!["unique1".to_string(), "unique2".to_string()]));
     });
@@ -275,7 +275,7 @@ fn can_deserialize_minimal_problem_and_matrix() {
             detail.start.as_ref().unwrap().time.earliest.unwrap(),
             detail.end.as_ref().unwrap().time.latest.unwrap(),
         ),
-        &(1562230800., 1562263200.),
+        &(1562230800, 1562263200),
     );
 }
 

@@ -2,12 +2,10 @@ use crate::format::problem::*;
 use crate::format::solution::solution_writer::create_tour;
 use crate::format::solution::*;
 use crate::helpers::*;
-use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::construction::enablers::ReservedTimeSpan;
-use vrp_core::models::common::{TimeSpan, TimeWindow};
+use vrp_core::models::common::{TimeSpan, TimeWindow, Timestamp};
 use vrp_core::models::examples::create_example_problem;
-use vrp_core::utils::compare_floats;
 
 type DomainProblem = vrp_core::models::Problem;
 type DomainActivity = vrp_core::models::solution::Activity;
@@ -49,24 +47,24 @@ fn can_create_solution() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![2])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((10., 0.))
-                            .schedule_stamp(10., 11.)
+                            .schedule_stamp(10, 11)
                             .load(vec![1])
                             .distance(10)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((5., 0.))
-                            .schedule_stamp(16., 17.)
+                            .schedule_stamp(16, 17)
                             .load(vec![0])
                             .distance(15)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(22., 22.)
+                            .schedule_stamp(22, 22)
                             .load(vec![0])
                             .distance(20)
                             .build_arrival(),
@@ -116,38 +114,39 @@ can_merge_activities_with_commute_in_one_stop! {
         vec![(1, vec![(Some(1), None), (Some(1), None)]), (2, vec![(None, None)])]
     ),
     case_02: (
-        vec![(1, Some((0., 0.))), (2, Some((1., 1.))), (3, Some((1., 2.)))],
-        vec![(1, vec![(Some(1), Some((0., 0.))), (Some(2), Some((1., 1.))), (Some(3), Some((1., 2.)))])]
+        vec![(1, Some((0, 0))), (2, Some((1, 1))), (3, Some((1, 2)))],
+        vec![(1, vec![(Some(1), Some((0, 0))), (Some(2), Some((1, 1))), (Some(3), Some((1, 2)))])]
     ),
     case_03: (
-        vec![(1, Some((0., 0.))), (1, Some((0., 0.))), (2, Some((1., 1.)))],
-        vec![(1, vec![(Some(1), Some((0., 0.))), (Some(1), Some((0., 0.))), (Some(2), Some((1., 1.)))])]
+        vec![(1, Some((0, 0))), (1, Some((0, 0))), (2, Some((1, 1)))],
+        vec![(1, vec![(Some(1), Some((0, 0))), (Some(1), Some((0, 0))), (Some(2), Some((1, 1)))])]
     ),
     case_04: (
-        vec![(1, Some((0., 0.))), (2, Some((1., 1.))), (3, Some((0., 0.))), (4, Some((1., 1.)))],
+        vec![(1, Some((0, 0))), (2, Some((1, 1))), (3, Some((0, 0))), (4, Some((1, 1)))],
         vec![
-            (1, vec![(Some(1), Some((0., 0.))), (Some(2), Some((1., 1.)))]),
-            (3, vec![(Some(3), Some((0., 0.))), (Some(4), Some((1., 1.)))]),
+            (1, vec![(Some(1), Some((0, 0))), (Some(2), Some((1, 1)))]),
+            (3, vec![(Some(3), Some((0, 0))), (Some(4), Some((1, 1)))]),
         ]
     ),
 }
 
 #[allow(clippy::type_complexity)]
 fn can_merge_activities_with_commute_in_one_stop_impl(
-    jobs_data: Vec<(usize, Option<(Float, Float)>)>,
-    expected: Vec<(usize, Vec<(Option<usize>, Option<(Float, Float)>)>)>,
+    jobs_data: Vec<(usize, Option<(Timestamp, Timestamp)>)>,
+    expected: Vec<(usize, Vec<(Option<usize>, Option<(Timestamp, Timestamp)>)>)>,
 ) {
     let (problem, mut coord_index) = create_test_problem_and_coord_index();
     let activities = jobs_data
         .into_iter()
         .map(|(index, commute)| {
             coord_index.add(&Location::Reference { index });
-            let arrival = index as Float;
+            let arrival = index as Timestamp;
             let commute = commute.map(|(f, b)| DomainCommute {
                 forward: DomainCommuteInfo { location: 0, distance: f, duration: f },
                 backward: DomainCommuteInfo { location: 0, distance: b, duration: b },
             });
-            let departure = arrival + commute.as_ref().map(|c| c.forward.duration + c.backward.duration).unwrap_or(0.);
+            let departure =
+                arrival + commute.as_ref().map(|c| c.forward.duration + c.backward.duration).unwrap_or_default();
             DomainActivity {
                 schedule: DomainSchedule { arrival, departure },
                 commute,
@@ -169,8 +168,8 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
 
             match (commute, &actual.commute) {
                 (Some(expected), Some(actual)) => {
-                    let check_commute = |expected: Float, info: Option<&CommuteInfo>| {
-                        if compare_floats(expected, 0.) == Ordering::Equal {
+                    let check_commute = |expected: Timestamp, info: Option<&CommuteInfo>| {
+                        if expected == 0 {
                             assert!(info.is_none())
                         } else {
                             assert_eq!(expected, info.unwrap().time.duration());
@@ -193,14 +192,14 @@ fn can_merge_required_break_on_stop_arrival_time_properly() {
     let (problem, mut coord_index) = create_test_problem_and_coord_index();
     coord_index.add(&Location::Reference { index: 1 });
     let activities = vec![DomainActivity {
-        schedule: DomainSchedule { arrival: 4., departure: 5. },
+        schedule: DomainSchedule { arrival: 4, departure: 5 },
         ..create_activity_with_job_at_location(create_single(&format!("job{}", 1)), 1)
     }];
     let mut route = create_route_with_activities(&problem.fleet, "v1", activities);
-    route.tour.all_activities_mut().last().unwrap().schedule.arrival = 6.;
+    route.tour.all_activities_mut().last().unwrap().schedule.arrival = 6;
     let reserved_times_index = vec![(
         route.actor.clone(),
-        vec![ReservedTimeSpan { time: TimeSpan::Window(TimeWindow::new(4., 4.)), duration: 1. }],
+        vec![ReservedTimeSpan { time: TimeSpan::Window(TimeWindow::new(4, 4)), duration: 1 }],
     )]
     .into_iter()
     .collect();

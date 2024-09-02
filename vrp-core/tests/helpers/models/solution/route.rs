@@ -1,13 +1,12 @@
 use crate::construction::heuristics::{RouteContext, RouteState};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::test_actor;
-use crate::models::common::{Duration, Location, Schedule, TimeWindow};
+use crate::models::common::{Duration, Location, Schedule, TimeWindow, Timestamp};
 use crate::models::problem::{Actor, Fleet, Single};
 use crate::models::solution::{Activity, Place, Route, Tour};
-use rosomaxa::prelude::Float;
 use std::sync::Arc;
 
-pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arrival: 0.0 };
+pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0, arrival: 0 };
 
 pub struct RouteContextBuilder(RouteContext);
 
@@ -139,7 +138,7 @@ impl ActivityBuilder {
     pub fn with_location_tw_and_duration(location: Location, tw: TimeWindow, duration: Duration) -> Self {
         Self(Activity {
             place: Place { idx: 0, location, duration, time: tw },
-            schedule: Schedule::new(location as Float, location as Float + duration),
+            schedule: Schedule::new(location as Timestamp, location as Timestamp + duration as Timestamp),
             job: Some(TestSingleBuilder::default().location(Some(location)).build_shared()),
             commute: None,
         })

@@ -20,8 +20,8 @@ fn create_required_break(earliest: Timestamp, latest: Timestamp, duration: Durat
 fn create_vehicle_shift_with_breaks(breaks: Vec<VehicleBreak>) -> VehicleShift {
     VehicleShift {
         start: ShiftStart {
-            earliest: format_time(0.),
-            latest: Some(format_time(0.)),
+            earliest: format_time(0),
+            latest: Some(format_time(0)),
             location: Location::Coordinate { lat: 0., lng: 0. },
         },
         end: None,
@@ -37,25 +37,25 @@ parameterized_test! {can_simulate_two_open_shifts_with_different_breaks, (jobs, 
 
 can_simulate_two_open_shifts_with_different_breaks! {
     case01_with_time_windows: (
-        vec![create_delivery_job_with_times("job1_1", (1., 0.), vec![(10, 10)], 1.),
-             create_delivery_job_with_times("job1_2", (2., 0.), vec![(40, 40)], 1.),
-             create_delivery_job_with_times("job2_1", (3., 0.), vec![(110, 110)], 1.),
-             create_delivery_job_with_times("job2_2", (4., 0.), vec![(140, 140)], 1.),
+        vec![create_delivery_job_with_times("job1_1", (1., 0.), vec![(10, 10)], 1),
+             create_delivery_job_with_times("job1_2", (2., 0.), vec![(40, 40)], 1),
+             create_delivery_job_with_times("job2_1", (3., 0.), vec![(110, 110)], 1),
+             create_delivery_job_with_times("job2_2", (4., 0.), vec![(140, 140)], 1),
         ],
-        vec![create_optional_break((25., 30.), 5.),
-             create_required_break(50., 50., 50.),
+        vec![create_optional_break((25, 30), 5),
+             create_required_break(50, 50, 50),
         ],
         vec![vec!["departure"], vec!["job1_1", "break"], vec!["job1_2"], vec!["break", "job2_1"], vec!["job2_2"]]
     ),
 
     case02_without_time_windows: (
-        vec![create_delivery_job_with_duration("job1_1", (1., 0.), 20.),
-             create_delivery_job_with_duration("job1_2", (2., 0.), 20.),
-             create_delivery_job_with_duration("job2_1", (3., 0.), 20.),
-             create_delivery_job_with_duration("job2_2", (4., 0.), 20.),
+        vec![create_delivery_job_with_duration("job1_1", (1., 0.), 20),
+             create_delivery_job_with_duration("job1_2", (2., 0.), 20),
+             create_delivery_job_with_duration("job2_1", (3., 0.), 20),
+             create_delivery_job_with_duration("job2_2", (4., 0.), 20),
         ],
-        vec![create_optional_break((25., 30.), 5.),
-             create_required_break(50., 50., 50.),
+        vec![create_optional_break((25, 30), 5),
+             create_required_break(50, 50, 50),
         ],
         vec![vec!["departure"], vec!["job1_1", "break"], vec!["job1_2", "break"], vec!["job2_1"], vec!["job2_2"]]
     ),

@@ -4,7 +4,7 @@ mod worst_jobs_removal_test;
 
 use super::*;
 use crate::construction::heuristics::InsertionContext;
-use crate::models::common::{Cost, Profile, Timestamp};
+use crate::models::common::{Cost, Duration, Profile, Timestamp};
 use crate::models::problem::{Job, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
 use crate::solver::search::{get_route_jobs, JobRemovalTracker, TabuList};
@@ -118,7 +118,7 @@ fn get_cost_savings(
 ) -> Cost {
     let actor = route.actor.as_ref();
 
-    let waiting_costs = (middle.place.time.start - middle.schedule.arrival).max(0.)
+    let waiting_costs = (middle.place.time.start - middle.schedule.arrival).max(Duration::default()) as Float
         * (actor.driver.costs.per_waiting_time + actor.vehicle.costs.per_waiting_time);
 
     let transport_costs = get_cost(route, start, middle, transport) + get_cost(route, middle, end, transport)

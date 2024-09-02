@@ -19,8 +19,8 @@ fn create_matrix_data(
 fn can_detect_dimensions_mismatch() {
     assert_eq!(
         create_matrix_transport_cost(vec![
-            create_matrix_data(Profile::default(), Some(0.), (0., 2), (0., 2)),
-            create_matrix_data(Profile::default(), Some(1.), (0., 1), (0., 2)),
+            create_matrix_data(Profile::default(), Some(0), (0, 2), (0, 2)),
+            create_matrix_data(Profile::default(), Some(1), (0, 1), (0, 2)),
         ])
         .err(),
         Some("distance and duration collections have different length".into())
@@ -34,7 +34,7 @@ fn can_return_error_when_mixing_timestamps() {
 
     assert_eq!(
         TimeAwareMatrixTransportCost::new(
-            vec![create_matrix_data(Profile::default(), None, (0., 1), (0., 1))],
+            vec![create_matrix_data(Profile::default(), None, (0, 1), (0, 1))],
             1,
             NoFallback
         )
@@ -45,8 +45,8 @@ fn can_return_error_when_mixing_timestamps() {
     assert_eq!(
         TimeAwareMatrixTransportCost::new(
             vec![
-                create_matrix_data(p0.clone(), Some(0.), (0., 1), (0., 1)),
-                create_matrix_data(p0.clone(), None, (0., 1), (0., 1))
+                create_matrix_data(p0.clone(), Some(0), (0, 1), (0, 1)),
+                create_matrix_data(p0.clone(), None, (0, 1), (0, 1))
             ],
             1,
             NoFallback
@@ -56,21 +56,17 @@ fn can_return_error_when_mixing_timestamps() {
     );
 
     assert_eq!(
-        TimeAwareMatrixTransportCost::new(
-            vec![create_matrix_data(p0.clone(), Some(0.), (0., 1), (0., 1))],
-            1,
-            NoFallback
-        )
-        .err(),
+        TimeAwareMatrixTransportCost::new(vec![create_matrix_data(p0.clone(), Some(0), (0, 1), (0, 1))], 1, NoFallback)
+            .err(),
         Some("should not use time aware matrix routing with single matrix".into())
     );
 
     assert_eq!(
         TimeAwareMatrixTransportCost::new(
             vec![
-                create_matrix_data(p0.clone(), Some(0.), (1., 1), (1., 1)), //
-                create_matrix_data(p0, Some(1.), (1., 1), (1., 1)),         //
-                create_matrix_data(p1, Some(0.), (1., 1), (1., 1)),         //
+                create_matrix_data(p0.clone(), Some(0), (1, 1), (1, 1)), //
+                create_matrix_data(p0, Some(1), (1, 1), (1, 1)),         //
+                create_matrix_data(p1, Some(0), (1, 1), (1, 1)),         //
             ],
             1,
             NoFallback
@@ -89,29 +85,29 @@ fn can_interpolate_durations() {
 
     let costs = TimeAwareMatrixTransportCost::new(
         vec![
-            create_matrix_data(p0.clone(), Some(0.), (100., 2), (1., 2)),
-            create_matrix_data(p0.clone(), Some(10.), (200., 2), (1., 2)),
-            create_matrix_data(p1.clone(), Some(0.), (300., 2), (5., 2)),
-            create_matrix_data(p1.clone(), Some(10.), (400., 2), (5., 2)),
+            create_matrix_data(p0.clone(), Some(0), (100, 2), (1, 2)),
+            create_matrix_data(p0.clone(), Some(10), (200, 2), (1, 2)),
+            create_matrix_data(p1.clone(), Some(0), (300, 2), (5, 2)),
+            create_matrix_data(p1.clone(), Some(10), (400, 2), (5, 2)),
         ],
         2,
         NoFallback,
     )
     .unwrap();
 
-    for &(timestamp, duration) in &[(0., 100.), (10., 200.), (15., 200.), (3., 130.), (5., 150.), (7., 170.)] {
+    for &(timestamp, duration) in &[(0, 100), (10, 200), (15, 200), (3, 130), (5, 150), (7, 170)] {
         assert_eq!(costs.duration(&route0, 0, 1, TravelTime::Departure(timestamp)), duration);
     }
 
-    for &(timestamp, duration) in &[(0., 300.), (10., 400.), (15., 400.), (3., 330.), (5., 350.), (7., 370.)] {
+    for &(timestamp, duration) in &[(0, 300), (10, 400), (15, 400), (3, 330), (5, 350), (7, 370)] {
         assert_eq!(costs.duration(&route1, 0, 1, TravelTime::Departure(timestamp)), duration);
     }
 
-    assert_eq!(costs.distance(&route0, 0, 1, TravelTime::Departure(0.)), 1.);
-    assert_eq!(costs.distance(&route1, 0, 1, TravelTime::Departure(0.)), 5.);
+    assert_eq!(costs.distance(&route0, 0, 1, TravelTime::Departure(0)), 1);
+    assert_eq!(costs.distance(&route1, 0, 1, TravelTime::Departure(0)), 5);
 
-    assert_eq!(costs.distance_approx(&p0, 0, 1), 1.);
-    assert_eq!(costs.distance_approx(&p1, 0, 1), 5.);
+    assert_eq!(costs.distance_approx(&p0, 0, 1), 1);
+    assert_eq!(costs.distance_approx(&p1, 0, 1), 5);
 }
 
 mod objective {

@@ -13,13 +13,8 @@ fn can_use_recharge_trivial_case() {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     recharges: Some(VehicleRecharges {
-                        max_distance: 55.,
-                        stations: vec![JobPlace {
-                            location: (50., 0.).to_loc(),
-                            duration: 0.0,
-                            times: None,
-                            tag: None,
-                        }],
+                        max_distance: 55,
+                        stations: vec![JobPlace { location: (50., 0.).to_loc(), duration: 0, times: None, tag: None }],
                     }),
                     ..create_default_vehicle_shift_with_locations((0., 0.), (100., 0.))
                 }],
@@ -56,14 +51,14 @@ fn can_still_skip_jobs_with_recharge() {
                 shifts: vec![VehicleShift {
                     end: Some(ShiftEnd {
                         earliest: None,
-                        latest: format_time(3600. * 12.),
+                        latest: format_time(3600 * 12),
                         location: (52.5189, 13.4011).to_loc(),
                     }),
                     recharges: Some(VehicleRecharges {
-                        max_distance: 10000.,
+                        max_distance: 10000,
                         stations: vec![JobPlace {
                             location: (52.5459, 13.5058).to_loc(),
-                            duration: 900.,
+                            duration: 900,
                             times: None,
                             tag: None,
                         }],
@@ -94,10 +89,10 @@ fn can_use_recharge_with_ten_jobs() {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     recharges: Some(VehicleRecharges {
-                        max_distance: 55.,
+                        max_distance: 55,
                         stations: vec![VehicleRechargeStation {
                             location: (50., 0.).to_loc(),
-                            duration: 0.0,
+                            duration: 0,
                             times: None,
                             tag: None,
                         }],

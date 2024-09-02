@@ -1,5 +1,5 @@
 use super::*;
-use crate::models::common::{Cost, Schedule};
+use crate::models::common::{Cost, Schedule, Timestamp};
 use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::OP_START_MSG;
@@ -49,7 +49,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
                             duration: place.duration,
                             time,
                         },
-                        schedule: Schedule { arrival: 0.0, departure: 0.0 },
+                        schedule: Schedule { arrival: Timestamp::default(), departure: Timestamp::default() },
                         job: Some(single),
                         commute: None,
                     }
@@ -65,7 +65,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
                         let activity = match job {
                             Job::Single(single) => create_activity(single.clone(), acc),
                             Job::Multi(multi) => {
-                                let idx = sequence_job_usage.get(job).cloned().unwrap_or(0);
+                                let idx = sequence_job_usage.get(job).cloned().unwrap_or_default();
                                 sequence_job_usage.insert(job.clone(), idx + 1);
                                 create_activity(multi.jobs.get(idx).unwrap().clone(), acc)
                             }

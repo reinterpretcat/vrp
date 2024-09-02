@@ -3,7 +3,7 @@ use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::solution::*;
 use std::cmp::Ordering;
 
-fn create_test_insertion_ctx(routes: &[Float]) -> InsertionContext {
+fn create_test_insertion_ctx(routes: &[Timestamp]) -> InsertionContext {
     let mut insertion_ctx = TestInsertionContextBuilder::default().build();
     let problem = insertion_ctx.problem.clone();
 
@@ -24,15 +24,15 @@ parameterized_test! {can_properly_estimate_solutions, (left, right, expected), {
 }}
 
 can_properly_estimate_solutions! {
-    case_01: (&[10.], &[10.], Ordering::Equal),
-    case_02: (&[10.], &[11.], Ordering::Less),
-    case_03: (&[10.], &[9.], Ordering::Greater),
-    case_04: (&[10.], &[10., 10.], Ordering::Equal),
-    case_05: (&[10.], &[10., 9.], Ordering::Greater),
-    case_06: (&[10.], &[10., 11.], Ordering::Less),
+    case_01: (&[10], &[10], Ordering::Equal),
+    case_02: (&[10], &[11], Ordering::Less),
+    case_03: (&[10], &[9], Ordering::Greater),
+    case_04: (&[10], &[10, 10], Ordering::Equal),
+    case_05: (&[10], &[10, 9], Ordering::Greater),
+    case_06: (&[10], &[10, 11], Ordering::Less),
 }
 
-fn can_properly_estimate_solutions_impl(left: &[Float], right: &[Float], expected: Ordering) {
+fn can_properly_estimate_solutions_impl(left: &[Timestamp], right: &[Timestamp], expected: Ordering) {
     let left = create_test_insertion_ctx(left);
     let right = create_test_insertion_ctx(right);
     let objective = create_minimize_arrival_time_feature("minimize_arrival").unwrap().objective.unwrap();

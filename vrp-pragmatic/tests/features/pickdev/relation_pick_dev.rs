@@ -38,36 +38,36 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((10., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![0])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((20., 0.))
-                            .schedule_stamp(10., 11.)
+                            .schedule_stamp(10, 11)
                             .load(vec![1])
                             .distance(10)
                             .build_single_tag("job1", "pickup", "p1"),
                         StopBuilder::default()
                             .coordinate((5., 0.))
-                            .schedule_stamp(26., 27.)
+                            .schedule_stamp(26, 27)
                             .load(vec![2])
                             .distance(25)
                             .build_single_tag("job2", "pickup", "p1"),
                         StopBuilder::default()
                             .coordinate((15., 0.))
-                            .schedule_stamp(37., 38.)
+                            .schedule_stamp(37, 38)
                             .load(vec![1])
                             .distance(35)
                             .build_single_tag("job1", "delivery", "d1"),
                         StopBuilder::default()
                             .coordinate((20., 0.))
-                            .schedule_stamp(43., 44.)
+                            .schedule_stamp(43, 44)
                             .load(vec![0])
                             .distance(40)
                             .build_single_tag("job2", "delivery", "d1"),
                         StopBuilder::default()
                             .coordinate((10., 0.))
-                            .schedule_stamp(54., 54.)
+                            .schedule_stamp(54, 54)
                             .load(vec![0])
                             .distance(50)
                             .build_arrival(),

@@ -5,8 +5,7 @@ mod reserved_time_test;
 use crate::models::common::*;
 use crate::models::problem::{ActivityCost, Actor, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
-use rosomaxa::prelude::{compare_floats, Float, GenericError};
-use std::cmp::Ordering;
+use rosomaxa::prelude::GenericError;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -71,7 +70,7 @@ impl ActivityCost for DynamicActivityCost {
 
             let extra_duration = if reserved_tw.start < activity_tw.start {
                 let waiting_time = TimeWindow::new(arrival, activity_tw.start);
-                let overlapping = waiting_time.overlapping(&reserved_tw).map(|tw| tw.duration()).unwrap_or(0.);
+                let overlapping = waiting_time.overlapping(&reserved_tw).map(|tw| tw.duration()).unwrap_or_default();
 
                 reserved_time.duration - overlapping
             } else {
@@ -82,7 +81,7 @@ impl ActivityCost for DynamicActivityCost {
             if activity_start + extra_duration > activity.place.time.end {
                 // TODO this branch is the reason why departure rescheduling is disabled.
                 //      theoretically, rescheduling should be aware somehow about dynamic costs
-                Float::MAX
+                Duration::MAX
             } else {
                 departure + extra_duration
             }
@@ -198,17 +197,14 @@ pub(crate) fn create_reserved_times_fn(
                 return Err("has reserved types of different time span types".to_string());
             }
 
-            times.sort_by(|ReservedTimeSpan { time: a, .. }, ReservedTimeSpan { time: b, .. }| {
-                let (a, b) = match (a, b) {
-                    (TimeSpan::Window(a), TimeSpan::Window(b)) => (a.start, b.start),
-                    (TimeSpan::Offset(a), TimeSpan::Offset(b)) => (a.start, b.start),
-                    _ => unreachable!(),
-                };
-                compare_floats(a, b)
+            times.sort_by(|ReservedTimeSpan { time: a, .. }, ReservedTimeSpan { time: b, .. }| match (a, b) {
+                (TimeSpan::Window(a), TimeSpan::Window(b)) => a.start.cmp(&b.start),
+                (TimeSpan::Offset(a), TimeSpan::Offset(b)) => a.start.cmp(&b.start),
+                _ => unreachable!(),
             });
             let has_no_intersections = times.windows(2).all(|pair| {
                 if let [ReservedTimeSpan { time: a, .. }, ReservedTimeSpan { time: b, .. }] = pair {
-                    !a.intersects(0., &b.to_time_window(0.))
+                    !a.intersects(Timestamp::default(), &b.to_time_window(Timestamp::default()))
                 } else {
                     false
                 }
@@ -239,7 +235,7 @@ pub(crate) fn create_reserved_times_fn(
     //       reserved_time.time.start is ignored and should be handled by post processing
     Ok(Arc::new(move |route: &Route, time_window: &TimeWindow| {
         reserved_times.get(&route.actor).and_then(|(indices, intervals)| {
-            let offset = route.tour.start().map(|a| a.schedule.departure).unwrap_or(0.);
+            let offset = route.tour.start().map(|a| a.schedule.departure).unwrap_or_default();
 
             // NOTE map external absolute time window to time span's start/end
             let (interval_start, interval_end) = match intervals.first().map(|rt| &rt.time) {
@@ -260,8 +256,7 @@ pub(crate) fn create_reserved_times_fn(
                             };
 
                             // NOTE use exclusive intersection
-                            compare_floats(interval_start, reserved_end) == Ordering::Less
-                                && compare_floats(reserved_start, interval_end) == Ordering::Less
+                            interval_start < reserved_end && reserved_start < interval_end
                         })
                     })
                     .flatten(),

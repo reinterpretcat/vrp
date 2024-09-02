@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/models/solution/tour_test.rs"]
 mod tour_test;
 
-use crate::models::common::Schedule;
+use crate::models::common::{Duration, Schedule};
 use crate::models::problem::{Actor, Job, JobIdDimension};
 use crate::models::solution::{Activity, Place};
 use crate::models::OP_START_MSG;
@@ -255,7 +255,7 @@ fn create_start_activity(actor: &Actor) -> Activity {
 
     Activity {
         schedule: Schedule { arrival: time.start, departure: time.start },
-        place: Place { idx: 0, location: start.location, duration: 0., time },
+        place: Place { idx: 0, location: start.location, duration: Duration::default(), time },
         job: None,
         commute: None,
     }
@@ -267,7 +267,7 @@ fn create_end_activity(actor: &Actor) -> Option<Activity> {
         let time = place.time.to_time_window();
         Activity {
             schedule: Schedule { arrival: time.start, departure: time.start },
-            place: Place { idx: 0, location: place.location, duration: 0.0, time },
+            place: Place { idx: 0, location: place.location, duration: Duration::default(), time },
             job: None,
             commute: None,
         }

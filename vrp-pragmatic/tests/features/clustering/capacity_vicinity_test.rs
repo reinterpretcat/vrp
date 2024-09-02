@@ -9,14 +9,14 @@ fn can_mix_pickup_delivery_jobs() {
         3,
         2,
         0,
-        (3., 10.),
+        (3, 10),
         vec![
-            a(("job3", Some(3.), "delivery", Some((3., 4.)), Some((None, None)))),
-            a(("job2", Some(2.), "pickup", Some((5., 6.)), Some((Some((3., 1., 4., 5.)), None)))),
-            a(("job1", Some(1.), "delivery", Some((7., 8.)), Some((Some((2., 1., 6., 7.)), Some((3., 2., 8., 10.)))))),
+            a(("job3", Some(3.), "delivery", Some((3, 4)), Some((None, None)))),
+            a(("job2", Some(2.), "pickup", Some((5, 6)), Some((Some((3., 1, 4, 5)), None)))),
+            a(("job1", Some(1.), "delivery", Some((7, 8)), Some((Some((2., 1, 6, 7)), Some((3., 2, 8, 10)))))),
         ],
     ));
-    let stop3_schedule = (17., 18.);
+    let stop3_schedule = (17, 18);
     let statistic = create_statistic((38., 10, 18, (10, 4, 4, 0)));
 
     let problem = create_test_problem(
@@ -25,14 +25,14 @@ fn can_mix_pickup_delivery_jobs() {
         Clustering::Vicinity {
             profile: VehicleProfile { matrix: "car".to_string(), scale: None },
             threshold: VicinityThresholdPolicy {
-                duration: 3.,
-                distance: 3.,
+                duration: 3,
+                distance: 3,
                 min_shared_time: None,
                 smallest_time_window: None,
                 max_jobs_per_cluster: None,
             },
             visiting: VicinityVisitPolicy::Continue,
-            serving: VicinityServingPolicy::Original { parking: 0. },
+            serving: VicinityServingPolicy::Original { parking: 0 },
             filtering: None,
         },
     );
@@ -48,7 +48,7 @@ fn can_mix_pickup_delivery_jobs() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![3])
                             .build_departure(),
                         stop2.into(),
@@ -75,11 +75,11 @@ can_vary_cluster_size_based_on_capacity! {
     case_01: (
         4,
         vec![
-          (4., 4, 0, 0, (4., 14.), vec![
-            ActivityData::new(("job4", Some(4.), "delivery", Some((4., 5.)), Some((None, None)))),
-            ActivityData::new(("job3", Some(3.), "delivery", Some((6., 7.)), Some((Some((4., 1., 5., 6.)), None)))),
-            ActivityData::new(("job2", Some(2.), "delivery", Some((8., 9.)), Some((Some((3., 1., 7., 8.)), None)))),
-            ActivityData::new(("job1", Some(1.), "delivery", Some((10., 11.)), Some((Some((2., 1., 9., 10.)), Some((4., 3., 11., 14.)))))),
+          (4., 4, 0, 0, (4, 14), vec![
+            ActivityData::new(("job4", Some(4.), "delivery", Some((4, 5)), Some((None, None)))),
+            ActivityData::new(("job3", Some(3.), "delivery", Some((6, 7)), Some((Some((4., 1, 5, 6)), None)))),
+            ActivityData::new(("job2", Some(2.), "delivery", Some((8, 9)), Some((Some((3., 1, 7, 8)), None)))),
+            ActivityData::new(("job1", Some(1.), "delivery", Some((10, 11)), Some((Some((2., 1, 9, 10)), Some((4., 3, 11, 14)))))),
           ])
         ],
         None,
@@ -88,10 +88,10 @@ can_vary_cluster_size_based_on_capacity! {
     case_02: (
         3,
         vec![
-          (4., 4, 0, 0, (4., 11.), vec![
-            ActivityData::new(("job4", Some(4.), "delivery", Some((4., 5.)), Some((None, None)))),
-            ActivityData::new(("job3", Some(3.), "delivery", Some((6., 7.)), Some((Some((4., 1., 5., 6.)), None)))),
-            ActivityData::new(("job2", Some(2.), "delivery", Some((8., 9.)), Some((Some((3., 1., 7., 8.)), Some((4., 2., 9., 11.)))))),
+          (4., 4, 0, 0, (4, 11), vec![
+            ActivityData::new(("job4", Some(4.), "delivery", Some((4, 5)), Some((None, None)))),
+            ActivityData::new(("job3", Some(3.), "delivery", Some((6, 7)), Some((Some((4., 1, 5, 6)), None)))),
+            ActivityData::new(("job2", Some(2.), "delivery", Some((8, 9)), Some((Some((3., 1, 7, 8)), Some((4., 2, 9, 11)))))),
           ])
         ],
         Some(vec!["job1"]),
@@ -112,14 +112,14 @@ fn can_vary_cluster_size_based_on_capacity_impl(
         Clustering::Vicinity {
             profile: VehicleProfile { matrix: "car".to_string(), scale: None },
             threshold: VicinityThresholdPolicy {
-                duration: 5.,
-                distance: 5.,
+                duration: 5,
+                distance: 5,
                 min_shared_time: None,
                 smallest_time_window: None,
                 max_jobs_per_cluster: None,
             },
             visiting: VicinityVisitPolicy::Continue,
-            serving: VicinityServingPolicy::Original { parking: 0. },
+            serving: VicinityServingPolicy::Original { parking: 0 },
             filtering: None,
         },
     );
@@ -136,7 +136,7 @@ fn can_vary_cluster_size_based_on_capacity_impl(
                         once(
                             StopBuilder::default()
                                 .coordinate((0., 0.))
-                                .schedule_stamp(0., 0.)
+                                .schedule_stamp(0, 0)
                                 .load(vec![capacity])
                                 .build_departure(),
                         )

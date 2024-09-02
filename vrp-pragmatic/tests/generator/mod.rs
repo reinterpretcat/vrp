@@ -21,7 +21,7 @@ mod vehicles;
 pub use self::vehicles::*;
 
 prop_compose! {
-    fn from_uints(vec: Vec<u64>)(index in 0..vec.len()) -> u64 {
+    fn from_long(vec: Vec<i64>)(index in 0..vec.len()) -> i64 {
         vec[index]
     }
 }

@@ -8,10 +8,10 @@ use vrp_core::models::solution::*;
 const DEFAULT_VEHICLE_COSTS: Costs =
     Costs { fixed: 100.0, per_distance: 1.0, per_driving_time: 1.0, per_waiting_time: 1.0, per_service_time: 1.0 };
 pub const DEFAULT_JOB_LOCATION: Location = 0;
-pub const DEFAULT_JOB_DURATION: Duration = 0.0;
-pub const DEFAULT_JOB_TIME_SPAN: TimeSpan = TimeSpan::Window(TimeWindow { start: 0., end: 1000. });
-pub const DEFAULT_ACTIVITY_TIME_WINDOW: TimeWindow = TimeWindow { start: 0., end: 1000. };
-pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arrival: 0.0 };
+pub const DEFAULT_JOB_DURATION: Duration = 0;
+pub const DEFAULT_JOB_TIME_SPAN: TimeSpan = TimeSpan::Window(TimeWindow { start: 0, end: 1000 });
+pub const DEFAULT_ACTIVITY_TIME_WINDOW: TimeWindow = TimeWindow { start: 0, end: 1000 };
+pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0, arrival: 0 };
 
 pub fn test_driver() -> Driver {
     Driver { costs: DEFAULT_VEHICLE_COSTS, dimens: Default::default(), details: vec![] }

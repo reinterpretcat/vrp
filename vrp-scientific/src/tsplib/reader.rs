@@ -219,7 +219,7 @@ impl<R: Read> TsplibReader<R> {
         Job::Single(Arc::new(Single {
             places: vec![Place {
                 location: Some(self.coord_index.collect(location)),
-                duration: 0.,
+                duration: Duration::default(),
                 times: vec![TimeSpan::Window(TimeWindow::max())],
             }],
             dimens,

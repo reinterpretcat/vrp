@@ -29,16 +29,16 @@ fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost>) -> Gener
                 .add_job(
                     SingleBuilder::default()
                         .demand(Demand::pudo_pickup(1))
-                        .times(vec![TimeWindow::new(0., 1000.)])?
-                        .duration(10.)?
+                        .times(vec![TimeWindow::new(0, 1000)])?
+                        .duration(10)?
                         .location(location_idx)?
                         .build()?,
                 )
                 .add_job(
                     SingleBuilder::default()
                         .demand(Demand::pudo_delivery(1))
-                        .times(vec![TimeWindow::new(0., 1000.)])?
-                        .duration(10.)?
+                        .times(vec![TimeWindow::new(0, 1000)])?
+                        .duration(10)?
                         .location(location_idx + 1)?
                         .build()?,
                 )
@@ -53,10 +53,10 @@ fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost>) -> Gener
             VehicleDetailBuilder::default()
                 // vehicle starts at location with index 0 in routing matrix
                 .set_start_location(0)
-                .set_start_time(0.)
+                .set_start_time(0)
                 // vehicle should return to location with index 0
                 .set_end_location(0)
-                .set_end_time(10000.)
+                .set_end_time(10000)
                 .build()?,
         )
         // the vehicle has capacity=1, so it is forced to do delivery after each pickup

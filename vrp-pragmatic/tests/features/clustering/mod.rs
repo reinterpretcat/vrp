@@ -3,7 +3,7 @@ use crate::format::solution::*;
 use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
-use vrp_core::models::common::{Distance, Timestamp};
+use vrp_core::models::common::{Distance, Duration, Timestamp};
 use vrp_core::prelude::Float;
 
 type CommuteData = Option<(f64, Distance, Timestamp, Timestamp)>;
@@ -51,7 +51,7 @@ impl From<ActivityData> for Activity {
 
 struct StopData {
     location: Location,
-    distance: i64,
+    distance: Distance,
     load: i32,
     parking: i64,
     time: (Timestamp, Timestamp),
@@ -80,7 +80,7 @@ impl From<StopData> for Stop {
             parking: if stop.parking > 0 {
                 Some(Interval {
                     start: format_time(stop.time.0),
-                    end: format_time(stop.time.0 + stop.parking as Float),
+                    end: format_time(stop.time.0 + stop.parking as Duration),
                 })
             } else {
                 None

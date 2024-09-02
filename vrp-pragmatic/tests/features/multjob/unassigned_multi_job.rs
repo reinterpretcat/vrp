@@ -8,8 +8,8 @@ fn can_unassign_multi_job_due_to_capacity() {
         plan: Plan {
             jobs: vec![create_multi_job(
                 "multi",
-                vec![((2., 0.), 1., vec![2]), ((8., 0.), 1., vec![1])],
-                vec![((6., 0.), 1., vec![3])],
+                vec![((2., 0.), 1, vec![2]), ((8., 0.), 1, vec![1])],
+                vec![((6., 0.), 1, vec![3])],
             )],
             ..create_empty_plan()
         },

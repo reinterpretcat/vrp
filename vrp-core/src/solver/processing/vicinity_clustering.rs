@@ -4,7 +4,7 @@ mod vicinity_clustering_test;
 
 use super::*;
 use crate::construction::clustering::vicinity::*;
-use crate::models::common::Schedule;
+use crate::models::common::{Duration, Schedule};
 use crate::models::problem::Jobs;
 use crate::models::solution::{Activity, Place};
 use crate::models::{Extras, GoalContext, Problem};
@@ -111,7 +111,7 @@ impl HeuristicSolutionProcessing for VicinityClustering {
                         let backward = match config.visiting {
                             VisitPolicy::Return => info.commute.backward.duration,
                             VisitPolicy::ClosedContinuation if info.job == last_job => info.commute.backward.duration,
-                            _ => 0.,
+                            _ => Duration::default(),
                         };
 
                         let service_time = info.service_time;

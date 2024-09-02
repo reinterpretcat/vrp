@@ -14,7 +14,7 @@ fn can_use_index_with_coordinate_an_unknown_location_types() {
                     deliveries: Some(vec![JobTask {
                         places: vec![JobPlace {
                             location: unknown_location.clone(),
-                            duration: 0.,
+                            duration: 0,
                             times: None,
                             tag: None,
                         }],

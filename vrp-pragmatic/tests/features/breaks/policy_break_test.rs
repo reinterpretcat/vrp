@@ -24,16 +24,16 @@ fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleOptionalBreak
             vehicles: vec![
                 VehicleType {
                     shifts: vec![VehicleShift {
-                        start: ShiftStart { earliest: format_time(0.), latest: None, location: (100., 0.).to_loc() },
+                        start: ShiftStart { earliest: format_time(0), latest: None, location: (100., 0.).to_loc() },
                         end: Some(ShiftEnd {
                             earliest: None,
-                            latest: format_time(1000.),
+                            latest: format_time(1000),
                             location: (100., 0.).to_loc(),
                         }),
                         breaks: Some(vec![VehicleBreak::Optional {
-                            time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(8.)]),
+                            time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5), format_time(8)]),
                             places: vec![VehicleOptionalBreakPlace {
-                                duration: 2.0,
+                                duration: 2,
                                 location: Some((6., 0.).to_loc()),
                                 tag: None,
                             }],
@@ -63,24 +63,24 @@ fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleOptionalBreak
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![2])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((10., 0.))
-                            .schedule_stamp(10., 11.)
+                            .schedule_stamp(10, 11)
                             .load(vec![1])
                             .distance(10)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((5., 0.))
-                            .schedule_stamp(16., 17.)
+                            .schedule_stamp(16, 17)
                             .load(vec![0])
                             .distance(15)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(22., 22.)
+                            .schedule_stamp(22, 22)
                             .load(vec![0])
                             .distance(20)
                             .build_arrival(),
@@ -104,14 +104,14 @@ can_skip_break_when_jobs_completed! {
 
 fn can_skip_break_when_jobs_completed_impl(policy: Option<VehicleOptionalBreakPolicy>) {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", (1., 0.), 10.)], ..create_empty_plan() },
+        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", (1., 0.), 10)], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
-                        time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(8.)]),
+                        time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5), format_time(8)]),
                         places: vec![VehicleOptionalBreakPlace {
-                            duration: 2.0,
+                            duration: 2,
                             location: Some((6., 0.).to_loc()),
                             tag: None,
                         }],
@@ -137,18 +137,18 @@ fn can_skip_break_when_jobs_completed_impl(policy: Option<VehicleOptionalBreakPo
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![1])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(1., 11.)
+                            .schedule_stamp(1, 11)
                             .load(vec![0])
                             .distance(1)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(12., 12.)
+                            .schedule_stamp(12, 12)
                             .load(vec![0])
                             .distance(2)
                             .build_arrival(),
@@ -181,17 +181,17 @@ fn can_skip_second_break_when_jobs_completed_impl(policy: Option<VehicleOptional
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![
                         VehicleBreak::Optional {
-                            time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
+                            time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5), format_time(10)]),
                             places: vec![VehicleOptionalBreakPlace {
-                                duration: 2.0,
+                                duration: 2,
                                 location: Some((6., 0.).to_loc()),
                                 tag: None,
                             }],
                             policy: policy.clone(),
                         },
                         VehicleBreak::Optional {
-                            time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(100.), format_time(120.)]),
-                            places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
+                            time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(100), format_time(120)]),
+                            places: vec![VehicleOptionalBreakPlace { duration: 2, location: None, tag: None }],
                             policy,
                         },
                     ]),
@@ -215,30 +215,30 @@ fn can_skip_second_break_when_jobs_completed_impl(policy: Option<VehicleOptional
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![2])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((5., 0.))
-                            .schedule_stamp(5., 6.)
+                            .schedule_stamp(5, 6)
                             .load(vec![1])
                             .distance(5)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((6., 0.))
-                            .schedule_stamp(7., 9.)
+                            .schedule_stamp(7, 9)
                             .load(vec![1])
                             .distance(6)
                             .build_single("break", "break"),
                         StopBuilder::default()
                             .coordinate((10., 0.))
-                            .schedule_stamp(13., 14.)
+                            .schedule_stamp(13, 14)
                             .load(vec![0])
                             .distance(10)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(24., 24.)
+                            .schedule_stamp(24, 24)
                             .load(vec![0])
                             .distance(20)
                             .build_arrival(),
@@ -255,11 +255,11 @@ parameterized_test! {can_skip_break_depending_on_policy, (policy, location, time
 }}
 
 can_skip_break_depending_on_policy! {
-    case_01: (Some(VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5., 11.), 0),
-    case_02: (Some(VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5., 8.), 2),
+    case_01: (Some(VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5, 11), 0),
+    case_02: (Some(VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5, 8), 2),
 
-    case_03: (Some(VehicleOptionalBreakPolicy::SkipIfNoIntersection), 5., (5., 11.), 2),
-    case_04: (Some(VehicleOptionalBreakPolicy::SkipIfNoIntersection), 5., (5., 8.), 2),
+    case_03: (Some(VehicleOptionalBreakPolicy::SkipIfNoIntersection), 5., (5, 11), 2),
+    case_04: (Some(VehicleOptionalBreakPolicy::SkipIfNoIntersection), 5., (5, 8), 2),
 }
 
 fn can_skip_break_depending_on_policy_impl(
@@ -269,13 +269,13 @@ fn can_skip_break_depending_on_policy_impl(
     expected: i64,
 ) {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", (location, 0.), 0.)], ..create_empty_plan() },
+        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", (location, 0.), 0)], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(time.0), format_time(time.1)]),
-                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
+                        places: vec![VehicleOptionalBreakPlace { duration: 2, location: None, tag: None }],
                         policy,
                     }]),
                     ..create_default_vehicle_shift()

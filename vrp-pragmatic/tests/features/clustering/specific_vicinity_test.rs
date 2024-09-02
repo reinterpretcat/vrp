@@ -1,24 +1,25 @@
 use super::*;
+use vrp_core::models::common::Duration;
 
 #[test]
 fn can_handle_parking_with_no_clusters_and_job_time_windows() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_times("job1", (52.424, 13.215), vec![(50400, 57600)], 1.),
-                create_delivery_job_with_times("job2", (52.512, 13.384), vec![(32400, 46800)], 1.),
+                create_delivery_job_with_times("job1", (52.424, 13.215), vec![(50400, 57600)], 1),
+                create_delivery_job_with_times("job2", (52.512, 13.384), vec![(32400, 46800)], 1),
             ],
             clustering: Some(Clustering::Vicinity {
                 profile: VehicleProfile { matrix: "car".to_string(), scale: None },
                 threshold: VicinityThresholdPolicy {
-                    duration: 30.,
-                    distance: 16.,
+                    duration: 30,
+                    distance: 16,
                     min_shared_time: None,
                     smallest_time_window: None,
                     max_jobs_per_cluster: None,
                 },
                 visiting: VicinityVisitPolicy::Continue,
-                serving: VicinityServingPolicy::Original { parking: 300. },
+                serving: VicinityServingPolicy::Original { parking: 300 },
                 filtering: None,
             }),
             ..create_empty_plan()
@@ -60,28 +61,28 @@ can_handle_waiting_time_with_parking! {
             ("job2", (52.507, 13.506), vec![(50400, 57600)]),
             ("job3", (52.498, 13.499), vec![(50400, 57600)]),
         ],
-        (1143., 128.), (52.505, 13.218),
+        (1143, 128), (52.505, 13.218),
     ),
     case_02: (vec![
             ("job1", (52.559, 13.228), vec![(50400, 64800)]),
             ("job2", (52.575, 13.395), vec![(32400, 39600)]),
             ("job3", (52.575, 13.395), vec![(32400, 39600)]),
         ],
-        (210., 930.), (52.577, 13.530),
+        (210, 930), (52.577, 13.530),
     ),
 }
 
 #[allow(clippy::type_complexity)]
 fn can_handle_waiting_time_with_parking_impl(
-    jobs: Vec<(&str, (f64, f64), Vec<(i32, i32)>)>,
-    threshold: (Float, Float),
+    jobs: Vec<(&str, (f64, f64), Vec<(Timestamp, Timestamp)>)>,
+    threshold: (Duration, Distance),
     vehicle_location: Location,
 ) {
     let problem = Problem {
         plan: Plan {
             jobs: jobs
                 .into_iter()
-                .map(|(id, coordinates, times)| create_delivery_job_with_times(id, coordinates, times, 1.))
+                .map(|(id, coordinates, times)| create_delivery_job_with_times(id, coordinates, times, 1))
                 .collect(),
             clustering: Some(Clustering::Vicinity {
                 profile: VehicleProfile { matrix: "car".to_string(), scale: None },
@@ -93,7 +94,7 @@ fn can_handle_waiting_time_with_parking_impl(
                     max_jobs_per_cluster: None,
                 },
                 visiting: VicinityVisitPolicy::Continue,
-                serving: VicinityServingPolicy::Original { parking: 300.0 },
+                serving: VicinityServingPolicy::Original { parking: 300 },
                 filtering: None,
             }),
             ..create_empty_plan()

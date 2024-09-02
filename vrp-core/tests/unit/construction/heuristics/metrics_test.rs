@@ -44,9 +44,9 @@ fn can_get_max_load_variance() {
 fn can_get_duration_mean() {
     let insertion_ctx = create_insertion_ctx(3, &|_, idx| {
         let value = match idx {
-            0 => 6.,
-            1 => 2.,
-            _ => 7.,
+            0 => 6,
+            1 => 2,
+            _ => 7,
         };
         create_route_ctx_with_route_state(|state| state.set_total_duration(value))
     });
@@ -60,9 +60,9 @@ fn can_get_duration_mean() {
 fn can_get_distance_mean() {
     let insertion_ctx = create_insertion_ctx(3, &|_, idx| {
         let value = match idx {
-            0 => 8.,
-            1 => 2.,
-            _ => 11.,
+            0 => 8,
+            1 => 2,
+            _ => 11,
         };
         create_route_ctx_with_route_state(|state| state.set_total_distance(value))
     });

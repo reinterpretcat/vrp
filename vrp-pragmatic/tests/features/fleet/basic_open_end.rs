@@ -26,12 +26,12 @@ fn can_use_vehicle_with_open_end() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![1])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(1., 2.)
+                            .schedule_stamp(1, 2)
                             .load(vec![0])
                             .distance(1)
                             .build_single("job1", "delivery"),

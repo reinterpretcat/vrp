@@ -3,13 +3,13 @@ use crate::format::problem::*;
 use crate::format::{CoordIndex, Location};
 use crate::format_time;
 use crate::helpers::ToLocation;
-use vrp_core::models::common::{Distance, Duration, Location as CoreLocation, Profile};
+use vrp_core::models::common::{Distance, Duration, Location as CoreLocation, Profile, Timestamp};
 use vrp_core::models::problem::{TransportCost, TravelTime};
 use vrp_core::models::solution::Route;
 use vrp_core::prelude::Float;
 
 pub fn create_job_place(location: (f64, f64), tag: Option<String>) -> JobPlace {
-    JobPlace { times: None, location: location.to_loc(), duration: 1., tag }
+    JobPlace { times: None, location: location.to_loc(), duration: 1, tag }
 }
 
 pub fn create_task(location: (f64, f64), tag: Option<String>) -> JobTask {
@@ -91,7 +91,7 @@ pub fn create_delivery_job_with_duration(id: &str, location: (f64, f64), duratio
 pub fn create_delivery_job_with_times(
     id: &str,
     location: (f64, f64),
-    times: Vec<(i32, i32)>,
+    times: Vec<(Timestamp, Timestamp)>,
     duration: Duration,
 ) -> Job {
     Job {
@@ -135,8 +135,8 @@ pub fn create_pickup_delivery_job(id: &str, pickup_location: (f64, f64), deliver
 pub fn create_pickup_delivery_job_with_params(
     id: &str,
     demand: Vec<i32>,
-    pickup: ((f64, f64), Duration, Vec<(i32, i32)>),
-    delivery: ((f64, f64), Duration, Vec<(i32, i32)>),
+    pickup: ((f64, f64), Duration, Vec<(Timestamp, Timestamp)>),
+    delivery: ((f64, f64), Duration, Vec<(Timestamp, Timestamp)>),
 ) -> Job {
     Job {
         pickups: Some(vec![JobTask {
@@ -165,7 +165,7 @@ pub fn create_pickup_delivery_job_with_params(
 pub fn create_delivery_job_with_index(id: &str, index: usize) -> Job {
     Job {
         deliveries: Some(vec![JobTask {
-            places: vec![JobPlace { times: None, location: Location::Reference { index }, duration: 1., tag: None }],
+            places: vec![JobPlace { times: None, location: Location::Reference { index }, duration: 1, tag: None }],
             demand: Some(vec![1]),
             order: None,
         }]),
@@ -203,7 +203,7 @@ pub fn create_multi_job(
 }
 
 pub fn create_default_reload() -> VehicleReload {
-    VehicleReload { times: None, location: (0., 0.).to_loc(), duration: 2.0, tag: None, resource_id: None }
+    VehicleReload { times: None, location: (0., 0.).to_loc(), duration: 2, tag: None, resource_id: None }
 }
 
 pub fn create_default_vehicle_shift() -> VehicleShift {
@@ -212,7 +212,7 @@ pub fn create_default_vehicle_shift() -> VehicleShift {
 
 pub fn create_default_open_vehicle_shift() -> VehicleShift {
     VehicleShift {
-        start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
+        start: ShiftStart { earliest: format_time(0), latest: None, location: (0., 0.).to_loc() },
         end: None,
         breaks: None,
         reloads: None,
@@ -222,8 +222,8 @@ pub fn create_default_open_vehicle_shift() -> VehicleShift {
 
 pub fn create_default_vehicle_shift_with_locations(start: (f64, f64), end: (f64, f64)) -> VehicleShift {
     VehicleShift {
-        start: ShiftStart { earliest: format_time(0.), latest: None, location: (start.0, start.1).to_loc() },
-        end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (end.0, end.1).to_loc() }),
+        start: ShiftStart { earliest: format_time(0), latest: None, location: (start.0, start.1).to_loc() },
+        end: Some(ShiftEnd { earliest: None, latest: format_time(1000), location: (end.0, end.1).to_loc() }),
         breaks: None,
         reloads: None,
         recharges: None,
@@ -327,11 +327,11 @@ pub fn all_of_skills(skills: Vec<String>) -> JobSkills {
     JobSkills { all_of: Some(skills), one_of: None, none_of: None }
 }
 
-fn convert_times(times: &[(i32, i32)]) -> Option<Vec<Vec<String>>> {
+fn convert_times(times: &[(Timestamp, Timestamp)]) -> Option<Vec<Vec<String>>> {
     if times.is_empty() {
         None
     } else {
-        Some(times.iter().map(|tw| vec![format_time(tw.0 as Float), format_time(tw.1 as Float)]).collect())
+        Some(times.iter().map(|tw| vec![format_time(tw.0), format_time(tw.1)]).collect())
     }
 }
 
@@ -356,6 +356,6 @@ impl TransportCost for TestTransportCost {
     }
 }
 
-fn fake_routing(from: CoreLocation, to: CoreLocation) -> Float {
-    (if to > from { to - from } else { from - to }) as Float
+fn fake_routing(from: CoreLocation, to: CoreLocation) -> Duration {
+    (if to > from { to - from } else { from - to }) as Duration
 }

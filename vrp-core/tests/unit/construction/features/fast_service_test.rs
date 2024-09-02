@@ -76,17 +76,17 @@ mod local_estimation {
 
     can_estimate_single_job_insertion_without_reload! {
         case01_delivery_deviate_route: InsertionTestCase {
-            target_index: 1, target_location: 15, demand: -1, activities: vec![10, 20], end_time: 40., expected_cost: 15.,
+            target_index: 1, target_location: 15, demand: -1, activities: vec![10, 20], end_time: 40, expected_cost: 15.,
         },
         case02_delivery_along_route: InsertionTestCase {
-            target_index: 2, target_location: 15, demand: -1, activities: vec![10, 20], end_time: 40., expected_cost: 15.,
+            target_index: 2, target_location: 15, demand: -1, activities: vec![10, 20], end_time: 40, expected_cost: 15.,
         },
 
         case03_pickup_deviate_route: InsertionTestCase {
-            target_index: 1, target_location: 15, demand: 1, activities: vec![10, 20], end_time: 40., expected_cost: 35.,
+            target_index: 1, target_location: 15, demand: 1, activities: vec![10, 20], end_time: 40, expected_cost: 35.,
         },
         case04_pickup_along_route: InsertionTestCase {
-            target_index: 2, target_location: 15, demand: 1, activities: vec![10, 20], end_time: 40., expected_cost: 25.,
+            target_index: 2, target_location: 15, demand: 1, activities: vec![10, 20], end_time: 40, expected_cost: 25.,
         },
     }
 
@@ -106,17 +106,17 @@ mod local_estimation {
 
     can_estimate_multi_job_insertion_without_reload! {
         case01_start_next_activity: InsertionTestCase {
-            target_index: 1, target_location: 15, demand: 1, activities: vec![(10, Some(-1)), (20, None)], end_time: 40., expected_cost: 5.,
+            target_index: 1, target_location: 15, demand: 1, activities: vec![(10, Some(-1)), (20, None)], end_time: 40, expected_cost: 5.,
         },
         case02_start_skip_activity: InsertionTestCase {
-            target_index: 1, target_location: 15, demand: 1, activities: vec![(10, None), (20, Some(-1))], end_time: 40., expected_cost: 15.,
+            target_index: 1, target_location: 15, demand: 1, activities: vec![(10, None), (20, Some(-1))], end_time: 40, expected_cost: 15.,
         },
 
         case03_end_prev_activity: InsertionTestCase {
-            target_index: 3, target_location: 15, demand: -1, activities: vec![(10, Some(1)), (20, None)], end_time: 40., expected_cost: 15.,
+            target_index: 3, target_location: 15, demand: -1, activities: vec![(10, Some(1)), (20, None)], end_time: 40, expected_cost: 15.,
         },
         case04_end_prev_activity: InsertionTestCase {
-            target_index: 2, target_location: 15, demand: -1, activities: vec![(10, Some(1)), (20, None)], end_time: 40., expected_cost: 5.,
+            target_index: 2, target_location: 15, demand: -1, activities: vec![(10, Some(1)), (20, None)], end_time: 40, expected_cost: 5.,
         },
     }
 

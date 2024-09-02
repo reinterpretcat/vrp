@@ -46,7 +46,7 @@ fn can_deserialize_problem() {
 
     assert_eq!(delivery.places.len(), 1);
     let place = delivery.places.first().unwrap();
-    assert_eq!(place.duration, 240.);
+    assert_eq!(place.duration, 240);
     assert_location(&place.location, (52.5622847f64, 13.4023099f64));
     assert_time_windows(&place.times, ("2019-07-04T10:00:00Z", "2019-07-04T16:00:00Z"));
 

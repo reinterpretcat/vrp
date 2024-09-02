@@ -12,6 +12,29 @@ use std::ops::ControlFlow;
 /// to precision issues within solution checker (at least). No clear performance benefits were not found.
 pub type Float = f64;
 
+#[doc(hidden)]
+pub trait IntoFloat {
+    fn into_float(self) -> Float;
+}
+
+impl IntoFloat for i64 {
+    fn into_float(self) -> Float {
+        self as Float
+    }
+}
+
+impl IntoFloat for f32 {
+    fn into_float(self) -> Float {
+        self as Float
+    }
+}
+
+impl IntoFloat for f64 {
+    fn into_float(self) -> Float {
+        self as Float
+    }
+}
+
 /// Unwraps value from inner state.
 pub trait UnwrapValue {
     /// A value type.

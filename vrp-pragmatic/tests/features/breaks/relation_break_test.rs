@@ -3,19 +3,19 @@ use crate::format::solution::*;
 use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
-use vrp_core::prelude::Float;
+use vrp_core::models::common::Duration;
 
 fn get_permissive_break_time() -> VehicleOptionalBreakTime {
-    VehicleOptionalBreakTime::TimeWindow(vec![format_time(0.), format_time(1000.)])
+    VehicleOptionalBreakTime::TimeWindow(vec![format_time(0), format_time(1000)])
 }
 
 fn get_challenging_break_time() -> VehicleOptionalBreakTime {
-    VehicleOptionalBreakTime::TimeWindow(vec![format_time(10.), format_time(15.)])
+    VehicleOptionalBreakTime::TimeWindow(vec![format_time(10), format_time(15)])
 }
 
 fn get_solution(
     relation_type: RelationType,
-    job_duration: Float,
+    job_duration: Duration,
     break_location: Option<Location>,
     break_time: VehicleOptionalBreakTime,
     jobs: Vec<String>,
@@ -40,7 +40,7 @@ fn get_solution(
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: break_time,
-                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: break_location, tag: None }],
+                        places: vec![VehicleOptionalBreakPlace { duration: 2, location: break_location, tag: None }],
                         policy: None,
                     }]),
                     ..create_default_vehicle_shift()
@@ -70,7 +70,7 @@ can_use_break_between_two_jobs_in_relation! {
 }
 
 fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, jobs: Vec<String>) {
-    let solution = get_solution(relation_type, 1., Some((3., 0.).to_loc()), get_permissive_break_time(), jobs, true);
+    let solution = get_solution(relation_type, 1, Some((3., 0.).to_loc()), get_permissive_break_time(), jobs, true);
 
     assert_eq!(
         solution,
@@ -80,30 +80,30 @@ fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, 
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![2])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(1., 2.)
+                            .schedule_stamp(1, 2)
                             .load(vec![1])
                             .distance(1)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((3., 0.))
-                            .schedule_stamp(4., 6.)
+                            .schedule_stamp(4, 6)
                             .load(vec![1])
                             .distance(3)
                             .build_single("break", "break"),
                         StopBuilder::default()
                             .coordinate((2., 0.))
-                            .schedule_stamp(7., 8.)
+                            .schedule_stamp(7, 8)
                             .load(vec![0])
                             .distance(4)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(10., 10.)
+                            .schedule_stamp(10, 10)
                             .load(vec![0])
                             .distance(6)
                             .build_arrival(),
@@ -125,7 +125,7 @@ can_use_break_last_in_relation! {
 }
 
 fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<String>) {
-    let solution = get_solution(relation_type, 1., Some((3., 0.).to_loc()), get_permissive_break_time(), jobs, true);
+    let solution = get_solution(relation_type, 1, Some((3., 0.).to_loc()), get_permissive_break_time(), jobs, true);
 
     assert_eq!(
         solution,
@@ -135,30 +135,30 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![2])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(1., 2.)
+                            .schedule_stamp(1, 2)
                             .load(vec![1])
                             .distance(1)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((2., 0.))
-                            .schedule_stamp(3., 4.)
+                            .schedule_stamp(3, 4)
                             .load(vec![0])
                             .distance(2)
                             .build_single("job2", "delivery"),
                         StopBuilder::default()
                             .coordinate((3., 0.))
-                            .schedule_stamp(5., 7.)
+                            .schedule_stamp(5, 7)
                             .load(vec![0])
                             .distance(3)
                             .build_single("break", "break"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(10., 10.)
+                            .schedule_stamp(10, 10)
                             .load(vec![0])
                             .distance(6)
                             .build_arrival(),
@@ -181,7 +181,7 @@ fn can_stick_to_relation_ignoring_constraint() {
         to_strings(vec!["arrival"]),
     ];
 
-    let solution = get_solution(relation_type, 10., None, get_challenging_break_time(), jobs, false);
+    let solution = get_solution(relation_type, 10, None, get_challenging_break_time(), jobs, false);
 
     assert_eq!(solution.tours.len(), 1);
     assert!(solution.unassigned.is_none());

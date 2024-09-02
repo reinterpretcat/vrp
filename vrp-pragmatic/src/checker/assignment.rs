@@ -6,11 +6,10 @@ use super::*;
 use crate::format::get_indices;
 use crate::format::solution::activity_matcher::*;
 use crate::utils::combine_error_results;
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use vrp_core::construction::clustering::vicinity::ServingPolicy;
 use vrp_core::models::solution::Place;
-use vrp_core::prelude::{compare_floats, GenericResult};
+use vrp_core::prelude::GenericResult;
 use vrp_core::utils::GenericError;
 
 /// Checks assignment of jobs and vehicles.
@@ -215,22 +214,23 @@ fn is_valid_job_info(
     place: Place,
     time: TimeWindow,
 ) -> bool {
-    let not_equal = |left: Float, right: Float| compare_floats(left, right) != Ordering::Equal;
-    let parking = ctx.clustering.as_ref().map(|config| config.serving.get_parking()).unwrap_or(0.);
+    let parking = ctx.clustering.as_ref().map(|config| config.serving.get_parking()).unwrap_or_default();
     let commute_profile = ctx.clustering.as_ref().map(|config| config.profile.clone());
     let domain_commute = ctx.get_commute_info(commute_profile, parking, stop, activity_idx);
-    let extra_time = get_extra_time(stop, activity, &place).unwrap_or(0.);
+    let extra_time = get_extra_time(stop, activity, &place).unwrap_or_default();
 
     match (&ctx.clustering, &activity.commute, domain_commute) {
         (_, _, Err(_)) | (_, None, Ok(Some(_))) | (_, Some(_), Ok(None)) | (&None, &Some(_), Ok(Some(_))) => true,
         (_, None, Ok(None)) => {
             let expected_departure = time.start.max(place.time.start) + place.duration + extra_time;
-            not_equal(time.end, expected_departure)
+            time.end != expected_departure
         }
         (Some(config), Some(commute), Ok(Some(d_commute))) => {
             let (service_time, parking) = match config.serving {
                 ServingPolicy::Original { parking } => (place.duration, parking),
-                ServingPolicy::Multiplier { multiplier, parking } => (place.duration * multiplier, parking),
+                ServingPolicy::Multiplier { multiplier, parking } => {
+                    ((place.duration as Float * multiplier).round() as Duration, parking)
+                }
                 ServingPolicy::Fixed { value, parking } => (value, parking),
             };
 
@@ -238,20 +238,20 @@ fn is_valid_job_info(
 
             // NOTE: we keep parking in service time of a first activity of the non-first cluster
             let service_time =
-                service_time + if a_commute.is_zero_distance() && activity_idx > 0 { parking } else { 0. };
+                service_time + if a_commute.is_zero_distance() && activity_idx > 0 { parking } else { 0 };
 
             let expected_departure =
                 time.start.max(place.time.start) + service_time + d_commute.backward.duration + extra_time;
             let actual_departure = time.end + d_commute.backward.duration;
 
             // NOTE: a "workaroundish" approach for two clusters in the same stop
-            (not_equal(actual_departure, expected_departure)
-                && not_equal(actual_departure, expected_departure - parking))
+            (actual_departure != expected_departure
+                && actual_departure != expected_departure - parking)
                 // compare commute
-                || not_equal(a_commute.forward.distance, d_commute.forward.distance)
-                || not_equal(a_commute.forward.duration, d_commute.forward.duration)
-                || not_equal(a_commute.backward.distance, d_commute.backward.distance)
-                || not_equal(a_commute.backward.duration, d_commute.backward.duration)
+                || a_commute.forward.distance != d_commute.forward.distance
+                || a_commute.forward.duration != d_commute.forward.duration
+                || a_commute.backward.distance != d_commute.backward.distance
+                || a_commute.backward.duration != d_commute.backward.duration
         }
     }
 }

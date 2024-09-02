@@ -4,7 +4,6 @@ use crate::format::solution::{Activity as FormatActivity, Schedule as FormatSche
 use crate::format::solution::{PointStop, TransitStop};
 use crate::format::{CoordIndex, JobIndex, PlaceTagsDimension};
 use crate::parse_time;
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::iter::once;
 use std::sync::Arc;
@@ -179,7 +178,7 @@ fn match_place(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &Activ
     }
 }
 
-pub(crate) fn get_extra_time(stop: &PointStop, activity: &FormatActivity, place: &Place) -> Option<Float> {
+pub(crate) fn get_extra_time(stop: &PointStop, activity: &FormatActivity, place: &Place) -> Option<Duration> {
     let activity_time = get_activity_time(activity, &stop.time);
     stop.activities
         .iter()
@@ -190,7 +189,7 @@ pub(crate) fn get_extra_time(stop: &PointStop, activity: &FormatActivity, place:
                     let activity_time = TimeWindow::new(activity_time.start, activity_time.start + place.duration);
                     activity_time
                         .overlapping(&break_time)
-                        .filter(|overlap| compare_floats(overlap.start, overlap.end) != Ordering::Equal)
+                        .filter(|overlap| overlap.start != overlap.end)
                         .map(|overlap| break_time.end - overlap.end + overlap.duration())
                 })
             } else {
@@ -224,8 +223,8 @@ pub(super) fn get_job_tag(single: &Single, place: (Location, (TimeWindow, Timest
 
 fn get_job_id(single: &Arc<Single>) -> String {
     Activity {
-        place: Place { idx: 0, location: 0, duration: 0.0, time: TimeWindow::new(0., 0.) },
-        schedule: Schedule { arrival: 0.0, departure: 0.0 },
+        place: Place { idx: 0, location: 0, duration: 0, time: TimeWindow::new(0, 0) },
+        schedule: Schedule { arrival: 0, departure: 0 },
         job: Some(single.clone()),
         commute: None,
     }

@@ -8,19 +8,19 @@ struct OnlyDistanceCost {}
 
 impl TransportCost for OnlyDistanceCost {
     fn duration_approx(&self, _: &Profile, _: Location, _: Location) -> Duration {
-        0.
+        0
     }
 
     fn distance_approx(&self, _: &Profile, from: Location, to: Location) -> Distance {
-        fake_routing(from, to)
+        fake_routing(from, to) as Distance
     }
 
     fn duration(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Duration {
-        0.
+        0
     }
 
     fn distance(&self, _: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
-        fake_routing(from, to)
+        fake_routing(from, to) as Distance
     }
 }
 
@@ -38,48 +38,48 @@ impl ProfileAwareTransportCost {
 
 impl TransportCost for ProfileAwareTransportCost {
     fn duration_approx(&self, _: &Profile, _: Location, _: Location) -> Duration {
-        0.
+        0
     }
 
     fn distance_approx(&self, profile: &Profile, from: Location, to: Location) -> Distance {
-        (self.func)(profile, fake_routing(from, to))
+        (self.func)(profile, fake_routing(from, to)) as Distance
     }
 
     fn duration(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Duration {
-        0.
+        0
     }
 
     fn distance(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
-        (self.func)(&route.actor.vehicle.profile, fake_routing(from, to))
+        (self.func)(&route.actor.vehicle.profile, fake_routing(from, to)) as Distance
     }
 }
 
 struct FixedTransportCost {
-    duration_cost: Float,
-    distance_cost: Float,
+    duration: Duration,
+    distance: Distance,
 }
 
 impl TransportCost for FixedTransportCost {
     fn duration_approx(&self, _: &Profile, _: Location, _: Location) -> Duration {
-        self.duration_cost
+        self.duration
     }
 
     fn distance_approx(&self, _: &Profile, _: Location, _: Location) -> Distance {
-        self.distance_cost
+        self.distance
     }
 
     fn duration(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Duration {
-        self.duration_cost
+        self.duration
     }
 
     fn distance(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Distance {
-        self.distance_cost
+        self.distance
     }
 }
 
 impl FixedTransportCost {
-    pub fn new_shared(duration_cost: Float, distance_cost: Float) -> Arc<dyn TransportCost> {
-        Arc::new(Self { duration_cost, distance_cost })
+    pub fn new_shared(duration: Duration, distance: Distance) -> Arc<dyn TransportCost> {
+        Arc::new(Self { duration, distance })
     }
 }
 
@@ -165,7 +165,7 @@ fn returns_proper_job_neighbours_impl(index: usize, expected: Vec<String>) {
     let jobs = Jobs::new(&fleet, species.clone(), create_profile_aware_transport_cost().as_ref());
 
     let result: Vec<String> =
-        jobs.neighbors(&p1, species.get(index).unwrap(), 0.0).map(|(j, _)| get_job_id(j).clone()).collect();
+        jobs.neighbors(&p1, species.get(index).unwrap(), 0).map(|(j, _)| get_job_id(j).clone()).collect();
 
     assert_eq!(result, expected);
 }
@@ -175,14 +175,14 @@ parameterized_test! {returns_proper_job_ranks, (index, profile, expected), {
 }}
 
 returns_proper_job_ranks! {
-    case1: (0, 1, 0.0),
-    case2: (1, 1, 5.0),
-    case3: (2, 1, 6.0),
-    case4: (3, 1, 16.0),
-    case5: (0, 3, 30.0),
-    case6: (1, 3, 20.0),
-    case7: (2, 3, 9.0),
-    case8: (3, 3, 1.0),
+    case1: (0, 1, 0),
+    case2: (1, 1, 5),
+    case3: (2, 1, 6),
+    case4: (3, 1, 16),
+    case5: (0, 3, 30),
+    case6: (1, 3, 20),
+    case7: (2, 3, 9),
+    case8: (3, 3, 1),
 }
 
 fn returns_proper_job_ranks_impl(index: usize, profile_index: usize, expected: Distance) {
@@ -213,7 +213,7 @@ fn returns_proper_job_ranks_impl(index: usize, profile_index: usize, expected: D
     ];
     let jobs = Jobs::new(&fleet, species.clone(), create_profile_aware_transport_cost().as_ref());
 
-    let result = jobs.rank(&profile, species.get(index).unwrap());
+    let result = jobs.rank(&profile, species.get(index).unwrap()) as Distance;
 
     assert_eq!(result, expected);
 }
@@ -226,18 +226,18 @@ fn can_use_multi_job_bind_and_roots() {
     let jobs = Jobs::new(&test_fleet(), jobs, create_only_distance_transport_cost().as_ref());
     let job = Job::Multi(Multi::roots(job.jobs.first().unwrap()).unwrap());
 
-    assert_eq!(jobs.neighbors(&Profile::default(), &job, 0.0).count(), 0);
+    assert_eq!(jobs.neighbors(&Profile::default(), &job, 0).count(), 0);
 }
 
-parameterized_test! {can_handle_negative_distances_durations, (duration_cost, distance_cost), {
-    can_handle_negative_distances_durations_impl(FixedTransportCost::new_shared(duration_cost, distance_cost));
+parameterized_test! {can_handle_negative_distances_durations, (duration, distance), {
+    can_handle_negative_distances_durations_impl(FixedTransportCost::new_shared(duration, distance));
 }}
 
 can_handle_negative_distances_durations! {
-    case01: (-1., 1.),
-    case02: (1., -1.),
-    case03: (-1., -1.),
-    case04: (-1., 0.),
+    case01: (-1, 1),
+    case02: (1, -1),
+    case03: (-1, -1),
+    case04: (-1, 0),
 }
 
 fn can_handle_negative_distances_durations_impl(transport_costs: Arc<dyn TransportCost>) {
@@ -251,7 +251,7 @@ fn can_handle_negative_distances_durations_impl(transport_costs: Arc<dyn Transpo
 
     for job in &species {
         assert!(jobs
-            .neighbors(&profile, job, 0.0)
+            .neighbors(&profile, job, 0)
             .all(|(_, cost)| { (cost as LowPrecisionCost - UNREACHABLE_COST).abs() < f32::EPSILON }));
     }
 }

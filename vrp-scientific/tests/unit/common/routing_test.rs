@@ -24,5 +24,5 @@ fn can_create_transport_with_rounding() {
 
     let transport = index.create_transport(true).unwrap();
 
-    assert_eq!(transport.distance_approx(&Profile::new(0, None), 0, 1), 2.);
+    assert_eq!(transport.distance_approx(&Profile::new(0, None), 0, 1), 2);
 }

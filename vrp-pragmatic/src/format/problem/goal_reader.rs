@@ -3,7 +3,7 @@ use std::ops::Mul;
 use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
 use vrp_core::construction::enablers::FeatureCombinator;
 use vrp_core::construction::features::*;
-use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
+use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad, Timestamp};
 use vrp_core::models::problem::{Actor, Single, TransportCost};
 use vrp_core::models::solution::Route;
 use vrp_core::models::{Feature, FeatureObjective, GoalBuilder, GoalContext, GoalContextBuilder};
@@ -404,7 +404,7 @@ fn get_tour_limit_feature(
             (distances, durations)
         });
 
-    let get_limit = |limit_map: HashMap<String, Float>| {
+    let get_limit = |limit_map: HashMap<String, Timestamp>| {
         Arc::new(move |actor: &Actor| {
             actor.vehicle.dimens.get_vehicle_type().and_then(|v_type| limit_map.get(v_type)).cloned()
         })

@@ -32,7 +32,7 @@ pub fn create_job_clusters(
         Box::new(
             problem
                 .jobs
-                .neighbors(profile, job, 0.)
+                .neighbors(profile, job, Timestamp::default())
                 .filter(move |(job, _)| job_has_locations(job))
                 .take_while(move |(_, cost)| *cost < eps)
                 .map(|(job, _)| job),

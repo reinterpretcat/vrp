@@ -72,20 +72,24 @@ mod timing {
     }}
 
     can_properly_calculate_latest_arrival! {
-        case01: ((0, 0, 0., 100.), 3, 70.),
-        case02: ((0, 0, 0., 100.), 2, 60.),
-        case03: ((0, 0, 0., 100.), 1, 50.),
+        case01: ((0, 0, 0, 100), 3, 70),
+        case02: ((0, 0, 0, 100), 2, 60),
+        case03: ((0, 0, 0, 100), 1, 50),
 
-        case04: ((0, 0, 0., 60.), 3, 30.),
-        case05: ((0, 0, 0., 60.), 2, 20.),
-        case06: ((0, 0, 0., 60.), 1, 10.),
+        case04: ((0, 0, 0, 60), 3, 30),
+        case05: ((0, 0, 0, 60), 2, 20),
+        case06: ((0, 0, 0, 60), 1, 10),
 
-        case07: ((40, 40, 0., 100.), 3, 90.),
-        case08: ((40, 40, 0., 100.), 1, 70.),
-        case09: ((40, 40, 0., 100.), 2, 80.),
+        case07: ((40, 40, 0, 100), 3, 90),
+        case08: ((40, 40, 0, 100), 1, 70),
+        case09: ((40, 40, 0, 100), 2, 80),
     }
 
-    fn can_properly_calculate_latest_arrival_impl(vehicle_detail_data: VehicleData, activity_idx: usize, time: Float) {
+    fn can_properly_calculate_latest_arrival_impl(
+        vehicle_detail_data: VehicleData,
+        activity_idx: usize,
+        time: Timestamp,
+    ) {
         let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data);
         feature.state.unwrap().accept_route_state(&mut route_ctx);
 
@@ -99,16 +103,16 @@ mod timing {
     }}
 
     can_detect_activity_constraint_violation! {
-        case01: ((0, 0, 0., 100.), 50, 3, 4, None),
-        case02: ((0, 0, 0., 100.), 1000, 3, 4, ConstraintViolation::skip(VIOLATION_CODE)),
-        case03: ((0, 0, 0., 100.), 50, 2, 3, None),
-        case04: ((0, 0, 0., 100.), 51, 2, 3, ConstraintViolation::skip(VIOLATION_CODE)),
-        case05: ((0, 0, 0., 60.), 40, 3, 4, ConstraintViolation::skip(VIOLATION_CODE)),
-        case06: ((0, 0, 0., 50.), 40, 3, 4, ConstraintViolation::fail(VIOLATION_CODE)),
-        case07: ((0, 0, 0., 10.), 40, 3, 4, ConstraintViolation::fail(VIOLATION_CODE)),
-        case08: ((0, 0, 60., 100.), 40, 3, 4, ConstraintViolation::fail(VIOLATION_CODE)),
-        case09: ((0, 40, 0., 40.), 40, 1, 2, ConstraintViolation::skip(VIOLATION_CODE)),
-        case10: ((0, 40, 0., 40.), 40, 3, 4, None),
+        case01: ((0, 0, 0, 100), 50, 3, 4, None),
+        case02: ((0, 0, 0, 100), 1000, 3, 4, ConstraintViolation::skip(VIOLATION_CODE)),
+        case03: ((0, 0, 0, 100), 50, 2, 3, None),
+        case04: ((0, 0, 0, 100), 51, 2, 3, ConstraintViolation::skip(VIOLATION_CODE)),
+        case05: ((0, 0, 0, 60), 40, 3, 4, ConstraintViolation::skip(VIOLATION_CODE)),
+        case06: ((0, 0, 0, 50), 40, 3, 4, ConstraintViolation::fail(VIOLATION_CODE)),
+        case07: ((0, 0, 0, 10), 40, 3, 4, ConstraintViolation::fail(VIOLATION_CODE)),
+        case08: ((0, 0, 60, 100), 40, 3, 4, ConstraintViolation::fail(VIOLATION_CODE)),
+        case09: ((0, 40, 0, 40), 40, 1, 2, ConstraintViolation::skip(VIOLATION_CODE)),
+        case10: ((0, 40, 0, 40), 40, 3, 4, None),
     }
 
     fn can_detect_activity_constraint_violation_impl(
@@ -147,10 +151,10 @@ mod timing {
                                 .place(Place {
                                     idx: 0,
                                     location: 10,
-                                    duration: 5.,
-                                    time: TimeWindow { start: 20., end: 30. },
+                                    duration: 5,
+                                    time: TimeWindow { start: 20, end: 30 },
                                 })
-                                .schedule(Schedule::new(10., 25.))
+                                .schedule(Schedule::new(10, 25))
                                 .build(),
                         )
                         .add_activity(
@@ -158,10 +162,10 @@ mod timing {
                                 .place(Place {
                                     idx: 0,
                                     location: 20,
-                                    duration: 10.,
-                                    time: TimeWindow { start: 50., end: 100. },
+                                    duration: 10,
+                                    time: TimeWindow { start: 50, end: 100 },
                                 })
-                                .schedule(Schedule::new(35., 60.))
+                                .schedule(Schedule::new(35, 60))
                                 .build(),
                         )
                         .build(),
@@ -174,8 +178,8 @@ mod timing {
         create_feature().state.unwrap().accept_solution_state(&mut solution_ctx);
 
         let route_ctx = solution_ctx.routes.first().unwrap();
-        assert_eq!(route_ctx.route().tour.get(1).unwrap().schedule, Schedule { arrival: 10., departure: 25. });
-        assert_eq!(route_ctx.route().tour.get(2).unwrap().schedule, Schedule { arrival: 35., departure: 60. });
+        assert_eq!(route_ctx.route().tour.get(1).unwrap().schedule, Schedule { arrival: 10, departure: 25 });
+        assert_eq!(route_ctx.route().tour.get(2).unwrap().schedule, Schedule { arrival: 35, departure: 60 });
     }
 
     #[test]
@@ -188,7 +192,7 @@ mod timing {
             .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
             .build();
         let target = Box::new(Activity {
-            place: Place { idx: 0, location: 5, duration: 1.0, time: DEFAULT_ACTIVITY_TIME_WINDOW },
+            place: Place { idx: 0, location: 5, duration: 1, time: DEFAULT_ACTIVITY_TIME_WINDOW },
             schedule: DEFAULT_ACTIVITY_SCHEDULE,
             job: None,
             commute: None,
@@ -220,27 +224,22 @@ mod timing {
                             .place(Place {
                                 idx: 0,
                                 location: 10,
-                                duration: 0.0,
+                                duration: 0,
                                 time: DEFAULT_ACTIVITY_TIME_WINDOW.clone(),
                             })
-                            .schedule(Schedule { arrival: 0.0, departure: 10.0 })
+                            .schedule(Schedule { arrival: 0, departure: 10 })
                             .build(),
                     )
                     .add_activity(
                         ActivityBuilder::default()
-                            .place(Place {
-                                idx: 0,
-                                location: 20,
-                                duration: 0.0,
-                                time: TimeWindow { start: 40.0, end: 70.0 },
-                            })
+                            .place(Place { idx: 0, location: 20, duration: 0, time: TimeWindow { start: 40, end: 70 } })
                             .build(),
                     )
                     .build(),
             )
             .build();
         let target = Box::new(Activity {
-            place: Place { idx: 0, location: 30, duration: 10.0, time: DEFAULT_ACTIVITY_TIME_WINDOW },
+            place: Place { idx: 0, location: 30, duration: 10, time: DEFAULT_ACTIVITY_TIME_WINDOW },
             schedule: DEFAULT_ACTIVITY_SCHEDULE,
             job: None,
             commute: None,
@@ -268,7 +267,7 @@ mod timing {
         let route_ctx = RouteContextBuilder::default()
             .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
             .build();
-        let job = TestSingleBuilder::default().times(vec![TimeWindow::new(2000., 3000.)]).build_as_job_ref();
+        let job = TestSingleBuilder::default().times(vec![TimeWindow::new(2000, 3000)]).build_as_job_ref();
 
         let result =
             create_feature().constraint.unwrap().evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));

@@ -56,7 +56,7 @@ fn check_routing_rules(context: &CheckerContext) -> GenericResult<()> {
                         let next_arrival = parse_time(&transit.time.arrival);
                         // NOTE an edge case: duration of break will be counted in transit stop
                         let duration = if next_arrival == prev_departure {
-                            0.
+                            Duration::default()
                         } else {
                             parse_time(&transit.time.departure) - next_arrival
                         };
@@ -112,7 +112,7 @@ fn check_stop_statistic(
         return Err(format!(
             "arrival time mismatch for {stop_idx} stop in the tour: {}, expected: '{}', got: '{}'",
             tour.vehicle_id,
-            format_time(arrival_time as Float),
+            format_time(arrival_time),
             schedule.arrival
         )
         .into());

@@ -62,19 +62,16 @@ pub(super) fn create_transport_costs(
                 let mut distances: Vec<Distance> = Vec::with_capacity(capacity);
                 for (i, error) in error_codes.iter().enumerate() {
                     if *error > 0 {
-                        durations.push(-1.);
-                        distances.push(-1.);
+                        durations.push(-1);
+                        distances.push(-1);
                     } else {
-                        durations.push(*matrix.travel_times.get(i).unwrap() as Float);
-                        distances.push(*matrix.distances.get(i).unwrap() as Float);
+                        durations.push(*matrix.travel_times.get(i).unwrap());
+                        distances.push(*matrix.distances.get(i).unwrap());
                     }
                 }
                 (durations, distances)
             } else {
-                (
-                    matrix.travel_times.iter().map(|d| *d as Float).collect(),
-                    matrix.distances.iter().map(|d| *d as Float).collect(),
-                )
+                (matrix.travel_times.clone(), matrix.distances.clone())
             };
 
             MatrixData::new(profile, timestamp.map(|t| parse_time(&t)), durations, distances)

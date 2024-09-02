@@ -1,6 +1,7 @@
 use crate::prelude::Float;
-use crate::utils::compare_floats;
+use crate::utils::{compare_floats, IntoFloat};
 use std::cmp::Ordering;
+use std::ops::Add;
 
 /// Returns coefficient variation.
 pub fn get_cv(values: &[Float]) -> Float {
@@ -25,26 +26,29 @@ pub fn get_cv_safe(values: &[Float]) -> Float {
 }
 
 /// Gets mean of values using given slice.
-pub fn get_mean_slice(values: &[Float]) -> Float {
+pub fn get_mean_slice<T>(values: &[T]) -> Float
+where
+    T: Default + Add<Output = T> + IntoFloat + Copy,
+{
     if values.is_empty() {
-        0.
+        Float::default()
     } else {
-        let sum: Float = values.iter().sum();
-        sum / values.len() as Float
+        get_mean_iter(values.iter().copied())
     }
 }
 
 /// Gets mean of values using given iterator.
-pub fn get_mean_iter<Iter>(values: Iter) -> Float
+pub fn get_mean_iter<T, Iter>(values: Iter) -> Float
 where
-    Iter: Iterator<Item = Float>,
+    T: Default + Add<Output = T> + IntoFloat + Copy,
+    Iter: Iterator<Item = T>,
 {
-    let (sum, count) = values.fold((0., 0), |(sum, count), item| (sum + item, count + 1));
+    let (sum, count) = values.fold((T::default(), 0), |(sum, count), item| (sum + item, count + 1));
 
     if count == 0 {
-        0.
+        Float::default()
     } else {
-        sum / count as Float
+        sum.into_float() / count as Float
     }
 }
 

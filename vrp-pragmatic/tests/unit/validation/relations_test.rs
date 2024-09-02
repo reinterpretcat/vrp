@@ -79,7 +79,7 @@ fn can_detect_multi_place_time_window_jobs_impl(relation_type: RelationType, exp
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_times("job1", (1., 0.), vec![(10, 20), (30, 40)], 10.),
+                create_delivery_job_with_times("job1", (1., 0.), vec![(10, 20), (30, 40)], 10),
                 create_delivery_job("job2", (1., 0.)),
                 Job {
                     deliveries: Some(vec![JobTask {

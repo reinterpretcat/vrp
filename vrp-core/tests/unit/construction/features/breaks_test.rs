@@ -40,7 +40,7 @@ fn create_break(vehicle_id: &str, location: Option<Location>) -> Arc<Single> {
     TestSingleBuilder::default()
         .id("break")
         .location(location)
-        .duration(3600.)
+        .duration(3600)
         .property::<JobTypeDimenKey, _>("break".to_string())
         .property::<VehicleIdDimenKey, _>(vehicle_id.to_string())
         .build_shared()

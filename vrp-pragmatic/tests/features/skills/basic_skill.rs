@@ -41,18 +41,18 @@ fn can_wait_for_job_start() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((10., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![1])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(9., 10.)
+                            .schedule_stamp(9, 10)
                             .load(vec![0])
                             .distance(9)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((10., 0.))
-                            .schedule_stamp(19., 19.)
+                            .schedule_stamp(19, 19)
                             .load(vec![0])
                             .distance(18)
                             .build_arrival(),

@@ -2,6 +2,7 @@ use crate::format::problem::*;
 use crate::generator::*;
 use crate::helpers::solve_with_metaheuristic_and_iterations;
 use proptest::prelude::*;
+use vrp_core::models::common::{Distance, Duration};
 use vrp_core::prelude::Float;
 
 fn job_prototype() -> impl Strategy<Value = Job> {
@@ -23,8 +24,8 @@ fn job_prototype() -> impl Strategy<Value = Job> {
     ]
 }
 
-fn get_parking_time() -> impl Strategy<Value = Float> {
-    prop_oneof![Just(0.), Just(0.), Just(0.), Just(0.), Just(0.), Just(300.), Just(120.)]
+fn get_parking_time() -> impl Strategy<Value = Duration> {
+    prop_oneof![Just(0), Just(0), Just(0), Just(0), Just(0), Just(300), Just(120)]
 }
 
 fn get_visiting_policy() -> impl Strategy<Value = VicinityVisitPolicy> {
@@ -36,7 +37,7 @@ prop_compose! {
     (
      parking in get_parking_time(),
      radius_fraction in 1..100,
-     duration in 30..1800,
+     duration in 30..1800_i64,
      visiting in get_visiting_policy(),
      plan in generate_plan(generate_jobs(job_prototype(), 1..512)),
      fleet in generate_fleet(
@@ -52,8 +53,7 @@ prop_compose! {
             ), 1..4),
         default_matrix_profiles())
     ) -> Problem {
-        let duration = duration as Float;
-        let distance = radius * (radius_fraction as Float / 1000.);
+        let distance = (radius * (radius_fraction as Float / 1000.)) as Distance;
 
         Problem {
             plan: Plan {

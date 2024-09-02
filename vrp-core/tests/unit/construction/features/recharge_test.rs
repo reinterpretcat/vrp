@@ -54,7 +54,7 @@ fn create_route_ctx(activities: &[Location], recharges: Vec<(usize, Location)>, 
                 .with_vehicle(&fleet, "v1")
                 .add_activities(activities.iter().enumerate().map(|(idx, &location)| {
                     ActivityBuilder::with_location(location)
-                        .schedule(Schedule::new(location as Float, location as Float))
+                        .schedule(Schedule::new(location as Timestamp, location as Timestamp))
                         .job(Some(TestSingleBuilder::default().id(&format!("job{}", idx + 1)).build_shared()))
                         .build()
                 }))
@@ -74,20 +74,20 @@ parameterized_test! {can_accumulate_distance, (limit, recharges, activities, exp
 }}
 
 can_accumulate_distance! {
-    case01_single_recharge: (20., vec![(2, 8)],
-        vec![5, 10, 15], vec![0., 5., 8., 2., 7.]
+    case01_single_recharge: (20, vec![(2, 8)],
+        vec![5, 10, 15], vec![0, 5, 8, 2, 7]
     ),
-    case02_two_recharges: (20., vec![(2, 8), (5, 17)],
-        vec![5, 10, 15, 20], vec![0., 5., 8., 2., 7., 9., 3.]
+    case02_two_recharges: (20, vec![(2, 8), (5, 17)],
+        vec![5, 10, 15, 20], vec![0, 5, 8, 2, 7, 9, 3]
     ),
-    case03_no_recharges: (20., vec![],
-        vec![5, 10, 15, 20], vec![0., 5., 10., 15., 20.]
+    case03_no_recharges: (20, vec![],
+        vec![5, 10, 15, 20], vec![0, 5, 10, 15, 20]
     ),
-    case04_recharge_at_end: (25., vec![(4, 8)],
-        vec![5, 10, 15], vec![0., 5., 10., 15., 22.]
+    case04_recharge_at_end: (25, vec![(4, 8)],
+        vec![5, 10, 15], vec![0, 5, 10, 15, 22]
     ),
-    case05_recharge_at_start: (20., vec![(1, 8)],
-        vec![5, 10, 15], vec![0., 8., 3., 8., 13.]
+    case05_recharge_at_start: (20, vec![(1, 8)],
+        vec![5, 10, 15], vec![0, 8, 3, 8, 13]
     ),
 }
 
@@ -114,10 +114,10 @@ parameterized_test! {can_evaluate_insertion, (limit, recharges, insertion_data, 
 }}
 
 can_evaluate_insertion! {
-    case01_reject_before_recharge: (20., vec![(2, 8)], (1, 16, (1, 2)), vec![5, 10, 15],
+    case01_reject_before_recharge: (20, vec![(2, 8)], (1, 16, (1, 2)), vec![5, 10, 15],
         ConstraintViolation::skip(VIOLATION_CODE),
     ),
-    case02_accept_after_recharge: (20., vec![(2, 8)], (1, 16, (2, 3)), vec![5, 10, 15],
+    case02_accept_after_recharge: (20, vec![(2, 8)], (1, 16, (2, 3)), vec![5, 10, 15],
         None,
     ),
 }
@@ -155,12 +155,12 @@ parameterized_test! {can_handle_obsolete_intervals, (limit, recharges, activitie
 }}
 
 can_handle_obsolete_intervals! {
-    case01_remove_one_exact: (30., vec![(2, 5)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 15, 20, 30]),
-    case02_remove_one_diff: (30., vec![(3, 8)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 15, 20, 30]),
-    case03_keep_one_exact: (29., vec![(2, 5)], vec![5, 10, 15, 20, 30], vec![0, 5, 5, 10, 15, 20, 30]),
-    case04_remove_one_diff: (29., vec![(3, 8)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 8, 15, 20, 30]),
+    case01_remove_one_exact: (30, vec![(2, 5)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 15, 20, 30]),
+    case02_remove_one_diff: (30, vec![(3, 8)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 15, 20, 30]),
+    case03_keep_one_exact: (29, vec![(2, 5)], vec![5, 10, 15, 20, 30], vec![0, 5, 5, 10, 15, 20, 30]),
+    case04_remove_one_diff: (29, vec![(3, 8)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 8, 15, 20, 30]),
 
-    case05_can_handle_two: (25., vec![(3, 10), (5, 20)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 15, 20, 20, 30]),
+    case05_can_handle_two: (25, vec![(3, 10), (5, 20)], vec![5, 10, 15, 20, 30], vec![0, 5, 10, 15, 20, 20, 30]),
 }
 
 fn can_handle_obsolete_intervals_impl(
@@ -188,7 +188,7 @@ fn can_handle_obsolete_intervals_impl(
 fn can_accept_recharge_in_long_empty_route() {
     let mut route_ctx = create_route_ctx(&[], vec![], false);
     route_ctx.route_mut().tour.get_mut(1).unwrap().place.location = 100;
-    let feature = create_recharge_feature(55.);
+    let feature = create_recharge_feature(55);
     let (constraint, state) = (feature.constraint.unwrap(), feature.state.unwrap());
     state.accept_route_state(&mut route_ctx);
 

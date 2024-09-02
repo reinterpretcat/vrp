@@ -76,7 +76,7 @@ pub struct CommuteInfo {
     /// Commute location.
     pub location: Location,
     /// Travelled distance.
-    pub distance: Float,
+    pub distance: Duration,
     /// Travel time.
     pub time: Interval,
 }

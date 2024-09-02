@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 pub const DEFAULT_ACTOR_LOCATION: Location = 0;
-pub const DEFAULT_ACTOR_TIME_WINDOW: TimeWindow = TimeWindow { start: 0.0, end: 1000.0 };
+pub const DEFAULT_ACTOR_TIME_WINDOW: TimeWindow = TimeWindow { start: 0, end: 1000 };
 pub const DEFAULT_VEHICLE_COSTS: Costs =
     Costs { fixed: 0.0, per_distance: 1.0, per_driving_time: 1.0, per_waiting_time: 1.0, per_service_time: 1.0 };
 

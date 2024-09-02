@@ -13,7 +13,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use vrp_core::construction::clustering::vicinity::ClusterConfig;
 use vrp_core::construction::clustering::vicinity::VisitPolicy;
-use vrp_core::models::common::{Duration, Profile, TimeWindow};
+use vrp_core::models::common::{Distance, Duration, Profile, TimeWindow, Timestamp};
 use vrp_core::models::solution::{Commute as DomainCommute, CommuteInfo as DomainCommuteInfo};
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::prelude::{GenericError, GenericResult};
@@ -154,7 +154,7 @@ impl CheckerContext {
             .find(|shift| {
                 let shift_time = TimeWindow::new(
                     parse_time(&shift.start.earliest),
-                    shift.end.as_ref().map_or_else(|| Float::MAX, |place| parse_time(&place.latest)),
+                    shift.end.as_ref().map_or_else(|| Timestamp::MAX, |place| parse_time(&place.latest)),
                 );
                 shift_time.intersects(&tour_time)
             })
@@ -285,18 +285,18 @@ impl CheckerContext {
                                 };
 
                                 // NOTE parking correction
-                                let f_duration = if f_duration == 0 { parking } else { f_duration as Float };
+                                let f_duration = if f_duration == 0 { parking } else { f_duration as Duration };
 
                                 Ok(Some(DomainCommute {
                                     forward: DomainCommuteInfo {
                                         location: prev_location,
-                                        distance: f_distance as Float,
+                                        distance: f_distance as Distance,
                                         duration: f_duration,
                                     },
                                     backward: DomainCommuteInfo {
                                         location: b_location,
-                                        distance: b_distance as Float,
-                                        duration: b_duration as Float,
+                                        distance: b_distance as Distance,
+                                        duration: b_duration as Duration,
                                     },
                                 }))
                             }

@@ -171,14 +171,14 @@ fn create_tour(
                     (duration, transport_cost)
                 } else {
                     // NOTE: no need to drive in case of non-zero commute, this goes to commuting time
-                    (0., commuting * vehicle.costs.per_service_time)
+                    (0, commuting as Float * vehicle.costs.per_service_time)
                 };
 
                 // NOTE two clusters at the same stop location
                 let parking =
                     match (prev_location == act.place.location, act.commute.is_some(), commute.is_zero_distance()) {
                         (false, true, true) => parking,
-                        _ => 0.,
+                        _ => 0,
                     };
 
                 let activity_arrival = parking + act.schedule.arrival + commute.forward.duration;
@@ -190,12 +190,11 @@ fn create_tour(
 
                 // TODO: add better support of time based activity costs
                 let serving_cost = problem.activity.cost(route, act, service_start);
-                let total_cost = serving_cost + transport_cost + waiting * vehicle.costs.per_waiting_time;
+                let total_cost = serving_cost + transport_cost + waiting as Float * vehicle.costs.per_waiting_time;
 
                 let location_distance =
-                    transport.distance(route, prev_location, act.place.location, TravelTime::Departure(prev_departure))
-                        as i64;
-                let distance = leg.statistic.distance + location_distance - commute.forward.distance as i64;
+                    transport.distance(route, prev_location, act.place.location, TravelTime::Departure(prev_departure));
+                let distance = leg.statistic.distance + location_distance - commute.forward.distance;
 
                 let is_new_stop = match (act.commute.as_ref(), prev_location == act.place.location) {
                     (Some(commute), false) if commute.is_zero_distance() => true,
@@ -209,7 +208,7 @@ fn create_tour(
                         time: format_schedule(&act.schedule),
                         load: prev_load.as_vec(),
                         distance,
-                        parking: if parking > 0. {
+                        parking: if parking > 0 {
                             Some(Interval {
                                 start: format_time(act.schedule.arrival),
                                 end: format_time(act.schedule.arrival + parking),
@@ -262,14 +261,14 @@ fn create_tour(
                     statistic: Statistic {
                         cost: leg.statistic.cost + total_cost,
                         distance,
-                        duration: leg.statistic.duration + act.schedule.departure as i64 - prev_departure as i64,
+                        duration: leg.statistic.duration + act.schedule.departure - prev_departure,
                         times: Timing {
-                            driving: leg.statistic.times.driving + driving as i64,
-                            serving: leg.statistic.times.serving + (if is_break { 0 } else { serving as i64 }),
-                            waiting: leg.statistic.times.waiting + waiting as i64,
-                            break_time: leg.statistic.times.break_time + (if is_break { serving as i64 } else { 0 }),
-                            commuting: leg.statistic.times.commuting + commuting as i64,
-                            parking: leg.statistic.times.parking + parking as i64,
+                            driving: leg.statistic.times.driving + driving,
+                            serving: leg.statistic.times.serving + (if is_break { 0 } else { serving }),
+                            waiting: leg.statistic.times.waiting + waiting,
+                            break_time: leg.statistic.times.break_time + (if is_break { serving } else { 0 }),
+                            commuting: leg.statistic.times.commuting + commuting,
+                            parking: leg.statistic.times.parking + parking,
                         },
                     },
                     load: Some(load),
@@ -427,8 +426,8 @@ fn get_capacity(dimens: &Dimensions) -> Option<Demand<MultiDimLoad>> {
     })
 }
 
-fn get_parking_time(extras: &DomainExtras) -> Float {
-    extras.get_cluster_config().map_or(0., |config| config.serving.get_parking())
+fn get_parking_time(extras: &DomainExtras) -> Duration {
+    extras.get_cluster_config().map_or(0, |config| config.serving.get_parking())
 }
 
 fn create_extras(

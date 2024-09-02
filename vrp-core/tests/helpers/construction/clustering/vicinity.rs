@@ -2,15 +2,14 @@ use crate::construction::clustering::vicinity::*;
 use crate::construction::heuristics::*;
 use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::problem::{get_job_id, TestSingleBuilder};
-use crate::models::common::{Dimensions, Duration, Location, Profile};
+use crate::models::common::{Dimensions, Duration, Location, Profile, Timestamp};
 use crate::models::problem::{Job, JobIdDimension};
 use crate::models::*;
-use rosomaxa::prelude::{compare_floats, Float};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-pub type JobPlaces = Vec<(Option<Location>, Duration, Vec<(Float, Float)>)>;
+pub type JobPlaces = Vec<(Option<Location>, Duration, Vec<(Timestamp, Timestamp)>)>;
 
 /// Provides the way to set clustered jobs.
 pub trait ClusteredJob {
@@ -103,25 +102,21 @@ pub fn create_cluster_config() -> ClusterConfig {
     ClusterConfig {
         profile: Profile::new(0, None),
         threshold: ThresholdPolicy {
-            moving_duration: 10.,
-            moving_distance: 10.,
+            moving_duration: 10,
+            moving_distance: 10,
             min_shared_time: None,
             smallest_time_window: None,
             max_jobs_per_cluster: None,
         },
         visiting: VisitPolicy::Return,
-        serving: ServingPolicy::Original { parking: 0. },
+        serving: ServingPolicy::Original { parking: Duration::default() },
         filtering: FilterPolicy { job_filter: Arc::new(|_| true), actor_filter: Arc::new(|_| true) },
         building: BuilderPolicy {
             ordering_global_fn: Arc::new(move |(left_job, left_candidates), (right_job, right_candidates)| {
                 ordering_rule(left_candidates.len().cmp(&right_candidates.len()), left_job, right_job)
             }),
             ordering_local_fn: Arc::new(move |left, right| {
-                ordering_rule(
-                    compare_floats(left.commute.forward.duration, right.commute.forward.duration),
-                    &left.job,
-                    &right.job,
-                )
+                ordering_rule(left.commute.forward.duration.cmp(&right.commute.forward.duration), &left.job, &right.job)
             }),
         },
     }

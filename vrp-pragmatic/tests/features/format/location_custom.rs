@@ -17,7 +17,7 @@ fn can_use_unknown_location() {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
-                        earliest: format_time(0.),
+                        earliest: format_time(0),
                         latest: None,
                         location: Location::Custom { r#type: CustomLocationType::Unknown },
                     },
@@ -45,16 +45,16 @@ fn can_use_unknown_location() {
             .tour(
                 TourBuilder::default()
                     .stops(vec![
-                        StopBuilder::default().custom_unknown().schedule_stamp(0., 0.).load(vec![2]).build_departure(),
+                        StopBuilder::default().custom_unknown().schedule_stamp(0, 0).load(vec![2]).build_departure(),
                         StopBuilder::default()
                             .coordinate((5., 0.))
-                            .schedule_stamp(0., 1.)
+                            .schedule_stamp(0, 1)
                             .load(vec![1])
                             .distance(0)
                             .build_single("job1", "delivery"),
                         StopBuilder::default()
                             .coordinate((10., 0.))
-                            .schedule_stamp(6., 7.)
+                            .schedule_stamp(6, 7)
                             .load(vec![0])
                             .distance(5)
                             .build_single("job2", "delivery"),

@@ -6,6 +6,7 @@ use crate::format::Location;
 use crate::helpers::create_default_matrix_profiles;
 use crate::utils::get_haversine_distance;
 use crate::{format_time, parse_time};
+use vrp_core::models::common::Duration;
 use vrp_core::prelude::Float;
 
 pub const START_DAY: &str = "2020-07-04T00:00:00Z";
@@ -24,7 +25,7 @@ pub fn get_default_bounding_box_radius() -> Float {
 }
 
 pub fn default_time_plus_offset(offset: i32) -> String {
-    format_time(parse_time(START_DAY) + from_hours(offset).as_secs_f64() as Float)
+    format_time(parse_time(START_DAY) + from_hours(offset).as_secs() as Duration)
 }
 
 pub fn default_job_single_day_time_windows() -> impl Strategy<Value = Option<Vec<Vec<String>>>> {
@@ -102,7 +103,7 @@ pub fn default_shift_places_prototype() -> impl Strategy<Value = (ShiftStart, Op
 pub fn default_breaks_prototype() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
     Just(Some(vec![VehicleBreak::Optional {
         time: VehicleOptionalBreakTime::TimeWindow(vec![default_time_plus_offset(12), default_time_plus_offset(14)]),
-        places: vec![VehicleOptionalBreakPlace { duration: 3600., location: None, tag: None }],
+        places: vec![VehicleOptionalBreakPlace { duration: 3600, location: None, tag: None }],
         policy: None,
     }]))
 }

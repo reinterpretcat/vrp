@@ -14,7 +14,7 @@ fn disable_departure_time_optimization(mut vehicle: VehicleType) -> VehicleType 
 
 mod optional {
     use super::*;
-    use vrp_core::prelude::Float;
+    use vrp_core::models::common::Duration;
 
     fn get_optional_breaks() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
         let places_proto = get_optional_break_places(
@@ -52,7 +52,7 @@ mod optional {
     prop_compose! {
         pub fn get_optional_break_places(
            locations: impl Strategy<Value = Option<Location>>,
-           durations: impl Strategy<Value = Float>,
+           durations: impl Strategy<Value = Duration>,
         )
         (
          location in locations,
@@ -65,10 +65,10 @@ mod optional {
     prop_compose! {
         fn get_optional_break_offset_time()
         (
-         start in 3600..14400,
-         length in 600..1800
+         start in 3600..14400_i64,
+         length in 600..1800_i64
         ) -> VehicleOptionalBreakTime {
-            VehicleOptionalBreakTime::TimeOffset(vec![start as Float, (start + length) as Float])
+            VehicleOptionalBreakTime::TimeOffset(vec![start, start + length])
         }
     }
 
@@ -108,10 +108,10 @@ mod optional {
 mod required {
     use super::*;
     use crate::{format_time, parse_time};
-    use vrp_core::prelude::Float;
+    use vrp_core::models::common::Duration;
 
-    fn from_hours_as_usize(hours: i32) -> i32 {
-        parse_time(START_DAY) as i32 + from_hours(hours).as_secs() as i32
+    fn from_hours_as_usize(hours: i32) -> Duration {
+        parse_time(START_DAY) + from_hours(hours).as_secs() as Duration
     }
 
     fn get_required_breaks() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
@@ -126,7 +126,7 @@ mod required {
     prop_compose! {
         pub fn generate_required_break(
           time_proto: impl Strategy<Value = VehicleRequiredBreakTime>,
-          duration_proto: impl Strategy<Value = Float>,
+          duration_proto: impl Strategy<Value = Duration>,
         )
         (
          time in time_proto,
@@ -139,10 +139,9 @@ mod required {
     prop_compose! {
         fn get_required_break_offset_time()
         (
-         time in 3600..14400,
+         time in 3600..14400_i64,
         ) -> VehicleRequiredBreakTime {
-            let time = time as Float;
-            VehicleRequiredBreakTime::OffsetTime { earliest: time - 10., latest : time}
+            VehicleRequiredBreakTime::OffsetTime { earliest: time - 10, latest : time}
         }
     }
 
@@ -151,8 +150,7 @@ mod required {
         (
          time in from_hours_as_usize(10)..from_hours_as_usize(13),
         ) -> VehicleRequiredBreakTime {
-            let time = time as Float;
-            VehicleRequiredBreakTime::ExactTime{ earliest: format_time(time - 1.), latest: format_time(time) }
+            VehicleRequiredBreakTime::ExactTime{ earliest: format_time(time - 1), latest: format_time(time) }
         }
     }
 

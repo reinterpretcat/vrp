@@ -9,8 +9,8 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
                 create_delivery_job("simple", (1., 0.)),
                 create_multi_job(
                     "multi",
-                    vec![((2., 0.), 1., vec![1]), ((8., 0.), 1., vec![1])],
-                    vec![((6., 0.), 1., vec![2])],
+                    vec![((2., 0.), 1, vec![1]), ((8., 0.), 1, vec![1])],
+                    vec![((6., 0.), 1, vec![2])],
                 ),
             ],
             ..create_empty_plan()
@@ -30,36 +30,36 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![1])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((1., 0.))
-                            .schedule_stamp(1., 2.)
+                            .schedule_stamp(1, 2)
                             .load(vec![0])
                             .distance(1)
                             .build_single("simple", "delivery"),
                         StopBuilder::default()
                             .coordinate((2., 0.))
-                            .schedule_stamp(3., 4.)
+                            .schedule_stamp(3, 4)
                             .load(vec![1])
                             .distance(2)
                             .build_single_tag("multi", "pickup", "p1"),
                         StopBuilder::default()
                             .coordinate((8., 0.))
-                            .schedule_stamp(10., 11.)
+                            .schedule_stamp(10, 11)
                             .load(vec![2])
                             .distance(8)
                             .build_single_tag("multi", "pickup", "p2"),
                         StopBuilder::default()
                             .coordinate((6., 0.))
-                            .schedule_stamp(13., 14.)
+                            .schedule_stamp(13, 14)
                             .load(vec![0])
                             .distance(10)
                             .build_single_tag("multi", "delivery", "d1"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(20., 20.)
+                            .schedule_stamp(20, 20)
                             .load(vec![0])
                             .distance(16)
                             .build_arrival(),
@@ -77,8 +77,8 @@ fn can_assign_multi_job_in_pickup_effective_way() {
         plan: Plan {
             jobs: vec![create_multi_job(
                 "multi",
-                vec![((4., 0.), 1., vec![1]), ((2., 0.), 1., vec![1])],
-                vec![((6., 0.), 1., vec![2])],
+                vec![((4., 0.), 1, vec![1]), ((2., 0.), 1, vec![1])],
+                vec![((6., 0.), 1, vec![2])],
             )],
             ..create_empty_plan()
         },
@@ -97,30 +97,30 @@ fn can_assign_multi_job_in_pickup_effective_way() {
                     .stops(vec![
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
+                            .schedule_stamp(0, 0)
                             .load(vec![0])
                             .build_departure(),
                         StopBuilder::default()
                             .coordinate((2., 0.))
-                            .schedule_stamp(2., 3.)
+                            .schedule_stamp(2, 3)
                             .load(vec![1])
                             .distance(2)
                             .build_single_tag("multi", "pickup", "p2"),
                         StopBuilder::default()
                             .coordinate((4., 0.))
-                            .schedule_stamp(5., 6.)
+                            .schedule_stamp(5, 6)
                             .load(vec![2])
                             .distance(4)
                             .build_single_tag("multi", "pickup", "p1"),
                         StopBuilder::default()
                             .coordinate((6., 0.))
-                            .schedule_stamp(8., 9.)
+                            .schedule_stamp(8, 9)
                             .load(vec![0])
                             .distance(6)
                             .build_single_tag("multi", "delivery", "d1"),
                         StopBuilder::default()
                             .coordinate((0., 0.))
-                            .schedule_stamp(15., 15.)
+                            .schedule_stamp(15, 15)
                             .load(vec![0])
                             .distance(12)
                             .build_arrival(),

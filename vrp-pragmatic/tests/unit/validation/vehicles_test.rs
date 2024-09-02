@@ -1,6 +1,7 @@
 use super::*;
 use crate::format_time;
 use crate::helpers::*;
+use vrp_core::models::common::Timestamp;
 use vrp_core::prelude::Float;
 
 #[test]
@@ -11,7 +12,7 @@ fn can_detect_invalid_break_time() {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![]),
-                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
+                        places: vec![VehicleOptionalBreakPlace { duration: 2, location: None, tag: None }],
                         policy: None,
                     }]),
                     ..create_default_vehicle_shift()
@@ -65,23 +66,23 @@ parameterized_test! {can_handle_rescheduling_with_required_break, (latest, expec
 
 can_handle_rescheduling_with_required_break! {
     case01: (None, Some("E1307".to_string())),
-    case02: (Some(1.), Some("E1307".to_string())),
-    case03: (Some(0.), None),
+    case02: (Some(1), Some("E1307".to_string())),
+    case03: (Some(0), None),
 }
 
-fn can_handle_rescheduling_with_required_break_impl(latest: Option<Float>, expected: Option<String>) {
+fn can_handle_rescheduling_with_required_break_impl(latest: Option<Timestamp>, expected: Option<String>) {
     let problem = Problem {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
-                        earliest: format_time(0.),
+                        earliest: format_time(0),
                         latest: latest.map(format_time),
                         location: (0., 0.).to_loc(),
                     },
                     breaks: Some(vec![VehicleBreak::Required {
-                        time: VehicleRequiredBreakTime::OffsetTime { earliest: 10., latest: 10. },
-                        duration: 2.,
+                        time: VehicleRequiredBreakTime::OffsetTime { earliest: 10, latest: 10 },
+                        duration: 2,
                     }]),
                     ..create_default_vehicle_shift()
                 }],
