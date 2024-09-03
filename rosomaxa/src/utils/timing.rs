@@ -1,3 +1,4 @@
+use crate::utils::Float;
 use std::time::Duration;
 
 /// Implements performance timer functionality, mostly exists due to problem
@@ -7,7 +8,6 @@ pub type Timer = actual::Timer;
 #[cfg(not(target_arch = "wasm32"))]
 mod actual {
     use super::*;
-    use crate::utils::Float;
     use std::time::Instant;
 
     #[derive(Clone)]
