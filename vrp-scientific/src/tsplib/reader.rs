@@ -16,18 +16,18 @@ use vrp_core::utils::Float;
 /// A trait to read tsplib95 problem. Please note that it is very basic implementation of the format specification.
 pub trait TsplibProblem {
     /// Reads tsplib95 problem.
-    fn read_tsplib(self, is_rounded: bool) -> Result<Problem, GenericError>;
+    fn read_tsplib(self, routing_mode: RoutingMode) -> Result<Problem, GenericError>;
 }
 
 impl<R: Read> TsplibProblem for BufReader<R> {
-    fn read_tsplib(self, is_rounded: bool) -> Result<Problem, GenericError> {
-        TsplibReader::new(self).read_problem(is_rounded)
+    fn read_tsplib(self, routing_mode: RoutingMode) -> Result<Problem, GenericError> {
+        TsplibReader::new(self).read_problem(routing_mode)
     }
 }
 
 impl TsplibProblem for String {
-    fn read_tsplib(self, is_rounded: bool) -> Result<Problem, GenericError> {
-        TsplibReader::new(BufReader::new(self.as_bytes())).read_problem(is_rounded)
+    fn read_tsplib(self, routing_mode: RoutingMode) -> Result<Problem, GenericError> {
+        TsplibReader::new(BufReader::new(self.as_bytes())).read_problem(routing_mode)
     }
 }
 
@@ -44,9 +44,10 @@ impl<R: Read> TextReader for TsplibReader<R> {
         &self,
         activity: Arc<SimpleActivityCost>,
         transport: Arc<dyn TransportCost>,
+        routing_mode: RoutingMode,
     ) -> Result<GoalContext, GenericError> {
         let is_time_constrained = false;
-        create_goal_context_distance_only(activity, transport, is_time_constrained)
+        create_goal_context_distance_only(activity, transport, routing_mode, is_time_constrained)
     }
 
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError> {
@@ -82,8 +83,8 @@ impl<R: Read> TextReader for TsplibReader<R> {
         Ok((jobs, fleet))
     }
 
-    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost>, GenericError> {
-        self.coord_index.create_transport(is_rounded)
+    fn create_transport(&self, routing_mode: RoutingMode) -> Result<Arc<dyn TransportCost>, GenericError> {
+        self.coord_index.create_transport(routing_mode)
     }
 
     fn create_extras(&self) -> Extras {

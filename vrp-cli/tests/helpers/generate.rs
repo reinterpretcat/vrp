@@ -20,7 +20,7 @@ pub fn create_empty_job_task() -> JobTask {
 }
 
 pub fn create_empty_job_place() -> JobPlace {
-    JobPlace { location: Location::Coordinate { lat: 0.0, lng: 0.0 }, duration: 0.0, times: None, tag: None }
+    JobPlace { location: Location::Coordinate { lat: 0.0, lng: 0.0 }, duration: 0, times: None, tag: None }
 }
 
 pub fn create_empty_plan() -> Plan {

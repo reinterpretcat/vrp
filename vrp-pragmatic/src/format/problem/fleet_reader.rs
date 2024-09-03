@@ -65,8 +65,8 @@ pub(super) fn create_transport_costs(
                         durations.push(-1);
                         distances.push(-1);
                     } else {
-                        durations.push(*matrix.travel_times.get(i).unwrap() as i32);
-                        distances.push(*matrix.distances.get(i).unwrap() as i32);
+                        durations.push(*matrix.travel_times.get(i).unwrap());
+                        distances.push(*matrix.distances.get(i).unwrap());
                     }
                 }
                 (durations, distances)

@@ -14,7 +14,7 @@ mod actual {
     use std::collections::{HashMap, HashSet};
     use std::error::Error;
     use std::io::{BufReader, Read};
-    use vrp_core::prelude::Float;
+    use vrp_core::models::common::Duration;
     use vrp_pragmatic::format::problem::*;
     use vrp_pragmatic::format::{FormatError, Location};
 
@@ -25,7 +25,7 @@ mod actual {
         lat: f64,
         lng: f64,
         demand: i32,
-        duration: usize,
+        duration: Duration,
         tw_start: Option<String>,
         tw_end: Option<String>,
     }
@@ -68,7 +68,7 @@ mod actual {
         let get_task = |job: &CsvJob| JobTask {
             places: vec![JobPlace {
                 location: Location::Coordinate { lat: job.lat, lng: job.lng },
-                duration: job.duration as Float,
+                duration: job.duration,
                 times: parse_tw(job.tw_start.clone(), job.tw_end.clone()).map(|tw| vec![tw]),
                 tag: None,
             }],

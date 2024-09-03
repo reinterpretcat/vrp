@@ -12,6 +12,21 @@ use vrp_core::utils::Float;
 
 custom_extra_property!(CoordIndex typeof CoordIndex);
 
+/// Represents a transport type. Calculates values using cartesian distance
+#[derive(Clone, Copy)]
+pub enum RoutingMode {
+    /// Rounds values of routing matrix. Loses fractional part.
+    Simple,
+
+    /// Scales routing matrix values by the given factor. This is useful when you want to consider
+    /// floating point values as integers with some precision.
+    ScaleNoRound(Float),
+
+    /// Scales routing matrix values by the given factor. Cost is rounded at the end to nearest integer.
+    /// See also `ScaleNoRound`.
+    ScaleWithRound(Float),
+}
+
 /// Represents a coord index which can be used to analyze customer's locations.
 #[derive(Clone, Default)]
 pub struct CoordIndex {
@@ -32,7 +47,7 @@ impl CoordIndex {
     }
 
     /// Creates transport.
-    pub fn create_transport(&self) -> Result<Arc<dyn TransportCost>, GenericError> {
+    pub fn create_transport(&self, routing_mode: RoutingMode) -> Result<Arc<dyn TransportCost>, GenericError> {
         let matrix_values = self
             .locations
             .iter()
@@ -41,6 +56,11 @@ impl CoordIndex {
                     let x = x1 as Float - x2 as Float;
                     let y = y1 as Float - y2 as Float;
                     let value = (x * x + y * y).sqrt();
+
+                    let value = match routing_mode {
+                        RoutingMode::Simple => value,
+                        RoutingMode::ScaleNoRound(factor) | RoutingMode::ScaleWithRound(factor) => value * factor,
+                    };
 
                     value.round() as i32
                 })

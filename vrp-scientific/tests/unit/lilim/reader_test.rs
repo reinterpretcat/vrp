@@ -1,8 +1,9 @@
+use crate::common::RoutingMode;
 use crate::helpers::{create_lc101_problem, get_job_ids, get_vehicle_capacity};
 
 #[test]
 fn can_read_lilim_format_from_test_file() {
-    let problem = create_lc101_problem();
+    let problem = create_lc101_problem(RoutingMode::ScaleNoRound(1000.));
 
     assert_eq!(
         get_job_ids(&problem),

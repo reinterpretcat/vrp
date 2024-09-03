@@ -198,7 +198,7 @@ impl RosomaxaWeighted for InsertionContext {
             // default objective related
             self.solution.unassigned.len() as Float,
             self.solution.routes.len() as Float,
-            self.get_total_cost().unwrap_or_default(),
+            self.get_total_cost(1.).unwrap_or_default(),
         ];
 
         self.solution.state.set_solution_weights(weights);

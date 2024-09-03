@@ -55,10 +55,10 @@ impl InsertionContext {
         ctx
     }
 
-    /// Gets total cost of the solution.
+    /// Gets the total cost of the solution as a linear combination of travelled time and distance + fixed costs.
     ///
-    /// Returns None if cost cannot be calculate as the context is in non-consistent state.
-    pub fn get_total_cost(&self) -> Option<Cost> {
+    /// Returns None if cost cannot be calculated as the context is in non-consistent state.
+    pub fn get_total_cost(&self, scale: Float) -> Option<Cost> {
         let get_cost = |costs: &Costs, distance: Distance, duration: Duration| {
             let distance = distance as Float;
             let duration = duration as Float;
@@ -73,16 +73,20 @@ impl InsertionContext {
                 + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
         };
 
-        self.solution.routes.iter().try_fold(Cost::default(), |acc, route_ctx| {
-            let actor = &route_ctx.route.actor;
-            let distance = route_ctx.state.get_total_distance();
-            let duration = route_ctx.state.get_total_duration();
+        self.solution
+            .routes
+            .iter()
+            .try_fold(Cost::default(), |acc, route_ctx| {
+                let actor = &route_ctx.route.actor;
+                let distance = route_ctx.state.get_total_distance();
+                let duration = route_ctx.state.get_total_duration();
 
-            distance.zip(duration).map(|(&distance, &duration)| {
-                acc + get_cost(&actor.vehicle.costs, distance, duration)
-                    + get_cost(&actor.driver.costs, distance, duration)
+                distance.zip(duration).map(|(&distance, &duration)| {
+                    acc + get_cost(&actor.vehicle.costs, distance, duration)
+                        + get_cost(&actor.driver.costs, distance, duration)
+                })
             })
-        })
+            .map(|cost| cost / scale)
     }
 
     /// Restores valid context state.
@@ -212,7 +216,7 @@ impl From<InsertionContext> for Solution {
 impl From<(InsertionContext, Option<TelemetryMetrics>)> for Solution {
     fn from(value: (InsertionContext, Option<TelemetryMetrics>)) -> Self {
         let (insertion_ctx, telemetry) = value;
-        let cost = insertion_ctx.get_total_cost().unwrap_or_default();
+        let cost = insertion_ctx.get_total_cost(1.).unwrap_or_default();
         let solution_ctx = insertion_ctx.solution;
 
         Solution {

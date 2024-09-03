@@ -15,23 +15,23 @@ use vrp_core::prelude::GenericError;
 /// A trait read write solomon problem.
 pub trait SolomonProblem {
     /// Reads solomon problem.
-    fn read_solomon(self, is_rounded: bool) -> Result<Problem, GenericError>;
+    fn read_solomon(self, routing_mode: RoutingMode) -> Result<Problem, GenericError>;
 }
 
 impl<R: Read> SolomonProblem for BufReader<R> {
-    fn read_solomon(self, is_rounded: bool) -> Result<Problem, GenericError> {
-        read_solomon_format(self, is_rounded)
+    fn read_solomon(self, routing_mode: RoutingMode) -> Result<Problem, GenericError> {
+        read_solomon_format(self, routing_mode)
     }
 }
 
 impl SolomonProblem for String {
-    fn read_solomon(self, is_rounded: bool) -> Result<Problem, GenericError> {
-        read_solomon_format(BufReader::new(self.as_bytes()), is_rounded)
+    fn read_solomon(self, routing_mode: RoutingMode) -> Result<Problem, GenericError> {
+        read_solomon_format(BufReader::new(self.as_bytes()), routing_mode)
     }
 }
 
-fn read_solomon_format<R: Read>(reader: BufReader<R>, is_rounded: bool) -> Result<Problem, GenericError> {
-    SolomonReader { buffer: String::new(), reader, coord_index: CoordIndex::default() }.read_problem(is_rounded)
+fn read_solomon_format<R: Read>(reader: BufReader<R>, routing_mode: RoutingMode) -> Result<Problem, GenericError> {
+    SolomonReader { buffer: String::new(), reader, coord_index: CoordIndex::default() }.read_problem(routing_mode)
 }
 
 struct VehicleLine {
@@ -58,9 +58,10 @@ impl<R: Read> TextReader for SolomonReader<R> {
         &self,
         activity: Arc<SimpleActivityCost>,
         transport: Arc<dyn TransportCost>,
+        routing_mode: RoutingMode,
     ) -> Result<GoalContext, GenericError> {
         let is_time_constrained = true;
-        create_goal_context_prefer_min_tours(activity, transport, is_time_constrained)
+        create_goal_context_prefer_min_tours(activity, transport, routing_mode, is_time_constrained)
     }
 
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError> {
@@ -70,8 +71,8 @@ impl<R: Read> TextReader for SolomonReader<R> {
         Ok((jobs, fleet))
     }
 
-    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost>, GenericError> {
-        self.coord_index.create_transport(is_rounded)
+    fn create_transport(&self, routing_mode: RoutingMode) -> Result<Arc<dyn TransportCost>, GenericError> {
+        self.coord_index.create_transport(routing_mode)
     }
 
     fn create_extras(&self) -> Extras {

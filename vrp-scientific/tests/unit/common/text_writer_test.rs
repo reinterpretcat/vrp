@@ -1,4 +1,5 @@
 use super::*;
+use crate::common::RoutingMode;
 use crate::helpers::SolomonBuilder;
 use crate::solomon::{SolomonProblem, SolomonSolution};
 use std::sync::Arc;
@@ -18,7 +19,7 @@ fn can_write_solomon_solution() {
             .add_customer((0, 0, 0, 0, 0, 1000, 1))
             .add_customer((1, 1, 0, 1, 5, 1000, 5))
             .build()
-            .read_solomon(false)
+            .read_solomon(RoutingMode::Simple)
             .unwrap(),
     );
 

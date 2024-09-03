@@ -10,19 +10,19 @@ fn get_index() -> CoordIndex {
 }
 
 #[test]
-fn can_create_transport_without_rounding() {
+fn can_create_transport_with_routing_mode_scale() {
     let index = get_index();
 
-    let transport = index.create_transport(false).unwrap();
+    let transport = index.create_transport(RoutingMode::ScaleNoRound(1000.)).unwrap();
 
-    assert!((transport.distance_approx(&Profile::new(0, None), 0, 1) - 2.23606).abs() < 1E-5);
+    assert_eq!(transport.distance_approx(&Profile::new(0, None), 0, 1), 2236);
 }
 
 #[test]
-fn can_create_transport_with_rounding() {
+fn can_create_transport_with_routing_mode_simple() {
     let index = get_index();
 
-    let transport = index.create_transport(true).unwrap();
+    let transport = index.create_transport(RoutingMode::Simple).unwrap();
 
     assert_eq!(transport.distance_approx(&Profile::new(0, None), 0, 1), 2);
 }

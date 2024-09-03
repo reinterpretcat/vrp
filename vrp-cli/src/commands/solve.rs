@@ -22,6 +22,7 @@ use vrp_core::rosomaxa::{get_default_population, get_default_selection_size};
 use vrp_core::solver::*;
 use vrp_core::utils::*;
 use vrp_pragmatic::format::solution::{write_pragmatic, PragmaticOutputType};
+use vrp_scientific::common::RoutingMode;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -74,13 +75,15 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
         use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
 
         let is_rounded = matches.get_one::<bool>(ROUNDED_ARG_NAME).copied().unwrap_or(false);
+        let routing_mode =
+            if is_rounded { RoutingMode::ScaleNoRound(1000.) } else { RoutingMode::ScaleWithRound(1000.) };
 
         formats.insert(
             "solomon",
             (
                 ProblemReader(Box::new(move |problem: File, matrices: Option<Vec<File>>| {
                     assert!(matrices.is_none());
-                    BufReader::new(problem).read_solomon(is_rounded)
+                    BufReader::new(problem).read_solomon(routing_mode)
                 })),
                 InitSolutionReader(Box::new({
                     let random = random.clone();
@@ -95,7 +98,7 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
             (
                 ProblemReader(Box::new(move |problem: File, matrices: Option<Vec<File>>| {
                     assert!(matrices.is_none());
-                    BufReader::new(problem).read_lilim(is_rounded)
+                    BufReader::new(problem).read_lilim(routing_mode)
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
                 SolutionWriter(Box::new(|_, solution, mut writer, _| solution.write_lilim(&mut writer))),
@@ -107,7 +110,7 @@ fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn
             (
                 ProblemReader(Box::new(move |problem: File, matrices: Option<Vec<File>>| {
                     assert!(matrices.is_none());
-                    BufReader::new(problem).read_tsplib(is_rounded)
+                    BufReader::new(problem).read_tsplib(routing_mode)
                 })),
                 InitSolutionReader(Box::new(move |file, problem| {
                     read_init_solution(BufReader::new(file), problem, random.clone())

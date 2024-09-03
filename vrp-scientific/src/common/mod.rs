@@ -13,7 +13,7 @@ pub use self::initial_reader::read_init_solution;
 
 mod routing;
 
-pub use self::routing::{CoordIndex, CoordIndexExtraProperty};
+pub use self::routing::{CoordIndex, CoordIndexExtraProperty, RoutingMode};
 
 use vrp_core::models::Extras;
 use vrp_core::solver::{HeuristicFilterExtraProperty, HeuristicFilterFn};

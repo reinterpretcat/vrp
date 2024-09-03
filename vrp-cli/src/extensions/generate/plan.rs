@@ -3,6 +3,7 @@
 mod plan_test;
 
 use super::get_random_item;
+use vrp_core::models::common::Duration;
 use vrp_core::prelude::{Float, GenericError};
 use vrp_core::utils::{DefaultRandom, Random};
 use vrp_pragmatic::format::problem::{Job, JobPlace, JobTask, Plan, Problem};
@@ -164,7 +165,7 @@ fn get_plan_demands(plan: &Plan) -> Vec<Vec<i32>> {
     plan.jobs.iter().flat_map(get_job_tasks).filter_map(|job_task| job_task.demand.as_ref()).cloned().collect()
 }
 
-fn get_plan_durations(plan: &Plan) -> Vec<Float> {
+fn get_plan_durations(plan: &Plan) -> Vec<Duration> {
     get_plan_places(plan).map(|job_place| job_place.duration).collect()
 }
 

@@ -1,3 +1,4 @@
+use crate::common::RoutingMode;
 use crate::helpers::*;
 use crate::solomon::SolomonProblem;
 
@@ -11,7 +12,7 @@ fn can_read_solomon_built_from_builder() {
         .add_customer((2, 3, 0, 2, 0, 1002, 11))
         .add_customer((3, 7, 0, 1, 0, 1000, 12))
         .build()
-        .read_solomon(false)
+        .read_solomon(RoutingMode::ScaleNoRound(1000.))
         .unwrap();
 
     assert_eq!(get_job_ids(&problem), vec!["1", "2", "3"]);
@@ -26,7 +27,7 @@ fn can_read_solomon_built_from_builder() {
 
 #[test]
 fn can_read_solomon_format_from_test_file() {
-    let problem = create_c101_25_problem();
+    let problem = create_c101_25_problem(RoutingMode::ScaleNoRound(1000.));
 
     assert_eq!(get_job_ids(&problem), (1..26).map(|i| i.to_string()).collect::<Vec<String>>());
     assert_eq!(

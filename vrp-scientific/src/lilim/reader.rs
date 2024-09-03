@@ -16,18 +16,19 @@ use vrp_core::prelude::GenericError;
 /// A trait to read lilim problem.
 pub trait LilimProblem {
     /// Reads lilim problem.
-    fn read_lilim(self, is_rounded: bool) -> Result<Problem, GenericError>;
+    fn read_lilim(self, routing_mode: RoutingMode) -> Result<Problem, GenericError>;
 }
 
 impl<R: Read> LilimProblem for BufReader<R> {
-    fn read_lilim(self, is_rounded: bool) -> Result<Problem, GenericError> {
-        LilimReader { buffer: String::new(), reader: self, coord_index: CoordIndex::default() }.read_problem(is_rounded)
+    fn read_lilim(self, routing_mode: RoutingMode) -> Result<Problem, GenericError> {
+        LilimReader { buffer: String::new(), reader: self, coord_index: CoordIndex::default() }
+            .read_problem(routing_mode)
     }
 }
 
 impl LilimProblem for String {
-    fn read_lilim(self, is_rounded: bool) -> Result<Problem, GenericError> {
-        BufReader::new(self.as_bytes()).read_lilim(is_rounded)
+    fn read_lilim(self, routing_mode: RoutingMode) -> Result<Problem, GenericError> {
+        BufReader::new(self.as_bytes()).read_lilim(routing_mode)
     }
 }
 
@@ -62,9 +63,10 @@ impl<R: Read> TextReader for LilimReader<R> {
         &self,
         activity: Arc<SimpleActivityCost>,
         transport: Arc<dyn TransportCost>,
+        routing_mode: RoutingMode,
     ) -> Result<GoalContext, GenericError> {
         let is_time_constrained = true;
-        create_goal_context_prefer_min_tours(activity, transport, is_time_constrained)
+        create_goal_context_prefer_min_tours(activity, transport, routing_mode, is_time_constrained)
     }
 
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError> {
@@ -74,8 +76,8 @@ impl<R: Read> TextReader for LilimReader<R> {
         Ok((jobs, fleet))
     }
 
-    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost>, GenericError> {
-        self.coord_index.create_transport(is_rounded)
+    fn create_transport(&self, routing_mode: RoutingMode) -> Result<Arc<dyn TransportCost>, GenericError> {
+        self.coord_index.create_transport(routing_mode)
     }
 
     fn create_extras(&self) -> Extras {

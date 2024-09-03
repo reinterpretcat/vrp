@@ -1,3 +1,4 @@
+use crate::common::RoutingMode;
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
@@ -9,13 +10,16 @@ use vrp_core::prelude::GenericError;
 use vrp_core::utils::GenericResult;
 
 pub(crate) trait TextReader {
-    fn read_problem(&mut self, is_rounded: bool) -> Result<Problem, GenericError> {
+    fn read_problem(&mut self, routing_mode: RoutingMode) -> Result<Problem, GenericError> {
         let (jobs, fleet) = self.read_definitions()?;
-        let transport = self.create_transport(is_rounded)?;
+        let transport = self.create_transport(routing_mode)?;
         let activity = Arc::new(SimpleActivityCost::default());
         let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
+
         let extras = self.create_extras();
-        let goal = self.create_goal_context(activity.clone(), transport.clone()).expect("cannot create goal context");
+        let goal = self
+            .create_goal_context(activity.clone(), transport.clone(), routing_mode)
+            .expect("cannot create goal context");
 
         Ok(Problem {
             fleet: Arc::new(fleet),
@@ -32,11 +36,12 @@ pub(crate) trait TextReader {
         &self,
         activity: Arc<SimpleActivityCost>,
         transport: Arc<dyn TransportCost>,
+        routing_mode: RoutingMode,
     ) -> Result<GoalContext, GenericError>;
 
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), GenericError>;
 
-    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost>, GenericError>;
+    fn create_transport(&self, routing_mode: RoutingMode) -> Result<Arc<dyn TransportCost>, GenericError>;
 
     fn create_extras(&self) -> Extras;
 }
@@ -105,9 +110,10 @@ pub(crate) fn create_dimens_with_id(
 pub(crate) fn create_goal_context_prefer_min_tours(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost>,
+    routing_mode: RoutingMode,
     is_time_constrained: bool,
 ) -> GenericResult<GoalContext> {
-    let features = get_essential_features(activity, transport, is_time_constrained)?;
+    let features = get_essential_features(activity, transport, routing_mode, is_time_constrained)?;
 
     GoalContextBuilder::with_features(&features)?
         .set_main_goal(Goal::subset_of(&features, &["min_unassigned", "min_tours", "min_distance"])?)
@@ -118,9 +124,10 @@ pub(crate) fn create_goal_context_prefer_min_tours(
 pub(crate) fn create_goal_context_distance_only(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost>,
+    routing_mode: RoutingMode,
     is_time_constrained: bool,
 ) -> Result<GoalContext, GenericError> {
-    let features = get_essential_features(activity, transport, is_time_constrained)?;
+    let features = get_essential_features(activity, transport, routing_mode, is_time_constrained)?;
 
     GoalContextBuilder::with_features(&features)?
         .set_main_goal(Goal::subset_of(&features, &["min_unassigned", "min_distance"])?)
@@ -131,8 +138,14 @@ pub(crate) fn create_goal_context_distance_only(
 fn get_essential_features(
     activity: Arc<SimpleActivityCost>,
     transport: Arc<dyn TransportCost>,
+    routing_mode: RoutingMode,
     is_time_constrained: bool,
 ) -> Result<Vec<Feature>, GenericError> {
+    let scale = match routing_mode {
+        RoutingMode::Simple => 1.,
+        RoutingMode::ScaleNoRound(scale) | RoutingMode::ScaleWithRound(scale) => scale,
+    };
+
     Ok(vec![
         MinimizeUnassignedBuilder::new("min_unassigned").build()?,
         create_minimize_tours_feature("min_tours")?,
@@ -140,6 +153,7 @@ fn get_essential_features(
             .set_time_constrained(is_time_constrained)
             .set_transport_cost(transport)
             .set_activity_cost(activity)
+            .set_routing_scale(scale)
             .build_minimize_distance()?,
         CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").build()?,
     ])

@@ -12,6 +12,7 @@ pub use self::solomon::SolomonBuilder;
 mod lilim;
 pub use self::lilim::LilimBuilder;
 
+use crate::common::RoutingMode;
 use crate::lilim::LilimProblem;
 use crate::solomon::SolomonProblem;
 use std::fs::File;
@@ -26,20 +27,20 @@ pub fn get_test_resource(resource_path: &str) -> std::io::Result<File> {
     File::open(path)
 }
 
-pub fn create_c101_25_problem() -> Problem {
+pub fn create_c101_25_problem(routing_mode: RoutingMode) -> Problem {
     BufReader::new(get_test_resource("../../examples/data/scientific/solomon/C101.25.txt").unwrap())
-        .read_solomon(false)
+        .read_solomon(routing_mode)
         .unwrap()
 }
 
-pub fn create_c101_100_problem() -> Problem {
+pub fn create_c101_100_problem(routing_mode: RoutingMode) -> Problem {
     BufReader::new(get_test_resource("../../examples/data/scientific/solomon/C101.100.txt").unwrap())
-        .read_solomon(false)
+        .read_solomon(routing_mode)
         .unwrap()
 }
 
-pub fn create_lc101_problem() -> Problem {
+pub fn create_lc101_problem(routing_mode: RoutingMode) -> Problem {
     BufReader::new(get_test_resource("../../examples/data/scientific/lilim/LC101.txt").unwrap())
-        .read_lilim(false)
+        .read_lilim(routing_mode)
         .unwrap()
 }

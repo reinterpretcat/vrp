@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use super::*;
 use std::io::BufWriter;
+use vrp_scientific::common::RoutingMode;
 use vrp_scientific::core::prelude::*;
 use vrp_scientific::core::solver::RefinementContext;
 use vrp_scientific::lilim::{LilimProblem, LilimSolution};
@@ -47,14 +48,13 @@ pub fn solve_vrp(
     generations: usize,
     logger: InfoLogger,
 ) {
-    let is_rounded = true;
     let is_experimental = true;
     let logger = create_info_logger_proxy(logger);
 
     let problem = match format_type {
-        "tsplib" => problem.read_tsplib(is_rounded),
-        "solomon" => problem.read_solomon(is_rounded),
-        "lilim" => problem.read_lilim(is_rounded),
+        "tsplib" => problem.read_tsplib(RoutingMode::ScaleWithRound(1000.)),
+        "solomon" => problem.read_solomon(RoutingMode::ScaleWithRound(1000.)),
+        "lilim" => problem.read_lilim(RoutingMode::ScaleWithRound(1000.)),
         _ => panic!("unknown format: {format_type}"),
     }
     .unwrap();

@@ -1,3 +1,4 @@
+use crate::common::RoutingMode;
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
@@ -8,13 +9,15 @@ use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::RefinementContext;
 use vrp_core::utils::{Environment, Float};
 
+const SCALE: Float = 1000.;
+
 parameterized_test! {can_solve_problem_with_cheapest_insertion_heuristic, (problem, expected, cost), {
     can_solve_problem_with_cheapest_insertion_heuristic_impl(Arc::new(problem), expected, cost);
 }}
 
 can_solve_problem_with_cheapest_insertion_heuristic! {
     case1: (
-        create_c101_25_problem(),
+        create_c101_25_problem(RoutingMode::ScaleNoRound(SCALE)),
         vec![
             vec!["13", "17", "18", "19", "15"],
             vec!["20", "24", "25", "10", "11", "9", "6", "23", "22", "21"],
@@ -22,7 +25,7 @@ can_solve_problem_with_cheapest_insertion_heuristic! {
         ],
         259.15),
     case2: (
-        create_lc101_problem(),
+        create_lc101_problem(RoutingMode::ScaleNoRound(SCALE)),
         vec![
             vec!["mlt1", "mlt0", "mlt1", "mlt3", "mlt3", "mlt5", "mlt4", "mlt2", "mlt4", "mlt2", "mlt5", "mlt0"],
             vec!["mlt10", "mlt10", "mlt12", "mlt12", "mlt14", "mlt15", "mlt13", "mlt14", "mlt11", "mlt11", "mlt13", "mlt15"],
@@ -53,7 +56,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     let insertion_ctx = RecreateWithCheapest::new(environment.random.clone())
         .run(&refinement_ctx, InsertionContext::new(problem, environment));
 
-    let result_cost = insertion_ctx.get_total_cost().unwrap_or_default();
+    let result_cost = insertion_ctx.get_total_cost(SCALE).unwrap_or_default();
     assert_eq!(result_cost.round(), cost.round());
     assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected);
 }

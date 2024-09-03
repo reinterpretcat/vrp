@@ -20,13 +20,21 @@ pub struct TransportFeatureBuilder {
     transport: Option<Arc<dyn TransportCost>>,
     activity: Option<Arc<dyn ActivityCost>>,
     code: Option<ViolationCode>,
+    routing_scale: Option<Float>,
     is_constrained: bool,
 }
 
 impl TransportFeatureBuilder {
     /// Creates a new instance of `TransportFeatureBuilder`.
     pub fn new(name: &str) -> Self {
-        Self { name: name.to_string(), transport: None, activity: None, code: None, is_constrained: true }
+        Self {
+            name: name.to_string(),
+            transport: None,
+            activity: None,
+            code: None,
+            routing_scale: None,
+            is_constrained: true,
+        }
     }
 
     /// Sets constraint violation code which is used to report back the reason of job's unassignment.
@@ -56,6 +64,13 @@ impl TransportFeatureBuilder {
         self
     }
 
+    /// Sets routing scale which is applied to routing matrix values.
+    /// It is used to scale back feature's objective value on the global level.
+    pub fn set_routing_scale(mut self, scale: Float) -> Self {
+        self.routing_scale = Some(scale);
+        self
+    }
+
     /// Builds a flavor of transport feature which only updates activity schedules. No objective, no constraint.
     pub fn build_schedule_updater(mut self) -> GenericResult<Feature> {
         let (transport, activity) = self.get_costs()?;
@@ -70,6 +85,7 @@ impl TransportFeatureBuilder {
     /// TODO: distance costs are still considered on local level.
     pub fn build_minimize_duration(mut self) -> GenericResult<Feature> {
         let (transport, activity) = self.get_costs()?;
+        let scale = self.routing_scale.unwrap_or(1.);
 
         create_feature(
             self.name.as_str(),
@@ -80,7 +96,7 @@ impl TransportFeatureBuilder {
             Box::new(move |insertion_ctx| {
                 insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
                     acc + route_ctx.state().get_total_duration().cloned().unwrap_or_default() as Float
-                })
+                }) / scale
             }),
         )
     }
@@ -89,6 +105,8 @@ impl TransportFeatureBuilder {
     /// TODO: duration costs are still considered on local level.
     pub fn build_minimize_distance(mut self) -> GenericResult<Feature> {
         let (transport, activity) = self.get_costs()?;
+        let scale = self.routing_scale.unwrap_or(1.);
+
         create_feature(
             self.name.as_str(),
             transport,
@@ -98,7 +116,7 @@ impl TransportFeatureBuilder {
             Box::new(move |insertion_ctx| {
                 insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
                     acc + route_ctx.state().get_total_distance().copied().unwrap_or_default() as Float
-                })
+                }) / scale
             }),
         )
     }
@@ -106,6 +124,7 @@ impl TransportFeatureBuilder {
     /// Creates the transport feature which considers distance and duration for minimization.
     pub fn build_minimize_cost(mut self) -> GenericResult<Feature> {
         let (transport, activity) = self.get_costs()?;
+        let scale = self.routing_scale.unwrap_or(1.);
 
         create_feature(
             self.name.as_str(),
@@ -113,7 +132,7 @@ impl TransportFeatureBuilder {
             activity,
             self.code.unwrap_or_default(),
             self.is_constrained,
-            Box::new(|insertion_ctx| insertion_ctx.get_total_cost().unwrap_or_default()),
+            Box::new(move |insertion_ctx| insertion_ctx.get_total_cost(scale).unwrap_or_default()),
         )
     }
 
