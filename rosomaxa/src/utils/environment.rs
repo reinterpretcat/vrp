@@ -115,7 +115,7 @@ impl Parallelism {
     }
 
     /// Executes operation on thread pool with given index. If there is no thread pool with such
-    /// index, then executes it without using any of thread pools.
+    /// an index, then execute it without using any of thread pools.
     pub fn thread_pool_execute<OP, R>(&self, idx: usize, op: OP) -> R
     where
         OP: FnOnce() -> R + Send,
@@ -128,7 +128,7 @@ impl Parallelism {
         }
     }
 
-    /// Returns amount of thread pools used. Returns zero if default thread pool is used.
+    /// Returns number of non-default thread pools. Returns zero if only default thread pool is used.
     pub fn thread_pool_size(&self) -> usize {
         self.thread_pools.as_ref().map_or(0, |tp| tp.len())
     }

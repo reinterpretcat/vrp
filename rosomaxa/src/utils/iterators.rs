@@ -108,7 +108,7 @@ pub fn create_range_sampling_iter<I: Iterator>(
 /// The general idea is to sample values from the sequence uniformly, find the best from them and
 /// check adjusted range, formed by these sampled values. The general motivation is that in many
 /// domains values are not distributed randomly and this approach can quickly explore promising
-/// regions and start exploiting them, significantly reducing total amount of probes.
+/// regions and start exploiting them, significantly reducing the total number of probes.
 ///
 /// For example:
 ///
@@ -124,7 +124,7 @@ pub fn create_range_sampling_iter<I: Iterator>(
 ///     - 6 sample: 58 at 11
 ///     - 7 sample: 31 at 12
 ///  - here we found a better maximum (58), so we update current best and continue with further shrinking the search range
-///  - we repeat the process till trivial range is reached
+///  - we repeat the process till trivial (empty) range is reached
 ///
 pub trait SelectionSamplingSearch: Iterator {
     /// Searches using selection sampling algorithm.
@@ -185,13 +185,13 @@ pub trait SelectionSamplingSearch: Iterator {
                                 }
                             }
 
-                            // avoid evaluating same item twice by checking the probe
+                            // avoid evaluating the same item twice by checking the probe
                             if is_new_item {
                                 let item_value = map_fn(item);
                                 // if a new found, set the search range to adjusted left and right items
                                 if compare_fn(&item_value, best_value) {
                                     acc.best = BestItem::Fresh((item_idx, item_value));
-                                    // keep same index for left/right if it is a first/last probe
+                                    // keep the same index for left/right if it is a first/last probe
                                     acc.left = if probe_idx == 0 { acc.left } else { acc.last + 1 };
                                     acc.right = if probe_idx == last_probe_idx { orig_right } else { item_idx };
                                 }
@@ -245,7 +245,7 @@ impl<T> Debug for BestItem<T> {
     }
 }
 
-/// Keeps  track of search state for selection sampling search.
+/// Keeps track of search state for selection sampling search.
 struct SearchState<const N: usize, T> {
     left: usize,
     right: usize,

@@ -147,10 +147,8 @@ where
     }
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
-        Box::new(self.inner.select().map(|individual| {
+        Box::new(self.inner.select().inspect(|&individual| {
             self.acquire().on_select.entry(self.generation).or_default().push(individual.into());
-
-            individual
         }))
     }
 

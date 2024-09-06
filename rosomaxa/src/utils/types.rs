@@ -8,8 +8,8 @@ use std::ops::ControlFlow;
 
 /// Alias to a scalar floating type.
 ///
-/// NOTE: Currently, prefer to use `f64` as a default floating type  as switching to `f32` leads
-/// to precision issues within solution checker (at least). No clear performance benefits were not found.
+/// NOTE: Currently, prefer to use `f64` as a default floating type as switching to `f32` leads
+/// to precision issues within the solution checker (at least). No clear performance benefits were found.
 pub type Float = f64;
 
 /// Unwraps value from inner state.
