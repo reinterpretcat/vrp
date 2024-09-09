@@ -125,7 +125,7 @@ impl<R: Read> LilimReader<R> {
 
             jobs.push(Job::Multi(Multi::new_shared(
                 vec![self.create_single_job(pickup), self.create_single_job(delivery)],
-                create_dimens_with_id("mlt", &index.to_string(), |id, dimens| {
+                create_dimens_with_id("", &index.to_string(), |id, dimens| {
                     dimens.set_job_id(id.to_string());
                 }),
             )));
