@@ -51,7 +51,7 @@ mod cli {
                 process::exit(1);
             }
         } {
-            eprintln!("{err}");
+            eprintln!("Error: {err}");
             process::exit(1)
         }
     }

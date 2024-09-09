@@ -5,23 +5,19 @@ mod solve_test;
 use super::*;
 
 use clap::ArgAction;
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use vrp_cli::core::solver::TargetHeuristic;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
-use vrp_cli::get_locations_serialized;
-use vrp_cli::scientific::tsplib::{TsplibProblem, TsplibSolution};
+use vrp_cli::extensions::solve::formats::*;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::GoalContext;
 use vrp_core::prelude::*;
-use vrp_core::rosomaxa::evolution::*;
-use vrp_core::rosomaxa::{get_default_population, get_default_selection_size};
+use vrp_core::rosomaxa::{evolution::*, get_default_population, get_default_selection_size};
 use vrp_core::solver::*;
 use vrp_core::utils::*;
-use vrp_pragmatic::format::solution::{write_pragmatic, PragmaticOutputType};
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -43,127 +39,6 @@ const PARALLELISM_ARG_NAME: &str = "parallelism";
 const HEURISTIC_ARG_NAME: &str = "heuristic";
 const EXPERIMENTAL_ARG_NAME: &str = "experimental";
 const ROUNDED_ARG_NAME: &str = "round";
-
-#[allow(clippy::type_complexity)]
-struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, GenericError>>);
-
-struct InitSolutionReader(pub Box<dyn Fn(File, Arc<Problem>) -> Result<Solution, GenericError>>);
-
-#[allow(clippy::type_complexity)]
-struct SolutionWriter(
-    pub  Box<
-        dyn Fn(
-            &Problem,
-            Solution,
-            BufWriter<Box<dyn Write>>,
-            Option<BufWriter<Box<dyn Write>>>,
-        ) -> Result<(), GenericError>,
-    >,
-);
-
-#[allow(clippy::type_complexity)]
-struct LocationWriter(pub Box<dyn Fn(File, BufWriter<Box<dyn Write>>) -> Result<(), GenericError>>);
-
-#[allow(clippy::type_complexity)]
-type FormatMap<'a> = HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter, LocationWriter)>;
-
-fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn Random>) {
-    if cfg!(feature = "scientific-format") {
-        use vrp_scientific::common::read_init_solution;
-        use vrp_scientific::lilim::{LilimProblem, LilimSolution};
-        use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
-
-        let is_rounded = matches.get_one::<bool>(ROUNDED_ARG_NAME).copied().unwrap_or(false);
-
-        formats.insert(
-            "solomon",
-            (
-                ProblemReader(Box::new(move |problem: File, matrices: Option<Vec<File>>| {
-                    assert!(matrices.is_none());
-                    BufReader::new(problem).read_solomon(is_rounded)
-                })),
-                InitSolutionReader(Box::new({
-                    let random = random.clone();
-                    move |file, problem| read_init_solution(BufReader::new(file), problem, random.clone())
-                })),
-                SolutionWriter(Box::new(|_, solution, mut writer, _| solution.write_solomon(&mut writer))),
-                LocationWriter(Box::new(|_, _| unimplemented!())),
-            ),
-        );
-        formats.insert(
-            "lilim",
-            (
-                ProblemReader(Box::new(move |problem: File, matrices: Option<Vec<File>>| {
-                    assert!(matrices.is_none());
-                    BufReader::new(problem).read_lilim(is_rounded)
-                })),
-                InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
-                SolutionWriter(Box::new(|_, solution, mut writer, _| solution.write_lilim(&mut writer))),
-                LocationWriter(Box::new(|_, _| unimplemented!())),
-            ),
-        );
-        formats.insert(
-            "tsplib",
-            (
-                ProblemReader(Box::new(move |problem: File, matrices: Option<Vec<File>>| {
-                    assert!(matrices.is_none());
-                    BufReader::new(problem).read_tsplib(is_rounded)
-                })),
-                InitSolutionReader(Box::new(move |file, problem| {
-                    read_init_solution(BufReader::new(file), problem, random.clone())
-                })),
-                SolutionWriter(Box::new(|_, solution, mut writer, _| solution.write_tsplib(&mut writer))),
-                LocationWriter(Box::new(|_, _| unimplemented!())),
-            ),
-        );
-    }
-}
-
-fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random>) {
-    use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
-    use vrp_pragmatic::format::solution::read_init_solution as read_init_pragmatic;
-
-    formats.insert(
-        "pragmatic",
-        (
-            ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
-                if let Some(matrices) = matrices {
-                    let matrices = matrices.into_iter().map(BufReader::new).collect();
-                    (BufReader::new(problem), matrices).read_pragmatic()
-                } else {
-                    BufReader::new(problem).read_pragmatic()
-                }
-                .map_err(From::from)
-            })),
-            InitSolutionReader(Box::new(move |file, problem| {
-                read_init_pragmatic(BufReader::new(file), problem, random.clone())
-            })),
-            SolutionWriter(Box::new(|problem, solution, mut default_writer, geojson_writer| {
-                geojson_writer
-                    .map_or(Ok(()), |mut geojson_writer| {
-                        write_pragmatic(problem, &solution, PragmaticOutputType::OnlyGeoJson, &mut geojson_writer)
-                    })
-                    .and_then(|_| write_pragmatic(problem, &solution, Default::default(), &mut default_writer))
-            })),
-            LocationWriter(Box::new(|problem, writer| {
-                let mut writer = writer;
-                deserialize_problem(BufReader::new(problem))
-                    .map_err(From::from)
-                    .and_then(|problem| get_locations_serialized(&problem))
-                    .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(From::from))
-            })),
-        ),
-    );
-}
-
-fn get_formats<'a>(matches: &ArgMatches, random: Arc<dyn Random>) -> FormatMap<'a> {
-    let mut formats = FormatMap::default();
-
-    add_scientific(&mut formats, matches, random.clone());
-    add_pragmatic(&mut formats, random);
-
-    formats
-}
 
 pub fn get_solve_app() -> Command {
     Command::new("solve")
@@ -309,10 +184,17 @@ pub fn run_solve(
     out_writer_func: fn(Option<File>) -> BufWriter<Box<dyn Write>>,
 ) -> Result<(), GenericError> {
     let environment = get_environment(matches)?;
-    let formats = get_formats(matches, environment.random.clone());
 
-    let problem_path = matches.get_one::<String>(PROBLEM_ARG_NAME).unwrap();
-    let problem_format = matches.get_one::<String>(FORMAT_ARG_NAME).unwrap();
+    let is_rounded = matches.get_one::<bool>(ROUNDED_ARG_NAME).copied().unwrap_or(false);
+    let formats = get_formats(is_rounded, environment.random.clone());
+
+    let problem_path = matches
+        .get_one::<String>(PROBLEM_ARG_NAME)
+        .ok_or_else(|| GenericError::from(format!("{PROBLEM_ARG_NAME} must be set")))?;
+    let problem_format = matches
+        .get_one::<String>(FORMAT_ARG_NAME)
+        .ok_or_else(|| GenericError::from(format!("{FORMAT_ARG_NAME} must be set")))?;
+
     let problem_file = open_file(problem_path, "problem");
 
     let init_solution = matches.get_one::<String>(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
@@ -352,7 +234,7 @@ pub fn run_solve(
 
                         let solution = solver.solve().map_err(|err| format!("cannot find any solution: '{err}'"))?;
 
-                        solution_writer(&problem, solution, out_buffer, geo_buffer).unwrap();
+                        solution_writer(&problem, solution, out_buffer, geo_buffer)?;
 
                         if is_check_requested {
                             check_pragmatic_solution_with_args(matches)?;
