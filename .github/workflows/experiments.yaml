@@ -28,7 +28,7 @@ jobs:
       -  run: python ./experiments/etc/collect-metrics.py ${{ github.event.inputs.config_url }}
 
       - name: Upload Results artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: experiments-results.csv
           path: experiments/etc/collect-metrics-results.csv
@@ -50,7 +50,7 @@ jobs:
       - run: python ./experiments/etc/bench-scientific.py ${{ github.event.inputs.config_url }}
 
       - name: Upload Results artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: bench-results
           path: experiments/etc/results

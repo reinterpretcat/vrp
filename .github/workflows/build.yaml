@@ -51,7 +51,7 @@ jobs:
         wasm-pack build --target web
 
     - name: Upload WebAssembly artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: vrp_cli_wasm
         path: vrp-cli/pkg/
