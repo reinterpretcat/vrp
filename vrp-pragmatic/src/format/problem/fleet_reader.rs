@@ -60,15 +60,18 @@ pub(super) fn create_transport_costs(
 
                 let mut durations: Vec<Duration> = Vec::with_capacity(capacity);
                 let mut distances: Vec<Distance> = Vec::with_capacity(capacity);
+                let err_fn = |i| move || GenericError::from(format!("invalid matrix index: {i}"));
+
                 for (i, error) in error_codes.iter().enumerate() {
                     if *error > 0 {
                         durations.push(-1.);
                         distances.push(-1.);
                     } else {
-                        durations.push(*matrix.travel_times.get(i).unwrap() as Float);
-                        distances.push(*matrix.distances.get(i).unwrap() as Float);
+                        durations.push(*matrix.travel_times.get(i).ok_or_else(err_fn(i))? as Float);
+                        distances.push(*matrix.distances.get(i).ok_or_else(err_fn(i))? as Float);
                     }
                 }
+
                 (durations, distances)
             } else {
                 (
@@ -77,9 +80,9 @@ pub(super) fn create_transport_costs(
                 )
             };
 
-            MatrixData::new(profile, timestamp.map(|t| parse_time(&t)), durations, distances)
+            Ok(MatrixData::new(profile, timestamp.map(|t| parse_time(&t)), durations, distances))
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, GenericError>>()?;
 
     let matrix_indices = matrix_data.iter().map(|data| data.index).collect::<HashSet<_>>().len();
     if matrix_profiles.len() != matrix_indices {

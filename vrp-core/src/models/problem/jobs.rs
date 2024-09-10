@@ -6,7 +6,7 @@ use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
 use crate::utils::{short_type_name, Either};
 use rosomaxa::prelude::Float;
-use rosomaxa::utils::compare_floats_f32;
+use rosomaxa::utils::{compare_floats_f32, compare_floats_f32_refs};
 use std::cmp::Ordering::Less;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -324,7 +324,7 @@ fn create_index(fleet: &Fleet, jobs: Vec<Job>, transport: &(dyn TransportCost)) 
                 .filter(|j| **j != job)
                 .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport, &job, j)))
                 .collect();
-            sorted_job_costs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Less));
+            sorted_job_costs.sort_by(|(_, a), (_, b)| compare_floats_f32_refs(a, b));
 
             sorted_job_costs.truncate(MAX_NEIGHBOURS);
             sorted_job_costs.shrink_to_fit();

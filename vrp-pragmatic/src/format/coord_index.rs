@@ -6,7 +6,6 @@ mod coord_index_test;
 
 use crate::format::problem::{Problem, VehicleBreak};
 use crate::format::{CustomLocationType, Location};
-use std::cmp::Ordering::Less;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 
@@ -127,7 +126,7 @@ impl CoordIndex {
     /// Gets unique locations.
     pub fn unique(&self) -> Vec<Location> {
         let mut sorted_pairs: Vec<_> = self.reverse_index.iter().collect();
-        sorted_pairs.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap_or(Less));
+        sorted_pairs.sort_by(|(a, _), (b, _)| a.cmp(b));
         sorted_pairs.iter().map(|pair| pair.1.clone()).collect()
     }
 

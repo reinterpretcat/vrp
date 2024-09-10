@@ -6,7 +6,6 @@ use crate::models::Problem;
 use crate::solver::search::recreate::Recreate;
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::*;
-use std::cmp::Ordering;
 use std::sync::Arc;
 
 struct ChunkJobSelector {
@@ -49,9 +48,10 @@ impl JobSelector for RankedJobSelector {
     fn prepare(&self, insertion_ctx: &mut InsertionContext) {
         let problem = &insertion_ctx.problem;
 
-        insertion_ctx.solution.required.sort_by(|a, b| {
-            Self::rank_job(problem, a).partial_cmp(&Self::rank_job(problem, b)).unwrap_or(Ordering::Less)
-        });
+        insertion_ctx
+            .solution
+            .required
+            .sort_by(|a, b| compare_floats(Self::rank_job(problem, a), Self::rank_job(problem, b)));
 
         if self.asc_order {
             insertion_ctx.solution.required.reverse();

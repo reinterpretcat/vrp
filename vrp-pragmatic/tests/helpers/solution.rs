@@ -4,7 +4,7 @@ use crate::format::solution::*;
 use crate::format::{CustomLocationType, Location};
 use crate::format_time;
 use crate::helpers::ToLocation;
-use std::cmp::Ordering::{Equal, Less};
+use std::cmp::Ordering::Equal;
 use std::collections::HashMap;
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
@@ -439,7 +439,7 @@ pub fn assert_vehicle_agnostic(result: Solution, expected: Solution) {
     });
 
     result.tours.sort_by(|a, b| {
-        let ordering = a.vehicle_id.partial_cmp(&b.vehicle_id).unwrap_or(Less);
+        let ordering = a.vehicle_id.cmp(&b.vehicle_id);
 
         if ordering == Equal {
             a.shift_index.cmp(&b.shift_index)

@@ -97,7 +97,7 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
 
         // TODO use result_selector?
         results.sort_by(|a, b| match (a, b) {
-            (InsertionResult::Success(a), InsertionResult::Success(b)) => a.cost.partial_cmp(&b.cost).unwrap_or(Less),
+            (InsertionResult::Success(a), InsertionResult::Success(b)) => a.cost.cmp(&b.cost),
             (InsertionResult::Success(_), InsertionResult::Failure(_)) => Less,
             (InsertionResult::Failure(_), InsertionResult::Success(_)) => Greater,
             (

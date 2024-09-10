@@ -5,7 +5,6 @@ mod fleet_test;
 use crate::models::common::*;
 use crate::utils::short_type_name;
 use rosomaxa::prelude::Float;
-use std::cmp::Ordering::Less;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
@@ -162,7 +161,7 @@ impl Fleet {
 
         let profiles: HashMap<usize, Profile> = vehicles.iter().map(|v| (v.profile.index, v.profile.clone())).collect();
         let mut profiles = profiles.into_iter().collect::<Vec<_>>();
-        profiles.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap_or(Less));
+        profiles.sort_by(|(a, _), (b, _)| a.cmp(b));
         let (_, profiles): (Vec<_>, Vec<_>) = profiles.into_iter().unzip();
 
         let actors = vehicles

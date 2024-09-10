@@ -1,7 +1,6 @@
 use crate::checker::CheckerContext;
 use crate::format::problem::{Matrix, PragmaticProblem, Problem};
 use crate::format::solution::{create_solution, Solution};
-use std::cmp::Ordering::Less;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem as CoreProblem;
@@ -114,10 +113,10 @@ fn get_core_solution<F: FnOnce(Arc<CoreProblem>) -> CoreSolution>(
 fn sort_all_data(solution: Solution) -> Solution {
     let mut solution = solution;
 
-    solution.tours.sort_by(|a, b| a.vehicle_id.partial_cmp(&b.vehicle_id).unwrap_or(Less));
+    solution.tours.sort_by(|a, b| a.vehicle_id.cmp(&b.vehicle_id));
 
     if let Some(ref mut unassigned) = solution.unassigned {
-        unassigned.sort_by(|a, b| a.job_id.partial_cmp(&b.job_id).unwrap_or(Less));
+        unassigned.sort_by(|a, b| a.job_id.cmp(&b.job_id));
     }
 
     solution

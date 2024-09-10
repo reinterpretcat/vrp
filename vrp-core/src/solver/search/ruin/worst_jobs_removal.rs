@@ -11,7 +11,6 @@ use crate::solver::search::{get_route_jobs, JobRemovalTracker, TabuList};
 use crate::solver::RefinementContext;
 use rosomaxa::utils::parallel_collect;
 use std::cell::RefCell;
-use std::cmp::Ordering::Less;
 use std::collections::HashMap;
 use std::iter::once;
 use std::sync::Arc;
@@ -103,7 +102,7 @@ fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(Profile, Ve
             })
             .drain()
             .collect();
-        savings.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(Less));
+        savings.sort_by(|(_, a), (_, b)| compare_floats_refs(b, a));
 
         (route_ctx.route().actor.vehicle.profile.clone(), savings)
     })

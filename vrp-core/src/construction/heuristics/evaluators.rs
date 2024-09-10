@@ -271,42 +271,58 @@ fn analyze_insertion_in_route_leg(
     single: &Single,
     target: &mut Activity,
     route_costs: InsertionCost,
-    init: SingleContext,
+    mut single_ctx: SingleContext,
 ) -> ControlFlow<SingleContext, SingleContext> {
     let (items, index) = leg;
     let (prev, next) = match items {
         [prev] => (prev, None),
         [prev, next] => (prev, Some(next)),
-        _ => return ControlFlow::Break(init),
+        _ => return ControlFlow::Break(single_ctx),
     };
     let start_time = route_ctx.route().tour.start().map_or(Timestamp::default(), |act| act.schedule.departure);
-    // analyze service details
-    single.places.iter().enumerate().try_fold(init, |acc, (idx, detail)| {
-        // analyze detail time windows
-        detail.times.iter().try_fold(acc, |acc, time| {
-            target.place = Place {
-                idx,
-                location: detail.location.unwrap_or(prev.place.location),
-                duration: detail.duration,
-                time: time.to_time_window(start_time),
-            };
+
+    // iterate over places and times to find the next best insertion point
+    for (place_idx, place) in single.places.iter().enumerate() {
+        target.place.idx = place_idx;
+        target.place.location = place.location.unwrap_or(prev.place.location);
+        target.place.duration = place.duration;
+
+        // iterate over time windows of the place
+        for time in place.times.iter() {
+            target.place.time = time.to_time_window(start_time);
 
             let activity_ctx = ActivityContext { index, prev, target, next };
             let move_ctx = MoveContext::activity(route_ctx, &activity_ctx);
 
             if let Some(violation) = eval_ctx.goal.evaluate(&move_ctx) {
-                return SingleContext::fail(violation, acc);
+                let is_stopped = violation.stopped;
+                single_ctx.violation = Some(violation);
+                if is_stopped {
+                    // should stop processing this leg and next ones
+                    return ControlFlow::Break(single_ctx);
+                } else {
+                    // can continue within the next place
+                    continue;
+                }
             }
 
             let costs = eval_ctx.goal.estimate(&move_ctx) + &route_costs;
-            let other_costs = acc.cost.clone().unwrap_or_else(InsertionCost::max_value);
+            let other_costs = single_ctx.cost.clone().unwrap_or_else(InsertionCost::max_value);
 
             match eval_ctx.result_selector.select_cost(&costs, &other_costs) {
-                Either::Left(_) => SingleContext::success(activity_ctx.index, costs, target.place.clone()),
-                Either::Right(_) => SingleContext::skip(acc),
+                // found better insertion
+                Either::Left(_) => {
+                    single_ctx.violation = None;
+                    single_ctx.index = index;
+                    single_ctx.cost = Some(costs.clone());
+                    single_ctx.place = Some(target.place.clone());
+                }
+                Either::Right(_) => continue,
             }
-        })
-    })
+        }
+    }
+
+    ControlFlow::Continue(single_ctx)
 }
 
 fn get_insertion_index(route_ctx: &RouteContext, position: InsertionPosition) -> Option<usize> {
@@ -334,26 +350,6 @@ impl SingleContext {
     /// Creates a new empty context with given cost.
     fn new(cost: Option<InsertionCost>, index: usize) -> Self {
         Self { violation: None, index, cost, place: None }
-    }
-
-    fn fail(violation: ConstraintViolation, other: SingleContext) -> ControlFlow<Self, Self> {
-        let stopped = violation.stopped;
-        let ctx = Self { violation: Some(violation), index: other.index, cost: other.cost, place: other.place };
-        if stopped {
-            ControlFlow::Break(ctx)
-        } else {
-            ControlFlow::Continue(ctx)
-        }
-    }
-
-    #[allow(clippy::unnecessary_wraps)]
-    fn success(index: usize, cost: InsertionCost, place: Place) -> ControlFlow<Self, Self> {
-        ControlFlow::Continue(Self { violation: None, index, cost: Some(cost), place: Some(place) })
-    }
-
-    #[allow(clippy::unnecessary_wraps)]
-    fn skip(other: SingleContext) -> ControlFlow<Self, Self> {
-        ControlFlow::Continue(other)
     }
 }
 

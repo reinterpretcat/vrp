@@ -3,7 +3,6 @@ use crate::helpers::models::problem::{test_driver, test_vehicle_detail, FleetBui
 use crate::models::common::TimeInterval;
 use crate::models::problem::{Actor, VehicleDetail, VehiclePlace};
 use crate::models::solution::Registry;
-use std::cmp::Ordering::Less;
 use std::sync::Arc;
 
 parameterized_test! {can_provide_available_actors_from_registry, (count, expected), {
@@ -50,7 +49,7 @@ fn can_provide_next_actors_from_registry() {
     actors.sort_by(|a, b| {
         let a = a.detail.start.as_ref().map(|s| s.location);
         let b = b.detail.start.as_ref().map(|s| s.location);
-        a.partial_cmp(&b).unwrap_or(Less)
+        a.cmp(&b)
     });
     assert_eq!(actors.len(), 2);
     assert_eq!(actors.first().unwrap().detail.start.as_ref().map(|s| s.location), Some(0));

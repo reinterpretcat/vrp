@@ -1,7 +1,7 @@
 use crate::parse_time_safe;
-use std::cmp::Ordering::Less;
 use std::collections::HashSet;
 use vrp_core::models::common::TimeWindow;
+use vrp_core::utils::compare_floats;
 
 /// Checks time window rules.
 pub fn check_raw_time_windows(tws: &[Vec<String>], skip_intersection_check: bool) -> bool {
@@ -18,7 +18,7 @@ pub fn check_time_windows(tws: &[Option<TimeWindow>], skip_intersection_check: b
         if let [a] = tws.as_slice() {
             a.start <= a.end
         } else {
-            tws.sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap_or(Less));
+            tws.sort_by(|a, b| compare_floats(a.start, b.start));
             tws.windows(2).any(|pair| {
                 if let [a, b] = pair {
                     a.start <= a.end && b.start <= b.end && (skip_intersection_check || !a.intersects(b))
