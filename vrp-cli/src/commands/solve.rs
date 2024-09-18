@@ -222,9 +222,13 @@ pub fn run_solve(
                 match problem_reader(problem_file, matrix_files) {
                     Ok(problem) => {
                         let problem = Arc::new(problem);
-                        let init_solutions = init_solution
-                            .map(|file| read_init_solution(problem.clone(), environment.clone(), file, init_reader))
-                            .unwrap_or_else(|| Ok(Vec::default()))?;
+
+                        let init_solutions = read_init_solutions_if_necessary(
+                            problem.clone(),
+                            environment.clone(),
+                            init_solution,
+                            init_reader,
+                        )?;
 
                         let solver = if let Some(config) = config {
                             from_config_parameters(problem.clone(), init_solutions, config)?
@@ -253,15 +257,22 @@ pub fn run_solve(
     }
 }
 
-fn read_init_solution(
+fn read_init_solutions_if_necessary(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
-    file: File,
+    init_solution_file: Option<File>,
     InitSolutionReader(init_reader): &InitSolutionReader,
 ) -> GenericResult<Vec<InsertionContext>> {
-    init_reader(file, problem.clone())
-        .map_err(|err| format!("cannot read initial solution '{err}'").into())
-        .map(|solution| vec![InsertionContext::new_from_solution(problem.clone(), (solution, None), environment)])
+    Ok(if let Some(file) = init_solution_file {
+        println!("reading initial solution..");
+        let init_solution = init_reader(file, problem.clone())
+            .map_err(|err| GenericError::from(format!("cannot read initial solution '{err}'")))
+            .map(|solution| InsertionContext::new_from_solution(problem.clone(), (solution, None), environment))?;
+        println!("initial solution is read successfully");
+        vec![init_solution]
+    } else {
+        Vec::default()
+    })
 }
 
 fn from_config_parameters(

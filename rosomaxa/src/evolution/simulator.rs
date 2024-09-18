@@ -41,6 +41,10 @@ where
         let mut heuristic_ctx = hooks.context.iter().fold(heuristic_ctx, |ctx, hook| hook.pre_process(ctx));
 
         (logger)("preparing initial solution(-s)");
+        (logger)(
+            format!("got {} initial solutions, maximum: {}", config.initial.individuals.len(), config.initial.max_size)
+                .as_str(),
+        );
         let init_size = std::mem::take(&mut config.initial.individuals).into_iter().take(config.initial.max_size).fold(
             0,
             |acc, solution| {
