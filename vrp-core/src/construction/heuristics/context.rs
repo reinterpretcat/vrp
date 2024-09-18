@@ -430,6 +430,12 @@ impl RegistryContext {
         self.registry.use_actor(actor).then(|| self.index.get(actor).map(|route_ctx| route_ctx.deep_copy())).flatten()
     }
 
+    /// Marks route as used.
+    /// Returns true if route was not used before.
+    pub fn use_route(&mut self, route_ctx: &RouteContext) -> bool {
+        self.registry.use_actor(&route_ctx.route.actor)
+    }
+
     /// Return back route to be reused again.
     /// Returns whether the route was not present in the registry.
     pub fn free_route(&mut self, route: RouteContext) -> bool {

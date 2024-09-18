@@ -284,7 +284,7 @@ fn merge_best(
     let mut accumulated = accumulated;
     let dest_solution = &mut accumulated.solution;
 
-    // NOTE theoretically, we can avoid deep copy here, but this would require extension in Population trait
+    // NOTE theoretically, we can avoid deep copy here, but this would require an extension in Population trait
     dest_solution.routes.extend(source_solution.routes.iter().map(|route_ctx| route_ctx.deep_copy()));
     dest_solution.ignored.extend(source_solution.ignored.iter().cloned());
     dest_solution.required.extend(source_solution.required.iter().cloned());
@@ -292,8 +292,7 @@ fn merge_best(
     dest_solution.unassigned.extend(source_solution.unassigned.iter().map(|(k, v)| (k.clone(), v.clone())));
 
     source_solution.routes.iter().for_each(|route_ctx| {
-        // NOTE ideally route shouldn't go nowhere, but it is fine in that case
-        assert!(dest_solution.registry.get_route(&route_ctx.route().actor).is_some());
+        assert!(dest_solution.registry.use_route(route_ctx), "attempt to use route more than once");
     });
 
     accumulated
