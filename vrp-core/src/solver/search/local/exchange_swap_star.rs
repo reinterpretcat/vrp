@@ -269,12 +269,12 @@ fn choose_best_result(
         in_place_result
     } else {
         match result {
-            InsertionResult::Success(success) => InsertionResult::Success(InsertionSuccess {
-                cost: success.cost.clone(),
-                job: success.job.clone(),
-                activities: success.activities.iter().map(|(activity, idx)| (activity.deep_copy(), *idx)).collect(),
-                actor: success.actor.clone(),
-            }),
+            InsertionResult::Success(success) => InsertionResult::make_success(
+                success.cost.clone(),
+                success.job.clone(),
+                success.activities.iter().map(|(activity, idx)| (activity.deep_copy(), *idx)).collect(),
+                success.actor.clone(),
+            ),
             InsertionResult::Failure(_) => InsertionResult::make_failure(),
         }
     }

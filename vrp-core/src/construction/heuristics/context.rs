@@ -356,6 +356,11 @@ impl RouteState {
         self.index.insert(TypeId::of::<K>(), Arc::new(value));
     }
 
+    /// Sets the shared value associated with the tour using `K` type as a key.
+    pub fn set_tour_state_shared<K: 'static, V: Send + Sync + 'static>(&mut self, value: Arc<V>) {
+        self.index.insert(TypeId::of::<K>(), value);
+    }
+
     /// Removes the value associated with the tour using `K` type as a key. Returns true if the
     /// value was present.
     pub fn remove_tour_state<K: 'static>(&mut self) -> bool {

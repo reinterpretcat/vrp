@@ -1,5 +1,6 @@
 use crate::construction::heuristics::*;
 use crate::construction::heuristics::{InsertionContext, InsertionResult};
+use crate::construction::probing::ProbeData;
 use crate::models::problem::Job;
 use crate::solver::search::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
@@ -95,6 +96,8 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
             result_selector,
         );
 
+        let probe_data = ProbeData::from(results.as_mut_slice());
+
         // TODO use result_selector?
         results.sort_by(|a, b| match (a, b) {
             (InsertionResult::Success(a), InsertionResult::Success(b)) => a.cost.cmp(&b.cost),
@@ -117,6 +120,6 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
             .next()
             .unwrap_or_else(|| panic!("Unexpected insertion results length"));
 
-        insertion_result
+        insertion_result.with_probe_data(probe_data)
     }
 }

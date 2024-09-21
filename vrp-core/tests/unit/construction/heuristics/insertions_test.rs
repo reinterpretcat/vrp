@@ -125,7 +125,7 @@ mod debug {
             InsertionCost::new(&[1., 2., 3.]),
             TestSingleBuilder::default().build_as_job_ref(),
             vec![(ActivityBuilder::default().build(), 1)],
-            &RouteContextBuilder::default().build(),
+            RouteContextBuilder::default().build().route().actor.clone(),
         );
 
         let result = format!("{result:?}");

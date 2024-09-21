@@ -7,6 +7,7 @@ use std::ops::ControlFlow;
 use std::sync::Arc;
 
 use crate::construction::heuristics::*;
+use crate::construction::probing::{ProbeData, RouteProbeIndex};
 use crate::models::common::Timestamp;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Leg, Place};
@@ -59,7 +60,12 @@ pub fn eval_job_insertion_in_route(
         return eval_ctx.result_selector.select_insertion(
             insertion_ctx,
             alternative,
-            InsertionResult::make_failure_with_code(violation.code, true, Some(eval_ctx.job.clone())),
+            InsertionResult::make_failure_with_code(
+                violation.code,
+                true,
+                Some(eval_ctx.job.clone()),
+                ProbeData::default(),
+            ),
         );
     }
 
@@ -113,6 +119,7 @@ pub(crate) fn eval_single_constraint_in_route(
             constraint: violation.code,
             stopped: true,
             job: Some(eval_ctx.job.clone()),
+            probe_data: Default::default(),
         })
     } else {
         eval_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost)
@@ -127,6 +134,8 @@ fn eval_single(
     route_costs: InsertionCost,
     best_known_cost: Option<InsertionCost>,
 ) -> InsertionResult {
+    let mut route_probe = RouteProbeIndex::from(route_ctx);
+
     let insertion_idx = get_insertion_index(route_ctx, position);
     let mut activity = Activity::new_with_job(single.clone());
 
@@ -138,16 +147,17 @@ fn eval_single(
         &mut activity,
         route_costs,
         SingleContext::new(best_known_cost, 0),
+        &mut route_probe,
     );
 
     let job = eval_ctx.job.clone();
     if let Some(place) = result.place {
         activity.place = place;
         let activities = vec![(activity, result.index)];
-        InsertionResult::make_success(result.cost.unwrap_or_default(), job, activities, route_ctx)
+        InsertionResult::make_success(result.cost.unwrap_or_default(), job, activities, route_ctx.route().actor.clone())
     } else {
         let (code, stopped) = result.violation.map_or((ViolationCode::unknown(), false), |v| (v.code, v.stopped));
-        InsertionResult::make_failure_with_code(code, stopped, Some(job))
+        InsertionResult::make_failure_with_code(code, stopped, Some(job), route_probe.into())
     }
 }
 
@@ -159,6 +169,7 @@ fn eval_multi(
     route_costs: InsertionCost,
     best_known_cost: Option<InsertionCost>,
 ) -> InsertionResult {
+    let mut route_probe = RouteProbeIndex::from(route_ctx);
     let insertion_idx = get_insertion_index(route_ctx, position).unwrap_or(0);
     // 1. analyze permutations
     let result = multi
@@ -190,6 +201,7 @@ fn eval_multi(
                                 &mut activity,
                                 Default::default(),
                                 SingleContext::new(None, in1.next_index),
+                                &mut route_probe,
                             );
 
                             if let Some(place) = srv_res.place {
@@ -217,21 +229,23 @@ fn eval_multi(
     let job = eval_ctx.job.clone();
     if result.is_success() {
         let activities = result.activities.unwrap_or_default();
-        InsertionResult::make_success(result.cost.unwrap_or_default(), job, activities, route_ctx)
+        InsertionResult::make_success(result.cost.unwrap_or_default(), job, activities, route_ctx.route().actor.clone())
     } else {
         let (code, stopped) = result.violation.map_or((ViolationCode::unknown(), false), |v| (v.code, v.stopped));
-        InsertionResult::make_failure_with_code(code, stopped, Some(job))
+        InsertionResult::make_failure_with_code(code, stopped, Some(job), route_probe.into())
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn analyze_insertion_in_route(
     eval_ctx: &EvaluationContext,
     route_ctx: &RouteContext,
     insertion_idx: Option<usize>,
-    single: &Single,
+    single: &Arc<Single>,
     target: &mut Activity,
     route_costs: InsertionCost,
     init: SingleContext,
+    route_probe: &mut RouteProbeIndex,
 ) -> SingleContext {
     let mut analyze_leg_insertion = |leg: Leg<'_>, init| {
         analyze_insertion_in_route_leg(eval_ctx, route_ctx, leg, single, target, route_costs.clone(), init)
@@ -250,7 +264,26 @@ fn analyze_insertion_in_route(
             eval_ctx.job,
             init.index,
             init,
-            &mut |leg: Leg<'_>, init| analyze_leg_insertion(leg, init),
+            &mut |leg: Leg<'_>, init| {
+                let key = (Arc::as_ptr(single) as usize, leg.1);
+                if let Some((violation, stopped)) = route_probe.get(&key) {
+                    let single_ctx = SingleContext { violation: Some(violation.clone()), ..init };
+                    return if *stopped { ControlFlow::Break(single_ctx) } else { ControlFlow::Continue(single_ctx) };
+                }
+
+                let result = analyze_leg_insertion(leg, init);
+                match &result {
+                    ControlFlow::Continue(SingleContext { violation: Some(violation), .. }) => {
+                        route_probe.insert(key, (violation.clone(), false));
+                    }
+                    ControlFlow::Break(SingleContext { violation: Some(violation), .. }) => {
+                        route_probe.insert(key, (violation.clone(), true));
+                    }
+                    _ => {}
+                }
+
+                result
+            },
             {
                 let max_value = InsertionCost::max_value();
                 move |lhs: &SingleContext, rhs: &SingleContext| {

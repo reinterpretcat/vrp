@@ -15,7 +15,7 @@ mod noise_checks {
             InsertionCost::new(&[cost]),
             TestSingleBuilder::default().id("job1").build_as_job_ref(),
             vec![],
-            &RouteContextBuilder::default().build(),
+            RouteContextBuilder::default().build().route().actor.clone(),
         )
     }
 

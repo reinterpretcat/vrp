@@ -129,6 +129,10 @@ macro_rules! custom_tour_state {
                 #[doc = " Sets `"$name "` tour state."]
                 fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: $type);
 
+                #[doc = " Sets `"$name "` tour state using shared reference."]
+                #[allow(dead_code)]
+                fn [<set_ $name:snake:lower _shared>]$(<$type : $gen>)?(&mut self, value: std::sync::Arc<$type>);
+
                 #[doc = " Removes `"$name "` tour state."]
                 #[allow(dead_code)]
                 fn [<remove_ $name:snake:lower>](&mut self) -> bool;
@@ -143,6 +147,10 @@ macro_rules! custom_tour_state {
 
                 fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: $type) {
                     self.set_tour_state::<[<$name TourStateKey>], _>(value);
+                }
+
+                fn [<set_ $name:snake:lower _shared>]$(<$type : $gen>)?(&mut self, value: std::sync::Arc<$type>) {
+                    self.set_tour_state_shared::<[<$name TourStateKey>], _>(value);
                 }
 
                 fn [<remove_ $name:snake:lower>](&mut self) -> bool {

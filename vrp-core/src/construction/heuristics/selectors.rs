@@ -182,14 +182,20 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
                 jobs,
                 |job| self.evaluate_job(insertion_ctx, job, routes, leg_selection, result_selector),
                 InsertionResult::make_failure,
-                |a, b| result_selector.select_insertion(insertion_ctx, a, b),
+                |mut a, mut b| {
+                    let probe = a.merge_probe_data(&mut b);
+                    result_selector.select_insertion(insertion_ctx, a, b).with_probe_data(probe)
+                },
             )
         } else {
             map_reduce(
                 routes,
                 |route| self.evaluate_route(insertion_ctx, route, jobs, leg_selection, result_selector),
                 InsertionResult::make_failure,
-                |a, b| result_selector.select_insertion(insertion_ctx, a, b),
+                |mut a, mut b| {
+                    let probe = a.merge_probe_data(&mut b);
+                    result_selector.select_insertion(insertion_ctx, a, b).with_probe_data(probe)
+                },
             )
         }
     }

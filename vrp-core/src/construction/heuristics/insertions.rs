@@ -3,6 +3,7 @@
 mod insertions_test;
 
 use crate::construction::heuristics::*;
+use crate::construction::probing::{ProbeData, ProbeDataTourState};
 use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job, JobIdDimension};
 use crate::models::solution::Activity;
@@ -37,6 +38,10 @@ pub struct InsertionSuccess {
 
     /// Specifies actor to be used.
     pub actor: Arc<Actor>,
+
+    /// A probe data collected during insertion evaluation. It is used internally to speedup next
+    /// evaluations. Can be safely ignored if not needed.
+    pub probe_data: ProbeData,
 }
 
 impl Debug for InsertionSuccess {
@@ -73,6 +78,9 @@ pub struct InsertionFailure {
     pub stopped: bool,
     /// Original job failed to be inserted.
     pub job: Option<Job>,
+    /// A probe data collected during insertion evaluation. It is used internally to speedup next
+    /// evaluations. Can be safely ignored if not needed.
+    pub probe_data: ProbeData,
 }
 
 /// Specifies a max size of stack allocated array to be used. If data size exceeds it,
@@ -263,6 +271,8 @@ impl InsertionHeuristic {
     ) -> InsertionContext {
         prepare_insertion_ctx(&mut insertion_ctx);
 
+        //let mut probe_data = ProbeData::default();
+
         while !insertion_ctx.solution.required.is_empty()
             && !insertion_ctx.environment.quota.as_ref().map_or(false, |q| q.is_reached())
         {
@@ -276,12 +286,14 @@ impl InsertionHeuristic {
                 self.insertion_evaluator.evaluate_all(&insertion_ctx, &jobs, &routes, leg_selection, result_selector);
 
             match result {
-                InsertionResult::Success(success) => {
+                InsertionResult::Success(mut success) => {
+                    set_probe_data(&mut insertion_ctx, std::mem::take(&mut success.probe_data), Some(&success.actor));
                     apply_insertion_success(&mut insertion_ctx, success);
                 }
-                InsertionResult::Failure(failure) => {
+                InsertionResult::Failure(mut failure) => {
                     // NOTE copy data to make borrow checker happy
                     let (route_indices, jobs) = copy_selection_data(&insertion_ctx, routes.as_slice(), jobs.as_slice());
+                    set_probe_data(&mut insertion_ctx, std::mem::take(&mut failure.probe_data), None);
                     apply_insertion_failure(&mut insertion_ctx, failure, &route_indices, &jobs);
                 }
             }
@@ -295,23 +307,23 @@ impl InsertionHeuristic {
 
 impl InsertionResult {
     /// Creates result which represents insertion success.
-    pub fn make_success(
-        cost: InsertionCost,
-        job: Job,
-        activities: Vec<(Activity, usize)>,
-        route_ctx: &RouteContext,
-    ) -> Self {
-        Self::Success(InsertionSuccess { cost, job, activities, actor: route_ctx.route().actor.clone() })
+    pub fn make_success(cost: InsertionCost, job: Job, activities: Vec<(Activity, usize)>, actor: Arc<Actor>) -> Self {
+        Self::Success(InsertionSuccess { cost, job, activities, actor, probe_data: Default::default() })
     }
 
     /// Creates result which represents insertion failure.
     pub fn make_failure() -> Self {
-        Self::make_failure_with_code(ViolationCode::unknown(), false, None)
+        Self::make_failure_with_code(ViolationCode::unknown(), false, None, ProbeData::default())
     }
 
     /// Creates result which represents insertion failure with given code.
-    pub fn make_failure_with_code(code: ViolationCode, stopped: bool, job: Option<Job>) -> Self {
-        Self::Failure(InsertionFailure { constraint: code, stopped, job })
+    pub(crate) fn make_failure_with_code(
+        code: ViolationCode,
+        stopped: bool,
+        job: Option<Job>,
+        probe_data: ProbeData,
+    ) -> Self {
+        Self::Failure(InsertionFailure { constraint: code, stopped, job, probe_data })
     }
 
     /// Compares two insertion results and returns the cheapest by cost.
@@ -342,6 +354,26 @@ impl InsertionResult {
             Self::Success(success) => Some(success),
             Self::Failure(_) => None,
         }
+    }
+
+    /// Returns a mutable reference to probe data.
+    pub(crate) fn get_probe_data_mut(&mut self) -> &mut ProbeData {
+        match self {
+            Self::Success(success) => &mut success.probe_data,
+            Self::Failure(failure) => &mut failure.probe_data,
+        }
+    }
+
+    /// Gets the aggregated probe data from two results.
+    pub(crate) fn merge_probe_data(&mut self, other: &mut InsertionResult) -> ProbeData {
+        ProbeData::merge(self.get_probe_data_mut(), other.get_probe_data_mut())
+    }
+
+    /// Sets a probe data for the result.
+    pub(crate) fn with_probe_data(mut self, probe_data: ProbeData) -> Self {
+        *self.get_probe_data_mut() = probe_data;
+
+        self
     }
 }
 
@@ -426,6 +458,30 @@ fn apply_insertion_failure(
             if all_unassignable { UnassignmentInfo::Unknown } else { UnassignmentInfo::Simple(failure.constraint) };
         finalize_unassigned(insertion_ctx, code);
     }
+}
+
+fn set_probe_data(insertion_ctx: &mut InsertionContext, mut probe_data: ProbeData, exclude_actor: Option<&Arc<Actor>>) {
+    // merge with old probe data if it is present
+    if let Some(old_probe_data) =
+        insertion_ctx.solution.routes.iter().find_map(|route_ctx| route_ctx.state().get_probe_data())
+    {
+        probe_data.extend(old_probe_data);
+    }
+
+    // remove stale actor's data
+    if let Some(actor) = exclude_actor {
+        probe_data.remove(actor);
+    }
+
+    // store probe data in all route states except the one which has an actor excluded
+    let probe_data = Arc::new(probe_data);
+    insertion_ctx.solution.routes.iter_mut().for_each(|route_ctx| {
+        if exclude_actor.map_or(true, |actor| &route_ctx.route().actor != actor) {
+            route_ctx.state_mut().set_probe_data_shared(probe_data.clone());
+        } else {
+            route_ctx.state_mut().remove_probe_data();
+        }
+    });
 }
 
 fn finalize_unassigned(insertion_ctx: &mut InsertionContext, code: UnassignmentInfo) {

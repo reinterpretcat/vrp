@@ -1,5 +1,6 @@
 use crate::construction::heuristics::*;
 use crate::construction::heuristics::{InsertionContext, InsertionResult};
+use crate::construction::probing::ProbeData;
 use crate::models::problem::Job;
 use crate::solver::search::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
@@ -89,9 +90,16 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
             return self.fallback_evaluator.evaluate_all(insertion_ctx, jobs, routes, leg_selection, result_selector);
         }
 
-        let mut results = self
-            .fallback_evaluator
-            .evaluate_and_collect_all(insertion_ctx, jobs, routes, leg_selection, result_selector)
+        let mut results = self.fallback_evaluator.evaluate_and_collect_all(
+            insertion_ctx,
+            jobs,
+            routes,
+            leg_selection,
+            result_selector,
+        );
+        let probe_data = ProbeData::from(results.as_mut_slice());
+
+        let mut results = results
             .into_iter()
             .filter_map(|result| match result {
                 InsertionResult::Success(success) => Some(success),
@@ -135,7 +143,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
 
             let (_, best_success) = results.swap_remove(0);
 
-            InsertionResult::Success(best_success)
+            InsertionResult::Success(best_success).with_probe_data(probe_data)
         } else {
             self.fallback_evaluator.evaluate_all(insertion_ctx, jobs, routes, leg_selection, result_selector)
         }

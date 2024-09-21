@@ -20,12 +20,7 @@ fn create_insertion_success(insertion_ctx: &InsertionContext, insertion_data: (u
         commute: None,
     };
 
-    InsertionResult::Success(InsertionSuccess {
-        cost: InsertionCost::default(),
-        job,
-        activities: vec![(activity, insertion_idx)],
-        actor,
-    })
+    InsertionResult::make_success(InsertionCost::default(), job, vec![(activity, insertion_idx)], actor)
 }
 
 fn create_insertion_ctx(
