@@ -83,7 +83,7 @@ impl<R: Read> TextReader for TsplibReader<R> {
     }
 
     fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost>, GenericError> {
-        self.coord_index.create_transport(is_rounded)
+        self.coord_index.create_transport(is_rounded, &self.get_logger())
     }
 
     fn create_extras(&self) -> Extras {

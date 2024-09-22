@@ -1,5 +1,5 @@
 use crate::construction::heuristics::*;
-use crate::helpers::models::domain::{test_random, TestGoalContextBuilder};
+use crate::helpers::models::domain::{test_logger, test_random, TestGoalContextBuilder};
 use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
 use crate::models::problem::Job;
 use crate::models::solution::Registry;
@@ -103,7 +103,7 @@ impl TestInsertionContextBuilder {
 fn create_empty_problem() -> Problem {
     let transport = TestTransportCost::new_shared();
     let fleet = Arc::new(test_fleet());
-    let jobs = Arc::new(Jobs::new(fleet.as_ref(), vec![], transport.as_ref()));
+    let jobs = Arc::new(Jobs::new(fleet.as_ref(), vec![], transport.as_ref(), &test_logger()));
     Problem {
         fleet,
         jobs,

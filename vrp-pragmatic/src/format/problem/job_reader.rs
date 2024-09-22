@@ -30,15 +30,18 @@ pub(super) fn read_jobs_with_extra_locks(
     fleet: &Fleet,
     transport: &(dyn TransportCost + Sync + Send),
     job_index: &mut JobIndex,
-    random: &Arc<dyn Random>,
+    environment: &Environment,
 ) -> (Jobs, Vec<Arc<Lock>>) {
+    let random = &environment.random;
+    let logger = &environment.logger;
+
     let (mut jobs, mut locks) = read_required_jobs(api_problem, props, coord_index, job_index, random);
     let (conditional_jobs, conditional_locks) = read_conditional_jobs(api_problem, coord_index, job_index);
 
     jobs.extend(conditional_jobs);
     locks.extend(conditional_locks);
 
-    (Jobs::new(fleet, jobs, transport), locks)
+    (Jobs::new(fleet, jobs, transport, logger), locks)
 }
 
 pub(super) fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> {

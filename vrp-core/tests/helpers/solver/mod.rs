@@ -1,7 +1,7 @@
 use crate::algorithms::geometry::Point;
 use crate::construction::features::TransportFeatureBuilder;
 use crate::construction::heuristics::MoveContext;
-use crate::helpers::models::domain::{test_random, TestGoalContextBuilder};
+use crate::helpers::models::domain::{test_logger, test_random, TestGoalContextBuilder};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder};
 use crate::models::common::{Cost, Location};
@@ -155,7 +155,7 @@ pub fn generate_matrix_routes(
     let matrix_data = MatrixData::new(0, None, durations, distances);
     let transport = create_matrix_transport_cost(vec![matrix_data]).unwrap();
     let activity = Arc::new(TestActivityCost::default());
-    let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
+    let jobs = Jobs::new(&fleet, jobs, transport.as_ref(), &test_logger());
 
     let problem = Problem {
         fleet,

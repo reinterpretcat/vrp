@@ -5,7 +5,7 @@ use vrp_core::construction::features::*;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::*;
-use vrp_core::prelude::GenericError;
+use vrp_core::prelude::{GenericError, InfoLogger};
 use vrp_core::utils::GenericResult;
 
 pub(crate) trait TextReader {
@@ -13,7 +13,7 @@ pub(crate) trait TextReader {
         let (jobs, fleet) = self.read_definitions()?;
         let transport = self.create_transport(is_rounded)?;
         let activity = Arc::new(SimpleActivityCost::default());
-        let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
+        let jobs = Jobs::new(&fleet, jobs, transport.as_ref(), &self.get_logger());
         let extras = self.create_extras();
         let goal = self.create_goal_context(activity.clone(), transport.clone()).expect("cannot create goal context");
 
@@ -39,6 +39,11 @@ pub(crate) trait TextReader {
     fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost>, GenericError>;
 
     fn create_extras(&self) -> Extras;
+
+    fn get_logger(&self) -> InfoLogger {
+        // TODO allow to parametrize logger
+        Arc::new(|msg| println!("{}", msg))
+    }
 }
 
 pub(crate) fn create_fleet_with_distance_costs(

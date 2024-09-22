@@ -27,6 +27,7 @@ impl HeuristicContextProcessing for VicinityClustering {
     fn pre_process(&self, context: Self::Context) -> Self::Context {
         let problem = context.problem.clone();
         let environment = context.environment.clone();
+        let logger = environment.logger.clone();
 
         let config = if let Some(config) = problem.extras.get_cluster_config() { config } else { return context };
 
@@ -52,7 +53,7 @@ impl HeuristicContextProcessing for VicinityClustering {
 
             let problem = Arc::new(Problem {
                 fleet: problem.fleet.clone(),
-                jobs: Arc::new(Jobs::new(problem.fleet.as_ref(), jobs, problem.transport.as_ref())),
+                jobs: Arc::new(Jobs::new(problem.fleet.as_ref(), jobs, problem.transport.as_ref(), &logger)),
                 locks: problem.locks.clone(),
                 goal: problem.goal.clone(),
                 activity: problem.activity.clone(),

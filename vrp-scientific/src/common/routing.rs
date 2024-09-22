@@ -7,8 +7,8 @@ use vrp_core::custom_extra_property;
 use vrp_core::models::common::Location;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData, TransportCost};
 use vrp_core::models::Extras;
-use vrp_core::prelude::GenericError;
-use vrp_core::utils::Float;
+use vrp_core::prelude::{GenericError, InfoLogger};
+use vrp_core::utils::{Float, Timer};
 
 custom_extra_property!(CoordIndex typeof CoordIndex);
 
@@ -32,27 +32,40 @@ impl CoordIndex {
     }
 
     /// Creates transport.
-    pub fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost>, GenericError> {
-        let matrix_values = self
-            .locations
-            .iter()
-            .flat_map(|&(x1, y1)| {
-                self.locations.iter().map(move |&(x2, y2)| {
-                    let x = x1 as Float - x2 as Float;
-                    let y = y1 as Float - y2 as Float;
-                    let value = (x * x + y * y).sqrt();
+    pub fn create_transport(
+        &self,
+        is_rounded: bool,
+        logger: &InfoLogger,
+    ) -> Result<Arc<dyn TransportCost>, GenericError> {
+        let (transport, duration) = Timer::measure_duration(|| {
+            // NOTE changing to calculating just an upper/lower triangle of the matrix won't improve
+            // performance. I think it is related to the fact that we have to change a memory access
+            // pattern to less effective.
+            let matrix_values = self
+                .locations
+                .iter()
+                .flat_map(|&(x1, y1)| {
+                    self.locations.iter().map(move |&(x2, y2)| {
+                        let x = x1 as Float - x2 as Float;
+                        let y = y1 as Float - y2 as Float;
+                        let value = (x * x + y * y).sqrt();
 
-                    if is_rounded {
-                        value.round()
-                    } else {
-                        value
-                    }
+                        if is_rounded {
+                            value.round()
+                        } else {
+                            value
+                        }
+                    })
                 })
-            })
-            .collect::<Vec<Float>>();
+                .collect::<Vec<Float>>();
 
-        let matrix_data = MatrixData::new(0, None, matrix_values.clone(), matrix_values);
+            let matrix_data = MatrixData::new(0, None, matrix_values.clone(), matrix_values);
 
-        create_matrix_transport_cost(vec![matrix_data])
+            create_matrix_transport_cost(vec![matrix_data])
+        });
+
+        (logger)(format!("created transport in {}ms", duration.as_millis()).as_str());
+
+        transport
     }
 }

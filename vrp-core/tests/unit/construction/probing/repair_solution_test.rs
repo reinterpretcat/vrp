@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::features::*;
 use crate::helpers::construction::features::{create_simple_demand, create_simple_dynamic_demand};
-use crate::helpers::models::domain::TestGoalContextBuilder;
+use crate::helpers::models::domain::{test_logger, TestGoalContextBuilder};
 use crate::helpers::models::problem::*;
 use crate::models::common::*;
 use crate::models::problem::*;
@@ -101,7 +101,7 @@ fn create_test_problem(
 
     Problem {
         fleet: fleet.clone(),
-        jobs: Arc::new(Jobs::new(&fleet, jobs, transport.as_ref())),
+        jobs: Arc::new(Jobs::new(&fleet, jobs, transport.as_ref(), &test_logger())),
         locks,
         goal: Arc::new(goal),
         activity,

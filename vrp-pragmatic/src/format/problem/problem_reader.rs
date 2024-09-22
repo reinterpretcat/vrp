@@ -214,9 +214,8 @@ fn get_problem_blocks(
             })?
     };
 
-    // TODO pass random from outside as there might be need to have it initialized with seed
-    //      at the moment, this random instance is used only by multi job permutation generator
-    let random: Arc<dyn Random> = Arc::new(DefaultRandom::default());
+    // TODO pass environment from outside to allow parametrization
+    let environment = Environment::default();
     let (jobs, locks) = read_jobs_with_extra_locks(
         api_problem,
         problem_props,
@@ -224,7 +223,7 @@ fn get_problem_blocks(
         &fleet,
         transport.as_ref(),
         job_index,
-        &random,
+        &environment,
     );
     let locks = locks.into_iter().chain(read_locks(api_problem, job_index)).collect::<Vec<_>>();
 

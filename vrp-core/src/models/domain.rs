@@ -134,6 +134,7 @@ pub struct ProblemBuilder {
     activity: Option<Arc<dyn ActivityCost>>,
     transport: Option<Arc<dyn TransportCost>>,
     extras: Option<Arc<Extras>>,
+    logger: Option<InfoLogger>,
 }
 
 impl ProblemBuilder {
@@ -204,6 +205,12 @@ impl ProblemBuilder {
         self
     }
 
+    /// Adds a logger to the problem definition.
+    pub fn with_logger(mut self, logger: InfoLogger) -> Self {
+        self.logger = Some(logger);
+        self
+    }
+
     /// Builds a problem definition.
     /// Returns [Err] in case of an invalid configuration.
     pub fn build(mut self) -> GenericResult<Problem> {
@@ -233,8 +240,10 @@ impl ProblemBuilder {
         let group_key = self.group_key_fn.take().unwrap_or_else(|| Box::new(|_| Box::new(|a| a.vehicle.profile.index)));
         let fleet = Arc::new(Fleet::new(vec![driver], vehicles, group_key));
 
+        let logger = self.logger.unwrap_or_else(|| Arc::new(|msg| println!("{}", msg)));
+
         // setup jobs
-        let jobs = Arc::new(Jobs::new(fleet.as_ref(), self.jobs, transport.as_ref()));
+        let jobs = Arc::new(Jobs::new(fleet.as_ref(), self.jobs, transport.as_ref(), &logger));
 
         Ok(Problem { fleet, jobs, locks: vec![], goal, activity, transport, extras })
     }

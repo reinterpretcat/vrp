@@ -12,6 +12,7 @@ are already published. So, I stick to it for now.
 
 * update rust version
 * apply some minor code refactorings
+* apply some performance optimizations
 
 
 ## [1.24.0] 2024-07-13
