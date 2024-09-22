@@ -31,41 +31,40 @@ impl CoordIndex {
         }
     }
 
-    /// Creates transport.
+    /// Creates transport (fleet index).
     pub fn create_transport(
         &self,
         is_rounded: bool,
         logger: &InfoLogger,
     ) -> Result<Arc<dyn TransportCost>, GenericError> {
-        let (transport, duration) = Timer::measure_duration(|| {
-            // NOTE changing to calculating just an upper/lower triangle of the matrix won't improve
-            // performance. I think it is related to the fact that we have to change a memory access
-            // pattern to less effective.
-            let matrix_values = self
-                .locations
-                .iter()
-                .flat_map(|&(x1, y1)| {
-                    self.locations.iter().map(move |&(x2, y2)| {
-                        let x = x1 as Float - x2 as Float;
-                        let y = y1 as Float - y2 as Float;
-                        let value = (x * x + y * y).sqrt();
+        Timer::measure_duration_with_callback(
+            || {
+                // NOTE changing to calculating just an upper/lower triangle of the matrix won't improve
+                // performance. I think it is related to the fact that we have to change a memory access
+                // pattern to less effective.
+                let matrix_values = self
+                    .locations
+                    .iter()
+                    .flat_map(|&(x1, y1)| {
+                        self.locations.iter().map(move |&(x2, y2)| {
+                            let x = x1 as Float - x2 as Float;
+                            let y = y1 as Float - y2 as Float;
+                            let value = (x * x + y * y).sqrt();
 
-                        if is_rounded {
-                            value.round()
-                        } else {
-                            value
-                        }
+                            if is_rounded {
+                                value.round()
+                            } else {
+                                value
+                            }
+                        })
                     })
-                })
-                .collect::<Vec<Float>>();
+                    .collect::<Vec<Float>>();
 
-            let matrix_data = MatrixData::new(0, None, matrix_values.clone(), matrix_values);
+                let matrix_data = MatrixData::new(0, None, matrix_values.clone(), matrix_values);
 
-            create_matrix_transport_cost(vec![matrix_data])
-        });
-
-        (logger)(format!("created transport in {}ms", duration.as_millis()).as_str());
-
-        transport
+                create_matrix_transport_cost(vec![matrix_data])
+            },
+            |duration| (logger)(format!("fleet index created in {}ms", duration.as_millis()).as_str()),
+        )
     }
 }

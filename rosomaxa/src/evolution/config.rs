@@ -314,7 +314,6 @@ where
                 strategy
             } else {
                 let heuristic = if let Some(heuristic) = self.heuristic {
-                    (logger)("configured to use custom heuristic");
                     heuristic
                 } else {
                     Box::new(DynamicSelective::new(

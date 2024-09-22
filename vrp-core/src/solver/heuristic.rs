@@ -60,13 +60,14 @@ custom_extra_property!(HeuristicFilter typeof HeuristicFilterFn);
 pub struct VrpConfigBuilder {
     problem: Arc<Problem>,
     environment: Option<Arc<Environment>>,
+    heuristic: Option<TargetHeuristic>,
     telemetry_mode: Option<TelemetryMode>,
 }
 
 impl VrpConfigBuilder {
     /// Creates a new instance of `VrpConfigBuilder`.
     pub fn new(problem: Arc<Problem>) -> Self {
-        Self { problem, environment: None, telemetry_mode: None }
+        Self { problem, environment: None, heuristic: None, telemetry_mode: None }
     }
 
     /// Sets [Environment] instance to be used.
@@ -81,6 +82,13 @@ impl VrpConfigBuilder {
         self
     }
 
+    /// Sets [TargetHeuristic] to be used.
+    /// By default, it is used what is returned by [get_default_heuristic].
+    pub fn set_heuristic(mut self, heuristic: TargetHeuristic) -> Self {
+        self.heuristic = Some(heuristic);
+        self
+    }
+
     /// Builds a preconfigured instance of [ProblemConfigBuilder] for further usage.
     pub fn prebuild(self) -> GenericResult<ProblemConfigBuilder> {
         let problem = self.problem;
@@ -88,11 +96,13 @@ impl VrpConfigBuilder {
         let telemetry_mode =
             self.telemetry_mode.unwrap_or_else(|| get_default_telemetry_mode(environment.logger.clone()));
 
+        let heuristic = self.heuristic.unwrap_or_else(|| get_default_heuristic(problem.clone(), environment.clone()));
+
         let selection_size = get_default_selection_size(environment.as_ref());
         let population = get_default_population(problem.goal.clone(), environment.clone(), selection_size);
 
         Ok(ProblemConfigBuilder::default()
-            .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))
+            .with_heuristic(heuristic)
             .with_context(RefinementContext::new(problem.clone(), population, telemetry_mode, environment.clone()))
             .with_processing(create_default_processing())
             .with_initial(4, 0.05, create_default_init_operators(problem, environment)))
@@ -106,7 +116,10 @@ pub fn get_default_telemetry_mode(logger: InfoLogger) -> TelemetryMode {
 
 /// Gets default heuristic.
 pub fn get_default_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
-    Box::new(get_dynamic_heuristic(problem, environment))
+    Timer::measure_duration_with_callback(
+        || Box::new(get_dynamic_heuristic(problem, environment.clone())),
+        |duration| (environment.logger)(format!("getting default heuristic took: {}ms", duration.as_millis()).as_str()),
+    )
 }
 
 /// Gets static heuristic using default settings.

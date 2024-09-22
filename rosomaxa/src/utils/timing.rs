@@ -32,8 +32,19 @@ mod actual {
             (Instant::now() - self.start).as_millis()
         }
 
-        pub fn measure_duration<R, F: Fn() -> R>(action: F) -> (R, Duration) {
-            measure_duration(action)
+        pub fn measure_duration<R, F: FnOnce() -> R>(action_fn: F) -> (R, Duration) {
+            measure_duration(action_fn)
+        }
+
+        pub fn measure_duration_with_callback<R, FA, FM>(action_fn: FA, callback_fn: FM) -> R
+        where
+            FA: FnOnce() -> R,
+            FM: FnOnce(Duration),
+        {
+            let (result, duration) = measure_duration(action_fn);
+            callback_fn(duration);
+
+            result
         }
     }
 }
@@ -64,8 +75,19 @@ mod actual {
             (now() - self.start) as u128
         }
 
-        pub fn measure_duration<R, F: Fn() -> R>(action: F) -> (R, Duration) {
-            measure_duration(action)
+        pub fn measure_duration<R, F: FnOnce() -> R>(action_fn: F) -> (R, Duration) {
+            measure_duration(action_fn)
+        }
+
+        pub fn measure_duration_with_callback<R, FA, FM>(action_fn: FA, callback_fn: FM) -> R
+        where
+            FA: FnOnce() -> R,
+            FM: FnOnce(Duration),
+        {
+            let (result, duration) = measure_duration(action_fn);
+            callback_fn(duration);
+
+            result
         }
     }
 
@@ -74,9 +96,9 @@ mod actual {
     }
 }
 
-fn measure_duration<R, F: Fn() -> R>(action: F) -> (R, Duration) {
+fn measure_duration<R, F: FnOnce() -> R>(action_fn: F) -> (R, Duration) {
     let start = Timer::start();
-    let result = action();
+    let result = action_fn();
     let elapsed = start.elapsed_millis();
 
     (result, Duration::from_millis(elapsed as u64))

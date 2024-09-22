@@ -307,6 +307,7 @@ fn from_cli_parameters(
     let config = VrpConfigBuilder::new(problem.clone())
         .set_environment(environment.clone())
         .set_telemetry_mode(telemetry_mode.clone())
+        .set_heuristic(get_heuristic(matches, problem.clone(), environment.clone())?)
         .prebuild()?
         .with_init_solutions(init_solutions, init_size)
         .with_max_generations(max_generations)
@@ -316,12 +317,11 @@ fn from_cli_parameters(
             problem.clone(),
             get_population(mode, problem.goal.clone(), environment.clone()),
             telemetry_mode,
-            environment.clone(),
+            environment,
         ))
-        .with_heuristic(get_heuristic(matches, problem.clone(), environment)?)
         .build()?;
 
-    Ok(Solver::new(problem.clone(), config))
+    Ok(Solver::new(problem, config))
 }
 
 fn get_min_cv(matches: &ArgMatches) -> GenericResult<Option<(String, usize, Float, bool)>> {

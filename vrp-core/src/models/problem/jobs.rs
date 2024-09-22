@@ -311,50 +311,49 @@ fn create_index(
 ) -> HashMap<usize, JobIndex> {
     let avg_profile_costs = get_avg_profile_costs(fleet);
 
-    let (job_index, duration) = Timer::measure_duration(|| {
-        fleet.profiles.iter().fold(HashMap::new(), |mut acc, profile| {
-            let avg_costs = avg_profile_costs.get(&profile.index).unwrap();
-            // get all possible start positions for given profile
-            let starts: Vec<Location> = fleet
-                .vehicles
-                .iter()
-                .filter(|v| v.profile.index == profile.index)
-                .flat_map(|v| v.details.iter().map(|d| d.start.as_ref().map(|s| s.location)))
-                .flatten()
-                .collect();
-
-            // create job index
-            let item = parallel_collect(&jobs, |job| {
-                let mut sorted_job_costs: Vec<(Job, LowPrecisionCost)> = jobs
+    Timer::measure_duration_with_callback(
+        || {
+            fleet.profiles.iter().fold(HashMap::new(), |mut acc, profile| {
+                let avg_costs = avg_profile_costs.get(&profile.index).unwrap();
+                // get all possible start positions for given profile
+                let starts: Vec<Location> = fleet
+                    .vehicles
                     .iter()
-                    .filter(|j| **j != *job)
-                    .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport, job, j)))
+                    .filter(|v| v.profile.index == profile.index)
+                    .flat_map(|v| v.details.iter().map(|d| d.start.as_ref().map(|s| s.location)))
+                    .flatten()
                     .collect();
-                sorted_job_costs.sort_by(|(_, a), (_, b)| compare_floats_f32_refs(a, b));
 
-                sorted_job_costs.truncate(MAX_NEIGHBOURS);
-                sorted_job_costs.shrink_to_fit();
+                // create job index
+                let item = parallel_collect(&jobs, |job| {
+                    let mut sorted_job_costs: Vec<(Job, LowPrecisionCost)> = jobs
+                        .iter()
+                        .filter(|j| **j != *job)
+                        .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport, job, j)))
+                        .collect();
+                    sorted_job_costs.sort_by(|(_, a), (_, b)| compare_floats_f32_refs(a, b));
 
-                let fleet_costs = starts
-                    .iter()
-                    .cloned()
-                    .map(|s| get_cost_between_job_and_location(profile, avg_costs, transport, job, s))
-                    .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
-                    .unwrap_or(DEFAULT_COST);
+                    sorted_job_costs.truncate(MAX_NEIGHBOURS);
+                    sorted_job_costs.shrink_to_fit();
 
-                (job.clone(), (sorted_job_costs, fleet_costs))
+                    let fleet_costs = starts
+                        .iter()
+                        .cloned()
+                        .map(|s| get_cost_between_job_and_location(profile, avg_costs, transport, job, s))
+                        .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
+                        .unwrap_or(DEFAULT_COST);
+
+                    (job.clone(), (sorted_job_costs, fleet_costs))
+                })
+                .into_iter()
+                .collect::<HashMap<_, _>>();
+
+                acc.insert(profile.index, item);
+                acc
             })
-            .into_iter()
-            .collect::<HashMap<_, _>>();
-
-            acc.insert(profile.index, item);
-            acc
-        })
-    });
-
-    (logger)(format!("job index created in {}ms", duration.as_millis()).as_str());
-
-    job_index
+        },
+        |duration| (logger)(format!("job index created in {}ms", duration.as_millis()).as_str()),
+    )
 }
 
 fn get_cost_between_locations(
