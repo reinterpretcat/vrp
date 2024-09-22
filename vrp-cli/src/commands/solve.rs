@@ -264,11 +264,18 @@ fn read_init_solutions_if_necessary(
     InitSolutionReader(init_reader): &InitSolutionReader,
 ) -> GenericResult<Vec<InsertionContext>> {
     Ok(if let Some(file) = init_solution_file {
-        println!("reading initial solution..");
-        let init_solution = init_reader(file, problem.clone())
-            .map_err(|err| GenericError::from(format!("cannot read initial solution '{err}'")))
-            .map(|solution| InsertionContext::new_from_solution(problem.clone(), (solution, None), environment))?;
-        println!("initial solution is read successfully");
+        let init_solution = Timer::measure_duration_with_callback(
+            || {
+                init_reader(file, problem.clone())
+                    .map_err(|err| GenericError::from(format!("cannot read initial solution '{err}'")))
+                    .map(|solution| {
+                        InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone())
+                    })
+            },
+            |duration| {
+                (environment.logger)(format!("initial solution processing took {}ms", duration.as_millis()).as_str())
+            },
+        )?;
         vec![init_solution]
     } else {
         Vec::default()
