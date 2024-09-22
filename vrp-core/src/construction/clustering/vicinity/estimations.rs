@@ -51,7 +51,7 @@ pub(crate) fn get_clusters(
             }
         });
 
-        cluster_estimates.sort_by(|(a_job, (_, a_can)), (b_job, (_, b_can))| {
+        cluster_estimates.sort_unstable_by(|(a_job, (_, a_can)), (b_job, (_, b_can))| {
             (config.building.ordering_global_fn)((b_job, b_can), (a_job, a_can))
         });
 

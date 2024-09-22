@@ -96,7 +96,7 @@ where
 
                         result
                     });
-                    values.sort_by(|(a, _), (b, _)| a.cmp(b));
+                    values.sort_unstable_by(|(a, _), (b, _)| a.cmp(b));
                 }
 
                 if *period > elapsed_time || values.len() < 2 {

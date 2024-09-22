@@ -242,7 +242,7 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProxi
                     })
                     .collect::<Vec<_>>();
 
-                route_distances.sort_by(|(_, a_distance), (_, b_distance)| match (a_distance, b_distance) {
+                route_distances.sort_unstable_by(|(_, a_distance), (_, b_distance)| match (a_distance, b_distance) {
                     (Some(a_distance), Some(b_distance)) => compare_floats(*a_distance, *b_distance),
                     (Some(_), None) => Ordering::Less,
                     _ => Ordering::Greater,

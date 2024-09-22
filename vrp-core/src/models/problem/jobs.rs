@@ -331,7 +331,7 @@ fn create_index(
                         .filter(|j| **j != *job)
                         .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport, job, j)))
                         .collect();
-                    sorted_job_costs.sort_by(|(_, a), (_, b)| compare_floats_f32_refs(a, b));
+                    sorted_job_costs.sort_unstable_by(|(_, a), (_, b)| compare_floats_f32_refs(a, b));
 
                     sorted_job_costs.truncate(MAX_NEIGHBOURS);
                     sorted_job_costs.shrink_to_fit();

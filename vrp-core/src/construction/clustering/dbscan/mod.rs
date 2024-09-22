@@ -74,7 +74,7 @@ fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<Float> {
     costs.iter_mut().for_each(|cost| *cost /= problem.fleet.profiles.len() as Float);
 
     // sort all distances in ascending order
-    costs.sort_by(compare_floats_refs);
+    costs.sort_unstable_by(compare_floats_refs);
     costs.dedup_by(|a, b| compare_floats(*a, *b) == Ordering::Equal);
 
     costs
