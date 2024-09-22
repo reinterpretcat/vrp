@@ -183,16 +183,26 @@ fn get_problem_blocks(
     job_index: &mut JobIndex,
     problem_props: &ProblemProperties,
 ) -> Result<ProblemBlocks, MultiFormatError> {
+    // TODO pass environment from outside to allow parametrization
+    let environment = Environment::default();
+
     let fleet = read_fleet(api_problem, problem_props, &coord_index);
     let reserved_times_index = read_reserved_times_index(api_problem, &fleet);
 
-    let transport = create_transport_costs(api_problem, &matrices, coord_index.clone()).map_err(|err| {
-        vec![FormatError::new(
-            "E0002".to_string(),
-            "cannot create transport costs".to_string(),
-            format!("check matrix routing data: '{err}'"),
-        )]
-    })?;
+    let transport = Timer::measure_duration_with_callback(
+        || {
+            create_transport_costs(api_problem, &matrices, coord_index.clone()).map_err(|err| {
+                vec![FormatError::new(
+                    "E0002".to_string(),
+                    "cannot create transport costs".to_string(),
+                    format!("check matrix routing data: '{err}'"),
+                )]
+            })
+        },
+        |duration| {
+            (environment.logger)(format!("fleet index created in {}ms", duration.as_millis()).as_str());
+        },
+    )?;
     let activity: Arc<dyn ActivityCost> = Arc::new(OnlyVehicleActivityCost::default());
 
     let (transport, activity) = if reserved_times_index.is_empty() {
@@ -214,8 +224,6 @@ fn get_problem_blocks(
             })?
     };
 
-    // TODO pass environment from outside to allow parametrization
-    let environment = Environment::default();
     let (jobs, locks) = read_jobs_with_extra_locks(
         api_problem,
         problem_props,
