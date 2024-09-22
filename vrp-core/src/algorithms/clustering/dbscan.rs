@@ -24,7 +24,7 @@ pub fn create_clusters<'a, T>(
     neighborhood_fn: &NeighborhoodFn<'a, T>,
 ) -> Vec<Cluster<'a, T>>
 where
-    T: Hash + Eq,
+    T: Clone + Hash + Eq,
 {
     let mut point_types = HashMap::<&T, PointType>::new();
     let mut clusters = Vec::new();
@@ -35,6 +35,8 @@ where
         }
 
         let mut neighbors = neighborhood_fn(point, epsilon).collect::<Vec<_>>();
+        let mut neighbors_index = neighbors.iter().cloned().collect::<HashSet<_>>();
+
         if neighbors.len() < min_points {
             point_types.insert(point, PointType::Noise);
         } else {
@@ -49,8 +51,9 @@ where
                 if point_type.is_none() {
                     let other_neighbours = neighborhood_fn(point, epsilon).collect::<Vec<_>>();
                     if other_neighbours.len() >= min_points {
-                        let set = neighbors.iter().cloned().collect::<HashSet<_>>();
-                        neighbors.extend(other_neighbours.into_iter().filter(move |point| !set.contains(point)));
+                        neighbors
+                            .extend(other_neighbours.iter().filter(|&point| !neighbors_index.contains(point)).cloned());
+                        neighbors_index.extend(other_neighbours.into_iter());
                     }
                 }
 
