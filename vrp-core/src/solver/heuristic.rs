@@ -497,26 +497,25 @@ mod dynamic {
         .collect()
     }
 
-    fn get_ruins(
-        problem: Arc<Problem>,
-        environment: Arc<Environment>,
-        limits: RemovalLimits,
-        prefix: &str,
-    ) -> Vec<(Arc<dyn Ruin>, String, Float)> {
+    fn get_ruins_with_limits(limits: RemovalLimits, prefix: &str) -> Vec<(Arc<dyn Ruin>, String, Float)> {
         vec![
             (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), format!("{prefix}_asr"), 2.),
             (Arc::new(NeighbourRemoval::new(limits.clone())), format!("{prefix}_neighbour_removal"), 5.),
-            (
-                Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment)),
-                format!("{prefix}_cluster_removal"),
-                4.,
-            ),
             (Arc::new(WorstJobRemoval::new(4, limits.clone())), format!("{prefix}_worst_job"), 4.),
             (Arc::new(RandomJobRemoval::new(limits.clone())), format!("{prefix}_random_job_removal"), 4.),
             (Arc::new(RandomRouteRemoval::new(limits.clone())), format!("{prefix}_random_route_removal"), 2.),
             (Arc::new(CloseRouteRemoval::new(limits.clone())), format!("{prefix}_close_route_removal"), 4.),
             (Arc::new(WorstRouteRemoval::new(limits)), format!("{prefix}_worst_route_removal"), 5.),
         ]
+    }
+
+    fn get_ruins(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<(Arc<dyn Ruin>, String, Float)> {
+        // NOTE: creating cluster removal is not fast on large problems
+        vec![(
+            Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment)),
+            "cluster_removal".to_string(),
+            4.,
+        )]
     }
 
     fn get_mutations(
@@ -581,9 +580,11 @@ mod dynamic {
         // NOTE: consider checking usage of names within heuristic filter before changing them
 
         let recreates = get_recreates(problem.as_ref(), random.clone());
-        let ruins = get_ruins(problem.clone(), environment.clone(), normal_limits.clone(), "normal")
+
+        let ruins = get_ruins_with_limits(normal_limits.clone(), "normal")
             .into_iter()
-            .chain(get_ruins(problem.clone(), environment.clone(), small_limits.clone(), "small"))
+            .chain(get_ruins_with_limits(small_limits.clone(), "small"))
+            .chain(get_ruins(problem.clone(), environment.clone()))
             .collect::<Vec<_>>();
 
         let extra_random_job = Arc::new(RandomJobRemoval::new(small_limits));
