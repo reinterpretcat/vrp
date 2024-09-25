@@ -52,28 +52,6 @@ impl RegretInsertionEvaluator {
 }
 
 impl InsertionEvaluator for RegretInsertionEvaluator {
-    fn evaluate_job(
-        &self,
-        insertion_ctx: &InsertionContext,
-        job: &Job,
-        routes: &[&RouteContext],
-        leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector),
-    ) -> InsertionResult {
-        self.fallback_evaluator.evaluate_job(insertion_ctx, job, routes, leg_selection, result_selector)
-    }
-
-    fn evaluate_route(
-        &self,
-        insertion_ctx: &InsertionContext,
-        route_ctx: &RouteContext,
-        jobs: &[&Job],
-        leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector),
-    ) -> InsertionResult {
-        self.fallback_evaluator.evaluate_route(insertion_ctx, route_ctx, jobs, leg_selection, result_selector)
-    }
-
     fn evaluate_all(
         &self,
         insertion_ctx: &InsertionContext,

@@ -7,7 +7,6 @@ use crate::models::problem::Job;
 use crate::models::solution::Leg;
 use crate::utils::*;
 use rand::prelude::*;
-use rosomaxa::utils::{map_reduce, parallel_collect, Random};
 use std::cmp::Ordering;
 use std::ops::ControlFlow;
 use std::sync::Arc;
@@ -68,27 +67,7 @@ impl JobSelector for AllJobSelector {}
 
 /// Evaluates insertion.
 pub trait InsertionEvaluator: Send + Sync {
-    /// Evaluates insertion of a single job into given collection of routes.
-    fn evaluate_job(
-        &self,
-        insertion_ctx: &InsertionContext,
-        job: &Job,
-        routes: &[&RouteContext],
-        leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector),
-    ) -> InsertionResult;
-
-    /// Evaluates insertion of multiple jobs into given route.
-    fn evaluate_route(
-        &self,
-        insertion_ctx: &InsertionContext,
-        route_ctx: &RouteContext,
-        jobs: &[&Job],
-        leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector),
-    ) -> InsertionResult;
-
-    /// Evaluates insertion of a job collection into given collection of routes.
+    /// Evaluates insertion of a job collection into the given collection of routes.
     fn evaluate_all(
         &self,
         insertion_ctx: &InsertionContext,
@@ -125,50 +104,30 @@ impl PositionInsertionEvaluator {
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector),
     ) -> Vec<InsertionResult> {
-        if Self::is_fold_jobs(insertion_ctx) {
-            parallel_collect(jobs, |job| self.evaluate_job(insertion_ctx, job, routes, leg_selection, result_selector))
+        let is_fold_jobs = insertion_ctx.solution.required.len() > insertion_ctx.solution.routes.len();
+        let goal = &insertion_ctx.problem.goal;
+
+        // NOTE using `fold_reduce` seems less effective
+        // TODO use alternative strategies specific for each use case when `evaluate_and_collect_all` is used?
+        if is_fold_jobs {
+            parallel_collect(jobs, |job| {
+                let eval_ctx = EvaluationContext { goal, job, leg_selection, result_selector };
+                routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
+                    eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+                })
+            })
         } else {
             parallel_collect(routes, |route_ctx| {
-                self.evaluate_route(insertion_ctx, route_ctx, jobs, leg_selection, result_selector)
+                jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
+                    let eval_ctx = EvaluationContext { goal, job, leg_selection, result_selector };
+                    eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+                })
             })
         }
-    }
-
-    fn is_fold_jobs(insertion_ctx: &InsertionContext) -> bool {
-        insertion_ctx.solution.required.len() > insertion_ctx.solution.routes.len()
     }
 }
 
 impl InsertionEvaluator for PositionInsertionEvaluator {
-    fn evaluate_job(
-        &self,
-        insertion_ctx: &InsertionContext,
-        job: &Job,
-        routes: &[&RouteContext],
-        leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector),
-    ) -> InsertionResult {
-        let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
-
-        routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
-            eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
-        })
-    }
-
-    fn evaluate_route(
-        &self,
-        insertion_ctx: &InsertionContext,
-        route_ctx: &RouteContext,
-        jobs: &[&Job],
-        leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector),
-    ) -> InsertionResult {
-        jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
-            let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
-            eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
-        })
-    }
-
     fn evaluate_all(
         &self,
         insertion_ctx: &InsertionContext,
@@ -177,21 +136,17 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector),
     ) -> InsertionResult {
-        if Self::is_fold_jobs(insertion_ctx) {
-            map_reduce(
-                jobs,
-                |job| self.evaluate_job(insertion_ctx, job, routes, leg_selection, result_selector),
-                InsertionResult::make_failure,
-                |a, b| result_selector.select_insertion(insertion_ctx, a, b),
-            )
-        } else {
-            map_reduce(
-                routes,
-                |route| self.evaluate_route(insertion_ctx, route, jobs, leg_selection, result_selector),
-                InsertionResult::make_failure,
-                |a, b| result_selector.select_insertion(insertion_ctx, a, b),
-            )
-        }
+        let goal = &insertion_ctx.problem.goal;
+
+        fold_reduce(
+            cartesian_product(routes, jobs),
+            InsertionResult::make_failure,
+            |acc, (route_ctx, job)| {
+                let eval_ctx = EvaluationContext { goal, job, leg_selection, result_selector };
+                eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+            },
+            |left, right| result_selector.select_insertion(insertion_ctx, left, right),
+        )
     }
 }
 

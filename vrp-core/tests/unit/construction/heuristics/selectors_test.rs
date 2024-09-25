@@ -112,28 +112,3 @@ mod selections {
         assert!(counter < expected_threshold);
     }
 }
-
-mod positions {
-    use super::*;
-    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
-    use crate::helpers::models::problem::TestSingleBuilder;
-
-    parameterized_test! {can_decide_how_to_fold, (jobs, routes, expected_result), {
-        can_decide_how_to_fold_impl(jobs, routes, expected_result);
-    }}
-
-    can_decide_how_to_fold! {
-        case01: (8, 2, true),
-        case02: (2, 8, false),
-        case03: (4, 4, false),
-    }
-
-    fn can_decide_how_to_fold_impl(jobs: usize, routes: usize, expected_result: bool) {
-        let insertion_ctx = TestInsertionContextBuilder::default()
-            .with_routes((0..routes).map(|_| RouteContextBuilder::default().build()).collect())
-            .with_required((0..jobs).map(|_| TestSingleBuilder::default().build_as_job_ref()).collect())
-            .build();
-
-        assert_eq!(PositionInsertionEvaluator::is_fold_jobs(&insertion_ctx), expected_result);
-    }
-}
