@@ -2,3 +2,6 @@
 
 mod repair_solution;
 pub use self::repair_solution::*;
+
+mod probe_data;
+pub use self::probe_data::*;

@@ -113,6 +113,7 @@ pub(crate) fn eval_single_constraint_in_route(
             constraint: violation.code,
             stopped: true,
             job: Some(eval_ctx.job.clone()),
+            probe: None,
         })
     } else {
         eval_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost)

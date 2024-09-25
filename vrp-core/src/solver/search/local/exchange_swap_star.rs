@@ -274,6 +274,7 @@ fn choose_best_result(
                 job: success.job.clone(),
                 activities: success.activities.iter().map(|(activity, idx)| (activity.deep_copy(), *idx)).collect(),
                 actor: success.actor.clone(),
+                probe: None,
             }),
             InsertionResult::Failure(_) => InsertionResult::make_failure(),
         }

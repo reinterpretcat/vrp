@@ -3,6 +3,7 @@
 mod selectors_test;
 
 use crate::construction::heuristics::*;
+use crate::construction::probing::{ProbeDataExt, RouteProbe, RouteProbeTourState};
 use crate::models::problem::Job;
 use crate::models::solution::Leg;
 use crate::utils::*;
@@ -149,9 +150,15 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         result_selector: &(dyn ResultSelector),
     ) -> InsertionResult {
         let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
+        let seed = insertion_ctx.get_total_cost().unwrap_or_default() as u64;
 
-        routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
-            eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+        routes.iter().fold(InsertionResult::make_failure(), |mut acc, route_ctx| {
+            let mut route_probe = acc.take_route_probe(route_ctx, insertion_ctx.problem.jobs.size(), seed);
+            route_probe
+                .eval_job(job, acc, |acc| {
+                    eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+                })
+                .attach_route_probe(route_probe)
         })
     }
 
@@ -163,10 +170,20 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector),
     ) -> InsertionResult {
-        jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
-            let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
-            eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
-        })
+        let mut route_probe = route_ctx.state().get_route_probe().cloned().unwrap_or_else(|| {
+            let seed = insertion_ctx.get_total_cost().unwrap_or_default() as u64;
+            RouteProbe::new_filter(route_ctx.route().actor.clone(), insertion_ctx.problem.jobs.size(), seed)
+        });
+
+        jobs.iter()
+            .fold(InsertionResult::make_failure(), |acc, job| {
+                route_probe.eval_job(job, acc, |acc| {
+                    let eval_ctx =
+                        EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
+                    eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+                })
+            })
+            .attach_route_probe(route_probe)
     }
 
     fn evaluate_all(
@@ -177,19 +194,26 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         leg_selection: &LegSelection,
         result_selector: &(dyn ResultSelector),
     ) -> InsertionResult {
+        let job_size = insertion_ctx.problem.jobs.size();
         if Self::is_fold_jobs(insertion_ctx) {
             map_reduce(
                 jobs,
                 |job| self.evaluate_job(insertion_ctx, job, routes, leg_selection, result_selector),
                 InsertionResult::make_failure,
-                |a, b| result_selector.select_insertion(insertion_ctx, a, b),
+                |mut a, mut b| {
+                    let probe = a.merge_probe_data(&mut b, job_size);
+                    result_selector.select_insertion(insertion_ctx, a, b).attach_probe_data(probe)
+                },
             )
         } else {
             map_reduce(
                 routes,
                 |route| self.evaluate_route(insertion_ctx, route, jobs, leg_selection, result_selector),
                 InsertionResult::make_failure,
-                |a, b| result_selector.select_insertion(insertion_ctx, a, b),
+                |mut a, mut b| {
+                    let probe = a.merge_probe_data(&mut b, job_size);
+                    result_selector.select_insertion(insertion_ctx, a, b).attach_probe_data(probe)
+                },
             )
         }
     }
