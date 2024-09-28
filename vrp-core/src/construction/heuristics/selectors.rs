@@ -3,6 +3,7 @@
 mod selectors_test;
 
 use crate::construction::heuristics::*;
+use crate::construction::probing::{InsertionProbe, RouteProbeTourState};
 use crate::models::problem::Job;
 use crate::models::solution::Leg;
 use crate::utils::*;
@@ -138,14 +139,27 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
     ) -> InsertionResult {
         let goal = &insertion_ctx.problem.goal;
 
+        let job_size = insertion_ctx.problem.jobs.size();
+        let routes =
+            routes.iter().map(|route_ctx| (route_ctx, route_ctx.state().get_route_probe())).collect::<Vec<_>>();
+
         fold_reduce(
-            cartesian_product(routes, jobs),
+            cartesian_product(&routes, jobs),
             InsertionResult::make_failure,
-            |acc, (route_ctx, job)| {
+            |acc, ((route_ctx, route_probe), job)| {
                 let eval_ctx = EvaluationContext { goal, job, leg_selection, result_selector };
-                eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+                if let Some(route_probe) = route_probe {
+                    route_probe.eval_job(job, acc, |acc| {
+                        eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+                    })
+                } else {
+                    eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
+                }
             },
-            |left, right| result_selector.select_insertion(insertion_ctx, left, right),
+            |mut left, mut right| {
+                let probe = left.merge_probe_data(&mut right, job_size);
+                result_selector.select_insertion(insertion_ctx, left, right).attach_probe_data(probe)
+            },
         )
     }
 }

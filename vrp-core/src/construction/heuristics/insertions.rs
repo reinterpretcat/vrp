@@ -3,6 +3,7 @@
 mod insertions_test;
 
 use crate::construction::heuristics::*;
+use crate::construction::probing::ProbeData;
 use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job, JobIdDimension};
 use crate::models::solution::Activity;
@@ -37,6 +38,9 @@ pub struct InsertionSuccess {
 
     /// Specifies actor to be used.
     pub actor: Arc<Actor>,
+
+    /// Specifies probe data attached to the result.
+    pub probe: Option<ProbeData>,
 }
 
 impl Debug for InsertionSuccess {
@@ -73,6 +77,10 @@ pub struct InsertionFailure {
     pub stopped: bool,
     /// Original job failed to be inserted.
     pub job: Option<Job>,
+    /// Original actor which cannot serve the job.
+    pub actor: Option<Arc<Actor>>,
+    /// Specifies probe data attached to the result.
+    pub probe: Option<ProbeData>,
 }
 
 /// Specifies a max size of stack allocated array to be used. If data size exceeds it,
@@ -301,17 +309,22 @@ impl InsertionResult {
         activities: Vec<(Activity, usize)>,
         route_ctx: &RouteContext,
     ) -> Self {
-        Self::Success(InsertionSuccess { cost, job, activities, actor: route_ctx.route().actor.clone() })
+        Self::Success(InsertionSuccess { cost, job, activities, actor: route_ctx.route().actor.clone(), probe: None })
     }
 
-    /// Creates result which represents insertion failure.
+    /// Creates a result which represents insertion failure.
     pub fn make_failure() -> Self {
-        Self::make_failure_with_code(ViolationCode::unknown(), false, None)
+        Self::make_failure_with_code(ViolationCode::unknown(), false, None, None)
     }
 
-    /// Creates result which represents insertion failure with given code.
-    pub fn make_failure_with_code(code: ViolationCode, stopped: bool, job: Option<Job>) -> Self {
-        Self::Failure(InsertionFailure { constraint: code, stopped, job })
+    /// Creates a result which represents insertion failure with given code.
+    pub fn make_failure_with_code(
+        code: ViolationCode,
+        stopped: bool,
+        job: Option<Job>,
+        actor: Option<Arc<Actor>>,
+    ) -> Self {
+        Self::Failure(InsertionFailure { constraint: code, stopped, job, actor, probe: None })
     }
 
     /// Compares two insertion results and returns the cheapest by cost.
@@ -343,6 +356,13 @@ impl InsertionResult {
             Self::Failure(_) => None,
         }
     }
+
+    pub(crate) fn take_probe_data(&mut self) -> Option<ProbeData> {
+        match self {
+            InsertionResult::Success(success) => success.probe.take(),
+            InsertionResult::Failure(failure) => failure.probe.take(),
+        }
+    }
 }
 
 impl TryFrom<InsertionResult> for InsertionSuccess {
@@ -367,7 +387,7 @@ pub(crate) fn finalize_insertion_ctx(insertion_ctx: &mut InsertionContext) {
     insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
 }
 
-pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
+pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, mut success: InsertionSuccess) {
     let route_index = if let Some(new_route_ctx) = insertion_ctx.solution.registry.get_route(&success.actor) {
         insertion_ctx.solution.routes.push(new_route_ctx);
         insertion_ctx.solution.routes.len() - 1
@@ -386,6 +406,11 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
         route.tour.insert_at(a, index + 1);
     });
 
+    if let Some(probe) = success.probe.as_mut() {
+        probe.remove(&route.actor);
+        probe.attach(&mut insertion_ctx.solution);
+    }
+
     let job = success.job;
     insertion_ctx.solution.required.retain(|j| *j != job);
     insertion_ctx.solution.unassigned.remove(&job);
@@ -394,7 +419,7 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
 
 fn apply_insertion_failure(
     insertion_ctx: &mut InsertionContext,
-    failure: InsertionFailure,
+    mut failure: InsertionFailure,
     route_indices: &[usize],
     jobs: &[Job],
 ) {
@@ -419,6 +444,10 @@ fn apply_insertion_failure(
     if let Some(job) = failure.job {
         insertion_ctx.solution.unassigned.insert(job.clone(), UnassignmentInfo::Simple(failure.constraint));
         insertion_ctx.solution.required.retain(|j| *j != job);
+
+        if let Some(probe) = failure.probe.as_mut() {
+            probe.attach(&mut insertion_ctx.solution);
+        }
     }
 
     if all_unassignable || no_routes_available {

@@ -59,7 +59,12 @@ pub fn eval_job_insertion_in_route(
         return eval_ctx.result_selector.select_insertion(
             insertion_ctx,
             alternative,
-            InsertionResult::make_failure_with_code(violation.code, true, Some(eval_ctx.job.clone())),
+            InsertionResult::make_failure_with_code(
+                violation.code,
+                true,
+                Some(eval_ctx.job.clone()),
+                Some(route_ctx.route().actor.clone()),
+            ),
         );
     }
 
@@ -113,6 +118,8 @@ pub(crate) fn eval_single_constraint_in_route(
             constraint: violation.code,
             stopped: true,
             job: Some(eval_ctx.job.clone()),
+            actor: Some(route_ctx.route().actor.clone()),
+            probe: None,
         })
     } else {
         eval_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost)
@@ -147,7 +154,7 @@ fn eval_single(
         InsertionResult::make_success(result.cost.unwrap_or_default(), job, activities, route_ctx)
     } else {
         let (code, stopped) = result.violation.map_or((ViolationCode::unknown(), false), |v| (v.code, v.stopped));
-        InsertionResult::make_failure_with_code(code, stopped, Some(job))
+        InsertionResult::make_failure_with_code(code, stopped, Some(job), Some(route_ctx.route().actor.clone()))
     }
 }
 
@@ -220,7 +227,7 @@ fn eval_multi(
         InsertionResult::make_success(result.cost.unwrap_or_default(), job, activities, route_ctx)
     } else {
         let (code, stopped) = result.violation.map_or((ViolationCode::unknown(), false), |v| (v.code, v.stopped));
-        InsertionResult::make_failure_with_code(code, stopped, Some(job))
+        InsertionResult::make_failure_with_code(code, stopped, Some(job), Some(route_ctx.route().actor.clone()))
     }
 }
 
