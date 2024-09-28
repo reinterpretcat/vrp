@@ -407,8 +407,8 @@ impl LegSelection {
             Self::Stochastic(random) => {
                 let gen_usize = |min: i32, max: i32| random.uniform_int(min, max) as usize;
                 let greedy_threshold = match job {
-                    Job::Single(_) => gen_usize(12, 24),
-                    Job::Multi(_) => gen_usize(8, 16),
+                    Job::Single(_) => gen_usize(32, 48),
+                    Job::Multi(_) => gen_usize(16, 32),
                 };
 
                 let total_legs = route_ctx.route().tour.legs().size_hint().0;
