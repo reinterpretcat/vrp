@@ -21,3 +21,6 @@ __pycache__
 # ignore files from heuristic playground
 *.png
 heuristic_state.json
+
+# profiler
+callgrind*
