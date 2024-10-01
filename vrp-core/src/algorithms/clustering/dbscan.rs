@@ -5,26 +5,21 @@
 #[path = "../../../tests/unit/algorithms/clustering/dbscan_test.rs"]
 mod dbscan_test;
 
-use rosomaxa::prelude::Float;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
 /// Represents a cluster of points.
 pub type Cluster<'a, T> = Vec<&'a T>;
 
-/// A function which returns neighbors of given point with given epsilon.
-pub type NeighborhoodFn<'a, T> = Box<dyn Fn(&'a T, Float) -> Box<dyn Iterator<Item = &'a T> + 'a> + 'a>;
-
-/// Creates clusters of points using DBSCAN (Density-Based Spatial Clustering of Applications with Noise)
-/// algorithm. NOTE: `neighborhood_fn` shall return point itself.
-pub fn create_clusters<'a, T>(
-    points: &'a [T],
-    epsilon: Float,
-    min_points: usize,
-    neighborhood_fn: &NeighborhoodFn<'a, T>,
-) -> Vec<Cluster<'a, T>>
+/// Creates clusters of points using DBSCAN (Density-Based Spatial Clustering of Applications with Noise).
+/// `points`: A list of points to cluster.
+/// `min_points`: The minimum number of points required to form a cluster.
+/// `neighborhood_fn`: A function which returns neighbors of given point. It should return point itself.
+pub fn create_clusters<'a, T, FN, IR>(points: &'a [T], min_points: usize, neighborhood_fn: FN) -> Vec<Cluster<'a, T>>
 where
     T: Clone + Hash + Eq,
+    FN: Fn(&'a T) -> IR + 'a,
+    IR: Iterator<Item = &'a T> + 'a,
 {
     let mut point_types = HashMap::<&T, PointType>::new();
     let mut clusters = Vec::new();
@@ -34,7 +29,7 @@ where
             continue;
         }
 
-        let mut neighbors = neighborhood_fn(point, epsilon).collect::<Vec<_>>();
+        let mut neighbors = neighborhood_fn(point).collect::<Vec<_>>();
         let mut neighbors_index = neighbors.iter().cloned().collect::<HashSet<_>>();
 
         if neighbors.len() < min_points {
@@ -49,7 +44,7 @@ where
                 let point_type = point_types.get(point).cloned();
 
                 if point_type.is_none() {
-                    let other_neighbours = neighborhood_fn(point, epsilon).collect::<Vec<_>>();
+                    let other_neighbours = neighborhood_fn(point).collect::<Vec<_>>();
                     if other_neighbours.len() >= min_points {
                         neighbors
                             .extend(other_neighbours.iter().filter(|&point| !neighbors_index.contains(point)).cloned());

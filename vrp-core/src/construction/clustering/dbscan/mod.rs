@@ -4,7 +4,7 @@
 #[path = "../../../../tests/unit/construction/clustering/dbscan_test.rs"]
 mod dbscan_test;
 
-use crate::algorithms::clustering::dbscan::{create_clusters, NeighborhoodFn};
+use crate::algorithms::clustering::dbscan::create_clusters;
 use crate::algorithms::geometry::Point;
 use crate::models::common::Timestamp;
 use crate::models::problem::{Job, Single};
@@ -29,18 +29,16 @@ pub fn create_job_clusters(
     // exclude jobs without locations from clustering
     let jobs = problem.jobs.all().filter(job_has_locations).collect::<Vec<_>>();
 
-    let neighbor_fn: NeighborhoodFn<Job> = Box::new(move |job, eps| {
-        Box::new(
-            problem
-                .jobs
-                .neighbors(profile, job, 0.)
-                .filter(move |(job, _)| job_has_locations(job))
-                .take_while(move |(_, cost)| *cost < eps)
-                .map(|(job, _)| job),
-        )
-    });
+    let neighbor_fn = move |job| {
+        problem
+            .jobs
+            .neighbors(profile, job, 0.)
+            .filter(move |(job, _)| job_has_locations(job))
+            .take_while(move |(_, cost)| *cost < epsilon)
+            .map(|(job, _)| job)
+    };
 
-    create_clusters(jobs.as_slice(), epsilon, min_points, &neighbor_fn)
+    create_clusters(jobs.as_slice(), min_points, neighbor_fn)
         .into_iter()
         .map(|cluster| cluster.into_iter().cloned().collect::<HashSet<_>>())
         .collect()

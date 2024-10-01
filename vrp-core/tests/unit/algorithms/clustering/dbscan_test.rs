@@ -1,7 +1,7 @@
 use super::*;
 use crate::algorithms::geometry::Point;
 use crate::helpers::construction::clustering::p;
-use rosomaxa::prelude::compare_floats;
+use rosomaxa::prelude::{compare_floats, Float};
 
 fn create_index(points: &[Point]) -> HashMap<&Point, Vec<(&Point, Float)>> {
     points.iter().fold(HashMap::new(), |mut acc, point| {
@@ -18,14 +18,6 @@ fn create_index(points: &[Point]) -> HashMap<&Point, Vec<(&Point, Float)>> {
         acc.insert(point, pairs);
 
         acc
-    })
-}
-
-fn create_neighborhood<'a>(index: &'a HashMap<&'a Point, Vec<(&'a Point, Float)>>) -> NeighborhoodFn<'a, Point> {
-    Box::new(move |item: &Point, eps: Float| {
-        Box::new(
-            index.get(item).unwrap().iter().take_while(move |(_, distance)| *distance < eps).map(|(point, _)| *point),
-        )
     })
 }
 
@@ -109,9 +101,10 @@ fn can_create_clusters_normally() {
         p(30.66784, 16.2697),
     ];
     let index = create_index(&ps);
-    let neighborhood_fn = create_neighborhood(&index);
 
-    let clusters = create_clusters(ps.as_slice(), 2., 5, &neighborhood_fn);
+    let clusters = create_clusters(ps.as_slice(), 5, |item| {
+        index.get(item).unwrap().iter().take_while(move |(_, distance)| *distance < 2.).map(move |(point, _)| *point)
+    });
 
     assert_eq!(clusters.len(), 3);
 
@@ -150,9 +143,10 @@ fn can_create_clusters_with_single_link() {
         p(17., 8.), // D - single-link connected to C should not be present
     ];
     let index = create_index(&ps);
-    let neighborhood_fn = create_neighborhood(&index);
 
-    let clusters = create_clusters(ps.as_slice(), 3., 3, &neighborhood_fn);
+    let clusters = create_clusters(ps.as_slice(), 3, |item| {
+        index.get(item).unwrap().iter().take_while(move |(_, distance)| *distance < 3.).map(move |(point, _)| *point)
+    });
 
     assert_eq!(clusters.len(), 1);
 
