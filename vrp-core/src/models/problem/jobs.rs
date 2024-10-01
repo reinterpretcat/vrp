@@ -226,8 +226,8 @@ const UNREACHABLE_COST: LowPrecisionCost = f32::MAX;
 
 /// Maximum amount of job's neighbours stored in index. We restrict this side to lower impact on
 /// memory footprint. It is unlikely that more than 100 neighbours needed to be processed in reality,
-/// but we keep it 5x times more.
-const MAX_NEIGHBOURS: usize = 512;
+/// but we keep it 2x times more.
+const MAX_NEIGHBOURS: usize = 256;
 
 /// Stores all jobs taking into account their neighborhood.
 pub struct Jobs {
@@ -236,9 +236,11 @@ pub struct Jobs {
 }
 
 impl Jobs {
-    /// Creates a new [`Jobs`].
+    /// Creates a new instance of [`Jobs`].
     pub fn new(fleet: &Fleet, jobs: Vec<Job>, transport: &(dyn TransportCost), logger: &InfoLogger) -> Jobs {
-        Jobs { jobs: jobs.clone(), index: create_index(fleet, jobs, transport, logger) }
+        let index = create_index(fleet, jobs.clone(), transport, logger);
+
+        Jobs { jobs, index }
     }
 
     /// Returns all jobs in original order.
