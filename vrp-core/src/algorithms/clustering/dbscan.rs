@@ -15,9 +15,10 @@ pub type Cluster<'a, T> = Vec<&'a T>;
 /// `points`: A list of points to cluster.
 /// `min_points`: The minimum number of points required to form a cluster.
 /// `neighborhood_fn`: A function which returns neighbors of given point. It should return point itself.
-pub fn create_clusters<'a, T, FN, IR>(points: &'a [T], min_points: usize, neighborhood_fn: FN) -> Vec<Cluster<'a, T>>
+pub fn create_clusters<'a, T, IS, FN, IR>(points: IS, min_points: usize, neighborhood_fn: FN) -> Vec<Cluster<'a, T>>
 where
     T: Clone + Hash + Eq,
+    IS: IntoIterator<Item = &'a T>,
     FN: Fn(&'a T) -> IR + 'a,
     IR: Iterator<Item = &'a T> + 'a,
 {
