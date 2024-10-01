@@ -17,15 +17,14 @@ use std::sync::Arc;
 /// Creates clusters of jobs using DBSCAN algorithm.
 pub fn create_job_clusters(
     problem: &Problem,
-    random: &(dyn Random),
     min_points: Option<usize>,
     epsilon: Option<Float>,
-) -> Vec<HashSet<Job>> {
+) -> GenericResult<Vec<HashSet<Job>>> {
     let min_points = min_points.unwrap_or(3).max(2);
     let epsilon = epsilon.unwrap_or_else(|| estimate_epsilon(problem, min_points));
 
     // get main parameters with some randomization
-    let profile = &problem.fleet.profiles[random.uniform_int(0, problem.fleet.profiles.len() as i32 - 1) as usize];
+    let profile = problem.fleet.profiles.first().ok_or_else(|| GenericError::from("cannot find any profile"))?;
     // exclude jobs without locations from clustering
     let jobs = problem.jobs.all().iter().filter(|j| job_has_locations(j)).cloned().collect::<Vec<_>>();
 
@@ -38,10 +37,10 @@ pub fn create_job_clusters(
             .map(|(job, _)| job)
     };
 
-    create_clusters(jobs.as_slice(), min_points, neighbor_fn)
+    Ok(create_clusters(jobs.as_slice(), min_points, neighbor_fn)
         .into_iter()
         .map(|cluster| cluster.into_iter().cloned().collect::<HashSet<_>>())
-        .collect()
+        .collect())
 }
 
 /// Estimates DBSCAN epsilon parameter.

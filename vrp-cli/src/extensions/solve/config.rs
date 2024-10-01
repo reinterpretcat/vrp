@@ -686,7 +686,8 @@ fn create_ruin_method(
             (Arc::new(WorstJobRemoval::new(*worst_skip, get_limits(*min, *max))), *probability)
         }
         RuinMethod::Cluster { probability, min, max, min_items } => (
-            Arc::new(ClusterRemoval::new(problem.clone(), environment, *min_items, get_limits(*min, *max))),
+            // TODO: remove unwrap
+            Arc::new(ClusterRemoval::new(problem.clone(), environment, *min_items, get_limits(*min, *max)).unwrap()),
             *probability,
         ),
         RuinMethod::CloseRoute { probability } => (Arc::new(CloseRouteRemoval::new(limits)), *probability),

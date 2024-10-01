@@ -19,7 +19,7 @@ fn can_create_ruin_cluster_with_default_params() {
         |_| (vec![0.; 64], create_test_distances()),
     );
 
-    let removal = ClusterRemoval::new_with_defaults(Arc::new(problem), environment);
+    let removal = ClusterRemoval::new_with_defaults(Arc::new(problem), environment).unwrap();
 
     assert!(!removal.clusters.is_empty());
 }
@@ -29,7 +29,7 @@ fn can_handle_empty_problem() {
     let problem = Arc::new(ProblemBuilder::default().build());
     let limits = RemovalLimits::new(&problem);
 
-    let removal = ClusterRemoval::new(problem, Arc::new(Environment::default()), 3, limits);
+    let removal = ClusterRemoval::new(problem, Arc::new(Environment::default()), 3, limits).unwrap();
 
     assert!(removal.clusters.is_empty());
 }
@@ -60,6 +60,7 @@ fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
     let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone());
 
     let insertion_ctx = ClusterRemoval::new(problem, environment, min_items, limits)
+        .expect("cannot create clusters")
         .run(&create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
 
     assert_eq!(insertion_ctx.solution.unassigned.len(), 0);

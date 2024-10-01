@@ -428,7 +428,8 @@ mod statik {
             (vec![(Arc::new(WorstJobRemoval::new(4, normal_limits)), 1.), (extra_random_job.clone(), 0.1)], 10),
             (
                 vec![
-                    (Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment.clone())), 1.),
+                    // TODO avoid unwrap
+                    (Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment.clone()).unwrap()), 1.),
                     (extra_random_job.clone(), 0.1),
                 ],
                 5,
@@ -512,7 +513,8 @@ mod dynamic {
     fn get_ruins(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<(Arc<dyn Ruin>, String, Float)> {
         // NOTE: creating cluster removal is not fast on large problems
         vec![(
-            Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment)),
+            // TODO avoid unwrap
+            Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment).unwrap()),
             "cluster_removal".to_string(),
             4.,
         )]
