@@ -101,7 +101,7 @@ fn all_returns_all_jobs() {
     let jobs = vec![TestSingleBuilder::default().build_as_job_ref(), TestSingleBuilder::default().build_as_job_ref()];
 
     assert_eq!(
-        Jobs::new(&test_fleet(), jobs, create_only_distance_transport_cost().as_ref(), &test_logger()).all().count(),
+        Jobs::new(&test_fleet(), jobs, create_only_distance_transport_cost().as_ref(), &test_logger()).all().len(),
         2
     )
 }

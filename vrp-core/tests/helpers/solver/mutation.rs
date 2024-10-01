@@ -6,8 +6,13 @@ use std::collections::HashMap;
 
 /// Promotes given job ids to locked in given context.
 pub fn promote_to_locked(mut insertion_ctx: InsertionContext, job_ids: &[&str]) -> InsertionContext {
-    let ids =
-        insertion_ctx.problem.jobs.all().filter(|job| job_ids.contains(&job.dimens().get_job_id().unwrap().as_str()));
+    let ids = insertion_ctx
+        .problem
+        .jobs
+        .all()
+        .iter()
+        .filter(|job| job_ids.contains(&job.dimens().get_job_id().unwrap().as_str()))
+        .cloned();
     insertion_ctx.solution.locked.extend(ids);
 
     insertion_ctx
@@ -38,10 +43,11 @@ pub fn get_jobs_by_ids(insertion_ctx: &InsertionContext, job_ids: &[&str]) -> Ve
         .problem
         .jobs
         .all()
+        .iter()
         .filter_map(|job| {
             let job_id = job.dimens().get_job_id().unwrap().clone();
             if job_ids.contains(&job_id.as_str()) {
-                Some((job_id, job))
+                Some((job_id, job.clone()))
             } else {
                 None
             }
@@ -57,8 +63,8 @@ pub fn get_jobs_by_ids(insertion_ctx: &InsertionContext, job_ids: &[&str]) -> Ve
 }
 
 /// Returns a job by its id.
-pub fn get_job_by_id(insertion_ctx: &InsertionContext, job_id: &str) -> Option<Job> {
-    insertion_ctx.problem.jobs.all().find(|job| job.dimens().get_job_id().map_or(false, |id| id == job_id))
+pub fn get_job_by_id<'a>(insertion_ctx: &'a InsertionContext, job_id: &str) -> Option<&'a Job> {
+    insertion_ctx.problem.jobs.all().iter().find(|job| job.dimens().get_job_id().map_or(false, |id| id == job_id))
 }
 
 /// Gets all jobs with their id in a map.
@@ -67,9 +73,10 @@ pub fn get_jobs_map_by_ids(insertion_ctx: &InsertionContext) -> HashMap<String, 
         .problem
         .jobs
         .all()
+        .iter()
         .map(|job| {
             let job_id = job.dimens().get_job_id().unwrap().clone();
-            (job_id, job)
+            (job_id, job.clone())
         })
         .collect()
 }

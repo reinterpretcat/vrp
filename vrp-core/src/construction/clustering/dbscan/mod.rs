@@ -27,7 +27,7 @@ pub fn create_job_clusters(
     // get main parameters with some randomization
     let profile = &problem.fleet.profiles[random.uniform_int(0, problem.fleet.profiles.len() as i32 - 1) as usize];
     // exclude jobs without locations from clustering
-    let jobs = problem.jobs.all().filter(job_has_locations).collect::<Vec<_>>();
+    let jobs = problem.jobs.all().iter().filter(|j| job_has_locations(j)).cloned().collect::<Vec<_>>();
 
     let neighbor_fn = move |job| {
         problem
@@ -57,9 +57,9 @@ fn estimate_epsilon(problem: &Problem, min_points: usize) -> Float {
 fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<Float> {
     let jobs = problem.jobs.as_ref();
     let mut costs = problem.fleet.profiles.iter().fold(vec![0.; jobs.size()], |mut acc, profile| {
-        jobs.all().enumerate().for_each(|(idx, job)| {
+        jobs.all().iter().enumerate().for_each(|(idx, job)| {
             let (sum, count) = jobs
-                .neighbors(profile, &job, Timestamp::default())
+                .neighbors(profile, job, Timestamp::default())
                 .filter(|(j, _)| job_has_locations(j))
                 .take(min_points)
                 .map(|(_, cost)| cost)

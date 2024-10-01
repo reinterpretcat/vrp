@@ -86,8 +86,14 @@ pub fn read_init_solution<R: Read>(
             Ok(acc)
         })?;
 
-    unassigned
-        .extend(problem.jobs.all().filter(|job| !added_jobs.contains(job)).map(|job| (job, UnassignmentInfo::Unknown)));
+    unassigned.extend(
+        problem
+            .jobs
+            .all()
+            .iter()
+            .filter(|job| !added_jobs.contains(job))
+            .map(|job| (job.clone(), UnassignmentInfo::Unknown)),
+    );
 
     Ok(Solution { cost: Cost::default(), registry, routes, unassigned, telemetry: None })
 }

@@ -41,7 +41,13 @@ fn can_remove_parts_random_routes_from_context() {
             details: vec![LockDetail {
                 order: LockOrder::Any,
                 position: LockPosition::Any,
-                jobs: problem.jobs.all().filter(|job| ["c0", "c3"].contains(&get_customer_id(job).as_str())).collect(),
+                jobs: problem
+                    .jobs
+                    .all()
+                    .iter()
+                    .filter(|job| ["c0", "c3"].contains(&get_customer_id(job).as_str()))
+                    .cloned()
+                    .collect(),
             }],
             is_lazy: false,
         })],

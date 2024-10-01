@@ -46,6 +46,7 @@ pub fn get_job_time_windows(problem: &Problem) -> Vec<(Float, Float)> {
     problem
         .jobs
         .all()
+        .iter()
         .map(|j| match j {
             Job::Single(j) => j
                 .places
@@ -62,17 +63,18 @@ pub fn get_job_time_windows(problem: &Problem) -> Vec<(Float, Float)> {
 }
 
 pub fn get_job_ids(problem: &Problem) -> Vec<String> {
-    problem.jobs.all().map(|j| get_job_id(&j).to_owned()).collect()
+    problem.jobs.all().iter().map(|j| get_job_id(j).to_owned()).collect()
 }
 
 pub fn get_job_demands(problem: &Problem) -> Vec<i32> {
-    problem.jobs.all().map(|j| get_job_simple_demand(&j).delivery.0).map(|d| d.value).collect()
+    problem.jobs.all().iter().map(|j| get_job_simple_demand(j).delivery.0).map(|d| d.value).collect()
 }
 
 pub fn get_job_durations(problem: &Problem) -> Vec<Float> {
     problem
         .jobs
         .all()
+        .iter()
         .map(|j| match j {
             Job::Single(j) => j.places.first().unwrap().duration,
             _ => panic!(),

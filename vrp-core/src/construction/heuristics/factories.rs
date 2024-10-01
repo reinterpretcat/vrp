@@ -101,7 +101,9 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
     let required = problem
         .jobs
         .all()
+        .iter()
         .filter(|job| !locked.contains(job) && !reserved.contains(job) && !unassigned.contains_key(job))
+        .cloned()
         .collect();
 
     let registry = RegistryContext::new(problem.goal.as_ref(), registry);

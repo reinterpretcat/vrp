@@ -8,7 +8,7 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::{JobIdDimension, Jobs, Multi, Place, Single, VehicleIdDimension};
 
 fn get_job(index: usize, jobs: &Jobs) -> vrp_core::models::problem::Job {
-    jobs.all().collect::<Vec<_>>().get(index).unwrap().clone()
+    jobs.all().get(index).unwrap().clone()
 }
 
 fn get_single_job(index: usize, jobs: &Jobs) -> Arc<Single> {
@@ -183,7 +183,7 @@ fn can_read_complex_problem() {
 
     let problem = (problem, vec![matrix]).read_pragmatic().ok().unwrap();
 
-    assert_eq!(problem.jobs.all().count(), 3 + 2);
+    assert_eq!(problem.jobs.all().len(), 3 + 2);
 
     // delivery
     let job = get_single_job(0, problem.jobs.as_ref());
@@ -266,7 +266,7 @@ fn can_deserialize_minimal_problem_and_matrix() {
     let problem = (SIMPLE_PROBLEM.to_string(), vec![SIMPLE_MATRIX.to_string()]).read_pragmatic().ok().unwrap();
 
     assert_eq!(problem.fleet.vehicles.len(), 1);
-    assert_eq!(problem.jobs.all().count(), 2);
+    assert_eq!(problem.jobs.all().len(), 2);
     assert!(problem.locks.is_empty());
 
     let detail = problem.fleet.vehicles.first().unwrap().details.first().unwrap();

@@ -243,9 +243,9 @@ impl Jobs {
         Jobs { jobs, index }
     }
 
-    /// Returns all jobs in original order.
-    pub fn all(&'_ self) -> impl Iterator<Item = Job> + '_ {
-        self.jobs.iter().cloned()
+    /// Returns all jobs in the original order as a slice.
+    pub fn all(&self) -> &[Job] {
+        &self.jobs
     }
 
     /// Returns range of jobs "near" to given one. Near is defined by costs with relation

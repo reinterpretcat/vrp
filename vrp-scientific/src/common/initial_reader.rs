@@ -29,7 +29,7 @@ pub fn read_init_solution<R: Read>(
         telemetry: None,
     };
 
-    let mut not_used_jobs = problem.jobs.all().collect::<HashSet<_>>();
+    let mut not_used_jobs = problem.jobs.all().iter().collect::<HashSet<_>>();
 
     loop {
         match read_line(&mut reader, &mut buffer) {
@@ -39,7 +39,7 @@ pub fn read_init_solution<R: Read>(
                     continue;
                 }
 
-                let id_map = problem.jobs.all().fold(HashMap::<String, Arc<Single>>::new(), |mut acc, job| {
+                let id_map = problem.jobs.all().iter().fold(HashMap::<String, Arc<Single>>::new(), |mut acc, job| {
                     let single = job.to_single().clone();
                     acc.insert(single.dimens.get_job_id().unwrap().to_string(), single);
                     acc
@@ -81,7 +81,7 @@ pub fn read_init_solution<R: Read>(
         }
     }
 
-    solution.unassigned = not_used_jobs.into_iter().map(|job| (job, UnassignmentInfo::Unknown)).collect();
+    solution.unassigned = not_used_jobs.into_iter().map(|job| (job.clone(), UnassignmentInfo::Unknown)).collect();
 
     Ok(solution)
 }

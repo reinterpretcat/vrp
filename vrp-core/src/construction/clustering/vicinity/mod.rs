@@ -150,9 +150,11 @@ pub fn create_job_clusters(
     let jobs = problem
         .jobs
         .all()
-        .filter(&*config.filtering.job_filter)
+        .iter()
+        .filter(|job| (config.filtering.job_filter)(job))
         // NOTE multi-job is not supported
         .filter(|job| job.as_single().is_some())
+        .cloned()
         .collect::<Vec<_>>();
 
     let estimates = get_jobs_dissimilarities(jobs.as_slice(), transport, config);

@@ -44,7 +44,7 @@ fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<
 fn can_create_problem_with_clusters_on_pre_process() {
     let (_, problem) = create_problems(create_cluster_config(), create_test_jobs());
 
-    let jobs = problem.jobs.all().collect::<Vec<_>>();
+    let jobs = problem.jobs.all().iter().collect::<Vec<_>>();
     assert_eq!(jobs.len(), 2);
     assert!(jobs.iter().any(|job| get_job_id(job) == "job4_outlier"));
     let jobs = jobs
@@ -75,7 +75,8 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
 ) {
     let problem_jobs = create_test_jobs();
     let (_, new_problem) = create_problems(ClusterConfig { visiting, ..create_cluster_config() }, problem_jobs);
-    let clustered_single = new_problem.jobs.all().find(|job| get_job_id(job) == "job3").unwrap().to_single().clone();
+    let clustered_single =
+        new_problem.jobs.all().iter().find(|job| get_job_id(job) == "job3").unwrap().to_single().clone();
     let clustered_time = clustered_single.places.first().unwrap().clone().times.first().unwrap().to_time_window(0.);
     let insertion_ctx = InsertionContext {
         problem: new_problem.clone(),
@@ -125,8 +126,8 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
 #[test]
 fn can_unwrap_clusters_in_unassigned_on_post_process() {
     let (_, new_problem) = create_problems(create_cluster_config(), create_test_jobs());
-    let clustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job3").unwrap();
-    let unclustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job4_outlier").unwrap();
+    let clustered_job = new_problem.jobs.all().iter().find(|job| get_job_id(job) == "job3").unwrap().clone();
+    let unclustered_job = new_problem.jobs.all().iter().find(|job| get_job_id(job) == "job4_outlier").unwrap().clone();
     let insertion_ctx = InsertionContext {
         problem: new_problem,
         ..TestInsertionContextBuilder::default()

@@ -73,7 +73,7 @@ fn create_test_problem(
                 details: vec![LockDetail {
                     order,
                     position,
-                    jobs: job_ids.iter().map(|job_id| get_job_by_id(jobs.iter().cloned(), job_id)).collect(),
+                    jobs: job_ids.iter().map(|job_id| get_job_by_id(&jobs, job_id)).collect(),
                 }],
                 is_lazy: false,
             })
@@ -150,9 +150,8 @@ fn add_routes(insertion_ctx: &mut InsertionContext, routes: Vec<(&str, RouteData
     });
 }
 
-fn get_job_by_id<T: Iterator<Item = Job>>(jobs: T, job_id: &str) -> Job {
-    let mut jobs = jobs;
-    jobs.find(|job| job.dimens().get_job_id().unwrap() == job_id).unwrap()
+fn get_job_by_id(jobs: &[Job], job_id: &str) -> Job {
+    jobs.iter().find(|job| job.dimens().get_job_id().unwrap() == job_id).unwrap().clone()
 }
 
 fn get_as_single(problem: &Problem, job_id: &str, index: usize) -> Arc<Single> {

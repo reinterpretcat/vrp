@@ -47,7 +47,7 @@ fn can_count_neighbours_in_route_impl(
     let estimation = objective.estimate(&MoveContext::Route {
         solution_ctx: &insertion_ctx.solution,
         route_ctx: &insertion_ctx.solution.routes[route_idx],
-        job: &get_job_by_id(&insertion_ctx, job_id).unwrap(),
+        job: get_job_by_id(&insertion_ctx, job_id).unwrap(),
     });
 
     assert_eq!(estimation, expected_estimation);

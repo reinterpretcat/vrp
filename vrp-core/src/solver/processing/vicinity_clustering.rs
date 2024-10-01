@@ -46,7 +46,14 @@ impl HeuristicContextProcessing for VicinityClustering {
                 },
             );
 
-            let jobs = problem.jobs.all().filter(|job| !clustered_jobs.contains(job)).chain(clusters).collect();
+            let jobs = problem
+                .jobs
+                .all()
+                .iter()
+                .filter(|job| !clustered_jobs.contains(job))
+                .cloned()
+                .chain(clusters)
+                .collect();
 
             let mut extras: Extras = problem.extras.as_ref().clone();
             extras.set_original_problem(problem.clone());
