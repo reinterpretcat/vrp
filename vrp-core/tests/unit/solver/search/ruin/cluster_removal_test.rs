@@ -8,7 +8,6 @@ use std::sync::Arc;
 
 #[test]
 fn can_create_ruin_cluster_with_default_params() {
-    let environment = Arc::new(Environment::default());
     let (problem, _) = generate_matrix_routes(
         8,
         1,
@@ -19,7 +18,7 @@ fn can_create_ruin_cluster_with_default_params() {
         |_| (vec![0.; 64], create_test_distances()),
     );
 
-    let removal = ClusterRemoval::new_with_defaults(Arc::new(problem), environment).unwrap();
+    let removal = ClusterRemoval::new_with_defaults(Arc::new(problem)).unwrap();
 
     assert!(!removal.clusters.is_empty());
 }
@@ -29,7 +28,7 @@ fn can_handle_empty_problem() {
     let problem = Arc::new(ProblemBuilder::default().build());
     let limits = RemovalLimits::new(&problem);
 
-    let removal = ClusterRemoval::new(problem, Arc::new(Environment::default()), limits).unwrap();
+    let removal = ClusterRemoval::new(problem, limits).unwrap();
 
     assert!(removal.clusters.is_empty());
 }
@@ -57,9 +56,9 @@ fn can_ruin_jobs_impl(limit: usize, expected: usize) {
     );
     let problem = Arc::new(problem);
     let environment = Arc::new(Environment::default());
-    let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone());
+    let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment);
 
-    let insertion_ctx = ClusterRemoval::new(problem, environment, limits)
+    let insertion_ctx = ClusterRemoval::new(problem, limits)
         .expect("cannot create clusters")
         .run(&create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
 

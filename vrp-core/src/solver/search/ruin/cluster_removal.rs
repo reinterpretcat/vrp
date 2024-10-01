@@ -19,8 +19,8 @@ pub struct ClusterRemoval {
 
 impl ClusterRemoval {
     /// Creates a new instance of `ClusterRemoval`.
-    pub fn new(problem: Arc<Problem>, environment: Arc<Environment>, limits: RemovalLimits) -> GenericResult<Self> {
-        let mut clusters = problem
+    pub fn new(problem: Arc<Problem>, limits: RemovalLimits) -> GenericResult<Self> {
+        let clusters = problem
             .jobs
             .clusters()
             .iter()
@@ -28,15 +28,13 @@ impl ClusterRemoval {
             .map(|cluster| cluster.into_iter().collect::<Vec<_>>())
             .collect::<Vec<_>>();
 
-        clusters.shuffle(&mut environment.random.get_rng());
-
         Ok(Self { clusters, limits })
     }
 
     /// Creates a new instance of `ClusterRemoval` with default parameters.
-    pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> GenericResult<Self> {
+    pub fn new_with_defaults(problem: Arc<Problem>) -> GenericResult<Self> {
         let limits = RemovalLimits::new(problem.as_ref());
-        Self::new(problem, environment, limits)
+        Self::new(problem, limits)
     }
 }
 

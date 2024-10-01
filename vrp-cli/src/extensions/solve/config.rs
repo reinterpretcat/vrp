@@ -600,9 +600,7 @@ fn create_operator(
 ) -> Result<(TargetSearchOperator, TargetHeuristicProbability), GenericError> {
     Ok(match operator {
         SearchOperatorType::RuinRecreate { probability, ruins, recreates } => {
-            let ruin = Arc::new(WeightedRuin::new(
-                ruins.iter().map(|g| create_ruin_group(&problem, environment.clone(), g)).collect(),
-            ));
+            let ruin = Arc::new(WeightedRuin::new(ruins.iter().map(|g| create_ruin_group(&problem, g)).collect()));
             let recreate = Arc::new(WeightedRecreate::new(
                 recreates.iter().map(|r| create_recreate_method(r, environment.clone())).collect(),
             ));
@@ -654,15 +652,11 @@ fn create_operator_probability(
     }
 }
 
-fn create_ruin_group(problem: &Arc<Problem>, environment: Arc<Environment>, group: &RuinGroupConfig) -> RuinGroup {
-    (group.methods.iter().map(|r| create_ruin_method(problem, environment.clone(), r)).collect(), group.weight)
+fn create_ruin_group(problem: &Arc<Problem>, group: &RuinGroupConfig) -> RuinGroup {
+    (group.methods.iter().map(|r| create_ruin_method(problem, r)).collect(), group.weight)
 }
 
-fn create_ruin_method(
-    problem: &Arc<Problem>,
-    environment: Arc<Environment>,
-    method: &RuinMethod,
-) -> (Arc<dyn Ruin>, Float) {
+fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn Ruin>, Float) {
     let limits = RemovalLimits::new(problem.as_ref());
     let get_limits = |min: usize, max: usize| RemovalLimits {
         removed_activities_range: min..max,
@@ -687,7 +681,7 @@ fn create_ruin_method(
         }
         RuinMethod::Cluster { probability, min, max } => (
             // TODO: remove unwrap
-            Arc::new(ClusterRemoval::new(problem.clone(), environment, get_limits(*min, *max)).unwrap()),
+            Arc::new(ClusterRemoval::new(problem.clone(), get_limits(*min, *max)).unwrap()),
             *probability,
         ),
         RuinMethod::CloseRoute { probability } => (Arc::new(CloseRouteRemoval::new(limits)), *probability),

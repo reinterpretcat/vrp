@@ -429,7 +429,7 @@ mod statik {
             (
                 vec![
                     // TODO avoid unwrap
-                    (Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment.clone()).unwrap()), 1.),
+                    (Arc::new(ClusterRemoval::new_with_defaults(problem.clone()).unwrap()), 1.),
                     (extra_random_job.clone(), 0.1),
                 ],
                 5,
@@ -510,11 +510,10 @@ mod dynamic {
         ]
     }
 
-    fn get_ruins(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<(Arc<dyn Ruin>, String, Float)> {
-        // NOTE: creating cluster removal is not fast on large problems
+    fn get_ruins(problem: Arc<Problem>) -> Vec<(Arc<dyn Ruin>, String, Float)> {
         vec![(
             // TODO avoid unwrap
-            Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment).unwrap()),
+            Arc::new(ClusterRemoval::new_with_defaults(problem.clone()).unwrap()),
             "cluster_removal".to_string(),
             4.,
         )]
@@ -586,7 +585,7 @@ mod dynamic {
         let ruins = get_ruins_with_limits(normal_limits.clone(), "normal")
             .into_iter()
             .chain(get_ruins_with_limits(small_limits.clone(), "small"))
-            .chain(get_ruins(problem.clone(), environment.clone()))
+            .chain(get_ruins(problem.clone()))
             .collect::<Vec<_>>();
 
         let extra_random_job = Arc::new(RandomJobRemoval::new(small_limits));
