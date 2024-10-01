@@ -21,7 +21,9 @@ pub struct ClusterRemoval {
 impl ClusterRemoval {
     /// Creates a new instance of `ClusterRemoval`.
     pub fn new(problem: Arc<Problem>, environment: Arc<Environment>, min_items: usize, limits: RemovalLimits) -> Self {
-        let mut clusters = create_job_clusters(problem.as_ref(), environment.random.as_ref(), Some(min_items), None);
+        let clusters = create_job_clusters(problem.as_ref(), environment.random.as_ref(), Some(min_items), None);
+        let mut clusters =
+            clusters.into_iter().map(|cluster| cluster.into_iter().collect::<Vec<_>>()).collect::<Vec<_>>();
 
         clusters.shuffle(&mut environment.random.get_rng());
 

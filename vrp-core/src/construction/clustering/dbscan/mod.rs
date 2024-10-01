@@ -11,6 +11,7 @@ use crate::models::problem::{Job, Single};
 use crate::models::Problem;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 /// Creates clusters of jobs using DBSCAN algorithm.
@@ -19,7 +20,7 @@ pub fn create_job_clusters(
     random: &(dyn Random),
     min_points: Option<usize>,
     epsilon: Option<Float>,
-) -> Vec<Vec<Job>> {
+) -> Vec<HashSet<Job>> {
     let min_points = min_points.unwrap_or(3).max(2);
     let epsilon = epsilon.unwrap_or_else(|| estimate_epsilon(problem, min_points));
 
@@ -41,8 +42,8 @@ pub fn create_job_clusters(
 
     create_clusters(jobs.as_slice(), epsilon, min_points, &neighbor_fn)
         .into_iter()
-        .map(|cluster| cluster.into_iter().cloned().collect::<Vec<_>>())
-        .collect::<Vec<_>>()
+        .map(|cluster| cluster.into_iter().cloned().collect::<HashSet<_>>())
+        .collect()
 }
 
 /// Estimates DBSCAN epsilon parameter.
