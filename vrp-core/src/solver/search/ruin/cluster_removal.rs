@@ -3,9 +3,7 @@
 mod cluster_removal_test;
 
 use super::*;
-use crate::construction::clustering::dbscan::create_job_clusters;
 use crate::construction::heuristics::InsertionContext;
-use crate::models::common::Timestamp;
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::search::{get_route_jobs, JobRemovalTracker, TabuList};
@@ -21,18 +19,14 @@ pub struct ClusterRemoval {
 
 impl ClusterRemoval {
     /// Creates a new instance of `ClusterRemoval`.
-    pub fn new(
-        problem: Arc<Problem>,
-        environment: Arc<Environment>,
-        min_items: usize,
-        limits: RemovalLimits,
-    ) -> GenericResult<Self> {
-        let clusters =
-            create_job_clusters(problem.jobs.all(), problem.fleet.as_ref(), Some(min_items), None, |profile, job| {
-                problem.jobs.neighbors(profile, job, Timestamp::default())
-            })?;
-        let mut clusters =
-            clusters.into_iter().map(|cluster| cluster.into_iter().collect::<Vec<_>>()).collect::<Vec<_>>();
+    pub fn new(problem: Arc<Problem>, environment: Arc<Environment>, limits: RemovalLimits) -> GenericResult<Self> {
+        let mut clusters = problem
+            .jobs
+            .clusters()
+            .iter()
+            .cloned()
+            .map(|cluster| cluster.into_iter().collect::<Vec<_>>())
+            .collect::<Vec<_>>();
 
         clusters.shuffle(&mut environment.random.get_rng());
 
@@ -42,7 +36,7 @@ impl ClusterRemoval {
     /// Creates a new instance of `ClusterRemoval` with default parameters.
     pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> GenericResult<Self> {
         let limits = RemovalLimits::new(problem.as_ref());
-        Self::new(problem, environment, 3, limits)
+        Self::new(problem, environment, limits)
     }
 }
 

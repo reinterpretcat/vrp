@@ -265,7 +265,7 @@ pub enum RuinMethod {
     /// Clustered jobs removal method.
     #[serde(rename(deserialize = "cluster"))]
     #[serde(rename_all = "camelCase")]
-    Cluster { probability: Float, min: usize, max: usize, min_items: usize },
+    Cluster { probability: Float, min: usize, max: usize },
 }
 
 /// Specifies recreate methods with their probability weight and specific parameters.
@@ -685,9 +685,9 @@ fn create_ruin_method(
         RuinMethod::WorstJob { probability, min, max, skip: worst_skip } => {
             (Arc::new(WorstJobRemoval::new(*worst_skip, get_limits(*min, *max))), *probability)
         }
-        RuinMethod::Cluster { probability, min, max, min_items } => (
+        RuinMethod::Cluster { probability, min, max } => (
             // TODO: remove unwrap
-            Arc::new(ClusterRemoval::new(problem.clone(), environment, *min_items, get_limits(*min, *max)).unwrap()),
+            Arc::new(ClusterRemoval::new(problem.clone(), environment, get_limits(*min, *max)).unwrap()),
             *probability,
         ),
         RuinMethod::CloseRoute { probability } => (Arc::new(CloseRouteRemoval::new(limits)), *probability),

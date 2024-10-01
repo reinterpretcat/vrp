@@ -29,22 +29,22 @@ fn can_handle_empty_problem() {
     let problem = Arc::new(ProblemBuilder::default().build());
     let limits = RemovalLimits::new(&problem);
 
-    let removal = ClusterRemoval::new(problem, Arc::new(Environment::default()), 3, limits).unwrap();
+    let removal = ClusterRemoval::new(problem, Arc::new(Environment::default()), limits).unwrap();
 
     assert!(removal.clusters.is_empty());
 }
 
-parameterized_test! {can_ruin_jobs, (limit, cluster_size, expected), {
-    can_ruin_jobs_impl(limit, cluster_size, expected);
+parameterized_test! {can_ruin_jobs, (limit, expected), {
+    can_ruin_jobs_impl(limit, expected);
 }}
 
 can_ruin_jobs! {
-    case_01: (4, 3, 4),
-    case_02: (5, 3, 4),
-    case_03: (8, 3, 4),
+    case_01: (4, 4),
+    case_02: (5, 4),
+    case_03: (8, 4),
 }
 
-fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
+fn can_ruin_jobs_impl(limit: usize, expected: usize) {
     let limits = RemovalLimits { removed_activities_range: limit..limit, affected_routes_range: 8..8 };
     let (problem, solution) = generate_matrix_routes(
         8,
@@ -59,7 +59,7 @@ fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
     let environment = Arc::new(Environment::default());
     let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone());
 
-    let insertion_ctx = ClusterRemoval::new(problem, environment, min_items, limits)
+    let insertion_ctx = ClusterRemoval::new(problem, environment, limits)
         .expect("cannot create clusters")
         .run(&create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
 

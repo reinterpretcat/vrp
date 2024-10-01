@@ -234,7 +234,7 @@ const MAX_NEIGHBOURS: usize = 256;
 pub struct Jobs {
     jobs: Vec<Job>,
     index: HashMap<usize, JobIndex>,
-    _clusters: Vec<HashSet<Job>>,
+    clusters: Vec<HashSet<Job>>,
 }
 
 impl Jobs {
@@ -246,10 +246,10 @@ impl Jobs {
         logger: &InfoLogger,
     ) -> GenericResult<Jobs> {
         let index = create_index(fleet, jobs.clone(), transport, logger);
-        let _clusters =
+        let clusters =
             create_job_clusters(&jobs, fleet, Some(3), None, |profile, job| neighbors(&index, profile, job))?;
 
-        Ok(Jobs { jobs, index, _clusters })
+        Ok(Jobs { jobs, index, clusters })
     }
 
     /// Returns all jobs in the original order as a slice.
@@ -261,6 +261,11 @@ impl Jobs {
     /// transport profile and departure time.
     pub fn neighbors(&self, profile: &Profile, job: &Job, _: Timestamp) -> impl Iterator<Item = (&Job, Cost)> {
         neighbors(&self.index, profile, job)
+    }
+
+    /// Returns job clusters based on their neighborhood approximation.
+    pub fn clusters(&self) -> &[HashSet<Job>] {
+        &self.clusters
     }
 
     /// Returns job rank as relative cost from any vehicle's start position.
