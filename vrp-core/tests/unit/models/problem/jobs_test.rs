@@ -219,7 +219,7 @@ fn returns_proper_job_ranks_impl(index: usize, profile_index: usize, expected: D
 
     let result = jobs.rank(&profile, species.get(index).unwrap());
 
-    assert_eq!(result, expected);
+    assert_eq!(result, Some(expected));
 }
 
 #[test]
