@@ -5,6 +5,7 @@ mod cluster_removal_test;
 use super::*;
 use crate::construction::clustering::dbscan::create_job_clusters;
 use crate::construction::heuristics::InsertionContext;
+use crate::models::common::Timestamp;
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::search::{get_route_jobs, JobRemovalTracker, TabuList};
@@ -26,7 +27,10 @@ impl ClusterRemoval {
         min_items: usize,
         limits: RemovalLimits,
     ) -> GenericResult<Self> {
-        let clusters = create_job_clusters(problem.as_ref(), Some(min_items), None)?;
+        let clusters =
+            create_job_clusters(problem.jobs.all(), problem.fleet.as_ref(), Some(min_items), None, |profile, job| {
+                problem.jobs.neighbors(profile, job, Timestamp::default())
+            })?;
         let mut clusters =
             clusters.into_iter().map(|cluster| cluster.into_iter().collect::<Vec<_>>()).collect::<Vec<_>>();
 

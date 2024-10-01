@@ -6,32 +6,36 @@ mod dbscan_test;
 
 use crate::algorithms::clustering::dbscan::create_clusters;
 use crate::algorithms::geometry::Point;
-use crate::models::common::Timestamp;
+use crate::models::common::Profile;
 use crate::models::problem::{Job, Single};
-use crate::models::Problem;
+use crate::prelude::{Cost, Fleet};
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::sync::Arc;
 
 /// Creates clusters of jobs using DBSCAN algorithm.
-pub fn create_job_clusters(
-    problem: &Problem,
+pub fn create_job_clusters<'a, FN, IR>(
+    jobs: &[Job],
+    fleet: &Fleet,
     min_points: Option<usize>,
     epsilon: Option<Float>,
-) -> GenericResult<Vec<HashSet<Job>>> {
+    neighbour_fn: FN,
+) -> GenericResult<Vec<HashSet<Job>>>
+where
+    FN: Fn(&Profile, &Job) -> IR + 'a,
+    IR: Iterator<Item = (&'a Job, Cost)> + 'a,
+{
     let min_points = min_points.unwrap_or(3).max(2);
-    let epsilon = epsilon.unwrap_or_else(|| estimate_epsilon(problem, min_points));
+    let epsilon = epsilon.unwrap_or_else(|| estimate_epsilon(jobs, fleet, min_points, &neighbour_fn));
 
-    // get main parameters with some randomization
-    let profile = problem.fleet.profiles.first().ok_or_else(|| GenericError::from("cannot find any profile"))?;
+    // NOTE use always first profile. It is not yet clear what would be a better way to handle multiple profiles here.
+    let profile = fleet.profiles.first().ok_or_else(|| GenericError::from("cannot find any profile"))?;
     // exclude jobs without locations from clustering
-    let jobs = problem.jobs.all().iter().filter(|j| job_has_locations(j)).cloned().collect::<Vec<_>>();
+    let jobs = jobs.iter().filter(|j| job_has_locations(j)).cloned().collect::<Vec<_>>();
 
     let neighbor_fn = move |job| {
-        problem
-            .jobs
-            .neighbors(profile, job, 0.)
+        neighbour_fn(profile, job)
             .filter(move |(job, _)| job_has_locations(job))
             .take_while(move |(_, cost)| *cost < epsilon)
             .map(|(job, _)| job)
@@ -44,8 +48,12 @@ pub fn create_job_clusters(
 }
 
 /// Estimates DBSCAN epsilon parameter.
-fn estimate_epsilon(problem: &Problem, min_points: usize) -> Float {
-    let costs = get_average_costs(problem, min_points);
+fn estimate_epsilon<'a, FN, IR>(jobs: &[Job], fleet: &Fleet, min_points: usize, neighbour_fn: &FN) -> Float
+where
+    FN: Fn(&Profile, &Job) -> IR + 'a,
+    IR: Iterator<Item = (&'a Job, Cost)> + 'a,
+{
+    let costs = get_average_costs(jobs, fleet, min_points, neighbour_fn);
     let curve = costs.into_iter().enumerate().map(|(idx, cost)| Point::new(idx as Float, cost)).collect::<Vec<_>>();
 
     // get max curvature approximation and return it as a guess for optimal epsilon value
@@ -53,12 +61,14 @@ fn estimate_epsilon(problem: &Problem, min_points: usize) -> Float {
 }
 
 /// Gets average costs across all profiles.
-fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<Float> {
-    let jobs = problem.jobs.as_ref();
-    let mut costs = problem.fleet.profiles.iter().fold(vec![0.; jobs.size()], |mut acc, profile| {
-        jobs.all().iter().enumerate().for_each(|(idx, job)| {
-            let (sum, count) = jobs
-                .neighbors(profile, job, Timestamp::default())
+fn get_average_costs<'a, FN, IR>(jobs: &[Job], fleet: &Fleet, min_points: usize, neighbour_fn: &FN) -> Vec<Float>
+where
+    FN: Fn(&Profile, &Job) -> IR + 'a,
+    IR: Iterator<Item = (&'a Job, Cost)> + 'a,
+{
+    let mut costs = fleet.profiles.iter().fold(vec![0.; jobs.len()], |mut acc, profile| {
+        jobs.iter().enumerate().for_each(|(idx, job)| {
+            let (sum, count) = neighbour_fn(profile, job)
                 .filter(|(j, _)| job_has_locations(j))
                 .take(min_points)
                 .map(|(_, cost)| cost)
@@ -69,7 +79,7 @@ fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<Float> {
         acc
     });
 
-    costs.iter_mut().for_each(|cost| *cost /= problem.fleet.profiles.len() as Float);
+    costs.iter_mut().for_each(|cost| *cost /= fleet.profiles.len() as Float);
 
     // sort all distances in ascending order
     costs.sort_unstable_by(compare_floats_refs);

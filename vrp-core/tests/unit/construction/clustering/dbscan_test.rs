@@ -4,7 +4,7 @@ use crate::helpers::construction::clustering::p;
 use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::problem::TestSingleBuilder;
 use crate::helpers::solver::{generate_matrix_distances_from_points, generate_matrix_routes};
-use crate::models::common::Location;
+use crate::models::common::{Location, Timestamp};
 use crate::models::{Extras, GoalContext};
 use crate::prelude::{ActivityCost, TransportCost};
 
@@ -51,7 +51,10 @@ fn can_estimate_epsilon_impl(matrix: (usize, usize), nth_neighbor: usize, matrix
         matrix_modify,
     );
 
-    assert_eq!((estimate_epsilon(&problem, nth_neighbor) * 1000.).round() / 1000., expected);
+    let epsilon = estimate_epsilon(problem.jobs.all(), problem.fleet.as_ref(), nth_neighbor, &|profile, job| {
+        problem.jobs.neighbors(profile, job, Timestamp::default())
+    });
+    assert_eq!((epsilon * 1000.).round() / 1000., expected);
 }
 
 parameterized_test! {can_estimate_epsilon_having_zero_costs, min_points, {
@@ -88,7 +91,9 @@ fn can_estimate_epsilon_having_zero_costs_impl(min_points: usize) {
         },
     );
 
-    let costs = get_average_costs(&problem, min_points);
+    let costs = get_average_costs(problem.jobs.all(), &problem.fleet, min_points, &|profile, job| {
+        problem.jobs.neighbors(profile, job, Timestamp::default())
+    });
 
     assert!(!costs.is_empty());
 }
@@ -115,7 +120,10 @@ fn can_create_job_clusters_impl(param: (usize, Float), expected: &[Vec<Location>
         |_| (vec![0.; 64], create_test_distances()),
     );
 
-    let clusters = create_job_clusters(&problem, Some(min_points), Some(epsilon))
+    let clusters =
+        create_job_clusters(problem.jobs.all(), &problem.fleet, Some(min_points), Some(epsilon), |profile, job| {
+            problem.jobs.neighbors(profile, job, Timestamp::default())
+        })
         .expect("cannot create job clusters")
         .iter()
         .map(|cluster| {

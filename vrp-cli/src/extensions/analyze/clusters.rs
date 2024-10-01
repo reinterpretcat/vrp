@@ -5,6 +5,7 @@ mod clusters_test;
 use std::io::{BufReader, BufWriter, Read};
 use std::sync::Arc;
 use vrp_core::construction::clustering::dbscan::create_job_clusters;
+use vrp_core::models::common::Timestamp;
 use vrp_core::models::problem::{get_job_locations, JobIdDimension};
 use vrp_core::models::Problem;
 use vrp_core::prelude::{Float, GenericResult};
@@ -24,7 +25,9 @@ pub fn get_clusters<F: Read>(
     let coord_index = problem.extras.get_coord_index().expect("cannot find coord index");
     let coord_index = coord_index.as_ref();
 
-    let clusters = create_job_clusters(problem.as_ref(), min_points, epsilon)?;
+    let clusters = create_job_clusters(problem.jobs.all(), &problem.fleet, min_points, epsilon, |profile, job| {
+        problem.jobs.neighbors(profile, job, Timestamp::default())
+    })?;
 
     let locations = clusters
         .iter()
