@@ -101,7 +101,7 @@ fn create_test_problem(
 
     Problem {
         fleet: fleet.clone(),
-        jobs: Arc::new(Jobs::new(&fleet, jobs, transport.as_ref(), &test_logger())),
+        jobs: Arc::new(Jobs::new(&fleet, jobs, transport.as_ref(), &test_logger()).unwrap()),
         locks,
         goal: Arc::new(goal),
         activity,

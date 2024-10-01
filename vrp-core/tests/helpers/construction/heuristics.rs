@@ -103,7 +103,7 @@ impl TestInsertionContextBuilder {
 fn create_empty_problem() -> Problem {
     let transport = TestTransportCost::new_shared();
     let fleet = Arc::new(test_fleet());
-    let jobs = Arc::new(Jobs::new(fleet.as_ref(), vec![], transport.as_ref(), &test_logger()));
+    let jobs = Arc::new(Jobs::new(fleet.as_ref(), vec![], transport.as_ref(), &test_logger()).unwrap());
     Problem {
         fleet,
         jobs,

@@ -78,7 +78,7 @@ impl ProblemBuilder {
     }
 
     pub fn with_jobs(&mut self, jobs: Vec<Job>) -> &mut Self {
-        self.0.jobs = Arc::new(Jobs::new(&self.0.fleet, jobs, self.0.transport.as_ref(), &test_logger()));
+        self.0.jobs = Arc::new(Jobs::new(&self.0.fleet, jobs, self.0.transport.as_ref(), &test_logger()).unwrap());
         self
     }
 
@@ -141,7 +141,7 @@ pub fn get_customer_id(job: &Job) -> String {
 fn create_empty_problem() -> Problem {
     let transport = TestTransportCost::new_shared();
     let fleet = test_fleet();
-    let jobs = Jobs::new(&fleet, vec![], transport.as_ref(), &test_logger());
+    let jobs = Jobs::new(&fleet, vec![], transport.as_ref(), &test_logger()).unwrap();
 
     Problem {
         fleet: Arc::new(fleet),

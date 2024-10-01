@@ -41,7 +41,7 @@ pub(super) fn read_jobs_with_extra_locks(
     jobs.extend(conditional_jobs);
     locks.extend(conditional_locks);
 
-    (Jobs::new(fleet, jobs, transport, logger), locks)
+    (Jobs::new(fleet, jobs, transport, logger).unwrap(), locks)
 }
 
 pub(super) fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> {

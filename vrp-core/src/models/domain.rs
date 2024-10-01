@@ -243,7 +243,7 @@ impl ProblemBuilder {
         let logger = self.logger.unwrap_or_else(|| Arc::new(|msg| println!("{}", msg)));
 
         // setup jobs
-        let jobs = Arc::new(Jobs::new(fleet.as_ref(), self.jobs, transport.as_ref(), &logger));
+        let jobs = Arc::new(Jobs::new(fleet.as_ref(), self.jobs, transport.as_ref(), &logger)?);
 
         Ok(Problem { fleet, jobs, locks: vec![], goal, activity, transport, extras })
     }

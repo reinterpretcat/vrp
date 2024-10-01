@@ -155,7 +155,7 @@ pub fn generate_matrix_routes(
     let matrix_data = MatrixData::new(0, None, durations, distances);
     let transport = create_matrix_transport_cost(vec![matrix_data]).unwrap();
     let activity = Arc::new(TestActivityCost::default());
-    let jobs = Jobs::new(&fleet, jobs, transport.as_ref(), &test_logger());
+    let jobs = Jobs::new(&fleet, jobs, transport.as_ref(), &test_logger()).unwrap();
 
     let problem = Problem {
         fleet,

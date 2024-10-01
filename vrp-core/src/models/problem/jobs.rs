@@ -2,13 +2,14 @@
 #[path = "../../../tests/unit/models/problem/jobs_test.rs"]
 mod jobs_test;
 
+use crate::construction::clustering::dbscan::create_job_clusters;
 use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
 use crate::utils::{short_type_name, Either};
-use rosomaxa::prelude::{Float, InfoLogger};
+use rosomaxa::prelude::{Float, GenericResult, InfoLogger};
 use rosomaxa::utils::{compare_floats_f32, compare_floats_f32_refs, parallel_collect, Timer};
 use std::cmp::Ordering::Less;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Weak};
@@ -233,14 +234,22 @@ const MAX_NEIGHBOURS: usize = 256;
 pub struct Jobs {
     jobs: Vec<Job>,
     index: HashMap<usize, JobIndex>,
+    _clusters: Vec<HashSet<Job>>,
 }
 
 impl Jobs {
     /// Creates a new instance of [`Jobs`].
-    pub fn new(fleet: &Fleet, jobs: Vec<Job>, transport: &(dyn TransportCost), logger: &InfoLogger) -> Jobs {
+    pub fn new(
+        fleet: &Fleet,
+        jobs: Vec<Job>,
+        transport: &(dyn TransportCost),
+        logger: &InfoLogger,
+    ) -> GenericResult<Jobs> {
         let index = create_index(fleet, jobs.clone(), transport, logger);
+        let _clusters =
+            create_job_clusters(&jobs, fleet, Some(3), None, |profile, job| neighbors(&index, profile, job))?;
 
-        Jobs { jobs, index }
+        Ok(Jobs { jobs, index, _clusters })
     }
 
     /// Returns all jobs in the original order as a slice.
@@ -251,11 +260,7 @@ impl Jobs {
     /// Returns range of jobs "near" to given one. Near is defined by costs with relation
     /// transport profile and departure time.
     pub fn neighbors(&self, profile: &Profile, job: &Job, _: Timestamp) -> impl Iterator<Item = (&Job, Cost)> {
-        self.index
-            .get(&profile.index)
-            .and_then(|index| index.get(job))
-            .into_iter()
-            .flat_map(|(info, _)| info.iter().map(|(job, cost)| (job, *cost as Float)))
+        neighbors(&self.index, profile, job)
     }
 
     /// Returns job rank as relative cost from any vehicle's start position.
@@ -293,6 +298,18 @@ impl Hash for Job {
             }
         }
     }
+}
+
+fn neighbors<'a>(
+    index: &'a HashMap<usize, JobIndex>,
+    profile: &Profile,
+    job: &Job,
+) -> impl Iterator<Item = (&'a Job, Cost)> {
+    index
+        .get(&profile.index)
+        .and_then(|index| index.get(job))
+        .into_iter()
+        .flat_map(|(info, _)| info.iter().map(|(job, cost)| (job, *cost as Float)))
 }
 
 /// Returns job locations.
