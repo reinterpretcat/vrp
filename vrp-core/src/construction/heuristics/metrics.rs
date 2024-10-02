@@ -204,7 +204,7 @@ pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> Float {
 }
 
 /// A type which represents routes grouped by their proximity.
-pub type RouteProximityGroup = Option<Vec<Vec<(usize, Option<Float>)>>>;
+pub type RouteProximityGroup = Option<Vec<Vec<usize>>>;
 
 /// Estimates distances between all routes using their medoids and returns the sorted groups.
 pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProximityGroup {
@@ -257,7 +257,9 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProxi
             _ => Ordering::Greater,
         });
 
-        route_distances
+        let (indices, _): (Vec<_>, Vec<_>) = route_distances.into_iter().unzip();
+
+        indices
     }))
 }
 

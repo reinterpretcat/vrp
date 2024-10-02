@@ -78,7 +78,7 @@ impl Ruin for CloseRouteRemoval {
             #[allow(clippy::needless_collect)]
             let routes = route_groups_distances[route_index]
                 .iter()
-                .filter_map(|(idx, _)| insertion_ctx.solution.routes.get(*idx))
+                .filter_map(|idx| insertion_ctx.solution.routes.get(*idx))
                 .map(|route_ctx| route_ctx.route().actor.clone())
                 .collect::<Vec<_>>();
 

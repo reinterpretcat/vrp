@@ -113,16 +113,15 @@ fn create_route_pairs(insertion_ctx: &InsertionContext, route_pairs_threshold: u
                     route_group_distance
                         .iter()
                         .cloned()
-                        .filter(|(inner_idx, _)| {
+                        .filter(|inner_idx| {
                             let used_indices = used_indices.borrow();
                             !used_indices.contains(&(outer_idx, *inner_idx))
                                 && !used_indices.contains(&(*inner_idx, outer_idx))
                         })
-                        .map(|(inner_idx, _)| {
+                        .inspect(|&inner_idx| {
                             let mut used_indices = used_indices.borrow_mut();
                             used_indices.insert((outer_idx, inner_idx));
                             used_indices.insert((inner_idx, outer_idx));
-                            inner_idx
                         })
                         .next()
                         .map(|inner_idx| (outer_idx, inner_idx))

@@ -138,8 +138,7 @@ fn create_multiple_insertion_contexts(
                 .chain(
                     route_group_distance
                         .iter()
-                        .filter(|(inner_idx, _)| !used_indices.borrow().contains(inner_idx))
-                        .map(|(inner_idx, _)| inner_idx)
+                        .filter(|&inner_idx| !used_indices.borrow().contains(inner_idx))
                         .cloned(),
                 )
                 .take(group_size)
