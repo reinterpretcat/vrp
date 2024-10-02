@@ -6,7 +6,7 @@ use super::*;
 use crate::algorithms::gsom::*;
 use crate::algorithms::math::relative_distance;
 use crate::population::elitism::{DedupFn, Shuffled};
-use crate::utils::{Environment, Random};
+use crate::utils::{parallel_into_collect, Environment, Random};
 use rand::prelude::SliceRandom;
 use rayon::iter::Either;
 use std::convert::TryInto;
@@ -361,7 +361,7 @@ where
         config: &RosomaxaConfig,
         individuals: Vec<S>,
     ) -> IndividualNetwork<O, S> {
-        let inputs_vec = individuals.into_iter().map(init_individual).collect::<Vec<_>>();
+        let inputs_vec = parallel_into_collect(individuals, init_individual);
 
         let inputs_slice = inputs_vec.into_boxed_slice();
         let inputs_array: Box<[S; 4]> = match inputs_slice.try_into() {
