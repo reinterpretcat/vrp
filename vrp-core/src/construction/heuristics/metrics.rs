@@ -203,11 +203,8 @@ pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> Float {
     }
 }
 
-/// A type which represents routes grouped by their proximity.
-pub type RouteProximityGroup = Option<Vec<Vec<usize>>>;
-
 /// Estimates distances between all routes using their medoids and returns the sorted groups.
-pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProximityGroup {
+pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Option<Vec<Vec<usize>>> {
     let solution = &insertion_ctx.solution;
     let profile = &solution.routes.first().map(|route_ctx| &route_ctx.route().actor.vehicle.profile)?;
     let transport = insertion_ctx.problem.transport.as_ref();
