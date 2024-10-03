@@ -6,7 +6,6 @@ use crate::construction::heuristics::*;
 use crate::models::GoalContext;
 use crate::solver::search::create_environment_with_custom_quota;
 use crate::solver::*;
-use rand::prelude::SliceRandom;
 use rosomaxa::utils::parallel_into_collect;
 use std::cell::RefCell;
 use std::cmp::Ordering;
@@ -116,31 +115,24 @@ fn create_multiple_insertion_contexts(
     environment: Arc<Environment>,
     max_routes_range: (i32, i32),
 ) -> Option<Vec<(InsertionContext, HashSet<usize>)>> {
-    let mut route_groups_distances = group_routes_by_proximity(insertion_ctx)?;
-    route_groups_distances.iter_mut().for_each(|route_group_distance| {
-        let random = &environment.random;
-        let shuffle_count = random.uniform_int(2, (route_group_distance.len() as i32 / 5).max(2)) as usize;
-        route_group_distance.partial_shuffle(&mut random.get_rng(), shuffle_count);
-    });
+    if insertion_ctx.solution.routes.is_empty() {
+        return None;
+    }
 
+    let route_groups = group_routes_by_proximity(insertion_ctx);
     let (min, max) = max_routes_range;
     let max = if insertion_ctx.solution.routes.len() < 4 { 2 } else { max };
 
     // identify route groups and create contexts from them
     let used_indices = RefCell::new(HashSet::new());
-    let insertion_ctxs = route_groups_distances
-        .iter()
+    let insertion_ctxs = route_groups
+        .into_iter()
         .enumerate()
         .filter(|(outer_idx, _)| !used_indices.borrow().contains(outer_idx))
-        .map(|(outer_idx, route_group_distance)| {
+        .map(|(outer_idx, route_group)| {
             let group_size = environment.random.uniform_int(min, max) as usize;
             let route_group = once(outer_idx)
-                .chain(
-                    route_group_distance
-                        .iter()
-                        .filter(|&inner_idx| !used_indices.borrow().contains(inner_idx))
-                        .cloned(),
-                )
+                .chain(route_group.into_iter().filter(|inner_idx| !used_indices.borrow().contains(inner_idx)))
                 .take(group_size)
                 .collect::<HashSet<_>>();
 

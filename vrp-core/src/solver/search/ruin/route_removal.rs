@@ -58,32 +58,30 @@ impl Ruin for CloseRouteRemoval {
             return insertion_ctx;
         }
 
-        if let Some(route_groups_distances) = group_routes_by_proximity(&insertion_ctx) {
-            let random = insertion_ctx.environment.random.clone();
+        let random = insertion_ctx.environment.random.clone();
+        let route_groups = group_routes_by_proximity(&insertion_ctx);
 
-            let stale_routes = insertion_ctx
-                .solution
-                .routes
-                .iter()
-                .enumerate()
-                .filter_map(|(idx, route)| if route.is_stale() { Some(idx) } else { None })
-                .collect::<Vec<_>>();
+        let stale_routes = insertion_ctx
+            .solution
+            .routes
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, route)| if route.is_stale() { Some(idx) } else { None })
+            .collect::<Vec<_>>();
 
-            let route_index = if !stale_routes.is_empty() && random.is_head_not_tails() {
-                stale_routes[random.uniform_int(0, (stale_routes.len() - 1) as i32) as usize]
-            } else {
-                random.uniform_int(0, (route_groups_distances.len() - 1) as i32) as usize
-            };
+        let route_index = if !stale_routes.is_empty() && random.is_head_not_tails() {
+            stale_routes[random.uniform_int(0, (stale_routes.len() - 1) as i32) as usize]
+        } else {
+            random.uniform_int(0, (route_groups.len() - 1) as i32) as usize
+        };
 
-            #[allow(clippy::needless_collect)]
-            let routes = route_groups_distances[route_index]
-                .iter()
-                .filter_map(|idx| insertion_ctx.solution.routes.get(*idx))
-                .map(|route_ctx| route_ctx.route().actor.clone())
-                .collect::<Vec<_>>();
+        let routes = route_groups[route_index]
+            .iter()
+            .filter_map(|idx| insertion_ctx.solution.routes.get(*idx))
+            .map(|route_ctx| route_ctx.route().actor.clone())
+            .collect::<Vec<_>>();
 
-            remove_routes_with_actors(&mut insertion_ctx.solution, &self.limits, random.as_ref(), routes.into_iter());
-        }
+        remove_routes_with_actors(&mut insertion_ctx.solution, &self.limits, random.as_ref(), routes.into_iter());
 
         insertion_ctx
     }

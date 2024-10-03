@@ -6,7 +6,6 @@ use super::*;
 use crate::models::problem::Job;
 use crate::solver::search::create_environment_with_custom_quota;
 use crate::utils::Either;
-use rand::seq::SliceRandom;
 use rosomaxa::utils::*;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -97,50 +96,47 @@ fn get_evaluation_context<'a>(search_ctx: &'a SearchContext, job: &'a Job) -> Ev
 }
 
 /// Creates route pairs to exchange jobs.
-#[allow(clippy::needless_collect)] // NOTE enforce size hint to be non-zero
 fn create_route_pairs(insertion_ctx: &InsertionContext, route_pairs_threshold: usize) -> Vec<(usize, usize)> {
     let random = insertion_ctx.environment.random.clone();
 
-    if random.is_hit(0.1) { None } else { group_routes_by_proximity(insertion_ctx) }
-        .map(|route_groups_distances| {
-            let used_indices = RefCell::new(HashSet::<(usize, usize)>::new());
-            let distances = route_groups_distances
-                .into_iter()
-                .enumerate()
-                .flat_map(|(outer_idx, mut route_group_distance)| {
-                    let shuffle_amount = (route_group_distance.len() as Float * 0.1) as usize;
-                    route_group_distance.partial_shuffle(&mut random.get_rng(), shuffle_amount);
-                    route_group_distance
-                        .iter()
-                        .cloned()
-                        .filter(|inner_idx| {
-                            let used_indices = used_indices.borrow();
-                            !used_indices.contains(&(outer_idx, *inner_idx))
-                                && !used_indices.contains(&(*inner_idx, outer_idx))
-                        })
-                        .inspect(|&inner_idx| {
-                            let mut used_indices = used_indices.borrow_mut();
-                            used_indices.insert((outer_idx, inner_idx));
-                            used_indices.insert((inner_idx, outer_idx));
-                        })
-                        .next()
-                        .map(|inner_idx| (outer_idx, inner_idx))
-                })
-                .collect::<Vec<_>>();
-            SelectionSamplingIterator::new(distances.into_iter(), route_pairs_threshold, random.clone()).collect()
-        })
-        .unwrap_or_else(|| {
-            let route_count = insertion_ctx.solution.routes.len();
-            // NOTE this is needed to have size hint properly set
-            let all_route_pairs = (0..route_count)
-                .flat_map(move |outer_idx| {
-                    (0..route_count)
-                        .filter(move |&inner_idx| outer_idx > inner_idx)
-                        .map(move |inner_idx| (outer_idx, inner_idx))
-                })
-                .collect::<Vec<_>>();
-            SelectionSamplingIterator::new(all_route_pairs.into_iter(), route_pairs_threshold, random.clone()).collect()
-        })
+    if random.is_hit(0.1) {
+        let route_count = insertion_ctx.solution.routes.len();
+        // NOTE this is needed to have size hint properly set
+        let all_route_pairs = (0..route_count)
+            .flat_map(move |outer_idx| {
+                (0..route_count)
+                    .filter(move |&inner_idx| outer_idx > inner_idx)
+                    .map(move |inner_idx| (outer_idx, inner_idx))
+            })
+            .collect::<Vec<_>>();
+
+        SelectionSamplingIterator::new(all_route_pairs.into_iter(), route_pairs_threshold, random).collect()
+    } else {
+        let route_groups = group_routes_by_proximity(insertion_ctx);
+        let used_indices = RefCell::new(HashSet::<(usize, usize)>::new());
+        let distances = route_groups
+            .into_iter()
+            .enumerate()
+            .flat_map(|(outer_idx, route_group)| {
+                route_group
+                    .into_iter()
+                    .filter(|inner_idx| {
+                        let used_indices = used_indices.borrow();
+                        !used_indices.contains(&(outer_idx, *inner_idx))
+                            && !used_indices.contains(&(*inner_idx, outer_idx))
+                    })
+                    .inspect(|inner_idx| {
+                        let mut used_indices = used_indices.borrow_mut();
+                        used_indices.insert((outer_idx, *inner_idx));
+                        used_indices.insert((*inner_idx, outer_idx));
+                    })
+                    .next()
+                    .map(|inner_idx| (outer_idx, inner_idx))
+            })
+            .collect::<Vec<_>>();
+
+        SelectionSamplingIterator::new(distances.into_iter(), route_pairs_threshold, random).collect()
+    }
 }
 
 /// Finds insertion cost of the existing job in the route.

@@ -178,8 +178,8 @@ pub fn get_last_distance_customer_mean(insertion_ctx: &InsertionContext) -> Floa
 
 /// Estimates distances between all routes by sampling locations from routes and measuring
 /// average distance between them.
-pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Option<Vec<Vec<usize>>> {
-    const LOCATION_SAMPLE_SIZE: usize = 8;
+pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Vec<Vec<usize>> {
+    const LOCATION_SAMPLE_SIZE: usize = 4;
 
     let routes = &insertion_ctx.solution.routes;
     let transport = insertion_ctx.problem.transport.as_ref();
@@ -200,7 +200,7 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Option<Vec
         .enumerate()
         .collect::<Vec<_>>();
 
-    Some(parallel_collect(&indexed_route_clusters, |(outer_idx, outer_clusters)| {
+    parallel_collect(&indexed_route_clusters, |(outer_idx, outer_clusters)| {
         let mut route_distances = indexed_route_clusters
             .iter()
             .filter(move |(inner_idx, _)| *outer_idx != *inner_idx)
@@ -240,7 +240,7 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Option<Vec
         let (indices, _): (Vec<_>, Vec<_>) = route_distances.into_iter().unzip();
 
         indices
-    }))
+    })
 }
 
 fn get_values_from_route_state<'a>(
