@@ -4,12 +4,12 @@ mod metrics_test;
 
 use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState, WaitingTimeActivityState};
 use crate::construction::features::MaxVehicleLoadTourState;
-use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState};
+use crate::construction::heuristics::{InsertionContext, RouteState};
 use crate::models::common::Distance;
-use crate::models::problem::{TransportCost, TravelTime};
+use crate::models::problem::TravelTime;
 use rosomaxa::algorithms::math::*;
 use rosomaxa::prelude::*;
-use rosomaxa::utils::parallel_collect;
+use rosomaxa::utils::{parallel_collect, SelectionSamplingIterator};
 use std::cmp::Ordering;
 
 /// Gets max load variance in tours.
@@ -176,45 +176,55 @@ pub fn get_last_distance_customer_mean(insertion_ctx: &InsertionContext) -> Floa
     get_mean_iter(distances)
 }
 
-/// Estimates distances between all routes using their medoids and returns the sorted groups.
+/// Estimates distances between all routes by sampling locations from routes and measuring
+/// average distance between them.
 pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Option<Vec<Vec<usize>>> {
-    let solution = &insertion_ctx.solution;
-    let profile = &solution.routes.first().map(|route_ctx| &route_ctx.route().actor.vehicle.profile)?;
-    let transport = insertion_ctx.problem.transport.as_ref();
+    const LOCATION_SAMPLE_SIZE: usize = 8;
 
-    let indexed_route_clusters =
-        parallel_collect(&solution.routes, |route_ctx| get_approx_clusters(route_ctx, transport))
-            .into_iter()
-            .enumerate()
-            .collect::<Vec<_>>();
+    let routes = &insertion_ctx.solution.routes;
+    let transport = insertion_ctx.problem.transport.as_ref();
+    let random = &insertion_ctx.environment.random;
+
+    // get routes with sampled locations and index them
+    let indexed_route_clusters = routes
+        .iter()
+        .map(|route_ctx| {
+            SelectionSamplingIterator::new(
+                route_ctx.route().tour.all_activities(),
+                LOCATION_SAMPLE_SIZE,
+                random.clone(),
+            )
+            .map(|activity| activity.place.location)
+            .collect::<Vec<_>>()
+        })
+        .enumerate()
+        .collect::<Vec<_>>();
 
     Some(parallel_collect(&indexed_route_clusters, |(outer_idx, outer_clusters)| {
         let mut route_distances = indexed_route_clusters
             .iter()
             .filter(move |(inner_idx, _)| *outer_idx != *inner_idx)
             .map(move |(inner_idx, inner_clusters)| {
-                let distance = match (outer_clusters, inner_clusters) {
-                    (Some(outer_clusters), Some(inner_clusters)) => {
-                        // get a sum of distances between all pairs of clusters
-                        let pair_distance = outer_clusters
-                            .iter()
-                            .flat_map(|outer| inner_clusters.iter().map(move |inner| (inner, outer)))
-                            .map(|(&o, &i)| {
-                                transport.distance_approx(profile, o, i).max(0.)
-                                    + transport.distance_approx(profile, i, o).max(0.)
-                            })
-                            .sum::<Distance>()
-                            / 2.;
+                // get a sum of distances between all pairs of sampled locations
+                let pair_distance = outer_clusters
+                    .iter()
+                    .flat_map(|outer| inner_clusters.iter().map(move |inner| (inner, outer)))
+                    .map(|(&o, &i)| {
+                        // NOTE use outer and inner route profiles to estimate distance
+                        let inner_profile = &routes[*inner_idx].route().actor.vehicle.profile;
+                        let outer_profile = &routes[*outer_idx].route().actor.vehicle.profile;
+                        transport.distance_approx(inner_profile, o, i).max(0.)
+                            + transport.distance_approx(outer_profile, o, i).max(0.)
+                    })
+                    .sum::<Distance>()
+                    / 2.;
 
-                        let total_pairs = outer_clusters.len() * inner_clusters.len();
-                        if total_pairs == 0 {
-                            None
-                        } else {
-                            // get average distance between clusters
-                            Some(pair_distance / total_pairs as Float)
-                        }
-                    }
-                    _ => None,
+                let total_pairs = outer_clusters.len() * inner_clusters.len();
+                let distance = if total_pairs == 0 {
+                    None
+                } else {
+                    // get average distance between clusters
+                    Some(pair_distance / total_pairs as Float)
                 };
 
                 (*inner_idx, distance)
@@ -242,33 +252,4 @@ fn get_values_from_route_state<'a>(
         .routes
         .iter()
         .map(move |route_ctx| state_value_fn(route_ctx.state()).copied().unwrap_or_default())
-}
-
-fn get_approx_clusters(route_ctx: &RouteContext, transport: &(dyn TransportCost)) -> Option<Vec<usize>> {
-    const CLUSTER_SIZE_RATIO: Float = 0.2;
-
-    let distance_threshold = route_ctx.state().get_total_distance().copied()? * CLUSTER_SIZE_RATIO;
-    let profile = &route_ctx.route().actor.vehicle.profile;
-
-    Some(
-        route_ctx
-            .route()
-            .tour
-            .all_activities()
-            .map(|activity| activity.place.location)
-            .fold((Distance::default(), None, Vec::default()), |(mut acc_distance, prev, mut clusters), current| {
-                if let Some(prev) = prev {
-                    acc_distance += transport.distance_approx(profile, prev, current).max(0.);
-                    if acc_distance > distance_threshold {
-                        clusters.push(current);
-                        acc_distance = Distance::default();
-                    }
-                } else {
-                    clusters.push(current)
-                }
-
-                (acc_distance, Some(current), clusters)
-            })
-            .2,
-    )
 }
