@@ -14,7 +14,6 @@ use std::sync::Arc;
 pub struct JobRemovalTracker {
     activities_left: i32,
     routes_left: i32,
-    has_fully_removed_routes: bool,
     affected_actors: HashSet<Arc<Actor>>,
     removed_jobs: HashSet<Job>,
 }
@@ -27,7 +26,6 @@ impl JobRemovalTracker {
                 .uniform_int(limits.removed_activities_range.start as i32, limits.removed_activities_range.end as i32),
             routes_left: random
                 .uniform_int(limits.affected_routes_range.start as i32, limits.affected_routes_range.end as i32),
-            has_fully_removed_routes: false,
             affected_actors: HashSet::default(),
             removed_jobs: HashSet::default(),
         }
@@ -99,6 +97,11 @@ impl JobRemovalTracker {
     fn can_remove_full_route(&self, solution: &SolutionContext, route_idx: usize, random: &(dyn Random)) -> bool {
         let route_ctx = solution.routes.get(route_idx).expect("invalid route index");
 
+        let route_activities = route_ctx.route().tour.job_activity_count();
+        if route_activities == 0 {
+            return false;
+        }
+
         // check locked jobs
         let has_locked_jobs =
             !solution.locked.is_empty() && route_ctx.route().tour.jobs().any(|job| solution.locked.contains(job));
@@ -106,16 +109,11 @@ impl JobRemovalTracker {
             return false;
         }
 
-        if route_ctx.route().tour.job_activity_count() as i32 <= self.activities_left {
+        if route_activities as i32 <= self.activities_left {
             return true;
         }
 
-        // try at least once remove a route completely
-        if !self.has_fully_removed_routes {
-            return random.is_hit(1. / self.routes_left.max(1) as Float);
-        }
-
-        false
+        random.is_hit((self.activities_left as Float / route_activities as Float).min(1.))
     }
 
     fn remove_whole_route(&mut self, solution: &mut SolutionContext, route_idx: usize) {
@@ -135,8 +133,6 @@ impl JobRemovalTracker {
 
         self.affected_actors.insert(actor);
         self.routes_left = (self.routes_left - 1).max(0);
-
-        self.has_fully_removed_routes = true;
     }
 
     fn try_remove_part_route(

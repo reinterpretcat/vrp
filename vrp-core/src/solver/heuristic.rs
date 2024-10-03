@@ -551,22 +551,13 @@ mod dynamic {
                 "local_swap_star".to_string(),
                 10.,
             ),
+            // decompose search methods with different inner heuristic
             (
-                Arc::new(DecomposeSearch::new(
-                    Arc::new(WeightedHeuristicOperator::new(
-                        vec![
-                            create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
-                            create_default_local_search(environment.random.clone()),
-                        ],
-                        vec![10, 1],
-                    )),
-                    (2, 4),
-                    2,
-                    SINGLE_HEURISTIC_QUOTA_LIMIT,
-                )),
-                "decompose_search".to_string(),
+                create_variable_search_decompose_search(problem.clone(), environment.clone()),
+                "decompose_search_var".to_string(),
                 25.,
             ),
+            (create_composite_decompose_search(problem, environment), "decompose_search_com".to_string(), 25.),
         ]
     }
 
@@ -674,6 +665,40 @@ mod dynamic {
             1,
             1,
         ))))
+    }
+
+    fn create_variable_search_decompose_search(
+        problem: Arc<Problem>,
+        environment: Arc<Environment>,
+    ) -> TargetSearchOperator {
+        Arc::new(DecomposeSearch::new(
+            Arc::new(WeightedHeuristicOperator::new(
+                vec![
+                    create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
+                    create_default_local_search(environment.random.clone()),
+                ],
+                vec![10, 1],
+            )),
+            (2, 4),
+            2,
+            SINGLE_HEURISTIC_QUOTA_LIMIT,
+        ))
+    }
+
+    fn create_composite_decompose_search(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetSearchOperator {
+        let limits = RemovalLimits { removed_activities_range: (10..100), affected_routes_range: 1..1 };
+        let route_removal_operator =
+            Arc::new(RuinAndRecreate::new(Arc::new(RandomRouteRemoval::new(limits)), Arc::new(DummyRecreate)));
+
+        Arc::new(DecomposeSearch::new(
+            Arc::new(CompositeHeuristicOperator::new(vec![
+                (route_removal_operator, 1.),
+                (create_default_inner_ruin_recreate(problem.clone(), environment.clone()), 1.),
+            ])),
+            (2, 4),
+            2,
+            SINGLE_HEURISTIC_QUOTA_LIMIT,
+        ))
     }
 }
 

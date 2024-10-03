@@ -162,3 +162,12 @@ impl<T: Recreate> Recreate for RecreateWithGoal<T> {
         insertion_ctx
     }
 }
+
+/// A recreate strategy which does nothing.
+pub(crate) struct DummyRecreate;
+
+impl Recreate for DummyRecreate {
+    fn run(&self, _: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+        insertion_ctx
+    }
+}

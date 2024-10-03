@@ -13,8 +13,8 @@ use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::iter::{empty, once};
 
-/// A search operator which decomposes original solution into multiple partial solutions,
-/// preforms search independently, and then merges partial solution back into one solution.
+/// A search operator which decomposes an original solution into multiple partial solutions,
+/// performs search independently, and then merges partial solutions back into one solution.
 pub struct DecomposeSearch {
     inner_search: TargetSearchOperator,
     max_routes_range: (i32, i32),

@@ -14,6 +14,7 @@ are already published. So, I stick to it for now.
 * apply some minor code refactorings
 * apply some performance optimizations
 * refactor dbscan clustering api
+* improve heuristic a bit
 
 ### Removed
 
