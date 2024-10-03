@@ -176,33 +176,6 @@ pub fn get_last_distance_customer_mean(insertion_ctx: &InsertionContext) -> Floa
     get_mean_iter(distances)
 }
 
-/// Gets average distance between routes using medoids (S4).
-pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> Float {
-    let transport = insertion_ctx.problem.transport.as_ref();
-    let profile = insertion_ctx.solution.routes.first().map(|route_ctx| &route_ctx.route().actor.vehicle.profile);
-
-    if let Some(profile) = profile {
-        let medoids = parallel_collect(&insertion_ctx.solution.routes, |route_ctx| get_medoid(route_ctx, transport))
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>();
-
-        let mut distances = Vec::with_capacity(medoids.len() * 2);
-
-        for i in 0..medoids.len() {
-            for j in (i + 1)..medoids.len() {
-                let distance = transport.distance_approx(profile, medoids[i], medoids[j]);
-                // NOTE assume that negative distance is used between unroutable locations
-                distances.push(distance.max(0.));
-            }
-        }
-
-        get_mean_slice(distances.as_slice())
-    } else {
-        0.
-    }
-}
-
 /// Estimates distances between all routes using their medoids and returns the sorted groups.
 pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Option<Vec<Vec<usize>>> {
     let solution = &insertion_ctx.solution;
@@ -269,23 +242,6 @@ fn get_values_from_route_state<'a>(
         .routes
         .iter()
         .map(move |route_ctx| state_value_fn(route_ctx.state()).copied().unwrap_or_default())
-}
-
-/// Gets medoid location of given route context.
-fn get_medoid(route_ctx: &RouteContext, transport: &(dyn TransportCost)) -> Option<usize> {
-    let profile = &route_ctx.route().actor.vehicle.profile;
-    let locations = route_ctx.route().tour.all_activities().map(|activity| activity.place.location).collect::<Vec<_>>();
-    locations
-        .iter()
-        .map(|outer_loc| {
-            let sum = locations
-                .iter()
-                .map(|inner_loc| transport.distance_approx(profile, *outer_loc, *inner_loc))
-                .sum::<Float>();
-            (sum, *outer_loc)
-        })
-        .min_by(|(sum_a, _), (sum_b, _)| compare_floats(*sum_a, *sum_b))
-        .map(|(_, location)| location)
 }
 
 fn get_approx_clusters(route_ctx: &RouteContext, transport: &(dyn TransportCost)) -> Option<Vec<usize>> {

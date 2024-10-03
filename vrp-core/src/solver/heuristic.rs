@@ -200,7 +200,6 @@ impl RosomaxaWeighted for InsertionContext {
             // distance related features
             get_distance_mean(self),
             get_longest_distance_between_customers_mean(self),
-            get_distance_gravity_mean(self),
             get_first_distance_customer_mean(self),
             get_last_distance_customer_mean(self),
             // depot related features

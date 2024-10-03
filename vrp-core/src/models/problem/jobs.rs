@@ -235,7 +235,6 @@ pub struct Jobs {
     jobs: Vec<Job>,
     index: HashMap<usize, JobIndex>,
     clusters: Vec<HashSet<Job>>,
-    clusters_reverse: HashMap<Job, usize>,
 }
 
 impl Jobs {
@@ -249,13 +248,8 @@ impl Jobs {
         let index = create_index(fleet, jobs.clone(), transport, logger);
         let clusters =
             create_job_clusters(&jobs, fleet, Some(3), None, |profile, job| neighbors(&index, profile, job))?;
-        let clusters_reverse = clusters
-            .iter()
-            .enumerate()
-            .flat_map(|(idx, cluster)| cluster.iter().map(move |job| (job.clone(), idx)))
-            .collect();
 
-        Ok(Jobs { jobs, index, clusters, clusters_reverse })
+        Ok(Jobs { jobs, index, clusters })
     }
 
     /// Returns all jobs in the original order as a slice.
@@ -272,11 +266,6 @@ impl Jobs {
     /// Returns job clusters based on their neighborhood approximation.
     pub fn clusters(&self) -> &[HashSet<Job>] {
         &self.clusters
-    }
-
-    /// Returns index of the cluster for the given job.
-    pub fn cluster_index(&self, job: &Job) -> Option<usize> {
-        self.clusters_reverse.get(job).copied()
     }
 
     /// Returns job rank as relative cost from any vehicle's start position.
