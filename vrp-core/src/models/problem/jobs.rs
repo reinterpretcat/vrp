@@ -7,7 +7,7 @@ use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
 use crate::utils::{short_type_name, Either};
 use rosomaxa::prelude::{Float, GenericResult, InfoLogger};
-use rosomaxa::utils::{compare_floats_f32, compare_floats_f32_refs, parallel_collect, Timer};
+use rosomaxa::utils::{parallel_collect, Timer};
 use std::cmp::Ordering::Less;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
@@ -354,7 +354,7 @@ fn create_index(
                         .filter(|j| **j != *job)
                         .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport, job, j)))
                         .collect();
-                    sorted_job_costs.sort_unstable_by(|(_, a), (_, b)| compare_floats_f32_refs(a, b));
+                    sorted_job_costs.sort_unstable_by(|(_, a), (_, b)| a.total_cmp(b));
 
                     sorted_job_costs.truncate(MAX_NEIGHBOURS);
                     sorted_job_costs.shrink_to_fit();
@@ -430,7 +430,7 @@ fn get_cost_between_jobs(
             (Some(from), Some(to)) => get_cost_between_locations(profile, costs, transport, from, to),
             _ => DEFAULT_COST,
         })
-        .min_by(|a, b| compare_floats_f32(*a, *b))
+        .min_by(|a, b| a.total_cmp(b))
         .unwrap_or(DEFAULT_COST);
 
     // NOTE: ignore time window difference costs as it is hard to balance with routing costs

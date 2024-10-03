@@ -1,6 +1,6 @@
 use super::*;
 use plotters::style::full_palette::BLUE_200;
-use rosomaxa::prelude::{compare_floats_refs, Float};
+use rosomaxa::prelude::Float;
 
 const TOP_SIZE: usize = 25;
 
@@ -59,7 +59,7 @@ fn draw_bar_plot<B: DrawingBackend + 'static>(
 ) -> DrawResult<()> {
     area.fill(&WHITE)?;
 
-    let max_x = data.iter().copied().max_by(compare_floats_refs).unwrap_or(1.);
+    let max_x = data.iter().copied().max_by(|a, b| a.total_cmp(b)).unwrap_or(1.);
     let max_y = data.len() - 1;
     // TODO: improve font size detection
     let font_size = if max_y < TOP_SIZE { 16 } else { 6 };

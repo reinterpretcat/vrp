@@ -68,7 +68,7 @@ fn get_builder_policy() -> BuilderPolicy {
         }),
         ordering_local_fn: Arc::new(move |left, right| {
             ordering_rule(
-                compare_floats(left.commute.forward.duration, right.commute.forward.duration),
+                left.commute.forward.duration.total_cmp(&right.commute.forward.duration),
                 &left.job,
                 &right.job,
             )

@@ -205,7 +205,7 @@ impl GoalBuilder {
                 let fitness_a = objectives[0].fitness(a);
                 let fitness_b = objectives[0].fitness(b);
 
-                compare_floats(fitness_a, fitness_b)
+                fitness_a.total_cmp(&fitness_b)
             }),
             Arc::new(|objectives, move_ctx| objectives[0].estimate(move_ctx)),
             vec![objective],

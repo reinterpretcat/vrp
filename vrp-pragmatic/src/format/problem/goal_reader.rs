@@ -274,7 +274,7 @@ fn eval_multi_objective_strategy(
     Ok(match composition_type {
         MultiStrategy::Sum => builder.add_multi(
             objectives,
-            |os, a, b| dominance_order(a, b, os.iter().map(|o| |a, b| compare_floats(o.fitness(a), o.fitness(b)))),
+            |os, a, b| dominance_order(a, b, os.iter().map(|o| |a, b| o.fitness(a).total_cmp(&o.fitness(b)))),
             |os, move_ctx| os.iter().map(|o| o.estimate(move_ctx)).sum(),
         ),
 
@@ -290,7 +290,7 @@ fn eval_multi_objective_strategy(
 
             builder.add_multi(
                 objectives,
-                |os, a, b| dominance_order(a, b, os.iter().map(|o| |a, b| compare_floats(o.fitness(a), o.fitness(b)))),
+                |os, a, b| dominance_order(a, b, os.iter().map(|o| |a, b| o.fitness(a).total_cmp(&o.fitness(b)))),
                 {
                     let weights = weights.clone();
                     move |os, move_ctx| os.iter().enumerate().map(|(idx, o)| o.estimate(move_ctx) * weights[idx]).sum()

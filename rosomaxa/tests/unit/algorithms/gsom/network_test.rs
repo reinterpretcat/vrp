@@ -7,8 +7,7 @@ type NetworkType = Network<Data, DataStorage, DataStorageFactory>;
 mod common {
     use super::*;
     use crate::helpers::algorithms::gsom::create_test_network;
-    use crate::utils::{compare_floats, DefaultRandom};
-    use std::cmp::Ordering;
+    use crate::utils::DefaultRandom;
 
     #[test]
     fn can_train_network() {
@@ -112,7 +111,7 @@ mod common {
         // -1-1  0-1  +1-1
         assert_eq!(network.nodes.len(), 9);
         network.nodes.iter().filter(|(coord, _)| **coord != Coordinate(0, 0)).for_each(|(coord, node)| {
-            if compare_floats(node.error, 42.) != Ordering::Equal {
+            if node.error != 42. {
                 unreachable!("node is not updated: ({},{}), value: {}", coord.0, coord.1, node.error);
             }
         });

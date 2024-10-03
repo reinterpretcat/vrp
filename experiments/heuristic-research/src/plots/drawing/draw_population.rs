@@ -1,6 +1,6 @@
 use super::*;
 use itertools::{Itertools, MinMaxResult};
-use rosomaxa::prelude::{compare_floats, compare_floats_refs, Float};
+use rosomaxa::prelude::Float;
 use std::cmp::Ordering;
 
 /// Draws rosomaxa population state.
@@ -35,10 +35,8 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                                  series: &Series2D|
              -> DrawResult<()> {
                 let matrix: MatrixData = (series.matrix_fn)();
-                let (min, max, size) = match matrix.iter().minmax_by(|(_, &a), (_, &b)| compare_floats(a, b)) {
-                    MinMaxResult::OneElement((_, &value)) if compare_floats(value, 0.) != Ordering::Equal => {
-                        (value, value, value)
-                    }
+                let (min, max, size) = match matrix.iter().minmax_by(|(_, a), (_, b)| a.total_cmp(b)) {
+                    MinMaxResult::OneElement((_, &value)) if value != 0. => (value, value, value),
                     MinMaxResult::MinMax((_, &min), (_, &max)) => (min, max, max - min),
                     _ => (1., 1., 1.),
                 };
@@ -91,7 +89,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                 let compare_fitness = |left: &[Float], right: &[Float]| {
                     (left.iter())
                         .zip(right.iter())
-                        .map(|(lhs, rhs)| compare_floats_refs(lhs, rhs))
+                        .map(|(lhs, rhs)| lhs.total_cmp(rhs))
                         .find_or_first(|ord| *ord != Ordering::Equal)
                         .unwrap_or(Ordering::Equal)
                 };

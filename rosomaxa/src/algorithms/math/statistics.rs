@@ -1,11 +1,9 @@
 use crate::prelude::Float;
-use crate::utils::compare_floats;
-use std::cmp::Ordering;
 
 /// Returns coefficient variation.
 pub fn get_cv(values: &[Float]) -> Float {
     let (variance, mean) = get_variance_mean(values);
-    if compare_floats(mean, 0.) == Ordering::Equal {
+    if mean == 0. {
         return 0.;
     }
     let sdev = variance.sqrt();

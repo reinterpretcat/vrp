@@ -4,7 +4,6 @@ use crate::models::solution::Activity;
 use crate::solver::search::LocalOperator;
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::*;
-use std::cmp::Ordering;
 
 /// Reschedules departure time of the routes in the solution.
 #[derive(Default)]
@@ -45,5 +44,5 @@ impl LocalOperator for RescheduleDeparture {
 }
 
 fn can_recede_departure(start: &Activity, earliest: Float) -> bool {
-    compare_floats(start.schedule.departure, earliest) != Ordering::Equal
+    start.schedule.departure != earliest
 }

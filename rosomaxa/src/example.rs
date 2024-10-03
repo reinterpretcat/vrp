@@ -133,7 +133,7 @@ impl HeuristicObjective for VectorObjective {
     type Solution = VectorSolution;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        a.fitness().next().zip(b.fitness().next()).map(|(a, b)| compare_floats(a, b)).expect("expecting fitness")
+        a.fitness().next().zip(b.fitness().next()).map(|(a, b)| a.total_cmp(&b)).expect("expecting fitness")
     }
 }
 

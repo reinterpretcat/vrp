@@ -66,6 +66,6 @@ where
     }
 
     fn estimate(&self, heuristic_ctx: &Self::Context) -> Float {
-        self.terminations.iter().map(|t| t.estimate(heuristic_ctx)).max_by(compare_floats_refs).unwrap_or(0.)
+        self.terminations.iter().map(|t| t.estimate(heuristic_ctx)).max_by(|a, b| a.total_cmp(b)).unwrap_or(0.)
     }
 }

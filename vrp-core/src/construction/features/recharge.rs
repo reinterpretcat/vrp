@@ -8,7 +8,6 @@ mod recharge_test;
 use super::*;
 use crate::construction::enablers::*;
 use crate::models::solution::Route;
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -148,7 +147,7 @@ impl RechargeFeatureBuilder {
                                 + get_distance(route_ctx.route(), left.end, right.start + 1);
 
                             (distance_limit_fn)(route_ctx.route().actor.as_ref())
-                                .map_or(false, |threshold| compare_floats(new_distance, threshold) != Ordering::Greater)
+                                .map_or(false, |threshold| new_distance <= threshold)
                         }
                     }),
                     is_assignable_fn,

@@ -10,7 +10,6 @@ use crate::models::common::Profile;
 use crate::models::problem::{Job, Single};
 use crate::prelude::{Cost, Fleet};
 use rosomaxa::prelude::*;
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -82,8 +81,8 @@ where
     costs.iter_mut().for_each(|cost| *cost /= fleet.profiles.len() as Float);
 
     // sort all distances in ascending order
-    costs.sort_unstable_by(compare_floats_refs);
-    costs.dedup_by(|a, b| compare_floats(*a, *b) == Ordering::Equal);
+    costs.sort_unstable_by(|a, b| a.total_cmp(b));
+    costs.dedup_by(|a, b| a == b);
 
     costs
 }

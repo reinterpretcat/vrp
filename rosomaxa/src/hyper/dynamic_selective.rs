@@ -5,7 +5,7 @@ mod dynamic_selective_test;
 use super::*;
 use crate::algorithms::math::RemedianUsize;
 use crate::algorithms::rl::{SlotAction, SlotFeedback, SlotMachine};
-use crate::utils::{compare_floats, random_argmax, DefaultDistributionSampler};
+use crate::utils::{random_argmax, DefaultDistributionSampler};
 use crate::Timer;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -350,7 +350,7 @@ where
             let distance_best = get_relative_distance(objective, new_solution, best_known);
 
             // NOTE remap distances to range [0, 2]
-            match (compare_floats(distance_initial, 0.), compare_floats(distance_best, 0.)) {
+            match (distance_initial.total_cmp(&0.), distance_best.total_cmp(&0.)) {
                 (Ordering::Greater, Ordering::Greater) => {
                     (distance_initial + 1.) + (distance_best + 1.) * BEST_DISCOVERY_REWARD_MULTIPLIER
                 }
@@ -417,7 +417,7 @@ where
         .fitness()
         .zip(b.fitness())
         .enumerate()
-        .find(|(_, (fitness_a, fitness_b))| compare_floats_refs(fitness_a, fitness_b) != Ordering::Equal)
+        .find(|(_, (fitness_a, fitness_b))| fitness_a != fitness_b)
         .map(|(idx, _)| idx);
 
     let idx = if let Some(idx) = idx {

@@ -5,7 +5,7 @@ use crate::helpers::models::problem::{get_job_id, TestSingleBuilder};
 use crate::models::common::{Dimensions, Duration, Location, Profile};
 use crate::models::problem::{Job, JobIdDimension};
 use crate::models::*;
-use rosomaxa::prelude::{compare_floats, Float};
+use rosomaxa::prelude::Float;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -118,7 +118,7 @@ pub fn create_cluster_config() -> ClusterConfig {
             }),
             ordering_local_fn: Arc::new(move |left, right| {
                 ordering_rule(
-                    compare_floats(left.commute.forward.duration, right.commute.forward.duration),
+                    left.commute.forward.duration.total_cmp(&right.commute.forward.duration),
                     &left.job,
                     &right.job,
                 )

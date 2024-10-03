@@ -539,7 +539,7 @@ where
             let fitness_a = a.fitness();
             let fitness_b = b.fitness();
 
-            fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
+            fitness_a.zip(fitness_b).all(|(a, b)| a == b)
         }
         _ => {
             let weights_a = a.weights();

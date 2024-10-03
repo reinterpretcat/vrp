@@ -7,7 +7,6 @@ use crate::format::UnknownLocationFallback;
 use crate::get_unique_locations;
 use crate::utils::get_approx_transportation;
 use crate::Location as ApiLocation;
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use vrp_core::construction::enablers::create_typed_actor_groups;
 use vrp_core::construction::features::{VehicleCapacityDimension, VehicleSkillsDimension};
@@ -215,10 +214,7 @@ pub fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
         .iter()
         .map(move |profile| {
             let speed = profile.speed.unwrap_or(DEFAULT_SPEED);
-            let idx = speeds
-                .iter()
-                .position(|s| compare_floats(*s, speed) == Ordering::Equal)
-                .expect("Cannot find profile speed");
+            let idx = speeds.iter().position(|&s| s == speed).expect("Cannot find profile speed");
 
             Matrix {
                 profile: Some(profile.name.clone()),

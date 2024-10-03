@@ -24,5 +24,5 @@ pub use crate::models::{
 // Reimport rosomaxa types
 pub use rosomaxa::{
     evolution::EvolutionConfigBuilder,
-    utils::{compare_floats, DefaultRandom, Environment, Float, GenericError, GenericResult, InfoLogger, Random},
+    utils::{DefaultRandom, Environment, Float, GenericError, GenericResult, InfoLogger, Random},
 };

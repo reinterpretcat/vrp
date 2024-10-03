@@ -102,7 +102,7 @@ fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(Profile, Ve
             })
             .drain()
             .collect();
-        savings.sort_by(|(_, a), (_, b)| compare_floats_refs(b, a));
+        savings.sort_by(|(_, a), (_, b)| b.total_cmp(a));
 
         (route_ctx.route().actor.vehicle.profile.clone(), savings)
     })

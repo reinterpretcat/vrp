@@ -7,7 +7,6 @@ mod total_value_test;
 use super::*;
 use crate::models::problem::Actor;
 use crate::utils::Either;
-use std::cmp::Ordering;
 
 /// Specifies a job value function which takes into account actor and job.
 pub type ActorValueFn = Arc<dyn Fn(&Actor, &Job) -> Float + Send + Sync>;
@@ -82,11 +81,7 @@ impl FeatureConstraint for MaximizeTotalValueConstraint {
                 let candidate_value = (left_fn)(&candidate);
                 let new_value = source_value + candidate_value;
 
-                Ok(if compare_floats(new_value, source_value) != Ordering::Equal {
-                    (self.job_write_value_fn)(source, new_value)
-                } else {
-                    source
-                })
+                Ok(if new_value != source_value { (self.job_write_value_fn)(source, new_value) } else { source })
             }
             JobReadValueFn::Right(_) => Err(self.merge_code),
         }

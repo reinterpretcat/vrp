@@ -6,10 +6,8 @@ use super::*;
 use crate::utils::combine_error_results;
 use crate::validation::common::get_time_windows;
 use crate::{parse_time, parse_time_safe};
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use vrp_core::models::common::TimeWindow;
-use vrp_core::utils::compare_floats;
 
 /// Checks that fleet has no vehicle with duplicate type ids.
 fn check_e1300_no_vehicle_types_with_duplicate_type_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
@@ -158,10 +156,7 @@ fn check_e1304_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result
 fn check_e1306_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = ctx
         .vehicles()
-        .filter(|vehicle| {
-            compare_floats(vehicle.costs.time, 0.) == Ordering::Equal
-                && compare_floats(vehicle.costs.distance, 0.) == Ordering::Equal
-        })
+        .filter(|vehicle| vehicle.costs.time == 0. && vehicle.costs.distance == 0.)
         .map(|vehicle| vehicle.type_id.to_string())
         .collect::<Vec<_>>();
 

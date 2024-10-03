@@ -4,7 +4,7 @@ use crate::{format_time, parse_time};
 use std::ops::Range;
 use std::time::Duration;
 use vrp_core::models::common::TimeWindow;
-use vrp_core::prelude::{compare_floats, Float};
+use vrp_core::prelude::Float;
 
 /// Creates `Duration` from hours amount.
 pub fn from_hours(hours: i32) -> Duration {
@@ -59,7 +59,7 @@ prop_compose! {
     })) -> Vec<Vec<String>> {
 
         let mut time_windows = time_windows;
-        time_windows.sort_by(|a, b| compare_floats(a.start, b.start));
+        time_windows.sort_by(|a, b| a.start.total_cmp(&b.start));
 
         time_windows.iter().map(|tw| vec![format_time(tw.start), format_time(tw.end)]).collect()
     }

@@ -15,6 +15,10 @@ are already published. So, I stick to it for now.
 * apply some performance optimizations
 * refactor dbscan clustering api
 
+### Removed
+
+* replace `compare_floats` with built-in `total_cmp`
+
 
 ## [1.24.0] 2024-07-13
 

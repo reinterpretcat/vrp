@@ -8,7 +8,6 @@ use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::Activity;
 use crate::models::GoalContext;
 use rosomaxa::prelude::*;
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::ops::ControlFlow;
 use std::sync::Arc;
@@ -144,7 +143,7 @@ fn is_activity_to_single_match(activity: &Activity, single: &Single) -> bool {
         .places
         .iter()
         .try_fold(false, |_, place| {
-            let is_same_duration = compare_floats(activity.place.duration, place.duration) == Ordering::Equal;
+            let is_same_duration = activity.place.duration == place.duration;
             let is_same_location = place.location.map_or(true, |location| location == activity.place.location);
             let is_same_time_window = place.times.iter().any(|time| {
                 match time {

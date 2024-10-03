@@ -79,7 +79,7 @@ impl FeatureConstraint for TourOrderConstraint {
                     let source = (order_fn)(source);
                     let candidate = (order_fn)(candidate);
                     match (source, candidate) {
-                        (OrderResult::Value(s), OrderResult::Value(c)) => compare_floats(s, c) == Ordering::Equal,
+                        (OrderResult::Value(s), OrderResult::Value(c)) => s == c,
                         (OrderResult::Default, OrderResult::Default) | (OrderResult::Ignored, OrderResult::Ignored) => {
                             true
                         }
@@ -226,7 +226,7 @@ fn get_single(activity: &Activity) -> Option<&Single> {
 
 fn compare_order_results(left: OrderResult, right: OrderResult) -> Ordering {
     match (left, right) {
-        (OrderResult::Value(left), OrderResult::Value(right)) => compare_floats(left, right),
+        (OrderResult::Value(left), OrderResult::Value(right)) => left.total_cmp(&right),
         (OrderResult::Value(_), OrderResult::Default) => Ordering::Less,
         (OrderResult::Default, OrderResult::Value(_)) => Ordering::Greater,
         _ => Ordering::Equal,

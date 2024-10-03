@@ -4,7 +4,6 @@ use vrp_core::construction::enablers::ReservedTimesIndex;
 use vrp_core::models::common::{Cost, TimeWindow};
 use vrp_core::models::solution::Route;
 use vrp_core::prelude::Float;
-use vrp_core::utils::compare_floats;
 
 /// Converts reserved time duration applied to activity or travel time to break activity.
 pub(super) fn insert_reserved_times_as_breaks(
@@ -155,7 +154,7 @@ fn insert_break(
     });
 
     activities.sort_by(|a, b| match (&a.time, &b.time) {
-        (Some(a), Some(b)) => compare_floats(parse_time(&a.start), parse_time(&b.start)),
+        (Some(a), Some(b)) => parse_time(&a.start).total_cmp(&parse_time(&b.start)),
         (Some(_), None) => Ordering::Greater,
         (None, Some(_)) => Ordering::Less,
         (None, None) => Ordering::Equal,

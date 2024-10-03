@@ -128,7 +128,7 @@ pub fn get_longest_distance_between_depot_customer_mean(insertion_ctx: &Insertio
                     TravelTime::Departure(depot.schedule.departure),
                 )
             })
-            .max_by(compare_floats_refs)
+            .max_by(|a, b| a.total_cmp(b))
     }))
 }
 
@@ -222,7 +222,7 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Option<Vec
             .collect::<Vec<_>>();
 
         route_distances.sort_unstable_by(|(_, a_distance), (_, b_distance)| match (a_distance, b_distance) {
-            (Some(a_distance), Some(b_distance)) => compare_floats(*a_distance, *b_distance),
+            (Some(a_distance), Some(b_distance)) => a_distance.total_cmp(b_distance),
             (Some(_), None) => Ordering::Less,
             _ => Ordering::Greater,
         });

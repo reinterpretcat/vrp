@@ -25,6 +25,7 @@ pub use crate::hyper::HyperHeuristic;
 
 pub use crate::termination::Termination;
 
+pub use crate::utils::short_type_name;
 pub use crate::utils::DefaultRandom;
 pub use crate::utils::Environment;
 pub use crate::utils::Float;
@@ -32,6 +33,5 @@ pub use crate::utils::InfoLogger;
 pub use crate::utils::Noise;
 pub use crate::utils::Quota;
 pub use crate::utils::UnwrapValue;
-pub use crate::utils::{compare_floats, compare_floats_refs, short_type_name};
 pub use crate::utils::{GenericError, GenericResult};
 pub use crate::utils::{Random, RandomGen};

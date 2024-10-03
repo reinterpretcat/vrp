@@ -6,8 +6,7 @@ use crate::construction::enablers::*;
 use crate::construction::heuristics::RouteContext;
 use crate::models::common::Timestamp;
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
-use rosomaxa::prelude::{compare_floats, Float};
-use std::cmp::Ordering;
+use rosomaxa::prelude::Float;
 
 /// Tries to move forward route's departure time.
 pub fn advance_departure_time(
@@ -93,8 +92,9 @@ fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
         .map(|(&total, &limit)| (limit - total).min(max_change))
         .unwrap_or(max_change);
 
-    match compare_floats(max_change, 0.) {
-        Ordering::Greater => Some(start.schedule.departure - max_change),
-        _ => None,
+    if max_change > 0. {
+        Some(start.schedule.departure - max_change)
+    } else {
+        None
     }
 }

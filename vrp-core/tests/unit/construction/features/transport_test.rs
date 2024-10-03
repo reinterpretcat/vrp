@@ -29,8 +29,6 @@ mod timing {
     use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
     use crate::helpers::models::domain::test_random;
     use crate::models::solution::{Activity, Place, Registry};
-    use rosomaxa::prelude::compare_floats;
-    use std::cmp::Ordering;
 
     fn create_feature() -> Feature {
         TransportFeatureBuilder::new("transport")
@@ -202,7 +200,7 @@ mod timing {
 
         let result = create_feature().objective.unwrap().estimate(&MoveContext::activity(&route_ctx, &activity_ctx));
 
-        assert_eq!(compare_floats(result, 21.0), Ordering::Equal);
+        assert_eq!(result, 21.0);
     }
 
     #[test]
@@ -254,7 +252,7 @@ mod timing {
 
         let result = create_feature().objective.unwrap().estimate(&MoveContext::activity(&route_ctx, &activity_ctx));
 
-        assert_eq!(compare_floats(result, 30.0), Ordering::Equal);
+        assert_eq!(result, 30.0);
     }
 
     #[test]

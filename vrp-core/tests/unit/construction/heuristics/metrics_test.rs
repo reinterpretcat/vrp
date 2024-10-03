@@ -4,8 +4,6 @@ use crate::construction::heuristics::*;
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::solution::RouteContextBuilder;
 use crate::models::Problem;
-use rosomaxa::prelude::compare_floats;
-use std::cmp::Ordering;
 
 fn create_insertion_ctx(
     route_amount: usize,
@@ -37,7 +35,7 @@ fn can_get_max_load_variance() {
 
     let variance = get_max_load_variance(&insertion_ctx);
 
-    assert_eq!(compare_floats(variance, 6.6875), Ordering::Equal);
+    assert_eq!(variance, 6.6875);
 }
 
 #[test]
@@ -53,7 +51,7 @@ fn can_get_duration_mean() {
 
     let mean = get_duration_mean(&insertion_ctx);
 
-    assert_eq!(compare_floats(mean, 5.), Ordering::Equal);
+    assert_eq!(mean, 5.);
 }
 
 #[test]
@@ -69,5 +67,5 @@ fn can_get_distance_mean() {
 
     let mean = get_distance_mean(&insertion_ctx);
 
-    assert_eq!(compare_floats(mean, 7.), Ordering::Equal);
+    assert_eq!(mean, 7.);
 }

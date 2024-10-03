@@ -1,7 +1,7 @@
 use super::*;
 use crate::algorithms::geometry::Point;
 use crate::helpers::construction::clustering::p;
-use rosomaxa::prelude::{compare_floats, Float};
+use rosomaxa::prelude::Float;
 
 fn create_index(points: &[Point]) -> HashMap<&Point, Vec<(&Point, Float)>> {
     points.iter().fold(HashMap::new(), |mut acc, point| {
@@ -13,7 +13,7 @@ fn create_index(points: &[Point]) -> HashMap<&Point, Vec<(&Point, Float)>> {
             .map(|other| (other, point.distance_to_point(other)))
             .collect::<Vec<_>>();
 
-        pairs.sort_by(|(_, a), (_, b)| compare_floats(*a, *b));
+        pairs.sort_by(|(_, a), (_, b)| a.total_cmp(b));
 
         acc.insert(point, pairs);
 
@@ -25,8 +25,8 @@ fn assert_non_ordered(actual: Vec<&Point>, expected: Vec<&Point>) {
     let mut actual = actual;
     let mut expected = expected;
 
-    actual.sort_by(|a, b| compare_floats(a.x, b.x));
-    expected.sort_by(|a, b| compare_floats(a.x, b.x));
+    actual.sort_by(|a, b| a.x.total_cmp(&b.x));
+    expected.sort_by(|a, b| a.x.total_cmp(&b.x));
 
     assert_eq!(actual, expected);
 }

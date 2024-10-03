@@ -6,11 +6,10 @@ use super::*;
 use crate::format::get_indices;
 use crate::format::solution::activity_matcher::*;
 use crate::utils::combine_error_results;
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use vrp_core::construction::clustering::vicinity::ServingPolicy;
 use vrp_core::models::solution::Place;
-use vrp_core::prelude::{compare_floats, GenericResult};
+use vrp_core::prelude::GenericResult;
 use vrp_core::utils::GenericError;
 
 /// Checks assignment of jobs and vehicles.
@@ -215,7 +214,7 @@ fn is_valid_job_info(
     place: Place,
     time: TimeWindow,
 ) -> bool {
-    let not_equal = |left: Float, right: Float| compare_floats(left, right) != Ordering::Equal;
+    let not_equal = |left: Float, right: Float| left != right;
     let parking = ctx.clustering.as_ref().map(|config| config.serving.get_parking()).unwrap_or(0.);
     let commute_profile = ctx.clustering.as_ref().map(|config| config.profile.clone());
     let domain_commute = ctx.get_commute_info(commute_profile, parking, stop, activity_idx);

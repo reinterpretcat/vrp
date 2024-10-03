@@ -5,8 +5,7 @@ mod reserved_time_test;
 use crate::models::common::*;
 use crate::models::problem::{ActivityCost, Actor, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
-use rosomaxa::prelude::{compare_floats, Float, GenericError};
-use std::cmp::Ordering;
+use rosomaxa::prelude::{Float, GenericError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -204,7 +203,7 @@ pub(crate) fn create_reserved_times_fn(
                     (TimeSpan::Offset(a), TimeSpan::Offset(b)) => (a.start, b.start),
                     _ => unreachable!(),
                 };
-                compare_floats(a, b)
+                a.total_cmp(&b)
             });
             let has_no_intersections = times.windows(2).all(|pair| {
                 if let [ReservedTimeSpan { time: a, .. }, ReservedTimeSpan { time: b, .. }] = pair {
@@ -260,8 +259,7 @@ pub(crate) fn create_reserved_times_fn(
                             };
 
                             // NOTE use exclusive intersection
-                            compare_floats(interval_start, reserved_end) == Ordering::Less
-                                && compare_floats(reserved_start, interval_end) == Ordering::Less
+                            interval_start < reserved_end && reserved_start < interval_end
                         })
                     })
                     .flatten(),

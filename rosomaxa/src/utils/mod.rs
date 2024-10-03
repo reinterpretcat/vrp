@@ -1,8 +1,5 @@
 //! This module contains helper functionality.
 
-mod comparison;
-pub use self::comparison::*;
-
 mod environment;
 pub use self::environment::*;
 

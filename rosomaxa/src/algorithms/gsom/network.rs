@@ -183,7 +183,7 @@ where
 
     /// Returns max unified distance of the network.
     pub fn max_unified_distance(&self) -> Float {
-        self.get_nodes().map(|node| node.unified_distance(self, 1)).max_by(compare_floats_refs).unwrap_or(0.)
+        self.get_nodes().map(|node| node.unified_distance(self, 1)).max_by(|a, b| a.total_cmp(b)).unwrap_or(0.)
     }
 
     /// Trains network on an input.
@@ -243,10 +243,7 @@ where
             }
 
             let node = self.nodes.get(coord).unwrap();
-            (
-                matches!(compare_floats(node.error, self.growing_threshold), Ordering::Equal | Ordering::Greater),
-                node.is_boundary(self) && is_new_input,
-            )
+            (node.error >= self.growing_threshold, node.is_boundary(self) && is_new_input)
         };
 
         match (exceeds_ae, can_grow) {
@@ -444,7 +441,7 @@ where
 fn compare_input<I: Input>(left: &I, right: &I) -> Ordering {
     (left.weights().iter())
         .zip(right.weights().iter())
-        .map(|(lhs, rhs)| compare_floats_refs(lhs, rhs))
+        .map(|(lhs, rhs)| lhs.total_cmp(rhs))
         .find(|ord| *ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
 }

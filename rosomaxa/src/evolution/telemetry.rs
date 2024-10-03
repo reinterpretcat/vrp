@@ -8,7 +8,6 @@ use crate::algorithms::math::relative_distance;
 use crate::prelude::*;
 use crate::utils::Timer;
 use crate::{DynHeuristicPopulation, RemedianUsize};
-use std::cmp::Ordering;
 use std::fmt::Write;
 use std::marker::PhantomData;
 
@@ -414,7 +413,7 @@ impl SpeedTracker {
                 _ => 1.,
             };
 
-            let is_slow = compare_floats(ratio, 1.) == Ordering::Less;
+            let is_slow = ratio < 1.;
             let median = self.median.approx_median();
 
             self.speed = match &self.speed {

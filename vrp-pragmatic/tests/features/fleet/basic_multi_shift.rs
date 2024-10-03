@@ -1,7 +1,6 @@
 use crate::format::problem::*;
 use crate::helpers::*;
 use crate::{format_time, parse_time};
-use vrp_core::utils::compare_floats_refs;
 
 #[test]
 fn can_use_multiple_times_from_vehicle_and_job() {
@@ -137,6 +136,6 @@ fn can_prefer_first_days_with_minimize_arrival_time_objective() {
         .filter_map(|tour| tour.stops.first())
         .map(|stop| parse_time(&stop.schedule().departure))
         .collect::<Vec<_>>();
-    departures.sort_by(compare_floats_refs);
+    departures.sort_by(|a, b| a.total_cmp(b));
     assert_eq!(departures, vec![0., 100.]);
 }

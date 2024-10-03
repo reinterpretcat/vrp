@@ -1,15 +1,13 @@
 use super::*;
 use crate::example::*;
 use crate::helpers::example::create_example_objective;
-use crate::utils::compare_floats;
 use crate::{get_default_population, get_default_selection_size};
-use std::cmp::Ordering;
 use std::sync::Arc;
 
 fn compare_statistic(statistics: &HeuristicStatistics, expected: (usize, Float, Float)) {
     assert_eq!(statistics.generation, expected.0);
-    assert_eq!(compare_floats(statistics.improvement_all_ratio, expected.1), Ordering::Equal);
-    assert_eq!(compare_floats(statistics.improvement_1000_ratio, expected.2), Ordering::Equal);
+    assert_eq!(statistics.improvement_all_ratio, expected.1);
+    assert_eq!(statistics.improvement_1000_ratio, expected.2);
 }
 
 #[test]

@@ -3,8 +3,7 @@
 mod domain_test;
 
 use crate::models::common::{Duration, Timestamp};
-use rosomaxa::prelude::{compare_floats, Float};
-use std::cmp::Ordering;
+use rosomaxa::prelude::Float;
 use std::hash::{Hash, Hasher};
 
 /// Specifies location type.
@@ -36,7 +35,7 @@ impl Default for Profile {
 pub type Cost = Float;
 
 /// Represents a time window.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TimeWindow {
     /// Start of time window.
     pub start: Timestamp,
@@ -45,7 +44,7 @@ pub struct TimeWindow {
 }
 
 /// Represents a time offset.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TimeOffset {
     /// Offset value to start time.
     pub start: Timestamp,
@@ -63,7 +62,7 @@ pub enum TimeSpan {
 }
 
 /// Specifies a flexible time interval.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TimeInterval {
     /// Earliest possible time to start.
     pub earliest: Option<Timestamp>,
@@ -84,19 +83,17 @@ impl TimeWindow {
 
     /// Checks whether time window has intersection with another one (inclusive).
     pub fn intersects(&self, other: &Self) -> bool {
-        compare_floats(self.start, other.end) != Ordering::Greater
-            && compare_floats(other.start, self.end) != Ordering::Greater
+        self.start <= other.end && other.start <= self.end
     }
 
     /// Checks whether time window has intersection with another one (exclusive).
     pub fn intersects_exclusive(&self, other: &Self) -> bool {
-        compare_floats(self.start, other.end) == Ordering::Less
-            && compare_floats(other.start, self.end) == Ordering::Less
+        self.start < other.end && other.start < self.end
     }
 
     /// Checks whether time window contains given time.
     pub fn contains(&self, time: Timestamp) -> bool {
-        compare_floats(time, self.start) != Ordering::Less && compare_floats(time, self.end) != Ordering::Greater
+        time >= self.start && time <= self.end
     }
 
     /// Returns distance between two time windows.
@@ -129,13 +126,6 @@ impl TimeWindow {
     /// Returns duration of time window.
     pub fn duration(&self) -> Duration {
         self.end - self.start
-    }
-}
-
-impl PartialEq<TimeWindow> for TimeWindow {
-    fn eq(&self, other: &TimeWindow) -> bool {
-        compare_floats(self.start, other.start) == Ordering::Equal
-            && compare_floats(self.end, other.end) == Ordering::Equal
     }
 }
 
@@ -189,7 +179,7 @@ impl TimeInterval {
 }
 
 /// Represents a schedule.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Schedule {
     /// Arrival time.
     pub arrival: Timestamp,
@@ -201,13 +191,6 @@ impl Schedule {
     /// Creates a new instance of `Schedule`.
     pub fn new(arrival: Timestamp, departure: Timestamp) -> Self {
         Self { arrival, departure }
-    }
-}
-
-impl PartialEq<Schedule> for Schedule {
-    fn eq(&self, other: &Schedule) -> bool {
-        compare_floats(self.arrival, other.arrival) == Ordering::Equal
-            && compare_floats(self.departure, other.departure) == Ordering::Equal
     }
 }
 
@@ -224,9 +207,3 @@ impl Hash for TimeInterval {
 }
 
 impl Eq for TimeInterval {}
-
-impl PartialEq for TimeInterval {
-    fn eq(&self, other: &Self) -> bool {
-        self.earliest == other.earliest && self.latest == other.latest
-    }
-}

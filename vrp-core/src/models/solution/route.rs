@@ -2,8 +2,7 @@ use crate::models::common::{Distance, Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Job, Multi, Single};
 use crate::models::solution::Tour;
 use crate::utils::short_type_name;
-use rosomaxa::prelude::{compare_floats, Float};
-use std::cmp::Ordering;
+use rosomaxa::prelude::Float;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
@@ -146,9 +145,9 @@ impl Default for CommuteInfo {
 impl CommuteInfo {
     /// Checks whether there is no distance costs for part of commute.
     pub fn is_zero_distance(&self) -> bool {
-        let is_zero_distance = compare_floats(self.distance, 0.) == Ordering::Equal;
+        let is_zero_distance = self.distance == 0.;
 
-        if is_zero_distance && compare_floats(self.duration, 0.) != Ordering::Equal {
+        if is_zero_distance && self.duration != 0. {
             unreachable!("expected to have duration to be zero, got: {}", self.duration);
         }
 

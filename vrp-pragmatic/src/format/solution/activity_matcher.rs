@@ -4,7 +4,6 @@ use crate::format::solution::{Activity as FormatActivity, Schedule as FormatSche
 use crate::format::solution::{PointStop, TransitStop};
 use crate::format::{CoordIndex, JobIndex, PlaceTagsDimension};
 use crate::parse_time;
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::iter::once;
 use std::sync::Arc;
@@ -190,7 +189,7 @@ pub(crate) fn get_extra_time(stop: &PointStop, activity: &FormatActivity, place:
                     let activity_time = TimeWindow::new(activity_time.start, activity_time.start + place.duration);
                     activity_time
                         .overlapping(&break_time)
-                        .filter(|overlap| compare_floats(overlap.start, overlap.end) != Ordering::Equal)
+                        .filter(|overlap| overlap.start != overlap.end)
                         .map(|overlap| break_time.end - overlap.end + overlap.duration())
                 })
             } else {

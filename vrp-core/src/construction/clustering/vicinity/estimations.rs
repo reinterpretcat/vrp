@@ -141,7 +141,7 @@ fn get_dissimilarities(
                                 outer_time.overlapping(inner_time).map(|tw| tw.duration())
                             })
                         })
-                        .max_by(compare_floats_refs)
+                        .max_by(|a, b| a.total_cmp(b))
                         .unwrap_or(0.);
 
                     if shared_time > min_shared_time {
@@ -151,8 +151,7 @@ fn get_dissimilarities(
                         let bck_distance = transport.distance_approx(&config.profile, inner_loc, outer_loc);
                         let bck_duration = transport.duration_approx(&config.profile, inner_loc, outer_loc);
 
-                        let reachable = compare_floats(fwd_distance, 0.) != Ordering::Less
-                            && compare_floats(bck_distance, 0.) != Ordering::Less;
+                        let reachable = fwd_distance >= 0. && bck_distance >= 0.;
 
                         let reachable = reachable
                             && (fwd_duration - config.threshold.moving_duration < 0.)

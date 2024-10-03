@@ -2,8 +2,7 @@
 #[path = "../../../tests/unit/algorithms/geometry/point_test.rs"]
 mod point_test;
 
-use rosomaxa::prelude::{compare_floats, Float};
-use std::cmp::Ordering;
+use rosomaxa::prelude::Float;
 use std::hash::{Hash, Hasher};
 
 /// Represents a point in 2D space.
@@ -33,7 +32,7 @@ impl Point {
     pub fn distance_to_line(&self, a: &Point, b: &Point) -> Float {
         let a_b_distance = a.distance_to_point(b);
 
-        if compare_floats(a_b_distance, 0.) == Ordering::Equal {
+        if a_b_distance == 0. {
             0.
         } else {
             (Self::cross_product(a, b, self) / a_b_distance).abs()

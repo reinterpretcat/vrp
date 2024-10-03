@@ -39,7 +39,7 @@ impl RankedJobSelector {
             .profiles
             .iter()
             .map(|profile| problem.jobs.rank(profile, job).unwrap_or(Cost::MAX))
-            .min_by(|a, b| compare_floats(*a, *b))
+            .min_by(|a, b| a.total_cmp(b))
             .unwrap_or_default()
     }
 }
@@ -51,7 +51,7 @@ impl JobSelector for RankedJobSelector {
         insertion_ctx
             .solution
             .required
-            .sort_by(|a, b| compare_floats(Self::rank_job(problem, a), Self::rank_job(problem, b)));
+            .sort_by(|a, b| Self::rank_job(problem, a).total_cmp(&Self::rank_job(problem, b)));
 
         if self.asc_order {
             insertion_ctx.solution.required.reverse();

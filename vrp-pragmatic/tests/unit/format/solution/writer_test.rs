@@ -2,12 +2,10 @@ use crate::format::problem::*;
 use crate::format::solution::solution_writer::create_tour;
 use crate::format::solution::*;
 use crate::helpers::*;
-use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::construction::enablers::ReservedTimeSpan;
 use vrp_core::models::common::{TimeSpan, TimeWindow};
 use vrp_core::models::examples::create_example_problem;
-use vrp_core::utils::compare_floats;
 
 type DomainProblem = vrp_core::models::Problem;
 type DomainActivity = vrp_core::models::solution::Activity;
@@ -170,7 +168,7 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
             match (commute, &actual.commute) {
                 (Some(expected), Some(actual)) => {
                     let check_commute = |expected: Float, info: Option<&CommuteInfo>| {
-                        if compare_floats(expected, 0.) == Ordering::Equal {
+                        if expected == 0. {
                             assert!(info.is_none())
                         } else {
                             assert_eq!(expected, info.unwrap().time.duration());
