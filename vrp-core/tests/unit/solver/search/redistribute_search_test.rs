@@ -2,6 +2,7 @@ use super::*;
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_routes_with_defaults};
+use rosomaxa::prelude::Environment;
 
 #[test]
 fn can_add_extra_constraint() {

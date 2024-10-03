@@ -10,7 +10,8 @@ use crate::construction::heuristics::InsertionContext;
 use crate::models::GoalContext;
 use crate::solver::{RefinementContext, TargetSearchOperator};
 use rosomaxa::hyper::HeuristicDiversifyOperator;
-use rosomaxa::prelude::HeuristicSearchOperator;
+use rosomaxa::prelude::{Float, HeuristicSearchOperator};
+use rosomaxa::HeuristicSolution;
 
 mod local;
 pub use self::local::*;
@@ -71,5 +72,30 @@ impl HeuristicDiversifyOperator for WeightedHeuristicOperator {
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
         vec![self.search(heuristic_ctx, solution)]
+    }
+}
+
+/// Provides the way to run multiple heuristic operators one by one on the same solution.
+pub struct CompositeHeuristicOperator {
+    mutations: Vec<(TargetSearchOperator, Float)>,
+}
+
+impl CompositeHeuristicOperator {
+    /// Creates a new instance of `CompositeHeuristicOperator`.
+    pub fn new(mutations: Vec<(TargetSearchOperator, Float)>) -> Self {
+        Self { mutations }
+    }
+}
+
+impl HeuristicSearchOperator for CompositeHeuristicOperator {
+    type Context = RefinementContext;
+    type Objective = GoalContext;
+    type Solution = InsertionContext;
+
+    fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+        self.mutations
+            .iter()
+            .filter(|(_, probability)| solution.environment.random.is_hit(*probability))
+            .fold(solution.deep_copy(), |solution, (mutation, _)| mutation.search(heuristic_ctx, &solution))
     }
 }
