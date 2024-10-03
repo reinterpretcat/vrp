@@ -61,10 +61,10 @@ impl Job {
     }
 
     /// Get all places from the job.
-    pub fn places(&self) -> Box<dyn Iterator<Item = &Place> + '_> {
+    pub fn places(&self) -> impl Iterator<Item = &Place> + '_ {
         match &self {
-            Job::Single(single) => Box::new(single.places.iter()),
-            Job::Multi(multi) => Box::new(multi.jobs.iter().flat_map(|single| single.places.iter())),
+            Job::Single(single) => Either::Left(single.places.iter()),
+            Job::Multi(multi) => Either::Right(multi.jobs.iter().flat_map(|single| single.places.iter())),
         }
     }
 }

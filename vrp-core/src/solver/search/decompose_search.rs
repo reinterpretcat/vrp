@@ -6,6 +6,7 @@ use crate::construction::heuristics::*;
 use crate::models::GoalContext;
 use crate::solver::search::create_environment_with_custom_quota;
 use crate::solver::*;
+use crate::utils::Either;
 use rosomaxa::utils::parallel_into_collect;
 use std::cell::RefCell;
 use std::cmp::Ordering;
@@ -190,10 +191,7 @@ fn create_partial_insertion_ctx(
 fn create_empty_insertion_ctxs(
     insertion_ctx: &InsertionContext,
     environment: Arc<Environment>,
-) -> Box<dyn Iterator<Item = (InsertionContext, HashSet<usize>)>> {
-    // TODO split into more insertion_ctxs if too many required jobs are present
-    //      this might increase overall refinement speed
-
+) -> impl Iterator<Item = (InsertionContext, HashSet<usize>)> {
     let solution = &insertion_ctx.solution;
 
     if solution.required.is_empty()
@@ -201,9 +199,9 @@ fn create_empty_insertion_ctxs(
         && solution.ignored.is_empty()
         && solution.locked.is_empty()
     {
-        Box::new(empty())
+        Either::Left(empty())
     } else {
-        Box::new(once((
+        Either::Right(once((
             InsertionContext {
                 problem: insertion_ctx.problem.clone(),
                 solution: SolutionContext {

@@ -8,6 +8,7 @@ use crate::models::problem::Job;
 use crate::models::solution::Tour;
 use crate::solver::search::*;
 use crate::solver::RefinementContext;
+use crate::utils::Either;
 use rosomaxa::prelude::{Float, Random};
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -101,8 +102,6 @@ impl Ruin for AdjustedStringRemoval {
     }
 }
 
-type JobIter<'a> = Box<dyn Iterator<Item = Job> + 'a>;
-
 /// Calculates average tour cardinality rounded to nearest integral value.
 fn calculate_average_tour_cardinality(routes: &[RouteContext]) -> Float {
     (routes.iter().map(|route_ctx| route_ctx.route().tour.job_activity_count() as Float).sum::<Float>()
@@ -116,20 +115,24 @@ fn select_string<'a>(
     cardinality: usize,
     alpha: Float,
     random: &Arc<dyn Random>,
-) -> JobIter<'a> {
+) -> impl Iterator<Item = Job> + 'a {
     if random.is_head_not_tails() {
-        sequential_string(seed_tour, cardinality, random)
+        Either::Left(sequential_string(seed_tour, cardinality, random))
     } else {
-        preserved_string(seed_tour, cardinality, alpha, random)
+        Either::Right(preserved_string(seed_tour, cardinality, alpha, random))
     }
 }
 
 /// Selects sequential string.
-fn sequential_string<'a>(seed_tour: (&'a Tour, usize), cardinality: usize, random: &Arc<dyn Random>) -> JobIter<'a> {
+fn sequential_string<'a>(
+    seed_tour: (&'a Tour, usize),
+    cardinality: usize,
+    random: &Arc<dyn Random>,
+) -> impl Iterator<Item = Job> + 'a {
     let (begin, end) = lower_bounds(cardinality, seed_tour.0.job_activity_count(), seed_tour.1);
     let start = random.uniform_int(begin as i32, end as i32) as usize;
 
-    Box::new((start..(start + cardinality)).filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job())))
+    (start..(start + cardinality)).filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job()))
 }
 
 /// Selects string with preserved jobs.
@@ -138,7 +141,7 @@ fn preserved_string<'a>(
     cardinality: usize,
     alpha: Float,
     random: &Arc<dyn Random>,
-) -> JobIter<'a> {
+) -> impl Iterator<Item = Job> + 'a {
     let size = seed_tour.0.job_activity_count();
     let index = seed_tour.1;
 
@@ -155,11 +158,9 @@ fn preserved_string<'a>(
     // this line makes sure that string cardinality is kept as requested.
     let total = total - usize::from(index >= split_start && index < split_end);
 
-    Box::new(
-        (start_total..(start_total + total))
-            .filter(move |&i| i < split_start || i >= split_end || i == index)
-            .filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job())),
-    )
+    (start_total..(start_total + total))
+        .filter(move |&i| i < split_start || i >= split_end || i == index)
+        .filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job()))
 }
 
 /// Returns range of possible lower bounds.

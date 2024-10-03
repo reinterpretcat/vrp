@@ -11,6 +11,7 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, JobIdDimension, Single};
 use vrp_core::models::solution::{Activity, Place};
 use vrp_core::prelude::*;
+use vrp_core::utils::Either;
 
 /// Aggregates job specific information for a job activity.
 pub(crate) struct JobInfo(pub Job, pub Arc<Single>, pub Place, pub TimeWindow);
@@ -40,8 +41,8 @@ pub(crate) fn try_match_point_job(
         "pickup" | "delivery" | "replacement" | "service" => {
             let job =
                 job_index.get(&activity.job_id).ok_or_else(|| format!("unknown job id: '{}'", activity.job_id))?;
-            let singles: Box<dyn Iterator<Item = &Arc<_>>> = match job {
-                Job::Single(single) => Box::new(once(single)),
+            let singles = match job {
+                Job::Single(single) => Either::Left(once(single)),
                 Job::Multi(multi) => {
                     let tags = multi
                         .jobs
@@ -57,7 +58,7 @@ pub(crate) fn try_match_point_job(
                         .into());
                     }
 
-                    Box::new(multi.jobs.iter())
+                    Either::Right(multi.jobs.iter())
                 }
             };
             let (single, place) = singles
