@@ -93,9 +93,14 @@ impl HeuristicSearchOperator for CompositeHeuristicOperator {
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
-        self.mutations
-            .iter()
-            .filter(|(_, probability)| solution.environment.random.is_hit(*probability))
-            .fold(solution.deep_copy(), |solution, (mutation, _)| mutation.search(heuristic_ctx, &solution))
+        let mut new_solution = None;
+
+        for (mutation, probability) in self.mutations.iter() {
+            if solution.environment.random.is_hit(*probability) {
+                new_solution = Some(mutation.search(heuristic_ctx, new_solution.as_ref().unwrap_or(solution)));
+            }
+        }
+
+        new_solution.unwrap_or_else(|| solution.deep_copy())
     }
 }
