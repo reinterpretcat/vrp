@@ -19,6 +19,7 @@ are already published. So, I stick to it for now.
 ### Removed
 
 * replace `compare_floats` with built-in `total_cmp`
+* gene pool in rosomaxa
 
 
 ## [1.24.0] 2024-07-13
