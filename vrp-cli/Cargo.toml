@@ -33,13 +33,13 @@ serde_json.workspace = true
 csv = { version = "1.3.0", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-clap = "4.5.16"
+clap = "4.5.19"
 ctrlc = { version = "3.4.5", features = ["termination"] }
 num_cpus = "1.16.0"
 
 # see https://github.com/xd009642/tarpaulin/issues/1092
 [target.'cfg(all(not(target_arch = "wasm32"), not(tarpaulin)))'.dependencies]
-pyo3 = { version= "0.22.2", features=["extension-module"], optional = true }
+pyo3 = { version= "0.22.3", features=["extension-module"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.93" }
@@ -47,4 +47,4 @@ serde-wasm-bindgen = "0.6.5"
 js-sys = "0.3.70"
 
 [dev-dependencies]
-tempfile = "3.12.0"
+tempfile = "3.13.0"

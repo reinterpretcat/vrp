@@ -22,7 +22,7 @@ vrp-scientific.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
-plotters = "0.3.6"
+plotters = "0.3.7"
 plotters-canvas = "0.3.0"
 itertools = "0.13.0"
 wasm-bindgen = "0.2.93"
