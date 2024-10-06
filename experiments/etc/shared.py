@@ -62,9 +62,9 @@ class SolverClient:
                 raise ValueError('cannot get solution statistic')
 
             # expected:
-            # rank: 0, fitness: (0.000, 92.000, 53389.603),
+            # fitness: (0.000, 92.000, 53389.603),
             for best in re.finditer(
-                    r"rank: 0, fitness: \((?P<unassigned>[\d.]+),?\s*(?P<tours>[\d.]+)?\s*, (?P<cost>[\d.]+)\)",
+                    r"fitness: \((?P<unassigned>[\d.]+),?\s*(?P<tours>[\d.]+)?\s*, (?P<cost>[\d.]+)\)",
                     p.stdout):
                 pass
 
