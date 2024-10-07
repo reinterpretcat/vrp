@@ -269,6 +269,11 @@ where
         let speed = generations as Float / self.time.elapsed_secs_as_float();
 
         self.log(format!("[{elapsed}s] total generations: {generations}, speed: {speed:.2} gen/sec",).as_str());
+        if let Some(best) = population.ranked().next() {
+            self.log(format!("\tbest fitness: ({})", format_fitness(best.fitness())).as_str());
+        } else {
+            self.log("no solutions found");
+        }
 
         self.metrics.duration = elapsed;
         self.metrics.speed = speed;
