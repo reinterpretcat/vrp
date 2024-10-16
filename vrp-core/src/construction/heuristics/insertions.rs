@@ -7,6 +7,7 @@ use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job, JobIdDimension};
 use crate::models::solution::Activity;
 use crate::models::ViolationCode;
+use lazy_static::lazy_static;
 use rosomaxa::prelude::*;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
@@ -82,6 +83,10 @@ const COST_DIMENSION: usize = 6;
 /// A size of a cost array used by `InsertionCost`.
 type CostArray = [Cost; COST_DIMENSION];
 
+lazy_static! {
+    static ref MAX_INSERTION_COST: InsertionCost = InsertionCost::new(&[Cost::MAX]);
+}
+
 /// A lexicographical cost of job's insertion.
 #[derive(Clone, Default)]
 pub struct InsertionCost {
@@ -99,9 +104,9 @@ impl InsertionCost {
         self.data.iter().cloned()
     }
 
-    /// Returns highest* possible insertion cost.
-    pub fn max_value() -> Self {
-        Self::new(&[Cost::MAX])
+    /// Returns a reference to the highest possible insertion cost.
+    pub fn max_value() -> &'static Self {
+        &MAX_INSERTION_COST
     }
 }
 

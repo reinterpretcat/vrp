@@ -307,14 +307,14 @@ fn analyze_insertion_in_route_leg(
             }
 
             let costs = eval_ctx.goal.estimate(&move_ctx) + &route_costs;
-            let other_costs = single_ctx.cost.clone().unwrap_or_else(InsertionCost::max_value);
+            let other_costs = single_ctx.cost.as_ref().unwrap_or(InsertionCost::max_value());
 
-            match eval_ctx.result_selector.select_cost(&costs, &other_costs) {
+            match eval_ctx.result_selector.select_cost(&costs, other_costs) {
                 // found better insertion
                 Either::Left(_) => {
                     single_ctx.violation = None;
                     single_ctx.index = index;
-                    single_ctx.cost = Some(costs.clone());
+                    single_ctx.cost = Some(costs);
                     single_ctx.place = Some(target.place.clone());
                 }
                 Either::Right(_) => continue,
