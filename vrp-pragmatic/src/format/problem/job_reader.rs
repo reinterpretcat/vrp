@@ -35,11 +35,10 @@ pub(super) fn read_jobs_with_extra_locks(
     let random = &environment.random;
     let logger = &environment.logger;
 
-    let (mut jobs, mut locks) = read_required_jobs(api_problem, props, coord_index, job_index, random);
-    let (conditional_jobs, conditional_locks) = read_conditional_jobs(api_problem, coord_index, job_index);
+    let (mut jobs, locks) = read_required_jobs(api_problem, props, coord_index, job_index, random);
+    let conditional_jobs = read_conditional_jobs(api_problem, coord_index, job_index);
 
     jobs.extend(conditional_jobs);
-    locks.extend(conditional_locks);
 
     (Jobs::new(fleet, jobs, transport, logger).unwrap(), locks)
 }
@@ -79,7 +78,7 @@ pub(super) fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<
                 .filter(|job| job.as_str() != "departure" && job.as_str() != "arrival")
                 .fold((HashMap::<String, _>::default(), vec![]), |(mut indexer, mut jobs), job| {
                     let job_id = match job.as_str() {
-                        "break" | "reload" => {
+                        "break" | "reload" | "recharge" => {
                             let entry = indexer.entry(job.clone()).or_insert(1_usize);
                             let job_index = *entry;
                             *entry += 1;
@@ -178,11 +177,7 @@ fn read_required_jobs(
     (jobs, vec![])
 }
 
-fn read_conditional_jobs(
-    api_problem: &ApiProblem,
-    coord_index: &CoordIndex,
-    job_index: &mut JobIndex,
-) -> (Vec<Job>, Vec<Arc<Lock>>) {
+fn read_conditional_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_index: &mut JobIndex) -> Vec<Job> {
     let mut jobs = vec![];
 
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
@@ -201,7 +196,7 @@ fn read_conditional_jobs(
         }
     });
 
-    (jobs, vec![])
+    jobs
 }
 
 fn read_optional_breaks(
