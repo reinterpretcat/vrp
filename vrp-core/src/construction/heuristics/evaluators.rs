@@ -256,7 +256,7 @@ fn analyze_insertion_in_route(
                 move |lhs: &SingleContext, rhs: &SingleContext| {
                     eval_ctx
                         .result_selector
-                        .select_cost(lhs.cost.as_ref().unwrap_or(&max_value), rhs.cost.as_ref().unwrap_or(&max_value))
+                        .select_cost(lhs.cost.as_ref().unwrap_or(max_value), rhs.cost.as_ref().unwrap_or(max_value))
                         .is_left()
                 }
             },
