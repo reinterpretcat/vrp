@@ -86,16 +86,6 @@ fn can_optimize_network() {
 }
 
 #[test]
-fn can_format_network() {
-    let (objective, mut rosomaxa) = create_rosomaxa(4);
-    rosomaxa.add_all(vec![VectorSolution::new_with_objective(vec![0.5, 0.5], objective.as_ref())]);
-
-    let str = format!("{rosomaxa}");
-
-    assert_eq!(str, "[[6.5000000],]");
-}
-
-#[test]
 fn can_handle_empty_population() {
     let (_, mut rosomaxa) = create_rosomaxa(10);
 

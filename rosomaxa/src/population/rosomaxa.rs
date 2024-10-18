@@ -345,22 +345,6 @@ where
     }
 }
 
-impl<O, S> Display for Rosomaxa<O, S>
-where
-    O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match &self.phase {
-            RosomaxaPhases::Exploration { network, .. } => {
-                let state = get_network_state(network);
-                write!(f, "{state}")
-            }
-            _ => write!(f, "{}", self.elite),
-        }
-    }
-}
-
 impl<'a, O, S> TryFrom<&'a Rosomaxa<O, S>> for NetworkState
 where
     O: HeuristicObjective<Solution = S> + Shuffled,

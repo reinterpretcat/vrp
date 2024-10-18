@@ -4,7 +4,7 @@ mod state_test;
 
 use super::*;
 use crate::algorithms::gsom::Coordinate;
-use std::fmt::{Display, Formatter, Result, Write};
+use std::fmt::Write;
 use std::ops::Range;
 
 /// Represents state of the network.
@@ -82,30 +82,4 @@ where
             ((x_min.min(x), x_max.max(x)), (y_min.min(y), y_max.max(y)))
         },
     )
-}
-
-impl Display for NetworkState {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        // NOTE serialize state in simple representation which can be embedded
-        // to json as string and then easily parsed.
-        let nodes = self.nodes.iter().fold(String::new(), |mut res, n| {
-            let (x, y) = n.coordinate;
-            let weights = n.weights.iter().map(|w| format!("{w:.7}")).collect::<Vec<_>>().join(",");
-
-            write!(
-                &mut res,
-                "({},{},{:.7},{},{},[{}],{}),",
-                x, y, n.unified_distance, n.total_hits, n.last_hits, weights, n.dump
-            )
-            .unwrap();
-
-            res
-        });
-
-        write!(
-            f,
-            "({},{},{},{},{},[{}])",
-            self.shape.0.start, self.shape.0.end, self.shape.1.start, self.shape.1.end, self.shape.2, nodes
-        )
-    }
 }

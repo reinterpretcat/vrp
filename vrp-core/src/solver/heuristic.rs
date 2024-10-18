@@ -111,7 +111,7 @@ impl VrpConfigBuilder {
 
 /// Creates default telemetry mode.B
 pub fn get_default_telemetry_mode(logger: InfoLogger) -> TelemetryMode {
-    TelemetryMode::OnlyLogging { logger, log_best: 100, log_population: 1000, dump_population: false }
+    TelemetryMode::OnlyLogging { logger, log_best: 100, log_population: 1000 }
 }
 
 /// Gets default heuristic.

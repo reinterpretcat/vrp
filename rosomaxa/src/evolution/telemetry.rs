@@ -8,7 +8,6 @@ use crate::algorithms::math::relative_distance;
 use crate::prelude::*;
 use crate::utils::Timer;
 use crate::{DynHeuristicPopulation, RemedianUsize};
-use std::fmt::Write;
 use std::marker::PhantomData;
 
 /// Encapsulates different measurements regarding algorithm evaluation.
@@ -66,8 +65,6 @@ pub enum TelemetryMode {
         log_best: usize,
         /// Specifies how often population is logged.
         log_population: usize,
-        /// Specifies whether population should be dumped.
-        dump_population: bool,
     },
     /// Only metrics collection.
     OnlyMetrics {
@@ -84,8 +81,6 @@ pub enum TelemetryMode {
         log_population: usize,
         /// Specifies how often population is tracked.
         track_population: usize,
-        /// Specifies whether population should be dumped.
-        dump_population: bool,
     },
 }
 
@@ -166,14 +161,12 @@ where
             termination_estimate,
         };
 
-        let (log_best, log_population, track_population, should_dump_population) = match &self.mode {
+        let (log_best, log_population, track_population) = match &self.mode {
             TelemetryMode::None => return,
-            TelemetryMode::OnlyLogging { log_best, log_population, dump_population, .. } => {
-                (Some(log_best), Some(log_population), None, *dump_population)
-            }
-            TelemetryMode::OnlyMetrics { track_population, .. } => (None, None, Some(track_population), false),
-            TelemetryMode::All { log_best, log_population, track_population, dump_population, .. } => {
-                (Some(log_best), Some(log_population), Some(track_population), *dump_population)
+            TelemetryMode::OnlyLogging { log_best, log_population, .. } => (Some(log_best), Some(log_population), None),
+            TelemetryMode::OnlyMetrics { track_population, .. } => (None, None, Some(track_population)),
+            TelemetryMode::All { log_best, log_population, track_population, .. } => {
+                (Some(log_best), Some(log_population), Some(track_population))
             }
         };
 
@@ -189,7 +182,7 @@ where
                 )
             }
 
-            self.on_population(population, should_log_population, should_track_population, should_dump_population);
+            self.on_population(population, should_log_population, should_track_population);
         } else {
             self.log("no progress yet");
         }
@@ -201,7 +194,6 @@ where
         population: &DynHeuristicPopulation<O, S>,
         should_log_population: bool,
         should_track_population: bool,
-        should_dump_population: bool,
     ) {
         if !should_log_population && !should_track_population {
             return;
@@ -233,11 +225,6 @@ where
 
         if should_log_population {
             individuals.iter().for_each(|metrics| self.log_individual(metrics, None));
-            if should_dump_population {
-                let mut state = String::new();
-                write!(state, "{population}").unwrap();
-                self.log(&format!("\t{state}"));
-            }
         }
 
         if should_track_population {
@@ -263,7 +250,7 @@ where
             _ => return,
         };
 
-        self.on_population(population, should_log_population, should_track_population, false);
+        self.on_population(population, should_log_population, should_track_population);
 
         let elapsed = self.time.elapsed_secs() as usize;
         let speed = generations as Float / self.time.elapsed_secs_as_float();

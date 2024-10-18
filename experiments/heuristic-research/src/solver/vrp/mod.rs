@@ -67,12 +67,7 @@ pub fn solve_vrp(
         ..Environment::new_with_time_quota(Some(300))
     });
     let population = get_population(population_type, problem.goal.clone(), environment.clone(), selection_size);
-    let telemetry_mode = TelemetryMode::OnlyLogging {
-        logger: logger.clone(),
-        log_best: 100,
-        log_population: 1000,
-        dump_population: false,
-    };
+    let telemetry_mode = TelemetryMode::OnlyLogging { logger: logger.clone(), log_best: 100, log_population: 1000 };
 
     let config = VrpConfigBuilder::new(problem.clone())
         .set_environment(environment.clone())

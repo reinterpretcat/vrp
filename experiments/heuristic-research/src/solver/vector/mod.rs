@@ -42,8 +42,7 @@ pub fn solve_function(
             move |objective, environment| {
                 let population =
                     get_population(&population_type, objective.clone(), environment.clone(), selection_size);
-                let telemetry_mode =
-                    TelemetryMode::OnlyLogging { logger, log_best: 100, log_population: 500, dump_population: false };
+                let telemetry_mode = TelemetryMode::OnlyLogging { logger, log_best: 100, log_population: 500 };
                 VectorContext::new(objective, population, telemetry_mode, environment)
             }
         }))

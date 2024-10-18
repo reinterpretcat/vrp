@@ -13,7 +13,6 @@ fn can_read_full_config() {
     assert!(logging.enabled);
     assert_eq!(logging.log_best, Some(100));
     assert_eq!(logging.log_population, Some(1000));
-    assert_eq!(logging.dump_population, Some(false));
     let metrics = telemetry.metrics.unwrap();
     assert!(!metrics.enabled);
     assert_eq!(metrics.track_population, Some(1000));

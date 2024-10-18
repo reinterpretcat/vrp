@@ -25,7 +25,7 @@ pub enum SelectionPhase {
 }
 
 /// A trait which models a population with individuals.
-pub trait HeuristicPopulation: Display + Send + Sync {
+pub trait HeuristicPopulation: Send + Sync {
     /// A heuristic objective type.
     type Objective: HeuristicObjective;
     /// A solution type.

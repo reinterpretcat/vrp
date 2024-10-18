@@ -364,8 +364,6 @@ pub struct ProgressConfig {
     log_best: Option<usize>,
     /// Specifies how often population is logged. Default is 1000 (generations).
     log_population: Option<usize>,
-    /// Specifies whether population should be dumped.
-    dump_population: Option<bool>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -723,22 +721,19 @@ fn get_telemetry_mode(environment: Arc<Environment>, telemetry_config: &Option<T
         track_population: track_population.unwrap_or(TRACK_POPULATION),
     };
 
-    let create_progress = |log_best: &Option<usize>, log_population: &Option<usize>, dump_population: &Option<bool>| {
-        TelemetryMode::OnlyLogging {
-            logger: environment.logger.clone(),
-            log_best: log_best.unwrap_or(LOG_BEST),
-            log_population: log_population.unwrap_or(LOG_POPULATION),
-            dump_population: dump_population.unwrap_or(false),
-        }
+    let create_progress = |log_best: &Option<usize>, log_population: &Option<usize>| TelemetryMode::OnlyLogging {
+        logger: environment.logger.clone(),
+        log_best: log_best.unwrap_or(LOG_BEST),
+        log_population: log_population.unwrap_or(LOG_POPULATION),
     };
 
     match telemetry_config.as_ref().map(|t| (&t.progress, &t.metrics)) {
         Some((None, Some(MetricsConfig { enabled, track_population }))) if *enabled => create_metrics(track_population),
-        Some((Some(ProgressConfig { enabled, log_best, log_population, dump_population }), None)) if *enabled => {
-            create_progress(log_best, log_population, dump_population)
+        Some((Some(ProgressConfig { enabled, log_best, log_population }), None)) if *enabled => {
+            create_progress(log_best, log_population)
         }
         Some((
-            Some(ProgressConfig { enabled: progress_enabled, log_best, log_population, dump_population }),
+            Some(ProgressConfig { enabled: progress_enabled, log_best, log_population }),
             Some(MetricsConfig { enabled: metrics_enabled, track_population }),
         )) => match (progress_enabled, metrics_enabled) {
             (true, true) => TelemetryMode::All {
@@ -746,9 +741,8 @@ fn get_telemetry_mode(environment: Arc<Environment>, telemetry_config: &Option<T
                 log_best: log_best.unwrap_or(LOG_BEST),
                 log_population: log_population.unwrap_or(LOG_POPULATION),
                 track_population: track_population.unwrap_or(TRACK_POPULATION),
-                dump_population: dump_population.unwrap_or(false),
             },
-            (true, false) => create_progress(log_best, log_population, dump_population),
+            (true, false) => create_progress(log_best, log_population),
             (false, true) => create_metrics(track_population),
             _ => TelemetryMode::None,
         },

@@ -442,7 +442,6 @@ impl Solver {
                             logger: environment.logger.clone(),
                             log_best: 100,
                             log_population: 500,
-                            dump_population: false,
                         },
                         environment.clone(),
                     )

@@ -5,7 +5,6 @@ use rosomaxa::prelude::*;
 use std::any::TypeId;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
 use std::sync::MutexGuard;
 use vrp_scientific::core::construction::heuristics::InsertionContext;
 
@@ -166,17 +165,6 @@ where
 
     fn selection_phase(&self) -> SelectionPhase {
         self.inner.selection_phase()
-    }
-}
-
-impl<P, O, S> Display for ProxyPopulation<P, O, S>
-where
-    P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
-    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaWeighted + 'static,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.inner.fmt(f)
     }
 }
 

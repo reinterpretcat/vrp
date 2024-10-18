@@ -6,8 +6,7 @@
     "progress": {
       "enabled": true,
       "logBest": 100,
-      "logPopulation": 1000,
-      "dumpPopulation": false
+      "logPopulation": 1000
     },
     "metrics": {
       "enabled": true,
