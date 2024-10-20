@@ -270,7 +270,8 @@ where
                 }
             }
             RosomaxaPhases::Exploitation { selection_size: old_selection_size } => {
-                *old_selection_size = selection_size;
+                // NOTE as we exploit elite only, limit how many solutions are exploited simultaneously
+                *old_selection_size = ((*old_selection_size as f64 / 2.).round() as usize).clamp(2, 4)
             }
         }
     }
