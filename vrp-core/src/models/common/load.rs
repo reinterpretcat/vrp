@@ -12,7 +12,7 @@ use std::ops::{Add, Mul, Sub};
 
 const CAPACITY_DIMENSION_KEY: &str = "cpc";
 const DEMAND_DIMENSION_KEY: &str = "dmd";
-const LOAD_DIMENSION_SIZE: usize = 8;
+const LOAD_DIMENSION_SIZE: usize = 32;
 
 /// Represents a load type used to represent customer's demand or vehicle's load.
 pub trait Load: Add + Sub + PartialOrd + Copy + Default + Debug + Send + Sync {
