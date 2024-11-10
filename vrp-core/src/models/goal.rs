@@ -205,7 +205,13 @@ impl GoalBuilder {
                 let fitness_a = objectives[0].fitness(a);
                 let fitness_b = objectives[0].fitness(b);
 
-                fitness_a.total_cmp(&fitness_b)
+                // NOTE total_cmp distinguishes between positive zero and negative zero while
+                // logically they are the same in this context
+                if fitness_a == 0. && fitness_b == 0. {
+                    Ordering::Equal
+                } else {
+                    fitness_a.total_cmp(&fitness_b)
+                }
             }),
             Arc::new(|objectives, move_ctx| objectives[0].estimate(move_ctx)),
             vec![objective],

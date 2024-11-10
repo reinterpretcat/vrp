@@ -183,7 +183,7 @@ where
 
     /// Returns max unified distance of the network.
     pub fn max_unified_distance(&self) -> Float {
-        self.get_nodes().map(|node| node.unified_distance(self, 1)).max_by(|a, b| a.total_cmp(b)).unwrap_or(0.)
+        self.get_nodes().map(|node| node.unified_distance(self, 1)).max_by(|a, b| a.total_cmp(b)).unwrap_or_default()
     }
 
     /// Trains network on an input.
