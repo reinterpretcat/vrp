@@ -8,6 +8,11 @@ are already published. So, I stick to it for now.
 
 ## [Unreleased]
 
+
+## [1.25.0] 2024-11-10
+
+This release focuses on improving heuristic and some performance optimizations.
+
 ### Changed
 
 * update rust version
@@ -774,7 +779,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.24.0...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.25.0...HEAD
+[v1.25.0]: https://github.com/reinterpretcat/vrp/compare/v1.24.0...v1.25.0
 [v1.24.0]: https://github.com/reinterpretcat/vrp/compare/v1.23.0...v1.24.0
 [v1.23.0]: https://github.com/reinterpretcat/vrp/compare/v1.22.1...v1.23.0
 [v1.22.1]: https://github.com/reinterpretcat/vrp/compare/v1.22.0...v1.22.1

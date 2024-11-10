@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "1.24.0"
+version = "1.25.0"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["vrp", "optimization"]
@@ -25,11 +25,11 @@ edition = "2021"
 
 [workspace.dependencies]
 # internal dependencies
-rosomaxa = { path = "rosomaxa", version = "0.8.0" }
-vrp-core = { path = "vrp-core", version = "1.24.0" }
-vrp-scientific = { path = "vrp-scientific", version = "1.24.0" }
-vrp-pragmatic = { path = "vrp-pragmatic", version = "1.24.0" }
-vrp-cli = { path = "vrp-cli", version = "1.24.0" }
+rosomaxa = { path = "rosomaxa", version = "0.9.0" }
+vrp-core = { path = "vrp-core", version = "1.25.0" }
+vrp-scientific = { path = "vrp-scientific", version = "1.25.0" }
+vrp-pragmatic = { path = "vrp-pragmatic", version = "1.25.0" }
+vrp-cli = { path = "vrp-cli", version = "1.25.0" }
 
 # external dependencies
 serde = { version = "1.0.214", features = ["derive"] }

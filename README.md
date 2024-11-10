@@ -4,7 +4,7 @@
 [![downloads](https://img.shields.io/crates/d/vrp-core)](https://crates.io/crates/vrp-core)
 [![codecov](https://codecov.io/gh/reinterpretcat/vrp/branch/master/graph/badge.svg)](https://codecov.io/gh/reinterpretcat/vrp)
 [![CodeScene Code Health](https://codescene.io/projects/46594/status-badges/code-health)](https://codescene.io/projects/46594)
-[![dependency status](https://deps.rs/crate/vrp-cli/1.24.0/status.svg)](https://deps.rs/crate/vrp-cli/1.24.0)
+[![dependency status](https://deps.rs/crate/vrp-cli/1.25.0/status.svg)](https://deps.rs/crate/vrp-cli/1.25.0)
 [![DOI](https://zenodo.org/badge/238436117.svg)](https://zenodo.org/badge/latestdoi/238436117)
 
 ![VRP example](docs/resources/vrp-example.png "VRP with Route Balance")
@@ -73,7 +73,7 @@ Another fast way to try vrp solver on your environment is to use `docker` image 
 * **run public image** from `Github Container Registry`:
 
 ```bash
-    docker run -it -v $(pwd):/repo --name vrp-cli --rm ghcr.io/reinterpretcat/vrp/vrp-cli:1.24.0
+    docker run -it -v $(pwd):/repo --name vrp-cli --rm ghcr.io/reinterpretcat/vrp/vrp-cli:1.25.0
 ```
 
 * **build image locally** using `Dockerfile` provided:
