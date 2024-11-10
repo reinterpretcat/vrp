@@ -25,7 +25,7 @@ paste = "1.0.15"
 criterion.workspace = true
 
 proptest = "1.5.0"
-uuid = { version = "1.10.0", features = ["v4"] }
+uuid = { version = "1.11.0", features = ["v4"] }
 
 [[bench]]
 name = "pragmatic_simple"

@@ -6,7 +6,7 @@ use super::*;
 use crate::algorithms::math::relative_distance;
 use std::marker::PhantomData;
 
-/// Provides way to set stop algorithm when some close solution is found.
+/// Provides a way to set stop algorithm when some close solution is found.
 pub struct TargetProximity<C, O, S>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
@@ -44,7 +44,7 @@ where
     type Objective = O;
 
     fn is_termination(&self, heuristic_ctx: &mut Self::Context) -> bool {
-        // NOTE ignore pareto front, use the first solution only for comparison
+        // use the first solution only for comparison
         heuristic_ctx.ranked().next().map_or(false, |solution| {
             let distance = relative_distance(self.target_fitness.iter().cloned(), solution.fitness());
             distance < self.distance_threshold
