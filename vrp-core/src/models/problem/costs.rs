@@ -76,6 +76,9 @@ pub trait TransportCost: Send + Sync {
 
     /// Returns time-dependent travel distance between locations specific for given actor.
     fn distance(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Distance;
+
+    /// Returns size of known locations
+    fn size(&self) -> usize;
 }
 
 /// A simple implementation of transport costs around a single matrix.
@@ -114,6 +117,10 @@ impl TransportCost for SimpleTransportCost {
 
     fn distance(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         self.distance_approx(&route.actor.vehicle.profile, from, to)
+    }
+
+    fn size(&self) -> usize {
+        self.size
     }
 }
 
@@ -255,6 +262,10 @@ impl<T: TransportFallback> TransportCost for TimeAgnosticMatrixTransportCost<T> 
     fn distance(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         self.distance_approx(&route.actor.vehicle.profile, from, to)
     }
+
+    fn size(&self) -> usize {
+        self.size
+    }
 }
 
 /// A time aware matrix costs.
@@ -376,5 +387,9 @@ impl<T: TransportFallback> TransportCost for TimeAwareMatrixTransportCost<T> {
 
     fn distance(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Distance {
         self.interpolate_distance(&route.actor.vehicle.profile, from, to, travel_time)
+    }
+
+    fn size(&self) -> usize {
+        self.size
     }
 }

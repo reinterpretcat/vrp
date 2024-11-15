@@ -134,6 +134,10 @@ impl TransportCost for DynamicTransportCost {
     fn distance(&self, route: &Route, from: Location, to: Location, travel_time: TravelTime) -> Distance {
         self.inner.distance(route, from, to, travel_time)
     }
+
+    fn size(&self) -> usize {
+        self.inner.size()
+    }
 }
 
 /// Optimizes reserved time schedules by rescheduling it to earlier time (e.g. to avoid transit stops,

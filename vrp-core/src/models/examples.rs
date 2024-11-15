@@ -25,6 +25,10 @@ impl TransportCost for ExampleTransportCost {
     fn distance(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Distance {
         42.
     }
+
+    fn size(&self) -> usize {
+        1
+    }
 }
 
 /// Creates an example jobs used in documentation tests.

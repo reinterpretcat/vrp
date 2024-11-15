@@ -23,6 +23,10 @@ impl TransportCost for OnlyDistanceCost {
     fn distance(&self, _: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         fake_routing(from, to)
     }
+
+    fn size(&self) -> usize {
+        1
+    }
 }
 
 struct ProfileAwareTransportCost {
@@ -53,6 +57,10 @@ impl TransportCost for ProfileAwareTransportCost {
     fn distance(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         (self.func)(&route.actor.vehicle.profile, fake_routing(from, to))
     }
+
+    fn size(&self) -> usize {
+        1
+    }
 }
 
 struct FixedTransportCost {
@@ -75,6 +83,10 @@ impl TransportCost for FixedTransportCost {
 
     fn distance(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Distance {
         self.distance_cost
+    }
+
+    fn size(&self) -> usize {
+        1
     }
 }
 

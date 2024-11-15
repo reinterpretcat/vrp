@@ -11,3 +11,6 @@ pub use self::load::*;
 
 mod primitives;
 pub use self::primitives::*;
+
+mod shadow;
+pub(crate) use self::shadow::*;
