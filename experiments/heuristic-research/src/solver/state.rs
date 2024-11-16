@@ -219,23 +219,34 @@ impl HyperHeuristicState {
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct FootprintState {
-    repr: Vec<u8>,
+    repr: HashMap<(usize, usize), u8>,
     dimension: usize,
 }
 
+impl FootprintState {
+    pub fn apply(&mut self, shadow_state: &ShadowState) {
+        shadow_state.repr.iter().for_each(|((from, to), bit)| {
+            self.repr
+                .entry((*from, *to))
+                .and_modify(|value| *value = value.saturating_add(*bit as u8))
+                .or_insert(*bit as u8);
+        })
+    }
+}
+
 impl From<&Footprint> for FootprintState {
-    fn from(_: &Footprint) -> Self {
-        todo!()
+    fn from(footprint: &Footprint) -> Self {
+        Self { repr: footprint.iter().collect(), dimension: footprint.dimension() }
     }
 }
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct ShadowState {
-    repr: Vec<u8>,
+    repr: HashMap<(usize, usize), bool>,
 }
 
 impl From<&Shadow> for ShadowState {
-    fn from(_: &Shadow) -> Self {
-        todo!()
+    fn from(shadow: &Shadow) -> Self {
+        Self { repr: shadow.iter().collect() }
     }
 }

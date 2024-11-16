@@ -19,7 +19,7 @@ pub struct ExperimentData {
     /// Called on individual selection.
     pub on_select: HashMap<usize, Vec<ObservationData>>,
     /// Called on generation.
-    pub on_generation: HashMap<usize, Vec<ObservationData>>,
+    pub on_generation: HashMap<usize, (FootprintState, Vec<ObservationData>)>,
     /// Keeps track of population state at specific generation.
     pub population_state: HashMap<usize, PopulationState>,
     /// Keeps track of heuristic state at specific generation.
@@ -123,8 +123,18 @@ where
         self.generation = statistics.generation;
         self.acquire().generation = statistics.generation;
 
-        let individuals = self.inner.all().map(|individual| individual.into()).collect();
-        self.acquire().on_generation.insert(self.generation, individuals);
+        let individuals_data = self.inner.all().map(|individual| individual.into()).collect::<Vec<_>>();
+        let individuals_footprint = individuals_data
+            .iter()
+            .filter_map(|data| match data {
+                ObservationData::Vrp(shadow) => Some(shadow),
+                _ => None,
+            })
+            .fold(FootprintState::default(), |mut footprint, shadow| {
+                footprint.apply(shadow);
+                footprint
+            });
+        self.acquire().on_generation.insert(self.generation, (individuals_footprint, individuals_data));
 
         self.acquire().population_state.insert(self.generation, get_population_state(&self.inner));
 

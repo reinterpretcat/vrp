@@ -25,6 +25,11 @@ impl Footprint {
         })
     }
 
+    /// Returns dimension of adjacency matrix.
+    pub fn dimension(&self) -> usize {
+        self.dimension
+    }
+
     pub(crate) fn apply(&mut self, solution: &mut InsertionContext) {
         let shadow = Shadow::from(&*solution);
         self.memorize(&shadow);
@@ -35,7 +40,7 @@ impl Footprint {
     fn memorize(&mut self, shadow: &Shadow) {
         self.repr.iter_mut().enumerate().for_each(|(index, value)| {
             let bit_value = shadow.repr.get(index).map(|bit| bit as u8).unwrap_or_default();
-            *value = value.checked_add(bit_value).unwrap_or(u8::MAX);
+            *value = value.saturating_add(bit_value);
         });
     }
 }
@@ -53,6 +58,16 @@ pub struct Shadow {
     /// repr is adjusted matrix of size dim x dim, where dim is the minimum of MAX_REPRESENTATION_DIMENSION
     /// and number of locations present in the problem.
     repr: BitVec,
+}
+
+impl Shadow {
+    /// Returns an iterator over the low-dimensional representation.
+    pub fn iter(&self) -> impl Iterator<Item = ((usize, usize), bool)> + '_ {
+        let size = (self.repr.len() as f64).sqrt() as usize;
+        debug_assert!(size * size == self.repr.len());
+
+        (0..size).flat_map(move |from| (0..size).map(move |to| ((from, to), self.repr[from * size + to])))
+    }
 }
 
 impl From<&InsertionContext> for Shadow {
