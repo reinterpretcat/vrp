@@ -84,7 +84,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 pub use self::heuristic::*;
-use crate::models::common::Footprint;
 use rosomaxa::population::Rosomaxa;
 use rosomaxa::utils::Timer;
 
@@ -101,8 +100,8 @@ pub struct RefinementContext {
     pub environment: Arc<Environment>,
     /// A collection of data associated with a refinement process.
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
-    /// A low-dimensional representation of population approximation.
-    footprint: Footprint,
+    /*    /// A low-dimensional representation of population approximation.
+    footprint: Footprint,*/
     /// Provides some basic implementation of context functionality.
     inner_context: TelemetryHeuristicContext<GoalContext, InsertionContext>,
 }
@@ -125,10 +124,10 @@ impl RefinementContext {
         telemetry_mode: TelemetryMode,
         environment: Arc<Environment>,
     ) -> Self {
-        let footprint = Footprint::new(&problem);
+        //let footprint = Footprint::new(&problem);
         let inner_context =
             TelemetryHeuristicContext::new(problem.goal.clone(), population, telemetry_mode, environment.clone());
-        Self { problem, environment, inner_context, state: Default::default(), footprint }
+        Self { problem, environment, inner_context, state: Default::default() /*, footprint*/ }
     }
 
     /// Adds solution to population.

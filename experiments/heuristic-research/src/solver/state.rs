@@ -219,6 +219,8 @@ impl HyperHeuristicState {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct FootprintState {
+    // TODO find a way to serialize/deserialize state efficiently
+    #[serde(skip)]
     repr: HashMap<(usize, usize), u8>,
     dimension: usize,
 }
