@@ -215,3 +215,9 @@ impl HyperHeuristicState {
         }
     }
 }
+
+#[derive(Default, Serialize, Deserialize)]
+pub struct FootprintState {
+    repr: Vec<u8>,
+    _dimension: usize,
+}

@@ -8,14 +8,14 @@ pub struct Footprint {
     /// repr here is the same adjacency matrix as in [Shadow], but instead of storing bits
     /// we store here the number of times the edge was present in multiple solutions.
     repr: Vec<u8>,
-    dimension: usize,
+    _dimension: usize,
 }
 
 impl Footprint {
     /// Creates a new instance of a `Snapshot`.
     pub fn new(problem: &Problem) -> Self {
         let dim = get_dimension(problem);
-        Self { repr: vec![0; dim * dim], dimension: dim }
+        Self { repr: vec![0; dim * dim], _dimension: dim }
     }
 
     pub(crate) fn apply(&mut self, solution: &mut InsertionContext) {

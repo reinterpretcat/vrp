@@ -106,4 +106,8 @@ impl TransportCost for SingleDataTransportCost {
     fn distance(&self, _: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         self.values[from * self.size + to]
     }
+
+    fn size(&self) -> usize {
+        self.size
+    }
 }

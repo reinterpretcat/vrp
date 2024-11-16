@@ -354,6 +354,10 @@ impl TransportCost for TestTransportCost {
     fn distance(&self, _: &Route, from: CoreLocation, to: CoreLocation, _: TravelTime) -> Distance {
         fake_routing(from, to)
     }
+
+    fn size(&self) -> usize {
+        1
+    }
 }
 
 fn fake_routing(from: CoreLocation, to: CoreLocation) -> Float {

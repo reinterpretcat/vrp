@@ -6,7 +6,7 @@ use std::any::TypeId;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::sync::MutexGuard;
-use vrp_scientific::core::construction::heuristics::InsertionContext;
+use vrp_scientific::core::prelude::*;
 
 /// Keeps track of all experiment data for visualization purposes.
 #[derive(Default, Serialize, Deserialize)]
@@ -23,10 +23,12 @@ pub struct ExperimentData {
     pub population_state: HashMap<usize, PopulationState>,
     /// Keeps track of heuristic state at specific generation.
     pub heuristic_state: HyperHeuristicState,
+    /// Populated by refinement context proxy in case of VRP.
+    pub footprint: FootprintState,
 }
 
 impl ExperimentData {
-    /// Clears all data strored.
+    /// Clears all stored data.
     pub fn clear(&mut self) {
         self.generation = 0;
         self.on_add.clear();
