@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::any::TypeId;
 use std::collections::HashMap;
 use std::ops::Range;
+use vrp_scientific::core::models::common::Footprint;
 
 /// Represents population state specific for supported types.
 #[allow(clippy::large_enum_variant)]
@@ -219,5 +220,11 @@ impl HyperHeuristicState {
 #[derive(Default, Serialize, Deserialize)]
 pub struct FootprintState {
     repr: Vec<u8>,
-    _dimension: usize,
+    dimension: usize,
+}
+
+impl From<&Footprint> for FootprintState {
+    fn from(_: &Footprint) -> Self {
+        todo!()
+    }
 }

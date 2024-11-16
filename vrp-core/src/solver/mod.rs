@@ -135,6 +135,12 @@ impl RefinementContext {
     pub fn add_solution(&mut self, solution: InsertionContext) {
         self.inner_context.add_solution(solution);
     }
+
+    /// Returns an experimental footprint state.
+    #[doc(hidden)]
+    pub fn get_footprint(&self) -> &Footprint {
+        &self.footprint
+    }
 }
 
 impl HeuristicContext for RefinementContext {

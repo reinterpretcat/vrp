@@ -227,7 +227,7 @@ fn get_solution_points(generation: usize) -> Vec<ColoredDataPoint3D> {
         .map(|data| {
             let mut data_points: Vec<ColoredDataPoint3D> = vec![];
 
-            if let Some((_, points)) = data.on_generation.get(&generation) {
+            if let Some(points) = data.on_generation.get(&generation) {
                 data_points.extend(to_data_point(points).map(|point| (point.clone(), PointType::Circle, BLACK)));
             }
 
@@ -391,7 +391,7 @@ fn get_population_series(generation: usize) -> PopulationSeries {
 fn get_axis_sizes() -> (Float, Float, Float) {
     EXPERIMENT_DATA.lock().unwrap().on_generation.iter().fold(
         (Float::default(), Float::default(), Float::default()),
-        |acc, (_, (_, data))| {
+        |acc, (_, data)| {
             data.iter().fold(acc, |(max_x, max_y, max_z), data| {
                 let &DataPoint3D(x, y, z) = match data {
                     ObservationData::Function(point) => point,

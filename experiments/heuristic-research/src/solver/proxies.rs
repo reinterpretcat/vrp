@@ -2,11 +2,13 @@ use crate::*;
 use rosomaxa::example::VectorSolution;
 use rosomaxa::population::{RosomaxaWeighted, Shuffled};
 use rosomaxa::prelude::*;
+use rosomaxa::utils::Timer;
 use std::any::TypeId;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::sync::MutexGuard;
 use vrp_scientific::core::prelude::*;
+use vrp_scientific::core::solver::RefinementContext;
 
 /// Keeps track of all experiment data for visualization purposes.
 #[derive(Default, Serialize, Deserialize)]
@@ -18,13 +20,13 @@ pub struct ExperimentData {
     /// Called on individual selection.
     pub on_select: HashMap<usize, Vec<ObservationData>>,
     /// Called on generation.
-    pub on_generation: HashMap<usize, ((), Vec<ObservationData>)>,
+    pub on_generation: HashMap<usize, Vec<ObservationData>>,
     /// Keeps track of population state at specific generation.
     pub population_state: HashMap<usize, PopulationState>,
     /// Keeps track of heuristic state at specific generation.
     pub heuristic_state: HyperHeuristicState,
-    /// Populated by refinement context proxy in case of VRP.
-    pub footprint: FootprintState,
+
+    pub footprint_state: HashMap<usize, FootprintState>,
 }
 
 impl ExperimentData {
@@ -82,7 +84,90 @@ where
     }
 }
 
-/// A population type which provides way to intercept some of population data.
+/// A heuristic context type which provides a way to intercept some of the heuristic context data.
+pub struct ProxyHeuristicContext<P, O, S>
+where
+    P: HeuristicContext<Objective = O, Solution = S> + 'static,
+    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    S: HeuristicSolution + RosomaxaWeighted + 'static,
+{
+    inner: P,
+}
+
+impl<P, O, S> ProxyHeuristicContext<P, O, S>
+where
+    P: HeuristicContext<Objective = O, Solution = S> + 'static,
+    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    S: HeuristicSolution + RosomaxaWeighted + 'static,
+{
+    /// Creates a new instance of `ProxyHeuristicContext`.
+    pub fn new(inner: P) -> Self {
+        EXPERIMENT_DATA.lock().unwrap().clear();
+        Self { inner }
+    }
+
+    fn acquire(&self) -> MutexGuard<ExperimentData> {
+        EXPERIMENT_DATA.lock().unwrap()
+    }
+}
+
+impl<P, O, S> HeuristicContext for ProxyHeuristicContext<P, O, S>
+where
+    P: HeuristicContext<Objective = O, Solution = S> + 'static,
+    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    S: HeuristicSolution + RosomaxaWeighted + 'static,
+{
+    type Objective = O;
+    type Solution = S;
+
+    fn objective(&self) -> &Self::Objective {
+        self.inner.objective()
+    }
+
+    fn selected<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
+        self.inner.selected()
+    }
+
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
+        self.inner.ranked()
+    }
+
+    fn statistics(&self) -> &HeuristicStatistics {
+        self.inner.statistics()
+    }
+
+    fn selection_phase(&self) -> SelectionPhase {
+        self.inner.selection_phase()
+    }
+
+    fn environment(&self) -> &Environment {
+        self.inner.environment()
+    }
+
+    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
+        self.inner.on_initial(solution, item_time)
+    }
+
+    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer) {
+        self.inner.on_generation(offspring, termination_estimate, generation_time);
+        if TypeId::of::<P>() == TypeId::of::<RefinementContext>() {
+            let generation = self.inner.statistics().generation;
+            // SAFETY: type id check above ensures that P-type is the right one
+            let refinement_ctx = unsafe { std::mem::transmute::<&P, &RefinementContext>(&self.inner) };
+            EXPERIMENT_DATA
+                .lock()
+                .unwrap()
+                .footprint_state
+                .insert(generation, FootprintState::from(refinement_ctx.get_footprint()));
+        }
+    }
+
+    fn on_result(self) -> HeuristicResult<Self::Objective, Self::Solution> {
+        self.inner.on_result()
+    }
+}
+
+/// A population type which provides a way to intercept some of the population data.
 pub struct ProxyPopulation<P, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
@@ -136,7 +221,7 @@ where
         self.acquire().generation = statistics.generation;
 
         let individuals = self.inner.all().map(|individual| individual.into()).collect();
-        self.acquire().on_generation.insert(self.generation, ((), individuals));
+        self.acquire().on_generation.insert(self.generation, individuals);
 
         self.acquire().population_state.insert(self.generation, get_population_state(&self.inner));
 
