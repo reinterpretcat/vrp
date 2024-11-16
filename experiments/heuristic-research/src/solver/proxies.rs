@@ -6,7 +6,7 @@ use std::any::TypeId;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::sync::MutexGuard;
-use vrp_scientific::core::models::common::ShadowSolutionState;
+use vrp_scientific::core::models::common::Shadow;
 use vrp_scientific::core::prelude::*;
 
 /// Keeps track of all experiment data for visualization purposes.
@@ -62,8 +62,8 @@ where
             // SAFETY: type id check above ensures that S-type is the right one
             let insertion_ctx = unsafe { std::mem::transmute::<&S, &InsertionContext>(solution) };
 
-            let shadow = insertion_ctx.solution.state.get_shadow().expect("should have shadow");
-            return ObservationData::Vrp(shadow.into());
+            let shadow = Shadow::from(insertion_ctx);
+            return ObservationData::Vrp((&shadow).into());
         }
 
         unreachable!("type is not supported by observation data");
