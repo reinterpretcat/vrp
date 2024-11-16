@@ -20,7 +20,7 @@ pub(crate) struct Shadow {
 
 impl From<&InsertionContext> for Shadow {
     fn from(insertion_ctx: &InsertionContext) -> Self {
-        let dim = insertion_ctx.problem.transport.size().min(MAX_REPRESENTATION_DIMENSION);
+        let dim = get_dimension(&insertion_ctx.problem);
         let mut shadow = Shadow { repr: BitVec::new(dim * dim) };
 
         insertion_ctx.solution.routes.iter().for_each(|route_ctx| {
@@ -50,16 +50,26 @@ pub(crate) struct Footprint {
 
 impl Footprint {
     /// Creates a new instance of a `Snapshot`.
-    pub fn new(insertion_ctx: &InsertionContext) -> Self {
-        let dim = insertion_ctx.problem.transport.size().min(MAX_REPRESENTATION_DIMENSION);
+    pub fn new(problem: &Problem) -> Self {
+        let dim = get_dimension(problem);
         Self { repr: vec![0; dim * dim], dimension: dim }
     }
 
-    /// Applies the shadow to the footprint.
-    pub fn apply(&mut self, shadow: &Shadow) {
+    pub fn apply(&mut self, solution: &mut InsertionContext) {
+        let shadow = Shadow::from(&*solution);
+        self.memorize(&shadow);
+
+        solution.solution.state.set_shadow(shadow);
+    }
+
+    fn memorize(&mut self, shadow: &Shadow) {
         self.repr.iter_mut().enumerate().for_each(|(index, value)| {
             let bit_value = shadow.repr.get(index).map(|bit| bit as u8).unwrap_or_default();
             *value = value.checked_add(bit_value).unwrap_or(u8::MAX);
         });
     }
+}
+
+fn get_dimension(problem: &Problem) -> usize {
+    problem.transport.size().min(MAX_REPRESENTATION_DIMENSION)
 }

@@ -1,6 +1,5 @@
 use super::*;
 use crate::construction::heuristics::*;
-use crate::models::common::{Shadow, ShadowSolutionState};
 use crate::models::{Extras, GoalContext};
 use crate::rosomaxa::get_default_selection_size;
 use crate::solver::search::*;
@@ -215,7 +214,6 @@ impl RosomaxaWeighted for InsertionContext {
         ];
 
         self.solution.state.set_solution_weights(weights);
-        self.solution.state.set_shadow(Shadow::from(&*self));
     }
 }
 

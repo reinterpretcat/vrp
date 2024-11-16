@@ -84,6 +84,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 pub use self::heuristic::*;
+use crate::models::common::Footprint;
 use rosomaxa::population::Rosomaxa;
 use rosomaxa::utils::Timer;
 
@@ -92,14 +93,16 @@ pub mod search;
 
 mod heuristic;
 
-/// A type which encapsulates information needed to perform solution refinement process.
+/// A type which encapsulates information needed to perform a solution refinement process.
 pub struct RefinementContext {
     /// Original problem definition.
     pub problem: Arc<Problem>,
     /// An environmental context.
     pub environment: Arc<Environment>,
-    /// A collection of data associated with refinement process.
+    /// A collection of data associated with a refinement process.
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
+    /// A low-dimensional representation of population approximation.
+    footprint: Footprint,
     /// Provides some basic implementation of context functionality.
     inner_context: TelemetryHeuristicContext<GoalContext, InsertionContext>,
 }
@@ -122,9 +125,10 @@ impl RefinementContext {
         telemetry_mode: TelemetryMode,
         environment: Arc<Environment>,
     ) -> Self {
+        let footprint = Footprint::new(&problem);
         let inner_context =
             TelemetryHeuristicContext::new(problem.goal.clone(), population, telemetry_mode, environment.clone());
-        Self { problem, environment, inner_context, state: Default::default() }
+        Self { problem, environment, inner_context, state: Default::default(), footprint }
     }
 
     /// Adds solution to population.
@@ -161,11 +165,18 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.environment()
     }
 
-    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
+    fn on_initial(&mut self, mut solution: Self::Solution, item_time: Timer) {
+        self.footprint.apply(&mut solution);
         self.inner_context.on_initial(solution, item_time)
     }
 
-    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer) {
+    fn on_generation(
+        &mut self,
+        mut offspring: Vec<Self::Solution>,
+        termination_estimate: Float,
+        generation_time: Timer,
+    ) {
+        offspring.iter_mut().for_each(|s| self.footprint.apply(s));
         self.inner_context.on_generation(offspring, termination_estimate, generation_time)
     }
 
