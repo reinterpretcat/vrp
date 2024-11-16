@@ -2,9 +2,6 @@
 #[path = "../../../tests/unit/solver/vrp/vrp_test.rs"]
 mod vrp_test;
 
-extern crate serde_json;
-use serde::{Deserialize, Serialize};
-
 use super::*;
 use std::io::BufWriter;
 use vrp_scientific::core::prelude::*;
@@ -12,31 +9,6 @@ use vrp_scientific::core::solver::RefinementContext;
 use vrp_scientific::lilim::{LilimProblem, LilimSolution};
 use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
 use vrp_scientific::tsplib::{TsplibProblem, TsplibSolution};
-
-mod conversion;
-
-/// Represents VRP solution as directed graph.
-#[derive(Clone, Default, Deserialize, Serialize)]
-pub struct DataGraph {
-    /// Nodes data: x and y coordinate.
-    pub nodes: Vec<GraphNode>,
-    /// Edges data: source and target nodes.
-    pub edges: Vec<GraphEdge>,
-}
-
-/// Node of a graph.
-#[derive(Clone, Deserialize, Serialize)]
-pub struct GraphNode {
-    pub x: Float,
-    pub y: Float,
-}
-
-/// Edge of a graph.
-#[derive(Clone, Deserialize, Serialize)]
-pub struct GraphEdge {
-    pub source: usize,
-    pub target: usize,
-}
 
 /// Solves VRP of the given format type.
 pub fn solve_vrp(

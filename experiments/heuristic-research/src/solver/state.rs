@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::any::TypeId;
 use std::collections::HashMap;
 use std::ops::Range;
-use vrp_scientific::core::models::common::Footprint;
+use vrp_scientific::core::models::common::{Footprint, Shadow};
 
 /// Represents population state specific for supported types.
 #[allow(clippy::large_enum_variant)]
@@ -225,6 +225,17 @@ pub struct FootprintState {
 
 impl From<&Footprint> for FootprintState {
     fn from(_: &Footprint) -> Self {
+        todo!()
+    }
+}
+
+#[derive(Default, Serialize, Deserialize)]
+pub struct ShadowState {
+    repr: Vec<u8>,
+}
+
+impl From<&Shadow> for ShadowState {
+    fn from(_: &Shadow) -> Self {
         todo!()
     }
 }

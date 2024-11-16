@@ -79,13 +79,7 @@ pub enum ObservationData {
     Function(DataPoint3D),
 
     /// Observation for Vehicle Routing Problem experiment.
-    /// DataGraph contains solution represented as a directed graph, DataPoint3D represents solution
-    /// as a point in 3D space where meaning of each dimension depends on problem variant.
-    Vrp {
-        #[serde(skip)]
-        graph: DataGraph,
-        point: DataPoint3D,
-    },
+    Vrp(ShadowState),
 }
 
 lazy_static! {
