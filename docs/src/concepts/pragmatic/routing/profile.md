@@ -31,7 +31,7 @@ each profile. It is optional, default value is `10` which corresponds to `10m/s`
 In general, you're not limited to one single routing profile. You can define multiple ones and pass their matrices
 to the solver:
 
-    vrp-cli solve pragmatic problem.json -m routing_matrix_car.json -m routing_matrix_truck.json
+    vrp-cli solve pragmatic problem.json -m routing_matrix_car.json routing_matrix_truck.json
 
 Make sure that for all profile names in `fleet.profiles` you have the corresponding matrix specified.
 
