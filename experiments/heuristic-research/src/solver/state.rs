@@ -250,3 +250,9 @@ impl From<&Shadow> for ShadowState {
         Self { repr: shadow.iter().collect() }
     }
 }
+
+impl ShadowState {
+    pub fn dimension(&self) -> usize {
+        (self.repr.len() as f64).sqrt() as usize
+    }
+}

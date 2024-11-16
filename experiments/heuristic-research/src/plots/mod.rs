@@ -393,9 +393,12 @@ fn get_axis_sizes() -> (Float, Float, Float) {
         (Float::default(), Float::default(), Float::default()),
         |acc, (_, (_, data))| {
             data.iter().fold(acc, |(max_x, max_y, max_z), data| {
-                let &DataPoint3D(x, y, z) = match data {
-                    ObservationData::Function(point) => point,
-                    ObservationData::Vrp(_shadow) => todo!("implement vrp axis sizes"),
+                let DataPoint3D(x, y, z) = match data {
+                    ObservationData::Function(point) => point.clone(),
+                    ObservationData::Vrp(shadow) => {
+                        let dim = shadow.dimension() as Float;
+                        DataPoint3D(dim, dim, 0.)
+                    }
                 };
                 (max_x.max(x), max_y.max(y), max_z.max(z))
             })
