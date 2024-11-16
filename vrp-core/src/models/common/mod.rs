@@ -7,7 +7,7 @@ mod domain;
 pub use self::domain::*;
 
 mod footprint;
-pub(crate) use self::footprint::*;
+pub use self::footprint::*;
 
 mod load;
 pub use self::load::*;
