@@ -171,18 +171,13 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.environment()
     }
 
-    fn on_initial(&mut self, mut solution: Self::Solution, item_time: Timer) {
-        self.footprint.apply(&mut solution);
+    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
+        //self.footprint.apply(&mut solution);
         self.inner_context.on_initial(solution, item_time)
     }
 
-    fn on_generation(
-        &mut self,
-        mut offspring: Vec<Self::Solution>,
-        termination_estimate: Float,
-        generation_time: Timer,
-    ) {
-        offspring.iter_mut().for_each(|s| self.footprint.apply(s));
+    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer) {
+        //offspring.iter_mut().for_each(|s| self.footprint.apply(s));
         self.inner_context.on_generation(offspring, termination_estimate, generation_time)
     }
 

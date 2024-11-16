@@ -30,6 +30,8 @@ impl Footprint {
         self.dimension
     }
 
+    // TODO use it or move to heuristic research crate
+    #[allow(dead_code)]
     pub(crate) fn apply(&mut self, solution: &mut InsertionContext) {
         let shadow = Shadow::from(&*solution);
         self.memorize(&shadow);
