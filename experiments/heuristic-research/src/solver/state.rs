@@ -225,11 +225,11 @@ pub struct FootprintState {
 
 impl FootprintState {
     pub fn apply(&mut self, shadow_state: &ShadowState) {
-        shadow_state.repr.iter().for_each(|((from, to), bit)| {
+        shadow_state.shadow.iter().flat_map(|shadow| shadow.iter()).for_each(|((from, to), bit)| {
             self.repr
-                .entry((*from, *to))
-                .and_modify(|value| *value = value.saturating_add(*bit as u8))
-                .or_insert(*bit as u8);
+                .entry((from, to))
+                .and_modify(|value| *value = value.saturating_add(bit as u8))
+                .or_insert(bit as u8);
         })
     }
 
@@ -246,17 +246,19 @@ impl From<&Footprint> for FootprintState {
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct ShadowState {
-    repr: HashMap<(usize, usize), bool>,
+    // NOTE use original shadow as more space efficient representation.
+    #[serde(skip)]
+    shadow: Option<Shadow>,
 }
 
 impl From<&Shadow> for ShadowState {
     fn from(shadow: &Shadow) -> Self {
-        Self { repr: shadow.iter().collect() }
+        Self { shadow: Some(shadow.clone()) }
     }
 }
 
 impl ShadowState {
     pub fn dimension(&self) -> usize {
-        (self.repr.len() as f64).sqrt() as usize
+        self.shadow.as_ref().map(|shadow| shadow.dimension()).unwrap_or_default()
     }
 }

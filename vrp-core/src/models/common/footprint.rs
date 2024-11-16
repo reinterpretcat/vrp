@@ -54,6 +54,7 @@ custom_solution_state!(Shadow typeof Shadow);
 /// A low-dimensional representation of the VRP Solution.
 /// Here, we use Bit Vector data structure to represent the adjacency matrix of the solution, where
 /// each bit represents the presence of the edge between pair of locations in the given solution.
+#[derive(Clone, Debug)]
 pub struct Shadow {
     /// repr is adjusted matrix of size dim x dim, where dim is the minimum of MAX_REPRESENTATION_DIMENSION
     /// and number of locations present in the problem.
@@ -67,6 +68,11 @@ impl Shadow {
         debug_assert!(size * size == self.repr.len());
 
         (0..size).flat_map(move |from| (0..size).map(move |to| ((from, to), self.repr[from * size + to])))
+    }
+
+    /// Returns dimension of the shadow.
+    pub fn dimension(&self) -> usize {
+        (self.repr.len() as f64).sqrt() as usize
     }
 }
 
