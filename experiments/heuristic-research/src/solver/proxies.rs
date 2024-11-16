@@ -124,6 +124,9 @@ where
         self.acquire().generation = statistics.generation;
 
         let individuals_data = self.inner.all().map(|individual| individual.into()).collect::<Vec<_>>();
+        // NOTE this is not exactly how footprint is calculated in production code.
+        // In the production version, approximation of the footprint is used to avoid iterating over
+        // all individuals in the population on generation update.
         let individuals_footprint = individuals_data
             .iter()
             .filter_map(|data| match data {
