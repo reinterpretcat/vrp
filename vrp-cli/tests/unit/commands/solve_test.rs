@@ -1,6 +1,7 @@
 use super::*;
 
 const PRAGMATIC_PROBLEM_PATH: &str = "../examples/data/pragmatic/simple.basic.problem.json";
+const PRAGMATIC_MATRIX_PATH: &str = "../examples/data/pragmatic/simple.basic.matrix.json";
 const SOLOMON_PROBLEM_PATH: &str = "../examples/data/scientific/solomon/C101.25.txt";
 const LILIM_PROBLEM_PATH: &str = "../examples/data/scientific/lilim/LC101.txt";
 
@@ -16,7 +17,7 @@ impl Write for DummyWrite {
     }
 }
 
-fn run_solve_with_out_writer(matches: &ArgMatches) {
+fn run_solve_without_writer(matches: &ArgMatches) {
     run_solve(matches, |_| BufWriter::new(Box::new(DummyWrite {}))).unwrap();
 }
 
@@ -31,7 +32,28 @@ fn can_solve_pragmatic_problem_with_generation_limit() {
     let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--max-generations", "1"];
     let matches = get_solve_app().try_get_matches_from(args).unwrap();
 
-    run_solve_with_out_writer(&matches);
+    run_solve_without_writer(&matches);
+}
+
+#[test]
+fn can_solve_pragmatic_problem_with_matrix() {
+    let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--matrix", PRAGMATIC_MATRIX_PATH];
+    let matches = get_solve_app().try_get_matches_from(args).unwrap();
+
+    run_solve_without_writer(&matches);
+}
+
+#[test]
+fn can_solve_pragmatic_problem_with_multiple_matrices() {
+    const PRAGMATIC_BASICS_PATH: &str = "../examples/data/pragmatic/basics/";
+    let problem_path = format!("{PRAGMATIC_BASICS_PATH}profiles.basic.problem.json");
+    let car_matrix_path = format!("{PRAGMATIC_BASICS_PATH}profiles.basic.matrix.car.json");
+    let truck_matrix_path = format!("{PRAGMATIC_BASICS_PATH}profiles.basic.matrix.truck.json");
+
+    let args = vec!["solve", "pragmatic", &problem_path, "--matrix", &car_matrix_path, "--matrix", &truck_matrix_path];
+    let matches = get_solve_app().try_get_matches_from(args).unwrap();
+
+    run_solve_without_writer(&matches);
 }
 
 #[test]
@@ -39,12 +61,12 @@ fn can_solve_lilim_problem_with_multiple_limits() {
     let args = vec!["solve", "lilim", LILIM_PROBLEM_PATH, "--max-time", "300", "--max-generations", "1"];
     let matches = get_solve_app().try_get_matches_from(args).unwrap();
 
-    run_solve_with_out_writer(&matches);
+    run_solve_without_writer(&matches);
 }
 
 #[test]
 fn can_solve_solomon_problem_with_generation_limit() {
-    run_solve_with_out_writer(&get_solomon_matches(&["--max-generations", "1"]));
+    run_solve_without_writer(&get_solomon_matches(&["--max-generations", "1"]));
 }
 
 #[test]

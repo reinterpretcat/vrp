@@ -92,7 +92,7 @@ pub fn get_solve_app() -> Command {
                 .help("Specifies path to file with routing matrix")
                 .short('m')
                 .long(MATRIX_ARG_NAME)
-                .num_args(1..)
+                .action(ArgAction::Append)
                 .required(false)
         )
         .arg(
