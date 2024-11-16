@@ -2,6 +2,9 @@
 #[path = "../../../tests/unit/solver/vrp/vrp_test.rs"]
 mod vrp_test;
 
+mod population;
+pub use self::population::get_population_fitness_fn;
+
 use super::*;
 use std::io::BufWriter;
 use vrp_scientific::core::prelude::*;

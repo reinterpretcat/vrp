@@ -175,7 +175,6 @@ pub fn draw_population_plots<B: DrawingBackend + 'static>(
         area,
         PopulationDrawConfig { series: get_population_series(generation) },
         if is_vrp && generation != 0 {
-            // TODO find a nice way to visualize vrp solutions in 3D plot
             None
         } else {
             Some(SolutionDrawConfig {
@@ -185,7 +184,7 @@ pub fn draw_population_plots<B: DrawingBackend + 'static>(
                     surface: {
                         let fitness_fn = {
                             if function_name == "vrp" {
-                                Arc::new(|_: &[Float]| 0.)
+                                get_population_fitness_fn(generation)
                             } else {
                                 get_fitness_fn_by_name(function_name)
                             }

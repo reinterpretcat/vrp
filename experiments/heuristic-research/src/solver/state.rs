@@ -217,7 +217,7 @@ impl HyperHeuristicState {
     }
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct FootprintState {
     repr: HashMap<(usize, usize), u8>,
     dimension: usize,
@@ -231,6 +231,10 @@ impl FootprintState {
                 .and_modify(|value| *value = value.saturating_add(*bit as u8))
                 .or_insert(*bit as u8);
         })
+    }
+
+    pub fn get(&self, from: usize, to: usize) -> u8 {
+        self.repr.get(&(from, to)).copied().unwrap_or_default()
     }
 }
 
