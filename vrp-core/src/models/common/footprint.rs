@@ -49,9 +49,6 @@ impl Footprint {
 /// Specifies a maximum number of locations considered in the low-dimensional representation.
 const MAX_REPRESENTATION_DIMENSION: usize = 256;
 
-// A state property to store the low-dimensional representation of the solution.
-custom_solution_state!(Shadow typeof Shadow);
-
 /// A low-dimensional representation of the VRP Solution.
 /// Here, we use Bit Vector data structure to represent the adjacency matrix of the solution, where
 /// each bit represents the presence of the edge between pair of locations in the given solution.

@@ -64,9 +64,7 @@
 //! [`Schrimpf et al. (2000)`]: https://www.sciencedirect.com/science/article/pii/S0021999199964136
 //!
 //!
-//! # Additionally..
-//!
-//! The solver is not limited by R&R principle, additionally it utilizes some other heuristics
+//! The solver is not limited by R&R principle, additionally, it uses some other heuristics
 //! and their combinations. They are picked based on their performance in terms of search quality and
 //! latency introduced. Reinforcement technics are used here.
 //!
@@ -74,7 +72,7 @@
 extern crate rand;
 
 use crate::construction::heuristics::InsertionContext;
-use crate::models::common::{Footprint, Shadow, ShadowSolutionState};
+use crate::models::common::{Footprint, Shadow};
 use crate::models::{GoalContext, Problem, Solution};
 use crate::solver::search::Recreate;
 use rosomaxa::evolution::*;
@@ -163,16 +161,16 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.environment()
     }
 
-    fn on_initial(&mut self, mut solution: Self::Solution, item_time: Timer) {
+    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
         let shadow = Shadow::from(&solution);
         self.footprint.add(&shadow);
-        solution.solution.state.set_shadow(shadow);
 
         self.inner_context.on_initial(solution, item_time)
     }
 
     fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer) {
         // TODO clear footprint time to time (ideally, in sync with rosomaxa params)
+
         self.footprint.union(&fold_reduce(
             &offspring,
             || Footprint::new(&self.problem),
