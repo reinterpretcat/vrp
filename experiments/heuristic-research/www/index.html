@@ -32,16 +32,6 @@
                     </select>
                 </div>
 
-                <div>
-                    <div id="coordLabel"></div>
-                    <span style="white-space: nowrap">
-                        <input type="range" min="0" max="157" id="pitch" value="10" />
-                    </span>
-                    <span style="white-space: nowrap">
-                        <input type="range" min="0" max="314" id="yaw" value="50" />
-                    </span>
-                </div>
-
             </div>
 
             <div id="vrpTab" class="tabcontent-vert">
@@ -71,6 +61,14 @@
                     <option value="elitism">Elitism</option>
                     <option value="greedy">Greedy</option>
                 </select>
+            </div>
+
+            <div id="coordLabel"></div>
+            <div style="white-space: nowrap">
+                <input type="range" min="0" max="157" id="pitch" value="10" />
+            </div>
+            <div style="white-space: nowrap">
+                <input type="range" min="0" max="314" id="yaw" value="50" />
             </div>
 
             <div id="status">Loading WebAssembly...</div>

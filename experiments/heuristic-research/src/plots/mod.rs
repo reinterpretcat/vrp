@@ -391,7 +391,7 @@ fn get_axis_sizes() -> (Float, Float, Float) {
                     ObservationData::Function(point) => point.clone(),
                     ObservationData::Vrp(shadow) => {
                         let dim = shadow.dimension() as Float;
-                        DataPoint3D(dim, dim, 0.)
+                        DataPoint3D(dim, 255., dim)
                     }
                 };
                 (max_x.max(x), max_y.max(y), max_z.max(z))
