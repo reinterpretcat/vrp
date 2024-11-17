@@ -18,6 +18,21 @@ impl Footprint {
         Self { repr: vec![0; dim * dim], dimension: dim }
     }
 
+    /// Adds shadow to the footprint.
+    pub fn add(&mut self, shadow: &Shadow) {
+        self.repr.iter_mut().enumerate().for_each(|(index, value)| {
+            let bit_value = shadow.repr.get(index).map(|bit| bit as u8).unwrap_or_default();
+            *value = value.saturating_add(bit_value);
+        });
+    }
+
+    /// Merges/unites the given footprint into the current one.
+    pub fn union(&mut self, other: &Footprint) {
+        self.repr.iter_mut().zip(other.repr.iter()).for_each(|(value, other_value)| {
+            *value = value.saturating_add(*other_value);
+        });
+    }
+
     /// Returns an iterator over the low-dimensional representation.
     pub fn iter(&self) -> impl Iterator<Item = ((usize, usize), u8)> + '_ {
         (0..self.dimension).flat_map(move |from| {
@@ -29,26 +44,10 @@ impl Footprint {
     pub fn dimension(&self) -> usize {
         self.dimension
     }
-
-    // TODO use it or move to heuristic research crate
-    #[allow(dead_code)]
-    pub(crate) fn apply(&mut self, solution: &mut InsertionContext) {
-        let shadow = Shadow::from(&*solution);
-        self.memorize(&shadow);
-
-        solution.solution.state.set_shadow(shadow);
-    }
-
-    fn memorize(&mut self, shadow: &Shadow) {
-        self.repr.iter_mut().enumerate().for_each(|(index, value)| {
-            let bit_value = shadow.repr.get(index).map(|bit| bit as u8).unwrap_or_default();
-            *value = value.saturating_add(bit_value);
-        });
-    }
 }
 
 /// Specifies a maximum number of locations considered in the low-dimensional representation.
-const MAX_REPRESENTATION_DIMENSION: usize = 1000;
+const MAX_REPRESENTATION_DIMENSION: usize = 256;
 
 // A state property to store the low-dimensional representation of the solution.
 custom_solution_state!(Shadow typeof Shadow);

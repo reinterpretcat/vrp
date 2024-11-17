@@ -17,8 +17,8 @@ pub use crate::evolution::InitialOperators;
 pub use crate::evolution::TelemetryMode;
 
 pub use crate::population::HeuristicPopulation;
-pub use crate::population::RosomaxaConfig;
 pub use crate::population::SelectionPhase;
+pub use crate::population::{Rosomaxa, RosomaxaConfig};
 
 pub use crate::hyper::HeuristicSearchOperator;
 pub use crate::hyper::HyperHeuristic;

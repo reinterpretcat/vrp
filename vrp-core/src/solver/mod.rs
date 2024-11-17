@@ -74,23 +74,22 @@
 extern crate rand;
 
 use crate::construction::heuristics::InsertionContext;
+use crate::models::common::{Footprint, Shadow, ShadowSolutionState};
 use crate::models::{GoalContext, Problem, Solution};
 use crate::solver::search::Recreate;
 use rosomaxa::evolution::*;
 use rosomaxa::prelude::*;
+use rosomaxa::utils::{fold_reduce, Timer};
 use rosomaxa::{get_default_population, TelemetryHeuristicContext};
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub use self::heuristic::*;
-use rosomaxa::population::Rosomaxa;
-use rosomaxa::utils::Timer;
-
 pub mod processing;
 pub mod search;
 
 mod heuristic;
+pub use self::heuristic::*;
 
 /// A type which encapsulates information needed to perform a solution refinement process.
 pub struct RefinementContext {
@@ -100,8 +99,8 @@ pub struct RefinementContext {
     pub environment: Arc<Environment>,
     /// A collection of data associated with a refinement process.
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
-    /*    /// A low-dimensional representation of population approximation.
-    footprint: Footprint,*/
+    /// A low-dimensional representation of population approximation.
+    footprint: Footprint,
     /// Provides some basic implementation of context functionality.
     inner_context: TelemetryHeuristicContext<GoalContext, InsertionContext>,
 }
@@ -124,10 +123,10 @@ impl RefinementContext {
         telemetry_mode: TelemetryMode,
         environment: Arc<Environment>,
     ) -> Self {
-        //let footprint = Footprint::new(&problem);
+        let footprint = Footprint::new(&problem);
         let inner_context =
             TelemetryHeuristicContext::new(problem.goal.clone(), population, telemetry_mode, environment.clone());
-        Self { problem, environment, inner_context, state: Default::default() /*, footprint*/ }
+        Self { problem, environment, inner_context, state: Default::default(), footprint }
     }
 
     /// Adds solution to population.
@@ -164,13 +163,30 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.environment()
     }
 
-    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
-        //self.footprint.apply(&mut solution);
+    fn on_initial(&mut self, mut solution: Self::Solution, item_time: Timer) {
+        let shadow = Shadow::from(&solution);
+        self.footprint.add(&shadow);
+        solution.solution.state.set_shadow(shadow);
+
         self.inner_context.on_initial(solution, item_time)
     }
 
     fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer) {
-        //offspring.iter_mut().for_each(|s| self.footprint.apply(s));
+        // TODO clear footprint time to time (ideally, in sync with rosomaxa params)
+        self.footprint.union(&fold_reduce(
+            &offspring,
+            || Footprint::new(&self.problem),
+            |mut footprint, solution| {
+                let shadow = Shadow::from(solution);
+                footprint.add(&shadow);
+                footprint
+            },
+            |mut left, right| {
+                left.union(&right);
+                left
+            },
+        ));
+
         self.inner_context.on_generation(offspring, termination_estimate, generation_time)
     }
 
