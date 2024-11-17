@@ -170,31 +170,26 @@ pub fn draw_population_plots<B: DrawingBackend + 'static>(
     axes: Axes,
     function_name: &str,
 ) -> Result<(), GenericError> {
-    let is_vrp = function_name == "vrp";
     draw_population(
         area,
         PopulationDrawConfig { series: get_population_series(generation) },
-        if is_vrp && generation != 0 {
-            None
-        } else {
-            Some(SolutionDrawConfig {
-                axes,
-                projection: Projection { pitch, yaw, scale: 0.8 },
-                series: Series3D {
-                    surface: {
-                        let fitness_fn = {
-                            if function_name == "vrp" {
-                                get_population_fitness_fn(generation)
-                            } else {
-                                get_fitness_fn_by_name(function_name)
-                            }
-                        };
-                        Box::new(move |x, z| (fitness_fn)(&[x, z]))
-                    },
-                    points: Box::new(move || get_solution_points(generation)),
+        Some(SolutionDrawConfig {
+            axes,
+            projection: Projection { pitch, yaw, scale: 0.8 },
+            series: Series3D {
+                surface: {
+                    let fitness_fn = {
+                        if function_name == "vrp" {
+                            get_population_fitness_fn(generation)
+                        } else {
+                            get_fitness_fn_by_name(function_name)
+                        }
+                    };
+                    Box::new(move |x, z| (fitness_fn)(&[x, z]))
                 },
-            })
-        },
+                points: Box::new(move || get_solution_points(generation)),
+            },
+        }),
     )
     .map_err(From::from)
 }
