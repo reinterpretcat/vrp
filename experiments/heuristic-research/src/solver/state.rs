@@ -2,9 +2,10 @@ use crate::{Coordinate, MatrixData};
 use rosomaxa::algorithms::gsom::NetworkState;
 use rosomaxa::population::{Rosomaxa, RosomaxaWeighted, Shuffled};
 use rosomaxa::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::any::TypeId;
 use std::collections::HashMap;
+use std::fmt;
 use std::ops::Range;
 use vrp_scientific::core::models::common::{Footprint, Shadow};
 
@@ -219,9 +220,7 @@ impl HyperHeuristicState {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct FootprintState {
-    // TODO find a way to serialize/deserialize state efficiently
-    #[serde(skip)]
-    repr: HashMap<(usize, usize), u8>,
+    repr: HashMap<FootprintKey, u8>,
     dimension: usize,
 }
 
@@ -229,20 +228,23 @@ impl FootprintState {
     pub fn apply(&mut self, shadow_state: &ShadowState) {
         shadow_state.shadow.iter().flat_map(|shadow| shadow.iter()).for_each(|((from, to), bit)| {
             self.repr
-                .entry((from, to))
+                .entry(FootprintKey(from, to))
                 .and_modify(|value| *value = value.saturating_add(bit as u8))
                 .or_insert(bit as u8);
         })
     }
 
     pub fn get(&self, from: usize, to: usize) -> u8 {
-        self.repr.get(&(from, to)).copied().unwrap_or_default()
+        self.repr.get(&FootprintKey(from, to)).copied().unwrap_or_default()
     }
 }
 
 impl From<&Footprint> for FootprintState {
     fn from(footprint: &Footprint) -> Self {
-        Self { repr: footprint.iter().collect(), dimension: footprint.dimension() }
+        Self {
+            repr: footprint.iter().map(|((x, y), v)| (FootprintKey(x, y), v)).collect(),
+            dimension: footprint.dimension(),
+        }
     }
 }
 
@@ -262,5 +264,40 @@ impl From<&Shadow> for ShadowState {
 impl ShadowState {
     pub fn dimension(&self) -> usize {
         self.shadow.as_ref().map(|shadow| shadow.dimension()).unwrap_or_default()
+    }
+}
+
+// NOTE non-string keys requires some special handling
+#[derive(Clone, Default, Hash, Eq, PartialEq)]
+struct FootprintKey(usize, usize);
+
+impl fmt::Display for FootprintKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{},{}", self.0, self.1)
+    }
+}
+
+impl Serialize for FootprintKey {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl<'de> Deserialize<'de> for FootprintKey {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let parts: Vec<&str> = s.split(',').collect();
+        if parts.len() != 2 {
+            return Err(serde::de::Error::custom("invalid key format"));
+        }
+        let x = parts[0].parse().map_err(serde::de::Error::custom)?;
+        let y = parts[1].parse().map_err(serde::de::Error::custom)?;
+        Ok(FootprintKey(x, y))
     }
 }
