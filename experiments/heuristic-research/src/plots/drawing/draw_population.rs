@@ -196,19 +196,18 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
 
             let len = fitness_matrices.len();
 
-            draw_series2d(sub_areas.get_mut(len).unwrap(), &get_caption_float("u dist"), u_matrix)?;
-            draw_gradients(sub_areas.get_mut(len + 1).unwrap(), "grads", fitness_matrices)?;
-            draw_series2d(sub_areas.get_mut(len + 2).unwrap(), &get_caption_usize("total hits"), t_matrix)?;
-            draw_series2d(sub_areas.get_mut(len + 3).unwrap(), &get_caption_usize("last hits"), l_matrix)?;
+            draw_series2d(sub_areas.get_mut(len).unwrap(), &get_caption_float("ud"), u_matrix)?;
+            draw_gradients(sub_areas.get_mut(len + 1).unwrap(), "grd", fitness_matrices)?;
+            draw_series2d(sub_areas.get_mut(len + 2).unwrap(), &get_caption_usize("th"), t_matrix)?;
+            draw_series2d(sub_areas.get_mut(len + 3).unwrap(), &get_caption_usize("lh"), l_matrix)?;
             draw_series2d(
                 sub_areas.get_mut(len + 4).unwrap(),
-                &get_caption_float(format!("n dist ({:.2})", *mean_distance).as_str()),
+                &get_caption_float(format!("mu ({:.2})", *mean_distance).as_str()),
                 n_matrix,
             )?;
 
             fitness_matrices.iter().enumerate().try_for_each(|(idx, objective)| {
-                let caption = format!("objective {idx}");
-                draw_series2d(sub_areas.get_mut(idx).unwrap(), &get_caption_float(caption.as_str()), objective)
+                draw_series2d(sub_areas.get_mut(idx).unwrap(), &get_caption_float(""), objective)
             })?;
         }
         PopulationSeries::Unknown => {}

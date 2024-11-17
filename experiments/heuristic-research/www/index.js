@@ -94,6 +94,10 @@ function setupListeners() {
 
 /** Setup canvas to properly handle high DPI and redraw current plot. */
 function setupCanvas(canvas, size) {
+    if (canvas.style === undefined) {
+        return;
+    }
+
     const aspectRatio = canvas.width / canvas.height;
     //const size = canvas.parentNode.offsetWidth * 1.2;
     canvas.style.width = size + "px";
