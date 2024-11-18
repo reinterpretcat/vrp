@@ -162,21 +162,24 @@ impl HeuristicContext for RefinementContext {
     }
 
     fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
-        let shadow = Shadow::from(&solution);
-        self.footprint.add(&shadow);
+        self.footprint.add(&Shadow::from(&solution));
 
         self.inner_context.on_initial(solution, item_time)
     }
 
     fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer) {
-        // TODO clear footprint time to time (ideally, in sync with rosomaxa params)
+        const FOOTPRINT_NORMALIZE_RATE: usize = 100;
+
+        // NOTE reduce footprint to keep sensitivity to new solutions
+        if self.inner_context.statistics().generation % FOOTPRINT_NORMALIZE_RATE == 0 {
+            self.footprint.forget();
+        }
 
         self.footprint.union(&fold_reduce(
             &offspring,
             || Footprint::new(&self.problem),
             |mut footprint, solution| {
-                let shadow = Shadow::from(solution);
-                footprint.add(&shadow);
+                footprint.add(&Shadow::from(solution));
                 footprint
             },
             |mut left, right| {

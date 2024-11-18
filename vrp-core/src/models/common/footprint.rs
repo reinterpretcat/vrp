@@ -40,6 +40,14 @@ impl Footprint {
         })
     }
 
+    /// Reshapes the footprint to keep sensitivity to new solutions.
+    pub fn forget(&mut self) {
+        self.repr.iter_mut().for_each(|value| {
+            // NOTE use log2 to reduce the impact of the number of times the edge was present in multiple solutions.
+            *value = (*value as f64).log2() as u8;
+        });
+    }
+
     /// Returns dimension of adjacency matrix.
     pub fn dimension(&self) -> usize {
         self.dimension
