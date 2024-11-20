@@ -126,7 +126,7 @@ impl FootprintContext {
 impl RosomaxaContext for FootprintContext {
     type Solution = InsertionContext;
 
-    fn on_solutions(&mut self, solutions: &[Self::Solution]) {
+    fn on_change(&mut self, solutions: &[Self::Solution]) {
         const FOOTPRINT_FORGET_RATE: usize = 100;
 
         if solutions.is_empty() {

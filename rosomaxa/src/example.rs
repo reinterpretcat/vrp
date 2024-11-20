@@ -112,7 +112,7 @@ pub struct VectorRosomaxaContext;
 impl RosomaxaContext for VectorRosomaxaContext {
     type Solution = VectorSolution;
 
-    fn on_solutions(&mut self, _: &[Self::Solution]) {
+    fn on_change(&mut self, _: &[Self::Solution]) {
         // nothing to do for vector domain
     }
 }

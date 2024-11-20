@@ -58,13 +58,13 @@ pub trait RosomaxaSolution: HeuristicSolution + Input {
     fn on_init(&mut self, context: &Self::Context);
 }
 
-/// Specifies external context which can be used to analyze population evolution.
+/// Specifies external context which can be used to analyze population evolution outside the algorithm.
 pub trait RosomaxaContext: Send + Sync {
     /// A type of solution used within the context.
     type Solution: HeuristicSolution;
 
     /// A callback which is run on receiving a new solution set.
-    fn on_solutions(&mut self, solutions: &[Self::Solution]);
+    fn on_change(&mut self, solutions: &[Self::Solution]);
 }
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
@@ -104,11 +104,11 @@ where
 
         match &mut self.phase {
             RosomaxaPhases::Initial { solutions: known_individuals } => {
-                self.external_ctx.on_solutions(individuals.as_mut_slice());
+                self.external_ctx.on_change(individuals.as_mut_slice());
                 known_individuals.extend(individuals)
             }
             RosomaxaPhases::Exploration { network, statistics, .. } => {
-                self.external_ctx.on_solutions(individuals.as_mut_slice());
+                self.external_ctx.on_change(individuals.as_mut_slice());
                 network.store_batch(&self.external_ctx, individuals, statistics.generation, |i| {
                     init_individual(&self.external_ctx, i)
                 });
