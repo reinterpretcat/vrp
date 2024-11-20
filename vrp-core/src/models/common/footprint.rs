@@ -4,9 +4,9 @@ use crate::algorithms::structures::BitVec;
 use crate::prelude::*;
 use rosomaxa::population::RosomaxaContext;
 use rosomaxa::utils::fold_reduce;
-use std::sync::{Arc, RwLock};
 
 /// Defines a low-dimensional representation of multiple solutions.
+#[derive(Clone, Debug)]
 pub struct Footprint {
     /// repr here is the same adjacency matrix as in [Shadow], but instead of storing bits
     /// we store here the number of times the edge was present in multiple solutions.
@@ -60,6 +60,9 @@ impl Footprint {
 /// Specifies a maximum number of locations considered in the low-dimensional representation.
 const MAX_REPRESENTATION_DIMENSION: usize = 256;
 
+/// Specifies a rate at which the footprint scales down the number of times the edge was present in multiple solutions.
+const FOOTPRINT_FORGET_RATE: usize = 100;
+
 /// A low-dimensional representation of the VRP Solution.
 /// Here, we use Bit Vector data structure to represent the adjacency matrix of the solution, where
 /// each bit represents the presence of the edge between pair of locations in the given solution.
@@ -110,16 +113,16 @@ impl From<&InsertionContext> for Shadow {
 custom_solution_state!(Footprint typeof FootprintContext);
 
 /// Provides a way to use footprint within rosomaxa algorithm.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FootprintContext {
     counter: usize,
-    footprint: Arc<RwLock<Footprint>>,
+    footprint: Footprint,
 }
 
 impl FootprintContext {
     /// Creates a new instance of a `FootprintContext`.
     pub fn new(problem: &Problem) -> Self {
-        Self { counter: 0, footprint: Arc::new(RwLock::new(Footprint::new(problem))) }
+        Self { counter: 0, footprint: Footprint::new(problem) }
     }
 }
 
@@ -127,15 +130,13 @@ impl RosomaxaContext for FootprintContext {
     type Solution = InsertionContext;
 
     fn on_change(&mut self, solutions: &[Self::Solution]) {
-        const FOOTPRINT_FORGET_RATE: usize = 100;
-
         if solutions.is_empty() {
             return;
         }
 
         // we need to forget the footprint from time to time to keep it sensitive to new solutions
         if self.counter == FOOTPRINT_FORGET_RATE {
-            self.footprint.write().expect("cannot get writing lock for footprint").forget();
+            self.footprint.forget();
             self.counter = 0;
         } else {
             self.counter += 1;
@@ -155,7 +156,7 @@ impl RosomaxaContext for FootprintContext {
                 left
             },
         );
-        self.footprint.write().expect("cannot get writing lock for footprint").union(&footprint);
+        self.footprint.union(&footprint);
     }
 }
 
