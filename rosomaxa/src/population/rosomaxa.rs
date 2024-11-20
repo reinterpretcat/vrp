@@ -189,7 +189,9 @@ where
     }
 }
 
-type IndividualNetwork<O, S> = Network<S, IndividualStorage<O, S>, IndividualStorageFactory<O, S>>;
+type IndividualContext = ();
+
+type IndividualNetwork<O, S> = Network<IndividualContext, S, IndividualStorage<O, S>, IndividualStorageFactory<O, S>>;
 
 impl<O, S> Rosomaxa<O, S>
 where
@@ -401,12 +403,12 @@ where
     objective: Arc<O>,
 }
 
-impl<O, S> StorageFactory<S, IndividualStorage<O, S>> for IndividualStorageFactory<O, S>
+impl<O, S> StorageFactory<IndividualContext, S, IndividualStorage<O, S>> for IndividualStorageFactory<O, S>
 where
     O: HeuristicObjective<Solution = S> + Shuffled,
     S: HeuristicSolution + RosomaxaWeighted,
 {
-    fn eval(&self) -> IndividualStorage<O, S> {
+    fn eval(&self, _: &IndividualContext) -> IndividualStorage<O, S> {
         let mut elitism = Elitism::new_with_dedup(
             self.objective.clone(),
             self.random.clone(),

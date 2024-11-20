@@ -46,11 +46,12 @@ pub trait Storage: Display + Send + Sync {
 }
 
 /// Represents a storage factory.
-pub trait StorageFactory<I, S>: Send + Sync
+pub trait StorageFactory<C, I, S>: Send + Sync
 where
+    C: Send + Sync,
     I: Input,
     S: Storage<Item = I>,
 {
     /// Returns a new storage.
-    fn eval(&self) -> S;
+    fn eval(&self, context: &C) -> S;
 }

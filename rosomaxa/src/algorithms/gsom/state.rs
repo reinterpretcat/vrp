@@ -36,11 +36,12 @@ pub struct NodeState {
 }
 
 /// Gets network state.
-pub fn get_network_state<I, S, F>(network: &Network<I, S, F>) -> NetworkState
+pub fn get_network_state<C, I, S, F>(network: &Network<C, I, S, F>) -> NetworkState
 where
+    C: Send + Sync,
     I: Input,
     S: Storage<Item = I>,
-    F: StorageFactory<I, S>,
+    F: StorageFactory<C, I, S>,
 {
     let ((x_min, x_max), (y_min, y_max)) = get_network_shape(network);
 
@@ -70,11 +71,12 @@ where
 }
 
 /// Gets network's shape: min-max coordinate indices.
-pub fn get_network_shape<I, S, F>(network: &Network<I, S, F>) -> ((i32, i32), (i32, i32))
+pub fn get_network_shape<C, I, S, F>(network: &Network<C, I, S, F>) -> ((i32, i32), (i32, i32))
 where
+    C: Send + Sync,
     I: Input,
     S: Storage<Item = I>,
-    F: StorageFactory<I, S>,
+    F: StorageFactory<C, I, S>,
 {
     network.get_coordinates().fold(
         ((i32::MAX, i32::MIN), (i32::MAX, i32::MIN)),

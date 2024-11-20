@@ -1,13 +1,13 @@
 use super::*;
 use crate::helpers::algorithms::gsom::*;
 
-fn insert(coord: (i32, i32), network: &mut Network<Data, DataStorage, DataStorageFactory>) {
-    network.insert(coord.into(), &[coord.0 as Float, coord.1 as Float, 0.]);
+fn insert(coord: (i32, i32), network: &mut Network<(), Data, DataStorage, DataStorageFactory>) {
+    network.insert(&(), coord.into(), &[coord.0 as Float, coord.1 as Float, 0.]);
 }
 
 fn assert_network(
     expected: Vec<((i32, i32), (Float, Float))>,
-    network: &Network<Data, DataStorage, DataStorageFactory>,
+    network: &Network<(), Data, DataStorage, DataStorageFactory>,
 ) {
     expected.into_iter().for_each(|(new_coord, old_coord)| {
         let weights = network.find(&new_coord.into()).unwrap().weights.clone();
@@ -39,7 +39,7 @@ fn can_contract_small_network_impl(
     let mut network = create_test_network(false);
     coords.into_iter().for_each(|coord| insert(coord, &mut network));
 
-    contract_graph(&mut network, decimation);
+    contract_graph(&(), &mut network, decimation);
 
     assert_eq!(network.size(), expected.len());
     assert_network(expected, &network);
@@ -54,7 +54,7 @@ fn can_contract_fat_network() {
         }
     }
 
-    contract_graph(&mut network, (2, 3));
+    contract_graph(&(), &mut network, (2, 3));
 
     assert_network(vec![((0, 0), (-1., -1.)), ((0, 1), (-1., 1.)), ((1, 1), (1., 1.)), ((1, 0), (1., -1.))], &network);
 }

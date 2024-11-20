@@ -2,7 +2,7 @@ use crate::algorithms::gsom::{Coordinate, Network};
 use crate::helpers::algorithms::gsom::{Data, DataStorage, DataStorageFactory};
 use crate::utils::{Float, Random};
 
-type NetworkType = Network<Data, DataStorage, DataStorageFactory>;
+type NetworkType = Network<(), Data, DataStorage, DataStorageFactory>;
 
 mod common {
     use super::*;
@@ -17,11 +17,11 @@ mod common {
         // train
         let random = DefaultRandom::default();
         for j in 1..4 {
-            network.smooth(4);
+            network.smooth(&(), 4);
 
             for i in 1..500 {
                 let idx = random.uniform_int(0, samples.len() as i32 - 1) as usize;
-                network.store(samples[idx].clone(), j * i + i);
+                network.store(&(), samples[idx].clone(), j * i + i);
             }
         }
 
@@ -46,7 +46,7 @@ mod common {
     fn can_use_initial_error_parameter_impl(has_initial_error: bool, size: usize) {
         let mut network = create_test_network(has_initial_error);
 
-        network.train(Data::new(1.0, 0.0, 0.0), true);
+        network.train(&(), Data::new(1.0, 0.0, 0.0), true);
 
         assert_eq!(network.size(), size);
     }
@@ -60,7 +60,7 @@ mod common {
     }
 
     fn add_node(x: i32, y: i32, network: &mut NetworkType) {
-        network.insert(Coordinate(x, y), &[x as Float, y as Float]);
+        network.insert(&(), Coordinate(x, y), &[x as Float, y as Float]);
     }
 
     fn update_zero_neighborhood(network: &mut NetworkType) {
@@ -176,6 +176,7 @@ mod node_growing {
             }
         }
         Network::new(
+            &(),
             [
                 Data::new(1., 4., 8.), // n00
                 Data::new(2., 5., 9.), // n01
@@ -219,7 +220,7 @@ mod node_growing {
     ) {
         let mut network = create_trivial_network(true);
 
-        network.update(&Coordinate(target_coord.0, target_coord.1), &Data::new(2., 2., 2.), 2., true);
+        network.update(&(), &Coordinate(target_coord.0, target_coord.1), &Data::new(2., 2., 2.), 2., true);
 
         assert_eq!(network.nodes.len(), 6);
         expected_new_nodes.into_iter().for_each(|((offset_x, offset_y), weights)| {
@@ -233,9 +234,9 @@ mod node_growing {
     fn can_grow_new_nodes_properly() {
         let w1_coord = Coordinate(1, 2);
         let mut network = create_trivial_network(true);
-        network.insert(w1_coord, &[3., 6., 10.]);
+        network.insert(&(), w1_coord, &[3., 6., 10.]);
 
-        network.update(&Coordinate(w1_coord.0, w1_coord.1), &Data::new(2., 2., 2.), 6., true);
+        network.update(&(), &Coordinate(w1_coord.0, w1_coord.1), &Data::new(2., 2., 2.), 6., true);
 
         [
             ((2, 2), vec![2.948, 3.895, 12.423]),
@@ -256,7 +257,7 @@ mod node_growing {
         let mse = network.mse();
         assert_eq!(mse, 0.);
 
-        network.smooth(1);
+        network.smooth(&(), 1);
         let mse = network.mse();
         assert!((mse - 0.0001138).abs() < 1E7);
     }
@@ -278,8 +279,8 @@ mod node_growing {
         //                          n00(1., 4., 8.) n10(9., 3., 2.)
         //                                         n1-1(5., 1., 3.)
         let mut network = create_trivial_network(false);
-        network.insert(Coordinate(-2, 1), &[1., 3., 14.]);
-        network.insert(Coordinate(1, -1), &[5., 1., 3.]);
+        network.insert(&(), Coordinate(-2, 1), &[1., 3., 14.]);
+        network.insert(&(), Coordinate(1, -1), &[5., 1., 3.]);
 
         let mut nodes = network.grow_nodes(&Coordinate(coord.0, coord.1));
         nodes.sort_by(|a, b| a.0.cmp(&b.0));

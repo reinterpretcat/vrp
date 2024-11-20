@@ -81,17 +81,25 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     }
 
     /// Checks if the cell is at the boundary of the network.
-    pub fn is_boundary<F: StorageFactory<I, S>>(&self, network: &Network<I, S, F>) -> bool {
+    pub fn is_boundary<C, F>(&self, network: &Network<C, I, S, F>) -> bool
+    where
+        C: Send + Sync,
+        F: StorageFactory<C, I, S>,
+    {
         self.neighbours(network, 1).filter(|(_, (x, y))| x.abs() + y.abs() < 2).any(|(node, _)| node.is_none())
     }
 
     /// Gets iterator over node coordinates in neighbourhood.
     /// If neighbour is not found, then None is returned for corresponding coordinate.
-    pub fn neighbours<'a, F: StorageFactory<I, S>>(
+    pub fn neighbours<'a, C, F>(
         &self,
-        network: &'a Network<I, S, F>,
+        network: &'a Network<C, I, S, F>,
         radius: usize,
-    ) -> impl Iterator<Item = (Option<Coordinate>, (i32, i32))> + 'a {
+    ) -> impl Iterator<Item = (Option<Coordinate>, (i32, i32))> + 'a
+    where
+        C: Send + Sync,
+        F: StorageFactory<C, I, S>,
+    {
         let radius = radius as i32;
         let Coordinate(node_x, node_y) = self.coordinate;
 
@@ -103,7 +111,11 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     }
 
     /// Gets unified distance.
-    pub fn unified_distance<F: StorageFactory<I, S>>(&self, network: &Network<I, S, F>, radius: usize) -> Float {
+    pub fn unified_distance<C, F>(&self, network: &Network<C, I, S, F>, radius: usize) -> Float
+    where
+        C: Send + Sync,
+        F: StorageFactory<C, I, S>,
+    {
         let (sum, count) = self
             .neighbours(network, radius)
             .filter_map(|(coord, _)| coord.and_then(|coord| network.find(&coord)))

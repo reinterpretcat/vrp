@@ -63,14 +63,15 @@ impl Display for DataStorage {
 
 pub struct DataStorageFactory;
 
-impl StorageFactory<Data, DataStorage> for DataStorageFactory {
-    fn eval(&self) -> DataStorage {
+impl StorageFactory<(), Data, DataStorage> for DataStorageFactory {
+    fn eval(&self, _: &()) -> DataStorage {
         DataStorage::default()
     }
 }
 
-pub fn create_test_network(has_initial_error: bool) -> Network<Data, DataStorage, DataStorageFactory> {
+pub fn create_test_network(has_initial_error: bool) -> Network<(), Data, DataStorage, DataStorageFactory> {
     Network::new(
+        &(),
         [
             Data::new(0.230529, 0.956665, 0.482008),
             Data::new(0.400775, 0.142917, 0.555519),

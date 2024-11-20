@@ -11,16 +11,18 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::iter::once;
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 type NodeHashMap<I, S> = HashMap<Coordinate, Node<I, S>, BuildHasherDefault<FxHasher>>;
 
 /// A customized Growing Self Organizing Map designed to store and retrieve trained input.
-pub struct Network<I, S, F>
+pub struct Network<C, I, S, F>
 where
+    C: Send + Sync,
     I: Input,
     S: Storage<Item = I>,
-    F: StorageFactory<I, S>,
+    F: StorageFactory<C, I, S>,
 {
     /// Data dimension.
     dimension: usize,
@@ -35,6 +37,7 @@ where
     nodes: NodeHashMap<I, S>,
     storage_factory: F,
     random: Arc<dyn Random>,
+    phantom_data: PhantomData<C>,
 }
 
 /// GSOM network configuration.
@@ -54,14 +57,15 @@ pub struct NetworkConfig {
 /// Specifies min max weights type.
 type MinMaxWeights = (Vec<Float>, Vec<Float>);
 
-impl<I, S, F> Network<I, S, F>
+impl<C, I, S, F> Network<C, I, S, F>
 where
+    C: Send + Sync,
     I: Input,
     S: Storage<Item = I>,
-    F: StorageFactory<I, S>,
+    F: StorageFactory<C, I, S>,
 {
     /// Creates a new instance of `Network`.
-    pub fn new(roots: [I; 4], config: NetworkConfig, random: Arc<dyn Random>, storage_factory: F) -> Self {
+    pub fn new(context: &C, roots: [I; 4], config: NetworkConfig, random: Arc<dyn Random>, storage_factory: F) -> Self {
         let dimension = roots[0].weights().len();
 
         assert!(roots.iter().all(|r| r.weights().len() == dimension));
@@ -72,8 +76,14 @@ where
         let initial_error = if config.has_initial_error { growing_threshold } else { 0. };
         let noise = Noise::new_with_ratio(1., (0.75, 1.25), random.clone());
 
-        let (nodes, min_max_weights) =
-            Self::create_initial_nodes(roots, initial_error, config.rebalance_memory, &noise, &storage_factory);
+        let (nodes, min_max_weights) = Self::create_initial_nodes(
+            context,
+            roots,
+            initial_error,
+            config.rebalance_memory,
+            &noise,
+            &storage_factory,
+        );
 
         Self {
             dimension,
@@ -86,6 +96,7 @@ where
             nodes,
             storage_factory,
             random,
+            phantom_data: Default::default(),
         }
     }
 
@@ -100,14 +111,14 @@ where
     }
 
     /// Stores input into the network.
-    pub fn store(&mut self, input: I, time: usize) {
+    pub fn store(&mut self, context: &C, input: I, time: usize) {
         debug_assert!(input.weights().len() == self.dimension);
         self.time = time;
-        self.train(input, true)
+        self.train(context, input, true)
     }
 
     /// Stores multiple inputs into the network.
-    pub fn store_batch<T: Send + Sync>(&mut self, item_data: Vec<T>, time: usize, map_func: fn(T) -> I) {
+    pub fn store_batch<T: Send + Sync>(&mut self, context: &C, item_data: Vec<T>, time: usize, map_func: fn(T) -> I) {
         self.time = time;
         let nodes_data = parallel_into_collect(item_data, |item| {
             let input = map_func(item);
@@ -115,18 +126,18 @@ where
             let error = bmu.distance(input.weights());
             (bmu.coordinate, error, input)
         });
-        self.train_batch(nodes_data, true);
+        self.train_batch(context, nodes_data, true);
     }
 
     /// Performs smoothing phase.
-    pub fn smooth(&mut self, rebalance_count: usize) {
+    pub fn smooth(&mut self, context: &C, rebalance_count: usize) {
         (0..rebalance_count).for_each(|_| {
             let mut data = self.nodes.iter_mut().flat_map(|(_, node)| node.storage.drain(0..)).collect::<Vec<_>>();
             data.sort_unstable_by(compare_input);
             data.dedup_by(|a, b| compare_input(a, b) == Ordering::Equal);
             data.shuffle(&mut self.random.get_rng());
 
-            self.train_on_data(data, false);
+            self.train_on_data(context, data, false);
 
             self.nodes.iter_mut().for_each(|(_, node)| {
                 node.error = 0.;
@@ -135,8 +146,8 @@ where
     }
 
     /// Compacts network. `node_filter` should return false for nodes to be removed.
-    pub fn compact(&mut self) {
-        contract_graph(self, (3, 4));
+    pub fn compact(&mut self, context: &C) {
+        contract_graph(context, self, (3, 4));
     }
 
     /// Finds node by its coordinate.
@@ -187,7 +198,7 @@ where
     }
 
     /// Trains network on an input.
-    fn train(&mut self, input: I, is_new_input: bool) {
+    fn train(&mut self, context: &C, input: I, is_new_input: bool) {
         debug_assert!(input.weights().len() == self.dimension);
 
         let (bmu_coord, error) = {
@@ -196,27 +207,27 @@ where
             (bmu.coordinate, error)
         };
 
-        self.update(&bmu_coord, &input, error, is_new_input);
+        self.update(context, &bmu_coord, &input, error, is_new_input);
         self.nodes.get_mut(&bmu_coord).unwrap().storage.add(input);
     }
 
     /// Trains network on inputs.
-    fn train_batch(&mut self, nodes_data: Vec<(Coordinate, Float, I)>, is_new_input: bool) {
+    fn train_batch(&mut self, context: &C, nodes_data: Vec<(Coordinate, Float, I)>, is_new_input: bool) {
         nodes_data.into_iter().for_each(|(bmu_coord, error, input)| {
-            self.update(&bmu_coord, &input, error, is_new_input);
+            self.update(context, &bmu_coord, &input, error, is_new_input);
             self.nodes.get_mut(&bmu_coord).unwrap().storage.add(input);
         });
     }
 
     /// Trains network on given input data.
-    pub(super) fn train_on_data(&mut self, data: Vec<I>, is_new_input: bool) {
+    pub(super) fn train_on_data(&mut self, context: &C, data: Vec<I>, is_new_input: bool) {
         let nodes_data = parallel_into_collect(data, |input| {
             let bmu = self.find_bmu(&input);
             let error = bmu.distance(input.weights());
             (bmu.coordinate, error, input)
         });
 
-        self.train_batch(nodes_data, is_new_input);
+        self.train_batch(context, nodes_data, is_new_input);
     }
 
     /// Finds the best matching unit within the map for the given input.
@@ -229,8 +240,8 @@ where
             .expect("no nodes")
     }
 
-    /// Updates network according to the error.
-    fn update(&mut self, coord: &Coordinate, input: &I, error: Float, is_new_input: bool) {
+    /// Updates network, according to the error.
+    fn update(&mut self, context: &C, coord: &Coordinate, input: &I, error: Float, is_new_input: bool) {
         let radius = if is_new_input { 2 } else { 3 };
 
         let (exceeds_ae, can_grow) = {
@@ -250,7 +261,7 @@ where
             (true, false) => self.distribute_error(coord, radius),
             (true, true) => {
                 self.grow_nodes(coord).into_iter().for_each(|(coord, weights)| {
-                    self.insert(coord, weights.as_slice());
+                    self.insert(context, coord, weights.as_slice());
                     self.adjust_weights(&coord, input.weights(), radius, is_new_input);
                 });
             }
@@ -372,9 +383,9 @@ where
     }
 
     /// Inserts new neighbors if necessary.
-    pub(super) fn insert(&mut self, coord: Coordinate, weights: &[Float]) {
+    pub(super) fn insert(&mut self, context: &C, coord: Coordinate, weights: &[Float]) {
         update_min_max(&mut self.min_max_weights, weights);
-        self.nodes.insert(coord, self.create_node(coord, weights, 0.));
+        self.nodes.insert(coord, self.create_node(context, coord, weights, 0.));
     }
 
     /// Removes node with given coordinate.
@@ -394,12 +405,13 @@ where
     }
 
     /// Creates a new node for given data.
-    fn create_node(&self, coord: Coordinate, weights: &[Float], error: Float) -> Node<I, S> {
-        Node::new(coord, weights, error, self.rebalance_memory, self.storage_factory.eval())
+    fn create_node(&self, context: &C, coord: Coordinate, weights: &[Float], error: Float) -> Node<I, S> {
+        Node::new(coord, weights, error, self.rebalance_memory, self.storage_factory.eval(context))
     }
 
     /// Creates nodes for initial topology.
     fn create_initial_nodes(
+        context: &C,
         roots: [I; 4],
         initial_error: Float,
         rebalance_memory: usize,
@@ -408,8 +420,13 @@ where
     ) -> (NodeHashMap<I, S>, MinMaxWeights) {
         let create_node = |coord: Coordinate, input: I| {
             let weights = input.weights().iter().map(|&value| noise.generate(value)).collect::<Vec<_>>();
-            let mut node =
-                Node::<I, S>::new(coord, weights.as_slice(), initial_error, rebalance_memory, storage_factory.eval());
+            let mut node = Node::<I, S>::new(
+                coord,
+                weights.as_slice(),
+                initial_error,
+                rebalance_memory,
+                storage_factory.eval(context),
+            );
             node.storage.add(input);
 
             node

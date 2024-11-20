@@ -9,11 +9,12 @@ use std::cmp::Ordering;
 /// NOTE: a very naive implementation: we just decimate rows and columns, shifting the rest
 ///       node coordinates correspondingly. This way we keep graph (network) connected and
 ///       respect weight distribution.
-pub(crate) fn contract_graph<I, S, F>(network: &mut Network<I, S, F>, decimation: (i32, i32))
+pub(crate) fn contract_graph<C, I, S, F>(context: &C, network: &mut Network<C, I, S, F>, decimation: (i32, i32))
 where
+    C: Send + Sync,
     I: Input,
     S: Storage<Item = I>,
-    F: StorageFactory<I, S>,
+    F: StorageFactory<C, I, S>,
 {
     // determine decimation step
     let (decim_min, decim_max) = decimation;
@@ -51,7 +52,7 @@ where
         node
     });
 
-    // NOTE: this is unfortunate, probably, compact was called too often on low amount of nodes
+    // NOTE: this is unfortunate, probably, compact was called too often on low number of nodes
     if network.size() == 0 {
         let dimension = network.dimension();
         let get_weights = |idx: usize| -> Vec<Float> {
@@ -62,14 +63,14 @@ where
             )
         };
 
-        network.insert((0, 0).into(), get_weights(0).as_slice());
-        network.insert((0, 1).into(), get_weights(1).as_slice());
-        network.insert((1, 0).into(), get_weights(2).as_slice());
-        network.insert((1, 1).into(), get_weights(3).as_slice());
+        network.insert(context, (0, 0).into(), get_weights(0).as_slice());
+        network.insert(context, (0, 1).into(), get_weights(1).as_slice());
+        network.insert(context, (1, 0).into(), get_weights(2).as_slice());
+        network.insert(context, (1, 1).into(), get_weights(3).as_slice());
     }
 
     // reintroduce data from deleted notes to the network while network growth is not allowed.
-    network.train_on_data(data, false);
+    network.train_on_data(context, data, false);
 }
 
 fn get_offset(v: i32, min_max: (i32, i32), decim: i32) -> i32 {
