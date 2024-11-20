@@ -1,6 +1,6 @@
 use crate::*;
 use rosomaxa::example::VectorSolution;
-use rosomaxa::population::{RosomaxaWeighted, Shuffled};
+use rosomaxa::population::{RosomaxaSolution, Shuffled};
 use rosomaxa::prelude::*;
 use std::any::TypeId;
 use std::cmp::Ordering;
@@ -46,7 +46,7 @@ impl<'a> TryFrom<&'a str> for ExperimentData {
 
 impl<S> From<&S> for ObservationData
 where
-    S: HeuristicSolution + RosomaxaWeighted + 'static,
+    S: HeuristicSolution + RosomaxaSolution + 'static,
 {
     fn from(solution: &S) -> Self {
         if TypeId::of::<S>() == TypeId::of::<VectorSolution>() {
@@ -75,7 +75,7 @@ pub struct ProxyPopulation<P, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaWeighted + 'static,
+    S: HeuristicSolution + RosomaxaSolution + 'static,
 {
     generation: usize,
     inner: P,
@@ -85,7 +85,7 @@ impl<P, O, S> ProxyPopulation<P, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaWeighted + 'static,
+    S: HeuristicSolution + RosomaxaSolution + 'static,
 {
     /// Creates a new instance of `ProxyPopulation`.
     pub fn new(inner: P) -> Self {
@@ -102,7 +102,7 @@ impl<P, O, S> HeuristicPopulation for ProxyPopulation<P, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
+    S: HeuristicSolution + RosomaxaSolution,
 {
     type Objective = O;
     type Individual = S;

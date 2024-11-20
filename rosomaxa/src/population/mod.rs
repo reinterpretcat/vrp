@@ -7,7 +7,7 @@ mod greedy;
 pub use self::greedy::Greedy;
 
 mod rosomaxa;
-pub use self::rosomaxa::{Rosomaxa, RosomaxaConfig, RosomaxaWeighted};
+pub use self::rosomaxa::{Rosomaxa, RosomaxaConfig, RosomaxaContext, RosomaxaSolution};
 
 use crate::prelude::*;
 use std::cmp::Ordering;

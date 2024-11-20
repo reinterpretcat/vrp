@@ -186,8 +186,8 @@ pub fn create_elitism_population(
 
 custom_solution_state!(SolutionWeights typeof Vec<Float>);
 
-impl RosomaxaWeighted for InsertionContext {
-    fn init_weights(&mut self) {
+impl RosomaxaSolution for InsertionContext {
+    fn on_init(&mut self) {
         // built a feature vector which is used to classify solution in population
         let weights = vec![
             // load related features

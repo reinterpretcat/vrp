@@ -50,29 +50,44 @@ impl RosomaxaConfig {
 }
 
 /// Specifies behavior which keeps track of weights used to distinguish different solutions.
-pub trait RosomaxaWeighted: Input {
-    /// Initializes weights.
-    fn init_weights(&mut self);
+pub trait RosomaxaSolution: HeuristicSolution + Input {
+    /// An external context which is used within solutions.
+    type Context: RosomaxaContext;
+
+    /// Run on solution initialization. A time to update rosomaxa weights.
+    fn on_init(&mut self, context: &Self::Context);
+}
+
+/// Specifies external context which can be used to analyze population evolution.
+pub trait RosomaxaContext: Send + Sync {
+    /// A type of solution used within the context.
+    type Solution: HeuristicSolution;
+
+    /// Run on getting new solutions.
+    fn on_solutions(&self, solutions: &[Self::Solution]);
 }
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
 /// `MAps` and `eXtrAs` (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
-pub struct Rosomaxa<O, S>
+pub struct Rosomaxa<C, O, S>
 where
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
+    S: RosomaxaSolution<Context = C>,
 {
+    external_ctx: C,
     objective: Arc<O>,
     environment: Arc<Environment>,
     config: RosomaxaConfig,
     elite: Elitism<O, S>,
-    phase: RosomaxaPhases<O, S>,
+    phase: RosomaxaPhases<C, O, S>,
 }
 
-impl<O, S> HeuristicPopulation for Rosomaxa<O, S>
+impl<C, O, S> HeuristicPopulation for Rosomaxa<C, O, S>
 where
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
+    S: RosomaxaSolution<Context = C>,
 {
     type Objective = O;
     type Individual = S;
@@ -83,14 +98,20 @@ where
         let elite = individuals
             .iter()
             .filter(|individual| self.is_comparable_with_best_known(individual, best_known))
-            .map(|individual| init_individual(individual.deep_copy()))
+            .map(|individual| init_individual(&self.external_ctx, individual.deep_copy()))
             .collect::<Vec<_>>();
         let is_improved = self.elite.add_all(elite);
 
         match &mut self.phase {
-            RosomaxaPhases::Initial { solutions: known_individuals } => known_individuals.extend(individuals),
+            RosomaxaPhases::Initial { solutions: known_individuals } => {
+                self.external_ctx.on_solutions(individuals.as_slice());
+                known_individuals.extend(individuals)
+            }
             RosomaxaPhases::Exploration { network, statistics, .. } => {
-                network.store_batch(individuals, statistics.generation, init_individual);
+                self.external_ctx.on_solutions(individuals.as_slice());
+                network.store_batch(&self.external_ctx, individuals, statistics.generation, |i| {
+                    init_individual(&self.external_ctx, i)
+                });
             }
             RosomaxaPhases::Exploitation { .. } => {}
         }
@@ -99,21 +120,7 @@ where
     }
 
     fn add(&mut self, individual: Self::Individual) -> bool {
-        let best_known = self.elite.ranked().next();
-        let individual = init_individual(individual);
-        let is_improved = if self.is_comparable_with_best_known(&individual, best_known) {
-            self.elite.add(individual.deep_copy())
-        } else {
-            false
-        };
-
-        match &mut self.phase {
-            RosomaxaPhases::Initial { solutions: individuals } => individuals.push(individual),
-            RosomaxaPhases::Exploration { network, statistics, .. } => network.store(individual, statistics.generation),
-            RosomaxaPhases::Exploitation { .. } => {}
-        }
-
-        is_improved
+        self.add_all(vec![individual])
     }
 
     fn on_generation(&mut self, statistics: &HeuristicStatistics) {
@@ -158,7 +165,7 @@ where
                         .take(*selection_size),
                 )
             }
-            RosomaxaPhases::Exploitation { selection_size } => Box::new(self.elite.select().take(*selection_size)),
+            RosomaxaPhases::Exploitation { selection_size, .. } => Box::new(self.elite.select().take(*selection_size)),
             _ => Box::new(self.elite.select()),
         }
     }
@@ -189,22 +196,27 @@ where
     }
 }
 
-type IndividualContext = ();
+type IndividualNetwork<C, O, S> = Network<C, S, IndividualStorage<C, O, S>, IndividualStorageFactory<C, O, S>>;
 
-type IndividualNetwork<O, S> = Network<IndividualContext, S, IndividualStorage<O, S>, IndividualStorageFactory<O, S>>;
-
-impl<O, S> Rosomaxa<O, S>
+impl<C, O, S> Rosomaxa<C, O, S>
 where
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
+    S: RosomaxaSolution<Context = C>,
 {
     /// Creates a new instance of `Rosomaxa`.
-    pub fn new(objective: Arc<O>, environment: Arc<Environment>, config: RosomaxaConfig) -> Result<Self, GenericError> {
+    pub fn new(
+        external_ctx: C,
+        objective: Arc<O>,
+        environment: Arc<Environment>,
+        config: RosomaxaConfig,
+    ) -> Result<Self, GenericError> {
         if config.elite_size < 1 || config.node_size < 1 || config.selection_size < 2 {
             return Err("Rosomaxa algorithm requires some parameters to be above thresholds".into());
         }
 
         Ok(Self {
+            external_ctx,
             objective: objective.clone(),
             environment: environment.clone(),
             elite: Elitism::new_with_dedup(
@@ -228,18 +240,19 @@ where
         };
 
         match &mut self.phase {
-            RosomaxaPhases::Initial { solutions: individuals, .. } => {
+            RosomaxaPhases::Initial { solutions: individuals } => {
                 if individuals.len() >= 4 {
                     let mut network = Self::create_network(
+                        &self.external_ctx,
                         self.objective.clone(),
                         self.environment.clone(),
                         &self.config,
                         individuals.drain(0..4).collect(),
                     );
 
-                    std::mem::take(individuals)
-                        .into_iter()
-                        .for_each(|individual| network.store(init_individual(individual), 0));
+                    std::mem::take(individuals).into_iter().for_each(|individual| {
+                        network.store(&self.external_ctx, init_individual(&self.external_ctx, individual), 0)
+                    });
 
                     self.phase = RosomaxaPhases::Exploration {
                         network,
@@ -264,14 +277,14 @@ where
                     *old_statistics = statistics.clone();
                     *old_selection_size = selection_size;
 
-                    Self::optimize_network(network, statistics, &self.config);
+                    Self::optimize_network(&self.external_ctx, network, statistics, &self.config);
 
                     Self::fill_populations(network, coordinates, self.environment.random.as_ref());
                 } else {
                     self.phase = RosomaxaPhases::Exploitation { selection_size }
                 }
             }
-            RosomaxaPhases::Exploitation { selection_size: old_selection_size } => {
+            RosomaxaPhases::Exploitation { selection_size: old_selection_size, .. } => {
                 // NOTE as we exploit elite only, limit how many solutions are exploited simultaneously
                 *old_selection_size = ((*old_selection_size as f64 / 2.).round() as usize).clamp(2, 4)
             }
@@ -283,14 +296,15 @@ where
     }
 
     fn optimize_network(
-        network: &mut IndividualNetwork<O, S>,
+        external_ctx: &C,
+        network: &mut IndividualNetwork<C, O, S>,
         statistics: &HeuristicStatistics,
         config: &RosomaxaConfig,
     ) {
         network.set_learning_rate(get_learning_rate(statistics.termination_estimate));
 
         if statistics.generation % config.rebalance_memory == 0 {
-            network.smooth(1);
+            network.smooth(external_ctx, 1);
         }
 
         let keep_size = get_keep_size(config.rebalance_memory, statistics.termination_estimate);
@@ -299,11 +313,15 @@ where
             return;
         }
 
-        network.compact();
-        network.smooth(1);
+        network.compact(external_ctx);
+        network.smooth(external_ctx, 1);
     }
 
-    fn fill_populations(network: &IndividualNetwork<O, S>, coordinates: &mut Vec<Coordinate>, random: &(dyn Random)) {
+    fn fill_populations(
+        network: &IndividualNetwork<C, O, S>,
+        coordinates: &mut Vec<Coordinate>,
+        random: &(dyn Random),
+    ) {
         coordinates.clear();
         coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
             if node.storage.population.size() > 0 {
@@ -317,12 +335,13 @@ where
     }
 
     fn create_network(
+        context: &C,
         objective: Arc<O>,
         environment: Arc<Environment>,
         config: &RosomaxaConfig,
         individuals: Vec<S>,
-    ) -> IndividualNetwork<O, S> {
-        let inputs_vec = parallel_into_collect(individuals, init_individual);
+    ) -> IndividualNetwork<C, O, S> {
+        let inputs_vec = parallel_into_collect(individuals, |i| init_individual(context, i));
 
         let inputs_slice = inputs_vec.into_boxed_slice();
         let inputs_array: Box<[S; 4]> = match inputs_slice.try_into() {
@@ -334,6 +353,7 @@ where
             IndividualStorageFactory { node_size: config.node_size, random: environment.random.clone(), objective };
 
         Network::new(
+            context,
             *inputs_array,
             NetworkConfig {
                 spread_factor: config.spread_factor,
@@ -348,14 +368,15 @@ where
     }
 }
 
-impl<'a, O, S> TryFrom<&'a Rosomaxa<O, S>> for NetworkState
+impl<'a, C, O, S> TryFrom<&'a Rosomaxa<C, O, S>> for NetworkState
 where
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
+    S: RosomaxaSolution<Context = C>,
 {
     type Error = String;
 
-    fn try_from(value: &'a Rosomaxa<O, S>) -> Result<Self, Self::Error> {
+    fn try_from(value: &'a Rosomaxa<C, O, S>) -> Result<Self, Self::Error> {
         match &value.phase {
             RosomaxaPhases::Exploration { network, .. } => Ok(get_network_state(network)),
             _ => Err("not in exploration state".to_string()),
@@ -364,16 +385,17 @@ where
 }
 
 #[allow(clippy::large_enum_variant)]
-enum RosomaxaPhases<O, S>
+enum RosomaxaPhases<C, O, S>
 where
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
+    S: RosomaxaSolution<Context = C>,
 {
     Initial {
         solutions: Vec<S>,
     },
     Exploration {
-        network: IndividualNetwork<O, S>,
+        network: IndividualNetwork<C, O, S>,
         coordinates: Vec<Coordinate>,
         statistics: HeuristicStatistics,
         selection_size: usize,
@@ -383,32 +405,35 @@ where
     },
 }
 
-fn init_individual<S>(individual: S) -> S
+fn init_individual<C, S>(external_ctx: &C, individual: S) -> S
 where
-    S: HeuristicSolution + RosomaxaWeighted,
+    C: RosomaxaContext<Solution = S>,
+    S: RosomaxaSolution<Context = C>,
 {
     let mut individual = individual;
-    individual.init_weights();
+    individual.on_init(external_ctx);
 
     individual
 }
 
-struct IndividualStorageFactory<O, S>
+struct IndividualStorageFactory<C, O, S>
 where
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
+    S: RosomaxaSolution<Context = C>,
 {
     node_size: usize,
     random: Arc<dyn Random>,
     objective: Arc<O>,
 }
 
-impl<O, S> StorageFactory<IndividualContext, S, IndividualStorage<O, S>> for IndividualStorageFactory<O, S>
+impl<C, O, S> StorageFactory<C, S, IndividualStorage<C, O, S>> for IndividualStorageFactory<C, O, S>
 where
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
+    S: RosomaxaSolution<Context = C>,
 {
-    fn eval(&self, _: &IndividualContext) -> IndividualStorage<O, S> {
+    fn eval(&self, _: &C) -> IndividualStorage<C, O, S> {
         let mut elitism = Elitism::new_with_dedup(
             self.objective.clone(),
             self.random.clone(),
@@ -423,18 +448,20 @@ where
     }
 }
 
-struct IndividualStorage<O, S>
+struct IndividualStorage<C, O, S>
 where
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
+    S: RosomaxaSolution<Context = C>,
 {
     population: Elitism<O, S>,
 }
 
-impl<O, S> Storage for IndividualStorage<O, S>
+impl<C, O, S> Storage for IndividualStorage<C, O, S>
 where
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
+    S: RosomaxaSolution<Context = C>,
 {
     type Item = S;
 
@@ -462,20 +489,22 @@ where
     }
 }
 
-impl<O, S> Display for IndividualStorage<O, S>
+impl<C, O, S> Display for IndividualStorage<C, O, S>
 where
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
+    S: RosomaxaSolution<Context = C>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.population)
     }
 }
 
-fn create_dedup_fn<O, S>(threshold: Float) -> DedupFn<O, S>
+fn create_dedup_fn<C, O, S>(threshold: Float) -> DedupFn<O, S>
 where
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaWeighted,
+    S: RosomaxaSolution<Context = C>,
 {
     // NOTE custom dedup rule to increase diversity property
     Box::new(move |objective, a, b| match objective.total_order(a, b) {

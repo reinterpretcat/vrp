@@ -118,10 +118,13 @@ where
     }
 
     /// Stores multiple inputs into the network.
-    pub fn store_batch<T: Send + Sync>(&mut self, context: &C, item_data: Vec<T>, time: usize, map_func: fn(T) -> I) {
+    pub fn store_batch<FM, T: Send + Sync>(&mut self, context: &C, item_data: Vec<T>, time: usize, map_fn: FM)
+    where
+        FM: Fn(T) -> I + Send + Sync,
+    {
         self.time = time;
         let nodes_data = parallel_into_collect(item_data, |item| {
-            let input = map_func(item);
+            let input = map_fn(item);
             let bmu = self.find_bmu(&input);
             let error = bmu.distance(input.weights());
             (bmu.coordinate, error, input)

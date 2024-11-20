@@ -8,7 +8,7 @@ use crate::algorithms::gsom::Input;
 use crate::evolution::objectives::HeuristicObjective;
 use crate::evolution::*;
 use crate::hyper::*;
-use crate::population::{RosomaxaWeighted, Shuffled};
+use crate::population::{RosomaxaSolution, Shuffled};
 use crate::prelude::*;
 use crate::utils::{Float, Noise};
 use crate::*;
@@ -106,6 +106,17 @@ impl HeuristicContext for VectorContext {
     }
 }
 
+/// A fake context for Rosomaxa population algorithm.
+pub struct FakeRosomaxaContext;
+
+impl RosomaxaContext for FakeRosomaxaContext {
+    type Solution = VectorSolution;
+
+    fn on_solutions(&self, _: &[Self::Solution]) {
+        // nothing to do for vector domain
+    }
+}
+
 impl Stateful for VectorContext {
     type Key = i32;
 
@@ -153,9 +164,11 @@ impl HeuristicSolution for VectorSolution {
     }
 }
 
-impl RosomaxaWeighted for VectorSolution {
-    fn init_weights(&mut self) {
-        // already initialized at creation time
+impl RosomaxaSolution for VectorSolution {
+    type Context = FakeRosomaxaContext;
+
+    fn on_init(&mut self, _: &Self::Context) {
+        // nothing to do for vector domain
     }
 }
 
@@ -437,7 +450,12 @@ impl Solver {
                     let selection_size = get_default_selection_size(environment.as_ref());
                     VectorContext::new(
                         objective.clone(),
-                        get_default_population(objective.clone(), environment.clone(), selection_size),
+                        get_default_population(
+                            FakeRosomaxaContext,
+                            objective.clone(),
+                            environment.clone(),
+                            selection_size,
+                        ),
                         TelemetryMode::OnlyLogging {
                             logger: environment.logger.clone(),
                             log_best: 100,

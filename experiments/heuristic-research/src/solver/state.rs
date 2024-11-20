@@ -1,6 +1,6 @@
 use crate::{Coordinate, MatrixData};
 use rosomaxa::algorithms::gsom::NetworkState;
-use rosomaxa::population::{Rosomaxa, RosomaxaWeighted, Shuffled};
+use rosomaxa::population::{Rosomaxa, RosomaxaSolution, Shuffled};
 use rosomaxa::prelude::*;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::any::TypeId;
@@ -46,7 +46,7 @@ pub fn get_population_state<P, O, S>(population: &P) -> PopulationState
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaWeighted + 'static,
+    S: HeuristicSolution + RosomaxaSolution + 'static,
 {
     let fitness_values =
         population.ranked().next().map(|solution| solution.fitness().collect::<Vec<_>>()).unwrap_or_default();

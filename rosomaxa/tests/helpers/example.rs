@@ -22,7 +22,8 @@ pub fn create_heuristic_context_with_solutions(solutions: Vec<Vec<Float>>) -> Ve
     let objective = create_example_objective();
     let selection_size = get_default_selection_size(environment.as_ref());
 
-    let mut population = get_default_population(objective.clone(), environment.clone(), selection_size);
+    let mut population =
+        get_default_population(FakeRosomaxaContext, objective.clone(), environment.clone(), selection_size);
 
     let solutions = solutions
         .into_iter()
