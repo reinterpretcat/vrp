@@ -1,6 +1,6 @@
 use crate::{Coordinate, MatrixData};
 use rosomaxa::algorithms::gsom::NetworkState;
-use rosomaxa::population::{Rosomaxa, RosomaxaSolution, Shuffled};
+use rosomaxa::population::{Rosomaxa, RosomaxaContext, RosomaxaSolution, Shuffled};
 use rosomaxa::prelude::*;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::any::TypeId;
@@ -42,17 +42,18 @@ pub enum PopulationState {
 }
 
 /// Parses population state from a string representation.
-pub fn get_population_state<P, O, S>(population: &P) -> PopulationState
+pub fn get_population_state<P, C, O, S>(population: &P) -> PopulationState
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
+    C: RosomaxaContext<Solution = S> + 'static,
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaSolution + 'static,
+    S: RosomaxaSolution<Context = C> + 'static,
 {
     let fitness_values =
         population.ranked().next().map(|solution| solution.fitness().collect::<Vec<_>>()).unwrap_or_default();
 
-    if TypeId::of::<P>() == TypeId::of::<Rosomaxa<O, S>>() {
-        let rosomaxa = unsafe { std::mem::transmute::<&P, &Rosomaxa<O, S>>(population) };
+    if TypeId::of::<P>() == TypeId::of::<Rosomaxa<C, O, S>>() {
+        let rosomaxa = unsafe { std::mem::transmute::<&P, &Rosomaxa<C, O, S>>(population) };
         NetworkState::try_from(rosomaxa)
             .map(|state| create_rosomaxa_state(state, fitness_values.clone()))
             .unwrap_or_else(move |_| PopulationState::Unknown { fitness_values })

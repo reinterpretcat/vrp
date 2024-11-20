@@ -63,8 +63,8 @@ pub trait RosomaxaContext: Send + Sync {
     /// A type of solution used within the context.
     type Solution: HeuristicSolution;
 
-    /// Run on getting new solutions.
-    fn on_solutions(&self, solutions: &[Self::Solution]);
+    /// A callback which is run on receiving a new solution set.
+    fn on_solutions(&mut self, solutions: &[Self::Solution]);
 }
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
@@ -92,7 +92,7 @@ where
     type Objective = O;
     type Individual = S;
 
-    fn add_all(&mut self, individuals: Vec<Self::Individual>) -> bool {
+    fn add_all(&mut self, mut individuals: Vec<Self::Individual>) -> bool {
         // NOTE avoid extra deep copy
         let best_known = self.elite.ranked().next();
         let elite = individuals
@@ -104,11 +104,11 @@ where
 
         match &mut self.phase {
             RosomaxaPhases::Initial { solutions: known_individuals } => {
-                self.external_ctx.on_solutions(individuals.as_slice());
+                self.external_ctx.on_solutions(individuals.as_mut_slice());
                 known_individuals.extend(individuals)
             }
             RosomaxaPhases::Exploration { network, statistics, .. } => {
-                self.external_ctx.on_solutions(individuals.as_slice());
+                self.external_ctx.on_solutions(individuals.as_mut_slice());
                 network.store_batch(&self.external_ctx, individuals, statistics.generation, |i| {
                     init_individual(&self.external_ctx, i)
                 });

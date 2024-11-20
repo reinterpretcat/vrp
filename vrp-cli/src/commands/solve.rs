@@ -13,7 +13,7 @@ use vrp_cli::core::solver::TargetHeuristic;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::extensions::solve::formats::*;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::models::GoalContext;
+use vrp_core::models::common::FootprintContext;
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::{evolution::*, get_default_population, get_default_selection_size};
 use vrp_core::solver::*;
@@ -322,7 +322,7 @@ fn from_cli_parameters(
         .with_min_cv(min_cv, "min_cv".to_string())
         .with_context(RefinementContext::new(
             problem.clone(),
-            get_population(mode, problem.goal.clone(), environment.clone()),
+            get_population(mode, &problem, environment.clone()),
             telemetry_mode,
             environment,
         ))
@@ -402,16 +402,16 @@ fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {
         .map(|paths| paths.map(|path| open_file(path, "routing matrix")).collect())
 }
 
-fn get_population(
-    mode: Option<&String>,
-    objective: Arc<GoalContext>,
-    environment: Arc<Environment>,
-) -> TargetPopulation {
+fn get_population(mode: Option<&String>, problem: &Problem, environment: Arc<Environment>) -> TargetPopulation {
+    let objective = problem.goal.clone();
     let selection_size = get_default_selection_size(environment.as_ref());
 
     match mode.map(String::as_str) {
         Some("deep") => Box::new(ElitismPopulation::new(objective, environment.random.clone(), 4, selection_size)),
-        _ => get_default_population(objective, environment, selection_size),
+        _ => {
+            let context = FootprintContext::new(problem);
+            get_default_population(context, objective, environment, selection_size)
+        }
     }
 }
 

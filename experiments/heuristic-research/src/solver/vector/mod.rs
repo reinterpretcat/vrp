@@ -40,8 +40,9 @@ pub fn solve_function(
             let logger = logger.clone();
             let population_type = population_type.to_string();
             move |objective, environment| {
+                let context = VectorRosomaxaContext;
                 let population =
-                    get_population(&population_type, objective.clone(), environment.clone(), selection_size);
+                    get_population(context, &population_type, objective.clone(), environment.clone(), selection_size);
                 let telemetry_mode = TelemetryMode::OnlyLogging { logger, log_best: 100, log_population: 500 };
                 VectorContext::new(objective, population, telemetry_mode, environment)
             }

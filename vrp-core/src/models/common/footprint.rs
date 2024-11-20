@@ -2,6 +2,9 @@
 
 use crate::algorithms::structures::BitVec;
 use crate::prelude::*;
+use rosomaxa::population::RosomaxaContext;
+use rosomaxa::utils::fold_reduce;
+use std::sync::{Arc, RwLock};
 
 /// Defines a low-dimensional representation of multiple solutions.
 pub struct Footprint {
@@ -101,6 +104,58 @@ impl From<&InsertionContext> for Shadow {
         });
 
         shadow
+    }
+}
+
+custom_solution_state!(Footprint typeof FootprintContext);
+
+/// Provides a way to use footprint within rosomaxa algorithm.
+#[derive(Clone)]
+pub struct FootprintContext {
+    counter: usize,
+    footprint: Arc<RwLock<Footprint>>,
+}
+
+impl FootprintContext {
+    /// Creates a new instance of a `FootprintContext`.
+    pub fn new(problem: &Problem) -> Self {
+        Self { counter: 0, footprint: Arc::new(RwLock::new(Footprint::new(problem))) }
+    }
+}
+
+impl RosomaxaContext for FootprintContext {
+    type Solution = InsertionContext;
+
+    fn on_solutions(&mut self, solutions: &[Self::Solution]) {
+        const FOOTPRINT_FORGET_RATE: usize = 100;
+
+        if solutions.is_empty() {
+            return;
+        }
+
+        // we need to forget the footprint from time to time to keep it sensitive to new solutions
+        if self.counter == FOOTPRINT_FORGET_RATE {
+            self.footprint.write().expect("cannot get writing lock for footprint").forget();
+            self.counter = 0;
+        } else {
+            self.counter += 1;
+        }
+
+        // merge solutions into the footprint in parallel from performance reasons
+        let problem = solutions[0].problem.clone();
+        let footprint = fold_reduce(
+            solutions,
+            || Footprint::new(&problem),
+            |mut footprint, solution| {
+                footprint.add(&Shadow::from(solution));
+                footprint
+            },
+            |mut left, right| {
+                left.union(&right);
+                left
+            },
+        );
+        self.footprint.write().expect("cannot get writing lock for footprint").union(&footprint);
     }
 }
 

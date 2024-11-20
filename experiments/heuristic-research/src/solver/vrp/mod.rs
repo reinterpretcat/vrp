@@ -7,6 +7,7 @@ pub use self::population::get_population_fitness_fn;
 
 use super::*;
 use std::io::BufWriter;
+use vrp_scientific::core::models::common::FootprintContext;
 use vrp_scientific::core::prelude::*;
 use vrp_scientific::core::solver::RefinementContext;
 use vrp_scientific::lilim::{LilimProblem, LilimSolution};
@@ -41,7 +42,9 @@ pub fn solve_vrp(
         is_experimental,
         ..Environment::new_with_time_quota(Some(300))
     });
-    let population = get_population(population_type, problem.goal.clone(), environment.clone(), selection_size);
+    let context = FootprintContext::new(problem.as_ref());
+    let population =
+        get_population(context, population_type, problem.goal.clone(), environment.clone(), selection_size);
     let telemetry_mode = TelemetryMode::OnlyLogging { logger: logger.clone(), log_best: 100, log_population: 1000 };
 
     let config = VrpConfigBuilder::new(problem.clone())

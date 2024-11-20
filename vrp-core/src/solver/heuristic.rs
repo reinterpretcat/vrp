@@ -1,5 +1,6 @@
 use super::*;
 use crate::construction::heuristics::*;
+use crate::models::common::{FootprintContext, FootprintSolutionState};
 use crate::models::{Extras, GoalContext};
 use crate::rosomaxa::get_default_selection_size;
 use crate::solver::search::*;
@@ -30,7 +31,7 @@ pub type GreedyPopulation = Greedy<GoalContext, InsertionContext>;
 /// A type for elitism population.
 pub type ElitismPopulation = Elitism<GoalContext, InsertionContext>;
 /// A type for rosomaxa population.
-pub type RosomaxaPopulation = Rosomaxa<GoalContext, InsertionContext>;
+pub type RosomaxaPopulation = Rosomaxa<FootprintContext, GoalContext, InsertionContext>;
 
 /// A type alias for domain specific termination type.
 pub type DynTermination = dyn Termination<Context = RefinementContext, Objective = GoalContext> + Send + Sync;
@@ -99,7 +100,8 @@ impl VrpConfigBuilder {
         let heuristic = self.heuristic.unwrap_or_else(|| get_default_heuristic(problem.clone(), environment.clone()));
 
         let selection_size = get_default_selection_size(environment.as_ref());
-        let population = get_default_population(problem.goal.clone(), environment.clone(), selection_size);
+        let context = FootprintContext::new(problem.as_ref());
+        let population = get_default_population(context, problem.goal.clone(), environment.clone(), selection_size);
 
         Ok(ProblemConfigBuilder::default()
             .with_heuristic(heuristic)
@@ -187,7 +189,9 @@ pub fn create_elitism_population(
 custom_solution_state!(SolutionWeights typeof Vec<Float>);
 
 impl RosomaxaSolution for InsertionContext {
-    fn on_init(&mut self) {
+    type Context = FootprintContext;
+
+    fn on_init(&mut self, context: &Self::Context) {
         // built a feature vector which is used to classify solution in population
         let weights = vec![
             // load related features
@@ -214,6 +218,7 @@ impl RosomaxaSolution for InsertionContext {
         ];
 
         self.solution.state.set_solution_weights(weights);
+        self.solution.state.set_footprint(context.clone());
     }
 }
 

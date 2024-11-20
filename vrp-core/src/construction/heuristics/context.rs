@@ -238,6 +238,7 @@ impl SolutionState {
     pub fn get_value<K: 'static, V: Send + Sync + 'static>(&self) -> Option<&V> {
         self.index.get(&TypeId::of::<K>()).and_then(|any| any.downcast_ref::<V>())
     }
+
     /// Sets the value to solution state using the key type provided.
     pub fn set_value<K: 'static, V: 'static + Sync + Send>(&mut self, value: V) {
         self.index.insert(TypeId::of::<K>(), Arc::new(value));

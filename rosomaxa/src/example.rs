@@ -107,12 +107,12 @@ impl HeuristicContext for VectorContext {
 }
 
 /// A fake context for Rosomaxa population algorithm.
-pub struct FakeRosomaxaContext;
+pub struct VectorRosomaxaContext;
 
-impl RosomaxaContext for FakeRosomaxaContext {
+impl RosomaxaContext for VectorRosomaxaContext {
     type Solution = VectorSolution;
 
-    fn on_solutions(&self, _: &[Self::Solution]) {
+    fn on_solutions(&mut self, _: &[Self::Solution]) {
         // nothing to do for vector domain
     }
 }
@@ -165,7 +165,7 @@ impl HeuristicSolution for VectorSolution {
 }
 
 impl RosomaxaSolution for VectorSolution {
-    type Context = FakeRosomaxaContext;
+    type Context = VectorRosomaxaContext;
 
     fn on_init(&mut self, _: &Self::Context) {
         // nothing to do for vector domain
@@ -451,7 +451,7 @@ impl Solver {
                     VectorContext::new(
                         objective.clone(),
                         get_default_population(
-                            FakeRosomaxaContext,
+                            VectorRosomaxaContext,
                             objective.clone(),
                             environment.clone(),
                             selection_size,

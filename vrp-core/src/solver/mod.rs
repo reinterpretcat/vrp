@@ -72,12 +72,11 @@
 extern crate rand;
 
 use crate::construction::heuristics::InsertionContext;
-use crate::models::common::{Footprint, Shadow};
 use crate::models::{GoalContext, Problem, Solution};
 use crate::solver::search::Recreate;
 use rosomaxa::evolution::*;
 use rosomaxa::prelude::*;
-use rosomaxa::utils::{fold_reduce, Timer};
+use rosomaxa::utils::Timer;
 use rosomaxa::{get_default_population, TelemetryHeuristicContext};
 use std::any::Any;
 use std::collections::HashMap;
@@ -97,8 +96,6 @@ pub struct RefinementContext {
     pub environment: Arc<Environment>,
     /// A collection of data associated with a refinement process.
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
-    /// A low-dimensional representation of population approximation.
-    footprint: Footprint,
     /// Provides some basic implementation of context functionality.
     inner_context: TelemetryHeuristicContext<GoalContext, InsertionContext>,
 }
@@ -121,10 +118,9 @@ impl RefinementContext {
         telemetry_mode: TelemetryMode,
         environment: Arc<Environment>,
     ) -> Self {
-        let footprint = Footprint::new(&problem);
         let inner_context =
             TelemetryHeuristicContext::new(problem.goal.clone(), population, telemetry_mode, environment.clone());
-        Self { problem, environment, inner_context, state: Default::default(), footprint }
+        Self { problem, environment, inner_context, state: Default::default() }
     }
 
     /// Adds solution to population.
@@ -162,32 +158,10 @@ impl HeuristicContext for RefinementContext {
     }
 
     fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
-        self.footprint.add(&Shadow::from(&solution));
-
         self.inner_context.on_initial(solution, item_time)
     }
 
     fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer) {
-        const FOOTPRINT_NORMALIZE_RATE: usize = 100;
-
-        // NOTE reduce footprint to keep sensitivity to new solutions
-        if self.inner_context.statistics().generation % FOOTPRINT_NORMALIZE_RATE == 0 {
-            self.footprint.forget();
-        }
-
-        self.footprint.union(&fold_reduce(
-            &offspring,
-            || Footprint::new(&self.problem),
-            |mut footprint, solution| {
-                footprint.add(&Shadow::from(solution));
-                footprint
-            },
-            |mut left, right| {
-                left.union(&right);
-                left
-            },
-        ));
-
         self.inner_context.on_generation(offspring, termination_estimate, generation_time)
     }
 

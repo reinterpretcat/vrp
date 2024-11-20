@@ -1,10 +1,11 @@
 use crate::*;
 use rosomaxa::example::VectorSolution;
-use rosomaxa::population::{RosomaxaSolution, Shuffled};
+use rosomaxa::population::{RosomaxaContext, RosomaxaSolution, Shuffled};
 use rosomaxa::prelude::*;
 use std::any::TypeId;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::sync::MutexGuard;
 use vrp_scientific::core::models::common::Shadow;
 use vrp_scientific::core::prelude::*;
@@ -44,9 +45,10 @@ impl<'a> TryFrom<&'a str> for ExperimentData {
     }
 }
 
-impl<S> From<&S> for ObservationData
+impl<C, S> From<&S> for ObservationData
 where
-    S: HeuristicSolution + RosomaxaSolution + 'static,
+    C: RosomaxaContext<Solution = S> + 'static,
+    S: RosomaxaSolution<Context = C> + 'static,
 {
     fn from(solution: &S) -> Self {
         if TypeId::of::<S>() == TypeId::of::<VectorSolution>() {
@@ -71,26 +73,29 @@ where
 }
 
 /// A population type which provides a way to intercept some of the population data.
-pub struct ProxyPopulation<P, O, S>
+pub struct ProxyPopulation<P, C, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
+    C: RosomaxaContext<Solution = S> + 'static,
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaSolution + 'static,
+    S: RosomaxaSolution<Context = C> + 'static,
 {
     generation: usize,
     inner: P,
+    _phantom: PhantomData<C>,
 }
 
-impl<P, O, S> ProxyPopulation<P, O, S>
+impl<P, C, O, S> ProxyPopulation<P, C, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
-    S: HeuristicSolution + RosomaxaSolution + 'static,
+    S: RosomaxaSolution<Context = C>,
 {
     /// Creates a new instance of `ProxyPopulation`.
     pub fn new(inner: P) -> Self {
         EXPERIMENT_DATA.lock().unwrap().clear();
-        Self { generation: 0, inner }
+        Self { generation: 0, inner, _phantom: Default::default() }
     }
 
     fn acquire(&self) -> MutexGuard<ExperimentData> {
@@ -98,11 +103,12 @@ where
     }
 }
 
-impl<P, O, S> HeuristicPopulation for ProxyPopulation<P, O, S>
+impl<P, C, O, S> HeuristicPopulation for ProxyPopulation<P, C, O, S>
 where
-    P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
+    P: HeuristicPopulation<Objective = O, Individual = S>,
+    C: RosomaxaContext<Solution = S>,
     O: HeuristicObjective<Solution = S> + Shuffled,
-    S: HeuristicSolution + RosomaxaSolution,
+    S: RosomaxaSolution<Context = C>,
 {
     type Objective = O;
     type Individual = S;
