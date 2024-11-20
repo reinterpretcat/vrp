@@ -1,6 +1,7 @@
 //! This module contains a logic to maintain a low-dimensional representation of the VRP Solution.
 
 use crate::algorithms::structures::BitVec;
+use crate::models::common::Location;
 use crate::prelude::*;
 use rosomaxa::population::RosomaxaContext;
 use rosomaxa::utils::fold_reduce;
@@ -36,11 +37,14 @@ impl Footprint {
         });
     }
 
+    /// Returns the number of times the edge was present in multiple solutions.
+    pub fn get(&self, from: usize, to: usize) -> u8 {
+        self.repr[from * self.dimension + to]
+    }
+
     /// Returns an iterator over the low-dimensional representation.
     pub fn iter(&self) -> impl Iterator<Item = ((usize, usize), u8)> + '_ {
-        (0..self.dimension).flat_map(move |from| {
-            (0..self.dimension).map(move |to| ((from, to), self.repr[from * self.dimension + to]))
-        })
+        (0..self.dimension).flat_map(move |from| (0..self.dimension).map(move |to| ((from, to), self.get(from, to))))
     }
 
     /// Reshapes the footprint to keep sensitivity to new solutions.
@@ -123,6 +127,11 @@ impl FootprintContext {
     /// Creates a new instance of a `FootprintContext`.
     pub fn new(problem: &Problem) -> Self {
         Self { counter: 0, footprint: Footprint::new(problem) }
+    }
+
+    /// Estimates how frequently the edge between two locations was present in multiple solutions.
+    pub fn estimate(&self, from: Location, to: Location) -> usize {
+        self.footprint.get(from, to) as usize
     }
 }
 
