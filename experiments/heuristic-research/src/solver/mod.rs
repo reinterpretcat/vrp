@@ -24,7 +24,7 @@ fn get_population<C, O, S>(
 ) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
 where
     C: RosomaxaContext<Solution = S> + 'static,
-    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    O: HeuristicObjective<Solution = S> + Alternative + 'static,
     S: RosomaxaSolution<Context = C> + 'static,
 {
     match population_type {

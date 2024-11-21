@@ -3,7 +3,7 @@ use crate::construction::probing::repair_solution_from_unknown;
 use crate::models::problem::Job;
 use crate::models::*;
 use crate::solver::*;
-use rosomaxa::population::Shuffled;
+use rosomaxa::population::Alternative;
 use std::sync::Arc;
 
 /// A mutation operator which performs search in infeasible space.
@@ -11,7 +11,7 @@ pub struct InfeasibleSearch {
     inner_search: TargetSearchOperator,
     recovery_operator: Arc<dyn Recreate>,
     max_repeat_count: usize,
-    shuffle_objectives_probability: (Float, Float),
+    alternative_objectives_probability: (Float, Float),
     skip_constraint_check_probability: (Float, Float),
 }
 
@@ -28,7 +28,7 @@ impl InfeasibleSearch {
             inner_search,
             recovery_operator,
             max_repeat_count,
-            shuffle_objectives_probability,
+            alternative_objectives_probability: shuffle_objectives_probability,
             skip_constraint_check_probability,
         }
     }
@@ -61,7 +61,7 @@ impl HeuristicSearchOperator for InfeasibleSearch {
 
         let new_insertion_ctx = create_relaxed_insertion_ctx(
             insertion_ctx,
-            self.shuffle_objectives_probability,
+            self.alternative_objectives_probability,
             self.skip_constraint_check_probability,
         );
         let mut new_refinement_ctx = create_relaxed_refinement_ctx(&new_insertion_ctx);
@@ -98,16 +98,16 @@ fn create_relaxed_refinement_ctx(new_insertion_ctx: &InsertionContext) -> Refine
 
 fn create_relaxed_insertion_ctx(
     insertion_ctx: &InsertionContext,
-    shuffle_objectives_probability: (Float, Float),
+    alt_objectives_probability: (Float, Float),
     skip_constraint_check_probability: (Float, Float),
 ) -> InsertionContext {
     let problem = &insertion_ctx.problem;
     let random = &insertion_ctx.environment.random;
 
-    let shuffle_prob = random.uniform_real(shuffle_objectives_probability.0, shuffle_objectives_probability.1);
+    let alternative_prob = random.uniform_real(alt_objectives_probability.0, alt_objectives_probability.1);
     let skip_prob = random.uniform_real(skip_constraint_check_probability.0, skip_constraint_check_probability.1);
 
-    let variant = create_modified_variant(problem.goal.as_ref(), random.clone(), skip_prob, shuffle_prob);
+    let variant = create_modified_variant(problem.goal.as_ref(), random.clone(), skip_prob, alternative_prob);
 
     let mut insertion_ctx = insertion_ctx.deep_copy();
     insertion_ctx.problem = Arc::new(Problem {
@@ -127,12 +127,12 @@ fn create_modified_variant(
     original: &GoalContext,
     random: Arc<dyn Random>,
     skip_probability: Float,
-    shuffle_probability: Float,
+    alternative_probability: Float,
 ) -> Arc<GoalContext> {
-    let shuffled =
-        if random.is_hit(shuffle_probability) { original.get_shuffled(random.as_ref()) } else { original.clone() };
+    let alternative =
+        if random.is_hit(alternative_probability) { original.maybe_new(random.as_ref()) } else { original.clone() };
 
-    let constraints = shuffled.constraints().map(|constraint| {
+    let constraints = alternative.constraints().map(|constraint| {
         let skip_probability = if random.is_head_not_tails() { 1. } else { skip_probability };
 
         let value: Arc<dyn FeatureConstraint> = Arc::new(StochasticFeatureConstraint {
@@ -144,7 +144,7 @@ fn create_modified_variant(
         value
     });
 
-    Arc::new(shuffled.with_constraints(constraints))
+    Arc::new(alternative.with_constraints(constraints))
 }
 
 fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionContext {

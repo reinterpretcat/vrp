@@ -8,7 +8,7 @@ use crate::algorithms::gsom::Input;
 use crate::evolution::objectives::HeuristicObjective;
 use crate::evolution::*;
 use crate::hyper::*;
-use crate::population::{RosomaxaSolution, Shuffled};
+use crate::population::{Alternative, RosomaxaSolution};
 use crate::prelude::*;
 use crate::utils::{Float, Noise};
 use crate::*;
@@ -148,8 +148,8 @@ impl HeuristicObjective for VectorObjective {
     }
 }
 
-impl Shuffled for VectorObjective {
-    fn get_shuffled(&self, _: &(dyn Random)) -> Self {
+impl Alternative for VectorObjective {
+    fn maybe_new(&self, _: &(dyn Random)) -> Self {
         self.clone()
     }
 }

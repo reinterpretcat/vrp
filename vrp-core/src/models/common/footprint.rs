@@ -55,6 +55,24 @@ impl Footprint {
         });
     }
 
+    /// Estimates the cost of a solution as a sum of all edge costs.
+    pub fn estimate(&self, solution_ctx: &SolutionContext) -> usize {
+        let dim = self.dimension;
+        solution_ctx
+            .routes
+            .iter()
+            .flat_map(|route_ctx| {
+                route_ctx
+                    .route()
+                    .tour
+                    .legs()
+                    .filter_map(|(activities, _)| if let [from, to] = activities { Some((from, to)) } else { None })
+                    .map(|(from, to)| (from.place.location % dim, to.place.location % dim))
+                    .map(|(from, to)| self.get(from, to) as usize)
+            })
+            .sum()
+    }
+
     /// Returns dimension of adjacency matrix.
     pub fn dimension(&self) -> usize {
         self.dimension
@@ -130,8 +148,13 @@ impl FootprintContext {
     }
 
     /// Estimates how frequently the edge between two locations was present in multiple solutions.
-    pub fn estimate(&self, from: Location, to: Location) -> usize {
+    pub fn estimate_edge(&self, from: Location, to: Location) -> usize {
         self.footprint.get(from, to) as usize
+    }
+
+    /// Estimates entire solution cost based on the footprint similarity.
+    pub fn estimate_solution(&self, solution_ctx: &SolutionContext) -> usize {
+        self.footprint.estimate(solution_ctx)
     }
 }
 

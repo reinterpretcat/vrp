@@ -6,8 +6,7 @@ use crate::construction::enablers::*;
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
-use rand::prelude::SliceRandom;
-use rosomaxa::population::Shuffled;
+use rosomaxa::population::Alternative;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -446,18 +445,14 @@ impl HeuristicObjective for GoalContext {
     }
 }
 
-impl Shuffled for GoalContext {
-    fn get_shuffled(&self, random: &(dyn Random)) -> Self {
-        const RANDOM_ALTERNATIVE_PROBABILITY: Float = 0.05;
-        const RANDOM_SHUFFLE_PROBABILITY: Float = 0.001;
+impl Alternative for GoalContext {
+    fn maybe_new(&self, random: &(dyn Random)) -> Self {
+        // TODO pass heuristic statistic here to vary probability based on convergence.
+        const RANDOM_ALTERNATIVE_PROBABILITY: Float = 0.1;
 
         if !self.alternative_goals.is_empty() && random.is_hit(RANDOM_ALTERNATIVE_PROBABILITY) {
             let idx = random.uniform_int(0, self.alternative_goals.len() as i32 - 1) as usize;
-            return self.get_alternative(idx);
-        }
-
-        if random.is_hit(RANDOM_SHUFFLE_PROBABILITY) {
-            self.get_shuffled(random)
+            self.get_alternative(idx)
         } else {
             self.clone()
         }
@@ -469,15 +464,6 @@ impl GoalContext {
         let (goal, _) = self.alternative_goals[idx].clone();
 
         Self { goal, ..self.clone() }
-    }
-
-    fn get_shuffled(&self, random: &(dyn Random)) -> Self {
-        let instance = self.clone();
-
-        let mut layers = self.goal.layers.clone();
-        layers.shuffle(&mut random.get_rng());
-
-        Self { goal: Goal { layers }, ..instance }
     }
 
     /// Returns goals with alternative objectives.

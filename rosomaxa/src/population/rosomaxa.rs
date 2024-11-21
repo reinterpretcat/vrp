@@ -5,7 +5,7 @@ mod rosomaxa_test;
 use super::*;
 use crate::algorithms::gsom::*;
 use crate::algorithms::math::relative_distance;
-use crate::population::elitism::{DedupFn, Shuffled};
+use crate::population::elitism::{Alternative, DedupFn};
 use crate::utils::{parallel_into_collect, Environment, Random};
 use rand::prelude::SliceRandom;
 use rayon::iter::Either;
@@ -75,7 +75,7 @@ pub trait RosomaxaContext: Send + Sync {
 pub struct Rosomaxa<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: RosomaxaSolution<Context = C>,
 {
     external_ctx: C,
@@ -89,7 +89,7 @@ where
 impl<C, O, S> HeuristicPopulation for Rosomaxa<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: RosomaxaSolution<Context = C>,
 {
     type Objective = O;
@@ -204,7 +204,7 @@ type IndividualNetwork<C, O, S> = Network<C, S, IndividualStorage<C, O, S>, Indi
 impl<C, O, S> Rosomaxa<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: RosomaxaSolution<Context = C>,
 {
     /// Creates a new instance of `Rosomaxa`.
@@ -374,7 +374,7 @@ where
 impl<'a, C, O, S> TryFrom<&'a Rosomaxa<C, O, S>> for NetworkState
 where
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: RosomaxaSolution<Context = C>,
 {
     type Error = String;
@@ -391,7 +391,7 @@ where
 enum RosomaxaPhases<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: RosomaxaSolution<Context = C>,
 {
     Initial {
@@ -422,7 +422,7 @@ where
 struct IndividualStorageFactory<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: RosomaxaSolution<Context = C>,
 {
     node_size: usize,
@@ -433,7 +433,7 @@ where
 impl<C, O, S> StorageFactory<C, S, IndividualStorage<C, O, S>> for IndividualStorageFactory<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: RosomaxaSolution<Context = C>,
 {
     fn eval(&self, _: &C) -> IndividualStorage<C, O, S> {
@@ -445,7 +445,7 @@ where
             create_dedup_fn(0.1),
         );
 
-        elitism.shuffle_objective();
+        elitism.maybe_change();
 
         IndividualStorage { population: elitism }
     }
@@ -454,7 +454,7 @@ where
 struct IndividualStorage<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: RosomaxaSolution<Context = C>,
 {
     population: Elitism<O, S>,
@@ -463,7 +463,7 @@ where
 impl<C, O, S> Storage for IndividualStorage<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: RosomaxaSolution<Context = C>,
 {
     type Item = S;
@@ -495,7 +495,7 @@ where
 impl<C, O, S> Display for IndividualStorage<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: RosomaxaSolution<Context = C>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -506,7 +506,7 @@ where
 fn create_dedup_fn<C, O, S>(threshold: Float) -> DedupFn<O, S>
 where
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: RosomaxaSolution<Context = C>,
 {
     // NOTE custom dedup rule to increase diversity property

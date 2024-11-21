@@ -22,7 +22,7 @@ const DEFAULT_DEDUP_FN_THRESHOLD: Float = 0.05;
 /// of best known individuals.
 pub struct Elitism<O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: HeuristicSolution,
 {
     objective: Arc<O>,
@@ -34,17 +34,15 @@ where
     dedup_fn: DedupFn<O, S>,
 }
 
-// TODO rename Shuffled to Alternative
-
-/// Provides way to get a new objective by shuffling existing one.
-pub trait Shuffled {
-    /// Returns a new objective, potentially shuffled.
-    fn get_shuffled(&self, random: &(dyn Random)) -> Self;
+/// Provides a way to get a new alternative objective with some probability.
+pub trait Alternative {
+    /// Returns a new objective, potentially alternative one.
+    fn maybe_new(&self, random: &(dyn Random)) -> Self;
 }
 
 impl<O, S> HeuristicPopulation for Elitism<O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: HeuristicSolution,
 {
     type Objective = O;
@@ -109,7 +107,7 @@ where
 
 impl<O, S> Elitism<O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: HeuristicSolution,
 {
     /// Creates a new instance of `Elitism`.
@@ -151,12 +149,12 @@ where
         Self { objective, random, selection_size, max_population_size, individuals: vec![], speed: None, dedup_fn }
     }
 
-    /// Shuffles objective function.
-    pub fn shuffle_objective(&mut self) {
-        self.objective = Arc::new(self.objective.get_shuffled(self.random.as_ref()));
+    /// Non-deterministically changes objective to alternative one.
+    pub fn maybe_change(&mut self) {
+        self.objective = Arc::new(self.objective.maybe_new(self.random.as_ref()));
     }
 
-    /// Extracts all individuals from population.
+    /// Extracts all individuals from the population.
     pub fn drain<R>(&mut self, range: R) -> Vec<S>
     where
         R: RangeBounds<usize>,
@@ -184,7 +182,7 @@ where
 
 impl<O, S> Display for Elitism<O, S>
 where
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: HeuristicSolution,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

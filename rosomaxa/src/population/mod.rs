@@ -1,7 +1,7 @@
 //! Specifies population types.
 
 mod elitism;
-pub use self::elitism::{Elitism, Shuffled};
+pub use self::elitism::{Alternative, Elitism};
 
 mod greedy;
 pub use self::greedy::Greedy;

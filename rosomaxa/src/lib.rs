@@ -299,7 +299,7 @@ pub fn get_default_population<C, O, S>(
 ) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S>>
 where
     C: RosomaxaContext<Solution = S> + 'static,
-    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    O: HeuristicObjective<Solution = S> + Alternative + 'static,
     S: RosomaxaSolution<Context = C> + 'static,
 {
     if selection_size == 1 {

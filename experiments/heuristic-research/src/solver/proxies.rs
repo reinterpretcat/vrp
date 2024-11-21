@@ -1,6 +1,6 @@
 use crate::*;
 use rosomaxa::example::VectorSolution;
-use rosomaxa::population::{RosomaxaContext, RosomaxaSolution, Shuffled};
+use rosomaxa::population::{Alternative, RosomaxaContext, RosomaxaSolution};
 use rosomaxa::prelude::*;
 use std::any::TypeId;
 use std::cmp::Ordering;
@@ -77,7 +77,7 @@ pub struct ProxyPopulation<P, C, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
     C: RosomaxaContext<Solution = S> + 'static,
-    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    O: HeuristicObjective<Solution = S> + Alternative + 'static,
     S: RosomaxaSolution<Context = C> + 'static,
 {
     generation: usize,
@@ -89,7 +89,7 @@ impl<P, C, O, S> ProxyPopulation<P, C, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S> + 'static,
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    O: HeuristicObjective<Solution = S> + Alternative + 'static,
     S: RosomaxaSolution<Context = C>,
 {
     /// Creates a new instance of `ProxyPopulation`.
@@ -107,7 +107,7 @@ impl<P, C, O, S> HeuristicPopulation for ProxyPopulation<P, C, O, S>
 where
     P: HeuristicPopulation<Objective = O, Individual = S>,
     C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Shuffled,
+    O: HeuristicObjective<Solution = S> + Alternative,
     S: RosomaxaSolution<Context = C>,
 {
     type Objective = O;
