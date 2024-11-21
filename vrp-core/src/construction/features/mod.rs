@@ -28,7 +28,7 @@ mod groups;
 pub use self::groups::{create_group_feature, JobGroupDimension};
 
 mod known_edge;
-pub use self::known_edge::KnownEdgeFeature;
+pub use self::known_edge::create_known_edge_feature;
 
 mod locked_jobs;
 pub use self::locked_jobs::*;

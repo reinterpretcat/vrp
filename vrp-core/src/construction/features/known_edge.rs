@@ -4,10 +4,14 @@ use crate::prelude::*;
 
 custom_solution_state!(FootprintCost typeof Cost);
 
-/// A feature to penalize edges/transitions seen in multiple solutions.
-pub struct KnownEdgeFeature;
+/// Creates a feature to penalize edges/transitions seen in multiple solutions.
+pub fn create_known_edge_feature(name: &str) -> Result<Feature, GenericError> {
+    FeatureBuilder::default().with_name(name).with_objective(KnownEdgeObjective).with_state(KnownEdgeState).build()
+}
 
-impl FeatureObjective for KnownEdgeFeature {
+struct KnownEdgeObjective;
+
+impl FeatureObjective for KnownEdgeObjective {
     fn fitness(&self, insertion_ctx: &InsertionContext) -> Cost {
         insertion_ctx.solution.state.get_footprint_cost().copied().unwrap_or_else(|| {
             insertion_ctx
@@ -38,7 +42,9 @@ impl FeatureObjective for KnownEdgeFeature {
     }
 }
 
-impl FeatureState for KnownEdgeFeature {
+struct KnownEdgeState;
+
+impl FeatureState for KnownEdgeState {
     fn accept_insertion(&self, _: &mut SolutionContext, _: usize, _: &Job) {}
 
     fn accept_route_state(&self, _: &mut RouteContext) {}
