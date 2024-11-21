@@ -29,6 +29,7 @@ fn create_fast_service_feature(reload_filter_enabled: bool) -> Feature {
 mod local_estimation {
     use super::*;
     use crate::helpers::construction::features::{create_simple_demand, create_simple_dynamic_demand};
+    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
     use crate::models::solution::Activity;
     use std::iter::once;
 
@@ -49,6 +50,7 @@ mod local_estimation {
             )
             .build();
         state.accept_route_state(&mut route_ctx);
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
         let activity_ctx = ActivityContext {
             index: target_index,
             prev: route_ctx.route().tour.get(target_index - 1).unwrap(),
@@ -56,7 +58,7 @@ mod local_estimation {
             next: route_ctx.route().tour.get(target_index),
         };
 
-        let result = objective.estimate(&MoveContext::activity(&route_ctx, &activity_ctx));
+        let result = objective.estimate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx));
 
         assert_eq!(result, expected_cost);
     }

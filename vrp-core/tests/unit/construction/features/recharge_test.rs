@@ -136,6 +136,7 @@ fn can_evaluate_insertion_impl(
     state.accept_route_state(&mut route_ctx);
 
     let result = constraint.evaluate(&MoveContext::Activity {
+        solution_ctx: &TestInsertionContextBuilder::default().build().solution,
         route_ctx: &route_ctx,
         activity_ctx: &ActivityContext {
             index,
@@ -193,6 +194,7 @@ fn can_accept_recharge_in_long_empty_route() {
     state.accept_route_state(&mut route_ctx);
 
     let result = constraint.evaluate(&MoveContext::Activity {
+        solution_ctx: &TestInsertionContextBuilder::default().build().solution,
         route_ctx: &route_ctx,
         activity_ctx: &ActivityContext {
             index: 0,

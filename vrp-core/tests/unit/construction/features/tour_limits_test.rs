@@ -60,6 +60,7 @@ mod traveling {
     use super::*;
     use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState};
     use crate::construction::features::tour_limits::create_travel_limit_feature;
+    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
     use crate::models::common::*;
     use crate::models::problem::Actor;
 
@@ -136,8 +137,10 @@ mod traveling {
         expected: Option<ConstraintViolation>,
     ) {
         let (feature, route_ctx) = create_test_data(vehicle, target, limit);
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
 
         let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(
+            &solution_ctx,
             &route_ctx,
             &ActivityContext {
                 index: 0,
@@ -153,8 +156,10 @@ mod traveling {
     #[test]
     fn can_consider_waiting_time() {
         let (feature, route_ctx) = create_test_data("v1", "v1", (None, Some(100.)));
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
 
         let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(
+            &solution_ctx,
             &route_ctx,
             &ActivityContext {
                 index: 0,

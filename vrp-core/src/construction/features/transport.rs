@@ -268,7 +268,7 @@ impl FeatureConstraint for TransportConstraint {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => self.evaluate_job(route_ctx, job),
-            MoveContext::Activity { route_ctx, activity_ctx } => self.evaluate_activity(route_ctx, activity_ctx),
+            MoveContext::Activity { route_ctx, activity_ctx, .. } => self.evaluate_activity(route_ctx, activity_ctx),
         }
     }
 
@@ -357,7 +357,7 @@ impl FeatureObjective for TransportObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
             MoveContext::Route { route_ctx, .. } => self.estimate_route(route_ctx),
-            MoveContext::Activity { route_ctx, activity_ctx } => self.estimate_activity(route_ctx, activity_ctx),
+            MoveContext::Activity { route_ctx, activity_ctx, .. } => self.estimate_activity(route_ctx, activity_ctx),
         }
     }
 }

@@ -491,6 +491,8 @@ pub enum MoveContext<'a> {
     },
     /// Evaluation of activity insertion into the given position.
     Activity {
+        /// A solution context.
+        solution_ctx: &'a SolutionContext,
         /// A route context where activity supposed to be inserted.
         route_ctx: &'a RouteContext,
         /// An activity context.
@@ -505,7 +507,11 @@ impl<'a> MoveContext<'a> {
     }
 
     /// Creates a route variant for `MoveContext`.
-    pub fn activity(route_ctx: &'a RouteContext, activity_ctx: &'a ActivityContext) -> MoveContext<'a> {
-        MoveContext::Activity { route_ctx, activity_ctx }
+    pub fn activity(
+        solution_ctx: &'a SolutionContext,
+        route_ctx: &'a RouteContext,
+        activity_ctx: &'a ActivityContext,
+    ) -> MoveContext<'a> {
+        MoveContext::Activity { solution_ctx, route_ctx, activity_ctx }
     }
 }

@@ -132,7 +132,7 @@ impl FeatureObjective for FastServiceObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         let (route_ctx, activity_ctx) = match move_ctx {
             MoveContext::Route { .. } => return Cost::default(),
-            MoveContext::Activity { route_ctx, activity_ctx } => (route_ctx, activity_ctx),
+            MoveContext::Activity { route_ctx, activity_ctx, .. } => (route_ctx, activity_ctx),
         };
 
         let activity_idx = activity_ctx.index;

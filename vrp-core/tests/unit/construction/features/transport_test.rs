@@ -118,13 +118,15 @@ mod timing {
     ) {
         let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data);
         feature.state.unwrap().accept_route_state(&mut route_ctx);
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
 
         let prev = route_ctx.route().tour.get(prev_index).unwrap();
         let target = ActivityBuilder::with_location(location).build();
         let next = route_ctx.route().tour.get(next_index);
         let activity_ctx = ActivityContext { index: prev_index, prev, target: &target, next };
 
-        let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(&route_ctx, &activity_ctx));
+        let result =
+            feature.constraint.unwrap().evaluate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx));
 
         assert_eq!(result, expected);
     }
@@ -182,6 +184,7 @@ mod timing {
             .add_driver(test_driver_with_costs(empty_costs()))
             .add_vehicles(vec![TestVehicleBuilder::default().id("v1").build()])
             .build();
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
         let route_ctx = RouteContextBuilder::default()
             .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
             .build();
@@ -198,7 +201,11 @@ mod timing {
             next: route_ctx.route().tour.get(1),
         };
 
-        let result = create_feature().objective.unwrap().estimate(&MoveContext::activity(&route_ctx, &activity_ctx));
+        let result = create_feature().objective.unwrap().estimate(&MoveContext::activity(
+            &solution_ctx,
+            &route_ctx,
+            &activity_ctx,
+        ));
 
         assert_eq!(result, 21.0);
     }
@@ -209,6 +216,7 @@ mod timing {
             .add_driver(test_driver_with_costs(empty_costs()))
             .add_vehicles(vec![TestVehicleBuilder::default().id("v1").build()])
             .build();
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
         let route_ctx = RouteContextBuilder::default()
             .with_route(
                 RouteBuilder::default()
@@ -250,7 +258,11 @@ mod timing {
             next: route_ctx.route().tour.get(2),
         };
 
-        let result = create_feature().objective.unwrap().estimate(&MoveContext::activity(&route_ctx, &activity_ctx));
+        let result = create_feature().objective.unwrap().estimate(&MoveContext::activity(
+            &solution_ctx,
+            &route_ctx,
+            &activity_ctx,
+        ));
 
         assert_eq!(result, 30.0);
     }

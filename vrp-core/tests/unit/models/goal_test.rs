@@ -85,6 +85,7 @@ pub fn cannot_create_goal_context_without_objectives() -> GenericResult<()> {
 
 #[test]
 pub fn can_evaluate_constraints() -> GenericResult<()> {
+    let solution_ctx = TestInsertionContextBuilder::default().build().solution;
     let route_ctx = RouteContext::new(test_actor());
     let activity_ctx = ActivityContext {
         index: 0,
@@ -92,7 +93,7 @@ pub fn can_evaluate_constraints() -> GenericResult<()> {
         target: &ActivityBuilder::default().job(None).build(),
         next: None,
     };
-    let move_ctx = MoveContext::activity(&route_ctx, &activity_ctx);
+    let move_ctx = MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx);
 
     let features = vec![create_feature("c_1", 0., ConstraintViolation::success())];
     assert_eq!(
@@ -144,6 +145,7 @@ can_use_objective_estimate! {
 }
 
 fn can_use_objective_estimate_impl(feature_map: &[&str], expected_cost: &[Cost]) {
+    let solution_ctx = TestInsertionContextBuilder::default().build().solution;
     let route_ctx = RouteContext::new(test_actor());
     let activity_ctx = ActivityContext {
         index: 0,
@@ -151,7 +153,7 @@ fn can_use_objective_estimate_impl(feature_map: &[&str], expected_cost: &[Cost])
         target: &ActivityBuilder::default().job(None).build(),
         next: None,
     };
-    let move_ctx = MoveContext::activity(&route_ctx, &activity_ctx);
+    let move_ctx = MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx);
     let features = feature_map.iter().map(|name| create_feature(name, 1., None)).collect();
 
     let result = TestGoalContextBuilder::empty().add_features(features).build().estimate(&move_ctx);

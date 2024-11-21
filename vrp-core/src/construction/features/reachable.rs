@@ -24,7 +24,7 @@ impl FeatureConstraint for ReachableConstraint {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
             MoveContext::Route { .. } => None,
-            MoveContext::Activity { route_ctx, activity_ctx } => {
+            MoveContext::Activity { route_ctx, activity_ctx, .. } => {
                 let prev = activity_ctx.prev;
                 let target = activity_ctx.target;
                 let next = activity_ctx.next;

@@ -2,6 +2,7 @@ use super::*;
 use crate::construction::enablers::LatestArrivalActivityState;
 use crate::construction::features::TransportFeatureBuilder;
 use crate::construction::heuristics::*;
+use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::problem::*;
@@ -240,9 +241,11 @@ fn can_evaluate_activity_impl(
     let prev = route_ctx.route().tour.get(0).unwrap();
     let target = ActivityBuilder::with_location_tw_and_duration(loc, TimeWindow::new(start, end), dur).build();
     let next = route_ctx.route().tour.get(1);
+    let solution_ctx = TestInsertionContextBuilder::default().build().solution;
     let activity_ctx = ActivityContext { index: 0, prev, target: &target, next };
 
-    let is_violation = feature_constraint.evaluate(&MoveContext::activity(&route_ctx, &activity_ctx)).is_some();
+    let is_violation =
+        feature_constraint.evaluate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx)).is_some();
 
     assert_eq!(is_violation, expected_schedules.is_empty());
     if !is_violation {

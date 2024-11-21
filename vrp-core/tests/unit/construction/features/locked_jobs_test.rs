@@ -173,6 +173,7 @@ fn can_lock_jobs_to_position_in_tour_impl(
     let constraint = create_feature_constraint(&fleet, &locks);
 
     let result = constraint.evaluate(&MoveContext::activity(
+        &TestInsertionContextBuilder::default().build().solution,
         &RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build(),
         &ActivityContext {
             index: 0,

@@ -539,7 +539,7 @@ fn can_constraint_activity_impl(
     let activity_ctx =
         ActivityContext { index: insertion_idx, prev: &create_usage_activity(0), target: &target, next: None };
 
-    let result = constraint.evaluate(&MoveContext::activity(&solution_ctx.routes[0], &activity_ctx));
+    let result = constraint.evaluate(&MoveContext::activity(&solution_ctx, &solution_ctx.routes[0], &activity_ctx));
 
     assert_eq!(result.map(|result| result.code), expected)
 }

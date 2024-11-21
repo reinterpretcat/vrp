@@ -341,7 +341,7 @@ impl<T: SharedResource> FeatureConstraint for SharedResourceConstraint<T> {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
             MoveContext::Route { solution_ctx, route_ctx, job } => self.evaluate_route(solution_ctx, route_ctx, job),
-            MoveContext::Activity { route_ctx, activity_ctx } => self.evaluate_activity(route_ctx, activity_ctx),
+            MoveContext::Activity { route_ctx, activity_ctx, .. } => self.evaluate_activity(route_ctx, activity_ctx),
         }
     }
 

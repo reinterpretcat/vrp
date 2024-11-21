@@ -75,25 +75,32 @@ pub fn eval_job_insertion_in_route(
         (route_costs, None)
     };
 
+    let solution_ctx = &insertion_ctx.solution;
+
     eval_ctx.result_selector.select_insertion(
         insertion_ctx,
         alternative,
-        eval_job_constraint_in_route(eval_ctx, route_ctx, position, route_costs, best_known_cost),
+        eval_job_constraint_in_route(eval_ctx, solution_ctx, route_ctx, position, route_costs, best_known_cost),
     )
 }
 
 /// Evaluates possibility to preform insertion in route context only.
 /// NOTE: doesn't evaluate constraints on route level.
-pub fn eval_job_constraint_in_route(
+fn eval_job_constraint_in_route(
     eval_ctx: &EvaluationContext,
+    solution_ctx: &SolutionContext,
     route_ctx: &RouteContext,
     position: InsertionPosition,
     route_costs: InsertionCost,
     best_known_cost: Option<InsertionCost>,
 ) -> InsertionResult {
     match eval_ctx.job {
-        Job::Single(single) => eval_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost),
-        Job::Multi(multi) => eval_multi(eval_ctx, route_ctx, multi, position, route_costs, best_known_cost),
+        Job::Single(single) => {
+            eval_single(eval_ctx, solution_ctx, route_ctx, single, position, route_costs, best_known_cost)
+        }
+        Job::Multi(multi) => {
+            eval_multi(eval_ctx, solution_ctx, route_ctx, multi, position, route_costs, best_known_cost)
+        }
     }
 }
 
@@ -106,6 +113,8 @@ pub(crate) fn eval_single_constraint_in_route(
     route_costs: InsertionCost,
     best_known_cost: Option<InsertionCost>,
 ) -> InsertionResult {
+    let solution_ctx = &insertion_ctx.solution;
+
     if let Some(violation) =
         eval_ctx.goal.evaluate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job))
     {
@@ -115,12 +124,13 @@ pub(crate) fn eval_single_constraint_in_route(
             job: Some(eval_ctx.job.clone()),
         })
     } else {
-        eval_single(eval_ctx, route_ctx, single, position, route_costs, best_known_cost)
+        eval_single(eval_ctx, solution_ctx, route_ctx, single, position, route_costs, best_known_cost)
     }
 }
 
 fn eval_single(
     eval_ctx: &EvaluationContext,
+    solution_ctx: &SolutionContext,
     route_ctx: &RouteContext,
     single: &Arc<Single>,
     position: InsertionPosition,
@@ -132,6 +142,7 @@ fn eval_single(
 
     let result = analyze_insertion_in_route(
         eval_ctx,
+        solution_ctx,
         route_ctx,
         insertion_idx,
         single,
@@ -153,6 +164,7 @@ fn eval_single(
 
 fn eval_multi(
     eval_ctx: &EvaluationContext,
+    solution_ctx: &SolutionContext,
     route_ctx: &RouteContext,
     multi: &Arc<Multi>,
     position: InsertionPosition,
@@ -184,6 +196,7 @@ fn eval_multi(
                             // 3. analyze legs
                             let srv_res = analyze_insertion_in_route(
                                 eval_ctx,
+                                solution_ctx,
                                 shadow.route_ctx(),
                                 None,
                                 service,
@@ -224,8 +237,10 @@ fn eval_multi(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn analyze_insertion_in_route(
     eval_ctx: &EvaluationContext,
+    solution_ctx: &SolutionContext,
     route_ctx: &RouteContext,
     insertion_idx: Option<usize>,
     single: &Single,
@@ -234,7 +249,16 @@ fn analyze_insertion_in_route(
     init: SingleContext,
 ) -> SingleContext {
     let mut analyze_leg_insertion = |leg: Leg<'_>, init| {
-        analyze_insertion_in_route_leg(eval_ctx, route_ctx, leg, single, target, route_costs.clone(), init)
+        analyze_insertion_in_route_leg(
+            eval_ctx,
+            solution_ctx,
+            route_ctx,
+            leg,
+            single,
+            target,
+            route_costs.clone(),
+            init,
+        )
     };
 
     match insertion_idx {
@@ -264,8 +288,10 @@ fn analyze_insertion_in_route(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn analyze_insertion_in_route_leg(
     eval_ctx: &EvaluationContext,
+    solution_ctx: &SolutionContext,
     route_ctx: &RouteContext,
     leg: Leg,
     single: &Single,
@@ -292,7 +318,7 @@ fn analyze_insertion_in_route_leg(
             target.place.time = time.to_time_window(start_time);
 
             let activity_ctx = ActivityContext { index, prev, target, next };
-            let move_ctx = MoveContext::activity(route_ctx, &activity_ctx);
+            let move_ctx = MoveContext::activity(solution_ctx, route_ctx, &activity_ctx);
 
             if let Some(violation) = eval_ctx.goal.evaluate(&move_ctx) {
                 let is_stopped = violation.stopped;

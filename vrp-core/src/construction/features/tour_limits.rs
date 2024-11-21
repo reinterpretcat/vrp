@@ -103,7 +103,7 @@ impl FeatureConstraint for TravelLimitConstraint {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
             MoveContext::Route { .. } => None,
-            MoveContext::Activity { route_ctx, activity_ctx } => {
+            MoveContext::Activity { route_ctx, activity_ctx, .. } => {
                 let tour_distance_limit = (self.tour_distance_limit_fn)(route_ctx.route().actor.as_ref());
                 let tour_duration_limit = (self.tour_duration_limit_fn)(route_ctx.route().actor.as_ref());
 

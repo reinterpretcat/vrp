@@ -59,7 +59,7 @@ struct TourOrderConstraint {
 impl FeatureConstraint for TourOrderConstraint {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
         match move_ctx {
-            MoveContext::Activity { route_ctx, activity_ctx } => {
+            MoveContext::Activity { route_ctx, activity_ctx, .. } => {
                 evaluate_result(route_ctx, activity_ctx, &self.order_fn, &|first, second, stopped| {
                     if compare_order_results(first, second) == Ordering::Greater {
                         Some(ConstraintViolation { code: self.code, stopped })
@@ -116,7 +116,7 @@ impl FeatureObjective for TourOrderObjective {
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
-            MoveContext::Activity { route_ctx, activity_ctx } => {
+            MoveContext::Activity { route_ctx, activity_ctx, .. } => {
                 evaluate_result(route_ctx, activity_ctx, &self.order_fn, &|first, second, _| {
                     if compare_order_results(first, second) == Ordering::Greater {
                         let value = match (first, second) {

@@ -138,8 +138,9 @@ fn can_evaluate_demand_on_activity_impl(
         target: &create_activity_with_simple_demand(size),
         next: route_ctx.route().tour.get(neighbours.1),
     };
+    let solution_ctx = TestInsertionContextBuilder::default().build().solution;
 
-    let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(&route_ctx, &activity_ctx));
+    let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx));
 
     assert_eq!(result, expected);
 }
