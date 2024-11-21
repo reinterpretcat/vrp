@@ -1,6 +1,3 @@
-mod known_edge;
-pub(crate) use self::known_edge::*;
-
 mod removal;
 pub(crate) use self::removal::*;
 

@@ -27,6 +27,9 @@ pub use self::fleet_usage::*;
 mod groups;
 pub use self::groups::{create_group_feature, JobGroupDimension};
 
+mod known_edge;
+pub use self::known_edge::KnownEdgeFeature;
+
 mod locked_jobs;
 pub use self::locked_jobs::*;
 
