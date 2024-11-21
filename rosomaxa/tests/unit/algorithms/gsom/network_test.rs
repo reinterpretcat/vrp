@@ -17,7 +17,7 @@ mod common {
         // train
         let random = DefaultRandom::default();
         for j in 1..4 {
-            network.smooth(&(), 4);
+            network.smooth(&(), 4, |_| ());
 
             for i in 1..500 {
                 let idx = random.uniform_int(0, samples.len() as i32 - 1) as usize;
@@ -257,7 +257,7 @@ mod node_growing {
         let mse = network.mse();
         assert_eq!(mse, 0.);
 
-        network.smooth(&(), 1);
+        network.smooth(&(), 1, |_| ());
         let mse = network.mse();
         assert!((mse - 0.0001138).abs() < 1E7);
     }

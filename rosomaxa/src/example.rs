@@ -170,6 +170,10 @@ impl RosomaxaSolution for VectorSolution {
     fn on_init(&mut self, _: &Self::Context) {
         // nothing to do for vector domain
     }
+
+    fn on_update(&mut self, _: &Self::Context) {
+        // nothing to do for vector domain
+    }
 }
 
 impl Input for VectorSolution {

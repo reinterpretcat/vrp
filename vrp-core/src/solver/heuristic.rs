@@ -218,6 +218,10 @@ impl RosomaxaSolution for InsertionContext {
         ];
 
         self.solution.state.set_solution_weights(weights);
+        self.on_update(context);
+    }
+
+    fn on_update(&mut self, context: &Self::Context) {
         self.solution.state.set_footprint(context.clone());
     }
 }

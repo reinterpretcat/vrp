@@ -133,12 +133,16 @@ where
     }
 
     /// Performs smoothing phase.
-    pub fn smooth(&mut self, context: &C, rebalance_count: usize) {
+    pub fn smooth<FM>(&mut self, context: &C, rebalance_count: usize, node_fn: FM)
+    where
+        FM: Fn(&mut I),
+    {
         (0..rebalance_count).for_each(|_| {
             let mut data = self.nodes.iter_mut().flat_map(|(_, node)| node.storage.drain(0..)).collect::<Vec<_>>();
             data.sort_unstable_by(compare_input);
             data.dedup_by(|a, b| compare_input(a, b) == Ordering::Equal);
             data.shuffle(&mut self.random.get_rng());
+            data.iter_mut().for_each(&node_fn);
 
             self.train_on_data(context, data, false);
 

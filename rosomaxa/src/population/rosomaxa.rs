@@ -56,6 +56,9 @@ pub trait RosomaxaSolution: HeuristicSolution + Input {
 
     /// Run on solution initialization. A time to update rosomaxa weights.
     fn on_init(&mut self, context: &Self::Context);
+
+    /// Run on context update.
+    fn on_update(&mut self, context: &Self::Context);
 }
 
 /// Specifies external context which can be used to analyze population evolution outside the algorithm.
@@ -304,7 +307,7 @@ where
         network.set_learning_rate(get_learning_rate(statistics.termination_estimate));
 
         if statistics.generation % config.rebalance_memory == 0 {
-            network.smooth(external_ctx, 1);
+            network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
         }
 
         let keep_size = get_keep_size(config.rebalance_memory, statistics.termination_estimate);
@@ -314,7 +317,7 @@ where
         }
 
         network.compact(external_ctx);
-        network.smooth(external_ctx, 1);
+        network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
     }
 
     fn fill_populations(
