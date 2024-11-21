@@ -60,7 +60,6 @@ impl Footprint {
 
     /// Estimates the cost of a solution as a sum of all edge costs.
     pub fn estimate(&self, solution_ctx: &SolutionContext) -> usize {
-        let dim = self.dimension;
         solution_ctx
             .routes
             .iter()
@@ -70,7 +69,7 @@ impl Footprint {
                     .tour
                     .legs()
                     .filter_map(|(activities, _)| if let [from, to] = activities { Some((from, to)) } else { None })
-                    .map(|(from, to)| (from.place.location % dim, to.place.location % dim))
+                    .map(|(from, to)| (from.place.location, to.place.location))
                     .map(|(from, to)| self.get(from, to) as usize)
             })
             .sum()
@@ -86,7 +85,7 @@ impl Footprint {
 const MAX_REPRESENTATION_DIMENSION: usize = 256;
 
 /// Specifies a rate at which the footprint scales down the number of times the edge was present in multiple solutions.
-const FOOTPRINT_FORGET_RATE: usize = 100;
+const FOOTPRINT_FORGET_RATE: usize = 200;
 
 /// A low-dimensional representation of the VRP Solution.
 /// Here, we use Bit Vector data structure to represent the adjacency matrix of the solution, where
