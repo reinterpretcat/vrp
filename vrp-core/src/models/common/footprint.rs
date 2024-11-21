@@ -39,6 +39,9 @@ impl Footprint {
 
     /// Returns the number of times the edge was present in multiple solutions.
     pub fn get(&self, from: usize, to: usize) -> u8 {
+        let from = from % self.dimension;
+        let to = to % self.dimension;
+
         self.repr[from * self.dimension + to]
     }
 
