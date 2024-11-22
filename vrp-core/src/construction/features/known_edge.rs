@@ -5,15 +5,32 @@ use crate::prelude::*;
 custom_solution_state!(FootprintCost typeof Cost);
 
 /// Creates a feature to penalize edges/transitions seen in multiple solutions.
-pub fn create_known_edge_feature(name: &str) -> Result<Feature, GenericError> {
-    FeatureBuilder::default().with_name(name).with_objective(KnownEdgeObjective).with_state(KnownEdgeState).build()
+/// This feature acts as a heuristic addition.
+pub fn create_known_edge_feature(name: &str, keep_solution_fitness: bool) -> Result<Feature, GenericError> {
+    if keep_solution_fitness {
+        FeatureBuilder::default()
+            .with_name(name)
+            .with_objective(KnownEdgeObjective { keep_solution_fitness })
+            .with_state(KnownEdgeState)
+            .build()
+    } else {
+        FeatureBuilder::default().with_name(name).with_objective(KnownEdgeObjective { keep_solution_fitness }).build()
+    }
 }
 
-struct KnownEdgeObjective;
+struct KnownEdgeObjective {
+    keep_solution_fitness: bool,
+}
 
 impl FeatureObjective for KnownEdgeObjective {
     fn fitness(&self, insertion_ctx: &InsertionContext) -> Cost {
+        if !self.keep_solution_fitness {
+            return Cost::default();
+        }
+
         insertion_ctx.solution.state.get_footprint_cost().copied().unwrap_or_else(|| {
+            debug_assert!(self.keep_solution_fitness);
+
             insertion_ctx
                 .solution
                 .state
@@ -30,12 +47,11 @@ impl FeatureObjective for KnownEdgeObjective {
                     let prev = activity_ctx.prev.place.location;
                     let target = activity_ctx.target.place.location;
 
-                    (footprint.estimate_edge(prev, target)
+                    (footprint.estimate_edge(prev, target) as Cost).log2()
                         + activity_ctx
                             .next
                             .as_ref()
-                            .map_or(0, |next| footprint.estimate_edge(target, next.place.location)))
-                        as Cost
+                            .map_or(0., |next| (footprint.estimate_edge(target, next.place.location) as Cost).log2())
                 })
             }
         }
