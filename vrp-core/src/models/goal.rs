@@ -30,7 +30,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct GoalContext {
     goal: Goal,
-    alternative_goals: Vec<(Goal, Float)>,
+    alternative_goals: Vec<Goal>,
     constraints: Vec<Arc<dyn FeatureConstraint>>,
     states: Vec<Arc<dyn FeatureState>>,
 }
@@ -64,7 +64,7 @@ impl Debug for GoalContext {
 /// Provides a customizable way to build goal context.
 pub struct GoalContextBuilder {
     main_goal: Option<Goal>,
-    alternative_goals: Vec<(Goal, Float)>,
+    alternative_goals: Vec<Goal>,
     features: Vec<Feature>,
 }
 
@@ -95,8 +95,8 @@ impl GoalContextBuilder {
     }
 
     /// Sets an alternative goal of optimization.
-    pub fn add_alternative_goal(mut self, goal: Goal, weight: Float) -> Self {
-        self.alternative_goals.push((goal, weight));
+    pub fn add_alternative_goal(mut self, goal: Goal) -> Self {
+        self.alternative_goals.push(goal);
         self
     }
 
@@ -461,7 +461,7 @@ impl Alternative for GoalContext {
 
 impl GoalContext {
     fn get_alternative(&self, idx: usize) -> Self {
-        let (goal, _) = self.alternative_goals[idx].clone();
+        let goal = self.alternative_goals[idx].clone();
 
         Self { goal, ..self.clone() }
     }

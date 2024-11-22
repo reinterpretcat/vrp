@@ -116,7 +116,7 @@ pub(crate) fn create_goal_context_prefer_min_tours(
 
     GoalContextBuilder::with_features(&features)?
         .set_main_goal(Goal::subset_of(&features, &["min_unassigned", "min_tours", "min_distance"])?)
-        .add_alternative_goal(Goal::subset_of(&features, &["min_unassigned", "min_distance"])?, 0.1)
+        .add_alternative_goal(Goal::subset_of(&features, &["min_unassigned", "min_distance"])?)
         .build()
 }
 
@@ -129,7 +129,7 @@ pub(crate) fn create_goal_context_distance_only(
 
     GoalContextBuilder::with_features(&features)?
         .set_main_goal(Goal::subset_of(&features, &["min_unassigned", "min_distance"])?)
-        .add_alternative_goal(Goal::subset_of(&features, &["min_unassigned", "min_tours", "min_distance"])?, 0.1)
+        .add_alternative_goal(Goal::subset_of(&features, &["min_unassigned", "min_tours", "min_distance"])?)
         .build()
 }
 
