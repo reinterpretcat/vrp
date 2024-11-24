@@ -3,6 +3,7 @@
 mod goal_test;
 
 use crate::construction::enablers::*;
+use crate::construction::features::create_known_edge_feature;
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
@@ -11,6 +12,7 @@ use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt::{Debug, Display, Formatter};
+use std::iter::once;
 use std::ops::ControlFlow;
 use std::sync::Arc;
 
@@ -84,8 +86,9 @@ impl GoalContextBuilder {
         }
 
         let goal = Goal::simple(&features)?;
+        let alternative_goals = vec![Self::get_heuristic_goal(&features)?];
 
-        Ok(Self { main_goal: Some(goal), alternative_goals: Vec::default(), features })
+        Ok(Self { main_goal: Some(goal), alternative_goals, features })
     }
 
     /// Sets a main goal of optimization.
@@ -108,6 +111,23 @@ impl GoalContextBuilder {
         let constraints = self.features.iter().filter_map(|feature| feature.constraint.clone()).collect();
 
         Ok(GoalContext { goal, alternative_goals, constraints, states })
+    }
+
+    fn get_heuristic_goal(features: &[Feature]) -> GenericResult<Goal> {
+        const KNOWN_EDGE_FEATURE_NAME: &str = "known_edge";
+        let mut objective_names =
+            features.iter().filter(|f| f.objective.is_some()).map(|f| f.name.as_str()).collect::<Vec<_>>();
+
+        if objective_names.is_empty() {
+            return Err(GenericError::from("no objectives specified in the goal"));
+        }
+        objective_names.insert(1, KNOWN_EDGE_FEATURE_NAME);
+
+        // assuming that noone will call feature like that...
+        let known_edge = create_known_edge_feature(KNOWN_EDGE_FEATURE_NAME, true)?;
+        let features = features.iter().cloned().chain(once(known_edge)).collect::<Vec<_>>();
+
+        Goal::subset_of(&features, &objective_names)
     }
 }
 
