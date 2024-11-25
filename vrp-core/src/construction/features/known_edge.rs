@@ -31,11 +31,13 @@ impl FeatureObjective for KnownEdgeObjective {
         insertion_ctx.solution.state.get_footprint_cost().copied().unwrap_or_else(|| {
             debug_assert!(self.keep_solution_fitness);
 
+            // NOTE: use log2 to reduce sensitivity on solution fitness perturbations.
             insertion_ctx
                 .solution
                 .state
                 .get_footprint()
                 .map_or(Cost::default(), |footprint| footprint.estimate_solution(&insertion_ctx.solution) as Cost)
+                .log2()
         })
     }
 
@@ -47,11 +49,14 @@ impl FeatureObjective for KnownEdgeObjective {
                     let prev = activity_ctx.prev.place.location;
                     let target = activity_ctx.target.place.location;
 
-                    (footprint.estimate_edge(prev, target) as Cost).log2()
-                        + activity_ctx
-                            .next
-                            .as_ref()
-                            .map_or(0., |next| (footprint.estimate_edge(target, next.place.location) as Cost).log2())
+                    let prev_to_target = footprint.estimate_edge(prev, target) as Cost;
+                    let target_to_next = activity_ctx
+                        .next
+                        .as_ref()
+                        .map_or(0., |next| footprint.estimate_edge(target, next.place.location) as Cost);
+
+                    // NOTE: use division by 10 to reduce sensitivity on insertion cost perturbations.
+                    ((prev_to_target + target_to_next) / 10.).round()
                 })
             }
         }

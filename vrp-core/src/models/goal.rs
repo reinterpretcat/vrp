@@ -115,6 +115,8 @@ impl GoalContextBuilder {
 
     fn get_heuristic_goal(features: &[Feature]) -> GenericResult<Goal> {
         const KNOWN_EDGE_FEATURE_NAME: &str = "known_edge";
+        const KEEP_SOLUTION_FITNESS: bool = true;
+
         let mut objective_names =
             features.iter().filter(|f| f.objective.is_some()).map(|f| f.name.as_str()).collect::<Vec<_>>();
 
@@ -123,8 +125,8 @@ impl GoalContextBuilder {
         }
         objective_names.insert(1, KNOWN_EDGE_FEATURE_NAME);
 
-        // assuming that noone will call feature like that...
-        let known_edge = create_known_edge_feature(KNOWN_EDGE_FEATURE_NAME, true)?;
+        // assuming that noone will call the feature like that...
+        let known_edge = create_known_edge_feature(KNOWN_EDGE_FEATURE_NAME, KEEP_SOLUTION_FITNESS)?;
         let features = features.iter().cloned().chain(once(known_edge)).collect::<Vec<_>>();
 
         Goal::subset_of(&features, &objective_names)
