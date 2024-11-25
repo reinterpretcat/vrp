@@ -72,6 +72,7 @@
 extern crate rand;
 
 use crate::construction::heuristics::InsertionContext;
+use crate::models::common::{Footprint, FootprintSolutionState, Shadow};
 use crate::models::{GoalContext, Problem, Solution};
 use crate::solver::search::Recreate;
 use rosomaxa::evolution::*;
@@ -96,6 +97,8 @@ pub struct RefinementContext {
     pub environment: Arc<Environment>,
     /// A collection of data associated with a refinement process.
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
+    /// Keeps track of the initial footprint.
+    initial_footprint: Footprint,
     /// Provides some basic implementation of context functionality.
     inner_context: TelemetryHeuristicContext<GoalContext, InsertionContext>,
 }
@@ -118,9 +121,10 @@ impl RefinementContext {
         telemetry_mode: TelemetryMode,
         environment: Arc<Environment>,
     ) -> Self {
+        let initial_footprint = Footprint::new(&problem);
         let inner_context =
             TelemetryHeuristicContext::new(problem.goal.clone(), population, telemetry_mode, environment.clone());
-        Self { problem, environment, inner_context, state: Default::default() }
+        Self { problem, environment, inner_context, state: Default::default(), initial_footprint }
     }
 
     /// Adds solution to population.
@@ -157,7 +161,10 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.environment()
     }
 
-    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
+    fn on_initial(&mut self, mut solution: Self::Solution, item_time: Timer) {
+        self.initial_footprint.add(&Shadow::from(&solution));
+        solution.solution.state.set_footprint(self.initial_footprint.clone());
+
         self.inner_context.on_initial(solution, item_time)
     }
 
@@ -205,7 +212,9 @@ impl InitialOperator for RecreateInitialOperator {
     type Solution = InsertionContext;
 
     fn create(&self, heuristic_ctx: &Self::Context) -> Self::Solution {
-        let insertion_ctx = InsertionContext::new(heuristic_ctx.problem.clone(), heuristic_ctx.environment.clone());
+        let mut insertion_ctx = InsertionContext::new(heuristic_ctx.problem.clone(), heuristic_ctx.environment.clone());
+        insertion_ctx.solution.state.set_footprint(heuristic_ctx.initial_footprint.clone());
+
         self.recreate.run(heuristic_ctx, insertion_ctx)
     }
 }

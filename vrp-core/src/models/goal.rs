@@ -115,7 +115,7 @@ impl GoalContextBuilder {
 
     fn get_heuristic_goal(features: &[Feature]) -> GenericResult<Goal> {
         const KNOWN_EDGE_FEATURE_NAME: &str = "known_edge";
-        const KEEP_SOLUTION_FITNESS: bool = true;
+        const KEEP_SOLUTION_FITNESS: bool = false;
 
         let mut objective_names =
             features.iter().filter(|f| f.objective.is_some()).map(|f| f.name.as_str()).collect::<Vec<_>>();

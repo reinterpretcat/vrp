@@ -15,7 +15,7 @@ fn can_update_statistic() {
     let environment = Arc::new(Environment::default());
     let objective = create_example_objective();
     let selection_size = get_default_selection_size(environment.as_ref());
-    let population = get_default_population(VectorRosomaxaContext, objective.clone(), environment, selection_size);
+    let population = get_default_population(objective.clone(), VectorRosomaxaContext, environment, selection_size);
     let population = population.as_ref();
 
     let mut telemetry = Telemetry::new(TelemetryMode::None);

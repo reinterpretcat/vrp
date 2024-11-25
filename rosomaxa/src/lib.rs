@@ -292,8 +292,8 @@ pub fn get_default_selection_size(environment: &Environment) -> usize {
 
 /// Gets default population algorithm.
 pub fn get_default_population<C, O, S>(
-    context: C,
     objective: Arc<O>,
+    footprint: C,
     environment: Arc<Environment>,
     selection_size: usize,
 ) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S>>
@@ -306,7 +306,7 @@ where
         Box::new(Greedy::new(objective, 1, None))
     } else {
         let config = RosomaxaConfig::new_with_defaults(selection_size);
-        let population = Rosomaxa::new(context, objective, environment, config)
+        let population = Rosomaxa::new(footprint, objective, environment, config)
             .expect("cannot create rosomaxa with default configuration");
 
         Box::new(population)

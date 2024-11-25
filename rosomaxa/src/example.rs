@@ -455,8 +455,8 @@ impl Solver {
                     VectorContext::new(
                         objective.clone(),
                         get_default_population(
-                            VectorRosomaxaContext,
                             objective.clone(),
+                            VectorRosomaxaContext,
                             environment.clone(),
                             selection_size,
                         ),

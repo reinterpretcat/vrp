@@ -12,7 +12,7 @@ use serde::Deserialize;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::models::common::FootprintContext;
+use vrp_core::models::common::Footprint;
 use vrp_core::models::GoalContext;
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::evolution::{InitialOperator, TelemetryMode};
@@ -513,8 +513,8 @@ fn configure_from_evolution(
                         config.exploration_ratio = *exploration_ratio;
                     }
 
-                    let context = FootprintContext::new(problem.as_ref());
-                    Box::new(RosomaxaPopulation::new(context, problem.goal.clone(), environment.clone(), config)?)
+                    let footprint = Footprint::new(problem.as_ref());
+                    Box::new(RosomaxaPopulation::new(footprint, problem.goal.clone(), environment.clone(), config)?)
                 }
             };
 

@@ -6,6 +6,8 @@ use crate::prelude::*;
 use rosomaxa::population::RosomaxaContext;
 use rosomaxa::utils::fold_reduce;
 
+custom_solution_state!(Footprint typeof Footprint);
+
 /// Defines a low-dimensional representation of multiple solutions.
 #[derive(Clone, Debug)]
 pub struct Footprint {
@@ -13,13 +15,14 @@ pub struct Footprint {
     /// we store here the number of times the edge was present in multiple solutions.
     repr: Vec<u8>,
     dimension: usize,
+    counter: usize,
 }
 
 impl Footprint {
     /// Creates a new instance of a `Snapshot`.
     pub fn new(problem: &Problem) -> Self {
         let dim = get_dimension(problem);
-        Self { repr: vec![0; dim * dim], dimension: dim }
+        Self { repr: vec![0; dim * dim], dimension: dim, counter: 0 }
     }
 
     /// Adds shadow to the footprint.
@@ -59,7 +62,7 @@ impl Footprint {
     }
 
     /// Estimates the cost of a solution as a sum of all edge costs.
-    pub fn estimate(&self, solution_ctx: &SolutionContext) -> usize {
+    pub fn estimate_solution(&self, solution_ctx: &SolutionContext) -> usize {
         solution_ctx
             .routes
             .iter()
@@ -73,6 +76,11 @@ impl Footprint {
                     .map(|(from, to)| self.get(from, to) as usize)
             })
             .sum()
+    }
+
+    /// Estimates how frequently the edge between two locations was present in multiple solutions.
+    pub fn estimate_edge(&self, from: Location, to: Location) -> usize {
+        self.get(from, to) as usize
     }
 
     /// Returns dimension of adjacency matrix.
@@ -134,33 +142,7 @@ impl From<&InsertionContext> for Shadow {
     }
 }
 
-custom_solution_state!(Footprint typeof FootprintContext);
-
-/// Provides a way to use footprint within rosomaxa algorithm.
-#[derive(Clone, Debug)]
-pub struct FootprintContext {
-    counter: usize,
-    footprint: Footprint,
-}
-
-impl FootprintContext {
-    /// Creates a new instance of a `FootprintContext`.
-    pub fn new(problem: &Problem) -> Self {
-        Self { counter: 0, footprint: Footprint::new(problem) }
-    }
-
-    /// Estimates how frequently the edge between two locations was present in multiple solutions.
-    pub fn estimate_edge(&self, from: Location, to: Location) -> usize {
-        self.footprint.get(from, to) as usize
-    }
-
-    /// Estimates entire solution cost based on the footprint similarity.
-    pub fn estimate_solution(&self, solution_ctx: &SolutionContext) -> usize {
-        self.footprint.estimate(solution_ctx)
-    }
-}
-
-impl RosomaxaContext for FootprintContext {
+impl RosomaxaContext for Footprint {
     type Solution = InsertionContext;
 
     fn on_change(&mut self, solutions: &[Self::Solution]) {
@@ -170,7 +152,7 @@ impl RosomaxaContext for FootprintContext {
 
         // we need to forget the footprint from time to time to keep it sensitive to new solutions
         if self.counter == FOOTPRINT_FORGET_RATE {
-            self.footprint.forget();
+            self.forget();
             self.counter = 0;
         } else {
             self.counter += 1;
@@ -190,7 +172,7 @@ impl RosomaxaContext for FootprintContext {
                 left
             },
         );
-        self.footprint.union(&footprint);
+        self.union(&footprint);
     }
 }
 

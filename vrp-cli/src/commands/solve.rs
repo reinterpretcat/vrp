@@ -13,7 +13,7 @@ use vrp_cli::core::solver::TargetHeuristic;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::extensions::solve::formats::*;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::models::common::FootprintContext;
+use vrp_core::models::common::Footprint;
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::{evolution::*, get_default_population, get_default_selection_size};
 use vrp_core::solver::*;
@@ -409,8 +409,8 @@ fn get_population(mode: Option<&String>, problem: &Problem, environment: Arc<Env
     match mode.map(String::as_str) {
         Some("deep") => Box::new(ElitismPopulation::new(objective, environment.random.clone(), 4, selection_size)),
         _ => {
-            let context = FootprintContext::new(problem);
-            get_default_population(context, objective, environment, selection_size)
+            let footprint = Footprint::new(problem);
+            get_default_population(objective, footprint, environment, selection_size)
         }
     }
 }
