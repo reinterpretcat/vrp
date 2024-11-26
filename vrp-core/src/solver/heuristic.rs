@@ -292,14 +292,13 @@ mod builder {
         problem: Arc<Problem>,
         environment: Arc<Environment>,
     ) -> InitialOperators<RefinementContext, GoalContext, InsertionContext> {
+        type VrpInitialOperator = dyn InitialOperator<Context = RefinementContext, Objective = GoalContext, Solution = InsertionContext>
+            + Send
+            + Sync;
+
         let random = environment.random.clone();
-        let wrap: fn(
-            Arc<dyn Recreate>,
-        ) -> Box<
-            dyn InitialOperator<Context = RefinementContext, Objective = GoalContext, Solution = InsertionContext>
-                + Send
-                + Sync,
-        > = |recreate| Box::new(RecreateInitialOperator::new(recreate));
+        let wrap: fn(Arc<dyn Recreate>) -> Box<VrpInitialOperator> =
+            |recreate| Box::new(RecreateInitialOperator::new(recreate));
 
         std::iter::once({
             // main stable constructive heuristics

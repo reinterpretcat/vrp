@@ -136,6 +136,7 @@ where
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         match &self.phase {
+            RosomaxaPhases::Initial { solutions } => Box::new(solutions.iter()),
             RosomaxaPhases::Exploration { network, coordinates, selection_size, statistics, .. } => {
                 let random = self.environment.random.as_ref();
 
@@ -169,7 +170,6 @@ where
                 )
             }
             RosomaxaPhases::Exploitation { selection_size, .. } => Box::new(self.elite.select().take(*selection_size)),
-            _ => Box::new(self.elite.select()),
         }
     }
 
@@ -244,7 +244,7 @@ where
 
         match &mut self.phase {
             RosomaxaPhases::Initial { solutions: individuals } => {
-                if individuals.len() >= 4 {
+                if individuals.len() >= self.config.selection_size {
                     let mut network = Self::create_network(
                         &self.external_ctx,
                         self.objective.clone(),
