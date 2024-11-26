@@ -90,6 +90,7 @@ lazy_static! {
 /// Runs 3D functions experiment.
 #[wasm_bindgen]
 pub fn run_function_experiment(function_name: &str, population_type: &str, x: Float, z: Float, generations: usize) {
+    console_error_panic_hook::set_once();
     let selection_size = 8;
     let logger = Arc::new(|message: &str| {
         web_sys::console::log_1(&message.into());
@@ -101,6 +102,7 @@ pub fn run_function_experiment(function_name: &str, population_type: &str, x: Fl
 /// Runs VRP experiment.
 #[wasm_bindgen]
 pub fn run_vrp_experiment(format_type: &str, problem: &str, population_type: &str, generations: usize) {
+    console_error_panic_hook::set_once();
     let problem = problem.to_string();
     let selection_size = 8;
     let logger = Arc::new(|message: &str| {
