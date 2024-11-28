@@ -1,4 +1,9 @@
 //! A tweaked version of `BitVec` from `probabilistic-collections` crate.
+
+#[cfg(test)]
+#[path = "../../../tests/unit/algorithms/structures/bitvec_test.rs"]
+mod bitvec_test;
+
 use std::fmt::Display;
 use std::ops::Index;
 

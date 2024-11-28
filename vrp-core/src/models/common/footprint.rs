@@ -1,5 +1,9 @@
 //! This module contains a logic to maintain a low-dimensional representation of the VRP Solution.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/models/common/footprint_test.rs"]
+mod footprint_test;
+
 use crate::algorithms::structures::BitVec;
 use crate::models::common::Location;
 use crate::prelude::*;
