@@ -21,3 +21,16 @@ pub fn get_population_fitness_fn(generation: usize) -> FitnessFn {
         })
         .expect("cannot get data from EXPERIMENT_DATA")
 }
+
+/// Returns a description of population state.
+pub fn get_population_desc(generation: usize) -> String {
+    EXPERIMENT_DATA
+        .lock()
+        .ok()
+        .and_then(|data| {
+            data.on_generation.get(&generation).map(|(footprint, individuals)| {
+                format!("total [{}], known edges [{}]", individuals.len(), footprint.desc())
+            })
+        })
+        .expect("cannot get data from EXPERIMENT_DATA")
+}

@@ -222,7 +222,6 @@ impl HyperHeuristicState {
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct FootprintState {
     repr: HashMap<FootprintKey, u8>,
-    dimension: usize,
 }
 
 impl FootprintState {
@@ -238,14 +237,15 @@ impl FootprintState {
     pub fn get(&self, from: usize, to: usize) -> u8 {
         self.repr.get(&FootprintKey(from, to)).copied().unwrap_or_default()
     }
+
+    pub fn desc(&self) -> String {
+        self.repr.iter().filter(|(_, v)| **v > 0).count().to_string()
+    }
 }
 
 impl From<&Footprint> for FootprintState {
     fn from(footprint: &Footprint) -> Self {
-        Self {
-            repr: footprint.iter().map(|((x, y), v)| (FootprintKey(x, y), v)).collect(),
-            dimension: footprint.dimension(),
-        }
+        Self { repr: footprint.iter().map(|((x, y), v)| (FootprintKey(x, y), v)).collect() }
     }
 }
 

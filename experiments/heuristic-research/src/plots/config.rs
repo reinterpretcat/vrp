@@ -26,6 +26,8 @@ pub struct Projection {
 
 /// A drawing configuration for solution space visualization.
 pub struct SolutionDrawConfig {
+    /// Chart caption.
+    pub caption: String,
     /// Axes configuration
     pub axes: Axes,
     /// Projection configuration.

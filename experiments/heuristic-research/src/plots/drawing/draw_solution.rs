@@ -10,7 +10,11 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
     let z_axis = (config.axes.z.0.start..config.axes.z.0.end).step(config.axes.z.1);
     let y_axis = config.axes.y.start..config.axes.y.end;
 
-    let mut chart = ChartBuilder::on(area).build_cartesian_3d(x_axis.clone(), y_axis, z_axis.clone())?;
+    let mut chart = ChartBuilder::on(area).caption(config.caption.as_str(), ("sans-serif", 12)).build_cartesian_3d(
+        x_axis.clone(),
+        y_axis,
+        z_axis.clone(),
+    )?;
 
     chart.with_projection(|mut pb| {
         pb.yaw = config.projection.yaw as f64;

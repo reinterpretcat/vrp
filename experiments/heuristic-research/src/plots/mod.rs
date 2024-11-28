@@ -174,6 +174,7 @@ pub fn draw_population_plots<B: DrawingBackend + 'static>(
         area,
         PopulationDrawConfig { series: get_population_series(generation) },
         Some(SolutionDrawConfig {
+            caption: if function_name == "vrp" { get_population_desc(generation) } else { "".to_string() },
             axes,
             projection: Projection { pitch, yaw, scale: 0.8 },
             series: Series3D {

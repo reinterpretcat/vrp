@@ -3,7 +3,7 @@
 mod vrp_test;
 
 mod population;
-pub use self::population::get_population_fitness_fn;
+pub use self::population::{get_population_desc, get_population_fitness_fn};
 
 use super::*;
 use std::io::BufWriter;
