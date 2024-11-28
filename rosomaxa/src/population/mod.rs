@@ -40,20 +40,20 @@ pub trait HeuristicPopulation: Send + Sync {
     fn add(&mut self, individual: Self::Individual) -> bool;
 
     /// Informs population about new generation event. This is time for the population
-    /// to decide whether selection phase has to be changed.
+    /// to decide whether the selection phase has to be changed.
     fn on_generation(&mut self, statistics: &HeuristicStatistics);
 
-    /// Compares two solutions the same way as population does.
+    /// Compares two solutions the same way as the population does.
     fn cmp(&self, a: &Self::Individual, b: &Self::Individual) -> Ordering;
 
-    /// Selects parents from the population based on current selection phase.
-    fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a>;
+    /// Selects parents from the population based on the current selection phase.
+    fn select(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_>;
 
     /// Returns subset of individuals within their rank sorted according their quality.
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a>;
+    fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_>;
 
     /// Returns all individuals in arbitrary order.
-    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a>;
+    fn all(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_>;
 
     /// Returns population size.
     fn size(&self) -> usize;

@@ -68,7 +68,7 @@ where
         self.objective.total_order(a, b)
     }
 
-    fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+    fn select(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         let selection_size = match &self.speed {
             Some(HeuristicSpeed::Slow { ratio, .. }) => (self.selection_size as Float * ratio).max(1.).round() as usize,
             _ => self.selection_size,
@@ -88,11 +88,11 @@ where
         }
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+    fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         Box::new(self.individuals.iter())
     }
 
-    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+    fn all(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         Box::new(self.individuals.iter())
     }
 

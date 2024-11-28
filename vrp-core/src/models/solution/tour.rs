@@ -110,8 +110,8 @@ impl Tour {
         self.activities.iter_mut()
     }
 
-    /// Returns all activities in tour for specific job.
-    pub fn job_activities<'a>(&'a self, job: &'a Job) -> impl Iterator<Item = &Activity> + 'a {
+    /// Returns all activities in tour for a specific job.
+    pub fn job_activities<'a>(&'a self, job: &'a Job) -> impl Iterator<Item = &'a Activity> + 'a {
         self.activities.iter().filter(move |a| a.has_same_job(job))
     }
 

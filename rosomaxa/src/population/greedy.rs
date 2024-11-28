@@ -51,7 +51,7 @@ where
         self.objective.total_order(a, b)
     }
 
-    fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+    fn select(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         if let Some(best_known) = self.best_known.as_ref() {
             Box::new(repeat(best_known).take(self.selection_size))
         } else {
@@ -59,11 +59,11 @@ where
         }
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+    fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         Box::new(self.best_known.iter())
     }
 
-    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+    fn all(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         Box::new(self.best_known.iter())
     }
 

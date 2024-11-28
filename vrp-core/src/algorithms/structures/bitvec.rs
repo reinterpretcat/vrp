@@ -13,7 +13,7 @@ const BITS_IN_BLOCK: usize = std::mem::size_of::<u8>() * 8;
 
 impl BitVec {
     pub fn new(length: usize) -> Self {
-        let block_count = (length + BITS_IN_BLOCK - 1) / BITS_IN_BLOCK;
+        let block_count = length.div_ceil(BITS_IN_BLOCK);
         Self { blocks: vec![0; block_count], length }
     }
 

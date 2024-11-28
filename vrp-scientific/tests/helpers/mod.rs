@@ -9,9 +9,6 @@ pub use self::analysis::*;
 mod solomon;
 pub use self::solomon::SolomonBuilder;
 
-mod lilim;
-pub use self::lilim::LilimBuilder;
-
 use crate::lilim::LilimProblem;
 use crate::solomon::SolomonProblem;
 use std::fs::File;

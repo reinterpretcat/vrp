@@ -154,17 +154,17 @@ where
         self.inner.cmp(a, b)
     }
 
-    fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+    fn select(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         Box::new(self.inner.select().inspect(|&individual| {
             self.acquire().on_select.entry(self.generation).or_default().push(individual.into());
         }))
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+    fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         self.inner.ranked()
     }
 
-    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+    fn all(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         self.inner.all()
     }
 

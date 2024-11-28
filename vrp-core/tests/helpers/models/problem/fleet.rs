@@ -13,10 +13,6 @@ pub fn test_costs() -> Costs {
     DEFAULT_VEHICLE_COSTS
 }
 
-pub fn fixed_costs() -> Costs {
-    Costs { fixed: 100.0, per_distance: 1.0, per_driving_time: 1.0, per_waiting_time: 1.0, per_service_time: 1.0 }
-}
-
 pub fn empty_costs() -> Costs {
     Costs { fixed: 0.0, per_distance: 0.0, per_driving_time: 0.0, per_waiting_time: 0.0, per_service_time: 0.0 }
 }
@@ -103,18 +99,8 @@ impl TestVehicleBuilder {
         self
     }
 
-    pub fn costs(&mut self, costs: Costs) -> &mut Self {
-        self.0.costs = costs;
-        self
-    }
-
     pub fn details(&mut self, details: Vec<VehicleDetail>) -> &mut Self {
         self.0.details = details;
-        self
-    }
-
-    pub fn property<K: 'static, T: 'static + Sync + Send>(&mut self, value: T) -> &mut Self {
-        self.0.dimens.set_value::<K, _>(value);
         self
     }
 

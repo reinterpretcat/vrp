@@ -136,7 +136,7 @@ struct SearchAction<'a, C, O, S> {
     operator_name: String,
 }
 
-impl<'a, C, O, S> Clone for SearchAction<'a, C, O, S> {
+impl<C, O, S> Clone for SearchAction<'_, C, O, S> {
     fn clone(&self) -> Self {
         Self { operator: self.operator.clone(), operator_name: self.operator_name.clone() }
     }

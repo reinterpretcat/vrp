@@ -37,30 +37,14 @@ impl TestInsertionContextBuilder {
         self
     }
 
-    pub fn with_solution(&mut self, solution: SolutionContext) -> &mut Self {
-        self.solution = Some(solution);
-        self
-    }
-
     pub fn with_registry(&mut self, registry: Registry) -> &mut Self {
         let goal = self.ensure_problem().goal.as_ref();
         self.ensure_solution().registry = RegistryContext::new(goal, registry);
         self
     }
 
-    pub fn with_registry_context(&mut self, registry: RegistryContext) -> &mut Self {
-        self.ensure_solution().registry = registry;
-        self
-    }
-
     pub fn with_routes(&mut self, routes: Vec<RouteContext>) -> &mut Self {
         self.ensure_solution().routes = routes;
-
-        self
-    }
-
-    pub fn with_required(&mut self, required: Vec<Job>) -> &mut Self {
-        self.ensure_solution().required = required;
 
         self
     }

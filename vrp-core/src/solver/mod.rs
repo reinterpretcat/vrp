@@ -141,11 +141,11 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.objective()
     }
 
-    fn selected<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
+    fn selected(&self) -> Box<dyn Iterator<Item = &'_ Self::Solution> + '_> {
         self.inner_context.selected()
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
+    fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Solution> + '_> {
         self.inner_context.ranked()
     }
 

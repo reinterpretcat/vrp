@@ -43,7 +43,7 @@ fn check_shift_limits(context: &CheckerContext) -> GenericResult<()> {
 
                 let extra_activities = if shift.end.is_some() { 2 } else { 1 };
                 let tour_activities = tour.stops.iter().flat_map(|stop| stop.activities()).count();
-                let tour_activities = if tour_activities > extra_activities { tour_activities - extra_activities } else { 0 };
+                let tour_activities = tour_activities.saturating_sub(extra_activities);
 
                 if tour_activities > tour_size_limit {
                     return Err(format!(

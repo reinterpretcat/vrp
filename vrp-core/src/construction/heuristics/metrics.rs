@@ -245,7 +245,7 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Vec<Vec<us
 
 fn get_values_from_route_state<'a>(
     insertion_ctx: &'a InsertionContext,
-    state_value_fn: impl Fn(&'a RouteState) -> Option<&Float> + 'a,
+    state_value_fn: impl Fn(&'a RouteState) -> Option<&'a Float> + 'a,
 ) -> impl Iterator<Item = Float> + 'a {
     insertion_ctx
         .solution

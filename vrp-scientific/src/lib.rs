@@ -14,7 +14,7 @@
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]
 #[macro_use]
-pub mod helpers;
+pub(crate) mod helpers;
 
 #[cfg(test)]
 #[path = "../tests/integration/known_problems_test.rs"]

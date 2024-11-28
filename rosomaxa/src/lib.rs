@@ -46,7 +46,7 @@
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]
 #[macro_use]
-pub mod helpers;
+pub(crate) mod helpers;
 
 pub mod algorithms;
 pub mod evolution;
@@ -89,10 +89,10 @@ pub trait HeuristicContext: Send + Sync {
     fn objective(&self) -> &Self::Objective;
 
     /// Returns selected solutions base on current context.
-    fn selected<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a>;
+    fn selected(&self) -> Box<dyn Iterator<Item = &'_ Self::Solution> + '_>;
 
     /// Returns subset of solutions within their rank sorted according their quality.
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a>;
+    fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Solution> + '_>;
 
     /// Returns current statistic used to track the search progress.
     fn statistics(&self) -> &HeuristicStatistics;
@@ -194,11 +194,11 @@ where
         &self.objective
     }
 
-    fn selected<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
+    fn selected(&self) -> Box<dyn Iterator<Item = &'_ Self::Solution> + '_> {
         self.population.select()
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Solution> + 'a> {
+    fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Solution> + '_> {
         self.population.ranked()
     }
 

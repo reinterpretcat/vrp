@@ -157,7 +157,7 @@ impl Ord for InsertionCost {
     }
 }
 
-impl<'a, B> Add<B> for &'a InsertionCost
+impl<B> Add<B> for &InsertionCost
 where
     B: Borrow<InsertionCost>,
 {
@@ -187,7 +187,7 @@ where
     }
 }
 
-impl<'a, B> Sub<B> for &'a InsertionCost
+impl<B> Sub<B> for &InsertionCost
 where
     B: Borrow<InsertionCost>,
 {

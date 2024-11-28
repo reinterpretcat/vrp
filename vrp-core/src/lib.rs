@@ -105,7 +105,7 @@
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]
 #[macro_use]
-pub mod helpers;
+pub(crate) mod helpers;
 
 #[macro_use]
 pub mod macros;

@@ -31,7 +31,7 @@ pub trait Storage: Display + Send + Sync {
     fn add(&mut self, input: Self::Item);
 
     /// Returns iterator over all data.
-    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Item> + 'a>;
+    fn iter(&self) -> Box<dyn Iterator<Item = &'_ Self::Item> + '_>;
 
     /// Removes and returns all data from the storage.
     fn drain<R>(&mut self, range: R) -> Vec<Self::Item>

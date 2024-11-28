@@ -412,7 +412,7 @@ impl LegSelection {
                 };
 
                 let total_legs = route_ctx.route().tour.legs().size_hint().0;
-                let visit_legs = if total_legs > skip { total_legs - skip } else { 0 };
+                let visit_legs = total_legs.saturating_sub(skip);
 
                 if visit_legs < greedy_threshold {
                     None

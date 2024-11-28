@@ -35,7 +35,7 @@ impl Storage for DataStorage {
         self.data.push(input);
     }
 
-    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Item> + 'a> {
+    fn iter(&self) -> Box<dyn Iterator<Item = &'_ Self::Item> + '_> {
         Box::new(self.data.iter())
     }
 

@@ -88,16 +88,6 @@ impl RouteBuilder {
         self
     }
 
-    pub fn with_activity<F>(&mut self, configure: F) -> &mut Self
-    where
-        F: FnOnce(&mut Activity),
-    {
-        let mut activity = test_activity();
-        configure(&mut activity);
-        self.0.tour.insert_last(activity);
-        self
-    }
-
     pub fn build(&mut self) -> Route {
         std::mem::replace(&mut self.0, RouteBuilder::default().0)
     }

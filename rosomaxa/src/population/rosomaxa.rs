@@ -134,7 +134,7 @@ where
         self.elite.cmp(a, b)
     }
 
-    fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+    fn select(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         match &self.phase {
             RosomaxaPhases::Initial { solutions } => Box::new(solutions.iter()),
             RosomaxaPhases::Exploration { network, coordinates, selection_size, statistics, .. } => {
@@ -173,11 +173,11 @@ where
         }
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+    fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         self.elite.ranked()
     }
 
-    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+    fn all(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         match &self.phase {
             RosomaxaPhases::Exploration { network, .. } => {
                 Box::new(self.elite.all().chain(network.get_nodes().flat_map(|node| node.storage.population.all())))
@@ -472,7 +472,7 @@ where
         self.population.add(input);
     }
 
-    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Item> + 'a> {
+    fn iter(&self) -> Box<dyn Iterator<Item = &'_ Self::Item> + '_> {
         Box::new(self.population.ranked())
     }
 
