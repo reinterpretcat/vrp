@@ -87,10 +87,21 @@ lazy_static! {
     static ref EXPERIMENT_DATA: Mutex<ExperimentData> = Mutex::new(ExperimentData::default());
 }
 
+#[inline]
+fn set_panic_hook_once() {
+    use std::sync::Once;
+    static SET_HOOK: Once = Once::new();
+    SET_HOOK.call_once(|| {
+        std::panic::set_hook(Box::new(|info| {
+            web_sys::console::error_1(&info.to_string().into());
+        }));
+    });
+}
+
 /// Runs 3D functions experiment.
 #[wasm_bindgen]
 pub fn run_function_experiment(function_name: &str, population_type: &str, x: Float, z: Float, generations: usize) {
-    console_error_panic_hook::set_once();
+    set_panic_hook_once();
     let selection_size = 8;
     let logger = Arc::new(|message: &str| {
         web_sys::console::log_1(&message.into());
@@ -102,7 +113,7 @@ pub fn run_function_experiment(function_name: &str, population_type: &str, x: Fl
 /// Runs VRP experiment.
 #[wasm_bindgen]
 pub fn run_vrp_experiment(format_type: &str, problem: &str, population_type: &str, generations: usize) {
-    console_error_panic_hook::set_once();
+    set_panic_hook_once();
     let problem = problem.to_string();
     let selection_size = 8;
     let logger = Arc::new(|message: &str| {
