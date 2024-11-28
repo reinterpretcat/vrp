@@ -45,8 +45,8 @@ fn can_use_len_and_is_empty() {
 fn can_index() {
     let mut bitvec = BitVec::new(10);
     bitvec.set(3, true);
-    assert_eq!(bitvec[3], true);
-    assert_eq!(bitvec[4], false);
+    assert!(bitvec[3]);
+    assert!(!bitvec[4]);
 }
 
 #[test]

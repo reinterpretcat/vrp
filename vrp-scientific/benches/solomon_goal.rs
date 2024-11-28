@@ -129,6 +129,7 @@ where
             black_box(actual_fn(
                 &insertion_ctx.problem.goal,
                 &MoveContext::Activity {
+                    solution_ctx,
                     route_ctx,
                     activity_ctx: &ActivityContext { index: 7, prev, target: &target, next },
                 },
