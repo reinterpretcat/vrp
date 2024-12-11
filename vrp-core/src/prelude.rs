@@ -12,7 +12,7 @@ pub use crate::{
 };
 
 pub use crate::models::{
-    common::{Cost, Demand, Dimensions, SingleDimLoad},
+    common::{Cost, Demand, Dimensions, Location, SingleDimLoad},
     problem::{
         ActivityCost, Fleet, Job, Jobs, MultiBuilder, SimpleTransportCost, SingleBuilder, TransportCost, Vehicle,
         VehicleBuilder, VehicleDetailBuilder,

@@ -1,3 +1,5 @@
+// TODO remove allow macros
+
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
@@ -5,11 +7,28 @@
 #[path = "../../../tests/unit/construction/features/hierarchical_areas_test.rs"]
 mod hierarchical_areas_test;
 
-use crate::models::common::Location;
-use crate::models::FeatureObjective;
-use crate::prelude::{Cost, InsertionContext, MoveContext};
-use rosomaxa::prelude::GenericResult;
+use crate::prelude::*;
 use std::collections::{HashMap, HashSet};
+
+/// Represents a mode for objective function calculations.
+pub enum HierarchicalAreaMode {
+    /// Only local objective is calculated.
+    OnlyLocal,
+    /// Local and global objectives are calculated.
+    All,
+}
+
+/// Creates a feature to guide search considering hierarchy of areas.
+pub fn create_hierarchical_areas_feature(
+    name: &str,
+    hierarchy_index: HierarchyIndex,
+    mode: HierarchicalAreaMode,
+) -> GenericResult<Feature> {
+    FeatureBuilder::default()
+        .with_name(name)
+        .with_objective(HierarchicalAreasObjective { mode, hierarchy_index })
+        .build()
+}
 
 /// Represents a hierarchical index of areas at different level of details.
 pub struct HierarchyIndex {
@@ -126,12 +145,16 @@ impl LocationDetail {
 }
 
 struct HierarchicalAreasObjective {
+    mode: HierarchicalAreaMode,
     hierarchy_index: HierarchyIndex,
 }
 
 impl FeatureObjective for HierarchicalAreasObjective {
-    fn fitness(&self, _: &InsertionContext) -> Cost {
-        todo!()
+    fn fitness(&self, insertion_ctx: &InsertionContext) -> Cost {
+        match self.mode {
+            HierarchicalAreaMode::OnlyLocal => Cost::default(),
+            HierarchicalAreaMode::All => todo!(),
+        }
     }
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
