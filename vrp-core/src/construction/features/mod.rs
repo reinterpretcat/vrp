@@ -27,6 +27,9 @@ pub use self::fleet_usage::*;
 mod groups;
 pub use self::groups::{create_group_feature, JobGroupDimension};
 
+mod hierarchical_areas;
+pub use self::hierarchical_areas::*;
+
 mod known_edge;
 pub use self::known_edge::create_known_edge_feature;
 
