@@ -102,8 +102,8 @@ impl Tiers {
         Some(self.0.get(level)?.value())
     }
 
-    /// Returns the maximum value which is outside any tier values.
-    fn max_value(&self) -> usize {
+    /// Returns a penalty value which is outside any tier values.
+    fn penalty_value(&self) -> usize {
         self.1
     }
 }
@@ -179,9 +179,9 @@ impl FeatureObjective for HierarchicalAreasObjective {
             // NOTE we're splitting cluster potentially on higher tier. Here, we assume that sum of
             // two transition estimations of lower tier is always less than any transition on higher tier
             if transition_estimate > prev_next {
-                // double penalty: we are out of granularity levels, splitting existing cluster
-                if transition_estimate == self.hierarchy_index.tiers.max_value() {
-                    return (2 * self.hierarchy_index.tiers.max_value()) as Cost;
+                // double penalty: we are out of any tier, so splitting existing cluster
+                if transition_estimate == self.hierarchy_index.tiers.penalty_value() {
+                    return (2 * self.hierarchy_index.tiers.penalty_value()) as Cost;
                 }
 
                 // we have a new cluster on higher tier than prev_next
@@ -191,10 +191,10 @@ impl FeatureObjective for HierarchicalAreasObjective {
 
                 // a new target can belong at the same time to two clusters, one for prev and one for next.
                 // we estimate cost as a sum of two transitions, potentially at different tiers
-                // this should help to automatically prefer lower ltier
+                // this should help to automatically prefer lower tier
                 (prev_target + target_next) as Cost
             } else {
-                // we also end up in this branch when prev_target == target_next == prev_next == max_value
+                // we also end up in this branch when prev_target == target_next == prev_next == penalty
                 // in that case, we're neither forming any clusters nor splitting them
 
                 transition_estimate as Cost
@@ -228,5 +228,5 @@ fn estimate_leg_cost(from: Location, to: Location, hierarchy_index: &HierarchyIn
         })
         // stop at the first match as we're starting from the lowest tier
         .next()
-        .unwrap_or_else(|| hierarchy_index.tiers.max_value())
+        .unwrap_or_else(|| hierarchy_index.tiers.penalty_value())
 }
