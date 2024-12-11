@@ -21,8 +21,8 @@ fn compound(ids: &[usize]) -> LocationDetail {
 
 enum Estimate {
     Tier(usize),
-    MaxValue,
-    DoubleMaxValue,
+    Penalty,
+    DoublePenalty,
 }
 
 parameterized_test! {can_estimate_activity, test_data, {
@@ -39,8 +39,8 @@ parameterized_test! {can_estimate_activity, test_data, {
 
     let expected = match expected {
         Estimate::Tier(tier) => index.tiers.get_value(tier).expect("cannot get tier value"),
-        Estimate::MaxValue => index.tiers.max_value(),
-        Estimate::DoubleMaxValue => 2 * index.tiers.max_value(),
+        Estimate::Penalty => index.tiers.penalty_value(),
+        Estimate::DoublePenalty => 2 * index.tiers.penalty_value(),
     };
 
     can_estimate_activity_impl(index, insertion_idx, expected);
@@ -57,7 +57,7 @@ can_estimate_activity! {
       vec![(tier(0), simple(1))],
       vec![(tier(0), simple(1))],
       vec![(tier(0), simple(2))],
-    ], Estimate::DoubleMaxValue),
+    ], Estimate::DoublePenalty),
 
     case03_tier_zero_same: (vec![
       vec![(tier(0), simple(1))],
@@ -99,13 +99,13 @@ can_estimate_activity! {
       vec![(tier(0), simple(1)), (tier(1), simple(4)), (tier(2), simple(7))],
       vec![(tier(0), simple(2)), (tier(1), simple(5)), (tier(2), simple(8))],
       vec![(tier(0), simple(3)), (tier(1), simple(6)), (tier(2), simple(9))],
-    ], Estimate::MaxValue),
+    ], Estimate::Penalty),
 
     case09_tier_two_new_split_cluster: (vec![
       vec![(tier(0), simple(1)), (tier(1), simple(3)), (tier(2), simple(5))],
       vec![(tier(0), simple(1)), (tier(1), simple(3)), (tier(2), simple(5))],
       vec![(tier(0), simple(2)), (tier(1), simple(4)), (tier(2), simple(6))],
-    ], Estimate::DoubleMaxValue),
+    ], Estimate::DoublePenalty),
 
     case10_tier_two_new_join_cluster_on_third_tier: (vec![
       vec![(tier(0), simple(1)), (tier(1), simple(3)), (tier(2), simple(5))],
@@ -123,7 +123,7 @@ can_estimate_activity! {
       vec![(tier(0), simple(1)), (tier(2), simple(3))],
       vec![(tier(0), simple(1)), (tier(2), simple(3))],
       vec![(tier(0), simple(2)), (tier(2), simple(4))],
-    ], Estimate::DoubleMaxValue),
+    ], Estimate::DoublePenalty),
 
     case13_tier_two_new_join_cluster_skipping_zero_tier: (vec![
       vec![(tier(1), simple(3)), (tier(2), simple(5))],
@@ -135,19 +135,31 @@ can_estimate_activity! {
       vec![],
       vec![],
       vec![],
-    ], Estimate::MaxValue),
+    ], Estimate::Penalty),
 
     case15_new_empty: (vec![
       vec![(tier(0), simple(1))],
       vec![(tier(0), simple(1))],
       vec![],
-    ], Estimate::DoubleMaxValue),
+    ], Estimate::DoublePenalty),
 
     case16_old_empty: (vec![
       vec![(tier(0), simple(1))],
       vec![],
       vec![],
-    ], Estimate::MaxValue),
+    ], Estimate::Penalty),
+
+    case16_compound_intersection: (vec![
+      vec![(tier(0), compound(&[1, 2]))],
+      vec![(tier(0), compound(&[2, 3]))],
+      vec![(tier(0), compound(&[2]))],
+    ], Estimate::Tier(0)),
+
+    case17_compound_disjoint: (vec![
+      vec![(tier(0), compound(&[1, 2]))],
+      vec![(tier(0), compound(&[3, 4]))],
+      vec![(tier(0), compound(&[5, 6]))],
+    ], Estimate::Penalty),
 }
 
 fn can_estimate_activity_impl(hierarchy_index: HierarchyIndex, insertion_idx: usize, expected: usize) {
