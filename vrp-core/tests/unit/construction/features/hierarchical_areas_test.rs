@@ -163,7 +163,8 @@ can_estimate_activity! {
 }
 
 fn can_estimate_activity_impl(hierarchy_index: HierarchyIndex, insertion_idx: usize, expected: usize) {
-    let objective = HierarchicalAreasObjective { mode: HierarchicalAreaMode::OnlyLocal, hierarchy_index };
+    let hierarchy_index = Arc::new(hierarchy_index);
+    let objective = HierarchicalAreasObjective { mode: HierarchicalAreasMode::OnlyLocal, hierarchy_index };
     let solution_ctx = TestInsertionContextBuilder::default().build().solution;
     let route_ctx = RouteContextBuilder::default().build();
     let next_activity = ActivityBuilder::with_location(1).build();
