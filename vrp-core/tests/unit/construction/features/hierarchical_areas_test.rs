@@ -16,7 +16,7 @@ fn simple(id: usize) -> LocationDetail {
 }
 
 fn compound(ids: &[usize]) -> LocationDetail {
-    LocationDetail::Compound(ids.into_iter().copied().collect())
+    LocationDetail::Compound(ids.iter().copied().collect())
 }
 
 enum Estimate {
