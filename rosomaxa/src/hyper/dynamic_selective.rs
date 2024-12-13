@@ -219,7 +219,7 @@ where
         Self {
             slot_machines,
             tracker: HeuristicTracker {
-                total_median: RemedianUsize::new(11, |a, b| a.cmp(b)),
+                total_median: RemedianUsize::new(11, 7, |a, b| a.cmp(b)),
                 search_telemetry: Default::default(),
                 heuristic_telemetry: Default::default(),
                 is_experimental: environment.is_experimental,

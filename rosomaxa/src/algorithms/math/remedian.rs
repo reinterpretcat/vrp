@@ -3,6 +3,7 @@
 mod remedian_test;
 
 use std::cmp::Ordering;
+use std::ops::ControlFlow;
 
 /// Specifies a median estimator used to track medians of heuristic running time.
 pub type RemedianUsize = Remedian<usize, fn(&usize, &usize) -> Ordering>;
@@ -20,7 +21,10 @@ where
     F: Fn(&T, &T) -> Ordering,
 {
     base: usize,
+    exponent: usize,
     buffers: Vec<Vec<T>>,
+    count: usize,
+    is_full: bool,
     order_fn: F,
 }
 
@@ -30,51 +34,83 @@ where
     F: Fn(&T, &T) -> Ordering,
 {
     /// Creates a new instance of median estimator.
-    /// `base`: the maximum size of a buffer (better to be odd)
+    /// `base`: the maximum size of a buffer (better to be odd). Recommended value: 11.
+    /// `exponent`: the number of buffers. Max processed values is `base^exponent`.
     /// `order_fn`: ordering function.
-    pub fn new(base: usize, order_fn: F) -> Self {
+    pub fn new(base: usize, exponent: usize, order_fn: F) -> Self {
         assert!(base > 0);
 
-        Self { base, buffers: vec![], order_fn }
+        let mut buffers: Vec<Vec<T>> = Vec::with_capacity(exponent);
+        (0..exponent).for_each(|_| {
+            buffers.push(Vec::with_capacity(base));
+        });
+
+        Self { base, exponent, buffers, count: 0, is_full: false, order_fn }
     }
 
     /// Adds a new observation.
-    pub fn add_observation(&mut self, value: T) {
-        let _ = (0..).try_fold(value, |value, idx| {
-            if self.buffers.len() <= idx {
-                self.buffers.push(Vec::with_capacity(self.base))
-            }
+    /// Returns true if the observation was added, false if the buffer is full.
+    pub fn add_observation(&mut self, value: T) -> bool {
+        if self.is_full {
+            return false;
+        }
 
-            let buffer = self.buffers.get_mut(idx).unwrap();
-            buffer.push(value);
+        self.count += 1;
+        self.buffers[0].push(value);
 
-            if buffer.len() < self.base {
-                return Err(());
-            }
+        (0..self.exponent).try_for_each(|i| {
+            let batch = &mut self.buffers[i];
 
-            buffer.sort_by(&self.order_fn);
+            if batch.len() == self.base {
+                batch.sort_by(&self.order_fn);
 
-            let value = buffer.get(self.base / 2).unwrap().clone();
-            buffer.clear();
+                // not yet the last buffer, so calculate intermediate median and store it to the next buffer
+                if i != self.exponent - 1 {
+                    let median = batch[self.base / 2].clone();
+                    batch.clear();
 
-            // NOTE: use only two buffers, buffer at index 0 should be already clean
-            if idx == 1 {
-                buffer.push(value);
-                debug_assert!(self.buffers[0].is_empty());
-                Err(())
+                    self.buffers[i + 1].push(median);
+                } else {
+                    self.is_full = true;
+                }
+
+                ControlFlow::Continue(())
             } else {
-                Ok(value)
+                ControlFlow::Break(())
             }
         });
+
+        true
     }
 
     /// Returns a median approximation if it is there.
     pub fn approx_median(&self) -> Option<T> {
-        let has_not_enough_observations = self.buffers.len() == 1 && self.buffers[0].len() < self.base;
-        if self.buffers.is_empty() || has_not_enough_observations {
-            None
-        } else {
-            self.buffers.last().and_then(|buffer| buffer.last()).cloned()
+        // buffers are full, return the last buffer's median
+        if self.is_full {
+            return Some(self.buffers[self.exponent - 1][self.base / 2].clone());
         }
+
+        let mut weighted_medians = self
+            .buffers
+            .iter()
+            .enumerate()
+            .map(|(idx, buffer)| (buffer, (self.base as u64).pow(idx as u32)))
+            .flat_map(|(buffer, w)| buffer.iter().map(move |m| (m, w)))
+            .collect::<Vec<_>>();
+
+        weighted_medians.sort_by(|(a, _), (b, _)| (self.order_fn)(a, b));
+
+        let half_count = self.count as u64 / 2;
+        weighted_medians
+            .iter()
+            .try_fold(0, |running_weight, (m, w)| {
+                let running_weight = running_weight + w;
+                if running_weight >= half_count {
+                    return ControlFlow::Break(*m);
+                }
+                ControlFlow::Continue(running_weight)
+            })
+            .map_break(|m| m.clone())
+            .break_value()
     }
 }

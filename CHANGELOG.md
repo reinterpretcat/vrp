@@ -8,6 +8,10 @@ are already published. So, I stick to it for now.
 
 ## [Unreleased]
 
+### Changed
+
+* improved remedian algorithm
+
 
 ## [1.25.0] 2024-11-10
 

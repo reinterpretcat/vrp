@@ -367,7 +367,7 @@ impl Default for SpeedTracker {
             initial_estimate: 0.,
             initial_time: 0.,
             last_time: 0.,
-            median: RemedianUsize::new(11, |a, b| a.cmp(b)),
+            median: RemedianUsize::new(11, 7, |a, b| a.cmp(b)),
             speed: HeuristicSpeed::Unknown,
         }
     }
