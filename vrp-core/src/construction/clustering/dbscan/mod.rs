@@ -1,5 +1,7 @@
 //! This module provides functionality which clusters jobs using DBSCAN algorithm.
 
+mod multi_tier_clusters;
+
 mod neighbour_clusters;
 pub use self::neighbour_clusters::create_job_clusters;
 
