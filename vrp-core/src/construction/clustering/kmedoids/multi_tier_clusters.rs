@@ -4,16 +4,16 @@
 #![allow(unused_variables)]
 
 #[cfg(test)]
-#[path = "../../../../tests/unit/construction/clustering/dbscan/multi_tier_clusters_test.rs"]
+#[path = "../../../../tests/unit/construction/clustering/kmedoids/multi_tier_clusters_test.rs"]
 mod multi_tier_clusters_test;
 
-use super::*;
-use crate::models::common::Distance;
-use crate::prelude::{Location, TransportCost};
+use crate::algorithms::clustering::dbscan::create_clusters;
+use crate::models::common::{Distance, Profile};
+use crate::prelude::{GenericResult, Location, TransportCost};
 use rosomaxa::algorithms::math::Remedian;
 use rosomaxa::utils::parallel_collect;
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Represents a single tier of multiple location clusters.
 pub type LocationClusters = Vec<HashSet<Location>>;

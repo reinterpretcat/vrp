@@ -1,5 +1,5 @@
-use rosomaxa::prelude::DefaultRandom;
 use super::*;
+use rosomaxa::prelude::DefaultRandom;
 
 parameterized_test! {can_create_clusters, (k, expected), {
     can_create_clusters_impl(k, expected);
