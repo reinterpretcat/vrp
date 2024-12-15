@@ -1,7 +1,3 @@
-// TODO remove allow macros
-
-#![allow(dead_code)]
-
 #[cfg(test)]
 #[path = "../../../../tests/unit/construction/clustering/kmedoids/multi_tier_clusters_test.rs"]
 mod multi_tier_clusters_test;
