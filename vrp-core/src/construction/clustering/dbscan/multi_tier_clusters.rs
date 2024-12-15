@@ -1,3 +1,8 @@
+// TODO remove allow macros
+
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 #[cfg(test)]
 #[path = "../../../../tests/unit/construction/clustering/dbscan/multi_tier_clusters_test.rs"]
 mod multi_tier_clusters_test;
