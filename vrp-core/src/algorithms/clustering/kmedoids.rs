@@ -1,10 +1,5 @@
 //! This module contains a basic K-Medoids algorithm implementation.
 
-// TODO remove allow macros
-
-#![allow(dead_code)]
-#![allow(unused_variables)]
-
 #[cfg(test)]
 #[path = "../../../tests/unit/algorithms/clustering/kmedoids_test.rs"]
 mod kmedoids_test;
