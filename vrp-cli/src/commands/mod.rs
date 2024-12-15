@@ -7,11 +7,14 @@ pub mod import;
 pub mod solve;
 
 use std::fs::File;
-use std::io::{stdout, BufReader, BufWriter, Write};
+use std::io::{stdout, BufReader, BufWriter, Read, Write};
 use std::process;
 use std::str::FromStr;
 use vrp_cli::extensions::check::check_pragmatic_solution;
+use vrp_core::models::Problem;
 use vrp_core::prelude::GenericError;
+use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, PragmaticProblem};
+use vrp_pragmatic::format::MultiFormatError;
 
 pub(crate) fn create_write_buffer(out_file: Option<File>) -> BufWriter<Box<dyn Write>> {
     if let Some(out_file) = out_file {
@@ -91,4 +94,19 @@ fn check_solution(
         _ => Err(vec![format!("unknown format: '{input_format}'").into()]),
     }
     .map_err(|errs| format!("checker found {} errors:\n{}", errs.len(), GenericError::join_many(&errs, "\n")).into())
+}
+
+pub(crate) fn get_core_problem<F: Read>(
+    problem_reader: BufReader<F>,
+    matrices_readers: Option<Vec<BufReader<F>>>,
+) -> Result<Problem, MultiFormatError> {
+    let problem = deserialize_problem(problem_reader)?;
+
+    let matrices = matrices_readers.map(|matrices| {
+        matrices.into_iter().map(|file| deserialize_matrix(BufReader::new(file))).collect::<Result<Vec<_>, _>>()
+    });
+
+    let matrices = if let Some(matrices) = matrices { Some(matrices?) } else { None };
+
+    (problem, matrices).read_pragmatic()
 }

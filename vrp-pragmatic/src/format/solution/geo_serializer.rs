@@ -97,13 +97,14 @@ pub fn serialize_solution_as_geojson<W: Write>(
 }
 
 /// Serializes named location list with their color index.
-pub fn serialize_named_locations_as_geojson<W: Write>(
-    locations: &[(String, Location, usize)],
-    writer: &mut BufWriter<W>,
-) -> Result<(), Error> {
+pub fn serialize_named_locations_as_geojson(locations: &[(String, Location, usize)]) -> Result<String, GenericError> {
     let geo_json = create_geojson_named_locations(locations)?;
 
-    serde_json::to_writer_pretty(writer, &geo_json).map_err(Error::from)
+    let mut writer = BufWriter::new(Vec::new());
+    serde_json::to_writer_pretty(&mut writer, &geo_json).map_err(|err| GenericError::from(err.to_string()))?;
+
+    let bytes = writer.into_inner().map_err(|err| format!("{err}"))?;
+    String::from_utf8(bytes).map_err(|err| GenericError::from(format!("{err}")))
 }
 
 fn create_geojson_named_locations(locations: &[(String, Location, usize)]) -> Result<FeatureCollection, Error> {
