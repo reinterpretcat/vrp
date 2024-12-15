@@ -1,9 +1,17 @@
+use rosomaxa::prelude::DefaultRandom;
 use super::*;
-use crate::helpers::models::domain::test_random;
 
-#[test]
-pub fn can_create_clusters() {
-    let k = 3;
+parameterized_test! {can_create_clusters, (k, expected), {
+    can_create_clusters_impl(k, expected);
+}}
+
+can_create_clusters! {
+    case01: (2, vec![(7, vec![6, 7, 8]), (3, vec![0, 1, 2, 3, 4, 5])]),
+    case02: (3, vec![(3, vec![0, 1, 2, 3, 4, 5]), (6, vec![6]), (7, vec![7, 8])]),
+    case03: (4, vec![(0, vec![0, 1, 2]), (4, vec![3, 4, 5]), (6, vec![6]), (7, vec![7, 8])]),
+}
+
+pub fn can_create_clusters_impl(k: usize, expected: Vec<(usize, Vec<usize>)>) {
     #[rustfmt::skip]
     let distances = vec![
       vec![0.0, 0.8341, 0.3686, 8.0639, 8.8835, 8.6478, 12.2809, 12.8486, 13.313],
@@ -17,12 +25,11 @@ pub fn can_create_clusters() {
       vec![13.313, 12.4789, 13.3981, 11.8799, 12.6662, 13.0255, 1.2783, 0.5647, 0.0],
     ];
     let data = (0..distances.len()).collect::<Vec<usize>>();
-    let random = test_random();
+    let random = DefaultRandom::new_repeatable();
 
-    let clusters = create_k_medoids(&data, k, random.as_ref(), move |p1: &usize, p2: &usize| distances[*p1][*p2]);
+    let clusters = create_k_medoids(&data, k, &random, move |p1: &usize, p2: &usize| distances[*p1][*p2]);
 
-    assert_eq!(clusters.len(), k);
-    assert_eq!(clusters[&7], vec![6, 7, 8]);
-    assert_eq!(clusters[&4], vec![3, 4, 5]);
-    assert_eq!(clusters[&0], vec![0, 1, 2]);
+    for (medoid, points) in expected {
+        assert_eq!(clusters[&medoid], points);
+    }
 }
