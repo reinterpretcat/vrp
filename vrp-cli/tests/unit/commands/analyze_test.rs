@@ -15,11 +15,11 @@ impl Write for DummyWrite {
 }
 
 #[test]
-fn can_run_analyze_clusters() {
+fn can_run_analyze_dbscan() {
     let tmpfile = tempfile::NamedTempFile::new().unwrap();
     let args = vec![
         "analyze",
-        "clusters",
+        "dbscan",
         "pragmatic",
         PRAGMATIC_PROBLEM_PATH,
         "--out-result",
@@ -31,8 +31,8 @@ fn can_run_analyze_clusters() {
 }
 
 #[test]
-fn can_detect_wrong_argument() {
-    let args = vec!["analyze", "clusters", "solomon", PRAGMATIC_PROBLEM_PATH, "--out-result", "/some/path"];
+fn can_detect_wrong_argument_in_dbscan() {
+    let args = vec!["analyze", "dbscan", "solomon", PRAGMATIC_PROBLEM_PATH, "--out-result", "/some/path"];
 
     assert!(get_analyze_app().try_get_matches_from(args).is_err());
 }

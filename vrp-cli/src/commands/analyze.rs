@@ -16,8 +16,8 @@ const OUT_RESULT_ARG_NAME: &str = "out-result";
 
 pub fn get_analyze_app() -> Command {
     Command::new("analyze").about("Provides helper functionality to analyze problem or solution").subcommand(
-        Command::new("clusters")
-            .about("Analyzes job clusters")
+        Command::new("dbscan")
+            .about("Analyzes job clusters using dbscan algorithm")
             .arg(
                 Arg::new(FORMAT_ARG_NAME)
                     .help("Specifies input type")
@@ -64,7 +64,7 @@ pub fn run_analyze(
     out_writer_func: fn(Option<File>) -> BufWriter<Box<dyn Write>>,
 ) -> Result<(), GenericError> {
     match matches.subcommand() {
-        Some(("clusters", clusters_matches)) => {
+        Some(("dbscan", clusters_matches)) => {
             let problem_path = clusters_matches.get_one::<String>(PROBLEM_ARG_NAME).unwrap();
             let problem_format = clusters_matches.get_one::<String>(FORMAT_ARG_NAME).unwrap();
 
