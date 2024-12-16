@@ -133,12 +133,11 @@ pub fn can_create_hierarchical_clusters() {
 
     let hierarchy = create_hierarchical_kmedoids(&data, tiers, move |p1: &usize, p2: &usize| distances[*p1][*p2]);
 
-    println!("{hierarchy:?}");
-
     for (level, expected_clusters) in expected.iter().enumerate() {
         let clusters = &hierarchy[level];
         for (medoid, points) in expected_clusters {
             assert_eq!(clusters[medoid], *points);
         }
     }
+    assert_eq!(hierarchy.len(), tiers);
 }
