@@ -84,7 +84,7 @@ where
     fn initialize_medoids(&self, data: &[P]) -> Option<Vec<P>> {
         let mut medoids = Vec::with_capacity(self.k);
 
-        // select first medoid
+        // 1. select first medoid as the "most central" point in the dataset.
         let first_medoid = data.iter().min_by(|a, b| {
             let (sum_a, sum_b) = data
                 .iter()
@@ -97,11 +97,18 @@ where
         })?;
         medoids.push(first_medoid.clone());
 
-        // select the remaining medoids
+        // 2. select remaining medoids where each subsequent medoid is selected to maximize the
+        // minimum distance to any already-selected medoid. This ensures the medoids are spread out
+        // while being deterministic.
         while medoids.len() < self.k {
             let next_medoid = data.iter().filter(|p| !medoids.contains(p)).max_by(|a, b| {
-                let min_distance_a = medoids.iter().map(|m| (self.distance_fn)(a, m)).fold(f64::INFINITY, f64::min);
-                let min_distance_b = medoids.iter().map(|m| (self.distance_fn)(b, m)).fold(f64::INFINITY, f64::min);
+                let (min_distance_a, min_distance_b) =
+                    medoids.iter().map(|m| ((self.distance_fn)(a, m), (self.distance_fn)(b, m))).fold(
+                        (f64::INFINITY, f64::INFINITY),
+                        |(min_distance_a, min_distance_b), (distance_a, distance_b)| {
+                            (min_distance_a.min(distance_a), min_distance_b.min(distance_b))
+                        },
+                    );
 
                 min_distance_a.total_cmp(&min_distance_b)
             })?;
@@ -116,7 +123,7 @@ where
             let nearest_medoid = medoids
                 .iter()
                 .min_by(|m1, m2| (self.distance_fn)(point, m1).total_cmp(&(self.distance_fn)(point, m2)))
-                .unwrap();
+                .expect("cannot find nearest medoid");
 
             clusters.entry(nearest_medoid.clone()).or_default().push(point.clone());
 
@@ -136,7 +143,7 @@ where
 
                         cost1.total_cmp(&cost2)
                     })
-                    .unwrap()
+                    .expect("cannot find medoid")
                     .clone()
             })
             .collect()
