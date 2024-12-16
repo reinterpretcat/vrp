@@ -2,7 +2,6 @@ use super::*;
 use crate::models::common::{Distance, Duration};
 use crate::models::problem::TravelTime;
 use crate::models::solution::Route;
-use rosomaxa::prelude::DefaultRandom;
 use std::collections::HashSet;
 
 struct MockTransportCost;
@@ -32,10 +31,9 @@ impl TransportCost for MockTransportCost {
 fn can_create_multi_tier_clusters() -> GenericResult<()> {
     let profile = Profile::default();
     let transport = MockTransportCost;
-    let random = DefaultRandom::new_repeatable();
     let expected_cluster_nums = [2, 3, 4, 5, 8, 10, 12, 16, 32];
 
-    let clusters = create_multi_tier_clusters(profile, &transport, &random)?;
+    let clusters = create_multi_tier_clusters(profile, &transport)?;
 
     assert_eq!(clusters.len(), expected_cluster_nums.len());
     clusters.iter().zip(expected_cluster_nums.iter()).for_each(|(clusters, expected_num)| {
