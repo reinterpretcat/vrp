@@ -27,7 +27,7 @@ where
 }
 
 /// Creates hierarchical clusters of data points using the K-Medoids algorithm.
-pub fn create_hierarchical_kmedoids<P, F>(points: &[P], tiers: usize, distance_fn: F) -> Vec<HashMap<P, Vec<P>>>
+pub fn create_hierarchical_kmedoids<P, F>(points: &[P], max_tiers: usize, distance_fn: F) -> Vec<HashMap<P, Vec<P>>>
 where
     P: Point,
     F: Fn(&P, &P) -> f64 + Clone,
@@ -38,15 +38,16 @@ where
 
     const K_PER_TIER: usize = 2;
 
-    (0..tiers)
-        .scan(vec![(None, points.to_vec())], |current_clusters, _| {
+    (0..max_tiers)
+        .scan(vec![(Option::<P>::None, points.to_vec())], |current_clusters, _| {
             let mut current_tier_clusters = HashMap::new();
             let mut next_tier_clusters = Vec::new();
 
             for (medoid, cluster_data) in std::mem::take(current_clusters).into_iter() {
                 // not enough data for clustering, simply propagate it to the next tier
                 if cluster_data.len() < K_PER_TIER {
-                    current_tier_clusters.insert(medoid.expect("should be set"), cluster_data);
+                    current_tier_clusters.insert(medoid.clone().expect("should be set"), cluster_data.clone());
+                    next_tier_clusters.push((medoid, cluster_data));
                     continue;
                 } else {
                     let new_clusters = create_kmedoids(&cluster_data, K_PER_TIER, distance_fn.clone());
@@ -59,7 +60,11 @@ where
 
             *current_clusters = next_tier_clusters;
 
-            Some(current_tier_clusters)
+            if current_tier_clusters.is_empty() {
+                None
+            } else {
+                Some(current_tier_clusters)
+            }
         })
         .collect()
 }

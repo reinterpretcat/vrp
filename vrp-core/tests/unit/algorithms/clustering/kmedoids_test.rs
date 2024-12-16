@@ -56,6 +56,43 @@ pub fn can_create_hierarchical_clusters() {
             (27, vec![27, 29]),
             (28, vec![21, 22, 23, 25, 26, 28]),
         ],
+        vec![
+            (1, vec![1]),
+            (3, vec![3]),
+            (5, vec![0, 2, 4, 5, 7, 8, 9]),
+            (6, vec![6]),
+            (10, vec![10]),
+            (11, vec![11, 16, 17, 18]),
+            (13, vec![12, 13, 14, 19]),
+            (15, vec![15]),
+            (20, vec![20]),
+            (21, vec![21, 22, 25, 28]),
+            (23, vec![23, 26]),
+            (24, vec![24]),
+            (27, vec![27]),
+            (29, vec![29]),
+        ],
+        vec![
+            (1, vec![1]),
+            (2, vec![0, 2, 4, 5, 8]),
+            (3, vec![3]),
+            (6, vec![6]),
+            (7, vec![7, 9]),
+            (10, vec![10]),
+            (11, vec![11, 16, 18]),
+            (12, vec![12, 14]),
+            (13, vec![13, 19]),
+            (15, vec![15]),
+            (17, vec![17]),
+            (20, vec![20]),
+            (21, vec![21, 25, 28]),
+            (22, vec![22]),
+            (23, vec![23]),
+            (24, vec![24]),
+            (26, vec![26]),
+            (27, vec![27]),
+            (29, vec![29]),
+        ],
     ];
     #[rustfmt::skip]
     let distances =
@@ -92,9 +129,11 @@ pub fn can_create_hierarchical_clusters() {
             vec![15.3461, 12.0102, 15.7555, 13.4614, 14.344, 16.3031, 18.9305, 17.2092, 15.0842, 18.3496, 13.4186, 16.958, 15.4007, 15.9418, 16.0532, 13.2899, 16.4601, 15.7874, 17.6907, 16.4433, 1.8028, 2.7052, 4.9597, 1.5922, 5.4772, 2.7213, 2.1437, 1.4023, 3.476, 0.0],
         ];
     let data = (0..distances.len()).collect::<Vec<usize>>();
-    let tiers = 3;
+    let tiers = 5;
 
     let hierarchy = create_hierarchical_kmedoids(&data, tiers, move |p1: &usize, p2: &usize| distances[*p1][*p2]);
+
+    println!("{hierarchy:?}");
 
     for (level, expected_clusters) in expected.iter().enumerate() {
         let clusters = &hierarchy[level];
