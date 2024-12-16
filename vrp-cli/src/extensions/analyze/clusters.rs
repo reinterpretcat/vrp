@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/extensions/analyze/clusters_test.rs"]
 mod clusters_test;
 
+use vrp_core::algorithms::clustering::kmedoids::create_k_medoids;
 use vrp_core::construction::clustering::dbscan::create_job_clusters;
 use vrp_core::models::common::Timestamp;
 use vrp_core::models::problem::{get_job_locations, JobIdDimension};
@@ -37,4 +38,28 @@ pub fn get_dbscan_clusters(
                 .flatten()
         })
         .collect())
+}
+
+/// Gets k-medoids clusters for all locations in the given problem.
+pub fn get_k_medoids_clusters(problem: &Problem, k: usize) -> GenericResult<Vec<(String, ApiLocation, usize)>> {
+    let points = (0..problem.transport.size()).collect::<Vec<_>>();
+    let profile = problem.fleet.profiles.first().ok_or_else(|| GenericError::from("cannot find any profile"))?;
+    let coord_index = problem.extras.get_coord_index().ok_or_else(|| GenericError::from("cannot find coord index"))?;
+    let coord_index = coord_index.as_ref();
+    let random = DefaultRandom::default();
+
+    let clusters =
+        create_k_medoids(&points, k, &random, |from, to| problem.transport.distance_approx(profile, *from, *to));
+
+    clusters
+        .into_iter()
+        .flat_map(move |(medoid, location_ids)| {
+            location_ids.into_iter().map(move |id| {
+                coord_index
+                    .get_by_idx(id)
+                    .ok_or_else(|| GenericError::from(format!("cannot find location {id}")))
+                    .map(|location| (format!("m={medoid}"), location, medoid))
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()
 }

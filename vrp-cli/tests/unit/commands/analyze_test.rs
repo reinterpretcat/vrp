@@ -36,3 +36,21 @@ fn can_detect_wrong_argument_in_dbscan() {
 
     assert!(get_analyze_app().try_get_matches_from(args).is_err());
 }
+
+#[test]
+fn can_run_analyze_kmedoids() {
+    let tmpfile = tempfile::NamedTempFile::new().unwrap();
+    let args = vec![
+        "analyze",
+        "kmedoids",
+        "pragmatic",
+        PRAGMATIC_PROBLEM_PATH,
+        "-k",
+        "3",
+        "--out-result",
+        tmpfile.path().to_str().unwrap(),
+    ];
+    let matches = get_analyze_app().try_get_matches_from(args).unwrap();
+
+    run_analyze(&matches, |_| BufWriter::new(Box::new(DummyWrite {}))).unwrap();
+}

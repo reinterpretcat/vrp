@@ -4,7 +4,7 @@ mod analyze_test;
 
 use super::*;
 use std::sync::Arc;
-use vrp_cli::extensions::analyze::get_dbscan_clusters;
+use vrp_cli::extensions::analyze::{get_dbscan_clusters, get_k_medoids_clusters};
 use vrp_core::prelude::*;
 use vrp_pragmatic::format::solution::serialize_named_locations_as_geojson;
 use vrp_pragmatic::format::Location as ApiLocation;
@@ -73,7 +73,13 @@ pub fn get_analyze_app() -> Command {
                         .index(1),
                 )
                 .arg(Arg::new(PROBLEM_ARG_NAME).help("Sets the problem file to use").required(true).index(2))
-                .arg(Arg::new(K_ARG_NAME).help("Number of clusters (k) to create").short('k').required(false))
+                .arg(
+                    Arg::new(K_ARG_NAME)
+                        .help("Number of clusters (k) to create")
+                        .short('k')
+                        .default_value("2")
+                        .required(false),
+                )
                 .arg(
                     Arg::new(MATRIX_ARG_NAME)
                         .help("Specifies path to file with routing matrix")
@@ -103,6 +109,13 @@ pub fn run_analyze(
 
             read_and_execute_clusters_command(clusters_matches, out_writer_func, |problem| {
                 get_dbscan_clusters(problem, min_points, epsilon)
+            })
+        }
+        Some(("kmedoids", clusters_matches)) => {
+            let k = parse_int_value::<usize>(clusters_matches, K_ARG_NAME, "k")?;
+
+            read_and_execute_clusters_command(clusters_matches, out_writer_func, |problem| {
+                get_k_medoids_clusters(problem, k.unwrap_or(2))
             })
         }
         _ => Err("no argument with analyze subcommand was used. Use -h to print help information".into()),
