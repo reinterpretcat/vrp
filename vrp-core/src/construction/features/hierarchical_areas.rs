@@ -184,33 +184,8 @@ impl FeatureObjective for HierarchicalAreasObjective {
         if let Some(next) = next {
             let prev_target = estimate_fn(prev, target);
             let target_next = estimate_fn(target, next);
-            let prev_next = estimate_fn(prev, next);
 
-            let transition_estimate = prev_target.min(target_next);
-
-            // NOTE we're splitting cluster potentially on higher tier. Here, we assume that sum of
-            // two transition estimations of lower tier is always less than any transition on higher tier
-            if transition_estimate > prev_next {
-                // double penalty: we are out of any tier, so splitting existing cluster
-                if transition_estimate == self.hierarchy_index.tiers.penalty_value() {
-                    return (2 * self.hierarchy_index.tiers.penalty_value()) as Cost;
-                }
-
-                // we have a new cluster on higher tier than prev_next
-                if prev_target == target_next {
-                    return transition_estimate as Cost;
-                }
-
-                // a new target can belong at the same time to two clusters, one for prev and one for next.
-                // we estimate cost as a sum of two transitions, potentially at different tiers
-                // this should help to automatically prefer lower tier
-                (prev_target + target_next) as Cost
-            } else {
-                // we also end up in this branch when prev_target == target_next == prev_next == penalty
-                // in that case, we're neither forming any clusters nor splitting them
-
-                transition_estimate as Cost
-            }
+            prev_target.min(target_next) as Cost
         } else {
             estimate_fn(prev, target) as Cost
         }
