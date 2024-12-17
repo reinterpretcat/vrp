@@ -256,7 +256,7 @@ fn get_features_with_goal(feature_layers: &[FeatureLayer]) -> GenericResult<(Vec
                     FeatureCombinator::default()
                         .add_features(features)
                         // objectives will be combined below using [eval_multi_objective_strategy] function
-                        .set_objective_combinator(|_| None)
+                        .set_objective_combinator(|_| Ok(None))
                         .combine()?,
                 );
 

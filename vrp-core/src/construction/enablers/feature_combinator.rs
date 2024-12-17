@@ -9,7 +9,8 @@ use std::ops::ControlFlow;
 use std::sync::Arc;
 
 /// Specifies a type for injecting custom objective combination logic.
-pub type ObjectiveCombinator = dyn Fn(&[(&str, Arc<dyn FeatureObjective>)]) -> Option<Arc<dyn FeatureObjective>>;
+pub type ObjectiveCombinator =
+    dyn Fn(&[(&str, Arc<dyn FeatureObjective>)]) -> GenericResult<Option<Arc<dyn FeatureObjective>>>;
 
 /// Provides the way to group multiple features having more fine grained control over result.
 #[derive(Default)]
@@ -42,7 +43,7 @@ impl FeatureCombinator {
     /// Sets a custom objective combinator logic.
     pub fn set_objective_combinator<F>(mut self, objective_combinator: F) -> Self
     where
-        F: Fn(&[(&str, Arc<dyn FeatureObjective>)]) -> Option<Arc<dyn FeatureObjective>> + 'static,
+        F: Fn(&[(&str, Arc<dyn FeatureObjective>)]) -> GenericResult<Option<Arc<dyn FeatureObjective>>> + 'static,
     {
         self.objective_combinator = Some(Box::new(objective_combinator));
         self
@@ -56,7 +57,7 @@ impl FeatureCombinator {
         let objective_combinator = self.objective_combinator.unwrap_or_else(|| {
             Box::new(|objectives| {
                 let objectives = objectives.iter().map(|(_, o)| o.clone()).collect::<Vec<_>>();
-                Some(Arc::new(SumFeatureObjective { objectives }))
+                Ok(Some(Arc::new(SumFeatureObjective { objectives })))
             })
         });
 
@@ -77,7 +78,7 @@ fn combine_features(
     let objective = match objectives.len() {
         0 => None,
         1 => objectives.first().map(|(_, o)| o.clone()),
-        _ => objective_combinator(objectives.as_slice()),
+        _ => objective_combinator(objectives.as_slice())?,
     };
 
     let constraints = features.iter().filter_map(|feature| feature.constraint.clone()).collect::<Vec<_>>();

@@ -7,35 +7,38 @@
 #[path = "../../../tests/unit/construction/features/hierarchical_areas_test.rs"]
 mod hierarchical_areas_test;
 
+use crate::construction::enablers::FeatureCombinator;
+use crate::construction::heuristics::ActivityContext;
 use crate::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-/// Represents a mode for objective function calculations.
-#[derive(Clone, Copy, Debug)]
-pub enum HierarchicalAreasMode {
-    /// Only local objective is calculated. Fastest option.
-    OnlyLocal,
-    /// Local and global objectives are calculated. It is slower, but gives additional control over
-    /// goal of optimization.
-    All,
-}
-
 /// Creates a feature to guide search considering hierarchy of areas.
+/// A `cost_feature` used to calculate the cost of transition which will be considered as a base for
+/// an internal penalty.
 pub fn create_hierarchical_areas_feature(
-    name: &str,
+    cost_feature: Feature,
     hierarchy_index: Arc<HierarchyIndex>,
-    mode: HierarchicalAreasMode,
 ) -> GenericResult<Feature> {
-    let builder = FeatureBuilder::default()
-        .with_name(name)
-        .with_objective(HierarchicalAreasObjective { mode, hierarchy_index: hierarchy_index.clone() });
-
-    if matches!(mode, HierarchicalAreasMode::All) {
-        builder.with_state(HierarchicalAreasState { hierarchy_index }).build()
-    } else {
-        builder.build()
+    if cost_feature.objective.is_none() {
+        return Err(GenericError::from("hierarchical areas requires cost feature to have an objective"));
     }
+
+    // use feature combinator to properly interpret additional constraints and states.
+    FeatureCombinator::default()
+        .use_name(cost_feature.name.as_str())
+        .add_feature(cost_feature)
+        .set_objective_combinator(move |objectives| {
+            if objectives.len() != 1 {
+                return Err(GenericError::from("hierarchical areas feature requires exactly one cost objective"));
+            }
+
+            let (_, objective) = objectives[0].clone();
+            let hierarchy_index = hierarchy_index.clone();
+
+            Ok(Some(Arc::new(HierarchicalAreasObjective { objective, hierarchy_index })))
+        })
+        .combine()
 }
 
 /// Represents a hierarchical index of areas at different level of details.
@@ -153,20 +156,13 @@ impl LocationDetail {
 }
 
 struct HierarchicalAreasObjective {
-    mode: HierarchicalAreasMode,
+    objective: Arc<dyn FeatureObjective>,
     hierarchy_index: Arc<HierarchyIndex>,
 }
 
 impl FeatureObjective for HierarchicalAreasObjective {
     fn fitness(&self, insertion_ctx: &InsertionContext) -> Cost {
-        match self.mode {
-            HierarchicalAreasMode::OnlyLocal => Cost::default(),
-            HierarchicalAreasMode::All => {
-                insertion_ctx.solution.state.get_hierarchical_areas_fitness().copied().unwrap_or_else(|| {
-                    calculate_solution_fitness(&insertion_ctx.solution, &self.hierarchy_index) as Cost
-                })
-            }
-        }
+        self.objective.fitness(insertion_ctx)
     }
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
@@ -175,37 +171,24 @@ impl FeatureObjective for HierarchicalAreasObjective {
             MoveContext::Activity { activity_ctx, .. } => activity_ctx,
         };
 
-        let estimate_fn = |from, to| estimate_leg_cost(from, to, &self.hierarchy_index);
-
-        let prev = activity_ctx.prev.place.location;
-        let target = activity_ctx.target.place.location;
-        let next = activity_ctx.next.map(|next| next.place.location);
-
-        if let Some(next) = next {
-            let prev_target = estimate_fn(prev, target);
-            let target_next = estimate_fn(target, next);
-
-            prev_target.min(target_next) as Cost
-        } else {
-            estimate_fn(prev, target) as Cost
-        }
+        get_penalty(activity_ctx, &self.hierarchy_index) as Cost
     }
 }
 
-custom_solution_state!(HierarchicalAreasFitness typeof Cost);
+fn get_penalty(activity_ctx: &ActivityContext, hierarchy_index: &HierarchyIndex) -> usize {
+    let estimate_fn = |from, to| estimate_leg_cost(from, to, hierarchy_index);
 
-struct HierarchicalAreasState {
-    hierarchy_index: Arc<HierarchyIndex>,
-}
+    let prev = activity_ctx.prev.place.location;
+    let target = activity_ctx.target.place.location;
+    let next = activity_ctx.next.map(|next| next.place.location);
 
-impl FeatureState for HierarchicalAreasState {
-    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {}
+    if let Some(next) = next {
+        let prev_target = estimate_fn(prev, target);
+        let target_next = estimate_fn(target, next);
 
-    fn accept_route_state(&self, route_ctx: &mut RouteContext) {}
-
-    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
-        let fitness = calculate_solution_fitness(solution_ctx, &self.hierarchy_index) as Cost;
-        solution_ctx.state.set_hierarchical_areas_fitness(fitness);
+        prev_target.min(target_next)
+    } else {
+        estimate_fn(prev, target)
     }
 }
 
@@ -233,18 +216,4 @@ fn estimate_leg_cost(from: Location, to: Location, hierarchy_index: &HierarchyIn
         // stop at the first match as we're starting from the lowest tier
         .next()
         .unwrap_or_else(|| hierarchy_index.tiers.penalty_value())
-}
-
-fn calculate_solution_fitness(solution: &SolutionContext, hierarchy_index: &HierarchyIndex) -> usize {
-    // TODO we might need to have a higher value for penalty than used by `estimate_leg_cost`
-    solution
-        .routes
-        .iter()
-        .flat_map(|route_ctx| route_ctx.route().tour.legs())
-        .filter_map(|leg| match leg.0 {
-            [from, to] => Some((from.place.location, to.place.location)),
-            _ => None,
-        })
-        .map(|(from, to)| estimate_leg_cost(from, to, hierarchy_index))
-        .sum()
 }

@@ -1,7 +1,6 @@
 use super::*;
 use crate::construction::heuristics::ActivityContext;
-use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
-use crate::helpers::models::solution::{ActivityBuilder, RouteContextBuilder};
+use crate::helpers::models::solution::ActivityBuilder;
 
 fn tier(tier: usize) -> usize {
     tier
@@ -161,10 +160,6 @@ can_estimate_activity! {
 }
 
 fn can_estimate_activity_impl(hierarchy_index: HierarchyIndex, insertion_idx: usize, expected: usize) {
-    let hierarchy_index = Arc::new(hierarchy_index);
-    let objective = HierarchicalAreasObjective { mode: HierarchicalAreasMode::OnlyLocal, hierarchy_index };
-    let solution_ctx = TestInsertionContextBuilder::default().build().solution;
-    let route_ctx = RouteContextBuilder::default().build();
     let next_activity = ActivityBuilder::with_location(1).build();
     let activity_ctx = ActivityContext {
         index: insertion_idx,
@@ -173,9 +168,9 @@ fn can_estimate_activity_impl(hierarchy_index: HierarchyIndex, insertion_idx: us
         next: Some(&next_activity),
     };
 
-    let result = objective.estimate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx));
+    let result = get_penalty(&activity_ctx, &hierarchy_index);
 
-    assert_eq!(result, expected as f64);
+    assert_eq!(result, expected);
 }
 
 #[test]
