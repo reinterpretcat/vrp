@@ -92,7 +92,7 @@ pub fn can_create_hierarchical_clusters() {
             (26, vec![26]),
             (27, vec![27]),
             (29, vec![29]),
-        ],
+        ]
     ];
     #[rustfmt::skip]
     let distances =
@@ -129,7 +129,8 @@ pub fn can_create_hierarchical_clusters() {
             vec![15.3461, 12.0102, 15.7555, 13.4614, 14.344, 16.3031, 18.9305, 17.2092, 15.0842, 18.3496, 13.4186, 16.958, 15.4007, 15.9418, 16.0532, 13.2899, 16.4601, 15.7874, 17.6907, 16.4433, 1.8028, 2.7052, 4.9597, 1.5922, 5.4772, 2.7213, 2.1437, 1.4023, 3.476, 0.0],
         ];
     let data = (0..distances.len()).collect::<Vec<usize>>();
-    let tiers = 5;
+    let tiers = 10;
+    let expected_tiers = 6; // we should skip levels with all clusters of size 1
 
     let hierarchy = create_hierarchical_kmedoids(&data, tiers, move |p1: &usize, p2: &usize| distances[*p1][*p2]);
 
@@ -139,5 +140,5 @@ pub fn can_create_hierarchical_clusters() {
             assert_eq!(clusters[medoid], *points);
         }
     }
-    assert_eq!(hierarchy.len(), tiers);
+    assert_eq!(hierarchy.len(), expected_tiers);
 }

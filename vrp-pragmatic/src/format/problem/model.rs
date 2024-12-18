@@ -584,6 +584,12 @@ pub enum Objective {
     /// An objective to prefer jobs to be served as soon as possible.
     FastService,
 
+    /// An objective to consider hierarchy of areas while serving jobs.
+    HierarchicalAreas {
+        /// Number of levels in area hierarchy.
+        levels: usize,
+    },
+
     /// A multi objective allows to define multiple competitive objectives at the same layer of hierarchy.
     MultiObjective {
         /// An objective composition type.

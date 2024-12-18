@@ -1,5 +1,6 @@
 use super::*;
 use std::ops::Mul;
+use vrp_core::algorithms::clustering::kmedoids::create_hierarchical_kmedoids;
 use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
 use vrp_core::construction::enablers::FeatureCombinator;
 use vrp_core::construction::features::*;
@@ -193,6 +194,7 @@ fn get_objective_feature_layer(
         }
         Objective::TourOrder => create_tour_order_soft_feature("tour_order", get_tour_order_fn()),
         Objective::FastService => get_fast_service_feature("fast_service", blocks),
+        Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
         Objective::MultiObjective { objectives, strategy: composition_type } => {
             let features = objectives
                 .iter()
@@ -212,6 +214,26 @@ fn get_objective_feature_layer(
     }?;
 
     Ok(FeatureLayer::Single(feature))
+}
+
+fn get_hierarchical_areas_feature(blocks: &ProblemBlocks, levels: usize) -> GenericResult<Feature> {
+    let locations = (0..blocks.transport.size()).collect::<Vec<_>>();
+    let profile =
+        blocks.fleet.profiles.first().cloned().ok_or_else(|| GenericError::from("should have at least one profile"))?;
+
+    let clusters = create_hierarchical_kmedoids(&locations, levels, {
+        let transport = blocks.transport.clone();
+        move |from, to| transport.distance_approx(&profile, *from, *to)
+    });
+    let hierarchy_index = HierarchyIndex::try_from(clusters.as_slice())?;
+
+    let cost_feature = TransportFeatureBuilder::new("min_distance_hierarchical")
+        .set_time_constrained(false)
+        .set_transport_cost(blocks.transport.clone())
+        .set_activity_cost(blocks.activity.clone())
+        .build_minimize_distance()?;
+
+    create_hierarchical_areas_feature(cost_feature, hierarchy_index)
 }
 
 fn get_objectives(api_problem: &ApiProblem, props: &ProblemProperties) -> Vec<Objective> {

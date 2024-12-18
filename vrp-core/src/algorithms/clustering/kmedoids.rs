@@ -4,18 +4,19 @@
 #[path = "../../../tests/unit/algorithms/clustering/kmedoids_test.rs"]
 mod kmedoids_test;
 
+use rosomaxa::utils::{fold_reduce, map_reduce};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
 /// A data point type that can be used with the K-Medoids algorithm.
-pub trait Point: Hash + Eq + PartialEq + Clone {}
+pub trait Point: Hash + Eq + PartialEq + Clone + Send + Sync {}
 
 /// Creates clusters of data points using the K-Medoids algorithm.
 pub fn create_kmedoids<P, F>(points: &[P], k: usize, distance_fn: F) -> HashMap<P, Vec<P>>
 where
     P: Point,
-    F: Fn(&P, &P) -> f64,
+    F: Fn(&P, &P) -> f64 + Send + Sync,
 {
     const MAX_ITERATIONS: usize = 200;
 
@@ -30,7 +31,7 @@ where
 pub fn create_hierarchical_kmedoids<P, F>(points: &[P], max_tiers: usize, distance_fn: F) -> Vec<HashMap<P, Vec<P>>>
 where
     P: Point,
-    F: Fn(&P, &P) -> f64 + Clone,
+    F: Fn(&P, &P) -> f64 + Send + Sync + Clone,
 {
     if points.is_empty() {
         return Vec::default();
@@ -66,6 +67,8 @@ where
                 Some(current_tier_clusters)
             }
         })
+        // do not go on the level where all clusters will be of size 1
+        .take_while(|clusters| clusters.iter().any(|(_, cluster)| cluster.len() > 2))
         .collect()
 }
 
@@ -79,7 +82,7 @@ struct KMedoids<P, F> {
 impl<P, F> KMedoids<P, F>
 where
     P: Point,
-    F: Fn(&P, &P) -> f64,
+    F: Fn(&P, &P) -> f64 + Send + Sync,
 {
     /// Creates a new K-Medoids instance.
     pub fn new(k: usize, max_iterations: usize, distance_fn: F) -> Self {
@@ -91,32 +94,49 @@ where
 
         // 1. select first medoid as the "most central" point in the dataset.
         let first_medoid = data.iter().min_by(|a, b| {
-            let (sum_a, sum_b) = data
-                .iter()
-                .map(|p| ((self.distance_fn)(a, p), (self.distance_fn)(b, p)))
-                .fold((0., 0.), |(sum_a, sum_b), (a, b)| (sum_a + a, sum_b + b));
+            let (sum_a, sum_b) = map_reduce(
+                data,
+                |p| ((self.distance_fn)(a, p), (self.distance_fn)(b, p)),
+                || (0., 0.),
+                |(sum_a, sum_b), (a, b)| (sum_a + a, sum_b + b),
+            );
 
             let (avg_a, avg_b) = (sum_a / data.len() as f64, sum_b / data.len() as f64);
 
             avg_a.total_cmp(&avg_b)
         })?;
+
         medoids.push(first_medoid.clone());
 
         // 2. select remaining medoids where each subsequent medoid is selected to maximize the
         // minimum distance to any already-selected medoid. This ensures the medoids are spread out
         // while being deterministic.
         while medoids.len() < self.k {
-            let next_medoid = data.iter().filter(|p| !medoids.contains(p)).max_by(|a, b| {
-                let (min_distance_a, min_distance_b) =
-                    medoids.iter().map(|m| ((self.distance_fn)(a, m), (self.distance_fn)(b, m))).fold(
-                        (f64::INFINITY, f64::INFINITY),
-                        |(min_distance_a, min_distance_b), (distance_a, distance_b)| {
-                            (min_distance_a.min(distance_a), min_distance_b.min(distance_b))
-                        },
-                    );
+            let next_medoid = fold_reduce(
+                data,
+                || (f64::NEG_INFINITY, Option::<P>::None),
+                |(max_distance, best_medoid), point| {
+                    if medoids.contains(point) {
+                        return (max_distance, best_medoid);
+                    }
 
-                min_distance_a.total_cmp(&min_distance_b)
-            })?;
+                    medoids
+                        .iter()
+                        .map(|m| (self.distance_fn)(point, m))
+                        .min_by(|a, b| a.total_cmp(b))
+                        .map(|distance| (distance, Some(point.clone())))
+                        .unwrap_or((max_distance, best_medoid))
+                },
+                |left, right| {
+                    if left.0 > right.0 {
+                        left
+                    } else {
+                        right
+                    }
+                },
+            )
+            .1?;
+
             medoids.push(next_medoid.clone());
         }
 
@@ -124,16 +144,26 @@ where
     }
 
     fn assign_points_to_medoids(&self, data: &[P], medoids: &[P]) -> HashMap<P, Vec<P>> {
-        data.iter().fold(HashMap::new(), |mut clusters, point| {
-            let nearest_medoid = medoids
-                .iter()
-                .min_by(|m1, m2| (self.distance_fn)(point, m1).total_cmp(&(self.distance_fn)(point, m2)))
-                .expect("cannot find nearest medoid");
+        fold_reduce(
+            data,
+            || HashMap::<P, Vec<P>>::new(),
+            |mut clusters, point| {
+                let nearest_medoid = medoids
+                    .iter()
+                    .min_by(|m1, m2| (self.distance_fn)(point, m1).total_cmp(&(self.distance_fn)(point, m2)))
+                    .expect("cannot find nearest medoid");
 
-            clusters.entry(nearest_medoid.clone()).or_default().push(point.clone());
+                clusters.entry(nearest_medoid.clone()).or_default().push(point.clone());
 
-            clusters
-        })
+                clusters
+            },
+            |mut acc, clusters| {
+                for (key, value) in clusters {
+                    acc.entry(key).or_default().extend(value);
+                }
+                acc
+            },
+        )
     }
 
     fn update_medoids(&self, clusters: &HashMap<P, Vec<P>>) -> Vec<P> {

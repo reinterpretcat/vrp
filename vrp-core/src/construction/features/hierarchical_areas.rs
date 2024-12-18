@@ -18,11 +18,13 @@ use std::sync::Arc;
 /// an internal penalty.
 pub fn create_hierarchical_areas_feature(
     cost_feature: Feature,
-    hierarchy_index: Arc<HierarchyIndex>,
+    hierarchy_index: HierarchyIndex,
 ) -> GenericResult<Feature> {
     if cost_feature.objective.is_none() {
         return Err(GenericError::from("hierarchical areas requires cost feature to have an objective"));
     }
+
+    let hierarchy_index = Arc::new(hierarchy_index);
 
     // use feature combinator to properly interpret additional constraints and states.
     FeatureCombinator::default()
@@ -103,6 +105,11 @@ impl Tiers {
         Self(values, max_value * 2 + 1)
     }
 
+    /// Gets tier at the given level.
+    fn get(&self, level: usize) -> Option<&Tier> {
+        self.0.get(level)
+    }
+
     /// Iterates through all tiers starting from the lowest one.
     fn iter(&self) -> impl Iterator<Item = &Tier> {
         self.0.iter()
@@ -120,6 +127,7 @@ impl Tiers {
 }
 
 /// Represents specific detail for location.
+#[derive(Debug, Eq, PartialEq)]
 pub enum LocationDetail {
     /// Unique attribute. Different locations will be checked for its equality.
     Simple(usize),
@@ -216,4 +224,25 @@ fn estimate_leg_cost(from: Location, to: Location, hierarchy_index: &HierarchyIn
         // stop at the first match as we're starting from the lowest tier
         .next()
         .unwrap_or_else(|| hierarchy_index.tiers.penalty_value())
+}
+
+/// Conversion logic from k-medoids clustering algorithm result.
+/// We assume sorting from the lowest level to the highest one.
+impl TryFrom<&[HashMap<Location, Vec<Location>>]> for HierarchyIndex {
+    type Error = GenericError;
+
+    fn try_from(hierarchy: &[HashMap<Location, Vec<Location>>]) -> Result<Self, Self::Error> {
+        let levels = hierarchy.len();
+        let mut index = HierarchyIndex::new(levels);
+
+        hierarchy.iter().enumerate().try_for_each(|(level, clusters)| {
+            clusters.values().enumerate().try_for_each(|(cluster_idx, cluster)| {
+                cluster
+                    .iter()
+                    .try_for_each(|&location| index.insert(location, level, LocationDetail::new_simple(cluster_idx)))
+            })
+        })?;
+
+        Ok(index)
+    }
 }
