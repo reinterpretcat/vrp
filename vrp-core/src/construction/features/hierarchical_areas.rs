@@ -121,7 +121,7 @@ impl Tiers {
     }
 
     /// Returns a penalty value which is outside any tier values.
-    fn penalty_value(&self) -> usize {
+    fn max_penalty_value(&self) -> usize {
         self.1
     }
 }
@@ -170,6 +170,8 @@ struct HierarchicalAreasObjective {
 
 impl FeatureObjective for HierarchicalAreasObjective {
     fn fitness(&self, insertion_ctx: &InsertionContext) -> Cost {
+        // use inner objective estimation for global fitness here
+        // `estimate` function is supposed to guide search in a more efficient way
         self.objective.fitness(insertion_ctx)
     }
 
@@ -179,7 +181,17 @@ impl FeatureObjective for HierarchicalAreasObjective {
             MoveContext::Activity { activity_ctx, .. } => activity_ctx,
         };
 
-        get_penalty(activity_ctx, &self.hierarchy_index) as Cost
+        // estimate penalty based on hierarchy
+        let penalty = get_penalty(activity_ctx, &self.hierarchy_index) as Cost;
+
+        // normalize penalty to be in range [0, 1]
+        let ratio = penalty / self.hierarchy_index.tiers.max_penalty_value() as Cost;
+
+        // get base cost as inner objective estimate
+        let base_cost = self.objective.estimate(move_ctx);
+
+        // return cost in range [base_cost, 2*base_cost]
+        base_cost * ratio + base_cost
     }
 }
 
@@ -223,7 +235,7 @@ fn estimate_leg_cost(from: Location, to: Location, hierarchy_index: &HierarchyIn
         })
         // stop at the first match as we're starting from the lowest tier
         .next()
-        .unwrap_or_else(|| hierarchy_index.tiers.penalty_value())
+        .unwrap_or_else(|| hierarchy_index.tiers.max_penalty_value())
 }
 
 /// Conversion logic from k-medoids clustering algorithm result.
