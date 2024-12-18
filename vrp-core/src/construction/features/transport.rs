@@ -73,15 +73,11 @@ impl TransportFeatureBuilder {
 
         create_feature(
             self.name.as_str(),
+            DurationObjective { transport: transport.clone(), activity: activity.clone() },
             transport,
             activity,
             self.code.unwrap_or_default(),
             self.is_constrained,
-            Box::new(move |insertion_ctx| {
-                insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
-                    acc + route_ctx.state().get_total_duration().cloned().unwrap_or(0.)
-                })
-            }),
         )
     }
 
@@ -91,15 +87,11 @@ impl TransportFeatureBuilder {
         let (transport, activity) = self.get_costs()?;
         create_feature(
             self.name.as_str(),
+            DistanceObjective { transport: transport.clone(), activity: activity.clone() },
             transport,
             activity,
             self.code.unwrap_or_default(),
             self.is_constrained,
-            Box::new(move |insertion_ctx| {
-                insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
-                    acc + route_ctx.state().get_total_distance().copied().unwrap_or(0.)
-                })
-            }),
         )
     }
 
@@ -109,11 +101,11 @@ impl TransportFeatureBuilder {
 
         create_feature(
             self.name.as_str(),
+            CostObjective { transport: transport.clone(), activity: activity.clone() },
             transport,
             activity,
             self.code.unwrap_or_default(),
             self.is_constrained,
-            Box::new(|insertion_ctx| insertion_ctx.get_total_cost().unwrap_or_default()),
         )
     }
 
@@ -125,18 +117,21 @@ impl TransportFeatureBuilder {
     }
 }
 
-fn create_feature(
+fn create_feature<O>(
     name: &str,
+    objective: O,
     transport: Arc<dyn TransportCost>,
     activity: Arc<dyn ActivityCost>,
     time_window_code: ViolationCode,
     is_constrained: bool,
-    fitness_fn: Box<dyn Fn(&InsertionContext) -> Float + Send + Sync>,
-) -> Result<Feature, GenericError> {
+) -> Result<Feature, GenericError>
+where
+    O: FeatureObjective + 'static,
+{
     let builder = FeatureBuilder::default()
         .with_name(name)
         .with_state(TransportState::new(transport.clone(), activity.clone()))
-        .with_objective(TransportObjective { transport: transport.clone(), activity: activity.clone(), fitness_fn });
+        .with_objective(objective);
 
     if is_constrained {
         builder
@@ -278,13 +273,109 @@ impl FeatureConstraint for TransportConstraint {
     }
 }
 
-struct TransportObjective {
+struct DistanceObjective {
     activity: Arc<dyn ActivityCost>,
     transport: Arc<dyn TransportCost>,
-    fitness_fn: Box<dyn Fn(&InsertionContext) -> Float + Send + Sync>,
 }
 
-impl TransportObjective {
+impl FeatureObjective for DistanceObjective {
+    fn fitness(&self, insertion_ctx: &InsertionContext) -> Cost {
+        insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
+            acc + route_ctx.state().get_total_distance().copied().unwrap_or(0.)
+        })
+    }
+
+    fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
+        let MoveContext::Activity { route_ctx, activity_ctx, .. } = move_ctx else {
+            return Cost::default();
+        };
+
+        estimate_leg(self.transport.as_ref(), self.activity.as_ref(), route_ctx, activity_ctx, |from, to, time| {
+            self.transport.distance(route_ctx.route(), from, to, time)
+        })
+    }
+}
+
+struct DurationObjective {
+    activity: Arc<dyn ActivityCost>,
+    transport: Arc<dyn TransportCost>,
+}
+
+impl FeatureObjective for DurationObjective {
+    fn fitness(&self, insertion_ctx: &InsertionContext) -> Cost {
+        insertion_ctx.solution.routes.iter().fold(Cost::default(), move |acc, route_ctx| {
+            acc + route_ctx.state().get_total_duration().copied().unwrap_or(0.)
+        })
+    }
+
+    fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
+        let MoveContext::Activity { route_ctx, activity_ctx, .. } = move_ctx else {
+            return Cost::default();
+        };
+
+        estimate_leg(self.transport.as_ref(), self.activity.as_ref(), route_ctx, activity_ctx, |from, to, time| {
+            self.transport.duration(route_ctx.route(), from, to, time)
+        })
+    }
+}
+
+fn estimate_leg<FE>(
+    transport: &dyn TransportCost,
+    activity: &dyn ActivityCost,
+    route_ctx: &RouteContext,
+    activity_ctx: &ActivityContext,
+    estimate_fn: FE,
+) -> Float
+where
+    FE: Fn(Location, Location, TravelTime) -> Float,
+{
+    let route = route_ctx.route();
+    let prev = activity_ctx.prev.place.location;
+    let target = activity_ctx.target.place.location;
+
+    let prev_dep = TravelTime::Departure(activity_ctx.prev.schedule.departure);
+
+    // prev -> target
+    let (prev_target, dep_time_target) = {
+        let time = activity_ctx.prev.schedule.departure;
+        let arrival = time + transport.duration(route, prev, target, prev_dep);
+        let departure = activity.estimate_departure(route, activity_ctx.target, arrival);
+
+        (estimate_fn(prev, target, prev_dep), departure)
+    };
+
+    // target -> next
+    let target_next = if let Some(next) = activity_ctx.next {
+        estimate_fn(target, next.place.location, TravelTime::Departure(dep_time_target))
+    } else {
+        Distance::default()
+    };
+
+    // new transition: prev -> target -> next
+    let prev_target_next = prev_target + target_next;
+
+    // no jobs yet or open vrp.
+    if !route.tour.has_jobs() {
+        return prev_target_next;
+    }
+
+    let Some(next) = activity_ctx.next else {
+        return prev_target_next;
+    };
+
+    // old transition: prev -> next
+    let prev_next = estimate_fn(prev, next.place.location, prev_dep);
+
+    // delta change
+    prev_target_next - prev_next
+}
+
+struct CostObjective {
+    activity: Arc<dyn ActivityCost>,
+    transport: Arc<dyn TransportCost>,
+}
+
+impl CostObjective {
     fn estimate_route(&self, route_ctx: &RouteContext) -> Float {
         if route_ctx.route().tour.has_jobs() {
             0.
@@ -304,17 +395,20 @@ impl TransportObjective {
         let (tp_cost_right, act_cost_right, dep_time_right) = if let Some(next) = next {
             self.analyze_route_leg(route_ctx, target, next, dep_time_left)
         } else {
-            (0., 0., 0.)
+            (Cost::default(), Cost::default(), Timestamp::default())
         };
 
         let new_costs = tp_cost_left + tp_cost_right + act_cost_left + act_cost_right;
 
         // no jobs yet or open vrp.
-        if !route_ctx.route().tour.has_jobs() || next.is_none() {
+        if !route_ctx.route().tour.has_jobs() {
             return new_costs;
         }
 
-        let next = next.unwrap();
+        let Some(next) = next else {
+            return new_costs;
+        };
+
         let waiting_time = route_ctx.state().get_waiting_time_at(activity_ctx.index + 1).copied().unwrap_or_default();
 
         let (tp_cost_old, act_cost_old, dep_time_old) =
@@ -349,9 +443,9 @@ impl TransportObjective {
     }
 }
 
-impl FeatureObjective for TransportObjective {
-    fn fitness(&self, solution: &InsertionContext) -> Cost {
-        (self.fitness_fn)(solution)
+impl FeatureObjective for CostObjective {
+    fn fitness(&self, insertion_ctx: &InsertionContext) -> Cost {
+        insertion_ctx.get_total_cost().unwrap_or_default()
     }
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {

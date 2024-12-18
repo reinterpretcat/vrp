@@ -11,6 +11,7 @@ are already published. So, I stick to it for now.
 ### Changed
 
 * improved remedian algorithm
+* separate calculations for distance/duration from cost minimization
 
 
 ## [1.25.0] 2024-11-10
