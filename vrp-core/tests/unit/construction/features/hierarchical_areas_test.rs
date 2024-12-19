@@ -37,7 +37,7 @@ parameterized_test! {can_estimate_activity, test_data, {
 
     let expected = match expected {
         Estimate::Tier(tier) => index.tiers.get_value(tier).expect("cannot get tier value"),
-        Estimate::Penalty => index.tiers.penalty_value(),
+        Estimate::Penalty => index.tiers.max_penalty_value(),
     };
 
     can_estimate_activity_impl(index, insertion_idx, expected);
@@ -168,7 +168,7 @@ fn can_estimate_activity_impl(hierarchy_index: HierarchyIndex, insertion_idx: us
         next: Some(&next_activity),
     };
 
-    let result = get_penalty(&activity_ctx, &hierarchy_index);
+    let result = get_activity_penalty(&activity_ctx, &hierarchy_index);
 
     assert_eq!(result, expected);
 }
@@ -184,13 +184,22 @@ fn can_generate_expected_tier_values() {
 
 #[test]
 fn can_create_hierarchy_index_from_clusters() {
-    let tiers = 2;
-    let hierarchy = [
+    let hierarchy = vec![
         HashMap::from([(2, vec![0, 1, 2, 3, 4]), (7, vec![5, 6, 7, 8, 9])]),
         HashMap::from([(1, vec![0, 1, 2]), (3, vec![3, 4]), (6, vec![5, 6]), (7, vec![7, 8, 9])]),
+        HashMap::from([
+            (0, vec![0, 1]),
+            (2, vec![2]),
+            (3, vec![3]),
+            (4, vec![4]),
+            (5, vec![5]),
+            (6, vec![6]),
+            (7, vec![7, 8, 9]),
+        ]),
     ];
+    let tiers = hierarchy.len();
 
-    let hierarchy_index = HierarchyIndex::try_from(&hierarchy[..]).expect("cannot create hierarchy index");
+    let hierarchy_index = HierarchyIndex::try_from(&hierarchy).expect("cannot create hierarchy index");
 
     assert_eq!(hierarchy_index.tiers.0.len(), tiers);
     let assert_fn = |location: Location, expected: Vec<(usize, Vec<Location>)>| {
@@ -199,6 +208,13 @@ fn can_create_hierarchy_index_from_clusters() {
             .map(|tier_idx| {
                 let tier = hierarchy_index.tiers.get(tier_idx).expect("cannot get tier");
                 let detail_id = *actual.get(tier).expect("cannot get detail").as_simple().expect("must be simple");
+
+                match tier_idx {
+                    0 => assert_eq!(tier.value(), 0),
+                    1 => assert_eq!(tier.value(), 1),
+                    2 => assert_eq!(tier.value(), 3),
+                    _ => unreachable!("unexpected tier value"),
+                }
 
                 let mut locations = hierarchy_index
                     .index
@@ -220,35 +236,32 @@ fn can_create_hierarchy_index_from_clusters() {
 
         assert_eq!(actual, expected);
     };
-    assert_fn(0, vec![(0, vec![0, 1, 2, 3, 4]), (1, vec![0, 1, 2])]);
-    assert_fn(1, vec![(0, vec![0, 1, 2, 3, 4]), (1, vec![0, 1, 2])]);
-    assert_fn(2, vec![(0, vec![0, 1, 2, 3, 4]), (1, vec![0, 1, 2])]);
+    assert_fn(0, vec![(0, vec![0, 1]), (1, vec![0, 1, 2]), (2, vec![0, 1, 2, 3, 4])]);
+    assert_fn(1, vec![(0, vec![0, 1]), (1, vec![0, 1, 2]), (2, vec![0, 1, 2, 3, 4])]);
+    assert_fn(2, vec![(0, vec![2]), (1, vec![0, 1, 2]), (2, vec![0, 1, 2, 3, 4])]);
 
-    assert_fn(3, vec![(0, vec![0, 1, 2, 3, 4]), (1, vec![3, 4])]);
-    assert_fn(4, vec![(0, vec![0, 1, 2, 3, 4]), (1, vec![3, 4])]);
+    assert_fn(3, vec![(0, vec![3]), (1, vec![3, 4]), (2, vec![0, 1, 2, 3, 4])]);
+    assert_fn(4, vec![(0, vec![4]), (1, vec![3, 4]), (2, vec![0, 1, 2, 3, 4])]);
 
-    assert_fn(5, vec![(0, vec![5, 6, 7, 8, 9]), (1, vec![5, 6])]);
-    assert_fn(6, vec![(0, vec![5, 6, 7, 8, 9]), (1, vec![5, 6])]);
+    assert_fn(5, vec![(0, vec![5]), (1, vec![5, 6]), (2, vec![5, 6, 7, 8, 9])]);
+    assert_fn(6, vec![(0, vec![6]), (1, vec![5, 6]), (2, vec![5, 6, 7, 8, 9])]);
 
-    assert_fn(7, vec![(0, vec![5, 6, 7, 8, 9]), (1, vec![7, 8, 9])]);
-    assert_fn(8, vec![(0, vec![5, 6, 7, 8, 9]), (1, vec![7, 8, 9])]);
-    assert_fn(9, vec![(0, vec![5, 6, 7, 8, 9]), (1, vec![7, 8, 9])]);
+    assert_fn(7, vec![(0, vec![7, 8, 9]), (1, vec![7, 8, 9]), (2, vec![5, 6, 7, 8, 9])]);
+    assert_fn(8, vec![(0, vec![7, 8, 9]), (1, vec![7, 8, 9]), (2, vec![5, 6, 7, 8, 9])]);
+    assert_fn(9, vec![(0, vec![7, 8, 9]), (1, vec![7, 8, 9]), (2, vec![5, 6, 7, 8, 9])]);
 }
 
 #[test]
-fn can_create_hierarchy_index_from_empty() {
-    let hierarchy: Vec<HashMap<Location, Vec<Location>>> = vec![];
+fn can_handle_empty_hierarchy() {
+    let index = HierarchyIndex::try_from(&vec![]);
 
-    let index = HierarchyIndex::try_from(&hierarchy[..]).unwrap();
-
-    assert_eq!(index.tiers.0.len(), 0);
-    assert!(index.index.is_empty());
+    assert!(index.is_err());
 }
 
 #[test]
 fn can_handle_hierarchy_index_insertion_with_invalid_index() {
-    let hierarchy: Vec<HashMap<Location, Vec<Location>>> = vec![];
-    let mut index = HierarchyIndex::try_from(&hierarchy[..]).unwrap();
+    let mut index =
+        HierarchyIndex::try_from(&vec![HashMap::from([(2, vec![0, 1, 2, 3, 4]), (7, vec![5, 6, 7, 8, 9])])]).unwrap();
 
     let result = index.insert(1, 2, LocationDetail::new_simple(0));
 

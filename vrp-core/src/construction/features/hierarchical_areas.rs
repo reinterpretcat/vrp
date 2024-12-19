@@ -13,18 +13,21 @@ use crate::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+/// A type which stores a list of clusters at different levels of hierarchy starting from the lowest one.
+pub type ClusterHierarchy = Vec<HashMap<Location, Vec<Location>>>;
+
 /// Creates a feature to guide search considering hierarchy of areas.
 /// A `cost_feature` used to calculate the cost of transition which will be considered as a base for
 /// an internal penalty.
-pub fn create_hierarchical_areas_feature(
-    cost_feature: Feature,
-    hierarchy_index: HierarchyIndex,
-) -> GenericResult<Feature> {
+pub fn create_hierarchical_areas_feature(cost_feature: Feature, clusters: ClusterHierarchy) -> GenericResult<Feature> {
     if cost_feature.objective.is_none() {
         return Err(GenericError::from("hierarchical areas requires cost feature to have an objective"));
     }
 
+    let hierarchy_index = HierarchyIndex::try_from(&clusters)?;
     let hierarchy_index = Arc::new(hierarchy_index);
+
+    let clusters = Arc::new(clusters);
 
     // use feature combinator to properly interpret additional constraints and states.
     FeatureCombinator::default()
@@ -35,10 +38,11 @@ pub fn create_hierarchical_areas_feature(
                 return Err(GenericError::from("hierarchical areas feature requires exactly one cost objective"));
             }
 
-            let (_, objective) = objectives[0].clone();
+            let objective = objectives[0].1.clone();
             let hierarchy_index = hierarchy_index.clone();
+            let clusters = clusters.clone();
 
-            Ok(Some(Arc::new(HierarchicalAreasObjective { objective, hierarchy_index })))
+            Ok(Some(Arc::new(HierarchicalAreasObjective { objective, clusters, hierarchy_index })))
         })
         .combine()
 }
@@ -165,6 +169,7 @@ impl LocationDetail {
 
 struct HierarchicalAreasObjective {
     objective: Arc<dyn FeatureObjective>,
+    clusters: Arc<ClusterHierarchy>,
     hierarchy_index: Arc<HierarchyIndex>,
 }
 
@@ -176,13 +181,21 @@ impl FeatureObjective for HierarchicalAreasObjective {
     }
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
-        let activity_ctx = match move_ctx {
-            MoveContext::Route { .. } => return Cost::default(),
-            MoveContext::Activity { activity_ctx, .. } => activity_ctx,
-        };
+        match move_ctx {
+            MoveContext::Route { solution_ctx, route_ctx, job } => self.get_job_cost(solution_ctx, route_ctx, job),
+            MoveContext::Activity { activity_ctx, .. } => self.get_activity_cost(move_ctx, activity_ctx),
+        }
+    }
+}
 
+impl HierarchicalAreasObjective {
+    fn get_job_cost(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, job: &Job) -> Cost {
+        Cost::default()
+    }
+
+    fn get_activity_cost(&self, move_ctx: &MoveContext<'_>, activity_ctx: &ActivityContext) -> Cost {
         // estimate penalty based on hierarchy
-        let penalty = get_penalty(activity_ctx, &self.hierarchy_index) as Cost;
+        let penalty = get_activity_penalty(activity_ctx, &self.hierarchy_index) as Cost;
 
         // normalize penalty to be in range [0, 1]
         let ratio = penalty / self.hierarchy_index.tiers.max_penalty_value() as Cost;
@@ -195,7 +208,7 @@ impl FeatureObjective for HierarchicalAreasObjective {
     }
 }
 
-fn get_penalty(activity_ctx: &ActivityContext, hierarchy_index: &HierarchyIndex) -> usize {
+fn get_activity_penalty(activity_ctx: &ActivityContext, hierarchy_index: &HierarchyIndex) -> usize {
     let estimate_fn = |from, to| estimate_leg_cost(from, to, hierarchy_index);
 
     let prev = activity_ctx.prev.place.location;
@@ -240,18 +253,24 @@ fn estimate_leg_cost(from: Location, to: Location, hierarchy_index: &HierarchyIn
 
 /// Conversion logic from k-medoids clustering algorithm result.
 /// We assume sorting from the lowest level to the highest one.
-impl TryFrom<&[HashMap<Location, Vec<Location>>]> for HierarchyIndex {
+impl TryFrom<&ClusterHierarchy> for HierarchyIndex {
     type Error = GenericError;
 
-    fn try_from(hierarchy: &[HashMap<Location, Vec<Location>>]) -> Result<Self, Self::Error> {
+    fn try_from(hierarchy: &ClusterHierarchy) -> Result<Self, Self::Error> {
+        if hierarchy.first().map_or(true, |clusters| clusters.len() != 2) {
+            return Err(From::from("a first level of hierarchy should have 2 clusters"));
+        }
+
         let levels = hierarchy.len();
         let mut index = HierarchyIndex::new(levels);
 
-        hierarchy.iter().enumerate().try_for_each(|(level, clusters)| {
-            clusters.values().enumerate().try_for_each(|(cluster_idx, cluster)| {
+        // reverse hierarchy to start from the level with the fewest clusters
+        hierarchy.iter().rev().enumerate().try_for_each(|(level, clusters)| {
+            // use medoid location as a key in location detail
+            clusters.iter().try_for_each(|(medoid, cluster)| {
                 cluster
                     .iter()
-                    .try_for_each(|&location| index.insert(location, level, LocationDetail::new_simple(cluster_idx)))
+                    .try_for_each(|&location| index.insert(location, level, LocationDetail::new_simple(*medoid)))
             })
         })?;
 
