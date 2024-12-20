@@ -10,7 +10,7 @@ use crate::prelude::*;
 use rosomaxa::population::RosomaxaContext;
 use rosomaxa::utils::fold_reduce;
 
-custom_solution_state!(Footprint typeof Footprint);
+custom_solution_state!(pub(crate) Footprint typeof Footprint);
 
 /// Defines a low-dimensional representation of multiple solutions.
 #[derive(Clone, Debug)]

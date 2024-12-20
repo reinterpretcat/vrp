@@ -11,7 +11,7 @@ use vrp_core::models::Extras;
 use vrp_core::prelude::{GenericError, InfoLogger};
 use vrp_core::utils::{Float, GenericResult, Timer};
 
-custom_extra_property!(CoordIndex typeof CoordIndex);
+custom_extra_property!(pub CoordIndex typeof CoordIndex);
 
 /// Represents a coord index which can be used to analyze customer's locations.
 #[derive(Clone, Default)]

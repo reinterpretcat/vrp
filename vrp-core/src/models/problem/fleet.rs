@@ -10,7 +10,7 @@ use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-custom_dimension!(VehicleId typeof String);
+custom_dimension!(pub VehicleId typeof String);
 
 /// Represents operating costs for driver and vehicle.
 #[derive(Clone, Debug)]

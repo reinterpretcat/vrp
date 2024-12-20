@@ -20,7 +20,7 @@ use self::estimations::*;
 use crate::models::solution::Commute;
 use crate::prelude::ViolationCode;
 
-custom_dimension!(ClusterInfo typeof Vec<ClusterInfo>);
+custom_dimension!(pub ClusterInfo typeof Vec<ClusterInfo>);
 
 /// Holds center job and its neighbor jobs.
 pub type ClusterCandidate<'a> = (&'a Job, &'a HashSet<Job>);

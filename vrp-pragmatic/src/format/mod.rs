@@ -206,8 +206,8 @@ mod properties {
     use vrp_core::custom_extra_property;
     use vrp_core::models::Extras;
 
-    custom_extra_property!(JobIndex typeof JobIndex);
-    custom_extra_property!(CoordIndex typeof CoordIndex);
+    custom_extra_property!(pub JobIndex typeof JobIndex);
+    custom_extra_property!(pub CoordIndex typeof CoordIndex);
 }
 
 /// Get job and coord indices from extras

@@ -7,7 +7,7 @@ use std::collections::HashSet;
 #[path = "../../../tests/unit/construction/features/groups_test.rs"]
 mod groups_test;
 
-custom_dimension!(JobGroup typeof String);
+custom_dimension!(pub JobGroup typeof String);
 custom_tour_state!(CurrentGroups typeof HashSet<String>);
 
 /// Creates a job group feature as a hard constraint.

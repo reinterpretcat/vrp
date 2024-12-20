@@ -6,7 +6,7 @@ mod compatibility_test;
 
 use super::*;
 
-custom_dimension!(JobCompatibility typeof String);
+custom_dimension!(pub JobCompatibility typeof String);
 custom_tour_state!(CurrentCompatibility typeof String);
 
 /// Creates a compatibility feature as a hard constraint.

@@ -4,11 +4,11 @@ use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
 use crate::models::OP_START_MSG;
 use rosomaxa::prelude::Float;
 
-custom_activity_state!(LatestArrival typeof Timestamp);
-custom_activity_state!(WaitingTime typeof Timestamp);
-custom_tour_state!(TotalDistance typeof Distance);
-custom_tour_state!(TotalDuration typeof Duration);
-custom_tour_state!(LimitDuration typeof Duration);
+custom_activity_state!(pub(crate) LatestArrival typeof Timestamp);
+custom_activity_state!(pub(crate) WaitingTime typeof Timestamp);
+custom_tour_state!(pub TotalDistance typeof Distance);
+custom_tour_state!(pub TotalDuration typeof Duration);
+custom_tour_state!(pub(crate) LimitDuration typeof Duration);
 
 /// Updates route schedule data.
 pub fn update_route_schedule(

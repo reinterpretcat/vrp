@@ -3,10 +3,10 @@
 /// A macro to define a custom property on [crate::models::Extras].
 #[macro_export]
 macro_rules! custom_extra_property {
-    ($name:ident typeof $type:ty $(: $gen:ident)?) => {
+    ($vis:vis $name:ident typeof $type:ty $(: $gen:ident)?) => {
         paste::paste! {
             #[doc = " Extends [Extras] within a new ["[<$name ExtraProperty>]"]."]
-            pub trait [<$name ExtraProperty>] {
+            $vis trait [<$name ExtraProperty>] {
                 #[doc = " Gets "$name " property as a shared reference."]
                 fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<std::sync::Arc<$type>>;
 
@@ -34,10 +34,10 @@ macro_rules! custom_extra_property {
 /// A macro to define a custom solution state on [crate::construction::heuristics::SolutionState].
 #[macro_export]
 macro_rules! custom_solution_state {
-    ($name:ident typeof $type:ty $(: $gen:ident)?) => {
+    ($vis:vis $name:ident typeof $type:ty $(: $gen:ident)?) => {
         paste::paste! {
             #[doc = " Extends [SolutionState] within a new ["[<$name SolutionState>]"]."]
-            pub trait [<$name SolutionState>] {
+            $vis trait [<$name SolutionState>] {
                 #[doc = " Gets "$name " property."]
                 fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<&$type>;
                 #[doc = " Sets "$name " property."]
@@ -63,10 +63,10 @@ macro_rules! custom_solution_state {
 /// A macro to define a custom dimension on [crate::models::common::Dimensions].
 #[macro_export]
 macro_rules! custom_dimension {
-    ($name:ident typeof $type:ty $(: $gen:ident)?) => {
+    ($vis:vis $name:ident typeof $type:ty $(: $gen:ident)?) => {
         paste::paste! {
             #[doc = " Extends [Dimensions] within a new ["[<$name Dimension>]"]."]
-            pub trait [<$name Dimension>] {
+            $vis trait [<$name Dimension>] {
                 #[doc = " Gets "$name " property."]
                 fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<&$type>;
                 #[doc = " Sets "$name " property."]
@@ -92,10 +92,10 @@ macro_rules! custom_dimension {
 /// A macro to define a custom activity state on [crate::construction::heuristics::RouteState].
 #[macro_export]
 macro_rules! custom_activity_state {
-    ($name:ident typeof $type:ty $(: $gen:ident)?) => {
+    ($vis:vis $name:ident typeof $type:ty $(: $gen:ident)?) => {
         paste::paste! {
             #[doc = " Extends [RouteState] within a new ["[<$name ActivityState>]"]."]
-            pub trait [<$name ActivityState>] {
+            $vis trait [<$name ActivityState>] {
                 #[doc = " Gets `"$name "` activity state."]
                 fn [<get_ $name:snake:lower _at>]$(<$type : $gen>)?(&self, activity_idx: usize) -> Option<&$type>;
                 #[doc = " Sets `"$name "` activity states."]
@@ -120,10 +120,10 @@ macro_rules! custom_activity_state {
 /// A macro to define custom route state on [crate::construction::heuristics::RouteState].
 #[macro_export]
 macro_rules! custom_tour_state {
-    ($name:ident typeof $type:ty $(: $gen:ident)?) => {
+    ($vis:vis $name:ident typeof $type:ty $(: $gen:ident)?) => {
         paste::paste! {
             #[doc = " Extends [RouteState] within a new ["[<$name TourState>]"]."]
-            pub trait [<$name TourState>] {
+            $vis trait [<$name TourState>] {
                 #[doc = " Gets `"$name "` tour state."]
                 fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<&$type>;
                 #[doc = " Sets `"$name "` tour state."]
@@ -159,7 +159,7 @@ macro_rules! custom_route_intervals_state {
     // visibility modifier is provided
     ($(#[$meta:meta])* $vis:vis $name:ident) => {
         paste::paste! {
-            custom_tour_state!($name typeof Vec<(usize, usize)>);
+            custom_tour_state!($vis $name typeof Vec<(usize, usize)>);
             $(#[$meta])*
             /// Provides access to route intervals implementation.
             $vis struct [<$name State>];

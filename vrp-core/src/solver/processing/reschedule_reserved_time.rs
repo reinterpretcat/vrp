@@ -2,7 +2,7 @@ use super::*;
 use crate::construction::enablers::*;
 use crate::models::Extras;
 
-custom_extra_property!(ReservedTimes typeof ReservedTimesIndex);
+custom_extra_property!(pub ReservedTimes typeof ReservedTimesIndex);
 
 /// Reschedules reserved time duration in more optimal way:
 /// - try to avoid it during travel by moving it to earlier time on point stop

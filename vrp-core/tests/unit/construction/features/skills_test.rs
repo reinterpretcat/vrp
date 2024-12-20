@@ -1,13 +1,8 @@
-use crate::construction::features::skills::create_skills_feature;
-use crate::construction::features::{JobSkills, JobSkillsDimension, VehicleSkillsDimension};
-use crate::construction::heuristics::MoveContext;
+use super::*;
+
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::problem::{test_driver, FleetBuilder, TestSingleBuilder, TestVehicleBuilder};
 use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
-use crate::models::problem::{Job, Vehicle};
-use crate::models::{ConstraintViolation, ViolationCode};
-use std::collections::HashSet;
-use std::iter::FromIterator;
 
 const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 

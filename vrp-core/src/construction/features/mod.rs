@@ -11,9 +11,8 @@ mod breaks;
 pub use self::breaks::*;
 
 mod capacity;
-pub use self::capacity::{
-    CapacityFeatureBuilder, JobDemandDimension, MaxVehicleLoadTourState, VehicleCapacityDimension,
-};
+pub(crate) use self::capacity::MaxVehicleLoadTourState;
+pub use self::capacity::{CapacityFeatureBuilder, JobDemandDimension, VehicleCapacityDimension};
 
 mod compatibility;
 pub use self::compatibility::{create_compatibility_feature, JobCompatibilityDimension};

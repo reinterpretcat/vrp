@@ -7,8 +7,8 @@ mod skills_test;
 use super::*;
 use std::collections::HashSet;
 
-custom_dimension!(JobSkills typeof JobSkills);
-custom_dimension!(VehicleSkills typeof HashSet<String>);
+custom_dimension!(pub JobSkills typeof JobSkills);
+custom_dimension!(pub VehicleSkills typeof HashSet<String>);
 
 /// A job skills limitation for a vehicle.
 pub struct JobSkills {

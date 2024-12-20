@@ -10,15 +10,15 @@ use crate::models::solution::Activity;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-custom_activity_state!(CurrentCapacity typeof T: LoadOps);
+custom_activity_state!(pub(crate) CurrentCapacity typeof T: LoadOps);
 
-custom_activity_state!(MaxFutureCapacity typeof T: LoadOps);
+custom_activity_state!(pub(crate) MaxFutureCapacity typeof T: LoadOps);
 
-custom_activity_state!(MaxPastCapacity typeof T: LoadOps);
+custom_activity_state!(pub(crate) MaxPastCapacity typeof T: LoadOps);
 
-custom_tour_state!(MaxVehicleLoad typeof Float);
+custom_tour_state!(pub(crate) MaxVehicleLoad typeof Float);
 
-custom_dimension!(VehicleCapacity typeof T: LoadOps);
+custom_dimension!(pub VehicleCapacity typeof T: LoadOps);
 
 /// A trait to get or set job demand.
 pub trait JobDemandDimension {

@@ -12,8 +12,8 @@ use crate::solver::RefinementContext;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-custom_extra_property!(ClusterConfig typeof ClusterConfig);
-custom_extra_property!(OriginalProblem typeof Problem);
+custom_extra_property!(pub ClusterConfig typeof ClusterConfig);
+custom_extra_property!(pub OriginalProblem typeof Problem);
 
 /// Provides a way to change problem definition by reducing total job count using clustering.
 #[derive(Default)]

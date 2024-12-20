@@ -14,7 +14,7 @@ use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Weak};
 
-custom_dimension!(JobId typeof String);
+custom_dimension!(pub JobId typeof String);
 
 /// Represents a job variant.
 #[derive(Clone)]

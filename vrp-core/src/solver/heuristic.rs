@@ -55,7 +55,7 @@ pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, GoalCo
 /// A type to filter meta heuristics by name. Returns true if heuristic can be used.
 pub type HeuristicFilterFn = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 
-custom_extra_property!(HeuristicFilter typeof HeuristicFilterFn);
+custom_extra_property!(pub HeuristicFilter typeof HeuristicFilterFn);
 
 /// Provides the way to get [ProblemConfigBuilder] with reasonable defaults for VRP domain.
 pub struct VrpConfigBuilder {
