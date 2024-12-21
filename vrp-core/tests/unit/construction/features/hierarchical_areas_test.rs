@@ -276,8 +276,10 @@ mod hierarchy {
 mod estimations {
     use super::*;
     use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
+    use crate::helpers::models::problem::FleetBuilder;
     use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
     use crate::models::common::Distance;
+    use crate::models::problem::Driver;
     use crate::models::solution::Activity;
 
     struct DistanceObjective {
@@ -353,6 +355,84 @@ mod estimations {
             .unwrap()
     }
 
+    fn create_solution_ctx(routes: &[Vec<Location>]) -> SolutionContext {
+        let fleet = FleetBuilder::default()
+            .add_driver(Driver::empty())
+            .add_vehicles(
+                (0..routes.len())
+                    .map(|idx| {
+                        VehicleBuilder::default()
+                            .id(&format!("v{idx}"))
+                            .add_detail(
+                                VehicleDetailBuilder::default()
+                                    .set_start_location(0)
+                                    .set_end_location(0)
+                                    .build()
+                                    .unwrap(),
+                            )
+                            .build()
+                            .unwrap()
+                    })
+                    .collect(),
+            )
+            .build();
+
+        TestInsertionContextBuilder::default()
+            .with_routes(
+                routes
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, locations)| {
+                        RouteContextBuilder::default()
+                            .with_route(
+                                RouteBuilder::default()
+                                    .with_vehicle(&fleet, &format!("v{idx}"))
+                                    .add_activities(locations.iter().map(activity))
+                                    .build(),
+                            )
+                            .build()
+                    })
+                    .collect(),
+            )
+            .build()
+            .solution
+    }
+
+    fn create_tier_index(clusters: &[Vec<Location>]) -> HashMap<Tier, HashSet<Location>> {
+        Tiers::new(clusters.len())
+            .iter()
+            .zip(clusters)
+            .map(|(tier, medoids)| (tier.clone(), HashSet::<Location>::from_iter(medoids.iter().copied())))
+            .collect()
+    }
+
+    #[test]
+    fn can_accept_insertion() {
+        let state = create_test_feature().state.unwrap();
+        let mut solution_ctx = create_solution_ctx(&[vec![6, 5, 2]]);
+        state.accept_route_state(&mut solution_ctx.routes[0]);
+
+        state.accept_insertion(
+            &mut solution_ctx,
+            0,
+            &SingleBuilder::default().location(8).unwrap().build_as_job().unwrap(),
+        );
+
+        let medoid_index = solution_ctx.routes[0].state().get_medoid_index().expect("no medoid index");
+        assert_eq!(*medoid_index, create_tier_index(&[vec![1, 5, 6, 8], vec![1, 10, 12], vec![6, 8]]))
+    }
+
+    #[test]
+    fn can_accept_solution_state() {
+        let state = create_test_feature().state.unwrap();
+        let mut solution_ctx = create_solution_ctx(&[vec![6, 5, 2]]);
+
+        state.accept_solution_state(&mut solution_ctx);
+
+        let medoid_index = solution_ctx.routes[0].state().get_medoid_index().expect("no medoid index");
+        assert_eq!(*medoid_index, create_tier_index(&[vec![1, 5, 6], vec![1, 10], vec![6]]))
+    }
+
     parameterized_test! {can_estimate_job, (routes, selected_route_idx, new_job_location, expected_cost), {
         can_estimate_job_impl(routes, selected_route_idx, new_job_location, expected_cost).unwrap();
     }}
@@ -369,19 +449,7 @@ mod estimations {
     ) -> GenericResult<()> {
         let feature = create_test_feature();
         let (objective, state) = (feature.objective.unwrap(), feature.state.unwrap());
-        let mut solution_ctx = TestInsertionContextBuilder::default()
-            .with_routes(
-                routes
-                    .iter()
-                    .map(|locations| {
-                        RouteContextBuilder::default()
-                            .with_route(RouteBuilder::default().add_activities(locations.iter().map(activity)).build())
-                            .build()
-                    })
-                    .collect(),
-            )
-            .build()
-            .solution;
+        let mut solution_ctx = create_solution_ctx(&routes);
         state.accept_solution_state(&mut solution_ctx);
 
         let estimate = objective.estimate(&MoveContext::Route {
