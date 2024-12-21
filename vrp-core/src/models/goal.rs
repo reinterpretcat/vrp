@@ -396,7 +396,7 @@ impl FeatureBuilder {
             return Err("features with default id are not allowed".into());
         }
 
-        if feature.constraint.is_none() && feature.objective.is_none() {
+        if feature.constraint.is_none() && feature.objective.is_none() && feature.state.is_none() {
             Err("empty feature is not allowed".into())
         } else {
             Ok(feature)

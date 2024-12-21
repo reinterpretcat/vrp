@@ -232,7 +232,10 @@ fn get_hierarchical_areas_feature(blocks: &ProblemBlocks, levels: usize) -> Gene
         .set_activity_cost(blocks.activity.clone())
         .build_minimize_distance()?;
 
-    create_hierarchical_areas_feature(cost_feature, clusters)
+    create_hierarchical_areas_feature(cost_feature, &clusters, {
+        let transport = blocks.transport.clone();
+        move |profile, from, to| transport.distance_approx(profile, from, to)
+    })
 }
 
 fn get_objectives(api_problem: &ApiProblem, props: &ProblemProperties) -> Vec<Objective> {

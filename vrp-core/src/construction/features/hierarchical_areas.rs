@@ -9,6 +9,7 @@ mod hierarchical_areas_test;
 
 use crate::construction::enablers::FeatureCombinator;
 use crate::construction::heuristics::ActivityContext;
+use crate::models::common::Profile;
 use crate::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -19,30 +20,37 @@ pub type ClusterHierarchy = Vec<HashMap<Location, Vec<Location>>>;
 /// Creates a feature to guide search considering hierarchy of areas.
 /// A `cost_feature` used to calculate the cost of transition which will be considered as a base for
 /// an internal penalty.
-pub fn create_hierarchical_areas_feature(cost_feature: Feature, clusters: ClusterHierarchy) -> GenericResult<Feature> {
+pub fn create_hierarchical_areas_feature<F>(
+    cost_feature: Feature,
+    clusters: &ClusterHierarchy,
+    distance_fn: F,
+) -> GenericResult<Feature>
+where
+    F: Fn(&Profile, Location, Location) -> Cost + Send + Sync + 'static,
+{
     if cost_feature.objective.is_none() {
         return Err(GenericError::from("hierarchical areas requires cost feature to have an objective"));
     }
 
-    let hierarchy_index = HierarchyIndex::try_from(&clusters)?;
-    let hierarchy_index = Arc::new(hierarchy_index);
+    let hierarchy_index = Arc::new(HierarchyIndex::try_from(clusters)?);
 
-    let clusters = Arc::new(clusters);
+    let hierarchy_feature = FeatureBuilder::default()
+        .with_name(cost_feature.name.as_str()) // name will be ignored
+        .with_state(HierarchicalAreasState { hierarchy_index: hierarchy_index.clone() })
+        .build()?;
 
     // use feature combinator to properly interpret additional constraints and states.
     FeatureCombinator::default()
         .use_name(cost_feature.name.as_str())
-        .add_feature(cost_feature)
+        .add_features(&[cost_feature, hierarchy_feature])
         .set_objective_combinator(move |objectives| {
             if objectives.len() != 1 {
                 return Err(GenericError::from("hierarchical areas feature requires exactly one cost objective"));
             }
 
             let objective = objectives[0].1.clone();
-            let hierarchy_index = hierarchy_index.clone();
-            let clusters = clusters.clone();
 
-            Ok(Some(Arc::new(HierarchicalAreasObjective { objective, clusters, hierarchy_index })))
+            Ok(Some(Arc::new(HierarchicalAreasObjective { objective, distance_fn, hierarchy_index })))
         })
         .combine()
 }
@@ -167,13 +175,18 @@ impl LocationDetail {
     }
 }
 
-struct HierarchicalAreasObjective {
+custom_tour_state!(MedoidIndex typeof HashMap<Tier, HashSet<Location>>);
+
+struct HierarchicalAreasObjective<F> {
     objective: Arc<dyn FeatureObjective>,
-    clusters: Arc<ClusterHierarchy>,
+    distance_fn: F,
     hierarchy_index: Arc<HierarchyIndex>,
 }
 
-impl FeatureObjective for HierarchicalAreasObjective {
+impl<F> FeatureObjective for HierarchicalAreasObjective<F>
+where
+    F: Fn(&Profile, Location, Location) -> Cost + Send + Sync,
+{
     fn fitness(&self, insertion_ctx: &InsertionContext) -> Cost {
         // use inner objective estimation for global fitness here
         // `estimate` function is supposed to guide search in a more efficient way
@@ -188,9 +201,41 @@ impl FeatureObjective for HierarchicalAreasObjective {
     }
 }
 
-impl HierarchicalAreasObjective {
+impl<F> HierarchicalAreasObjective<F>
+where
+    F: Fn(&Profile, Location, Location) -> Cost + Send + Sync,
+{
     fn get_job_cost(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, job: &Job) -> Cost {
-        Cost::default()
+        let max_tier_penalty = self.hierarchy_index.tiers.max_penalty_value();
+        let profile = &route_ctx.route().actor.vehicle.profile;
+
+        job.places()
+            .filter_map(|place| place.location.as_ref())
+            .filter_map(|location| self.hierarchy_index.get(location).map(|cluster| (location, cluster)))
+            .flat_map(|(location, cluster)| {
+                self.hierarchy_index
+                    .tiers
+                    .iter()
+                    .filter_map(|tier| cluster.get(tier).map(|detail| (tier, detail)))
+                    .filter_map(|(tier, detail)| detail.as_simple().copied().map(|medoid| (tier, medoid)))
+                    .map(|(tier, medoid)| {
+                        // find out whether this medoid is already seen in any other route
+                        // if so, calculate overlap factor using tier value
+                        solution_ctx
+                            .routes
+                            .iter()
+                            .filter(|&other| route_ctx != other)
+                            .filter_map(|route_ctx| route_ctx.state().get_medoid_index())
+                            .filter_map(|medoid_index| medoid_index.get(tier))
+                            .filter_map(|other_medoids| other_medoids.get(&medoid))
+                            // more penalty on more fine-grained tiers
+                            .map(|_| (max_tier_penalty - tier.value()) as Float / max_tier_penalty as Float)
+                            .next()
+                            .map(|overlap_factor| overlap_factor * (self.distance_fn)(profile, *location, medoid))
+                            .unwrap_or_default()
+                    })
+            })
+            .sum::<Cost>()
     }
 
     fn get_activity_cost(&self, move_ctx: &MoveContext<'_>, activity_ctx: &ActivityContext) -> Cost {
@@ -249,6 +294,73 @@ fn estimate_leg_cost(from: Location, to: Location, hierarchy_index: &HierarchyIn
         // stop at the first match as we're starting from the lowest tier
         .next()
         .unwrap_or_else(|| hierarchy_index.tiers.max_penalty_value())
+}
+
+struct HierarchicalAreasState {
+    hierarchy_index: Arc<HierarchyIndex>,
+}
+
+impl FeatureState for HierarchicalAreasState {
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_idx: usize, job: &Job) {
+        // that should not happen
+        let Some(route_ctx) = solution_ctx.routes.get_mut(route_idx) else {
+            return;
+        };
+
+        // no index: create a new one from all activities
+        let Some(medoid_index) = route_ctx.state().get_medoid_index() else {
+            self.accept_route_state(route_ctx);
+            return;
+        };
+
+        // iterate over all place locations, get respective tier's medoids, and update medoid index
+        // NOTE this approach is suboptimal for jobs with alternative locations, but it's fine for now
+        let medoid_index = job
+            .places()
+            .filter_map(|place| place.location.as_ref())
+            .filter_map(|location| self.hierarchy_index.get(location))
+            .flat_map(|cluster| {
+                self.hierarchy_index
+                    .tiers
+                    .iter()
+                    .filter_map(|tier| cluster.get(tier).map(|detail| (tier, detail)))
+                    .filter_map(|(tier, detail)| detail.as_simple().copied().map(|medoid| (tier, medoid)))
+            })
+            .fold(medoid_index.clone(), |mut acc, (tier, medoid)| {
+                acc.entry(tier.clone()).or_default().insert(medoid);
+                acc
+            });
+
+        route_ctx.state_mut().set_medoid_index(medoid_index);
+    }
+
+    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
+        // iterate over all activities, get respective tier's medoids, and create medoid index
+        let medoid_index = route_ctx
+            .route()
+            .tour
+            .all_activities()
+            .filter(|activity| activity.job.is_some())
+            .map(|activity| activity.place.location)
+            .filter_map(|location| self.hierarchy_index.get(&location))
+            .flat_map(|index| index.iter())
+            // TODO so far, ignore compound variant
+            .filter_map(|(tier, detail)| detail.as_simple().map(|&medoid| (tier.clone(), medoid)))
+            .fold(HashMap::<Tier, HashSet<Location>>::new(), |mut acc, (tier, medoid)| {
+                acc.entry(tier).or_default().insert(medoid);
+                acc
+            });
+
+        route_ctx.state_mut().set_medoid_index(medoid_index);
+    }
+
+    fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
+        solution_ctx
+            .routes
+            .iter_mut()
+            .filter(|route_ctx| route_ctx.is_stale())
+            .for_each(|route_ctx| self.accept_route_state(route_ctx));
+    }
 }
 
 /// Conversion logic from k-medoids clustering algorithm result.

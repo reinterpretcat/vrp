@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 /// Specifies a type for injecting custom objective combination logic.
 pub type ObjectiveCombinator =
-    dyn Fn(&[(&str, Arc<dyn FeatureObjective>)]) -> GenericResult<Option<Arc<dyn FeatureObjective>>>;
+    dyn FnOnce(&[(&str, Arc<dyn FeatureObjective>)]) -> GenericResult<Option<Arc<dyn FeatureObjective>>>;
 
 /// Provides the way to group multiple features having more fine grained control over result.
 #[derive(Default)]
@@ -43,7 +43,7 @@ impl FeatureCombinator {
     /// Sets a custom objective combinator logic.
     pub fn set_objective_combinator<F>(mut self, objective_combinator: F) -> Self
     where
-        F: Fn(&[(&str, Arc<dyn FeatureObjective>)]) -> GenericResult<Option<Arc<dyn FeatureObjective>>> + 'static,
+        F: FnOnce(&[(&str, Arc<dyn FeatureObjective>)]) -> GenericResult<Option<Arc<dyn FeatureObjective>>> + 'static,
     {
         self.objective_combinator = Some(Box::new(objective_combinator));
         self
@@ -61,7 +61,7 @@ impl FeatureCombinator {
             })
         });
 
-        combine_features(name.as_ref(), self.features.as_slice(), &objective_combinator)
+        combine_features(name.as_ref(), self.features.as_slice(), objective_combinator)
     }
 }
 
@@ -69,7 +69,7 @@ impl FeatureCombinator {
 fn combine_features(
     name: &str,
     features: &[Feature],
-    objective_combinator: &ObjectiveCombinator,
+    objective_combinator: Box<ObjectiveCombinator>,
 ) -> Result<Feature, GenericError> {
     let objectives = features
         .iter()
