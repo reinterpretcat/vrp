@@ -317,16 +317,29 @@ mod estimations {
         ActivityBuilder::with_location(*location).build()
     }
 
-    /// Creates the main feature with three levels of predefined clusters,
-    /// 13 locations in total (0 for depot, 1-12 for jobs).
-    fn create_test_feature() -> Feature {
-        #[rustfmt::skip]
-        let points = [
+    #[rustfmt::skip]
+    const fn points() -> [(i32, i32); 13] {
+        [
             (0, 0),
             (-10,  5), (-5,  5), (5,  5), (10,  5),   //    1   2      3  4
             (-10,  0), (-5,  0), (5,  0), (10,  0),   //    5   6   0  7  8
             (-10, -5), (-5, -5), (5, -5), (10, -5),   //    9  10      11 12
-        ];
+        ]
+    }
+
+    fn distance(from: Location, to: Location) -> Distance {
+        const POINTS: [(i32, i32); 13] = points();
+
+        let ((from_x, from_y), (to_x, to_y)) = (POINTS[from], POINTS[to]);
+        let (dx, dy) = ((from_x - to_x) as Distance, (from_y - to_y) as Distance);
+        (dx * dx + dy * dy).sqrt()
+    }
+
+    /// Creates the main feature with three levels of predefined clusters,
+    /// 13 locations in total (0 for depot, 1-12 for jobs).
+    /// See `points` function above.
+    fn create_test_feature() -> Feature {
+        // see below more information about locations and clusters usage
         #[rustfmt::skip]
         let clusters = vec![
             HashMap::from([(6, vec![0, 1, 2, 5, 6, 9, 10]), (8, vec![3, 4, 7, 8, 11, 12])]),
@@ -335,14 +348,10 @@ mod estimations {
                 (1, vec![1, 2]), (5, vec![5]), (6, vec![0, 6]), (10, vec![9, 10]),
                 (3, vec![3, 4]), (7, vec![7]), (8, vec![8]),  (12, vec![11, 12])]),
         ];
-        let size = points.len();
+        let size = points().len();
         let matrix = (0..size)
             .flat_map(|from| (0..size).map(move |to| (from, to)))
-            .map(|(from, to)| {
-                let ((from_x, from_y), (to_x, to_y)) = (points[from], points[to]);
-                let (dx, dy) = ((from_x - to_x) as Distance, (from_y - to_y) as Distance);
-                (dx * dx + dy * dy).sqrt()
-            })
+            .map(|(from, to)| distance(from, to))
             .collect::<Vec<_>>();
 
         let distance_feature = FeatureBuilder::default()
@@ -406,6 +415,10 @@ mod estimations {
             .collect()
     }
 
+    fn round(value: Cost) -> Cost {
+        (value * 1000.).round() / 1000.
+    }
+
     #[test]
     fn can_accept_insertion() {
         let state = create_test_feature().state.unwrap();
@@ -437,14 +450,34 @@ mod estimations {
         can_estimate_job_impl(routes, selected_route_idx, new_job_location, expected_cost).unwrap();
     }}
 
+    // locations  coordinates in 2D plane        location ids (indices)
+    // (-10,  5), (-5,  5), (5,  5), (10,  5),   //    1   2      3  4
+    // (-10,  0), (-5,  0), (5,  0), (10,  0),   //    5   6   0  7  8
+    // (-10, -5), (-5, -5), (5, -5), (10, -5),   //    9  10      11 12
+
+    // cluster is represented by (medoid, [cluster locations]):
+    // tier: 2
+    // (6, [0, 1, 2, 5, 6, 9, 10]),           (8, [3, 4, 7, 8, 11, 12])
+    // tier: 1
+    // (1, [1, 2, 5]), (10, [0, 6, 9, 10]),   (3, [3, 4, 7]), (12, [8, 11, 12])
+    // tier: 0
+    // (1, [1, 2]), (5, [5]), (6, [0, 6]), (10, [9, 10]),
+    // (3, [3, 4]), (7, [7]), (8, [8]),  (12, [11, 12])])
     can_estimate_job! {
-        case01: (vec![vec![1, 2, 5], vec![9, 10], vec![3, 4]], 2, 6, 777.),
+        // routes\tiers   |     0      |     1     |     2     |
+        //    0:              [1, 5]        [1]         [6]
+        //    1:              [10]          [10]        [6]
+        //    2:              [3]           [3]         [8]
+
+        // job 6:              6             10          6
+        // result:            6 -> 10 at tier index 1
+        case01_at_only_one_level: (vec![vec![1, 2, 5], vec![9, 10], vec![3, 4]], 2, loc(6), 4.286),
     }
 
     fn can_estimate_job_impl(
         routes: Vec<Vec<Location>>,
         selected_route_idx: usize,
-        new_job_location: usize,
+        new_job_location: Location,
         expected_cost: Cost,
     ) -> GenericResult<()> {
         let feature = create_test_feature();
@@ -458,7 +491,7 @@ mod estimations {
             job: &SingleBuilder::default().location(new_job_location)?.build_as_job()?,
         });
 
-        assert_eq!(estimate, expected_cost);
+        assert_eq!(round(estimate), expected_cost);
 
         Ok(())
     }
