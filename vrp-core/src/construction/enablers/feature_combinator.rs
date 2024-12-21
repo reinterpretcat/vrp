@@ -56,8 +56,12 @@ impl FeatureCombinator {
 
         let objective_combinator = self.objective_combinator.unwrap_or_else(|| {
             Box::new(|objectives| {
-                let objectives = objectives.iter().map(|(_, o)| o.clone()).collect::<Vec<_>>();
-                Ok(Some(Arc::new(SumFeatureObjective { objectives })))
+                if objectives.len() == 1 {
+                    Ok(Some(objectives.first().unwrap().1.clone()))
+                } else {
+                    let objectives = objectives.iter().map(|(_, o)| o.clone()).collect::<Vec<_>>();
+                    Ok(Some(Arc::new(SumFeatureObjective { objectives })))
+                }
             })
         });
 
@@ -75,11 +79,7 @@ fn combine_features(
         .iter()
         .filter_map(|feature| Some(feature.name.as_str()).zip(feature.objective.clone()))
         .collect::<Vec<_>>();
-    let objective = match objectives.len() {
-        0 => None,
-        1 => objectives.first().map(|(_, o)| o.clone()),
-        _ => objective_combinator(objectives.as_slice())?,
-    };
+    let objective = if objectives.is_empty() { None } else { objective_combinator(objectives.as_slice())? };
 
     let constraints = features.iter().filter_map(|feature| feature.constraint.clone()).collect::<Vec<_>>();
     let constraint: Option<Arc<dyn FeatureConstraint>> = match constraints.len() {
