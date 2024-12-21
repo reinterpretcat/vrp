@@ -272,3 +272,126 @@ mod hierarchy {
         assert!(result.is_err());
     }
 }
+
+mod estimations {
+    use super::*;
+    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
+    use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
+    use crate::models::common::Distance;
+    use crate::models::solution::Activity;
+
+    struct DistanceObjective {
+        matrix: Vec<Distance>,
+        size: usize,
+    }
+
+    impl FeatureObjective for DistanceObjective {
+        fn fitness(&self, solution: &InsertionContext) -> Cost {
+            unreachable!()
+        }
+
+        fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
+            // simply calculate distance delta
+            match move_ctx {
+                MoveContext::Route { .. } => Cost::default(),
+                MoveContext::Activity { activity_ctx, .. } => {
+                    let prev = activity_ctx.prev.place.location;
+                    let target = activity_ctx.target.place.location;
+                    if let Some(next) = activity_ctx.next.map(|n| n.place.location) {
+                        let prev_target = self.matrix[prev * self.size + target];
+                        let target_next = self.matrix[target * self.size + next];
+                        let prev_next = self.matrix[prev * self.size + next];
+
+                        target_next + prev_target - prev_next
+                    } else {
+                        self.matrix[prev * self.size + target]
+                    }
+                }
+            }
+        }
+    }
+
+    fn activity(location: &Location) -> Activity {
+        ActivityBuilder::with_location(*location).build()
+    }
+
+    /// Creates the main feature with three levels of predefined clusters,
+    /// 13 locations in total (0 for depot, 1-12 for jobs).
+    fn create_test_feature() -> Feature {
+        #[rustfmt::skip]
+        let points = [
+            (0, 0),
+            (-10,  5), (-5,  5), (5,  5), (10,  5),   //    1   2      3  4
+            (-10,  0), (-5,  0), (5,  0), (10,  0),   //    5   6   0  7  8
+            (-10, -5), (-5, -5), (5, -5), (10, -5),   //    9  10      11 12
+        ];
+        #[rustfmt::skip]
+        let clusters = vec![
+            HashMap::from([(6, vec![0, 1, 2, 5, 6, 9, 10]), (8, vec![3, 4, 7, 8, 11, 12])]),
+            HashMap::from([(1, vec![1, 2, 5]), (10, vec![0, 6, 9, 10]), (3, vec![3, 4, 7]), (12, vec![8, 11, 12])]),
+            HashMap::from([
+                (1, vec![1, 2]), (5, vec![5]), (6, vec![0, 6]), (10, vec![9, 10]),
+                (3, vec![3, 4]), (7, vec![7]), (8, vec![8]),  (12, vec![11, 12])]),
+        ];
+        let size = points.len();
+        let matrix = (0..size)
+            .flat_map(|from| (0..size).map(move |to| (from, to)))
+            .map(|(from, to)| {
+                let ((from_x, from_y), (to_x, to_y)) = (points[from], points[to]);
+                let (dx, dy) = ((from_x - to_x) as Distance, (from_y - to_y) as Distance);
+                (dx * dx + dy * dy).sqrt()
+            })
+            .collect::<Vec<_>>();
+
+        let distance_feature = FeatureBuilder::default()
+            .with_name("distance")
+            .with_objective(DistanceObjective { matrix: matrix.clone(), size })
+            .build()
+            .unwrap();
+
+        create_hierarchical_areas_feature(distance_feature, &clusters, move |_, from, to| matrix[from * size + to])
+            .unwrap()
+    }
+
+    parameterized_test! {can_estimate_job, (routes, selected_route_idx, new_job_location, expected_cost), {
+        can_estimate_job_impl(routes, selected_route_idx, new_job_location, expected_cost).unwrap();
+    }}
+
+    can_estimate_job! {
+        case01: (vec![vec![1, 2, 5], vec![9, 10], vec![3, 4]], 2, 6, 777.),
+    }
+
+    fn can_estimate_job_impl(
+        routes: Vec<Vec<Location>>,
+        selected_route_idx: usize,
+        new_job_location: usize,
+        expected_cost: Cost,
+    ) -> GenericResult<()> {
+        let feature = create_test_feature();
+        let (objective, state) = (feature.objective.unwrap(), feature.state.unwrap());
+        let mut solution_ctx = TestInsertionContextBuilder::default()
+            .with_routes(
+                routes
+                    .iter()
+                    .map(|locations| {
+                        RouteContextBuilder::default()
+                            .with_route(RouteBuilder::default().add_activities(locations.iter().map(activity)).build())
+                            .build()
+                    })
+                    .collect(),
+            )
+            .build()
+            .solution;
+        state.accept_solution_state(&mut solution_ctx);
+
+        let estimate = objective.estimate(&MoveContext::Route {
+            solution_ctx: &solution_ctx,
+            route_ctx: &solution_ctx.routes[selected_route_idx],
+            job: &SingleBuilder::default().location(new_job_location)?.build_as_job()?,
+        });
+
+        assert_eq!(estimate, expected_cost);
+
+        Ok(())
+    }
+}
