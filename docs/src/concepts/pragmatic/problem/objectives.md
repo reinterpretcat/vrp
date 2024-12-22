@@ -45,6 +45,9 @@ constraints such as time windows. The objective has the following optional param
 * `fast-service`: prefers solutions when jobs are served early in tours. Optional parameter:
   *  `tolerance`: an objective tolerance specifies how different objective values have to be to consider them different.
       Relative distance metric is used.
+* `hierarchical-areas`: an experimental objective to play with clusters of jobs. Internally uses distance minimization as
+  a base penalty.
+  * `levels` - number of hierarchy levels
 
 ### Job distribution objectives
 

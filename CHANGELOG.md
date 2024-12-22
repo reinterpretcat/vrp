@@ -13,6 +13,10 @@ are already published. So, I stick to it for now.
 * improved remedian algorithm
 * separate calculations for distance/duration from cost minimization
 
+### Added
+
+* add an experimental objective
+
 
 ## [1.25.0] 2024-11-10
 
