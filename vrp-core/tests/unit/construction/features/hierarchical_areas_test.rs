@@ -470,8 +470,17 @@ mod estimations {
         //    2:              [3]           [3]         [8]
 
         // job 6:              6             10          6
-        // result:            6 -> 10 at tier index 1
+        // result:             6 -> 10 at tier index 1
         case01_at_only_one_level: (vec![vec![1, 2, 5], vec![9, 10], vec![3, 4]], 2, loc(6), 4.286),
+
+        // routes\tiers   |     0      |     1     |     2     |
+        //    0:               [1]          [1]         [6]
+        //    1:               [3]          [3]         [8]
+
+        // job 5:               5            1           6
+        // result:              5 -> 1 at tier index 1
+        //                      5 -> 6 at tier index 2
+        case02_at_two_levels: (vec![vec![1, 2], vec![3, 4]], 1, loc(5), 7.143),
     }
 
     fn can_estimate_job_impl(
