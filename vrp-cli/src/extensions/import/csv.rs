@@ -117,7 +117,7 @@ mod actual {
                     type_id: vehicle.id.clone(),
                     vehicle_ids: (1..=vehicle.amount).map(|seq| format!("{}_{}", vehicle.profile, seq)).collect(),
                     profile: VehicleProfile { matrix: vehicle.profile, scale: None },
-                    costs: VehicleCosts { fixed: Some(25.), distance: 0.0002, time: 0.005 },
+                    costs: VehicleCosts { fixed: Some(25.), distance: 0.0002, time: 0.005, overtime: Some(OvertimeCosts { threshold: f64::MAX, time: 0. }) },
                     shifts: vec![VehicleShift {
                         start: ShiftStart {
                             earliest: vehicle.tw_start,

@@ -55,6 +55,8 @@ pub(crate) fn create_fleet_with_distance_costs(
                 per_driving_time: 0.0,
                 per_waiting_time: 0.0,
                 per_service_time: 0.0,
+                overtime_threshold: 0.0,
+                overtime_cost: 0.0,
             },
             dimens: Default::default(),
             details: Default::default(),
@@ -73,6 +75,8 @@ pub(crate) fn create_fleet_with_distance_costs(
                         per_driving_time: 0.0,
                         per_waiting_time: 0.0,
                         per_service_time: 0.0,
+                        overtime_threshold: 0.0,
+                        overtime_cost: 0.0,
                     },
                     dimens,
                     details: vec![VehicleDetail {

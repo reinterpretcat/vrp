@@ -67,6 +67,7 @@ impl InsertionContext {
                 // .
                 // TODO calculate actual cost
                 + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
+                + calculate_overtime_cost(duration, costs)
         };
 
         self.solution.routes.iter().try_fold(Cost::default(), |acc, route_ctx| {

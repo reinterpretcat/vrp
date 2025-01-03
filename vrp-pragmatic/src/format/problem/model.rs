@@ -243,6 +243,22 @@ pub struct VehicleCosts {
 
     /// Cost per time unit.
     pub time: f64,
+
+    /// Fixed is cost of vehicle usage per tour.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overtime: Option<OvertimeCosts>,
+
+}
+
+/// Specifies vehicle costs.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct OvertimeCosts {
+    /// The threshold above which overtime cost is calculated
+    pub threshold: f64,
+
+    /// Overtime cost per time unit.
+    pub time: f64,
+
 }
 
 /// Specifies vehicle shift start.

@@ -25,6 +25,10 @@ pub struct Costs {
     pub per_waiting_time: f64,
     /// Cost per service time unit.
     pub per_service_time: f64,
+    /// the threshold in time unit of overtime.
+    pub overtime_threshold: f64,
+    ///cost per overtime unit.
+    pub overtime_cost: f64,
 }
 
 /// Represents driver detail (reserved for future use).
@@ -54,6 +58,8 @@ impl Driver {
                 per_driving_time: 0.,
                 per_waiting_time: 0.,
                 per_service_time: 0.,
+                overtime_threshold: 0.,
+                overtime_cost: 0.,
             },
             dimens: Default::default(),
             details: vec![],

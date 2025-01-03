@@ -98,12 +98,21 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
     let mut vehicles: Vec<Arc<Vehicle>> = Default::default();
 
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
+        let overtime = vehicle.costs.overtime.as_ref().unwrap_or_else(|| {
+            &OvertimeCosts {
+                threshold: f64::MAX,
+                time: 0.0,
+            }
+        });
+
         let costs = Costs {
             fixed: vehicle.costs.fixed.unwrap_or(0.),
             per_distance: vehicle.costs.distance,
             per_driving_time: vehicle.costs.time,
             per_waiting_time: vehicle.costs.time,
             per_service_time: vehicle.costs.time,
+            overtime_threshold: overtime.threshold,
+            overtime_cost: overtime.time,
         };
 
         let index = *profile_indices.get(&vehicle.profile.matrix).unwrap();
@@ -175,6 +184,8 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
             per_driving_time: 0.0,
             per_waiting_time: 0.0,
             per_service_time: 0.0,
+            overtime_threshold: f64::MAX,
+            overtime_cost: 0.0,
         },
         dimens: Default::default(),
         details: vec![],

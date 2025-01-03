@@ -407,6 +407,15 @@ fn get_cost_between_jobs(
     routing_cost
 }
 
+pub fn calculate_overtime_cost(work_time: f64, costs: &Costs) -> f64 {
+    if work_time > costs.overtime_threshold {
+        let overtime = work_time - costs.overtime_threshold;
+        overtime * costs.overtime_cost
+    } else {
+        0.0
+    }
+}
+
 fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<usize, Costs> {
     let get_avg_by = |costs: &Vec<Costs>, map_cost_fn: fn(&Costs) -> f64| -> f64 {
         costs.iter().map(map_cost_fn).sum::<f64>() / (costs.len() as f64)
@@ -428,6 +437,8 @@ fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<usize, Costs> {
                     per_driving_time: get_avg_by(costs, |c| c.per_driving_time),
                     per_waiting_time: get_avg_by(costs, |c| c.per_waiting_time),
                     per_service_time: get_avg_by(costs, |c| c.per_service_time),
+                    overtime_cost: get_avg_by(costs, |c| c.overtime_cost),
+                    overtime_threshold: get_avg_by(costs, |c| c.overtime_threshold),
                 },
             )
         })

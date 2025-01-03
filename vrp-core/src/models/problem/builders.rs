@@ -201,6 +201,8 @@ impl Default for VehicleBuilder {
                 per_driving_time: 0.0,
                 per_waiting_time: 0.0,
                 per_service_time: 0.0,
+                overtime_threshold: 0.0,
+                overtime_cost: 0.0,
             },
             dimens: Default::default(),
             details: vec![],
