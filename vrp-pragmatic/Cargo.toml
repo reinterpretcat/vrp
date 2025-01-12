@@ -18,14 +18,14 @@ serde.workspace = true
 serde_json.workspace = true
 rand.workspace = true
 
-time = { version = "0.3.36", features = ["parsing", "formatting"] }
+time = { version = "0.3.37", features = ["parsing", "formatting"] }
 paste = "1.0.15"
 
 [dev-dependencies]
 criterion.workspace = true
 
-proptest = "1.5.0"
-uuid = { version = "1.11.0", features = ["v4"] }
+proptest = "1.6.0"
+uuid = { version = "1.11.1", features = ["v4"] }
 
 [[bench]]
 name = "pragmatic_simple"

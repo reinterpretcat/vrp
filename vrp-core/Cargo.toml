@@ -21,4 +21,4 @@ paste.workspace = true
 lazy_static.workspace = true
 
 nohash-hasher = "0.2.0"
-tinyvec = { version = "1.8.0", features = ["alloc"] }
+tinyvec = { version = "1.8.1", features = ["alloc"] }
