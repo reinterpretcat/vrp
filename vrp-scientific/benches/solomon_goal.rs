@@ -55,7 +55,7 @@ fn get_insertion_entities(solution_ctx: &SolutionContext) -> (&RouteContext, &Ar
                 .get(1)
                 .and_then(|a| a.retrieve_job())
                 .and_then(|job| job.dimens().get_job_id().cloned())
-                .map_or(false, |job_id| job_id == "67")
+                .is_some_and(|job_id| job_id == "67")
         })
         .expect("cannot find expected route in the solution");
     assert_eq!(route_ctx.route().tour.job_count(), 11, "unexpected job count in the route");
@@ -64,7 +64,7 @@ fn get_insertion_entities(solution_ctx: &SolutionContext) -> (&RouteContext, &Ar
     let job = solution_ctx
         .unassigned
         .iter()
-        .find(|(job, _)| job.dimens().get_job_id().map_or(false, |id| id == "45"))
+        .find(|(job, _)| job.dimens().get_job_id().is_some_and(|id| id == "45"))
         .and_then(|(job, _)| job.as_single())
         .expect("cannot find single job in the unassigned jobs");
 
@@ -116,7 +116,7 @@ where
             place: Place {
                 idx: 0,
                 location: job.places[0].location.unwrap(),
-                duration: job.places[0].duration.clone(),
+                duration: job.places[0].duration,
                 time: job.places[0].times[0].to_time_window(Timestamp::default()),
             },
             schedule: Schedule { arrival: 0.0, departure: 0.0 },
@@ -160,7 +160,10 @@ fn bench_accept_solution(c: &mut Criterion) {
             black_box(route_ctx.route_mut());
         });
 
-        b.iter(|| black_box(insertion_ctx.problem.goal.accept_solution_state(&mut solution_ctx)))
+        b.iter(|| {
+            insertion_ctx.problem.goal.accept_solution_state(&mut solution_ctx);
+            black_box(())
+        })
     });
 }
 

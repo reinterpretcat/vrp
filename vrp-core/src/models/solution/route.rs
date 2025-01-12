@@ -112,7 +112,7 @@ impl Activity {
 
     /// Checks whether activity has given job.
     pub fn has_same_job(&self, job: &Job) -> bool {
-        self.retrieve_job().as_ref().map_or(false, |other| other == job)
+        self.retrieve_job().as_ref() == Some(job)
     }
 
     /// Returns job if activity has it.

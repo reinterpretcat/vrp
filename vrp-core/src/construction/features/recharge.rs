@@ -111,7 +111,7 @@ impl RechargeFeatureBuilder {
                                         .unwrap_or_default();
 
                                     (distance_limit_fn)(route_ctx.route().actor.as_ref())
-                                        .map_or(false, |threshold| current > threshold)
+                                        .is_some_and(|threshold| current > threshold)
                                 })
                                 .unwrap_or(false)
                         }
@@ -147,7 +147,7 @@ impl RechargeFeatureBuilder {
                                 + get_distance(route_ctx.route(), left.end, right.start + 1);
 
                             (distance_limit_fn)(route_ctx.route().actor.as_ref())
-                                .map_or(false, |threshold| new_distance <= threshold)
+                                .is_some_and(|threshold| new_distance <= threshold)
                         }
                     }),
                     is_assignable_fn,
@@ -234,7 +234,7 @@ impl MultiTrip for RechargeableMultiTrip {
             solution_ctx
                 .ignored
                 .iter()
-                .filter(|job| job.as_single().map_or(false, |single| (self.recharge_single_fn)(single)))
+                .filter(|job| job.as_single().is_some_and(|single| (self.recharge_single_fn)(single)))
                 .cloned()
                 .collect()
         } else {
@@ -297,8 +297,7 @@ impl RechargeableMultiTrip {
             .map(|end_idx| self.get_distance(route_ctx, end_idx))
             .expect("invalid markers state");
 
-        let is_new_recharge =
-            activity_ctx.target.job.as_ref().map_or(false, |single| (self.recharge_single_fn)(single));
+        let is_new_recharge = activity_ctx.target.job.as_ref().is_some_and(|single| (self.recharge_single_fn)(single));
 
         let is_violation = if is_new_recharge {
             let ((prev_to_tar_distance, tar_to_next_distance), _) =

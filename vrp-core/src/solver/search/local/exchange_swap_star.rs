@@ -240,7 +240,7 @@ fn choose_best_result(
     let (idx, result) = once(&in_place_result)
         .chain(top_results.iter().filter(|result| {
             // NOTE exclude results near in place result
-            result.as_success().map_or(false, |success| {
+            result.as_success().is_some_and(|success| {
                 success
                     .activities
                     .first()
@@ -291,7 +291,7 @@ fn try_exchange_jobs_in_routes(
     result_selector: &(dyn ResultSelector),
 ) -> bool {
     let quota = insertion_ctx.environment.quota.clone();
-    let is_quota_reached = move || quota.as_ref().map_or(false, |quota| quota.is_reached());
+    let is_quota_reached = move || quota.as_ref().is_some_and(|quota| quota.is_reached());
 
     if is_quota_reached() {
         return true;

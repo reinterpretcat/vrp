@@ -84,7 +84,7 @@ fn create_tour(
         statistic: Statistic::default(),
     };
 
-    let intervals = get_route_intervals(route, |a| get_activity_type(a).map_or(false, |t| t == "reload"));
+    let intervals = get_route_intervals(route, |a| get_activity_type(a).is_some_and(|t| t == "reload"));
 
     let mut leg = intervals.into_iter().fold(Leg::empty(), |leg, (start_idx, end_idx)| {
         let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
@@ -102,7 +102,7 @@ fn create_tour(
         let (start_idx, start) = if start_idx == 0 {
             let start = route.tour.start().unwrap();
             let is_same_location =
-                route.tour.get(1).map_or(false, |activity| start.place.location == activity.place.location);
+                route.tour.get(1).is_some_and(|activity| start.place.location == activity.place.location);
 
             tour.stops.push(Stop::Point(PointStop {
                 location: coord_index.get_by_idx(start.place.location).unwrap(),
@@ -389,7 +389,7 @@ fn create_violations(solution: &DomainSolution) -> Option<Vec<Violation>> {
     let violations = solution
         .unassigned
         .iter()
-        .filter(|(job, _)| job.dimens().get_job_type().map_or(false, |t| t == "break"))
+        .filter(|(job, _)| job.dimens().get_job_type().is_some_and(|t| t == "break"))
         .map(|(job, _)| Violation::Break {
             vehicle_id: job.dimens().get_vehicle_id().expect("vehicle id").clone(),
             shift_index: job.dimens().get_shift_index().copied().expect("shift index"),

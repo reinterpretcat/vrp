@@ -106,7 +106,7 @@ fn check_e1605_check_positive_value_and_order(ctx: &ValidationContext) -> Result
         .iter()
         .filter(|job| {
             let has_invalid_order = job.all_tasks_iter().filter_map(|task| task.order).any(|value| value < 1);
-            let has_invalid_value = job.value.map_or(false, |v| v < 1.);
+            let has_invalid_value = job.value.is_some_and(|v| v < 1.);
 
             has_invalid_order || has_invalid_value
         })

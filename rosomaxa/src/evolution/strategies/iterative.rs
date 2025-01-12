@@ -47,7 +47,7 @@ where
 
         loop {
             let is_terminated = termination.is_termination(&mut heuristic_ctx);
-            let is_quota_reached = heuristic_ctx.environment().quota.as_ref().map_or(false, |q| q.is_reached());
+            let is_quota_reached = heuristic_ctx.environment().quota.as_ref().is_some_and(|q| q.is_reached());
 
             if is_terminated || is_quota_reached {
                 break;

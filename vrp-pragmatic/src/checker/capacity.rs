@@ -174,8 +174,8 @@ fn get_demand(
         activity,
         activity_type,
         |job, task| {
-            let is_dynamic = job.pickups.as_ref().map_or(false, |p| !p.is_empty())
-                && job.deliveries.as_ref().map_or(false, |p| !p.is_empty());
+            let is_dynamic = job.pickups.as_ref().is_some_and(|p| !p.is_empty())
+                && job.deliveries.as_ref().is_some_and(|p| !p.is_empty());
             let demand = task.demand.clone().map_or_else(MultiDimLoad::default, MultiDimLoad::new);
 
             (is_dynamic, demand)
@@ -248,5 +248,5 @@ fn get_activities_from_interval<'a>(
 }
 
 fn is_reload_stop(context: &CheckerContext, stop: &Stop) -> bool {
-    context.get_stop_activity_types(stop).first().map_or(false, |a| a == "reload")
+    context.get_stop_activity_types(stop).first().is_some_and(|a| a == "reload")
 }

@@ -82,7 +82,7 @@ fn check_e1203_no_multiple_places_times(ctx: &ValidationContext, relations: &[Re
                 .filter(|&job| {
                     ctx.tasks(job).into_iter().any(|task| {
                         task.places.len() > 1
-                            || task.places.iter().any(|place| place.times.as_ref().map_or(false, |tw| tw.len() > 1))
+                            || task.places.iter().any(|place| place.times.as_ref().is_some_and(|tw| tw.len() > 1))
                     })
                 })
                 .map(|job| job.id.clone())

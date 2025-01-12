@@ -191,7 +191,7 @@ impl TransportConstraint {
 
         if actor.detail.time.end < prev.place.time.start
             || actor.detail.time.end < target.place.time.start
-            || next.map_or(false, |next| actor.detail.time.end < next.place.time.start)
+            || next.is_some_and(|next| actor.detail.time.end < next.place.time.start)
         {
             return ConstraintViolation::fail(self.time_window_code);
         }

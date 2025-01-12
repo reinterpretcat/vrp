@@ -87,7 +87,7 @@ impl BreakFeatureBuilder {
         let belongs_to_route_fn = self.belongs_to_route_fn.take().unwrap_or_else(|| {
             Arc::new({
                 let is_break_single_fn = is_break_single_fn.clone();
-                move |_, job| job.as_single().map_or(false, |single| is_break_single_fn(single))
+                move |_, job| job.as_single().is_some_and(|single| is_break_single_fn(single))
             })
         });
 
@@ -200,7 +200,7 @@ impl FeatureObjective for OptionalBreakObjective {
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
             MoveContext::Route { job, .. } => {
-                if job.as_single().map_or(false, |single| (self.break_fns.is_break_single_fn)(single)) {
+                if job.as_single().is_some_and(|single| (self.break_fns.is_break_single_fn)(single)) {
                     1.
                 } else {
                     Cost::default()
@@ -265,8 +265,7 @@ impl<JT: JobContextTransition + Send + Sync> OptionalBreakState<JT> {
                             prev != current && break_single.places.first().and_then(|p| p.location).is_none();
                         let is_not_on_time = !is_on_proper_time(route_ctx, break_single, &activity.schedule)
                             || !can_be_scheduled(route_ctx, break_single, &self.break_fns.policy_fn);
-                        let is_ovrp_last =
-                            route_ctx.route().tour.end().map_or(false, |end| std::ptr::eq(activity, end));
+                        let is_ovrp_last = route_ctx.route().tour.end().is_some_and(|end| std::ptr::eq(activity, end));
 
                         if is_orphan || is_not_on_time || is_ovrp_last {
                             breaks.insert(Job::Single(break_single.clone()));

@@ -77,7 +77,7 @@ pub(crate) fn get_clusters(
                 let is_cluster_affected = cluster
                     .as_ref()
                     .and_then(|cluster| cluster.dimens().get_cluster_info())
-                    .map_or(false, |cluster_jobs| cluster_jobs.iter().any(|info| used_jobs.contains(&info.job)));
+                    .is_some_and(|cluster_jobs| cluster_jobs.iter().any(|info| used_jobs.contains(&info.job)));
 
                 if is_cluster_affected {
                     // NOTE force to rebuild cluster on next iteration
@@ -242,7 +242,7 @@ fn build_job_cluster(
                     .expect("cannot find movement info")
             };
 
-            let is_max_jobs = |count| config.threshold.max_jobs_per_cluster.map_or(false, |max| max <= count);
+            let is_max_jobs = |count| config.threshold.max_jobs_per_cluster.is_some_and(|max| max <= count);
 
             // allow jobs only from reachable candidates
             let mut cluster_candidates = center_estimates

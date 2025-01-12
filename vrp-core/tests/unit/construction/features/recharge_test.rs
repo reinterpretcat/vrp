@@ -11,7 +11,7 @@ struct JobTypeDimenKey;
 
 fn create_recharge_feature(limit: Distance) -> Feature {
     fn is_recharge_single(single: &Single) -> bool {
-        single.dimens.get_value::<JobTypeDimenKey, String>().map_or(false, |job_type| job_type == "recharge")
+        single.dimens.get_value::<JobTypeDimenKey, String>().is_some_and(|job_type| job_type == "recharge")
     }
 
     RechargeFeatureBuilder::new("recharge")
@@ -24,7 +24,7 @@ fn create_recharge_feature(limit: Distance) -> Feature {
                 .filter(|single| is_recharge_single(single))
                 .and_then(|single| single.dimens.get_value::<VehicleIdDimenKey, String>())
                 .zip(route.actor.vehicle.dimens.get_vehicle_id())
-                .map_or(false, |(a, b)| a == b)
+                .is_some_and(|(a, b)| a == b)
         })
         .build()
         .unwrap()

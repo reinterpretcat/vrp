@@ -21,11 +21,11 @@ fn belongs_to_route(route: &Route, job: &Job) -> bool {
         .filter(|single| is_reload_single(single.as_ref()))
         .and_then(|single| single.dimens.get_value::<VehicleIdDimenKey, String>())
         .zip(route.actor.vehicle.dimens.get_vehicle_id())
-        .map_or(false, |(a, b)| a == b)
+        .is_some_and(|(a, b)| a == b)
 }
 
 fn is_reload_single(single: &Single) -> bool {
-    single.dimens.get_value::<JobTypeDimenKey, String>().map_or(false, |job_type| job_type == "reload")
+    single.dimens.get_value::<JobTypeDimenKey, String>().is_some_and(|job_type| job_type == "reload")
 }
 
 fn create_simple_reload_feature<T, F>(load_schedule_threshold: F) -> Feature
@@ -318,7 +318,7 @@ fn create_route_ctx(
         .build();
 
     let intervals = get_route_intervals(route_ctx.route(), {
-        move |activity| activity.job.as_ref().map_or(false, |job| is_reload_single(job))
+        move |activity| activity.job.as_ref().is_some_and(|job| is_reload_single(job))
     });
     route_ctx.state_mut().set_reload_intervals(intervals);
 

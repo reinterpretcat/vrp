@@ -129,15 +129,15 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
             .plan
             .jobs
             .iter()
-            .any(|job| job.all_tasks_iter().any(|task| task.demand.as_ref().map_or(false, |d| d.len() > 1)));
+            .any(|job| job.all_tasks_iter().any(|task| task.demand.as_ref().is_some_and(|d| d.len() > 1)));
     let has_skills = api_problem.plan.jobs.iter().any(|job| job.skills.is_some());
 
     let shift_has_fn = |shift_has: fn(&VehicleShift) -> bool| {
         api_problem.fleet.vehicles.iter().any(|t| t.shifts.iter().any(shift_has))
     };
 
-    let has_breaks = shift_has_fn(|s| s.breaks.as_ref().map_or(false, |b| !b.is_empty()));
-    let has_reloads = shift_has_fn(|s| s.reloads.as_ref().map_or(false, |r| !r.is_empty()));
+    let has_breaks = shift_has_fn(|s| s.breaks.as_ref().is_some_and(|b| !b.is_empty()));
+    let has_reloads = shift_has_fn(|s| s.reloads.as_ref().is_some_and(|r| !r.is_empty()));
     let has_recharges = shift_has_fn(|s| s.recharges.as_ref().is_some());
 
     let has_order = api_problem
@@ -152,13 +152,13 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
     let has_value = api_problem.plan.jobs.iter().filter_map(|job| job.value).any(|value| value != 0.);
     let has_compatibility = api_problem.plan.jobs.iter().any(|job| job.compatibility.is_some());
     let has_tour_size_limits =
-        api_problem.fleet.vehicles.iter().any(|v| v.limits.as_ref().map_or(false, |l| l.tour_size.is_some()));
+        api_problem.fleet.vehicles.iter().any(|v| v.limits.as_ref().is_some_and(|l| l.tour_size.is_some()));
 
     let has_tour_travel_limits = api_problem
         .fleet
         .vehicles
         .iter()
-        .any(|v| v.limits.as_ref().map_or(false, |l| l.max_duration.or(l.max_distance).is_some()));
+        .any(|v| v.limits.as_ref().is_some_and(|l| l.max_duration.or(l.max_distance).is_some()));
 
     ProblemProperties {
         has_multi_dimen_capacity,

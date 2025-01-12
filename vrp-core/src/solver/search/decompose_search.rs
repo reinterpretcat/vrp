@@ -82,7 +82,7 @@ impl DecomposeSearch {
                 let insertion_ctx = refinement_ctx.selected().next().expect(GREEDY_ERROR);
                 let insertion_ctx = self.inner_search.search(&refinement_ctx, insertion_ctx);
                 let is_quota_reached =
-                    refinement_ctx.environment.quota.as_ref().map_or(false, |quota| quota.is_reached());
+                    refinement_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached());
                 refinement_ctx.add_solution(insertion_ctx);
 
                 if is_quota_reached {

@@ -14,7 +14,7 @@ struct VehicleIdDimenKey;
 
 fn create_break_feature() -> Feature {
     fn is_break_job(single: &Single) -> bool {
-        single.dimens.get_value::<JobTypeDimenKey, String>().map_or(false, |job_type| job_type == "break")
+        single.dimens.get_value::<JobTypeDimenKey, String>().is_some_and(|job_type| job_type == "break")
     }
 
     BreakFeatureBuilder::new("break")
@@ -26,7 +26,7 @@ fn create_break_feature() -> Feature {
             let job_vehicle_id = single.dimens.get_value::<VehicleIdDimenKey, String>();
             let vehicle_id = route.actor.vehicle.dimens.get_vehicle_id();
 
-            job_vehicle_id.zip(vehicle_id).map_or(false, |(a, b)| a == b)
+            job_vehicle_id.zip(vehicle_id).is_some_and(|(a, b)| a == b)
         })
         .build()
         .unwrap()

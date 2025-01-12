@@ -235,7 +235,7 @@ where
     ) -> Option<ConstraintViolation> {
         let demand = self.get_demand(activity_ctx.target);
 
-        let violation = if activity_ctx.target.retrieve_job().map_or(false, |job| job.as_multi().is_some()) {
+        let violation = if activity_ctx.target.retrieve_job().is_some_and(|job| job.as_multi().is_some()) {
             // NOTE multi job has dynamic demand which can go in another interval
             if self.can_handle_demand_on_intervals(route_ctx, demand, Some(activity_ctx.index)) {
                 None
@@ -250,7 +250,7 @@ where
     }
 
     fn has_markers(&self, route_ctx: &RouteContext) -> bool {
-        self.route_intervals.get_marker_intervals(route_ctx).map_or(false, |intervals| intervals.len() > 1)
+        self.route_intervals.get_marker_intervals(route_ctx).is_some_and(|intervals| intervals.len() > 1)
     }
 
     fn can_handle_demand_on_intervals(

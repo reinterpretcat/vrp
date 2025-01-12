@@ -34,8 +34,8 @@ impl JobPermutation for VariableJobPermutation {
 
     fn validate(&self, permutation: &[usize]) -> bool {
         permutation.iter().cloned().collect::<HashSet<_>>().len() == self.size
-            && permutation[0..self.split_start_index].iter().max().map_or(false, |&max| max < self.split_start_index)
-            && permutation[self.split_start_index..].iter().min().map_or(false, |&min| min >= self.split_start_index)
+            && permutation[0..self.split_start_index].iter().max().is_some_and(|&max| max < self.split_start_index)
+            && permutation[self.split_start_index..].iter().min().is_some_and(|&min| min >= self.split_start_index)
     }
 }
 

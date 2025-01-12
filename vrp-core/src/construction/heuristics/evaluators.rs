@@ -430,7 +430,7 @@ impl MultiContext {
             activities: best.activities,
         };
 
-        if result.violation.as_ref().map_or(false, |v| v.stopped) {
+        if result.violation.as_ref().is_some_and(|v| v.stopped) {
             ControlFlow::Break(result)
         } else {
             ControlFlow::Continue(result)
@@ -490,7 +490,7 @@ impl MultiContext {
     /// Checks whether insertion is failed.
     #[inline]
     fn is_failure(&self, index: usize) -> bool {
-        self.violation.as_ref().map_or(false, |v| v.stopped) || (self.start_index > index)
+        self.violation.as_ref().is_some_and(|v| v.stopped) || (self.start_index > index)
     }
 }
 

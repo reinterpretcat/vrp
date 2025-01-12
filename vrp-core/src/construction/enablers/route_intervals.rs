@@ -51,7 +51,7 @@ impl RouteIntervals {
         match self {
             RouteIntervals::Single => false,
             RouteIntervals::Multiple { is_marker_single_fn, .. } => {
-                job.as_single().map_or(false, |single| (is_marker_single_fn)(single))
+                job.as_single().is_some_and(|single| (is_marker_single_fn)(single))
             }
         }
     }
@@ -119,7 +119,7 @@ impl RouteIntervals {
 // Private API
 impl RouteIntervals {
     fn has_markers(&self, route_ctx: &RouteContext) -> bool {
-        self.get_marker_intervals(route_ctx).map_or(false, |intervals| intervals.len() > 1)
+        self.get_marker_intervals(route_ctx).is_some_and(|intervals| intervals.len() > 1)
     }
 
     fn filter_markers<'a>(&'a self, route: &'a Route, jobs: &'a [Job]) -> impl Iterator<Item = Job> + 'a {

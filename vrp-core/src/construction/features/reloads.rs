@@ -324,10 +324,7 @@ impl<T: SharedResource> SharedResourceConstraint<T> {
                             .and_then(|job| (self.resource_demand_fn)(job.as_ref()))
                             .unwrap_or_default();
 
-                        if resource_available
-                            .partial_cmp(&resource_demand)
-                            .map_or(false, |ordering| ordering == Ordering::Less)
-                        {
+                        if resource_available.partial_cmp(&resource_demand) == Some(Ordering::Less) {
                             ConstraintViolation::skip(self.violation_code)
                         } else {
                             ConstraintViolation::success()
@@ -415,7 +412,7 @@ impl<T: SharedResource + Add<Output = T> + Sub<Output = T>> SharedResourceState<
         route_ctx.state().get_reload_intervals().cloned().unwrap_or_default().into_iter().for_each(
             |(start_idx, end_idx)| {
                 let activity = get_activity_by_idx(route_ctx.route(), start_idx);
-                let has_resource_demand = (self.resource_capacity_fn)(activity).map_or(false, |(_, _)| {
+                let has_resource_demand = (self.resource_capacity_fn)(activity).is_some_and(|(_, _)| {
                     (start_idx..=end_idx)
                         .filter_map(|idx| route_ctx.route().tour.get(idx))
                         .filter_map(|activity| activity.job.as_ref())

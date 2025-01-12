@@ -90,7 +90,7 @@ fn select_random_job(
     loop {
         let job = route_ctx.route().tour.get(ai).and_then(|a| a.retrieve_job());
 
-        if job.as_ref().map_or(false, job_filter) {
+        if job.as_ref().is_some_and(job_filter) {
             return job;
         }
 

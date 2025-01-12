@@ -201,7 +201,7 @@ impl CheckerContext {
                 // TODO match reload's time windows
                 .and_then(|reload| {
                     reload.iter().find(|r| {
-                        location.as_ref().map_or(false, |location| r.location == *location) && r.tag == activity.job_tag
+                        location.as_ref().is_some_and(|location| r.location == *location) && r.tag == activity.job_tag
                     })
                 })
                 .map(|r| ActivityType::Reload(r.clone()))
@@ -212,7 +212,7 @@ impl CheckerContext {
                 .as_ref()
                 .and_then(|recharges| {
                     recharges.stations.iter().find(|r| {
-                        location.as_ref().map_or(false, |location| r.location == *location) && r.tag == activity.job_tag
+                        location.as_ref().is_some_and(|location| r.location == *location) && r.tag == activity.job_tag
                     })
                 })
                 .map(|r| ActivityType::Recharge(r.clone()))

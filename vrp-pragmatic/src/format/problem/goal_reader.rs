@@ -358,7 +358,7 @@ fn get_fast_service_feature(name: &str, blocks: &ProblemBlocks) -> GenericResult
 
             demand_single.map(|d| d.get_type()).or_else(|| demand_multi.map(|d| d.get_type()))
         })
-        .set_is_filtered_job(|job| job.dimens().get_job_type().map_or(false, |job_type| job_type == "reload"))
+        .set_is_filtered_job(|job| job.dimens().get_job_type().is_some_and(|job_type| job_type == "reload"))
         .build()
 }
 
@@ -371,7 +371,7 @@ fn create_capacity_with_reload_feature<T: LoadOps + SharedResource + Mul<Float, 
     const RELOAD_THRESHOLD: Float = 0.9;
 
     fn is_reload_single(single: &Single) -> bool {
-        single.dimens.get_job_type().map_or(false, |job_type| job_type == "reload")
+        single.dimens.get_job_type().is_some_and(|job_type| job_type == "reload")
     }
 
     let builder = ReloadFeatureFactory::new(name)
@@ -379,8 +379,7 @@ fn create_capacity_with_reload_feature<T: LoadOps + SharedResource + Mul<Float, 
         .set_load_schedule_threshold(move |capacity: &T| *capacity * RELOAD_THRESHOLD)
         .set_is_reload_single(is_reload_single)
         .set_belongs_to_route(|route: &Route, job: &CoreJob| {
-            job.as_single()
-                .map_or(false, |single| is_reload_single(single.as_ref()) && is_correct_vehicle(route, single))
+            job.as_single().is_some_and(|single| is_reload_single(single.as_ref()) && is_correct_vehicle(route, single))
         });
 
     let job_index = blocks.job_index.as_ref().ok_or("misconfiguration in goal reader: job index is not set")?;
@@ -450,7 +449,7 @@ fn get_recharge_feature(
     transport: Arc<dyn TransportCost>,
 ) -> GenericResult<Feature> {
     fn is_recharge_single(single: &Single) -> bool {
-        single.dimens.get_job_type().map_or(false, |job_type| job_type == "recharge")
+        single.dimens.get_job_type().is_some_and(|job_type| job_type == "recharge")
     }
 
     let distance_limit_index: HashMap<_, HashMap<_, _>> =
@@ -475,7 +474,7 @@ fn get_recharge_feature(
         .set_is_recharge_single(is_recharge_single)
         .set_belongs_to_route(|route, job| {
             job.as_single()
-                .map_or(false, |single| is_recharge_single(single.as_ref()) && is_correct_vehicle(route, single))
+                .is_some_and(|single| is_recharge_single(single.as_ref()) && is_correct_vehicle(route, single))
         })
         .set_distance_limit(move |actor| {
             actor.vehicle.dimens.get_vehicle_type().zip(actor.vehicle.dimens.get_shift_index().copied()).and_then(
@@ -550,7 +549,7 @@ where
 
 fn create_optional_break_feature(name: &str) -> GenericResult<Feature> {
     fn is_break_job(single: &Single) -> bool {
-        single.dimens.get_job_type().map_or(false, |job_type| job_type == "break")
+        single.dimens.get_job_type().is_some_and(|job_type| job_type == "break")
     }
 
     BreakFeatureBuilder::new(name)

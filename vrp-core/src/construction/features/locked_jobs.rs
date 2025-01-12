@@ -142,18 +142,18 @@ impl Rule {
     /// Checks whether given job is in rule. Such jobs are inserted manually and should not by
     /// prevented from insertion.
     fn is_in_rule(&self, job: &Option<Job>) -> bool {
-        job.as_ref().map_or(false, |job| self.contains(job))
+        job.as_ref().is_some_and(|job| self.contains(job))
     }
 
     /// Checks whether a new job can be inserted between given prev/next according to after rule.
     fn can_insert_after(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
-        prev.as_ref().map_or(false, |p| !self.contains(p) || *p == self.index.last)
+        prev.as_ref().is_some_and(|p| !self.contains(p) || *p == self.index.last)
             && next.as_ref().map_or(true, |n| !self.contains(n))
     }
 
     /// Checks whether a new job can be inserted between given prev/next according to before rule.
     fn can_insert_before(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
-        next.as_ref().map_or(false, |n| !self.contains(n) || *n == self.index.first)
+        next.as_ref().is_some_and(|n| !self.contains(n) || *n == self.index.first)
             && prev.as_ref().map_or(true, |p| !self.contains(p))
     }
 }

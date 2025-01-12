@@ -269,7 +269,7 @@ impl InsertionHeuristic {
         prepare_insertion_ctx(&mut insertion_ctx);
 
         while !insertion_ctx.solution.required.is_empty()
-            && !insertion_ctx.environment.quota.as_ref().map_or(false, |q| q.is_reached())
+            && !insertion_ctx.environment.quota.as_ref().is_some_and(|q| q.is_reached())
         {
             job_selector.prepare(&mut insertion_ctx);
             route_selector.prepare(&mut insertion_ctx);

@@ -10,7 +10,7 @@ fn get_check_insertion_fn(disallow_insertion_list: Vec<&str>) -> Arc<CheckInsert
         let job_to_check = job.dimens().get_clustered_jobs().and_then(|merged| merged.last()).unwrap_or(job);
         let id = job_to_check.dimens().get_job_id();
 
-        if id.map_or(false, |id| disallow_insertion_list.contains(id)) {
+        if id.is_some_and(|id| disallow_insertion_list.contains(id)) {
             Err(ViolationCode::unknown())
         } else {
             Ok(())

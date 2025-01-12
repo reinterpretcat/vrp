@@ -73,7 +73,7 @@ impl FeatureConstraint for MultiTripConstraint {
                     .target
                     .job
                     .as_ref()
-                    .map_or(false, |job| intervals.is_marker_job(&Job::Single(job.clone())))
+                    .is_some_and(|job| intervals.is_marker_job(&Job::Single(job.clone())))
                 {
                     match self.policy {
                         MarkerInsertionPolicy::Any => {}
@@ -180,7 +180,7 @@ impl FeatureState for MultiTripState {
         if let Some(interval_fn) = route_intervals.get_interval_fn() {
             let (route, state) = route_ctx.as_mut();
             let intervals = get_route_intervals(route, |a| {
-                a.job.as_ref().map_or(false, |job| route_intervals.is_marker_job(&Job::Single(job.clone())))
+                a.job.as_ref().is_some_and(|job| route_intervals.is_marker_job(&Job::Single(job.clone())))
             });
 
             interval_fn.set_route_intervals(state, intervals);

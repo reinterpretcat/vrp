@@ -50,9 +50,7 @@ fn check_break_assignment(context: &CheckerContext) -> GenericResult<()> {
                         let has_match = match vehicle_break {
                             // TODO check tag and duration
                             VehicleBreak::Optional { places, .. } => places.iter().any(|place| match &place.location {
-                                Some(location) => {
-                                    actual_loc.as_ref().map_or(false, |actual_loc| actual_loc == location)
-                                }
+                                Some(location) => actual_loc.as_ref() == Some(location),
                                 None => from_loc == actual_loc || backward_loc == actual_loc,
                             }),
                             VehicleBreak::Required { .. } => actual_loc.is_none() || from_loc == actual_loc,

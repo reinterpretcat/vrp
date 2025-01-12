@@ -46,7 +46,7 @@ fn check_e1101_correct_job_types_demand(ctx: &ValidationContext) -> Result<(), F
 
 /// Checks that sum of pickup/delivery demand should be equal.
 fn check_e1102_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Result<(), FormatError> {
-    let has_tasks = |tasks: &Option<Vec<JobTask>>| tasks.as_ref().map_or(false, |tasks| !tasks.is_empty());
+    let has_tasks = |tasks: &Option<Vec<JobTask>>| tasks.as_ref().is_some_and(|tasks| !tasks.is_empty());
     let get_demand = |tasks: &Option<Vec<JobTask>>| {
         if let Some(tasks) = tasks {
             tasks.iter().map(|task| task.demand.clone().map_or_else(MultiDimLoad::default, MultiDimLoad::new)).sum()
@@ -76,7 +76,7 @@ fn check_e1102_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Re
 /// Checks that job's time windows are correct.
 fn check_e1103_time_window_correctness(ctx: &ValidationContext) -> Result<(), FormatError> {
     let has_invalid_tws = |tasks: &Option<Vec<JobTask>>| {
-        tasks.as_ref().map_or(false, |tasks| {
+        tasks.as_ref().is_some_and(|tasks| {
             tasks
                 .iter()
                 .flat_map(|task| task.places.iter())
@@ -163,7 +163,7 @@ fn check_e1107_negative_demand(ctx: &ValidationContext) -> Result<(), FormatErro
         .filter(|job| {
             ctx.tasks(job)
                 .iter()
-                .any(|task| task.demand.as_ref().map_or(false, |demand| demand.iter().any(|&dim| dim < 0)))
+                .any(|task| task.demand.as_ref().is_some_and(|demand| demand.iter().any(|&dim| dim < 0)))
         })
         .map(|job| job.id.clone())
         .collect::<Vec<_>>();

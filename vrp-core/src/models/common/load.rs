@@ -343,7 +343,7 @@ impl Eq for MultiDimLoad {}
 
 impl PartialEq for MultiDimLoad {
     fn eq(&self, other: &Self) -> bool {
-        self.partial_cmp(other).map_or(false, |ordering| ordering == Ordering::Equal)
+        self.partial_cmp(other) == Some(Ordering::Equal)
     }
 }
 

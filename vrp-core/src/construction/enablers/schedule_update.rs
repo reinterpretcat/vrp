@@ -101,7 +101,7 @@ fn update_states(route_ctx: &mut RouteContext, activity: &(dyn ActivityCost), tr
     waiting_times.reverse();
 
     // NOTE: pop out state for arrival
-    if route.tour.end().map_or(false, |end| end.job.is_none()) {
+    if route.tour.end().is_some_and(|end| end.job.is_none()) {
         latest_arrivals.pop();
         waiting_times.pop();
     }
