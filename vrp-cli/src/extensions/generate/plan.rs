@@ -56,8 +56,8 @@ pub(crate) fn generate_plan(
             let job_proto = get_random_item(problem_proto.plan.jobs.as_slice(), &rnd).unwrap();
 
             // TODO implement more sophisticated logic for jobs with pickup and delivery
-            let keep_original_demand = job_proto.pickups.as_ref().map_or(false, |t| !t.is_empty())
-                && job_proto.deliveries.as_ref().map_or(false, |t| !t.is_empty());
+            let keep_original_demand = job_proto.pickups.as_ref().is_some_and(|t| !t.is_empty())
+                && job_proto.deliveries.as_ref().is_some_and(|t| !t.is_empty());
 
             Job {
                 id: format!("job{job_idx}"),

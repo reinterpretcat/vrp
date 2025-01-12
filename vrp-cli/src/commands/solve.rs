@@ -441,8 +441,7 @@ pub fn create_interruption_quota(max_time: Option<usize>) -> Arc<dyn Quota> {
 
     impl Quota for InterruptionQuota {
         fn is_reached(&self) -> bool {
-            self.inner.as_ref().map_or(false, |inner| inner.is_reached())
-                || self.should_interrupt.load(Ordering::Relaxed)
+            self.inner.as_ref().is_some_and(|inner| inner.is_reached()) || self.should_interrupt.load(Ordering::Relaxed)
         }
     }
 
