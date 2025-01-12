@@ -45,8 +45,8 @@ pub struct VectorObjective {
 pub struct VectorSolution {
     /// Solution payload.
     pub data: Vec<Float>,
-    weights: Vec<Float>,
-    fitness: Float,
+    pub(crate) weights: Vec<Float>,
+    pub(crate) fitness: Float,
 }
 
 impl VectorContext {

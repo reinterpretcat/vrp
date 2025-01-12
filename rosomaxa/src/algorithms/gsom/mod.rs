@@ -41,6 +41,9 @@ pub trait Storage: Display + Send + Sync {
     /// Returns a distance between two input weights.
     fn distance(&self, a: &[Float], b: &[Float]) -> Float;
 
+    /// Shrinks the storage to the specified size.
+    fn resize(&mut self, size: usize);
+
     /// Returns size of the storage.
     fn size(&self) -> usize;
 }

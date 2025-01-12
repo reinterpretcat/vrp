@@ -1,11 +1,10 @@
 use crate::algorithms::gsom::{Input, Network, NetworkConfig, Storage, StorageFactory};
-use crate::algorithms::math::relative_distance;
 use crate::utils::{DefaultRandom, Float};
 use std::fmt::{Display, Formatter};
 use std::ops::RangeBounds;
 use std::sync::Arc;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Data {
     pub values: Vec<Float>,
 }
@@ -27,11 +26,16 @@ pub struct DataStorage {
     pub data: Vec<Data>,
 }
 
+impl DataStorage {
+    pub fn cartesian(a: &[Float], b: &[Float]) -> Float {
+        a.iter().zip(b.iter()).map(|(x, y)| (x - y).powi(2)).sum::<f64>().sqrt()
+    }
+}
+
 impl Storage for DataStorage {
     type Item = Data;
 
     fn add(&mut self, input: Self::Item) {
-        self.data.clear();
         self.data.push(input);
     }
 
@@ -47,7 +51,11 @@ impl Storage for DataStorage {
     }
 
     fn distance(&self, a: &[Float], b: &[Float]) -> Float {
-        relative_distance(a.iter().cloned(), b.iter().cloned())
+        Self::cartesian(a, b)
+    }
+
+    fn resize(&mut self, size: usize) {
+        self.data.truncate(size);
     }
 
     fn size(&self) -> usize {
@@ -72,13 +80,14 @@ impl StorageFactory<(), Data, DataStorage> for DataStorageFactory {
 pub fn create_test_network(has_initial_error: bool) -> Network<(), Data, DataStorage, DataStorageFactory> {
     Network::new(
         &(),
-        [
+        vec![
             Data::new(0.230529, 0.956665, 0.482008),
             Data::new(0.400775, 0.142917, 0.555519),
             Data::new(0.260272, 0.175342, 0.193711),
             Data::new(0.186712, 0.166380, 0.773621),
         ],
         NetworkConfig {
+            node_size: 2,
             spread_factor: 0.25,
             distribution_factor: 0.25,
             learning_rate: 0.1,
@@ -86,6 +95,7 @@ pub fn create_test_network(has_initial_error: bool) -> Network<(), Data, DataSto
             has_initial_error,
         },
         Arc::new(DefaultRandom::default()),
-        DataStorageFactory,
+        |_| DataStorageFactory,
     )
+    .expect("cannot create network")
 }

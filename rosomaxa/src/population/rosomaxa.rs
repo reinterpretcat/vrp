@@ -8,8 +8,6 @@ use crate::algorithms::math::relative_distance;
 use crate::population::elitism::{Alternative, DedupFn};
 use crate::utils::{parallel_into_collect, Environment, Random};
 use rand::prelude::SliceRandom;
-use rayon::iter::Either;
-use std::convert::TryInto;
 use std::f64::consts::{E, PI};
 use std::fmt::Formatter;
 use std::ops::RangeBounds;
@@ -17,6 +15,8 @@ use std::sync::Arc;
 
 /// Specifies rosomaxa configuration settings.
 pub struct RosomaxaConfig {
+    /// Initial population size.
+    pub initial_size: usize,
     /// Selection size.
     pub selection_size: usize,
     /// Elite population size.
@@ -38,6 +38,7 @@ impl RosomaxaConfig {
     /// account data parallelism settings.
     pub fn new_with_defaults(selection_size: usize) -> Self {
         Self {
+            initial_size: 32,
             selection_size,
             elite_size: 2,
             node_size: 2,
@@ -160,12 +161,12 @@ where
                     self.elite
                         .select()
                         .take(elite_explore_size)
-                        .chain(coordinates.iter().flat_map(move |coordinate| {
-                            network
-                                .find(coordinate)
-                                .map(|node| Either::Left(node.storage.population.select().take(node_explore_size)))
-                                .unwrap_or_else(|| Either::Right(std::iter::empty()))
-                        }))
+                        .chain(
+                            coordinates
+                                .iter()
+                                .filter_map(move |coordinate| network.find(coordinate))
+                                .flat_map(move |node| node.storage.population.select().take(node_explore_size)),
+                        )
                         .take(*selection_size),
                 )
             }
@@ -242,24 +243,32 @@ where
             }
         };
 
+        let exploration_ratio = match statistics.speed {
+            HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } => self.config.exploration_ratio,
+            HeuristicSpeed::Slow { ratio, .. } => self.config.exploration_ratio * ratio,
+        };
+
         match &mut self.phase {
             RosomaxaPhases::Initial { solutions: individuals } => {
-                if individuals.len() >= self.config.selection_size {
-                    let mut network = Self::create_network(
+                if statistics.termination_estimate > exploration_ratio {
+                    (self.environment.logger)("skip exploration phase");
+                    self.phase = RosomaxaPhases::Exploitation { selection_size }
+                } else if individuals.len() >= self.config.initial_size {
+                    let network = Self::create_network(
                         &self.external_ctx,
                         self.objective.clone(),
                         self.environment.clone(),
                         &self.config,
-                        individuals.drain(0..4).collect(),
-                    );
+                        std::mem::take(individuals),
+                    )
+                    // TODO: avoid panic here
+                    .expect("cannot create network");
 
-                    std::mem::take(individuals).into_iter().for_each(|individual| {
-                        network.store(&self.external_ctx, init_individual(&self.external_ctx, individual), 0)
-                    });
+                    let coordinates = network.get_coordinates().collect();
 
                     self.phase = RosomaxaPhases::Exploration {
                         network,
-                        coordinates: vec![],
+                        coordinates,
                         statistics: statistics.clone(),
                         selection_size,
                     };
@@ -271,11 +280,6 @@ where
                 statistics: old_statistics,
                 selection_size: old_selection_size,
             } => {
-                let exploration_ratio = match old_statistics.speed {
-                    HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } => self.config.exploration_ratio,
-                    HeuristicSpeed::Slow { ratio, .. } => self.config.exploration_ratio * ratio,
-                };
-
                 if statistics.termination_estimate < exploration_ratio {
                     *old_statistics = statistics.clone();
                     *old_selection_size = selection_size;
@@ -343,22 +347,14 @@ where
         environment: Arc<Environment>,
         config: &RosomaxaConfig,
         individuals: Vec<S>,
-    ) -> IndividualNetwork<C, O, S> {
+    ) -> GenericResult<IndividualNetwork<C, O, S>> {
         let inputs_vec = parallel_into_collect(individuals, |i| init_individual(context, i));
-
-        let inputs_slice = inputs_vec.into_boxed_slice();
-        let inputs_array: Box<[S; 4]> = match inputs_slice.try_into() {
-            Ok(ba) => ba,
-            Err(o) => panic!("expected individuals of length {} but it was {}", 4, o.len()),
-        };
-
-        let storage_factory =
-            IndividualStorageFactory { node_size: config.node_size, random: environment.random.clone(), objective };
 
         Network::new(
             context,
-            *inputs_array,
+            inputs_vec,
             NetworkConfig {
+                node_size: config.node_size,
                 spread_factor: config.spread_factor,
                 distribution_factor: config.distribution_factor,
                 learning_rate: 0.1,
@@ -366,7 +362,15 @@ where
                 has_initial_error: true,
             },
             environment.random.clone(),
-            storage_factory,
+            {
+                let objective = objective.clone();
+                let random = environment.random.clone();
+                move |node_size| IndividualStorageFactory {
+                    node_size,
+                    random: random.clone(),
+                    objective: objective.clone(),
+                }
+            },
         )
     }
 }
@@ -485,6 +489,10 @@ where
 
     fn distance(&self, a: &[Float], b: &[Float]) -> Float {
         relative_distance(a.iter().cloned(), b.iter().cloned())
+    }
+
+    fn resize(&mut self, size: usize) {
+        self.population.set_max_population_size(size);
     }
 
     fn size(&self) -> usize {

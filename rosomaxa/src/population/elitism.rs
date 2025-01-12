@@ -162,6 +162,12 @@ where
         self.individuals.drain(range).collect()
     }
 
+    /// Shrinks the population to the specified size.
+    pub fn set_max_population_size(&mut self, max_population_size: usize) {
+        self.max_population_size = max_population_size;
+        self.ensure_max_population_size();
+    }
+
     fn sort(&mut self) {
         self.individuals.sort_by(|a, b| self.objective.total_order(a, b));
         self.individuals.dedup_by(|a, b| (self.dedup_fn)(&self.objective, a, b));
