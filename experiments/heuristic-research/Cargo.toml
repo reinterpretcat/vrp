@@ -23,7 +23,8 @@ serde.workspace = true
 serde_json.workspace = true
 lazy_static.workspace = true
 
-plotters = "0.3.7"
+# added features as it fails to compile without them on github CI
+plotters = { version = "0.3.7", features = ["ab_glyph", "fontconfig-dlopen"] }
 plotters-canvas = "0.3.0"
 itertools = "0.14.0"
 wasm-bindgen = "0.2.99"
