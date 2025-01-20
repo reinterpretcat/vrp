@@ -38,12 +38,12 @@ impl RosomaxaConfig {
     /// account data parallelism settings.
     pub fn new_with_defaults(selection_size: usize) -> Self {
         Self {
-            initial_size: 32,
+            initial_size: 16,
             selection_size,
             elite_size: 2,
             node_size: 2,
             spread_factor: 0.75,
-            distribution_factor: 0.75,
+            distribution_factor: 0.9,
             rebalance_memory: 100,
             exploration_ratio: 0.9,
         }
@@ -357,7 +357,7 @@ where
                 node_size: config.node_size,
                 spread_factor: config.spread_factor,
                 distribution_factor: config.distribution_factor,
-                learning_rate: 0.1,
+                learning_rate: 0.3,
                 rebalance_memory: config.rebalance_memory,
                 has_initial_error: true,
             },
