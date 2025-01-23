@@ -1,5 +1,6 @@
 use crate::algorithms::gsom::{Input, Network, NetworkConfig, Storage, StorageFactory};
 use crate::utils::{DefaultRandom, Float};
+use std::borrow::Borrow;
 use std::fmt::{Display, Formatter};
 use std::ops::RangeBounds;
 use std::sync::Arc;
@@ -27,8 +28,14 @@ pub struct DataStorage {
 }
 
 impl DataStorage {
-    pub fn cartesian(a: &[Float], b: &[Float]) -> Float {
-        a.iter().zip(b.iter()).map(|(x, y)| (x - y).powi(2)).sum::<f64>().sqrt()
+    pub fn cartesian<IA, IB>(a: IA, b: IB) -> Float
+    where
+        IA: Iterator,
+        IB: Iterator,
+        IA::Item: Borrow<Float>,
+        IB::Item: Borrow<Float>,
+    {
+        a.zip(b).map(|(x, y)| (x.borrow() - y.borrow()).powi(2)).sum::<f64>().sqrt()
     }
 }
 
@@ -50,7 +57,13 @@ impl Storage for DataStorage {
         self.data.drain(range).collect()
     }
 
-    fn distance(&self, a: &[Float], b: &[Float]) -> Float {
+    fn distance<IA, IB>(&self, a: IA, b: IB) -> Float
+    where
+        IA: Iterator,
+        IB: Iterator,
+        IA::Item: Borrow<Float>,
+        IB::Item: Borrow<Float>,
+    {
         Self::cartesian(a, b)
     }
 

@@ -6,8 +6,9 @@ use super::*;
 use crate::algorithms::gsom::*;
 use crate::algorithms::math::relative_distance;
 use crate::population::elitism::{Alternative, DedupFn};
-use crate::utils::{parallel_into_collect, Environment, Random};
+use crate::utils::{parallel_collect, parallel_into_collect, Environment, Random};
 use rand::prelude::SliceRandom;
+use std::borrow::Borrow;
 use std::f64::consts::{E, PI};
 use std::fmt::Formatter;
 use std::ops::RangeBounds;
@@ -113,9 +114,8 @@ where
             }
             RosomaxaPhases::Exploration { network, statistics, .. } => {
                 self.external_ctx.on_change(individuals.as_slice());
-                network.store_batch(&self.external_ctx, individuals, statistics.generation, |i| {
-                    init_individual(&self.external_ctx, i)
-                });
+                let data = parallel_collect(individuals, |i| init_individual(&self.external_ctx, i));
+                network.store_batch(&self.external_ctx, data, statistics.generation);
             }
             RosomaxaPhases::Exploitation { .. } => {}
         }
@@ -487,8 +487,15 @@ where
         self.population.drain(range).into_iter().collect()
     }
 
-    fn distance(&self, a: &[Float], b: &[Float]) -> Float {
-        relative_distance(a.iter().cloned(), b.iter().cloned())
+    fn distance<IA, IB>(&self, a: IA, b: IB) -> Float
+    where
+        IA: Iterator,
+        IB: Iterator,
+        IA::Item: Borrow<Float>,
+        IB::Item: Borrow<Float>,
+    {
+        // use cartesian distance as vectors should be normalized in [0, 1] range
+        a.zip(b).map(|(x, y)| (x.borrow() - y.borrow()).powi(2)).sum::<f64>().sqrt()
     }
 
     fn resize(&mut self, size: usize) {
@@ -528,7 +535,7 @@ where
         _ => {
             let weights_a = a.weights();
             let weights_b = b.weights();
-            let distance = relative_distance(weights_a.iter().cloned(), weights_b.iter().cloned());
+            let distance = relative_distance(weights_a.iter(), weights_b.iter());
 
             distance < threshold
         }

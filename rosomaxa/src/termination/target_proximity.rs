@@ -46,7 +46,7 @@ where
     fn is_termination(&self, heuristic_ctx: &mut Self::Context) -> bool {
         // use the first solution only for comparison
         heuristic_ctx.ranked().next().is_some_and(|solution| {
-            let distance = relative_distance(self.target_fitness.iter().cloned(), solution.fitness());
+            let distance = relative_distance(self.target_fitness.iter(), solution.fitness());
             distance < self.distance_threshold
         })
     }

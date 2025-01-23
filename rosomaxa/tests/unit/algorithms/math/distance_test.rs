@@ -2,7 +2,9 @@ use super::*;
 
 #[test]
 fn can_handle_relative_distance_empty() {
-    let result = relative_distance(vec![].into_iter(), vec![].into_iter());
+    let a: Vec<Float> = vec![];
+    let b: Vec<Float> = vec![];
+    let result = relative_distance(a.into_iter(), b.into_iter());
     assert_eq!(result, 0.0);
 }
 

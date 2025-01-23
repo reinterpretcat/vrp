@@ -70,6 +70,7 @@ where
     }
 
     // reintroduce data from deleted notes to the network while network growth is not allowed.
+    // NOTE: min_max_weights is not changed here
     network.train_on_data(context, data, false);
 }
 

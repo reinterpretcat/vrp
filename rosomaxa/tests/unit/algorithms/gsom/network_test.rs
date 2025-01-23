@@ -27,7 +27,7 @@ fn count_non_empty_nodes(nodes: &NodeHashMap<Data, DataStorage>) -> usize {
 }
 
 fn distance(i: usize, j: usize, data: &[Data]) -> Float {
-    DataStorage::cartesian(data[i].weights(), data[j].weights())
+    DataStorage::cartesian(data[i].weights().iter(), data[j].weights().iter())
 }
 
 fn create_3d_data_grid(size: usize, step: Float) -> Vec<Data> {
@@ -122,12 +122,12 @@ fn can_create_initial_nodes() {
     assert!(nodes.len() <= 16);
 
     // Check min-max weights
-    assert_eq!(min_max_weights.0.len(), 3);
-    assert_eq!(min_max_weights.1.len(), 3);
-    assert!(min_max_weights.0[0] <= 1.0); // Min values
-    assert!(min_max_weights.0[1] <= 1.0);
-    assert!(min_max_weights.1[0] >= 4.0); // Max values
-    assert!(min_max_weights.1[1] >= 4.0);
+    assert_eq!(min_max_weights.min.len(), 3);
+    assert_eq!(min_max_weights.max.len(), 3);
+    assert!(min_max_weights.min[0] <= 1.0); // Min values
+    assert!(min_max_weights.min[1] <= 1.0);
+    assert!(min_max_weights.max[0] >= 4.0); // Max values
+    assert!(min_max_weights.max[1] >= 4.0);
 
     // Verify node properties
     for node in nodes.values() {
@@ -233,7 +233,9 @@ fn can_create_network_with_spiral_distribution() {
     assert!(network.size() <= (size * 2), "too big {}", network.size());
     let distances: Vec<_> = network
         .get_nodes()
-        .flat_map(|node| node.storage.data.iter().map(|data| DataStorage::cartesian(&node.weights, data.weights())))
+        .flat_map(|node| {
+            node.storage.data.iter().map(|data| DataStorage::cartesian(node.weights.iter(), data.weights().iter()))
+        })
         .collect();
     let avg_distance = distances.iter().sum::<Float>() / distances.len() as Float;
     assert!(avg_distance < 0.5, "too big average: {}", 0.6);
@@ -249,10 +251,10 @@ fn can_create_initial_nodes_uniform_distribution() {
         .expect("Failed to create initial nodes");
 
     // Verify min-max bounds
-    assert_eq!(min_max.0.len(), 3);
-    assert_eq!(min_max.1.len(), 3);
-    assert!(min_max.0.iter().all(|&x| x >= 0.));
-    assert!(min_max.1.iter().all(|&x| x <= (size - 1) as f64));
+    assert_eq!(min_max.min.len(), 3);
+    assert_eq!(min_max.max.len(), 3);
+    assert!(min_max.min.iter().all(|&x| x >= 0.));
+    assert!(min_max.max.iter().all(|&x| x <= (size - 1) as f64));
 
     // Check node distribution
     let mut coord_set = HashSet::new();
@@ -286,7 +288,7 @@ fn can_create_initial_nodes_with_outliers() {
     let (nodes, min_max) =
         NetworkType::create_initial_nodes(&(), data.clone(), 10, &DataStorageFactory, noise).unwrap();
 
-    assert!(min_max.0.iter().zip(min_max.1.iter()).all(|(&min, &max)| min < max));
+    assert!(min_max.iter().all(|(&min, &max)| min < max));
     assert!(nodes.values().all(|node| !node.storage.data.is_empty()));
 
     let find_fn = |threshold| {
@@ -410,7 +412,7 @@ fn can_create_new_network_empty_regions() {
         .flat_map(|i| {
             (i + 1..nodes_vec.len()).map({
                 let nodes_vec = &nodes_vec;
-                move |j| DataStorage::cartesian(&nodes_vec[i].weights, &nodes_vec[j].weights)
+                move |j| DataStorage::cartesian(nodes_vec[i].weights.iter(), nodes_vec[j].weights.iter())
             })
         })
         .for_each(|dist| {

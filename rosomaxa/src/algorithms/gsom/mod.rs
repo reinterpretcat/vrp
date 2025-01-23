@@ -1,6 +1,7 @@
 //! Provides customized implementation of Growing Self Organizing Map.
 
 use crate::utils::Float;
+use std::borrow::Borrow;
 use std::fmt::Display;
 use std::ops::RangeBounds;
 
@@ -39,7 +40,12 @@ pub trait Storage: Display + Send + Sync {
         R: RangeBounds<usize>;
 
     /// Returns a distance between two input weights.
-    fn distance(&self, a: &[Float], b: &[Float]) -> Float;
+    fn distance<IA, IB>(&self, a: IA, b: IB) -> Float
+    where
+        IA: Iterator,
+        IB: Iterator,
+        IA::Item: Borrow<Float>,
+        IB::Item: Borrow<Float>;
 
     /// Shrinks the storage to the specified size.
     fn resize(&mut self, size: usize);

@@ -58,7 +58,36 @@ pub struct NetworkConfig {
 }
 
 /// Specifies min max weights type.
-type MinMaxWeights = (Vec<Float>, Vec<Float>);
+pub struct MinMaxWeights {
+    /// Min weights.
+    pub min: Vec<Float>,
+    /// Max weights.
+    pub max: Vec<Float>,
+}
+
+impl MinMaxWeights {
+    /// Creates a new instance of [MinMaxWeights].
+    fn new(dimension: usize) -> Self {
+        Self { min: vec![Float::MAX; dimension], max: vec![Float::MIN; dimension] }
+    }
+
+    /// Updates min max weights.
+    pub fn update(&mut self, weights: &[Float]) {
+        self.min.iter_mut().zip(weights.iter()).for_each(|(curr, v)| *curr = curr.min(*v));
+        self.max.iter_mut().zip(weights.iter()).for_each(|(curr, v)| *curr = curr.max(*v));
+    }
+
+    /// Iterates over min-max values.
+    pub fn iter(&self) -> impl Iterator<Item = (&Float, &Float)> {
+        self.min.iter().zip(self.max.iter())
+    }
+
+    /// Resets min-max values.
+    pub fn reset(&mut self) {
+        self.min.fill(Float::MAX);
+        self.max.fill(Float::MIN);
+    }
+}
 
 impl<C, I, S, F> Network<C, I, S, F>
 where
@@ -115,7 +144,7 @@ where
         // run training loop to balance the network
         let allow_growth = true;
         let rebalance_count = (data_size / 4).clamp(8, 12);
-        network.train_loop(context, rebalance_count, allow_growth, |_| ());
+        network.retrain(context, rebalance_count, allow_growth, |_| ());
 
         // reset to original parameters and make sure that node storages have the desired size
         network.storage_factory = storage_factory(config.node_size);
@@ -141,22 +170,16 @@ where
     pub fn store(&mut self, context: &C, input: I, time: usize) {
         debug_assert!(input.weights().len() == self.dimension);
         self.time = time;
+        self.min_max_weights.update(input.weights());
         self.train(context, input, true)
     }
 
     /// Stores multiple inputs into the network.
-    pub fn store_batch<FM, T: Send + Sync>(&mut self, context: &C, item_data: Vec<T>, time: usize, map_fn: FM)
-    where
-        FM: Fn(T) -> I + Send + Sync,
-    {
+    pub fn store_batch(&mut self, context: &C, data: Vec<I>, time: usize) {
         self.time = time;
-        let nodes_data = parallel_into_collect(item_data, |item| {
-            let input = map_fn(item);
-            let bmu = self.find_bmu(&input);
-            let error = bmu.distance(input.weights());
-            (bmu.coordinate, error, input)
-        });
-        self.train_batch(context, nodes_data, true);
+        data.iter().for_each(|i| self.min_max_weights.update(i.weights()));
+
+        self.train_on_data(context, data, true);
     }
 
     /// Performs smoothing phase.
@@ -165,7 +188,7 @@ where
         FM: Fn(&mut I),
     {
         let allow_growth = false;
-        self.train_loop(context, rebalance_count, allow_growth, node_fn);
+        self.retrain(context, rebalance_count, allow_growth, node_fn);
     }
 
     /// Compacts network. `node_filter` should return false for nodes to be removed.
@@ -221,7 +244,7 @@ where
     }
 
     /// Performs training loop multiple times.
-    fn train_loop<FM>(&mut self, context: &C, rebalance_count: usize, allow_growth: bool, node_fn: FM)
+    fn retrain<FM>(&mut self, context: &C, rebalance_count: usize, allow_growth: bool, node_fn: FM)
     where
         FM: Fn(&mut I),
     {
@@ -231,6 +254,10 @@ where
             data.dedup_by(|a, b| compare_input(a, b) == Ordering::Equal);
             data.shuffle(&mut self.random.get_rng());
             data.iter_mut().for_each(&node_fn);
+
+            // update min max weights to reflect the current state
+            self.min_max_weights.reset();
+            data.iter().for_each(|i| self.min_max_weights.update(i.weights()));
 
             self.train_on_data(context, data, allow_growth);
 
@@ -385,14 +412,7 @@ where
                             .collect()
                     })
                     // case d
-                    .unwrap_or_else(|| {
-                        self.min_max_weights
-                            .0
-                            .iter()
-                            .zip(self.min_max_weights.1.iter())
-                            .map(|(min, max)| (min + max) / 2.)
-                            .collect()
-                    })
+                    .unwrap_or_else(|| self.min_max_weights.iter().map(|(min, max)| (min + max) / 2.).collect())
                 });
 
                 (coord, weights)
@@ -427,7 +447,7 @@ where
 
     /// Inserts new neighbors if necessary.
     pub(super) fn insert(&mut self, context: &C, coord: Coordinate, weights: &[Float]) {
-        update_min_max(&mut self.min_max_weights, weights);
+        self.min_max_weights.update(weights);
         self.nodes.insert(coord, self.create_node(context, coord, weights, 0.));
     }
 
@@ -464,6 +484,11 @@ where
         let sample_size = (data.len() as f64 * 0.1).ceil() as usize;
         let sample_size = sample_size.clamp(4, 16);
 
+        // initialize min max weights from data
+        let dimension = data[0].weights().len();
+        let mut min_max_weights = MinMaxWeights::new(dimension);
+        data.iter().for_each(|i| min_max_weights.update(i.weights()));
+
         let storage = storage_factory.eval(context);
         let initial_node_indices = Self::select_initial_samples(&data, sample_size, &storage, noise.random())
             .ok_or_else(|| GenericError::from("cannot select initial samples"))?;
@@ -486,7 +511,7 @@ where
             if !initial_node_indices.contains(&idx) {
                 let get_distance_fn = |coord| {
                     let init_idx = node_assignments[coord][0];
-                    storage.distance(data[init_idx].weights(), item.weights())
+                    storage.distance(data[init_idx].weights().iter(), item.weights().iter())
                 };
 
                 node_assignments
@@ -499,16 +524,12 @@ where
             }
         }
 
-        let dimension = data[0].weights().len();
-        let mut min_max_weights = (vec![Float::MAX; dimension], vec![Float::MIN; dimension]);
-        let mut nodes = NodeHashMap::default();
-
         // first pass: create nodes using assignments without data yet (as it is not cloneable and we need to keep indices valid)
+        let mut nodes = NodeHashMap::default();
         for (&coord, indices) in node_assignments.iter() {
             let init_idx = indices[0];
             let weights: Vec<Float> = data[init_idx].weights().iter().map(|&v| noise.generate(v)).collect();
             let node = Node::new(coord, &weights, 0., rebalance_memory, storage_factory.eval(context));
-            update_min_max(&mut min_max_weights, &weights);
 
             nodes.insert(coord, node);
         }
@@ -539,7 +560,7 @@ where
         let dist_fn = |selected_indices: &Vec<usize>, idx: usize| {
             selected_indices
                 .iter()
-                .map(|&sel_idx| storage.distance(data[sel_idx].weights(), data[idx].weights()))
+                .map(|&sel_idx| storage.distance(data[sel_idx].weights().iter(), data[idx].weights().iter()))
                 .min_by(|a, b| a.total_cmp(b))
                 .unwrap_or_default()
         };
@@ -553,6 +574,25 @@ where
 
         Some(selected_indices)
     }
+    /*
+    fn distance(left: &[Float], right: &[Float], min_max: &MinMaxWeights, storage: &S) -> Float {
+        fn normalize<'a>(values: &'a [Float], min_max: &'a MinMaxWeights) -> impl Iterator<Item = Float> + 'a {
+            values.iter().zip(min_max.iter()).map(
+                |(&v, (&min, &max))| {
+                    if max != min {
+                        (v - min) / (max - min)
+                    } else {
+                        0.
+                    }
+                },
+            )
+        }
+
+        let left_iter = normalize(left, min_max);
+        let right_iter = normalize(right, min_max);
+
+        storage.distance(left_iter, right_iter)
+    }*/
 }
 
 fn compare_input<I: Input>(left: &I, right: &I) -> Ordering {
@@ -561,9 +601,4 @@ fn compare_input<I: Input>(left: &I, right: &I) -> Ordering {
         .map(|(lhs, rhs)| lhs.total_cmp(rhs))
         .find(|ord| *ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
-}
-
-fn update_min_max(min_max_weights: &mut (Vec<Float>, Vec<Float>), weights: &[Float]) {
-    min_max_weights.0.iter_mut().zip(weights.iter()).for_each(|(curr, v)| *curr = curr.min(*v));
-    min_max_weights.1.iter_mut().zip(weights.iter()).for_each(|(curr, v)| *curr = curr.max(*v));
 }
