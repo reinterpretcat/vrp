@@ -56,7 +56,7 @@ where
             NodeState {
                 coordinate: (node.coordinate.0, node.coordinate.1),
                 unified_distance: node.unified_distance(network, 1),
-                node_distance: node.node_distance(),
+                node_distance: node.node_distance(network),
                 weights: node.weights.clone(),
                 total_hits: node.total_hits,
                 last_hits: node.get_last_hits(network.get_current_time()),

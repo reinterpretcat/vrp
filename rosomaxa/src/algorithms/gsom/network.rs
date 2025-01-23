@@ -6,6 +6,7 @@ use super::*;
 use crate::algorithms::math::get_mean_iter;
 use crate::utils::*;
 use rand::prelude::SliceRandom;
+use rayon::iter::Either;
 use rustc_hash::FxHasher;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -63,27 +64,36 @@ pub struct MinMaxWeights {
     pub min: Vec<Float>,
     /// Max weights.
     pub max: Vec<Float>,
+    /// Indicates if min-max values are reset.
+    is_reset: bool,
 }
 
 impl MinMaxWeights {
     /// Creates a new instance of [MinMaxWeights].
     fn new(dimension: usize) -> Self {
-        Self { min: vec![Float::MAX; dimension], max: vec![Float::MIN; dimension] }
+        Self { min: vec![Float::MAX; dimension], max: vec![Float::MIN; dimension], is_reset: true }
     }
 
     /// Updates min max weights.
     pub fn update(&mut self, weights: &[Float]) {
         self.min.iter_mut().zip(weights.iter()).for_each(|(curr, v)| *curr = curr.min(*v));
         self.max.iter_mut().zip(weights.iter()).for_each(|(curr, v)| *curr = curr.max(*v));
+        self.is_reset = false;
     }
 
     /// Iterates over min-max values.
-    pub fn iter(&self) -> impl Iterator<Item = (&Float, &Float)> {
-        self.min.iter().zip(self.max.iter())
+    pub fn iter(&self) -> impl Iterator<Item = (Float, Float)> + '_ {
+        if self.is_reset {
+            // return min=0, max=1 to prevent numerical issues
+            Either::Left((0..self.min.len()).map(|_| (0. as Float, 1. as Float)))
+        } else {
+            Either::Right(self.min.iter().copied().zip(self.max.iter().copied()))
+        }
     }
 
     /// Resets min-max values.
     pub fn reset(&mut self) {
+        self.is_reset = true;
         self.min.fill(Float::MAX);
         self.max.fill(Float::MIN);
     }
@@ -123,7 +133,7 @@ where
             config.rebalance_memory,
             &storage_factory(data_size),
             // apply small noise to initial weights
-            Noise::new_with_ratio(1., (0.95, 1.05), random.clone()),
+            Noise::new_with_ratio(1., (0.99, 1.), random.clone()),
         )?;
 
         // create a network with more aggressive initial parameters
@@ -228,7 +238,7 @@ where
 
     /// Calculates mean distance of nodes with individuals.
     pub fn mean_distance(&self) -> Float {
-        get_mean_iter(self.nodes.iter().filter_map(|(_, node)| node.node_distance()))
+        get_mean_iter(self.nodes.iter().filter_map(|(_, node)| node.node_distance(self)))
     }
 
     /// Calculates mean squared error of the whole network.
@@ -273,7 +283,7 @@ where
 
         let (bmu_coord, error) = {
             let bmu = self.find_bmu(&input);
-            let error = bmu.distance(input.weights());
+            let error = self.distance(&bmu.weights, input.weights());
             (bmu.coordinate, error)
         };
 
@@ -293,7 +303,7 @@ where
     pub(super) fn train_on_data(&mut self, context: &C, data: Vec<I>, is_new_input: bool) {
         let nodes_data = parallel_into_collect(data, |input| {
             let bmu = self.find_bmu(&input);
-            let error = bmu.distance(input.weights());
+            let error = self.distance(&bmu.weights, input.weights());
             (bmu.coordinate, error, input)
         });
 
@@ -304,7 +314,7 @@ where
     fn find_bmu(&self, input: &I) -> &Node<I, S> {
         self.nodes
             .values()
-            .map(|node| (node, node.distance(input.weights())))
+            .map(|node| (node, self.distance(&node.weights, input.weights())))
             .min_by(|(_, x), (_, y)| x.partial_cmp(y).unwrap_or(Ordering::Less))
             .map(|(node, _)| node)
             .expect("no nodes")
@@ -486,11 +496,10 @@ where
 
         // initialize min max weights from data
         let dimension = data[0].weights().len();
-        let mut min_max_weights = MinMaxWeights::new(dimension);
-        data.iter().for_each(|i| min_max_weights.update(i.weights()));
+        let mut min_max = MinMaxWeights::new(dimension);
+        data.iter().for_each(|i| min_max.update(i.weights()));
 
-        let storage = storage_factory.eval(context);
-        let initial_node_indices = Self::select_initial_samples(&data, sample_size, &storage, noise.random())
+        let initial_node_indices = Self::select_initial_samples(&data, sample_size, &min_max, noise.random())
             .ok_or_else(|| GenericError::from("cannot select initial samples"))?;
 
         // create initial node coordinates and data assignments (by index)
@@ -511,7 +520,7 @@ where
             if !initial_node_indices.contains(&idx) {
                 let get_distance_fn = |coord| {
                     let init_idx = node_assignments[coord][0];
-                    storage.distance(data[init_idx].weights().iter(), item.weights().iter())
+                    distance(data[init_idx].weights(), item.weights(), &min_max)
                 };
 
                 node_assignments
@@ -546,11 +555,16 @@ where
             node.storage.add(item);
         }
 
-        Ok((nodes, min_max_weights))
+        Ok((nodes, min_max))
     }
 
     /// Selects initial samples (represented as index in data).
-    fn select_initial_samples(data: &[I], sample_size: usize, storage: &S, random: &dyn Random) -> Option<Vec<usize>> {
+    fn select_initial_samples(
+        data: &[I],
+        sample_size: usize,
+        min_max: &MinMaxWeights,
+        random: &dyn Random,
+    ) -> Option<Vec<usize>> {
         let mut selected_indices = Vec::with_capacity(sample_size);
 
         // select first sample randomly
@@ -560,7 +574,7 @@ where
         let dist_fn = |selected_indices: &Vec<usize>, idx: usize| {
             selected_indices
                 .iter()
-                .map(|&sel_idx| storage.distance(data[sel_idx].weights().iter(), data[idx].weights().iter()))
+                .map(|&sel_idx| distance(data[sel_idx].weights(), data[idx].weights(), min_max))
                 .min_by(|a, b| a.total_cmp(b))
                 .unwrap_or_default()
         };
@@ -574,25 +588,11 @@ where
 
         Some(selected_indices)
     }
-    /*
-    fn distance(left: &[Float], right: &[Float], min_max: &MinMaxWeights, storage: &S) -> Float {
-        fn normalize<'a>(values: &'a [Float], min_max: &'a MinMaxWeights) -> impl Iterator<Item = Float> + 'a {
-            values.iter().zip(min_max.iter()).map(
-                |(&v, (&min, &max))| {
-                    if max != min {
-                        (v - min) / (max - min)
-                    } else {
-                        0.
-                    }
-                },
-            )
-        }
 
-        let left_iter = normalize(left, min_max);
-        let right_iter = normalize(right, min_max);
-
-        storage.distance(left_iter, right_iter)
-    }*/
+    /// Returns a distance between weights.
+    pub fn distance(&self, left: &[Float], right: &[Float]) -> Float {
+        distance(left, right, &self.min_max_weights)
+    }
 }
 
 fn compare_input<I: Input>(left: &I, right: &I) -> Ordering {
@@ -601,4 +601,16 @@ fn compare_input<I: Input>(left: &I, right: &I) -> Ordering {
         .map(|(lhs, rhs)| lhs.total_cmp(rhs))
         .find(|ord| *ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
+}
+
+fn normalize<'a>(values: &'a [Float], min_max: &'a MinMaxWeights) -> impl Iterator<Item = Float> + 'a {
+    values.iter().zip(min_max.iter()).map(|(&v, (min, max))| if max != min { (v - min) / (max - min) } else { 0. })
+}
+
+fn distance(left: &[Float], right: &[Float], min_max: &MinMaxWeights) -> Float {
+    let left_iter = normalize(left, min_max);
+    let right_iter = normalize(right, min_max);
+
+    // TODO allow to pass custom distance function
+    left_iter.zip(right_iter).map(|(a, b)| (a - b).powi(2)).sum::<Float>().sqrt()
 }

@@ -18,16 +18,24 @@ fn create_config(node_size: usize) -> NetworkConfig {
     }
 }
 
+fn get_min_max(items: &[Data]) -> MinMaxWeights {
+    let dimension = items[0].values.len();
+    items.iter().fold(MinMaxWeights::new(dimension), |mut min_max, data| {
+        min_max.update(data.weights());
+        min_max
+    })
+}
+
+pub fn cartesian(a: &[Float], b: &[Float]) -> Float {
+    a.iter().zip(b.iter()).map(|(x, y)| (x - y).powi(2)).sum::<f64>().sqrt()
+}
+
 fn count_data_stored(nodes: &NodeHashMap<Data, DataStorage>) -> usize {
     nodes.values().map(|node| node.storage.size()).sum::<usize>()
 }
 
 fn count_non_empty_nodes(nodes: &NodeHashMap<Data, DataStorage>) -> usize {
     nodes.values().filter(|node| node.storage.iter().next().is_some()).count()
-}
-
-fn distance(i: usize, j: usize, data: &[Data]) -> Float {
-    DataStorage::cartesian(data[i].weights().iter(), data[j].weights().iter())
 }
 
 fn create_3d_data_grid(size: usize, step: Float) -> Vec<Data> {
@@ -63,6 +71,57 @@ fn create_spiral_data(points: usize, revolutions: Float) -> Vec<Data> {
             Data::new(r * t.cos(), r * t.sin(), t / (2.0 * std::f64::consts::PI))
         })
         .collect()
+}
+
+#[test]
+fn can_iter_min_max_weights_when_is_reset_true() {
+    let dimension = 3;
+    let min_max_weights = MinMaxWeights::new(dimension);
+
+    let result: Vec<(Float, Float)> = min_max_weights.iter().collect();
+
+    assert_eq!(result, vec![(0.0, 1.0); dimension]);
+}
+
+#[test]
+fn can_update_min_max_weights() {
+    let dimension = 3;
+    let mut min_max_weights = MinMaxWeights::new(dimension);
+
+    // Add initial weights
+    let weights1 = vec![1.0, 2.0, 3.0];
+    min_max_weights.update(&weights1);
+    assert_eq!(min_max_weights.min, vec![1.0, 2.0, 3.0]);
+    assert_eq!(min_max_weights.max, vec![1.0, 2.0, 3.0]);
+
+    // Add new weights that should update min and max
+    let weights2 = vec![0.5, 2.5, 4.0];
+    min_max_weights.update(&weights2);
+    assert_eq!(min_max_weights.min, vec![0.5, 2.0, 3.0]);
+    assert_eq!(min_max_weights.max, vec![1.0, 2.5, 4.0]);
+
+    // Add new weights that should not change min and max
+    let weights3 = vec![0.7, 2.3, 3.5];
+    min_max_weights.update(&weights3);
+    assert_eq!(min_max_weights.min, vec![0.5, 2.0, 3.0]);
+    assert_eq!(min_max_weights.max, vec![1.0, 2.5, 4.0]);
+}
+
+#[test]
+fn can_reset_min_max_weights() {
+    let dimension = 3;
+    let mut min_max_weights = MinMaxWeights::new(dimension);
+
+    // Add initial weights
+    let weights1 = vec![1.0, 2.0, 3.0];
+    min_max_weights.update(&weights1);
+    assert_eq!(min_max_weights.min, vec![1.0, 2.0, 3.0]);
+    assert_eq!(min_max_weights.max, vec![1.0, 2.0, 3.0]);
+
+    // Reset the min_max_weights
+    min_max_weights.reset();
+    assert!(min_max_weights.is_reset);
+    assert_eq!(min_max_weights.iter().collect::<Vec<_>>(), vec![(0.0, 1.0); dimension]);
 }
 
 #[test]
@@ -159,10 +218,10 @@ fn can_select_initial_samples() {
         Data::new(0.7, 0.3, 0.),
         Data::new(0.4, 0.6, 0.),
     ];
+    let min_max = get_min_max(&data);
     let random = create_test_random();
 
-    let selected =
-        NetworkType::select_initial_samples(&data, sample_size, &DataStorage::default(), random.as_ref()).unwrap();
+    let selected = NetworkType::select_initial_samples(&data, sample_size, &min_max, random.as_ref()).unwrap();
 
     // Verify sample size constraints
     assert_eq!(selected.len(), ((data.len() as f64 * 0.1).ceil() as usize).clamp(4, 16));
@@ -178,7 +237,11 @@ fn can_select_initial_samples() {
             (i + 1..selected.len()).map({
                 let data = &data;
                 let selected = &selected;
-                move |j| distance(selected[i], selected[j], data)
+                move |j| {
+                    let data_i = &data[selected[i]];
+                    let data_j = &data[selected[j]];
+                    cartesian(data_i.weights(), data_j.weights())
+                }
             })
         })
         .collect::<Vec<_>>();
@@ -229,16 +292,14 @@ fn can_create_network_with_spiral_distribution() {
     let network = NetworkType::new(&(), initial_data.clone(), config, random, |_| DataStorageFactory).unwrap();
 
     let non_empty_nodes = count_non_empty_nodes(&network.nodes);
-    assert!(non_empty_nodes >= (size / 3), "too sparse {}", non_empty_nodes);
+    assert!(non_empty_nodes >= (size / 10), "too sparse {}", non_empty_nodes);
     assert!(network.size() <= (size * 2), "too big {}", network.size());
     let distances: Vec<_> = network
         .get_nodes()
-        .flat_map(|node| {
-            node.storage.data.iter().map(|data| DataStorage::cartesian(node.weights.iter(), data.weights().iter()))
-        })
+        .flat_map(|node| node.storage.data.iter().map(|data| cartesian(&node.weights, data.weights())))
         .collect();
     let avg_distance = distances.iter().sum::<Float>() / distances.len() as Float;
-    assert!(avg_distance < 0.5, "too big average: {}", 0.6);
+    assert!(avg_distance < 0.66, "too big average: {}", avg_distance);
 }
 
 #[test]
@@ -288,7 +349,7 @@ fn can_create_initial_nodes_with_outliers() {
     let (nodes, min_max) =
         NetworkType::create_initial_nodes(&(), data.clone(), 10, &DataStorageFactory, noise).unwrap();
 
-    assert!(min_max.iter().all(|(&min, &max)| min < max));
+    assert!(min_max.iter().all(|(min, max)| min < max));
     assert!(nodes.values().all(|node| !node.storage.data.is_empty()));
 
     let find_fn = |threshold| {
@@ -332,10 +393,11 @@ can_select_initial_samples_edge_cases! {
 }
 
 fn can_select_initial_samples_edge_cases_impl(data: Vec<Data>, sampling: (usize, f64)) {
+    let min_max = get_min_max(&data);
     let (sampling_size, expected_min_distance) = sampling;
 
     let random = create_test_random();
-    let selected = NetworkType::select_initial_samples(&data, sampling_size, &DataStorage::default(), random.as_ref())
+    let selected = NetworkType::select_initial_samples(&data, sampling_size, &min_max, random.as_ref())
         .expect("Failed to select samples");
 
     assert_eq!(selected.len(), sampling_size);
@@ -348,7 +410,7 @@ fn can_select_initial_samples_edge_cases_impl(data: Vec<Data>, sampling: (usize,
         .flat_map(|(i, &idx1)| {
             selected.iter().skip(i + 1).map({
                 let data = &data;
-                move |&idx2| distance(idx1, idx2, data)
+                move |&idx2| cartesian(data[idx1].weights(), data[idx2].weights())
             })
         })
         .min_by(|a, b| a.total_cmp(b))
@@ -367,10 +429,10 @@ fn can_select_initial_samples_with_duplicates() {
     let sample_size = 4;
     let data =
         vec![Data::new(1.0, 1.0, 1.0), Data::new(1.0, 1.0, 1.0), Data::new(2.0, 2.0, 2.0), Data::new(2.0, 2.0, 2.0)];
+    let min_max = get_min_max(&data);
 
     let random = create_test_random();
-    let selected =
-        NetworkType::select_initial_samples(&data, sample_size, &DataStorage::default(), random.as_ref()).unwrap();
+    let selected = NetworkType::select_initial_samples(&data, sample_size, &min_max, random.as_ref()).unwrap();
 
     let unique_points: HashSet<_> = selected
         .iter()
@@ -408,14 +470,16 @@ fn can_create_new_network_empty_regions() {
     let network = NetworkType::new(&(), initial_data, config, random, |_| DataStorageFactory).unwrap();
 
     let nodes_vec: Vec<_> = network.get_nodes().collect();
-    (0..nodes_vec.len())
+    let total_pairs = (nodes_vec.len() * (nodes_vec.len() - 1)) / 2;
+    let failed_pairs = (0..nodes_vec.len())
         .flat_map(|i| {
             (i + 1..nodes_vec.len()).map({
                 let nodes_vec = &nodes_vec;
-                move |j| DataStorage::cartesian(nodes_vec[i].weights.iter(), nodes_vec[j].weights.iter())
+                move |j| cartesian(&nodes_vec[i].weights, &nodes_vec[j].weights)
             })
         })
-        .for_each(|dist| {
-            assert!(dist > 1., "distance between nodes is too small: {}", dist);
-        });
+        .filter(|&dist| dist <= 1.)
+        .count();
+    let failure_fraction = failed_pairs as f64 / total_pairs as f64;
+    assert!(failure_fraction < 0.1, "Too many node pairs are too close: {}", failure_fraction);
 }

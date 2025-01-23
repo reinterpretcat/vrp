@@ -52,11 +52,6 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         }
     }
 
-    /// Returns distance to the given weights.
-    pub fn distance(&self, weights: &[Float]) -> Float {
-        self.storage.distance(self.weights.iter(), weights.iter())
-    }
-
     /// Updates hit statistics.
     pub fn new_hit(&mut self, time: usize) {
         self.total_hits += 1;
@@ -120,7 +115,7 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
             .neighbours(network, radius)
             .filter_map(|(coord, _)| coord.and_then(|coord| network.find(&coord)))
             .fold((0., 0), |(sum, count), node| {
-                let distance = self.storage.distance(self.weights.iter(), node.weights.iter());
+                let distance = network.distance(self.weights.as_slice(), node.weights.as_slice());
                 (sum + distance, count + 1)
             });
 
@@ -132,8 +127,12 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     }
 
     /// Returns distance between underlying item (if any) and node weight's.
-    pub fn node_distance(&self) -> Option<Float> {
-        self.storage.iter().next().map(|item| self.storage.distance(self.weights.iter(), item.weights().iter()))
+    pub fn node_distance<C, F>(&self, network: &Network<C, I, S, F>) -> Option<Float>
+    where
+        C: Send + Sync,
+        F: StorageFactory<C, I, S>,
+    {
+        self.storage.iter().next().map(|item| network.distance(&self.weights, item.weights()))
     }
 
     /// Calculates mean squared error of the node.
