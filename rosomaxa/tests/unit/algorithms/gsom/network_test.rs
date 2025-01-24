@@ -26,7 +26,7 @@ fn get_min_max(items: &[Data]) -> MinMaxWeights {
     })
 }
 
-pub fn cartesian(a: &[Float], b: &[Float]) -> Float {
+pub fn euclidian_distance(a: &[Float], b: &[Float]) -> Float {
     a.iter().zip(b.iter()).map(|(x, y)| (x - y).powi(2)).sum::<f64>().sqrt()
 }
 
@@ -240,7 +240,7 @@ fn can_select_initial_samples() {
                 move |j| {
                     let data_i = &data[selected[i]];
                     let data_j = &data[selected[j]];
-                    cartesian(data_i.weights(), data_j.weights())
+                    euclidian_distance(data_i.weights(), data_j.weights())
                 }
             })
         })
@@ -296,7 +296,7 @@ fn can_create_network_with_spiral_distribution() {
     assert!(network.size() <= (size * 2), "too big {}", network.size());
     let distances: Vec<_> = network
         .get_nodes()
-        .flat_map(|node| node.storage.data.iter().map(|data| cartesian(&node.weights, data.weights())))
+        .flat_map(|node| node.storage.data.iter().map(|data| euclidian_distance(&node.weights, data.weights())))
         .collect();
     let avg_distance = distances.iter().sum::<Float>() / distances.len() as Float;
     assert!(avg_distance < 0.66, "too big average: {}", avg_distance);
@@ -410,7 +410,7 @@ fn can_select_initial_samples_edge_cases_impl(data: Vec<Data>, sampling: (usize,
         .flat_map(|(i, &idx1)| {
             selected.iter().skip(i + 1).map({
                 let data = &data;
-                move |&idx2| cartesian(data[idx1].weights(), data[idx2].weights())
+                move |&idx2| euclidian_distance(data[idx1].weights(), data[idx2].weights())
             })
         })
         .min_by(|a, b| a.total_cmp(b))
@@ -475,7 +475,7 @@ fn can_create_new_network_empty_regions() {
         .flat_map(|i| {
             (i + 1..nodes_vec.len()).map({
                 let nodes_vec = &nodes_vec;
-                move |j| cartesian(&nodes_vec[i].weights, &nodes_vec[j].weights)
+                move |j| euclidian_distance(&nodes_vec[i].weights, &nodes_vec[j].weights)
             })
         })
         .filter(|&dist| dist <= 1.)

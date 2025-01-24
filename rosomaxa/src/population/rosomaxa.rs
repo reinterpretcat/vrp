@@ -44,7 +44,7 @@ impl RosomaxaConfig {
             node_size: 2,
             spread_factor: 0.75,
             distribution_factor: 0.9,
-            rebalance_memory: 100,
+            rebalance_memory: 200,
             exploration_ratio: 0.9,
         }
     }

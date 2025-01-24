@@ -76,6 +76,8 @@ impl MinMaxWeights {
 
     /// Updates min max weights.
     pub fn update(&mut self, weights: &[Float]) {
+        debug_assert!(weights.len() == self.min.len());
+
         self.min.iter_mut().zip(weights.iter()).for_each(|(curr, v)| *curr = curr.min(*v));
         self.max.iter_mut().zip(weights.iter()).for_each(|(curr, v)| *curr = curr.max(*v));
         self.is_reset = false;
@@ -268,6 +270,9 @@ where
             // update min max weights to reflect the current state
             self.min_max_weights.reset();
             data.iter().for_each(|i| self.min_max_weights.update(i.weights()));
+            self.nodes.iter().for_each(|(_, node)| {
+                self.min_max_weights.update(node.weights.as_slice());
+            });
 
             self.train_on_data(context, data, allow_growth);
 
@@ -446,7 +451,10 @@ where
             .collect::<Vec<_>>();
 
         nodes.into_iter().for_each(|(coord, weights, learning_rate)| {
-            self.nodes.get_mut(&coord).unwrap().adjust(weights, learning_rate);
+            if let Some(node) = self.nodes.get_mut(&coord) {
+                node.adjust(weights, learning_rate);
+                self.min_max_weights.update(node.weights.as_slice());
+            }
         })
     }
 
@@ -520,7 +528,7 @@ where
             if !initial_node_indices.contains(&idx) {
                 let get_distance_fn = |coord| {
                     let init_idx = node_assignments[coord][0];
-                    distance(data[init_idx].weights(), item.weights(), &min_max)
+                    euclidian_distance(data[init_idx].weights(), item.weights(), &min_max)
                 };
 
                 node_assignments
@@ -574,7 +582,7 @@ where
         let dist_fn = |selected_indices: &Vec<usize>, idx: usize| {
             selected_indices
                 .iter()
-                .map(|&sel_idx| distance(data[sel_idx].weights(), data[idx].weights(), min_max))
+                .map(|&sel_idx| euclidian_distance(data[sel_idx].weights(), data[idx].weights(), min_max))
                 .min_by(|a, b| a.total_cmp(b))
                 .unwrap_or_default()
         };
@@ -591,7 +599,7 @@ where
 
     /// Returns a distance between weights.
     pub fn distance(&self, left: &[Float], right: &[Float]) -> Float {
-        distance(left, right, &self.min_max_weights)
+        euclidian_distance(left, right, &self.min_max_weights)
     }
 }
 
@@ -607,7 +615,7 @@ fn normalize<'a>(values: &'a [Float], min_max: &'a MinMaxWeights) -> impl Iterat
     values.iter().zip(min_max.iter()).map(|(&v, (min, max))| if max != min { (v - min) / (max - min) } else { 0. })
 }
 
-fn distance(left: &[Float], right: &[Float], min_max: &MinMaxWeights) -> Float {
+fn euclidian_distance(left: &[Float], right: &[Float], min_max: &MinMaxWeights) -> Float {
     let left_iter = normalize(left, min_max);
     let right_iter = normalize(right, min_max);
 
