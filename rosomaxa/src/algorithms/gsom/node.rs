@@ -126,39 +126,22 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         }
     }
 
-    /// Returns distance between underlying item (if any) and node weight's.
-    pub fn node_distance<C, F>(&self, network: &Network<C, I, S, F>) -> Option<Float>
+    /// Returns mean squared error.
+    pub fn mse<C, F>(&self, network: &Network<C, I, S, F>) -> Float
     where
         C: Send + Sync,
         F: StorageFactory<C, I, S>,
     {
-        self.storage.iter().next().map(|item| network.distance(&self.weights, item.weights()))
-    }
-
-    /// Calculates mean squared error of the node.
-    pub fn mse(&self) -> Float {
-        let (count, sum) = self
-            .storage
-            .iter()
-            // NOTE try only first item so far
-            .take(1)
-            .fold((0, 0.), |(items, acc), data| {
-                let err = data
-                    .weights()
-                    .iter()
-                    .zip(self.weights.iter())
-                    .map(|(&w1, &w2)| (w1 - w2) * (w1 - w2))
-                    .sum::<Float>()
-                    / self.weights.len() as Float;
-
-                (items + 1, acc + err)
-            });
-
-        if count > 0 {
-            sum / count as Float
-        } else {
-            sum
+        if self.storage.size() == 0 {
+            return 0.;
         }
+
+        self.storage.iter().fold(0., |acc, input| {
+            let node_weights = network.normalize(&self.weights);
+            let input_weights = network.normalize(input.weights());
+
+            acc + node_weights.zip(input_weights).map(|(w1, w2)| (w1 - w2) * (w1 - w2)).sum::<Float>()
+        }) / self.storage.size() as Float
     }
 }
 

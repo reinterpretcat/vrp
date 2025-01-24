@@ -15,11 +15,11 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
             cols,
             fitness_values,
             fitness_matrices,
-            mean_distance,
+            mse,
             u_matrix,
             t_matrix,
             l_matrix,
-            n_matrix,
+            m_matrix,
         } => {
             let _fitness_values = fitness_values;
             let plots = fitness_matrices.len() + 5;
@@ -202,8 +202,8 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
             draw_series2d(sub_areas.get_mut(len + 3).unwrap(), &get_caption_usize("lh"), l_matrix)?;
             draw_series2d(
                 sub_areas.get_mut(len + 4).unwrap(),
-                &get_caption_float(format!("mu ({:.2})", *mean_distance).as_str()),
-                n_matrix,
+                &get_caption_float(format!("mse ({:.2})", *mse).as_str()),
+                m_matrix,
             )?;
 
             fitness_matrices.iter().enumerate().try_for_each(|(idx, objective)| {

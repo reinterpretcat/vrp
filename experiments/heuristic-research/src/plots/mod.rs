@@ -353,13 +353,13 @@ fn get_population_series(generation: usize) -> PopulationSeries {
             Some(PopulationState::Rosomaxa {
                 rows,
                 cols,
-                mean_distance,
+                mse,
                 fitness_values,
                 fitness_matrices,
                 u_matrix,
                 t_matrix,
                 l_matrix,
-                n_matrix,
+                m_matrix,
             }) => {
                 let get_series = |matrix: &MatrixData| {
                     let matrix = matrix.clone();
@@ -369,13 +369,13 @@ fn get_population_series(generation: usize) -> PopulationSeries {
                 Some(PopulationSeries::Rosomaxa {
                     rows: rows.clone(),
                     cols: cols.clone(),
-                    mean_distance: *mean_distance,
+                    mse: *mse,
                     fitness_values: fitness_values.clone(),
                     fitness_matrices: fitness_matrices.iter().map(get_series).collect(),
                     u_matrix: get_series(u_matrix),
                     t_matrix: get_series(t_matrix),
                     l_matrix: get_series(l_matrix),
-                    n_matrix: get_series(n_matrix),
+                    m_matrix: get_series(m_matrix),
                 })
             }
             _ => None,

@@ -70,8 +70,8 @@ pub enum PopulationSeries {
         rows: Range<i32>,
         /// Columns range.
         cols: Range<i32>,
-        /// Mean node distance.
-        mean_distance: Float,
+        /// MSE distance.
+        mse: Float,
         /// Best fitness values.
         fitness_values: Vec<Float>,
         /// Objective values chart series.
@@ -82,8 +82,8 @@ pub enum PopulationSeries {
         t_matrix: Series2D,
         /// L-matrix values chart series.
         l_matrix: Series2D,
-        /// Node distance values chart series.
-        n_matrix: Series2D,
+        /// MSE values chart series.
+        m_matrix: Series2D,
     },
 }
 

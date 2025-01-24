@@ -278,7 +278,6 @@ fn can_create_network_random_data() {
     // Verify node coverage
     assert_eq!(count_data_stored(&network.nodes), initial_data.len());
     // Check network metrics
-    assert!(network.mean_distance() > 0.);
     assert!(network.mse() > 0.);
     assert!(network.max_unified_distance() > 0.);
 }

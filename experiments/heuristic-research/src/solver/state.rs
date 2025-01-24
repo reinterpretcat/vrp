@@ -24,8 +24,8 @@ pub enum PopulationState {
         rows: Range<i32>,
         /// Cols range.
         cols: Range<i32>,
-        /// Mean distance.
-        mean_distance: Float,
+        /// MSE distance.
+        mse: Float,
         /// Best fitness values.
         fitness_values: Vec<Float>,
         /// Overall fitness values data split into separate matrices.
@@ -36,8 +36,8 @@ pub enum PopulationState {
         t_matrix: MatrixData,
         /// L-matrix values data.
         l_matrix: MatrixData,
-        /// Node distance values data.
-        n_matrix: MatrixData,
+        /// MSE node values data.
+        m_matrix: MatrixData,
     },
 }
 
@@ -68,27 +68,19 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<Float>
     let rosomaxa = PopulationState::Rosomaxa {
         rows,
         cols,
-        mean_distance: 0.,
+        mse: 0.,
         fitness_values,
         fitness_matrices: Default::default(),
         u_matrix: Default::default(),
         t_matrix: Default::default(),
         l_matrix: Default::default(),
-        n_matrix: Default::default(),
+        m_matrix: Default::default(),
     };
 
     network_state.nodes.iter().fold(rosomaxa, |mut rosomaxa, node| {
         let coordinate = Coordinate(node.coordinate.0, node.coordinate.1);
         match &mut rosomaxa {
-            PopulationState::Rosomaxa {
-                fitness_matrices,
-                mean_distance,
-                u_matrix,
-                t_matrix,
-                l_matrix,
-                n_matrix,
-                ..
-            } => {
+            PopulationState::Rosomaxa { fitness_matrices, mse, u_matrix, t_matrix, l_matrix, m_matrix, .. } => {
                 // NOTE get first fitness in assumption of sorted order
                 let fitness = match (node.dump.starts_with("[["), node.dump.find(']')) {
                     (true, Some(value)) => node.dump[2..value]
@@ -106,14 +98,11 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<Float>
                     });
                 }
 
-                if let Some(node_distance) = node.node_distance {
-                    n_matrix.insert(coordinate, node_distance);
-                }
-
+                m_matrix.insert(coordinate, node.mse);
                 u_matrix.insert(coordinate, node.unified_distance);
                 t_matrix.insert(coordinate, node.total_hits as Float);
                 l_matrix.insert(coordinate, node.last_hits as Float);
-                *mean_distance = network_state.mean_distance;
+                *mse = network_state.mse;
             }
             _ => unreachable!(),
         }

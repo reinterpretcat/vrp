@@ -3,7 +3,6 @@
 mod network_test;
 
 use super::*;
-use crate::algorithms::math::get_mean_iter;
 use crate::utils::*;
 use rand::prelude::SliceRandom;
 use rayon::iter::Either;
@@ -238,16 +237,19 @@ where
         self.time
     }
 
-    /// Calculates mean distance of nodes with individuals.
-    pub fn mean_distance(&self) -> Float {
-        get_mean_iter(self.nodes.iter().filter_map(|(_, node)| node.node_distance(self)))
-    }
-
     /// Calculates mean squared error of the whole network.
     pub fn mse(&self) -> Float {
-        let n = if self.nodes.is_empty() { 1 } else { self.nodes.len() } as Float;
+        let (n, sum) = self
+            .nodes
+            .iter()
+            .filter(|(_, node)| node.storage.size() > 0)
+            .fold((0, 0.), |(n, sum), (_, node)| (n + 1, sum + node.mse(self)));
 
-        self.nodes.iter().fold(0., |acc, (_, node)| acc + node.mse()) / n
+        if n > 0 {
+            sum / n as Float
+        } else {
+            0.
+        }
     }
 
     /// Returns max unified distance of the network.
@@ -598,8 +600,13 @@ where
     }
 
     /// Returns a distance between weights.
-    pub fn distance(&self, left: &[Float], right: &[Float]) -> Float {
+    pub(crate) fn distance(&self, left: &[Float], right: &[Float]) -> Float {
         euclidian_distance(left, right, &self.min_max_weights)
+    }
+
+    /// Returns normalized weights.
+    pub(crate) fn normalize<'a>(&'a self, values: &'a [Float]) -> impl Iterator<Item = Float> + 'a {
+        normalize(values, &self.min_max_weights)
     }
 }
 
