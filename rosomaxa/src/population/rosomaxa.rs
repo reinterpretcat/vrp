@@ -310,7 +310,12 @@ where
         network.set_learning_rate(get_learning_rate(statistics.termination_estimate));
 
         if statistics.generation % config.rebalance_memory == 0 {
-            network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
+            // set the MSE threshold to a fraction of the maximum possible normalized distance
+            let mse = network.mse();
+            let threshold = 0.5 / (network.dimension() as Float).sqrt();
+            if mse > threshold {
+                network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
+            }
         }
 
         let keep_size = get_keep_size(config.rebalance_memory, statistics.termination_estimate);

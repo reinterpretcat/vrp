@@ -483,7 +483,7 @@ where
     }
 
     /// Returns data (weights) dimension.
-    pub(super) fn dimension(&self) -> usize {
+    pub fn dimension(&self) -> usize {
         self.dimension
     }
 
