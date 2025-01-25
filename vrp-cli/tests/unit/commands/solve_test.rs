@@ -1,4 +1,5 @@
 use super::*;
+use crate::cli::{get_app, run_subcommand};
 
 const PRAGMATIC_PROBLEM_PATH: &str = "../examples/data/pragmatic/simple.basic.problem.json";
 const PRAGMATIC_MATRIX_PATH: &str = "../examples/data/pragmatic/simple.basic.matrix.json";
@@ -29,18 +30,16 @@ fn get_solomon_matches(params: &[&str]) -> ArgMatches {
 
 #[test]
 fn can_solve_pragmatic_problem_with_generation_limit() {
-    let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--max-generations", "1"];
-    let matches = get_solve_app().try_get_matches_from(args).unwrap();
+    let args = vec!["vrp-cli", "solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--max-generations", "1"];
 
-    run_solve_without_writer(&matches);
+    run_subcommand(get_app().try_get_matches_from(args).unwrap());
 }
 
 #[test]
 fn can_solve_pragmatic_problem_with_matrix() {
-    let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--matrix", PRAGMATIC_MATRIX_PATH];
-    let matches = get_solve_app().try_get_matches_from(args).unwrap();
+    let args = vec!["vrp-cli", "solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--matrix", PRAGMATIC_MATRIX_PATH];
 
-    run_solve_without_writer(&matches);
+    run_subcommand(get_app().try_get_matches_from(args).unwrap());
 }
 
 #[test]
@@ -50,18 +49,25 @@ fn can_solve_pragmatic_problem_with_multiple_matrices() {
     let car_matrix_path = format!("{PRAGMATIC_BASICS_PATH}profiles.basic.matrix.car.json");
     let truck_matrix_path = format!("{PRAGMATIC_BASICS_PATH}profiles.basic.matrix.truck.json");
 
-    let args = vec!["solve", "pragmatic", &problem_path, "--matrix", &car_matrix_path, "--matrix", &truck_matrix_path];
-    let matches = get_solve_app().try_get_matches_from(args).unwrap();
+    let args = vec![
+        "vrp-cli",
+        "solve",
+        "pragmatic",
+        &problem_path,
+        "--matrix",
+        &car_matrix_path,
+        "--matrix",
+        &truck_matrix_path,
+    ];
 
-    run_solve_without_writer(&matches);
+    run_subcommand(get_app().try_get_matches_from(args).unwrap());
 }
 
 #[test]
 fn can_solve_lilim_problem_with_multiple_limits() {
-    let args = vec!["solve", "lilim", LILIM_PROBLEM_PATH, "--max-time", "300", "--max-generations", "1"];
-    let matches = get_solve_app().try_get_matches_from(args).unwrap();
+    let args = vec!["vrp-cli", "solve", "lilim", LILIM_PROBLEM_PATH, "--max-time", "300", "--max-generations", "1"];
 
-    run_solve_without_writer(&matches);
+    run_subcommand(get_app().try_get_matches_from(args).unwrap());
 }
 
 #[test]

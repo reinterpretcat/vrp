@@ -177,14 +177,6 @@ where
         self.learning_rate
     }
 
-    /// Stores input into the network.
-    pub fn store(&mut self, context: &C, input: I, time: usize) {
-        debug_assert!(input.weights().len() == self.dimension);
-        self.time = time;
-        self.min_max_weights.update(input.weights());
-        self.train(context, input, true)
-    }
-
     /// Stores multiple inputs into the network.
     pub fn store_batch(&mut self, context: &C, data: Vec<I>, time: usize) {
         self.time = time;
@@ -282,20 +274,6 @@ where
                 node.error = 0.;
             })
         });
-    }
-
-    /// Trains network on an input.
-    fn train(&mut self, context: &C, input: I, is_new_input: bool) {
-        debug_assert!(input.weights().len() == self.dimension);
-
-        let (bmu_coord, error) = {
-            let bmu = self.find_bmu(&input);
-            let error = self.distance(&bmu.weights, input.weights());
-            (bmu.coordinate, error)
-        };
-
-        self.update(context, &bmu_coord, &input, error, is_new_input);
-        self.nodes.get_mut(&bmu_coord).unwrap().storage.add(input);
     }
 
     /// Trains network on inputs.

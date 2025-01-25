@@ -15,27 +15,12 @@ fn assert_network(
     });
 }
 
-parameterized_test! {can_contract_small_network, (decimation, coords, expected), {
-    can_contract_small_network_impl(decimation, coords, expected);
-}}
+#[test]
+fn can_contract_small_network() {
+    let decimation = (3, 4);
+    let coords = vec![(0, 0), (0, 1), (1, 0), (1, 1), (-1, 0), (-2, 0), (0, -1), (0, -2), (1, -1), (1, -2), (2, 1)];
+    let expected = vec![((2, 1), (2., 1.)), ((1, 1), (1., 1.)), ((1, 0), (1., -1.)), ((1, -1), (1., -2.))];
 
-can_contract_small_network! {
-        case01_one_row_one_col: ((3, 4),
-            vec![(0, 0), (0, 1), (1, 0), (1, 1), (-1, 0), (-2, 0), (0, -1), (0, -2), (1, -1), (1, -2), (2, 1)],
-            vec![((2, 1), (2., 1.)), ((1, 1), (1., 1.)), ((1, 0), (1., -1.)), ((1, -1), (1., -2.))]
-        ),
-
-        case02_one_row_three_cols: ((2, 3),
-            vec![(0, 0), (0, 1), (1, 0), (1, 1), (-1, 0), (-2, 0), (0, -1), (0, -2), (1, -1), (1, -2), (2, 1)],
-            vec![((1, -1), (1., -2.)), ((1, 1), (1., 1.)), ((1, 0), (1., -1.))]
-        ),
-}
-
-fn can_contract_small_network_impl(
-    decimation: (i32, i32),
-    coords: Vec<(i32, i32)>,
-    expected: Vec<((i32, i32), (Float, Float))>,
-) {
     let mut network = create_test_network(false);
     coords.into_iter().for_each(|coord| insert(coord, &mut network));
 

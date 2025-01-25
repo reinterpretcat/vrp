@@ -3,7 +3,6 @@
 mod slot_machine_test;
 
 use crate::utils::{DistributionSampler, Float};
-use std::fmt::{Display, Formatter};
 
 /// Represents an action on slot machine;
 pub trait SlotAction {
@@ -90,15 +89,5 @@ where
     /// Gets learned params (alpha, beta, mean and variants) and usage amount.
     pub fn get_params(&self) -> (Float, Float, Float, Float, usize) {
         (self.alpha, self.beta, self.mu, self.v, self.n)
-    }
-}
-
-impl<T, S> Display for SlotMachine<T, S>
-where
-    T: Clone,
-    S: Clone,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "n={},alpha={},beta={},mu={},v={}", self.n, self.alpha, self.beta, self.mu, self.v)
     }
 }

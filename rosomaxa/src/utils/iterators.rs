@@ -6,7 +6,6 @@ mod iterators_test;
 
 use crate::utils::*;
 use std::collections::HashMap;
-use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -236,15 +235,6 @@ impl<T> BestItem<T> {
     }
 }
 
-impl<T> Debug for BestItem<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            BestItem::Unknown => write!(f, "X"),
-            BestItem::Stale((idx, _)) | BestItem::Fresh((idx, _)) => write!(f, "{idx}"),
-        }
-    }
-}
-
 /// Keeps track of search state for selection sampling search.
 struct SearchState<const N: usize, T> {
     left: usize,
@@ -289,16 +279,5 @@ impl<const N: usize, T> SearchState<N, T> {
 
     pub fn is_terminal(&self) -> bool {
         self.left >= self.right || self.collisions_limit <= 0
-    }
-}
-
-impl<const N: usize, T> Debug for SearchState<N, T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(short_type_name::<Self>())
-            .field("range", &(self.left, self.right))
-            .field("col_lim", &self.collisions_limit)
-            .field("best_idx", &self.best)
-            .field("bits", &format!("{:b}", self.bit_array))
-            .finish()
     }
 }

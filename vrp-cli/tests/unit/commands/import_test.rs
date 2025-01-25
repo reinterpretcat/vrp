@@ -1,4 +1,5 @@
 use super::*;
+use crate::cli::{get_app, run_subcommand};
 use vrp_cli::pragmatic::format::problem::PragmaticProblem;
 
 const CSV_JOBS_PATH: &str = "../examples/data/csv/jobs.csv";
@@ -8,6 +9,7 @@ const VEHICLES_JOBS_PATH: &str = "../examples/data/csv/vehicles.csv";
 fn can_import_csv_problem_from_args() {
     let tmpfile = tempfile::NamedTempFile::new().unwrap();
     let args = vec![
+        "vrp-cli",
         "import",
         "csv",
         "--input-files",
@@ -16,9 +18,9 @@ fn can_import_csv_problem_from_args() {
         "--out-result",
         tmpfile.path().to_str().unwrap(),
     ];
-    let matches = get_import_app().try_get_matches_from(args).unwrap();
+    let matches = get_app().try_get_matches_from(args).unwrap();
 
-    run_import(&matches).unwrap();
+    run_subcommand(matches);
 
     let problem = BufReader::new(tmpfile.as_file()).read_pragmatic().unwrap();
     assert_eq!(problem.jobs.size(), 3);
