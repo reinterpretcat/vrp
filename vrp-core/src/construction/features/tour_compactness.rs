@@ -18,7 +18,7 @@ pub fn create_tour_compactness_feature<F>(
     distance_fn: F,
 ) -> Result<Feature, GenericError>
 where
-    F: Fn(&Profile, Location, Location) -> Cost + Send + Sync + 'static,
+    F: Fn(&Actor, Location, Location) -> Cost + Send + Sync + 'static,
 {
     if cost_feature.objective.is_none() {
         return Err(GenericError::from("tour compactness requires cost feature to have an objective"));
@@ -52,7 +52,7 @@ struct TourCompactnessObjective<F> {
 
 impl<F> FeatureObjective for TourCompactnessObjective<F>
 where
-    F: Fn(&Profile, Location, Location) -> Cost + Send + Sync,
+    F: Fn(&Actor, Location, Location) -> Cost + Send + Sync,
 {
     fn fitness(&self, solution: &InsertionContext) -> Cost {
         self.objective.fitness(solution)
@@ -60,18 +60,29 @@ where
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
-            MoveContext::Route { solution_ctx, route_ctx, job } => job
-                .as_single()
-                .iter()
-                // NOTE we can calculate dispersion bonus for a single job with no alternative places
-                // and skip calculation in activity evaluation as it is not going to change
-                .filter(|single| single.places.len() == 1)
-                .filter_map(|single| single.places.first())
-                .filter_map(|place| place.location)
-                .map(|location| -self.calculate_dispersion_bonus(solution_ctx.routes.as_slice(), route_ctx, location))
-                .next()
-                .unwrap_or_default(),
+            MoveContext::Route { solution_ctx, route_ctx, job } => {
+                if route_ctx.route().tour.has_jobs() {
+                    return self.objective.estimate(move_ctx);
+                }
+
+                job.as_single()
+                    .iter()
+                    // NOTE we can calculate dispersion bonus for a single job with no alternative places
+                    // and skip calculation in activity evaluation as it is not going to change
+                    .filter(|single| single.places.len() == 1)
+                    .filter_map(|single| single.places.first())
+                    .filter_map(|place| place.location)
+                    .map(|location| {
+                        -self.calculate_dispersion_bonus(solution_ctx.routes.as_slice(), route_ctx, location)
+                    })
+                    .next()
+                    .unwrap_or_default()
+            }
             MoveContext::Activity { solution_ctx, route_ctx, activity_ctx } => {
+                if route_ctx.route().tour.has_jobs() {
+                    return self.objective.estimate(move_ctx);
+                }
+
                 // check if we have already considered dispersion bonus for the job
                 let dispersion_bonus = if activity_ctx
                     .target
@@ -96,7 +107,7 @@ where
 
 impl<F> TourCompactnessObjective<F>
 where
-    F: Fn(&Profile, Location, Location) -> Cost + Send + Sync,
+    F: Fn(&Actor, Location, Location) -> Cost + Send + Sync,
 {
     /// Calculates dispersion bonus for the location. A general idea is to reward the assignment of
     /// the next activity in the **new** tour if it spawns it far from the existing tours.
@@ -152,9 +163,7 @@ where
             .unwrap_or(true);
 
         self.get_representative_activities(other_route, with_start, with_end)
-            .map(|activity| {
-                (self.distance_fn)(&this_route.route().actor.vehicle.profile, from, activity.place.location)
-            })
+            .map(|activity| (self.distance_fn)(&this_route.route().actor, from, activity.place.location))
             .min_by(|a, b| a.total_cmp(b))
             .unwrap_or_default()
     }

@@ -36,12 +36,7 @@ fn can_compact_tour() {
             }],
             ..create_default_fleet()
         },
-        objectives: Some(vec![
-            MinimizeUnassigned { breaks: None },
-            MinimizeTours,
-            CompactTour { job_radius: 2 },
-            MinimizeCost,
-        ]),
+        objectives: Some(vec![MinimizeUnassigned { breaks: None }, CompactTour { num_points: None, inner: None }]),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);

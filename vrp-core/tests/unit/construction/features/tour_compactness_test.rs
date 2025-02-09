@@ -7,7 +7,7 @@ const TEST_ESTIMATE: Cost = 10.;
 
 fn create_objective(
     num_representative_points: usize,
-) -> TourCompactnessObjective<impl Fn(&Profile, Location, Location) -> Cost + Send + Sync + 'static> {
+) -> TourCompactnessObjective<impl Fn(&Actor, Location, Location) -> Cost + Send + Sync + 'static> {
     struct TestObjective;
     impl FeatureObjective for TestObjective {
         fn fitness(&self, _: &InsertionContext) -> Cost {
@@ -19,7 +19,7 @@ fn create_objective(
         }
     }
 
-    let distance_fn = |_: &Profile, from: Location, to: Location| -> Cost { (to as f64 - from as f64).abs() };
+    let distance_fn = |_: &Actor, from: Location, to: Location| -> Cost { (to as f64 - from as f64).abs() };
 
     TourCompactnessObjective { objective: Arc::new(TestObjective), num_representative_points, distance_fn }
 }
@@ -342,7 +342,7 @@ mod estimate {
         let solution_ctx = create_test_solution();
         let route_ctx = &solution_ctx.routes[0];
 
-        let move_ctx = MoveContext::Route { solution_ctx: &solution_ctx, route_ctx: &route_ctx, job: &job };
+        let move_ctx = MoveContext::Route { solution_ctx: &solution_ctx, route_ctx, job: &job };
 
         assert_eq!(objective.estimate(&move_ctx), Cost::default());
     }
@@ -357,8 +357,7 @@ mod estimate {
         let route_ctx = &solution_ctx.routes[0];
         let act = ActivityBuilder::default().build();
         let activity_ctx = ActivityContext { index: 0, prev: &act, target: &activity, next: Some(&act) };
-        let move_ctx =
-            MoveContext::Activity { solution_ctx: &solution_ctx, route_ctx: &route_ctx, activity_ctx: &activity_ctx };
+        let move_ctx = MoveContext::Activity { solution_ctx: &solution_ctx, route_ctx, activity_ctx: &activity_ctx };
 
         let cost = objective.estimate(&move_ctx);
 
@@ -375,8 +374,7 @@ mod estimate {
         let route_ctx = &solution_ctx.routes[0];
         let act = ActivityBuilder::default().build();
         let activity_ctx = ActivityContext { index: 0, prev: &act, target: &activity, next: Some(&act) };
-        let move_ctx =
-            MoveContext::Activity { solution_ctx: &solution_ctx, route_ctx: &route_ctx, activity_ctx: &activity_ctx };
+        let move_ctx = MoveContext::Activity { solution_ctx: &solution_ctx, route_ctx, activity_ctx: &activity_ctx };
 
         let cost = objective.estimate(&move_ctx);
 

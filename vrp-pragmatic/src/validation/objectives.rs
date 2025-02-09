@@ -40,7 +40,7 @@ fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), For
 /// Checks that cost objective is specified.
 fn check_e1602_no_cost_objective(objectives: &[&Objective]) -> Result<(), FormatError> {
     let no_min_cost = !get_objectives_flattened(objectives)
-        .any(|objective| matches!(objective, MinimizeCost | MinimizeDistance | MinimizeDuration));
+        .any(|objective| matches!(objective, MinimizeCost | MinimizeDistance | MinimizeDuration | CompactTour { .. }));
 
     if no_min_cost {
         Err(FormatError::new(
@@ -128,7 +128,9 @@ fn check_e1605_check_positive_value_and_order(ctx: &ValidationContext) -> Result
 fn check_e1606_check_multiple_cost_objectives(objectives: &[&Objective]) -> Result<(), FormatError> {
     let cost_objectives = objectives
         .iter()
-        .filter(|objective| matches!(objective, MinimizeCost | MinimizeDistance | MinimizeDuration))
+        .filter(|objective| {
+            matches!(objective, MinimizeCost | MinimizeDistance | MinimizeDuration | CompactTour { .. })
+        })
         .count();
 
     if cost_objectives > 1 {

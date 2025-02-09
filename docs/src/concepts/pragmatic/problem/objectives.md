@@ -25,6 +25,7 @@ These objectives specify how "total" cost of job insertion is calculated:
   combination of total time and distance
 * `minimize-distance`: minimizes total distance of all routes
 * `minimize-duration`: minimizes total duration of all routes
+* `compact-tour`: tries to keep tours compact. Uses one of the other cost objectives internally.
 
 One of these objectives has to be set and only one.
 

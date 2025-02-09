@@ -574,8 +574,11 @@ pub enum Objective {
 
     /// An objective to control how tours are built.
     CompactTour {
-        /// Specifies radius of neighbourhood. Min is 1.
-        job_radius: usize,
+        /// Specifies number of route representation points. Default is 5.
+        num_points: Option<usize>,
+
+        /// Specifies inner objective type.
+        inner: Option<CompactTourType>,
     },
 
     /// An objective to control order of job activities in the tour.
@@ -599,7 +602,7 @@ pub enum Objective {
     },
 }
 
-/// An mupltiple objective strategy type specifies how competitive objective functions are compared
+/// An multiple objective strategy type specifies how competitive objective functions are compared
 /// among each other.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "name", rename_all = "kebab-case")]
@@ -612,6 +615,18 @@ pub enum MultiStrategy {
         /// Individual weights. Size of vector must be the same as amount of objective functions.
         weights: Vec<Float>,
     },
+}
+
+/// Specifies type of minimization for inner objective inside CompactTour objective.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(tag = "name", rename_all = "kebab-case")]
+pub enum CompactTourType {
+    /// Distance minimization.
+    Distance,
+    /// Duration minimization.
+    Duration,
+    /// Cost minimization.
+    Cost,
 }
 
 // endregion

@@ -189,9 +189,7 @@ fn get_objective_feature_layer(
         Objective::BalanceActivities => create_activity_balanced_feature("activity_balance"),
         Objective::BalanceDistance => create_distance_balanced_feature("distance_balance"),
         Objective::BalanceDuration => create_duration_balanced_feature("duration_balance"),
-        Objective::CompactTour { job_radius } => {
-            create_tour_compactness_feature("tour_compact", blocks.jobs.clone(), *job_radius)
-        }
+        Objective::CompactTour { num_points, inner } => get_tour_compactness_feature(blocks, *num_points, inner),
         Objective::TourOrder => create_tour_order_soft_feature("tour_order", get_tour_order_fn()),
         Objective::FastService => get_fast_service_feature("fast_service", blocks),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
@@ -214,6 +212,62 @@ fn get_objective_feature_layer(
     }?;
 
     Ok(FeatureLayer::Single(feature))
+}
+
+fn get_tour_compactness_feature(
+    blocks: &ProblemBlocks,
+    num_points: Option<usize>,
+    inner: &Option<CompactTourType>,
+) -> GenericResult<Feature> {
+    let num_points = num_points.unwrap_or(5);
+
+    match inner {
+        Some(CompactTourType::Distance) => {
+            let feature = TransportFeatureBuilder::new("min_distance_compact")
+                .set_violation_code(TIME_CONSTRAINT_CODE)
+                .set_transport_cost(blocks.transport.clone())
+                .set_activity_cost(blocks.activity.clone())
+                .build_minimize_distance()?;
+            let distance_fn = {
+                let transport = blocks.transport.clone();
+                move |actor: &Actor, from, to| transport.distance_approx(&actor.vehicle.profile, from, to)
+            };
+
+            create_tour_compactness_feature(feature, num_points, distance_fn)
+        }
+        Some(CompactTourType::Duration) => {
+            let feature = TransportFeatureBuilder::new("min_duration_compact")
+                .set_violation_code(TIME_CONSTRAINT_CODE)
+                .set_transport_cost(blocks.transport.clone())
+                .set_activity_cost(blocks.activity.clone())
+                .build_minimize_duration()?;
+            let distance_fn = {
+                let transport = blocks.transport.clone();
+                move |actor: &Actor, from, to| transport.duration_approx(&actor.vehicle.profile, from, to)
+            };
+
+            create_tour_compactness_feature(feature, num_points, distance_fn)
+        }
+        _ => {
+            let feature = TransportFeatureBuilder::new("min_cost_compact")
+                .set_violation_code(TIME_CONSTRAINT_CODE)
+                .set_transport_cost(blocks.transport.clone())
+                .set_activity_cost(blocks.activity.clone())
+                .build_minimize_cost()?;
+            let distance_fn = {
+                let transport = blocks.transport.clone();
+                move |actor: &Actor, from, to| {
+                    let costs = &actor.vehicle.costs;
+                    let distance = transport.distance_approx(&actor.vehicle.profile, from, to);
+                    let duration = transport.duration_approx(&actor.vehicle.profile, from, to);
+
+                    costs.per_distance * distance + costs.per_driving_time * duration
+                }
+            };
+
+            create_tour_compactness_feature(feature, num_points, distance_fn)
+        }
+    }
 }
 
 fn get_hierarchical_areas_feature(blocks: &ProblemBlocks, levels: usize) -> GenericResult<Feature> {
