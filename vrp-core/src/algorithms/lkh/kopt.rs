@@ -33,12 +33,8 @@ where
     pub fn optimize(mut self, path: Path) -> Vec<Path> {
         self.solutions.push(path);
 
-        loop {
-            if let Some(path) = self.solutions.last().and_then(|p| self.improve(p.iter().copied())) {
-                self.solutions.push(path);
-            } else {
-                break;
-            }
+        while let Some(improved_path) = self.solutions.last().and_then(|p| self.improve(p.iter().copied())) {
+            self.solutions.push(improved_path);
         }
 
         self.solutions
@@ -188,9 +184,7 @@ where
         let nodes_around = if broken.len() == 4 {
             // NOTE: assume that there are two neighbours around
             let mut around = tour.around(last);
-            let Some((pred, succ)) = around.next().zip(around.next()) else {
-                return None;
-            };
+            let (pred, succ) = around.next().zip(around.next())?;
 
             // give priority to the longest edge for x_4
             if self.adjacency.cost(&(pred, last)) > self.adjacency.cost(&(succ, last)) {
@@ -275,6 +269,6 @@ where
 
     /// Checks if the given path is already known.
     fn is_known_path(&self, path: &[Node]) -> bool {
-        self.solutions.iter().find(|&p| p.iter().zip(path.iter()).all(|(&a, &b)| a == b)).is_some()
+        self.solutions.iter().any(|p| p.iter().eq(path))
     }
 }

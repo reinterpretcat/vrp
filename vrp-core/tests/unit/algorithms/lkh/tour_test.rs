@@ -5,7 +5,7 @@ fn get_start() -> Path {
 }
 
 fn edge_set(edges: &[(usize, usize)]) -> EdgeSet {
-    edges.into_iter().copied().collect()
+    edges.iter().copied().collect()
 }
 
 #[test]
