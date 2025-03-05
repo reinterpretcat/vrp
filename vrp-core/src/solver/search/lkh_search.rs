@@ -1,11 +1,11 @@
 use super::*;
 use crate::{
     algorithms::lkh::*,
-    construction::{heuristics::finalize_insertion_ctx, probing::repair_solution_from_unknown},
+    construction::probing::repair_solution_from_unknown,
     models::common::Profile,
     prelude::{Cost, Location, RouteContext, TransportCost},
 };
-use rosomaxa::utils::{parallel_foreach_mut, parallel_into_collect};
+use rosomaxa::utils::parallel_foreach_mut;
 
 /// A search mode for LKH algorithm.
 #[derive(Clone, Copy, Debug)]
@@ -45,7 +45,7 @@ impl LKHSearch {
         Self { mode }
     }
 
-    fn repair_routes(&self, mut new_solution: InsertionContext, orig_solution: &InsertionContext) -> InsertionContext {
+    fn repair_routes(&self, new_solution: InsertionContext, orig_solution: &InsertionContext) -> InsertionContext {
         // repair entire solution
         // TODO can be optimized to avoid full reconstruction and repair only routes that were changed
         let mut new_solution = repair_solution_from_unknown(&new_solution, &|| {
@@ -87,9 +87,9 @@ fn optimize_route(route_ctx: &mut RouteContext, transport: &dyn TransportCost) {
     let adjacency = CostMatrix::new(route_ctx, transport);
 
     // run LKH algorithm and take last optimized path if it is different from original
-    let Some(optimized) = lkh_optimize(adjacency, path.clone()).last().filter(|&optimized| *optimized != path).cloned()
-    else {
-        return;
+    let optimized = match lkh_optimize(adjacency, path.clone()).last().filter(|optimized| **optimized != path) {
+        Some(opt) => opt.clone(),
+        None => return,
     };
 
     rearrange_route(route_ctx, optimized);
@@ -107,17 +107,22 @@ fn rearrange_route(route_ctx: &mut RouteContext, mut path: Path) {
 
     // rearrange activities using swaps
     for i in (0..len).rev() {
-        // current position in original ordering
         let current_idx = path[i];
 
-        if current_idx != i {
-            activities.swap(current_idx, i);
-            let i_pos = path.iter().position(|&p| p == i).unwrap_or(i);
+        // skip if activity is already in the right position
+        if current_idx == i {
+            continue;
+        }
+
+        // swap the activity to its target position
+        activities.swap(current_idx, i);
+        if let Some(i_pos) = path.iter().position(|&p| p == i) {
             path.swap(i, i_pos);
         }
     }
 }
 
+/// Provides an implementation of [AdjacencySpec] for LKH algorithm.
 struct CostMatrix<'a> {
     profile: Profile,
     transport: &'a dyn TransportCost,
@@ -135,24 +140,28 @@ impl<'a> CostMatrix<'a> {
         // extract locations from activities
         let locations: Vec<Location> = activities.iter().map(|activity| activity.place.location).collect();
 
-        // build neighborhood - for each node, store all other nodes sorted by dissimilarity metric (distance)
-        let mut neighbourhood = Vec::with_capacity(size);
+        // build neighborhood: for each node, store all other nodes sorted by distance
+        let neighbourhood: Vec<Vec<Node>> = (0..size)
+            .map(|i| {
+                // calculate distances to all other nodes
+                let mut neighbors: Vec<(Node, Cost)> = (0..size)
+                    .filter(|&j| i != j)
+                    .map(|j| (j, transport.distance_approx(&profile, locations[i], locations[j])))
+                    .collect();
 
-        for i in 0..size {
-            let mut neighbors: Vec<(Node, Cost)> = (0..size)
-                .filter(|&j| i != j)
-                .map(|j| (j, transport.distance_approx(&profile, locations[i], locations[j])))
-                .collect();
+                // sort by distance
+                neighbors.sort_by(|a, b| a.1.total_cmp(&b.1));
 
-            neighbors.sort_by(|a, b| a.1.total_cmp(&b.1));
-            neighbourhood[i] = neighbors.into_iter().map(|(node, _)| node).collect();
-        }
+                // keep only the node indices
+                neighbors.into_iter().map(|(node, _)| node).collect()
+            })
+            .collect();
 
         CostMatrix { profile, transport, neighbourhood, locations }
     }
 }
 
-impl<'a> AdjacencySpec for CostMatrix<'a> {
+impl AdjacencySpec for CostMatrix<'_> {
     fn cost(&self, edge: &Edge) -> Cost {
         let &(from, to) = edge;
         self.transport.distance_approx(&self.profile, self.locations[from], self.locations[to])

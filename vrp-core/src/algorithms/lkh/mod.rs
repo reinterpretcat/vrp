@@ -1,8 +1,8 @@
-/// The modified Lin-Kernighan-Helsgaun algorithm for the Traveling Salesman Problem.
-///
-/// This implementation is based on the Lin-Kernighan-Helsgaun algorithm
-/// implementation from https://gitlab.com/Soha/local-tsp
-///
+//! The modified Lin-Kernighan-Helsgaun algorithm for the Traveling Salesman Problem.
+//!
+//! This implementation is based on the Lin-Kernighan-Helsgaun algorithm
+//! implementation from https://gitlab.com/Soha/local-tsp
+
 use std::collections::{BTreeSet, HashMap};
 
 mod tour;
