@@ -23,9 +23,6 @@ pub type Path = Vec<Node>;
 /// Represents the cost of a transition.
 pub type Cost = f64;
 
-/// A set of edges.
-pub(crate) type EdgeSet = BTreeSet<Edge>;
-
 /// Represents graph structure with weighted edges and neighborhood relationships.
 pub trait AdjacencySpec {
     /// Returns transition cost for the given edge.
@@ -35,8 +32,19 @@ pub trait AdjacencySpec {
     fn neighbours(&self, node: Node) -> &[Node];
 }
 
+/// Optimizes a path using modified Lin-Kernighan-Helsgaun algorithm.
+pub fn lkh_optimize<T>(adjacency: T, path: Path) -> Vec<Path>
+where
+    T: AdjacencySpec,
+{
+    KOpt::new(adjacency).optimize(path)
+}
+
+/// A set of edges.
+type EdgeSet = BTreeSet<Edge>;
+
 /// Creates an edge from a pair of nodes.
-pub(crate) fn make_edge(i: Node, j: Node) -> Edge {
+fn make_edge(i: Node, j: Node) -> Edge {
     if i < j {
         Edge::from((i, j))
     } else {
@@ -45,7 +53,7 @@ pub(crate) fn make_edge(i: Node, j: Node) -> Edge {
 }
 
 /// Creates a set of edges from an iterator of edges.
-pub(crate) fn make_edge_set<I>(edges: I) -> EdgeSet
+fn make_edge_set<I>(edges: I) -> EdgeSet
 where
     I: IntoIterator<Item = (Node, Node)>,
 {

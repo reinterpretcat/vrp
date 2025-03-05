@@ -31,6 +31,9 @@ pub use self::decompose_search::DecomposeSearch;
 mod infeasible_search;
 pub use self::infeasible_search::InfeasibleSearch;
 
+mod lkh_search;
+pub use self::lkh_search::LKHSearch;
+
 mod local_search;
 pub use self::local_search::LocalSearch;
 
