@@ -95,19 +95,24 @@ impl Tour {
         job
     }
 
-    /// Returns all activities in tour.
-    pub fn all_activities(&self) -> Iter<Activity> {
-        self.activities.iter()
-    }
-
     /// Returns activities slice in specific range (all inclusive).
     pub fn activities_slice(&self, start: usize, end: usize) -> &[Activity] {
         &self.activities[start..=end]
     }
 
+    /// Returns all activities in tour.
+    pub fn all_activities(&self) -> Iter<Activity> {
+        self.activities.iter()
+    }
+
     /// Returns all activities in tour as mutable.
     pub fn all_activities_mut(&mut self) -> IterMut<Activity> {
         self.activities.iter_mut()
+    }
+
+    /// Returns all activities in tour as mutable.
+    pub(crate) fn activities_mut(&mut self) -> &mut Vec<Activity> {
+        &mut self.activities
     }
 
     /// Returns all activities in tour for a specific job.
