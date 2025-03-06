@@ -61,7 +61,7 @@ mod cost_matrix_tests {
 
     test_cost_matrix_new! {
         case01_same_end: (0, 4),
-        case01_diff_end: (3, 5),
+        case02_diff_end: (3, 5),
     }
 
     fn test_cost_matrix_new_impl(end_location: usize, expected_count: usize) {
@@ -105,5 +105,48 @@ mod cost_matrix_tests {
         assert_eq!(cost_matrix.cost(&(0, 2)), 2.2); // (0,0) to (2,1)
         assert_eq!(cost_matrix.cost(&(1, 3)), 2.2); // (2,0) to (0,1)
         assert_eq!(cost_matrix.cost(&(2, 3)), 2.0); // (2,1) to (0,1)
+    }
+}
+
+mod route_path_tests {
+    use super::*;
+
+    parameterized_test! {test_route_to_path, (expected_path, end_location), {
+        test_route_to_path_impl(expected_path, end_location);
+    }}
+
+    test_route_to_path! {
+        case01_diff_end: (4, vec![0, 1, 2, 3, 4]),
+        case02_same_end: (0, vec![0, 1, 2, 3]),
+    }
+
+    fn test_route_to_path_impl(end_location: Location, expected_path: Vec<Location>) {
+        let route_ctx = create_test_route_ctx(&[1, 2, 3], end_location);
+
+        let path = route_to_path(&route_ctx);
+
+        assert_eq!(path, expected_path);
+    }
+
+    parameterized_test! {test_rearrange_route, (optimized_path, end_location), {
+        test_rearrange_route_impl(optimized_path, end_location);
+    }}
+
+    test_rearrange_route! {
+        case01_diff_end: (vec![0, 2, 1, 3, 4], 4),
+        case02_same_end: (vec![0, 3, 1, 2, 0], 0),
+        case03_reversed_diff_end: (vec![0, 4, 3, 2, 1], 4),
+        case04_reversed_same_end: (vec![0, 3, 2, 1, 0], 0),
+        case05_already_optimal_same_end: (vec![0, 1, 2, 3, 0], 0),
+        case06_already_optimal_diff_end: (vec![0, 1, 2, 3, 4], 4),
+    }
+
+    fn test_rearrange_route_impl(optimized_path: Vec<Location>, end_location: Location) {
+        let mut route_ctx = create_test_route_ctx(&[1, 2, 3], end_location);
+
+        rearrange_route(&mut route_ctx, optimized_path.clone());
+
+        let locations: Vec<_> = route_ctx.route().tour.all_activities().map(|a| a.place.location).collect();
+        assert_eq!(locations, optimized_path);
     }
 }
