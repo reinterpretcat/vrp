@@ -1,8 +1,14 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/search/lkh_search_test.rs"]
+mod lkh_search_test;
+
+use std::ops::Range;
+
 use super::*;
 use crate::{
     algorithms::lkh::*,
     construction::probing::repair_solution_from_unknown,
-    models::common::Profile,
+    models::{common::Profile, solution::Tour},
     prelude::{Cost, Location, RouteContext, TransportCost},
 };
 use rosomaxa::utils::parallel_foreach_mut;
@@ -97,16 +103,18 @@ fn optimize_route(route_ctx: &mut RouteContext, transport: &dyn TransportCost) {
 
 /// Converts a [RouteContext] to a [Path] as vector of sequential indices.
 fn route_to_path(route_ctx: &RouteContext) -> Path {
-    (0..route_ctx.route().tour.total()).collect()
+    debug_assert!(route_ctx.route().tour.total() > 3);
+
+    get_activity_range(&route_ctx.route().tour).collect()
 }
 
 /// Reshufles [RouteContext] according to [Path] ordering.
 fn rearrange_route(route_ctx: &mut RouteContext, mut path: Path) {
+    let range = get_activity_range(&route_ctx.route().tour);
     let activities = route_ctx.route_mut().tour.activities_mut();
-    let len = activities.len();
 
     // rearrange activities using swaps
-    for i in (0..len).rev() {
+    for i in range.rev() {
         let current_idx = path[i];
 
         // skip if activity is already in the right position
@@ -122,6 +130,19 @@ fn rearrange_route(route_ctx: &mut RouteContext, mut path: Path) {
     }
 }
 
+/// Gets a range of activity indices for usage.
+fn get_activity_range(tour: &Tour) -> Range<usize> {
+    debug_assert!(tour.total() > 1);
+
+    // offset is used to skip the last activity if it has the same location as the first one
+    // current existing LKH implementation assumes that last point is the same as first, so we need to skip it.
+    // TODO: if end point is not the same, then we do not skip it, but LKH will will consider returning to the start point.
+    let has_same_endpoints =
+        tour.start().zip(tour.end()).filter(|(start, end)| start.place.location == end.place.location).is_some();
+
+    0..tour.total() - if has_same_endpoints { 1 } else { 0 }
+}
+
 /// Provides an implementation of [AdjacencySpec] for LKH algorithm.
 struct CostMatrix<'a> {
     profile: Profile,
@@ -133,12 +154,12 @@ struct CostMatrix<'a> {
 impl<'a> CostMatrix<'a> {
     fn new(route_ctx: &RouteContext, transport: &'a dyn TransportCost) -> Self {
         let profile = route_ctx.route().actor.vehicle.profile.clone();
-
-        let activities = route_ctx.route().tour.all_activities().collect::<Vec<_>>();
-        let size = activities.len();
+        let tour = &route_ctx.route().tour;
 
         // extract locations from activities
-        let locations: Vec<Location> = activities.iter().map(|activity| activity.place.location).collect();
+        let locations: Vec<Location> =
+            get_activity_range(tour).filter_map(|idx| tour.get(idx)).map(|a| a.place.location).collect();
+        let size = locations.len();
 
         // build neighborhood: for each node, store all other nodes sorted by distance
         let neighbourhood: Vec<Vec<Node>> = (0..size)
