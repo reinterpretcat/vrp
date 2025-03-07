@@ -82,12 +82,12 @@ impl LKHSearch {
 }
 
 fn optimize_route(route_ctx: &mut RouteContext, transport: &dyn TransportCost) {
-    let path = route_to_path(route_ctx);
-
     // skip routes that are too small for optimization
-    if path.len() <= 3 {
+    if route_ctx.route().tour.total() <= 3 {
         return;
     }
+
+    let path = route_to_path(route_ctx);
 
     // build the adjacency matrix for LKH
     let adjacency = CostMatrix::new(route_ctx, transport);
@@ -185,6 +185,10 @@ impl<'a> CostMatrix<'a> {
 impl AdjacencySpec for CostMatrix<'_> {
     fn cost(&self, edge: &Edge) -> Cost {
         let &(from, to) = edge;
+        // NOTE: LKH assumes symmetric distances
+        // TODO: handle one-direction reachable only locations
+        let (from, to) = if from > to { (to, from) } else { (from, to) };
+
         self.transport.distance_approx(&self.profile, self.locations[from], self.locations[to])
     }
 
