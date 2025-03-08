@@ -128,9 +128,11 @@ impl ActivityBuilder {
 
     pub fn with_location_tw_and_duration(location: Location, tw: TimeWindow, duration: Duration) -> Self {
         Self(Activity {
-            place: Place { idx: 0, location, duration, time: tw },
+            place: Place { idx: 0, location, duration, time: tw.clone() },
             schedule: Schedule::new(location as Float, location as Float + duration),
-            job: Some(TestSingleBuilder::default().location(Some(location)).build_shared()),
+            job: Some(
+                TestSingleBuilder::default().duration(duration).times(vec![tw]).location(Some(location)).build_shared(),
+            ),
             commute: None,
         })
     }

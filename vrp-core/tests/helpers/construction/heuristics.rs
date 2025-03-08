@@ -4,7 +4,7 @@ use crate::helpers::models::problem::{TestActivityCost, TestTransportCost, test_
 use crate::models::problem::Job;
 use crate::models::solution::Registry;
 use crate::models::{Extras, GoalContext, Problem};
-use crate::prelude::Jobs;
+use crate::prelude::{Fleet, Jobs};
 use rosomaxa::prelude::Environment;
 use std::sync::Arc;
 
@@ -34,6 +34,11 @@ impl TestInsertionContextBuilder {
 
     pub fn with_problem(&mut self, problem: Problem) -> &mut Self {
         self.problem = Some(problem);
+        self
+    }
+
+    pub fn with_fleet(&mut self, fleet: Arc<Fleet>) -> &mut Self {
+        self.ensure_problem().fleet = fleet;
         self
     }
 
