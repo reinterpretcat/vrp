@@ -2,8 +2,6 @@
 #[path = "../../../tests/unit/solver/search/lkh_search_test.rs"]
 mod lkh_search_test;
 
-use std::ops::Range;
-
 use super::*;
 use crate::{
     algorithms::lkh::*,
@@ -12,6 +10,7 @@ use crate::{
     prelude::{Cost, Location, RouteContext, TransportCost},
 };
 use rosomaxa::utils::parallel_foreach_mut;
+use std::ops::Range;
 
 /// A search mode for LKH algorithm.
 #[derive(Clone, Copy, Debug)]
@@ -23,7 +22,7 @@ pub enum LKHSearchMode {
 }
 
 /// A search operator which uses modified LKH algorithm to optimize routes.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct LKHSearch {
     mode: LKHSearchMode,
 }

@@ -405,6 +405,18 @@ mod statik {
             (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), 1),
             (Arc::new(RecreateWithSlice::new(random.clone())), 1),
             (
+                Arc::new(RecreateWithFunction::new(|ref_ctx, sol_ctx| {
+                    LKHSearch::new(LKHSearchMode::ImprovementOnly).search(ref_ctx, &sol_ctx)
+                })),
+                1,
+            ),
+            (
+                Arc::new(RecreateWithFunction::new(|ref_ctx, sol_ctx| {
+                    LKHSearch::new(LKHSearchMode::Diverse).search(ref_ctx, &sol_ctx)
+                })),
+                1,
+            ),
+            (
                 Arc::new(RecreateWithSkipRandom::default_explorative_phased(
                     Arc::new(RecreateWithCheapest::new(random.clone())),
                     random.clone(),
@@ -549,6 +561,8 @@ mod dynamic {
                 "local_reschedule_departure".to_string(),
                 1.,
             ),
+            (Arc::new(LKHSearch::new(LKHSearchMode::Diverse)), "lkh_diverse".to_string(), 1.),
+            (Arc::new(LKHSearch::new(LKHSearchMode::ImprovementOnly)), "lkh_strict".to_string(), 5.),
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(
                     environment.random.clone(),

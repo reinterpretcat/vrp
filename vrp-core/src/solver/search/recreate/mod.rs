@@ -165,6 +165,32 @@ impl<T: Recreate> Recreate for RecreateWithGoal<T> {
     }
 }
 
+/// A recreate strategy which uses provided function to recreate solution.
+pub(crate) struct RecreateWithFunction<F>
+where
+    F: Fn(&RefinementContext, InsertionContext) -> InsertionContext + Send + Sync,
+{
+    orig_fn: F,
+}
+
+impl<F> RecreateWithFunction<F>
+where
+    F: Fn(&RefinementContext, InsertionContext) -> InsertionContext + Send + Sync,
+{
+    pub fn new(orig_fn: F) -> Self {
+        Self { orig_fn }
+    }
+}
+
+impl<F> Recreate for RecreateWithFunction<F>
+where
+    F: Fn(&RefinementContext, InsertionContext) -> InsertionContext + Send + Sync,
+{
+    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+        (self.orig_fn)(refinement_ctx, insertion_ctx)
+    }
+}
+
 /// A recreate strategy which does nothing.
 pub(crate) struct DummyRecreate;
 
