@@ -9,7 +9,7 @@ struct MockTransport(Vec<Vec<Cost>>);
 
 impl TransportCost for MockTransport {
     fn distance_approx(&self, _: &Profile, from: Location, to: Location) -> Cost {
-        self.0[from as usize][to as usize]
+        self.0[from][to]
     }
 
     fn distance(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Cost {
@@ -360,7 +360,7 @@ mod search_tests {
     }
 
     fn get_route_locations(ctx: &InsertionContext) -> Vec<Vec<Location>> {
-        ctx.solution.routes.iter().map(|route_ctx| get_locations(route_ctx)).collect()
+        ctx.solution.routes.iter().map(get_locations).collect()
     }
 
     #[test]
