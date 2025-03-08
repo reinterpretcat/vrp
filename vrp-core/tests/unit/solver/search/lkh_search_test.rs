@@ -1,7 +1,8 @@
 use super::*;
 use crate::{
+    helpers::construction::heuristics::TestInsertionContextBuilder,
     helpers::models::solution::*,
-    models::{common::Duration, problem::TravelTime, solution::Route},
+    models::{common::*, problem::TravelTime, solution::Route},
 };
 
 struct MockTransport(Vec<Vec<Cost>>);
@@ -38,6 +39,24 @@ fn create_test_route_ctx(locations: &[usize], end: Location) -> RouteContext {
                 .build(),
         )
         .build()
+}
+
+fn create_matrix_from_locations(locations: &[(f64, f64)]) -> Vec<Vec<Cost>> {
+    let n = locations.len();
+    let mut matrix = vec![vec![0.0; n]; n];
+
+    for i in 0..n {
+        for j in 0..n {
+            if i != j {
+                let (x1, y1) = locations[i];
+                let (x2, y2) = locations[j];
+                // Euclidean distance
+                matrix[i][j] = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
+            }
+        }
+    }
+
+    matrix
 }
 
 fn get_locations(route_ctx: &RouteContext) -> Vec<Location> {
@@ -157,24 +176,6 @@ mod route_path_tests {
 mod optimize_route_tests {
     use super::*;
 
-    fn create_matrix_from_locations(locations: &[(f64, f64)]) -> Vec<Vec<Cost>> {
-        let n = locations.len();
-        let mut matrix = vec![vec![0.0; n]; n];
-
-        for i in 0..n {
-            for j in 0..n {
-                if i != j {
-                    let (x1, y1) = locations[i];
-                    let (x2, y2) = locations[j];
-                    // Euclidean distance
-                    matrix[i][j] = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
-                }
-            }
-        }
-
-        matrix
-    }
-
     #[test]
     fn test_optimize_route_trivial_small() {
         // route with just 3 points - should not be optimized as per the function's logic
@@ -274,5 +275,125 @@ mod optimize_route_tests {
         optimize_route(&mut route_ctx, &MockTransport(create_matrix_from_locations(&locations)));
 
         assert_eq!(get_locations(&route_ctx), &[0, 1, 1, 2, 2, 3, 3, 0]);
+    }
+}
+
+mod search_tests {
+    use std::sync::Arc;
+
+    use super::*;
+    use crate::{
+        helpers::{
+            models::{
+                domain::{test_random, ProblemBuilder, TestGoalContextBuilder},
+                problem::*,
+            },
+            solver::create_default_refinement_ctx,
+        },
+        models::{problem::*, solution::Registry},
+    };
+
+    fn create_insertion_context(
+        activities: &[(Location, Duration, (Timestamp, Timestamp))],
+        end: Location,
+    ) -> InsertionContext {
+        let fleet = FleetBuilder::default()
+            .add_driver(test_driver())
+            .add_vehicles(vec![TestVehicleBuilder::default()
+                .id("v1")
+                .details(vec![VehicleDetail {
+                    start: Some(VehiclePlace { location: 0, time: TimeInterval { earliest: Some(0.), latest: None } }),
+                    end: Some(VehiclePlace {
+                        location: end,
+                        time: TimeInterval { earliest: None, latest: Some(100.) },
+                    }),
+                }])
+                .build()])
+            .build();
+        let fleet = Arc::new(fleet);
+
+        let jobs = activities
+            .iter()
+            .map(|&(location, duration, (start, end))| {
+                TestSingleBuilder::default()
+                    .id(&location.to_string())
+                    .location(Some(location))
+                    .duration(duration)
+                    .times(vec![TimeWindow::new(start, end)])
+                    .build_as_job_ref()
+            })
+            .collect::<Vec<_>>();
+
+        let problem = ProblemBuilder::default()
+            .with_goal(TestGoalContextBuilder::with_transport_feature().build())
+            .with_jobs(jobs.clone())
+            .build();
+
+        let mut insertion_ctx = TestInsertionContextBuilder::default()
+            .with_problem(problem)
+            .with_fleet(fleet.clone())
+            .with_registry(Registry::new(&fleet, test_random()))
+            .with_routes(vec![RouteContextBuilder::default()
+                .with_route(
+                    RouteBuilder::default()
+                        .with_vehicle(&fleet, "v1")
+                        .add_activities(activities.iter().zip(jobs.iter()).map(
+                            |(&(location, duration, (start, end)), job)| {
+                                ActivityBuilder::with_location_tw_and_duration(
+                                    location,
+                                    TimeWindow::new(start, end),
+                                    duration,
+                                )
+                                .job(Some(job.to_single().clone()))
+                                .build()
+                            },
+                        ))
+                        .build(),
+                )
+                .build()])
+            .build();
+
+        let goal = insertion_ctx.problem.goal.clone();
+        goal.accept_solution_state(&mut insertion_ctx.solution);
+
+        insertion_ctx
+    }
+
+    fn get_route_locations(ctx: &InsertionContext) -> Vec<Vec<Location>> {
+        ctx.solution.routes.iter().map(|route_ctx| get_locations(route_ctx)).collect()
+    }
+
+    #[test]
+    fn test_search_diverse_mode_repairs_routes() {
+        let original_ctx = create_insertion_context(&[(10, 0., (0., 5.)), (20, 5., (30., 40.)), (5, 0., (0., 10.))], 0);
+        let refinement_ctx = create_default_refinement_ctx(original_ctx.problem.clone());
+
+        let new_ctx = LKHSearch::new(LKHSearchMode::Diverse).search(&refinement_ctx, &original_ctx);
+
+        assert_eq!(get_route_locations(&new_ctx), vec![vec![0, 20, 0]],);
+        assert_eq!(new_ctx.solution.unassigned.len(), 2);
+    }
+
+    #[test]
+    fn test_search_improvement_mode_keep_original() {
+        let original_ctx = create_insertion_context(&[(10, 0., (0., 5.)), (20, 5., (30., 40.)), (5, 0., (0., 10.))], 0);
+        let refinement_ctx = create_default_refinement_ctx(original_ctx.problem.clone());
+
+        let new_ctx = LKHSearch::new(LKHSearchMode::ImprovementOnly).search(&refinement_ctx, &original_ctx);
+
+        assert_eq!(get_route_locations(&new_ctx), vec![vec![0, 10, 20, 5, 0]],);
+        assert_eq!(new_ctx.solution.unassigned.len(), 0);
+    }
+
+    #[test]
+    fn test_search_different_end_must_be_kept_last() {
+        let original_ctx =
+            create_insertion_context(&[(30, 0., (0., 100.)), (20, 0., (0., 100.)), (40, 0., (0., 100.))], 10);
+        let refinement_ctx = create_default_refinement_ctx(original_ctx.problem.clone());
+
+        let new_ctx = LKHSearch::new(LKHSearchMode::Diverse).search(&refinement_ctx, &original_ctx);
+
+        assert_eq!(get_route_locations(&new_ctx), vec![vec![0, 20, 30, 40, 10]],);
+        assert_eq!(new_ctx.solution.unassigned.len(), 0);
     }
 }

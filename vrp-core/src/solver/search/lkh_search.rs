@@ -64,15 +64,16 @@ impl LKHSearch {
         }
 
         // keep original route if it is better
-        new_solution.solution.routes.iter_mut().zip(orig_solution.solution.routes.iter()).for_each(
-            |(new_route_ctx, orig_route_ctx)| {
-                debug_assert!(new_route_ctx.route().actor == orig_route_ctx.route().actor);
+        let routes = &mut new_solution.solution.routes;
+        let unassigned = &mut new_solution.solution.unassigned;
+        routes.iter_mut().zip(orig_solution.solution.routes.iter()).for_each(|(new_route_ctx, orig_route_ctx)| {
+            debug_assert!(new_route_ctx.route().actor == orig_route_ctx.route().actor);
 
-                if orig_route_ctx.route().tour.job_count() > new_route_ctx.route().tour.job_count() {
-                    *new_route_ctx = orig_route_ctx.deep_copy();
-                }
-            },
-        );
+            if orig_route_ctx.route().tour.job_count() > new_route_ctx.route().tour.job_count() {
+                *new_route_ctx = orig_route_ctx.deep_copy();
+                unassigned.retain(|job, _| !new_route_ctx.route().tour.contains(job));
+            }
+        });
 
         // recalculate solution state if we do
         new_solution.restore();
