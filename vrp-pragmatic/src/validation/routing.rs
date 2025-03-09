@@ -53,7 +53,7 @@ fn check_e1503_no_matrix_when_indices_used(
 ) -> Result<(), FormatError> {
     let (_, has_indices) = location_types;
 
-    if has_indices && ctx.matrices.map_or(true, |matrices| matrices.is_empty()) {
+    if has_indices && ctx.matrices.is_none_or(|matrices| matrices.is_empty()) {
         Err(FormatError::new(
             "E1503".to_string(),
             "location indices requires routing matrix to be specified".to_string(),

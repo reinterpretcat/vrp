@@ -180,7 +180,7 @@ where
     }
 
     fn is_improved(&self, best_known_fitness: Option<Vec<Float>>) -> bool {
-        best_known_fitness.zip(self.individuals.first()).map_or(true, |(best_known_fitness, new_best_known)| {
+        best_known_fitness.zip(self.individuals.first()).is_none_or(|(best_known_fitness, new_best_known)| {
             best_known_fitness.into_iter().zip(new_best_known.fitness()).any(|(a, b)| a != b)
         })
     }

@@ -297,8 +297,8 @@ fn create_tour(
             stop.activities_mut().first_mut().map(|activity| (location, schedule, activity))
         })
         .for_each(|(location, schedule, activity)| {
-            let is_same_schedule = activity.time.as_ref().map_or(true, |time| schedule.arrival == time.start);
-            let is_same_location = activity.location.clone().zip(location).map_or(true, |(lhs, rhs)| lhs == rhs);
+            let is_same_schedule = activity.time.as_ref().is_none_or(|time| schedule.arrival == time.start);
+            let is_same_location = activity.location.clone().zip(location).is_none_or(|(lhs, rhs)| lhs == rhs);
 
             if is_same_schedule {
                 activity.time = None;

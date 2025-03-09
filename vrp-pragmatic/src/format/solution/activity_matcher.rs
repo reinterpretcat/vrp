@@ -152,7 +152,7 @@ fn match_place(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &Activ
             .iter()
             .enumerate()
             .find(|(_, place)| {
-                let is_same_location = place.location.map_or(true, |l| l == activity_ctx.location);
+                let is_same_location = place.location.is_none_or(|l| l == activity_ctx.location);
                 let is_proper_time =
                     place.times.iter().any(|time| time.intersects(activity_ctx.route_start_time, &activity_ctx.time));
 
@@ -207,7 +207,7 @@ pub(super) fn get_job_tag(single: &Single, place: (Location, (TimeWindow, Timest
             .find(|(place_idx, _)| {
                 let place = places.get(*place_idx).expect("invalid tag place index");
 
-                let is_correct_location = place.location.map_or(true, |l| location == l);
+                let is_correct_location = place.location.is_none_or(|l| location == l);
                 let is_correct_time = place
                     .times
                     .iter()

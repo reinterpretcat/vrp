@@ -369,7 +369,7 @@ impl TryFrom<&ClusterHierarchy> for HierarchyIndex {
     type Error = GenericError;
 
     fn try_from(hierarchy: &ClusterHierarchy) -> Result<Self, Self::Error> {
-        if hierarchy.first().map_or(true, |clusters| clusters.len() != 2) {
+        if hierarchy.first().is_none_or(|clusters| clusters.len() != 2) {
             return Err(From::from("a first level of hierarchy should have 2 clusters"));
         }
 

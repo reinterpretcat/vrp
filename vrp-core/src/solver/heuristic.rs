@@ -610,7 +610,7 @@ mod dynamic {
                 })
             })
             .chain(mutations)
-            .filter(|(_, name, _)| heuristic_filter.as_ref().map_or(true, |filter| (filter)(name.as_str())))
+            .filter(|(_, name, _)| heuristic_filter.as_ref().is_none_or(|filter| (filter)(name.as_str())))
             .collect::<Vec<_>>()
     }
 

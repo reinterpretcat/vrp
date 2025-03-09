@@ -148,12 +148,12 @@ impl Rule {
     /// Checks whether a new job can be inserted between given prev/next according to after rule.
     fn can_insert_after(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
         prev.as_ref().is_some_and(|p| !self.contains(p) || *p == self.index.last)
-            && next.as_ref().map_or(true, |n| !self.contains(n))
+            && next.as_ref().is_none_or(|n| !self.contains(n))
     }
 
     /// Checks whether a new job can be inserted between given prev/next according to before rule.
     fn can_insert_before(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
         next.as_ref().is_some_and(|n| !self.contains(n) || *n == self.index.first)
-            && prev.as_ref().map_or(true, |p| !self.contains(p))
+            && prev.as_ref().is_none_or(|p| !self.contains(p))
     }
 }

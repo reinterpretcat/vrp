@@ -13,7 +13,7 @@ pub fn check_routing(context: &CheckerContext) -> Result<(), Vec<GenericError>> 
 }
 
 fn check_routing_rules(context: &CheckerContext) -> GenericResult<()> {
-    if context.matrices.as_ref().map_or(true, |m| m.is_empty()) {
+    if context.matrices.as_ref().is_none_or(|m| m.is_empty()) {
         return Ok(());
     }
     let skip_distance_check = skip_distance_check(&context.solution);

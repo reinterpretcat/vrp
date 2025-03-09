@@ -44,7 +44,7 @@ pub(super) fn read_jobs_with_extra_locks(
 }
 
 pub(super) fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> {
-    if api_problem.plan.relations.as_ref().map_or(true, |r| r.is_empty()) {
+    if api_problem.plan.relations.as_ref().is_none_or(|r| r.is_empty()) {
         return vec![];
     }
 

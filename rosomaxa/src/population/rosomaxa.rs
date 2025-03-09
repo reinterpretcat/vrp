@@ -298,7 +298,7 @@ where
     }
 
     fn is_comparable_with_best_known(&self, individual: &S, best_known: Option<&S>) -> bool {
-        best_known.map_or(true, |best_known| self.objective.total_order(individual, best_known) != Ordering::Greater)
+        best_known.is_none_or(|best_known| self.objective.total_order(individual, best_known) != Ordering::Greater)
     }
 
     fn optimize_network(

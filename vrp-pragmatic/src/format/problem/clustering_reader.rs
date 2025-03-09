@@ -94,7 +94,7 @@ fn get_filter_policy(api_problem: &ApiProblem, filtering: Option<&VicinityFilter
 
     FilterPolicy {
         job_filter: Arc::new(move |job| {
-            job.dimens().get_job_id().map_or(true, |job_id| !excluded_job_ids.contains(job_id))
+            job.dimens().get_job_id().is_none_or(|job_id| !excluded_job_ids.contains(job_id))
         }),
         actor_filter: Arc::new(|_| true),
     }

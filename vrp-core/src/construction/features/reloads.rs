@@ -96,7 +96,7 @@ impl<T: SharedResource> ReloadFeatureFactory<T> {
                 route_ctx
                     .state()
                     .get_activity_state::<SharedResourceStateKey, T>(activity_idx)
-                    .map_or(true, |resource_available| resource_available.can_fit(demand))
+                    .is_none_or(|resource_available| resource_available.can_fit(demand))
             });
 
         let simple_reload = self.build(Some(shared_resource_threshold_fn))?;
@@ -239,7 +239,7 @@ impl<T: LoadOps> ReloadFeatureFactory<T> {
                     capacity.can_fit(&new_max_load_left) && capacity.can_fit(&new_max_load_right);
 
                 has_enough_vehicle_capacity
-                    && shared_resource_threshold_fn.as_ref().map_or(true, |shared_resource_threshold_fn| {
+                    && shared_resource_threshold_fn.as_ref().is_none_or(|shared_resource_threshold_fn| {
                         // total static delivery at left
                         let left_delivery = fold_demand(left.start..right.end, |demand| demand.delivery.0);
 

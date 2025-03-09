@@ -55,7 +55,7 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     /// Updates hit statistics.
     pub fn new_hit(&mut self, time: usize) {
         self.total_hits += 1;
-        if self.last_hits.front().map_or(true, |last_time| *last_time != time) {
+        if self.last_hits.front().is_none_or(|last_time| *last_time != time) {
             self.last_hits.push_front(time);
             self.last_hits.truncate(self.hit_memory_size);
         }

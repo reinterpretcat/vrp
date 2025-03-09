@@ -191,7 +191,7 @@ fn check_e1307_vehicle_offset_break_rescheduling(ctx: &ValidationContext) -> Res
                         )
                     });
                     let has_rescheduling =
-                        shift.start.latest.as_ref().map_or(true, |latest| *latest != shift.start.earliest);
+                        shift.start.latest.as_ref().is_none_or(|latest| *latest != shift.start.earliest);
 
                     !(has_time_offset && has_rescheduling)
                 })
@@ -285,7 +285,7 @@ fn check_shift_time_windows(
         || (check_time_windows(&tws, skip_intersection_check)
             && shift_time
                 .as_ref()
-                .map_or(true, |shift_time| tws.into_iter().map(|tw| tw.unwrap()).all(|tw| tw.intersects(shift_time))))
+                .is_none_or(|shift_time| tws.into_iter().map(|tw| tw.unwrap()).all(|tw| tw.intersects(shift_time))))
 }
 
 fn get_shift_time_window(shift: &VehicleShift) -> Option<TimeWindow> {

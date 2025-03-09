@@ -144,7 +144,7 @@ fn is_activity_to_single_match(activity: &Activity, single: &Single) -> bool {
         .iter()
         .try_fold(false, |_, place| {
             let is_same_duration = activity.place.duration == place.duration;
-            let is_same_location = place.location.map_or(true, |location| location == activity.place.location);
+            let is_same_location = place.location.is_none_or(|location| location == activity.place.location);
             let is_same_time_window = place.times.iter().any(|time| {
                 match time {
                     TimeSpan::Window(tw) => activity.place.time == *tw,
