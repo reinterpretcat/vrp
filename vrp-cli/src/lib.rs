@@ -35,14 +35,14 @@ pub use vrp_scientific as scientific;
 pub mod extensions;
 
 use crate::extensions::import::import_problem;
-use crate::extensions::solve::config::{create_builder_from_config, Config};
+use crate::extensions::solve::config::{Config, create_builder_from_config};
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::prelude::{GenericError, Solver};
-use vrp_pragmatic::format::problem::{serialize_problem, PragmaticProblem, Problem};
-use vrp_pragmatic::format::solution::{write_pragmatic, PragmaticOutputType};
 use vrp_pragmatic::format::FormatError;
+use vrp_pragmatic::format::problem::{PragmaticProblem, Problem, serialize_problem};
+use vrp_pragmatic::format::solution::{PragmaticOutputType, write_pragmatic};
 use vrp_pragmatic::get_unique_locations;
 use vrp_pragmatic::validation::ValidationContext;
 
@@ -96,7 +96,7 @@ mod c_interop {
 
     /// Returns a list of unique locations which can be used to request a routing matrix.
     /// A `problem` should be passed in `pragmatic` format.
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     extern "C" fn get_routing_locations(problem: *const c_char, success: Callback, failure: Callback) {
         catch_panic(failure, || {
             let problem = to_string(problem);
@@ -109,7 +109,7 @@ mod c_interop {
     }
 
     /// Converts `problem` from format specified by `format` to `pragmatic` format.
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     extern "C" fn convert_to_pragmatic(
         format: *const c_char,
         inputs: *const *const c_char,
@@ -141,7 +141,7 @@ mod c_interop {
     }
 
     /// Validates Vehicle Routing Problem passed in `pragmatic` format.
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     extern "C" fn validate_pragmatic(
         problem: *const c_char,
         matrices: *const *const c_char,
@@ -180,7 +180,7 @@ mod c_interop {
     }
 
     /// Solves Vehicle Routing Problem passed in `pragmatic` format.
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     extern "C" fn solve_pragmatic(
         problem: *const c_char,
         matrices: *const *const c_char,
@@ -342,8 +342,8 @@ mod py_interop {
     use pyo3::exceptions::PyOSError;
     use pyo3::prelude::*;
     use std::io::BufReader;
-    use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem};
     use vrp_pragmatic::format::CoordIndex;
+    use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem};
 
     // TODO avoid duplications between 3 interop approaches
 
@@ -420,8 +420,8 @@ mod wasm {
     extern crate wasm_bindgen;
 
     use super::*;
-    use vrp_pragmatic::format::problem::Matrix;
     use vrp_pragmatic::format::CoordIndex;
+    use vrp_pragmatic::format::problem::Matrix;
     use wasm_bindgen::prelude::*;
 
     /// Returns a list of unique locations which can be used to request a routing matrix.

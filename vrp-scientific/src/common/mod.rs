@@ -55,7 +55,7 @@ macro_rules! impl_try_collect_tuple {
 /// A helper macro for getting tuple of collection items.
 #[macro_export]
 macro_rules! try_opt {
-    ($e:expr) => {
+    ($e:expr_2021) => {
         match $e {
             Some(e) => e,
             None => return None,

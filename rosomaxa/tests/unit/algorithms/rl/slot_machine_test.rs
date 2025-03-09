@@ -1,6 +1,6 @@
 use super::*;
 use crate::helpers::utils::create_test_random;
-use crate::utils::{random_argmax, DefaultDistributionSampler};
+use crate::utils::{DefaultDistributionSampler, random_argmax};
 
 #[derive(Clone)]
 struct TestAction(DefaultDistributionSampler);

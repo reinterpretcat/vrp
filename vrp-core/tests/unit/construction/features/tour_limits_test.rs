@@ -85,21 +85,13 @@ mod traveling {
         let tour_distance_limit = Arc::new({
             let target = target.clone();
             move |actor: &Actor| {
-                if get_vehicle_id(actor.vehicle.as_ref()) == target.as_str() {
-                    limit.0
-                } else {
-                    None
-                }
+                if get_vehicle_id(actor.vehicle.as_ref()) == target.as_str() { limit.0 } else { None }
             }
         });
         let tour_duration_limit =
             Arc::new(
                 move |actor: &Actor| {
-                    if get_vehicle_id(actor.vehicle.as_ref()) == target.as_str() {
-                        limit.1
-                    } else {
-                        None
-                    }
+                    if get_vehicle_id(actor.vehicle.as_ref()) == target.as_str() { limit.1 } else { None }
                 },
             );
         let feature = create_travel_limit_feature(

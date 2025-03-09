@@ -21,7 +21,7 @@ categories = ["algorithms", "science"]
 readme = "README.md"
 homepage = "https://github.com/reinterpretcat/vrp"
 repository = "https://github.com/reinterpretcat/vrp"
-edition = "2021"
+edition = "2024"
 
 [workspace.dependencies]
 # internal dependencies

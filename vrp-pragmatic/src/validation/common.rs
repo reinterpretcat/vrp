@@ -33,20 +33,12 @@ pub fn get_time_window(start: &str, end: &str) -> Option<TimeWindow> {
     let start = parse_time_safe(start);
     let end = parse_time_safe(end);
 
-    if let (Some(start), Some(end)) = (start.ok(), end.ok()) {
-        Some(TimeWindow::new(start, end))
-    } else {
-        None
-    }
+    if let (Some(start), Some(end)) = (start.ok(), end.ok()) { Some(TimeWindow::new(start, end)) } else { None }
 }
 
 /// Get time windows.
 pub fn get_time_window_from_vec(tw: &[String]) -> Option<TimeWindow> {
-    if tw.len() != 2 {
-        None
-    } else {
-        get_time_window(tw.first().unwrap(), tw.last().unwrap())
-    }
+    if tw.len() != 2 { None } else { get_time_window(tw.first().unwrap(), tw.last().unwrap()) }
 }
 
 /// Get time windows.

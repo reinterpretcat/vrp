@@ -180,11 +180,7 @@ fn evaluate_result<T>(
         )
         .try_fold(None, |_, (left, right, stopped)| {
             let result = (check_order)(left, right, stopped);
-            if result.is_some() {
-                ControlFlow::Break(result)
-            } else {
-                ControlFlow::Continue(None)
-            }
+            if result.is_some() { ControlFlow::Break(result) } else { ControlFlow::Continue(None) }
         })
         .unwrap_value()
 }

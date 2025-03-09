@@ -1,8 +1,8 @@
 use crate::construction::enablers::{advance_departure_time, recede_departure_time};
 use crate::construction::heuristics::InsertionContext;
 use crate::models::solution::Activity;
-use crate::solver::search::LocalOperator;
 use crate::solver::RefinementContext;
+use crate::solver::search::LocalOperator;
 use rosomaxa::prelude::*;
 
 /// Reschedules departure time of the routes in the solution.

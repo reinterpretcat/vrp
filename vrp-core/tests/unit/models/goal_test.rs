@@ -2,7 +2,7 @@ use super::*;
 use crate::construction::features::*;
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::TestGoalContextBuilder;
-use crate::helpers::models::solution::{test_actor, ActivityBuilder};
+use crate::helpers::models::solution::{ActivityBuilder, test_actor};
 use crate::models::common::SingleDimLoad;
 
 fn create_feature(name: &str, cost: Cost, violation: Option<ConstraintViolation>) -> Feature {

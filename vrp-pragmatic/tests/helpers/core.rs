@@ -93,11 +93,7 @@ pub fn create_single_with_location(location: Option<Location>) -> Single {
 
 pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Demand<MultiDimLoad> {
     let make = |value| {
-        if value == 0 {
-            MultiDimLoad::default()
-        } else {
-            MultiDimLoad::new(vec![value])
-        }
+        if value == 0 { MultiDimLoad::default() } else { MultiDimLoad::new(vec![value]) }
     };
 
     Demand { pickup: (make(pickup.0), make(pickup.1)), delivery: (make(delivery.0), make(delivery.1)) }

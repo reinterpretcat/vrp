@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::heuristics::InsertionContext;
-use crate::solver::search::*;
 use crate::solver::RefinementContext;
+use crate::solver::search::*;
 use std::cell::RefCell;
 
 /// A ruin strategy which removes random jobs from solution.

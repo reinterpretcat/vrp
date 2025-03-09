@@ -4,7 +4,7 @@ mod geo_serializer_test;
 
 use super::Solution;
 use crate::format::solution::{Activity, PointStop, Tour, UnassignedJob};
-use crate::format::{get_indices, CoordIndex, CustomLocationType, Location};
+use crate::format::{CoordIndex, CustomLocationType, Location, get_indices};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
@@ -74,11 +74,7 @@ impl PartialEq for Feature {
     fn eq(&self, other: &Self) -> bool {
         let same_properties = self.properties.len() == other.properties.len()
             && self.properties.keys().all(|key| {
-                if let Some(value) = other.properties.get(key) {
-                    self.properties[key] == *value
-                } else {
-                    false
-                }
+                if let Some(value) = other.properties.get(key) { self.properties[key] == *value } else { false }
             });
 
         same_properties && self.geometry.eq(&other.geometry)

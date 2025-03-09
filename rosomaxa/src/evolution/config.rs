@@ -309,21 +309,23 @@ where
 
         Ok(EvolutionConfig {
             initial: self.initial,
-            strategy: if let Some(strategy) = self.strategy {
-                (logger)("configured to use a custom strategy");
-                strategy
-            } else {
-                let heuristic = if let Some(heuristic) = self.heuristic {
-                    heuristic
-                } else {
-                    Box::new(DynamicSelective::new(
-                        self.search_operators.ok_or_else(|| "missing search operators or heuristic".to_string())?,
-                        self.diversify_operators
-                            .ok_or_else(|| "missing diversify operators or heuristic".to_string())?,
-                        context.environment(),
-                    ))
-                };
-                Box::new(strategies::Iterative::new(heuristic, 1))
+            strategy: match self.strategy {
+                Some(strategy) => {
+                    (logger)("configured to use a custom strategy");
+                    strategy
+                }
+                _ => {
+                    let heuristic = match self.heuristic {
+                        Some(heuristic) => heuristic,
+                        _ => Box::new(DynamicSelective::new(
+                            self.search_operators.ok_or_else(|| "missing search operators or heuristic".to_string())?,
+                            self.diversify_operators
+                                .ok_or_else(|| "missing diversify operators or heuristic".to_string())?,
+                            context.environment(),
+                        )),
+                    };
+                    Box::new(strategies::Iterative::new(heuristic, 1))
+                }
             },
             context,
             termination,

@@ -122,9 +122,12 @@ where
         return vec![];
     }
 
-    if let Some(position) = left.iter().position(|item| *item == *right.first().unwrap()) {
-        left.into_iter().skip(position).zip(right).filter(|(a, b)| *a == *b).map(|(item, _)| item).collect()
-    } else {
-        vec![]
+    match left.iter().position(|item| *item == *right.first().unwrap()) {
+        Some(position) => {
+            left.into_iter().skip(position).zip(right).filter(|(a, b)| *a == *b).map(|(item, _)| item).collect()
+        }
+        _ => {
+            vec![]
+        }
     }
 }

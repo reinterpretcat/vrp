@@ -1,9 +1,9 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
+use crate::solver::RefinementContext;
 use crate::solver::search::recreate::Recreate;
 use crate::solver::search::{ConfigurableRecreate, PhasedRecreate};
-use crate::solver::RefinementContext;
 use rosomaxa::prelude::*;
 use std::sync::Arc;
 

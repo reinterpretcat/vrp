@@ -52,10 +52,9 @@ where
     }
 
     fn select(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
-        if let Some(best_known) = self.best_known.as_ref() {
-            Box::new(repeat(best_known).take(self.selection_size))
-        } else {
-            Box::new(empty())
+        match self.best_known.as_ref() {
+            Some(best_known) => Box::new(repeat(best_known).take(self.selection_size)),
+            _ => Box::new(empty()),
         }
     }
 
@@ -82,10 +81,9 @@ where
     S: HeuristicSolution,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let values = if let Some(best_known) = &self.best_known {
-            best_known.fitness().map(|v| format!("{v:.7}")).collect::<Vec<_>>().join(",")
-        } else {
-            "".to_string()
+        let values = match &self.best_known {
+            Some(best_known) => best_known.fitness().map(|v| format!("{v:.7}")).collect::<Vec<_>>().join(","),
+            _ => "".to_string(),
         };
 
         write!(f, "[{values}]")

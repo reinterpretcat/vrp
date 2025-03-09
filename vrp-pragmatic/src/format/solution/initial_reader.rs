@@ -2,12 +2,12 @@
 #[path = "../../../tests/unit/format/solution/initial_reader_test.rs"]
 mod initial_reader_test;
 
-use crate::format::solution::activity_matcher::{try_match_point_job, JobInfo};
 use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
+use crate::format::solution::activity_matcher::{JobInfo, try_match_point_job};
 use crate::format::solution::{deserialize_solution, map_reason_code};
-use crate::format::{get_indices, CoordIndex, JobIndex, ShiftIndexDimension, VehicleTypeDimension};
+use crate::format::{CoordIndex, JobIndex, ShiftIndexDimension, VehicleTypeDimension, get_indices};
 use crate::parse_time;
 use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, Read};
@@ -116,28 +116,34 @@ fn try_insert_activity(
         FormatStop::Point(stop) => stop,
     };
 
-    if let Some(JobInfo(job, single, place, time)) = try_match_point_job(tour, stop, activity, job_index, coord_index)?
-    {
-        let is_inserted = added_jobs.insert(job.clone());
-        if !is_inserted && matches!(job, Job::Single(_)) {
-            return Err(format!(
+    match try_match_point_job(tour, stop, activity, job_index, coord_index)? {
+        Some(JobInfo(job, single, place, time)) => {
+            let is_inserted = added_jobs.insert(job.clone());
+            if !is_inserted && matches!(job, Job::Single(_)) {
+                return Err(format!(
                 "potential double assignment for single job '{:?}', matched job id: '{:?}'; try to use a different tag as a discriminator",
                 activity.job_id,
                 job.dimens().get_job_id()
             )
             .into());
-        }
+            }
 
-        route.tour.insert_last(Activity {
-            place,
-            schedule: Schedule { arrival: time.start, departure: time.end },
-            job: Some(single),
-            commute: None,
-        });
-    } else if activity.activity_type != "departure" && activity.activity_type != "arrival" {
-        return Err(
-            format!("cannot match activity with job id '{}' in tour: '{}'", activity.job_id, tour.vehicle_id).into()
-        );
+            route.tour.insert_last(Activity {
+                place,
+                schedule: Schedule { arrival: time.start, departure: time.end },
+                job: Some(single),
+                commute: None,
+            });
+        }
+        _ => {
+            if activity.activity_type != "departure" && activity.activity_type != "arrival" {
+                return Err(format!(
+                    "cannot match activity with job id '{}' in tour: '{}'",
+                    activity.job_id, tour.vehicle_id
+                )
+                .into());
+            }
+        }
     }
 
     Ok(())

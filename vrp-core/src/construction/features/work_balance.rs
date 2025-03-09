@@ -133,11 +133,7 @@ impl<K: Send + Sync + 'static> FeatureObjective for WorkBalanceObjective<K> {
                     .unwrap_or_else(|| (self.route_estimate_fn)(route_ctx));
 
                 // NOTE: this value doesn't consider a route state after insertion of given job
-                if value.is_finite() {
-                    value
-                } else {
-                    Cost::default()
-                }
+                if value.is_finite() { value } else { Cost::default() }
             }
             MoveContext::Activity { .. } => Cost::default(),
         }

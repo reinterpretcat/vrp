@@ -70,11 +70,7 @@ where
 
                 values[generation % sample] = fitness;
 
-                if generation < (*sample - 1) {
-                    false
-                } else {
-                    self.check_threshold(values.iter())
-                }
+                if generation < (*sample - 1) { false } else { self.check_threshold(values.iter()) }
             }
             IntervalType::Period(period) => {
                 let elapsed_time = heuristic_ctx.statistics().time.elapsed_millis();
@@ -130,11 +126,7 @@ where
             .into_iter()
             .try_fold(true, |_, (_, values)| {
                 let cv = get_cv(values.as_slice());
-                if cv > self.threshold {
-                    ControlFlow::Break(false)
-                } else {
-                    ControlFlow::Continue(true)
-                }
+                if cv > self.threshold { ControlFlow::Break(false) } else { ControlFlow::Continue(true) }
             })
             .unwrap_value()
     }

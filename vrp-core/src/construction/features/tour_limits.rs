@@ -6,7 +6,7 @@ mod tour_limits_test;
 
 use super::*;
 use crate::construction::enablers::{
-    calculate_travel_delta, LimitDurationTourState, TotalDistanceTourState, TotalDurationTourState,
+    LimitDurationTourState, TotalDistanceTourState, TotalDurationTourState, calculate_travel_delta,
 };
 use crate::models::common::{Distance, Duration};
 use crate::models::problem::{Actor, TransportCost};

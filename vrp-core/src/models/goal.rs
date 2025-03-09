@@ -178,7 +178,6 @@ impl Goal {
         let objective = feature
             .objective
             .clone()
-            .take()
             .ok_or_else(|| GenericError::from(format!("feature '{name}' has no objective")))?;
 
         Ok(builder.add_single(objective))
@@ -228,11 +227,7 @@ impl GoalBuilder {
 
                 // NOTE total_cmp distinguishes between positive zero and negative zero while
                 // logically they are the same in this context
-                if fitness_a == 0. && fitness_b == 0. {
-                    Ordering::Equal
-                } else {
-                    fitness_a.total_cmp(&fitness_b)
-                }
+                if fitness_a == 0. && fitness_b == 0. { Ordering::Equal } else { fitness_a.total_cmp(&fitness_b) }
             }),
             Arc::new(|objectives, move_ctx| objectives[0].estimate(move_ctx)),
             vec![objective],

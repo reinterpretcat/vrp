@@ -13,9 +13,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use vrp_core::construction::clustering::vicinity::ClusterConfig;
 use vrp_core::construction::clustering::vicinity::VisitPolicy;
+use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::common::{Duration, Profile, TimeWindow};
 use vrp_core::models::solution::{Commute as DomainCommute, CommuteInfo as DomainCommuteInfo};
-use vrp_core::models::Problem as CoreProblem;
 use vrp_core::prelude::{GenericError, GenericResult};
 use vrp_core::solver::processing::ClusterConfigExtraProperty;
 use vrp_core::utils::Float;
@@ -89,11 +89,7 @@ impl CheckerContext {
                 (used, errors)
             });
 
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
     }
 
     /// Gets vehicle by its id.

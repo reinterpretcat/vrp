@@ -1,6 +1,6 @@
 use super::*;
-use crate::helpers::example::create_default_heuristic_context;
 use crate::Timer;
+use crate::helpers::example::create_default_heuristic_context;
 
 parameterized_test! {can_detect_termination, (generation, limit, expected), {
     can_detect_termination_impl(generation, limit, expected);

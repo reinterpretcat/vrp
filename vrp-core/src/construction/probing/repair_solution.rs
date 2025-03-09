@@ -3,10 +3,10 @@
 mod repair_solution_test;
 
 use crate::construction::heuristics::*;
+use crate::models::GoalContext;
 use crate::models::common::TimeSpan;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::Activity;
-use crate::models::GoalContext;
 use rosomaxa::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::ops::ControlFlow;
@@ -51,27 +51,31 @@ pub fn repair_solution_from_unknown(
 }
 
 fn get_new_route_ctx_idx(new_insertion_ctx: &mut InsertionContext, route_ctx: &RouteContext) -> usize {
-    if let Some(idx) = new_insertion_ctx
+    match new_insertion_ctx
         .solution
         .routes
         .iter()
         .position(|new_route_ctx| new_route_ctx.route().actor == route_ctx.route().actor)
     {
-        idx
-    } else {
-        let mut new_route_ctx =
-            new_insertion_ctx.solution.registry.get_route(&route_ctx.route().actor).expect("actor is already in use");
+        Some(idx) => idx,
+        _ => {
+            let mut new_route_ctx = new_insertion_ctx
+                .solution
+                .registry
+                .get_route(&route_ctx.route().actor)
+                .expect("actor is already in use");
 
-        // check and set a valid departure shift
-        let new_start = new_route_ctx.route_mut().tour.get_mut(0).unwrap();
-        let departure = route_ctx.route().tour.start().unwrap().schedule.departure;
-        if new_start.place.time.contains(departure) {
-            new_start.schedule.departure = departure;
+            // check and set a valid departure shift
+            let new_start = new_route_ctx.route_mut().tour.get_mut(0).unwrap();
+            let departure = route_ctx.route().tour.start().unwrap().schedule.departure;
+            if new_start.place.time.contains(departure) {
+                new_start.schedule.departure = departure;
+            }
+            new_insertion_ctx.problem.goal.accept_route_state(&mut new_route_ctx);
+
+            new_insertion_ctx.solution.routes.push(new_route_ctx);
+            new_insertion_ctx.solution.routes.len() - 1
         }
-        new_insertion_ctx.problem.goal.accept_route_state(&mut new_route_ctx);
-
-        new_insertion_ctx.solution.routes.push(new_route_ctx);
-        new_insertion_ctx.solution.routes.len() - 1
     }
 }
 
@@ -123,11 +127,16 @@ fn synchronize_jobs(
                         None,
                     );
 
-                    if let InsertionResult::Success(success) = insertion_result {
-                        apply_insertion_success(new_insertion_ctx, success);
-                        synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
-                    } else if job.as_multi().is_some() {
-                        invalid_multi_job_ids.insert(job.clone());
+                    match insertion_result {
+                        InsertionResult::Success(success) => {
+                            apply_insertion_success(new_insertion_ctx, success);
+                            synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
+                        }
+                        _ => {
+                            if job.as_multi().is_some() {
+                                invalid_multi_job_ids.insert(job.clone());
+                            }
+                        }
                     }
                 }
 

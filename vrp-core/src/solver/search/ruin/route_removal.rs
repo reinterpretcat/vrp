@@ -4,8 +4,8 @@ mod route_removal_test;
 
 use super::*;
 use crate::models::problem::Actor;
-use crate::solver::search::JobRemovalTracker;
 use crate::solver::RefinementContext;
+use crate::solver::search::JobRemovalTracker;
 use rand::prelude::SliceRandom;
 
 /// A ruin strategy which removes random route from solution.

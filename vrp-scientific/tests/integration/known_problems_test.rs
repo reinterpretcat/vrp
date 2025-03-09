@@ -3,9 +3,9 @@ use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem;
 use vrp_core::rosomaxa::evolution::TelemetryMode;
+use vrp_core::solver::RefinementContext;
 use vrp_core::solver::create_elitism_population;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
-use vrp_core::solver::RefinementContext;
 use vrp_core::utils::{Environment, Float};
 
 parameterized_test! {can_solve_problem_with_cheapest_insertion_heuristic, (problem, expected, cost), {

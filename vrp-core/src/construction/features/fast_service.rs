@@ -137,12 +137,12 @@ impl FeatureObjective for FastServiceObjective {
 
         let activity_idx = activity_ctx.index;
 
-        let (single, job) =
-            if let Some((single, job)) = activity_ctx.target.job.as_ref().zip(activity_ctx.target.retrieve_job()) {
-                (single, job)
-            } else {
+        let (single, job) = match activity_ctx.target.job.as_ref().zip(activity_ctx.target.retrieve_job()) {
+            Some((single, job)) => (single, job),
+            _ => {
                 return self.get_departure(route_ctx, activity_ctx) - self.get_start_time(route_ctx, activity_idx);
-            };
+            }
+        };
 
         // NOTE: for simplicity, we ignore impact on already inserted jobs on local objective level
         match self.get_time_interval_type(&job, single.as_ref()) {

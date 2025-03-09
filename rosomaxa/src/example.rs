@@ -422,10 +422,9 @@ impl Solver {
         // create an environment based on max_time and logger parameters supplied
         let environment =
             Environment { is_experimental: self.is_experimental, ..Environment::new_with_time_quota(self.max_time) };
-        let environment = Arc::new(if let Some(logger) = self.logger.clone() {
-            Environment { logger, ..environment }
-        } else {
-            environment
+        let environment = Arc::new(match self.logger.clone() {
+            Some(logger) => Environment { logger, ..environment },
+            _ => environment,
         });
 
         // build instances of implementation types from submitted data

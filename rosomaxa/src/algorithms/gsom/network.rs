@@ -237,11 +237,7 @@ where
             .filter(|(_, node)| node.storage.size() > 0)
             .fold((0, 0.), |(n, sum), (_, node)| (n + 1, sum + node.mse(self)));
 
-        if n > 0 {
-            sum / n as Float
-        } else {
-            0.
-        }
+        if n > 0 { sum / n as Float } else { 0. }
     }
 
     /// Returns max unified distance of the network.

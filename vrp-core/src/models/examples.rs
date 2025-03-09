@@ -1,8 +1,8 @@
 use crate::construction::features::*;
+use crate::models::Problem;
 use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Route;
-use crate::models::Problem;
 use crate::models::*;
 use rosomaxa::prelude::GenericResult;
 use std::sync::Arc;
@@ -33,29 +33,33 @@ impl TransportCost for ExampleTransportCost {
 
 /// Creates an example jobs used in documentation tests.
 fn create_example_jobs() -> GenericResult<Vec<Job>> {
-    Ok(vec![SingleBuilder::default()
-        .id("job1")
-        .location(1)?
-        .times(vec![TimeWindow::new(0., 100.)])?
-        .demand(Demand::delivery(1))
-        .build_as_job()?])
+    Ok(vec![
+        SingleBuilder::default()
+            .id("job1")
+            .location(1)?
+            .times(vec![TimeWindow::new(0., 100.)])?
+            .demand(Demand::delivery(1))
+            .build_as_job()?,
+    ])
 }
 
 /// Creates an example vehicles used in documentation tests.
 fn create_example_vehicles() -> GenericResult<Vec<Vehicle>> {
-    Ok(vec![VehicleBuilder::default()
-        .id("v1")
-        .set_distance_cost(1.)
-        .capacity(SingleDimLoad::new(2))
-        .add_detail(
-            VehicleDetailBuilder::default()
-                .set_start_location(0)
-                .set_start_time(0.)
-                .set_end_location(0)
-                .set_end_time(1000.)
-                .build()?,
-        )
-        .build()?])
+    Ok(vec![
+        VehicleBuilder::default()
+            .id("v1")
+            .set_distance_cost(1.)
+            .capacity(SingleDimLoad::new(2))
+            .add_detail(
+                VehicleDetailBuilder::default()
+                    .set_start_location(0)
+                    .set_start_time(0.)
+                    .set_end_location(0)
+                    .set_end_time(1000.)
+                    .build()?,
+            )
+            .build()?,
+    ])
 }
 
 /// Creates and example VRP goal: CVRPTW.

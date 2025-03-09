@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::features::*;
 use crate::helpers::construction::features::{create_simple_demand, create_simple_dynamic_demand};
-use crate::helpers::models::domain::{test_logger, TestGoalContextBuilder};
+use crate::helpers::models::domain::{TestGoalContextBuilder, test_logger};
 use crate::helpers::models::problem::*;
 use crate::models::common::*;
 use crate::models::problem::*;

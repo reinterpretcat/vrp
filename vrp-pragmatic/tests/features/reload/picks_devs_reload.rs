@@ -41,48 +41,50 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
 
     assert_eq!(
         solution.tours,
-        vec![TourBuilder::default()
-            .stops(vec![
-                StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![1]).build_departure(),
-                StopBuilder::default()
-                    .coordinate((1., 0.))
-                    .schedule_stamp(1., 2.)
-                    .load(vec![0])
-                    .distance(1)
-                    .build_single("d1", "delivery"),
-                StopBuilder::default()
-                    .coordinate((2., 0.))
-                    .schedule_stamp(3., 4.)
-                    .load(vec![1])
-                    .distance(2)
-                    .build_single("p1", "pickup"),
-                StopBuilder::default()
-                    .coordinate((3., 0.))
-                    .schedule_stamp(5., 7.)
-                    .load(vec![1])
-                    .distance(3)
-                    .build_single("reload", "reload"),
-                StopBuilder::default()
-                    .coordinate((4., 0.))
-                    .schedule_stamp(8., 9.)
-                    .load(vec![0])
-                    .distance(4)
-                    .build_single("d2", "delivery"),
-                StopBuilder::default()
-                    .coordinate((5., 0.))
-                    .schedule_stamp(10., 11.)
-                    .load(vec![1])
-                    .distance(5)
-                    .build_single("p2", "pickup"),
-                StopBuilder::default()
-                    .coordinate((6., 0.))
-                    .schedule_stamp(12., 12.)
-                    .load(vec![0])
-                    .distance(6)
-                    .build_arrival(),
-            ])
-            .statistic(StatisticBuilder::default().driving(6).serving(6).build())
-            .build()]
+        vec![
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![1]).build_departure(),
+                    StopBuilder::default()
+                        .coordinate((1., 0.))
+                        .schedule_stamp(1., 2.)
+                        .load(vec![0])
+                        .distance(1)
+                        .build_single("d1", "delivery"),
+                    StopBuilder::default()
+                        .coordinate((2., 0.))
+                        .schedule_stamp(3., 4.)
+                        .load(vec![1])
+                        .distance(2)
+                        .build_single("p1", "pickup"),
+                    StopBuilder::default()
+                        .coordinate((3., 0.))
+                        .schedule_stamp(5., 7.)
+                        .load(vec![1])
+                        .distance(3)
+                        .build_single("reload", "reload"),
+                    StopBuilder::default()
+                        .coordinate((4., 0.))
+                        .schedule_stamp(8., 9.)
+                        .load(vec![0])
+                        .distance(4)
+                        .build_single("d2", "delivery"),
+                    StopBuilder::default()
+                        .coordinate((5., 0.))
+                        .schedule_stamp(10., 11.)
+                        .load(vec![1])
+                        .distance(5)
+                        .build_single("p2", "pickup"),
+                    StopBuilder::default()
+                        .coordinate((6., 0.))
+                        .schedule_stamp(12., 12.)
+                        .load(vec![0])
+                        .distance(6)
+                        .build_arrival(),
+                ])
+                .statistic(StatisticBuilder::default().driving(6).serving(6).build())
+                .build()
+        ]
     );
     assert!(solution.violations.is_none());
 

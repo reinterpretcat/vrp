@@ -3,8 +3,8 @@
 mod random_test;
 
 use crate::utils::Float;
-use rand::prelude::*;
 use rand::Error;
+use rand::prelude::*;
 use rand_distr::{Gamma, Normal};
 use std::cell::RefCell;
 use std::cmp::Ordering;
@@ -209,11 +209,7 @@ where
         .max_by(move |(_, r), (_, s)| match r.total_cmp(s) {
             Ordering::Equal => {
                 count += 1;
-                if rng.gen_range(0..=count) == 0 {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
-                }
+                if rng.gen_range(0..=count) == 0 { Ordering::Less } else { Ordering::Greater }
             }
             Ordering::Less => {
                 count = 0;

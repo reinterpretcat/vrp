@@ -7,7 +7,7 @@ use std::io::{BufReader, BufWriter, Write};
 use std::sync::Arc;
 use vrp_core::models::{Problem, Solution};
 use vrp_core::prelude::{GenericError, Random};
-use vrp_pragmatic::format::solution::{write_pragmatic, PragmaticOutputType};
+use vrp_pragmatic::format::solution::{PragmaticOutputType, write_pragmatic};
 use vrp_scientific::tsplib::{TsplibProblem, TsplibSolution};
 
 /// A reader for problem.
@@ -98,18 +98,19 @@ fn add_scientific(formats: &mut FormatMap, is_rounded: bool, random: Arc<dyn Ran
 }
 
 fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random>) {
-    use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
+    use vrp_pragmatic::format::problem::{PragmaticProblem, deserialize_problem};
     use vrp_pragmatic::format::solution::read_init_solution as read_init_pragmatic;
 
     formats.insert(
         "pragmatic",
         (
             ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
-                if let Some(matrices) = matrices {
-                    let matrices = matrices.into_iter().map(BufReader::new).collect();
-                    (BufReader::new(problem), matrices).read_pragmatic()
-                } else {
-                    BufReader::new(problem).read_pragmatic()
+                match matrices {
+                    Some(matrices) => {
+                        let matrices = matrices.into_iter().map(BufReader::new).collect();
+                        (BufReader::new(problem), matrices).read_pragmatic()
+                    }
+                    _ => BufReader::new(problem).read_pragmatic(),
                 }
                 .map_err(From::from)
             })),

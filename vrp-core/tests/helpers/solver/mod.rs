@@ -1,7 +1,7 @@
 use crate::algorithms::geometry::Point;
 use crate::construction::features::TransportFeatureBuilder;
 use crate::construction::heuristics::MoveContext;
-use crate::helpers::models::domain::{test_logger, test_random, TestGoalContextBuilder};
+use crate::helpers::models::domain::{TestGoalContextBuilder, test_logger, test_random};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder};
 use crate::models::common::{Cost, Location};
@@ -9,7 +9,7 @@ use crate::models::problem::*;
 use crate::models::solution::{Activity, Registry, Route};
 use crate::models::*;
 use crate::models::{Problem, Solution};
-use crate::solver::{create_elitism_population, RefinementContext};
+use crate::solver::{RefinementContext, create_elitism_population};
 use rosomaxa::evolution::TelemetryMode;
 use rosomaxa::prelude::{Environment, Float};
 use std::sync::Arc;
@@ -224,11 +224,7 @@ impl FeatureConstraint for LegFeatureConstraint {
                             is_left_match && is_right_match
                         });
 
-                        if is_disallowed {
-                            ConstraintViolation::skip(ViolationCode(7))
-                        } else {
-                            None
-                        }
+                        if is_disallowed { ConstraintViolation::skip(ViolationCode(7)) } else { None }
                     },
                 )
             }

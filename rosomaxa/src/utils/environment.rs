@@ -121,10 +121,9 @@ impl Parallelism {
         OP: FnOnce() -> R + Send,
         R: Send,
     {
-        if let Some(thread_pool) = self.thread_pools.as_ref().and_then(|tps| tps.get(idx % tps.len())) {
-            thread_pool.execute(op)
-        } else {
-            op()
+        match self.thread_pools.as_ref().and_then(|tps| tps.get(idx % tps.len())) {
+            Some(thread_pool) => thread_pool.execute(op),
+            _ => op(),
         }
     }
 

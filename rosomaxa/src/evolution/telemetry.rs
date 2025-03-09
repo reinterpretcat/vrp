@@ -170,21 +170,24 @@ where
             }
         };
 
-        if let Some(best_individual) = population.ranked().next() {
-            let should_log_best = generation % *log_best.unwrap_or(&usize::MAX) == 0;
-            let should_log_population = generation % *log_population.unwrap_or(&usize::MAX) == 0;
-            let should_track_population = generation % *track_population.unwrap_or(&usize::MAX) == 0;
+        match population.ranked().next() {
+            Some(best_individual) => {
+                let should_log_best = generation % *log_best.unwrap_or(&usize::MAX) == 0;
+                let should_log_population = generation % *log_population.unwrap_or(&usize::MAX) == 0;
+                let should_track_population = generation % *track_population.unwrap_or(&usize::MAX) == 0;
 
-            if should_log_best {
-                self.log_individual(
-                    &self.get_individual_metrics(population, best_individual),
-                    Some((generation, generation_time)),
-                )
+                if should_log_best {
+                    self.log_individual(
+                        &self.get_individual_metrics(population, best_individual),
+                        Some((generation, generation_time)),
+                    )
+                }
+
+                self.on_population(population, should_log_population, should_track_population);
             }
-
-            self.on_population(population, should_log_population, should_track_population);
-        } else {
-            self.log("no progress yet");
+            _ => {
+                self.log("no progress yet");
+            }
         }
     }
 
@@ -256,10 +259,13 @@ where
         let speed = generations as Float / self.time.elapsed_secs_as_float();
 
         self.log(format!("[{elapsed}s] total generations: {generations}, speed: {speed:.2} gen/sec",).as_str());
-        if let Some(best) = population.ranked().next() {
-            self.log(format!("\tbest fitness: ({})", format_fitness(best.fitness())).as_str());
-        } else {
-            self.log("no solutions found");
+        match population.ranked().next() {
+            Some(best) => {
+                self.log(format!("\tbest fitness: ({})", format_fitness(best.fitness())).as_str());
+            }
+            _ => {
+                self.log("no solutions found");
+            }
         }
 
         self.metrics.duration = elapsed;
@@ -299,11 +305,11 @@ where
     fn log_individual(&self, metrics: &TelemetryIndividual, gen_info: Option<(usize, Timer)>) {
         let fitness = format_fitness(metrics.fitness.iter().cloned());
 
-        let value = if let Some((gen, gen_time)) = gen_info {
+        let value = if let Some((r#gen, gen_time)) = gen_info {
             format!(
                 "[{}s] generation {} took {}ms, median: {}ms fitness: ({})",
                 self.time.elapsed_secs(),
-                gen,
+                r#gen,
                 gen_time.elapsed_millis(),
                 self.speed_tracker.median.approx_median().unwrap_or(0),
                 fitness

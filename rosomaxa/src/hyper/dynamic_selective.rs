@@ -3,10 +3,10 @@
 mod dynamic_selective_test;
 
 use super::*;
+use crate::Timer;
 use crate::algorithms::math::RemedianUsize;
 use crate::algorithms::rl::{SlotAction, SlotFeedback, SlotMachine};
-use crate::utils::{random_argmax, DefaultDistributionSampler};
-use crate::Timer;
+use crate::utils::{DefaultDistributionSampler, random_argmax};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::Formatter;

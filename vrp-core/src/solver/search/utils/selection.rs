@@ -1,7 +1,7 @@
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
+use crate::models::Problem;
 use crate::models::common::Profile;
 use crate::models::problem::Job;
-use crate::models::Problem;
 use crate::solver::search::TabuList;
 use crate::utils::Either;
 use rosomaxa::prelude::Random;
@@ -19,13 +19,12 @@ pub(crate) fn get_route_jobs(solution: &SolutionContext) -> HashMap<Job, usize> 
 
 /// Returns seed job within all its neighbours.
 pub(crate) fn select_neighbors(problem: &Problem, seed: Option<(Profile, Job)>) -> impl Iterator<Item = Job> + '_ {
-    if let Some((profile, job)) = seed {
-        Either::Left(
+    match seed {
+        Some((profile, job)) => Either::Left(
             once(job.clone())
                 .chain(problem.jobs.neighbors(&profile, &job, Default::default()).map(|(job, _)| job).cloned()),
-        )
-    } else {
-        Either::Right(empty())
+        ),
+        _ => Either::Right(empty()),
     }
 }
 

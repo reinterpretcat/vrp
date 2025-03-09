@@ -9,9 +9,9 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::models::GoalContext;
 use crate::solver::{RefinementContext, TargetSearchOperator};
+use rosomaxa::HeuristicSolution;
 use rosomaxa::hyper::HeuristicDiversifyOperator;
 use rosomaxa::prelude::{Float, HeuristicSearchOperator};
-use rosomaxa::HeuristicSolution;
 
 mod local;
 pub use self::local::*;

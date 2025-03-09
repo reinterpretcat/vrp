@@ -1,6 +1,6 @@
 use super::*;
 use crate::helpers::construction::clustering::vicinity::*;
-use crate::helpers::models::problem::{get_job_id, TestPlace, TestSingleBuilder, TestTransportCost};
+use crate::helpers::models::problem::{TestPlace, TestSingleBuilder, TestTransportCost, get_job_id};
 use crate::models::problem::JobIdDimension;
 
 fn get_check_insertion_fn(disallow_insertion_list: Vec<&str>) -> Arc<CheckInsertionFn> {
@@ -10,11 +10,7 @@ fn get_check_insertion_fn(disallow_insertion_list: Vec<&str>) -> Arc<CheckInsert
         let job_to_check = job.dimens().get_clustered_jobs().and_then(|merged| merged.last()).unwrap_or(job);
         let id = job_to_check.dimens().get_job_id();
 
-        if id.is_some_and(|id| disallow_insertion_list.contains(id)) {
-            Err(ViolationCode::unknown())
-        } else {
-            Ok(())
-        }
+        if id.is_some_and(|id| disallow_insertion_list.contains(id)) { Err(ViolationCode::unknown()) } else { Ok(()) }
     })
 }
 

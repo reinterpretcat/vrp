@@ -1,5 +1,5 @@
-use crate::models::common::FootprintSolutionState;
 use crate::models::FeatureObjective;
+use crate::models::common::FootprintSolutionState;
 use crate::prelude::*;
 
 custom_solution_state!(FootprintCost typeof Cost);

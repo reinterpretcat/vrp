@@ -1,8 +1,8 @@
 use crate::construction::heuristics::*;
 use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
-use crate::solver::search::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
+use crate::solver::search::{ConfigurableRecreate, Recreate};
 use rosomaxa::prelude::Random;
 use std::cmp::Ordering::*;
 use std::sync::Arc;

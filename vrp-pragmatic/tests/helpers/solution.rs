@@ -8,9 +8,9 @@ use std::cmp::Ordering::Equal;
 use std::collections::HashMap;
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
-use vrp_core::models::common::{Cost, Timestamp};
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
+use vrp_core::models::common::{Cost, Timestamp};
 use vrp_core::prelude::{Float, GenericError};
 use vrp_core::utils::{DefaultRandom, Random};
 
@@ -441,11 +441,7 @@ pub fn assert_vehicle_agnostic(result: Solution, expected: Solution) {
     result.tours.sort_by(|a, b| {
         let ordering = a.vehicle_id.cmp(&b.vehicle_id);
 
-        if ordering == Equal {
-            a.shift_index.cmp(&b.shift_index)
-        } else {
-            ordering
-        }
+        if ordering == Equal { a.shift_index.cmp(&b.shift_index) } else { ordering }
     });
 
     assert_eq!(result, expected);

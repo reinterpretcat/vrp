@@ -5,10 +5,10 @@
 mod vicinity_test;
 
 use crate::construction::heuristics::*;
+use crate::models::Problem;
 use crate::models::common::Dimensions;
 use crate::models::common::*;
 use crate::models::problem::{Actor, Job};
-use crate::models::Problem;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::collections::HashSet;

@@ -15,11 +15,7 @@ pub fn get_cv(values: &[Float]) -> Float {
 pub fn get_cv_safe(values: &[Float]) -> Float {
     let value = get_cv(values);
 
-    if value.is_nan() {
-        1.
-    } else {
-        value
-    }
+    if value.is_nan() { 1. } else { value }
 }
 
 /// Gets mean of values using given slice.
@@ -39,11 +35,7 @@ where
 {
     let (sum, count) = values.fold((0., 0), |(sum, count), item| (sum + item, count + 1));
 
-    if count == 0 {
-        0.
-    } else {
-        sum / count as Float
-    }
+    if count == 0 { 0. } else { sum / count as Float }
 }
 
 /// Returns variance.

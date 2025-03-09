@@ -1,7 +1,7 @@
 use super::*;
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::test_random;
-use crate::helpers::models::problem::{test_fleet, TestSingleBuilder};
+use crate::helpers::models::problem::{TestSingleBuilder, test_fleet};
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Dimensions;

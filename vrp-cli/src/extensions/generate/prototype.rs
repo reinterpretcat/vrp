@@ -4,8 +4,8 @@ mod prototype_test;
 
 use super::*;
 use vrp_core::prelude::Float;
-use vrp_pragmatic::format::problem::Problem;
 use vrp_pragmatic::format::Location;
+use vrp_pragmatic::format::problem::Problem;
 
 /// Generates meaningful problem from the prototype.
 /// There is another problem generation implementation in `vrp-pragmatic` crate, used by tests.

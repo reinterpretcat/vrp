@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::Arc;
@@ -6,7 +6,7 @@ use vrp_pragmatic::core::construction::heuristics::InsertionContext;
 use vrp_pragmatic::core::prelude::*;
 use vrp_pragmatic::core::rosomaxa::evolution::TelemetryMode;
 use vrp_pragmatic::core::solver::search::{Recreate, RecreateWithCheapest};
-use vrp_pragmatic::core::solver::{create_elitism_population, RefinementContext};
+use vrp_pragmatic::core::solver::{RefinementContext, create_elitism_population};
 use vrp_pragmatic::format::problem::PragmaticProblem;
 
 pub fn get_bench_resource(resource_path: &str) -> std::io::Result<File> {

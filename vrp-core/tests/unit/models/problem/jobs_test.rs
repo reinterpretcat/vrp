@@ -271,8 +271,9 @@ fn can_handle_negative_distances_durations_impl(transport_costs: Arc<dyn Transpo
     let jobs = Jobs::new(&test_fleet(), species.clone(), transport_costs.as_ref(), &test_logger()).unwrap();
 
     for job in &species {
-        assert!(jobs
-            .neighbors(&profile, job, 0.0)
-            .all(|(_, cost)| { (cost as LowPrecisionCost - UNREACHABLE_COST).abs() < f32::EPSILON }));
+        assert!(
+            jobs.neighbors(&profile, job, 0.0)
+                .all(|(_, cost)| { (cost as LowPrecisionCost - UNREACHABLE_COST).abs() < f32::EPSILON })
+        );
     }
 }

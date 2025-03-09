@@ -3,7 +3,10 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 /// An actor group key implementation which creates groups using "type" dimension.
-pub fn create_typed_actor_groups<F>(actors: &[Arc<Actor>], actor_type_fn: F) -> impl Fn(&Actor) -> usize + Send + Sync
+pub fn create_typed_actor_groups<F>(
+    actors: &[Arc<Actor>],
+    actor_type_fn: F,
+) -> impl Fn(&Actor) -> usize + Send + Sync + use<F>
 where
     F: Fn(&Actor) -> String,
 {

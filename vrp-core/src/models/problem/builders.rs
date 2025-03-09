@@ -170,10 +170,9 @@ impl MultiBuilder {
             return Err("the number of sub-jobs must be 2 or more".into());
         }
 
-        Ok(if let Some(permutator) = self.permutator {
-            Multi::new_shared_with_permutator(self.jobs, self.dimens, permutator)
-        } else {
-            Multi::new_shared(self.jobs, self.dimens)
+        Ok(match self.permutator {
+            Some(permutator) => Multi::new_shared_with_permutator(self.jobs, self.dimens, permutator),
+            _ => Multi::new_shared(self.jobs, self.dimens),
         })
     }
 
@@ -323,10 +322,6 @@ impl VehicleDetailBuilder {
 
     /// Builds vehicle detail.
     pub fn build(self) -> GenericResult<VehicleDetail> {
-        if self.0.start.is_none() {
-            Err("start place must be defined for vehicle detail".into())
-        } else {
-            Ok(self.0)
-        }
+        if self.0.start.is_none() { Err("start place must be defined for vehicle detail".into()) } else { Ok(self.0) }
     }
 }

@@ -1,7 +1,7 @@
 use crate::construction::clustering::vicinity::*;
 use crate::construction::heuristics::*;
 use crate::helpers::models::domain::TestGoalContextBuilder;
-use crate::helpers::models::problem::{get_job_id, TestSingleBuilder};
+use crate::helpers::models::problem::{TestSingleBuilder, get_job_id};
 use crate::models::common::{Dimensions, Duration, Location, Profile};
 use crate::models::problem::{Job, JobIdDimension};
 use crate::models::*;

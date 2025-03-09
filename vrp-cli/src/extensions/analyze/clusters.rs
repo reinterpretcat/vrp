@@ -5,7 +5,7 @@ mod clusters_test;
 use vrp_core::algorithms::clustering::kmedoids::create_kmedoids;
 use vrp_core::construction::clustering::dbscan::create_job_clusters;
 use vrp_core::models::common::Timestamp;
-use vrp_core::models::problem::{get_job_locations, JobIdDimension};
+use vrp_core::models::problem::{JobIdDimension, get_job_locations};
 use vrp_core::prelude::*;
 use vrp_pragmatic::format::{CoordIndexExtraProperty, Location as ApiLocation};
 

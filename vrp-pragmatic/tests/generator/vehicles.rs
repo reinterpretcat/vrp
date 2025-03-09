@@ -1,7 +1,7 @@
 use super::uuid::Uuid;
 use super::*;
-use crate::format::problem::*;
 use crate::format::Location;
+use crate::format::problem::*;
 use core::ops::Range;
 use vrp_core::prelude::Float;
 

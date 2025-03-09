@@ -284,8 +284,8 @@ pub use self::statik::create_default_heuristic_operator;
 mod builder {
     use super::*;
     use crate::rosomaxa::evolution::InitialOperators;
-    use crate::solver::processing::*;
     use crate::solver::RecreateInitialOperator;
+    use crate::solver::processing::*;
 
     /// Creates default init operators.
     pub fn create_default_init_operators(

@@ -7,8 +7,8 @@ use super::*;
 use clap::ArgAction;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use vrp_cli::core::solver::TargetHeuristic;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::extensions::solve::formats::*;
@@ -230,10 +230,9 @@ pub fn run_solve(
                             init_reader,
                         )?;
 
-                        let solver = if let Some(config) = config {
-                            from_config_parameters(problem.clone(), init_solutions, config)?
-                        } else {
-                            from_cli_parameters(problem.clone(), environment, init_solutions, matches)?
+                        let solver = match config {
+                            Some(config) => from_config_parameters(problem.clone(), init_solutions, config)?,
+                            _ => from_cli_parameters(problem.clone(), environment, init_solutions, matches)?,
                         };
 
                         let solution = solver.solve().map_err(|err| format!("cannot find any solution: '{err}'"))?;
@@ -263,22 +262,25 @@ fn read_init_solutions_if_necessary(
     init_solution_file: Option<File>,
     InitSolutionReader(init_reader): &InitSolutionReader,
 ) -> GenericResult<Vec<InsertionContext>> {
-    Ok(if let Some(file) = init_solution_file {
-        let init_solution = Timer::measure_duration_with_callback(
-            || {
-                init_reader(file, problem.clone())
-                    .map_err(|err| GenericError::from(format!("cannot read initial solution '{err}'")))
-                    .map(|solution| {
-                        InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone())
-                    })
-            },
-            |duration| {
-                (environment.logger)(format!("initial solution processing took {}ms", duration.as_millis()).as_str())
-            },
-        )?;
-        vec![init_solution]
-    } else {
-        Vec::default()
+    Ok(match init_solution_file {
+        Some(file) => {
+            let init_solution = Timer::measure_duration_with_callback(
+                || {
+                    init_reader(file, problem.clone())
+                        .map_err(|err| GenericError::from(format!("cannot read initial solution '{err}'")))
+                        .map(|solution| {
+                            InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone())
+                        })
+                },
+                |duration| {
+                    (environment.logger)(
+                        format!("initial solution processing took {}ms", duration.as_millis()).as_str(),
+                    )
+                },
+            )?;
+            vec![init_solution]
+        }
+        _ => Vec::default(),
     })
 }
 

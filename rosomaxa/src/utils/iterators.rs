@@ -93,7 +93,7 @@ pub fn create_range_sampling_iter<I: Iterator>(
     iterator: I,
     sample_size: usize,
     random: &(dyn Random),
-) -> impl Iterator<Item = I::Item> {
+) -> impl Iterator<Item = I::Item> + use<I> {
     let iterator_size = iterator.size_hint().0 as Float;
     let sample_count = (iterator_size / sample_size as Float).max(1.) - 1.;
     let offset = random.uniform_int(0, sample_count as i32) as usize * sample_size;

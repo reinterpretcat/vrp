@@ -99,11 +99,7 @@ fn insert_break(
                 TimeWindow::new(parse_time(&interval.start), parse_time(&interval.end))
             });
 
-            if activity_tw.intersects(reserved_tw) {
-                Some(activity_idx + 1)
-            } else {
-                None
-            }
+            if activity_tw.intersects(reserved_tw) { Some(activity_idx + 1) } else { None }
         })
         .next()
         .unwrap_or(stop.activities().len());

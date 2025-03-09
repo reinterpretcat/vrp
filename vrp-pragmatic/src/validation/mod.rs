@@ -57,11 +57,7 @@ impl<'a> ValidationContext<'a> {
             .collect::<Vec<_>>()
             .into();
 
-        if multi_err.errors.is_empty() {
-            Ok(())
-        } else {
-            Err(multi_err)
-        }
+        if multi_err.errors.is_empty() { Ok(()) } else { Err(multi_err) }
     }
 
     /// Gets list of jobs from the problem.

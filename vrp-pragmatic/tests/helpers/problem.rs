@@ -192,11 +192,7 @@ pub fn create_multi_job(
             })
             .collect::<Vec<_>>();
 
-        if tasks.is_empty() {
-            None
-        } else {
-            Some(tasks)
-        }
+        if tasks.is_empty() { None } else { Some(tasks) }
     };
 
     Job { pickups: create_tasks(pickups, "p"), deliveries: create_tasks(deliveries, "d"), ..create_job(id) }

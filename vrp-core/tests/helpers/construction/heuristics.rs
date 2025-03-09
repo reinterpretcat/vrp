@@ -1,6 +1,6 @@
 use crate::construction::heuristics::*;
-use crate::helpers::models::domain::{test_logger, test_random, TestGoalContextBuilder};
-use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
+use crate::helpers::models::domain::{TestGoalContextBuilder, test_logger, test_random};
+use crate::helpers::models::problem::{TestActivityCost, TestTransportCost, test_fleet};
 use crate::models::problem::Job;
 use crate::models::solution::Registry;
 use crate::models::{Extras, GoalContext, Problem};
@@ -74,10 +74,9 @@ impl TestInsertionContextBuilder {
         let problem = Arc::new(std::mem::take(&mut self.problem).unwrap());
         let solution = std::mem::take(&mut self.solution).unwrap();
 
-        let environment = if let Some(environment) = std::mem::take(&mut self.environment) {
-            Arc::new(environment)
-        } else {
-            Arc::new(Environment::default())
+        let environment = match std::mem::take(&mut self.environment) {
+            Some(environment) => Arc::new(environment),
+            _ => Arc::new(Environment::default()),
         };
 
         InsertionContext { problem, solution, environment }

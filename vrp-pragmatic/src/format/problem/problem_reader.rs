@@ -5,10 +5,10 @@ use crate::format::problem::goal_reader::create_goal_context;
 use crate::format::problem::job_reader::{read_jobs_with_extra_locks, read_locks};
 use crate::format::{FormatError, JobIndex};
 use crate::validation::ValidationContext;
-use crate::{parse_time, CoordIndex};
+use crate::{CoordIndex, parse_time};
 use vrp_core::construction::enablers::*;
-use vrp_core::models::common::{TimeOffset, TimeSpan, TimeWindow};
 use vrp_core::models::Extras;
+use vrp_core::models::common::{TimeOffset, TimeSpan, TimeWindow};
 use vrp_core::solver::processing::{ClusterConfigExtraProperty, ReservedTimesExtraProperty};
 
 pub(super) fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
@@ -104,11 +104,7 @@ fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> Res
                 })
                 .collect::<Vec<_>>();
 
-            if times.is_empty() {
-                None
-            } else {
-                Some((actor.clone(), times))
-            }
+            if times.is_empty() { None } else { Some((actor.clone(), times)) }
         })
         .collect()
 }

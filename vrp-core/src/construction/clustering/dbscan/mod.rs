@@ -27,11 +27,7 @@ fn get_max_curvature(values: &[Point]) -> Float {
         .fold((0., Float::MIN), |acc, p| {
             let distance = p.distance_to_line(first, last);
 
-            if distance > acc.1 {
-                (p.y, distance)
-            } else {
-                acc
-            }
+            if distance > acc.1 { (p.y, distance) } else { acc }
         })
         .0
 }

@@ -194,11 +194,7 @@ impl<R: Read> TsplibReader<R> {
 
     fn read_expected_line(&mut self, expected: &str) -> Result<(), GenericError> {
         let line = self.read_line()?.trim();
-        if line != expected {
-            Err(format!("expecting {expected}, got: '{line}'").into())
-        } else {
-            Ok(())
-        }
+        if line != expected { Err(format!("expecting {expected}, got: '{line}'").into()) } else { Ok(()) }
     }
 
     fn read_line(&mut self) -> Result<&String, GenericError> {

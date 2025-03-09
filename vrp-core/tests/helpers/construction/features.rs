@@ -30,11 +30,7 @@ pub fn create_simple_dynamic_demand(size: i32) -> Demand<SingleDimLoad> {
 
 pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Demand<MultiDimLoad> {
     let make = |value| {
-        if value == 0 {
-            MultiDimLoad::default()
-        } else {
-            MultiDimLoad::new(vec![value])
-        }
+        if value == 0 { MultiDimLoad::default() } else { MultiDimLoad::new(vec![value]) }
     };
 
     Demand { pickup: (make(pickup.0), make(pickup.1)), delivery: (make(delivery.0), make(delivery.1)) }

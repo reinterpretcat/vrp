@@ -3,7 +3,7 @@ use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::ActivityBuilder;
-use crate::helpers::models::solution::{create_test_registry, RouteBuilder, RouteContextBuilder};
+use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder, create_test_registry};
 use crate::models::common::{Cost, Location, Schedule, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::{Job, Single, VehicleDetail};
 use crate::models::solution::{Activity, Place, Registry};
@@ -84,12 +84,15 @@ mod single {
 
         let result = evaluate_job_insertion(&mut ctx, &job, position);
 
-        if let InsertionResult::Success(success) = result {
-            assert_eq!(success.activities.len(), 1);
-            assert_eq!(success.activities.first().unwrap().1, 0);
-            assert_eq!(success.activities.first().unwrap().0.place.location, DEFAULT_JOB_LOCATION);
-        } else {
-            assert!(!has_result)
+        match result {
+            InsertionResult::Success(success) => {
+                assert_eq!(success.activities.len(), 1);
+                assert_eq!(success.activities.first().unwrap().1, 0);
+                assert_eq!(success.activities.first().unwrap().0.place.location, DEFAULT_JOB_LOCATION);
+            }
+            _ => {
+                assert!(!has_result)
+            }
         }
     }
 
@@ -199,9 +202,11 @@ mod single {
         let mut ctx = TestInsertionContextBuilder::default()
             .with_goal(TestGoalContextBuilder::with_transport_feature().build())
             .with_registry(registry)
-            .with_routes(vec![RouteContextBuilder::default()
-                .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
-                .build()])
+            .with_routes(vec![
+                RouteContextBuilder::default()
+                    .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
+                    .build(),
+            ])
             .build();
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
@@ -219,10 +224,13 @@ mod single {
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
-        if let InsertionResult::Failure(failure) = result {
-            assert_eq!(failure.constraint, ViolationCode(1));
-        } else {
-            unreachable!()
+        match result {
+            InsertionResult::Failure(failure) => {
+                assert_eq!(failure.constraint, ViolationCode(1));
+            }
+            _ => {
+                unreachable!()
+            }
         }
     }
 }
@@ -284,10 +292,13 @@ mod multi {
 
         let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
-        if let InsertionResult::Failure(failure) = result {
-            assert_eq!(failure.constraint, ViolationCode(1));
-        } else {
-            unreachable!()
+        match result {
+            InsertionResult::Failure(failure) => {
+                assert_eq!(failure.constraint, ViolationCode(1));
+            }
+            _ => {
+                unreachable!()
+            }
         }
     }
 

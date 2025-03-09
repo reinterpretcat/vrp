@@ -318,8 +318,8 @@ where
     AF: Fn(&mut Vec<T>, &SearchResult) -> (),
 {
     (0..generation)
-        .fold(vec![T::default(); names_rev.len()], |mut acc, gen| {
-            let gen_idx = gen + 1;
+        .fold(vec![T::default(); names_rev.len()], |mut acc, r#gen| {
+            let gen_idx = r#gen + 1;
 
             search_states
                 .get(&gen_idx)

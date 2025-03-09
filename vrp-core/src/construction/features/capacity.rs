@@ -60,15 +60,14 @@ impl<T: LoadOps> CapacityFeatureBuilder<T> {
         let name = self.name.as_str();
         let violation_code = self.violation_code.unwrap_or_default();
 
-        if let Some(route_intervals) = self.route_intervals {
-            create_multi_trip_feature(
+        match self.route_intervals {
+            Some(route_intervals) => create_multi_trip_feature(
                 name,
                 violation_code,
                 MarkerInsertionPolicy::Last,
                 Arc::new(CapacitatedMultiTrip::<T> { route_intervals, violation_code, phantom: Default::default() }),
-            )
-        } else {
-            create_multi_trip_feature(
+            ),
+            _ => create_multi_trip_feature(
                 name,
                 violation_code,
                 MarkerInsertionPolicy::Last,
@@ -77,7 +76,7 @@ impl<T: LoadOps> CapacityFeatureBuilder<T> {
                     violation_code,
                     phantom: Default::default(),
                 }),
-            )
+            ),
         }
     }
 }
@@ -221,11 +220,7 @@ where
                 .any(|job| self.can_handle_demand_on_intervals(route_ctx, job.dimens.get_job_demand(), None)),
         };
 
-        if can_handle {
-            ConstraintViolation::success()
-        } else {
-            ConstraintViolation::fail(self.violation_code)
-        }
+        if can_handle { ConstraintViolation::success() } else { ConstraintViolation::fail(self.violation_code) }
     }
 
     fn evaluate_activity(

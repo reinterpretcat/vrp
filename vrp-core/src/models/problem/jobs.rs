@@ -5,9 +5,9 @@ mod jobs_test;
 use crate::construction::clustering::dbscan::create_job_clusters;
 use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
-use crate::utils::{short_type_name, Either};
+use crate::utils::{Either, short_type_name};
 use rosomaxa::prelude::{Float, GenericResult, InfoLogger};
-use rosomaxa::utils::{parallel_collect, Timer};
+use rosomaxa::utils::{Timer, parallel_collect};
 use std::cmp::Ordering::Less;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
@@ -259,7 +259,12 @@ impl Jobs {
 
     /// Returns range of jobs "near" to given one. Near is defined by costs with relation
     /// transport profile and departure time.
-    pub fn neighbors(&self, profile: &Profile, job: &Job, _: Timestamp) -> impl Iterator<Item = (&Job, Cost)> {
+    pub fn neighbors(
+        &self,
+        profile: &Profile,
+        job: &Job,
+        _: Timestamp,
+    ) -> impl Iterator<Item = (&Job, Cost)> + use<'_> {
         neighbors(&self.index, profile, job)
     }
 
@@ -309,7 +314,7 @@ fn neighbors<'a>(
     index: &'a HashMap<usize, JobIndex>,
     profile: &Profile,
     job: &Job,
-) -> impl Iterator<Item = (&'a Job, Cost)> {
+) -> impl Iterator<Item = (&'a Job, Cost)> + use<'a> {
     index
         .get(&profile.index)
         .and_then(|index| index.get(job))

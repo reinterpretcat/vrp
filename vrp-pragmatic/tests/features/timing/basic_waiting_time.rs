@@ -1,5 +1,5 @@
-use crate::format::problem::*;
 use crate::format::Location;
+use crate::format::problem::*;
 use crate::helpers::*;
 
 #[test]

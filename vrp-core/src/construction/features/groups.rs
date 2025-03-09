@@ -40,11 +40,7 @@ impl FeatureConstraint for GroupConstraint {
                     .filter_map(|rc| rc.state().get_current_groups())
                     .any(|groups| groups.contains(group));
 
-                if other_route {
-                    ConstraintViolation::fail(self.code)
-                } else {
-                    None
-                }
+                if other_route { ConstraintViolation::fail(self.code) } else { None }
             }),
             MoveContext::Activity { .. } => None,
         }

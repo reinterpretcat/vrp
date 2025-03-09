@@ -61,11 +61,7 @@ where
 
             *current_clusters = next_tier_clusters;
 
-            if current_tier_clusters.is_empty() {
-                None
-            } else {
-                Some(current_tier_clusters)
-            }
+            if current_tier_clusters.is_empty() { None } else { Some(current_tier_clusters) }
         })
         // do not go on the level where all clusters will be of size 1
         .take_while(|clusters| clusters.iter().any(|(_, cluster)| cluster.len() > 2))
@@ -128,11 +124,7 @@ where
                         .unwrap_or((max_distance, best_medoid))
                 },
                 |left, right| {
-                    if left.0 > right.0 {
-                        left
-                    } else {
-                        right
-                    }
+                    if left.0 > right.0 { left } else { right }
                 },
             )
             .1?;

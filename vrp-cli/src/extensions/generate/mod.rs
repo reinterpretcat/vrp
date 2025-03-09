@@ -23,10 +23,9 @@ pub fn generate_problem<R: Read>(
     vehicles_size: usize,
     area_size: Option<Float>,
 ) -> Result<Problem, GenericError> {
-    let locations = if let Some(locations_reader) = locations_reader {
-        Some(deserialize_locations(locations_reader).map_err(|errs| errs.to_string())?)
-    } else {
-        None
+    let locations = match locations_reader {
+        Some(locations_reader) => Some(deserialize_locations(locations_reader).map_err(|errs| errs.to_string())?),
+        _ => None,
     };
 
     let problem_proto = match (input_format, prototype_readers) {

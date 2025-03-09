@@ -1,6 +1,6 @@
+use crate::format::Location;
 use crate::format::problem::*;
 use crate::format::solution::*;
-use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
 use vrp_core::models::common::{Distance, Timestamp};
@@ -97,10 +97,10 @@ fn create_statistic(data: (Float, i64, i64, (i64, i64, i64, i64))) -> Statistic 
         distance: data.1,
         duration: data.2,
         times: Timing {
-            driving: data.3 .0,
-            serving: data.3 .1,
-            commuting: data.3 .2,
-            parking: data.3 .3,
+            driving: data.3.0,
+            serving: data.3.1,
+            commuting: data.3.2,
+            parking: data.3.3,
             ..Timing::default()
         },
     }

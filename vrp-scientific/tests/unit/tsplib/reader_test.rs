@@ -1,6 +1,6 @@
 use crate::helpers::get_test_resource;
-use crate::tsplib::reader::TsplibReader;
 use crate::tsplib::TsplibProblem;
+use crate::tsplib::reader::TsplibReader;
 use std::fs::File;
 use std::io::{BufReader, Read};
 

@@ -58,19 +58,21 @@ can_remove_orphan_break! {
 
 fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_loc: Location, break_removed: bool) {
     let mut solution_ctx = TestInsertionContextBuilder::default()
-        .with_routes(vec![RouteContextBuilder::default()
-            .with_route(
-                RouteBuilder::with_default_vehicle()
-                    .add_activity(ActivityBuilder::with_location(1).job(Some(create_single("job1", 1))).build())
-                    .add_activity(
-                        ActivityBuilder::with_location(break_activity_loc)
-                            .job(Some(create_break("v1", break_job_loc)))
-                            .build(),
-                    )
-                    .add_activity(ActivityBuilder::with_location(3).job(Some(create_single("job2", 3))).build())
-                    .build(),
-            )
-            .build()])
+        .with_routes(vec![
+            RouteContextBuilder::default()
+                .with_route(
+                    RouteBuilder::with_default_vehicle()
+                        .add_activity(ActivityBuilder::with_location(1).job(Some(create_single("job1", 1))).build())
+                        .add_activity(
+                            ActivityBuilder::with_location(break_activity_loc)
+                                .job(Some(create_break("v1", break_job_loc)))
+                                .build(),
+                        )
+                        .add_activity(ActivityBuilder::with_location(3).job(Some(create_single("job2", 3))).build())
+                        .build(),
+                )
+                .build(),
+        ])
         .build()
         .solution;
     let feature = create_break_feature();

@@ -4,8 +4,8 @@ mod exchange_sequence_test;
 
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
-use crate::solver::search::LocalOperator;
 use crate::solver::RefinementContext;
+use crate::solver::search::LocalOperator;
 use rand::prelude::SliceRandom;
 use rosomaxa::prelude::*;
 use std::collections::HashSet;
@@ -68,11 +68,7 @@ fn get_route_indices(insertion_ctx: &InsertionContext) -> Vec<usize> {
                 route_ctx.route().tour.jobs().filter(|job| insertion_ctx.solution.locked.contains(*job)).count();
             let has_enough_jobs = (route_ctx.route().tour.job_count() - locked_jobs) >= MIN_JOBS;
 
-            if has_enough_jobs {
-                Some(idx)
-            } else {
-                None
-            }
+            if has_enough_jobs { Some(idx) } else { None }
         })
         .collect()
 }

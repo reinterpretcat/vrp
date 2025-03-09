@@ -29,7 +29,10 @@ impl HeuristicContextProcessing for VicinityClustering {
         let environment = context.environment.clone();
         let logger = environment.logger.clone();
 
-        let config = if let Some(config) = problem.extras.get_cluster_config() { config } else { return context };
+        let config = match problem.extras.get_cluster_config() {
+            Some(config) => config,
+            _ => return context,
+        };
 
         let clusters = create_job_clusters(problem.clone(), environment, &config);
 
@@ -82,10 +85,11 @@ impl HeuristicSolutionProcessing for VicinityClustering {
         let config = insertion_ctx.problem.extras.get_cluster_config();
         let orig_problem = insertion_ctx.problem.extras.get_original_problem();
 
-        let (config, orig_problem) = if let Some((config, orig_problem)) = config.zip(orig_problem) {
-            (config, orig_problem)
-        } else {
-            return insertion_ctx;
+        let (config, orig_problem) = match config.zip(orig_problem) {
+            Some((config, orig_problem)) => (config, orig_problem),
+            _ => {
+                return insertion_ctx;
+            }
         };
 
         insertion_ctx.solution.routes.iter_mut().for_each(|route_ctx| {

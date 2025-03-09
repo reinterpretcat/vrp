@@ -325,11 +325,7 @@ impl RechargeableMultiTrip {
             (interval_distance + distance_delta) > threshold
         };
 
-        if is_violation {
-            ConstraintViolation::skip(self.code)
-        } else {
-            None
-        }
+        if is_violation { ConstraintViolation::skip(self.code) } else { None }
     }
 }
 

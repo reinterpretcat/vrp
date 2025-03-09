@@ -8,8 +8,8 @@ use std::sync::Arc;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::core::models::{Problem as CoreProblem, Solution as CoreSolution};
 use vrp_pragmatic::core::prelude::*;
-use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, Matrix, PragmaticProblem, Problem};
-use vrp_pragmatic::format::solution::{deserialize_solution, write_pragmatic, Solution};
+use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem, deserialize_matrix, deserialize_problem};
+use vrp_pragmatic::format::solution::{Solution, deserialize_solution, write_pragmatic};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

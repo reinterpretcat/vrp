@@ -88,7 +88,7 @@ impl RouteIntervals {
     pub fn resolve_marker_intervals<'a>(
         &self,
         route_ctx: &'a RouteContext,
-    ) -> impl Iterator<Item = (usize, usize)> + 'a {
+    ) -> impl Iterator<Item = (usize, usize)> + 'a + use<'a> {
         let last_idx = route_ctx.route().tour.total() - 1;
 
         self.get_marker_intervals(route_ctx)

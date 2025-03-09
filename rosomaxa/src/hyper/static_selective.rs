@@ -1,5 +1,5 @@
 use super::*;
-use crate::utils::{parallel_into_collect, UnwrapValue};
+use crate::utils::{UnwrapValue, parallel_into_collect};
 use std::cmp::Ordering;
 use std::fmt::Formatter;
 use std::ops::ControlFlow;

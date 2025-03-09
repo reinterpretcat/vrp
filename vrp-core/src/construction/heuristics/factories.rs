@@ -1,8 +1,8 @@
 use super::*;
+use crate::models::OP_START_MSG;
 use crate::models::common::{Cost, Schedule};
 use crate::models::problem::*;
 use crate::models::solution::*;
-use crate::models::OP_START_MSG;
 use crate::models::{LockOrder, Problem, Solution};
 use rosomaxa::prelude::Environment;
 use std::collections::{HashMap, HashSet};

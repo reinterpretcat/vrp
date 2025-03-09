@@ -1,14 +1,14 @@
 use crate::checker::CheckerContext;
 use crate::format::problem::{Matrix, PragmaticProblem, Problem};
-use crate::format::solution::{create_solution, Solution};
+use crate::format::solution::{Solution, create_solution};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
 use vrp_core::rosomaxa::evolution::TelemetryMode;
-use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::RefinementContext;
-use vrp_core::solver::{create_elitism_population, Solver, VrpConfigBuilder};
+use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
+use vrp_core::solver::{Solver, VrpConfigBuilder, create_elitism_population};
 use vrp_core::utils::{Environment, GenericError, Parallelism};
 
 /// Runs solver with cheapest insertion heuristic.

@@ -166,11 +166,7 @@ pub trait ResultSelector: Send + Sync {
         left: &'a InsertionCost,
         right: &'a InsertionCost,
     ) -> Either<&'a InsertionCost, &'a InsertionCost> {
-        if left < right {
-            Either::Left(left)
-        } else {
-            Either::Right(right)
-        }
+        if left < right { Either::Left(left) } else { Either::Right(right) }
     }
 }
 
@@ -259,11 +255,7 @@ impl ResultSelector for FarthestResultSelector {
                     (true, true) => lhs.cost > rhs.cost,
                 };
 
-                if insert_right {
-                    right
-                } else {
-                    left
-                }
+                if insert_right { right } else { left }
             }
             _ => right,
         }
@@ -382,8 +374,8 @@ impl LegSelection {
         FM: FnMut(Leg, R) -> ControlFlow<R, R>,
         FC: Fn(&R, &R) -> bool,
     {
-        if let Some((sample_size, random)) = self.get_sample_data(route_ctx, job, skip) {
-            route_ctx
+        match self.get_sample_data(route_ctx, job, skip) {
+            Some((sample_size, random)) => route_ctx
                 .route()
                 .tour
                 .legs()
@@ -395,9 +387,8 @@ impl LegSelection {
                     |leg: &Leg<'_>| leg.1 - skip,
                     &compare_fn,
                 )
-                .unwrap_or(init)
-        } else {
-            route_ctx.route().tour.legs().skip(skip).try_fold(init, |acc, leg| map_fn(leg, acc)).unwrap_value()
+                .unwrap_or(init),
+            _ => route_ctx.route().tour.legs().skip(skip).try_fold(init, |acc, leg| map_fn(leg, acc)).unwrap_value(),
         }
     }
 

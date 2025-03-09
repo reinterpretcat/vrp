@@ -4,7 +4,7 @@
 #[path = "../../../tests/unit/solver/vector/objectives_test.rs"]
 mod objectives_test;
 
-use rosomaxa::example::{create_rosenbrock_function, FitnessFn};
+use rosomaxa::example::{FitnessFn, create_rosenbrock_function};
 use rosomaxa::prelude::Float;
 use std::sync::Arc;
 

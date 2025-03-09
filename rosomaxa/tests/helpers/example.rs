@@ -1,6 +1,6 @@
 use crate::example::*;
 use crate::utils::{Environment, Float};
-use crate::{get_default_population, get_default_selection_size, TelemetryMode};
+use crate::{TelemetryMode, get_default_population, get_default_selection_size};
 use std::sync::Arc;
 
 /// Creates an example objective.

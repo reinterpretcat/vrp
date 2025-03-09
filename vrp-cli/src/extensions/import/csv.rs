@@ -78,11 +78,7 @@ mod actual {
 
         let get_tasks = |jobs: &Vec<&CsvJob>, filter: Box<dyn Fn(&CsvJob) -> bool>| {
             let tasks = jobs.iter().filter(|j| (filter)(j)).map(|job| get_task(job)).collect::<Vec<_>>();
-            if tasks.is_empty() {
-                None
-            } else {
-                Some(tasks)
-            }
+            if tasks.is_empty() { None } else { Some(tasks) }
         };
 
         let jobs = read_csv_entries::<CsvJob, _>(reader)?
@@ -173,8 +169,8 @@ mod actual {
 #[cfg(not(feature = "csv-format"))]
 mod actual {
     use std::io::{BufReader, Read};
-    use vrp_pragmatic::format::problem::Problem;
     use vrp_pragmatic::format::FormatError;
+    use vrp_pragmatic::format::problem::Problem;
 
     /// A stub method for reading problem from csv format.
     pub fn read_csv_problem<R1: Read, R2: Read>(

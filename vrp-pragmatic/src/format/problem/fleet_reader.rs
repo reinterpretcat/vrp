@@ -3,10 +3,10 @@
 mod fleet_reader_test;
 
 use super::*;
+use crate::Location as ApiLocation;
 use crate::format::UnknownLocationFallback;
 use crate::get_unique_locations;
 use crate::utils::get_approx_transportation;
-use crate::Location as ApiLocation;
 use std::collections::HashSet;
 use vrp_core::construction::enablers::create_typed_actor_groups;
 use vrp_core::construction::features::{VehicleCapacityDimension, VehicleSkillsDimension};

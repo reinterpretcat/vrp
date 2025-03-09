@@ -64,11 +64,7 @@ impl LocalOperator for ExchangeSwapStar {
                 self.result_selector.as_ref(),
             );
 
-            if is_quota_reached {
-                Err(())
-            } else {
-                Ok(())
-            }
+            if is_quota_reached { Err(()) } else { Ok(()) }
         });
 
         Some(InsertionContext { environment: refinement_ctx.environment.clone(), ..insertion_ctx })

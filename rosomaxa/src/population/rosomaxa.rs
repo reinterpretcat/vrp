@@ -6,7 +6,7 @@ use super::*;
 use crate::algorithms::gsom::*;
 use crate::algorithms::math::relative_distance;
 use crate::population::elitism::{Alternative, DedupFn};
-use crate::utils::{parallel_into_collect, Environment, Random};
+use crate::utils::{Environment, Random, parallel_into_collect};
 use rand::prelude::SliceRandom;
 use std::f64::consts::{E, PI};
 use std::fmt::Formatter;
@@ -335,11 +335,7 @@ where
     ) {
         coordinates.clear();
         coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
-            if node.storage.population.size() > 0 {
-                Some(*coordinate)
-            } else {
-                None
-            }
+            if node.storage.population.size() > 0 { Some(*coordinate) } else { None }
         }));
 
         coordinates.shuffle(&mut random.get_rng());

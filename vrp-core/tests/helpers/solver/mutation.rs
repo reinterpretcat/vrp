@@ -46,11 +46,7 @@ pub fn get_jobs_by_ids(insertion_ctx: &InsertionContext, job_ids: &[&str]) -> Ve
         .iter()
         .filter_map(|job| {
             let job_id = job.dimens().get_job_id().unwrap().clone();
-            if job_ids.contains(&job_id.as_str()) {
-                Some((job_id, job.clone()))
-            } else {
-                None
-            }
+            if job_ids.contains(&job_id.as_str()) { Some((job_id, job.clone())) } else { None }
         })
         .collect::<Vec<_>>();
 

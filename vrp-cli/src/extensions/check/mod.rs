@@ -8,7 +8,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::prelude::GenericError;
 use vrp_pragmatic::checker::CheckerContext;
-use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, PragmaticProblem};
+use vrp_pragmatic::format::problem::{PragmaticProblem, deserialize_matrix, deserialize_problem};
 use vrp_pragmatic::format::solution::deserialize_solution;
 
 /// Checks pragmatic solution feasibility.
@@ -23,8 +23,8 @@ pub fn check_pragmatic_solution<F: Read>(
     let solution =
         deserialize_solution(solution_reader).map_err(|err| vec![format!("cannot read solution: '{err}'").into()])?;
 
-    let matrices = if let Some(matrices_readers) = matrices_readers {
-        Some(
+    let matrices = match matrices_readers {
+        Some(matrices_readers) => Some(
             matrices_readers
                 .into_iter()
                 .map(|file| {
@@ -32,9 +32,8 @@ pub fn check_pragmatic_solution<F: Read>(
                         .map_err(|errs| vec![format!("cannot read matrix: '{errs}'").into()])
                 })
                 .collect::<Result<Vec<_>, _>>()?,
-        )
-    } else {
-        None
+        ),
+        _ => None,
     };
 
     let core_problem = Arc::new(

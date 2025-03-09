@@ -13,7 +13,7 @@ macro_rules! parameterized_test {
         with_dollar_sign! {
         ($d:tt) => {
             macro_rules! $name {
-                ($d($d pname:ident: $d values:expr,)*) => {
+                ($d($d pname:ident: $d values:expr_2021,)*) => {
                     mod $name {
                         use super::*;
                         $d(

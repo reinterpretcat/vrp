@@ -32,11 +32,7 @@ impl Point {
     pub fn distance_to_line(&self, a: &Point, b: &Point) -> Float {
         let a_b_distance = a.distance_to_point(b);
 
-        if a_b_distance == 0. {
-            0.
-        } else {
-            (Self::cross_product(a, b, self) / a_b_distance).abs()
-        }
+        if a_b_distance == 0. { 0. } else { (Self::cross_product(a, b, self) / a_b_distance).abs() }
     }
 
     /// Computes distance from segment to the point.

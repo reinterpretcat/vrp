@@ -9,7 +9,7 @@ pub fn generate_relations(
     vehicles: &[VehicleType],
     total_relations: Range<usize>,
     jobs_per_relation: Range<usize>,
-) -> impl Strategy<Value = Vec<Relation>> {
+) -> impl Strategy<Value = Vec<Relation>> + use<> {
     let job_ids = get_job_ids(jobs);
     let vehicle_ids = get_vehicle_ids(vehicles);
 
@@ -21,11 +21,7 @@ pub fn generate_relations(
     prop::collection::vec(generate_relation(job_ids, vehicle_ids, jobs_per_relation), min..max).prop_filter_map(
         "Empty relations in plan",
         |relations| {
-            if relations.is_empty() {
-                None
-            } else {
-                Some(relations)
-            }
+            if relations.is_empty() { None } else { Some(relations) }
         },
     )
 }
@@ -54,11 +50,7 @@ fn generate_relation(
         .prop_filter_map(
             "Empty jobs in relation",
             |relation| {
-                if relation.jobs.is_empty() {
-                    None
-                } else {
-                    Some(relation)
-                }
+                if relation.jobs.is_empty() { None } else { Some(relation) }
             },
         )
 }

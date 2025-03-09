@@ -78,7 +78,7 @@ use crate::solver::search::Recreate;
 use rosomaxa::evolution::*;
 use rosomaxa::prelude::*;
 use rosomaxa::utils::Timer;
-use rosomaxa::{get_default_population, TelemetryHeuristicContext};
+use rosomaxa::{TelemetryHeuristicContext, get_default_population};
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;

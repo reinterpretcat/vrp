@@ -1,6 +1,6 @@
 use super::*;
-use crate::format::problem::*;
 use crate::format::Location;
+use crate::format::problem::*;
 use crate::helpers::create_empty_plan;
 use std::ops::Range;
 use uuid::Uuid;

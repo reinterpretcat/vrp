@@ -109,11 +109,7 @@ fn check_break_assignment(context: &CheckerContext) -> GenericResult<()> {
                     }
                 };
 
-                if should_assign {
-                    acc + 1
-                } else {
-                    acc
-                }
+                if should_assign { acc + 1 } else { acc }
             });
 
         let total_break_count = actual_break_count + get_break_violation_count(&context.solution, tour);

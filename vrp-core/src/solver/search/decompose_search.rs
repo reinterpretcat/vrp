@@ -85,11 +85,7 @@ impl DecomposeSearch {
                     refinement_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached());
                 refinement_ctx.add_solution(insertion_ctx);
 
-                if is_quota_reached {
-                    Err(())
-                } else {
-                    Ok(())
-                }
+                if is_quota_reached { Err(()) } else { Ok(()) }
             });
             (refinement_ctx, route_indices)
         });
@@ -191,7 +187,7 @@ fn create_partial_insertion_ctx(
 fn create_empty_insertion_ctxs(
     insertion_ctx: &InsertionContext,
     environment: Arc<Environment>,
-) -> impl Iterator<Item = (InsertionContext, HashSet<usize>)> {
+) -> impl Iterator<Item = (InsertionContext, HashSet<usize>)> + use<> {
     let solution = &insertion_ctx.solution;
 
     if solution.required.is_empty()

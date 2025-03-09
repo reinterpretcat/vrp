@@ -1,10 +1,10 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
+use crate::models::Problem;
 use crate::models::common::*;
 use crate::models::problem::Job;
-use crate::models::Problem;
-use crate::solver::search::recreate::Recreate;
 use crate::solver::RefinementContext;
+use crate::solver::search::recreate::Recreate;
 use rosomaxa::prelude::*;
 use std::sync::Arc;
 

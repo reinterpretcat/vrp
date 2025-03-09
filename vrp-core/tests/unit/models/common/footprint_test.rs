@@ -4,7 +4,7 @@ use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::problem::{TestSingleBuilder, TestVehicleBuilder};
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
-use crate::models::problem::{create_matrix_transport_cost, MatrixData};
+use crate::models::problem::{MatrixData, create_matrix_transport_cost};
 use crate::prelude::*;
 
 fn create_test_problem() -> Problem {
@@ -112,14 +112,16 @@ fn can_use_footprint_estimate_solution() {
     footprint.repr[6] = 3; // 2 -> 0
     let solution_ctx = TestInsertionContextBuilder::default()
         .with_problem(problem)
-        .with_routes(vec![RouteContextBuilder::default()
-            .with_route(
-                RouteBuilder::default()
-                    .add_activity(ActivityBuilder::with_location(1).build())
-                    .add_activity(ActivityBuilder::with_location(2).build())
-                    .build(),
-            )
-            .build()])
+        .with_routes(vec![
+            RouteContextBuilder::default()
+                .with_route(
+                    RouteBuilder::default()
+                        .add_activity(ActivityBuilder::with_location(1).build())
+                        .add_activity(ActivityBuilder::with_location(2).build())
+                        .build(),
+                )
+                .build(),
+        ])
         .build()
         .solution;
 

@@ -173,11 +173,7 @@ impl FeatureConstraint for OptionalBreakConstraint {
             .filter_map(|job| job.as_single())
             .any(|single| (self.break_fns.is_break_single_fn)(single));
 
-        if any_is_break {
-            Err(self.code)
-        } else {
-            Ok(source)
-        }
+        if any_is_break { Err(self.code) } else { Ok(source) }
     }
 }
 

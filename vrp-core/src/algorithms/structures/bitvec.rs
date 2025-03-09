@@ -75,11 +75,7 @@ impl Index<usize> for BitVec {
     type Output = bool;
 
     fn index(&self, index: usize) -> &bool {
-        if self.get(index).expect("index out of bounds.") {
-            &true
-        } else {
-            &false
-        }
+        if self.get(index).expect("index out of bounds.") { &true } else { &false }
     }
 }
 

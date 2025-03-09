@@ -1,5 +1,5 @@
-use crate::format::problem::*;
 use crate::format::Location;
+use crate::format::problem::*;
 use crate::generator::*;
 use crate::helpers::solve_with_metaheuristic_and_iterations;
 use proptest::prelude::*;

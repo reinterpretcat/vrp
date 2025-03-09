@@ -2,13 +2,13 @@
 #[path = "../../tests/unit/utils/parallel_test.rs"]
 mod parallel_test;
 
+pub use self::actual::ThreadPool;
 pub use self::actual::cartesian_product;
 pub use self::actual::fold_reduce;
 pub use self::actual::map_reduce;
 pub use self::actual::parallel_collect;
 pub use self::actual::parallel_foreach_mut;
 pub use self::actual::parallel_into_collect;
-pub use self::actual::ThreadPool;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod actual {

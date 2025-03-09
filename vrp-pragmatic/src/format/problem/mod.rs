@@ -4,8 +4,8 @@ use super::*;
 use crate::parse_time;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::models::common::TimeWindow;
 use vrp_core::models::Lock;
+use vrp_core::models::common::TimeWindow;
 use vrp_core::prelude::{ActivityCost, Fleet as CoreFleet, Jobs as CoreJobs, TransportCost};
 use vrp_core::utils::*;
 
@@ -91,11 +91,7 @@ impl PragmaticProblem for ApiProblem {
 
 impl PragmaticProblem for (ApiProblem, Option<Vec<Matrix>>) {
     fn read_pragmatic(self) -> Result<CoreProblem, MultiFormatError> {
-        if let Some(matrices) = self.1 {
-            (self.0, matrices).read_pragmatic()
-        } else {
-            self.0.read_pragmatic()
-        }
+        if let Some(matrices) = self.1 { (self.0, matrices).read_pragmatic() } else { self.0.read_pragmatic() }
     }
 }
 

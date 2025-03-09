@@ -6,8 +6,8 @@ use super::Ruin;
 use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::problem::Job;
 use crate::models::solution::Tour;
-use crate::solver::search::*;
 use crate::solver::RefinementContext;
+use crate::solver::search::*;
 use crate::utils::Either;
 use rosomaxa::prelude::{Float, Random};
 use std::cell::RefCell;
@@ -115,7 +115,7 @@ fn select_string<'a>(
     cardinality: usize,
     alpha: Float,
     random: &Arc<dyn Random>,
-) -> impl Iterator<Item = Job> + 'a {
+) -> impl Iterator<Item = Job> + 'a + use<'a> {
     if random.is_head_not_tails() {
         Either::Left(sequential_string(seed_tour, cardinality, random))
     } else {
@@ -128,7 +128,7 @@ fn sequential_string<'a>(
     seed_tour: (&'a Tour, usize),
     cardinality: usize,
     random: &Arc<dyn Random>,
-) -> impl Iterator<Item = Job> + 'a {
+) -> impl Iterator<Item = Job> + 'a + use<'a> {
     let (begin, end) = lower_bounds(cardinality, seed_tour.0.job_activity_count(), seed_tour.1);
     let start = random.uniform_int(begin as i32, end as i32) as usize;
 
@@ -141,7 +141,7 @@ fn preserved_string<'a>(
     cardinality: usize,
     alpha: Float,
     random: &Arc<dyn Random>,
-) -> impl Iterator<Item = Job> + 'a {
+) -> impl Iterator<Item = Job> + 'a + use<'a> {
     let size = seed_tour.0.job_activity_count();
     let index = seed_tour.1;
 

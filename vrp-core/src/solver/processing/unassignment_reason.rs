@@ -4,7 +4,7 @@ mod unassignment_reason_test;
 
 use super::*;
 use crate::construction::heuristics::*;
-use rosomaxa::utils::{parallel_into_collect, CollectGroupBy};
+use rosomaxa::utils::{CollectGroupBy, parallel_into_collect};
 
 /// Tries to improve job unassignment reason.
 #[derive(Default)]

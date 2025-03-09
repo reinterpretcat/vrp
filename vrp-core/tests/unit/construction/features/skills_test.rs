@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
-use crate::helpers::models::problem::{test_driver, FleetBuilder, TestSingleBuilder, TestVehicleBuilder};
+use crate::helpers::models::problem::{FleetBuilder, TestSingleBuilder, TestVehicleBuilder, test_driver};
 use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
 
 const VIOLATION_CODE: ViolationCode = ViolationCode(1);

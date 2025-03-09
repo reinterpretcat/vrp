@@ -4,10 +4,10 @@ mod routing_test;
 
 use std::sync::Arc;
 use vrp_core::custom_extra_property;
+use vrp_core::models::Extras;
 use vrp_core::models::common::{Distance, Duration, Location, Profile};
 use vrp_core::models::problem::{TransportCost, TravelTime};
 use vrp_core::models::solution::Route;
-use vrp_core::models::Extras;
 use vrp_core::prelude::{GenericError, InfoLogger};
 use vrp_core::utils::{Float, GenericResult, Timer};
 
@@ -52,11 +52,7 @@ impl CoordIndex {
                             let y = y1 as Float - y2 as Float;
                             let value = (x * x + y * y).sqrt();
 
-                            if is_rounded {
-                                value.round()
-                            } else {
-                                value
-                            }
+                            if is_rounded { value.round() } else { value }
                         })
                     })
                     .collect::<Vec<Float>>();

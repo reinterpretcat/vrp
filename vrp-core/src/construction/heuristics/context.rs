@@ -4,10 +4,10 @@ mod context_test;
 
 use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState};
 use crate::construction::heuristics::factories::*;
+use crate::models::GoalContext;
 use crate::models::common::Cost;
 use crate::models::problem::*;
 use crate::models::solution::*;
-use crate::models::GoalContext;
 use crate::models::{Problem, Solution};
 use crate::prelude::ViolationCode;
 use rosomaxa::evolution::TelemetryMetrics;

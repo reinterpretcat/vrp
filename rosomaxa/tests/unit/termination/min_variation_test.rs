@@ -1,6 +1,6 @@
 use super::*;
-use crate::helpers::example::*;
 use crate::Timer;
+use crate::helpers::example::*;
 use std::thread::sleep;
 use std::time::Duration;
 

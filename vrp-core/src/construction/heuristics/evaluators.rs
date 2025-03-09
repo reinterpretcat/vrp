@@ -48,7 +48,7 @@ pub fn eval_job_insertion_in_route(
     // NOTE do not evaluate unassigned job in unmodified route if it has a concrete code
     match (route_ctx.is_stale(), insertion_ctx.solution.unassigned.get(eval_ctx.job)) {
         (false, Some(UnassignmentInfo::Simple(_))) | (false, Some(UnassignmentInfo::Detailed(_))) => {
-            return alternative
+            return alternative;
         }
         _ => {}
     }
@@ -66,13 +66,12 @@ pub fn eval_job_insertion_in_route(
     let route_costs = goal.estimate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job));
 
     // analyze alternative and return it if it looks better based on routing cost comparison
-    let (route_costs, best_known_cost) = if let Some(success) = alternative.as_success() {
-        match eval_ctx.result_selector.select_cost(&success.cost, &route_costs) {
+    let (route_costs, best_known_cost) = match alternative.as_success() {
+        Some(success) => match eval_ctx.result_selector.select_cost(&success.cost, &route_costs) {
             Either::Left(_) => return alternative,
             Either::Right(_) => (route_costs, Some(success.cost.clone())),
-        }
-    } else {
-        (route_costs, None)
+        },
+        _ => (route_costs, None),
     };
 
     let solution_ctx = &insertion_ctx.solution;
@@ -115,16 +114,13 @@ pub(crate) fn eval_single_constraint_in_route(
 ) -> InsertionResult {
     let solution_ctx = &insertion_ctx.solution;
 
-    if let Some(violation) =
-        eval_ctx.goal.evaluate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job))
-    {
-        InsertionResult::Failure(InsertionFailure {
+    match eval_ctx.goal.evaluate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job)) {
+        Some(violation) => InsertionResult::Failure(InsertionFailure {
             constraint: violation.code,
             stopped: true,
             job: Some(eval_ctx.job.clone()),
-        })
-    } else {
-        eval_single(eval_ctx, solution_ctx, route_ctx, single, position, route_costs, best_known_cost)
+        }),
+        _ => eval_single(eval_ctx, solution_ctx, route_ctx, single, position, route_costs, best_known_cost),
     }
 }
 
@@ -262,13 +258,10 @@ fn analyze_insertion_in_route(
     };
 
     match insertion_idx {
-        Some(idx) => {
-            if let Some(leg) = route_ctx.route().tour.legs().nth(idx) {
-                analyze_leg_insertion(leg, init).unwrap_value()
-            } else {
-                init
-            }
-        }
+        Some(idx) => match route_ctx.route().tour.legs().nth(idx) {
+            Some(leg) => analyze_leg_insertion(leg, init).unwrap_value(),
+            _ => init,
+        },
         None => eval_ctx.leg_selection.sample_best(
             route_ctx,
             eval_ctx.job,

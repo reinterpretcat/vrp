@@ -46,11 +46,7 @@ fn check_e1302_vehicle_shift_time(ctx: &ValidationContext) -> Result<(), FormatE
                     ]
                 })
                 .collect::<Vec<_>>();
-            if check_raw_time_windows(&tws, false) {
-                None
-            } else {
-                Some(vehicle.type_id.to_string())
-            }
+            if check_raw_time_windows(&tws, false) { None } else { Some(vehicle.type_id.to_string()) }
         })
         .collect::<Vec<_>>();
 
@@ -205,7 +201,10 @@ fn check_e1307_vehicle_offset_break_rescheduling(ctx: &ValidationContext) -> Res
         Err(FormatError::new(
             "E1307".to_string(),
             "time offset interval for break is used with departure rescheduling".to_string(),
-            format!("when time offset is used, start.latest should be set equal to start.earliest in the shift, check vehicle type ids: '{}'", type_ids.join(", ")),
+            format!(
+                "when time offset is used, start.latest should be set equal to start.earliest in the shift, check vehicle type ids: '{}'",
+                type_ids.join(", ")
+            ),
         ))
     }
 }
@@ -267,11 +266,7 @@ fn get_invalid_type_ids(ctx: &ValidationContext, check_shift_fn: CheckShiftFn) -
             let all_correct =
                 vehicle.shifts.iter().all(|shift| (check_shift_fn)(vehicle, shift, get_shift_time_window(shift)));
 
-            if all_correct {
-                None
-            } else {
-                Some(vehicle.type_id.clone())
-            }
+            if all_correct { None } else { Some(vehicle.type_id.clone()) }
         })
         .collect::<Vec<_>>()
 }

@@ -13,7 +13,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
 
     // get dimensions as amount of objectives, must be the same for all generations
     let dimensions = fitness[0].1.len();
-    let generations = fitness.iter().map(|(gen, _)| *gen).max().unwrap();
+    let generations = fitness.iter().map(|(r#gen, _)| *r#gen).max().unwrap();
     let target_idx = fitness_config.target_idx;
     assert!(target_idx < dimensions);
 

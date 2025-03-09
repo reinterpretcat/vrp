@@ -1,8 +1,8 @@
 use crate::construction::heuristics::*;
 use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
-use crate::solver::search::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
+use crate::solver::search::{ConfigurableRecreate, Recreate};
 use rosomaxa::utils::{CollectGroupBy, Random};
 use std::collections::HashSet;
 use std::sync::Arc;

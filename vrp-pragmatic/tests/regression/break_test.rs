@@ -1,6 +1,6 @@
 use super::*;
-use crate::format::problem::*;
 use crate::format::Location;
+use crate::format::problem::*;
 use crate::helpers::*;
 
 /// This is unstable test: it fails with capacity violation message from the solution checker.

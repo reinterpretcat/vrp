@@ -71,10 +71,9 @@ impl HeuristicSearchOperator for InfeasibleSearch {
         let mut initial = Some(new_insertion_ctx);
         for _ in 0..repeat_count {
             // NOTE from diversity reasons, we don't want to see original solution in the population
-            let new_insertion_ctx = if let Some(initial) = initial.take() {
-                self.inner_search.search(&new_refinement_ctx, &initial)
-            } else {
-                self.inner_search.search(&new_refinement_ctx, get_random_individual(&new_refinement_ctx))
+            let new_insertion_ctx = match initial.take() {
+                Some(initial) => self.inner_search.search(&new_refinement_ctx, &initial),
+                _ => self.inner_search.search(&new_refinement_ctx, get_random_individual(&new_refinement_ctx)),
             };
 
             new_refinement_ctx.add_solution(self.recover_individual(refinement_ctx, new_insertion_ctx));
@@ -162,11 +161,7 @@ struct StochasticFeatureConstraint {
 
 impl FeatureConstraint for StochasticFeatureConstraint {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
-        if self.random.is_hit(self.probability) {
-            None
-        } else {
-            self.inner.evaluate(move_ctx)
-        }
+        if self.random.is_hit(self.probability) { None } else { self.inner.evaluate(move_ctx) }
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {

@@ -4,8 +4,8 @@ mod exchange_inter_route_test;
 
 use super::*;
 use crate::models::problem::Job;
-use crate::solver::search::{select_seed_job_with_tabu_list, LocalOperator, TabuList};
 use crate::solver::RefinementContext;
+use crate::solver::search::{LocalOperator, TabuList, select_seed_job_with_tabu_list};
 use crate::utils::Noise;
 use rosomaxa::utils::map_reduce;
 
@@ -196,7 +196,7 @@ fn test_job_insertion(
 }
 
 fn get_insertion_cost_with_noise_from_pair(pair: &InsertionSuccessPair, noise: &Noise) -> InsertionCost {
-    noise.generate_multi((&pair.0 .0.cost + &pair.1 .0.cost).iter()).collect()
+    noise.generate_multi((&pair.0.0.cost + &pair.1.0.cost).iter()).collect()
 }
 
 fn reduce_pair_with_noise(
@@ -209,11 +209,7 @@ fn reduce_pair_with_noise(
             let left_cost = get_insertion_cost_with_noise_from_pair(left, noise);
             let right_cost = get_insertion_cost_with_noise_from_pair(right, noise);
 
-            if left_cost < right_cost {
-                left_result
-            } else {
-                right_result
-            }
+            if left_cost < right_cost { left_result } else { right_result }
         }
         (Some(_), _) => left_result,
         (None, Some(_)) => right_result,

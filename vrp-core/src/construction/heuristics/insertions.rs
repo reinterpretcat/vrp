@@ -3,10 +3,10 @@
 mod insertions_test;
 
 use crate::construction::heuristics::*;
+use crate::models::ViolationCode;
 use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job, JobIdDimension};
 use crate::models::solution::Activity;
-use crate::models::ViolationCode;
 use lazy_static::lazy_static;
 use rosomaxa::prelude::*;
 use std::borrow::Borrow;
@@ -373,16 +373,17 @@ pub(crate) fn finalize_insertion_ctx(insertion_ctx: &mut InsertionContext) {
 }
 
 pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
-    let route_index = if let Some(new_route_ctx) = insertion_ctx.solution.registry.get_route(&success.actor) {
-        insertion_ctx.solution.routes.push(new_route_ctx);
-        insertion_ctx.solution.routes.len() - 1
-    } else {
-        insertion_ctx
+    let route_index = match insertion_ctx.solution.registry.get_route(&success.actor) {
+        Some(new_route_ctx) => {
+            insertion_ctx.solution.routes.push(new_route_ctx);
+            insertion_ctx.solution.routes.len() - 1
+        }
+        _ => insertion_ctx
             .solution
             .routes
             .iter()
             .position(|route_ctx| route_ctx.route().actor == success.actor)
-            .expect("registry is out of sync with used routes")
+            .expect("registry is out of sync with used routes"),
     };
 
     let route_ctx = insertion_ctx.solution.routes.get_mut(route_index).unwrap();

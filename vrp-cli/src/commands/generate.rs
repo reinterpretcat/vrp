@@ -6,8 +6,8 @@ use super::*;
 use std::io::BufReader;
 use vrp_cli::extensions::generate::generate_problem;
 use vrp_core::prelude::{Float, GenericError};
-use vrp_pragmatic::format::problem::{serialize_problem, Problem};
 use vrp_pragmatic::format::CoordIndex;
+use vrp_pragmatic::format::problem::{Problem, serialize_problem};
 use vrp_pragmatic::validation::ValidationContext;
 
 pub const FORMAT_ARG_NAME: &str = "FORMAT";

@@ -67,11 +67,7 @@ fn try_advance_departure_time(
         last_departure_time.max(first.place.time.start - start_to_first).min(latest_allowed_departure)
     };
 
-    if new_departure_time > last_departure_time {
-        Some(new_departure_time)
-    } else {
-        None
-    }
+    if new_departure_time > last_departure_time { Some(new_departure_time) } else { None }
 }
 
 fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
@@ -92,9 +88,5 @@ fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
         .map(|(&total, &limit)| (limit - total).min(max_change))
         .unwrap_or(max_change);
 
-    if max_change > 0. {
-        Some(start.schedule.departure - max_change)
-    } else {
-        None
-    }
+    if max_change > 0. { Some(start.schedule.departure - max_change) } else { None }
 }

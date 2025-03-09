@@ -1,6 +1,6 @@
 //! This benchmark evaluates the goal pipeline for the Solomon problem variant (CVRPTW).
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::Arc;

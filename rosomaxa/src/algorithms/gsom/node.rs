@@ -66,11 +66,7 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         self.last_hits
             .iter()
             .filter(|&hit| {
-                if current_time > self.hit_memory_size {
-                    (current_time - self.hit_memory_size) < *hit
-                } else {
-                    true
-                }
+                if current_time > self.hit_memory_size { (current_time - self.hit_memory_size) < *hit } else { true }
             })
             .count()
     }
@@ -90,7 +86,7 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         &self,
         network: &'a Network<C, I, S, F>,
         radius: usize,
-    ) -> impl Iterator<Item = (Option<Coordinate>, (i32, i32))> + 'a
+    ) -> impl Iterator<Item = (Option<Coordinate>, (i32, i32))> + 'a + use<'a, C, F, I, S>
     where
         C: Send + Sync,
         F: StorageFactory<C, I, S>,
@@ -119,11 +115,7 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
                 (sum + distance, count + 1)
             });
 
-        if count > 0 {
-            sum / count as Float
-        } else {
-            0.
-        }
+        if count > 0 { sum / count as Float } else { 0. }
     }
 
     /// Returns mean squared error.

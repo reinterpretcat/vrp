@@ -1,7 +1,7 @@
 use super::*;
 use crate::format::Location;
 use vrp_core::models::common::Profile;
-use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData};
+use vrp_core::models::problem::{MatrixData, create_matrix_transport_cost};
 
 fn get_test_locations() -> Vec<Location> {
     vec![

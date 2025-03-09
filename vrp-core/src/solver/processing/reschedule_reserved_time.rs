@@ -14,22 +14,23 @@ impl HeuristicSolutionProcessing for RescheduleReservedTime {
     type Solution = InsertionContext;
 
     fn post_process(&self, mut solution: Self::Solution) -> Self::Solution {
-        if let Some((reserved_times_idx, reserved_times_fn)) = get_reserved_times_index_and_fn(&solution) {
-            solution
-                .solution
-                .routes
-                .iter_mut()
-                .filter(|route_ctx| reserved_times_idx.contains_key(&route_ctx.route().actor))
-                .for_each(|route_ctx| {
-                    optimize_reserved_times_schedule(route_ctx.route_mut(), &reserved_times_fn);
-                    // NOTE: optimize_* method has to make sure that no time violation could happen and
-                    //       rewrite schedules; calling accept_* methods will rewrite optimizations,
-                    //       hence not desirable
-                    route_ctx.mark_stale(false);
-                });
-            solution
-        } else {
-            solution
+        match get_reserved_times_index_and_fn(&solution) {
+            Some((reserved_times_idx, reserved_times_fn)) => {
+                solution
+                    .solution
+                    .routes
+                    .iter_mut()
+                    .filter(|route_ctx| reserved_times_idx.contains_key(&route_ctx.route().actor))
+                    .for_each(|route_ctx| {
+                        optimize_reserved_times_schedule(route_ctx.route_mut(), &reserved_times_fn);
+                        // NOTE: optimize_* method has to make sure that no time violation could happen and
+                        //       rewrite schedules; calling accept_* methods will rewrite optimizations,
+                        //       hence not desirable
+                        route_ctx.mark_stale(false);
+                    });
+                solution
+            }
+            _ => solution,
         }
     }
 }

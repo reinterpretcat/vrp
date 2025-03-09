@@ -1,7 +1,7 @@
 use super::*;
 use std::fs::File;
 use std::io::BufReader;
-use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
+use vrp_pragmatic::format::problem::{PragmaticProblem, deserialize_problem};
 use vrp_pragmatic::format::solution::serialize_named_locations_as_geojson;
 
 #[test]

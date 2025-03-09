@@ -3,8 +3,8 @@
 use crate::construction::heuristics::*;
 use crate::models::{GoalContext, Problem};
 use crate::solver::RefinementContext;
-use rosomaxa::prelude::SelectionPhase;
 use rosomaxa::HeuristicContext;
+use rosomaxa::prelude::SelectionPhase;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -112,9 +112,11 @@ pub struct PhasedRecreate {
 impl PhasedRecreate {
     /// Creates a new instance of `PhasedRecreate`.
     pub fn new(recreates: HashMap<SelectionPhase, Arc<dyn Recreate>>) -> Self {
-        assert!([SelectionPhase::Initial, SelectionPhase::Exploration, SelectionPhase::Exploitation]
-            .iter()
-            .all(|key| recreates.contains_key(key)));
+        assert!(
+            [SelectionPhase::Initial, SelectionPhase::Exploration, SelectionPhase::Exploitation]
+                .iter()
+                .all(|key| recreates.contains_key(key))
+        );
 
         Self { recreates }
     }

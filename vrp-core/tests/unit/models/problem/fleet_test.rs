@@ -1,4 +1,4 @@
-use crate::helpers::models::problem::{test_driver, test_vehicle, FleetBuilder};
+use crate::helpers::models::problem::{FleetBuilder, test_driver, test_vehicle};
 
 #[test]
 fn fleet_creates_unique_profiles_from_vehicles() {

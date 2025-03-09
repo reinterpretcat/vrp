@@ -102,11 +102,7 @@ impl FeatureConstraint for LockingConstraint {
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
-        if self.conditions.contains_key(&candidate) {
-            Err(self.code)
-        } else {
-            Ok(source)
-        }
+        if self.conditions.contains_key(&candidate) { Err(self.code) } else { Ok(source) }
     }
 }
 

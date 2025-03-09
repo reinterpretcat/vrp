@@ -1,7 +1,7 @@
 use super::*;
 use crate::construction::enablers::create_typed_actor_groups;
-use crate::helpers::models::domain::{test_random, TestGoalContextBuilder};
-use crate::helpers::models::problem::{test_driver, test_vehicle_with_id, FleetBuilder, TestSingleBuilder};
+use crate::helpers::models::domain::{TestGoalContextBuilder, test_random};
+use crate::helpers::models::problem::{FleetBuilder, TestSingleBuilder, test_driver, test_vehicle_with_id};
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder, RouteStateBuilder};
 use crate::models::problem::Actor;
 use crate::models::problem::{Fleet, Single};

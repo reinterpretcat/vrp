@@ -3,9 +3,9 @@ use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::{ProblemBuilder, TestGoalContextBuilder};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder};
+use crate::models::ViolationCode;
 use crate::models::common::TimeWindow;
 use crate::models::problem::{Job, JobIdDimension, VehicleIdDimension};
-use crate::models::ViolationCode;
 use crate::solver::processing::UnassignmentReason;
 use rosomaxa::evolution::HeuristicSolutionProcessing;
 

@@ -1,5 +1,5 @@
-use vrp_pragmatic::format::problem::*;
 use vrp_pragmatic::format::Location;
+use vrp_pragmatic::format::problem::*;
 
 pub fn create_empty_job() -> Job {
     Job {

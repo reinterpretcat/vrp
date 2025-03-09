@@ -12,15 +12,15 @@ use serde::Deserialize;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::models::common::Footprint;
 use vrp_core::models::GoalContext;
+use vrp_core::models::common::Footprint;
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::evolution::{InitialOperator, TelemetryMode};
 use vrp_core::rosomaxa::get_default_selection_size;
 use vrp_core::rosomaxa::prelude::*;
 use vrp_core::rosomaxa::utils::*;
-use vrp_core::solver::search::*;
 use vrp_core::solver::RecreateInitialOperator;
+use vrp_core::solver::search::*;
 use vrp_core::solver::*;
 
 /// An algorithm configuration.

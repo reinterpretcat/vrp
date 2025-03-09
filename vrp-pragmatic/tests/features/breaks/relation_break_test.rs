@@ -1,6 +1,6 @@
+use crate::format::Location;
 use crate::format::problem::*;
 use crate::format::solution::*;
-use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
 use vrp_core::prelude::Float;

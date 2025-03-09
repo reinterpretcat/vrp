@@ -81,29 +81,31 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
     let insertion_ctx = InsertionContext {
         problem: new_problem.clone(),
         ..TestInsertionContextBuilder::default()
-            .with_routes(vec![RouteContextBuilder::default()
-                .with_route(
-                    RouteBuilder::default()
-                        .with_vehicle(new_problem.fleet.as_ref(), "v1")
-                        .with_start(ActivityBuilder::default().schedule(Schedule::new(0., 0.)).job(None).build())
-                        .with_end(ActivityBuilder::default().schedule(Schedule::new(0., 0.)).job(None).build())
-                        .add_activity(Activity {
-                            place: Place {
-                                idx: 0,
-                                location: 3,
-                                duration: DEFAULT_JOB_DURATION * 3.,
-                                time: clustered_time,
-                            },
-                            schedule: Schedule::new(3., 3. + duration),
-                            job: Some(clustered_single),
-                            commute: Some(Commute {
-                                forward: CommuteInfo { location: 3, duration: 0., distance: 0. },
-                                backward: CommuteInfo { location: 3, duration: 0., distance: 0. },
-                            }),
-                        })
-                        .build(),
-                )
-                .build()])
+            .with_routes(vec![
+                RouteContextBuilder::default()
+                    .with_route(
+                        RouteBuilder::default()
+                            .with_vehicle(new_problem.fleet.as_ref(), "v1")
+                            .with_start(ActivityBuilder::default().schedule(Schedule::new(0., 0.)).job(None).build())
+                            .with_end(ActivityBuilder::default().schedule(Schedule::new(0., 0.)).job(None).build())
+                            .add_activity(Activity {
+                                place: Place {
+                                    idx: 0,
+                                    location: 3,
+                                    duration: DEFAULT_JOB_DURATION * 3.,
+                                    time: clustered_time,
+                                },
+                                schedule: Schedule::new(3., 3. + duration),
+                                job: Some(clustered_single),
+                                commute: Some(Commute {
+                                    forward: CommuteInfo { location: 3, duration: 0., distance: 0. },
+                                    backward: CommuteInfo { location: 3, duration: 0., distance: 0. },
+                                }),
+                            })
+                            .build(),
+                    )
+                    .build(),
+            ])
             .build()
     };
 

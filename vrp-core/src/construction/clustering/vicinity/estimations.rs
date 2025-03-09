@@ -3,10 +3,10 @@
 mod estimations_test;
 
 use super::*;
+use crate::models::GoalContext;
 use crate::models::common::*;
 use crate::models::problem::{Place, Single, TransportCost};
 use crate::models::solution::CommuteInfo;
-use crate::models::GoalContext;
 use rosomaxa::utils::parallel_foreach_mut;
 use std::collections::{HashMap, HashSet};
 
@@ -32,11 +32,7 @@ pub(crate) fn get_clusters(
                 .iter()
                 .filter_map(|(job, infos)| {
                     // get only reachable estimates
-                    if infos.iter().any(|(reachable, ..)| *reachable) {
-                        Some(job.clone())
-                    } else {
-                        None
-                    }
+                    if infos.iter().any(|(reachable, ..)| *reachable) { Some(job.clone()) } else { None }
                 })
                 .collect::<HashSet<_>>();
 
@@ -57,36 +53,39 @@ pub(crate) fn get_clusters(
 
         let new_cluster = cluster_estimates.first().and_then(|(_, (cluster, _))| cluster.as_ref()).cloned();
 
-        if let Some(new_cluster) = new_cluster {
-            let new_cluster_jobs = new_cluster
-                .dimens()
-                .get_cluster_info()
-                .expect("expected to have jobs in a cluster")
-                .iter()
-                .map(|info| info.job.clone())
-                .collect::<Vec<_>>();
+        match new_cluster {
+            Some(new_cluster) => {
+                let new_cluster_jobs = new_cluster
+                    .dimens()
+                    .get_cluster_info()
+                    .expect("expected to have jobs in a cluster")
+                    .iter()
+                    .map(|info| info.job.clone())
+                    .collect::<Vec<_>>();
 
-            clusters.push((new_cluster.clone(), new_cluster_jobs.clone()));
-            used_jobs.extend(new_cluster_jobs);
+                clusters.push((new_cluster.clone(), new_cluster_jobs.clone()));
+                used_jobs.extend(new_cluster_jobs);
 
-            // remove used jobs from analysis
-            cluster_estimates.retain(|(center, _)| !used_jobs.contains(center));
-            cluster_estimates.iter_mut().for_each(|(_, (cluster, candidates))| {
-                candidates.retain(|job| !used_jobs.contains(job));
+                // remove used jobs from analysis
+                cluster_estimates.retain(|(center, _)| !used_jobs.contains(center));
+                cluster_estimates.iter_mut().for_each(|(_, (cluster, candidates))| {
+                    candidates.retain(|job| !used_jobs.contains(job));
 
-                let is_cluster_affected = cluster
-                    .as_ref()
-                    .and_then(|cluster| cluster.dimens().get_cluster_info())
-                    .is_some_and(|cluster_jobs| cluster_jobs.iter().any(|info| used_jobs.contains(&info.job)));
+                    let is_cluster_affected = cluster
+                        .as_ref()
+                        .and_then(|cluster| cluster.dimens().get_cluster_info())
+                        .is_some_and(|cluster_jobs| cluster_jobs.iter().any(|info| used_jobs.contains(&info.job)));
 
-                if is_cluster_affected {
-                    // NOTE force to rebuild cluster on next iteration
-                    *cluster = None;
-                }
-            });
-            cluster_estimates.retain(|(_, (_, candidates))| !candidates.is_empty());
-        } else {
-            break;
+                    if is_cluster_affected {
+                        // NOTE force to rebuild cluster on next iteration
+                        *cluster = None;
+                    }
+                });
+                cluster_estimates.retain(|(_, (_, candidates))| !candidates.is_empty());
+            }
+            _ => {
+                break;
+            }
         }
     }
 
@@ -106,11 +105,7 @@ pub(crate) fn get_jobs_dissimilarities(
                 .filter(|inner| outer != *inner)
                 .filter_map(|inner| {
                     let dissimilarities = get_dissimilarities(outer, inner, transport, config);
-                    if dissimilarities.is_empty() {
-                        None
-                    } else {
-                        Some((inner.clone(), dissimilarities))
-                    }
+                    if dissimilarities.is_empty() { None } else { Some((inner.clone(), dissimilarities)) }
                 })
                 .collect::<HashMap<_, _>>();
             (outer.clone(), dissimilarities)

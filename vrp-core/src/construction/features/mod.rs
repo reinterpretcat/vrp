@@ -15,7 +15,7 @@ pub(crate) use self::capacity::MaxVehicleLoadTourState;
 pub use self::capacity::{CapacityFeatureBuilder, JobDemandDimension, VehicleCapacityDimension};
 
 mod compatibility;
-pub use self::compatibility::{create_compatibility_feature, JobCompatibilityDimension};
+pub use self::compatibility::{JobCompatibilityDimension, create_compatibility_feature};
 
 mod fast_service;
 pub use self::fast_service::FastServiceFeatureBuilder;
@@ -24,7 +24,7 @@ mod fleet_usage;
 pub use self::fleet_usage::*;
 
 mod groups;
-pub use self::groups::{create_group_feature, JobGroupDimension};
+pub use self::groups::{JobGroupDimension, create_group_feature};
 
 mod hierarchical_areas;
 pub use self::hierarchical_areas::*;
@@ -48,7 +48,7 @@ mod reloads;
 pub use self::reloads::{ReloadFeatureFactory, ReloadIntervalsTourState, SharedResource, SharedResourceId};
 
 mod skills;
-pub use self::skills::{create_skills_feature, JobSkills, JobSkillsDimension, VehicleSkillsDimension};
+pub use self::skills::{JobSkills, JobSkillsDimension, VehicleSkillsDimension, create_skills_feature};
 
 mod total_value;
 pub use self::total_value::*;

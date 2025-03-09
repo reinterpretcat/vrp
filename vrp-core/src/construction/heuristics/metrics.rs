@@ -9,7 +9,7 @@ use crate::models::common::Distance;
 use crate::models::problem::TravelTime;
 use rosomaxa::algorithms::math::*;
 use rosomaxa::prelude::*;
-use rosomaxa::utils::{parallel_collect, SelectionSamplingIterator};
+use rosomaxa::utils::{SelectionSamplingIterator, parallel_collect};
 use std::cmp::Ordering;
 
 /// Gets max load variance in tours.

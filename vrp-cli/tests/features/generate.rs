@@ -2,8 +2,8 @@ use crate::extensions::generate::generate_problem;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufReader;
-use vrp_pragmatic::format::problem::deserialize_locations;
 use vrp_pragmatic::format::CoordIndex;
+use vrp_pragmatic::format::problem::deserialize_locations;
 use vrp_pragmatic::validation::ValidationContext;
 
 #[test]

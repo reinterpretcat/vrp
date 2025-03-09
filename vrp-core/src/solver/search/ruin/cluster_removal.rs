@@ -4,10 +4,10 @@ mod cluster_removal_test;
 
 use super::*;
 use crate::construction::heuristics::InsertionContext;
-use crate::models::problem::Job;
 use crate::models::Problem;
-use crate::solver::search::{get_route_jobs, JobRemovalTracker, TabuList};
+use crate::models::problem::Job;
 use crate::solver::RefinementContext;
+use crate::solver::search::{JobRemovalTracker, TabuList, get_route_jobs};
 use std::cell::RefCell;
 use std::sync::Arc;
 

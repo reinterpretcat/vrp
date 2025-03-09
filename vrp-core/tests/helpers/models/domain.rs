@@ -1,5 +1,5 @@
 use crate::construction::features::TransportFeatureBuilder;
-use crate::helpers::models::problem::{test_fleet, TestActivityCost, TestTransportCost};
+use crate::helpers::models::problem::{TestActivityCost, TestTransportCost, test_fleet};
 use crate::models::problem::JobIdDimension;
 use crate::prelude::*;
 use std::sync::Arc;
@@ -19,11 +19,9 @@ pub struct TestGoalContextBuilder {
 impl Default for TestGoalContextBuilder {
     fn default() -> Self {
         Self {
-            features: vec![FeatureBuilder::default()
-                .with_name("default")
-                .with_objective(TestObjective)
-                .build()
-                .unwrap()],
+            features: vec![
+                FeatureBuilder::default().with_name("default").with_objective(TestObjective).build().unwrap(),
+            ],
         }
     }
 }
@@ -35,12 +33,14 @@ impl TestGoalContextBuilder {
 
     pub fn with_transport_feature() -> Self {
         Self {
-            features: vec![TransportFeatureBuilder::new("transport")
-                .set_violation_code(ViolationCode(1))
-                .set_transport_cost(TestTransportCost::new_shared())
-                .set_activity_cost(TestActivityCost::new_shared())
-                .build_minimize_cost()
-                .unwrap()],
+            features: vec![
+                TransportFeatureBuilder::new("transport")
+                    .set_violation_code(ViolationCode(1))
+                    .set_transport_cost(TestTransportCost::new_shared())
+                    .set_activity_cost(TestActivityCost::new_shared())
+                    .build_minimize_cost()
+                    .unwrap(),
+            ],
         }
     }
 

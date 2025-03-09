@@ -168,11 +168,7 @@ impl TransportConstraint {
             Job::Multi(multi) => multi.jobs.iter().all(check_single),
         };
 
-        if has_time_intersection {
-            None
-        } else {
-            ConstraintViolation::fail(self.time_window_code)
-        }
+        if has_time_intersection { None } else { ConstraintViolation::fail(self.time_window_code) }
     }
 
     fn evaluate_activity(

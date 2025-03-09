@@ -1,7 +1,7 @@
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
-use crate::solver::search::LocalOperator;
 use crate::solver::RefinementContext;
+use crate::solver::search::LocalOperator;
 use crate::utils::Noise;
 use rand::prelude::SliceRandom;
 use rosomaxa::prelude::{Float, HeuristicSolution};

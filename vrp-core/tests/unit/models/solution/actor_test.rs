@@ -1,5 +1,5 @@
 use crate::helpers::models::domain::test_random;
-use crate::helpers::models::problem::{test_driver, test_vehicle_detail, FleetBuilder, TestVehicleBuilder};
+use crate::helpers::models::problem::{FleetBuilder, TestVehicleBuilder, test_driver, test_vehicle_detail};
 use crate::models::common::TimeInterval;
 use crate::models::problem::{Actor, VehicleDetail, VehiclePlace};
 use crate::models::solution::Registry;

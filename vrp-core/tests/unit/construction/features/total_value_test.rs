@@ -1,6 +1,6 @@
 use super::*;
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
-use crate::helpers::models::problem::{get_job_id, TestSingleBuilder};
+use crate::helpers::models::problem::{TestSingleBuilder, get_job_id};
 use crate::helpers::models::solution::*;
 use crate::models::problem::Single;
 

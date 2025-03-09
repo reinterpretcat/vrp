@@ -10,6 +10,7 @@ are already published. So, I stick to it for now.
 
 ### Changed
 
+* migrate to rust 2024 edition
 * improved remedian algorithm
 * separate calculations for distance/duration from cost minimization
 * change GSOM distance function

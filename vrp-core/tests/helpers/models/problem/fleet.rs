@@ -160,7 +160,7 @@ impl FleetBuilder {
 }
 
 #[allow(clippy::type_complexity)]
-pub fn create_details_actor_groups(actors: &[Arc<Actor>]) -> impl Fn(&Actor) -> usize + Send + Sync {
+pub fn create_details_actor_groups(actors: &[Arc<Actor>]) -> impl Fn(&Actor) -> usize + Send + Sync + use<> {
     let unique_type_keys: HashSet<_> = actors.iter().map(|a| a.detail.clone()).collect();
 
     let type_key_map: HashMap<_, _> = unique_type_keys.into_iter().zip(0_usize..).collect();

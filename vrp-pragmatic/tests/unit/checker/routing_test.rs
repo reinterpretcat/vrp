@@ -131,11 +131,13 @@ fn can_check_solution_statistic() {
 
     assert_eq!(
         result,
-        Err(vec![format!(
-            "solution statistic mismatch, expected: '{:?}', got: '{:?}'",
-            create_test_statistic(),
-            wrong_statistic
-        )
-        .into()])
+        Err(vec![
+            format!(
+                "solution statistic mismatch, expected: '{:?}', got: '{:?}'",
+                create_test_statistic(),
+                wrong_statistic
+            )
+            .into()
+        ])
     );
 }

@@ -244,11 +244,7 @@ impl MultiDimLoad {
 
     /// Converts to vector representation.
     pub fn as_vec(&self) -> Vec<i32> {
-        if self.size == 0 {
-            vec![0]
-        } else {
-            self.load[..self.size].to_vec()
-        }
+        if self.size == 0 { vec![0] } else { self.load[..self.size].to_vec() }
     }
 }
 
@@ -297,11 +293,7 @@ impl Add for MultiDimLoad {
             dimens
         }
 
-        if self.load.len() >= rhs.load.len() {
-            sum(self, &rhs)
-        } else {
-            sum(rhs, &self)
-        }
+        if self.load.len() >= rhs.load.len() { sum(self, &rhs) } else { sum(rhs, &self) }
     }
 }
 
@@ -328,11 +320,7 @@ impl PartialOrd for MultiDimLoad {
             .try_fold(None, |acc, idx| {
                 let result = self.get(idx).cmp(&other.get(idx));
                 acc.map_or(ControlFlow::Continue(Some(result)), |acc| {
-                    if acc != result {
-                        ControlFlow::Break(None)
-                    } else {
-                        ControlFlow::Continue(Some(result))
-                    }
+                    if acc != result { ControlFlow::Break(None) } else { ControlFlow::Continue(Some(result)) }
                 })
             })
             .unwrap_value()

@@ -36,8 +36,8 @@ pub mod validation;
 
 use crate::format::problem::Problem;
 use crate::format::{CoordIndex, Location};
-use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
+use time::format_description::well_known::Rfc3339;
 use vrp_core::prelude::{Float, GenericError};
 
 /// Get lists of unique locations in the problem. Use it to request routing matrix from outside.

@@ -203,11 +203,7 @@ fn check_e1206_relation_has_no_missing_shift_properties(
 
 fn check_e1207_no_incomplete_relation(ctx: &ValidationContext, relations: &[Relation]) -> Result<(), FormatError> {
     let get_tasks_size = |tasks: &Option<Vec<JobTask>>| {
-        if let Some(tasks) = tasks {
-            tasks.len()
-        } else {
-            0
-        }
+        if let Some(tasks) = tasks { tasks.len() } else { 0 }
     };
 
     let ids = relations
@@ -229,11 +225,7 @@ fn check_e1207_no_incomplete_relation(ctx: &ValidationContext, relations: &[Rela
                 .map(|job| job.id.clone())
                 .collect::<Vec<_>>();
 
-            if ids.is_empty() {
-                None
-            } else {
-                Some(ids)
-            }
+            if ids.is_empty() { None } else { Some(ids) }
         })
         .flatten()
         .collect::<Vec<_>>();

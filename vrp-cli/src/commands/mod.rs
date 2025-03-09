@@ -7,20 +7,19 @@ pub mod import;
 pub mod solve;
 
 use std::fs::File;
-use std::io::{stdout, BufReader, BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter, Read, Write, stdout};
 use std::process;
 use std::str::FromStr;
 use vrp_cli::extensions::check::check_pragmatic_solution;
 use vrp_core::models::Problem;
 use vrp_core::prelude::GenericError;
-use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, PragmaticProblem};
 use vrp_pragmatic::format::MultiFormatError;
+use vrp_pragmatic::format::problem::{PragmaticProblem, deserialize_matrix, deserialize_problem};
 
 pub(crate) fn create_write_buffer(out_file: Option<File>) -> BufWriter<Box<dyn Write>> {
-    if let Some(out_file) = out_file {
-        BufWriter::new(Box::new(out_file))
-    } else {
-        BufWriter::new(Box::new(stdout()))
+    match out_file {
+        Some(out_file) => BufWriter::new(Box::new(out_file)),
+        _ => BufWriter::new(Box::new(stdout())),
     }
 }
 

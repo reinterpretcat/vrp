@@ -1,7 +1,7 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
-use crate::solver::search::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
+use crate::solver::search::{ConfigurableRecreate, Recreate};
 use rosomaxa::prelude::Random;
 use std::sync::Arc;
 

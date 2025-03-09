@@ -127,11 +127,7 @@ impl FeatureState for CombinedFeatureState {
 
             state.accept_solution_state(ctx);
 
-            if has_changes(ctx, previous_state) {
-                ControlFlow::Break(())
-            } else {
-                ControlFlow::Continue(())
-            }
+            if has_changes(ctx, previous_state) { ControlFlow::Break(()) } else { ControlFlow::Continue(()) }
         });
     }
 }
@@ -215,11 +211,7 @@ pub(crate) fn accept_solution_state_with_states(states: &[Arc<dyn FeatureState>]
                 .iter()
                 .try_for_each(|state| {
                     state.accept_solution_state(solution_ctx);
-                    if has_changes(solution_ctx, (required, ignored, unassigned)) {
-                        Err(())
-                    } else {
-                        Ok(())
-                    }
+                    if has_changes(solution_ctx, (required, ignored, unassigned)) { Err(()) } else { Ok(()) }
                 })
                 .map(|_| (required, ignored, unassigned))
                 .or(Ok((usize::MAX, usize::MAX, usize::MAX)))

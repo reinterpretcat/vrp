@@ -1,7 +1,7 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::models::GoalContext;
-use crate::solver::search::LocalOperator;
 use crate::solver::RefinementContext;
+use crate::solver::search::LocalOperator;
 use rosomaxa::prelude::*;
 use std::sync::Arc;
 
@@ -26,10 +26,9 @@ impl HeuristicSearchOperator for LocalSearch {
         let refinement_ctx = heuristic_ctx;
         let insertion_ctx = solution;
 
-        if let Some(new_insertion_ctx) = self.operator.explore(refinement_ctx, insertion_ctx) {
-            new_insertion_ctx
-        } else {
-            insertion_ctx.deep_copy()
+        match self.operator.explore(refinement_ctx, insertion_ctx) {
+            Some(new_insertion_ctx) => new_insertion_ctx,
+            _ => insertion_ctx.deep_copy(),
         }
     }
 }

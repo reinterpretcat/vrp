@@ -2,11 +2,11 @@
 #[path = "../../../tests/unit/models/solution/tour_test.rs"]
 mod tour_test;
 
+use crate::models::OP_START_MSG;
 use crate::models::common::Schedule;
 use crate::models::problem::{Actor, Job, JobIdDimension};
 use crate::models::solution::{Activity, Place};
-use crate::models::OP_START_MSG;
-use crate::utils::{short_type_name, Either};
+use crate::utils::{Either, short_type_name};
 use rustc_hash::FxHasher;
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
@@ -188,11 +188,7 @@ impl Tour {
 
     /// Returns total amount of job activities.
     pub fn job_activity_count(&self) -> usize {
-        if self.activities.is_empty() {
-            0
-        } else {
-            self.activities.len() - (if self.is_closed { 2 } else { 1 })
-        }
+        if self.activities.is_empty() { 0 } else { self.activities.len() - (if self.is_closed { 2 } else { 1 }) }
     }
 
     /// Returns amount of all activities in tour.

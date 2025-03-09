@@ -6,8 +6,8 @@ use super::*;
 use std::sync::Arc;
 use vrp_cli::extensions::analyze::{get_dbscan_clusters, get_k_medoids_clusters};
 use vrp_core::prelude::*;
-use vrp_pragmatic::format::solution::serialize_named_locations_as_geojson;
 use vrp_pragmatic::format::Location as ApiLocation;
+use vrp_pragmatic::format::solution::serialize_named_locations_as_geojson;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";

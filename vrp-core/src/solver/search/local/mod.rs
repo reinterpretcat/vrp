@@ -26,7 +26,7 @@ pub trait LocalOperator: Send + Sync {
     /// Applies local search operator to passed solution in order to explore possible
     /// small move in solution space which leads to a different solution.
     fn explore(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext)
-        -> Option<InsertionContext>;
+    -> Option<InsertionContext>;
 }
 
 /// Provides the way to run multiple local search operators with different probability.

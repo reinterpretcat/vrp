@@ -4,8 +4,8 @@ use crate::helpers::*;
 
 mod single {
     use super::*;
-    use vrp_core::models::examples::create_example_problem;
     use RelationType::{Any, Sequence, Strict};
+    use vrp_core::models::examples::create_example_problem;
 
     fn create_relation(job_ids: Vec<&str>, relation_type: RelationType) -> Relation {
         Relation {

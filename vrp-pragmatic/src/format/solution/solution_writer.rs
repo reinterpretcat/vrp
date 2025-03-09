@@ -2,11 +2,11 @@
 #[path = "../../../tests/unit/format/solution/writer_test.rs"]
 mod writer_test;
 
+use crate::format::CoordIndex;
 use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
-use crate::format::CoordIndex;
-use vrp_core::construction::enablers::{get_route_intervals, ReservedTimesIndex};
+use vrp_core::construction::enablers::{ReservedTimesIndex, get_route_intervals};
 use vrp_core::construction::features::JobDemandDimension;
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
@@ -377,11 +377,7 @@ fn create_unassigned(solution: &DomainSolution) -> Option<Vec<UnassignedJob>> {
         })
         .collect::<Vec<_>>();
 
-    if unassigned.is_empty() {
-        None
-    } else {
-        Some(unassigned)
-    }
+    if unassigned.is_empty() { None } else { Some(unassigned) }
 }
 
 fn create_violations(solution: &DomainSolution) -> Option<Vec<Violation>> {
@@ -396,11 +392,7 @@ fn create_violations(solution: &DomainSolution) -> Option<Vec<Violation>> {
         })
         .collect::<Vec<_>>();
 
-    if violations.is_empty() {
-        None
-    } else {
-        Some(violations)
-    }
+    if violations.is_empty() { None } else { Some(violations) }
 }
 
 fn get_activity_type(activity: &Activity) -> Option<&String> {
@@ -415,11 +407,7 @@ fn get_capacity(dimens: &Dimensions) -> Option<Demand<MultiDimLoad>> {
     }
 
     let create_capacity = |capacity: SingleDimLoad| {
-        if capacity.value == 0 {
-            MultiDimLoad::default()
-        } else {
-            MultiDimLoad::new(vec![capacity.value])
-        }
+        if capacity.value == 0 { MultiDimLoad::default() } else { MultiDimLoad::new(vec![capacity.value]) }
     };
     dimens.get_job_demand().map(|demand: &Demand<SingleDimLoad>| Demand {
         pickup: (create_capacity(demand.pickup.0), create_capacity(demand.pickup.1)),

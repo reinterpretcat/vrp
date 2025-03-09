@@ -145,11 +145,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                             .flatten()
                             .collect::<Vec<_>>();
 
-                        if arrows.is_empty() {
-                            None
-                        } else {
-                            Some(((x, y), arrows))
-                        }
+                        if arrows.is_empty() { None } else { Some(((x, y), arrows)) }
                     })
                     .flat_map(|(coord, arrows)| arrows.into_iter().map(move |arrow| (coord, arrow)))
                     .try_for_each(|((x, y), (line, arrow))| {

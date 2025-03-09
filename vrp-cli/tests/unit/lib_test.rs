@@ -1,7 +1,7 @@
 use super::*;
 use crate::helpers::generate::{create_empty_plan, create_test_job, create_test_vehicle_type};
-use vrp_pragmatic::format::problem::{Fleet, MatrixProfile, Plan};
 use vrp_pragmatic::format::MultiFormatError;
+use vrp_pragmatic::format::problem::{Fleet, MatrixProfile, Plan};
 
 #[test]
 fn can_get_locations_serialized() {

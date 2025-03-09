@@ -82,11 +82,7 @@ impl FeatureConstraint for SkillsConstraint {
             }
         };
 
-        if has_comparable_skills {
-            Ok(source)
-        } else {
-            Err(self.code)
-        }
+        if has_comparable_skills { Ok(source) } else { Err(self.code) }
     }
 }
 

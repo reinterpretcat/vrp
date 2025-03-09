@@ -63,17 +63,20 @@ fn can_search_for_reserved_time_impl(
 
     let reserved_time_fn = create_reserved_times_fn(reserved_times);
 
-    if let Ok(reserved_time_fn) = reserved_time_fn {
-        tests.iter().enumerate().for_each(|(test_idx, ((s, e), expected))| {
-            let interval = TimeWindow::new(*s, *e);
-            let expected = expected.and_then(|idx| times.get(idx)).map(|((s, e), _)| TimeWindow::new(*s, *e));
+    match reserved_time_fn {
+        Ok(reserved_time_fn) => {
+            tests.iter().enumerate().for_each(|(test_idx, ((s, e), expected))| {
+                let interval = TimeWindow::new(*s, *e);
+                let expected = expected.and_then(|idx| times.get(idx)).map(|((s, e), _)| TimeWindow::new(*s, *e));
 
-            let result = (reserved_time_fn)(route_ctx.route(), &interval);
+                let result = (reserved_time_fn)(route_ctx.route(), &interval);
 
-            assert_eq!(result.map(|r| r.time), expected, "test {test_idx} is failed");
-        });
-    } else {
-        assert!(tests.is_empty())
+                assert_eq!(result.map(|r| r.time), expected, "test {test_idx} is failed");
+            });
+        }
+        _ => {
+            assert!(tests.is_empty())
+        }
     }
 }
 
@@ -89,10 +92,12 @@ fn create_feature_and_route(
     });
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
-        .add_vehicles(vec![TestVehicleBuilder::default()
-            .id("v1")
-            .details(vec![create_detail((Some(location_start), Some(location_end)), Some((time_start, time_end)))])
-            .build()])
+        .add_vehicles(vec![
+            TestVehicleBuilder::default()
+                .id("v1")
+                .details(vec![create_detail((Some(location_start), Some(location_end)), Some((time_start, time_end)))])
+                .build(),
+        ])
         .build();
     let reserved_times_idx =
         vec![(fleet.actors.first().unwrap().clone(), vec![reserved_time])].into_iter().collect::<HashMap<_, _>>();

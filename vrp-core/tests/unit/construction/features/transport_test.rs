@@ -44,10 +44,15 @@ mod timing {
 
         let fleet = FleetBuilder::default()
             .add_driver(test_driver())
-            .add_vehicles(vec![TestVehicleBuilder::default()
-                .id("v1")
-                .details(vec![create_detail((Some(location_start), Some(location_end)), Some((time_start, time_end)))])
-                .build()])
+            .add_vehicles(vec![
+                TestVehicleBuilder::default()
+                    .id("v1")
+                    .details(vec![create_detail(
+                        (Some(location_start), Some(location_end)),
+                        Some((time_start, time_end)),
+                    )])
+                    .build(),
+            ])
             .build();
         let route_ctx = RouteContextBuilder::default()
             .with_route(
@@ -138,35 +143,37 @@ mod timing {
             .add_vehicles(vec![TestVehicleBuilder::default().id("v1").build()])
             .build();
         let insertion_ctx = TestInsertionContextBuilder::default()
-            .with_routes(vec![RouteContextBuilder::default()
-                .with_route(
-                    RouteBuilder::default()
-                        .with_vehicle(&fleet, "v1")
-                        .add_activity(
-                            ActivityBuilder::default()
-                                .place(Place {
-                                    idx: 0,
-                                    location: 10,
-                                    duration: 5.,
-                                    time: TimeWindow { start: 20., end: 30. },
-                                })
-                                .schedule(Schedule::new(10., 25.))
-                                .build(),
-                        )
-                        .add_activity(
-                            ActivityBuilder::default()
-                                .place(Place {
-                                    idx: 0,
-                                    location: 20,
-                                    duration: 10.,
-                                    time: TimeWindow { start: 50., end: 100. },
-                                })
-                                .schedule(Schedule::new(35., 60.))
-                                .build(),
-                        )
-                        .build(),
-                )
-                .build()])
+            .with_routes(vec![
+                RouteContextBuilder::default()
+                    .with_route(
+                        RouteBuilder::default()
+                            .with_vehicle(&fleet, "v1")
+                            .add_activity(
+                                ActivityBuilder::default()
+                                    .place(Place {
+                                        idx: 0,
+                                        location: 10,
+                                        duration: 5.,
+                                        time: TimeWindow { start: 20., end: 30. },
+                                    })
+                                    .schedule(Schedule::new(10., 25.))
+                                    .build(),
+                            )
+                            .add_activity(
+                                ActivityBuilder::default()
+                                    .place(Place {
+                                        idx: 0,
+                                        location: 20,
+                                        duration: 10.,
+                                        time: TimeWindow { start: 50., end: 100. },
+                                    })
+                                    .schedule(Schedule::new(35., 60.))
+                                    .build(),
+                            )
+                            .build(),
+                    )
+                    .build(),
+            ])
             .with_registry(Registry::new(&fleet, test_random()))
             .build();
         let mut solution_ctx = insertion_ctx.solution;
