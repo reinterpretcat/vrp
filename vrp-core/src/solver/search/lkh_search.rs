@@ -74,7 +74,7 @@ impl LKHSearch {
             new_solution.solution.routes.iter().map(|route| route.route().actor.clone()).collect();
 
         // add any missing routes from original solution
-        orig_routes.iter().filter(|(&actor, _)| !existing_actors.contains(actor)).for_each(|(_, &orig_route_ctx)| {
+        orig_routes.iter().filter(|&(&actor, _)| !existing_actors.contains(actor)).for_each(|(_, &orig_route_ctx)| {
             let route_ctx = orig_route_ctx.deep_copy();
             new_solution.solution.registry.use_route(&route_ctx);
             new_solution.solution.routes.push(route_ctx);

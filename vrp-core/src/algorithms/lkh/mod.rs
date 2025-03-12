@@ -45,11 +45,7 @@ type EdgeSet = BTreeSet<Edge>;
 
 /// Creates an edge from a pair of nodes.
 fn make_edge(i: Node, j: Node) -> Edge {
-    if i < j {
-        Edge::from((i, j))
-    } else {
-        Edge::from((j, i))
-    }
+    if i < j { Edge::from((i, j)) } else { Edge::from((j, i)) }
 }
 
 /// Creates a set of edges from an iterator of edges.

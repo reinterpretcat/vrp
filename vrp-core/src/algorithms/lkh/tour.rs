@@ -110,10 +110,6 @@ impl Tour {
         })
         .collect();
 
-        if new_tour.len() == self.len() {
-            Some(new_tour)
-        } else {
-            None
-        }
+        if new_tour.len() == self.len() { Some(new_tour) } else { None }
     }
 }

@@ -287,7 +287,7 @@ mod search_tests {
         construction::heuristics::UnassignmentInfo,
         helpers::{
             models::{
-                domain::{test_random, ProblemBuilder, TestGoalContextBuilder},
+                domain::{ProblemBuilder, TestGoalContextBuilder, test_random},
                 problem::*,
             },
             solver::create_default_refinement_ctx,
@@ -306,7 +306,7 @@ mod search_tests {
         activities: &[(Location, Duration, (Timestamp, Timestamp))],
         end: Location,
     ) -> InsertionContext {
-        let activities = activities.iter().copied().collect::<Vec<_>>();
+        let activities = activities.to_vec();
         create_insertion_context_with_toures(&[Tour { vehicle_id: "v1", shift_locations: (0, end), activities }])
     }
 
