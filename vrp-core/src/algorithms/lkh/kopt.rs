@@ -34,6 +34,7 @@ where
         self.solutions.push(path);
 
         while let Some(improved_path) = self.solutions.last().and_then(|p| self.improve(p.iter().copied())) {
+            self.solutions.clear();
             self.solutions.push(improved_path);
         }
 
