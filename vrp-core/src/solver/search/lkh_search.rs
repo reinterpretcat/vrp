@@ -10,7 +10,10 @@ use crate::{
     prelude::{Cost, Location, RouteContext, TransportCost},
 };
 use rosomaxa::utils::parallel_foreach_mut;
-use std::ops::Range;
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Range,
+};
 
 /// A search mode for LKH algorithm.
 #[derive(Clone, Copy, Debug)]
@@ -62,17 +65,38 @@ impl LKHSearch {
             return new_solution;
         }
 
-        // keep original route if it is better
-        let routes = &mut new_solution.solution.routes;
-        let unassigned = &mut new_solution.solution.unassigned;
-        routes.iter_mut().zip(orig_solution.solution.routes.iter()).for_each(|(new_route_ctx, orig_route_ctx)| {
-            debug_assert!(new_route_ctx.route().actor == orig_route_ctx.route().actor);
+        // get all routes from original solution indexed by actor
+        let orig_routes: HashMap<_, _> =
+            orig_solution.solution.routes.iter().map(|route| (&route.route().actor, route)).collect();
 
-            if orig_route_ctx.route().tour.job_count() > new_route_ctx.route().tour.job_count() {
-                *new_route_ctx = orig_route_ctx.deep_copy();
-                unassigned.retain(|job, _| !new_route_ctx.route().tour.contains(job));
-            }
+        // get set of actors already present in new solution
+        let existing_actors: HashSet<_> =
+            new_solution.solution.routes.iter().map(|route| route.route().actor.clone()).collect();
+
+        // add any missing routes from original solution
+        orig_routes.iter().filter(|(&actor, _)| !existing_actors.contains(actor)).for_each(|(_, &orig_route_ctx)| {
+            let route_ctx = orig_route_ctx.deep_copy();
+            new_solution.solution.registry.use_route(&route_ctx);
+            new_solution.solution.routes.push(route_ctx);
         });
+
+        // ensure routes have at least as many jobs as in original solution
+        new_solution
+            .solution
+            .routes
+            .iter_mut()
+            .filter_map(|route_ctx| {
+                orig_routes.get(&route_ctx.route().actor).map(|orig_route_ctx| (route_ctx, orig_route_ctx))
+            })
+            .filter(|(route_ctx, orig_route_ctx)| {
+                orig_route_ctx.route().tour.job_count() > route_ctx.route().tour.job_count()
+            })
+            .for_each(|(route_ctx, orig_route_ctx)| {
+                *route_ctx = orig_route_ctx.deep_copy();
+            });
+
+        // restore original unassigned jobs
+        new_solution.solution.unassigned = orig_solution.solution.unassigned.clone();
 
         // recalculate solution state if we do
         new_solution.restore();

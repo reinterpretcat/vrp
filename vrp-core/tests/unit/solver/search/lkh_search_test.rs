@@ -279,10 +279,12 @@ mod optimize_route_tests {
 }
 
 mod search_tests {
+    use rosomaxa::utils::CollectGroupBy;
     use std::sync::Arc;
 
     use super::*;
     use crate::{
+        construction::heuristics::UnassignmentInfo,
         helpers::{
             models::{
                 domain::{test_random, ProblemBuilder, TestGoalContextBuilder},
@@ -293,64 +295,92 @@ mod search_tests {
         models::{problem::*, solution::Registry},
     };
 
+    #[derive(Clone)]
+    struct Tour {
+        vehicle_id: &'static str,
+        shift_locations: (Location, Location),
+        activities: Vec<(Location, Duration, (Timestamp, Timestamp))>,
+    }
+
     fn create_insertion_context(
         activities: &[(Location, Duration, (Timestamp, Timestamp))],
         end: Location,
     ) -> InsertionContext {
+        let activities = activities.iter().copied().collect::<Vec<_>>();
+        create_insertion_context_with_toures(&[Tour { vehicle_id: "v1", shift_locations: (0, end), activities }])
+    }
+
+    fn create_insertion_context_with_toures(tours: &[Tour]) -> InsertionContext {
         let fleet = FleetBuilder::default()
             .add_driver(test_driver())
-            .add_vehicles(vec![TestVehicleBuilder::default()
-                .id("v1")
-                .details(vec![VehicleDetail {
-                    start: Some(VehiclePlace { location: 0, time: TimeInterval { earliest: Some(0.), latest: None } }),
-                    end: Some(VehiclePlace {
-                        location: end,
-                        time: TimeInterval { earliest: None, latest: Some(100.) },
-                    }),
-                }])
-                .build()])
+            .add_vehicles(
+                tours
+                    .iter()
+                    .map(|Tour { vehicle_id, shift_locations, .. }| {
+                        TestVehicleBuilder::default()
+                            .id(vehicle_id)
+                            .details(vec![VehicleDetail {
+                                start: Some(VehiclePlace {
+                                    location: shift_locations.0,
+                                    time: TimeInterval { earliest: Some(0.), latest: None },
+                                }),
+                                end: Some(VehiclePlace {
+                                    location: shift_locations.1,
+                                    time: TimeInterval { earliest: None, latest: Some(100.) },
+                                }),
+                            }])
+                            .build()
+                    })
+                    .collect(),
+            )
             .build();
         let fleet = Arc::new(fleet);
 
-        let jobs = activities
+        let jobs_activities = tours
             .iter()
-            .map(|&(location, duration, (start, end))| {
-                TestSingleBuilder::default()
-                    .id(&location.to_string())
-                    .location(Some(location))
-                    .duration(duration)
-                    .times(vec![TimeWindow::new(start, end)])
-                    .build_as_job_ref()
+            .flat_map(|Tour { vehicle_id, activities, .. }| {
+                activities.iter().map(|&(location, duration, (start, end))| {
+                    let job = TestSingleBuilder::default()
+                        .id(&location.to_string())
+                        .location(Some(location))
+                        .duration(duration)
+                        .times(vec![TimeWindow::new(start, end)])
+                        .build_as_job_ref();
+                    let activity =
+                        ActivityBuilder::with_location_tw_and_duration(location, TimeWindow::new(start, end), duration)
+                            .job(Some(job.to_single().clone()))
+                            .build();
+                    (*vehicle_id, job, activity)
+                })
             })
             .collect::<Vec<_>>();
 
         let problem = ProblemBuilder::default()
             .with_goal(TestGoalContextBuilder::with_transport_feature().build())
-            .with_jobs(jobs.clone())
+            .with_jobs(jobs_activities.iter().map(|(_, job, _)| job.clone()).collect())
             .build();
+
+        let tour_activities = jobs_activities.into_iter().collect_group_by_key(|(vehicle_id, _, _)| *vehicle_id);
 
         let mut insertion_ctx = TestInsertionContextBuilder::default()
             .with_problem(problem)
             .with_fleet(fleet.clone())
             .with_registry(Registry::new(&fleet, test_random()))
-            .with_routes(vec![RouteContextBuilder::default()
-                .with_route(
-                    RouteBuilder::default()
-                        .with_vehicle(&fleet, "v1")
-                        .add_activities(activities.iter().zip(jobs.iter()).map(
-                            |(&(location, duration, (start, end)), job)| {
-                                ActivityBuilder::with_location_tw_and_duration(
-                                    location,
-                                    TimeWindow::new(start, end),
-                                    duration,
-                                )
-                                .job(Some(job.to_single().clone()))
-                                .build()
-                            },
-                        ))
-                        .build(),
-                )
-                .build()])
+            .with_routes(
+                tour_activities
+                    .into_iter()
+                    .map(|(vehicle_id, activities)| {
+                        RouteContextBuilder::default()
+                            .with_route(
+                                RouteBuilder::default()
+                                    .with_vehicle(&fleet, vehicle_id)
+                                    .add_activities(activities.into_iter().map(|(_, _, activity)| activity))
+                                    .build(),
+                            )
+                            .build()
+                    })
+                    .collect(),
+            )
             .build();
 
         let goal = insertion_ctx.problem.goal.clone();
@@ -395,5 +425,47 @@ mod search_tests {
 
         assert_eq!(get_route_locations(&new_ctx), vec![vec![0, 20, 30, 40, 10]],);
         assert_eq!(new_ctx.solution.unassigned.len(), 0);
+    }
+
+    parameterized_test! {test_repair_routes_handles_removed_route, reversed, {
+        test_repair_routes_handles_removed_route_impl(reversed);
+    }}
+
+    test_repair_routes_handles_removed_route! {
+        case01_direct: false,
+        case02_reversed: true,
+    }
+
+    fn test_repair_routes_handles_removed_route_impl(reversed: bool) {
+        let tours = vec![
+            Tour {
+                vehicle_id: "v1",
+                shift_locations: (0, 100),
+                activities: vec![(20, 0., (0., 10.)), (30, 0., (0., 10.))],
+            },
+            Tour { vehicle_id: "v2", shift_locations: (0, 0), activities: vec![(1, 0., (0., 1000.))] },
+        ];
+
+        let mut orig_solution = create_insertion_context_with_toures(&tours);
+        orig_solution.solution.routes.sort_by(|a, b| {
+            a.route().actor.vehicle.dimens.get_vehicle_id().cmp(&b.route().actor.vehicle.dimens.get_vehicle_id())
+        });
+
+        let mut new_solution = orig_solution.deep_copy();
+        let idx = if reversed {
+            new_solution.solution.routes.reverse();
+            1
+        } else {
+            0
+        };
+        new_solution.solution.unassigned.insert(
+            new_solution.solution.routes[idx].route_mut().tour.remove_activity_at(2),
+            UnassignmentInfo::Unknown,
+        );
+
+        let result_ctx = LKHSearch::new(LKHSearchMode::ImprovementOnly).repair_routes(new_solution, &orig_solution);
+
+        assert_eq!(get_route_locations(&result_ctx), vec![vec![0, 1, 0], vec![0, 20, 30, 100]]);
+        assert!(result_ctx.solution.registry.next_route().next().is_none());
     }
 }
