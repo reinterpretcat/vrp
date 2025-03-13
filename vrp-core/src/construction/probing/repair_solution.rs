@@ -108,36 +108,38 @@ fn synchronize_jobs(
                 let is_already_processed = synchronized_jobs.contains_key(&job) && job.as_single().is_some();
                 let is_invalid_multi_job = invalid_multi_job_ids.contains(&job);
 
-                if !is_already_processed && !is_invalid_multi_job {
-                    let eval_ctx = EvaluationContext {
-                        goal,
-                        job: &job,
-                        leg_selection: &leg_selection,
-                        result_selector: &result_selector,
-                    };
-                    let route_ctx = new_insertion_ctx.solution.routes.get(route_idx).unwrap();
+                // Skip already processed singles and invalid multi jobs
+                if is_already_processed || is_invalid_multi_job {
+                    return (synchronized_jobs, invalid_multi_job_ids);
+                }
 
-                    let insertion_result = eval_single_constraint_in_route(
-                        new_insertion_ctx,
-                        &eval_ctx,
-                        route_ctx,
-                        single,
-                        position,
-                        Default::default(),
-                        None,
-                    );
+                let eval_ctx = EvaluationContext {
+                    goal,
+                    job: &job,
+                    leg_selection: &leg_selection,
+                    result_selector: &result_selector,
+                };
+                let route_ctx = &new_insertion_ctx.solution.routes[route_idx];
 
-                    match insertion_result {
-                        InsertionResult::Success(success) => {
-                            apply_insertion_success(new_insertion_ctx, success);
-                            synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
-                        }
-                        _ => {
-                            if job.as_multi().is_some() {
-                                invalid_multi_job_ids.insert(job.clone());
-                            }
-                        }
+                let insertion_result = eval_single_constraint_in_route(
+                    new_insertion_ctx,
+                    &eval_ctx,
+                    route_ctx,
+                    single,
+                    position,
+                    Default::default(),
+                    None,
+                );
+
+                match insertion_result {
+                    InsertionResult::Success(success) => {
+                        apply_insertion_success(new_insertion_ctx, success);
+                        synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
                     }
+                    InsertionResult::Failure(_) if job.as_multi().is_some() => {
+                        invalid_multi_job_ids.insert(job.clone());
+                    }
+                    InsertionResult::Failure(_) => {}
                 }
 
                 (synchronized_jobs, invalid_multi_job_ids)

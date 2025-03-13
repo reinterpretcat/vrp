@@ -142,6 +142,10 @@ pub fn get_static_heuristic(
                 environment.random.clone(),
             ),
         ),
+        (
+            Arc::new(LKHSearch::new(LKHSearchMode::ImprovementOnly)),
+            create_scalar_operator_probability(0.05, environment.random.clone()),
+        ),
         (local_search.clone(), create_scalar_operator_probability(0.05, environment.random.clone())),
         (default_operator.clone(), create_scalar_operator_probability(1., environment.random.clone())),
         (local_search, create_scalar_operator_probability(0.05, environment.random.clone())),
@@ -384,6 +388,8 @@ mod statik {
     use super::*;
 
     /// Creates default heuristic operator (ruin and recreate) with default parameters.
+    /// NOTE: should not contain heuristics which rely on repair_solution_from_unknown as this funciton is used
+    /// from decompose search which creates partial solutions.
     pub fn create_default_heuristic_operator(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
@@ -404,12 +410,6 @@ mod statik {
             (Arc::new(RecreateWithSkipBest::new(4, 8, random.clone())), 2),
             (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), 1),
             (Arc::new(RecreateWithSlice::new(random.clone())), 1),
-            (
-                Arc::new(RecreateWithFunction::new(|ref_ctx, sol_ctx| {
-                    LKHSearch::new(LKHSearchMode::ImprovementOnly).search(ref_ctx, &sol_ctx)
-                })),
-                1,
-            ),
             (
                 Arc::new(RecreateWithSkipRandom::default_explorative_phased(
                     Arc::new(RecreateWithCheapest::new(random.clone())),

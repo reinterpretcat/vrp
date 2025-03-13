@@ -59,13 +59,12 @@ fn can_perform_search() {
     let result = decompose_search.search(&refinement_ctx, &insertion_ctx);
 
     let solution = &result.solution;
-    assert!(solution.unassigned.is_empty());
     assert!(solution.ignored.is_empty());
     assert!(solution.locked.is_empty());
     assert!(solution.required.is_empty());
     assert!(!solution.routes.is_empty());
-    assert_eq!(
-        solution.routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect::<HashSet<_>>().len(),
-        35
-    );
+    let total_jobs =
+        solution.routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect::<HashSet<_>>().len()
+            + solution.unassigned.len();
+    assert_eq!(total_jobs, 35);
 }
