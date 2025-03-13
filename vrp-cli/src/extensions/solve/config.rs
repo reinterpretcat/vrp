@@ -600,7 +600,9 @@ fn create_operator(
 ) -> Result<(TargetSearchOperator, TargetHeuristicProbability), GenericError> {
     Ok(match operator {
         SearchOperatorType::RuinRecreate { probability, ruins, recreates } => {
-            let ruin = Arc::new(WeightedRuin::new(ruins.iter().map(|g| create_ruin_group(&problem, g)).collect()));
+            let ruins = ruins.iter().map(|g| create_ruin_group(&problem, g)).collect::<Vec<_>>();
+
+            let ruin = Arc::new(WeightedRuin::new(ruins));
             let recreate = Arc::new(WeightedRecreate::new(
                 recreates.iter().map(|r| create_recreate_method(r, environment.clone())).collect(),
             ));
@@ -652,8 +654,8 @@ fn create_operator_probability(
     }
 }
 
-fn create_ruin_group(problem: &Arc<Problem>, group: &RuinGroupConfig) -> RuinGroup {
-    (group.methods.iter().map(|r| create_ruin_method(problem, r)).collect(), group.weight)
+fn create_ruin_group(problem: &Arc<Problem>, group: &RuinGroupConfig) -> (Arc<dyn Ruin>, usize) {
+    (Arc::new(CompositeRuin::new(group.methods.iter().map(|r| create_ruin_method(problem, r)).collect())), group.weight)
 }
 
 fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn Ruin>, Float) {

@@ -33,12 +33,9 @@ pub use self::random_job_removal::RandomJobRemoval;
 mod worst_jobs_removal;
 pub use self::worst_jobs_removal::WorstJobRemoval;
 
-/// A type which specifies a group of multiple ruin strategies with their probability.
-pub type RuinGroup = (Vec<(Arc<dyn Ruin>, Float)>, usize);
-
 /// Provides the way to pick one ruin from the group ruin methods.
 pub struct WeightedRuin {
-    ruins: Vec<CompositeRuin>,
+    ruins: Vec<Arc<dyn Ruin>>,
     weights: Vec<usize>,
 }
 
@@ -65,10 +62,8 @@ impl RemovalLimits {
 
 impl WeightedRuin {
     /// Creates a new instance of `WeightedRuin` with passed ruin methods.
-    pub fn new(ruins: Vec<RuinGroup>) -> Self {
-        let weights = ruins.iter().map(|(_, weight)| *weight).collect();
-        let ruins = ruins.into_iter().map(|(ruin, _)| CompositeRuin::new(ruin)).collect();
-
+    pub fn new(ruins: Vec<(Arc<dyn Ruin>, usize)>) -> Self {
+        let (ruins, weights) = ruins.into_iter().unzip();
         Self { ruins, weights }
     }
 }
@@ -76,7 +71,6 @@ impl WeightedRuin {
 impl Ruin for WeightedRuin {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.environment.random.weighted(self.weights.as_slice());
-
         self.ruins[index].run(refinement_ctx, insertion_ctx)
     }
 }

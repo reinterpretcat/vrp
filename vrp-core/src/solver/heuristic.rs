@@ -429,26 +429,38 @@ mod statik {
 
         let ruin = Arc::new(WeightedRuin::new(vec![
             (
-                vec![
+                Arc::new(CompositeRuin::new(vec![
                     (Arc::new(AdjustedStringRemoval::new_with_defaults(normal_limits.clone())), 1.),
                     (extra_random_job.clone(), 0.1),
-                ],
+                ])),
                 100,
             ),
-            (vec![(Arc::new(NeighbourRemoval::new(normal_limits.clone())), 1.), (extra_random_job.clone(), 0.1)], 10),
-            (vec![(Arc::new(WorstJobRemoval::new(4, normal_limits)), 1.), (extra_random_job.clone(), 0.1)], 10),
             (
-                vec![
+                Arc::new(CompositeRuin::new(vec![
+                    (Arc::new(NeighbourRemoval::new(normal_limits.clone())), 1.),
+                    (extra_random_job.clone(), 0.1),
+                ])),
+                10,
+            ),
+            (
+                Arc::new(CompositeRuin::new(vec![
+                    (Arc::new(WorstJobRemoval::new(4, normal_limits)), 1.),
+                    (extra_random_job.clone(), 0.1),
+                ])),
+                10,
+            ),
+            (
+                Arc::new(CompositeRuin::new(vec![
                     // TODO avoid unwrap
                     (Arc::new(ClusterRemoval::new_with_defaults(problem.clone()).unwrap()), 1.),
                     (extra_random_job.clone(), 0.1),
-                ],
+                ])),
                 5,
             ),
-            (vec![(close_route, 1.), (extra_random_job.clone(), 0.1)], 2),
-            (vec![(worst_route, 1.), (extra_random_job.clone(), 0.1)], 1),
-            (vec![(random_route, 1.), (extra_random_job.clone(), 0.1)], 1),
-            (vec![(random_job, 1.), (extra_random_job, 0.1)], 1),
+            (Arc::new(CompositeRuin::new(vec![(close_route, 1.), (extra_random_job.clone(), 0.1)])), 2),
+            (Arc::new(CompositeRuin::new(vec![(worst_route, 1.), (extra_random_job.clone(), 0.1)])), 1),
+            (Arc::new(CompositeRuin::new(vec![(random_route, 1.), (extra_random_job.clone(), 0.1)])), 1),
+            (Arc::new(CompositeRuin::new(vec![(random_job, 1.), (extra_random_job, 0.1)])), 1),
         ]));
 
         Arc::new(WeightedHeuristicOperator::new(
@@ -645,22 +657,29 @@ mod dynamic {
         // initialize ruin
         let random_route = Arc::new(RandomRouteRemoval::new(small_limits.clone()));
         let random_job = Arc::new(RandomJobRemoval::new(small_limits.clone()));
-        let random_ruin = Arc::new(WeightedRuin::new(vec![
-            (vec![(random_job.clone(), 1.)], 10),
-            (vec![(random_route.clone(), 1.)], 1),
-        ]));
-
+        let random_ruin = Arc::new(WeightedRuin::new(vec![(random_job.clone(), 10), (random_route.clone(), 1)]));
         let ruin = Arc::new(WeightedRuin::new(vec![
             (
-                vec![
+                Arc::new(CompositeRuin::new(vec![
                     (Arc::new(AdjustedStringRemoval::new_with_defaults(small_limits.clone())), 1.),
                     (random_ruin.clone(), 0.1),
-                ],
+                ])),
                 1,
             ),
-            (vec![(Arc::new(NeighbourRemoval::new(small_limits.clone())), 1.), (random_ruin.clone(), 0.1)], 1),
-            (vec![(Arc::new(WorstJobRemoval::new(4, small_limits)), 1.), (random_ruin, 0.1)], 1),
-            (vec![(random_job, 1.), (random_route, 0.1)], 1),
+            (
+                Arc::new(CompositeRuin::new(vec![
+                    (Arc::new(NeighbourRemoval::new(small_limits.clone())), 1.),
+                    (random_ruin.clone(), 0.1),
+                ])),
+                1,
+            ),
+            (
+                Arc::new(CompositeRuin::new(vec![
+                    (Arc::new(WorstJobRemoval::new(4, small_limits)), 1.),
+                    (random_ruin.clone(), 0.1),
+                ])),
+                1,
+            ),
         ]));
 
         Arc::new(RuinAndRecreate::new(ruin, recreate))
