@@ -18,6 +18,7 @@ are already published. So, I stick to it for now.
 ### Added
 
 * add an experimental objective
+* add naive implementation of LKH local search
 
 
 ## [1.25.0] 2024-11-10
