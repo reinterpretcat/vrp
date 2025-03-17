@@ -296,23 +296,36 @@ pub struct Feature {
 }
 
 /// Specifies a result of hard route constraint check.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct ConstraintViolation {
     /// Violation code which is used as marker of specific constraint violated.
     pub code: ViolationCode,
     /// True if further insertions should not be attempted.
     pub stopped: bool,
+    /// Optional softness value indicating how close the solution is to being feasible.
+    /// Lower values indicate solutions that are "closer" to feasibility.
+    pub softness: Option<Cost>,
 }
 
 impl ConstraintViolation {
     /// A constraint violation failure with stopped set to true.
     pub fn fail(code: ViolationCode) -> Option<Self> {
-        Some(ConstraintViolation { code, stopped: true })
+        Some(ConstraintViolation { code, stopped: true, softness: None })
+    }
+
+    /// Creates a failed constraint evaluation result with softness value.
+    pub fn fail_with_softness(code: ViolationCode, softness: f64) -> Option<Self> {
+        Some(Self { code, stopped: true, softness: Some(softness) })
     }
 
     /// A constraint violation failure with stopped set to false.
     pub fn skip(code: ViolationCode) -> Option<Self> {
-        Some(ConstraintViolation { code, stopped: false })
+        Some(ConstraintViolation { code, stopped: false, softness: None })
+    }
+
+    /// Creates a skipped constraint evaluation result with softness value.
+    pub fn skip_with_softness(code: ViolationCode, softness: f64) -> Option<Self> {
+        Some(Self { code, stopped: false, softness: Some(softness) })
     }
 
     /// No constraint violation.
@@ -320,6 +333,20 @@ impl ConstraintViolation {
         None
     }
 }
+
+impl PartialEq for ConstraintViolation {
+    fn eq(&self, other: &Self) -> bool {
+        self.code == other.code
+            && self.stopped == other.stopped
+            && match (self.softness, other.softness) {
+                (Some(a), Some(b)) => (a - b).abs() < f64::EPSILON,
+                (None, None) => true,
+                _ => false,
+            }
+    }
+}
+
+impl Eq for ConstraintViolation {}
 
 /// Specifies a type for constraint violation code.
 #[derive(Clone, Copy, Debug, Default, Hash, Eq, PartialEq)]

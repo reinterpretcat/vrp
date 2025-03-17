@@ -179,7 +179,7 @@ fn can_evaluate_job_impl(
 
     let result = constraint.evaluate(&MoveContext::route(&solution_ctx, route_ctx, &job));
 
-    assert_eq!(result, expected.map(|code| ConstraintViolation { code, stopped: true }));
+    assert_eq!(result, expected.and_then(ConstraintViolation::fail));
 }
 
 parameterized_test! {can_merge_groups, (source, candidate, expected), {

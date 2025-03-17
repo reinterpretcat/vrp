@@ -64,7 +64,7 @@ impl FeatureConstraint for MultiTripConstraint {
                     return if intervals.is_marker_assignable(route_ctx.route(), job) {
                         None
                     } else {
-                        Some(ConstraintViolation { code: self.code, stopped: true })
+                        ConstraintViolation::fail(self.code)
                     };
                 };
             }

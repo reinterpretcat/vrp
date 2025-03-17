@@ -58,7 +58,7 @@ impl FeatureConstraint for RedistributeFeatureConstraint {
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => self.rules.get(*job).and_then(|actor| {
                 if actor == &route_ctx.route().actor {
-                    Some(ConstraintViolation { code: ViolationCode::default(), stopped: true })
+                    ConstraintViolation::fail(ViolationCode::default())
                 } else {
                     None
                 }

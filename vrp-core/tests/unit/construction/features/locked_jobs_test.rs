@@ -47,7 +47,7 @@ fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<Co
 }
 
 fn stop() -> Option<ConstraintViolation> {
-    Some(ConstraintViolation { code: ViolationCode(1), stopped: false })
+    ConstraintViolation::skip(ViolationCode(1))
 }
 
 fn some_activity() -> Activity {

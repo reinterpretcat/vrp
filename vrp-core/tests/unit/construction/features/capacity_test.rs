@@ -19,7 +19,7 @@ fn create_test_vehicle(capacity: i32) -> Vehicle {
 }
 
 fn create_constraint_violation(stopped: bool) -> Option<ConstraintViolation> {
-    Some(ConstraintViolation { code: VIOLATION_CODE, stopped })
+    Some(ConstraintViolation { code: VIOLATION_CODE, stopped, softness: None })
 }
 
 fn create_activity_with_simple_demand(size: i32) -> Activity {
@@ -79,7 +79,7 @@ parameterized_test! {can_evaluate_demand_on_route, (size, expected), {
 }}
 
 can_evaluate_demand_on_route! {
-    case01: (11, Some(ConstraintViolation { code: VIOLATION_CODE, stopped: true })),
+    case01: (11, ConstraintViolation::fail(VIOLATION_CODE)),
     case02: (10, None),
     case03: (9, None),
 }

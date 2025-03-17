@@ -433,12 +433,13 @@ impl MultiContext {
     /// Creates failed insertion context within reason code.
     #[inline]
     fn fail(err_ctx: SingleContext, other_ctx: MultiContext) -> ControlFlow<Self, Self> {
-        let (code, stopped) = err_ctx
+        let violation = err_ctx
             .violation
-            .map_or((ViolationCode::unknown(), false), |v| (v.code, v.stopped && other_ctx.activities.is_none()));
+            .map(|v| ConstraintViolation { stopped: v.stopped && other_ctx.activities.is_none(), ..v })
+            .or_else(|| ConstraintViolation::skip(ViolationCode::unknown()));
 
         ControlFlow::Break(Self {
-            violation: Some(ConstraintViolation { code, stopped }),
+            violation,
             start_index: other_ctx.start_index,
             next_index: other_ctx.start_index,
             cost: None,
