@@ -302,30 +302,31 @@ pub struct ConstraintViolation {
     pub code: ViolationCode,
     /// True if further insertions should not be attempted.
     pub stopped: bool,
-    /// Optional softness value indicating how close the solution is to being feasible.
+    /// Optional violation degree value indicating how close the solution is to being feasible.
     /// Lower values indicate solutions that are "closer" to feasibility.
-    pub softness: Option<Cost>,
+    /// [None] means that degree is not evaluated.
+    pub degree: Option<Cost>,
 }
 
 impl ConstraintViolation {
     /// A constraint violation failure with stopped set to true.
     pub fn fail(code: ViolationCode) -> Option<Self> {
-        Some(ConstraintViolation { code, stopped: true, softness: None })
+        Some(ConstraintViolation { code, stopped: true, degree: None })
     }
 
-    /// Creates a failed constraint evaluation result with softness value.
-    pub fn fail_with_softness(code: ViolationCode, softness: f64) -> Option<Self> {
-        Some(Self { code, stopped: true, softness: Some(softness) })
+    /// Creates a failed constraint evaluation result with violation degree value.
+    pub fn fail_with_degree(code: ViolationCode, degree: f64) -> Option<Self> {
+        Some(Self { code, stopped: true, degree: Some(degree) })
     }
 
     /// A constraint violation failure with stopped set to false.
     pub fn skip(code: ViolationCode) -> Option<Self> {
-        Some(ConstraintViolation { code, stopped: false, softness: None })
+        Some(ConstraintViolation { code, stopped: false, degree: None })
     }
 
-    /// Creates a skipped constraint evaluation result with softness value.
-    pub fn skip_with_softness(code: ViolationCode, softness: f64) -> Option<Self> {
-        Some(Self { code, stopped: false, softness: Some(softness) })
+    /// Creates a skipped constraint evaluation result with violation degree value.
+    pub fn skip_with_degree(code: ViolationCode, degree: f64) -> Option<Self> {
+        Some(Self { code, stopped: false, degree: Some(degree) })
     }
 
     /// No constraint violation.
@@ -338,7 +339,7 @@ impl PartialEq for ConstraintViolation {
     fn eq(&self, other: &Self) -> bool {
         self.code == other.code
             && self.stopped == other.stopped
-            && match (self.softness, other.softness) {
+            && match (self.degree, other.degree) {
                 (Some(a), Some(b)) => (a - b).abs() < f64::EPSILON,
                 (None, None) => true,
                 _ => false,

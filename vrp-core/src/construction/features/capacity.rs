@@ -241,7 +241,7 @@ where
             has_demand_violation(route_ctx, activity_ctx.index, demand, !self.has_markers(route_ctx))
         };
 
-        violation.map(|stopped| ConstraintViolation { code: self.violation_code, stopped, softness: None })
+        violation.map(|stopped| ConstraintViolation { code: self.violation_code, stopped, degree: None })
     }
 
     fn has_markers(&self, route_ctx: &RouteContext) -> bool {

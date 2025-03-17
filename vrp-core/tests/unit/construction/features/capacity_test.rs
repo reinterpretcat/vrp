@@ -19,7 +19,7 @@ fn create_test_vehicle(capacity: i32) -> Vehicle {
 }
 
 fn create_constraint_violation(stopped: bool) -> Option<ConstraintViolation> {
-    Some(ConstraintViolation { code: VIOLATION_CODE, stopped, softness: None })
+    Some(ConstraintViolation { code: VIOLATION_CODE, stopped, degree: None })
 }
 
 fn create_activity_with_simple_demand(size: i32) -> Activity {

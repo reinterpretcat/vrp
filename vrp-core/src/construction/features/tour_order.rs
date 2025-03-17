@@ -62,7 +62,7 @@ impl FeatureConstraint for TourOrderConstraint {
             MoveContext::Activity { route_ctx, activity_ctx, .. } => {
                 evaluate_result(route_ctx, activity_ctx, &self.order_fn, &|first, second, stopped| {
                     if compare_order_results(first, second) == Ordering::Greater {
-                        Some(ConstraintViolation { code: self.code, stopped, softness: None })
+                        Some(ConstraintViolation { code: self.code, stopped, degree: None })
                     } else {
                         None
                     }
