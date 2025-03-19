@@ -126,6 +126,7 @@ mod debug {
             TestSingleBuilder::default().build_as_job_ref(),
             vec![(ActivityBuilder::default().build(), 1)],
             &RouteContextBuilder::default().build(),
+            None,
         );
 
         let result = format!("{result:?}");

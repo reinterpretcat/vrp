@@ -25,6 +25,7 @@ fn create_insertion_success(insertion_ctx: &InsertionContext, insertion_data: (u
         job,
         activities: vec![(activity, insertion_idx)],
         actor,
+        penalty: None,
     })
 }
 

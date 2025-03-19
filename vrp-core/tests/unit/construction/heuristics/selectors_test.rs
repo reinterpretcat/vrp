@@ -16,6 +16,7 @@ mod noise_checks {
             TestSingleBuilder::default().id("job1").build_as_job_ref(),
             vec![],
             &RouteContextBuilder::default().build(),
+            None,
         )
     }
 

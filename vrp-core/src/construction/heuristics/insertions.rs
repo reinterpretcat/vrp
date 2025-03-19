@@ -30,6 +30,11 @@ pub struct InsertionSuccess {
     /// Specifies delta cost change for the insertion.
     pub cost: InsertionCost,
 
+    // TODO rename it to penalty?
+    /// Specifies (in)feasibility degree (if not [None]).
+    /// Higher values mean that insertion move is less feasible.
+    pub penalty: Option<InsertionCost>,
+
     /// Original job to be inserted.
     pub job: Job,
 
@@ -305,8 +310,9 @@ impl InsertionResult {
         job: Job,
         activities: Vec<(Activity, usize)>,
         route_ctx: &RouteContext,
+        penalty: Option<InsertionCost>,
     ) -> Self {
-        Self::Success(InsertionSuccess { cost, job, activities, actor: route_ctx.route().actor.clone() })
+        Self::Success(InsertionSuccess { cost, job, activities, actor: route_ctx.route().actor.clone(), penalty })
     }
 
     /// Creates result which represents insertion failure.

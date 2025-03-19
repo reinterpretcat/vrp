@@ -340,7 +340,7 @@ impl PartialEq for ConstraintViolation {
         self.code == other.code
             && self.stopped == other.stopped
             && match (self.degree, other.degree) {
-                (Some(a), Some(b)) => (a - b).abs() < f64::EPSILON,
+                (Some(a), Some(b)) => a.total_cmp(&b) == Ordering::Equal,
                 (None, None) => true,
                 _ => false,
             }
@@ -514,6 +514,19 @@ impl GoalContext {
     /// Returns goals with alternative objectives.
     pub(crate) fn get_alternatives(&self) -> impl Iterator<Item = Self> + '_ {
         self.alternative_goals.iter().enumerate().map(|(idx, _)| self.get_alternative(idx))
+    }
+
+    /// Reconciles estimation and evaluation (if any) costs to a single cost.
+    pub(crate) fn reconcile(
+        &self,
+        estimation_cost: InsertionCost,
+        evaluation_cost: Option<&InsertionCost>,
+    ) -> InsertionCost {
+        let Some(_evaluation_cost) = evaluation_cost else {
+            return estimation_cost;
+        };
+
+        todo!("need to unify estimation and evaluation costs")
     }
 
     /// Accepts job insertion.

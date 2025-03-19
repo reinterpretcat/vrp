@@ -55,31 +55,46 @@ pub fn eval_job_insertion_in_route(
 
     let goal = &insertion_ctx.problem.goal;
 
-    if let Some(violation) = goal.evaluate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job)) {
-        return eval_ctx.result_selector.select_insertion(
-            insertion_ctx,
-            alternative,
-            InsertionResult::make_failure_with_code(violation.code, true, Some(eval_ctx.job.clone())),
-        );
-    }
+    // evaluate constraint violation on route level
+    let penalty_cost: Option<InsertionCost> =
+        match goal.evaluate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job)) {
+            Some(ConstraintViolation { degree: Some(_), .. }) => {
+                todo!("handle degree constraint violation")
+            }
+            Some(violation) => {
+                return eval_ctx.result_selector.select_insertion(
+                    insertion_ctx,
+                    alternative,
+                    InsertionResult::make_failure_with_code(violation.code, true, Some(eval_ctx.job.clone())),
+                );
+            }
+            None => None,
+        };
 
-    let route_costs = goal.estimate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job));
+    // get route costs
+    let route_cost = goal.estimate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job));
+    let route_cost = goal.reconcile(route_cost, penalty_cost.as_ref());
 
     // analyze alternative and return it if it looks better based on routing cost comparison
     let (route_costs, best_known_cost) = match alternative.as_success() {
-        Some(success) => match eval_ctx.result_selector.select_cost(&success.cost, &route_costs) {
-            Either::Left(_) => return alternative,
-            Either::Right(_) => (route_costs, Some(success.cost.clone())),
-        },
-        _ => (route_costs, None),
+        Some(success) => {
+            let alt_costs = goal.reconcile(success.cost.clone(), success.penalty.as_ref());
+            match eval_ctx.result_selector.select_cost(&alt_costs, &route_cost) {
+                Either::Left(_) => return alternative,
+                Either::Right(_) => (route_cost, Some(alt_costs)),
+            }
+        }
+        _ => (route_cost, None),
     };
 
     let solution_ctx = &insertion_ctx.solution;
 
+    let move_cost = MoveCost { cost: route_costs, penalty_cost };
+
     eval_ctx.result_selector.select_insertion(
         insertion_ctx,
         alternative,
-        eval_job_constraint_in_route(eval_ctx, solution_ctx, route_ctx, position, route_costs, best_known_cost),
+        eval_job_constraint_in_route(eval_ctx, solution_ctx, route_ctx, position, move_cost, best_known_cost),
     )
 }
 
@@ -90,16 +105,14 @@ fn eval_job_constraint_in_route(
     solution_ctx: &SolutionContext,
     route_ctx: &RouteContext,
     position: InsertionPosition,
-    route_costs: InsertionCost,
+    move_cost: MoveCost,
     best_known_cost: Option<InsertionCost>,
 ) -> InsertionResult {
     match eval_ctx.job {
         Job::Single(single) => {
-            eval_single(eval_ctx, solution_ctx, route_ctx, single, position, route_costs, best_known_cost)
+            eval_single(eval_ctx, solution_ctx, route_ctx, single, position, move_cost, best_known_cost)
         }
-        Job::Multi(multi) => {
-            eval_multi(eval_ctx, solution_ctx, route_ctx, multi, position, route_costs, best_known_cost)
-        }
+        Job::Multi(multi) => eval_multi(eval_ctx, solution_ctx, route_ctx, multi, position, move_cost, best_known_cost),
     }
 }
 
@@ -109,7 +122,7 @@ pub(crate) fn eval_single_constraint_in_route(
     route_ctx: &RouteContext,
     single: &Arc<Single>,
     position: InsertionPosition,
-    route_costs: InsertionCost,
+    move_cost: MoveCost,
     best_known_cost: Option<InsertionCost>,
 ) -> InsertionResult {
     let solution_ctx = &insertion_ctx.solution;
@@ -120,7 +133,7 @@ pub(crate) fn eval_single_constraint_in_route(
             stopped: true,
             job: Some(eval_ctx.job.clone()),
         }),
-        _ => eval_single(eval_ctx, solution_ctx, route_ctx, single, position, route_costs, best_known_cost),
+        _ => eval_single(eval_ctx, solution_ctx, route_ctx, single, position, move_cost, best_known_cost),
     }
 }
 
@@ -130,7 +143,7 @@ fn eval_single(
     route_ctx: &RouteContext,
     single: &Arc<Single>,
     position: InsertionPosition,
-    route_costs: InsertionCost,
+    move_cost: MoveCost,
     best_known_cost: Option<InsertionCost>,
 ) -> InsertionResult {
     let insertion_idx = get_insertion_index(route_ctx, position);
@@ -143,7 +156,7 @@ fn eval_single(
         insertion_idx,
         single,
         &mut activity,
-        route_costs,
+        move_cost,
         SingleContext::new(best_known_cost, 0),
     );
 
@@ -151,7 +164,10 @@ fn eval_single(
     if let Some(place) = result.place {
         activity.place = place;
         let activities = vec![(activity, result.index)];
-        InsertionResult::make_success(result.cost.unwrap_or_default(), job, activities, route_ctx)
+        let cost = result.cost.unwrap_or_default();
+        let penalty = result.penalty_cost;
+
+        InsertionResult::make_success(cost, job, activities, route_ctx, penalty)
     } else {
         let (code, stopped) = result.violation.map_or((ViolationCode::unknown(), false), |v| (v.code, v.stopped));
         InsertionResult::make_failure_with_code(code, stopped, Some(job))
@@ -164,7 +180,7 @@ fn eval_multi(
     route_ctx: &RouteContext,
     multi: &Arc<Multi>,
     position: InsertionPosition,
-    route_costs: InsertionCost,
+    move_cost: MoveCost,
     best_known_cost: Option<InsertionCost>,
 ) -> InsertionResult {
     let insertion_idx = get_insertion_index(route_ctx, position).unwrap_or(0);
@@ -205,10 +221,17 @@ fn eval_multi(
                                 activity.place = place;
                                 let activity = shadow.insert(activity, srv_res.index);
                                 let activities = concat_activities(in1.activities, (activity, srv_res.index));
-                                return MultiContext::success(
-                                    in1.cost.unwrap_or_else(|| route_costs.clone()) + srv_res.cost.unwrap_or_default(),
-                                    activities,
-                                );
+
+                                let cost = in1.cost.unwrap_or_else(|| move_cost.cost.clone())
+                                    + srv_res.cost.unwrap_or_default();
+
+                                let penalty_cost =
+                                    [in1.penalty_cost.or_else(|| move_cost.penalty_cost.clone()), srv_res.penalty_cost]
+                                        .into_iter()
+                                        .flatten()
+                                        .reduce(|acc, i| acc + i);
+
+                                return MultiContext::success(cost, activities, penalty_cost);
                             }
 
                             MultiContext::fail(srv_res, in1)
@@ -226,7 +249,10 @@ fn eval_multi(
     let job = eval_ctx.job.clone();
     if result.is_success() {
         let activities = result.activities.unwrap_or_default();
-        InsertionResult::make_success(result.cost.unwrap_or_default(), job, activities, route_ctx)
+        let cost = result.cost.unwrap_or_default();
+        let penalty_cost = result.penalty_cost;
+
+        InsertionResult::make_success(cost, job, activities, route_ctx, penalty_cost)
     } else {
         let (code, stopped) = result.violation.map_or((ViolationCode::unknown(), false), |v| (v.code, v.stopped));
         InsertionResult::make_failure_with_code(code, stopped, Some(job))
@@ -241,20 +267,11 @@ fn analyze_insertion_in_route(
     insertion_idx: Option<usize>,
     single: &Single,
     target: &mut Activity,
-    route_costs: InsertionCost,
+    move_cost: MoveCost,
     init: SingleContext,
 ) -> SingleContext {
     let mut analyze_leg_insertion = |leg: Leg<'_>, init| {
-        analyze_insertion_in_route_leg(
-            eval_ctx,
-            solution_ctx,
-            route_ctx,
-            leg,
-            single,
-            target,
-            route_costs.clone(),
-            init,
-        )
+        analyze_insertion_in_route_leg(eval_ctx, solution_ctx, route_ctx, leg, single, target, move_cost.clone(), init)
     };
 
     match insertion_idx {
@@ -289,7 +306,7 @@ fn analyze_insertion_in_route_leg(
     leg: Leg,
     single: &Single,
     target: &mut Activity,
-    route_costs: InsertionCost,
+    move_cost: MoveCost,
     mut single_ctx: SingleContext,
 ) -> ControlFlow<SingleContext, SingleContext> {
     let (items, index) = leg;
@@ -313,19 +330,26 @@ fn analyze_insertion_in_route_leg(
             let activity_ctx = ActivityContext { index, prev, target, next };
             let move_ctx = MoveContext::activity(solution_ctx, route_ctx, &activity_ctx);
 
-            if let Some(violation) = eval_ctx.goal.evaluate(&move_ctx) {
-                let is_stopped = violation.stopped;
-                single_ctx.violation = Some(violation);
-                if is_stopped {
-                    // should stop processing this leg and next ones
+            // determine evaluation costs if they are present
+            let penalty_cost = match eval_ctx.goal.evaluate(&move_ctx) {
+                Some(ConstraintViolation { degree: Some(_), .. }) => {
+                    todo!("handle degree constraint violation")
+                }
+                Some(violation) if violation.stopped => {
+                    single_ctx.violation = Some(violation);
                     return ControlFlow::Break(single_ctx);
-                } else {
-                    // can continue within the next place
+                }
+                Some(violation) => {
+                    single_ctx.violation = Some(violation);
                     continue;
                 }
-            }
+                None => None,
+            };
 
-            let costs = eval_ctx.goal.estimate(&move_ctx) + &route_costs;
+            // get final cost estimation
+            let costs = eval_ctx.goal.estimate(&move_ctx) + &move_cost.cost;
+            let costs = eval_ctx.goal.reconcile(costs, penalty_cost.as_ref());
+
             let other_costs = single_ctx.cost.as_ref().unwrap_or(InsertionCost::max_value());
 
             match eval_ctx.result_selector.select_cost(&costs, other_costs) {
@@ -334,6 +358,7 @@ fn analyze_insertion_in_route_leg(
                     single_ctx.violation = None;
                     single_ctx.index = index;
                     single_ctx.cost = Some(costs);
+                    single_ctx.penalty_cost = penalty_cost;
                     single_ctx.place = Some(target.place.clone());
                 }
                 Either::Right(_) => continue,
@@ -352,6 +377,15 @@ fn get_insertion_index(route_ctx: &RouteContext, position: InsertionPosition) ->
     }
 }
 
+/// Keeps track of cost estimations of the move (insertion)
+#[derive(Clone, Default)]
+pub(crate) struct MoveCost {
+    /// Estimation specifies delta cost change for the insertion.
+    cost: InsertionCost,
+    /// Penalty specifies (in)feasibility degree (if not [None]).
+    penalty_cost: Option<InsertionCost>,
+}
+
 /// Stores information needed for single insertion.
 #[derive(Clone, Debug, Default)]
 struct SingleContext {
@@ -361,6 +395,8 @@ struct SingleContext {
     pub index: usize,
     /// Best cost.
     pub cost: Option<InsertionCost>,
+    /// Penalty metric.
+    pub penalty_cost: Option<InsertionCost>,
     /// Activity place.
     pub place: Option<Place>,
 }
@@ -368,7 +404,7 @@ struct SingleContext {
 impl SingleContext {
     /// Creates a new empty context with given cost.
     fn new(cost: Option<InsertionCost>, index: usize) -> Self {
-        Self { violation: None, index, cost, place: None }
+        Self { violation: None, index, cost, place: None, penalty_cost: None }
     }
 }
 
@@ -382,6 +418,8 @@ struct MultiContext {
     pub next_index: usize,
     /// Cost accumulator.
     pub cost: Option<InsertionCost>,
+    /// Feasibility metric.
+    pub penalty_cost: Option<InsertionCost>,
     /// Activities with their indices.
     pub activities: Option<Vec<(Activity, usize)>>,
 }
@@ -389,7 +427,7 @@ struct MultiContext {
 impl MultiContext {
     /// Creates new empty insertion context.
     fn new(cost: Option<InsertionCost>, index: usize) -> Self {
-        Self { violation: None, start_index: index, next_index: index, cost, activities: None }
+        Self { violation: None, start_index: index, next_index: index, cost, penalty_cost: None, activities: None }
     }
 
     /// Promotes insertion context by best price.
@@ -420,6 +458,7 @@ impl MultiContext {
             start_index: index,
             next_index: index,
             cost: best.cost,
+            penalty_cost: best.penalty_cost,
             activities: best.activities,
         };
 
@@ -443,13 +482,18 @@ impl MultiContext {
             start_index: other_ctx.start_index,
             next_index: other_ctx.start_index,
             cost: None,
+            penalty_cost: None,
             activities: None,
         })
     }
 
     /// Creates successful insertion context.
     #[inline]
-    fn success(cost: InsertionCost, activities: Vec<(Activity, usize)>) -> ControlFlow<Self, Self> {
+    fn success(
+        cost: InsertionCost,
+        activities: Vec<(Activity, usize)>,
+        penalty_cost: Option<InsertionCost>,
+    ) -> ControlFlow<Self, Self> {
         // NOTE avoid stack unwinding
         let start_index = activities.first().map_or(0, |act| act.1);
         let next_index = activities.last().map_or(0, |act| act.1) + 1;
@@ -459,6 +503,7 @@ impl MultiContext {
             start_index,
             next_index,
             cost: Some(cost),
+            penalty_cost,
             activities: Some(activities),
         })
     }
@@ -471,6 +516,7 @@ impl MultiContext {
             start_index: self.start_index,
             next_index: self.start_index,
             cost: None,
+            penalty_cost: None,
             activities: None,
         }
     }
