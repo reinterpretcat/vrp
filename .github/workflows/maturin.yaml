@@ -1,7 +1,10 @@
-name: Publish to PyPI
+name: Publish Release
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "*"
   release:
     types:
       - released
@@ -18,9 +21,11 @@ jobs:
         target: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
           python-version: "3.12"
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -29,11 +34,13 @@ jobs:
           sccache: "true"
           args: --release --out dist -m Cargo.toml -i 3.12
           manylinux: auto
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.target }}
           path: ./vrp-cli/dist
+
   macos:
     runs-on: macos-latest
     strategy:
@@ -41,10 +48,12 @@ jobs:
         target: [aarch64]
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
           python-version: "3.12"
           architecture: "arm64"
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -52,6 +61,7 @@ jobs:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
           sccache: "true"
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -70,9 +80,48 @@ jobs:
         with:
           path: .
           merge-multiple: true
-      - name: List artifacts
-        run: ls -lhs
+
       - name: Upload to GitHub
+        id: create-release
         uses: softprops/action-gh-release@v2
         with:
           files: ./*
+
+      - uses: actions/checkout@v3
+        with:
+          ref: gh-pages
+
+      - name: Generate PyPi index page
+        id: generate_index
+        shell: python
+        env:
+          ASSETS: ${{ steps.create-release.outputs.assets }}
+
+        run: |
+          import json
+          import os
+
+          # Load the assets data from the previous step
+          assets = json.loads(os.environ['ASSETS'])
+
+          # Define the header for the index.md file
+          index_content = "# vrp-cli\n\n"
+
+          # Iterate over the assets and format them into markdown links
+          for asset in assets:
+            name = asset['name']
+            url = asset['browser_download_url']
+            python_version = name.split('-')[2].split('cp3')[1]
+            index_content += f'<a href="{url}" data-requires-python="==3.{python_version}">{name}</a><br />\n'
+
+          # Write the content to the index.md file
+          with open('docs/vrp-cli/index.md', 'w') as f:
+            f.write(index_content)
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add docs/vrp-cli/index.md
+          git commit -m 'docs: update PyPi index page'
+          git push
