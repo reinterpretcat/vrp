@@ -27,7 +27,7 @@ jobs:
           working-directory: ./vrp-cli
           target: ${{ matrix.target }}
           sccache: 'true'
-          args: --release --out dist -m Cargo.toml --sdist -i 3.12
+          args: --release --out dist -m Cargo.toml
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v4
