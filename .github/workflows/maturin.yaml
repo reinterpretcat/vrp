@@ -21,36 +21,13 @@ jobs:
           working-directory: ./vrp-cli
           target: ${{ matrix.target }}
           sccache: 'true'
-          args: --release --out dist --find-interpreter
+          args: --release --out dist -m Cargo.toml -i 3.9
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: ./vrp-cli/dist
-
-  # windows:
-  #   runs-on: windows-latest
-  #   strategy:
-  #     matrix:
-  #       target: [x64, x86]
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-python@v4
-  #       with:
-  #         architecture: ${{ matrix.target }}
-  #     - name: Build wheels
-  #       uses: PyO3/maturin-action@v1
-  #       with:
-  #         working-directory: ./vrp-cli
-  #         target: ${{ matrix.target }}
-  #         args: --release --out dist --find-interpreter
-  #         sccache: "true"
-  #     - name: Upload wheels
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: wheels
-  #         path: ./vrp-cli/dist
 
   # macos:
   #   runs-on: macos-latest
@@ -72,22 +49,6 @@ jobs:
   #       with:
   #         name: wheels
   #         path: ./vrp-cli/dist
-
-  #  sdist:
-  #    runs-on: ubuntu-latest
-  #    steps:
-  #      - uses: actions/checkout@v3
-  #      - name: Build sdist
-  #        uses: PyO3/maturin-action@v1
-  #        with:
-  #          working-directory: ./vrp-cli
-  #          command: sdist
-  #          args: --out dist
-  #      - name: Upload sdist
-  #        uses: actions/upload-artifact@v3
-  #        with:
-  #          name: wheels
-  #          path: ./vrp-cli/dist
 
   release:
     name: Release
