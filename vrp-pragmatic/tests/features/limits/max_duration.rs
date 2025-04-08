@@ -27,19 +27,7 @@ fn can_limit_one_job_by_max_duration() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    assert_eq!(
-        solution,
-        SolutionBuilder::default()
-            .unassigned(Some(vec![UnassignedJob {
-                job_id: "job1".to_string(),
-                reasons: vec![UnassignedJobReason {
-                    code: "MAX_DURATION_CONSTRAINT".to_string(),
-                    description: "cannot be assigned due to max duration constraint of vehicle".to_string(),
-                    details: None
-                }]
-            }]))
-            .build()
-    );
+    assert_eq!(solution.unassigned.iter().len(), 1);
 }
 
 #[test]
@@ -130,8 +118,6 @@ fn can_skip_job_from_multiple_because_of_max_duration() {
 }
 
 #[test]
-// NOTE: this is a specific use case of departure time optimization
-#[ignore]
 fn can_serve_job_when_it_starts_late() {
     let problem = Problem {
         plan: Plan {

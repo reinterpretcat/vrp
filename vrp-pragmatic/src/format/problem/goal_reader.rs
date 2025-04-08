@@ -26,7 +26,12 @@ pub(super) fn create_goal_context(
     features.push(get_capacity_feature("capacity", api_problem, blocks, props)?);
 
     if props.has_tour_travel_limits {
-        features.push(get_tour_limit_feature("tour_limit", api_problem, blocks.transport.clone())?)
+        features.push(get_tour_limit_feature(
+            "tour_limit",
+            api_problem,
+            blocks.transport.clone(),
+            blocks.activity.clone(),
+        )?)
     }
 
     if props.has_breaks {
@@ -409,6 +414,7 @@ fn get_tour_limit_feature(
     name: &str,
     api_problem: &ApiProblem,
     transport: Arc<dyn TransportCost>,
+    activity: Arc<dyn ActivityCost>,
 ) -> GenericResult<Feature> {
     let (distances, durations) = api_problem
         .fleet
@@ -435,7 +441,8 @@ fn get_tour_limit_feature(
 
     create_travel_limit_feature(
         name,
-        transport.clone(),
+        transport,
+        activity,
         DISTANCE_LIMIT_CONSTRAINT_CODE,
         DURATION_LIMIT_CONSTRAINT_CODE,
         get_limit(distances),
