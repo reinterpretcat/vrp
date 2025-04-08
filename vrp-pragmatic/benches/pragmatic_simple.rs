@@ -42,7 +42,7 @@ fn get_refinement_ctx(problem_path: &str) -> RefinementContext {
 /// Solve problem using cheapest insertion heuristic and returns one solution.
 fn solve_problem_with_recreate_cheapest(refinement_ctx: &RefinementContext) -> InsertionContext {
     RecreateWithCheapest::new(refinement_ctx.environment.random.clone())
-        .run(&refinement_ctx, InsertionContext::new(refinement_ctx.problem.clone(), refinement_ctx.environment.clone()))
+        .run(refinement_ctx, InsertionContext::new(refinement_ctx.problem.clone(), refinement_ctx.environment.clone()))
 }
 
 fn bench_init_deliveries_100_benchmark(c: &mut Criterion) {

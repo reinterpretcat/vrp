@@ -5,7 +5,7 @@ mod greedy_test;
 use super::*;
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
-use std::iter::{empty, repeat};
+use std::iter::empty;
 use std::sync::Arc;
 
 /// A population which keeps track of the best known individuals only.
@@ -53,7 +53,7 @@ where
 
     fn select(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         match self.best_known.as_ref() {
-            Some(best_known) => Box::new(repeat(best_known).take(self.selection_size)),
+            Some(best_known) => Box::new(std::iter::repeat_n(best_known, self.selection_size)),
             _ => Box::new(empty()),
         }
     }
