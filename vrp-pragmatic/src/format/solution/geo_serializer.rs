@@ -325,7 +325,7 @@ pub(crate) fn create_feature_collection(problem: &Problem, solution: &Solution) 
         .map(|(tour_idx, tour)| get_tour_line(tour_idx, tour, get_color(tour_idx).as_str()))
         .collect::<Result<Vec<_>, _>>()?;
 
-    let (job_index, coord_index) = get_indices(&problem.extras).map_err(|err| Error::new(ErrorKind::Other, err))?;
+    let (job_index, coord_index) = get_indices(&problem.extras).map_err(Error::other)?;
 
     let unassigned_markers = solution
         .unassigned

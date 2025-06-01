@@ -433,7 +433,7 @@ where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    let fitness_change = population
+    population
         .ranked()
         .next()
         .map(|best_ctx| best_ctx.fitness())
@@ -441,9 +441,7 @@ where
             let fitness_value = solution.fitness();
             relative_distance(fitness_value, best_fitness)
         })
-        .unwrap_or(0.);
-
-    fitness_change
+        .unwrap_or(0.)
 }
 
 fn format_fitness(fitness: impl Iterator<Item = Float>) -> String {

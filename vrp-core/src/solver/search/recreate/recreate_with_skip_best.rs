@@ -90,11 +90,6 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
 
         let skip_index = skip_index.min(results.len() as i32) as usize - 1;
 
-        let insertion_result = results
-            .drain(skip_index..=skip_index)
-            .next()
-            .unwrap_or_else(|| panic!("Unexpected insertion results length"));
-
-        insertion_result
+        results.drain(skip_index..=skip_index).next().unwrap_or_else(|| panic!("Unexpected insertion results length"))
     }
 }

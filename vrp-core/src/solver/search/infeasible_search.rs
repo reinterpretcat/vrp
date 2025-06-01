@@ -79,10 +79,7 @@ impl HeuristicSearchOperator for InfeasibleSearch {
             new_refinement_ctx.add_solution(self.recover_individual(refinement_ctx, new_insertion_ctx));
         }
 
-        let insertion_ctx =
-            new_refinement_ctx.ranked().map(|s| s.deep_copy()).next().unwrap_or_else(|| solution.deep_copy());
-
-        insertion_ctx
+        new_refinement_ctx.ranked().map(|s| s.deep_copy()).next().unwrap_or_else(|| solution.deep_copy())
     }
 }
 

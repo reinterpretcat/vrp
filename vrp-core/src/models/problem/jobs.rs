@@ -428,7 +428,7 @@ fn get_cost_between_jobs(
     let outer: Vec<Option<Location>> = get_job_locations(lhs).collect();
     let inner: Vec<Option<Location>> = get_job_locations(rhs).collect();
 
-    let routing_cost = outer
+    outer
         .iter()
         .flat_map(|o| inner.iter().map(move |i| (*o, *i)))
         .map(|pair| match pair {
@@ -436,11 +436,8 @@ fn get_cost_between_jobs(
             _ => DEFAULT_COST,
         })
         .min_by(|a, b| a.total_cmp(b))
-        .unwrap_or(DEFAULT_COST);
-
+        .unwrap_or(DEFAULT_COST)
     // NOTE: ignore time window difference costs as it is hard to balance with routing costs
-
-    routing_cost
 }
 
 fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<usize, Costs> {

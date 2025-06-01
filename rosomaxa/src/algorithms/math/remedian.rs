@@ -58,7 +58,7 @@ where
         self.count += 1;
         self.buffers[0].push(value);
 
-        (0..self.exponent).try_for_each(|i| {
+        let _ = (0..self.exponent).try_for_each(|i| {
             let batch = &mut self.buffers[i];
 
             if batch.len() == self.base {

@@ -122,7 +122,7 @@ impl FeatureState for CombinedFeatureState {
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         // NOTE should not use a version with fallback to avoid hiding changes for other states
-        self.states.iter().try_for_each(|state| {
+        let _ = self.states.iter().try_for_each(|state| {
             let previous_state = (ctx.required.len(), ctx.ignored.len(), ctx.unassigned.len());
 
             state.accept_solution_state(ctx);
