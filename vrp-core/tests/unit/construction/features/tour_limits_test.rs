@@ -359,6 +359,20 @@ mod notify_failure {
     }
 
     #[test]
+    fn handles_jobs_with_max_time_window() -> GenericResult<()> {
+        let mut solution_ctx = create_solution_context(&["v1_limit"]);
+
+        // Create job with max time window
+        let job = SingleBuilder::default().id("job1").location(10)?.times(vec![TimeWindow::max()])?.build_as_job()?;
+
+        let result = create_limit_state().notify_failure(&mut solution_ctx, &[], &[job]);
+
+        assert!(!result, "should return false when job has max time window");
+        assert!(solution_ctx.routes.is_empty(), "should not add any route to solution context");
+        Ok(())
+    }
+
+    #[test]
     fn handles_job_outside_vehicle_shift_time() -> GenericResult<()> {
         let mut solution_ctx = create_solution_context(&["v1", "v2"]);
 

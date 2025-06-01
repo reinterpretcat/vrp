@@ -180,6 +180,8 @@ impl FeatureState for TravelLimitState {
                         .iter()
                         // consider only jobs with time windows
                         .filter_map(|time_span| time_span.as_time_window())
+                        // but not max ones
+                        .filter(|tw| *tw != TimeWindow::max())
                         .map(move |tw| (tw, location))
                 })
             })
