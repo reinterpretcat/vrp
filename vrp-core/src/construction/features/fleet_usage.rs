@@ -23,7 +23,7 @@ pub fn create_maximize_tours_feature(name: &str) -> GenericResult<Feature> {
         .with_name(name)
         .with_objective(FleetUsageObjective {
             route_estimate_fn: Box::new(|route_ctx| if route_ctx.route().tour.job_count() == 0 { -1. } else { 0. }),
-            solution_estimate_fn: Box::new(|solution_ctx| -1. * solution_ctx.routes.iter().len() as Cost),
+            solution_estimate_fn: Box::new(|solution_ctx| -(solution_ctx.routes.iter().len() as Cost)),
         })
         .build()
 }

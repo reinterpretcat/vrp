@@ -291,14 +291,14 @@ fn can_create_network_with_spiral_distribution() {
     let network = NetworkType::new(&(), initial_data.clone(), config, random, |_| DataStorageFactory).unwrap();
 
     let non_empty_nodes = count_non_empty_nodes(&network.nodes);
-    assert!(non_empty_nodes >= (size / 10), "too sparse {}", non_empty_nodes);
+    assert!(non_empty_nodes >= (size / 10), "too sparse {non_empty_nodes}");
     assert!(network.size() <= (size * 2), "too big {}", network.size());
     let distances: Vec<_> = network
         .get_nodes()
         .flat_map(|node| node.storage.data.iter().map(|data| euclidian_distance(&node.weights, data.weights())))
         .collect();
     let avg_distance = distances.iter().sum::<Float>() / distances.len() as Float;
-    assert!(avg_distance < 0.66, "too big average: {}", avg_distance);
+    assert!(avg_distance < 0.66, "too big average: {avg_distance}");
 }
 
 #[test]
@@ -417,9 +417,7 @@ fn can_select_initial_samples_edge_cases_impl(data: Vec<Data>, sampling: (usize,
 
     assert!(
         min_distance >= expected_min_distance,
-        "Minimum distance {} is less than expected threshold {} for test case",
-        min_distance,
-        expected_min_distance
+        "Minimum distance {min_distance} is less than expected threshold {expected_min_distance} for test case"
     );
 }
 
@@ -480,5 +478,5 @@ fn can_create_new_network_empty_regions() {
         .filter(|&dist| dist <= 1.)
         .count();
     let failure_fraction = failed_pairs as f64 / total_pairs as f64;
-    assert!(failure_fraction < 0.1, "Too many node pairs are too close: {}", failure_fraction);
+    assert!(failure_fraction < 0.1, "Too many node pairs are too close: {failure_fraction}");
 }

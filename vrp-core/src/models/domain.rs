@@ -240,7 +240,7 @@ impl ProblemBuilder {
         let group_key = self.group_key_fn.take().unwrap_or_else(|| Box::new(|_| Box::new(|a| a.vehicle.profile.index)));
         let fleet = Arc::new(Fleet::new(vec![driver], vehicles, group_key));
 
-        let logger = self.logger.unwrap_or_else(|| Arc::new(|msg| println!("{}", msg)));
+        let logger = self.logger.unwrap_or_else(|| Arc::new(|msg| println!("{msg}")));
 
         // setup jobs
         let jobs = Arc::new(Jobs::new(fleet.as_ref(), self.jobs, transport.as_ref(), &logger)?);

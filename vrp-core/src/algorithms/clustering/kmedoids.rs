@@ -160,8 +160,8 @@ where
 
     fn update_medoids(&self, clusters: &HashMap<P, Vec<P>>) -> Vec<P> {
         clusters
-            .iter()
-            .map(|(_, points)| {
+            .values()
+            .map(|points| {
                 points
                     .iter()
                     .min_by(|&p1, &p2| {

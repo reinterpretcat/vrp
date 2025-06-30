@@ -140,7 +140,7 @@ where
         // create a network with more aggressive initial parameters
         let mut network = Self {
             dimension,
-            growing_threshold: -1. * dimension as Float * config.spread_factor.log2(),
+            growing_threshold: -(dimension as Float) * config.spread_factor.log2(),
             distribution_factor: config.distribution_factor,
             learning_rate: config.learning_rate,
             time: 0,

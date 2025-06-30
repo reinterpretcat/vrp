@@ -36,7 +36,7 @@ impl TestTransportCost {
 }
 
 pub fn fake_routing(from: Location, to: Location) -> Float {
-    (if to > from { to - from } else { from - to }) as Float
+    to.abs_diff(from) as Float
 }
 
 #[derive(Default)]
