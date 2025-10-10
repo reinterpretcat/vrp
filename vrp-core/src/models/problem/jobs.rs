@@ -242,7 +242,7 @@ impl Jobs {
     pub fn new(
         fleet: &Fleet,
         jobs: Vec<Job>,
-        transport: &(dyn TransportCost),
+        transport: &dyn TransportCost,
         logger: &InfoLogger,
     ) -> GenericResult<Jobs> {
         let index = create_index(fleet, jobs.clone(), transport, logger);
@@ -334,7 +334,7 @@ pub fn get_job_locations(job: &Job) -> impl Iterator<Item = Option<Location>> + 
 fn create_index(
     fleet: &Fleet,
     jobs: Vec<Job>,
-    transport: &(dyn TransportCost),
+    transport: &dyn TransportCost,
     logger: &InfoLogger,
 ) -> HashMap<usize, JobIndex> {
     let avg_profile_costs = get_avg_profile_costs(fleet);
@@ -387,7 +387,7 @@ fn create_index(
 fn get_cost_between_locations(
     profile: &Profile,
     costs: &Costs,
-    transport: &(dyn TransportCost),
+    transport: &dyn TransportCost,
     from: Location,
     to: Location,
 ) -> LowPrecisionCost {
@@ -406,7 +406,7 @@ fn get_cost_between_locations(
 fn get_cost_between_job_and_location(
     profile: &Profile,
     costs: &Costs,
-    transport: &(dyn TransportCost),
+    transport: &dyn TransportCost,
     job: &Job,
     to: Location,
 ) -> LowPrecisionCost {
@@ -421,7 +421,7 @@ fn get_cost_between_job_and_location(
 fn get_cost_between_jobs(
     profile: &Profile,
     costs: &Costs,
-    transport: &(dyn TransportCost),
+    transport: &dyn TransportCost,
     lhs: &Job,
     rhs: &Job,
 ) -> LowPrecisionCost {

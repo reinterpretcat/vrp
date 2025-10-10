@@ -77,17 +77,17 @@ fn add_with_limits<T: Clone + Eq + PartialEq + Hash>(
     new_item: T,
     old_items: &mut HashSet<T>,
     limits: usize,
-    random: &(dyn Random),
+    random: &dyn Random,
 ) {
     // NOTE do not use tabu list when limit is zero
     if limits == 0 {
         return;
     }
 
-    if old_items.len() == limits {
-        if let Some(item) = old_items.iter().choose(&mut random.get_rng()).cloned() {
-            old_items.remove(&item);
-        }
+    if old_items.len() == limits
+        && let Some(item) = old_items.iter().choose(&mut random.get_rng()).cloned()
+    {
+        old_items.remove(&item);
     }
 
     old_items.insert(new_item);

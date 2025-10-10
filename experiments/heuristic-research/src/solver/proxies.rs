@@ -98,7 +98,7 @@ where
         Self { generation: 0, inner, _phantom: Default::default() }
     }
 
-    fn acquire(&self) -> MutexGuard<ExperimentData> {
+    fn acquire(&self) -> MutexGuard<'_, ExperimentData> {
         EXPERIMENT_DATA.lock().unwrap()
     }
 }

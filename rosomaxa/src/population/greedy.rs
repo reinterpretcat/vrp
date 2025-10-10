@@ -34,10 +34,10 @@ where
     }
 
     fn add(&mut self, individual: Self::Individual) -> bool {
-        if let Some(best_known) = &self.best_known {
-            if self.objective.total_order(best_known, &individual) != Ordering::Greater {
-                return false;
-            }
+        if let Some(best_known) = &self.best_known
+            && self.objective.total_order(best_known, &individual) != Ordering::Greater
+        {
+            return false;
         }
 
         self.best_known = Some(individual);

@@ -30,11 +30,11 @@ impl Ruin for NeighbourRemoval {
         select_neighbors(&problem, init_seed).take_while(|_| !tracker.borrow().is_limit()).for_each(|job| {
             let route_idx =
                 insertion_ctx.solution.routes.iter().position(|route_ctx| route_ctx.route().tour.contains(&job));
-            if let Some(route_idx) = route_idx {
-                if tracker.borrow_mut().try_remove_job(&mut insertion_ctx.solution, route_idx, &job) {
-                    tabu_list.add_job(job);
-                    tabu_list.add_actor(insertion_ctx.solution.routes[route_idx].route().actor.clone());
-                }
+            if let Some(route_idx) = route_idx
+                && tracker.borrow_mut().try_remove_job(&mut insertion_ctx.solution, route_idx, &job)
+            {
+                tabu_list.add_job(job);
+                tabu_list.add_actor(insertion_ctx.solution.routes[route_idx].route().actor.clone());
             }
         });
 

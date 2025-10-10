@@ -56,11 +56,11 @@ impl Ruin for ClusterRemoval {
                 .map(|idx| cluster.get(*idx).expect("invalid cluster index"))
                 .take_while(|_| !tracker.borrow().is_limit())
                 .for_each(|job| {
-                    if let Some(&route_idx) = route_jobs.get(job) {
-                        if tracker.borrow_mut().try_remove_job(&mut insertion_ctx.solution, route_idx, job) {
-                            tabu_list.add_job(job.clone());
-                            tabu_list.add_actor(insertion_ctx.solution.routes[route_idx].route().actor.clone());
-                        }
+                    if let Some(&route_idx) = route_jobs.get(job)
+                        && tracker.borrow_mut().try_remove_job(&mut insertion_ctx.solution, route_idx, job)
+                    {
+                        tabu_list.add_job(job.clone());
+                        tabu_list.add_actor(insertion_ctx.solution.routes[route_idx].route().actor.clone());
                     }
                 });
         });

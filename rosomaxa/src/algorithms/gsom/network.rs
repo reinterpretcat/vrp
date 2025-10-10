@@ -451,7 +451,7 @@ where
     }
 
     /// Remaps internal lattice after potential changes in coordinate schema.
-    pub(super) fn remap(&mut self, node_modifier: &(dyn Fn(Coordinate, Node<I, S>) -> Node<I, S>)) {
+    pub(super) fn remap(&mut self, node_modifier: &dyn Fn(Coordinate, Node<I, S>) -> Node<I, S>) {
         let nodes = self.nodes.drain().map(|(coord, node)| node_modifier(coord, node)).collect::<Vec<_>>();
         self.nodes.extend(nodes.into_iter().map(|node| (node.coordinate, node)));
     }

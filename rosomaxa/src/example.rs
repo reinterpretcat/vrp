@@ -149,7 +149,7 @@ impl HeuristicObjective for VectorObjective {
 }
 
 impl Alternative for VectorObjective {
-    fn maybe_new(&self, _: &(dyn Random)) -> Self {
+    fn maybe_new(&self, _: &dyn Random) -> Self {
         self.clone()
     }
 }

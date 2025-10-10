@@ -92,7 +92,7 @@ impl<I: Iterator> Iterator for SelectionSamplingIterator<I> {
 pub fn create_range_sampling_iter<I: Iterator>(
     iterator: I,
     sample_size: usize,
-    random: &(dyn Random),
+    random: &dyn Random,
 ) -> impl Iterator<Item = I::Item> + use<I> {
     let iterator_size = iterator.size_hint().0 as Float;
     let sample_count = (iterator_size / sample_size as Float).max(1.) - 1.;

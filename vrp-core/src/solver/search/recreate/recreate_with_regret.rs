@@ -58,7 +58,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
         jobs: &[&Job],
         routes: &[&RouteContext],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector),
+        result_selector: &dyn ResultSelector,
     ) -> InsertionResult {
         let regret_index = insertion_ctx.environment.random.uniform_int(self.min as i32, self.max as i32) as usize;
 

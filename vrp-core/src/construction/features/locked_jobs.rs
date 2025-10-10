@@ -61,10 +61,10 @@ struct LockingConstraint {
 
 impl LockingConstraint {
     fn evaluate_route(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
-        if let Some(condition) = self.conditions.get(job) {
-            if !(condition)(&route_ctx.route().actor) {
-                return ConstraintViolation::fail(self.code);
-            }
+        if let Some(condition) = self.conditions.get(job)
+            && !(condition)(&route_ctx.route().actor)
+        {
+            return ConstraintViolation::fail(self.code);
         }
 
         None

@@ -17,7 +17,7 @@ pub trait MultiTrip: Send + Sync {
     fn get_route_intervals(&self) -> &RouteIntervals;
 
     /// Gets an actual feature constraint which restricts a route.
-    fn get_constraint(&self) -> &(dyn FeatureConstraint);
+    fn get_constraint(&self) -> &dyn FeatureConstraint;
 
     /// Recalculates inner states for given route.
     fn recalculate_states(&self, route_ctx: &mut RouteContext);

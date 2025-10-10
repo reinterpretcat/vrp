@@ -309,7 +309,7 @@ where
     ) {
         network.set_learning_rate(get_learning_rate(statistics.termination_estimate));
 
-        if statistics.generation % config.rebalance_memory == 0 {
+        if statistics.generation.is_multiple_of(config.rebalance_memory) {
             // set the MSE threshold to a fraction of the maximum possible normalized distance
             let mse = network.mse();
             let threshold = 0.5 / (network.dimension() as Float).sqrt();
@@ -328,11 +328,7 @@ where
         network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
     }
 
-    fn fill_populations(
-        network: &IndividualNetwork<C, O, S>,
-        coordinates: &mut Vec<Coordinate>,
-        random: &(dyn Random),
-    ) {
+    fn fill_populations(network: &IndividualNetwork<C, O, S>, coordinates: &mut Vec<Coordinate>, random: &dyn Random) {
         coordinates.clear();
         coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
             if node.storage.population.size() > 0 { Some(*coordinate) } else { None }

@@ -37,7 +37,7 @@ where
 /// Provides a way to get a new alternative objective with some probability.
 pub trait Alternative {
     /// Returns a new objective, potentially alternative one.
-    fn maybe_new(&self, random: &(dyn Random)) -> Self;
+    fn maybe_new(&self, random: &dyn Random) -> Self;
 }
 
 impl<O, S> HeuristicPopulation for Elitism<O, S>

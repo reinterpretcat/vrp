@@ -16,7 +16,7 @@ use std::sync::Arc;
 #[allow(clippy::needless_collect)]
 pub fn repair_solution_from_unknown(
     insertion_ctx: &InsertionContext,
-    factory: &(dyn Fn() -> InsertionContext),
+    factory: &dyn Fn() -> InsertionContext,
 ) -> InsertionContext {
     let mut new_insertion_ctx = factory();
 

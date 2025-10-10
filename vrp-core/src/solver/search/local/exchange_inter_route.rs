@@ -177,7 +177,7 @@ fn test_job_insertion(
     route_ctx: &RouteContext,
     job: &Job,
     leg_selection: &LegSelection,
-    result_selector: &(dyn ResultSelector),
+    result_selector: &dyn ResultSelector,
 ) -> Option<InsertionSuccess> {
     let eval_ctx = EvaluationContext { goal: &insertion_ctx.problem.goal, job, leg_selection, result_selector };
 

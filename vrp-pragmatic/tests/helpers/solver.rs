@@ -91,19 +91,18 @@ fn get_core_solution<F: FnOnce(Arc<CoreProblem>) -> CoreSolution>(
 
     let format_solution = sort_all_data(create_solution(&core_problem, &core_solution, &Default::default()));
 
-    if perform_check {
-        if let Some(errs) =
+    if perform_check
+        && let Some(errs) =
             CheckerContext::new(core_problem, format_problem.clone(), format_matrices, format_solution.clone())
                 .and_then(|ctx| ctx.check())
                 .err()
-        {
-            panic!(
-                "check failed: '{}', problem: {:?}, solution: {:?}",
-                GenericError::join_many(&errs, "\n"),
-                format_problem,
-                format_solution
-            );
-        }
+    {
+        panic!(
+            "check failed: '{}', problem: {:?}, solution: {:?}",
+            GenericError::join_many(&errs, "\n"),
+            format_problem,
+            format_solution
+        );
     }
 
     sort_all_data(format_solution)

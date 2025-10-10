@@ -14,7 +14,7 @@ pub type LocationClusters = HashMap<Location, Vec<Location>>;
 /// Returns tiers of clusters starting from the finer grained (lowest epsilon).
 pub fn create_multi_tier_clusters(
     profile: Profile,
-    transport: &(dyn TransportCost),
+    transport: &dyn TransportCost,
 ) -> GenericResult<Vec<LocationClusters>> {
     let size = transport.size();
     let limit = size / 3;
