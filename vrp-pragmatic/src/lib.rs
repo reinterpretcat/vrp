@@ -27,6 +27,7 @@ pub mod discovery;
 pub mod regression;
 
 pub use vrp_core as core;
+use vrp_core::models::common::Timestamp;
 
 mod utils;
 
@@ -36,8 +37,8 @@ pub mod validation;
 
 use crate::format::problem::Problem;
 use crate::format::{CoordIndex, Location};
-use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
+use time::{Date, OffsetDateTime, Time, UtcOffset};
 use vrp_core::prelude::{Float, GenericError};
 
 /// Get lists of unique locations in the problem. Use it to request routing matrix from outside.
@@ -46,9 +47,16 @@ pub fn get_unique_locations(problem: &Problem) -> Vec<Location> {
     CoordIndex::new(problem).unique()
 }
 
-fn format_time(time: Float) -> String {
+// vrp_core's Timestamps are f64s that could go far beyond what unix timestamps support
+const MIN_TIMESTAMP: i64 = OffsetDateTime::new_in_offset(Date::MIN, Time::MIDNIGHT, UtcOffset::UTC).unix_timestamp();
+const MAX_TIMESTAMP: i64 = OffsetDateTime::new_in_offset(Date::MAX, Time::MAX, UtcOffset::UTC).unix_timestamp();
+
+fn format_time(time: Timestamp) -> String {
+    let time: i64 = (time as i64).clamp(MIN_TIMESTAMP, MAX_TIMESTAMP);
     // TODO avoid using implicitly unwrap
-    OffsetDateTime::from_unix_timestamp(time as i64).map(|time| time.format(&Rfc3339).unwrap()).unwrap()
+    // (a priori the above clamping should prevent any potential failure here...)
+    let ts = OffsetDateTime::from_unix_timestamp(time).expect("Could not convert value to timestamp");
+    return ts.format(&Rfc3339).expect("Error formatting timestamp to time");
 }
 
 fn parse_time(time: &str) -> Float {
