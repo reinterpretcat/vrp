@@ -23,6 +23,13 @@ pub(super) fn create_goal_context(
         features.push(create_reachable_feature("reachable", blocks.transport.clone(), REACHABLE_CONSTRAINT_CODE)?)
     }
 
+    if props.has_strict_departure {
+        features.push(create_strict_departure_feature(
+            "strict_departure",
+            blocks.activity.clone(),
+            TIME_CONSTRAINT_CODE,
+        )?)
+    }
     features.push(get_capacity_feature("capacity", api_problem, blocks, props)?);
 
     if props.has_tour_travel_limits {

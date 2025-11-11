@@ -5,8 +5,8 @@ mod plan_test;
 use super::get_random_item;
 use vrp_core::prelude::{Float, GenericError};
 use vrp_core::utils::{DefaultRandom, Random};
-use vrp_pragmatic::format::Location;
 use vrp_pragmatic::format::problem::{Job, JobPlace, JobTask, Plan, Problem};
+use vrp_pragmatic::format::Location;
 
 /// Generates a new plan for given problem with amount of jobs specified by`jobs_size` and
 /// bounding box of size `area_size` (half size in meters). When not specified, jobs bounding
@@ -73,7 +73,7 @@ pub(crate) fn generate_plan(
         })
         .collect();
 
-    Ok(Plan { jobs, relations: None, clustering: None })
+    Ok(Plan { jobs, relations: None, clustering: None, strict_departure: None })
 }
 
 type LocationFn = Box<dyn Fn(&DefaultRandom) -> Location>;

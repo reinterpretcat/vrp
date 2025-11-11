@@ -15,7 +15,7 @@ pub(crate) use self::capacity::MaxVehicleLoadTourState;
 pub use self::capacity::{CapacityFeatureBuilder, JobDemandDimension, VehicleCapacityDimension};
 
 mod compatibility;
-pub use self::compatibility::{JobCompatibilityDimension, create_compatibility_feature};
+pub use self::compatibility::{create_compatibility_feature, JobCompatibilityDimension};
 
 mod fast_service;
 pub use self::fast_service::FastServiceFeatureBuilder;
@@ -24,7 +24,7 @@ mod fleet_usage;
 pub use self::fleet_usage::*;
 
 mod groups;
-pub use self::groups::{JobGroupDimension, create_group_feature};
+pub use self::groups::{create_group_feature, JobGroupDimension};
 
 mod hierarchical_areas;
 pub use self::hierarchical_areas::*;
@@ -48,7 +48,7 @@ mod reloads;
 pub use self::reloads::{ReloadFeatureFactory, ReloadIntervalsTourState, SharedResource, SharedResourceId};
 
 mod skills;
-pub use self::skills::{JobSkills, JobSkillsDimension, VehicleSkillsDimension, create_skills_feature};
+pub use self::skills::{create_skills_feature, JobSkills, JobSkillsDimension, VehicleSkillsDimension};
 
 mod total_value;
 pub use self::total_value::*;
@@ -70,3 +70,6 @@ pub use self::work_balance::{
     create_activity_balanced_feature, create_distance_balanced_feature, create_duration_balanced_feature,
     create_max_load_balanced_feature,
 };
+
+mod strict_departure;
+pub use self::strict_departure::create_strict_departure_feature;

@@ -214,6 +214,7 @@ pub struct VicinityFilteringPolicy {
 
 /// A plan specifies work which has to be done.
 #[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Plan {
     /// List of jobs.
     pub jobs: Vec<Job>,
@@ -225,6 +226,10 @@ pub struct Plan {
     /// Specifies clustering parameters.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub clustering: Option<Clustering>,
+
+    /// whether to use strict departure logic
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub strict_departure: Option<bool>,
 }
 
 // endregion
