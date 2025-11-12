@@ -463,7 +463,7 @@ impl HeuristicObjective for GoalContext {
 }
 
 impl Alternative for GoalContext {
-    fn maybe_new(&self, random: &(dyn Random)) -> Self {
+    fn maybe_new(&self, random: &dyn Random) -> Self {
         // TODO pass heuristic statistic here to vary probability based on convergence.
         const RANDOM_ALTERNATIVE_PROBABILITY: Float = 0.1;
 

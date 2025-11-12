@@ -64,7 +64,7 @@ where
 pub fn process_conditional_jobs(
     solution_ctx: &mut SolutionContext,
     route_index: Option<usize>,
-    context_transition: &(dyn JobContextTransition),
+    context_transition: &dyn JobContextTransition,
 ) {
     // analyzed required/ignored
     let ignored: HashSet<Job> = solution_ctx

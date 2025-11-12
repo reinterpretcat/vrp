@@ -64,7 +64,7 @@ impl FeatureObjective for MinimizeUnassignedObjective {
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
         match move_ctx {
-            MoveContext::Route { solution_ctx, job, .. } => -1. * (self.unassigned_job_estimator)(solution_ctx, job),
+            MoveContext::Route { solution_ctx, job, .. } => -(self.unassigned_job_estimator)(solution_ctx, job),
             MoveContext::Activity { .. } => Cost::default(),
         }
     }

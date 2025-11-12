@@ -20,23 +20,21 @@ fn check_shift_limits(context: &CheckerContext) -> GenericResult<()> {
         let vehicle = context.get_vehicle(&tour.vehicle_id)?;
 
         if let Some(ref limits) = vehicle.limits {
-            if let Some(max_distance) = limits.max_distance {
-                if tour.statistic.distance as Float > max_distance {
+            if let Some(max_distance) = limits.max_distance
+                && tour.statistic.distance as Float > max_distance {
                     return Err(format!(
                         "max distance limit violation, expected: not more than {}, got: {}, vehicle id '{}', shift index: {}",
                         max_distance, tour.statistic.distance, tour.vehicle_id, tour.shift_index
                     ).into());
                 }
-            }
 
-            if let Some(max_duration) = limits.max_duration {
-                if tour.statistic.duration as Float > max_duration {
+            if let Some(max_duration) = limits.max_duration
+                && tour.statistic.duration as Float > max_duration {
                     return Err(format!(
                         "shift time limit violation, expected: not more than {}, got: {}, vehicle id '{}', shift index: {}",
                         max_duration, tour.statistic.duration, tour.vehicle_id, tour.shift_index
                     ).into());
                 }
-            }
 
             if let Some(tour_size_limit) = limits.tour_size {
                 let shift = context.get_vehicle_shift(tour)?;

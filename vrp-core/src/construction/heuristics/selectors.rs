@@ -74,7 +74,7 @@ pub trait InsertionEvaluator: Send + Sync {
         jobs: &[&Job],
         routes: &[&RouteContext],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector),
+        result_selector: &dyn ResultSelector,
     ) -> InsertionResult;
 }
 
@@ -102,7 +102,7 @@ impl PositionInsertionEvaluator {
         jobs: &[&Job],
         routes: &[&RouteContext],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector),
+        result_selector: &dyn ResultSelector,
     ) -> Vec<InsertionResult> {
         let is_fold_jobs = insertion_ctx.solution.required.len() > insertion_ctx.solution.routes.len();
         let goal = &insertion_ctx.problem.goal;
@@ -134,7 +134,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         jobs: &[&Job],
         routes: &[&RouteContext],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector),
+        result_selector: &dyn ResultSelector,
     ) -> InsertionResult {
         let goal = &insertion_ctx.problem.goal;
 
@@ -344,7 +344,7 @@ impl ResultSelectorProvider {
     }
 
     /// Returns random result selector from the list.
-    pub fn pick(&self) -> &(dyn ResultSelector) {
+    pub fn pick(&self) -> &dyn ResultSelector {
         self.inners[self.random.weighted(self.weights.as_slice())].as_ref()
     }
 }

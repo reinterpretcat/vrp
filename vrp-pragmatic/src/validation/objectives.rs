@@ -77,7 +77,7 @@ fn check_e1604_no_jobs_with_order_objective(
     ctx: &ValidationContext,
     objectives: &[&Objective],
 ) -> Result<(), FormatError> {
-    let has_order_objective = objectives.iter().any(|objective| matches!(objective, TourOrder { .. }));
+    let has_order_objective = objectives.iter().any(|objective| matches!(objective, TourOrder));
     let has_no_jobs_with_order = !ctx
         .problem
         .plan

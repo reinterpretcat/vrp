@@ -242,7 +242,7 @@ impl Jobs {
     pub fn new(
         fleet: &Fleet,
         jobs: Vec<Job>,
-        transport: &(dyn TransportCost),
+        transport: &dyn TransportCost,
         logger: &InfoLogger,
     ) -> GenericResult<Jobs> {
         let index = create_index(fleet, jobs.clone(), transport, logger);
@@ -334,7 +334,7 @@ pub fn get_job_locations(job: &Job) -> impl Iterator<Item = Option<Location>> + 
 fn create_index(
     fleet: &Fleet,
     jobs: Vec<Job>,
-    transport: &(dyn TransportCost),
+    transport: &dyn TransportCost,
     logger: &InfoLogger,
 ) -> HashMap<usize, JobIndex> {
     let avg_profile_costs = get_avg_profile_costs(fleet);
@@ -387,7 +387,7 @@ fn create_index(
 fn get_cost_between_locations(
     profile: &Profile,
     costs: &Costs,
-    transport: &(dyn TransportCost),
+    transport: &dyn TransportCost,
     from: Location,
     to: Location,
 ) -> LowPrecisionCost {
@@ -406,7 +406,7 @@ fn get_cost_between_locations(
 fn get_cost_between_job_and_location(
     profile: &Profile,
     costs: &Costs,
-    transport: &(dyn TransportCost),
+    transport: &dyn TransportCost,
     job: &Job,
     to: Location,
 ) -> LowPrecisionCost {
@@ -421,14 +421,14 @@ fn get_cost_between_job_and_location(
 fn get_cost_between_jobs(
     profile: &Profile,
     costs: &Costs,
-    transport: &(dyn TransportCost),
+    transport: &dyn TransportCost,
     lhs: &Job,
     rhs: &Job,
 ) -> LowPrecisionCost {
     let outer: Vec<Option<Location>> = get_job_locations(lhs).collect();
     let inner: Vec<Option<Location>> = get_job_locations(rhs).collect();
 
-    let routing_cost = outer
+    outer
         .iter()
         .flat_map(|o| inner.iter().map(move |i| (*o, *i)))
         .map(|pair| match pair {
@@ -436,11 +436,8 @@ fn get_cost_between_jobs(
             _ => DEFAULT_COST,
         })
         .min_by(|a, b| a.total_cmp(b))
-        .unwrap_or(DEFAULT_COST);
-
+        .unwrap_or(DEFAULT_COST)
     // NOTE: ignore time window difference costs as it is hard to balance with routing costs
-
-    routing_cost
 }
 
 fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<usize, Costs> {

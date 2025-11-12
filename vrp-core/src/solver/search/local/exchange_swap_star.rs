@@ -72,7 +72,7 @@ impl LocalOperator for ExchangeSwapStar {
 }
 
 /// Encapsulates common data used by search phase.
-type SearchContext<'a> = (&'a InsertionContext, &'a LegSelection, &'a (dyn ResultSelector));
+type SearchContext<'a> = (&'a InsertionContext, &'a LegSelection, &'a dyn ResultSelector);
 
 fn get_route_by_idx(insertion_ctx: &InsertionContext, route_idx: usize) -> &RouteContext {
     insertion_ctx.solution.routes.get(route_idx).expect("invalid route index")
@@ -284,7 +284,7 @@ fn try_exchange_jobs_in_routes(
     insertion_ctx: &mut InsertionContext,
     route_pair: (usize, usize),
     leg_selection: &LegSelection,
-    result_selector: &(dyn ResultSelector),
+    result_selector: &dyn ResultSelector,
 ) -> bool {
     let quota = insertion_ctx.environment.quota.clone();
     let is_quota_reached = move || quota.as_ref().is_some_and(|quota| quota.is_reached());
@@ -365,7 +365,7 @@ fn try_exchange_jobs(
     insertion_ctx: &mut InsertionContext,
     insertion_pair: (InsertionResult, InsertionResult),
     leg_selection: &LegSelection,
-    result_selector: &(dyn ResultSelector),
+    result_selector: &dyn ResultSelector,
 ) {
     if let (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) = insertion_pair {
         let constraint = insertion_ctx.problem.goal.clone();

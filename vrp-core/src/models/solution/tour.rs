@@ -101,12 +101,12 @@ impl Tour {
     }
 
     /// Returns all activities in tour.
-    pub fn all_activities(&self) -> Iter<Activity> {
+    pub fn all_activities(&self) -> Iter<'_, Activity> {
         self.activities.iter()
     }
 
     /// Returns all activities in tour as mutable.
-    pub fn all_activities_mut(&mut self) -> IterMut<Activity> {
+    pub fn all_activities_mut(&mut self) -> IterMut<'_, Activity> {
         self.activities.iter_mut()
     }
 

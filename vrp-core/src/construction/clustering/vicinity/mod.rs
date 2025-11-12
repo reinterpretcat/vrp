@@ -25,7 +25,7 @@ custom_dimension!(pub ClusterInfo typeof Vec<ClusterInfo>);
 /// Holds center job and its neighbor jobs.
 pub type ClusterCandidate<'a> = (&'a Job, &'a HashSet<Job>);
 
-type CheckInsertionFn = (dyn Fn(&Job) -> Result<(), ViolationCode> + Send + Sync);
+type CheckInsertionFn = dyn Fn(&Job) -> Result<(), ViolationCode> + Send + Sync;
 
 /// Specifies clustering algorithm configuration.
 #[derive(Clone)]

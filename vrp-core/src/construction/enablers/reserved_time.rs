@@ -256,7 +256,7 @@ pub(crate) fn create_reserved_times_fn(
                 Err(idx) => (idx.max(1) - 1..=idx) // NOTE left (earliest) wins
                     .map(|idx| intervals.get(idx))
                     .find(|reserved_time| {
-                        reserved_time.map_or(false, |reserved_time| {
+                        reserved_time.is_some_and(|reserved_time| {
                             let (reserved_start, reserved_end) = match &reserved_time.time {
                                 TimeSpan::Offset(to) => (to.end, to.end + reserved_time.duration),
                                 TimeSpan::Window(tw) => (tw.end, tw.end + reserved_time.duration),

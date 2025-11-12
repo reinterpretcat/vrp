@@ -2,13 +2,13 @@
 #[path = "../../tests/unit/common/text_writer_test.rs"]
 mod text_writer_test;
 
-use std::io::{BufWriter, Error, ErrorKind, Write};
+use std::io::{BufWriter, Error, Write};
 use vrp_core::models::Solution;
 use vrp_core::models::problem::JobIdDimension;
 
 pub(crate) fn write_text_solution<W: Write>(solution: &Solution, writer: &mut BufWriter<W>) -> Result<(), Error> {
     if !solution.unassigned.is_empty() {
-        return Err(Error::new(ErrorKind::Other, "cannot write text solution with unassigned jobs."));
+        return Err(Error::other("cannot write text solution with unassigned jobs."));
     }
 
     let cost = solution.cost;

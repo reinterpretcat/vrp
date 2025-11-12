@@ -29,18 +29,15 @@
 //! An evolutionary algorithm (EA) is a generic population-based metaheuristic optimization algorithm.
 //! This crate provides a custom implementation of EA which can be divided into the following steps:
 //!
-//! - **initialization**: on this step, an initial population is created using different construction
-//!    heuristics.
+//! - **initialization**: on this step, an initial population is created using different construction heuristics.
 //! - **main loop begin**: enter an evolution loop
-//!     - **selection**: an individual is selected from population. Best-fit individuals have more
-//!        chances to be selected.
+//!     - **selection**: an individual is selected from population. Best-fit individuals have more chances to be selected.
 //!     - **mutation**: a mutation operator is applied to selected individual. Default implementation
 //!       uses `ruin and recreate` principle described in next section.
 //!     - **population adjustments**: new individual is added to population, then the population is
 //!       sorted and shrinked to keep it under specific size limits with best-fit individuals and
 //!       some intermediate.
-//! - **main loop end**: exit evolution loop when one of termination criteria are met. See `termination`
-//!       module for details.
+//! - **main loop end**: exit evolution loop when one of termination criteria are met. See `termination` module for details.
 //!
 //! As there is no crossover operator involved and offspring is produced from one parent, this algorithm
 //! can be characterized as parthenogenesis based EA. This approach eliminates design of feasible

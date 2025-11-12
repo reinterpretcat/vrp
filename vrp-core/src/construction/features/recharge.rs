@@ -181,7 +181,7 @@ impl MultiTrip for RechargeableMultiTrip {
         &self.route_intervals
     }
 
-    fn get_constraint(&self) -> &(dyn FeatureConstraint) {
+    fn get_constraint(&self) -> &dyn FeatureConstraint {
         self
     }
 

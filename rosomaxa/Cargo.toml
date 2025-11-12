@@ -19,8 +19,8 @@ rustc-hash.workspace = true
 rand_distr = "0.4.3"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-num_cpus = "1.16.0"
+num_cpus = "1.17.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2.15", features = ["js"] }
-js-sys = "0.3.76"
+getrandom = { version = "0.2.16", features = ["js"] }
+js-sys = "0.3.77"

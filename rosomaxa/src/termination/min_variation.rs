@@ -87,7 +87,7 @@ where
                     let mut i = 0_usize;
                     values.shuffle(&mut rng);
                     values.retain(|_| {
-                        let result = i % 10 == 0;
+                        let result = i.is_multiple_of(10);
                         i += 1;
 
                         result

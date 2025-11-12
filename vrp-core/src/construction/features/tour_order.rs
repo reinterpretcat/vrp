@@ -157,7 +157,7 @@ fn evaluate_result<T>(
     route_ctx: &RouteContext,
     activity_ctx: &ActivityContext,
     order_fn: &TourOrderFn,
-    check_order: &(dyn Fn(OrderResult, OrderResult, bool) -> Option<T>),
+    check_order: &dyn Fn(OrderResult, OrderResult, bool) -> Option<T>,
 ) -> Option<T> {
     let get_order = |single: &Single| match &order_fn {
         Either::Left(left) => (left)(single),

@@ -49,7 +49,7 @@ impl Noise {
     }
 
     /// Returns random generator.
-    pub fn random(&self) -> &(dyn Random) {
+    pub fn random(&self) -> &dyn Random {
         self.random.as_ref()
     }
 }

@@ -140,7 +140,7 @@ where
         // create a network with more aggressive initial parameters
         let mut network = Self {
             dimension,
-            growing_threshold: -1. * dimension as Float * config.spread_factor.log2(),
+            growing_threshold: -(dimension as Float) * config.spread_factor.log2(),
             distribution_factor: config.distribution_factor,
             learning_rate: config.learning_rate,
             time: 0,
@@ -451,7 +451,7 @@ where
     }
 
     /// Remaps internal lattice after potential changes in coordinate schema.
-    pub(super) fn remap(&mut self, node_modifier: &(dyn Fn(Coordinate, Node<I, S>) -> Node<I, S>)) {
+    pub(super) fn remap(&mut self, node_modifier: &dyn Fn(Coordinate, Node<I, S>) -> Node<I, S>) {
         let nodes = self.nodes.drain().map(|(coord, node)| node_modifier(coord, node)).collect::<Vec<_>>();
         self.nodes.extend(nodes.into_iter().map(|node| (node.coordinate, node)));
     }

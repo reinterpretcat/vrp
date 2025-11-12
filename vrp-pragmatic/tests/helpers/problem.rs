@@ -3,9 +3,7 @@ use crate::format::problem::*;
 use crate::format::{CoordIndex, Location};
 use crate::format_time;
 use crate::helpers::ToLocation;
-use vrp_core::models::common::{Distance, Duration, Location as CoreLocation, Profile};
-use vrp_core::models::problem::{TransportCost, TravelTime};
-use vrp_core::models::solution::Route;
+use vrp_core::models::common::Duration;
 use vrp_core::prelude::Float;
 
 pub fn create_job_place(location: (f64, f64), tag: Option<String>) -> JobPlace {
@@ -329,33 +327,4 @@ fn convert_times(times: &[(i32, i32)]) -> Option<Vec<Vec<String>>> {
     } else {
         Some(times.iter().map(|tw| vec![format_time(tw.0 as Float), format_time(tw.1 as Float)]).collect())
     }
-}
-
-#[derive(Default)]
-pub struct TestTransportCost {}
-
-impl TransportCost for TestTransportCost {
-    fn duration_approx(&self, _: &Profile, from: CoreLocation, to: CoreLocation) -> Duration {
-        fake_routing(from, to)
-    }
-
-    fn distance_approx(&self, _: &Profile, from: CoreLocation, to: CoreLocation) -> Distance {
-        fake_routing(from, to)
-    }
-
-    fn duration(&self, _: &Route, from: CoreLocation, to: CoreLocation, _: TravelTime) -> Duration {
-        fake_routing(from, to)
-    }
-
-    fn distance(&self, _: &Route, from: CoreLocation, to: CoreLocation, _: TravelTime) -> Distance {
-        fake_routing(from, to)
-    }
-
-    fn size(&self) -> usize {
-        1
-    }
-}
-
-fn fake_routing(from: CoreLocation, to: CoreLocation) -> Float {
-    (if to > from { to - from } else { from - to }) as Float
 }

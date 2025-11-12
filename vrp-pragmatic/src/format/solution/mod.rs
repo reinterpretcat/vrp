@@ -63,7 +63,7 @@ pub fn write_pragmatic<W: Write>(
     let solution = create_solution(problem, solution, &output_type);
 
     match output_type {
-        PragmaticOutputType::OnlyPragmatic { .. } | PragmaticOutputType::Combined { .. } => {
+        PragmaticOutputType::OnlyPragmatic | PragmaticOutputType::Combined => {
             serialize_solution(&solution, writer).map_err(|err| err.to_string())?;
         }
         PragmaticOutputType::OnlyGeoJson => {

@@ -172,9 +172,9 @@ where
 
         match population.ranked().next() {
             Some(best_individual) => {
-                let should_log_best = generation % *log_best.unwrap_or(&usize::MAX) == 0;
-                let should_log_population = generation % *log_population.unwrap_or(&usize::MAX) == 0;
-                let should_track_population = generation % *track_population.unwrap_or(&usize::MAX) == 0;
+                let should_log_best = generation.is_multiple_of(*log_best.unwrap_or(&usize::MAX));
+                let should_log_population = generation.is_multiple_of(*log_population.unwrap_or(&usize::MAX));
+                let should_track_population = generation.is_multiple_of(*track_population.unwrap_or(&usize::MAX));
 
                 if should_log_best {
                     self.log_individual(
@@ -248,8 +248,10 @@ where
 
         let (should_log_population, should_track_population) = match &self.mode {
             TelemetryMode::OnlyLogging { .. } => (true, false),
-            TelemetryMode::OnlyMetrics { track_population, .. } => (false, generations % track_population != 0),
-            TelemetryMode::All { track_population, .. } => (true, generations % track_population != 0),
+            TelemetryMode::OnlyMetrics { track_population, .. } => {
+                (false, !generations.is_multiple_of(*track_population))
+            }
+            TelemetryMode::All { track_population, .. } => (true, !generations.is_multiple_of(*track_population)),
             _ => return,
         };
 
@@ -433,7 +435,7 @@ where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    let fitness_change = population
+    population
         .ranked()
         .next()
         .map(|best_ctx| best_ctx.fitness())
@@ -441,9 +443,7 @@ where
             let fitness_value = solution.fitness();
             relative_distance(fitness_value, best_fitness)
         })
-        .unwrap_or(0.);
-
-    fitness_change
+        .unwrap_or(0.)
 }
 
 fn format_fitness(fitness: impl Iterator<Item = Float>) -> String {

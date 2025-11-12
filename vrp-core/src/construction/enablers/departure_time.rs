@@ -11,8 +11,8 @@ use rosomaxa::prelude::Float;
 /// Tries to move forward route's departure time.
 pub fn advance_departure_time(
     route_ctx: &mut RouteContext,
-    activity: &(dyn ActivityCost),
-    transport: &(dyn TransportCost),
+    activity: &dyn ActivityCost,
+    transport: &dyn TransportCost,
     consider_whole_tour: bool,
 ) {
     if let Some(new_departure_time) = try_advance_departure_time(route_ctx, transport, consider_whole_tour) {
@@ -21,11 +21,7 @@ pub fn advance_departure_time(
 }
 
 /// Tries to move backward route's departure time.
-pub fn recede_departure_time(
-    route_ctx: &mut RouteContext,
-    activity: &(dyn ActivityCost),
-    transport: &(dyn TransportCost),
-) {
+pub fn recede_departure_time(route_ctx: &mut RouteContext, activity: &dyn ActivityCost, transport: &dyn TransportCost) {
     if let Some(new_departure_time) = try_recede_departure_time(route_ctx) {
         update_route_departure(route_ctx, activity, transport, new_departure_time);
     }
@@ -33,7 +29,7 @@ pub fn recede_departure_time(
 
 fn try_advance_departure_time(
     route_ctx: &RouteContext,
-    transport: &(dyn TransportCost),
+    transport: &dyn TransportCost,
     optimize_whole_tour: bool,
 ) -> Option<Timestamp> {
     let route = route_ctx.route();

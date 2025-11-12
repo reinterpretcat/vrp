@@ -42,7 +42,7 @@ pub(crate) trait TextReader {
 
     fn get_logger(&self) -> InfoLogger {
         // TODO allow to parametrize logger
-        Arc::new(|msg| println!("{}", msg))
+        Arc::new(|msg| println!("{msg}"))
     }
 }
 

@@ -56,7 +56,7 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
         jobs: &[&Job],
         routes: &[&RouteContext],
         leg_selection: &LegSelection,
-        result_selector: &(dyn ResultSelector),
+        result_selector: &dyn ResultSelector,
     ) -> InsertionResult {
         let skip_index = insertion_ctx.environment.random.uniform_int(self.min as i32, self.max as i32);
 
@@ -90,11 +90,6 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
 
         let skip_index = skip_index.min(results.len() as i32) as usize - 1;
 
-        let insertion_result = results
-            .drain(skip_index..=skip_index)
-            .next()
-            .unwrap_or_else(|| panic!("Unexpected insertion results length"));
-
-        insertion_result
+        results.drain(skip_index..=skip_index).next().unwrap_or_else(|| panic!("Unexpected insertion results length"))
     }
 }

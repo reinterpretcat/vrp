@@ -54,5 +54,5 @@ fn can_use_display() {
     let mut bitvec = BitVec::new(5);
     bitvec.set(0, true);
     bitvec.set(2, true);
-    assert_eq!(format!("{}", bitvec), "[10100]");
+    assert_eq!(format!("{bitvec}"), "[10100]");
 }

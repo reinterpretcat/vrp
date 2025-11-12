@@ -7,7 +7,7 @@ use crate::models::Problem;
 
 fn create_insertion_ctx(
     route_amount: usize,
-    route_factory: &(dyn Fn(&Problem, usize) -> RouteContext),
+    route_factory: &dyn Fn(&Problem, usize) -> RouteContext,
 ) -> InsertionContext {
     let mut ctx = TestInsertionContextBuilder::default().build();
     let problem = ctx.problem.clone();
