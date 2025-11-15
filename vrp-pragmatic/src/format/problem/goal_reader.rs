@@ -149,6 +149,7 @@ fn get_objective_feature_layer(
             }),
             ViolationCode::unknown(),
         ),
+        Objective::BalanceShifts => create_balance_shifts_feature("balance_shifts"),
         Objective::MinimizeUnassigned { breaks } => MinimizeUnassignedBuilder::new("min_unassigned")
             .set_job_estimator({
                 let break_value = *breaks;
