@@ -572,9 +572,6 @@ pub enum Objective {
     /// An objective to balance duration across all tours.
     BalanceDuration,
 
-    /// An objective to balance shifts across all vehicles.
-    BalanceShifts,
-
     /// An objective to control how tours are built.
     CompactTour {
         /// Specifies radius of neighbourhood. Min is 1.
