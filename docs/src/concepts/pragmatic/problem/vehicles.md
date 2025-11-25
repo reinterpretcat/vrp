@@ -98,8 +98,6 @@ Each shift can have the following properties:
   as time windows. You can control its unassignment weight using specific property on `minimize-unassigned` objective.
   See example [here](../../../examples/pragmatic/basics/break.md)
 
-  Additionally, offset time interval requires departure time optimization to be disabled explicitly (see [E1307](../errors/index.md#e1307)).
-
 - **reloads** (optional) a list of vehicle reloads. A reload is a place where vehicle can load new deliveries and unload
     pickups. It can be used to model multi trip routes.
   Each reload has optional and required fields:
@@ -120,5 +118,4 @@ Each shift can have the following properties:
 * [E1303 invalid break time windows in vehicle shift](../errors/index.md#e1303)
 * [E1304 invalid reload time windows in vehicle shift](../errors/index.md#e1304)
 * [E1306 time and duration costs are zeros](../errors/index.md#e1306)
-* [E1307 time offset interval for break  is used with departure rescheduling](../errors/index.md#e1307)
 * [E1308 invalid vehicle reload resource](../errors/index.md#e1308)
