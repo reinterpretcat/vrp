@@ -1,6 +1,6 @@
 use crate::construction::heuristics::{RouteContext, RouteState};
 use crate::models::OP_START_MSG;
-use crate::models::common::{Distance, Duration, Schedule, Timestamp};
+use crate::models::common::{Distance, Duration, Schedule, TimeSpan, Timestamp};
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
 use rosomaxa::prelude::Float;
 
@@ -24,10 +24,46 @@ pub fn update_route_departure(
     transport: &dyn TransportCost,
     new_departure_time: Timestamp,
 ) {
-    let start = route_ctx.route_mut().tour.get_mut(0).unwrap();
-    start.schedule.departure = new_departure_time;
+    let start = route_ctx.route().tour.get(0).unwrap();
+    let old_departure_time = start.schedule.departure;
+
+    {
+        let start = route_ctx.route_mut().tour.get_mut(0).unwrap();
+        start.schedule.departure = new_departure_time;
+    }
+
+    recompute_offset_time_windows(route_ctx, old_departure_time, new_departure_time);
 
     update_route_schedule(route_ctx, activity, transport);
+}
+
+/// Recomputes activity time windows derived from offset spans after departure shift.
+fn recompute_offset_time_windows(
+    route_ctx: &mut RouteContext,
+    old_departure_time: Timestamp,
+    new_departure_time: Timestamp,
+) {
+    if old_departure_time == new_departure_time {
+        return;
+    }
+
+    route_ctx.route_mut().tour.all_activities_mut().for_each(|activity| {
+        let Some(job) = activity.job.as_ref() else { return };
+        let place_idx = activity.place.idx;
+
+        let Some(place_def) = job.places.get(place_idx) else { return };
+
+        // Only adjust activities whose selected time window came from an offset span.
+        let Some(span) = place_def
+            .times
+            .iter()
+            .find(|span| matches!(span, TimeSpan::Offset(_)) && span.to_time_window(old_departure_time) == activity.place.time)
+        else {
+            return;
+        };
+
+        activity.place.time = span.to_time_window(new_departure_time);
+    });
 }
 
 fn update_schedules(route_ctx: &mut RouteContext, activity: &dyn ActivityCost, transport: &dyn TransportCost) {
