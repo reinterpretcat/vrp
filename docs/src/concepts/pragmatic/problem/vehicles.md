@@ -44,6 +44,18 @@ A vehicle types are defined by `fleet.vehicles` property and their schema has th
     - **tourSize** (optional): max amount of activities in the tour (without departure/arrival). Please note, that
       clustered activities are counted as one in case of vicinity clustering.
 
+- **minShifts** (optional): enforces a minimum number of shifts which each `vehicleId` of this type should serve with
+  actual jobs assigned. It is defined as object with:
+    - `value`: minimum amount of shifts required for every vehicle id of this type.
+    - `allowZeroUsage` (optional, default `false`): when `true`, a vehicle id may stay completely unused; otherwise
+      zero usage counts als Verstoß, auch wenn die Mindestanzahl global erreicht wird.
+```json
+"minShifts": {
+  "value": 2,
+  "allowZeroUsage": false
+}
+```
+
 An example:
 
 ```json

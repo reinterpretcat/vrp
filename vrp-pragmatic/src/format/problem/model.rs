@@ -465,6 +465,21 @@ pub struct VehicleType {
     /// Vehicle limits.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limits: Option<VehicleLimits>,
+
+    /// Specifies a minimum amount of shifts each vehicle id of this type should serve.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_shifts: Option<VehicleMinShifts>,
+}
+
+/// Specifies minimum shift usage requirement per vehicle.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VehicleMinShifts {
+    /// Minimum number of shifts that should be used.
+    pub value: usize,
+    /// Whether zero usage is allowed without violating the minimum. Default false.
+    #[serde(default)]
+    pub allow_zero_usage: bool,
 }
 
 /// Specifies a vehicle profile.
@@ -573,7 +588,15 @@ pub enum Objective {
     BalanceDuration,
 
     /// An objective to balance shifts across all vehicles.
-    BalanceShifts,
+    BalanceShifts {
+        /// Controls how quickly the penalty grows as variance increases.
+        /// Lower values make even small imbalances costly. Default is 0.05.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        saturation: Option<Float>,
+        /// Scales the resulting penalty (default 1.0). Allows making shift balance more/less important.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        weight: Option<Float>,
+    },
 
     /// An objective to control how tours are built.
     CompactTour {

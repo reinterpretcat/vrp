@@ -5,6 +5,7 @@
 mod fleet_usage_test;
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use super::*;
 
@@ -58,59 +59,67 @@ pub fn create_minimize_arrival_time_feature(name: &str) -> GenericResult<Feature
 /// This encourages using different shifts from different vehicles rather than
 /// exhausting all shifts from one vehicle before using another.
 pub fn create_balance_shifts_feature(name: &str) -> GenericResult<Feature> {
+    create_balance_shifts_feature_with_penalty(name, Arc::new(|variance| variance))
+}
+
+/// Creates a balance shifts feature with a custom penalty applied to the variance value.
+pub fn create_balance_shifts_feature_with_penalty(
+    name: &str,
+    penalty_fn: Arc<dyn Fn(Float) -> Float + Send + Sync>,
+) -> GenericResult<Feature> {
+    let penalty_fn_cloned = penalty_fn.clone();
+
     FeatureBuilder::default()
         .with_name(name)
         .with_objective(FleetUsageObjective {
             route_estimate_fn: Box::new(|_| 0.),
-            solution_estimate_fn: Box::new(|solution_ctx| {
-                if solution_ctx.routes.is_empty() {
-                    return 0.;
-                }
-
-                // Group routes by vehicle ID
-                let mut vehicle_shift_counts: HashMap<String, usize> = HashMap::new();
-                let mut total_available_shifts: HashMap<String, usize> = HashMap::new();
-
-                // Count how many shifts each vehicle is using
-                for route_ctx in solution_ctx.routes.iter() {
-                    let actor = &route_ctx.route().actor;
-                    if let Some(vehicle_id) = actor.vehicle.dimens.get_vehicle_id() {
-                        *vehicle_shift_counts.entry(vehicle_id.clone()).or_insert(0) += 1;
-
-                        // Track total available shifts for this vehicle
-                        total_available_shifts.entry(vehicle_id.clone()).or_insert(actor.vehicle.details.len());
-                    }
-                }
-
-                // Calculate the imbalance score
-                // We want to minimize the variance of (used_shifts / available_shifts) ratio
-                if vehicle_shift_counts.is_empty() {
-                    return 0.;
-                }
-
-                let ratios: Vec<f64> = vehicle_shift_counts
-                    .iter()
-                    .map(|(vehicle_id, &used_count)| {
-                        let available = *total_available_shifts.get(vehicle_id).unwrap_or(&1) as f64;
-                        used_count as f64 / available
-                    })
-                    .collect();
-
-                // Calculate variance of ratios
-                let mean: f64 = ratios.iter().sum::<f64>() / ratios.len() as f64;
-                let variance: f64 = ratios
-                    .iter()
-                    .map(|&ratio| {
-                        let diff = ratio - mean;
-                        diff * diff
-                    })
-                    .sum::<f64>()
-                    / ratios.len() as f64;
-
-                variance
+            solution_estimate_fn: Box::new(move |solution_ctx| {
+                let variance = calculate_shift_variance(solution_ctx);
+                (penalty_fn_cloned)(variance)
             }),
         })
         .build()
+}
+
+fn calculate_shift_variance(solution_ctx: &SolutionContext) -> Float {
+    if solution_ctx.routes.is_empty() {
+        return 0.;
+    }
+
+    let mut vehicle_shift_counts: HashMap<String, usize> = HashMap::new();
+    let mut total_available_shifts: HashMap<String, usize> = HashMap::new();
+
+    for route_ctx in solution_ctx.routes.iter() {
+        let actor = &route_ctx.route().actor;
+        if let Some(vehicle_id) = actor.vehicle.dimens.get_vehicle_id() {
+            *vehicle_shift_counts.entry(vehicle_id.clone()).or_insert(0) += 1;
+            total_available_shifts.entry(vehicle_id.clone()).or_insert(actor.vehicle.details.len());
+        }
+    }
+
+    if vehicle_shift_counts.is_empty() {
+        return 0.;
+    }
+
+    let ratios: Vec<Float> = vehicle_shift_counts
+        .iter()
+        .map(|(vehicle_id, &used_count)| {
+            let available = *total_available_shifts.get(vehicle_id).unwrap_or(&1) as Float;
+            used_count as Float / available
+        })
+        .collect();
+
+    let mean: Float = ratios.iter().sum::<Float>() / ratios.len() as Float;
+    let variance: Float = ratios
+        .iter()
+        .map(|&ratio| {
+            let diff = ratio - mean;
+            diff * diff
+        })
+        .sum::<Float>()
+        / ratios.len() as Float;
+
+    variance
 }
 
 struct FleetUsageObjective {
