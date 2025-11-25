@@ -103,6 +103,7 @@ mod single {
                     capacity: vec![5],
                     skills: None,
                     limits: None,
+                    min_shifts: None,
                 }],
                 ..create_default_fleet()
             },
