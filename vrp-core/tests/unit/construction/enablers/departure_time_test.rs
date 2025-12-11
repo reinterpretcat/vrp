@@ -2,8 +2,8 @@ use super::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::*;
-use crate::models::problem::*;
 use crate::models::problem::Place as JobPlace;
+use crate::models::problem::*;
 use crate::models::solution::{Activity, Place as ActivityPlace};
 use rosomaxa::prelude::Float;
 use std::sync::Arc;
@@ -151,12 +151,7 @@ fn recomputes_offset_time_windows_on_departure_shift() {
         )
         .build();
 
-    update_route_departure(
-        &mut route_ctx,
-        &TestActivityCost::default(),
-        &TestTransportCost::default(),
-        new_departure,
-    );
+    update_route_departure(&mut route_ctx, &TestActivityCost::default(), &TestTransportCost::default(), new_departure);
 
     let activity = route_ctx.route().tour.get(1).unwrap();
     assert_eq!(activity.place.time, TimeSpan::Offset(offset).to_time_window(new_departure));

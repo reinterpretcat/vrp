@@ -253,15 +253,15 @@ fn get_shift_time_window(shift: &VehicleShift) -> Option<TimeWindow> {
 }
 
 /// Validates vehicles from the fleet.
-    pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
-        combine_error_results(&[
-            check_e1300_no_vehicle_types_with_duplicate_type_ids(ctx),
-            check_e1301_no_vehicle_types_with_duplicate_ids(ctx),
-            check_e1302_vehicle_shift_time(ctx),
-            check_e1303_vehicle_breaks_time_is_correct(ctx),
-            check_e1304_vehicle_reload_time_is_correct(ctx),
-            check_e1306_vehicle_has_no_zero_costs(ctx),
-            check_e1308_vehicle_reload_resources(ctx),
-        ])
-        .map_err(From::from)
-    }
+pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
+    combine_error_results(&[
+        check_e1300_no_vehicle_types_with_duplicate_type_ids(ctx),
+        check_e1301_no_vehicle_types_with_duplicate_ids(ctx),
+        check_e1302_vehicle_shift_time(ctx),
+        check_e1303_vehicle_breaks_time_is_correct(ctx),
+        check_e1304_vehicle_reload_time_is_correct(ctx),
+        check_e1306_vehicle_has_no_zero_costs(ctx),
+        check_e1308_vehicle_reload_resources(ctx),
+    ])
+    .map_err(From::from)
+}

@@ -54,11 +54,9 @@ fn recompute_offset_time_windows(
         let Some(place_def) = job.places.get(place_idx) else { return };
 
         // Only adjust activities whose selected time window came from an offset span.
-        let Some(span) = place_def
-            .times
-            .iter()
-            .find(|span| matches!(span, TimeSpan::Offset(_)) && span.to_time_window(old_departure_time) == activity.place.time)
-        else {
+        let Some(span) = place_def.times.iter().find(|span| {
+            matches!(span, TimeSpan::Offset(_)) && span.to_time_window(old_departure_time) == activity.place.time
+        }) else {
             return;
         };
 
