@@ -29,6 +29,21 @@ pub fn create_activity_limit_feature(
         .build()
 }
 
+/// Creates a minimum limit for activity amount in a tour.
+/// This is a soft constraint (objective) that penalizes solutions where routes have fewer activities than the minimum.
+/// Routes with zero activities (empty routes) are allowed.
+/// The penalty helps guide the solver toward solutions that meet the minimum, while still allowing
+/// exploration of solutions that don't meet the minimum during the search.
+pub fn create_min_activity_limit_feature(
+    name: &str,
+    min_limit_fn: ActivitySizeResolver,
+) -> Result<Feature, GenericError> {
+    FeatureBuilder::default()
+        .with_name(name)
+        .with_objective(MinActivityLimitObjective { min_limit_fn })
+        .build()
+}
+
 /// Creates a travel limits such as distance and/or duration.
 /// This is a hard constraint.
 pub fn create_travel_limit_feature(
@@ -83,6 +98,41 @@ impl FeatureConstraint for ActivityLimitConstraint {
 
     fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
         Ok(source)
+    }
+}
+
+/// Objective that penalizes routes with fewer activities than the minimum limit.
+/// This guides the solver toward valid solutions while still allowing exploration.
+struct MinActivityLimitObjective {
+    min_limit_fn: ActivitySizeResolver,
+}
+
+impl FeatureObjective for MinActivityLimitObjective {
+    fn fitness(&self, solution: &InsertionContext) -> Cost {
+        // Calculate total penalty for all routes that violate the minimum
+        solution.solution.routes.iter().fold(0., |acc, route_ctx| {
+            let activity_count = route_ctx.route().tour.job_activity_count();
+            // Only penalize non-empty routes
+            if activity_count > 0 {
+                if let Some(min_limit) = (self.min_limit_fn)(route_ctx.route().actor.as_ref()) {
+                    if activity_count < min_limit {
+                        // Penalty proportional to how far below the minimum we are
+                        let deficit = (min_limit - activity_count) as Cost;
+                        return acc + deficit;
+                    }
+                }
+            }
+            acc
+        })
+    }
+
+    fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
+        // During insertion, we can't easily estimate the impact on min activity constraint
+        // since adding jobs generally helps meet the minimum
+        match move_ctx {
+            MoveContext::Route { .. } => Cost::default(),
+            MoveContext::Activity { .. } => Cost::default(),
+        }
     }
 }
 

@@ -50,6 +50,21 @@ fn check_shift_limits(context: &CheckerContext) -> GenericResult<()> {
                     ).into())
                 }
             }
+
+            if let Some(min_tour_size_limit) = limits.min_tour_size {
+                let shift = context.get_vehicle_shift(tour)?;
+
+                let extra_activities = if shift.end.is_some() { 2 } else { 1 };
+                let tour_activities = tour.stops.iter().flat_map(|stop| stop.activities()).count();
+                let tour_activities = tour_activities.saturating_sub(extra_activities);
+
+                if tour_activities < min_tour_size_limit {
+                    return Err(format!(
+                        "min tour size limit violation, expected: not less than {}, got: {}, vehicle id '{}', shift index: {}",
+                        min_tour_size_limit, tour_activities, tour.vehicle_id, tour.shift_index
+                    ).into())
+                }
+            }
         }
 
         Ok(())

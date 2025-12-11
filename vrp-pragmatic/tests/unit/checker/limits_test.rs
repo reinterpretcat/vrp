@@ -59,7 +59,8 @@ pub fn can_check_shift_and_distance_limit_impl(
     actual: i64,
     expected: Result<(), GenericError>,
 ) {
-    let problem = create_test_problem(Some(VehicleLimits { max_distance, max_duration, tour_size: None }));
+    let problem =
+        create_test_problem(Some(VehicleLimits { max_distance, max_duration, tour_size: None, min_tour_size: None }));
     let solution =
         create_test_solution(Statistic { distance: actual, duration: actual, ..Statistic::default() }, vec![]);
     let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
@@ -71,8 +72,12 @@ pub fn can_check_shift_and_distance_limit_impl(
 
 #[test]
 pub fn can_check_tour_size_limit() {
-    let problem =
-        create_test_problem(Some(VehicleLimits { max_distance: None, max_duration: None, tour_size: Some(2) }));
+    let problem = create_test_problem(Some(VehicleLimits {
+        max_distance: None,
+        max_duration: None,
+        tour_size: Some(2),
+        min_tour_size: None,
+    }));
     let solution = create_test_solution(
         Statistic::default(),
         vec![
@@ -112,6 +117,88 @@ pub fn can_check_tour_size_limit() {
         Err("tour size limit violation, expected: not more than 2, got: 3, vehicle id 'some_real_vehicle', shift index: 0"
             .into())
     );
+}
+
+#[test]
+pub fn can_check_min_tour_size_limit() {
+    let problem = create_test_problem(Some(VehicleLimits {
+        max_distance: None,
+        max_duration: None,
+        tour_size: None,
+        min_tour_size: Some(3),
+    }));
+    let solution = create_test_solution(
+        Statistic::default(),
+        vec![
+            StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![2]).build_departure(),
+            StopBuilder::default()
+                .coordinate((1., 0.))
+                .schedule_stamp(1., 1.)
+                .load(vec![1])
+                .distance(1)
+                .build_single("job1", "delivery"),
+            StopBuilder::default()
+                .coordinate((2., 0.))
+                .schedule_stamp(2., 2.)
+                .load(vec![0])
+                .distance(2)
+                .build_single("job2", "delivery"),
+            StopBuilder::default()
+                .coordinate((0., 0.))
+                .schedule_stamp(4., 4.)
+                .load(vec![0])
+                .distance(4)
+                .build_arrival(),
+        ],
+    );
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
+
+    let result = check_shift_limits(&ctx);
+
+    assert_eq!(
+        result,
+        Err("min tour size limit violation, expected: not less than 3, got: 2, vehicle id 'some_real_vehicle', shift index: 0"
+            .into())
+    );
+}
+
+#[test]
+pub fn can_pass_min_tour_size_limit_when_satisfied() {
+    let problem = create_test_problem(Some(VehicleLimits {
+        max_distance: None,
+        max_duration: None,
+        tour_size: None,
+        min_tour_size: Some(2),
+    }));
+    let solution = create_test_solution(
+        Statistic::default(),
+        vec![
+            StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![2]).build_departure(),
+            StopBuilder::default()
+                .coordinate((1., 0.))
+                .schedule_stamp(1., 1.)
+                .load(vec![1])
+                .distance(1)
+                .build_single("job1", "delivery"),
+            StopBuilder::default()
+                .coordinate((2., 0.))
+                .schedule_stamp(2., 2.)
+                .load(vec![0])
+                .distance(2)
+                .build_single("job2", "delivery"),
+            StopBuilder::default()
+                .coordinate((0., 0.))
+                .schedule_stamp(4., 4.)
+                .load(vec![0])
+                .distance(4)
+                .build_arrival(),
+        ],
+    );
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
+
+    let result = check_shift_limits(&ctx);
+
+    assert_eq!(result, Ok(()));
 }
 
 #[test]

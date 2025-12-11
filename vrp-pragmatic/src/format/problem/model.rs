@@ -356,6 +356,11 @@ pub struct VehicleLimits {
     /// No job activities restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tour_size: Option<usize>,
+
+    /// Min amount of job activities.
+    /// No minimum job activities restrictions when omitted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_tour_size: Option<usize>,
 }
 
 /// Vehicle optional break time variant.
@@ -606,6 +611,10 @@ pub enum Objective {
 
     /// An objective to control order of job activities in the tour.
     TourOrder,
+
+    /// An objective to minimize tour size violations (routes with fewer activities than min_tour_size).
+    /// Only relevant when vehicles have min_tour_size limits defined.
+    MinimizeTourSizeViolation,
 
     /// An objective to prefer jobs to be served as soon as possible.
     FastService,

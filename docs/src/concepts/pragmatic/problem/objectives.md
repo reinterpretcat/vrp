@@ -59,6 +59,9 @@ These objectives provide some extra control on job assignment:
   for a given job' neighbourhood. It has the following mandatory parameters:
   - `options`: options to relax objective: - `jobRadius`: a radius of neighbourhood, minimum is 1 - `threshold`: a minimum shared jobs to count - `distance`: a minimum relative distance between counts when comparing different solutions.
     This objective is supposed to be on the same level within cost ones.
+- `minimize-tour-size-violation`: penalizes solutions where routes have fewer activities than the `min_tour_size`
+  limit defined on vehicles. Empty routes (with zero activities) are not penalized. This objective should be used
+  when vehicles have `min_tour_size` limits defined in their `limits` property.
 
 ### Work balance objectives
 

@@ -648,3 +648,9 @@ keep only one cost objective in the list of objectives.
 
 `missing value objective` error is returned when plan has jobs with value set, but user defined objective doesn't
 include the `maximize-value` objective.
+
+
+#### E1608
+
+`missing min tour size objective` error is returned when fleet has vehicles with `min_tour_size` set in their limits,
+but user defined objective doesn't include the `minimize-tour-size-violation` objective.

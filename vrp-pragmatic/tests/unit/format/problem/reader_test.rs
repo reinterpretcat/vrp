@@ -167,7 +167,12 @@ fn can_read_complex_problem() {
                 }],
                 capacity: vec![10, 1],
                 skills: Some(vec!["unique1".to_string(), "unique2".to_string()]),
-                limits: Some(VehicleLimits { max_distance: Some(123.1), max_duration: Some(100.), tour_size: Some(3) }),
+                limits: Some(VehicleLimits {
+                    max_distance: Some(123.1),
+                    max_duration: Some(100.),
+                    tour_size: Some(3),
+                    min_tour_size: None,
+                }),
                 min_shifts: None,
             }],
             ..create_default_fleet()

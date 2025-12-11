@@ -211,6 +211,10 @@ fn get_objective_feature_layer(
             create_tour_compactness_feature("tour_compact", blocks.jobs.clone(), *job_radius)
         }
         Objective::TourOrder => create_tour_order_soft_feature("tour_order", get_tour_order_fn()),
+        Objective::MinimizeTourSizeViolation => create_min_activity_limit_feature(
+            "min_tour_size_objective",
+            Arc::new(|actor| actor.vehicle.dimens.get_min_tour_size().copied()),
+        ),
         Objective::FastService => get_fast_service_feature("fast_service", blocks),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
         Objective::MultiObjective { objectives, strategy: composition_type } => {
