@@ -38,10 +38,7 @@ pub fn create_min_activity_limit_feature(
     name: &str,
     min_limit_fn: ActivitySizeResolver,
 ) -> Result<Feature, GenericError> {
-    FeatureBuilder::default()
-        .with_name(name)
-        .with_objective(MinActivityLimitObjective { min_limit_fn })
-        .build()
+    FeatureBuilder::default().with_name(name).with_objective(MinActivityLimitObjective { min_limit_fn }).build()
 }
 
 /// Creates a travel limits such as distance and/or duration.

@@ -13,11 +13,7 @@ fn create_objectives_with_min_tour_size() -> Option<Vec<Objective>> {
 
 fn create_maximize_tours_objectives() -> Option<Vec<Objective>> {
     // Maximize tours to force creating more routes (opposite of minimize)
-    Some(vec![
-        Objective::MinimizeUnassigned { breaks: None },
-        Objective::MaximizeTours,
-        Objective::MinimizeCost,
-    ])
+    Some(vec![Objective::MinimizeUnassigned { breaks: None }, Objective::MaximizeTours, Objective::MinimizeCost])
 }
 
 fn create_maximize_tours_with_min_tour_size_objectives() -> Option<Vec<Objective>> {
@@ -69,12 +65,7 @@ fn can_verify_objective_changes_behavior() {
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
-                vehicle_ids: vec![
-                    "v1".to_string(),
-                    "v2".to_string(),
-                    "v3".to_string(),
-                    "v4".to_string(),
-                ],
+                vehicle_ids: vec!["v1".to_string(), "v2".to_string(), "v3".to_string(), "v4".to_string()],
                 shifts: vec![create_default_open_vehicle_shift()],
                 capacity: vec![10], // High capacity - not a limiting factor
                 limits: if with_min_tour_size {
@@ -120,10 +111,18 @@ fn can_verify_objective_changes_behavior() {
     let underfilled_without = has_underfilled_routes(&counts_without, 2);
     let underfilled_with = has_underfilled_routes(&counts_with, 2);
 
-    println!("MaximizeTours only: {} tours with activities {:?}, underfilled: {}", 
-             solution_without.tours.len(), counts_without, underfilled_without);
-    println!("MaximizeTours + MinTourSizeViolation: {} tours with activities {:?}, underfilled: {}", 
-             solution_with.tours.len(), counts_with, underfilled_with);
+    println!(
+        "MaximizeTours only: {} tours with activities {:?}, underfilled: {}",
+        solution_without.tours.len(),
+        counts_without,
+        underfilled_without
+    );
+    println!(
+        "MaximizeTours + MinTourSizeViolation: {} tours with activities {:?}, underfilled: {}",
+        solution_with.tours.len(),
+        counts_with,
+        underfilled_with
+    );
 
     // The key assertion: Without the objective, MaximizeTours creates underfilled routes
     assert!(
@@ -133,11 +132,7 @@ fn can_verify_objective_changes_behavior() {
     );
 
     // With the objective, routes should NOT be underfilled
-    assert!(
-        !underfilled_with,
-        "With objective, should have no underfilled routes. Got: {:?}",
-        counts_with
-    );
+    assert!(!underfilled_with, "With objective, should have no underfilled routes. Got: {:?}", counts_with);
 
     // All jobs should be assigned in the solution with objective
     assert!(
@@ -190,7 +185,7 @@ fn can_enforce_min_tour_size_by_consolidating_jobs() {
             .flat_map(|stop| stop.activities())
             .filter(|a| a.activity_type != "departure" && a.activity_type != "arrival")
             .count();
-        
+
         assert!(
             job_activities >= 2 || job_activities == 0,
             "Tour for vehicle {} has {} job activities, expected at least 2 (or 0 if empty)",
@@ -296,13 +291,13 @@ fn can_handle_min_tour_size_with_single_vehicle() {
 
     // Should have one tour with all 3 jobs
     assert_eq!(solution.tours.len(), 1, "Expected exactly one tour");
-    
+
     let job_activities: usize = solution.tours[0]
         .stops
         .iter()
         .flat_map(|stop| stop.activities())
         .filter(|a| a.activity_type != "departure" && a.activity_type != "arrival")
         .count();
-    
+
     assert_eq!(job_activities, 3, "Expected all 3 jobs in the tour");
 }

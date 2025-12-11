@@ -16,7 +16,12 @@ fn can_skip_job_from_multiple_because_of_tour_size() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![create_default_open_vehicle_shift()],
-                limits: Some(VehicleLimits { max_distance: None, max_duration: None, tour_size: Some(2), min_tour_size: None }),
+                limits: Some(VehicleLimits {
+                    max_distance: None,
+                    max_duration: None,
+                    tour_size: Some(2),
+                    min_tour_size: None,
+                }),
                 ..create_default_vehicle_type()
             }],
             ..create_default_fleet()

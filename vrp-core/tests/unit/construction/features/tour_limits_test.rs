@@ -62,10 +62,7 @@ mod min_activity {
 
     #[test]
     fn can_create_min_activity_limit_feature() {
-        let feature = create_min_activity_limit_feature(
-            "min_activity_limit",
-            Arc::new(|_| Some(3)),
-        );
+        let feature = create_min_activity_limit_feature("min_activity_limit", Arc::new(|_| Some(3)));
         assert!(feature.is_ok());
         let feature = feature.unwrap();
         // Now only has objective, no constraint
@@ -84,7 +81,7 @@ mod min_activity {
                             .add_activities((0..1).map(|idx| ActivityBuilder::with_location(idx).build()))
                             .build(),
                     )
-                    .build()
+                    .build(),
             ])
             .build();
 
@@ -114,7 +111,7 @@ mod min_activity {
                             .add_activities((0..3).map(|idx| ActivityBuilder::with_location(idx).build()))
                             .build(),
                     )
-                    .build()
+                    .build(),
             ])
             .build();
 
@@ -138,22 +135,13 @@ mod min_activity {
         let insertion_ctx = TestInsertionContextBuilder::default()
             .with_routes(vec![
                 RouteContextBuilder::default()
-                    .with_route(
-                        RouteBuilder::default()
-                            .with_vehicle(&test_fleet(), "v1")
-                            .build(),
-                    )
-                    .build()
+                    .with_route(RouteBuilder::default().with_vehicle(&test_fleet(), "v1").build())
+                    .build(),
             ])
             .build();
 
-        let objective = create_min_activity_limit_feature(
-            "min_activity_limit",
-            Arc::new(|_| Some(3)),
-        )
-        .unwrap()
-        .objective
-        .unwrap();
+        let objective =
+            create_min_activity_limit_feature("min_activity_limit", Arc::new(|_| Some(3))).unwrap().objective.unwrap();
 
         let fitness = objective.fitness(&insertion_ctx);
 
