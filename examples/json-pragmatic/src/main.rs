@@ -8,8 +8,8 @@ use std::sync::Arc;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::core::models::{Problem as CoreProblem, Solution as CoreSolution};
 use vrp_pragmatic::core::prelude::*;
-use vrp_pragmatic::format::problem::{Matrix, PragmaticProblem, Problem, deserialize_matrix, deserialize_problem};
-use vrp_pragmatic::format::solution::{Solution, deserialize_solution, write_pragmatic};
+use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, Matrix, PragmaticProblem, Problem};
+use vrp_pragmatic::format::solution::{deserialize_solution, write_pragmatic, Solution};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -29,6 +29,7 @@ fn run_examples(base_path: &str) {
         ("basics/priorities.value", None),
         ("basics/profiles.basic", Some(vec!["basics/profiles.basic.matrix.car", "basics/profiles.basic.matrix.truck"])),
         ("basics/relation-strict.basic", None),
+        ("basics/required-break.tricky", Some(vec!["basics/required-break.tricky.matrix"])),
         ("basics/relation-any.basic", None),
         ("basics/reload.basic", None),
         ("basics/reload.multi", None),

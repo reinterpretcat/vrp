@@ -1,0 +1,219 @@
+{
+  "plan": {
+    "jobs": [
+      {
+        "id": "0",
+        "pickups": null,
+        "deliveries": null,
+        "services": [
+          {
+            "places": [
+              {
+                "location": {
+                  "index": 0
+                },
+                "duration": 10800.0,
+                "times": [
+                  [
+                    "2026-01-19T00:00:00+11:00",
+                    "2026-01-19T23:59:59.999999+11:00"
+                  ]
+                ],
+                "tag": null
+              }
+            ]
+          }
+        ],
+        "replacements": null,
+        "skills": null
+      },
+      {
+        "id": "1",
+        "pickups": null,
+        "deliveries": null,
+        "services": [
+          {
+            "places": [
+              {
+                "location": {
+                  "index": 1
+                },
+                "duration": 3600.0,
+                "times": [
+                  [
+                    "2026-01-18T22:30:00+00:00",
+                    "2026-01-18T22:30:00+00:00"
+                  ]
+                ],
+                "tag": null
+              }
+            ]
+          }
+        ],
+        "replacements": null,
+        "skills": null
+      },
+      {
+        "id": "2",
+        "pickups": null,
+        "deliveries": null,
+        "services": [
+          {
+            "places": [
+              {
+                "location": {
+                  "index": 2
+                },
+                "duration": 1800.0,
+                "times": [
+                  [
+                    "2026-01-19T00:15:00+00:00",
+                    "2026-01-19T00:15:00+00:00"
+                  ]
+                ],
+                "tag": null
+              }
+            ]
+          }
+        ],
+        "replacements": null,
+        "skills": null
+      },
+      {
+        "id": "3",
+        "pickups": null,
+        "deliveries": null,
+        "services": [
+          {
+            "places": [
+              {
+                "location": {
+                  "index": 3
+                },
+                "duration": 5400.0,
+                "times": [
+                  [
+                    "2026-01-18T21:00:00+00:00",
+                    "2026-01-18T21:00:00+00:00"
+                  ]
+                ],
+                "tag": null
+              }
+            ]
+          }
+        ],
+        "replacements": null,
+        "skills": null
+      },
+      {
+        "id": "4",
+        "pickups": null,
+        "deliveries": null,
+        "services": [
+          {
+            "places": [
+              {
+                "location": {
+                  "index": 4
+                },
+                "duration": 1800.0,
+                "times": [
+                  [
+                    "2026-01-19T00:45:00+00:00",
+                    "2026-01-19T00:45:00+00:00"
+                  ]
+                ],
+                "tag": null
+              }
+            ]
+          }
+        ],
+        "replacements": null,
+        "skills": null
+      }
+    ],
+    "relations": [
+      {
+        "type": "sequence",
+        "jobs": [
+          "3",
+          "1",
+          "2",
+          "4"
+        ],
+        "vehicleId": "37",
+        "shiftIndex": 0
+      }
+    ]
+  },
+  "fleet": {
+    "vehicles": [
+      {
+        "typeId": "37",
+        "vehicleIds": [
+          "37"
+        ],
+        "profile": {
+          "matrix": "van"
+        },
+        "costs": {
+          "fixed": 22.0,
+          "distance": 0.0002,
+          "time": 0.004806
+        },
+        "shifts": [
+          {
+            "start": {
+              "earliest": "2026-01-19T08:00:00+11:00",
+              "location": {
+                "index": 5
+              },
+              "latest": "2026-01-19T08:00:00+11:00"
+            },
+            "end": {
+              "latest": "2026-01-19T16:00:00+11:00",
+              "location": {
+                "index": 5
+              },
+              "earliest": null
+            },
+            "breaks": [
+              {
+                "time": {
+                  "latest": 15303,
+                  "earliest": 15303
+                },
+                "duration": 1800
+              }
+            ],
+            "reloads": null
+          }
+        ],
+        "capacity": [
+          999
+        ],
+        "skills": []
+      }
+    ],
+    "profiles": [
+      {
+        "name": "van"
+      }
+    ]
+  },
+  "objectives": [
+    {
+      "type": "minimize-unassigned",
+      "breaks": 1.0
+    },
+    {
+      "type": "minimize-tours"
+    },
+    {
+      "type": "minimize-arrival-time"
+    },
+    {
+      "type": "minimize-cost"
+    }
+  ]
+}

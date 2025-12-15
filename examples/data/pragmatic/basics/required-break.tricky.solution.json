@@ -1,0 +1,168 @@
+{
+  "statistic": {
+    "cost": 133.735938,
+    "distance": 123184,
+    "duration": 18123,
+    "times": {
+      "driving": 5523,
+      "serving": 12600,
+      "waiting": 0,
+      "break": 0,
+      "commuting": 0,
+      "parking": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "37",
+      "typeId": "37",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "index": 5
+          },
+          "time": {
+            "arrival": "2026-01-18T21:00:00Z",
+            "departure": "2026-01-18T21:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "index": 3
+          },
+          "time": {
+            "arrival": "2026-01-18T21:41:55Z",
+            "departure": "2026-01-18T23:11:55Z"
+          },
+          "distance": 60477,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "3",
+              "type": "service"
+            }
+          ]
+        },
+        {
+          "location": {
+            "index": 1
+          },
+          "time": {
+            "arrival": "2026-01-18T23:13:30Z",
+            "departure": "2026-01-19T00:13:30Z"
+          },
+          "distance": 60927,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "1",
+              "type": "service"
+            }
+          ]
+        },
+        {
+          "location": {
+            "index": 2
+          },
+          "time": {
+            "arrival": "2026-01-19T00:24:20Z",
+            "departure": "2026-01-19T00:54:20Z"
+          },
+          "distance": 70015,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "2",
+              "type": "service"
+            }
+          ]
+        },
+        {
+          "location": {
+            "index": 4
+          },
+          "time": {
+            "arrival": "2026-01-19T00:54:23Z",
+            "departure": "2026-01-19T01:24:23Z"
+          },
+          "distance": 70038,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "4",
+              "type": "service"
+            }
+          ]
+        },
+        {
+          "location": {
+            "index": 5
+          },
+          "time": {
+            "arrival": "2026-01-19T02:02:03Z",
+            "departure": "2026-01-19T02:02:03Z"
+          },
+          "distance": 123184,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 133.735938,
+        "distance": 123184,
+        "duration": 18123,
+        "times": {
+          "driving": 5523,
+          "serving": 12600,
+          "waiting": 0,
+          "break": 0,
+          "commuting": 0,
+          "parking": 0
+        }
+      }
+    }
+  ],
+  "unassigned": [
+    {
+      "jobId": "0",
+      "reasons": [
+        {
+          "code": "TIME_WINDOW_CONSTRAINT",
+          "description": "cannot be visited within time window",
+          "details": [
+            {
+              "vehicleId": "37",
+              "shiftIndex": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
