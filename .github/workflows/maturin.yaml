@@ -3,8 +3,6 @@ name: Publish Release
 on:
   workflow_dispatch:
   push:
-    tags:
-      - "*"
   release:
     types:
       - released
