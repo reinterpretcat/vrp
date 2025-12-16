@@ -26,13 +26,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           working-directory: ./vrp-cli
           target: ${{ matrix.target }}
           sccache: "true"
-          args: --release --out dist -m Cargo.toml -i 3.12
+          args: --release --out dist -m Cargo.toml -i 3.12 -i 3.13
           manylinux: auto
 
       - name: Upload wheels
@@ -54,12 +58,17 @@ jobs:
           python-version: "3.12"
           architecture: "arm64"
 
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+          architecture: "arm64"
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           working-directory: ./vrp-cli
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --out dist -m Cargo.toml -i 3.12 -i 3.13
           sccache: "true"
 
       - name: Upload wheels
