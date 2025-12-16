@@ -75,6 +75,25 @@ jobs:
           name: wheels-macos-${{ matrix.target }}
           path: ./vrp-cli/dist
 
+  pypi-publish:
+    name: Publish artifacts to Uptick's Pypi repo
+    if: startswith(github.ref, 'ref/tags/')
+    permissions:
+      contents: write
+    needs: [linux, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # ratchet:actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: uptick/actions/.github/workflows/ci.yaml@main # ratchet:exclude
+        secrets: inherit
+        with:
+          pypi-dist: dist
+          uv: true
+          python: true
+          s3pypi-publish: true
   gh-publish:
     name: Publish artifacts to GH
     if: startsWith(github.ref, 'refs/tags/')
