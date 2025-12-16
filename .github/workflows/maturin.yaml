@@ -3,8 +3,6 @@ name: Publish Release
 on:
   workflow_dispatch:
   push:
-    tags:
-      - "*"
   release:
     types:
       - released
@@ -26,13 +24,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
+        with:
+          python-version: "3.13"
+
       - name: Build wheels
         uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # ratchet:PyO3/maturin-action@v1
         with:
           working-directory: ./vrp-cli
           target: ${{ matrix.target }}
           sccache: "true"
-          args: --release --out dist -m Cargo.toml -i 3.12
+          args: --release --out dist -m Cargo.toml -i 3.12 -i 3.13
           manylinux: auto
 
       - name: Upload wheels
@@ -54,12 +56,17 @@ jobs:
           python-version: "3.12"
           architecture: "arm64"
 
+      - uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # ratchet:actions/setup-python@v4
+        with:
+          python-version: "3.13"
+          architecture: "arm64"
+
       - name: Build wheels
         uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # ratchet:PyO3/maturin-action@v1
         with:
           working-directory: ./vrp-cli
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --out dist -m Cargo.toml -i 3.12 -i 3.13
           sccache: "true"
 
       - name: Upload wheels
