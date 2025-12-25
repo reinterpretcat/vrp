@@ -1,3 +1,4 @@
+use crate::format::Location;
 use crate::format::problem::*;
 use crate::format_time;
 use crate::helpers::*;
@@ -198,7 +199,6 @@ fn can_skip_break_if_it_is_after_start_before_end_range() {
     assert!(get_ids_from_tour(&solution.tours[0]).iter().flatten().all(|id| id != "break"));
 }
 
-// TODO check exact and offset use cases
 #[test]
 fn can_reschedule_break_early_from_transport_to_activity() {
     let is_open = true;
@@ -251,4 +251,83 @@ fn can_reschedule_break_early_from_transport_to_activity() {
             )
             .build()
     );
+}
+
+#[test]
+fn can_handle_required_break_with_infeasible_sequence_relation() {
+    let create_test_job = |index: usize, duration: f64, times: (String, String)| Job {
+        services: Some(vec![JobTask {
+            places: vec![JobPlace {
+                location: Location::Reference { index },
+                duration,
+                times: Some(vec![vec![times.0, times.1]]),
+                tag: None,
+            }],
+            demand: None,
+            order: None,
+        }]),
+        ..create_job(index.to_string().as_str())
+    };
+
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_test_job(0, 10800., (format_time(0.), format_time(86399.))),
+                create_test_job(1, 3600., (format_time(81000.), format_time(81000.))),
+                create_test_job(2, 1800., (format_time(86400. + 900.), format_time(86400. + 900.))),
+                create_test_job(3, 5400., (format_time(75600.), format_time(75600.))),
+                create_test_job(4, 1800., (format_time(86400. + 2700.), format_time(86400. + 2700.))),
+            ],
+            relations: Some(vec![Relation {
+                type_field: RelationType::Sequence,
+                jobs: to_strings(vec!["3", "1", "2", "4"]),
+                vehicle_id: "my_vehicle_1".to_string(),
+                shift_index: Some(0),
+            }]),
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(86400. + 28800.),
+                        latest: Some(format_time(86400. + 28800.)),
+                        location: Location::Reference { index: 5 },
+                    },
+                    end: Some(ShiftEnd {
+                        earliest: None,
+                        latest: format_time(86400. + 57600.),
+                        location: Location::Reference { index: 5 },
+                    }),
+                    breaks: Some(vec![VehicleBreak::Required {
+                        time: VehicleRequiredBreakTime::OffsetTime { earliest: 15303., latest: 15303. },
+                        duration: 1800.,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+
+    let matrix = Matrix {
+        profile: Some("car".to_string()),
+        timestamp: None,
+        travel_times: vec![
+            0, 635, 24, 580, 27, 2232, 625, 0, 650, 76, 653, 2507, 24, 660, 0, 605, 3, 2257, 570, 95, 595, 0, 598,
+            2449, 27, 663, 3, 608, 0, 2260, 2232, 2545, 2257, 2515, 2260, 0,
+        ],
+        distances: vec![
+            0, 8888, 192, 8510, 215, 52931, 8896, 0, 9088, 450, 9111, 56579, 192, 9080, 0, 8702, 23, 53123, 8518, 450,
+            8710, 0, 8733, 60163, 215, 9103, 23, 8725, 0, 53146, 52996, 56684, 53188, 60477, 53211, 0,
+        ],
+        error_codes: None,
+    };
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    // Basic assertion - no crash, solution should exist and have at least one tour
+    assert!(!solution.tours.is_empty());
 }
