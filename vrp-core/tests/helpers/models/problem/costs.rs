@@ -2,6 +2,7 @@ use crate::models::common::{Distance, Duration, Location, Profile, Timestamp};
 use crate::models::problem::{ActivityCost, SimpleActivityCost, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
 use rosomaxa::prelude::Float;
+use std::ops::ControlFlow;
 use std::sync::Arc;
 
 #[derive(Default)]
@@ -45,11 +46,11 @@ pub struct TestActivityCost {
 }
 
 impl ActivityCost for TestActivityCost {
-    fn estimate_departure(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> Timestamp {
+    fn estimate_departure(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> ControlFlow<Timestamp, Timestamp> {
         self.inner.estimate_departure(route, activity, arrival)
     }
 
-    fn estimate_arrival(&self, route: &Route, activity: &Activity, departure: Timestamp) -> Timestamp {
+    fn estimate_arrival(&self, route: &Route, activity: &Activity, departure: Timestamp) -> ControlFlow<Timestamp, Timestamp> {
         self.inner.estimate_arrival(route, activity, departure)
     }
 }

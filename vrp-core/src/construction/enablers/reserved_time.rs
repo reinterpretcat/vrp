@@ -5,8 +5,9 @@ mod reserved_time_test;
 use crate::models::common::*;
 use crate::models::problem::{ActivityCost, Actor, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
-use rosomaxa::prelude::{Float, GenericError};
+use rosomaxa::prelude::GenericError;
 use std::collections::HashMap;
+use std::ops::ControlFlow;
 use std::sync::Arc;
 
 /// Represent a reserved time span entity.
@@ -54,12 +55,12 @@ impl DynamicActivityCost {
 }
 
 impl ActivityCost for DynamicActivityCost {
-    fn estimate_departure(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> Timestamp {
+    fn estimate_departure(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> ControlFlow<Timestamp, Timestamp> {
         let activity_start = arrival.max(activity.place.time.start);
         let departure = activity_start + activity.place.duration;
         let schedule = TimeWindow::new(arrival, departure);
 
-        (self.reserved_times_fn)(route, &schedule).map_or(departure, |reserved_time| {
+        (self.reserved_times_fn)(route, &schedule).map_or(ControlFlow::Continue(departure), |reserved_time| {
             // NOTE we ignore reserved_time.time.start and consider the latest possible time only
             let reserved_tw = &reserved_time.time;
             let reserved_tw = TimeWindow::new(reserved_tw.end, reserved_tw.end + reserved_time.duration);
@@ -81,19 +82,21 @@ impl ActivityCost for DynamicActivityCost {
             if activity_start + extra_duration > activity.place.time.end {
                 // TODO this branch is the reason why departure rescheduling is disabled.
                 //      theoretically, rescheduling should be aware somehow about dynamic costs
-                Float::MAX
+                ControlFlow::Break(departure + extra_duration)
             } else {
-                departure + extra_duration
+                ControlFlow::Continue(departure + extra_duration)
             }
         })
     }
 
-    fn estimate_arrival(&self, route: &Route, activity: &Activity, departure: Timestamp) -> Timestamp {
+    fn estimate_arrival(&self, route: &Route, activity: &Activity, departure: Timestamp) -> ControlFlow<Timestamp, Timestamp> {
         let arrival = activity.place.time.end.min(departure - activity.place.duration);
         let schedule = TimeWindow::new(arrival, departure);
 
-        (self.reserved_times_fn)(route, &schedule)
-            .map_or(arrival, |reserved_time| (arrival - reserved_time.duration).max(activity.place.time.start))
+        let value = (self.reserved_times_fn)(route, &schedule)
+            .map_or(arrival, |reserved_time| (arrival - reserved_time.duration).max(activity.place.time.start));
+
+        ControlFlow::Continue(value)
     }
 }
 

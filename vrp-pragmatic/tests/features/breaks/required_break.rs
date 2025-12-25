@@ -326,8 +326,11 @@ fn can_handle_required_break_with_infeasible_sequence_relation() {
         error_codes: None,
     };
 
-    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 200);
 
-    // Basic assertion - no crash, solution should exist and have at least one tour
+    // With proper constraint handling via ControlFlow, job "0" (with very wide time window) cannot be
+    // scheduled due to the required break at specific time conflicting with the strict sequence relation.
     assert!(!solution.tours.is_empty());
+    assert_eq!(solution.unassigned.as_ref().map(|u| u.len()), Some(1));
+    assert_eq!(solution.unassigned.as_ref().and_then(|u| u.first()).map(|j| j.job_id.as_str()), Some("0"));
 }

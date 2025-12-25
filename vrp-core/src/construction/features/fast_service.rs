@@ -4,6 +4,7 @@ mod fast_service_test;
 
 use super::*;
 use crate::construction::enablers::{calculate_travel, calculate_travel_delta};
+use rosomaxa::utils::UnwrapValue;
 use std::collections::HashMap;
 
 /// Provides the way to build fast service feature.
@@ -189,7 +190,7 @@ impl FastServiceObjective {
         let (_, (prev_to_tar_dur, _)) = calculate_travel(route_ctx, activity_ctx, self.transport.as_ref());
         let arrival = activity_ctx.prev.schedule.departure + prev_to_tar_dur;
 
-        self.activity.estimate_departure(route_ctx.route(), activity_ctx.target, arrival)
+        self.activity.estimate_departure(route_ctx.route(), activity_ctx.target, arrival).unwrap_value()
     }
 
     fn get_cost_for_multi_job(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Cost {

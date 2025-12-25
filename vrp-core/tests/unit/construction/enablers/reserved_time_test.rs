@@ -7,6 +7,7 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::problem::*;
 use crate::models::{Feature, ViolationCode};
+use rosomaxa::prelude::Float;
 
 const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 
