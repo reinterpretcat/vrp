@@ -46,11 +46,21 @@ pub struct TestActivityCost {
 }
 
 impl ActivityCost for TestActivityCost {
-    fn estimate_departure(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> ControlFlow<Timestamp, Timestamp> {
+    fn estimate_departure(
+        &self,
+        route: &Route,
+        activity: &Activity,
+        arrival: Timestamp,
+    ) -> ControlFlow<Timestamp, Timestamp> {
         self.inner.estimate_departure(route, activity, arrival)
     }
 
-    fn estimate_arrival(&self, route: &Route, activity: &Activity, departure: Timestamp) -> ControlFlow<Timestamp, Timestamp> {
+    fn estimate_arrival(
+        &self,
+        route: &Route,
+        activity: &Activity,
+        departure: Timestamp,
+    ) -> ControlFlow<Timestamp, Timestamp> {
         self.inner.estimate_arrival(route, activity, departure)
     }
 }

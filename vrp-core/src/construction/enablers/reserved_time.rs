@@ -55,7 +55,12 @@ impl DynamicActivityCost {
 }
 
 impl ActivityCost for DynamicActivityCost {
-    fn estimate_departure(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> ControlFlow<Timestamp, Timestamp> {
+    fn estimate_departure(
+        &self,
+        route: &Route,
+        activity: &Activity,
+        arrival: Timestamp,
+    ) -> ControlFlow<Timestamp, Timestamp> {
         let activity_start = arrival.max(activity.place.time.start);
         let departure = activity_start + activity.place.duration;
         let schedule = TimeWindow::new(arrival, departure);
@@ -89,7 +94,12 @@ impl ActivityCost for DynamicActivityCost {
         })
     }
 
-    fn estimate_arrival(&self, route: &Route, activity: &Activity, departure: Timestamp) -> ControlFlow<Timestamp, Timestamp> {
+    fn estimate_arrival(
+        &self,
+        route: &Route,
+        activity: &Activity,
+        departure: Timestamp,
+    ) -> ControlFlow<Timestamp, Timestamp> {
         let arrival = activity.place.time.end.min(departure - activity.place.duration);
         let schedule = TimeWindow::new(arrival, departure);
 

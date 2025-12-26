@@ -35,12 +35,22 @@ pub trait ActivityCost: Send + Sync {
     /// Estimates departure time for activity and actor at given arrival time.
     /// Returns `ControlFlow::Continue(timestamp)` if the departure time is feasible,
     /// or `ControlFlow::Break(timestamp)` if constraints are violated (e.g., time window infeasible).
-    fn estimate_departure(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> ControlFlow<Timestamp, Timestamp>;
+    fn estimate_departure(
+        &self,
+        route: &Route,
+        activity: &Activity,
+        arrival: Timestamp,
+    ) -> ControlFlow<Timestamp, Timestamp>;
 
     /// Estimates arrival time for activity and actor at given departure time.
     /// Returns `ControlFlow::Continue(timestamp)` if the arrival time is feasible,
     /// or `ControlFlow::Break(timestamp)` if constraints are violated (e.g., time window infeasible).
-    fn estimate_arrival(&self, route: &Route, activity: &Activity, departure: Timestamp) -> ControlFlow<Timestamp, Timestamp>;
+    fn estimate_arrival(
+        &self,
+        route: &Route,
+        activity: &Activity,
+        departure: Timestamp,
+    ) -> ControlFlow<Timestamp, Timestamp>;
 }
 
 /// An actor independent activity costs.
@@ -48,11 +58,21 @@ pub trait ActivityCost: Send + Sync {
 pub struct SimpleActivityCost {}
 
 impl ActivityCost for SimpleActivityCost {
-    fn estimate_departure(&self, _: &Route, activity: &Activity, arrival: Timestamp) -> ControlFlow<Timestamp, Timestamp> {
+    fn estimate_departure(
+        &self,
+        _: &Route,
+        activity: &Activity,
+        arrival: Timestamp,
+    ) -> ControlFlow<Timestamp, Timestamp> {
         ControlFlow::Continue(arrival.max(activity.place.time.start) + activity.place.duration)
     }
 
-    fn estimate_arrival(&self, _: &Route, activity: &Activity, departure: Timestamp) -> ControlFlow<Timestamp, Timestamp> {
+    fn estimate_arrival(
+        &self,
+        _: &Route,
+        activity: &Activity,
+        departure: Timestamp,
+    ) -> ControlFlow<Timestamp, Timestamp> {
         ControlFlow::Continue(activity.place.time.end.min(departure - activity.place.duration))
     }
 }

@@ -161,7 +161,7 @@ fn can_use_init_size() {
 
 #[test]
 fn can_specify_cv() {
-    for (params, result) in vec![
+    for (params, result) in [
         (vec!["--min-cv", "sample,200,0.05,true"], Ok(Some(("sample".to_string(), 200, 0.05, true)))),
         (vec!["--min-cv", "period,100,0.01,false"], Ok(Some(("period".to_string(), 100, 0.01, false)))),
         (vec!["--min-cv", "sample,200,0,tru"], Err("cannot parse min_cv parameter".into())),

@@ -1,4 +1,4 @@
-FROM rust:1.88-alpine AS Builder
+FROM rust:1.92-alpine AS builder
 
 LABEL maintainer="Ilya Builuk <ilya.builuk@gmail.com>" \
       org.opencontainers.image.title="A Vehicle Routing Problem solver CLI" \
@@ -29,6 +29,6 @@ FROM alpine:3.18
 ENV SOLVER_DIR=/solver
 
 RUN mkdir $SOLVER_DIR
-COPY --from=Builder /src/target/release/vrp-cli $SOLVER_DIR/vrp-cli
+COPY --from=builder /src/target/release/vrp-cli $SOLVER_DIR/vrp-cli
 
 WORKDIR $SOLVER_DIR

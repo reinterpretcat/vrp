@@ -38,19 +38,15 @@ type DomainLocation = vrp_core::models::common::Location;
 type DomainExtras = vrp_core::models::Extras;
 
 /// Specifies possible options for solution output.
+#[derive(Default)]
 pub enum PragmaticOutputType {
     /// Only pragmatic is needed.
+    #[default]
     OnlyPragmatic,
     /// Only geojson is needed.
     OnlyGeoJson,
     /// Pragmatic and geojson is returned. Geojson features are embedded inside extras property.
     Combined,
-}
-
-impl Default for PragmaticOutputType {
-    fn default() -> Self {
-        Self::OnlyPragmatic
-    }
 }
 
 /// Writes solution in pragmatic format variation defined by output type argument.
