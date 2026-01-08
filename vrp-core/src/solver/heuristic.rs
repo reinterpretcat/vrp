@@ -399,13 +399,13 @@ mod statik {
 
         // initialize recreate
         let recreate = Arc::new(WeightedRecreate::new(vec![
-            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 50),
+            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), 50),
+            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 20),
             (Arc::new(RecreateWithRegret::new(2, 3, random.clone())), 20),
             (Arc::new(RecreateWithCheapest::new(random.clone())), 20),
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 10),
             (Arc::new(RecreateWithSkipBest::new(3, 4, random.clone())), 5),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 5),
-            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), 5),
             (Arc::new(RecreateWithFarthest::new(random.clone())), 2),
             (Arc::new(RecreateWithSkipBest::new(4, 8, random.clone())), 2),
             (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), 1),
@@ -430,7 +430,7 @@ mod statik {
         let ruin = Arc::new(WeightedRuin::new(vec![
             (
                 Arc::new(CompositeRuin::new(vec![
-                    (Arc::new(AdjustedStringRemoval::new_with_defaults(normal_limits.clone())), 1.),
+                    (Arc::new(AdjustedStringRemoval::new_with_defaults(normal_limits.clone())), 2.),
                     (extra_random_job.clone(), 0.1),
                 ])),
                 100,
@@ -492,22 +492,23 @@ mod statik {
 mod dynamic {
     use super::*;
 
-    fn get_recreates(problem: &Problem, random: Arc<dyn Random>) -> Vec<(Arc<dyn Recreate>, String)> {
+    fn get_recreates(problem: &Problem, random: Arc<dyn Random>) -> Vec<(Arc<dyn Recreate>, String, Float)> {
         let cheapest: Arc<dyn Recreate> = Arc::new(RecreateWithCheapest::new(random.clone()));
         vec![
-            (cheapest.clone(), "cheapest".to_string()),
-            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best".to_string()),
-            (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), "regret".to_string()),
-            (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), "perturbation".to_string()),
-            (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), "gaps".to_string()),
-            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), "blinks".to_string()),
-            (Arc::new(RecreateWithFarthest::new(random.clone())), "farthest".to_string()),
-            (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), "nearest".to_string()),
+            (cheapest.clone(), "cheapest".to_string(), 1.),
+            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), "blinks".to_string(), 3.),
+            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best".to_string(), 1.),
+            (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), "regret".to_string(), 1.),
+            (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), "perturbation".to_string(), 1.),
+            (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), "gaps".to_string(), 1.),
+            (Arc::new(RecreateWithFarthest::new(random.clone())), "farthest".to_string(), 1.),
+            (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), "nearest".to_string(), 1.),
             (
                 Arc::new(RecreateWithSkipRandom::default_explorative_phased(cheapest.clone(), random.clone())),
                 "skip_random".to_string(),
+                1.,
             ),
-            (Arc::new(RecreateWithSlice::new(random.clone())), "slice".to_string()),
+            (Arc::new(RecreateWithSlice::new(random.clone())), "slice".to_string(), 1.),
         ]
         .into_iter()
         .chain(
@@ -516,14 +517,14 @@ mod dynamic {
                 move || RecreateWithCheapest::new(random.clone())
             })
             .enumerate()
-            .map(|(idx, recreate)| (recreate, format!("alternative_{idx}"))),
+            .map(|(idx, recreate)| (recreate, format!("alternative_{idx}"), 1.)),
         )
         .collect()
     }
 
     fn get_ruins_with_limits(limits: RemovalLimits, prefix: &str) -> Vec<(Arc<dyn Ruin>, String, Float)> {
         vec![
-            (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), format!("{prefix}_asr"), 2.),
+            (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), format!("{prefix}_asr"), 7.),
             (Arc::new(NeighbourRemoval::new(limits.clone())), format!("{prefix}_neighbour_removal"), 5.),
             (Arc::new(WorstJobRemoval::new(4, limits.clone())), format!("{prefix}_worst_job"), 4.),
             (Arc::new(RandomJobRemoval::new(limits.clone())), format!("{prefix}_random_job_removal"), 4.),
@@ -619,12 +620,12 @@ mod dynamic {
 
         recreates
             .iter()
-            .flat_map(|(recreate, recreate_name)| {
-                ruins.iter().map::<(TargetSearchOperator, String, Float), _>(move |(ruin, ruin_name, weight)| {
+            .flat_map(|(recreate, recreate_name, recreate_weight)| {
+                ruins.iter().map::<(TargetSearchOperator, String, Float), _>(move |(ruin, ruin_name, ruin_weight)| {
                     (
                         Arc::new(RuinAndRecreate::new(ruin.clone(), recreate.clone())),
                         format!("{ruin_name}+{recreate_name}"),
-                        *weight,
+                        ruin_weight * recreate_weight,
                     )
                 })
             })
@@ -644,11 +645,11 @@ mod dynamic {
         let cheapest = Arc::new(RecreateWithCheapest::new(random.clone()));
         let recreate = Arc::new(WeightedRecreate::new(vec![
             (cheapest.clone(), 1),
+            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), 3),
             (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 1),
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 1),
             (Arc::new(RecreateWithSkipBest::new(3, 4, random.clone())), 1),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 1),
-            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), 1),
             (Arc::new(RecreateWithFarthest::new(random.clone())), 1),
             (Arc::new(RecreateWithSlice::new(random.clone())), 1),
             (Arc::new(RecreateWithSkipRandom::default_explorative_phased(cheapest, random.clone())), 1),
@@ -661,7 +662,7 @@ mod dynamic {
         let ruin = Arc::new(WeightedRuin::new(vec![
             (
                 Arc::new(CompositeRuin::new(vec![
-                    (Arc::new(AdjustedStringRemoval::new_with_defaults(small_limits.clone())), 1.),
+                    (Arc::new(AdjustedStringRemoval::new_with_defaults(small_limits.clone())), 5.),
                     (random_ruin.clone(), 0.1),
                 ])),
                 1,
