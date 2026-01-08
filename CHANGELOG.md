@@ -14,6 +14,7 @@ are already published. So, I stick to it for now.
 * improved remedian algorithm
 * separate calculations for distance/duration from cost minimization
 * change GSOM distance function
+* improved SISR implementation
 
 ### Added
 
