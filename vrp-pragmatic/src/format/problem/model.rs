@@ -80,6 +80,9 @@ pub struct JobTask {
     /// An order, bigger value - later assignment in the route.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order: Option<i32>,
+    /// A due date for the task in RFC3339 format. Used for minimize-overdue objective.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub due_date: Option<String>,
 }
 
 /// A customer job model. Actual tasks of the job specified by list of pickups and deliveries
@@ -618,6 +621,9 @@ pub enum Objective {
 
     /// An objective to prefer jobs to be served as soon as possible.
     FastService,
+
+    /// An objective to minimize total overdue days for scheduled jobs.
+    MinimizeOverdue,
 
     /// An objective to consider hierarchy of areas while serving jobs.
     HierarchicalAreas {

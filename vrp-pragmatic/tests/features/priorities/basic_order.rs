@@ -146,6 +146,7 @@ fn can_handle_order_between_special_activities() {
             places: vec![JobPlace { times: None, location: location.to_loc(), duration: 100., tag: None }],
             demand: Some(vec![1]),
             order: Some(order),
+            due_date: None,
         }]),
         ..create_job(id)
     };

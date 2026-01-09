@@ -5,7 +5,7 @@ use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
 use vrp_core::construction::enablers::FeatureCombinator;
 use vrp_core::construction::features::*;
 use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
-use vrp_core::models::problem::{Actor, Single, TransportCost};
+use vrp_core::models::problem::{Actor, Job as CoreJob, Single, TransportCost};
 use vrp_core::models::solution::Route;
 use vrp_core::models::{Feature, FeatureObjective, GoalBuilder, GoalContext, GoalContextBuilder};
 use vrp_core::rosomaxa::evolution::objectives::dominance_order;
@@ -216,6 +216,21 @@ fn get_objective_feature_layer(
             Arc::new(|actor| actor.vehicle.dimens.get_min_tour_size().copied()),
         ),
         Objective::FastService => get_fast_service_feature("fast_service", blocks),
+        Objective::MinimizeOverdue => MinimizeOverdueBuilder::new("min_overdue")
+            .set_job_due_date_fn(|job| {
+                // For Multi jobs, find the earliest due date among all tasks
+                // For Single jobs, just get the due date directly
+                match job {
+                    CoreJob::Single(single) => single.dimens.get_job_due_date().copied(),
+                    CoreJob::Multi(multi) => multi
+                        .jobs
+                        .iter()
+                        .filter_map(|single| single.dimens.get_job_due_date().copied())
+                        .min_by(|a, b| a.total_cmp(b)),
+                }
+            })
+            .set_scheduled_date_fn(|route_ctx| route_ctx.route().actor.detail.time.start)
+            .build(),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
         Objective::MultiObjective { objectives, strategy: composition_type } => {
             let features = objectives

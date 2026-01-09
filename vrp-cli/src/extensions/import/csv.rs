@@ -74,6 +74,7 @@ mod actual {
             }],
             demand: if job.demand != 0 { Some(vec![job.demand.abs()]) } else { None },
             order: None,
+            due_date: None,
         };
 
         let get_tasks = |jobs: &Vec<&CsvJob>, filter: Box<dyn Fn(&CsvJob) -> bool>| {

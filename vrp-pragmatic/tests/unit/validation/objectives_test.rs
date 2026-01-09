@@ -130,7 +130,7 @@ fn can_detect_invalid_value_or_order_impl(value: Option<Float>, order: Option<i3
     let problem = Problem {
         plan: Plan {
             jobs: vec![Job {
-                deliveries: Some(vec![JobTask { order, ..create_task((1., 0.), None) }]),
+                deliveries: Some(vec![JobTask { order, due_date: None, ..create_task((1., 0.), None) }]),
                 value,
                 ..create_job("job1")
             }],

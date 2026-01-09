@@ -1,7 +1,9 @@
 use crate::format::coord_index::CoordIndex;
+use crate::format::dimensions::JobDueDateDimension;
 use crate::format::problem::JobSkills as ApiJobSkills;
 use crate::format::problem::*;
 use crate::format::{JobIndex, Location};
+use crate::parse_time;
 use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -134,7 +136,7 @@ fn read_required_jobs(
             .map(|p| (Some(p.location.clone()), p.duration, parse_times(&p.times), p.tag.clone()))
             .collect();
 
-        get_single_with_dimens(places, demand, &task.order, activity_type, has_multi_dimens, coord_index)
+        get_single_with_dimens(places, demand, &task.order, &task.due_date, activity_type, has_multi_dimens, coord_index)
     };
 
     api_problem.plan.jobs.iter().for_each(|job| {
@@ -386,6 +388,7 @@ fn get_single_with_dimens(
     places: Vec<PlaceData>,
     demand: Demand<MultiDimLoad>,
     order: &Option<i32>,
+    due_date: &Option<String>,
     activity_type: &str,
     has_multi_dimens: bool,
     coord_index: &CoordIndex,
@@ -405,6 +408,10 @@ fn get_single_with_dimens(
 
     if let Some(order) = order {
         dimens.set_job_order(*order);
+    }
+
+    if let Some(due_date) = due_date {
+        dimens.set_job_due_date(parse_time(due_date));
     }
 
     single
