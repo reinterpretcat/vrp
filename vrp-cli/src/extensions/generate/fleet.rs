@@ -3,7 +3,7 @@
 mod fleet_test;
 
 use super::*;
-use vrp_pragmatic::format::problem::{Fleet, VehicleCosts, VehicleLimits, VehicleShift, VehicleType};
+use vrp_pragmatic::format::problem::{Fleet, VehicleCosts, VehicleLimits, VehicleMinShifts, VehicleShift, VehicleType};
 
 /// Generates fleet of vehicles.
 pub(crate) fn generate_fleet(problem_proto: &Problem, vehicle_types_size: usize) -> Fleet {
@@ -16,6 +16,7 @@ pub(crate) fn generate_fleet(problem_proto: &Problem, vehicle_types_size: usize)
     let skills = get_vehicle_skills(problem_proto);
     let limits = get_vehicle_limits(problem_proto);
     let vehicles_sizes = get_vehicles_sizes(problem_proto);
+    let min_shifts = get_vehicle_min_shifts(problem_proto);
 
     let vehicles = (1..=vehicle_types_size)
         .map(|type_idx| {
@@ -33,6 +34,7 @@ pub(crate) fn generate_fleet(problem_proto: &Problem, vehicle_types_size: usize)
                 capacity: get_random_item(capacities.as_slice(), &rnd).expect("cannot find any capacity").clone(),
                 skills: get_random_item(skills.as_slice(), &rnd).expect("cannot find any skills").clone(),
                 limits: get_random_item(limits.as_slice(), &rnd).expect("cannot find any limits").clone(),
+                min_shifts: get_random_item(min_shifts.as_slice(), &rnd).expect("cannot find min shifts").clone(),
             }
         })
         .collect();
@@ -69,4 +71,8 @@ fn get_vehicle_limits(problem_proto: &Problem) -> Vec<Option<VehicleLimits>> {
 
 fn get_vehicles_sizes(problem_proto: &Problem) -> Vec<usize> {
     get_from_vehicle(problem_proto, |vehicle| vehicle.vehicle_ids.len())
+}
+
+fn get_vehicle_min_shifts(problem_proto: &Problem) -> Vec<Option<VehicleMinShifts>> {
+    get_from_vehicle(problem_proto, |vehicle| vehicle.min_shifts.clone())
 }
