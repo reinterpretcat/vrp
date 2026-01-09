@@ -146,7 +146,7 @@ impl InsertionEvaluator for BlinkInsertionEvaluator {
                 best_in_route
             },
             // Reduce: Merge results from threads (Greedy/Best selection)
-            |a, b| InsertionResult::choose_best_result(a, b),
+            InsertionResult::choose_best_result,
         );
 
         match result {
