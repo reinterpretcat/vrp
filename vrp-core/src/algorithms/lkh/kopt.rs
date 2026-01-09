@@ -31,9 +31,17 @@ where
     /// Tries to optimize a given path using modified Lin-Kernighan-Helsgaun algorithm.
     /// Returns discovered solutions in the order of their improvement.
     pub fn optimize(mut self, path: Path) -> Vec<Path> {
+        // Scale with problem size: linear growth with safety cap to prevent infinite loops
+        let max_iterations = (path.len() * 10).min(2000);
+
         self.solutions.push(path);
+        let mut iterations = 0;
 
         while let Some(improved_path) = self.solutions.last().and_then(|p| self.improve(p.iter().copied())) {
+            iterations += 1;
+            if iterations >= max_iterations {
+                break;
+            }
             self.solutions.clear();
             self.solutions.push(improved_path);
         }
