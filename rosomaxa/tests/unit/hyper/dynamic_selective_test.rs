@@ -56,24 +56,18 @@ fn can_estimate_median() {
     assert!(median > 0);
 }
 
-parameterized_test! {can_estimate_reward_multiplier, (approx_median, duration, has_improvement, expected), {
-    can_estimate_reward_multiplier_impl(approx_median, duration, has_improvement, expected);
+parameterized_test! {can_estimate_reward_multiplier, (approx_median, duration, expected), {
+    can_estimate_reward_multiplier_impl(approx_median, duration, expected);
 }}
 
 can_estimate_reward_multiplier! {
-    case_01_moderate: (Some(1), 1, false, 1.),
-    case_02_allegro: (Some(2), 1, false, 1.5),
-    case_03_allegretto: (Some(10), 8, false, 1.25),
-    case_04_andante: (Some(8), 13, false, 0.75),
-    case_05_moderato_improvement: (Some(1), 1, true, 2.),
+    case_01_moderate: (Some(1), 1, 2.0),       // 1.0 (moderate) * 2.0 (stagnation bonus)
+    case_02_allegro: (Some(2), 1, 3.0),        // 1.5 (fast) * 2.0 (stagnation bonus)
+    case_03_allegretto: (Some(10), 8, 2.5),    // 1.25 (fast-ish) * 2.0 (stagnation bonus)
+    case_04_andante: (Some(8), 13, 1.5),       // 0.75 (slow) * 2.0 (stagnation bonus)
 }
 
-fn can_estimate_reward_multiplier_impl(
-    approx_median: Option<usize>,
-    duration: usize,
-    has_improvement: bool,
-    expected: Float,
-) {
+fn can_estimate_reward_multiplier_impl(approx_median: Option<usize>, duration: usize, expected: Float) {
     let heuristic_ctx = create_default_heuristic_context();
     let solution = VectorSolution::new(vec![], 0., vec![]);
     let search_ctx = SearchContext {
@@ -84,7 +78,7 @@ fn can_estimate_reward_multiplier_impl(
         approx_median,
     };
 
-    let result = estimate_reward_perf_multiplier(&search_ctx, duration, has_improvement);
+    let result = estimate_reward_perf_multiplier(&search_ctx, duration);
 
     assert_eq!(result, expected);
 }

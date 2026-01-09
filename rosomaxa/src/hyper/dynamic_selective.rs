@@ -159,7 +159,7 @@ where
         let duration = duration.as_millis() as usize;
 
         let base_reward = estimate_distance_reward(context.heuristic_ctx, context.solution, &new_solution);
-        let reward_multiplier = estimate_reward_perf_multiplier(&context, duration, is_new_best);
+        let reward_multiplier = estimate_reward_perf_multiplier(&context, duration);
         let reward = base_reward * reward_multiplier;
 
         let to = if is_new_best { SearchState::BestKnown } else { SearchState::Diverse };
@@ -197,13 +197,24 @@ where
     S: HeuristicSolution + 'a,
 {
     pub fn new(search_operators: HeuristicSearchOperators<C, O, S>, environment: &Environment) -> Self {
+        // Normalize weights to achievable reward scale to prevent optimistic bias locking
+        // Find max weight for scaling
+        let max_weight = search_operators.iter().map(|(_, _, weight)| *weight).fold(0.0_f64, |a, b| a.max(b));
+
+        // Target max prior: rewards typically [0.75, 4.5], max theoretical ~9-10
+        // 4.0 is optimistic but achievable for good operators
+        const TARGET_MAX_PRIOR: Float = 4.0;
+        let scale = if max_weight > 0.0 { TARGET_MAX_PRIOR / max_weight } else { 1.0 };
+
         let slot_machines = search_operators
             .into_iter()
-            .map(|(operator, name, _)| {
-                // TODO use initial weight as prior mean estimation?
+            .map(|(operator, name, initial_weight)| {
+                // Scale weight to reward range while preserving hierarchy
+                // E.g., weight 21.0 -> 4.0, weight 2.0 -> 0.38
+                let prior_mean = initial_weight * scale;
                 (
                     SlotMachine::new(
-                        1.,
+                        prior_mean,
                         SearchAction { operator, operator_name: name.to_string() },
                         DefaultDistributionSampler::new(environment.random.clone()),
                     ),
@@ -363,11 +374,7 @@ where
 
 /// Estimates performance of used operation based on its duration and overall improvement statistics.
 /// Returns a reward multiplier in `(~0.5, 3]` range.
-fn estimate_reward_perf_multiplier<C, O, S>(
-    search_ctx: &SearchContext<C, O, S>,
-    duration: usize,
-    has_improvement: bool,
-) -> Float
+fn estimate_reward_perf_multiplier<C, O, S>(search_ctx: &SearchContext<C, O, S>, duration: usize) -> Float
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
@@ -385,11 +392,11 @@ where
         _ => 1.,                      // Moderato
     };
 
-    let improvement_ratio = match (improvement_ratio, has_improvement) {
+    let improvement_ratio = match improvement_ratio {
         // stagnation: increase reward
-        (ratio, true) if ratio < 0.05 => 2.,
+        ratio if ratio < 0.05 => 2.,
         // fast convergence: decrease reward
-        (ratio, true) if ratio > 0.150 => 0.75,
+        ratio if ratio > 0.150 => 0.75,
         // moderate convergence
         _ => 1.,
     };
