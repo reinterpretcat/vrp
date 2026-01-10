@@ -87,17 +87,21 @@ fn can_estimate_reward_multiplier_impl(approx_median: Option<usize>, duration: u
 fn can_display_heuristic_info() {
     let is_experimental = true;
     let environment = Environment { is_experimental, ..Environment::default() };
-    let duration = 1;
-    let reward = 1.;
-    let transition = (SearchState::Diverse, SearchState::BestKnown);
-    let mut heuristic =
+    let heuristic =
         DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(vec![], vec![], &environment);
 
-    heuristic.agent.tracker.observe_sample(1, SearchSample { name: "name1".to_string(), duration, reward, transition });
+    // Test that diagnostic system is properly initialized
+    assert_eq!(heuristic.agent.tracker.telemetry_enabled(), is_experimental);
 
     let formatted = format!("{heuristic}");
 
-    assert!(!formatted.is_empty());
+    // Should contain TELEMETRY section when experimental mode is enabled
+    if is_experimental {
+        assert!(formatted.contains("TELEMETRY"));
+    } else {
+        // When not experimental, should be empty or minimal
+        assert!(formatted.is_empty() || !formatted.contains("thompson_diagnostics:"));
+    }
 }
 
 #[test]

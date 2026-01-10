@@ -51,7 +51,7 @@ where
 
         self.agent.update(generation, &feedback);
 
-        vec![feedback.solution]
+        feedback.solution.into_iter().collect()
     }
 
     fn search_many(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
@@ -69,7 +69,7 @@ where
 
         self.agent.save_params(generation);
 
-        feedbacks.into_iter().map(|feedback| feedback.solution).collect()
+        feedbacks.into_iter().filter_map(|feedback| feedback.solution).collect()
     }
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
@@ -102,11 +102,15 @@ where
     }
 }
 
-type SlotMachines<'a, C, O, S> = Vec<(SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler>, String)>;
+/// Type alias for slot machines used in Thompson sampling
+pub type SlotMachines<'a, C, O, S> = Vec<(SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler>, String)>;
 
-#[derive(PartialEq, Eq, Hash, Clone)]
-enum SearchState {
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+/// Search state for Thompson sampling
+pub enum SearchState {
+    /// Best known solution state
     BestKnown,
+    /// Diverse solution state
     Diverse,
 }
 
@@ -119,10 +123,11 @@ impl Display for SearchState {
     }
 }
 
-struct SearchFeedback<S> {
+/// Search feedback result for Thompson sampling
+pub struct SearchFeedback<S> {
     sample: SearchSample,
     slot_idx: usize,
-    solution: S,
+    solution: Option<S>,
 }
 
 impl<S> SlotFeedback for SearchFeedback<S> {
@@ -131,7 +136,8 @@ impl<S> SlotFeedback for SearchFeedback<S> {
     }
 }
 
-struct SearchAction<'a, C, O, S> {
+/// Search action wrapper for Thompson sampling
+pub struct SearchAction<'a, C, O, S> {
     operator: Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync + 'a>,
     operator_name: String,
 }
@@ -167,11 +173,12 @@ where
 
         let sample = SearchSample { name: self.operator_name.clone(), duration, reward, transition };
 
-        SearchFeedback { sample, slot_idx: context.slot_idx, solution: new_solution }
+        SearchFeedback { sample, slot_idx: context.slot_idx, solution: Some(new_solution) }
     }
 }
 
-struct SearchContext<'a, C, O, S>
+/// Search context for Thompson sampling
+pub struct SearchContext<'a, C, O, S>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
@@ -185,7 +192,10 @@ where
 }
 
 struct SearchAgent<'a, C, O, S> {
+    // Separate learning contexts for different search phases
     slot_machines: HashMap<SearchState, SlotMachines<'a, C, O, S>>,
+    // Shared scale invariance (universal physics)
+    signal_stats: SignalStats,
     tracker: HeuristicTracker,
     random: Arc<dyn Random>,
 }
@@ -197,56 +207,52 @@ where
     S: HeuristicSolution + 'a,
 {
     pub fn new(search_operators: HeuristicSearchOperators<C, O, S>, environment: &Environment) -> Self {
-        // Normalize weights to achievable reward scale to prevent optimistic bias locking
-        // Find max weight for scaling
+        // Calculate scaling factor to normalize operator weights to target range
         let max_weight = search_operators.iter().map(|(_, _, weight)| *weight).fold(0.0_f64, |a, b| a.max(b));
-
-        // Target max prior: rewards typically [0.75, 4.5], max theoretical ~9-10
-        // 4.0 is optimistic but achievable for good operators
         const TARGET_MAX_PRIOR: Float = 4.0;
         let scale = if max_weight > 0.0 { TARGET_MAX_PRIOR / max_weight } else { 1.0 };
 
-        let slot_machines = search_operators
-            .into_iter()
-            .map(|(operator, name, initial_weight)| {
-                // Scale weight to reward range while preserving hierarchy
-                // E.g., weight 21.0 -> 4.0, weight 2.0 -> 0.38
-                let prior_mean = initial_weight * scale;
-                (
-                    SlotMachine::new(
-                        prior_mean,
-                        SearchAction { operator, operator_name: name.to_string() },
-                        DefaultDistributionSampler::new(environment.random.clone()),
-                    ),
-                    name,
-                )
-            })
-            .collect::<Vec<_>>();
+        // Factory function to create identical slot configurations for each state
+        let create_slots = || {
+            search_operators
+                .iter()
+                .map(|(operator, name, initial_weight)| {
+                    let prior_mean = initial_weight * scale;
+                    (
+                        SlotMachine::new(
+                            prior_mean,
+                            SearchAction { operator: operator.clone(), operator_name: name.to_string() },
+                            DefaultDistributionSampler::new(environment.random.clone()),
+                        ),
+                        name.clone(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
 
-        let slot_machines = once((SearchState::BestKnown, slot_machines.clone()))
-            .chain(once((SearchState::Diverse, slot_machines)))
+        // Initialize separate states with identical priors but independent learning
+        let slot_machines = once((SearchState::BestKnown, create_slots()))
+            .chain(once((SearchState::Diverse, create_slots())))
             .collect();
 
         Self {
             slot_machines,
-            tracker: HeuristicTracker {
-                total_median: RemedianUsize::new(11, 7, |a, b| a.cmp(b)),
-                search_telemetry: Default::default(),
-                heuristic_telemetry: Default::default(),
-                is_experimental: environment.is_experimental,
-            },
+            signal_stats: SignalStats::new(),
+            tracker: HeuristicTracker::new(environment.is_experimental),
             random: environment.random.clone(),
         }
     }
 
     /// Picks relevant search operator based on learnings and runs the search.
     pub fn search(&self, heuristic_ctx: &C, solution: &S) -> SearchFeedback<S> {
+        // Determine search context - critical for operator selection
         let from = if matches!(compare_to_best(heuristic_ctx, solution), Ordering::Equal) {
             SearchState::BestKnown
         } else {
             SearchState::Diverse
         };
 
+        // Get contextually appropriate slot machines
         let (slot_idx, slot_machine) = self
             .slot_machines
             .get(&from)
@@ -258,18 +264,45 @@ where
 
         let approx_median = self.tracker.approx_median();
 
+        // Execute with full context information
         slot_machine.play(SearchContext { heuristic_ctx, from, slot_idx, solution, approx_median })
     }
 
-    /// Updates estimations based on search feedback.
+    /// Updates estimations based on search feedback with protected signal baseline.
     pub fn update(&mut self, generation: usize, feedback: &SearchFeedback<S>) {
-        let from = &feedback.sample.transition.0;
+        let raw_reward = feedback.sample.reward;
+        let current_scale = self.signal_stats.scale();
 
-        if let Some(slots) = self.slot_machines.get_mut(from) {
-            slots[feedback.slot_idx].0.update(feedback);
+        // 1. Update Shared Signal Baseline (Protected)
+        // Clamp observation to 3x current scale to prevent a single
+        // "Best Known Jackpot" from disrupting baseline for Diverse state
+        if raw_reward > f64::EPSILON {
+            self.signal_stats.update(raw_reward.min(current_scale * 3.0));
         }
 
-        self.tracker.observe_sample(generation, feedback.sample.clone())
+        // 2. Normalize for Contextual Learning (Uncapped)
+        // If we hit a jackpot (e.g., reward 60.0 vs scale 1.0), we pass the full 60.0.
+        // This ensures the specific slot machine learns "I AM THE BEST"
+        let normalized_reward = if raw_reward > f64::EPSILON {
+            raw_reward / self.signal_stats.scale()
+        } else {
+            // Zero reward strategy: don't penalize, just indicate no progress
+            // Allows variance in "good" operators to keep them alive vs "bad" operators
+            0.0
+        };
+        let normalized_feedback = SearchFeedback {
+            sample: SearchSample { reward: normalized_reward, ..feedback.sample.clone() },
+            slot_idx: feedback.slot_idx,
+            solution: None,
+        };
+
+        // 3. Update Contextual Slot Machine
+        let from = &feedback.sample.transition.0;
+        let slots = self.slot_machines.get_mut(from).expect("cannot get slot machines");
+        slots[feedback.slot_idx].0.update(&normalized_feedback);
+
+        // 4. Observe telemetry
+        self.tracker.observe_sample(generation, feedback.sample.clone());
     }
 
     /// Updates statistics about heuristic internal parameters.
@@ -279,16 +312,34 @@ where
         }
 
         self.slot_machines.iter().for_each(|(state, slots)| {
-            slots.iter().map(|(slot, name)| (name.clone(), slot.get_params())).for_each(
-                |(name, (alpha, beta, mu, v, n))| {
-                    self.tracker.observe_params(
-                        generation,
-                        HeuristicSample { state: state.clone(), name, alpha, beta, mu, v, n },
-                    );
-                },
-            )
+            slots.iter().for_each(|(slot, name)| {
+                let (alpha, beta, mu, v, n) = slot.get_params();
+                self.tracker.observe_params(
+                    generation,
+                    HeuristicSample { state: state.clone(), name: name.clone(), alpha, beta, mu, v, n },
+                );
+            });
         });
     }
+}
+
+/// Sample of search telemetry.
+#[derive(Clone)]
+struct SearchSample {
+    name: String,
+    duration: usize,
+    reward: Float,
+    transition: (SearchState, SearchState),
+}
+
+struct HeuristicSample {
+    state: SearchState,
+    name: String,
+    alpha: Float,
+    beta: Float,
+    mu: Float,
+    v: Float,
+    n: usize,
 }
 
 impl<C, O, S> Display for DynamicSelective<C, O, S>
@@ -448,26 +499,46 @@ where
     value * sign * priority_amplifier
 }
 
-/// Sample of search telemetry.
+/// Signal tracker that observes ONLY positive values to establish baseline for "Success".
+/// Uses exponential moving average for stability in sparse signals.
 #[derive(Clone)]
-struct SearchSample {
-    name: String,
-    duration: usize,
-    reward: Float,
-    transition: (SearchState, SearchState),
+struct SignalStats {
+    mean: Float,
+    n: Float,
 }
 
-struct HeuristicSample {
-    state: SearchState,
-    name: String,
-    alpha: Float,
-    beta: Float,
-    mu: Float,
-    v: Float,
-    n: usize,
+impl SignalStats {
+    fn new() -> Self {
+        Self { mean: 0.0, n: 0.0 }
+    }
+
+    /// Observe ONLY positive values to establish a baseline for "Success"
+    fn update(&mut self, value: Float) {
+        if value <= f64::EPSILON {
+            return;
+        }
+
+        // Horizon: Adapt to the scale of the last ~200 SUCCESSFUL operations
+        // This is structural (adaptation speed), not problem-specific.
+        let window_size = 200.0;
+        let decay = 1.0 - (1.0 / window_size);
+
+        self.n = self.n * decay + 1.0;
+
+        // Exponential Moving Average of the Magnitude
+        // We use this instead of Welford's variance for stability in sparse signals
+        let learning_rate = 1.0 / self.n;
+        self.mean = self.mean * (1.0 - learning_rate) + value * learning_rate;
+    }
+
+    /// Returns the scale factor.
+    /// If we haven't seen enough data, return 1.0 to avoid division by zero.
+    fn scale(&self) -> Float {
+        if self.mean < f64::EPSILON { 1.0 } else { self.mean }
+    }
 }
 
-/// Provides way to track heuristic's telemetry and duration median estimation.
+/// Enhanced diagnostic tracker for Thompson sampling analysis
 struct HeuristicTracker {
     total_median: RemedianUsize,
     search_telemetry: Vec<(usize, SearchSample)>,
@@ -476,6 +547,16 @@ struct HeuristicTracker {
 }
 
 impl HeuristicTracker {
+    /// Creates new tracker with diagnostic configuration
+    pub fn new(is_experimental: bool) -> Self {
+        Self {
+            total_median: RemedianUsize::new(11, 7, |a, b| a.cmp(b)),
+            search_telemetry: Default::default(),
+            heuristic_telemetry: Default::default(),
+            is_experimental,
+        }
+    }
+
     /// Returns true if telemetry is enabled.
     pub fn telemetry_enabled(&self) -> bool {
         self.is_experimental
