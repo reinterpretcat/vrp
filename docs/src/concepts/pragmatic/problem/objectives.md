@@ -39,6 +39,10 @@ Besides cost objectives, there are other objectives which are targeting for some
 - `minimize-tours`: minimizes total amount of tours present in solution
 - `maximize-tours`: maximizes total amount of tours present in solution
 - `minimize-arrival-time`: prefers solutions where work is finished earlier
+- `minimize-overdue`: minimizes the total overdue days for jobs with due dates. Overdue is calculated as the
+  difference between the scheduled date (route start time) and the job's due date. Jobs scheduled before their
+  due date have zero overdue. Unassigned jobs with due dates are heavily penalized (10000) to strongly encourage
+  their assignment.
 - `fast-service`: prefers solutions when jobs are served early in tours. Optional parameter:
   - `tolerance`: an objective tolerance specifies how different objective values have to be to consider them different.
     Relative distance metric is used.

@@ -230,6 +230,16 @@ fn get_objective_feature_layer(
                 }
             })
             .set_scheduled_date_fn(|route_ctx| route_ctx.route().actor.detail.time.start)
+            .set_unassigned_penalty_fn(|job| {
+                // High penalty for unassigned jobs that have a due date
+                let has_due_date = match job {
+                    CoreJob::Single(single) => single.dimens.get_job_due_date().is_some(),
+                    CoreJob::Multi(multi) => {
+                        multi.jobs.iter().any(|single| single.dimens.get_job_due_date().is_some())
+                    }
+                };
+                if has_due_date { 10000.0 } else { 0.0 }
+            })
             .build(),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
         Objective::MultiObjective { objectives, strategy: composition_type } => {
