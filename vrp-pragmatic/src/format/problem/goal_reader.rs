@@ -5,7 +5,7 @@ use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
 use vrp_core::construction::enablers::FeatureCombinator;
 use vrp_core::construction::features::*;
 use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
-use vrp_core::models::problem::{Actor, Single, TransportCost};
+use vrp_core::models::problem::{Actor, Job as CoreJob, Single, TransportCost};
 use vrp_core::models::solution::Route;
 use vrp_core::models::{Feature, FeatureObjective, GoalBuilder, GoalContext, GoalContextBuilder};
 use vrp_core::rosomaxa::evolution::objectives::dominance_order;
@@ -73,6 +73,12 @@ pub(super) fn create_goal_context(
             TOUR_SIZE_CONSTRAINT_CODE,
             Arc::new(|actor| actor.vehicle.dimens.get_tour_size().copied()),
         )?);
+    }
+
+    if props.has_min_vehicle_shifts {
+        if let Some(feature) = get_min_vehicle_shifts_feature("min_vehicle_shifts", api_problem)? {
+            features.push(feature);
+        }
     }
 
     GoalContextBuilder::with_features(&features)?.set_main_goal(goal_builder.build()?).build()
@@ -149,6 +155,13 @@ fn get_objective_feature_layer(
             }),
             ViolationCode::unknown(),
         ),
+        Objective::BalanceShifts { saturation, weight } => {
+            const DEFAULT_VARIANCE_SATURATION: Float = 0.05;
+            let saturation = saturation.unwrap_or(DEFAULT_VARIANCE_SATURATION).max(1e-6);
+            let weight = weight.unwrap_or(1.).max(0.);
+            let penalty = Arc::new(move |variance: Float| weight * variance / (variance + saturation));
+            create_balance_shifts_feature_with_penalty("balance_shifts", penalty)
+        }
         Objective::MinimizeUnassigned { breaks } => MinimizeUnassignedBuilder::new("min_unassigned")
             .set_job_estimator({
                 let break_value = *breaks;
@@ -198,7 +211,36 @@ fn get_objective_feature_layer(
             create_tour_compactness_feature("tour_compact", blocks.jobs.clone(), *job_radius)
         }
         Objective::TourOrder => create_tour_order_soft_feature("tour_order", get_tour_order_fn()),
+        Objective::MinimizeTourSizeViolation => create_min_activity_limit_feature(
+            "min_tour_size_objective",
+            Arc::new(|actor| actor.vehicle.dimens.get_min_tour_size().copied()),
+        ),
         Objective::FastService => get_fast_service_feature("fast_service", blocks),
+        Objective::MinimizeOverdue => MinimizeOverdueBuilder::new("min_overdue")
+            .set_job_due_date_fn(|job| {
+                // For Multi jobs, find the earliest due date among all tasks
+                // For Single jobs, just get the due date directly
+                match job {
+                    CoreJob::Single(single) => single.dimens.get_job_due_date().copied(),
+                    CoreJob::Multi(multi) => multi
+                        .jobs
+                        .iter()
+                        .filter_map(|single| single.dimens.get_job_due_date().copied())
+                        .min_by(|a, b| a.total_cmp(b)),
+                }
+            })
+            .set_scheduled_date_fn(|route_ctx| route_ctx.route().actor.detail.time.start)
+            .set_unassigned_penalty_fn(|job| {
+                // High penalty for unassigned jobs that have a due date
+                let has_due_date = match job {
+                    CoreJob::Single(single) => single.dimens.get_job_due_date().is_some(),
+                    CoreJob::Multi(multi) => {
+                        multi.jobs.iter().any(|single| single.dimens.get_job_due_date().is_some())
+                    }
+                };
+                if has_due_date { 10000.0 } else { 0.0 }
+            })
+            .build(),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
         Objective::MultiObjective { objectives, strategy: composition_type } => {
             let features = objectives
@@ -450,6 +492,33 @@ fn get_tour_limit_feature(
     )
 }
 
+fn get_min_vehicle_shifts_feature(name: &str, api_problem: &ApiProblem) -> GenericResult<Option<Feature>> {
+    let requirements = api_problem
+        .fleet
+        .vehicles
+        .iter()
+        .filter_map(|vehicle| vehicle.min_shifts.as_ref().map(|value| (vehicle, value.clone())))
+        .flat_map(|(vehicle, min_shifts)| {
+            vehicle.vehicle_ids.iter().map(move |vehicle_id| {
+                (
+                    vehicle_id.clone(),
+                    MinShiftRequirement { minimum: min_shifts.value, allow_zero_usage: min_shifts.allow_zero_usage },
+                )
+            })
+        })
+        .collect::<HashMap<_, _>>();
+
+    if requirements.is_empty() {
+        return Ok(None);
+    }
+
+    MinVehicleShiftsFeatureBuilder::new(name)
+        .with_violation_code(MIN_VEHICLE_SHIFTS_CONSTRAINT_CODE)
+        .with_requirements(requirements)
+        .build()
+        .map(Some)
+}
+
 fn get_recharge_feature(
     name: &str,
     api_problem: &ApiProblem,
@@ -582,4 +651,55 @@ fn get_tour_order_fn() -> TourOrderFn {
             })
         })
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_problem_with_min_shifts(min_shifts: Option<VehicleMinShifts>) -> ApiProblem {
+        ApiProblem {
+            plan: Plan { jobs: vec![], relations: None, clustering: None },
+            fleet: Fleet {
+                vehicles: vec![VehicleType {
+                    type_id: "vehicle_type".to_string(),
+                    vehicle_ids: vec!["vehicle_1".to_string()],
+                    profile: VehicleProfile { matrix: "car".to_string(), scale: None },
+                    costs: VehicleCosts { fixed: Some(0.), distance: 1., time: 1. },
+                    shifts: vec![VehicleShift {
+                        start: ShiftStart {
+                            earliest: "1970-01-01T00:00:00Z".to_string(),
+                            latest: None,
+                            location: Location::new_coordinate(0., 0.),
+                        },
+                        end: None,
+                        breaks: None,
+                        reloads: None,
+                        recharges: None,
+                    }],
+                    capacity: vec![1],
+                    skills: None,
+                    limits: None,
+                    min_shifts,
+                }],
+                profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
+                resources: None,
+            },
+            objectives: None,
+        }
+    }
+
+    #[test]
+    fn creates_min_vehicle_shift_feature_when_needed() {
+        let problem = create_problem_with_min_shifts(Some(VehicleMinShifts { value: 1, allow_zero_usage: false }));
+        let feature = get_min_vehicle_shifts_feature("min_vehicle_shifts", &problem).unwrap();
+
+        assert!(feature.is_some());
+    }
+
+    #[test]
+    fn returns_none_when_no_requirements() {
+        let problem = create_problem_with_min_shifts(None);
+        assert!(get_min_vehicle_shifts_feature("min_vehicle_shifts", &problem).unwrap().is_none());
+    }
 }

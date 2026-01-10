@@ -5,7 +5,12 @@ use vrp_core::prelude::Float;
 
 fn create_vehicle_type_with_max_duration_limit(max_duration: Float) -> VehicleType {
     VehicleType {
-        limits: Some(VehicleLimits { max_distance: None, max_duration: Some(max_duration), tour_size: None }),
+        limits: Some(VehicleLimits {
+            max_distance: None,
+            max_duration: Some(max_duration),
+            tour_size: None,
+            min_tour_size: None,
+        }),
         ..create_default_vehicle_type()
     }
 }

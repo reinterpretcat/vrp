@@ -25,6 +25,7 @@ fn can_handle_properly_invalid_break_removal() {
                             }],
                             demand: Some(vec![1]),
                             order: None,
+                            due_date: None,
                         }]),
                         ..create_job("job1")
                     },
@@ -41,6 +42,7 @@ fn can_handle_properly_invalid_break_removal() {
                             }],
                             demand: Some(vec![1]),
                             order: None,
+                            due_date: None,
                         }]),
                         ..create_job("job2")
                     },
@@ -57,6 +59,7 @@ fn can_handle_properly_invalid_break_removal() {
                             }],
                             demand: Some(vec![1]),
                             order: None,
+                            due_date: None,
                         }]),
                         ..create_job("job3")
                     },
@@ -73,6 +76,7 @@ fn can_handle_properly_invalid_break_removal() {
                             }],
                             demand: Some(vec![2]),
                             order: None,
+                            due_date: None,
                         }]),
                         ..create_job("job4")
                     },
@@ -89,6 +93,7 @@ fn can_handle_properly_invalid_break_removal() {
                             }],
                             demand: Some(vec![3]),
                             order: None,
+                            due_date: None,
                         }]),
                         ..create_job("job5")
                     },
@@ -105,6 +110,7 @@ fn can_handle_properly_invalid_break_removal() {
                             }],
                             demand: Some(vec![1]),
                             order: None,
+                            due_date: None,
                         }]),
                         ..create_job("job6")
                     },
@@ -142,6 +148,7 @@ fn can_handle_properly_invalid_break_removal() {
                     capacity: vec![5],
                     skills: None,
                     limits: None,
+                    min_shifts: None,
                 }],
                 ..create_default_fleet()
             },

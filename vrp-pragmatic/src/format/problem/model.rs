@@ -80,6 +80,9 @@ pub struct JobTask {
     /// An order, bigger value - later assignment in the route.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order: Option<i32>,
+    /// A due date for the task in RFC3339 format. Used for minimize-overdue objective.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub due_date: Option<String>,
 }
 
 /// A customer job model. Actual tasks of the job specified by list of pickups and deliveries
@@ -356,6 +359,11 @@ pub struct VehicleLimits {
     /// No job activities restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tour_size: Option<usize>,
+
+    /// Min amount of job activities.
+    /// No minimum job activities restrictions when omitted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_tour_size: Option<usize>,
 }
 
 /// Vehicle optional break time variant.
@@ -465,6 +473,21 @@ pub struct VehicleType {
     /// Vehicle limits.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limits: Option<VehicleLimits>,
+
+    /// Specifies a minimum amount of shifts each vehicle id of this type should serve.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_shifts: Option<VehicleMinShifts>,
+}
+
+/// Specifies minimum shift usage requirement per vehicle.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VehicleMinShifts {
+    /// Minimum number of shifts that should be used.
+    pub value: usize,
+    /// Whether zero usage is allowed without violating the minimum. Default false.
+    #[serde(default)]
+    pub allow_zero_usage: bool,
 }
 
 /// Specifies a vehicle profile.
@@ -572,6 +595,17 @@ pub enum Objective {
     /// An objective to balance duration across all tours.
     BalanceDuration,
 
+    /// An objective to balance shifts across all vehicles.
+    BalanceShifts {
+        /// Controls how quickly the penalty grows as variance increases.
+        /// Lower values make even small imbalances costly. Default is 0.05.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        saturation: Option<Float>,
+        /// Scales the resulting penalty (default 1.0). Allows making shift balance more/less important.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        weight: Option<Float>,
+    },
+
     /// An objective to control how tours are built.
     CompactTour {
         /// Specifies radius of neighbourhood. Min is 1.
@@ -581,8 +615,15 @@ pub enum Objective {
     /// An objective to control order of job activities in the tour.
     TourOrder,
 
+    /// An objective to minimize tour size violations (routes with fewer activities than min_tour_size).
+    /// Only relevant when vehicles have min_tour_size limits defined.
+    MinimizeTourSizeViolation,
+
     /// An objective to prefer jobs to be served as soon as possible.
     FastService,
+
+    /// An objective to minimize total overdue days for scheduled jobs.
+    MinimizeOverdue,
 
     /// An objective to consider hierarchy of areas while serving jobs.
     HierarchicalAreas {

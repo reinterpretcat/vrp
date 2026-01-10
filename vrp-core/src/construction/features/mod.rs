@@ -35,6 +35,9 @@ pub use self::known_edge::create_known_edge_feature;
 mod locked_jobs;
 pub use self::locked_jobs::*;
 
+mod minimize_overdue;
+pub use self::minimize_overdue::*;
+
 mod minimize_unassigned;
 pub use self::minimize_unassigned::*;
 
@@ -64,6 +67,9 @@ pub use self::tour_order::*;
 
 mod transport;
 pub use self::transport::*;
+
+mod vehicle_shifts;
+pub use self::vehicle_shifts::*;
 
 mod work_balance;
 pub use self::work_balance::{

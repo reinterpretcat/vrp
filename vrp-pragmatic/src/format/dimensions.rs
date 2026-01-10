@@ -11,11 +11,15 @@ custom_dimension!(pub ShiftIndex typeof usize);
 
 custom_dimension!(pub TourSize typeof usize);
 
+custom_dimension!(pub MinTourSize typeof usize);
+
 custom_dimension!(pub PlaceTags typeof Vec<(usize, String)>);
 
 custom_dimension!(pub JobOrder typeof i32);
 
 custom_dimension!(pub JobValue typeof Float);
+
+custom_dimension!(pub JobDueDate typeof Float);
 
 custom_dimension!(pub JobType typeof String);
 

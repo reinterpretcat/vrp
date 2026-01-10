@@ -130,7 +130,7 @@ fn can_detect_invalid_value_or_order_impl(value: Option<Float>, order: Option<i3
     let problem = Problem {
         plan: Plan {
             jobs: vec![Job {
-                deliveries: Some(vec![JobTask { order, ..create_task((1., 0.), None) }]),
+                deliveries: Some(vec![JobTask { order, due_date: None, ..create_task((1., 0.), None) }]),
                 value,
                 ..create_job("job1")
             }],
@@ -204,6 +204,61 @@ fn can_detect_missing_value_objective_impl(objectives: Option<Vec<Objective>>, e
     let objectives = get_objectives(&ctx).unwrap_or_default();
 
     let result = check_e1607_jobs_with_value_but_no_objective(&ctx, objectives.as_slice());
+
+    assert_eq!(result.err().map(|e| e.code), expected);
+}
+
+parameterized_test! {can_detect_missing_min_tour_size_objective, (objectives, min_tour_size, expected), {
+    can_detect_missing_min_tour_size_objective_impl(objectives, min_tour_size, expected);
+}}
+
+can_detect_missing_min_tour_size_objective! {
+    case01_missing_objective: (Some(vec![
+                MinimizeUnassigned { breaks: None },
+                MinimizeCost,
+            ]), Some(2), Some("E1608".to_string())),
+    case02_has_objective: (Some(vec![
+                MinimizeUnassigned { breaks: None },
+                MinimizeTourSizeViolation,
+                MinimizeCost,
+            ]), Some(2), None),
+    case03_no_objectives_defined: (None, Some(2), None),
+    case04_no_min_tour_size: (Some(vec![
+                MinimizeUnassigned { breaks: None },
+                MinimizeCost,
+            ]), None, None),
+    case05_zero_min_tour_size: (Some(vec![
+                MinimizeUnassigned { breaks: None },
+                MinimizeCost,
+            ]), Some(0), None),
+}
+
+fn can_detect_missing_min_tour_size_objective_impl(
+    objectives: Option<Vec<Objective>>,
+    min_tour_size: Option<usize>,
+    expected: Option<String>,
+) {
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                limits: min_tour_size.map(|size| VehicleLimits {
+                    max_distance: None,
+                    max_duration: None,
+                    tour_size: None,
+                    min_tour_size: Some(size),
+                }),
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        objectives,
+        ..create_empty_problem()
+    };
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
+    let objectives = get_objectives(&ctx).unwrap_or_default();
+
+    let result = check_e1608_vehicles_with_min_tour_size_but_no_objective(&ctx, objectives.as_slice());
 
     assert_eq!(result.err().map(|e| e.code), expected);
 }

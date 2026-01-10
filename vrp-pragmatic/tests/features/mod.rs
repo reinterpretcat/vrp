@@ -10,6 +10,7 @@ mod format;
 mod group;
 mod limits;
 mod multjob;
+mod overdue;
 mod pickdev;
 mod priorities;
 mod recharge;
