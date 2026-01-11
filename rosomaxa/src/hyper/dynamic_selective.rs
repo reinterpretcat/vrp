@@ -468,9 +468,7 @@ where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    let stats = search_ctx.heuristic_ctx.statistics();
-    let improvement_ratio = stats.improvement_1000_ratio;
-
+    let improvement_ratio = search_ctx.heuristic_ctx.statistics().improvement_1000_ratio;
     let approx_median = &search_ctx.approx_median;
     let median = match approx_median {
         Some(m) if *m > 0 => *m as Float,

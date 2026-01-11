@@ -56,19 +56,46 @@ fn can_estimate_median() {
     assert!(median > 0);
 }
 
-parameterized_test! {can_estimate_reward_multiplier, (approx_median, duration, expected), {
-    can_estimate_reward_multiplier_impl(approx_median, duration, expected);
+parameterized_test! {can_estimate_reward_multiplier, (improvement_ratio, approx_median, duration, expected), {
+    can_estimate_reward_multiplier_impl(improvement_ratio, approx_median, duration, expected);
 }}
 
 can_estimate_reward_multiplier! {
-    case_01_moderate: (Some(1), 1, 2.0),       // 1.0 (moderate) * 2.0 (stagnation bonus)
-    case_02_allegro: (Some(2), 1, 3.0),        // 1.5 (fast) * 2.0 (stagnation bonus)
-    case_03_allegretto: (Some(10), 8, 2.5),    // 1.25 (fast-ish) * 2.0 (stagnation bonus)
-    case_04_andante: (Some(8), 13, 1.5),       // 0.75 (slow) * 2.0 (stagnation bonus)
+    case_01_fast_with_improvement: (0.1, Some(10), 5, 1.104),    // Fast operator during improvement: ln(2.0)*0.15*1.0 ≈ 0.104
+    case_02_slow_with_improvement: (0.1, Some(10), 20, 0.896),   // Slow operator during improvement: ln(0.5)*0.15*1.0 ≈ -0.104
+    case_03_fast_partial_improvement: (0.05, Some(10), 5, 1.052), // Fast with 50% damping: ln(2.0)*0.15*0.5 ≈ 0.052
+    case_04_no_improvement: (0.0, Some(10), 5, 1.0),             // No improvement = no bonus
+    case_05_no_median: (0.1, None, 5, 1.0),                      // No median = baseline
+    case_06_clamped_fast: (0.1, Some(10), 1, 1.2),               // Very fast but clamped to PERF_TOLERANCE (0.2)
+    case_07_clamped_slow: (0.1, Some(10), 100, 0.8),             // Very slow but clamped to -PERF_TOLERANCE (-0.2)
 }
 
-fn can_estimate_reward_multiplier_impl(approx_median: Option<usize>, duration: usize, expected: Float) {
-    let heuristic_ctx = create_default_heuristic_context();
+fn can_estimate_reward_multiplier_impl(
+    improvement_ratio: Float,
+    approx_median: Option<usize>,
+    duration: usize,
+    expected: Float,
+) {
+    // Create a mock context with the specified improvement ratio
+    let mut heuristic_ctx = create_default_heuristic_context();
+
+    // Simulate improvement ratio by triggering generations
+    if improvement_ratio > 0.0 {
+        let num_improvements = (improvement_ratio * 1000.0) as usize;
+
+        // Add improving solutions
+        for i in 0..num_improvements {
+            let solution = VectorSolution::new(vec![], -(i as Float), vec![]);
+            heuristic_ctx.on_generation(vec![solution], 0.0, Timer::start());
+        }
+
+        // Add non-improving solutions
+        for _ in num_improvements..1000 {
+            let solution = VectorSolution::new(vec![], 100.0, vec![]);
+            heuristic_ctx.on_generation(vec![solution], 0.0, Timer::start());
+        }
+    }
+
     let solution = VectorSolution::new(vec![], 0., vec![]);
     let search_ctx = SearchContext {
         heuristic_ctx: &heuristic_ctx,
@@ -80,7 +107,7 @@ fn can_estimate_reward_multiplier_impl(approx_median: Option<usize>, duration: u
 
     let result = estimate_reward_perf_multiplier(&search_ctx, duration);
 
-    assert_eq!(result, expected);
+    assert!((result - expected).abs() < 0.001, "Expected {expected}, got {result}");
 }
 
 #[test]

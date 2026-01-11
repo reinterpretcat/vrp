@@ -1,6 +1,6 @@
 use super::*;
 use crate::helpers::utils::create_test_random;
-use crate::utils::{DefaultDistributionSampler, random_argmax};
+use crate::utils::DefaultDistributionSampler;
 
 #[derive(Clone)]
 struct TestAction(DefaultDistributionSampler);
@@ -35,7 +35,7 @@ fn can_find_proper_estimations() {
             let slot_means: &[Float; 5] = &[5., 9., 7., 13., 11.];
             let slot_vars: &[Float; 5] = &[2., 3., 4., 6., 1.];
             let prior_mean = 1.;
-            let attempts = 1000;
+            let attempts_per_slot = 1000;
             let delta = 2.;
 
             let random = create_test_random();
@@ -44,11 +44,13 @@ fn can_find_proper_estimations() {
                 .map(|_| SlotMachine::new(prior_mean, TestAction(sampler.clone()), sampler.clone()))
                 .collect::<Vec<_>>();
 
-            for _ in 0..attempts {
-                let slot_idx = random_argmax(slots.iter().map(|slot| slot.sample()), random.as_ref()).unwrap();
-                let slot = &mut slots[slot_idx];
-                let feedback = slot.play((slot_means[slot_idx], slot_vars[slot_idx].sqrt()));
-                slot.update(&feedback);
+            // Play each slot independently to test estimation convergence
+            for slot_idx in 0..sockets {
+                for _ in 0..attempts_per_slot {
+                    let slot = &mut slots[slot_idx];
+                    let feedback = slot.play((slot_means[slot_idx], slot_vars[slot_idx]));
+                    slot.update(&feedback);
+                }
             }
 
             slots
