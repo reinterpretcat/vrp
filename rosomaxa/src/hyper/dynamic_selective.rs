@@ -423,36 +423,66 @@ where
         .unwrap_or(0.)
 }
 
-/// Estimates performance of used operation based on its duration and overall improvement statistics.
-/// Returns a reward multiplier in `(~0.5, 3]` range.
+/// Estimates performance of the used operation based on its duration and the current search phase.
+/// Returns a reward multiplier in the range `[0.8, 1.2]`.
+///
+/// # Strategy: Context-Aware Time Dilation
+///
+/// This function balances **Throughput (Speed)** vs. **Depth (Quality)** by adapting to the
+/// current `improvement_1000_ratio`:
+///
+/// 1.  **Flow State (High Improvement):** When the solver is finding frequent improvements,
+///     we prioritize **Efficiency**. Fast operators are rewarded, and slow operators are penalized.
+///     This maximizes the generation of diverse individuals to populate the pool.
+/// 2.  **Stagnation (Low Improvement):** When the solver is stuck, we prioritize **Power**.
+///     The time penalty is dampened or removed. This ensures that "Heavy" operators (e.g.,
+///     complex Ruin & Recreate), which are naturally slower but capable of escaping local optima,
+///     are not unfairly penalized against faster, ineffective local search operators.
+///
+/// # Logic
+///
+/// *   **Continuous Scaling:** Uses a logarithmic curve to avoid artificial "cliffs" in reward.
+/// *   **Phase Damping:** The time modifier is scaled by the improvement ratio.
+/// *   **Safety Clamp:** The final multiplier is bounded to `+/- 20%` to ensure that execution
+///     time never overrides the actual quality signal (distance improvement).
 fn estimate_reward_perf_multiplier<C, O, S>(search_ctx: &SearchContext<C, O, S>, duration: usize) -> Float
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    let improvement_ratio = search_ctx.heuristic_ctx.statistics().improvement_1000_ratio;
+    let stats = search_ctx.heuristic_ctx.statistics();
+    let improvement_ratio = stats.improvement_1000_ratio;
+
     let approx_median = &search_ctx.approx_median;
-    let median_ratio =
-        approx_median.map_or(1., |median| if median == 0 { 1. } else { duration as Float / median as Float });
-
-    let median_ratio = match median_ratio.clamp(0.5, 2.) {
-        ratio if ratio < 0.75 => 1.5, // Allegro
-        ratio if ratio < 1. => 1.25,  // Allegretto
-        ratio if ratio > 1.5 => 0.75, // Andante
-        _ => 1.,                      // Moderato
+    let median = match approx_median {
+        Some(m) if *m > 0 => *m as Float,
+        _ => return 1.0,
     };
 
-    let improvement_ratio = match improvement_ratio {
-        // stagnation: increase reward
-        ratio if ratio < 0.05 => 2.,
-        // fast convergence: decrease reward
-        ratio if ratio > 0.150 => 0.75,
-        // moderate convergence
-        _ => 1.,
-    };
+    let time_ratio = duration as Float / median;
 
-    median_ratio * improvement_ratio
+    // 1. Calculate the raw time modifier (Logarithmic)
+    // Fast (0.5x) -> +0.15 reward
+    // Slow (2.0x) -> -0.15 reward
+    // We use a gentle curve so we don't distort the signal too much.
+    let raw_modifier = (1.0 / time_ratio).ln() * 0.15;
+
+    // 2. Apply Phase-Dependent Damping
+    // If improvement is HIGH (> 0.1), we care about speed. Damping = 1.0.
+    // If improvement is LOW (< 0.001), we ignore speed. Damping = 0.0.
+    // This allows slow, heavy operators to "catch up" in ranking when the easy gains are gone.
+
+    // Smooth transition from 0.0 to 1.0 based on improvement ratio
+    // We saturate at 0.1 (10% improvement is considered "Fast Flow")
+    let phase_damping = (improvement_ratio * 10.0).clamp(0.0, 1.0);
+
+    // Apply damping
+    let final_modifier = raw_modifier * phase_damping;
+
+    // 3. Final Safety Clamp
+    // Ensure we never boost/penalize by more than 20%, regardless of how extreme the time is.
+    (1.0 + final_modifier).clamp(0.8, 1.2)
 }
 
 /// Returns distance in `[-N., N]` where:
