@@ -61,12 +61,12 @@ where
         let alpha = 2.0;
         let beta = 1.0;
 
-        // Prior mean is clamped to a reasonable Z-score range (-1 to 1) to prevent
-        // initialization bias, though typically 0.0 is used for centered data.
-        let mu = prior_mean.min(1.0).max(-1.0);
+        // Prior mean is clamped to a reasonable Z-score range (-0 to 10)
+        let mu = prior_mean.max(0.01).min(10.0);
 
-        // Variance expectation for Inverse-Gamma: Beta / (Alpha - 1)
-        // With Alpha=2.0, this results in v=1.0.
+        // Variance expectation v = Beta / (Alpha - 1) = 1.0.
+        // This implies we are "uncertain" by about +/- 1.0 standard deviation unit,
+        // which allows the bandit to explore even if one operator starts ahead.
         let v = beta / (alpha - 1.0);
 
         Self { n: 0, alpha, beta, mu, v, action, sampler }

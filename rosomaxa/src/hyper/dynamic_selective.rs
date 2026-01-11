@@ -105,6 +105,60 @@ where
 /// Type alias for slot machines used in Thompson sampling
 pub type SlotMachines<'a, C, O, S> = Vec<(SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler>, String)>;
 
+/// Centralized "Physics" for the Reward System.
+///
+/// This struct defines the constants that control how rewards are calculated,
+/// scaled, and clamped. Changing values here automatically propagates to
+/// reward estimation and signal normalization logic.
+struct SearchRewards;
+
+impl SearchRewards {
+    /// The base value for a standard improvement (Local Search success).
+    /// Used as the atomic unit for signal normalization.
+    pub const BASE_REWARD: Float = 2.0;
+
+    /// The offset added to relative distance to ensure positive rewards.
+    /// Logic: `(distance + OFFSET)`.
+    pub const DISTANCE_OFFSET: Float = 1.0;
+
+    /// Multiplier applied when a solution improves the Global Best Known.
+    /// This is the "Jackpot" factor.
+    pub const GLOBAL_BEST_MULTIPLIER: Float = 2.5;
+
+    /// Multiplier applied when a solution is diverse but not a global improvement.
+    /// Keeps "Diverse" operators alive but with low signal.
+    pub const DIVERSE_MULTIPLIER: Float = 0.05;
+
+    /// The maximum percentage (+/-) that execution duration can affect the reward.
+    /// e.g., 0.2 means performance can scale reward by [0.8, 1.2].
+    pub const PERF_TOLERANCE: Float = 0.2;
+
+    /// The "Cheap Failure"
+    /// The penalty applied when an operator produces no improvement.
+    /// A small negative value ensures that "doing nothing" is worse than "finding diverse solutions".
+    /// This forces the Slot Machine to eventually lower the confidence of stagnating operators.
+    pub const PENALTY_MIN: Float = -0.01;
+
+    /// The "Expensive Failure"
+    /// The penalty applied when an operator produces a negative outcome.
+    /// A larger negative value ensures that failures are strongly discouraged.
+    pub const PENALTY_MAX: Float = -0.1;
+
+    /// Calculates the ratio between the "Jackpot" and the "Normal" signal.
+    /// Used by the Agent to determine how many times larger than the average
+    /// a signal must be to be considered an "Outlier" that needs clamping.
+    pub fn signal_clamp_ratio(max_dist: Float) -> Float {
+        // Recalculate based on new constants
+        let base_term = max_dist + Self::DISTANCE_OFFSET;
+        let global_term = base_term * Self::GLOBAL_BEST_MULTIPLIER;
+        let max_theoretical = (base_term + global_term) * (1.0 + Self::PERF_TOLERANCE);
+
+        let typical_reward = (1.0 + Self::DISTANCE_OFFSET) * Self::BASE_REWARD;
+
+        max_theoretical / typical_reward
+    }
+}
+
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 /// Search state for Thompson sampling
 pub enum SearchState {
@@ -161,13 +215,42 @@ where
         let (new_solution, duration) =
             Timer::measure_duration(|| self.operator.search(context.heuristic_ctx, context.solution));
 
-        let is_new_best = compare_to_best(context.heuristic_ctx, &new_solution) == Ordering::Less;
         let duration = duration.as_millis() as usize;
 
-        let base_reward = estimate_distance_reward(context.heuristic_ctx, context.solution, &new_solution);
-        let reward_multiplier = estimate_reward_perf_multiplier(&context, duration);
-        let reward = base_reward * reward_multiplier;
+        // 1. Analyze Result
+        let distance_score = estimate_distance_reward(context.heuristic_ctx, context.solution, &new_solution);
 
+        // 2. Calculate Final Reward / Penalty
+        let reward = match distance_score {
+            // SUCCESS: Apply performance multiplier (Bonus/Penalty within +/- 20%)
+            Some(base_score) => {
+                let mult = estimate_reward_perf_multiplier(&context, duration);
+                base_score * mult
+            }
+            // FAILURE: Apply Time-Weighted Penalty
+            None => {
+                // Get median (defensive default to duration itself to avoid div/0)
+                let median = context.approx_median.unwrap_or(duration).max(1) as Float;
+                let ratio = duration as Float / median;
+
+                // Logic:
+                // Ratio 0.2 (Fast) -> -0.1 * 0.2 = -0.02 (Too small, clamp to MIN) -> -0.1
+                // Ratio 1.0 (Avg)  -> -0.1 * 1.0 = -0.1
+                // Ratio 5.0 (Slow) -> -0.1 * 5.0 = -0.5
+                // Ratio 20.0 (Very Slow) -> -2.0 (Clamp to MAX) -> -1.0
+
+                // Base penalty unit: -0.1 per "Median Unit of Time"
+                let raw_penalty = SearchRewards::PENALTY_MIN * ratio;
+
+                // Clamp to the range [-1.0, -0.1]
+                // Note: min/max semantics with negative numbers:
+                // max(-1.0) ensures we don't go below -1.
+                // min(-0.1) ensures we don't go above -0.1.
+                raw_penalty.max(SearchRewards::PENALTY_MAX).min(SearchRewards::PENALTY_MIN)
+            }
+        };
+
+        let is_new_best = compare_to_best(context.heuristic_ctx, &new_solution) == Ordering::Less;
         let to = if is_new_best { SearchState::BestKnown } else { SearchState::Diverse };
         let transition = (context.from, to);
 
@@ -207,10 +290,17 @@ where
     S: HeuristicSolution + 'a,
 {
     pub fn new(search_operators: HeuristicSearchOperators<C, O, S>, environment: &Environment) -> Self {
-        // Calculate scaling factor to normalize operator weights to target range
-        let max_weight = search_operators.iter().map(|(_, _, weight)| *weight).fold(0.0_f64, |a, b| a.max(b));
-        const TARGET_MAX_PRIOR: Float = 4.0;
-        let scale = if max_weight > 0.0 { TARGET_MAX_PRIOR / max_weight } else { 1.0 };
+        // Calculate the Mean Weight
+        // We want the "Average Operator" to have a prior mu = 1.0.
+        // This aligns with SignalStats which normalizes the average reward to 1.0.
+        let total_weight: Float = search_operators.iter().map(|(_, _, w)| *w).sum();
+        let count = search_operators.len() as Float;
+
+        let avg_weight = if count > 0.0 { total_weight / count } else { 1.0 };
+
+        // Avoid division by zero if weights are weird
+        let target_mean = SearchRewards::BASE_REWARD;
+        let scale = if avg_weight > f64::EPSILON { target_mean / avg_weight } else { target_mean };
 
         // Factory function to create identical slot configurations for each state
         let create_slots = || {
@@ -270,26 +360,21 @@ where
 
     /// Updates estimations based on search feedback with protected signal baseline.
     pub fn update(&mut self, generation: usize, feedback: &SearchFeedback<S>) {
+        let max_dist = feedback.solution.as_ref().map_or(1., |s| s.fitness().count() as Float);
         let raw_reward = feedback.sample.reward;
         let current_scale = self.signal_stats.scale();
 
-        // 1. Update Shared Signal Baseline (Protected)
-        // Clamp observation to 3x current scale to prevent a single
-        // "Best Known Jackpot" from disrupting baseline for Diverse state
+        // 1. Update Ruler (PHYSICS)
+        // We only update the "Scale of Success" based on positive outcomes.
+        // We do NOT shrink the ruler just because we failed.
         if raw_reward > f64::EPSILON {
-            self.signal_stats.update(raw_reward.min(current_scale * 3.0));
+            let clamp_limit = current_scale * SearchRewards::signal_clamp_ratio(max_dist);
+            self.signal_stats.update(raw_reward.min(clamp_limit));
         }
 
-        // 2. Normalize for Contextual Learning (Uncapped)
-        // If we hit a jackpot (e.g., reward 60.0 vs scale 1.0), we pass the full 60.0.
-        // This ensures the specific slot machine learns "I AM THE BEST"
-        let normalized_reward = if raw_reward > f64::EPSILON {
-            raw_reward / self.signal_stats.scale()
-        } else {
-            // Zero reward strategy: don't penalize, just indicate no progress
-            // Allows variance in "good" operators to keep them alive vs "bad" operators
-            0.0
-        };
+        // 2. Normalize (Adaptive)
+        let normalized_reward =
+            if raw_reward.abs() > f64::EPSILON { raw_reward / self.signal_stats.scale() } else { 0.0 };
         let normalized_feedback = SearchFeedback {
             sample: SearchSample { reward: normalized_reward, ..feedback.sample.clone() },
             slot_idx: feedback.slot_idx,
@@ -390,10 +475,8 @@ where
 }
 
 /// Estimates new solution discovery reward based on distance metric.
-/// Returns a reward estimation in `[0, 6]` range. This range consists of:
-/// - a initial distance improvement gives `[0, 2]`
-/// - a best known improvement gives `[0, 2]` * BEST_DISCOVERY_REWARD_MULTIPLIER
-fn estimate_distance_reward<C, O, S>(heuristic_ctx: &C, initial_solution: &S, new_solution: &S) -> Float
+/// Returns `Some(reward)` for improvement, or `None` for stagnation.
+fn estimate_distance_reward<C, O, S>(heuristic_ctx: &C, initial_solution: &S, new_solution: &S) -> Option<Float>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
@@ -403,24 +486,30 @@ where
         .ranked()
         .next()
         .map(|best_known| {
-            const BEST_DISCOVERY_REWARD_MULTIPLIER: Float = 2.;
-            const DIVERSE_DISCOVERY_REWARD_MULTIPLIER: Float = 0.05;
-
             let objective = heuristic_ctx.objective();
 
+            // Calculate normalized relative distances [0, 1]
             let distance_initial = get_relative_distance(objective, new_solution, initial_solution);
             let distance_best = get_relative_distance(objective, new_solution, best_known);
 
-            // NOTE remap distances to range [0, 2]
+            // Reward Components (Max ~4.0 for Local, ~10.0 for Global)
+            let reward_initial = (distance_initial + SearchRewards::DISTANCE_OFFSET) * SearchRewards::BASE_REWARD;
+            let reward_best = (distance_best + SearchRewards::DISTANCE_OFFSET)
+                * SearchRewards::BASE_REWARD
+                * SearchRewards::GLOBAL_BEST_MULTIPLIER;
+
             match (distance_initial.total_cmp(&0.), distance_best.total_cmp(&0.)) {
-                (Ordering::Greater, Ordering::Greater) => {
-                    (distance_initial + 1.) + (distance_best + 1.) * BEST_DISCOVERY_REWARD_MULTIPLIER
-                }
-                (Ordering::Greater, _) => (distance_initial + 1.) * DIVERSE_DISCOVERY_REWARD_MULTIPLIER,
-                _ => 0.,
+                // Global Jackpot
+                (Ordering::Greater, Ordering::Greater) => Some(reward_initial + reward_best),
+
+                // Local/Diverse Improvement
+                (Ordering::Greater, _) => Some(reward_initial * SearchRewards::DIVERSE_MULTIPLIER),
+
+                // Stagnation
+                _ => None,
             }
         })
-        .unwrap_or(0.)
+        .unwrap_or(None)
 }
 
 /// Estimates performance of the used operation based on its duration and the current search phase.
@@ -480,14 +569,14 @@ where
     // Apply damping
     let final_modifier = raw_modifier * phase_damping;
 
-    // 3. Final Safety Clamp
-    // Ensure we never boost/penalize by more than 20%, regardless of how extreme the time is.
-    (1.0 + final_modifier).clamp(0.8, 1.2)
+    // 3. Final Safety Clamp defined by Reward Physics
+    let tolerance = SearchRewards::PERF_TOLERANCE;
+    (1.0 + final_modifier).clamp(1.0 - tolerance, 1.0 + tolerance)
 }
 
-/// Returns distance in `[-N., N]` where:
-///  - N: in range `[1, total amount of objectives]`
-///  - sign specifies whether a solution is better (positive) or worse (negative).
+/// Returns normalized distance in `[0.0, 1.0]` (absolute magnitude)
+/// where 1.0 = Improvement on Primary Objective.
+/// Returns negative value if worse.
 fn get_relative_distance<O, S>(objective: &O, a: &S, b: &S) -> Float
 where
     O: HeuristicObjective<Solution = S>,
@@ -517,7 +606,9 @@ where
     let total_objectives = a.fitness().count();
     assert_ne!(total_objectives, 0, "cannot have an empty objective here");
     assert_ne!(total_objectives, idx, "cannot have the index equal to total amount of objectives");
-    let priority_amplifier = (total_objectives - idx) as Float;
+
+    // Normalization: Divide by total_objectives to map to [0, 1]
+    let priority_amplifier = (total_objectives - idx) as Float / total_objectives as Float;
 
     let value = a
         .fitness()
