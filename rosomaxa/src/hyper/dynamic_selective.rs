@@ -233,21 +233,11 @@ where
                 let median = context.approx_median.unwrap_or(duration).max(1) as Float;
                 let ratio = duration as Float / median;
 
-                // Logic:
-                // Ratio 0.2 (Fast)  -> -0.01 * 0.2 = -0.002 (Too small, clamp to MIN) -> -0.01
-                // Ratio 1.0 (Avg)   -> -0.01 * 1.0 = -0.01
-                // Ratio 5.0 (Slow)  -> -0.01 * 5.0 = -0.05
-                // Ratio 10.0 (Slower) -> -0.01 * 10.0 = -0.1 (At MAX boundary)
-                // Ratio 20.0 (Very Slow) -> -0.01 * 20.0 = -0.2 (Clamp to MAX) -> -0.1
-
                 // Base penalty unit: PENALTY_MIN (-0.01) per "Median Unit of Time".
                 let raw_penalty = SearchRewards::PENALTY_MIN * ratio;
 
                 // Clamp to the range [PENALTY_MAX, PENALTY_MIN] = [-0.1, -0.01].
-                // Note: min/max semantics with negative numbers:
-                // - max(PENALTY_MAX) ensures we don't go below -0.1 (more negative).
-                // - min(PENALTY_MIN) ensures we don't go above -0.01 (less negative).
-                raw_penalty.max(SearchRewards::PENALTY_MAX).min(SearchRewards::PENALTY_MIN)
+                raw_penalty.clamp(SearchRewards::PENALTY_MAX, SearchRewards::PENALTY_MIN)
             }
         };
 

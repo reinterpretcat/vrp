@@ -62,7 +62,7 @@ where
         let beta = 1.0;
 
         // Prior mean is clamped to a reasonable Z-score range (-0 to 10)
-        let mu = prior_mean.max(0.01).min(10.0);
+        let mu = prior_mean.clamp(0.01, 10.0);
 
         // Variance expectation v = Beta / (Alpha - 1) = 1.0.
         // This implies we are "uncertain" by about +/- 1.0 standard deviation unit,
