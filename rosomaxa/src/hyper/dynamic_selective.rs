@@ -24,7 +24,7 @@ pub type HeuristicDiversifyOperators<C, O, S> =
 
 /// An experimental dynamic selective hyper heuristic which selects inner heuristics
 /// based on how they work during the search. The selection process is modeled using reinforcement
-/// learning technics.
+/// learning techniques.
 pub struct DynamicSelective<C, O, S>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
@@ -102,7 +102,7 @@ where
     }
 }
 
-/// Type alias for slot machines used in Thompson sampling
+/// Type alias for slot machines used in Thompson sampling.
 pub type SlotMachines<'a, C, O, S> = Vec<(SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler>, String)>;
 
 /// Centralized "Physics" for the Reward System.
@@ -159,12 +159,12 @@ impl SearchRewards {
     }
 }
 
+/// Search state for Thompson sampling.
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
-/// Search state for Thompson sampling
 pub enum SearchState {
-    /// Best known solution state
+    /// Best known solution state.
     BestKnown,
-    /// Diverse solution state
+    /// Diverse solution state.
     Diverse,
 }
 
@@ -177,7 +177,7 @@ impl Display for SearchState {
     }
 }
 
-/// Search feedback result for Thompson sampling
+/// Search feedback result for Thompson sampling.
 pub struct SearchFeedback<S> {
     sample: SearchSample,
     slot_idx: usize,
@@ -190,7 +190,7 @@ impl<S> SlotFeedback for SearchFeedback<S> {
     }
 }
 
-/// Search action wrapper for Thompson sampling
+/// Search action wrapper for Thompson sampling.
 pub struct SearchAction<'a, C, O, S> {
     operator: Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync + 'a>,
     operator_name: String,
@@ -217,35 +217,36 @@ where
 
         let duration = duration.as_millis() as usize;
 
-        // 1. Analyze Result
+        // 1. Analyze result.
         let distance_score = estimate_distance_reward(context.heuristic_ctx, context.solution, &new_solution);
 
-        // 2. Calculate Final Reward / Penalty
+        // 2. Calculate final reward / penalty.
         let reward = match distance_score {
-            // SUCCESS: Apply performance multiplier (Bonus/Penalty within +/- 20%)
+            // Success: Apply performance multiplier (bonus/penalty within +/- 20%).
             Some(base_score) => {
                 let mult = estimate_reward_perf_multiplier(&context, duration);
                 base_score * mult
             }
-            // FAILURE: Apply Time-Weighted Penalty
+            // Failure: Apply time-weighted penalty.
             None => {
-                // Get median (defensive default to duration itself to avoid div/0)
+                // Get median (defensive default to duration itself to avoid div/0).
                 let median = context.approx_median.unwrap_or(duration).max(1) as Float;
                 let ratio = duration as Float / median;
 
                 // Logic:
-                // Ratio 0.2 (Fast) -> -0.1 * 0.2 = -0.02 (Too small, clamp to MIN) -> -0.1
-                // Ratio 1.0 (Avg)  -> -0.1 * 1.0 = -0.1
-                // Ratio 5.0 (Slow) -> -0.1 * 5.0 = -0.5
-                // Ratio 20.0 (Very Slow) -> -2.0 (Clamp to MAX) -> -1.0
+                // Ratio 0.2 (Fast)  -> -0.01 * 0.2 = -0.002 (Too small, clamp to MIN) -> -0.01
+                // Ratio 1.0 (Avg)   -> -0.01 * 1.0 = -0.01
+                // Ratio 5.0 (Slow)  -> -0.01 * 5.0 = -0.05
+                // Ratio 10.0 (Slower) -> -0.01 * 10.0 = -0.1 (At MAX boundary)
+                // Ratio 20.0 (Very Slow) -> -0.01 * 20.0 = -0.2 (Clamp to MAX) -> -0.1
 
-                // Base penalty unit: -0.1 per "Median Unit of Time"
+                // Base penalty unit: PENALTY_MIN (-0.01) per "Median Unit of Time".
                 let raw_penalty = SearchRewards::PENALTY_MIN * ratio;
 
-                // Clamp to the range [-1.0, -0.1]
+                // Clamp to the range [PENALTY_MAX, PENALTY_MIN] = [-0.1, -0.01].
                 // Note: min/max semantics with negative numbers:
-                // max(-1.0) ensures we don't go below -1.
-                // min(-0.1) ensures we don't go above -0.1.
+                // - max(PENALTY_MAX) ensures we don't go below -0.1 (more negative).
+                // - min(PENALTY_MIN) ensures we don't go above -0.01 (less negative).
                 raw_penalty.max(SearchRewards::PENALTY_MAX).min(SearchRewards::PENALTY_MIN)
             }
         };
@@ -260,7 +261,7 @@ where
     }
 }
 
-/// Search context for Thompson sampling
+/// Search context for Thompson sampling.
 pub struct SearchContext<'a, C, O, S>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
@@ -333,16 +334,16 @@ where
         }
     }
 
-    /// Picks relevant search operator based on learnings and runs the search.
+    /// Picks the relevant search operator based on learnings and runs the search.
     pub fn search(&self, heuristic_ctx: &C, solution: &S) -> SearchFeedback<S> {
-        // Determine search context - critical for operator selection
+        // Determine search context - critical for operator selection.
         let from = if matches!(compare_to_best(heuristic_ctx, solution), Ordering::Equal) {
             SearchState::BestKnown
         } else {
             SearchState::Diverse
         };
 
-        // Get contextually appropriate slot machines
+        // Get contextually appropriate slot machines.
         let (slot_idx, slot_machine) = self
             .slot_machines
             .get(&from)
@@ -354,7 +355,7 @@ where
 
         let approx_median = self.tracker.approx_median();
 
-        // Execute with full context information
+        // Execute with full context information.
         slot_machine.play(SearchContext { heuristic_ctx, from, slot_idx, solution, approx_median })
     }
 
@@ -364,7 +365,7 @@ where
         let raw_reward = feedback.sample.reward;
         let current_scale = self.signal_stats.scale();
 
-        // 1. Update Ruler (PHYSICS)
+        // 1. Update ruler.
         // We only update the "Scale of Success" based on positive outcomes.
         // We do NOT shrink the ruler just because we failed.
         if raw_reward > f64::EPSILON {
@@ -372,7 +373,7 @@ where
             self.signal_stats.update(raw_reward.min(clamp_limit));
         }
 
-        // 2. Normalize (Adaptive)
+        // 2. Normalize.
         let normalized_reward =
             if raw_reward.abs() > f64::EPSILON { raw_reward / self.signal_stats.scale() } else { 0.0 };
         let normalized_feedback = SearchFeedback {
@@ -381,12 +382,12 @@ where
             solution: None,
         };
 
-        // 3. Update Contextual Slot Machine
+        // 3. Update contextual slot machine.
         let from = &feedback.sample.transition.0;
         let slots = self.slot_machines.get_mut(from).expect("cannot get slot machines");
         slots[feedback.slot_idx].0.update(&normalized_feedback);
 
-        // 4. Observe telemetry
+        // 4. Observe telemetry.
         self.tracker.observe_sample(generation, feedback.sample.clone());
     }
 
@@ -408,7 +409,221 @@ where
     }
 }
 
-/// Sample of search telemetry.
+fn compare_to_best<C, O, S>(heuristic_ctx: &C, solution: &S) -> Ordering
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    heuristic_ctx
+        .ranked()
+        .next()
+        .map(|best_known| heuristic_ctx.objective().total_order(solution, best_known))
+        .unwrap_or(Ordering::Less)
+}
+
+/// Estimates new solution discovery reward based on distance metric.
+/// Returns `Some(reward)` for improvement, or `None` for stagnation.
+fn estimate_distance_reward<C, O, S>(heuristic_ctx: &C, initial_solution: &S, new_solution: &S) -> Option<Float>
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    heuristic_ctx
+        .ranked()
+        .next()
+        .map(|best_known| {
+            let objective = heuristic_ctx.objective();
+
+            // Calculate normalized relative distances [0, 1].
+            let distance_initial = get_relative_distance(objective, new_solution, initial_solution);
+            let distance_best = get_relative_distance(objective, new_solution, best_known);
+
+            // Reward components (max ~4.0 for local, ~10.0 for global).
+            let reward_initial = (distance_initial + SearchRewards::DISTANCE_OFFSET) * SearchRewards::BASE_REWARD;
+            let reward_best = (distance_best + SearchRewards::DISTANCE_OFFSET)
+                * SearchRewards::BASE_REWARD
+                * SearchRewards::GLOBAL_BEST_MULTIPLIER;
+
+            match (distance_initial.total_cmp(&0.), distance_best.total_cmp(&0.)) {
+                // Global Jackpot
+                (Ordering::Greater, Ordering::Greater) => Some(reward_initial + reward_best),
+
+                // Local/Diverse Improvement
+                (Ordering::Greater, _) => Some(reward_initial * SearchRewards::DIVERSE_MULTIPLIER),
+
+                // Stagnation
+                _ => None,
+            }
+        })
+        .unwrap_or(None)
+}
+
+/// Estimates performance of the used operation based on its duration and the current search phase.
+/// Returns a reward multiplier in the range `[0.8, 1.2]`.
+fn estimate_reward_perf_multiplier<C, O, S>(search_ctx: &SearchContext<C, O, S>, duration: usize) -> Float
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    let stats = search_ctx.heuristic_ctx.statistics();
+    let improvement_ratio = stats.improvement_1000_ratio;
+
+    let approx_median = &search_ctx.approx_median;
+    let median = match approx_median {
+        Some(m) if *m > 0 => *m as Float,
+        _ => return 1.0,
+    };
+
+    let time_ratio = duration as Float / median;
+
+    // Calculate the raw time modifier (logarithmic).
+    let raw_modifier = (1.0 / time_ratio).ln() * 0.15;
+
+    // Apply phase-dependent damping.
+    // Smooth transition from 0.0 to 1.0 based on improvement ratio.
+    // We saturate at 0.1 (10% improvement is considered "Fast Flow").
+    let phase_damping = (improvement_ratio * 10.0).clamp(0.0, 1.0);
+    let final_modifier = raw_modifier * phase_damping;
+
+    // Final safety clamp defined by reward physics.
+    let tolerance = SearchRewards::PERF_TOLERANCE;
+    (1.0 + final_modifier).clamp(1.0 - tolerance, 1.0 + tolerance)
+}
+
+/// Returns the normalized distance in `[0.0, 1.0]` (absolute magnitude)
+/// where 1.0 = Improvement on Primary Objective.
+/// Returns a negative value if worse.
+fn get_relative_distance<O, S>(objective: &O, a: &S, b: &S) -> Float
+where
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    let order = objective.total_order(a, b);
+
+    let sign = match order {
+        Ordering::Less => 1.,
+        Ordering::Greater => -1.,
+        Ordering::Equal => return 0.,
+    };
+
+    let idx = a
+        .fitness()
+        .zip(b.fitness())
+        .enumerate()
+        .find(|(_, (fitness_a, fitness_b))| fitness_a != fitness_b)
+        .map(|(idx, _)| idx);
+
+    let idx = if let Some(idx) = idx {
+        idx
+    } else {
+        return 0.;
+    };
+
+    let total_objectives = a.fitness().count();
+    assert_ne!(total_objectives, 0, "cannot have an empty objective here");
+    assert_ne!(total_objectives, idx, "cannot have the index equal to total amount of objectives");
+
+    // Normalization: Divide by total_objectives to map to [0, 1].
+    let priority_amplifier = (total_objectives - idx) as Float / total_objectives as Float;
+
+    let value = a
+        .fitness()
+        .nth(idx)
+        .zip(b.fitness().nth(idx))
+        .map(|(a, b)| (a - b).abs() / a.abs().max(b.abs()))
+        .expect("cannot get fitness by idx");
+
+    value * sign * priority_amplifier
+}
+
+/// Signal tracker that observes ONLY positive values to establish a baseline for "Success".
+/// Uses exponential moving average for stability in sparse signals.
+#[derive(Clone)]
+struct SignalStats {
+    mean: Float,
+    n: Float,
+}
+
+impl SignalStats {
+    fn new() -> Self {
+        Self { mean: 0.0, n: 0.0 }
+    }
+
+    /// Observes ONLY positive values to establish a baseline for "Success".
+    fn update(&mut self, value: Float) {
+        if value <= f64::EPSILON {
+            return;
+        }
+
+        // Horizon: Adapt to the scale of the last ~200 successful operations.
+        // This is structural (adaptation speed), not problem-specific.
+        let window_size = 200.0;
+        let decay = 1.0 - (1.0 / window_size);
+
+        self.n = self.n * decay + 1.0;
+
+        // Exponential moving average of the magnitude.
+        // We use this instead of Welford's variance for stability in sparse signals.
+        let learning_rate = 1.0 / self.n;
+        self.mean = self.mean * (1.0 - learning_rate) + value * learning_rate;
+    }
+
+    /// Returns the scale factor.
+    /// If we haven't seen enough data, return 1.0 to avoid division by zero.
+    fn scale(&self) -> Float {
+        if self.mean < f64::EPSILON { 1.0 } else { self.mean }
+    }
+}
+
+/// Enhanced diagnostic tracker for Thompson sampling analysis.
+struct HeuristicTracker {
+    total_median: RemedianUsize,
+    search_telemetry: Vec<(usize, SearchSample)>,
+    heuristic_telemetry: Vec<(usize, HeuristicSample)>,
+    is_experimental: bool,
+}
+
+impl HeuristicTracker {
+    /// Creates a new tracker with diagnostic configuration.
+    pub fn new(is_experimental: bool) -> Self {
+        Self {
+            total_median: RemedianUsize::new(11, 7, |a, b| a.cmp(b)),
+            search_telemetry: Default::default(),
+            heuristic_telemetry: Default::default(),
+            is_experimental,
+        }
+    }
+
+    /// Returns true if telemetry is enabled.
+    pub fn telemetry_enabled(&self) -> bool {
+        self.is_experimental
+    }
+
+    /// Returns the median approximation.
+    pub fn approx_median(&self) -> Option<usize> {
+        self.total_median.approx_median()
+    }
+
+    /// Observes the current sample and updates the total duration median.
+    pub fn observe_sample(&mut self, generation: usize, sample: SearchSample) {
+        self.total_median.add_observation(sample.duration);
+        if self.telemetry_enabled() {
+            self.search_telemetry.push((generation, sample));
+        }
+    }
+
+    /// Observes heuristic parameters for telemetry tracking.
+    pub fn observe_params(&mut self, generation: usize, sample: HeuristicSample) {
+        if self.telemetry_enabled() {
+            self.heuristic_telemetry.push((generation, sample));
+        }
+    }
+}
+
+/// A sample of search telemetry.
 #[derive(Clone)]
 struct SearchSample {
     name: String,
@@ -417,6 +632,7 @@ struct SearchSample {
     transition: (SearchState, SearchState),
 }
 
+/// A sample of heuristic parameters telemetry.
 struct HeuristicSample {
     state: SearchState,
     name: String,
@@ -458,247 +674,5 @@ where
         }
 
         Ok(())
-    }
-}
-
-fn compare_to_best<C, O, S>(heuristic_ctx: &C, solution: &S) -> Ordering
-where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-{
-    heuristic_ctx
-        .ranked()
-        .next()
-        .map(|best_known| heuristic_ctx.objective().total_order(solution, best_known))
-        .unwrap_or(Ordering::Less)
-}
-
-/// Estimates new solution discovery reward based on distance metric.
-/// Returns `Some(reward)` for improvement, or `None` for stagnation.
-fn estimate_distance_reward<C, O, S>(heuristic_ctx: &C, initial_solution: &S, new_solution: &S) -> Option<Float>
-where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-{
-    heuristic_ctx
-        .ranked()
-        .next()
-        .map(|best_known| {
-            let objective = heuristic_ctx.objective();
-
-            // Calculate normalized relative distances [0, 1]
-            let distance_initial = get_relative_distance(objective, new_solution, initial_solution);
-            let distance_best = get_relative_distance(objective, new_solution, best_known);
-
-            // Reward Components (Max ~4.0 for Local, ~10.0 for Global)
-            let reward_initial = (distance_initial + SearchRewards::DISTANCE_OFFSET) * SearchRewards::BASE_REWARD;
-            let reward_best = (distance_best + SearchRewards::DISTANCE_OFFSET)
-                * SearchRewards::BASE_REWARD
-                * SearchRewards::GLOBAL_BEST_MULTIPLIER;
-
-            match (distance_initial.total_cmp(&0.), distance_best.total_cmp(&0.)) {
-                // Global Jackpot
-                (Ordering::Greater, Ordering::Greater) => Some(reward_initial + reward_best),
-
-                // Local/Diverse Improvement
-                (Ordering::Greater, _) => Some(reward_initial * SearchRewards::DIVERSE_MULTIPLIER),
-
-                // Stagnation
-                _ => None,
-            }
-        })
-        .unwrap_or(None)
-}
-
-/// Estimates performance of the used operation based on its duration and the current search phase.
-/// Returns a reward multiplier in the range `[0.8, 1.2]`.
-///
-/// # Strategy: Context-Aware Time Dilation
-///
-/// This function balances **Throughput (Speed)** vs. **Depth (Quality)** by adapting to the
-/// current `improvement_1000_ratio`:
-///
-/// 1.  **Flow State (High Improvement):** When the solver is finding frequent improvements,
-///     we prioritize **Efficiency**. Fast operators are rewarded, and slow operators are penalized.
-///     This maximizes the generation of diverse individuals to populate the pool.
-/// 2.  **Stagnation (Low Improvement):** When the solver is stuck, we prioritize **Power**.
-///     The time penalty is dampened or removed. This ensures that "Heavy" operators (e.g.,
-///     complex Ruin & Recreate), which are naturally slower but capable of escaping local optima,
-///     are not unfairly penalized against faster, ineffective local search operators.
-///
-/// # Logic
-///
-/// *   **Continuous Scaling:** Uses a logarithmic curve to avoid artificial "cliffs" in reward.
-/// *   **Phase Damping:** The time modifier is scaled by the improvement ratio.
-/// *   **Safety Clamp:** The final multiplier is bounded to `+/- 20%` to ensure that execution
-///     time never overrides the actual quality signal (distance improvement).
-fn estimate_reward_perf_multiplier<C, O, S>(search_ctx: &SearchContext<C, O, S>, duration: usize) -> Float
-where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-{
-    let stats = search_ctx.heuristic_ctx.statistics();
-    let improvement_ratio = stats.improvement_1000_ratio;
-
-    let approx_median = &search_ctx.approx_median;
-    let median = match approx_median {
-        Some(m) if *m > 0 => *m as Float,
-        _ => return 1.0,
-    };
-
-    let time_ratio = duration as Float / median;
-
-    // 1. Calculate the raw time modifier (Logarithmic)
-    // Fast (0.5x) -> +0.15 reward
-    // Slow (2.0x) -> -0.15 reward
-    // We use a gentle curve so we don't distort the signal too much.
-    let raw_modifier = (1.0 / time_ratio).ln() * 0.15;
-
-    // 2. Apply Phase-Dependent Damping
-    // If improvement is HIGH (> 0.1), we care about speed. Damping = 1.0.
-    // If improvement is LOW (< 0.001), we ignore speed. Damping = 0.0.
-    // This allows slow, heavy operators to "catch up" in ranking when the easy gains are gone.
-
-    // Smooth transition from 0.0 to 1.0 based on improvement ratio
-    // We saturate at 0.1 (10% improvement is considered "Fast Flow")
-    let phase_damping = (improvement_ratio * 10.0).clamp(0.0, 1.0);
-
-    // Apply damping
-    let final_modifier = raw_modifier * phase_damping;
-
-    // 3. Final Safety Clamp defined by Reward Physics
-    let tolerance = SearchRewards::PERF_TOLERANCE;
-    (1.0 + final_modifier).clamp(1.0 - tolerance, 1.0 + tolerance)
-}
-
-/// Returns normalized distance in `[0.0, 1.0]` (absolute magnitude)
-/// where 1.0 = Improvement on Primary Objective.
-/// Returns negative value if worse.
-fn get_relative_distance<O, S>(objective: &O, a: &S, b: &S) -> Float
-where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-{
-    let order = objective.total_order(a, b);
-
-    let sign = match order {
-        Ordering::Less => 1.,
-        Ordering::Greater => -1.,
-        Ordering::Equal => return 0.,
-    };
-
-    let idx = a
-        .fitness()
-        .zip(b.fitness())
-        .enumerate()
-        .find(|(_, (fitness_a, fitness_b))| fitness_a != fitness_b)
-        .map(|(idx, _)| idx);
-
-    let idx = if let Some(idx) = idx {
-        idx
-    } else {
-        return 0.;
-    };
-
-    let total_objectives = a.fitness().count();
-    assert_ne!(total_objectives, 0, "cannot have an empty objective here");
-    assert_ne!(total_objectives, idx, "cannot have the index equal to total amount of objectives");
-
-    // Normalization: Divide by total_objectives to map to [0, 1]
-    let priority_amplifier = (total_objectives - idx) as Float / total_objectives as Float;
-
-    let value = a
-        .fitness()
-        .nth(idx)
-        .zip(b.fitness().nth(idx))
-        .map(|(a, b)| (a - b).abs() / a.abs().max(b.abs()))
-        .expect("cannot get fitness by idx");
-
-    value * sign * priority_amplifier
-}
-
-/// Signal tracker that observes ONLY positive values to establish baseline for "Success".
-/// Uses exponential moving average for stability in sparse signals.
-#[derive(Clone)]
-struct SignalStats {
-    mean: Float,
-    n: Float,
-}
-
-impl SignalStats {
-    fn new() -> Self {
-        Self { mean: 0.0, n: 0.0 }
-    }
-
-    /// Observe ONLY positive values to establish a baseline for "Success"
-    fn update(&mut self, value: Float) {
-        if value <= f64::EPSILON {
-            return;
-        }
-
-        // Horizon: Adapt to the scale of the last ~200 SUCCESSFUL operations
-        // This is structural (adaptation speed), not problem-specific.
-        let window_size = 200.0;
-        let decay = 1.0 - (1.0 / window_size);
-
-        self.n = self.n * decay + 1.0;
-
-        // Exponential Moving Average of the Magnitude
-        // We use this instead of Welford's variance for stability in sparse signals
-        let learning_rate = 1.0 / self.n;
-        self.mean = self.mean * (1.0 - learning_rate) + value * learning_rate;
-    }
-
-    /// Returns the scale factor.
-    /// If we haven't seen enough data, return 1.0 to avoid division by zero.
-    fn scale(&self) -> Float {
-        if self.mean < f64::EPSILON { 1.0 } else { self.mean }
-    }
-}
-
-/// Enhanced diagnostic tracker for Thompson sampling analysis
-struct HeuristicTracker {
-    total_median: RemedianUsize,
-    search_telemetry: Vec<(usize, SearchSample)>,
-    heuristic_telemetry: Vec<(usize, HeuristicSample)>,
-    is_experimental: bool,
-}
-
-impl HeuristicTracker {
-    /// Creates new tracker with diagnostic configuration
-    pub fn new(is_experimental: bool) -> Self {
-        Self {
-            total_median: RemedianUsize::new(11, 7, |a, b| a.cmp(b)),
-            search_telemetry: Default::default(),
-            heuristic_telemetry: Default::default(),
-            is_experimental,
-        }
-    }
-
-    /// Returns true if telemetry is enabled.
-    pub fn telemetry_enabled(&self) -> bool {
-        self.is_experimental
-    }
-
-    /// Returns median approximation.
-    pub fn approx_median(&self) -> Option<usize> {
-        self.total_median.approx_median()
-    }
-
-    /// Observes a current sample. Updates total duration median.
-    pub fn observe_sample(&mut self, generation: usize, sample: SearchSample) {
-        self.total_median.add_observation(sample.duration);
-        if self.telemetry_enabled() {
-            self.search_telemetry.push((generation, sample));
-        }
-    }
-
-    pub fn observe_params(&mut self, generation: usize, sample: HeuristicSample) {
-        if self.telemetry_enabled() {
-            self.heuristic_telemetry.push((generation, sample));
-        }
     }
 }
