@@ -4,7 +4,7 @@ mod dynamic_selective_test;
 
 use super::*;
 use crate::Timer;
-use crate::algorithms::math::RemedianUsize;
+use crate::algorithms::math::{RemedianUsize, fitness_distance};
 use crate::algorithms::rl::{SlotAction, SlotFeedback, SlotMachine};
 use crate::utils::{DefaultDistributionSampler, random_argmax};
 use std::cmp::Ordering;
@@ -363,19 +363,19 @@ where
         // Apply magnitude scaling so small improvements become meaningful signals.
         // Raw distance is often tiny (0.001 for 0.1% improvement).
         // ln_1p(x * 1000) transforms: 0.001 -> ~0.69, 0.01 -> ~2.4, 0.1 -> ~4.6
-        let improvement_distance = get_relative_distance(new_solution, initial_solution);
+        let improvement_distance = fitness_distance(new_solution, initial_solution);
         let magnitude = (improvement_distance * 1000.0).ln_1p();
         JACKPOT_BASE + magnitude
     } else if is_improvement {
         // DIVERSE IMPROVEMENT: Better than starting point, but not global best.
         // Use tanh for soft saturation - large improvements asymptote to DIVERSE_CAP,
         // ensuring diverse rewards stay well below JACKPOT_BASE.
-        let improvement_distance = get_relative_distance(new_solution, initial_solution);
+        let improvement_distance = fitness_distance(new_solution, initial_solution);
         let magnitude = (improvement_distance * 1000.0).ln_1p();
         let saturated = magnitude.tanh();
 
         // Proximity to best: closer solutions get higher reward.
-        let gap_to_best = get_relative_distance(new_solution, best_known);
+        let gap_to_best = fitness_distance(new_solution, best_known);
         let proximity_factor = (1.0 - gap_to_best).powi(2);
 
         // Base utility: soft-capped and bounded [MIN_REWARD, DIVERSE_CAP].
@@ -419,43 +419,6 @@ where
         .next()
         .map(|best_known| heuristic_ctx.objective().total_order(solution, best_known))
         .unwrap_or(Ordering::Less)
-}
-
-/// Returns the normalized distance in `[0.0, 1.0]`.
-fn get_relative_distance<S>(a: &S, b: &S) -> Float
-where
-    S: HeuristicSolution,
-{
-    // Find the first differing fitness component.
-    let idx = a
-        .fitness()
-        .zip(b.fitness())
-        .enumerate()
-        .find(|(_, (fitness_a, fitness_b))| fitness_a != fitness_b)
-        .map(|(idx, _)| idx);
-
-    let idx = match idx {
-        Some(idx) => idx,
-        None => return 0., // All fitness values equal.
-    };
-
-    let total_objectives = a.fitness().count();
-    if total_objectives == 0 || total_objectives == idx {
-        return 0.;
-    }
-
-    // Priority amplifier: earlier objectives matter more.
-    let priority_amplifier = (total_objectives - idx) as Float / total_objectives as Float;
-
-    // Relative difference in the differing component.
-    let value = a
-        .fitness()
-        .nth(idx)
-        .zip(b.fitness().nth(idx))
-        .map(|(a, b)| (a - b).abs() / a.abs().max(b.abs()).max(f64::EPSILON))
-        .unwrap_or(0.0);
-
-    value * priority_amplifier
 }
 
 /// Diagnostic tracker for Thompson sampling analysis.

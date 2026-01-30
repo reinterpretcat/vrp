@@ -4,9 +4,9 @@ mod rosomaxa_test;
 
 use super::*;
 use crate::algorithms::gsom::*;
-use crate::algorithms::math::relative_distance;
+use crate::algorithms::math::{fitness_distance, relative_distance};
 use crate::population::elitism::{Alternative, DedupFn};
-use crate::utils::{Environment, Random, parallel_into_collect};
+use crate::utils::{Environment, Random, parallel_filter_map, parallel_into_collect};
 use rand::prelude::SliceRandom;
 use std::f64::consts::{E, PI};
 use std::fmt::Formatter;
@@ -137,18 +137,15 @@ where
     fn select(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         match &self.phase {
             RosomaxaPhases::Initial { solutions } => Box::new(solutions.iter()),
-            RosomaxaPhases::Exploration { network, coordinates, selection_size, statistics, .. } => {
+            RosomaxaPhases::Exploration { network, coordinates, selection_size, .. } => {
                 let random = self.environment.random.as_ref();
 
                 let (elite_explore_size, node_explore_size) = match *selection_size {
                     value if value > 6 => {
-                        let ratio = statistics.improvement_1000_ratio;
-                        let elite_exlr_prob = (1. - 1. / (1. + E.powf(-10. * (ratio - 0.166)))) as Float;
-                        let elite_size = (1..=2).fold(0, |acc, idx| {
-                            acc + if random.is_hit(elite_exlr_prob / idx as Float) { 2 } else { 1 }
-                        });
-
+                        const ELITE_EXPLORE_PROB: Float = 0.2;
                         const NODE_EXPLORE_PROB: Float = 0.1;
+
+                        let elite_size = if random.is_hit(ELITE_EXPLORE_PROB) { 2 } else { 1 };
                         let node_size = if random.is_hit(NODE_EXPLORE_PROB) { 2 } else { 1 };
 
                         (elite_size, node_size)
@@ -249,7 +246,7 @@ where
         let selection_size = match statistics.speed {
             HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } => self.config.selection_size,
             HeuristicSpeed::Slow { ratio, .. } => {
-                (self.config.selection_size as Float * ratio).max(1.).round() as usize
+                (self.config.selection_size as Float * ratio).max(2.).round() as usize
             }
         };
 
@@ -296,7 +293,16 @@ where
 
                     Self::optimize_network(&self.external_ctx, network, statistics, &self.config);
 
-                    Self::fill_populations(network, coordinates, self.environment.random.as_ref());
+                    let best_known = self.elite.ranked().next();
+                    let gsom_selection_size = selection_size.saturating_sub(1);
+                    fill_populations(
+                        network,
+                        coordinates,
+                        best_known,
+                        statistics,
+                        gsom_selection_size,
+                        self.environment.random.as_ref(),
+                    );
                 } else {
                     self.phase = RosomaxaPhases::Exploitation { selection_size }
                 }
@@ -337,15 +343,6 @@ where
 
         network.compact(external_ctx);
         network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
-    }
-
-    fn fill_populations(network: &IndividualNetwork<C, O, S>, coordinates: &mut Vec<Coordinate>, random: &dyn Random) {
-        coordinates.clear();
-        coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
-            if node.storage.population.size() > 0 { Some(*coordinate) } else { None }
-        }));
-
-        coordinates.shuffle(&mut random.get_rng());
     }
 
     fn create_network(
@@ -570,4 +567,101 @@ fn get_learning_rate(termination_estimate: Float) -> Float {
     let progress_pi = (progress as f64 * PI) as Float;
 
     min_lr + 0.5 * (max_lr - min_lr) * (1. + progress_pi.cos())
+}
+
+/// Selects a subset of nodes from the network to form the next breeding population.
+///
+/// This strategy balances **Exploration** (spatial diversity) and **Exploitation** (objective quality)
+/// dynamically based on search progress and stagnation statistics.
+///
+/// - **Early Search:** High randomness, focus on feature-space diversity (GSOM structure).
+/// - **Late Search:** Low randomness, focus on objective-space quality (Fitness gap).
+/// - **Stagnation:** boosts exploration and resets focus to feature-space to escape local optima.
+fn fill_populations<C, O, S>(
+    network: &IndividualNetwork<C, O, S>,
+    coordinates: &mut Vec<Coordinate>,
+    best_known: Option<&S>,
+    statistics: &HeuristicStatistics,
+    selection_size: usize,
+    random: &dyn Random,
+) where
+    C: RosomaxaContext<Solution = S>,
+    O: HeuristicObjective<Solution = S> + Alternative,
+    S: RosomaxaSolution<Context = C>,
+{
+    #[derive(Clone)]
+    struct Candidate {
+        coord: Coordinate,
+        score: Float,
+    }
+
+    // Configuration constants
+    const STAGNATION_THRESHOLD: Float = 0.1; // Detect stagnation when improvement drops below 10%
+    const ALPHA_BASE: Float = 0.25; // Minimum objective focus (more spatial exploration)
+    const ALPHA_MAX: Float = 0.90; // Maximum objective focus
+    const ALPHA_STAGNATION_PENALTY: Float = 0.25; // Reduce objective focus when stagnating
+    const MIN_EXPLORATION: Float = 0.05; // Minimum shuffle percentage
+    const MAX_EXPLORATION: Float = 0.90; // Maximum shuffle percentage
+    const STAGNATION_BOOST_FACTOR: Float = 0.5; // How much stagnation increases exploration
+
+    // Search metrics calculation
+    let progress = statistics.termination_estimate.clamp(0., 1.);
+    let improvement = statistics.improvement_1000_ratio;
+
+    // Stagnation: 0.0 (Healthy) -> 1.0 (Severely Stuck)
+    let stagnation =
+        ((STAGNATION_THRESHOLD - improvement).clamp(0.0, STAGNATION_THRESHOLD) / STAGNATION_THRESHOLD).clamp(0., 1.);
+
+    // Calculate exploration rate as how much of the sorted list to shuffle
+    // Stagnation boosts this back up to force diversity.
+    let stagnation_boost = stagnation * stagnation * STAGNATION_BOOST_FACTOR;
+    let exploration_rate = (MAX_EXPLORATION - progress * (MAX_EXPLORATION - MIN_EXPLORATION) + stagnation_boost)
+        .clamp(MIN_EXPLORATION, 1.0);
+
+    // Optimization: If exploration is very high, skip scoring/sorting and just pick random nodes.
+    if exploration_rate >= 0.90 {
+        coordinates.clear();
+        coordinates.extend(network.get_coordinates());
+        coordinates.shuffle(&mut random.get_rng());
+        return;
+    }
+
+    // Alpha: Controls ranking criteria (Objective vs. Feature Distance)
+    // Increases over time to focus on quality; decreases on stagnation to find new basins.
+    let alpha_range = ALPHA_MAX - ALPHA_BASE;
+    let alpha =
+        (ALPHA_BASE + alpha_range * progress - ALPHA_STAGNATION_PENALTY * stagnation).clamp(ALPHA_BASE, ALPHA_MAX);
+
+    // Collect candidates: each node represented by its best individual
+    let nodes_refs: Vec<_> = network.iter().collect();
+    let mut candidates = parallel_filter_map(nodes_refs, |(coord, node)| {
+        let node_best = node.storage.population.ranked().next()?;
+
+        // Quality: distance to global best in objective space
+        let fitness_gap = best_known.map_or(0., |best| fitness_distance(node_best, best));
+        // Structural: distance to global best in GSOM feature space
+        let distance =
+            best_known.map(|b| b.weights()).map_or(0., |target| network.distance(node_best.weights(), target));
+
+        // Combined score (Lower is better)
+        let score = alpha * fitness_gap + (1.0 - alpha) * distance;
+
+        Some(Candidate { coord: *coord, score })
+    });
+
+    // Sort by promise (best first)
+    candidates.sort_unstable_by(|a, b| a.score.total_cmp(&b.score));
+
+    let amount = (candidates.len() as Float * exploration_rate).ceil() as usize;
+    candidates.partial_shuffle(&mut random.get_rng(), amount);
+
+    coordinates.clear();
+    coordinates.extend(candidates.iter().take(selection_size).map(|c| c.coord));
+
+    // Safety fallback: fill remaining slots if needed
+    if coordinates.len() < selection_size {
+        let mut all_coords: Vec<Coordinate> = network.get_coordinates().collect();
+        all_coords.shuffle(&mut random.get_rng());
+        coordinates.extend(all_coords.into_iter().take(selection_size - coordinates.len()));
+    }
 }

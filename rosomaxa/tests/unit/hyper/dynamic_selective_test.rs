@@ -71,7 +71,7 @@ fn can_compute_relative_distance_impl(fitness_a: Vec<Float>, fitness_b: Vec<Floa
     let solution_a = VectorSolution::new(vec![], fitness_a.first().copied().unwrap_or(0.0), fitness_a);
     let solution_b = VectorSolution::new(vec![], fitness_b.first().copied().unwrap_or(0.0), fitness_b);
 
-    let result = get_relative_distance(&solution_a, &solution_b);
+    let result = fitness_distance(&solution_a, &solution_b);
 
     assert!((result - expected).abs() < 0.02, "Expected ~{expected}, got {result}");
 }
@@ -113,7 +113,7 @@ fn can_handle_equal_fitness_solutions() {
         }
     }
 
-    let distance = get_relative_distance(&TestData, &TestData);
+    let distance = fitness_distance(&TestData, &TestData);
 
     assert_eq!(distance, 0.)
 }

@@ -9,6 +9,7 @@ pub use self::actual::map_reduce;
 pub use self::actual::parallel_collect;
 pub use self::actual::parallel_foreach_mut;
 pub use self::actual::parallel_into_collect;
+pub use self::actual::parallel_filter_map;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod actual {
@@ -66,6 +67,17 @@ mod actual {
         R: Send,
     {
         source.into_par_iter().map(map_op).collect()
+    }
+
+    /// Filters and maps collection and collects results into vector in parallel.
+    pub fn parallel_filter_map<T, S, FM, R>(source: S, filter_map_op: FM) -> Vec<R>
+    where
+        T: Send + Sync,
+        S: IntoParallelIterator<Item = T>,
+        FM: Fn(T) -> Option<R> + Sync + Send,
+        R: Send,
+    {
+        source.into_par_iter().filter_map(filter_map_op).collect()
     }
 
     /// Performs map reduce operations in parallel.
@@ -152,6 +164,17 @@ mod actual {
         R: Send,
     {
         source.into_iter().map(map_op).collect()
+    }
+
+    /// Filters and maps collection and collects results into vector synchronously.
+    pub fn parallel_filter_map<T, S, FM, R>(source: S, filter_map_op: FM) -> Vec<R>
+    where
+        T: Send + Sync,
+        S: IntoIterator<Item = T>,
+        FM: Fn(T) -> Option<R> + Sync + Send,
+        R: Send,
+    {
+        source.into_iter().filter_map(filter_map_op).collect()
     }
 
     /// Performs map and reduce operations synchronously.
