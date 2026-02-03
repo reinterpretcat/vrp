@@ -74,9 +74,28 @@ fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost>) -> Gener
         })
         .collect::<Result<Vec<_>, _>>()?;
 
+    let vehicle3 = VehicleBuilder::default()
+        .id("v3")
+        .add_detail(
+            VehicleDetailBuilder::default()
+                .set_start_location(0)
+                .set_end_location(0)
+                .build()?,
+        )
+        .dimension(|dimens| {
+            // vehicle 3 has "hazmat" tag capability only
+            let mut tags = HashSet::new();
+            tags.insert("hazmat".to_string());
+            dimens.set_vehicle_tags(tags);
+        })
+        // each vehicle has capacity=2, so it can serve at most 2 jobs
+        .capacity(SingleDimLoad::new(2))
+        .build()?;
+
     ProblemBuilder::default()
         .add_jobs(single_jobs.into_iter())
         .add_vehicles(vehicles.into_iter())
+        .add_vehicle(vehicle3)
         .with_goal(goal)
         .with_transport_cost(transport)
         .build()
@@ -141,6 +160,7 @@ fn main() -> GenericResult<()> {
     writeln!(output, "  - job1 and job2 (fragile) should be assigned to vehicle_1 (has fragile tag)")?;
     writeln!(output, "  - job3 and job4 (no tags) can be assigned to any vehicle")?;
     writeln!(output, "  - vehicle_2 (no tags) cannot serve job1 or job2")?;
+    writeln!(output, "  - vehicle_3 (hazmat tag) cannot serve job1 or job2")?;
 
     // Also print to console
     println!("\n--- Tags Constraint Example Results ---");
@@ -169,6 +189,8 @@ fn main() -> GenericResult<()> {
     println!("  - job1 and job2 (fragile) should be assigned to vehicle_1 (has fragile tag)");
     println!("  - job3 and job4 (no tags) can be assigned to any vehicle");
     println!("  - vehicle_2 (no tags) cannot serve job1 or job2");
+    println!("  - vehicle_3 (hazmat tag) cannot serve job1 or job2");
+
 
     Ok(())
 }
