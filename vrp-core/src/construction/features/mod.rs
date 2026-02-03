@@ -50,6 +50,9 @@ pub use self::reloads::{ReloadFeatureFactory, ReloadIntervalsTourState, SharedRe
 mod skills;
 pub use self::skills::{JobSkills, JobSkillsDimension, VehicleSkillsDimension, create_skills_feature};
 
+mod tags;
+pub use self::tags::{JobTagsDimension, VehicleTagsDimension, create_tags_feature};
+
 mod total_value;
 pub use self::total_value::*;
 
