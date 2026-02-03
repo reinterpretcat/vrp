@@ -18,6 +18,8 @@ use crate::common::define_routing_data;
 
 use std::collections::HashSet;
 use std::sync::Arc;
+use std::fs::File;
+use std::io::Write;
 use vrp_core::prelude::*;
 use vrp_core::construction::features::{
     CapacityFeatureBuilder, TransportFeatureBuilder, create_tags_feature,
@@ -107,10 +109,45 @@ fn main() -> GenericResult<()> {
     // run the VRP solver and get the best known solution
     let solution = Solver::new(problem, config).solve()?;
 
+    // Create output file
+    let mut output = File::create("tags_constraint_solution.txt")?;
+    
+    // Write results to file
+    writeln!(output, "--- Tags Constraint Example Results ---")?;
+    writeln!(output, "Total routes: {}", solution.routes.len())?;
+    writeln!(output, "Assigned jobs: {}", solution.routes.iter().map(|r| r.tour.job_count()).sum::<usize>())?;
+    writeln!(output, "Unassigned jobs: {}", solution.unassigned.len())?;
+    writeln!(output)?;
+    
+    for (idx, route) in solution.routes.iter().enumerate() {
+        writeln!(output, "Route {}:", idx + 1)?;
+        writeln!(output, "  Vehicle: {}", route.actor.vehicle.dimens.get_vehicle_id().unwrap_or(&"unknown".to_string()))?;
+        writeln!(output, "  Jobs:")?;
+        for job in route.tour.jobs() {
+            writeln!(output, "    - {}", job.dimens().get_job_id().unwrap_or(&"unknown".to_string()))?;
+        }
+        writeln!(output)?;
+    }
+
+    if !solution.unassigned.is_empty() {
+        writeln!(output, "Unassigned jobs (failed tag matching):")?;
+        for (job, _) in solution.unassigned.iter() {
+            writeln!(output, "  - {}", job.dimens().get_job_id().unwrap_or(&"unknown".to_string()))?;
+        }
+        writeln!(output)?;
+    }
+
+    writeln!(output, "Expected behavior:")?;
+    writeln!(output, "  - job1 and job2 (fragile) should be assigned to vehicle_1 (has fragile tag)")?;
+    writeln!(output, "  - job3 and job4 (no tags) can be assigned to any vehicle")?;
+    writeln!(output, "  - vehicle_2 (no tags) cannot serve job1 or job2")?;
+
+    // Also print to console
     println!("\n--- Tags Constraint Example Results ---");
     println!("Total routes: {}", solution.routes.len());
     println!("Assigned jobs: {}", solution.routes.iter().map(|r| r.tour.job_count()).sum::<usize>());
     println!("Unassigned jobs: {}", solution.unassigned.len());
+    println!("\nResults written to: tags_constraint_solution.txt");
     
     for (idx, route) in solution.routes.iter().enumerate() {
         println!("\nRoute {}:", idx + 1);
