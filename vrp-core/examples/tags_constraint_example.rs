@@ -30,7 +30,7 @@ use vrp_core::models::problem::{JobIdDimension, VehicleIdDimension};
 /// Specifies a CVRP problem variant with tags constraint: 4 delivery jobs (2 with "fragile" tag) and 2 vehicles
 fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost>) -> GenericResult<Problem> {
     // create 4 jobs: 2 with "fragile" tag, 2 without
-    let single_jobs = (1..=4)
+    let single_jobs = (1..=5)
         .map(|idx| {
             SingleBuilder::default()
                 .id(format!("job{idx}").as_str())
@@ -40,6 +40,11 @@ fn define_problem(goal: GoalContext, transport: Arc<dyn TransportCost>) -> Gener
                     if idx <= 2 {
                         let mut tags = HashSet::new();
                         tags.insert("fragile".to_string());
+                        dimens.set_job_tags(tags);
+                    }
+                    if idx == 5 {
+                        let mut tags = HashSet::new();
+                        tags.insert("hazmat".to_string());
                         dimens.set_job_tags(tags);
                     }
                 })
@@ -159,6 +164,7 @@ fn main() -> GenericResult<()> {
     writeln!(output, "Expected behavior:")?;
     writeln!(output, "  - job1 and job2 (fragile) should be assigned to vehicle_1 (has fragile tag)")?;
     writeln!(output, "  - job3 and job4 (no tags) can be assigned to any vehicle")?;
+    writeln!(output, "  - job5 (hazmat) can be assigned to vehicle_1 or vehicle_3 (have hazmat tag)")?;
     writeln!(output, "  - vehicle_2 (no tags) cannot serve job1 or job2")?;
     writeln!(output, "  - vehicle_3 (hazmat tag) cannot serve job1 or job2")?;
 
@@ -188,6 +194,7 @@ fn main() -> GenericResult<()> {
     println!("\nExpected behavior:");
     println!("  - job1 and job2 (fragile) should be assigned to vehicle_1 (has fragile tag)");
     println!("  - job3 and job4 (no tags) can be assigned to any vehicle");
+    println!("  - job5 (hazmat) can be assigned to vehicle_1 or vehicle_3 (have hazmat tag)");
     println!("  - vehicle_2 (no tags) cannot serve job1 or job2");
     println!("  - vehicle_3 (hazmat tag) cannot serve job1 or job2");
 
