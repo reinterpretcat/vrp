@@ -1,20 +1,44 @@
+/* CSS Variables for easy theming */
+:root {
+    --primary-color: #0366d6;
+    --primary-hover: #0256c5;
+    --secondary-color: #586069;
+    --background: #ffffff;
+    --surface: #f6f8fa;
+    --border: #e1e4e8;
+    --text-primary: #24292e;
+    --text-secondary: #586069;
+    --success: #28a745;
+    --warning: #ffa500;
+    --shadow: rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+}
+
 html, body, main {
     width: 100%;
     margin: 0;
     padding: 0;
 }
 
-body {
-    margin: auto;
-    max-width: 840px;
-    display: flex;
-    flex-direction: column;
+* {
+    box-sizing: border-box;
 }
 
-@media (max-width: 800px) {
+body {
+    margin: auto;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    color: var(--text-primary);
+    background-color: var(--background);
+    line-height: 1.6;
+    padding: 10px;
+}
+
+@media (max-width: 768px) {
     body {
-        padding: 10px;
-        box-sizing: border-box;
+        padding: 5px;
     }
 }
 
@@ -22,187 +46,389 @@ main {
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 0;
 }
 
-footer {
-    margin-top: 2em;
-    font-size: 12px;
+h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 10px 0 15px 0;
+    color: var(--text-primary);
     text-align: center;
 }
 
+footer {
+    margin-top: 1.5em;
+    padding: 1em 0;
+    font-size: 12px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+footer a {
+    color: var(--primary-color);
+    text-decoration: none;
+    margin: 0 8px;
+    transition: var(--transition);
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
 label, #coordLabel, #status {
-    color: grey;
-    font-size: 10px;
-    height: 15px
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    height: auto;
+    margin-bottom: 4px;
+    display: block;
+}
+
+/* Control panels */
+.controls-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-group {
+    margin-bottom: 0;
+}
+
+.control-group label {
+    display: flex;
+    align-items: center;
+}
+
+.control-row {
+    display: flex;
+    gap: 10px;
+}
+
+.flex-1 {
+    flex: 1;
+}
+
+.benchmark-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+input[type="number"] {
+    font-family: inherit;
+    color: var(--text-primary);
+}
+
+input[type="number"]:focus {
+    outline: none;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+}
+
+.action-panel {
+    justify-content: flex-start;
+    min-width: 200px;
+    gap: 10px;
+}
+
+.run-button {
+    flex-shrink: 0;
+}
+
+.status-box {
+    flex-shrink: 0;
 }
 
 
 #run {
     display: block;
-    margin-right: auto;
-    margin-left: auto;
+    margin: 0 auto;
 }
 
 .hide {
-    visibility: hidden;
-    height: 0px;
+    display: none !important;
 }
 
 .row {
     display: flex;
-    width: 840px;
+    width: 100%;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+@media (max-width: 768px) {
+    .row {
+        flex-direction: column;
+        gap: 8px;
+    }
 }
 
 .column {
-    flex: 50%;
-    padding: 8px;
+    flex: 1;
+    padding: 12px;
+    background: var(--surface);
+    border-radius: 6px;
+    border: 1px solid var(--border);
 }
 
 .block {
     display: block;
     width: 100%;
     border: none;
-    background-color: #00b7e4;
-    padding: 14px 28px;
-    font-size: 16px;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 600;
     cursor: pointer;
     text-align: center;
+    border-radius: 6px;
+    transition: var(--transition);
+    box-shadow: 0 1px 3px var(--shadow);
 }
 
-/* Change background color of buttons on hover */
 .block:hover {
-    background-color: #0ecfff;
+    background-color: var(--primary-hover);
+    box-shadow: 0 2px 6px var(--shadow);
+    transform: translateY(-1px);
 }
 
-* {box-sizing: border-box}
+.block:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px var(--shadow);
+}
+
+.block:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
 
 /* Horizontal Tabs */
 .tab {
-    overflow: hidden;
-    border: 1px solid #ccc;
-    background-color: #f1f1f1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    background-color: var(--surface);
+    padding: 6px;
+    border-radius: 6px 6px 0 0;
+    border: 1px solid var(--border);
+    border-bottom: none;
 }
 
-/* Style the buttons that are used to open the tab content */
 .tab button {
-    background-color: inherit;
-    float: left;
+    background-color: transparent;
     border: none;
     outline: none;
     cursor: pointer;
-    padding: 14px 16px;
-    transition: 0.3s;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    transition: var(--transition);
+    white-space: nowrap;
 }
 
-/* Change background color of buttons on hover */
 .tab button:hover {
-    background-color: #ddd;
+    background-color: rgba(3, 102, 214, 0.1);
+    color: var(--primary-color);
 }
 
-/* Create an active/current tablink class */
 .tab button.active {
-    background-color: #ccc;
+    background-color: white;
+    color: var(--primary-color);
+    box-shadow: 0 1px 3px var(--shadow);
 }
 
-/* Style the tab content */
 .tabcontent {
     display: none;
-    padding: 6px 12px;
-    border: 1px solid #ccc;
+    padding: 10px;
+    background: white;
+    border: 1px solid var(--border);
     border-top: none;
+    border-radius: 0 0 6px 6px;
 }
 
-/* Vertical Tab */
-
-.tab-vert {
-    float: left;
-    border: 1px solid #ccc;
-    background-color: #f1f1f1;
-    width: 30%;
-    height: 200px;
-}
-
-/* Style the buttons that are used to open the tab content */
-.tab-vert button {
+.tabcontent canvas {
     display: block;
-    background-color: inherit;
-    color: black;
-    padding: 22px 16px;
+    margin: 0 auto;
+    max-width: 100%;
     width: 100%;
-    border: none;
-    outline: none;
-    text-align: left;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-/* Change background color of buttons on hover */
-.tab-vert button:hover {
-    background-color: #ddd;
-}
-
-/* Create an active/current "tab button" class */
-.tab-vert button.active {
-    background-color: #ccc;
-}
-
-/* Style the tab content */
-.tabcontent-vert {
-    padding: 8px;
-    float: left;
-    border: 1px solid #ccc;
-    width: 70%;
-    border-left: none;
-    height: 200px;
-}
-
-#commonControls {
-    padding: 16px;
+    height: auto;
+    border-radius: 4px;
 }
 
 /* Select */
 .select-wrap {
-    border: 1px solid #777;
-    border-radius: 4px;
-    padding: 0 5px;
-    width: 140px;
-    background-color:#fff;
-    position:relative;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    width: 100%;
+    background-color: white;
+    position: relative;
+    margin-bottom: 10px;
+    transition: var(--transition);
 }
-.select-wrap label{
-    font-size:8px;
+
+.select-wrap:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+}
+
+.select-wrap label {
+    font-size: 9px;
     text-transform: uppercase;
-    color: #777;
-    padding: 0 8px;
+    color: var(--text-secondary);
+    padding: 0;
     position: absolute;
-    top:6px;
+    top: 6px;
+    left: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
-select{
-    background-color: #fff;
-    border:0px;
-    height:50px;
-    font-size: 16px;
+select {
+    background-color: transparent;
+    border: 0;
+    height: 40px;
+    font-size: 14px;
+    color: var(--text-primary);
+    width: 100%;
+    padding-top: 14px;
+    cursor: pointer;
+    outline: none;
 }
 
-/* file uploader */
+select option {
+    padding: 10px;
+}
 
+/* File uploader */
 .input-container {
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: white;
+}
+
+input[type=file] {
+    width: 100%;
+    font-size: 12px;
+    color: var(--text-primary);
 }
 
 input[type=file]::file-selector-button {
-    background-color: #00b7e4;
-    color: #000;
-    border: 0px;
-    border-right: 1px solid #e5e5e5;
-    padding: 10px 15px;
-    margin-right: 20px;
-    transition: .5s;
+    background-color: var(--primary-color);
+    color: white;
+    border: 0;
+    border-right: 1px solid var(--border);
+    padding: 8px 12px;
+    margin-right: 10px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: var(--transition);
 }
 
 input[type=file]::file-selector-button:hover {
-    background-color: #0ecfff;
-    border: 0px;
-    border-right: 1px solid #e5e5e5;
+    background-color: var(--primary-hover);
+}
+
+/* Range inputs (sliders) */
+input[type=range] {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    margin: 4px 0 0 0;
+    -webkit-appearance: none;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 1px 3px var(--shadow);
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+    background: var(--primary-hover);
+    transform: scale(1.1);
+}
+
+input[type=range]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    border: none;
+    transition: var(--transition);
+    box-shadow: 0 1px 3px var(--shadow);
+}
+
+input[type=range]::-moz-range-thumb:hover {
+    background: var(--primary-hover);
+    transform: scale(1.1);
+}
+
+/* Loading spinner */
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.8s linear infinite;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Status indicator */
+#status {
+    padding: 8px 12px;
+    background: var(--surface);
+    border-radius: 4px;
+    text-align: center;
+    margin: 0;
+    font-size: 11px;
+    border: 1px solid var(--border);
+}
+
+#status.loading {
+    color: var(--warning);
+    border-color: var(--warning);
+}
+
+#status.success {
+    color: var(--success);
+    border-color: var(--success);
+}
+
+/* Canvas container */
+#canvasTab {
+    width: 100%;
+    margin-top: 10px;
 }

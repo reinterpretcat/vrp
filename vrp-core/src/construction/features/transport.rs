@@ -4,11 +4,14 @@
 #[path = "../../../tests/unit/construction/features/transport_test.rs"]
 mod transport_test;
 
+use std::ops::ControlFlow;
+
 use super::*;
 use crate::construction::enablers::*;
 use crate::models::common::Timestamp;
 use crate::models::problem::{ActivityCost, Single, TransportCost, TravelTime};
 use crate::models::solution::Activity;
+use rosomaxa::utils::UnwrapValue;
 
 // TODO
 //  remove get_total_cost, get_route_costs, get_max_cost methods from contexts
@@ -226,8 +229,12 @@ impl TransportConstraint {
                 TravelTime::Arrival(latest_arr_time_at_next),
             );
 
-        let latest_arr_time_at_target =
-            target.place.time.end.min(self.activity.estimate_arrival(route, target, latest_departure_at_target));
+        let ControlFlow::Continue(latest_arr_time_at_target) =
+            self.activity.estimate_arrival(route, target, latest_departure_at_target)
+        else {
+            return ConstraintViolation::skip(self.time_window_code);
+        };
+        let latest_arr_time_at_target = target.place.time.end.min(latest_arr_time_at_target);
 
         if arr_time_at_target > latest_arr_time_at_target {
             return ConstraintViolation::skip(self.time_window_code);
@@ -237,7 +244,11 @@ impl TransportConstraint {
             return ConstraintViolation::success();
         }
 
-        let end_time_at_target = self.activity.estimate_departure(route, target, arr_time_at_target);
+        let ControlFlow::Continue(end_time_at_target) =
+            self.activity.estimate_departure(route, target, arr_time_at_target)
+        else {
+            return ConstraintViolation::skip(self.time_window_code);
+        };
 
         let arr_time_at_next = end_time_at_target
             + self.transport.duration(
@@ -335,7 +346,7 @@ where
     let (prev_target, dep_time_target) = {
         let time = activity_ctx.prev.schedule.departure;
         let arrival = time + transport.duration(route, prev, target, prev_dep);
-        let departure = activity.estimate_departure(route, activity_ctx.target, arrival);
+        let departure = activity.estimate_departure(route, activity_ctx.target, arrival).unwrap_value();
 
         (estimate_fn(prev, target, prev_dep), departure)
     };
@@ -429,7 +440,7 @@ impl CostObjective {
 
         let arrival = time
             + self.transport.duration(route, start.place.location, end.place.location, TravelTime::Departure(time));
-        let departure = self.activity.estimate_departure(route, end, arrival);
+        let departure = self.activity.estimate_departure(route, end, arrival).unwrap_value();
 
         let transport_cost =
             self.transport.cost(route, start.place.location, end.place.location, TravelTime::Departure(time));

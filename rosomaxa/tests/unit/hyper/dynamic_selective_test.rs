@@ -56,69 +56,50 @@ fn can_estimate_median() {
     assert!(median > 0);
 }
 
-parameterized_test! {can_estimate_reward_multiplier, (approx_median, duration, has_improvement, expected), {
-    can_estimate_reward_multiplier_impl(approx_median, duration, has_improvement, expected);
+parameterized_test! {can_compute_relative_distance, (fitness_a, fitness_b, expected), {
+    can_compute_relative_distance_impl(fitness_a, fitness_b, expected);
 }}
 
-can_estimate_reward_multiplier! {
-    case_01_moderate: (Some(1), 1, false, 1.),
-    case_02_allegro: (Some(2), 1, false, 1.5),
-    case_03_allegretto: (Some(10), 8, false, 1.25),
-    case_04_andante: (Some(8), 13, false, 0.75),
-    case_05_moderato_improvement: (Some(1), 1, true, 2.),
+can_compute_relative_distance! {
+    case_01_improvement: (vec![90.0], vec![100.0], 0.1),           // 10% distance: |100-90|/100 = 0.1
+    case_02_regression: (vec![110.0], vec![100.0], 0.09),          // 9% distance: |110-100|/110 ≈ 0.09
+    case_03_equal: (vec![100.0], vec![100.0], 0.0),                // Equal = no distance
+    case_04_primary_priority: (vec![90.0, 100.0], vec![100.0, 90.0], 0.1), // Primary objective distance
 }
 
-fn can_estimate_reward_multiplier_impl(
-    approx_median: Option<usize>,
-    duration: usize,
-    has_improvement: bool,
-    expected: Float,
-) {
-    let heuristic_ctx = create_default_heuristic_context();
-    let solution = VectorSolution::new(vec![], 0., vec![]);
-    let search_ctx = SearchContext {
-        heuristic_ctx: &heuristic_ctx,
-        from: SearchState::BestKnown,
-        slot_idx: 0,
-        solution: &solution,
-        approx_median,
-    };
+fn can_compute_relative_distance_impl(fitness_a: Vec<Float>, fitness_b: Vec<Float>, expected: Float) {
+    let solution_a = VectorSolution::new(vec![], fitness_a.first().copied().unwrap_or(0.0), fitness_a);
+    let solution_b = VectorSolution::new(vec![], fitness_b.first().copied().unwrap_or(0.0), fitness_b);
 
-    let result = estimate_reward_perf_multiplier(&search_ctx, duration, has_improvement);
+    let result = get_relative_distance(&solution_a, &solution_b);
 
-    assert_eq!(result, expected);
+    assert!((result - expected).abs() < 0.02, "Expected ~{expected}, got {result}");
 }
 
 #[test]
 fn can_display_heuristic_info() {
     let is_experimental = true;
     let environment = Environment { is_experimental, ..Environment::default() };
-    let duration = 1;
-    let reward = 1.;
-    let transition = (SearchState::Diverse, SearchState::BestKnown);
-    let mut heuristic =
+    let heuristic =
         DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(vec![], vec![], &environment);
 
-    heuristic.agent.tracker.observe_sample(1, SearchSample { name: "name1".to_string(), duration, reward, transition });
+    // Test that diagnostic system is properly initialized
+    assert_eq!(heuristic.agent.tracker.telemetry_enabled(), is_experimental);
 
     let formatted = format!("{heuristic}");
 
-    assert!(!formatted.is_empty());
+    // Should contain TELEMETRY section when experimental mode is enabled
+    if is_experimental {
+        assert!(formatted.contains("TELEMETRY"));
+    } else {
+        // When not experimental, should be empty or minimal
+        assert!(formatted.is_empty() || !formatted.contains("thompson_diagnostics:"));
+    }
 }
 
 #[test]
-fn can_handle_when_objective_lies() {
-    struct LiarObjective;
-
-    impl HeuristicObjective for LiarObjective {
-        type Solution = TestData;
-
-        fn total_order(&self, _: &Self::Solution, _: &Self::Solution) -> Ordering {
-            // that is where it lies based on some non-fitness related factors for total order
-            Ordering::Greater
-        }
-    }
-
+fn can_handle_equal_fitness_solutions() {
+    // Test that solutions with identical fitness return 0 distance.
     struct TestData;
 
     impl HeuristicSolution for TestData {
@@ -132,7 +113,7 @@ fn can_handle_when_objective_lies() {
         }
     }
 
-    let distance = get_relative_distance(&LiarObjective, &TestData, &TestData);
+    let distance = get_relative_distance(&TestData, &TestData);
 
     assert_eq!(distance, 0.)
 }

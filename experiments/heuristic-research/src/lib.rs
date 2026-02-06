@@ -126,6 +126,7 @@ pub fn run_vrp_experiment(format_type: &str, problem: &str, population_type: &st
 /// Loads experiment data from json serialized representation.
 #[wasm_bindgen]
 pub fn load_state(data: &str) -> usize {
+    set_panic_hook_once();
     match ExperimentData::try_from(data) {
         Ok(data) => *EXPERIMENT_DATA.lock().unwrap() = data,
         Err(err) => web_sys::console::log_1(&err.into()),

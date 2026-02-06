@@ -7,27 +7,33 @@ const bestCanvas = document.getElementById("bestCanvas");
 const durationCanvas = document.getElementById("durationCanvas");
 const fitnessCanvas = document.getElementById("fitnessCanvas");
 
-const coordLabel = document.getElementById("coordLabel");
+const benchmarkType = document.getElementById("benchmarkType");
+const functionControls = document.getElementById("functionControls");
+const vrpControls = document.getElementById("vrpControls");
 const fileSelector = document.getElementById("fileSelector");
 const plotPopulation = document.getElementById("plotPopulation");
 const plotFunction = document.getElementById("plotFunction");
 const vrpFormat = document.getElementById("vrpFormat");
 const pitch = document.getElementById("pitch");
 const yaw = document.getElementById("yaw");
+const pitchValue = document.getElementById("pitchValue");
+const yawValue = document.getElementById("yawValue");
 const status = document.getElementById("status");
 const run = document.getElementById("run");
 const generations = document.getElementById("generations");
+const generationControl = document.getElementById("generationControl");
+const currentGen = document.getElementById("currentGen");
+const maxGen = document.getElementById("maxGen");
+const maxGenerations = document.getElementById("maxGenerations");
+const autoInitPoint = document.getElementById("autoInitPoint");
+const manualPointControls = document.getElementById("manualPointControls");
+const initX = document.getElementById("initX");
+const initZ = document.getElementById("initZ");
 
 /** Main entry point */
 export function main() {
     setupListeners();
-    setupCanvas(solutionCanvas, 800);
-    setupCanvas(searchCanvas, 800);
-    setupCanvas(overallCanvas, 800);
-    setupCanvas(bestCanvas, 800);
-    setupCanvas(durationCanvas, 800);
-    setupCanvas(fitnessCanvas, 800);
-
+    resizeAllCanvases();
     updateDynamicPlots();
     updateStaticPlots();
 }
@@ -43,27 +49,36 @@ export function setup(WasmChart, run_function_experiment, run_vrp_experiment, lo
 
 /** Add event listeners. */
 function setupListeners() {
-    status.innerText = "WebAssembly loaded!";
+    status.innerText = "✓ WebAssembly loaded!";
+    status.classList.add('success');
+    
+    benchmarkType.addEventListener("change", switchBenchmarkType);
     fileSelector.addEventListener("change", openFile);
     plotFunction.addEventListener("change", changePlot);
     plotPopulation.addEventListener("change", changePlot);
+    autoInitPoint.addEventListener("change", toggleInitPointMode);
 
     yaw.addEventListener("change", updatePlots);
     pitch.addEventListener("change", updatePlots);
     generations.addEventListener("change", updatePlots);
 
-    yaw.addEventListener("input", updatePlots);
-    pitch.addEventListener("input", updatePlots);
-    generations.addEventListener("input", updatePlots);
+    yaw.addEventListener("input", (e) => {
+        updateSliderValue(e.target, yawValue);
+        updatePlots();
+    });
+    pitch.addEventListener("input", (e) => {
+        updateSliderValue(e.target, pitchValue);
+        updatePlots();
+    });
+    generations.addEventListener("input", (e) => {
+        currentGen.innerText = e.target.value;
+        updatePlots();
+    });
 
-    run.addEventListener("click", runExperiment)
-    window.addEventListener("resize", setupCanvas);
-
-    // setup vertical tabs buttons
-    ['function', 'vrp'].forEach(function(type) {
-        document.getElementById(type + 'TabButton').addEventListener("click", function(evt) {
-            openTab(evt, 'controlTab', type + 'Tab', '-vert');
-        });
+    run.addEventListener("click", runExperiment);
+    window.addEventListener("resize", () => {
+        resizeAllCanvases();
+        updatePlots();
     });
 
     // setup horizontal tab buttons
@@ -74,7 +89,6 @@ function setupListeners() {
     });
 
     // open default tabs
-    document.getElementById("functionTabButton").click();
     document.getElementById("solutionTabButton").click();
 
     // allow to control generation range using left-right arrows
@@ -82,34 +96,129 @@ function setupListeners() {
         switch (event.key) {
             case "ArrowLeft":
                 generations.value = Math.max(parseInt(generations.value) - 1, parseInt(generations.min));
+                currentGen.innerText = generations.value;
                 updatePlots();
                 break;
             case "ArrowRight":
                 generations.value = Math.min(parseInt(generations.value) + 1, parseInt(generations.max));
+                currentGen.innerText = generations.value;
                 updatePlots();
                 break;
         }
     });
+    
+    // Initialize slider values
+    updateSliderValue(pitch, pitchValue);
+    updateSliderValue(yaw, yawValue);
+    
+    // Set initial ranges for function
+    updateInitPointRanges();
 }
 
 /** Setup canvas to properly handle high DPI and redraw current plot. */
-function setupCanvas(canvas, size) {
-    if (canvas.style === undefined) {
+function setupCanvas(canvas) {
+    if (!canvas || !canvas.style) {
         return;
     }
 
-    const aspectRatio = canvas.width / canvas.height;
-    //const size = canvas.parentNode.offsetWidth * 1.2;
-    canvas.style.width = size + "px";
-    canvas.style.height = size / aspectRatio + "px";
-    canvas.width = size;
-    canvas.height = size / aspectRatio;
+    const container = canvas.parentNode;
+    const containerWidth = container.offsetWidth - 20; // subtract padding
+    const originalAspectRatio = canvas.width / canvas.height;
+    
+    // Set display size (CSS pixels)
+    const displayWidth = Math.min(containerWidth, 950);
+    const displayHeight = displayWidth / originalAspectRatio;
+    
+    canvas.style.width = displayWidth + "px";
+    canvas.style.height = displayHeight + "px";
+}
+
+/** Resize all canvases */
+function resizeAllCanvases() {
+    [solutionCanvas, searchCanvas, overallCanvas, bestCanvas, durationCanvas, fitnessCanvas].forEach(canvas => {
+        setupCanvas(canvas);
+    });
+}
+
+/** Update slider display value */
+function updateSliderValue(slider, display) {
+    const value = (Number(slider.value) / 100.0).toFixed(2);
+    display.innerText = value;
+}
+
+/** Switch between Function and VRP benchmark types */
+function switchBenchmarkType() {
+    const type = benchmarkType.value;
+    if (type === 'function') {
+        functionControls.classList.remove('hide');
+        vrpControls.classList.add('hide');
+    } else {
+        functionControls.classList.add('hide');
+        vrpControls.classList.remove('hide');
+        
+        // Show message if no file loaded
+        if (!Chart.data) {
+            status.innerText = 'Please load a VRP problem file';
+            status.classList.remove('success', 'loading');
+        }
+    }
+    changePlot();
+}
+
+/** Toggle between automatic and manual initial point selection */
+function toggleInitPointMode() {
+    if (autoInitPoint.checked) {
+        manualPointControls.classList.add('hide');
+    } else {
+        manualPointControls.classList.remove('hide');
+    }
+}
+
+/** Update initial point input ranges based on selected function */
+function updateInitPointRanges() {
+    const functionName = plotFunction.value;
+    let min, max;
+    
+    switch(functionName) {
+        case 'rosenbrock':
+            min = -2.0; max = 2.0;
+            break;
+        case 'rastrigin':
+            min = -5.12; max = 5.12;
+            break;
+        case 'himmelblau':
+            min = -5.0; max = 5.0;
+            break;
+        case 'ackley':
+            min = -5.0; max = 5.0;
+            break;
+        case 'matyas':
+            min = -10.0; max = 10.0;
+            break;
+        default:
+            min = -5.0; max = 5.0;
+    }
+    
+    initX.min = min;
+    initX.max = max;
+    initZ.min = min;
+    initZ.max = max;
+    
+    // Reset to center if out of range
+    if (parseFloat(initX.value) < min || parseFloat(initX.value) > max) {
+        initX.value = 0;
+    }
+    if (parseFloat(initZ.value) < min || parseFloat(initZ.value) > max) {
+        initZ.value = 0;
+    }
 }
 
 /** Changes plot **/
 function changePlot() {
     Chart.clear();
-    generations.classList.add("hide");
+    generationControl.classList.add("hide");
+    currentGen.innerText = "0";
+    updateInitPointRanges();
     updatePlots();
 }
 
@@ -123,6 +232,11 @@ function openFile(event) {
 
         Chart.data = content;
         run.classList.remove("hide");
+        
+        // Update status to show file loaded
+        status.innerText = `✓ File loaded: ${input.files[0].name}`;
+        status.classList.add('success');
+        status.classList.remove('loading');
     };
     reader.readAsText(input.files[0]);
 }
@@ -139,10 +253,8 @@ function updateDynamicPlots(run) {
     let population_type = plotPopulation.selectedOptions[0].value;
     let heuristic_kind = "best";
 
-    coordLabel.innerText = `Rotation: pitch=${pitch_value}, yaw=${yaw_value}`
-
-    // TODO configure parameters from outside
-    let max_gen = 2000
+    // Get max generations from user input
+    let max_gen = parseInt(maxGenerations.value);
 
     const start = performance.now();
     switch (getExperimentType()) {
@@ -172,29 +284,36 @@ function updateDynamicPlots(run) {
             if (run) {
                 let function_name = plotFunction.selectedOptions[0].value;
                 var x = 0.0, z = 0.0;
-                switch(function_name) {
-                    case 'rosenbrock':
-                        x = getRandomInRange(-2.0, 2.0)
-                        z = getRandomInRange(-2.0, 2.0)
-                        break;
-                    case 'rastrigin':
-                        x = getRandomInRange(-5.12, 5.12)
-                        z = getRandomInRange(-5.12, 5.12)
-                        break;
-                    case 'himmelblau':
-                        x = getRandomInRange(-5.0, 5.0)
-                        z = getRandomInRange(-5.0, 5.0)
-                        break;
-                    case 'ackley':
-                        x = getRandomInRange(-5.0, 5.0)
-                        z = getRandomInRange(-5.0, 5.0)
-                        break;
-                    case 'matyas':
-                        x = getRandomInRange(-10.0, 10.0)
-                        z = getRandomInRange(-10.0, 10.0)
-                        break;
-                    default:
-                        break;
+                
+                // Use manual point if checkbox is unchecked, otherwise random
+                if (!autoInitPoint.checked) {
+                    x = parseFloat(initX.value);
+                    z = parseFloat(initZ.value);
+                } else {
+                    switch(function_name) {
+                        case 'rosenbrock':
+                            x = getRandomInRange(-2.0, 2.0)
+                            z = getRandomInRange(-2.0, 2.0)
+                            break;
+                        case 'rastrigin':
+                            x = getRandomInRange(-5.12, 5.12)
+                            z = getRandomInRange(-5.12, 5.12)
+                            break;
+                        case 'himmelblau':
+                            x = getRandomInRange(-5.0, 5.0)
+                            z = getRandomInRange(-5.0, 5.0)
+                            break;
+                        case 'ackley':
+                            x = getRandomInRange(-5.0, 5.0)
+                            z = getRandomInRange(-5.0, 5.0)
+                            break;
+                        case 'matyas':
+                            x = getRandomInRange(-10.0, 10.0)
+                            z = getRandomInRange(-10.0, 10.0)
+                            break;
+                        default:
+                            break;
+                    }
                 }
 
                 console.log(`init point is: (${x}, ${z})`)
@@ -206,6 +325,15 @@ function updateDynamicPlots(run) {
         case 'vrp': {
             if (run) {
                 let format_type = vrpFormat.selectedOptions[0].value;
+                
+                // Check if data has been loaded
+                if (!Chart.data) {
+                    status.innerText = '⚠ Please load a VRP file first';
+                    status.classList.remove('success');
+                    status.classList.add('loading');
+                    return;
+                }
+                
                 if (format_type === "state") {
                     max_gen = Chart.load_state(Chart.data);
                 } else {
@@ -213,24 +341,35 @@ function updateDynamicPlots(run) {
                 }
             }
 
-            Chart.vrp(solutionCanvas, generation_value, pitch_value, yaw_value);
+            // Only render if data has been loaded
+            if (Chart.data) {
+                Chart.vrp(solutionCanvas, generation_value, pitch_value, yaw_value);
+            }
             break;
         }
     }
 
-    Chart.search_iteration(searchCanvas, generation_value, heuristic_kind);
-    Chart.search_best_statistics(bestCanvas, generation_value, heuristic_kind);
-    Chart.search_duration_statistics(durationCanvas, generation_value, heuristic_kind);
-    Chart.search_overall_statistics(overallCanvas, generation_value, heuristic_kind);
+    // Only render statistics if there's data to display
+    if (Chart.data || getExperimentType() === 'function') {
+        Chart.search_iteration(searchCanvas, generation_value, heuristic_kind);
+        Chart.search_best_statistics(bestCanvas, generation_value, heuristic_kind);
+        Chart.search_duration_statistics(durationCanvas, generation_value, heuristic_kind);
+        Chart.search_overall_statistics(overallCanvas, generation_value, heuristic_kind);
+    }
 
     const end = performance.now();
 
     if (run) {
         generations.max = max_gen;
-        generations.classList.remove("hide");
+        maxGen.innerText = max_gen;
+        currentGen.innerText = "0";
+        generations.value = "0";
+        generationControl.classList.remove("hide");
     }
 
-    status.innerText = `Generation: ${generation_value} rendered in ${Math.ceil(end - start)}ms`;
+    status.innerText = `Generation: ${generation_value} | Rendered in ${Math.ceil(end - start)}ms`;
+    status.classList.remove('loading');
+    status.classList.add('success');
 }
 
 function updateStaticPlots() {
@@ -239,15 +378,29 @@ function updateStaticPlots() {
             Chart.fitness_func(fitnessCanvas);
             break;
         case 'vrp':
-            Chart.fitness_vrp(fitnessCanvas)
+            // Only render if data has been loaded
+            if (Chart.data) {
+                Chart.fitness_vrp(fitnessCanvas);
+            }
             break;
         }
 }
 
 /** Runs experiment. */
 function runExperiment() {
-    updateDynamicPlots(true);
-    updateStaticPlots(true);
+    run.disabled = true;
+    run.innerHTML = '⏳ Running...';
+    status.innerText = 'Running experiment...';
+    status.classList.add('loading');
+    status.classList.remove('success');
+    
+    // Use setTimeout to allow UI to update
+    setTimeout(() => {
+        updateDynamicPlots(true);
+        updateStaticPlots(true);
+        run.disabled = false;
+        run.innerHTML = '▶ Run Experiment';
+    }, 50);
 }
 
 function updatePlots() {
@@ -256,24 +409,7 @@ function updatePlots() {
 }
 
 function getExperimentType() {
-    const buttons = document.querySelectorAll('.tablinks-vert');
-    for (const button of buttons) {
-        if (button.classList.contains('active')) {
-            switch (button.textContent) {
-                case 'Function Bench':
-                    return 'function'
-                case 'VRP Bench':
-                    return 'vrp'
-                default:
-                    console.error("unknown experiment type: '" + button.textContent + "'");
-                    return 'function'
-            }
-        }
-    }
-
-    console.error("no active tab detected");
-
-    return 'function';
+    return benchmarkType.value;
 }
 
 function openTab(evt, containerId, tabId, suffix) {

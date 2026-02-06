@@ -153,7 +153,7 @@ fn can_create_network() {
     assert_eq!(count_data_stored(&network.nodes), initial_data.len());
 
     // Check node properties
-    for node in network.get_nodes() {
+    for node in network.iter_nodes() {
         assert_eq!(node.weights.len(), 3);
         assert!(node.error >= 0.);
     }
@@ -294,7 +294,7 @@ fn can_create_network_with_spiral_distribution() {
     assert!(non_empty_nodes >= (size / 10), "too sparse {non_empty_nodes}");
     assert!(network.size() <= (size * 2), "too big {}", network.size());
     let distances: Vec<_> = network
-        .get_nodes()
+        .iter_nodes()
         .flat_map(|node| node.storage.data.iter().map(|data| euclidian_distance(&node.weights, data.weights())))
         .collect();
     let avg_distance = distances.iter().sum::<Float>() / distances.len() as Float;
@@ -466,7 +466,7 @@ fn can_create_new_network_empty_regions() {
 
     let network = NetworkType::new(&(), initial_data, config, random, |_| DataStorageFactory).unwrap();
 
-    let nodes_vec: Vec<_> = network.get_nodes().collect();
+    let nodes_vec: Vec<_> = network.iter_nodes().collect();
     let total_pairs = (nodes_vec.len() * (nodes_vec.len() - 1)) / 2;
     let failed_pairs = (0..nodes_vec.len())
         .flat_map(|i| {

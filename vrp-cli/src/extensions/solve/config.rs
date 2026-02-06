@@ -625,7 +625,7 @@ fn create_operator(
 
             let operator = create_default_heuristic_operator(problem, environment.clone());
             (
-                Arc::new(DecomposeSearch::new(operator, (routes.min, routes.max), *repeat, 200)),
+                Arc::new(DecomposeSearch::new(operator, (routes.min, routes.max), *repeat)),
                 create_operator_probability(probability, environment.random.clone()),
             )
         }
@@ -699,7 +699,7 @@ fn create_local_search(
     let operators = inners
         .iter()
         .map::<(Arc<dyn LocalOperator>, usize), _>(|op| match op {
-            LocalOperatorType::SwapStar { weight } => (Arc::new(ExchangeSwapStar::new(random.clone(), 200)), *weight),
+            LocalOperatorType::SwapStar { weight } => (Arc::new(ExchangeSwapStar::new(random.clone())), *weight),
             LocalOperatorType::InterRouteBest { weight, noise } => {
                 (Arc::new(ExchangeInterRouteBest::new(noise.probability, noise.min, noise.max)), *weight)
             }

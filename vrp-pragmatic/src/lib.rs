@@ -47,8 +47,10 @@ pub fn get_unique_locations(problem: &Problem) -> Vec<Location> {
 }
 
 fn format_time(time: Float) -> String {
-    // TODO avoid using implicitly unwrap
-    OffsetDateTime::from_unix_timestamp(time as i64).map(|time| time.format(&Rfc3339).unwrap()).unwrap()
+    OffsetDateTime::from_unix_timestamp(time as i64)
+        .map_err(|err| format!("Invalid timestamp {}: {}", time, err))
+        .and_then(|time| time.format(&Rfc3339).map_err(|err| format!("Format error: {}", err)))
+        .unwrap()
 }
 
 fn parse_time(time: &str) -> Float {

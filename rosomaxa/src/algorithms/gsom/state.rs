@@ -48,7 +48,7 @@ where
     let mse = network.mse();
 
     let nodes = network
-        .get_nodes()
+        .iter_nodes()
         .map(|node| {
             let mut dump = String::new();
             write!(dump, "{}", node.storage).unwrap();

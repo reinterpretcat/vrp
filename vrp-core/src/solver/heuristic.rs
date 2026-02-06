@@ -134,7 +134,7 @@ pub fn get_static_heuristic(
 
     let heuristic_group: TargetHeuristicGroup = vec![
         (
-            Arc::new(DecomposeSearch::new(default_operator.clone(), (2, 4), 4, SINGLE_HEURISTIC_QUOTA_LIMIT)),
+            Arc::new(DecomposeSearch::new(default_operator.clone(), (2, 4), 4)),
             create_context_operator_probability(
                 300,
                 10,
@@ -279,8 +279,6 @@ fn get_limits(problem: &Problem) -> (RemovalLimits, RemovalLimits) {
     (normal_limits, small_limits)
 }
 
-const SINGLE_HEURISTIC_QUOTA_LIMIT: usize = 200;
-
 pub use self::builder::create_default_init_operators;
 pub use self::builder::create_default_processing;
 pub use self::statik::create_default_heuristic_operator;
@@ -399,16 +397,15 @@ mod statik {
 
         // initialize recreate
         let recreate = Arc::new(WeightedRecreate::new(vec![
-            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 50),
+            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), 50),
+            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 20),
             (Arc::new(RecreateWithRegret::new(2, 3, random.clone())), 20),
             (Arc::new(RecreateWithCheapest::new(random.clone())), 20),
             (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 10),
             (Arc::new(RecreateWithSkipBest::new(3, 4, random.clone())), 5),
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 5),
-            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), 5),
             (Arc::new(RecreateWithFarthest::new(random.clone())), 2),
             (Arc::new(RecreateWithSkipBest::new(4, 8, random.clone())), 2),
-            (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), 1),
             (Arc::new(RecreateWithSlice::new(random.clone())), 1),
             (
                 Arc::new(RecreateWithSkipRandom::default_explorative_phased(
@@ -430,7 +427,7 @@ mod statik {
         let ruin = Arc::new(WeightedRuin::new(vec![
             (
                 Arc::new(CompositeRuin::new(vec![
-                    (Arc::new(AdjustedStringRemoval::new_with_defaults(normal_limits.clone())), 1.),
+                    (Arc::new(AdjustedStringRemoval::new_with_defaults(normal_limits.clone())), 2.),
                     (extra_random_job.clone(), 0.1),
                 ])),
                 100,
@@ -476,7 +473,7 @@ mod statik {
     pub fn create_default_local_search(random: Arc<dyn Random>) -> TargetSearchOperator {
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
             vec![
-                (Arc::new(ExchangeSwapStar::new(random, SINGLE_HEURISTIC_QUOTA_LIMIT)), 200),
+                (Arc::new(ExchangeSwapStar::new(random)), 200),
                 (Arc::new(ExchangeInterRouteBest::default()), 100),
                 (Arc::new(ExchangeSequence::default()), 100),
                 (Arc::new(ExchangeInterRouteRandom::default()), 30),
@@ -492,22 +489,22 @@ mod statik {
 mod dynamic {
     use super::*;
 
-    fn get_recreates(problem: &Problem, random: Arc<dyn Random>) -> Vec<(Arc<dyn Recreate>, String)> {
+    fn get_weighted_recreates(problem: &Problem, random: Arc<dyn Random>) -> Vec<(Arc<dyn Recreate>, String, Float)> {
         let cheapest: Arc<dyn Recreate> = Arc::new(RecreateWithCheapest::new(random.clone()));
         vec![
-            (cheapest.clone(), "cheapest".to_string()),
-            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best".to_string()),
-            (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), "regret".to_string()),
-            (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), "perturbation".to_string()),
-            (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), "gaps".to_string()),
-            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), "blinks".to_string()),
-            (Arc::new(RecreateWithFarthest::new(random.clone())), "farthest".to_string()),
-            (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), "nearest".to_string()),
+            (cheapest.clone(), "cheapest".to_string(), 2.),
+            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), "blinks".to_string(), 2.),
+            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best".to_string(), 1.),
+            (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), "regret".to_string(), 1.),
+            (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), "perturbation".to_string(), 1.),
+            (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), "gaps".to_string(), 1.),
+            (Arc::new(RecreateWithFarthest::new(random.clone())), "farthest".to_string(), 1.),
             (
                 Arc::new(RecreateWithSkipRandom::default_explorative_phased(cheapest.clone(), random.clone())),
                 "skip_random".to_string(),
+                1.,
             ),
-            (Arc::new(RecreateWithSlice::new(random.clone())), "slice".to_string()),
+            (Arc::new(RecreateWithSlice::new(random.clone())), "slice".to_string(), 1.),
         ]
         .into_iter()
         .chain(
@@ -516,33 +513,41 @@ mod dynamic {
                 move || RecreateWithCheapest::new(random.clone())
             })
             .enumerate()
-            .map(|(idx, recreate)| (recreate, format!("alternative_{idx}"))),
+            .map(|(idx, recreate)| (recreate, format!("alternative_{idx}"), 1.)),
         )
         .collect()
     }
 
-    fn get_ruins_with_limits(limits: RemovalLimits, prefix: &str) -> Vec<(Arc<dyn Ruin>, String, Float)> {
+    /// Returns weighted ruin strategies that combine normal and small limits with 1:2 ratio.
+    /// This reduces operator count while preserving exploration of both limit ranges.
+    fn get_weighted_ruins(
+        problem: Arc<Problem>,
+        normal_limits: RemovalLimits,
+        small_limits: RemovalLimits,
+    ) -> Vec<(Arc<dyn Ruin>, String, Float)> {
+        // Helper to create weighted ruin combining normal and small limits (1:2 ratio, favoring small)
+        let create_weighted = |factory: fn(RemovalLimits) -> Arc<dyn Ruin>| {
+            Arc::new(WeightedRuin::new(vec![(factory(normal_limits.clone()), 2), (factory(small_limits.clone()), 1)]))
+                as Arc<dyn Ruin>
+        };
+
         vec![
-            (Arc::new(AdjustedStringRemoval::new_with_defaults(limits.clone())), format!("{prefix}_asr"), 2.),
-            (Arc::new(NeighbourRemoval::new(limits.clone())), format!("{prefix}_neighbour_removal"), 5.),
-            (Arc::new(WorstJobRemoval::new(4, limits.clone())), format!("{prefix}_worst_job"), 4.),
-            (Arc::new(RandomJobRemoval::new(limits.clone())), format!("{prefix}_random_job_removal"), 4.),
-            (Arc::new(RandomRouteRemoval::new(limits.clone())), format!("{prefix}_random_route_removal"), 2.),
-            (Arc::new(CloseRouteRemoval::new(limits.clone())), format!("{prefix}_close_route_removal"), 4.),
-            (Arc::new(WorstRouteRemoval::new(limits)), format!("{prefix}_worst_route_removal"), 5.),
+            (
+                create_weighted(|limits| Arc::new(AdjustedStringRemoval::new_with_defaults(limits))),
+                "asr".to_string(),
+                2.,
+            ),
+            (create_weighted(|limits| Arc::new(NeighbourRemoval::new(limits))), "neighbour".to_string(), 1.),
+            (create_weighted(|limits| Arc::new(WorstRouteRemoval::new(limits))), "worst_route".to_string(), 1.),
+            (create_weighted(|limits| Arc::new(WorstJobRemoval::new(4, limits))), "worst_job".to_string(), 1.),
+            (create_weighted(|limits| Arc::new(CloseRouteRemoval::new(limits))), "close_route".to_string(), 1.),
+            (create_weighted(|limits| Arc::new(RandomJobRemoval::new(limits))), "random_job".to_string(), 1.),
+            (create_weighted(|limits| Arc::new(RandomRouteRemoval::new(limits))), "random_route".to_string(), 1.),
+            (Arc::new(ClusterRemoval::new_with_defaults(problem).unwrap()), "cluster".to_string(), 1.),
         ]
     }
 
-    fn get_ruins(problem: Arc<Problem>) -> Vec<(Arc<dyn Ruin>, String, Float)> {
-        vec![(
-            // TODO avoid unwrap
-            Arc::new(ClusterRemoval::new_with_defaults(problem.clone()).unwrap()),
-            "cluster_removal".to_string(),
-            4.,
-        )]
-    }
-
-    fn get_mutations(
+    fn get_search_operators(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
     ) -> Vec<(TargetSearchOperator, String, Float)> {
@@ -567,22 +572,18 @@ mod dynamic {
                 "local_reschedule_departure".to_string(),
                 1.,
             ),
-            (Arc::new(LKHSearch::new(LKHSearchMode::ImprovementOnly)), "lkh_strict".to_string(), 5.),
+            (Arc::new(LKHSearch::new(LKHSearchMode::ImprovementOnly)), "lkh_strict".to_string(), 1.),
             (
-                Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(
-                    environment.random.clone(),
-                    SINGLE_HEURISTIC_QUOTA_LIMIT,
-                )))),
+                Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(environment.random.clone())))),
                 "local_swap_star".to_string(),
-                10.,
+                2.,
             ),
-            // decompose search methods with different inner heuristic
             (
                 create_variable_search_decompose_search(problem.clone(), environment.clone()),
-                "decompose_search_var".to_string(),
-                25.,
+                "variable_decompose_search".to_string(),
+                2.,
             ),
-            (create_composite_decompose_search(problem, environment), "decompose_search_com".to_string(), 25.),
+            (create_composite_decompose_search(problem, environment), "composite_decompose_search".to_string(), 2.),
         ]
     }
 
@@ -595,17 +596,11 @@ mod dynamic {
 
         // NOTE: consider checking usage of names within heuristic filter before changing them
 
-        let recreates = get_recreates(problem.as_ref(), random.clone());
-
-        let ruins = get_ruins_with_limits(normal_limits.clone(), "normal")
-            .into_iter()
-            .chain(get_ruins_with_limits(small_limits.clone(), "small"))
-            .chain(get_ruins(problem.clone()))
-            .collect::<Vec<_>>();
-
+        let recreates = get_weighted_recreates(problem.as_ref(), random.clone());
+        let ruins = get_weighted_ruins(problem.clone(), normal_limits.clone(), small_limits.clone());
         let extra_random_job = Arc::new(RandomJobRemoval::new(small_limits));
 
-        // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
+        // Wrap ruins in composite which calls restore context before recreate
         let ruins = ruins
             .into_iter()
             .map::<(Arc<dyn Ruin>, String, Float), _>(|(ruin, name, weight)| {
@@ -613,82 +608,64 @@ mod dynamic {
             })
             .collect::<Vec<_>>();
 
-        let mutations = get_mutations(problem.clone(), environment.clone());
-
-        let heuristic_filter = problem.extras.get_heuristic_filter();
-
-        recreates
+        let ruin_recreate_ops = recreates
             .iter()
-            .flat_map(|(recreate, recreate_name)| {
-                ruins.iter().map::<(TargetSearchOperator, String, Float), _>(move |(ruin, ruin_name, weight)| {
+            .flat_map(|(recreate, recreate_name, recreate_weight)| {
+                ruins.iter().map::<(TargetSearchOperator, String, Float), _>(move |(ruin, ruin_name, ruin_weight)| {
                     (
                         Arc::new(RuinAndRecreate::new(ruin.clone(), recreate.clone())),
                         format!("{ruin_name}+{recreate_name}"),
-                        *weight,
+                        ruin_weight + recreate_weight,
                     )
                 })
             })
-            .chain(mutations)
+            .collect::<Vec<_>>();
+
+        let operators = get_search_operators(problem.clone(), environment.clone());
+        let heuristic_filter = problem.extras.get_heuristic_filter();
+
+        ruin_recreate_ops
+            .into_iter()
+            .chain(operators)
             .filter(|(_, name, _)| heuristic_filter.as_ref().is_none_or(|filter| (filter)(name.as_str())))
             .collect::<Vec<_>>()
     }
 
+    /// Creates a default operator which is good for general use.
+    pub fn create_default_good_operator(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetSearchOperator {
+        Arc::new(RuinAndRecreate::new(
+            Arc::new(AdjustedStringRemoval::new_with_defaults(get_limits(problem.as_ref()).0)),
+            Arc::new(RecreateWithBlinks::new_with_defaults(environment.random.clone())),
+        ))
+    }
+
+    /// Creates a default ruin-and-recreate operator for internal use (e.g., decompose search, infeasible search).
+    /// Uses weighted ruins and recreates from the main operator building logic.
     pub fn create_default_inner_ruin_recreate(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
     ) -> Arc<RuinAndRecreate> {
-        let (_, small_limits) = get_limits(problem.as_ref());
+        let (normal_limits, small_limits) = get_limits(problem.as_ref());
         let random = environment.random.clone();
 
-        // initialize recreate
-        let cheapest = Arc::new(RecreateWithCheapest::new(random.clone()));
-        let recreate = Arc::new(WeightedRecreate::new(vec![
-            (cheapest.clone(), 1),
-            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 1),
-            (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 1),
-            (Arc::new(RecreateWithSkipBest::new(3, 4, random.clone())), 1),
-            (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 1),
-            (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), 1),
-            (Arc::new(RecreateWithFarthest::new(random.clone())), 1),
-            (Arc::new(RecreateWithSlice::new(random.clone())), 1),
-            (Arc::new(RecreateWithSkipRandom::default_explorative_phased(cheapest, random.clone())), 1),
-        ]));
+        let recreates = get_weighted_recreates(problem.as_ref(), random.clone());
+        let ruins = get_weighted_ruins(problem.clone(), normal_limits, small_limits);
 
-        // initialize ruin
-        let random_route = Arc::new(RandomRouteRemoval::new(small_limits.clone()));
-        let random_job = Arc::new(RandomJobRemoval::new(small_limits.clone()));
-        let random_ruin = Arc::new(WeightedRuin::new(vec![(random_job.clone(), 10), (random_route.clone(), 1)]));
-        let ruin = Arc::new(WeightedRuin::new(vec![
-            (
-                Arc::new(CompositeRuin::new(vec![
-                    (Arc::new(AdjustedStringRemoval::new_with_defaults(small_limits.clone())), 1.),
-                    (random_ruin.clone(), 0.1),
-                ])),
-                1,
-            ),
-            (
-                Arc::new(CompositeRuin::new(vec![
-                    (Arc::new(NeighbourRemoval::new(small_limits.clone())), 1.),
-                    (random_ruin.clone(), 0.1),
-                ])),
-                1,
-            ),
-            (
-                Arc::new(CompositeRuin::new(vec![
-                    (Arc::new(WorstJobRemoval::new(4, small_limits)), 1.),
-                    (random_ruin.clone(), 0.1),
-                ])),
-                1,
-            ),
-        ]));
+        // Convert to weighted format (drop names, keep weights)
+        let weighted_ruins = ruins.into_iter().map(|(ruin, _, weight)| (ruin, weight as usize)).collect();
+        let weighted_recreates =
+            recreates.into_iter().map(|(recreate, _, weight)| (recreate, weight as usize)).collect();
 
-        Arc::new(RuinAndRecreate::new(ruin, recreate))
+        Arc::new(RuinAndRecreate::new(
+            Arc::new(WeightedRuin::new(weighted_ruins)),
+            Arc::new(WeightedRecreate::new(weighted_recreates)),
+        ))
     }
 
     pub fn create_default_local_search(random: Arc<dyn Random>) -> Arc<LocalSearch> {
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
             vec![
-                (Arc::new(ExchangeSwapStar::new(random, SINGLE_HEURISTIC_QUOTA_LIMIT / 4)), 2),
+                (Arc::new(ExchangeSwapStar::new(random)), 2),
                 (Arc::new(ExchangeInterRouteBest::default()), 1),
                 (Arc::new(ExchangeInterRouteRandom::default()), 1),
                 (Arc::new(ExchangeIntraRouteRandom::default()), 1),
@@ -707,20 +684,23 @@ mod dynamic {
             Arc::new(WeightedHeuristicOperator::new(
                 vec![
                     create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
+                    create_default_good_operator(problem, environment.clone()),
                     create_default_local_search(environment.random.clone()),
                 ],
-                vec![10, 1],
+                vec![9, 3, 1],
             )),
             (2, 4),
             2,
-            SINGLE_HEURISTIC_QUOTA_LIMIT,
         ))
     }
 
     fn create_composite_decompose_search(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetSearchOperator {
-        let limits = RemovalLimits { removed_activities_range: (10..100), affected_routes_range: 1..1 };
-        let route_removal_operator =
-            Arc::new(RuinAndRecreate::new(Arc::new(RandomRouteRemoval::new(limits)), Arc::new(DummyRecreate)));
+        let limits = RemovalLimits { removed_activities_range: (10..100), affected_routes_range: 1..2 };
+        let ruin = WeightedRuin::new(vec![
+            (Arc::new(RandomRouteRemoval::new(limits.clone())), 1),
+            (Arc::new(WorstRouteRemoval::new(limits)), 1),
+        ]);
+        let route_removal_operator = Arc::new(RuinAndRecreate::new(Arc::new(ruin), Arc::new(DummyRecreate)));
 
         Arc::new(DecomposeSearch::new(
             Arc::new(CompositeHeuristicOperator::new(vec![
@@ -729,7 +709,6 @@ mod dynamic {
             ])),
             (2, 4),
             2,
-            SINGLE_HEURISTIC_QUOTA_LIMIT,
         ))
     }
 }

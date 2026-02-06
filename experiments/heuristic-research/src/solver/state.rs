@@ -172,31 +172,32 @@ impl HyperHeuristicState {
                 .values_mut()
                 .for_each(|states| states.sort_by(|SearchResult(a, ..), SearchResult(b, ..)| a.cmp(b)));
 
-            let mut heuristic_states = data.lines().skip_while(|line| *line != "heuristic:").skip(2).fold(
-                HashMap::<_, Vec<_>>::new(),
-                |mut data, line| {
-                    let fields: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
+            let mut heuristic_states =
+                data.lines().skip_while(|line| *line != "heuristic:").skip(2).take_while(|line| !line.is_empty()).fold(
+                    HashMap::<_, Vec<_>>::new(),
+                    |mut data, line| {
+                        let fields: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
 
-                    let generation: usize = fields[0].parse().unwrap();
-                    let state = fields[1].clone();
-                    let name = fields[2].clone();
-                    let alpha = fields[3].parse().unwrap();
-                    let beta = fields[4].parse().unwrap();
-                    let mu = fields[5].parse().unwrap();
-                    let v = fields[6].parse().unwrap();
-                    let n = fields[7].parse().unwrap();
+                        let generation: usize = fields[0].parse().unwrap();
+                        let state = fields[1].clone();
+                        let name = fields[2].clone();
+                        let alpha = fields[3].parse().unwrap();
+                        let beta = fields[4].parse().unwrap();
+                        let mu = fields[5].parse().unwrap();
+                        let v = fields[6].parse().unwrap();
+                        let n = fields[7].parse().unwrap();
 
-                    insert_to_map(&mut states, state.clone());
-                    insert_to_map(&mut names, name.clone());
+                        insert_to_map(&mut states, state.clone());
+                        insert_to_map(&mut names, name.clone());
 
-                    let state = states.get(&state).copied().unwrap();
-                    let name = names.get(&name).copied().unwrap();
+                        let state = states.get(&state).copied().unwrap();
+                        let name = names.get(&name).copied().unwrap();
 
-                    data.entry(generation).or_default().push(HeuristicResult(state, name, alpha, beta, mu, v, n));
+                        data.entry(generation).or_default().push(HeuristicResult(state, name, alpha, beta, mu, v, n));
 
-                    data
-                },
-            );
+                        data
+                    },
+                );
             heuristic_states
                 .values_mut()
                 .for_each(|states| states.sort_by(|HeuristicResult(_, a, ..), HeuristicResult(_, b, ..)| a.cmp(b)));

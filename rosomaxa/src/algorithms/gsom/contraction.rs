@@ -27,7 +27,7 @@ where
 
     // find nodes which should be removed
     let removed = network
-        .get_nodes()
+        .iter_nodes()
         .map(|node| node.coordinate)
         .filter(|coord| coord.0 % x_decim == 0 || coord.1 % y_decim == 0)
         .collect::<Vec<_>>();

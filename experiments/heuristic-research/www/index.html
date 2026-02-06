@@ -10,106 +10,149 @@
 <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
 <script src="bootstrap.js"></script>
 <main>
-    <h1>Heuristic Research Playground</h1>
+    <h1>🔬 Heuristic Research Playground</h1>
 
     <div class="row">
-        <!-- vertical tabulation with controls -->
-        <div class="column" id="controlTab">
-            <div class="tab-vert">
-                <button id="functionTabButton" class="tablinks-vert">Function Bench</button>
-                <button id="vrpTabButton" class="tablinks-vert">VRP Bench</button>
-            </div>
-
-            <div id="functionTab" class="tabcontent-vert">
+        <!-- Benchmark Configuration -->
+        <div class="column controls-panel">
+            <div class="control-group">
                 <div class="select-wrap">
-                    <label>Function type</label>
-                    <select name="color" style="width: 100%;" id="plotFunction">
-                        <option value="rosenbrock">Rosenbrock</option>
-                        <option value="rastrigin">Rastrigin</option>
-                        <option value="himmelblau">Himmelblau</option>
-                        <option value="ackley">Ackley</option>
-                        <option value="matyas">Matyas</option>
+                    <label>Benchmark Type</label>
+                    <select id="benchmarkType">
+                        <option value="function">Function Optimization</option>
+                        <option value="vrp">Vehicle Routing Problem</option>
                     </select>
                 </div>
-
             </div>
 
-            <div id="vrpTab" class="tabcontent-vert">
+            <div id="functionControls" class="benchmark-controls">
+                <div class="control-group">
+                    <div class="select-wrap">
+                        <label>Function</label>
+                        <select id="plotFunction">
+                            <option value="rosenbrock">Rosenbrock</option>
+                            <option value="rastrigin">Rastrigin</option>
+                            <option value="himmelblau">Himmelblau</option>
+                            <option value="ackley">Ackley</option>
+                            <option value="matyas">Matyas</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="control-group" style="min-height: 60px;">
+                    <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                        <input type="checkbox" id="autoInitPoint" checked>
+                        <span style="font-size: 11px;">Random Initial Point</span>
+                    </label>
+                    
+                    <div id="manualPointControls" class="hide">
+                        <div class="control-row" style="gap: 6px;">
+                            <div style="flex: 1;">
+                                <input type="number" id="initX" step="0.1" value="0" 
+                                       placeholder="X" 
+                                       style="width: 100%; padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <input type="number" id="initZ" step="0.1" value="0" 
+                                       placeholder="Z"
+                                       style="width: 100%; padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="vrpControls" class="benchmark-controls hide">
+                <div class="control-group">
+                    <div class="select-wrap">
+                        <label>Format</label>
+                        <select id="vrpFormat">
+                            <option value="tsplib">TSPLIB95</option>
+                            <option value="solomon">Solomon</option>
+                            <option value="lilim">LiLim</option>
+                            <option value="state">Heuristic State</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="input-container">
+                        <input type="file" id="fileSelector" accept='.txt,.vrp,.json'>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Algorithm Parameters -->
+        <div class="column controls-panel">
+            <div class="control-group">
                 <div class="select-wrap">
-                    <label>Format type</label>
-                    <select name="color" style="width: 100%;" id="vrpFormat">
-                        <option value="tsplib">TSPLIB95</option>
-                        <option value="solomon">Solomon</option>
-                        <option value="lilim">LiLim</option>
-                        <option value="state">Heuristic State</option>
+                    <label>Population Type</label>
+                    <select id="plotPopulation">
+                        <option value="rosomaxa">Rosomaxa</option>
+                        <option value="elitism">Elitism</option>
+                        <option value="greedy">Greedy</option>
                     </select>
                 </div>
+            </div>
 
-                <div class="input-container">
-                    <input type="file" id="fileSelector" accept='.txt,.vrp,.json'>
-                </div>
+            <div class="control-group">
+                <label style="font-size: 10px; margin-bottom: 4px;">Max Generations</label>
+                <input type="number" id="maxGenerations" min="100" max="10000" step="100" value="2000" 
+                       style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px;">
+            </div>
+
+            <div class="hide" id="generationControl" style="margin-top: 8px;">
+                <label style="font-size: 10px;">Generation: <span id="currentGen">0</span> / <span id="maxGen">0</span></label>
+                <input type="range" min="1" max="1000" id="generations" value="0" />
             </div>
 
         </div>
 
-        <!-- common params -->
-        <div class="column" id="commonControls">
-            <div class="select-wrap">
-                <label>Population type</label>
-                <select name="color" style="width: 100%;" id="plotPopulation">
-                    <option value="rosomaxa">Rosomaxa</option>
-                    <option value="elitism">Elitism</option>
-                    <option value="greedy">Greedy</option>
-                </select>
+        <!-- Visualization Controls -->
+        <div class="column controls-panel">
+            <div class="control-row" style="gap: 8px;">
+                <div class="control-group flex-1">
+                    <label style="font-size: 10px;">Pitch <span id="pitchValue">0.10</span></label>
+                    <input type="range" min="0" max="157" id="pitch" value="10" />
+                </div>
+                <div class="control-group flex-1">
+                    <label style="font-size: 10px;">Yaw <span id="yawValue">0.50</span></label>
+                    <input type="range" min="0" max="314" id="yaw" value="50" />
+                </div>
             </div>
 
-            <div id="coordLabel"></div>
-            <div style="white-space: nowrap">
-                <input type="range" min="0" max="157" id="pitch" value="10" />
-            </div>
-            <div style="white-space: nowrap">
-                <input type="range" min="0" max="314" id="yaw" value="50" />
-            </div>
-
-            <div id="status">Loading WebAssembly...</div>
-            <input type="range" min="1" max="1000" id="generations" value="0" class="hide" />
-
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="column">
-            <input type="button" id="run" value="Run experiment" class="block" />
+            <div id="status" class="status-box" style="margin-top: 8px;">Loading WebAssembly...</div>
+            <button type="button" id="run" class="block run-button" style="margin-top: 12px;">▶ Run Experiment</button>
         </div>
     </div>
 
     <!-- horizontal tabulation with canvases -->
     <div id="canvasTab">
         <div class="tab">
-            <button id="solutionTabButton" class="tablinks")>Solution Space</button>
+            <button id="solutionTabButton" class="tablinks">Solution Space</button>
             <button id="searchTabButton" class="tablinks">Search Iteration</button>
-            <button id="overallTabButton" class="tablinks">Overall Statistic</button>
-            <button id="bestTabButton" class="tablinks">Best Statistic</button>
-            <button id="durationTabButton" class="tablinks">Duration Statistic</button>
+            <button id="overallTabButton" class="tablinks">Overall Stats</button>
+            <button id="bestTabButton" class="tablinks">Best Stats</button>
+            <button id="durationTabButton" class="tablinks">Duration Stats</button>
             <button id="fitnessTabButton" class="tablinks">Best Fitness</button>
         </div>
         <div id="solutionTab" class="tabcontent">
-            <canvas id="solutionCanvas" width="600" height="400"></canvas>
+            <canvas id="solutionCanvas" width="800" height="600"></canvas>
         </div>
         <div id="searchTab" class="tabcontent">
-            <canvas id="searchCanvas" width="600" height="200"></canvas>
+            <canvas id="searchCanvas" width="800" height="400"></canvas>
         </div>
         <div id="bestTab" class="tabcontent">
-            <canvas id="bestCanvas" width="600" height="400"></canvas>
+            <canvas id="bestCanvas" width="800" height="600"></canvas>
         </div>
         <div id="durationTab" class="tabcontent">
-            <canvas id="durationCanvas" width="600" height="400"></canvas>
+            <canvas id="durationCanvas" width="800" height="600"></canvas>
         </div>
         <div id="overallTab" class="tabcontent">
-            <canvas id="overallCanvas" width="600" height="400"></canvas>
+            <canvas id="overallCanvas" width="800" height="600"></canvas>
         </div>
         <div id="fitnessTab" class="tabcontent">
-            <canvas id="fitnessCanvas" width="600" height="400"></canvas>
+            <canvas id="fitnessCanvas" width="800" height="600"></canvas>
         </div>
     </div>
 </main>

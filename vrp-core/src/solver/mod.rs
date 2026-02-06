@@ -124,6 +124,11 @@ impl RefinementContext {
         Self { problem, environment, inner_context, state: Default::default(), initial_footprint }
     }
 
+    /// Consumes context and returns all individuals.
+    pub fn into_individuals(self) -> Box<dyn Iterator<Item = InsertionContext>> {
+        self.inner_context.into_individuals()
+    }
+
     /// Adds solution to population.
     pub fn add_solution(&mut self, solution: InsertionContext) {
         self.inner_context.add_solution(solution);

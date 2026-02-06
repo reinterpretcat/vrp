@@ -10,7 +10,7 @@ pub fn get_population_fitness_fn(generation: usize) -> FitnessFn {
         .lock()
         .ok()
         .and_then(|data| data.on_generation.get(&generation).map(|(footprint, _)| footprint.clone()))
-        .map(|footprint| {
+        .map(|footprint| -> FitnessFn {
             Arc::new(move |input: &[Float]| {
                 if let &[from, to] = input {
                     footprint.get(from as usize, to as usize) as Float
@@ -19,7 +19,7 @@ pub fn get_population_fitness_fn(generation: usize) -> FitnessFn {
                 }
             })
         })
-        .expect("cannot get data from EXPERIMENT_DATA")
+        .unwrap_or_else(|| Arc::new(|_: &[Float]| 0.0) as FitnessFn)
 }
 
 /// Returns a description of population state.
@@ -32,5 +32,5 @@ pub fn get_population_desc(generation: usize) -> String {
                 format!("total [{}], known edges [{}]", individuals.len(), footprint.desc())
             })
         })
-        .expect("cannot get data from EXPERIMENT_DATA")
+        .unwrap_or_else(|| String::from("no data"))
 }

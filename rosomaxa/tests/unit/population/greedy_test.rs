@@ -51,7 +51,7 @@ fn can_select_when_empty() {
     let population = Greedy::<_, _>::new(objective, 1, None);
 
     assert_eq!(population.select().count(), 0);
-    assert_eq!(population.all().count(), 0);
+    assert_eq!(population.iter().count(), 0);
 }
 
 #[test]

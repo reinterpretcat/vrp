@@ -8,7 +8,6 @@ use crate::solver::search::create_environment_with_custom_quota;
 use crate::solver::*;
 use crate::utils::Either;
 use rosomaxa::utils::parallel_into_collect;
-use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::iter::{empty, once};
@@ -19,21 +18,15 @@ pub struct DecomposeSearch {
     inner_search: TargetSearchOperator,
     max_routes_range: (i32, i32),
     repeat_count: usize,
-    quota_limit: usize,
 }
 
 impl DecomposeSearch {
     /// Create a new instance of `DecomposeSearch`.
-    pub fn new(
-        inner_search: TargetSearchOperator,
-        max_routes_range: (usize, usize),
-        repeat_count: usize,
-        quota_limit: usize,
-    ) -> Self {
+    pub fn new(inner_search: TargetSearchOperator, max_routes_range: (usize, usize), repeat_count: usize) -> Self {
         assert!(max_routes_range.0 > 1);
         let max_routes_range = (max_routes_range.0 as i32, max_routes_range.1 as i32);
 
-        Self { inner_search, max_routes_range, repeat_count, quota_limit }
+        Self { inner_search, max_routes_range, repeat_count }
     }
 }
 
@@ -46,15 +39,9 @@ impl HeuristicSearchOperator for DecomposeSearch {
         let refinement_ctx = heuristic_ctx;
         let insertion_ctx = solution;
 
-        decompose_insertion_context(
-            refinement_ctx,
-            insertion_ctx,
-            self.max_routes_range,
-            self.repeat_count,
-            self.quota_limit,
-        )
-        .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx, contexts))
-        .unwrap_or_else(|| self.inner_search.search(heuristic_ctx, insertion_ctx))
+        decompose_insertion_context(refinement_ctx, insertion_ctx, self.max_routes_range, self.repeat_count)
+            .map(|contexts| self.refine_decomposed(refinement_ctx, contexts))
+            .unwrap_or_else(|| self.inner_search.search(heuristic_ctx, insertion_ctx))
     }
 }
 
@@ -64,21 +51,23 @@ impl DecomposeSearch {
     fn refine_decomposed(
         &self,
         refinement_ctx: &RefinementContext,
-        original_insertion_ctx: &InsertionContext,
         decomposed: Vec<(RefinementContext, HashSet<usize>)>,
     ) -> InsertionContext {
-        // NOTE: validate decomposition
+        // NOTE: validate decomposition in debug builds only
+        #[cfg(debug_assertions)]
         decomposed.iter().enumerate().for_each(|(outer_ix, (_, outer))| {
             decomposed.iter().enumerate().filter(|(inner_idx, _)| outer_ix != *inner_idx).for_each(
                 |(_, (_, inner))| {
-                    assert!(outer.intersection(inner).next().is_none());
+                    debug_assert!(outer.intersection(inner).next().is_none());
                 },
             );
         });
 
         // do actual refinement independently for each decomposed context
         let decomposed = parallel_into_collect(decomposed, |(mut refinement_ctx, route_indices)| {
-            let _ = (0..self.repeat_count).try_for_each(|_| {
+            let actual_repeat_count = get_repeat_count(self.repeat_count, refinement_ctx.environment.random.as_ref());
+
+            let _ = (0..actual_repeat_count).try_for_each(|_| {
                 let insertion_ctx = refinement_ctx.selected().next().expect(GREEDY_ERROR);
                 let insertion_ctx = self.inner_search.search(&refinement_ctx, insertion_ctx);
                 let is_quota_reached =
@@ -90,11 +79,25 @@ impl DecomposeSearch {
             (refinement_ctx, route_indices)
         });
 
-        // merge evolution results into one insertion_ctx
-        let mut insertion_ctx = decomposed.into_iter().fold(
-            InsertionContext::new_empty(refinement_ctx.problem.clone(), refinement_ctx.environment.clone()),
-            |insertion_ctx, decomposed| merge_best(decomposed, original_insertion_ctx, insertion_ctx),
-        );
+        // get new and old parts and detect if there was any improvement in any part
+        let ((new_parts, old_parts), improvements): ((Vec<_>, Vec<_>), Vec<_>) =
+            decomposed.into_iter().map(get_solution_parts).unzip();
+
+        let has_improvements = improvements.iter().any(|is_improvement| *is_improvement);
+
+        let mut insertion_ctx = if has_improvements {
+            improvements.into_iter().zip(new_parts.into_iter().zip(old_parts)).fold(
+                InsertionContext::new_empty(refinement_ctx.problem.clone(), refinement_ctx.environment.clone()),
+                |accumulated, (is_improvement, (new_part, old_part))| {
+                    merge_parts(if is_improvement { new_part } else { old_part }, accumulated)
+                },
+            )
+        } else {
+            new_parts.into_iter().fold(
+                InsertionContext::new_empty(refinement_ctx.problem.clone(), refinement_ctx.environment.clone()),
+                |accumulated, new_part| merge_parts(new_part, accumulated),
+            )
+        };
 
         insertion_ctx.restore();
         finalize_insertion_ctx(&mut insertion_ctx);
@@ -104,7 +107,29 @@ impl DecomposeSearch {
 }
 
 fn create_population(insertion_ctx: InsertionContext) -> TargetPopulation {
-    Box::new(GreedyPopulation::new(insertion_ctx.problem.goal.clone(), 1, Some(insertion_ctx)))
+    // Keep baseline and (optionally) best/last candidate without reconstructing baseline later.
+    Box::new(DecomposePopulation::new(insertion_ctx.problem.goal.clone(), 1, insertion_ctx))
+}
+
+/// Selects a repeat count from 1 to max_repeat_count using exponential decay.
+/// Uses stack-allocated arrays for common cases to avoid heap allocation.
+fn get_repeat_count(max_repeat_count: usize, random: &dyn Random) -> usize {
+    if max_repeat_count == 1 {
+        return 1;
+    }
+
+    // create weights with exponential decay: [3^(n-1), 3^(n-2), ..., 3^1, 3^0]
+    let index = match max_repeat_count {
+        2 => random.weighted(&[3, 1]),
+        3 => random.weighted(&[9, 3, 1]),
+        4 => random.weighted(&[27, 9, 3, 1]),
+        _ => {
+            let weights: Vec<_> = (1..=max_repeat_count).map(|i| 3_usize.pow((max_repeat_count - i) as u32)).collect();
+            random.weighted(&weights) + 1
+        }
+    };
+
+    index + 1
 }
 
 fn create_multiple_insertion_contexts(
@@ -118,24 +143,27 @@ fn create_multiple_insertion_contexts(
 
     let route_groups = group_routes_by_proximity(insertion_ctx);
     let (min, max) = max_routes_range;
-    let max = if insertion_ctx.solution.routes.len() < 4 { 2 } else { max };
+    let max = if insertion_ctx.solution.routes.len() < max as usize { (max / 2).max(min) } else { max };
 
     // identify route groups and create contexts from them
-    let used_indices = RefCell::new(HashSet::new());
+    let mut used_indices: HashSet<usize> = HashSet::new();
     let insertion_ctxs = route_groups
         .into_iter()
         .enumerate()
-        .filter(|(outer_idx, _)| !used_indices.borrow().contains(outer_idx))
-        .map(|(outer_idx, route_group)| {
+        .filter_map(|(outer_idx, route_group)| {
+            if used_indices.contains(&outer_idx) {
+                return None;
+            }
+
             let group_size = environment.random.uniform_int(min, max) as usize;
             let route_group = once(outer_idx)
-                .chain(route_group.into_iter().filter(|inner_idx| !used_indices.borrow().contains(inner_idx)))
+                .chain(route_group.into_iter().filter(|inner_idx| !used_indices.contains(inner_idx)))
                 .take(group_size)
                 .collect::<HashSet<_>>();
 
-            used_indices.borrow_mut().extend(route_group.iter().cloned());
+            used_indices.extend(route_group.iter().copied());
 
-            create_partial_insertion_ctx(insertion_ctx, environment.clone(), route_group)
+            Some(create_partial_insertion_ctx(insertion_ctx, environment.clone(), route_group))
         })
         .chain(create_empty_insertion_ctxs(insertion_ctx, environment.clone()))
         .collect();
@@ -221,11 +249,10 @@ fn decompose_insertion_context(
     insertion_ctx: &InsertionContext,
     max_routes_range: (i32, i32),
     repeat: usize,
-    quota_limit: usize,
 ) -> Option<Vec<(RefinementContext, HashSet<usize>)>> {
     // NOTE make limit a bit higher than median
     let median = refinement_ctx.statistics().speed.get_median();
-    let limit = median.map(|median| (median * repeat).max(quota_limit));
+    let limit = median.map(|median| (((median.max(10) * repeat) as f64) * 1.5) as usize);
     let environment = create_environment_with_custom_quota(limit, refinement_ctx.environment.as_ref());
 
     create_multiple_insertion_contexts(insertion_ctx, environment.clone(), max_routes_range)
@@ -248,37 +275,136 @@ fn decompose_insertion_context(
         .and_then(|contexts| if contexts.len() > 1 { Some(contexts) } else { None })
 }
 
-fn merge_best(
-    decomposed: (RefinementContext, HashSet<usize>),
-    original_insertion_ctx: &InsertionContext,
-    accumulated: InsertionContext,
-) -> InsertionContext {
-    let (decomposed_ctx, route_indices) = decomposed;
-    let decomposed_insertion_ctx = decomposed_ctx.ranked().next().expect(GREEDY_ERROR);
-    let environment = original_insertion_ctx.environment.clone();
+fn get_solution_parts(decomposed: (RefinementContext, HashSet<usize>)) -> ((SolutionContext, SolutionContext), bool) {
+    let (decomposed_ctx, _) = decomposed;
+    let mut individuals = decomposed_ctx.into_individuals();
 
-    let (partial_insertion_ctx, _) = create_partial_insertion_ctx(original_insertion_ctx, environment, route_indices);
-    let goal = partial_insertion_ctx.problem.goal.as_ref();
+    // Baseline is preserved by `DecomposePopulation` and yielded first.
+    let baseline = individuals.next().expect(GREEDY_ERROR);
+    // The second individual is always present:
+    // - if there was an improvement: best improved solution
+    // - otherwise: last non-improving solution (used for diversity)
+    let candidate = individuals.next().expect(GREEDY_ERROR);
 
-    let source_solution = if goal.total_order(decomposed_insertion_ctx, &partial_insertion_ctx) == Ordering::Less {
-        &decomposed_insertion_ctx.solution
-    } else {
-        &partial_insertion_ctx.solution
-    };
+    let goal = baseline.problem.goal.as_ref();
 
+    // When there is no improvement, `candidate` is the last non-improving solution for diversity.
+    // When there is an improvement, `candidate` is the best improved solution.
+    let is_improvement = goal.total_order(&candidate, &baseline) == Ordering::Less;
+
+    ((candidate.solution, baseline.solution), is_improvement)
+}
+
+fn merge_parts(source_solution: SolutionContext, accumulated: InsertionContext) -> InsertionContext {
     let mut accumulated = accumulated;
     let dest_solution = &mut accumulated.solution;
 
-    // NOTE theoretically, we can avoid deep copy here, but this would require an extension in Population trait
-    dest_solution.routes.extend(source_solution.routes.iter().map(|route_ctx| route_ctx.deep_copy()));
-    dest_solution.ignored.extend(source_solution.ignored.iter().cloned());
-    dest_solution.required.extend(source_solution.required.iter().cloned());
-    dest_solution.locked.extend(source_solution.locked.iter().cloned());
-    dest_solution.unassigned.extend(source_solution.unassigned.iter().map(|(k, v)| (k.clone(), v.clone())));
-
+    // register routes in registry before moving them
     source_solution.routes.iter().for_each(|route_ctx| {
         assert!(dest_solution.registry.use_route(route_ctx), "attempt to use route more than once");
     });
 
+    dest_solution.routes.extend(source_solution.routes);
+    dest_solution.ignored.extend(source_solution.ignored);
+    dest_solution.required.extend(source_solution.required);
+    dest_solution.locked.extend(source_solution.locked);
+    dest_solution.unassigned.extend(source_solution.unassigned);
+
     accumulated
+}
+
+/// A small population implementation used only by `DecomposeSearch`.
+///
+/// It preserves the original (baseline) individual so we can compare and (optionally) reuse it
+/// later without reconstructing/deep-copying it again from the original full solution.
+///
+/// Additionally, when there is no improvement, it keeps the last non-improving candidate which
+/// can be used to build a more diverse combined solution.
+struct DecomposePopulation {
+    objective: Arc<GoalContext>,
+    selection_size: usize,
+
+    baseline: InsertionContext,
+    best: Option<InsertionContext>,
+    last_non_improving: Option<InsertionContext>,
+}
+
+impl DecomposePopulation {
+    fn new(objective: Arc<GoalContext>, selection_size: usize, baseline: InsertionContext) -> Self {
+        Self { objective, selection_size, baseline, best: None, last_non_improving: None }
+    }
+
+    fn best_ref(&self) -> &InsertionContext {
+        self.best.as_ref().unwrap_or(&self.baseline)
+    }
+}
+
+impl HeuristicPopulation for DecomposePopulation {
+    type Objective = GoalContext;
+    type Individual = InsertionContext;
+
+    fn add_all(&mut self, individuals: Vec<Self::Individual>) -> bool {
+        if individuals.is_empty() {
+            return false;
+        }
+
+        individuals.into_iter().any(|individual| self.add(individual))
+    }
+
+    fn add(&mut self, individual: Self::Individual) -> bool {
+        // Greedy update: replace best only when a strictly better solution is found.
+        if self.objective.total_order(self.best_ref(), &individual) == Ordering::Greater {
+            self.best = Some(individual);
+            // Once we found an improvement, we don't need to keep non-improving candidates.
+            self.last_non_improving = None;
+            true
+        } else {
+            // Keep the last non-improving candidate for diversity (used only when no improvements happen).
+            if self.best.is_none() {
+                self.last_non_improving = Some(individual);
+            }
+            false
+        }
+    }
+
+    fn on_generation(&mut self, _: &HeuristicStatistics) {}
+
+    fn cmp(&self, a: &Self::Individual, b: &Self::Individual) -> Ordering {
+        self.objective.total_order(a, b)
+    }
+
+    fn select(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
+        Box::new(std::iter::repeat_n(self.best_ref(), self.selection_size))
+    }
+
+    fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
+        // Not used by `DecomposeSearch`, but provide a deterministic iteration order.
+        if let Some(best) = self.best.as_ref() {
+            Box::new(once(best).chain(once(&self.baseline)))
+        } else {
+            Box::new(once(&self.baseline))
+        }
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
+        self.ranked()
+    }
+
+    fn into_iter(self: Box<Self>) -> Box<dyn Iterator<Item = Self::Individual>>
+    where
+        Self::Individual: 'static,
+    {
+        // Contract used by `get_solution_parts`:
+        // - Always yield baseline first.
+        // - Then yield either best (if any) or last non-improving (if any).
+        Box::new(once(self.baseline).chain(self.best.or(self.last_non_improving)))
+    }
+
+    fn size(&self) -> usize {
+        1 + usize::from(self.best.is_some() || self.last_non_improving.is_some())
+    }
+
+    fn selection_phase(&self) -> SelectionPhase {
+        SelectionPhase::Exploitation
+    }
 }

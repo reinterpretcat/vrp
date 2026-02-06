@@ -41,6 +41,29 @@ impl<'a> TryFrom<&'a str> for ExperimentData {
     type Error = String;
 
     fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        // Check if this is telemetry CSV format (contains "TELEMETRY" somewhere in the content)
+        // Extract telemetry section if present, otherwise try JSON
+        if let Some(telemetry_start) = value.find("TELEMETRY") {
+            // Extract everything from TELEMETRY onwards
+            let telemetry_content = &value[telemetry_start..];
+
+            // Parse telemetry CSV using existing parser
+            let heuristic_state = HyperHeuristicState::try_parse_all(telemetry_content)
+                .ok_or_else(|| "Failed to parse telemetry data".to_string())?;
+
+            // Find max generation from telemetry data
+            let generation = heuristic_state
+                .search_states
+                .keys()
+                .chain(heuristic_state.heuristic_states.keys())
+                .copied()
+                .max()
+                .unwrap_or(0);
+
+            return Ok(ExperimentData { heuristic_state, generation, ..Default::default() });
+        }
+
+        // Try parsing as JSON
         serde_json::from_str(value).map_err(|err| format!("cannot deserialize experiment data: {err}"))
     }
 }
@@ -129,7 +152,7 @@ where
         self.generation = statistics.generation;
         self.acquire().generation = statistics.generation;
 
-        let individuals_data = self.inner.all().map(|individual| individual.into()).collect::<Vec<_>>();
+        let individuals_data = self.inner.iter().map(|individual| individual.into()).collect::<Vec<_>>();
         // NOTE this is not exactly how footprint is calculated in production code.
         // In the production version, approximation of the footprint is used to avoid iterating over
         // all individuals in the population on generation update.
@@ -164,8 +187,12 @@ where
         self.inner.ranked()
     }
 
-    fn all(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
-        self.inner.all()
+    fn iter(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
+        self.inner.iter()
+    }
+
+    fn into_iter(self: Box<Self>) -> Box<dyn Iterator<Item = Self::Individual>> {
+        Box::new(self.inner).into_iter()
     }
 
     fn size(&self) -> usize {

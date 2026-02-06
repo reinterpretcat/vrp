@@ -163,7 +163,7 @@ where
 impl<O, S> TelemetryHeuristicContext<O, S>
 where
     O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
+    S: HeuristicSolution + 'static,
 {
     /// Creates a new instance of `TelemetryHeuristicContext`.
     pub fn new(
@@ -174,6 +174,11 @@ where
     ) -> Self {
         let telemetry = Telemetry::new(telemetry_mode);
         Self { objective, population, telemetry, environment }
+    }
+
+    /// Consumes context and returns all individuals.
+    pub fn into_individuals(self) -> Box<dyn Iterator<Item = S>> {
+        self.population.into_iter()
     }
 
     /// Adds solution to population.

@@ -247,7 +247,9 @@ fn get_search_config(generation: usize, kind: &str) -> SearchDrawConfig {
             let names_rev = data.heuristic_state.names.iter().map(|(k, v)| (*v, k)).collect::<HashMap<_, _>>();
             let _states_rev = data.heuristic_state.states.iter().map(|(k, v)| (*v, k)).collect::<HashMap<_, _>>();
 
-            data.heuristic_state.search_states.get(&generation).map(|states| {
+            // Find nearest available generation if exact match doesn't exist
+            let nearest_gen = find_nearest_generation(&data.heuristic_state.search_states, generation);
+            data.heuristic_state.search_states.get(&nearest_gen).map(|states| {
                 let estimations = states
                     .iter()
                     // NOTE: just show all transitions
@@ -264,7 +266,7 @@ fn get_search_config(generation: usize, kind: &str) -> SearchDrawConfig {
                         get_search_statistics(
                             &data.heuristic_state.search_states,
                             &names_rev,
-                            generation,
+                            nearest_gen,
                             |SearchResult(_, _, (_, to_state_idx), _)| to_state_idx == best_state_idx,
                             |acc, SearchResult(name_idx, ..)| {
                                 acc[*name_idx] += 1;
@@ -276,7 +278,7 @@ fn get_search_config(generation: usize, kind: &str) -> SearchDrawConfig {
                 let overall = get_search_statistics(
                     &data.heuristic_state.search_states,
                     &names_rev,
-                    generation,
+                    nearest_gen,
                     |_| true,
                     |acc, SearchResult(name_idx, ..)| {
                         acc[*name_idx] += 1;
@@ -287,7 +289,7 @@ fn get_search_config(generation: usize, kind: &str) -> SearchDrawConfig {
                 let durations = get_search_statistics(
                     &data.heuristic_state.search_states,
                     &names_rev,
-                    generation,
+                    nearest_gen,
                     |_| true,
                     |acc: &mut Vec<(usize, usize)>, SearchResult(name_idx, _, _, duration)| {
                         let (total, count) = (acc[*name_idx].0, acc[*name_idx].1);
@@ -303,6 +305,17 @@ fn get_search_config(generation: usize, kind: &str) -> SearchDrawConfig {
             })
         })
         .unwrap_or_default()
+}
+
+/// Finds the nearest available generation that is <= the requested generation.
+/// Returns the requested generation if it exists, otherwise the closest smaller one.
+fn find_nearest_generation(generations: &HashMap<usize, Vec<SearchResult>>, requested: usize) -> usize {
+    if generations.contains_key(&requested) {
+        return requested;
+    }
+
+    // Find the largest generation that is smaller than requested
+    generations.keys().filter(|&&g| g <= requested).copied().max().unwrap_or(requested)
 }
 
 fn get_search_statistics<T, FF, AF>(
