@@ -14,7 +14,7 @@ use vrp_core::models::{Extras, Problem};
 use vrp_core::prelude::GenericError;
 use vrp_core::utils::Float;
 
-/// A trait to read lilim problem.
+/// A trait to read lilim problem. Original format is described here: https://www.sintef.no/projectweb/top/pdptw/documentation
 pub trait LilimProblem {
     /// Reads lilim problem.
     fn read_lilim(self, is_rounded: bool) -> Result<Problem, GenericError>;
@@ -146,7 +146,8 @@ impl<R: Read> LilimReader<R> {
         } else {
             Demand::<SingleDimLoad> {
                 pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
-                delivery: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand)),
+                // we have a negative demand for deliveries in original problem formulation
+                delivery: (SingleDimLoad::default(), SingleDimLoad::new(-customer.demand)),
             }
         });
 
@@ -156,7 +157,7 @@ impl<R: Read> LilimReader<R> {
                 duration: customer.service as Float,
                 times: vec![TimeSpan::Window(customer.tw.clone())],
             }],
-            dimens: Default::default(),
+            dimens,
         })
     }
 

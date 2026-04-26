@@ -25,3 +25,5 @@ heuristic_state.json
 
 # profiler
 callgrind*
+
+.claude
