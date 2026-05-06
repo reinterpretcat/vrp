@@ -6,6 +6,9 @@ pub mod macros;
 mod analysis;
 pub use self::analysis::*;
 
+mod lilim;
+pub use self::lilim::LilimBuilder;
+
 mod solomon;
 pub use self::solomon::SolomonBuilder;
 
