@@ -38,7 +38,7 @@ fn can_create_multi_tier_clusters() -> GenericResult<()> {
     assert_eq!(clusters.len(), expected_cluster_nums.len());
     clusters.iter().zip(expected_cluster_nums.iter()).for_each(|(clusters, expected_num)| {
         assert_eq!(clusters.len(), *expected_num);
-        let total = clusters.iter().flat_map(|(_, cluster)| cluster.iter()).collect::<HashSet<_>>().len();
+        let total = clusters.values().flat_map(|cluster| cluster.iter()).collect::<HashSet<_>>().len();
         assert_eq!(total, transport.size());
     });
 

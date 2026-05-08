@@ -1,16 +1,12 @@
 /// id  x   y  demand early late service pickup delivery
 pub type LilimCustomer = (i32, i32, i32, i32, i32, i32, i32, i32, i32);
 
+#[derive(Default)]
 pub struct LilimBuilder {
     vehicle: (usize, usize),
     customers: Vec<LilimCustomer>,
 }
 
-impl Default for LilimBuilder {
-    fn default() -> Self {
-        Self { vehicle: (0, 0), customers: vec![] }
-    }
-}
 
 impl LilimBuilder {
     pub fn new() -> Self {

@@ -123,7 +123,7 @@ impl Activity {
 
     /// Checks whether activity job has a parent multi job.
     pub fn has_parent_job(&self) -> bool {
-        self.job.as_ref().map_or(false, |single| Multi::is_child(single))
+        self.job.as_ref().is_some_and(|single| Multi::is_child(single))
     }
 
     /// Returns job if activity has it.

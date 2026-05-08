@@ -1,4 +1,4 @@
-FROM rust:1.92-alpine AS builder
+FROM rust:1.95-alpine AS builder
 
 LABEL maintainer="Ilya Builuk <ilya.builuk@gmail.com>" \
       org.opencontainers.image.title="A Vehicle Routing Problem solver CLI" \

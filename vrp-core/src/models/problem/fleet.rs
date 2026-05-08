@@ -161,7 +161,7 @@ impl Fleet {
 
         let profiles: HashMap<usize, Profile> = vehicles.iter().map(|v| (v.profile.index, v.profile.clone())).collect();
         let mut profiles = profiles.into_iter().collect::<Vec<_>>();
-        profiles.sort_by(|(a, _), (b, _)| a.cmp(b));
+        profiles.sort_by_key(|(a, _)| *a);
         let (_, profiles): (Vec<_>, Vec<_>) = profiles.into_iter().unzip();
 
         let actors = vehicles

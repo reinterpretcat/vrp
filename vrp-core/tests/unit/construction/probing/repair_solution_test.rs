@@ -183,7 +183,7 @@ fn get_routes(insertion_ctx: &InsertionContext) -> Vec<(&str, Vec<&str>)> {
         })
         .collect::<Vec<_>>();
 
-    routes.sort_by(|(a, _), (b, _)| a.cmp(b));
+    routes.sort_by_key(|(a, _)| *a);
 
     routes
 }
