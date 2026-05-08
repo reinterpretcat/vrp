@@ -230,7 +230,7 @@ where
     ) -> Option<ConstraintViolation> {
         let demand = self.get_demand(activity_ctx.target);
 
-        let violation = if activity_ctx.target.retrieve_job().is_some_and(|job| job.as_multi().is_some()) {
+        let violation = if activity_ctx.target.has_parent_job() {
             // NOTE multi job has dynamic demand which can go in another interval
             if self.can_handle_demand_on_intervals(route_ctx, demand, Some(activity_ctx.index)) {
                 None
