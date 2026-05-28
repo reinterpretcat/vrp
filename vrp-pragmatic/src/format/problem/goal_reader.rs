@@ -258,6 +258,29 @@ fn get_objective_feature_layer(
                         return false;
                     }
                 }
+
+                // Day-availability: the nearest-vehicle penalty must only compare
+                // against vehicles that actually have a shift overlapping the job's
+                // time windows — otherwise we'd compute the penalty against a
+                // technician who isn't working that day.
+                let actor_tw = &actor.detail.time;
+                let any_overlap = match job {
+                    CoreJob::Single(single) => single
+                        .places
+                        .iter()
+                        .flat_map(|p| p.times.iter())
+                        .any(|ts| ts.intersects(0.0, actor_tw)),
+                    CoreJob::Multi(multi) => multi
+                        .jobs
+                        .iter()
+                        .flat_map(|s| s.places.iter())
+                        .flat_map(|p| p.times.iter())
+                        .any(|ts| ts.intersects(0.0, actor_tw)),
+                };
+                if !any_overlap {
+                    return false;
+                }
+
                 true
             })
             .build(),
