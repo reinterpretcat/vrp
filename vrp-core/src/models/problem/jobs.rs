@@ -197,6 +197,11 @@ impl Multi {
         single.dimens.get_value::<JobLink, Weak<Multi>>().and_then(|w| w.upgrade())
     }
 
+    /// Returns `true` if given single job is a child of multi job.
+    pub(crate) fn is_child(single: &Single) -> bool {
+        single.dimens.get_value::<JobLink, Weak<Multi>>().is_some()
+    }
+
     /// Wraps given multi job into [`Arc`] adding reference to it from all sub-jobs.
     fn bind(mut multi: Self) -> Arc<Self> {
         Arc::new_cyclic(|weak_multi| {

@@ -32,15 +32,15 @@ fn can_read_lilim_format_properly() {
     assert_eq!(get_job_ids(&problem), vec!["0", "1"]);
 
     // verify demands on sub-jobs of each multi job
-    let jobs: Vec<_> = problem.jobs.all().into_iter().collect();
+    let jobs: Vec<_> = problem.jobs.all().iter().collect();
 
-    let (pickup_demand_0, delivery_demand_0) = get_multi_job_demands(&jobs[0]);
+    let (pickup_demand_0, delivery_demand_0) = get_multi_job_demands(jobs[0]);
     assert_eq!(pickup_demand_0.pickup.1.value, 15);
     assert_eq!(pickup_demand_0.delivery.1.value, 0);
     assert_eq!(delivery_demand_0.delivery.1.value, 15);
     assert_eq!(delivery_demand_0.pickup.1.value, 0);
 
-    let (pickup_demand_1, delivery_demand_1) = get_multi_job_demands(&jobs[1]);
+    let (pickup_demand_1, delivery_demand_1) = get_multi_job_demands(jobs[1]);
     assert_eq!(pickup_demand_1.pickup.1.value, 10);
     assert_eq!(pickup_demand_1.delivery.1.value, 0);
     assert_eq!(delivery_demand_1.delivery.1.value, 10);

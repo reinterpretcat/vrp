@@ -98,8 +98,8 @@ fn get_location_fn(
         };
         Ok(Box::new(move |rnd| {
             // TODO allow to configure distribution
-            let lat = rnd.uniform_real((bounding_box.0).0 as Float, (bounding_box.1).0 as Float) as f64;
-            let lng = rnd.uniform_real((bounding_box.0).1 as Float, (bounding_box.1).1 as Float) as f64;
+            let lat = rnd.uniform_real((bounding_box.0).0 as Float, (bounding_box.1).0 as Float);
+            let lng = rnd.uniform_real((bounding_box.0).1 as Float, (bounding_box.1).1 as Float);
 
             Location::Coordinate { lat, lng }
         }))

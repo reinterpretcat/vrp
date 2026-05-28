@@ -92,7 +92,7 @@ where
 
                         result
                     });
-                    values.sort_unstable_by(|(a, _), (b, _)| a.cmp(b));
+                    values.sort_unstable_by_key(|(a, _)| *a);
                 }
 
                 if *period > elapsed_time || values.len() < 2 {

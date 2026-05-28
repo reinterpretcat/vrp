@@ -163,7 +163,7 @@ mod sampling_search {
             })
             .collect::<Vec<_>>();
 
-        results.sort_by(|(a, _), (b, _)| a.cmp(b));
+        results.sort_by_key(|(a, _)| *a);
         let median = results[results.len() / 2];
         assert!(median.0 < 250);
         assert!(results.iter().all(|(_, count)| *count < 100));

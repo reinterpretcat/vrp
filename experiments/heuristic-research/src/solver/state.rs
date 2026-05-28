@@ -170,7 +170,7 @@ impl HyperHeuristicState {
             );
             search_states
                 .values_mut()
-                .for_each(|states| states.sort_by(|SearchResult(a, ..), SearchResult(b, ..)| a.cmp(b)));
+                .for_each(|states| states.sort_by_key(|SearchResult(a, ..)| *a));
 
             let mut heuristic_states =
                 data.lines().skip_while(|line| *line != "heuristic:").skip(2).take_while(|line| !line.is_empty()).fold(
@@ -200,7 +200,7 @@ impl HyperHeuristicState {
                 );
             heuristic_states
                 .values_mut()
-                .for_each(|states| states.sort_by(|HeuristicResult(_, a, ..), HeuristicResult(_, b, ..)| a.cmp(b)));
+                .for_each(|states| states.sort_by_key(|HeuristicResult(_, a, ..)| *a));
 
             Some(Self { names, states, search_states, heuristic_states })
         } else {

@@ -239,7 +239,7 @@ impl<T: TransportFallback> TimeAgnosticMatrixTransportCost<T> {
     /// Creates an instance of `TimeAgnosticMatrixTransportCost`.
     pub fn new(costs: Vec<MatrixData>, size: usize, fallback: T) -> Result<Self, GenericError> {
         let mut costs = costs;
-        costs.sort_by(|a, b| a.index.cmp(&b.index));
+        costs.sort_by_key(|a| a.index);
 
         if costs.iter().any(|costs| costs.timestamp.is_some()) {
             return Err("time aware routing".into());
@@ -316,7 +316,7 @@ impl<T: TransportFallback> TimeAwareMatrixTransportCost<T> {
         let costs = costs
             .into_iter()
             .map(|(profile, mut matrices)| {
-                matrices.sort_by(|a, b| (a.timestamp.unwrap() as u64).cmp(&(b.timestamp.unwrap() as u64)));
+                matrices.sort_by_key(|a| a.timestamp.unwrap() as u64);
                 let timestamps = matrices.iter().map(|matrix| matrix.timestamp.unwrap() as u64).collect();
 
                 (profile, (timestamps, matrices))

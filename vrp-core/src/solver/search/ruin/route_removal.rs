@@ -115,7 +115,7 @@ impl Ruin for WorstRouteRemoval {
             // TODO exclude locked jobs from calculation
             .map(|(route_idx, route_ctx)| (route_idx, route_ctx.route().tour.job_count()))
             .collect::<Vec<_>>();
-        route_sizes.sort_by(|(_, job_count_left), (_, job_count_right)| job_count_left.cmp(job_count_right));
+        route_sizes.sort_by_key(|(_, job_count_left)| *job_count_left);
         route_sizes.truncate(8);
 
         let shuffle_amount = (route_sizes.len() as Float * 0.25) as usize;

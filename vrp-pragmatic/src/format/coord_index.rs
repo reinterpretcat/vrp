@@ -126,7 +126,7 @@ impl CoordIndex {
     /// Gets unique locations.
     pub fn unique(&self) -> Vec<Location> {
         let mut sorted_pairs: Vec<_> = self.reverse_index.iter().collect();
-        sorted_pairs.sort_by(|(a, _), (b, _)| a.cmp(b));
+        sorted_pairs.sort_by_key(|(a, _)| *a);
         sorted_pairs.iter().map(|pair| pair.1.clone()).collect()
     }
 

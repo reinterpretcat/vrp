@@ -49,7 +49,7 @@ where
                     if other_neighbours.len() >= min_points {
                         neighbors
                             .extend(other_neighbours.iter().filter(|&point| !neighbors_index.contains(point)).cloned());
-                        neighbors_index.extend(other_neighbours.into_iter());
+                        neighbors_index.extend(other_neighbours);
                     }
                 }
 

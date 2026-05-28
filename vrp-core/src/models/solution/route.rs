@@ -112,7 +112,18 @@ impl Activity {
 
     /// Checks whether activity has given job.
     pub fn has_same_job(&self, job: &Job) -> bool {
-        self.retrieve_job().as_ref() == Some(job)
+        match (job, self.job.as_ref()) {
+            (Job::Single(left), Some(right)) => Arc::ptr_eq(left, right),
+            (Job::Multi(multi), Some(single)) => {
+                Multi::roots(single).is_some_and(|single_parent| Arc::ptr_eq(multi, &single_parent))
+            }
+            _ => false,
+        }
+    }
+
+    /// Checks whether activity job has a parent multi job.
+    pub fn has_parent_job(&self) -> bool {
+        self.job.as_ref().is_some_and(|single| Multi::is_child(single))
     }
 
     /// Returns job if activity has it.
