@@ -10,7 +10,6 @@ mod vehicle_distance_test;
 
 use super::*;
 
-custom_solution_state!(VehicleDistancePenalty typeof Cost);
 custom_tour_state!(VehicleDistanceRouteData typeof RouteVehicleDistanceData);
 
 /// A function type that checks whether a given actor is compatible with a given job.
@@ -73,49 +72,39 @@ impl VehicleDistanceFeatureBuilder {
             .take()
             .ok_or_else(|| GenericError::from("compatibility_fn must be set for vehicle_distance feature"))?;
 
-        let objective = VehicleDistanceObjective {
-            transport: transport.clone(),
-            actors: actors.clone(),
-            compatibility_fn: compatibility_fn.clone(),
-        };
-        let state = VehicleDistanceState { transport, actors, compatibility_fn };
+        let shared = Arc::new(VehicleDistanceShared { transport, actors, compatibility_fn });
+
+        let objective = VehicleDistanceObjective { shared: shared.clone() };
+        let state = VehicleDistanceState { shared };
 
         FeatureBuilder::default().with_name(self.name.as_str()).with_objective(objective).with_state(state).build()
     }
 }
 
-/// Gets the primary location of a job.
-fn get_job_location(job: &Job) -> Option<Location> {
-    match job {
-        Job::Single(single) => single.places.first().and_then(|p| p.location),
-        Job::Multi(multi) => multi.jobs.first().and_then(|s| s.places.first().and_then(|p| p.location)),
-    }
-}
-
-/// Finds the minimum distance from a job location to the start of any compatible vehicle.
-fn find_nearest_compatible_vehicle_dist(
-    job_loc: Location,
-    job: &Job,
-    actors: &[Arc<Actor>],
-    compatibility_fn: &ActorJobCompatibilityFn,
-    transport: &(dyn TransportCost + Send + Sync),
-) -> Option<Float> {
-    actors
-        .iter()
-        .filter(|actor| compatibility_fn(job, actor))
-        .filter_map(|actor| actor.detail.start.as_ref().map(|s| s.location))
-        .map(|start_loc| transport.distance_approx(&actors[0].vehicle.profile, job_loc, start_loc))
-        .min_by(|a, b| a.total_cmp(b))
-}
-
-struct VehicleDistanceObjective {
+/// Shared compute logic and dependencies for the vehicle-distance objective and state.
+///
+/// Both [`VehicleDistanceObjective`] and [`VehicleDistanceState`] go through the same
+/// per-route penalty calculation; keeping it in one place avoids the trap of fixing
+/// the formula in one copy and forgetting the other.
+struct VehicleDistanceShared {
     transport: Arc<dyn TransportCost + Send + Sync>,
     actors: Vec<Arc<Actor>>,
     compatibility_fn: ActorJobCompatibilityFn,
 }
 
-impl VehicleDistanceObjective {
-    /// Computes the penalty for a single route.
+impl VehicleDistanceShared {
+    /// Round-trip distance between a depot and a job location for the given profile.
+    ///
+    /// Routing matrices are usually asymmetric (one-way streets, motorway ramps).
+    /// Picking a single direction makes the "nearest vehicle" assignment depend on
+    /// which way the matrix happens to favor; summing both directions gives a
+    /// direction-neutral measure of how much travel a vehicle incurs to serve the
+    /// job from its depot and return.
+    fn round_trip(&self, profile: &Profile, depot: Location, job_loc: Location) -> Float {
+        self.transport.distance_approx(profile, depot, job_loc)
+            + self.transport.distance_approx(profile, job_loc, depot)
+    }
+
     fn compute_route_penalty(&self, route_ctx: &RouteContext) -> Cost {
         let route = route_ctx.route();
         let profile = &route.actor.vehicle.profile;
@@ -132,16 +121,9 @@ impl VehicleDistanceObjective {
             let job_loc = activity.place.location;
             let job = Job::Single(single.clone());
 
-            let dist_assigned = self.transport.distance_approx(profile, job_loc, assigned_start);
+            let dist_assigned = self.round_trip(profile, assigned_start, job_loc);
 
-            let dist_nearest = find_nearest_compatible_vehicle_dist(
-                job_loc,
-                &job,
-                &self.actors,
-                &self.compatibility_fn,
-                self.transport.as_ref(),
-            )
-            .unwrap_or(dist_assigned);
+            let dist_nearest = self.find_nearest_compatible_vehicle_dist(job_loc, &job, profile).unwrap_or(dist_assigned);
 
             let penalty = (dist_assigned - dist_nearest).max(0.0);
             total_penalty += penalty;
@@ -149,13 +131,53 @@ impl VehicleDistanceObjective {
 
         total_penalty
     }
+
+    fn find_nearest_compatible_vehicle_dist(
+        &self,
+        job_loc: Location,
+        job: &Job,
+        profile: &Profile,
+    ) -> Option<Float> {
+        self.actors
+            .iter()
+            .filter(|actor| (self.compatibility_fn)(job, actor))
+            .filter_map(|actor| actor.detail.start.as_ref().map(|s| s.location))
+            .map(|start_loc| self.round_trip(profile, start_loc, job_loc))
+            .min_by(|a, b| a.total_cmp(b))
+    }
+}
+
+/// Gets the primary location of a job.
+fn get_job_location(job: &Job) -> Option<Location> {
+    match job {
+        Job::Single(single) => single.places.first().and_then(|p| p.location),
+        Job::Multi(multi) => multi.jobs.first().and_then(|s| s.places.first().and_then(|p| p.location)),
+    }
+}
+
+struct VehicleDistanceObjective {
+    shared: Arc<VehicleDistanceShared>,
 }
 
 impl FeatureObjective for VehicleDistanceObjective {
     fn fitness(&self, solution: &InsertionContext) -> Cost {
-        solution.solution.state.get_vehicle_distance_penalty().copied().unwrap_or_else(|| {
-            solution.solution.routes.iter().map(|route_ctx| self.compute_route_penalty(route_ctx)).sum()
-        })
+        // We deliberately avoid `solution.solution.state.get_vehicle_distance_penalty()`
+        // here: the cached value is maintained by `VehicleDistanceState` and is
+        // sufficient for hot inner loops, but `fitness()` is the source of truth
+        // reported back to the user. Summing the per-route cache directly keeps us
+        // honest even if any pipeline ever desyncs the solution-level total.
+        solution
+            .solution
+            .routes
+            .iter()
+            .map(|route_ctx| {
+                route_ctx
+                    .state()
+                    .get_vehicle_distance_route_data()
+                    .map(|data| data.penalty)
+                    .unwrap_or_else(|| self.shared.compute_route_penalty(route_ctx))
+            })
+            .sum()
     }
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
@@ -172,16 +194,10 @@ impl FeatureObjective for VehicleDistanceObjective {
                     return Cost::default();
                 };
 
-                let dist_assigned = self.transport.distance_approx(profile, job_loc, assigned_start);
+                let dist_assigned = self.shared.round_trip(profile, assigned_start, job_loc);
 
-                let dist_nearest = find_nearest_compatible_vehicle_dist(
-                    job_loc,
-                    job,
-                    &self.actors,
-                    &self.compatibility_fn,
-                    self.transport.as_ref(),
-                )
-                .unwrap_or(dist_assigned);
+                let dist_nearest =
+                    self.shared.find_nearest_compatible_vehicle_dist(job_loc, job, profile).unwrap_or(dist_assigned);
 
                 (dist_assigned - dist_nearest).max(0.0)
             }
@@ -191,67 +207,37 @@ impl FeatureObjective for VehicleDistanceObjective {
 }
 
 struct VehicleDistanceState {
-    transport: Arc<dyn TransportCost + Send + Sync>,
-    actors: Vec<Arc<Actor>>,
-    compatibility_fn: ActorJobCompatibilityFn,
+    shared: Arc<VehicleDistanceShared>,
 }
 
 impl VehicleDistanceState {
-    /// Computes the penalty for a single route.
-    fn compute_route_penalty(&self, route_ctx: &RouteContext) -> Cost {
-        let route = route_ctx.route();
-        let profile = &route.actor.vehicle.profile;
-
-        let assigned_start = match route.actor.detail.start.as_ref() {
-            Some(start) => start.location,
-            None => return 0.0,
-        };
-
-        let mut total_penalty = 0.0;
-
-        for activity in route.tour.all_activities() {
-            let Some(single) = activity.job.as_ref() else { continue };
-            let job_loc = activity.place.location;
-            let job = Job::Single(single.clone());
-
-            let dist_assigned = self.transport.distance_approx(profile, job_loc, assigned_start);
-
-            let dist_nearest = find_nearest_compatible_vehicle_dist(
-                job_loc,
-                &job,
-                &self.actors,
-                &self.compatibility_fn,
-                self.transport.as_ref(),
-            )
-            .unwrap_or(dist_assigned);
-
-            let penalty = (dist_assigned - dist_nearest).max(0.0);
-            total_penalty += penalty;
-        }
-
-        total_penalty
-    }
-}
-
-impl FeatureState for VehicleDistanceState {
-    fn accept_insertion(&self, _: &mut SolutionContext, _: usize, _: &Job) {
-        // Route will be marked stale, recomputed in accept_solution_state
-    }
-
-    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
-        let penalty = self.compute_route_penalty(route_ctx);
+    fn write_route_penalty(&self, route_ctx: &mut RouteContext) {
+        let penalty = self.shared.compute_route_penalty(route_ctx);
         route_ctx.state_mut().set_vehicle_distance_route_data(RouteVehicleDistanceData { penalty });
     }
 
+}
+
+impl FeatureState for VehicleDistanceState {
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, _: &Job) {
+        // Eagerly refresh the affected route's penalty so the per-route cache is
+        // always in sync with the tour. Stale-flag gating in accept_solution_state
+        // was fragile because it relied on every caller to maintain `is_stale`
+        // correctly across the construction and search pipelines.
+        let route_ctx = solution_ctx.routes.get_mut(route_index).expect("route_index out of bounds");
+        self.write_route_penalty(route_ctx);
+    }
+
+    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
+        self.write_route_penalty(route_ctx);
+    }
+
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
-        solution_ctx.routes.iter_mut().filter(|rc| rc.is_stale()).for_each(|rc| self.accept_route_state(rc));
-
-        let total: Cost = solution_ctx
-            .routes
-            .iter()
-            .map(|rc| rc.state().get_vehicle_distance_route_data().map(|data| data.penalty).unwrap_or(0.0))
-            .sum();
-
-        solution_ctx.state.set_vehicle_distance_penalty(total);
+        // Recompute every route's penalty regardless of the stale flag. This is the
+        // canonical "rebuild from current tours" path and must not be skipped: at
+        // every entry point that calls accept_solution_state (factories, restore,
+        // finalize_insertion_ctx, search operators), tours may have been mutated
+        // without our per-route cache being touched.
+        solution_ctx.routes.iter_mut().for_each(|rc| self.write_route_penalty(rc));
     }
 }

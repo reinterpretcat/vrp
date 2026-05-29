@@ -5,6 +5,7 @@ use crate::helpers::models::problem::{TestSingleBuilder, TestTransportCost, Test
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::models::common::{TimeInterval, TimeWindow};
 use crate::models::problem::{Actor, ActorDetail, Job, VehiclePlace};
+use crate::models::{Feature, FeatureState};
 use std::sync::Arc;
 
 fn create_actor_at(location: usize) -> Arc<Actor> {
@@ -119,9 +120,10 @@ fn can_return_zero_fitness_when_job_on_nearest_vehicle() {
 #[test]
 fn can_return_penalty_when_job_on_farther_vehicle() {
     // Two vehicles: v0 at 0, v1 at 100. Job at 5, assigned to v1 (at 100).
-    // dist(job=5, assigned=100) = 95
-    // dist(job=5, nearest=0) = 5
-    // penalty = 95 - 5 = 90
+    // Round-trip metric: 2 * |a - b| (test transport is symmetric).
+    //   round_trip(v1, job) = 2 * 95 = 190
+    //   round_trip(v0, job) = 2 * 5  =  10  (nearest)
+    //   penalty = 190 - 10 = 180
     let actor_0 = create_actor_at(0);
     let actor_100 = create_actor_at(100);
     let actors = vec![actor_0, actor_100.clone()];
@@ -147,7 +149,7 @@ fn can_return_penalty_when_job_on_farther_vehicle() {
     let insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
 
     let fitness = objective.fitness(&insertion_ctx);
-    assert_eq!(fitness, 90.0);
+    assert_eq!(fitness, 180.0);
 }
 
 #[test]
@@ -165,9 +167,10 @@ fn can_return_zero_fitness_for_empty_route() {
 #[test]
 fn can_sum_penalties_across_multiple_jobs() {
     // Two vehicles: at 0 and at 100. Two jobs at 5 and 10, both assigned to v100.
-    // job@5: dist(5,100)=95, nearest=dist(5,0)=5, penalty=90
-    // job@10: dist(10,100)=90, nearest=dist(10,0)=10, penalty=80
-    // total = 170
+    // Round-trip metric (test transport is symmetric, so round_trip = 2 * one-way):
+    //   job@5  → assigned 2*95=190, nearest 2*5=10,   penalty=180
+    //   job@10 → assigned 2*90=180, nearest 2*10=20,  penalty=160
+    //   total = 340
     let actor_0 = create_actor_at(0);
     let actor_100 = create_actor_at(100);
     let actors = vec![actor_0, actor_100.clone()];
@@ -194,7 +197,7 @@ fn can_sum_penalties_across_multiple_jobs() {
     let insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
 
     let fitness = objective.fitness(&insertion_ctx);
-    assert_eq!(fitness, 170.0);
+    assert_eq!(fitness, 340.0);
 }
 
 // ============================================================================
@@ -234,7 +237,7 @@ fn can_estimate_zero_when_inserting_into_nearest_vehicle() {
 #[test]
 fn can_estimate_penalty_when_inserting_into_farther_vehicle() {
     // Two vehicles: at 0 and at 100. Inserting job at 5 into v100's route.
-    // dist(5, 100) = 95 (assigned), dist(5, 0) = 5 (nearest) -> penalty = 90
+    // Round-trip (symmetric test transport): 2*95=190 assigned vs 2*5=10 nearest → penalty 180
     let actor_0 = create_actor_at(0);
     let actor_100 = create_actor_at(100);
     let actors = vec![actor_0, actor_100.clone()];
@@ -258,7 +261,7 @@ fn can_estimate_penalty_when_inserting_into_farther_vehicle() {
     let insertion_ctx = TestInsertionContextBuilder::default().build();
 
     let estimate = objective.estimate(&MoveContext::route(&insertion_ctx.solution, &route_ctx, &job));
-    assert_eq!(estimate, 90.0);
+    assert_eq!(estimate, 180.0);
 }
 
 // ============================================================================
@@ -268,8 +271,8 @@ fn can_estimate_penalty_when_inserting_into_farther_vehicle() {
 #[test]
 fn can_prefer_route_with_jobs_near_vehicle_start() {
     // Two vehicles at 0 and 100. Two routes:
-    // Route A: v0 with job at 5 (near start) -> penalty 0
-    // Route B: v0 with job at 95 (far from start, near v100) -> penalty = 95 - 5 = 90
+    // Route A: v0 with job at 5 (near start) → round-trip 2*5 vs 2*5, penalty 0
+    // Route B: v0 with job at 95 (far from v0, near v100) → 2*95 vs 2*5, penalty 180
     // Route A should have lower fitness.
     let actor_0 = create_actor_at(0);
     let actor_100 = create_actor_at(100);
@@ -318,6 +321,105 @@ fn can_prefer_route_with_jobs_near_vehicle_start() {
     let fitness_b = obj_b.fitness(&ctx_b);
 
     assert_eq!(fitness_a, 0.0);
-    assert_eq!(fitness_b, 90.0);
+    assert_eq!(fitness_b, 180.0);
     assert!(fitness_a < fitness_b);
+}
+
+// ============================================================================
+// Pipeline Integration Tests
+//
+// These reproduce the production bug class where `fitness()` returned 0 because
+// the per-route cache had been written once for empty routes and never refreshed
+// after jobs were inserted. They exercise the FeatureState lifecycle directly,
+// rather than only the `compute_route_penalty` helper.
+// ============================================================================
+
+fn build_route_with_job(actor: Arc<Actor>, job_location: usize) -> crate::construction::heuristics::RouteContext {
+    let job = TestSingleBuilder::default().location(Some(job_location)).build_shared();
+    let route = crate::models::solution::Route {
+        actor: actor.clone(),
+        tour: {
+            let mut tour = crate::models::solution::Tour::default();
+            let start_loc = actor.detail.start.as_ref().unwrap().location;
+            let end_loc = actor.detail.end.as_ref().unwrap().location;
+            tour.set_start(ActivityBuilder::with_location(start_loc).job(None).build());
+            tour.set_end(ActivityBuilder::with_location(end_loc).job(None).build());
+            tour.insert_last(ActivityBuilder::with_location(job_location).job(Some(job)).build());
+            tour
+        },
+    };
+    crate::construction::heuristics::RouteContext::new_with_state(
+        route,
+        crate::construction::heuristics::RouteState::default(),
+    )
+}
+
+fn extract_state_and_objective(feature: Feature) -> (Arc<dyn FeatureState>, Arc<dyn crate::models::FeatureObjective>) {
+    (feature.state.unwrap(), feature.objective.unwrap())
+}
+
+#[test]
+fn accept_solution_state_repopulates_after_tour_mutation() {
+    // Regression test for the production bug:
+    //   1. Initial empty routes have per-route cache populated to penalty=0.
+    //   2. Jobs are inserted into routes (tour mutated), but the per-route cache
+    //      is not refreshed.
+    //   3. accept_solution_state must rebuild the per-route cache from the
+    //      current tours — not skip routes based on a stale flag — so that
+    //      fitness() returns the correct excess-distance total.
+    let actor_0 = create_actor_at(0);
+    let actor_100 = create_actor_at(100);
+    let actors = vec![actor_0, actor_100.clone()];
+    let feature = create_test_feature(actors);
+    let (state, objective) = extract_state_and_objective(feature);
+
+    // Route on v100 with a job at 5 (closer to v0). Round-trip: 2*95 vs 2*5 → penalty 180.
+    let route_ctx = build_route_with_job(actor_100, 5);
+    let mut insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
+
+    // Pretend the pipeline never told us about the insertion: the route's
+    // per-route cache is empty (None). accept_solution_state must still produce
+    // the correct fitness.
+    state.accept_solution_state(&mut insertion_ctx.solution);
+    let fitness = objective.fitness(&insertion_ctx);
+    assert_eq!(fitness, 180.0);
+}
+
+#[test]
+fn accept_insertion_eagerly_updates_per_route_cache() {
+    // accept_insertion must refresh the cache immediately so callers that read
+    // fitness between insertions (e.g. NSGA dominance comparisons) see the
+    // up-to-date penalty without waiting for the next accept_solution_state.
+    let actor_0 = create_actor_at(0);
+    let actor_100 = create_actor_at(100);
+    let actors = vec![actor_0, actor_100.clone()];
+    let feature = create_test_feature(actors);
+    let (state, objective) = extract_state_and_objective(feature);
+
+    let route_ctx = build_route_with_job(actor_100, 5);
+    let job = Job::Single(route_ctx.route().tour.all_activities().nth(1).unwrap().job.as_ref().unwrap().clone());
+    let mut insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
+
+    state.accept_insertion(&mut insertion_ctx.solution, 0, &job);
+    let fitness = objective.fitness(&insertion_ctx);
+    assert_eq!(fitness, 180.0);
+}
+
+#[test]
+fn fitness_recovers_when_per_route_cache_is_absent() {
+    // Defense-in-depth: even if some future pipeline forgets to call our
+    // accept_* methods, fitness() falls back to a live recompute per route
+    // rather than reporting 0.
+    let actor_0 = create_actor_at(0);
+    let actor_100 = create_actor_at(100);
+    let actors = vec![actor_0, actor_100.clone()];
+    let feature = create_test_feature(actors);
+    let (_, objective) = extract_state_and_objective(feature);
+
+    let route_ctx = build_route_with_job(actor_100, 5);
+    let insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
+
+    // Note: state.accept_* was never called. Per-route cache is empty.
+    let fitness = objective.fitness(&insertion_ctx);
+    assert_eq!(fitness, 180.0);
 }
