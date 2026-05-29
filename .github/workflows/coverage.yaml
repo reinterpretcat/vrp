@@ -32,7 +32,10 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: cobertura.xml
-          fail_ci_if_error: true
+          # Coverage upload is informational. A Codecov outage or transient
+          # rate limit should not turn the whole CI red; the cobertura.xml
+          # is still archived as an artifact in the next step.
+          fail_ci_if_error: false
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v4
