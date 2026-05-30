@@ -133,11 +133,6 @@ fn insert_break(
         }
         _ => reserved_tw,
     };
-    let activity_time = if matches!(stop, Stop::Point(_)) {
-        align_break_to_activity_boundary(stop.activities(), break_idx, &stop_tw, activity_time)
-    } else {
-        activity_time.clone()
-    };
 
     let activities = match stop {
         Stop::Point(point) => {
@@ -166,10 +161,10 @@ fn insert_break(
         if let Some(time) = &mut activity.time {
             let start = parse_time(&time.start);
             let end = parse_time(&time.end);
-            let overlap = TimeWindow::new(start, end).overlapping(&activity_time);
+            let overlap = TimeWindow::new(start, end).overlapping(reserved_tw);
 
-            if let Some(overlap) = overlap.filter(|overlap| overlap.duration() > 0.) {
-                let extra_time = activity_time.end - overlap.end + overlap.duration();
+            if let Some(overlap) = overlap {
+                let extra_time = reserved_tw.end - overlap.end + overlap.duration();
                 time.end = format_time(end + extra_time);
             }
         }
@@ -181,54 +176,6 @@ fn insert_break(
         (None, Some(_)) => Ordering::Less,
         (None, None) => Ordering::Equal,
     })
-}
-
-fn align_break_to_activity_boundary(
-    activities: &[ApiActivity],
-    break_idx: usize,
-    stop_tw: &TimeWindow,
-    break_tw: &TimeWindow,
-) -> TimeWindow {
-    let has_overlap_with_job = activities.iter().any(|activity| {
-        if activity.activity_type == "break" {
-            return false;
-        }
-
-        activity.time.as_ref().is_some_and(|time| {
-            let activity_tw = TimeWindow::new(parse_time(&time.start), parse_time(&time.end));
-            activity_tw.overlapping(break_tw).is_some_and(|overlap| overlap.duration() > 0.)
-        })
-    });
-
-    if !has_overlap_with_job {
-        return break_tw.clone();
-    }
-
-    let duration = break_tw.duration();
-
-    let from_previous =
-        break_idx.checked_sub(1).and_then(|activity_idx| activities.get(activity_idx)).and_then(|activity| {
-            activity.time.as_ref().and_then(|time| {
-                let start = parse_time(&time.end).max(stop_tw.start);
-                let end = start + duration;
-                (end <= stop_tw.end).then_some(TimeWindow::new(start, end))
-            })
-        });
-
-    if let Some(aligned) = from_previous {
-        return aligned;
-    }
-
-    activities
-        .get(break_idx)
-        .and_then(|activity| {
-            activity.time.as_ref().and_then(|time| {
-                let end = parse_time(&time.start).min(stop_tw.end);
-                let start = end - duration;
-                (start >= stop_tw.start).then_some(TimeWindow::new(start, end))
-            })
-        })
-        .unwrap_or_else(|| break_tw.clone())
 }
 
 #[derive(Clone)]

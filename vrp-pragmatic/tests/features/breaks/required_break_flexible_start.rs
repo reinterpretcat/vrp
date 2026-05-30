@@ -658,223 +658,6 @@ fn can_place_wide_offset_break_on_transit_leg_with_consistent_times() {
     assert!((offset - 40.0).abs() <= 1.0, "break offset from tour departure should be near 40, got {offset}\n{debug}");
 }
 
-#[test]
-fn can_keep_job_activity_duration_when_break_starts_at_activity_end_on_same_stop() {
-    // Boundary regression: required break starts exactly when job1 activity ends.
-    // Break should be on the same point stop as job1 without extending job1 activity time.
-    let problem = Problem {
-        plan: Plan {
-            jobs: vec![
-                create_delivery_job_with_times("job1", (4., 0.), vec![(5, 10)], 1.),
-                create_delivery_job_with_times("job2", (12., 0.), vec![(20, 100)], 1.),
-            ],
-            ..create_empty_plan()
-        },
-        fleet: Fleet {
-            vehicles: vec![VehicleType {
-                shifts: vec![VehicleShift {
-                    start: ShiftStart {
-                        earliest: format_time(0.),
-                        latest: Some(format_time(0.)),
-                        location: (0., 0.).to_loc(),
-                    },
-                    end: Some(ShiftEnd { earliest: None, latest: format_time(300.), location: (0., 0.).to_loc() }),
-                    breaks: Some(vec![VehicleBreak::Required {
-                        time: VehicleRequiredBreakTime::OffsetTime { earliest: 5., latest: 6. },
-                        duration: 2.,
-                    }]),
-                    ..create_default_vehicle_shift()
-                }],
-                ..create_default_vehicle_type()
-            }],
-            ..create_default_fleet()
-        },
-        ..create_empty_problem()
-    };
-    let matrix = create_matrix_from_problem(&problem);
-    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 200);
-
-    assert!(solution.unassigned.is_none(), "expected all jobs assigned");
-    assert_eq!(solution.tours.len(), 1, "expected one tour");
-
-    let tour = &solution.tours[0];
-    let debug = format_tour_debug(tour);
-
-    let break_positions: Vec<_> = tour
-        .stops
-        .iter()
-        .enumerate()
-        .flat_map(|(stop_idx, stop)| {
-            stop.activities().iter().enumerate().filter_map(move |(act_idx, activity)| {
-                if activity.activity_type == "break" { Some((stop_idx, act_idx)) } else { None }
-            })
-        })
-        .collect();
-
-    assert_eq!(break_positions.len(), 1, "expected exactly one break\n{debug}");
-
-    let flat_order: Vec<_> =
-        tour.stops.iter().flat_map(|stop| stop.activities().iter().map(|activity| activity.job_id.clone())).collect();
-    assert_eq!(
-        flat_order,
-        vec!["departure", "job1", "break", "job2", "arrival"],
-        "unexpected flattened activity order\n{debug}"
-    );
-
-    let (break_stop_idx, break_activity_idx) = break_positions[0];
-    assert!(
-        break_stop_idx > 0 && break_stop_idx + 1 < tour.stops.len(),
-        "break stop should have previous and next stops\n{debug}"
-    );
-
-    let break_stop = &tour.stops[break_stop_idx];
-    assert!(
-        matches!(break_stop, Stop::Point(_)),
-        "break should be attached to point stop with job1 in this scenario\n{debug}"
-    );
-    assert!(
-        break_stop.activities().iter().any(|activity| activity.job_id == "job1"),
-        "break stop should contain job1\n{debug}"
-    );
-
-    let stop_arrival = parse_time(&break_stop.schedule().arrival);
-    let stop_departure = parse_time(&break_stop.schedule().departure);
-
-    let break_activity = &break_stop.activities()[break_activity_idx];
-    let (break_start, break_end) = break_activity
-        .time
-        .as_ref()
-        .map(|time| (parse_time(&time.start), parse_time(&time.end)))
-        .unwrap_or((stop_arrival, stop_departure));
-
-    let job1_activity = break_stop
-        .activities()
-        .iter()
-        .find(|activity| activity.job_id == "job1")
-        .expect("job1 activity should be on break stop");
-    let (job1_start, job1_end) = job1_activity
-        .time
-        .as_ref()
-        .map(|time| (parse_time(&time.start), parse_time(&time.end)))
-        .unwrap_or((stop_arrival, stop_departure));
-
-    assert!(
-        ((job1_end - job1_start) - 1.0).abs() < 1e-3,
-        "job1 activity duration should stay at 1, got {}\n{debug}",
-        job1_end - job1_start
-    );
-    assert!(
-        job1_end <= break_start + 1e-3,
-        "job1 end should not be after break start: job1_end={job1_end}, break_start={break_start}\n{debug}"
-    );
-    assert!(
-        break_start < break_end - 1e-3,
-        "break interval is not strictly positive: [{break_start}..{break_end}]\n{debug}"
-    );
-    assert!(
-        break_start >= stop_arrival - 1e-3 && break_end <= stop_departure + 1e-3,
-        "break interval should stay within stop bounds: stop=[{stop_arrival}..{stop_departure}], break=[{break_start}..{break_end}]\n{debug}"
-    );
-
-    let prev_departure = parse_time(&tour.stops[break_stop_idx - 1].schedule().departure);
-    let next_arrival = parse_time(&tour.stops[break_stop_idx + 1].schedule().arrival);
-    assert!(
-        prev_departure <= break_start + 1e-3,
-        "break starts before previous stop departure: prev_departure={prev_departure}, break_start={break_start}\n{debug}"
-    );
-    assert!(
-        break_end <= next_arrival + 1e-3,
-        "break ends after next stop arrival: break_end={break_end}, next_arrival={next_arrival}\n{debug}"
-    );
-
-    validate_tour_schedule_only(tour);
-    validate_no_break_job_overlap(tour);
-}
-
-#[test]
-fn can_align_required_break_to_job_boundary_when_reserved_time_hits_mid_activity() {
-    let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", (5., 0.), 3.)], ..create_empty_plan() },
-        fleet: Fleet {
-            vehicles: vec![VehicleType {
-                shifts: vec![VehicleShift {
-                    start: ShiftStart {
-                        earliest: format_time(0.),
-                        latest: Some(format_time(0.)),
-                        location: (0., 0.).to_loc(),
-                    },
-                    end: Some(ShiftEnd { earliest: None, latest: format_time(200.), location: (0., 0.).to_loc() }),
-                    breaks: Some(vec![VehicleBreak::Required {
-                        time: VehicleRequiredBreakTime::ExactTime {
-                            earliest: format_time(7.),
-                            latest: format_time(7.),
-                        },
-                        duration: 2.,
-                    }]),
-                    ..create_default_vehicle_shift()
-                }],
-                ..create_default_vehicle_type()
-            }],
-            ..create_default_fleet()
-        },
-        ..create_empty_problem()
-    };
-    let matrix = create_matrix_from_problem(&problem);
-    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
-
-    assert!(solution.unassigned.is_none(), "expected all jobs assigned");
-    assert_eq!(solution.tours.len(), 1, "expected one tour");
-
-    let tour = &solution.tours[0];
-    let debug = format_tour_debug(tour);
-
-    let stop = tour
-        .stops
-        .iter()
-        .find(|stop| {
-            stop.activities().iter().any(|activity| activity.job_id == "job1")
-                && stop.activities().iter().any(|activity| activity.activity_type == "break")
-        })
-        .expect("expected job1 and break at same stop");
-
-    let stop_arrival = parse_time(&stop.schedule().arrival);
-    let stop_departure = parse_time(&stop.schedule().departure);
-
-    let job = stop.activities().iter().find(|activity| activity.job_id == "job1").expect("job1 activity");
-    let brk = stop.activities().iter().find(|activity| activity.activity_type == "break").expect("break activity");
-
-    let (job_start, job_end) = job
-        .time
-        .as_ref()
-        .map(|time| (parse_time(&time.start), parse_time(&time.end)))
-        .unwrap_or((stop_arrival, stop_departure));
-    let (break_start, break_end) = brk
-        .time
-        .as_ref()
-        .map(|time| (parse_time(&time.start), parse_time(&time.end)))
-        .unwrap_or((stop_arrival, stop_departure));
-
-    assert!(
-        ((job_end - job_start) - 3.0).abs() < 1e-3,
-        "job1 duration should stay equal to service duration, got {}\n{debug}",
-        job_end - job_start
-    );
-    assert!(
-        (break_start - job_end).abs() <= 1e-3 || (job_start - break_end).abs() <= 1e-3,
-        "break should start at job end or finish at job start, got job=[{job_start}..{job_end}], break=[{break_start}..{break_end}]\n{debug}"
-    );
-    assert!(
-        !(break_start < job_end - 1e-3 && job_start < break_end - 1e-3),
-        "break should not overlap job activity at same stop: job=[{job_start}..{job_end}], break=[{break_start}..{break_end}]\n{debug}"
-    );
-    assert!(
-        break_start >= stop_arrival - 1e-3 && break_end <= stop_departure + 1e-3,
-        "break should stay within stop bounds: stop=[{stop_arrival}..{stop_departure}], break=[{break_start}..{break_end}]\n{debug}"
-    );
-
-    validate_tour_schedule_only(tour);
-    validate_no_break_job_overlap(tour);
-}
 
 #[test]
 fn can_skip_required_break_when_it_starts_at_tour_end_boundary() {
@@ -1557,6 +1340,638 @@ fn validate_tour_schedule_only(tour: &Tour) {
             }
         }
     }
+}
+
+// =============================================================================
+// Strict placement probes (deterministic-at-latest model)
+// =============================================================================
+
+/// Returns the start time of the (single) break activity in the tour.
+fn break_start(tour: &Tour) -> f64 {
+    let intervals = collect_activity_intervals(tour);
+    let breaks: Vec<_> = intervals.iter().filter(|(_, _, t, _)| t == "break").collect();
+    assert_eq!(breaks.len(), 1, "probe expects exactly 1 break, got {}\ntour: {}", breaks.len(), format_tour_debug(tour));
+    breaks[0].0
+}
+
+/// Returns the arrival time of the first job stop (skipping departure stop).
+fn first_job_arrival(tour: &Tour) -> f64 {
+    tour.stops
+        .iter()
+        .skip(1)
+        .find(|s| s.activities().iter().any(|a| !matches!(a.activity_type.as_str(), "departure" | "arrival" | "break")))
+        .map(|s| parse_time(&s.schedule().arrival))
+        .expect("no job stop found")
+}
+
+#[test]
+fn probe_narrow_offset_depot_anchor_places_break_at_latest() {
+    // Narrow offset [7..7], DepotToDepot (default). Break MUST start at departure + 7 ± 0.5.
+    let problem = Problem {
+        plan: Plan { jobs: vec![create_delivery_job("j1", (5., 0.))], ..create_empty_plan() },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(0.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(200.), location: (0., 0.).to_loc() }),
+                    breaks: Some(vec![VehicleBreak::Required {
+                        time: VehicleRequiredBreakTime::OffsetTime { earliest: 7., latest: 7. },
+                        duration: 2.,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 200);
+
+    let tour = &solution.tours[0];
+    let departure = parse_time(&tour.stops[0].schedule().departure);
+    let b_start = break_start(tour);
+    let actual_offset = b_start - departure;
+    assert!(
+        (actual_offset - 7.0).abs() < 0.5,
+        "narrow offset [7..7]: expected break at departure+7={}, got {b_start} (offset={actual_offset})\ntour: {}",
+        departure + 7.0,
+        format_tour_debug(tour)
+    );
+}
+
+#[test]
+fn probe_wide_offset_depot_anchor_places_break_at_latest() {
+    // Wide offset [4..40], DepotToDepot, fixed departure.
+    // Per design (reserved_time.rs:220-221): break is placed at `latest + anchor` deterministically.
+    // If this test fails — the solver picked some other point in [4..40], which would be
+    // the "too early/too late" symptom.
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("j1", (10., 0.)), create_delivery_job("j2", (25., 0.))],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(0.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(300.), location: (0., 0.).to_loc() }),
+                    breaks: Some(vec![VehicleBreak::Required {
+                        time: VehicleRequiredBreakTime::OffsetTime { earliest: 4., latest: 40. },
+                        duration: 2.,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 200);
+
+    let tour = &solution.tours[0];
+    let departure = parse_time(&tour.stops[0].schedule().departure);
+    let b_start = break_start(tour);
+    let actual_offset = b_start - departure;
+    assert!(
+        (actual_offset - 40.0).abs() < 0.5,
+        "wide offset [4..40]: expected break at departure+40={} (deterministic-at-latest), got {b_start} (offset={actual_offset})\ntour: {}",
+        departure + 40.0,
+        format_tour_debug(tour)
+    );
+}
+
+#[test]
+fn probe_wide_offset_with_flexible_departure_tracks_anchor() {
+    // Wide offset [10..30] + flexible departure (start.latest > start.earliest).
+    // After solver picks the departure, break must be at `chosen_departure + 30`.
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("j1", (15., 0.)), create_delivery_job("j2", (25., 0.))],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(50.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(300.), location: (0., 0.).to_loc() }),
+                    breaks: Some(vec![VehicleBreak::Required {
+                        time: VehicleRequiredBreakTime::OffsetTime { earliest: 10., latest: 30. },
+                        duration: 2.,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 200);
+
+    let tour = &solution.tours[0];
+    let departure = parse_time(&tour.stops[0].schedule().departure);
+    let b_start = break_start(tour);
+    let actual_offset = b_start - departure;
+    assert!(
+        (actual_offset - 30.0).abs() < 0.5,
+        "wide offset [10..30] + flex departure: expected break at chosen_departure+30={} (chosen dep={departure}), got {b_start} (offset={actual_offset})\ntour: {}",
+        departure + 30.0,
+        format_tour_debug(tour)
+    );
+}
+
+#[test]
+fn probe_mixed_window_and_offset_both_placed_correctly() {
+    // Both Window break (absolute [50..50]) and Offset break (relative [80..80]) on the same vehicle.
+    // Window break must start at 50 (absolute). Offset break must start at departure+80.
+    // This probes the partition logic in reserved_time.rs (Window/Offset independent search).
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job("j1", (10., 0.)),
+                create_delivery_job("j2", (40., 0.)),
+                create_delivery_job("j3", (70., 0.)),
+            ],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(0.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(500.), location: (0., 0.).to_loc() }),
+                    breaks: Some(vec![
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::ExactTime {
+                                earliest: format_time(50.),
+                                latest: format_time(50.),
+                            },
+                            duration: 2.,
+                        },
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::OffsetTime { earliest: 80., latest: 80. },
+                            duration: 2.,
+                        },
+                    ]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 300);
+
+    let tour = &solution.tours[0];
+    let departure = parse_time(&tour.stops[0].schedule().departure);
+    let intervals = collect_activity_intervals(tour);
+    let breaks: Vec<f64> = intervals.iter().filter(|(_, _, t, _)| t == "break").map(|(s, _, _, _)| *s).collect();
+    assert_eq!(breaks.len(), 2, "expected 2 breaks (1 window + 1 offset), got {}\ntour: {}", breaks.len(), format_tour_debug(tour));
+
+    // Window break expected at absolute 50; Offset break expected at departure+80.
+    let win_target = 50.0;
+    let off_target = departure + 80.0;
+    let win_hit = breaks.iter().any(|&b| (b - win_target).abs() < 0.5);
+    let off_hit = breaks.iter().any(|&b| (b - off_target).abs() < 0.5);
+    assert!(
+        win_hit && off_hit,
+        "mixed Window+Offset: expected breaks at {win_target} (window) and {off_target} (offset), got {breaks:?}\ntour: {}",
+        format_tour_debug(tour)
+    );
+}
+
+#[test]
+fn probe_wide_offset_with_first_job_anchor() {
+    // Wide offset [10..30] + FirstJobToLastJob cost span.
+    // Anchor = first_job.arrival. Break must be at `first_job.arrival + 30`.
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("j1", (15., 0.)), create_delivery_job("j2", (30., 0.))],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                costs: VehicleCosts {
+                    fixed: Some(10.),
+                    distance: 1.,
+                    time: 1.,
+                    span: Some(RouteCostSpan::FirstJobToLastJob),
+                },
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(0.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(300.), location: (0., 0.).to_loc() }),
+                    breaks: Some(vec![VehicleBreak::Required {
+                        time: VehicleRequiredBreakTime::OffsetTime { earliest: 10., latest: 30. },
+                        duration: 2.,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 200);
+
+    let tour = &solution.tours[0];
+    let anchor = first_job_arrival(tour);
+    let b_start = break_start(tour);
+    let actual_offset = b_start - anchor;
+    assert!(
+        (actual_offset - 30.0).abs() < 0.5,
+        "wide offset [10..30] + FirstJobToLastJob: expected break at first_job_arrival+30={} (anchor={anchor}), got {b_start} (offset={actual_offset})\ntour: {}",
+        anchor + 30.0,
+        format_tour_debug(tour)
+    );
+}
+
+// =============================================================================
+// Worst-case shift probes — how far can the break drift from `latest`?
+// =============================================================================
+
+#[test]
+fn probe_long_overlapping_service_break_stays_at_latest() {
+    // Regression guard: when a job with very long service duration (600s) straddles
+    // the break window, the break must still be placed at `latest + anchor` (not shifted
+    // past the acceptance window by alignment). The job-end gets extended to absorb
+    // the break duration — that's the upstream model.
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job_with_duration("short1", (3., 0.), 5.),
+                create_delivery_job_with_duration("long_job", (10., 0.), 600.),
+                create_delivery_job_with_duration("short2", (20., 0.), 5.),
+            ],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(0.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(2000.), location: (0., 0.).to_loc() }),
+                    breaks: Some(vec![VehicleBreak::Required {
+                        time: VehicleRequiredBreakTime::OffsetTime { earliest: 80., latest: 90. },
+                        duration: 10.,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+    // Checker-enabled run — should pass, breaking only if the writer drifts the break
+    // outside its acceptance window again.
+    let solution = solve_with_metaheuristic_and_iterations(problem, Some(vec![matrix]), 500);
+
+    let tour = &solution.tours[0];
+    let departure = parse_time(&tour.stops[0].schedule().departure);
+    let starts = break_starts(tour);
+    let target = departure + 90.0;
+    assert_eq!(starts.len(), 1, "expected 1 break, got {}\ntour: {}", starts.len(), format_tour_debug(tour));
+    assert!(
+        (starts[0] - target).abs() < 1.0,
+        "break at {} deviates from `latest + anchor` = {target} (dep={departure})\ntour: {}",
+        starts[0],
+        format_tour_debug(tour)
+    );
+}
+
+// =============================================================================
+// Complex / realistic stress probes
+// =============================================================================
+
+/// Returns all break starts in a tour, sorted ascending.
+fn break_starts(tour: &Tour) -> Vec<f64> {
+    let mut starts: Vec<f64> = collect_activity_intervals(tour)
+        .into_iter()
+        .filter(|(_, _, t, _)| t == "break")
+        .map(|(s, _, _, _)| s)
+        .collect();
+    starts.sort_by(|a, b| a.total_cmp(b));
+    starts
+}
+
+#[test]
+fn probe_complex_field_service_day_with_mixed_breaks() {
+    // Realistic field-service day: 14 deliveries with substantial service durations
+    // filling an 8h shift, with three required breaks:
+    //   - mid-day OffsetTime break (offset 120, 15min duration)
+    //   - lunch Window-break (fixed at 240min absolute, 30min)
+    //   - late OffsetTime break (offset 360, 15min)
+    // Service duration 25min × 14 = 350min + travel ~70 = ~420min, fits shift.
+    let problem = Problem {
+        plan: Plan {
+            jobs: (1..=14)
+                .map(|i| {
+                    let x = (i as f64) * 5.;
+                    create_delivery_job_with_duration(&format!("j{i}"), (x, 0.), 25.)
+                })
+                .collect(),
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(0.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(480.), location: (0., 0.).to_loc() }),
+                    breaks: Some(vec![
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::OffsetTime { earliest: 100., latest: 120. },
+                            duration: 15.,
+                        },
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::ExactTime {
+                                earliest: format_time(240.),
+                                latest: format_time(240.),
+                            },
+                            duration: 30.,
+                        },
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::OffsetTime { earliest: 350., latest: 360. },
+                            duration: 15.,
+                        },
+                    ]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 500);
+
+    let tour = &solution.tours[0];
+    let departure = parse_time(&tour.stops[0].schedule().departure);
+    let starts = break_starts(tour);
+    let tour_end = parse_time(&tour.stops.last().unwrap().schedule().arrival);
+
+    // Each placed break must land exactly at its `latest + anchor` target (ε < 1s).
+    // Targets: offset 120 (anchor-relative), window 240 (absolute), offset 360 (anchor-relative).
+    let targets = [departure + 120.0, 240.0, departure + 360.0];
+
+    for actual in &starts {
+        let matched = targets.iter().any(|t| (actual - t).abs() < 1.0);
+        assert!(
+            matched,
+            "complex day: break at {actual} doesn't match any target {targets:?}\nall starts: {starts:?}\ntour: {}",
+            format_tour_debug(tour)
+        );
+    }
+
+    // At least one break should be placed if a target fits before tour end.
+    let placeable = targets.iter().filter(|&&t| t < tour_end - 1.0).count();
+    assert!(
+        starts.len() >= placeable.min(1),
+        "expected at least 1 break placed (of {placeable} that fit before tour_end={tour_end}), got {}\nstarts: {starts:?}\ntour: {}",
+        starts.len(),
+        format_tour_debug(tour)
+    );
+}
+
+#[test]
+fn probe_multi_vehicle_each_with_own_offset_anchor() {
+    // 2 vehicles, 12 jobs. Each vehicle has its own OffsetTime [60..60] break (duration 10).
+    // Different start times → different anchors → each break must hit its own anchor+60.
+    // Validates that per-actor partition keeps anchors independent.
+    let problem = Problem {
+        plan: Plan {
+            jobs: (1..=12)
+                .map(|i| {
+                    let x = (i as f64) * 4.;
+                    create_delivery_job_with_duration(&format!("j{i}"), (x, 0.), 2.)
+                })
+                .collect(),
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![
+                VehicleType {
+                    type_id: "veh1".to_string(),
+                    vehicle_ids: vec!["veh1_1".to_string()],
+                    shifts: vec![VehicleShift {
+                        start: ShiftStart {
+                            earliest: format_time(0.),
+                            latest: Some(format_time(0.)),
+                            location: (0., 0.).to_loc(),
+                        },
+                        end: Some(ShiftEnd { earliest: None, latest: format_time(300.), location: (0., 0.).to_loc() }),
+                        breaks: Some(vec![VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::OffsetTime { earliest: 60., latest: 60. },
+                            duration: 10.,
+                        }]),
+                        ..create_default_vehicle_shift()
+                    }],
+                    ..create_default_vehicle_type()
+                },
+                VehicleType {
+                    type_id: "veh2".to_string(),
+                    vehicle_ids: vec!["veh2_1".to_string()],
+                    shifts: vec![VehicleShift {
+                        start: ShiftStart {
+                            earliest: format_time(30.),
+                            latest: Some(format_time(30.)),
+                            location: (0., 0.).to_loc(),
+                        },
+                        end: Some(ShiftEnd { earliest: None, latest: format_time(330.), location: (0., 0.).to_loc() }),
+                        breaks: Some(vec![VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::OffsetTime { earliest: 60., latest: 60. },
+                            duration: 10.,
+                        }]),
+                        ..create_default_vehicle_shift()
+                    }],
+                    ..create_default_vehicle_type()
+                },
+            ],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 500);
+
+    for tour in &solution.tours {
+        let departure = parse_time(&tour.stops[0].schedule().departure);
+        let starts = break_starts(tour);
+        if starts.is_empty() {
+            continue;
+        }
+        assert_eq!(starts.len(), 1, "vehicle {} expected 1 break, got {}", tour.vehicle_id, starts.len());
+        let target = departure + 60.0;
+        assert!(
+            (starts[0] - target).abs() < 1.0,
+            "vehicle {} ({}): break at {} deviates from `latest + anchor` = {target} (dep={departure})\ntour: {}",
+            tour.vehicle_id,
+            tour.shift_index,
+            starts[0],
+            format_tour_debug(tour)
+        );
+    }
+}
+
+#[test]
+fn probe_tight_time_windows_with_wide_offset_break() {
+    // Tight TWs on jobs + wide offset break window. Solver must squeeze break in
+    // exactly at `latest + anchor`, even when surrounding jobs have hard constraints.
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job_with_times("j1", (5., 0.), vec![(0, 30)], 3.),
+                create_delivery_job_with_times("j2", (10., 0.), vec![(20, 50)], 3.),
+                create_delivery_job_with_times("j3", (15., 0.), vec![(60, 80)], 3.),
+                create_delivery_job_with_times("j4", (20., 0.), vec![(90, 110)], 3.),
+                create_delivery_job_with_times("j5", (25., 0.), vec![(120, 150)], 3.),
+                create_delivery_job_with_times("j6", (30., 0.), vec![(160, 180)], 3.),
+                create_delivery_job_with_times("j7", (35., 0.), vec![(200, 220)], 3.),
+                create_delivery_job_with_times("j8", (40., 0.), vec![(230, 260)], 3.),
+            ],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(0.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(400.), location: (0., 0.).to_loc() }),
+                    breaks: Some(vec![VehicleBreak::Required {
+                        time: VehicleRequiredBreakTime::OffsetTime { earliest: 50., latest: 130. },
+                        duration: 5.,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 500);
+
+    let tour = &solution.tours[0];
+    let departure = parse_time(&tour.stops[0].schedule().departure);
+    let starts = break_starts(tour);
+    assert_eq!(starts.len(), 1, "expected 1 break, got {}\ntour: {}", starts.len(), format_tour_debug(tour));
+    let target = departure + 130.0;
+    assert!(
+        (starts[0] - target).abs() < 1.0,
+        "tight TWs: break at {} deviates from `latest + anchor` = {target} (dep={departure})\ntour: {}",
+        starts[0],
+        format_tour_debug(tour)
+    );
+}
+
+#[test]
+fn probe_long_shift_with_three_sequential_offset_breaks() {
+    // 8-hour shift (480 minutes), 20 jobs with 20min service each, three sequential
+    // offset breaks at 90, 240, 390 minutes. Tour fills ~440min (400 service + 40 travel),
+    // so all three break windows fit before tour end.
+    let problem = Problem {
+        plan: Plan {
+            jobs: (1..=20)
+                .map(|i| {
+                    let x = (i as f64) * 3.;
+                    create_delivery_job_with_duration(&format!("j{i}"), (x, 0.), 20.)
+                })
+                .collect(),
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(0.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(480.), location: (0., 0.).to_loc() }),
+                    breaks: Some(vec![
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::OffsetTime { earliest: 80., latest: 90. },
+                            duration: 10.,
+                        },
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::OffsetTime { earliest: 230., latest: 240. },
+                            duration: 20.,
+                        },
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::OffsetTime { earliest: 380., latest: 390. },
+                            duration: 10.,
+                        },
+                    ]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 500);
+
+    let tour = &solution.tours[0];
+    let departure = parse_time(&tour.stops[0].schedule().departure);
+    let starts = break_starts(tour);
+    let tour_end = parse_time(&tour.stops.last().unwrap().schedule().arrival);
+
+    // Each placed break must land exactly at its `latest + anchor` target (ε < 1s).
+    let targets = [departure + 90.0, departure + 240.0, departure + 390.0];
+
+    for actual in &starts {
+        let matched = targets.iter().any(|t| (actual - t).abs() < 1.0);
+        assert!(
+            matched,
+            "long shift: break at {actual} doesn't match any target {targets:?}\nstarts: {starts:?}\ntour: {}",
+            format_tour_debug(tour)
+        );
+    }
+
+    assert!(!starts.is_empty(), "expected at least 1 break, got none\ntour: {}", format_tour_debug(tour));
+    let _ = tour_end;
 }
 
 /// Validates no cross-stop overlap between break activities and job activities.
