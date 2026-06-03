@@ -502,11 +502,9 @@ mod dynamic {
     /// Internal `WeightedRuin`/`WeightedRecreate` weight for weak members.
     const WEAK_BUNDLE_WEIGHT: usize = 1;
 
-    /// Wraps every primary ruin in a `CompositeRuin` with a small-probability `extra_random_job`
-    /// companion to mimic today's "small chaos" baseline. `random_job` is its own primary, so we
-    /// skip the wrapper for it to avoid double-counting random destruction.
+    /// Wraps every primary ruin in a `CompositeRuin` with a small-probability `extra`.
     fn wrap_with_extra(ruin: Arc<dyn Ruin>, name: &str, extra: Arc<dyn Ruin>) -> Arc<dyn Ruin> {
-        if name == "random_job" {
+        if name == "random_job" || name == "random_route" {
             ruin
         } else {
             Arc::new(CompositeRuin::new(vec![(ruin, 1.), (extra, 0.1)]))
@@ -558,15 +556,12 @@ mod dynamic {
                 as Arc<dyn Ruin>
         };
 
+        // random_job is omitted as a primary weak-tier as it seems not good to be used alone,
+        // but it is still included as a small-probability companion in ruin bundles via `wrap_with_extra`.
         vec![
             (
                 create_weighted(|limits| Arc::new(NeighbourRemoval::new(limits))),
                 "neighbour".to_string(),
-                WEAK_ARM_PRIOR,
-            ),
-            (
-                create_weighted(|limits| Arc::new(RandomJobRemoval::new(limits))),
-                "random_job".to_string(),
                 WEAK_ARM_PRIOR,
             ),
             (
@@ -577,10 +572,7 @@ mod dynamic {
         ]
     }
 
-    fn get_strong_recreates(
-        problem: &Problem,
-        random: Arc<dyn Random>,
-    ) -> Vec<(Arc<dyn Recreate>, String, Float)> {
+    fn get_strong_recreates(problem: &Problem, random: Arc<dyn Random>) -> Vec<(Arc<dyn Recreate>, String, Float)> {
         let blinks: Arc<dyn Recreate> = Arc::new(RecreateWithBlinks::new_with_defaults(random.clone()));
         let cheapest: Arc<dyn Recreate> = Arc::new(RecreateWithCheapest::new(random.clone()));
         let regret: Arc<dyn Recreate> = Arc::new(RecreateWithRegret::new(1, 3, random.clone()));
@@ -643,13 +635,9 @@ mod dynamic {
     ) -> Arc<dyn Ruin> {
         let mut bundle: Vec<(Arc<dyn Ruin>, usize)> = Vec::with_capacity(strong.len() + weak.len());
         bundle.extend(
-            strong
-                .iter()
-                .map(|(r, n, _)| (wrap_with_extra(r.clone(), n, extra.clone()), STRONG_BUNDLE_WEIGHT)),
+            strong.iter().map(|(r, n, _)| (wrap_with_extra(r.clone(), n, extra.clone()), STRONG_BUNDLE_WEIGHT)),
         );
-        bundle.extend(
-            weak.iter().map(|(r, n, _)| (wrap_with_extra(r.clone(), n, extra.clone()), WEAK_BUNDLE_WEIGHT)),
-        );
+        bundle.extend(weak.iter().map(|(r, n, _)| (wrap_with_extra(r.clone(), n, extra.clone()), WEAK_BUNDLE_WEIGHT)));
         Arc::new(WeightedRuin::new(bundle))
     }
 
@@ -707,7 +695,13 @@ mod dynamic {
         let strong_recreates = get_strong_recreates(problem.as_ref(), random.clone());
         let weak_recreates = get_weak_recreates(random.clone());
 
-        let extra_random_job: Arc<dyn Ruin> = Arc::new(RandomJobRemoval::new(small_limits));
+        // 3:1 weighted mix of random_job and random_route — applied at 0.1 probability to every
+        // primary ruin via wrap_with_extra. Random_route occasionally forces job redistribution
+        // across routes, which scattered random_job removal can't trigger.
+        let extra_random_job: Arc<dyn Ruin> = Arc::new(WeightedRuin::new(vec![
+            (Arc::new(RandomJobRemoval::new(small_limits.clone())) as Arc<dyn Ruin>, 3),
+            (Arc::new(RandomRouteRemoval::new(small_limits)) as Arc<dyn Ruin>, 1),
+        ]));
 
         // Strong cartesian: every strong ruin × every strong recreate. Ruins are wrapped with the
         // small `extra_random_job` companion (today's "small chaos" baseline).
@@ -739,17 +733,12 @@ mod dynamic {
             .iter()
             .map::<(TargetSearchOperator, String, Float), _>(|(ruin, name, weight)| {
                 let primary = wrap_with_extra(ruin.clone(), name, extra_random_job.clone());
-                (
-                    Arc::new(RuinAndRecreate::new(primary, weak_ruin_recreate_bundle.clone())),
-                    name.clone(),
-                    *weight,
-                )
+                (Arc::new(RuinAndRecreate::new(primary, weak_ruin_recreate_bundle.clone())), name.clone(), *weight)
             })
             .collect::<Vec<_>>();
 
         // Weak recreate arms: each weak recreate paired with a strong-heavy WeightedRuin bundle.
-        let weak_recreate_ruin_bundle =
-            build_weak_ruin_bundle(&strong_ruins, &weak_ruins, extra_random_job);
+        let weak_recreate_ruin_bundle = build_weak_ruin_bundle(&strong_ruins, &weak_ruins, extra_random_job);
         let weak_recreate_ops = weak_recreates
             .iter()
             .map::<(TargetSearchOperator, String, Float), _>(|(recreate, name, weight)| {
@@ -782,8 +771,6 @@ mod dynamic {
     }
 
     /// Creates a default ruin-and-recreate operator for internal use (e.g., decompose search, infeasible search).
-    /// Uses the same tier philosophy as the main bandit: strong members dominate (2:1 over weak)
-    /// inside both the ruin and recreate bundles, with the SISR pair (asr, blinks) further boosted.
     pub fn create_default_inner_ruin_recreate(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
@@ -792,36 +779,32 @@ mod dynamic {
         let random = environment.random.clone();
 
         let strong_ruins = get_strong_ruins(problem.clone(), &normal_limits, &small_limits);
-        let weak_ruins = get_weak_ruins(&normal_limits, &small_limits);
-        let strong_recreates = get_strong_recreates(problem.as_ref(), random.clone());
-        let weak_recreates = get_weak_recreates(random);
+        let strong_recreates = get_strong_recreates(problem.as_ref(), random);
 
-        let extra_random_job: Arc<dyn Ruin> = Arc::new(RandomJobRemoval::new(small_limits));
+        // 3:1 mix of random_job and random_route as the small-chaos companion (matches outer pool).
+        let extra_random: Arc<dyn Ruin> = Arc::new(WeightedRuin::new(vec![
+            (Arc::new(RandomJobRemoval::new(small_limits.clone())) as Arc<dyn Ruin>, 3),
+            (Arc::new(RandomRouteRemoval::new(small_limits)) as Arc<dyn Ruin>, 1),
+        ]));
 
-        // Map bandit-prior weights to integer bundle weights, preserving the SISR boost
-        // (asr=3, blinks=3) and the strong/weak split. Weak members at half-weight after rounding,
-        // so we use an explicit table instead of casting Float→usize.
+        // Map bandit-prior weights to integer bundle weights, preserving the SISR boost (asr=3, blinks=3).
         let to_bundle_weight = |float_weight: Float| -> usize {
             if float_weight >= SISR_BOOST_WEIGHT {
                 SISR_BOOST_WEIGHT as usize * STRONG_BUNDLE_WEIGHT
-            } else if float_weight >= STRONG_WEIGHT {
-                STRONG_BUNDLE_WEIGHT
             } else {
-                WEAK_BUNDLE_WEIGHT
+                STRONG_BUNDLE_WEIGHT
             }
         };
 
         let weighted_ruins: Vec<(Arc<dyn Ruin>, usize)> = strong_ruins
             .iter()
-            .chain(weak_ruins.iter())
             .map(|(ruin, name, weight)| {
-                (wrap_with_extra(ruin.clone(), name, extra_random_job.clone()), to_bundle_weight(*weight))
+                (wrap_with_extra(ruin.clone(), name, extra_random.clone()), to_bundle_weight(*weight))
             })
             .collect();
 
         let weighted_recreates: Vec<(Arc<dyn Recreate>, usize)> = strong_recreates
             .iter()
-            .chain(weak_recreates.iter())
             .map(|(recreate, _, weight)| (recreate.clone(), to_bundle_weight(*weight)))
             .collect();
 
