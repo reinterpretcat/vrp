@@ -76,6 +76,20 @@ pub trait InsertionEvaluator: Send + Sync {
         leg_selection: &LegSelection,
         result_selector: &dyn ResultSelector,
     ) -> InsertionResult;
+
+    /// Drives the full insertion loop. The default implementation re-prepares selectors and
+    /// re-evaluates remaining jobs on every step (greedy best-insertion). Override to express
+    /// alternative iteration strategies (e.g. canonical SISR: sort once, insert in order).
+    fn process(
+        &self,
+        insertion_ctx: InsertionContext,
+        job_selector: &dyn JobSelector,
+        route_selector: &dyn RouteSelector,
+        leg_selection: &LegSelection,
+        result_selector: &dyn ResultSelector,
+    ) -> InsertionContext {
+        default_insertion_loop(self, insertion_ctx, job_selector, route_selector, leg_selection, result_selector)
+    }
 }
 
 /// Evaluates job insertion in routes at given position.

@@ -260,42 +260,52 @@ impl InsertionHeuristic {
     /// Runs common insertion heuristic algorithm using given selector specializations.
     pub fn process(
         &self,
-        mut insertion_ctx: InsertionContext,
+        insertion_ctx: InsertionContext,
         job_selector: &dyn JobSelector,
         route_selector: &dyn RouteSelector,
         leg_selection: &LegSelection,
         result_selector: &dyn ResultSelector,
     ) -> InsertionContext {
-        prepare_insertion_ctx(&mut insertion_ctx);
+        self.insertion_evaluator.process(insertion_ctx, job_selector, route_selector, leg_selection, result_selector)
+    }
+}
 
-        while !insertion_ctx.solution.required.is_empty()
-            && !insertion_ctx.environment.quota.as_ref().is_some_and(|q| q.is_reached())
-        {
-            job_selector.prepare(&mut insertion_ctx);
-            route_selector.prepare(&mut insertion_ctx);
+/// Default insertion loop driving an [`InsertionEvaluator`]: re-prepare and re-select on each step,
+/// pick the best (job, route, position) for the current state, apply the result, repeat.
+pub(crate) fn default_insertion_loop<E: InsertionEvaluator + ?Sized>(
+    evaluator: &E,
+    mut insertion_ctx: InsertionContext,
+    job_selector: &dyn JobSelector,
+    route_selector: &dyn RouteSelector,
+    leg_selection: &LegSelection,
+    result_selector: &dyn ResultSelector,
+) -> InsertionContext {
+    prepare_insertion_ctx(&mut insertion_ctx);
 
-            let jobs = job_selector.select(&insertion_ctx).collect::<Vec<_>>();
-            let routes = route_selector.select(&insertion_ctx, jobs.as_slice()).collect::<Vec<_>>();
+    while !insertion_ctx.solution.required.is_empty()
+        && !insertion_ctx.environment.quota.as_ref().is_some_and(|q| q.is_reached())
+    {
+        job_selector.prepare(&mut insertion_ctx);
+        route_selector.prepare(&mut insertion_ctx);
 
-            let result =
-                self.insertion_evaluator.evaluate_all(&insertion_ctx, &jobs, &routes, leg_selection, result_selector);
+        let jobs = job_selector.select(&insertion_ctx).collect::<Vec<_>>();
+        let routes = route_selector.select(&insertion_ctx, jobs.as_slice()).collect::<Vec<_>>();
 
-            match result {
-                InsertionResult::Success(success) => {
-                    apply_insertion_success(&mut insertion_ctx, success);
-                }
-                InsertionResult::Failure(failure) => {
-                    // NOTE copy data to make borrow checker happy
-                    let (route_indices, jobs) = copy_selection_data(&insertion_ctx, routes.as_slice(), jobs.as_slice());
-                    apply_insertion_failure(&mut insertion_ctx, failure, &route_indices, &jobs);
-                }
+        let result = evaluator.evaluate_all(&insertion_ctx, &jobs, &routes, leg_selection, result_selector);
+
+        match result {
+            InsertionResult::Success(success) => apply_insertion_success(&mut insertion_ctx, success),
+            InsertionResult::Failure(failure) => {
+                // NOTE copy data to make borrow checker happy
+                let (route_indices, jobs) = copy_selection_data(&insertion_ctx, routes.as_slice(), jobs.as_slice());
+                apply_insertion_failure(&mut insertion_ctx, failure, &route_indices, &jobs);
             }
         }
-
-        finalize_insertion_ctx(&mut insertion_ctx);
-
-        insertion_ctx
     }
+
+    finalize_insertion_ctx(&mut insertion_ctx);
+
+    insertion_ctx
 }
 
 impl InsertionResult {
