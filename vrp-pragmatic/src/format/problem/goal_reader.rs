@@ -3,6 +3,7 @@ use std::ops::Mul;
 use vrp_core::algorithms::clustering::kmedoids::create_hierarchical_kmedoids;
 use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
 use vrp_core::construction::enablers::FeatureCombinator;
+use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::construction::features::*;
 use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Job as CoreJob, Single, TransportCost};
@@ -251,6 +252,7 @@ fn get_objective_feature_layer(
         Objective::MinimizeVehicleDistance => VehicleDistanceFeatureBuilder::new("min_vehicle_distance")
             .set_transport(blocks.transport.clone())
             .set_actors(blocks.fleet.actors.clone())
+            .set_jobs(blocks.jobs.clone())
             .set_compatibility_fn(|job, actor| {
                 if let Some(job_skills) = job.dimens().get_job_skills() {
                     let vehicle_skills = actor.vehicle.dimens.get_vehicle_skills();
@@ -408,6 +410,48 @@ fn eval_multi_objective_strategy(
                 {
                     let weights = weights.clone();
                     move |os, move_ctx| os.iter().enumerate().map(|(idx, o)| o.estimate(move_ctx) * weights[idx]).sum()
+                },
+            )
+        }
+
+        MultiStrategy::WeightedSumScalar { weights } => {
+            if objectives.len() != weights.len() {
+                return Err(format!(
+                    "weighted sum scalar requires same amount of weights as objective count: {} vs {}",
+                    weights.len(),
+                    objectives.len()
+                )
+                .into());
+            }
+
+            builder.add_multi(
+                objectives,
+                {
+                    // Selection: collapse the weighted fitness values into a single scalar and
+                    // compare those. This makes the weighted sum the quantity being minimized,
+                    // instead of the Pareto-dominance order used by `WeightedSum`.
+                    //
+                    // Each fitness is divided by the objective's own `fitness_scale()` so that
+                    // objectives with very different magnitudes combine on a comparable scale and
+                    // the weights stay dimensionless preferences. The objective owns this scale;
+                    // the strategy only applies it uniformly (default scale is 1.0 = no-op).
+                    let weights = weights.clone();
+                    move |os: &[Arc<dyn FeatureObjective>], a: &InsertionContext, b: &InsertionContext| {
+                        let score = |s: &InsertionContext| -> Float {
+                            os.iter().enumerate().map(|(idx, o)| weights[idx] * o.fitness(s) / o.fitness_scale()).sum()
+                        };
+                        score(a).total_cmp(&score(b))
+                    }
+                },
+                {
+                    // Insertion heuristic: same weighted, self-normalized estimate as selection.
+                    let weights = weights.clone();
+                    move |os, move_ctx| {
+                        os.iter()
+                            .enumerate()
+                            .map(|(idx, o)| weights[idx] * o.estimate(move_ctx) / o.fitness_scale())
+                            .sum()
+                    }
                 },
             )
         }

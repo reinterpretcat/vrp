@@ -691,7 +691,26 @@ pub enum MultiStrategy {
     Sum,
 
     /// A weighted sum type uses linear combination of weights and the corresponding fitness values.
+    ///
+    /// NOTE: weights only steer the local insertion heuristic here; two complete solutions are still
+    /// compared by Pareto dominance, so trade-off solutions are treated as incomparable. Use
+    /// `WeightedSumScalar` if you want the weighted sum itself to be the quantity that is minimized.
     WeightedSum {
+        /// Individual weights. Size of vector must be the same as amount of objective functions.
+        weights: Vec<Float>,
+    },
+
+    /// A scalarizing weighted sum: the linear combination of weights and fitness values becomes a
+    /// single scalar that is BOTH minimized during selection and used to steer insertion.
+    ///
+    /// Unlike `WeightedSum`, this collapses the competing objectives into one total order, so the
+    /// weighted sum decreases monotonically instead of wandering along the Pareto front. Pick this
+    /// when you want one well-defined compromise point (e.g. "keep tours compact, but if a vehicle
+    /// must drive far due to skills, still keep its route compact") rather than a set of trade-offs.
+    ///
+    /// Because the raw fitness values enter the comparison directly, weights must account for the
+    /// objectives' very different magnitudes (see crate docs / objective definitions for ranges).
+    WeightedSumScalar {
         /// Individual weights. Size of vector must be the same as amount of objective functions.
         weights: Vec<Float>,
     },

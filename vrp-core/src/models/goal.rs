@@ -452,6 +452,19 @@ pub trait FeatureObjective: Send + Sync {
 
     /// Estimates the cost of insertion.
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost;
+
+    /// A per-problem reference magnitude that this objective's `fitness` (and `estimate`) are
+    /// measured in. Scalarizing combinators (e.g. a weighted-sum-scalar strategy) divide by this
+    /// value so that objectives with very different magnitudes can be summed on a comparable,
+    /// dimensionless scale and the weights express preference rather than accidental scale.
+    ///
+    /// The default of `1.0` means "no normalization" and leaves `fitness`/`estimate` unchanged.
+    /// An objective that knows its own scale (e.g. a theoretical maximum or an ideal-value total)
+    /// overrides this; the value is expected to be a positive constant for a given problem so that
+    /// the resulting comparison stays a consistent total order.
+    fn fitness_scale(&self) -> Cost {
+        1.0
+    }
 }
 
 impl HeuristicObjective for GoalContext {

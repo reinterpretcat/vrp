@@ -28,17 +28,28 @@ pub struct VehicleDistanceFeatureBuilder {
     transport: Option<Arc<dyn TransportCost + Send + Sync>>,
     actors: Option<Vec<Arc<Actor>>>,
     compatibility_fn: Option<ActorJobCompatibilityFn>,
+    jobs: Option<Arc<Jobs>>,
 }
 
 impl VehicleDistanceFeatureBuilder {
     /// Creates a new instance of `VehicleDistanceFeatureBuilder`.
     pub fn new(name: &str) -> Self {
-        Self { name: name.to_string(), transport: None, actors: None, compatibility_fn: None }
+        Self { name: name.to_string(), transport: None, actors: None, compatibility_fn: None, jobs: None }
     }
 
     /// Sets the transport cost model.
     pub fn set_transport(mut self, transport: Arc<dyn TransportCost + Send + Sync>) -> Self {
         self.transport = Some(transport);
+        self
+    }
+
+    /// Sets the job set used to compute the self-normalization reference scale.
+    ///
+    /// When provided, the objective reports a `fitness_scale` equal to the total ideal travel
+    /// (sum over jobs of the round-trip to the nearest compatible vehicle), turning its fitness
+    /// into a dimensionless "relative overshoot". When omitted, the scale stays `1.0` (raw).
+    pub fn set_jobs(mut self, jobs: Arc<Jobs>) -> Self {
+        self.jobs = Some(jobs);
         self
     }
 
@@ -72,7 +83,18 @@ impl VehicleDistanceFeatureBuilder {
             .take()
             .ok_or_else(|| GenericError::from("compatibility_fn must be set for vehicle_distance feature"))?;
 
-        let shared = Arc::new(VehicleDistanceShared { transport, actors, compatibility_fn });
+        // Reference scale for self-normalization: the total ideal travel, i.e. the sum over all
+        // jobs of the round-trip to their nearest compatible vehicle. Dividing the penalty (excess
+        // over that ideal) by this turns fitness into a dimensionless "relative overshoot", so
+        // weights in a scalarizing multi-objective become comparable across problems and units.
+        // Computed once here; guarded to stay positive (e.g. all jobs sitting on depots).
+        let reference = self
+            .jobs
+            .take()
+            .map(|jobs| compute_ideal_travel(&transport, &actors, &compatibility_fn, &jobs).max(1.0))
+            .unwrap_or(1.0);
+
+        let shared = Arc::new(VehicleDistanceShared { transport, actors, compatibility_fn, reference });
 
         let objective = VehicleDistanceObjective { shared: shared.clone() };
         let state = VehicleDistanceState { shared };
@@ -90,6 +112,36 @@ struct VehicleDistanceShared {
     transport: Arc<dyn TransportCost + Send + Sync>,
     actors: Vec<Arc<Actor>>,
     compatibility_fn: ActorJobCompatibilityFn,
+    /// Reference magnitude used by scalarizing combinators to normalize this objective's fitness.
+    /// Equals the total ideal travel; `1.0` means "not normalized" (no job set was provided).
+    reference: Cost,
+}
+
+/// Computes the total ideal travel: the sum over all jobs of the round-trip distance to the
+/// nearest compatible vehicle. This is the denominator that turns the excess-distance penalty
+/// into a dimensionless relative overshoot. Each candidate vehicle is measured with its own
+/// profile and start location.
+fn compute_ideal_travel(
+    transport: &Arc<dyn TransportCost + Send + Sync>,
+    actors: &[Arc<Actor>],
+    compatibility_fn: &ActorJobCompatibilityFn,
+    jobs: &Jobs,
+) -> Cost {
+    jobs.all()
+        .iter()
+        .filter_map(|job| {
+            let job_loc = get_job_location(job)?;
+            actors
+                .iter()
+                .filter(|actor| (compatibility_fn)(job, actor))
+                .filter_map(|actor| actor.detail.start.as_ref().map(|start| (start.location, &actor.vehicle.profile)))
+                .map(|(start, profile)| {
+                    transport.distance_approx(profile, start, job_loc)
+                        + transport.distance_approx(profile, job_loc, start)
+                })
+                .min_by(|a, b| a.total_cmp(b))
+        })
+        .sum()
 }
 
 impl VehicleDistanceShared {
@@ -203,6 +255,10 @@ impl FeatureObjective for VehicleDistanceObjective {
             }
             MoveContext::Activity { .. } => Cost::default(),
         }
+    }
+
+    fn fitness_scale(&self) -> Cost {
+        self.shared.reference
     }
 }
 
