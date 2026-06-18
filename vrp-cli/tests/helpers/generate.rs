@@ -47,6 +47,7 @@ pub fn create_test_vehicle_type() -> VehicleType {
         capacity: vec![10],
         skills: None,
         limits: None,
+        min_shifts: None,
     }
 }
 

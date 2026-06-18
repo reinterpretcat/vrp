@@ -129,6 +129,7 @@ mod actual {
                     capacity: vec![vehicle.capacity],
                     skills: None,
                     limits: None,
+                    min_shifts: None,
                 }
             })
             .collect();

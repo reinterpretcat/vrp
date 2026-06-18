@@ -171,44 +171,6 @@ fn check_e1306_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), 
     }
 }
 
-fn check_e1307_vehicle_offset_break_rescheduling(ctx: &ValidationContext) -> Result<(), FormatError> {
-    let type_ids = get_invalid_type_ids(
-        ctx,
-        Box::new(|_, shift, _| {
-            shift
-                .breaks
-                .as_ref()
-                .map(|breaks| {
-                    let has_time_offset = breaks.iter().any(|br| {
-                        matches!(
-                            br,
-                            VehicleBreak::Required { time: VehicleRequiredBreakTime::OffsetTime { .. }, .. }
-                                | VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeOffset { .. }, .. }
-                        )
-                    });
-                    let has_rescheduling =
-                        shift.start.latest.as_ref().is_none_or(|latest| *latest != shift.start.earliest);
-
-                    !(has_time_offset && has_rescheduling)
-                })
-                .unwrap_or(true)
-        }),
-    );
-
-    if type_ids.is_empty() {
-        Ok(())
-    } else {
-        Err(FormatError::new(
-            "E1307".to_string(),
-            "time offset interval for break is used with departure rescheduling".to_string(),
-            format!(
-                "when time offset is used, start.latest should be set equal to start.earliest in the shift, check vehicle type ids: '{}'",
-                type_ids.join(", ")
-            ),
-        ))
-    }
-}
-
 fn check_e1308_vehicle_reload_resources(ctx: &ValidationContext) -> Result<(), FormatError> {
     let reload_resource_ids = ctx
         .problem
@@ -291,16 +253,15 @@ fn get_shift_time_window(shift: &VehicleShift) -> Option<TimeWindow> {
 }
 
 /// Validates vehicles from the fleet.
-pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
-    combine_error_results(&[
-        check_e1300_no_vehicle_types_with_duplicate_type_ids(ctx),
-        check_e1301_no_vehicle_types_with_duplicate_ids(ctx),
-        check_e1302_vehicle_shift_time(ctx),
-        check_e1303_vehicle_breaks_time_is_correct(ctx),
-        check_e1304_vehicle_reload_time_is_correct(ctx),
-        check_e1306_vehicle_has_no_zero_costs(ctx),
-        check_e1307_vehicle_offset_break_rescheduling(ctx),
-        check_e1308_vehicle_reload_resources(ctx),
-    ])
-    .map_err(From::from)
-}
+    pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError> {
+        combine_error_results(&[
+            check_e1300_no_vehicle_types_with_duplicate_type_ids(ctx),
+            check_e1301_no_vehicle_types_with_duplicate_ids(ctx),
+            check_e1302_vehicle_shift_time(ctx),
+            check_e1303_vehicle_breaks_time_is_correct(ctx),
+            check_e1304_vehicle_reload_time_is_correct(ctx),
+            check_e1306_vehicle_has_no_zero_costs(ctx),
+            check_e1308_vehicle_reload_resources(ctx),
+        ])
+        .map_err(From::from)
+    }

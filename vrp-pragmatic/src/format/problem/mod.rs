@@ -109,6 +109,7 @@ struct ProblemProperties {
     has_compatibility: bool,
     has_tour_size_limits: bool,
     has_tour_travel_limits: bool,
+    has_min_vehicle_shifts: bool,
 }
 
 /// Keeps track of materialized problem building blocks.

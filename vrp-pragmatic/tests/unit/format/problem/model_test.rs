@@ -1,5 +1,6 @@
 use super::*;
 use crate::helpers::{SIMPLE_MATRIX, SIMPLE_PROBLEM};
+use serde_json::from_str;
 use std::io::BufReader;
 
 fn assert_time_windows(actual: &Option<Vec<Vec<String>>>, expected: (&str, &str)) {
@@ -63,4 +64,18 @@ fn can_deserialize_matrix() {
 
     assert_eq!(matrix.distances.len(), 16);
     assert_eq!(matrix.travel_times.len(), 16);
+}
+
+#[test]
+fn can_deserialize_balance_shifts_objective_with_saturation() {
+    let objective: Objective = from_str(r#"{ "type": "balance-shifts", "saturation": 0.2, "weight": 3.5 }"#)
+        .expect("failed to deserialize objective");
+
+    match objective {
+        Objective::BalanceShifts { saturation, weight } => {
+            assert!((saturation.unwrap() - 0.2).abs() < 1e-9);
+            assert!((weight.unwrap() - 3.5).abs() < 1e-9);
+        }
+        _ => panic!("unexpected objective variant"),
+    }
 }

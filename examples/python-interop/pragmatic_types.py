@@ -22,7 +22,7 @@ class RoutingMatrix:
 class Problem:
     plan: Plan
     fleet: Fleet
-    objectives: Optional[List[List[Objective]]] = None
+    objectives: Optional[List[Objective]] = None
 
 
 @dataclass
@@ -142,25 +142,6 @@ class Objective:
 class ObjectiveOptions:
     threshold: float
 
-
-Problem.__pydantic_model__.update_forward_refs()
-
-Plan.__pydantic_model__.update_forward_refs()
-Job.__pydantic_model__.update_forward_refs()
-JobTask.__pydantic_model__.update_forward_refs()
-JobPlace.__pydantic_model__.update_forward_refs()
-
-Fleet.__pydantic_model__.update_forward_refs()
-VehicleReload.__pydantic_model__.update_forward_refs()
-VehicleType.__pydantic_model__.update_forward_refs()
-VehicleShift.__pydantic_model__.update_forward_refs()
-VehicleShiftStart.__pydantic_model__.update_forward_refs()
-VehicleShiftEnd.__pydantic_model__.update_forward_refs()
-VehicleBreak.__pydantic_model__.update_forward_refs()
-
-Objective.__pydantic_model__.update_forward_refs()
-
-
 # Solution
 
 @dataclass
@@ -223,10 +204,3 @@ class Activity:
 class Time:
     start: datetime
     end: datetime
-
-
-Solution.__pydantic_model__.update_forward_refs()
-Statistic.__pydantic_model__.update_forward_refs()
-Tour.__pydantic_model__.update_forward_refs()
-Stop.__pydantic_model__.update_forward_refs()
-Activity.__pydantic_model__.update_forward_refs()

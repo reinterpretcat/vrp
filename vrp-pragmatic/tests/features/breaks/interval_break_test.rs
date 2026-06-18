@@ -194,7 +194,6 @@ fn can_assign_interval_break_with_reload() {
 }
 
 #[test]
-#[ignore]
 fn can_consider_departure_rescheduling() {
     let problem = Problem {
         plan: Plan {
@@ -225,6 +224,9 @@ fn can_consider_departure_rescheduling() {
 
     let solution = solve_with_metaheuristic_and_iterations(problem, Some(vec![matrix]), 2000);
 
+    print!("{:#?}", solution);
+
+    assert!(solution.tours[0].stops[0].schedule().arrival != solution.tours[0].stops[0].schedule().departure);
     assert!(solution.violations.is_none());
     assert!(solution.unassigned.is_none());
 }

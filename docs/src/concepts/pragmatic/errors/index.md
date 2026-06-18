@@ -485,28 +485,6 @@ Additionally, reload time should be inside vehicle shift it is specified:
 
 You can fix the error by defining a small value (e.g. 0.0000001) for duration or time costs.
 
-#### E1307
-
-`time offset interval for break is used with departure rescheduling` is returned when time offset interval is specified for break,
-but `start.latest` is not set equal to `start.earliest` in the shift.
-
-```json
-  {
-    "start": {
-      "earliest": "2019-07-04T09:00:00Z",
-      /** Error: need to set latest to  "2019-07-04T09:00:00Z" explicitely **/
-      "location": { "lat": 52.5316, "lng": 13.3884 }
-    },
-    "breaks": [{
-        /** Note: offset time is used here **/
-        "time": [3600, 4000],
-        "places": [{ "duration": 1800 } ]
-     }]
-  }
-```
-
-Alternatively, you can switch to time window definition and keep `start.latest` property as you wish.
-
 #### E1308
 
 `invalid vehicle reload resource` is returned when:

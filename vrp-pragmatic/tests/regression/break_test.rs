@@ -142,6 +142,7 @@ fn can_handle_properly_invalid_break_removal() {
                     capacity: vec![5],
                     skills: None,
                     limits: None,
+                    min_shifts: None,
                 }],
                 ..create_default_fleet()
             },
