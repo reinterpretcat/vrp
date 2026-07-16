@@ -602,5 +602,6 @@ but user defined objective doesn't include the `minimize-tour-size-violation` ob
 #### E1609
 
 `redundant balance-production-value objective` error is returned when objectives definition is overridden with
-`balance-production-value`, but there is no jobs with positive production value specified. To fix the issue, specify
-at least one job with a positive `productionValue` or simply delete 'balance-production-value' objective.
+`balance-production-value`, or with `balance-period` using the `production-value` metric, but there is no jobs with
+positive production value specified. To fix the issue, specify at least one job with a positive `productionValue`
+or simply delete the `balance-production-value` (or `balance-period` with `production-value` metric) objective.

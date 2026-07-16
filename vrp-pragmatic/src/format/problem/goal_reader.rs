@@ -2,9 +2,9 @@ use super::*;
 use std::ops::Mul;
 use vrp_core::algorithms::clustering::kmedoids::create_hierarchical_kmedoids;
 use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
-use vrp_core::construction::enablers::FeatureCombinator;
-use vrp_core::construction::heuristics::InsertionContext;
+use vrp_core::construction::enablers::{FeatureCombinator, TotalDistanceTourState, TotalDurationTourState};
 use vrp_core::construction::features::*;
+use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Job as CoreJob, Single, TransportCost};
 use vrp_core::models::solution::Route;
@@ -222,6 +222,44 @@ fn get_objective_feature_layer(
                 job.dimens().get_production_value().copied().unwrap_or(0.)
             })
         }
+        Objective::BalancePeriod { metric } => {
+            let group_capacities: HashMap<String, usize> =
+                blocks.fleet.actors.iter().fold(HashMap::new(), |mut acc, actor| {
+                    if let Some(vehicle_id) = actor.vehicle.dimens.get_vehicle_id() {
+                        *acc.entry(vehicle_id.clone()).or_insert(0) += 1;
+                    }
+                    acc
+                });
+            let group_key_fn = |actor: &Actor| actor.vehicle.dimens.get_vehicle_id().cloned();
+
+            match metric {
+                BalancePeriodMetric::Distance => {
+                    create_period_balanced_feature("period_balance", group_capacities, group_key_fn, |route_ctx| {
+                        route_ctx.state().get_total_distance().copied().unwrap_or(0.)
+                    })
+                }
+                BalancePeriodMetric::Duration => {
+                    create_period_balanced_feature("period_balance", group_capacities, group_key_fn, |route_ctx| {
+                        route_ctx.state().get_total_duration().copied().unwrap_or(0.)
+                    })
+                }
+                BalancePeriodMetric::Activities => {
+                    create_period_balanced_feature("period_balance", group_capacities, group_key_fn, |route_ctx| {
+                        route_ctx.route().tour.job_activity_count() as Float
+                    })
+                }
+                BalancePeriodMetric::ProductionValue => {
+                    create_period_balanced_feature("period_balance", group_capacities, group_key_fn, |route_ctx| {
+                        route_ctx
+                            .route()
+                            .tour
+                            .jobs()
+                            .map(|job| job.dimens().get_production_value().copied().unwrap_or(0.))
+                            .sum()
+                    })
+                }
+            }
+        }
         Objective::CompactTour { job_radius } => {
             create_tour_compactness_feature("tour_compact", blocks.jobs.clone(), *job_radius)
         }
@@ -272,11 +310,9 @@ fn get_objective_feature_layer(
                 // technician who isn't working that day.
                 let actor_tw = &actor.detail.time;
                 let any_overlap = match job {
-                    CoreJob::Single(single) => single
-                        .places
-                        .iter()
-                        .flat_map(|p| p.times.iter())
-                        .any(|ts| ts.intersects(0.0, actor_tw)),
+                    CoreJob::Single(single) => {
+                        single.places.iter().flat_map(|p| p.times.iter()).any(|ts| ts.intersects(0.0, actor_tw))
+                    }
                     CoreJob::Multi(multi) => multi
                         .jobs
                         .iter()

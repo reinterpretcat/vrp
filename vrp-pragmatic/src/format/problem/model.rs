@@ -640,6 +640,12 @@ pub enum Objective {
     /// An objective to balance total job production value across all tours.
     BalanceProductionValue,
 
+    /// An objective to balance a work metric per employee across the whole planning period.
+    BalancePeriod {
+        /// Specifies which metric to balance.
+        metric: BalancePeriodMetric,
+    },
+
     /// An objective to balance shifts across all vehicles.
     BalanceShifts {
         /// Controls how quickly the penalty grows as variance increases.
@@ -687,6 +693,23 @@ pub enum Objective {
         /// Competitive objectives except `Composite` type (nesting is currently not supported).
         objectives: Vec<Objective>,
     },
+}
+
+/// Specifies which metric is balanced per employee by the `balance-period` objective.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BalancePeriodMetric {
+    /// Balances total travelled distance.
+    Distance,
+
+    /// Balances total travelled duration.
+    Duration,
+
+    /// Balances total amount of job activities.
+    Activities,
+
+    /// Balances total job production value (the `productionValue` job property).
+    ProductionValue,
 }
 
 /// An mupltiple objective strategy type specifies how competitive objective functions are compared

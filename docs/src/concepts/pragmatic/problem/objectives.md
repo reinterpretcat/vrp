@@ -80,6 +80,16 @@ There are four work balance objectives available:
 - `balance-distance`: balances travelled distance per tour
 - `balance-duration`: balances tour durations
 - `balance-production-value` balances total job production value (the `productionValue` job property) across tours
+- `balance-period`: balances a metric per employee across the whole planning period, rather than per tour. Tours
+  are grouped by employee (`vehicle_id`, shared across all of an employee's `VehicleType` splits) and the summed
+  metric of all of that employee's tours is normalized by their available shift capacity (amount of shifts across
+  all their `VehicleType` entries) before comparing employees. Employees with no tours in the solution still
+  contribute a ratio of zero, so idle employees are not invisible to the objective. This is the metric to use when
+  the goal is equal utilization per employee over time, since `balance-activities`/`balance-distance`/
+  `balance-duration`/`balance-production-value` above only compare individual tours and cannot see an employee
+  who has a single tour in the period, nor one who has none. Mandatory parameter:
+  - `metric`: which quantity to balance per employee - one of `distance`, `duration`, `activities` or
+    `production-value` (the latter uses the `productionValue` job property, same as `balance-production-value`)
 - `balance-shifts`: balances how often different vehicle shifts are used. Optional parameters:
   - `saturation` (default `0.05`): controls how strongly small variance deviations are penalized. Lower values enforce nearly equal usage, while higher values allow more imbalance before additional costs are applied.
   - `weight` (default `1.0`): multiplies the resulting penalty so you can emphasize or de-emphasize shift balancing relative to other objectives. This is especially important when `balance-shifts` shares a multi-objective block with cost-based objectives whose raw magnitudes are much higher.

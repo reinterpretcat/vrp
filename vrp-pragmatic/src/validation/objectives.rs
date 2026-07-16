@@ -3,6 +3,7 @@
 mod objectives_test;
 
 use super::*;
+use crate::format::problem::BalancePeriodMetric;
 use crate::format::problem::Objective::*;
 use crate::utils::combine_error_results;
 use std::collections::HashSet;
@@ -198,12 +199,15 @@ fn check_e1608_vehicles_with_min_tour_size_but_no_objective(
     }
 }
 
-/// Checks that the balance-production-value objective is not used when no job carries a production value.
+/// Checks that the balance-production-value or balance-period (production-value metric)
+/// objective is not used when no job carries a production value.
 fn check_e1609_no_jobs_with_production_value_objective(
     ctx: &ValidationContext,
     objectives: &[&Objective],
 ) -> Result<(), FormatError> {
-    let has_objective = objectives.iter().any(|objective| matches!(objective, BalanceProductionValue));
+    let has_objective = objectives.iter().any(|objective| {
+        matches!(objective, BalanceProductionValue | BalancePeriod { metric: BalancePeriodMetric::ProductionValue })
+    });
     let has_no_valued_jobs =
         !ctx.problem.plan.jobs.iter().filter_map(|job| job.production_value).any(|value| value > 0.);
 
@@ -211,7 +215,7 @@ fn check_e1609_no_jobs_with_production_value_objective(
         Err(FormatError::new(
             "E1609".to_string(),
             "redundant balance-production-value objective".to_string(),
-            "specify at least one job with a positive productionValue or delete 'balance-production-value' objective"
+            "specify at least one job with a positive productionValue or delete 'balance-production-value' or 'balance-period' (production-value metric) objective"
                 .to_string(),
         ))
     } else {

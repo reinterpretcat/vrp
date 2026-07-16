@@ -81,6 +81,22 @@ fn can_deserialize_balance_production_value_objective() {
 }
 
 #[test]
+fn can_deserialize_balance_period_objective_with_production_value_metric() {
+    let objective: Objective = serde_json::from_str(r#"{ "type": "balance-period", "metric": "production-value" }"#)
+        .expect("failed to deserialize objective");
+
+    assert!(matches!(objective, Objective::BalancePeriod { metric: BalancePeriodMetric::ProductionValue }));
+}
+
+#[test]
+fn can_deserialize_balance_period_objective_with_distance_metric() {
+    let objective: Objective = serde_json::from_str(r#"{ "type": "balance-period", "metric": "distance" }"#)
+        .expect("failed to deserialize objective");
+
+    assert!(matches!(objective, Objective::BalancePeriod { metric: BalancePeriodMetric::Distance }));
+}
+
+#[test]
 fn can_deserialize_balance_shifts_objective_with_saturation() {
     let objective: Objective = from_str(r#"{ "type": "balance-shifts", "saturation": 0.2, "weight": 3.5 }"#)
         .expect("failed to deserialize objective");
