@@ -67,6 +67,13 @@ fn can_deserialize_matrix() {
 }
 
 #[test]
+fn can_deserialize_job_production_value() {
+    let job: Job = serde_json::from_str(r#"{ "id": "job1", "productionValue": 12.5 }"#).unwrap();
+
+    assert_eq!(job.production_value, Some(12.5));
+}
+
+#[test]
 fn can_deserialize_balance_shifts_objective_with_saturation() {
     let objective: Objective = from_str(r#"{ "type": "balance-shifts", "saturation": 0.2, "weight": 3.5 }"#)
         .expect("failed to deserialize objective");

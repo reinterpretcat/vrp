@@ -118,6 +118,10 @@ pub struct Job {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<Float>,
 
+    /// A job production value used by the balance-production-value objective.
+    #[serde(rename = "productionValue", skip_serializing_if = "Option::is_none")]
+    pub production_value: Option<Float>,
+
     /// Job group: jobs of the same group are assigned to the same tour or unassigned.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,

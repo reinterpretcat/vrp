@@ -432,6 +432,10 @@ fn fill_dimens(job: &ApiJob, dimens: &mut Dimensions) {
         dimens.set_job_value(value);
     }
 
+    if let Some(production_value) = job.production_value {
+        dimens.set_production_value(production_value);
+    }
+
     if let Some(group) = job.group.clone() {
         dimens.set_job_group(group);
     }

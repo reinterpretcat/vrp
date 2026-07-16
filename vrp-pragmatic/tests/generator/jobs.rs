@@ -90,6 +90,7 @@ prop_compose! {
             services: None,
             skills,
             value,
+            production_value: None,
             group,
             compatibility,
         }
@@ -136,6 +137,7 @@ prop_compose! {
             services,
             skills,
             value,
+            production_value: None,
             group,
             compatibility,
         }

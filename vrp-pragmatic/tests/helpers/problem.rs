@@ -23,6 +23,7 @@ pub fn create_job(id: &str) -> Job {
         services: None,
         skills: None,
         value: None,
+        production_value: None,
         group: None,
         compatibility: None,
     }
