@@ -82,5 +82,5 @@ pub use self::vehicle_shifts::*;
 mod work_balance;
 pub use self::work_balance::{
     create_activity_balanced_feature, create_distance_balanced_feature, create_duration_balanced_feature,
-    create_max_load_balanced_feature,
+    create_max_load_balanced_feature, create_production_value_balanced_feature,
 };

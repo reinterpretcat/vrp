@@ -637,6 +637,9 @@ pub enum Objective {
     /// An objective to balance duration across all tours.
     BalanceDuration,
 
+    /// An objective to balance total job production value across all tours.
+    BalanceProductionValue,
+
     /// An objective to balance shifts across all vehicles.
     BalanceShifts {
         /// Controls how quickly the penalty grows as variance increases.

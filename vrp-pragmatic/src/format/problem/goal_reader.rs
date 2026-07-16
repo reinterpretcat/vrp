@@ -217,6 +217,11 @@ fn get_objective_feature_layer(
         Objective::BalanceActivities => create_activity_balanced_feature("activity_balance"),
         Objective::BalanceDistance => create_distance_balanced_feature("distance_balance"),
         Objective::BalanceDuration => create_duration_balanced_feature("duration_balance"),
+        Objective::BalanceProductionValue => {
+            create_production_value_balanced_feature("production_value_balance", |job| {
+                job.dimens().get_production_value().copied().unwrap_or(0.)
+            })
+        }
         Objective::CompactTour { job_radius } => {
             create_tour_compactness_feature("tour_compact", blocks.jobs.clone(), *job_radius)
         }

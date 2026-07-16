@@ -74,6 +74,13 @@ fn can_deserialize_job_production_value() {
 }
 
 #[test]
+fn can_deserialize_balance_production_value_objective() {
+    let objective: Objective = serde_json::from_str(r#"{ "type": "balance-production-value" }"#).unwrap();
+
+    assert!(matches!(objective, Objective::BalanceProductionValue));
+}
+
+#[test]
 fn can_deserialize_balance_shifts_objective_with_saturation() {
     let objective: Objective = from_str(r#"{ "type": "balance-shifts", "saturation": 0.2, "weight": 3.5 }"#)
         .expect("failed to deserialize objective");

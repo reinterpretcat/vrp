@@ -112,6 +112,14 @@ pub fn create_delivery_job_with_value(id: &str, location: (f64, f64), value: Flo
     Job { deliveries: Some(vec![create_task(location, None)]), value: Some(value), ..create_job(id) }
 }
 
+pub fn create_delivery_job_with_production_value(id: &str, location: (f64, f64), production_value: Float) -> Job {
+    Job {
+        deliveries: Some(vec![create_task(location, None)]),
+        production_value: Some(production_value),
+        ..create_job(id)
+    }
+}
+
 pub fn create_delivery_job_with_due_date(id: &str, location: (f64, f64), due_date: &str) -> Job {
     Job {
         deliveries: Some(vec![JobTask {
