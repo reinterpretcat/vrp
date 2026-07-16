@@ -73,13 +73,13 @@ These objectives provide some extra control on job assignment:
 
 ### Work balance objectives
 
-There are four work balance objectives available:
+There are seven work balance objectives available:
 
 - `balance-max-load`: balances max load in tour
 - `balance-activities`: balances amount of activities performed in tour
 - `balance-distance`: balances travelled distance per tour
 - `balance-duration`: balances tour durations
-- `balance-production-value` balances total job production value (the `productionValue` job property) across tours
+- `balance-production-value`: balances total job production value (the `productionValue` job property) across tours
 - `balance-period`: balances a metric per employee across the whole planning period, rather than per tour. Tours
   are grouped by employee (`vehicle_id`, shared across all of an employee's `VehicleType` splits) and the summed
   metric of all of that employee's tours is normalized by their available shift capacity (amount of shifts across
@@ -90,6 +90,9 @@ There are four work balance objectives available:
   who has a single tour in the period, nor one who has none. Mandatory parameter:
   - `metric`: which quantity to balance per employee - one of `distance`, `duration`, `activities` or
     `production-value` (the latter uses the `productionValue` job property, same as `balance-production-value`)
+
+  At most one `balance-period` objective may be specified.
+
 - `balance-shifts`: balances how often different vehicle shifts are used. Optional parameters:
   - `saturation` (default `0.05`): controls how strongly small variance deviations are penalized. Lower values enforce nearly equal usage, while higher values allow more imbalance before additional costs are applied.
   - `weight` (default `1.0`): multiplies the resulting penalty so you can emphasize or de-emphasize shift balancing relative to other objectives. This is especially important when `balance-shifts` shares a multi-objective block with cost-based objectives whose raw magnitudes are much higher.

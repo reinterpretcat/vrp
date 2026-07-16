@@ -18,6 +18,9 @@ consists of the following properties:
   jobs with lower order in the beginning of the tour. In contrast, value related logic tries to maximize total solution value
   by prioritizing assignment value scored jobs in any position of a tour.
   See [job priorities](../../../examples/pragmatic/basics/job-priorities.md) example.
+- **productionValue** (optional): a float value representing the job's production value (e.g. expected revenue).
+  It is consumed by the `balance-production-value` objective and by the `balance-period` objective when its
+  `metric` is set to `production-value`, to balance total job production value across tours or per employee.
 - **group** (optional): a group name. Jobs with the same groups are scheduled in the same tour or left unassigned.
 - **compatibility** (optional): compatibility class. Jobs with different compatibility classes cannot be assigned in
   the same tour. This is useful to avoid mixing cargo, such as hazardous goods and food.
