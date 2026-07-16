@@ -2,6 +2,7 @@ use crate::format::problem::Objective::*;
 use crate::format::problem::*;
 use crate::format::solution::Tour;
 use crate::helpers::*;
+use std::collections::HashMap;
 
 fn get_activities_count(tour: &Tour) -> usize {
     tour.stops
@@ -12,6 +13,14 @@ fn get_activities_count(tour: &Tour) -> usize {
 
 #[test]
 fn can_balance_production_value() {
+    // Deliberately unequal per-job values: group1 (4 jobs @ (1,0), near my_vehicle1's own depot)
+    // are worth 10 each (total 40); group2 (2 jobs @ (2,0), near my_vehicle2's own depot) has one
+    // job worth 30 and one worth 10 (total 40). The natural, cheapest (no-crossover) assignment --
+    // my_vehicle1 serves all 4 group1 jobs, my_vehicle2 serves both group2 jobs -- is a 4/2 job
+    // split that already balances total VALUE (40/40). A count-based implementation (e.g. one that
+    // mistakenly reads job count instead of the productionValue dimension) would instead see this
+    // as an unbalanced 4/2 *count* split and push towards 3/3 (which requires costlier crossover),
+    // so asserting the 4/2 split here discriminates a correct value read from a count-based bug.
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -19,7 +28,7 @@ fn can_balance_production_value() {
                 create_delivery_job_with_production_value("job1.1", (1., 0.), 10.),
                 create_delivery_job_with_production_value("job1.2", (1., 0.), 10.),
                 create_delivery_job_with_production_value("job1.3", (1., 0.), 10.),
-                create_delivery_job_with_production_value("job2.0", (2., 0.), 10.),
+                create_delivery_job_with_production_value("job2.0", (2., 0.), 30.),
                 create_delivery_job_with_production_value("job2.1", (2., 0.), 10.),
             ],
             ..create_empty_plan()
@@ -49,8 +58,11 @@ fn can_balance_production_value() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    // Equal per-job value => a balanced solution splits 3/3 (10 each => 30 per tour).
-    assert_eq!(solution.tours.len(), 2);
-    assert_eq!(solution.tours.iter().map(get_activities_count).min().unwrap(), 3);
-    assert_eq!(solution.tours.iter().map(get_activities_count).max().unwrap(), 3);
+    let totals = solution.tours.iter().fold(HashMap::<String, usize>::new(), |mut acc, tour| {
+        *acc.entry(tour.vehicle_id.clone()).or_insert(0) += get_activities_count(tour);
+        acc
+    });
+
+    assert_eq!(totals.get("my_vehicle1").copied().unwrap_or(0), 4);
+    assert_eq!(totals.get("my_vehicle2").copied().unwrap_or(0), 2);
 }
