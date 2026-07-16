@@ -79,6 +79,7 @@ There are four work balance objectives available:
 - `balance-activities`: balances amount of activities performed in tour
 - `balance-distance`: balances travelled distance per tour
 - `balance-duration`: balances tour durations
+- `balance-production-value` balances total job production value (the `productionValue` job property) across tours
 - `balance-shifts`: balances how often different vehicle shifts are used. Optional parameters:
   - `saturation` (default `0.05`): controls how strongly small variance deviations are penalized. Lower values enforce nearly equal usage, while higher values allow more imbalance before additional costs are applied.
   - `weight` (default `1.0`): multiplies the resulting penalty so you can emphasize or de-emphasize shift balancing relative to other objectives. This is especially important when `balance-shifts` shares a multi-objective block with cost-based objectives whose raw magnitudes are much higher.

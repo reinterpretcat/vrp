@@ -208,6 +208,40 @@ fn can_detect_missing_value_objective_impl(objectives: Option<Vec<Objective>>, e
     assert_eq!(result.err().map(|e| e.code), expected);
 }
 
+#[test]
+fn can_detect_balance_production_value_without_valued_jobs() {
+    let problem = Problem {
+        objectives: Some(vec![MinimizeUnassigned { breaks: None }, BalanceProductionValue, MinimizeCost]),
+        ..create_empty_problem()
+    };
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
+    let objectives = get_objectives(&ctx).unwrap();
+
+    let result = check_e1609_no_jobs_with_production_value_objective(&ctx, &objectives);
+
+    assert_eq!(result.err().unwrap().code, "E1609".to_string());
+}
+
+#[test]
+fn can_accept_balance_production_value_with_valued_jobs() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![Job { production_value: Some(10.), ..create_delivery_job("job1", (1., 0.)) }],
+            ..create_empty_plan()
+        },
+        objectives: Some(vec![MinimizeUnassigned { breaks: None }, BalanceProductionValue, MinimizeCost]),
+        ..create_empty_problem()
+    };
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
+    let objectives = get_objectives(&ctx).unwrap();
+
+    let result = check_e1609_no_jobs_with_production_value_objective(&ctx, &objectives);
+
+    assert!(result.is_ok());
+}
+
 parameterized_test! {can_detect_missing_min_tour_size_objective, (objectives, min_tour_size, expected), {
     can_detect_missing_min_tour_size_objective_impl(objectives, min_tour_size, expected);
 }}

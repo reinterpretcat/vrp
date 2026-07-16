@@ -598,3 +598,9 @@ include the `maximize-value` objective.
 
 `missing min tour size objective` error is returned when fleet has vehicles with `min_tour_size` set in their limits,
 but user defined objective doesn't include the `minimize-tour-size-violation` objective.
+
+#### E1609
+
+`redundant balance-production-value objective` error is returned when objectives definition is overridden with
+`balance-production-value`, but there is no jobs with positive production value specified. To fix the issue, specify
+at least one job with a positive `productionValue` or simply delete 'balance-production-value' objective.
