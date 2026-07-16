@@ -77,6 +77,50 @@ fn can_balance_period_by_production_value() {
 }
 
 #[test]
+fn can_balance_period_by_duration() {
+    // Two employees (my_vehicle_1, my_vehicle_2), each with a single shift (shift capacity 1),
+    // so balance-period's per-employee ratio here reduces to the same math as the per-tour
+    // balance-duration objective (division by a constant capacity of 1) -- same shape as the
+    // proven-stable `can_balance_duration` test in `balance_transport.rs`, just scoped through
+    // balance-period's goal-reader arm instead. This exercises the goal-reader's Duration arm and
+    // its read of the TransportState-maintained route totals (`get_total_duration`) end-to-end
+    // through the actual solver, not just deserialization.
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job_with_duration("job1", (1., 0.), 10.),
+                create_delivery_job_with_duration("job2", (2., 0.), 10.),
+                create_delivery_job_with_duration("job3", (3., 0.), 10.),
+                create_delivery_job_with_duration("job4", (4., 0.), 10.),
+            ],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
+                shifts: vec![create_default_open_vehicle_shift()],
+                capacity: vec![3],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        objectives: Some(vec![
+            MinimizeUnassigned { breaks: None },
+            BalancePeriod { metric: BalancePeriodMetric::Duration },
+            MinimizeCost,
+        ]),
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert_eq!(solution.tours.len(), 2);
+    assert!(solution.tours.first().unwrap().statistic.duration < 30);
+    assert!(solution.tours.last().unwrap().statistic.duration < 30);
+}
+
+#[test]
 fn can_balance_period_normalized_by_shift_capacity() {
     // my_vehicle2 has twice the shift capacity (2 shifts) of my_vehicle1 (1 shift), so a
     // period-balanced solution should give my_vehicle2 twice the total load of my_vehicle1
