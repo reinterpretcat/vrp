@@ -1,6 +1,6 @@
 //! A feature that builds balanced, capacity-aware territories around a per-driver anchor.
 //!
-//! PULL keeps each job on the nearest compatible driver that still has spare quota; PUSH (Task 3)
+//! PULL keeps each job on the nearest compatible driver that still has spare quota; PUSH
 //! greedily moves over-quota surplus to the nearest under-quota driver at proximity cost. Both are
 //! in proximity units, so there is no free weight between them. The anchor is supplied by the caller
 //! (objective config), never derived here.
@@ -17,6 +17,7 @@ use std::collections::HashMap;
 pub use crate::construction::features::vehicle_distance::ActorJobCompatibilityFn;
 
 custom_solution_state!(TerritoryFitness typeof TerritoryFitnessData);
+custom_tour_state!(TerritoryRouteLoad typeof Float);
 
 /// Distance metric used to measure how far a job sits from a driver's anchor.
 #[derive(Clone, Copy, Debug)]
@@ -50,7 +51,6 @@ pub struct TerritoryFitnessData {
     /// compatible, under-quota driver anchor.
     pub pull: Cost,
     /// Total PUSH: cost of moving over-quota surplus to the nearest under-quota driver.
-    /// Always `0.0` until Task 3 fills in the real implementation.
     pub push: Cost,
 }
 
@@ -284,14 +284,19 @@ impl TerritoryShared {
             .unwrap_or(0.0)
     }
 
+    /// The balance metric total for a single route: the sum of `job_metric` across its jobs.
+    /// Shared between `loads` (solution-wide) and the per-route `TerritoryRouteLoad` cache.
+    fn route_load(&self, route_ctx: &RouteContext) -> Float {
+        route_ctx.route().tour.jobs().map(|j| self.job_metric(j)).sum()
+    }
+
     /// Current per-driver load: the sum of the balance metric across all jobs on that driver's
     /// route(s) in the given solution. Includes every driver with a quota, even if idle.
     fn loads(&self, solution: &SolutionContext) -> HashMap<DriverKey, Float> {
         let mut loads: HashMap<DriverKey, Float> = self.quotas.keys().map(|k| (k.clone(), 0.0)).collect();
         for route_ctx in solution.routes.iter() {
             let key = driver_key(&route_ctx.route().actor);
-            let load = route_ctx.route().tour.jobs().map(|j| self.job_metric(j)).sum::<Float>();
-            *loads.entry(key).or_insert(0.0) += load;
+            *loads.entry(key).or_insert(0.0) += self.route_load(route_ctx);
         }
         loads
     }
@@ -332,12 +337,67 @@ impl TerritoryShared {
         total
     }
 
-    // Replaced with the real bodies in Task 3.
-    fn push(&self, _solution: &SolutionContext) -> Cost {
-        0.0
+    /// Total PUSH for the solution: a greedy lower bound on the cost of moving every over-quota
+    /// driver's surplus to its *nearest* deficit driver's anchor (ignoring deficit capacity, i.e.
+    /// not a full min-cost transport). Zero when no driver is over quota.
+    fn push(&self, solution: &SolutionContext) -> Cost {
+        if self.balance.is_none() || self.quotas.is_empty() {
+            return 0.0;
+        }
+        let loads = self.loads(solution);
+
+        // Deficit drivers (with an anchor) and their remaining room.
+        let deficits: Vec<Location> = self
+            .quotas
+            .iter()
+            .filter_map(|(key, &quota)| {
+                let load = loads.get(key).copied().unwrap_or(0.0);
+                if load + 1e-9 < quota { self.anchors.get(key).copied() } else { None }
+            })
+            .collect();
+        if deficits.is_empty() {
+            return 0.0;
+        }
+
+        let mut total = 0.0;
+        for (key, &quota) in self.quotas.iter() {
+            let load = loads.get(key).copied().unwrap_or(0.0);
+            let surplus = load - quota;
+            if surplus <= 1e-9 {
+                continue;
+            }
+            let Some(anchor) = self.anchors.get(key).copied() else { continue };
+            let nearest = deficits.iter().map(|&d| self.proximity(anchor, d)).min_by(|x, y| x.total_cmp(y)).unwrap_or(0.0);
+            total += surplus * nearest;
+        }
+        total
     }
-    fn push_marginal(&self, _route_ctx: &RouteContext, _job: &Job) -> Cost {
-        0.0
+
+    /// The dual-price marginal contribution of assigning `job` to `route_ctx`'s driver: `0.0`
+    /// while the driver is under quota (per the cached route load), otherwise the job's balance
+    /// metric priced at the nearest other anchor (a proxy for the nearest deficit driver, kept
+    /// cheap for the hot insertion-evaluation loop).
+    fn push_marginal(&self, route_ctx: &RouteContext, job: &Job) -> Cost {
+        if self.balance.is_none() {
+            return 0.0;
+        }
+        let key = driver_key(&route_ctx.route().actor);
+        let Some(anchor) = self.anchors.get(&key).copied() else { return 0.0 };
+        let load = route_ctx.state().get_territory_route_load().copied().unwrap_or(0.0);
+        if load < *self.quotas.get(&key).unwrap_or(&Float::MAX) {
+            return 0.0;
+        }
+
+        let nearest_other = self
+            .quotas
+            .keys()
+            .filter(|k| **k != key)
+            .filter_map(|k| self.anchors.get(k).copied())
+            .map(|a| self.proximity(anchor, a))
+            .min_by(|x, y| x.total_cmp(y))
+            .unwrap_or(0.0);
+
+        self.job_metric(job) * nearest_other
     }
 }
 
@@ -382,16 +442,22 @@ impl FeatureObjective for TerritoryObjective {
 }
 
 impl FeatureState for TerritoryState {
-    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, _route_index: usize, _job: &Job) {
-        self.recompute(solution_ctx);
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, _job: &Job) {
+        // Cheap: refresh only the affected route's load cache, mirroring `vehicle_distance.rs`.
+        // PULL/PUSH are inherently solution-wide (every route's load feeds every other route's
+        // deficit/surplus), so the full recompute is deferred to `accept_solution_state`; doing it
+        // here would make every job insertion O(N) and construction O(N^2).
+        let route_ctx = solution_ctx.routes.get_mut(route_index).expect("route_index out of bounds");
+        self.accept_route_state(route_ctx);
     }
 
-    fn accept_route_state(&self, _route_ctx: &mut RouteContext) {
-        // No per-route cache: PULL/PUSH are recomputed solution-wide in `recompute` (see
-        // `accept_insertion`/`accept_solution_state`), mirroring `tour_compactness.rs`.
+    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
+        let load = self.shared.route_load(route_ctx);
+        route_ctx.state_mut().set_territory_route_load(load);
     }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
+        solution_ctx.routes.iter_mut().for_each(|route_ctx| self.accept_route_state(route_ctx));
         self.recompute(solution_ctx);
     }
 }
