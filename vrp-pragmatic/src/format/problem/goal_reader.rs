@@ -5,7 +5,7 @@ use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
 use vrp_core::construction::enablers::{FeatureCombinator, TotalDistanceTourState, TotalDurationTourState};
 use vrp_core::construction::features::*;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
+use vrp_core::models::common::{Demand, Location as CoreLocation, LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Job as CoreJob, Single, TransportCost};
 use vrp_core::models::solution::Route;
 use vrp_core::models::{Feature, FeatureObjective, GoalBuilder, GoalContext, GoalContextBuilder};
@@ -232,32 +232,49 @@ fn get_objective_feature_layer(
                 });
             let group_key_fn = |actor: &Actor| actor.vehicle.dimens.get_vehicle_id().cloned();
 
+            // Fixed per-problem reference used to self-normalize the balance objective so its
+            // weight in a scalarizing multi-objective is a dimensionless preference on the same
+            // footing as compact-tour and vehicle-distance. It is the ideal work per shift: the
+            // metric's ideal total spread evenly over every available shift.
+            let total_capacity = group_capacities.values().sum::<usize>() as Float;
+            let reference = (compute_period_reference(metric, blocks) / total_capacity.max(1.0)).max(1e-6);
+
             match metric {
-                BalancePeriodMetric::Distance => {
-                    create_period_balanced_feature("period_balance", group_capacities, group_key_fn, |route_ctx| {
-                        route_ctx.state().get_total_distance().copied().unwrap_or(0.)
-                    })
-                }
-                BalancePeriodMetric::Duration => {
-                    create_period_balanced_feature("period_balance", group_capacities, group_key_fn, |route_ctx| {
-                        route_ctx.state().get_total_duration().copied().unwrap_or(0.)
-                    })
-                }
-                BalancePeriodMetric::Activities => {
-                    create_period_balanced_feature("period_balance", group_capacities, group_key_fn, |route_ctx| {
-                        route_ctx.route().tour.job_activity_count() as Float
-                    })
-                }
-                BalancePeriodMetric::ProductionValue => {
-                    create_period_balanced_feature("period_balance", group_capacities, group_key_fn, |route_ctx| {
+                BalancePeriodMetric::Distance => create_period_balanced_feature(
+                    "period_balance",
+                    group_capacities,
+                    group_key_fn,
+                    |route_ctx| route_ctx.state().get_total_distance().copied().unwrap_or(0.),
+                    reference,
+                ),
+                BalancePeriodMetric::Duration => create_period_balanced_feature(
+                    "period_balance",
+                    group_capacities,
+                    group_key_fn,
+                    |route_ctx| route_ctx.state().get_total_duration().copied().unwrap_or(0.),
+                    reference,
+                ),
+                BalancePeriodMetric::Activities => create_period_balanced_feature(
+                    "period_balance",
+                    group_capacities,
+                    group_key_fn,
+                    |route_ctx| route_ctx.route().tour.job_activity_count() as Float,
+                    reference,
+                ),
+                BalancePeriodMetric::ProductionValue => create_period_balanced_feature(
+                    "period_balance",
+                    group_capacities,
+                    group_key_fn,
+                    |route_ctx| {
                         route_ctx
                             .route()
                             .tour
                             .jobs()
                             .map(|job| job.dimens().get_production_value().copied().unwrap_or(0.))
                             .sum()
-                    })
-                }
+                    },
+                    reference,
+                ),
             }
         }
         Objective::CompactTour { job_radius } => {
@@ -497,6 +514,73 @@ fn eval_multi_objective_strategy(
             )
         }
     })
+}
+
+/// Computes the ideal total of a period-balance metric for the whole problem: the best-case
+/// magnitude the metric can take if every job is served ideally. Divided by the number of
+/// available shifts, this yields the ideal per-shift load used as the balance objective's
+/// fixed self-normalization reference.
+fn compute_period_reference(metric: &BalancePeriodMetric, blocks: &ProblemBlocks) -> Float {
+    match metric {
+        BalancePeriodMetric::Activities => blocks
+            .jobs
+            .all()
+            .iter()
+            .map(|job| match job {
+                CoreJob::Single(_) => 1.0,
+                CoreJob::Multi(multi) => multi.jobs.len() as Float,
+            })
+            .sum(),
+        BalancePeriodMetric::ProductionValue => blocks
+            .jobs
+            .all()
+            .iter()
+            .map(|job| job.dimens().get_production_value().copied().unwrap_or(0.))
+            .sum(),
+        BalancePeriodMetric::Distance => {
+            compute_ideal_round_trip_total(blocks.transport.as_ref(), &blocks.fleet.actors, blocks.jobs.all(), false)
+        }
+        BalancePeriodMetric::Duration => {
+            compute_ideal_round_trip_total(blocks.transport.as_ref(), &blocks.fleet.actors, blocks.jobs.all(), true)
+        }
+    }
+}
+
+/// Sums, over every job, the shortest round-trip from any vehicle's start depot to the job and
+/// back (measured as distance or duration). This is the same "ideal travel" notion the
+/// vehicle-distance feature uses, ignoring compatibility: it only needs to be a stable
+/// order-of-magnitude reference, not a routed lower bound.
+fn compute_ideal_round_trip_total(
+    transport: &dyn TransportCost,
+    actors: &[Arc<Actor>],
+    jobs: &[CoreJob],
+    use_duration: bool,
+) -> Float {
+    jobs.iter()
+        .filter_map(|job| {
+            let job_loc = job_primary_location(job)?;
+            actors
+                .iter()
+                .filter_map(|actor| actor.detail.start.as_ref().map(|start| (start.location, &actor.vehicle.profile)))
+                .map(|(start, profile)| {
+                    if use_duration {
+                        transport.duration_approx(profile, start, job_loc)
+                            + transport.duration_approx(profile, job_loc, start)
+                    } else {
+                        transport.distance_approx(profile, start, job_loc)
+                            + transport.distance_approx(profile, job_loc, start)
+                    }
+                })
+                .min_by(|a, b| a.total_cmp(b))
+        })
+        .sum()
+}
+
+fn job_primary_location(job: &CoreJob) -> Option<CoreLocation> {
+    match job {
+        CoreJob::Single(single) => single.places.first().and_then(|place| place.location),
+        CoreJob::Multi(multi) => multi.jobs.first().and_then(|single| single.places.first().and_then(|p| p.location)),
+    }
 }
 
 fn get_capacity_feature(
