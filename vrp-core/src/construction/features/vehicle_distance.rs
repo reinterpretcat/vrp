@@ -200,7 +200,7 @@ impl VehicleDistanceShared {
 }
 
 /// Gets the primary location of a job.
-fn get_job_location(job: &Job) -> Option<Location> {
+pub(crate) fn get_job_location(job: &Job) -> Option<Location> {
     match job {
         Job::Single(single) => single.places.first().and_then(|p| p.location),
         Job::Multi(multi) => multi.jobs.first().and_then(|s| s.places.first().and_then(|p| p.location)),
