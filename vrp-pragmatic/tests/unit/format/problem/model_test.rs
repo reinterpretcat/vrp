@@ -109,3 +109,15 @@ fn can_deserialize_balance_shifts_objective_with_saturation() {
         _ => panic!("unexpected objective variant"),
     }
 }
+
+#[test]
+fn can_deserialize_territory_objective_with_anchors() {
+    let json = r#"{"type":"territory","proximity":"time","balance":"production-value","anchors":{"drv-1":4,"drv-2":9}}"#;
+    let obj: Objective = serde_json::from_str(json).unwrap();
+    match obj {
+        Objective::Territory { proximity: TerritoryProximity::Time, balance: Some(BalancePeriodMetric::ProductionValue), anchors } => {
+            assert_eq!(anchors.get("drv-1"), Some(&4));
+        }
+        _ => panic!("wrong variant"),
+    }
+}

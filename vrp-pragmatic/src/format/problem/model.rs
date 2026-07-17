@@ -519,6 +519,10 @@ pub struct VehicleType {
     /// Specifies a minimum amount of shifts each vehicle id of this type should serve.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub min_shifts: Option<VehicleMinShifts>,
+
+    /// Driver identity for territory grouping (distinct from vehicle_ids).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub driver_id: Option<String>,
 }
 
 /// Specifies minimum shift usage requirement per vehicle.
@@ -680,6 +684,18 @@ pub enum Objective {
     /// compared to the nearest compatible vehicle in the fleet.
     MinimizeVehicleDistance,
 
+    /// An objective that builds balanced, capacity-aware territories around a per-driver anchor.
+    Territory {
+        /// Proximity metric defining the territory.
+        proximity: TerritoryProximity,
+        /// Optional balance metric; omitted ⇒ pure territory-by-proximity.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        balance: Option<BalancePeriodMetric>,
+        /// Per-driver anchor as a routing-matrix location index, keyed by driver id.
+        #[serde(default)]
+        anchors: std::collections::HashMap<String, usize>,
+    },
+
     /// An objective to consider hierarchy of areas while serving jobs.
     HierarchicalAreas {
         /// Number of levels in area hierarchy.
@@ -710,6 +726,16 @@ pub enum BalancePeriodMetric {
 
     /// Balances total job production value (the `productionValue` job property).
     ProductionValue,
+}
+
+/// Proximity metric for the `territory` objective.
+#[derive(Clone, Copy, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TerritoryProximity {
+    /// Proximity measured by distance.
+    Distance,
+    /// Proximity measured by travel time.
+    Time,
 }
 
 /// An mupltiple objective strategy type specifies how competitive objective functions are compared
