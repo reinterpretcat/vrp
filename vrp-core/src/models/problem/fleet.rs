@@ -11,6 +11,7 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 custom_dimension!(pub VehicleId typeof String);
+custom_dimension!(pub DriverId typeof String);
 
 /// Specifies which portion of a route to consider when calculating costs.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
