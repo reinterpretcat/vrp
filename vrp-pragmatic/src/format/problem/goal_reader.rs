@@ -1,9 +1,17 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/format/problem/goal_reader_test.rs"]
+mod goal_reader_test;
+
 use super::*;
 use std::ops::Mul;
 use vrp_core::algorithms::clustering::kmedoids::create_hierarchical_kmedoids;
 use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
 use vrp_core::construction::enablers::{FeatureCombinator, TotalDistanceTourState, TotalDurationTourState};
 use vrp_core::construction::features::*;
+// `TerritoryProximity` is ambiguous between this glob import and the pragmatic-format model's own
+// `TerritoryProximity` (brought in via `use super::*;`), so the core type needs an explicit,
+// disambiguating import — same reasoning as the `Location`/`Job` aliases below.
+use vrp_core::construction::features::TerritoryProximity as CoreTerritoryProximity;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::{Demand, Location as CoreLocation, LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Job as CoreJob, Single, TransportCost};
@@ -313,40 +321,33 @@ fn get_objective_feature_layer(
             .set_transport(blocks.transport.clone())
             .set_actors(blocks.fleet.actors.clone())
             .set_jobs(blocks.jobs.clone())
-            .set_compatibility_fn(|job, actor| {
-                if let Some(job_skills) = job.dimens().get_job_skills() {
-                    let vehicle_skills = actor.vehicle.dimens.get_vehicle_skills();
-                    if !is_job_skills_compatible(job_skills, &vehicle_skills) {
-                        return false;
-                    }
-                }
-
-                // Day-availability: the nearest-vehicle penalty must only compare
-                // against vehicles that actually have a shift overlapping the job's
-                // time windows — otherwise we'd compute the penalty against a
-                // technician who isn't working that day.
-                let actor_tw = &actor.detail.time;
-                let any_overlap = match job {
-                    CoreJob::Single(single) => {
-                        single.places.iter().flat_map(|p| p.times.iter()).any(|ts| ts.intersects(0.0, actor_tw))
-                    }
-                    CoreJob::Multi(multi) => multi
-                        .jobs
-                        .iter()
-                        .flat_map(|s| s.places.iter())
-                        .flat_map(|p| p.times.iter())
-                        .any(|ts| ts.intersects(0.0, actor_tw)),
-                };
-                if !any_overlap {
-                    return false;
-                }
-
-                true
-            })
+            .set_compatibility_fn(territory_compatibility_fn())
             .build(),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
-        Objective::Territory { .. } => {
-            return Err(GenericError::from("territory objective is not yet supported in goal reader"));
+        Objective::Territory { proximity, balance, anchors } => {
+            let proximity = match proximity {
+                model::TerritoryProximity::Distance => CoreTerritoryProximity::Distance,
+                model::TerritoryProximity::Time => CoreTerritoryProximity::Time,
+            };
+            let balance = balance.as_ref().map(|m| match m {
+                BalancePeriodMetric::Distance => TerritoryBalance::Distance,
+                BalancePeriodMetric::Duration => TerritoryBalance::Duration,
+                BalancePeriodMetric::Activities => TerritoryBalance::Activities,
+                BalancePeriodMetric::ProductionValue => TerritoryBalance::ProductionValue,
+            });
+            // anchors values are already routing-matrix indices; core Location is a usize.
+            let anchors = anchors.iter().map(|(k, &idx)| (k.clone(), idx as CoreLocation)).collect();
+
+            TerritoryFeatureBuilder::new("territory")
+                .set_transport(blocks.transport.clone())
+                .set_actors(blocks.fleet.actors.clone())
+                .set_jobs(blocks.jobs.clone())
+                .set_proximity(proximity)
+                .set_balance(balance)
+                .set_anchors(anchors)
+                .set_job_value_fn(|job| job.dimens().get_production_value().copied().unwrap_or(0.))
+                .set_compatibility_fn(territory_compatibility_fn())
+                .build()
         }
         Objective::MultiObjective { objectives, strategy: composition_type } => {
             let features = objectives
@@ -389,6 +390,36 @@ fn get_hierarchical_areas_feature(blocks: &ProblemBlocks, levels: usize) -> Gene
         let transport = blocks.transport.clone();
         move |profile, from, to| transport.distance_approx(profile, from, to)
     })
+}
+
+/// The actor/job compatibility check shared by `MinimizeVehicleDistance` and `Territory`: an
+/// actor may serve a job only if it has the required skills and its shift's time windows overlap
+/// at least one of the job's time windows. The latter (day-availability) check matters because
+/// both objectives compare a job against "the nearest compatible vehicle" — without it, that
+/// comparison could be made against a vehicle that isn't even working the day the job needs to be
+/// served.
+fn territory_compatibility_fn() -> impl Fn(&CoreJob, &Actor) -> bool + Send + Sync + 'static {
+    |job, actor| {
+        if let Some(job_skills) = job.dimens().get_job_skills() {
+            let vehicle_skills = actor.vehicle.dimens.get_vehicle_skills();
+            if !is_job_skills_compatible(job_skills, &vehicle_skills) {
+                return false;
+            }
+        }
+
+        let actor_tw = &actor.detail.time;
+        match job {
+            CoreJob::Single(single) => {
+                single.places.iter().flat_map(|p| p.times.iter()).any(|ts| ts.intersects(0.0, actor_tw))
+            }
+            CoreJob::Multi(multi) => multi
+                .jobs
+                .iter()
+                .flat_map(|s| s.places.iter())
+                .flat_map(|p| p.times.iter())
+                .any(|ts| ts.intersects(0.0, actor_tw)),
+        }
+    }
 }
 
 fn get_objectives(api_problem: &ApiProblem, props: &ProblemProperties) -> Vec<Objective> {
