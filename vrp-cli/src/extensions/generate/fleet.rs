@@ -35,6 +35,7 @@ pub(crate) fn generate_fleet(problem_proto: &Problem, vehicle_types_size: usize)
                 skills: get_random_item(skills.as_slice(), &rnd).expect("cannot find any skills").clone(),
                 limits: get_random_item(limits.as_slice(), &rnd).expect("cannot find any limits").clone(),
                 min_shifts: get_random_item(min_shifts.as_slice(), &rnd).expect("cannot find min shifts").clone(),
+                driver_id: None,
             }
         })
         .collect();

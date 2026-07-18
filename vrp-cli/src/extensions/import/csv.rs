@@ -114,6 +114,7 @@ mod actual {
 
                 VehicleType {
                     type_id: vehicle.id.clone(),
+                    driver_id: None,
                     vehicle_ids: (1..=vehicle.amount).map(|seq| format!("{}_{}", vehicle.profile, seq)).collect(),
                     profile: VehicleProfile { matrix: vehicle.profile, scale: None },
                     costs: VehicleCosts { fixed: Some(25.), distance: 0.0002, time: 0.005, span: None },

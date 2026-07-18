@@ -31,6 +31,7 @@ pub fn create_empty_plan() -> Plan {
 pub fn create_test_vehicle_type() -> VehicleType {
     VehicleType {
         type_id: "vehicle".to_string(),
+        driver_id: None,
         vehicle_ids: vec!["vehicle_1".to_string()],
         profile: VehicleProfile { matrix: "car".to_string(), scale: None },
         costs: VehicleCosts { fixed: None, distance: 1., time: 0., span: None },

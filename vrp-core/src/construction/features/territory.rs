@@ -61,6 +61,7 @@ pub struct TerritoryFitnessData {
 /// A per-driver grouping key: `actor.vehicle.dimens.get_driver_id()`, falling back to the
 /// vehicle id when no driver id dimension is set.
 type DriverKey = String;
+type JobValueFn = Arc<dyn Fn(&Job) -> Float + Send + Sync>;
 
 fn driver_key(actor: &Actor) -> DriverKey {
     actor
@@ -83,7 +84,7 @@ pub struct TerritoryFeatureBuilder {
     proximity: TerritoryProximity,
     balance: Option<TerritoryBalance>,
     anchors: HashMap<DriverKey, Location>,
-    job_value_fn: Option<Arc<dyn Fn(&Job) -> Float + Send + Sync>>,
+    job_value_fn: Option<JobValueFn>,
 }
 
 impl TerritoryFeatureBuilder {
@@ -194,7 +195,7 @@ struct TerritoryShared {
     compatibility_fn: ActorJobCompatibilityFn,
     proximity: TerritoryProximity,
     balance: Option<TerritoryBalance>,
-    job_value_fn: Arc<dyn Fn(&Job) -> Float + Send + Sync>,
+    job_value_fn: JobValueFn,
     profile: Profile,
     anchors: HashMap<DriverKey, Location>,
     /// Per-driver quota: the balance metric's ideal share, proportional to each driver's
@@ -214,7 +215,7 @@ impl TerritoryShared {
         proximity: TerritoryProximity,
         balance: Option<TerritoryBalance>,
         anchors: HashMap<DriverKey, Location>,
-        job_value_fn: Arc<dyn Fn(&Job) -> Float + Send + Sync>,
+        job_value_fn: JobValueFn,
     ) -> Self {
         let profile = actors.first().map(|a| a.vehicle.profile.clone()).unwrap_or_default();
         let mut shared = Self {

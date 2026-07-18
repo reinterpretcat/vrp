@@ -9,6 +9,10 @@ use rosomaxa::algorithms::math::get_stdev_safe;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
+type GroupKeyFn = Arc<dyn Fn(&Actor) -> Option<String> + Send + Sync>;
+type RouteMetricFn = Arc<dyn Fn(&RouteContext) -> Float + Send + Sync>;
+type SolutionFitnessFn = Arc<dyn Fn(&SolutionContext) -> Float + Send + Sync>;
+
 /// Creates a feature which balances a work metric (e.g. distance, duration, activity count or
 /// production value) per employee across the whole planning period, instead of per tour.
 ///
@@ -36,8 +40,8 @@ pub fn create_period_balanced_feature(
     struct PeriodBalanceKey;
 
     let group_capacities = Arc::new(group_capacities);
-    let group_key_fn: Arc<dyn Fn(&Actor) -> Option<String> + Send + Sync> = Arc::new(group_key_fn);
-    let route_metric_fn: Arc<dyn Fn(&RouteContext) -> Float + Send + Sync> = Arc::new(tour_metric_fn);
+    let group_key_fn: GroupKeyFn = Arc::new(group_key_fn);
+    let route_metric_fn: RouteMetricFn = Arc::new(tour_metric_fn);
 
     let solution_fitness_fn = Arc::new({
         let route_metric_fn = route_metric_fn.clone();
@@ -80,10 +84,10 @@ pub fn create_period_balanced_feature(
 }
 
 struct PeriodBalanceObjective<K: Send + Sync + 'static> {
-    route_metric_fn: Arc<dyn Fn(&RouteContext) -> Float + Send + Sync>,
-    solution_fitness_fn: Arc<dyn Fn(&SolutionContext) -> Float + Send + Sync>,
+    route_metric_fn: RouteMetricFn,
+    solution_fitness_fn: SolutionFitnessFn,
     group_capacities: Arc<HashMap<String, usize>>,
-    group_key_fn: Arc<dyn Fn(&Actor) -> Option<String> + Send + Sync>,
+    group_key_fn: GroupKeyFn,
     reference: Float,
     phantom_data: PhantomData<K>,
 }
@@ -129,8 +133,8 @@ impl<K: Send + Sync + 'static> FeatureObjective for PeriodBalanceObjective<K> {
 }
 
 struct PeriodBalanceState<K: Send + Sync + 'static> {
-    route_metric_fn: Arc<dyn Fn(&RouteContext) -> Float + Send + Sync>,
-    solution_fitness_fn: Arc<dyn Fn(&SolutionContext) -> Float + Send + Sync>,
+    route_metric_fn: RouteMetricFn,
+    solution_fitness_fn: SolutionFitnessFn,
     phantom_data: PhantomData<K>,
 }
 
