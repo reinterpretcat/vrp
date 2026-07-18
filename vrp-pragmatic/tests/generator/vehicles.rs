@@ -35,6 +35,7 @@ prop_compose! {
             skills,
             limits,
             min_shifts: None,
+            driver_id: None,
         }
     }
 }

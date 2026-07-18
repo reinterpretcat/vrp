@@ -150,6 +150,7 @@ fn can_handle_properly_invalid_break_removal() {
                     skills: None,
                     limits: None,
                     min_shifts: None,
+                    driver_id: None,
                 }],
                 ..create_default_fleet()
             },

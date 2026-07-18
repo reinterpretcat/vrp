@@ -105,6 +105,7 @@ mod single {
                     skills: None,
                     limits: None,
                     min_shifts: None,
+                    driver_id: None,
                 }],
                 ..create_default_fleet()
             },

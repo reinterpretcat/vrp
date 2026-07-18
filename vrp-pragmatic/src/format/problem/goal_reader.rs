@@ -345,6 +345,9 @@ fn get_objective_feature_layer(
             })
             .build(),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
+        Objective::Territory { .. } => {
+            return Err(GenericError::from("territory objective is not yet supported in goal reader"));
+        }
         Objective::MultiObjective { objectives, strategy: composition_type } => {
             let features = objectives
                 .iter()
@@ -894,6 +897,7 @@ mod tests {
                     skills: None,
                     limits: None,
                     min_shifts,
+                    driver_id: None,
                 }],
                 profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
                 resources: None,

@@ -19,6 +19,7 @@ fn build_problem(objectives: Option<Vec<Objective>>, min_shifts: Option<VehicleM
             skills: None,
             limits: None,
             min_shifts,
+            driver_id: None,
         }],
         profiles: create_default_matrix_profiles(),
         resources: None,

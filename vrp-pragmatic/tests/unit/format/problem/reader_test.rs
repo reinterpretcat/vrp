@@ -179,6 +179,7 @@ fn can_read_complex_problem() {
                     min_tour_size: None,
                 }),
                 min_shifts: None,
+                driver_id: None,
             }],
             ..create_default_fleet()
         },
