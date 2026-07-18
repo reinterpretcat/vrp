@@ -7,7 +7,6 @@ pub struct LilimBuilder {
     customers: Vec<LilimCustomer>,
 }
 
-
 impl LilimBuilder {
     pub fn new() -> Self {
         Self::default()

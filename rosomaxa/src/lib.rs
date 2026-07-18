@@ -104,7 +104,7 @@ pub trait HeuristicContext: Send + Sync {
     fn environment(&self) -> &Environment;
 
     /// Updates population with initial solution.
-    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer);
+    fn on_initial(&mut self, solution: Self::Solution, name: &str, item_time: Timer);
 
     /// Updates population with a new offspring.
     fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer);
@@ -219,8 +219,8 @@ where
         self.environment.as_ref()
     }
 
-    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
-        self.telemetry.on_initial(&solution, item_time);
+    fn on_initial(&mut self, solution: Self::Solution, name: &str, item_time: Timer) {
+        self.telemetry.on_initial(&solution, name, item_time);
         self.population.add(solution);
     }
 

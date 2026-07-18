@@ -93,8 +93,8 @@ impl HeuristicContext for VectorContext {
         self.inner_context.environment()
     }
 
-    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
-        self.inner_context.on_initial(solution, item_time)
+    fn on_initial(&mut self, solution: Self::Solution, name: &str, item_time: Timer) {
+        self.inner_context.on_initial(solution, name, item_time)
     }
 
     fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer) {
@@ -443,7 +443,7 @@ impl Solver {
             .initial_solutions
             .into_iter()
             .map(VectorInitialOperator::new)
-            .map::<(TargetInitialOperator, _), _>(|o| (Box::new(o), 1))
+            .map::<(_, TargetInitialOperator, _), _>(|o| ("user".to_string(), Box::new(o), 1))
             .collect();
 
         // create a heuristic context

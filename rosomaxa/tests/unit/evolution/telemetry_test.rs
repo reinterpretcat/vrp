@@ -20,7 +20,7 @@ fn can_update_statistic() {
 
     let mut telemetry = Telemetry::new(TelemetryMode::None);
     let solution = VectorSolution::new(vec![], 0., vec![]);
-    telemetry.on_initial(&solution, Timer::start());
+    telemetry.on_initial(&solution, "test", Timer::start());
 
     telemetry.on_generation(population, 0., Timer::start(), true);
     compare_statistic(telemetry.get_statistics(), (0, 1., 1.));

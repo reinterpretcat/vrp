@@ -289,8 +289,8 @@ where
         let slots = self.slot_machines.get(&from).expect("cannot get slot machines");
 
         // Sample each arm, pick argmax with random tie-break.
-        let samples = slots.iter().map(|(slot, _)| slot.sample()).collect::<Vec<_>>();
-        let slot_idx = random_argmax(samples.into_iter(), self.random.as_ref()).unwrap_or(0);
+        let samples = slots.iter().map(|(slot, _)| slot.sample());
+        let slot_idx = random_argmax(samples, self.random.as_ref()).unwrap_or(0);
         let slot_machine = &slots[slot_idx].0;
 
         let approx_median = self.tracker.approx_median();

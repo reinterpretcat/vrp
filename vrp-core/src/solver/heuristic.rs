@@ -304,25 +304,34 @@ mod builder {
 
         std::iter::once({
             // main stable constructive heuristics
-            (wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 1)
+            ("blinks".to_string(), wrap(Arc::new(RecreateWithBlinks::new_with_defaults(random.clone()))), 1)
         })
         .chain(
             // alternative constructive heuristics
             get_recreate_with_alternative_goal(problem.goal.as_ref(), {
                 let random = random.clone();
-                move || RecreateWithCheapest::new(random.clone())
+                move || RecreateWithBlinks::new_with_defaults(random.clone())
             })
-            .map(|recreate| (wrap(recreate), 1)),
+            .enumerate()
+            .map(|(index, recreate)| (format!("alternative_{}", index), wrap(recreate), 1)),
         )
         .chain([
             // additional constructive heuristics
-            (wrap(Arc::new(RecreateWithFarthest::new(random.clone()))), 1),
-            (wrap(Arc::new(RecreateWithBlinks::new_with_defaults(random.clone()))), 1),
-            (wrap(Arc::new(RecreateWithRegret::new(2, 3, random.clone()))), 1),
-            (wrap(Arc::new(RecreateWithGaps::new(1, (problem.jobs.size() / 10).max(1), random.clone()))), 1),
-            (wrap(Arc::new(RecreateWithSkipBest::new(1, 2, random.clone()))), 1),
-            (wrap(Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone()))), 1),
-            (wrap(Arc::new(RecreateWithNearestNeighbor::new(random.clone()))), 1),
+            ("cheapest".to_string(), wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 1),
+            ("farthest".to_string(), wrap(Arc::new(RecreateWithFarthest::new(random.clone()))), 1),
+            ("regret".to_string(), wrap(Arc::new(RecreateWithRegret::new(2, 3, random.clone()))), 1),
+            (
+                "gaps".to_string(),
+                wrap(Arc::new(RecreateWithGaps::new(1, (problem.jobs.size() / 10).max(1), random.clone()))),
+                1,
+            ),
+            ("skip_best".to_string(), wrap(Arc::new(RecreateWithSkipBest::new(1, 2, random.clone()))), 1),
+            (
+                "perturbation".to_string(),
+                wrap(Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone()))),
+                1,
+            ),
+            ("nearest_neighbor".to_string(), wrap(Arc::new(RecreateWithNearestNeighbor::new(random.clone()))), 1),
         ])
         .collect()
     }
