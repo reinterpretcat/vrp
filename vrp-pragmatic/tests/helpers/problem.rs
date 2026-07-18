@@ -291,6 +291,13 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
     }
 }
 
+pub fn create_vehicle_with_driver_id(id: &str, capacity: Vec<i32>, driver_id: &str) -> VehicleType {
+    VehicleType {
+        driver_id: Some(driver_id.to_string()),
+        ..create_vehicle_with_capacity(id, capacity)
+    }
+}
+
 pub fn create_default_fleet() -> Fleet {
     Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles(), resources: None }
 }

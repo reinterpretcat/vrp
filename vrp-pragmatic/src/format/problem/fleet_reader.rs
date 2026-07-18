@@ -12,7 +12,7 @@ use vrp_core::construction::enablers::create_typed_actor_groups;
 use vrp_core::construction::features::{VehicleCapacityDimension, VehicleSkillsDimension};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::RouteCostSpanDimension;
-use vrp_core::models::problem::*;
+use vrp_core::models::problem::{DriverIdDimension, *};
 
 pub(super) fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
     api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
@@ -147,6 +147,10 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                     .set_vehicle_type(vehicle.type_id.clone())
                     .set_shift_index(shift_index)
                     .set_vehicle_id(vehicle_id.to_string());
+
+                if let Some(driver_id) = vehicle.driver_id.as_ref() {
+                    dimens.set_driver_id(driver_id.clone());
+                }
 
                 if let Some(tour_size) = tour_size {
                     dimens.set_tour_size(tour_size);
