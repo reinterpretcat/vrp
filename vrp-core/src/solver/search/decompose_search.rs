@@ -272,7 +272,7 @@ fn decompose_insertion_context(
                 })
                 .collect::<Vec<_>>()
         })
-        .and_then(|contexts| if contexts.len() > 1 { Some(contexts) } else { None })
+        .filter(|contexts| contexts.len() > 1)
 }
 
 fn get_solution_parts(decomposed: (RefinementContext, HashSet<usize>)) -> ((SolutionContext, SolutionContext), bool) {
