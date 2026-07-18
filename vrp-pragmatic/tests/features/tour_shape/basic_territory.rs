@@ -15,13 +15,17 @@ use vrp_core::prelude::Float;
 // region: fixture construction
 
 /// A built problem plus the ground truth needed to grade the solution: which vehicle each job
-/// "belongs" to by construction (its nearest anchor), the production value it was given, and the
-/// full vehicle id roster (so a driver that ends up completely unused -- zero jobs, no tour in the
-/// solution at all -- is still counted as a zero, not silently dropped from the balance stats).
+/// "belongs" to by construction (its nearest anchor), the production value it was given, its own
+/// location (needed to recompute the feature's own `Distance`/`Duration` accounting -- see
+/// `nearest_anchor_prox` below), the full anchor location set (ditto), and the full vehicle id
+/// roster (so a driver that ends up completely unused -- zero jobs, no tour in the solution at all
+/// -- is still counted as a zero, not silently dropped from the balance stats).
 struct TerritoryFixture {
     problem: Problem,
     home_vehicle: HashMap<String, String>,
     job_value: HashMap<String, Float>,
+    job_location: HashMap<String, (f64, f64)>,
+    anchor_locations: Vec<(f64, f64)>,
     vehicle_ids: Vec<String>,
 }
 
@@ -43,20 +47,32 @@ fn territory_objective(proximity: TerritoryProximity, balance: BalancePeriodMetr
 }
 
 /// Two drivers sharing a start location at the origin, with distinct anchors at opposite ends
-/// (-30,0) and (30,0). Each anchor gets a small, mirrored cluster of 3 jobs with non-uniform
-/// production values (2, 3, 1) so the `ProductionValue` metric is a genuine sum, not a disguised
-/// job count. The two clusters are geometric mirror images, so on this fixture "already balanced"
-/// and "already correctly territoried" coincide for every metric -- this is a convergence sanity
-/// check, not a test that PUSH can *force* rebalancing (that's `problem_grid` below, via
-/// production-value texture) or a build-time check.
+/// (-30,0) and (30,0). The two clusters are deliberately **uneven**: driver0 gets 2 jobs, driver1
+/// gets 4, with non-uniform production values on both sides (so `ProductionValue` is a genuine
+/// sum, not a disguised job count) -- while both drivers share the same capacity and shift time
+/// window, so their balance quotas come out *equal* (total metric / 2) regardless of which side
+/// has more raw jobs. A cost-only, nearest-anchor assignment (i.e. what you get with the
+/// `territory` objective removed, or with a no-op PUSH) leaves each driver with its own cluster's
+/// raw total: `[2, 4]` jobs, `[5, 10]` production value, `[5, 11]` distance/duration proximity --
+/// imbalanced on *every* `BalancePeriodMetric` (confirmed by ablation, see the task report). Only
+/// a working PUSH, relocating driver1's boundary job (the one closest to driver0's anchor) over to
+/// driver0, brings the solution back within the balance tolerance asserted below. This is what
+/// distinguishes this fixture from a mirrored, already-balanced-by-construction one -- see
+/// `problem_grid`'s doc comment for the larger-scale version of the same idea.
 fn problem_two_drivers_shared_start(metric: BalancePeriodMetric) -> TerritoryFixture {
     let start = (0., 0.);
     let anchor_coords = [(-30., 0.), (30., 0.)];
-    let offsets = [(-2., 0.), (0., 3.), (2., -2.)];
-    let values = [2., 3., 1.];
+    // (offset-from-anchor, production value) per job, per driver. driver0's cluster is smaller (2
+    // jobs) than driver1's (4 jobs); per-job values are drawn from the same 1-3 scale on both
+    // sides so the imbalance comes from genuine cluster composition, not a rigged value multiplier.
+    let clusters: [&[((f64, f64), Float)]; 2] = [
+        &[((-2., 0.), 2.), ((0., 3.), 3.)],
+        &[((-2., 0.), 3.), ((0., 3.), 3.), ((2., -2.), 2.), ((3., 1.), 2.)],
+    ];
 
     let mut home_vehicle = HashMap::new();
     let mut job_value = HashMap::new();
+    let mut job_location = HashMap::new();
     let mut jobs = Vec::new();
     let mut vehicles = Vec::new();
     let mut vehicle_ids = Vec::new();
@@ -71,11 +87,13 @@ fn problem_two_drivers_shared_start(metric: BalancePeriodMetric) -> TerritoryFix
             ..create_vehicle_with_driver_id(&driver_id, vec![10], &driver_id)
         });
 
-        for (j, (&(dx, dy), &value)) in offsets.iter().zip(values.iter()).enumerate() {
+        for (j, &((dx, dy), value)) in clusters[d].iter().enumerate() {
             let job_id = format!("{driver_id}-job{j}");
+            let loc = (anchor.0 + dx, anchor.1 + dy);
             home_vehicle.insert(job_id.clone(), vehicle_id.clone());
             job_value.insert(job_id.clone(), value);
-            jobs.push(create_delivery_job_with_production_value(&job_id, (anchor.0 + dx, anchor.1 + dy), value));
+            job_location.insert(job_id.clone(), loc);
+            jobs.push(create_delivery_job_with_production_value(&job_id, loc, value));
         }
     }
 
@@ -92,7 +110,14 @@ fn problem_two_drivers_shared_start(metric: BalancePeriodMetric) -> TerritoryFix
         MinimizeCost,
     ]);
 
-    TerritoryFixture { problem: Problem { plan, fleet, objectives }, home_vehicle, job_value, vehicle_ids }
+    TerritoryFixture {
+        problem: Problem { plan, fleet, objectives },
+        home_vehicle,
+        job_value,
+        job_location,
+        anchor_locations: anchor_coords.to_vec(),
+        vehicle_ids,
+    }
 }
 
 /// `cluster_sizes.len()` drivers sharing a start at the origin, anchors laid out on a circle
@@ -107,9 +132,8 @@ fn problem_two_drivers_shared_start(metric: BalancePeriodMetric) -> TerritoryFix
 /// give each driver exactly its own cluster's size -- e.g. a driver whose cluster is oversized
 /// relative to the mean is genuinely over quota under pure proximity assignment, and the
 /// balance/PUSH mechanism must move some of its jobs to an under-quota driver to correct it. This
-/// is what distinguishes this fixture from `problem_two_drivers_shared_start`, whose mirrored
-/// clusters are already balanced by construction and so cannot tell a working balance mechanism
-/// from a no-op one.
+/// is the larger-scale (many drivers, larger clusters) version of the same uneven-cluster idea
+/// `problem_two_drivers_shared_start` uses at 2-driver scale.
 fn problem_grid(cluster_sizes: &[usize], metric: BalancePeriodMetric) -> TerritoryFixture {
     let num_drivers = cluster_sizes.len();
     let start = (0., 0.);
@@ -117,6 +141,7 @@ fn problem_grid(cluster_sizes: &[usize], metric: BalancePeriodMetric) -> Territo
 
     let mut home_vehicle = HashMap::new();
     let mut job_value = HashMap::new();
+    let mut job_location = HashMap::new();
     let mut jobs = Vec::new();
     let mut vehicles = Vec::new();
     let mut vehicle_ids = Vec::new();
@@ -143,9 +168,11 @@ fn problem_grid(cluster_sizes: &[usize], metric: BalancePeriodMetric) -> Territo
             let dx = ((j % 4) as Float - 1.5) * 2.;
             let dy = ((j / 4) as Float - 1.5) * 2.;
             let job_id = format!("{driver_id}-job{j}");
+            let loc = (anchor.0 + dx, anchor.1 + dy);
             home_vehicle.insert(job_id.clone(), vehicle_id.clone());
             job_value.insert(job_id.clone(), 1.);
-            jobs.push(create_delivery_job_with_production_value(&job_id, (anchor.0 + dx, anchor.1 + dy), 1.));
+            job_location.insert(job_id.clone(), loc);
+            jobs.push(create_delivery_job_with_production_value(&job_id, loc, 1.));
         }
     }
 
@@ -162,7 +189,14 @@ fn problem_grid(cluster_sizes: &[usize], metric: BalancePeriodMetric) -> Territo
         MinimizeCost,
     ]);
 
-    TerritoryFixture { problem: Problem { plan, fleet, objectives }, home_vehicle, job_value, vehicle_ids }
+    TerritoryFixture {
+        problem: Problem { plan, fleet, objectives },
+        home_vehicle,
+        job_value,
+        job_location,
+        anchor_locations: anchor_coords,
+        vehicle_ids,
+    }
 }
 
 fn solve(problem: Problem, generations: usize) -> Solution {
@@ -192,23 +226,44 @@ fn activity_counts_per_tour(solution: &Solution, vehicle_ids: &[String]) -> Vec<
         .collect()
 }
 
+/// Proximity from a job location to the nearest of `anchor_locations`, computed the same way
+/// `create_matrix_from_problem` builds the routing matrix (squared-coordinate-difference Euclidean
+/// distance, rounded to the matrix's integer resolution). This mirrors
+/// `TerritoryShared::nearest_anchor_prox` in `vrp-core/src/construction/features/territory.rs`
+/// against the *full* anchor set (not just the serving vehicle's own anchor) -- which is exactly
+/// what `job_metric`'s `Distance`/`Duration` branch bills per job, independent of which vehicle
+/// ends up serving it.
+fn nearest_anchor_prox(job_loc: (f64, f64), anchor_locations: &[(f64, f64)]) -> Float {
+    anchor_locations
+        .iter()
+        .map(|&(ax, ay)| ((job_loc.0 - ax).powf(2.) + (job_loc.1 - ay).powf(2.)).sqrt().round())
+        .fold(Float::INFINITY, |a, b| a.min(b))
+}
+
 /// Per-tour totals of `metric`, indexed against the full vehicle roster like
-/// `activity_counts_per_tour`. `Distance`/`Duration` read the tour's own travel statistic
-/// (matches what the `territory` feature bills a route for those metrics); `Activities` counts
-/// real activities; `ProductionValue` sums each served job's value from `job_value`.
+/// `activity_counts_per_tour`. `Distance`/`Duration` sum, over the tour's jobs, each job's
+/// proximity to its own *globally* nearest anchor (via `nearest_anchor_prox`) -- this is what the
+/// `territory` feature's `job_metric` actually bills for those metrics (see
+/// `TerritoryShared::job_metric` / `nearest_anchor_prox`), which is independent of the serving
+/// vehicle and therefore *not* the same as the tour's own driven-travel statistic. `Activities`
+/// counts real activities; `ProductionValue` sums each served job's value from `job_value`.
 fn per_tour_metric_totals(
     solution: &Solution,
     vehicle_ids: &[String],
     metric: &BalancePeriodMetric,
     job_value: &HashMap<String, Float>,
+    job_location: &HashMap<String, (f64, f64)>,
+    anchor_locations: &[(f64, f64)],
 ) -> Vec<Float> {
     vehicle_ids
         .iter()
         .map(|vid| {
             let Some(tour) = solution.tours.iter().find(|t| &t.vehicle_id == vid) else { return 0. };
             match metric {
-                BalancePeriodMetric::Distance => tour.statistic.distance as Float,
-                BalancePeriodMetric::Duration => tour.statistic.duration as Float,
+                BalancePeriodMetric::Distance | BalancePeriodMetric::Duration => tour_job_ids(tour)
+                    .filter_map(|id| job_location.get(id))
+                    .map(|&loc| nearest_anchor_prox(loc, anchor_locations))
+                    .sum(),
                 BalancePeriodMetric::Activities => tour_job_ids(tour).count() as Float,
                 BalancePeriodMetric::ProductionValue => {
                     tour_job_ids(tour).map(|id| job_value.get(id).copied().unwrap_or(0.)).sum()
@@ -237,8 +292,10 @@ fn is_balanced_within_tolerance(
     vehicle_ids: &[String],
     metric: &BalancePeriodMetric,
     job_value: &HashMap<String, Float>,
+    job_location: &HashMap<String, (f64, f64)>,
+    anchor_locations: &[(f64, f64)],
 ) -> bool {
-    coefficient_of_variation(&per_tour_metric_totals(solution, vehicle_ids, metric, job_value)) < 0.2
+    coefficient_of_variation(&per_tour_metric_totals(solution, vehicle_ids, metric, job_value, job_location, anchor_locations)) < 0.2
 }
 
 /// True when every driver's `metric` total is within `band` (a fraction, e.g. 0.25 == 25%) of the
@@ -249,9 +306,11 @@ fn each_driver_within_quota_band(
     vehicle_ids: &[String],
     metric: &BalancePeriodMetric,
     job_value: &HashMap<String, Float>,
+    job_location: &HashMap<String, (f64, f64)>,
+    anchor_locations: &[(f64, f64)],
     band: Float,
 ) -> bool {
-    let totals = per_tour_metric_totals(solution, vehicle_ids, metric, job_value);
+    let totals = per_tour_metric_totals(solution, vehicle_ids, metric, job_value, job_location, anchor_locations);
     let mean = totals.iter().sum::<Float>() / totals.len() as Float;
     if mean.abs() < 1e-9 {
         return true;
@@ -275,14 +334,17 @@ fn territory_overlap_ratio(solution: &Solution, home_vehicle: &HashMap<String, S
     if served == 0 { 0. } else { off_home as Float / served as Float }
 }
 
-fn no_job_served_by_far_anchor(solution: &Solution, home_vehicle: &HashMap<String, String>) -> bool {
-    territory_overlap_ratio(solution, home_vehicle) == 0.
-}
-
 // endregion
 
 const SMALL_GENERATIONS: usize = 800;
 const SCALE_GENERATIONS: usize = 1500;
+
+/// Overlap bound for the small (6-job, 2-driver) fixture. Its uneven `[2, 4]` raw split needs
+/// exactly one boundary job to cross for balance (1/6 ~= 0.167); this bound allows that single
+/// necessary move plus a little slack, while still ruling out excessive churn (e.g. two jobs
+/// crossing, 2/6 ~= 0.333, or a wholesale swap) that would mean PUSH overcorrected rather than
+/// making the minimal fix.
+const SMALL_OVERLAP_BOUND: Float = 0.3;
 
 #[test]
 fn territory_forms_balanced_clusters_from_shared_start() {
@@ -298,7 +360,10 @@ fn territory_forms_balanced_clusters_from_shared_start() {
     eprintln!("  territory overlap ratio: {overlap:.3}");
 
     assert!((counts[0] as i32 - counts[1] as i32).abs() <= 1, "unbalanced activity counts: {counts:?}");
-    assert!(no_job_served_by_far_anchor(&solution, &fixture.home_vehicle), "territory overlap ratio was {overlap:.3}, expected 0");
+    assert!(
+        overlap < SMALL_OVERLAP_BOUND,
+        "territory overlap ratio was {overlap:.3}, expected < {SMALL_OVERLAP_BOUND}"
+    );
 }
 
 #[test]
@@ -314,13 +379,27 @@ fn territory_balances_for_each_metric() {
 
         assert!(solution.unassigned.is_none(), "metric {metric:?}: unexpected unassigned jobs: {:?}", solution.unassigned);
 
-        let totals = per_tour_metric_totals(&solution, &fixture.vehicle_ids, &metric, &fixture.job_value);
+        let totals = per_tour_metric_totals(
+            &solution,
+            &fixture.vehicle_ids,
+            &metric,
+            &fixture.job_value,
+            &fixture.job_location,
+            &fixture.anchor_locations,
+        );
         let cv = coefficient_of_variation(&totals);
         eprintln!("=== territory_balances_for_each_metric: {metric:?} ===");
         eprintln!("  per-tour totals: {totals:?}, cv: {cv:.3}");
 
         assert!(
-            is_balanced_within_tolerance(&solution, &fixture.vehicle_ids, &metric, &fixture.job_value),
+            is_balanced_within_tolerance(
+                &solution,
+                &fixture.vehicle_ids,
+                &metric,
+                &fixture.job_value,
+                &fixture.job_location,
+                &fixture.anchor_locations
+            ),
             "metric {metric:?} not balanced: totals={totals:?}, cv={cv:.3}"
         );
     }
@@ -340,14 +419,29 @@ fn territory_scales_to_many_drivers() {
 
     assert!(solution.unassigned.is_none(), "unexpected unassigned jobs: {:?}", solution.unassigned);
 
-    let totals = per_tour_metric_totals(&solution, &fixture.vehicle_ids, &BalancePeriodMetric::ProductionValue, &fixture.job_value);
+    let totals = per_tour_metric_totals(
+        &solution,
+        &fixture.vehicle_ids,
+        &BalancePeriodMetric::ProductionValue,
+        &fixture.job_value,
+        &fixture.job_location,
+        &fixture.anchor_locations,
+    );
     let overlap = territory_overlap_ratio(&solution, &fixture.home_vehicle);
     eprintln!("=== territory_scales_to_many_drivers ===");
     eprintln!("  per-tour production-value totals: {totals:?}");
     eprintln!("  territory overlap ratio: {overlap:.3}");
 
     assert!(
-        each_driver_within_quota_band(&solution, &fixture.vehicle_ids, &BalancePeriodMetric::ProductionValue, &fixture.job_value, 0.25),
+        each_driver_within_quota_band(
+            &solution,
+            &fixture.vehicle_ids,
+            &BalancePeriodMetric::ProductionValue,
+            &fixture.job_value,
+            &fixture.job_location,
+            &fixture.anchor_locations,
+            0.25
+        ),
         "a driver was >25% off its quota share: totals={totals:?}"
     );
     assert!(overlap < 0.1, "territory overlap ratio too high: {overlap:.3}");
