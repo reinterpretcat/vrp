@@ -128,6 +128,29 @@ fn pull_penalizes_a_job_served_by_the_far_anchor() {
     assert!(objective.fitness(&ctx.swapped_assignment) > 0.0);
 }
 
+/// Regression test for the double-normalization bug: `fitness()` must return the RAW PULL+PUSH
+/// magnitude, with normalization exposed ONLY via `fitness_scale()` (per the sibling convention
+/// in `vehicle_distance.rs`/`period_balance.rs`/`tour_compactness.rs`). A `WeightedSumScalar`
+/// combinator divides `fitness() / fitness_scale()` itself; if `fitness()` already divided by
+/// `reference`, that division would apply twice, shrinking territory's contribution to
+/// `(pull+push)/reference^2` and effectively disabling the objective.
+///
+/// Fixture geometry (`territory_fixture`, `swapped_assignment`, balance disabled so `push == 0`):
+/// anchors d0@0, d1@100; job_near@5 assigned to d1, job_far@95 assigned to d0.
+/// - PULL(job_far on d0) = dist(95, assigned=0) - dist(95, nearest=100) = 95 - 5 = 90
+/// - PULL(job_near on d1) = dist(5, assigned=100) - dist(5, nearest=0) = 95 - 5 = 90
+/// - raw fitness = pull + push = 90 + 90 + 0 = 180
+/// - fitness_scale (`reference`) = sum over all jobs of nearest-anchor proximity
+///   = dist(5, nearest=0) + dist(95, nearest=100) = 5 + 5 = 10
+#[test]
+fn fitness_is_raw_and_fitness_scale_is_the_reference() {
+    let (feature, ctx) = territory_fixture(TerritoryProximity::Distance, None);
+    let objective = feature.objective.unwrap();
+
+    assert_eq!(objective.fitness(&ctx.swapped_assignment), 180.0);
+    assert_eq!(objective.fitness_scale(), 10.0);
+}
+
 /// The two solution-level contexts a balanced-push fixture builds, both primed via
 /// `accept_solution_state`: `balanced` has each driver's load exactly at quota (`push == 0`);
 /// `overloaded` piles every job onto "d0", leaving "d1" idle (`push > 0`).

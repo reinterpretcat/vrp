@@ -33,9 +33,13 @@ pub enum TerritoryProximity {
 /// giving every driver unlimited spare capacity and reducing PULL to pure nearest-anchor territory.
 #[derive(Clone, Copy, Debug)]
 pub enum TerritoryBalance {
-    /// Balances on total travel distance to serve a job.
+    /// v1: bills each job's proximity to its nearest anchor (in the configured proximity
+    /// metric); Distance and Duration are currently equivalent — true per-metric travel
+    /// balancing is future work.
     Distance,
-    /// Balances on total travel duration to serve a job.
+    /// v1: bills each job's proximity to its nearest anchor (in the configured proximity
+    /// metric); Distance and Duration are currently equivalent — true per-metric travel
+    /// balancing is future work.
     Duration,
     /// Balances on job (activity) count.
     Activities,
@@ -416,7 +420,6 @@ impl FeatureObjective for TerritoryObjective {
             .get_territory_fitness()
             .map(|d| d.pull + d.push)
             .unwrap_or_else(|| self.shared.pull(&solution.solution) + self.shared.push(&solution.solution))
-            / self.shared.reference
     }
 
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
@@ -430,7 +433,7 @@ impl FeatureObjective for TerritoryObjective {
                 let assigned = self.shared.proximity(loc, assigned_anchor);
                 let reference = self.shared.nearest_anchor_prox(loc, job);
                 let pull = (assigned - reference).max(0.0);
-                (pull + self.shared.push_marginal(route_ctx, job)) / self.shared.reference
+                pull + self.shared.push_marginal(route_ctx, job)
             }
             MoveContext::Activity { .. } => Cost::default(),
         }
