@@ -12,7 +12,6 @@
 #[path = "../../../tests/unit/construction/clustering/territory_seeds_test.rs"]
 mod territory_seeds_test;
 
-use crate::algorithms::clustering::kmedoids::create_kmedoids;
 use std::collections::HashSet;
 
 /// A derived territory: a medoid `location` (an existing job location, so the distance matrix is
@@ -71,15 +70,23 @@ fn balanced_value_medoids(
     distance_fn: &(impl Fn(usize, usize) -> f64 + Send + Sync),
     iterations: usize,
 ) -> Vec<usize> {
-    let mut seeds: Vec<usize> = create_kmedoids(locations, k, |a, b| distance_fn(*a, *b)).keys().copied().collect();
+    // Deterministic k-medoids init: farthest-first spread + plain Lloyd refinement. The shared
+    // `create_kmedoids` uses parallel reductions whose tie-breaks are non-deterministic, which would
+    // make territories (and this derivation) differ run-to-run; `locations` is in a stable order, so
+    // this is fully reproducible. The refinement gives well-separated cells with no dominated seed.
+    let mut seeds = farthest_first_seeds(locations, k, distance_fn);
     let kk = seeds.len();
     if kk == 0 {
         return seeds;
     }
+    refine_medoids(&mut seeds, locations, distance_fn, iterations);
+
     let total_value: f64 = jobs.iter().map(|(_, v)| *v).sum();
     let cap = (total_value / kk as f64).max(f64::EPSILON);
 
-    for _ in 0..iterations {
+    // The capacitated relaxation needs enough passes for the medoids to settle so the nearest-seed
+    // partition converges onto the balanced (capacitated) one; a few passes leave them mismatched.
+    for _ in 0..(iterations * 4).max(iterations) {
         // Assign the most spatially-constrained jobs first (largest gap between nearest and
         // second-nearest seed), so a job with a clear home claims it before capacity fills.
         let mut order: Vec<usize> = (0..jobs.len()).collect();
@@ -128,4 +135,93 @@ fn balanced_value_medoids(
         }
     }
     seeds
+}
+
+/// Deterministic k-centers seeding: start from the first location, then repeatedly add the location
+/// whose nearest already-chosen seed is farthest away (greedy max-min), ties broken by the stable
+/// `locations` order. A spread-out, reproducible starting set for the Lloyd relaxation.
+fn farthest_first_seeds(
+    locations: &[usize],
+    k: usize,
+    distance_fn: &(impl Fn(usize, usize) -> f64 + Send + Sync),
+) -> Vec<usize> {
+    let mut seeds: Vec<usize> = Vec::with_capacity(k);
+    if locations.is_empty() {
+        return seeds;
+    }
+    // Start from the most central location (min total distance to the rest) — a stable, balanced
+    // anchor for the spread, mirroring the k-medoids init but computed deterministically.
+    let first = *locations
+        .iter()
+        .min_by(|&&a, &&b| {
+            let sa: f64 = locations.iter().map(|&l| distance_fn(a, l)).sum();
+            let sb: f64 = locations.iter().map(|&l| distance_fn(b, l)).sum();
+            sa.total_cmp(&sb)
+        })
+        .unwrap();
+    seeds.push(first);
+    while seeds.len() < k && seeds.len() < locations.len() {
+        let mut best: Option<usize> = None;
+        let mut best_d = f64::NEG_INFINITY;
+        for &loc in locations {
+            if seeds.contains(&loc) {
+                continue;
+            }
+            let dmin = seeds.iter().map(|&s| distance_fn(loc, s)).fold(f64::MAX, f64::min);
+            if dmin > best_d {
+                best_d = dmin;
+                best = Some(loc);
+            }
+        }
+        match best {
+            Some(l) => seeds.push(l),
+            None => break,
+        }
+    }
+    seeds
+}
+
+/// Plain (unweighted) k-medoids Lloyd refinement of `seeds` over `locations`: repeatedly assign each
+/// location to its nearest seed, then move each seed to its cell's medoid, until stable. Cleans up
+/// the farthest-first init so cells are well-separated Voronoi regions with no dominated (empty)
+/// seed. Deterministic given a stable `locations` order.
+fn refine_medoids(
+    seeds: &mut [usize],
+    locations: &[usize],
+    distance_fn: &(impl Fn(usize, usize) -> f64 + Send + Sync),
+    iterations: usize,
+) {
+    let kk = seeds.len();
+    if kk == 0 {
+        return;
+    }
+    for _ in 0..iterations {
+        let mut cells: Vec<Vec<usize>> = vec![Vec::new(); kk];
+        for &loc in locations {
+            let i = (0..kk).min_by(|&a, &b| distance_fn(loc, seeds[a]).total_cmp(&distance_fn(loc, seeds[b]))).unwrap();
+            cells[i].push(loc);
+        }
+        let mut changed = false;
+        for (c, cell) in cells.iter().enumerate() {
+            if cell.is_empty() {
+                continue;
+            }
+            let best = cell
+                .iter()
+                .copied()
+                .min_by(|&x, &y| {
+                    let sx: f64 = cell.iter().map(|&m| distance_fn(x, m)).sum();
+                    let sy: f64 = cell.iter().map(|&m| distance_fn(y, m)).sum();
+                    sx.total_cmp(&sy)
+                })
+                .unwrap();
+            if best != seeds[c] {
+                seeds[c] = best;
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
 }

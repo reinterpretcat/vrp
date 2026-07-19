@@ -341,7 +341,7 @@ fn get_objective_feature_layer(
             // them (Hungarian); explicit anchors keep the caller-supplied territory (no weights).
             // Anchor values are already routing-matrix indices; core Location is a usize.
             let (anchors, weights) = if anchors.is_empty() {
-                derive_territory_anchors_and_weights(blocks, proximity)
+                derive_territory_anchors_and_weights(blocks, proximity, balance)
             } else {
                 (anchors.iter().map(|(k, &idx)| (k.clone(), idx as CoreLocation)).collect(), HashMap::new())
             };
@@ -631,6 +631,7 @@ const TERRITORY_SEED_ITERATIONS: usize = 10;
 fn derive_territory_anchors_and_weights(
     blocks: &ProblemBlocks,
     proximity: CoreTerritoryProximity,
+    balance: Option<TerritoryBalance>,
 ) -> (HashMap<String, CoreLocation>, HashMap<String, Float>) {
     let Some(profile) = blocks.fleet.profiles.first().cloned() else {
         return (HashMap::new(), HashMap::new());
@@ -641,14 +642,14 @@ fn derive_territory_anchors_and_weights(
         CoreTerritoryProximity::Time => transport.duration_approx(&profile, a, b),
     };
 
-    // Customer jobs as (location, production value).
+    // Customer jobs as (location, balance-metric value): the seeds are balanced on the SAME metric
+    // the territory objective balances, so derived territories equalize whatever the caller asked
+    // for (stops, production value, duration; distance/none fall back to job count).
     let jobs: Vec<(CoreLocation, Float)> = blocks
         .jobs
         .all()
         .iter()
-        .filter_map(|job| {
-            job_primary_location(job).map(|loc| (loc, job.dimens().get_production_value().copied().unwrap_or(0.)))
-        })
+        .filter_map(|job| job_primary_location(job).map(|loc| (loc, territory_job_metric(job, balance))))
         .collect();
 
     // Distinct drivers in first-seen order, each with a representative start location.
@@ -719,6 +720,25 @@ fn job_primary_location(job: &CoreJob) -> Option<CoreLocation> {
     match job {
         CoreJob::Single(single) => single.places.first().and_then(|place| place.location),
         CoreJob::Multi(multi) => multi.jobs.first().and_then(|single| single.places.first().and_then(|p| p.location)),
+    }
+}
+
+/// The per-job quantity the derived territory seeds balance on, matching the territory objective's
+/// `balance`: production value, service duration, or job count (activities / distance / unspecified).
+fn territory_job_metric(job: &CoreJob, balance: Option<TerritoryBalance>) -> Float {
+    match balance {
+        Some(TerritoryBalance::ProductionValue) => job.dimens().get_production_value().copied().unwrap_or(0.),
+        Some(TerritoryBalance::Duration) => job_service_duration(job),
+        // Activities, Distance, or no balance → equalize job count per territory.
+        _ => 1.0,
+    }
+}
+
+/// A job's total service time (its primary place duration, summed over sub-jobs for a multi-job).
+fn job_service_duration(job: &CoreJob) -> Float {
+    match job {
+        CoreJob::Single(single) => single.places.first().map(|p| p.duration).unwrap_or(0.),
+        CoreJob::Multi(multi) => multi.jobs.iter().filter_map(|s| s.places.first().map(|p| p.duration)).sum(),
     }
 }
 
