@@ -11,7 +11,7 @@ mod territory_test;
 
 use super::vehicle_distance::get_job_location;
 use super::*;
-use crate::models::problem::{DriverIdDimension, VehicleIdDimension};
+use crate::models::problem::{DriverIdDimension, JobIdDimension, VehicleIdDimension};
 use std::collections::HashMap;
 
 pub use crate::construction::features::vehicle_distance::ActorJobCompatibilityFn;
@@ -203,6 +203,13 @@ struct TerritoryShared {
     quotas: HashMap<DriverKey, Float>,
     /// Reference magnitude used by `fitness_scale` to normalize PULL + PUSH.
     reference: Cost,
+    /// Precomputed per job id: its compatible drivers' anchors sorted by proximity (ascending).
+    /// The nearest anchor and nearest-spare anchor are pure functions of the (static) fleet anchors
+    /// and job compatibility, so they are computed once here instead of rescanning every actor on
+    /// each hot-loop insertion `estimate` — the scan was the fleet-scale construction bottleneck.
+    job_anchor_ranking: HashMap<String, Vec<(DriverKey, Float)>>,
+    /// Precomputed per driver: the proximity to its nearest *other* driver's anchor (static).
+    driver_nearest_other: HashMap<DriverKey, Float>,
 }
 
 impl TerritoryShared {
@@ -229,7 +236,12 @@ impl TerritoryShared {
             anchors,
             quotas: HashMap::new(),
             reference: 1.0,
+            job_anchor_ranking: HashMap::new(),
+            driver_nearest_other: HashMap::new(),
         };
+        // Precompute the static anchor lookups first; quotas/reference reuse them.
+        shared.job_anchor_ranking = shared.compute_job_anchor_ranking(&jobs);
+        shared.driver_nearest_other = shared.compute_driver_nearest_other();
         shared.quotas = shared.compute_quotas(&jobs);
         shared.reference = shared.compute_reference(&jobs).max(1.0);
         shared
@@ -278,15 +290,61 @@ impl TerritoryShared {
         jobs.all().iter().filter_map(|job| get_job_location(job).map(|loc| self.nearest_anchor_prox(loc, job))).sum()
     }
 
-    /// Proximity from a job's location to its nearest compatible anchor, ignoring quotas.
+    /// Proximity from a job's location to its nearest compatible anchor, ignoring quotas. O(1) via
+    /// the precomputed ranking; falls back to an actor scan for a job not seen at build time (e.g. a
+    /// synthetic job without an id).
     fn nearest_anchor_prox(&self, job_loc: Location, job: &Job) -> Float {
-        self.actors
+        if let Some(ranking) = job.dimens().get_job_id().and_then(|id| self.job_anchor_ranking.get(id)) {
+            return ranking.first().map(|(_, p)| *p).unwrap_or(0.0);
+        }
+        self.scan_sorted_anchors(job_loc, job).first().map(|(_, p)| *p).unwrap_or(0.0)
+    }
+
+    /// Actor scan producing a job's compatible drivers' anchors sorted by proximity (ascending).
+    /// Used to precompute `job_anchor_ranking` and as the uncached fallback for the lookups above.
+    fn scan_sorted_anchors(&self, job_loc: Location, job: &Job) -> Vec<(DriverKey, Float)> {
+        let mut seen: HashMap<DriverKey, Float> = HashMap::new();
+        for actor in self.actors.iter() {
+            if !(self.compatibility_fn)(job, actor) {
+                continue;
+            }
+            let key = driver_key(actor);
+            if let Some(&anchor) = self.anchors.get(&key) {
+                seen.entry(key).or_insert_with(|| self.proximity(job_loc, anchor));
+            }
+        }
+        let mut ranking: Vec<(DriverKey, Float)> = seen.into_iter().collect();
+        ranking.sort_by(|a, b| a.1.total_cmp(&b.1));
+        ranking
+    }
+
+    /// Precompute, per job id, its sorted compatible-anchor list — the static hot-loop input.
+    fn compute_job_anchor_ranking(&self, jobs: &Jobs) -> HashMap<String, Vec<(DriverKey, Float)>> {
+        jobs.all()
             .iter()
-            .filter(|a| (self.compatibility_fn)(job, a))
-            .filter_map(|a| self.anchors.get(&driver_key(a)).copied())
-            .map(|anchor| self.proximity(job_loc, anchor))
-            .min_by(|x, y| x.total_cmp(y))
-            .unwrap_or(0.0)
+            .filter_map(|job| {
+                let id = job.dimens().get_job_id()?.clone();
+                let loc = get_job_location(job)?;
+                Some((id, self.scan_sorted_anchors(loc, job)))
+            })
+            .collect()
+    }
+
+    /// Precompute, per driver, the proximity to its nearest *other* driver's anchor.
+    fn compute_driver_nearest_other(&self) -> HashMap<DriverKey, Float> {
+        self.anchors
+            .iter()
+            .map(|(key, &anchor)| {
+                let nearest = self
+                    .anchors
+                    .iter()
+                    .filter(|(other_key, _)| *other_key != key)
+                    .map(|(_, &other)| self.proximity(anchor, other))
+                    .min_by(|x, y| x.total_cmp(y))
+                    .unwrap_or(0.0);
+                (key.clone(), nearest)
+            })
+            .collect()
     }
 
     /// The balance metric total for a single route: the sum of `job_metric` across its jobs.
@@ -309,19 +367,15 @@ impl TerritoryShared {
     /// Proximity from a job's location to the nearest compatible anchor that still has spare
     /// quota. When balance is disabled, every driver has spare quota (unlimited capacity).
     fn nearest_spare_anchor(&self, job_loc: Location, job: &Job, loads: &HashMap<DriverKey, Float>) -> Option<Float> {
-        self.actors
-            .iter()
-            .filter(|a| (self.compatibility_fn)(job, a))
-            .filter_map(|a| {
-                let key = driver_key(a);
-                let has_spare = match self.balance {
-                    None => true,
-                    Some(_) => loads.get(&key).copied().unwrap_or(0.0) < *self.quotas.get(&key).unwrap_or(&Float::MAX),
-                };
-                if has_spare { self.anchors.get(&key).copied() } else { None }
-            })
-            .map(|anchor| self.proximity(job_loc, anchor))
-            .min_by(|x, y| x.total_cmp(y))
+        let has_spare = |key: &DriverKey| match self.balance {
+            None => true,
+            Some(_) => loads.get(key).copied().unwrap_or(0.0) < *self.quotas.get(key).unwrap_or(&Float::MAX),
+        };
+        // Ranking is proximity-ascending, so the first spare driver in it is the nearest spare one.
+        if let Some(ranking) = job.dimens().get_job_id().and_then(|id| self.job_anchor_ranking.get(id)) {
+            return ranking.iter().find(|(k, _)| has_spare(k)).map(|(_, p)| *p);
+        }
+        self.scan_sorted_anchors(job_loc, job).into_iter().find(|(k, _)| has_spare(k)).map(|(_, p)| p)
     }
 
     /// Total PULL for the solution: for each assigned job, the excess proximity of its assigned
@@ -387,21 +441,16 @@ impl TerritoryShared {
             return 0.0;
         }
         let key = driver_key(&route_ctx.route().actor);
-        let Some(anchor) = self.anchors.get(&key).copied() else { return 0.0 };
+        if !self.anchors.contains_key(&key) {
+            return 0.0;
+        }
         let load = route_ctx.state().get_territory_route_load().copied().unwrap_or(0.0);
         if load < *self.quotas.get(&key).unwrap_or(&Float::MAX) {
             return 0.0;
         }
 
-        let nearest_other = self
-            .quotas
-            .keys()
-            .filter(|k| **k != key)
-            .filter_map(|k| self.anchors.get(k).copied())
-            .map(|a| self.proximity(anchor, a))
-            .min_by(|x, y| x.total_cmp(y))
-            .unwrap_or(0.0);
-
+        // Nearest other anchor is static per driver — precomputed.
+        let nearest_other = self.driver_nearest_other.get(&key).copied().unwrap_or(0.0);
         self.job_metric(job) * nearest_other
     }
 }

@@ -446,3 +446,25 @@ fn territory_scales_to_many_drivers() {
     );
     assert!(overlap < 0.1, "territory overlap ratio too high: {overlap:.3}");
 }
+
+// Manual perf benchmark for the territory objective's construction cost (the hot path that, at
+// fleet scale, was eating the whole solve budget building the initial solution):
+//   cargo test -p vrp-pragmatic --release bench_territory_construction -- --ignored --nocapture
+#[test]
+#[ignore]
+fn bench_territory_construction() {
+    let drivers = 60usize;
+    let per = 10usize;
+    let total_jobs = drivers * per;
+    let fixture = problem_grid(&vec![per; drivers], BalancePeriodMetric::Activities);
+    let matrix = create_matrix_from_problem(&fixture.problem);
+
+    let start = std::time::Instant::now();
+    let solution = solve_with_cheapest_insertion(fixture.problem.clone(), Some(vec![matrix]));
+    let elapsed = start.elapsed();
+
+    let unassigned = solution.unassigned.as_ref().map_or(0, |u| u.len());
+    eprintln!(
+        "BENCH territory construction: {drivers} drivers, {total_jobs} jobs -> cheapest-insertion {elapsed:?}, unassigned {unassigned}/{total_jobs}"
+    );
+}
