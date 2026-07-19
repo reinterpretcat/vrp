@@ -641,22 +641,19 @@ fn derive_territory_anchors_and_weights(
         CoreTerritoryProximity::Time => transport.duration_approx(&profile, a, b),
     };
 
-    // Customer jobs as (location, production value, service-time load).
-    let jobs: Vec<(CoreLocation, Float, Float)> = blocks
+    // Customer jobs as (location, production value).
+    let jobs: Vec<(CoreLocation, Float)> = blocks
         .jobs
         .all()
         .iter()
         .filter_map(|job| {
-            job_primary_location(job).map(|loc| {
-                (loc, job.dimens().get_production_value().copied().unwrap_or(0.), job_service_duration(job))
-            })
+            job_primary_location(job).map(|loc| (loc, job.dimens().get_production_value().copied().unwrap_or(0.)))
         })
         .collect();
 
-    // Distinct drivers in first-seen order, each with a representative start location and shift
-    // length (available working time).
+    // Distinct drivers in first-seen order, each with a representative start location.
     let mut driver_order: Vec<String> = Vec::new();
-    let mut driver_info: HashMap<String, (CoreLocation, Float)> = HashMap::new();
+    let mut driver_start: HashMap<String, CoreLocation> = HashMap::new();
     for actor in blocks.fleet.actors.iter() {
         let key = actor
             .vehicle
@@ -665,11 +662,9 @@ fn derive_territory_anchors_and_weights(
             .cloned()
             .or_else(|| actor.vehicle.dimens.get_vehicle_id().cloned())
             .unwrap_or_default();
-        driver_info.entry(key.clone()).or_insert_with(|| {
+        driver_start.entry(key.clone()).or_insert_with(|| {
             driver_order.push(key.clone());
-            let start = actor.detail.start.as_ref().map(|p| p.location).unwrap_or(0);
-            let shift = (actor.detail.time.end - actor.detail.time.start).max(0.0);
-            (start, shift)
+            actor.detail.start.as_ref().map(|p| p.location).unwrap_or(0)
         });
     }
 
@@ -678,13 +673,7 @@ fn derive_territory_anchors_and_weights(
         return (HashMap::new(), HashMap::new());
     }
 
-    // Per-cell load capacity: the mean driver shift length (uniform-shift assumption; per-driver
-    // capacity awaits skill/capacity-aware matching). A non-finite or empty budget disables the
-    // feasibility guard, leaving pure value balancing.
-    let mean_shift = driver_order.iter().map(|key| driver_info[key].1).sum::<Float>() / k as Float;
-    let capacity = if mean_shift.is_finite() && mean_shift > 0.0 { mean_shift } else { Float::INFINITY };
-
-    let seeds = build_balanced_territory_seeds(&jobs, k, capacity, dist.clone(), TERRITORY_SEED_ITERATIONS);
+    let seeds = build_balanced_territory_seeds(&jobs, k, dist.clone(), TERRITORY_SEED_ITERATIONS);
     let s = seeds.len();
     if s == 0 {
         return (HashMap::new(), HashMap::new());
@@ -697,7 +686,7 @@ fn derive_territory_anchors_and_weights(
     let mut cost: Vec<Vec<f64>> = driver_order
         .iter()
         .map(|key| {
-            let start = driver_info[key].0;
+            let start = driver_start[key];
             seeds
                 .iter()
                 .map(|seed| {
@@ -730,15 +719,6 @@ fn job_primary_location(job: &CoreJob) -> Option<CoreLocation> {
     match job {
         CoreJob::Single(single) => single.places.first().and_then(|place| place.location),
         CoreJob::Multi(multi) => multi.jobs.first().and_then(|single| single.places.first().and_then(|p| p.location)),
-    }
-}
-
-/// A job's service-time load: the duration of its primary place (summed over sub-jobs for a
-/// multi-job). Used as the feasibility-guard load when deriving territory seeds.
-fn job_service_duration(job: &CoreJob) -> Float {
-    match job {
-        CoreJob::Single(single) => single.places.first().map(|p| p.duration).unwrap_or(0.),
-        CoreJob::Multi(multi) => multi.jobs.iter().filter_map(|s| s.places.first().map(|p| p.duration)).sum(),
     }
 }
 
