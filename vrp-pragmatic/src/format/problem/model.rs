@@ -694,6 +694,11 @@ pub enum Objective {
         /// Per-driver anchor as a routing-matrix location index, keyed by driver id.
         #[serde(default)]
         anchors: std::collections::HashMap<String, usize>,
+        /// When true, drivers left with no jobs are excluded from the balance (their quota is
+        /// re-based over the used drivers), so leaving a driver idle is not an imbalance. Defaults
+        /// to false (balance spans every driver).
+        #[serde(default)]
+        allow_idle_drivers: bool,
     },
 
     /// An objective to consider hierarchy of areas while serving jobs.

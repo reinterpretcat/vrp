@@ -85,6 +85,7 @@ pub struct TerritoryFeatureBuilder {
     balance: Option<TerritoryBalance>,
     anchors: HashMap<DriverKey, Location>,
     job_value_fn: Option<JobValueFn>,
+    allow_idle_drivers: bool,
 }
 
 impl TerritoryFeatureBuilder {
@@ -100,6 +101,7 @@ impl TerritoryFeatureBuilder {
             balance: None,
             anchors: HashMap::new(),
             job_value_fn: None,
+            allow_idle_drivers: false,
         }
     }
 
@@ -156,6 +158,14 @@ impl TerritoryFeatureBuilder {
         self
     }
 
+    /// When `true`, drivers that end up with no jobs are left out of the balance entirely (quotas
+    /// are re-based over the drivers actually used), so leaving a driver idle is allowed rather than
+    /// treated as a deficit. Defaults to `false` (balance spans every driver).
+    pub fn set_allow_idle_drivers(mut self, allow: bool) -> Self {
+        self.allow_idle_drivers = allow;
+        self
+    }
+
     /// Builds the feature.
     pub fn build(mut self) -> GenericResult<Feature> {
         let transport = self.transport.take().ok_or_else(|| GenericError::from("territory: transport required"))?;
@@ -174,6 +184,7 @@ impl TerritoryFeatureBuilder {
             self.balance,
             self.anchors,
             job_value_fn,
+            self.allow_idle_drivers,
         ));
 
         FeatureBuilder::default()
@@ -210,6 +221,11 @@ struct TerritoryShared {
     job_anchor_ranking: HashMap<String, Vec<(DriverKey, Float)>>,
     /// Precomputed per driver: the proximity to its nearest *other* driver's anchor (static).
     driver_nearest_other: HashMap<DriverKey, Float>,
+    /// Per-driver capacity (summed available shift time). Used to re-base quotas over the used
+    /// drivers when `allow_idle_drivers` is set.
+    caps: HashMap<DriverKey, Float>,
+    /// See [`TerritoryFeatureBuilder::set_allow_idle_drivers`].
+    allow_idle_drivers: bool,
 }
 
 impl TerritoryShared {
@@ -223,6 +239,7 @@ impl TerritoryShared {
         balance: Option<TerritoryBalance>,
         anchors: HashMap<DriverKey, Location>,
         job_value_fn: JobValueFn,
+        allow_idle_drivers: bool,
     ) -> Self {
         let profile = actors.first().map(|a| a.vehicle.profile.clone()).unwrap_or_default();
         let mut shared = Self {
@@ -238,10 +255,13 @@ impl TerritoryShared {
             reference: 1.0,
             job_anchor_ranking: HashMap::new(),
             driver_nearest_other: HashMap::new(),
+            caps: HashMap::new(),
+            allow_idle_drivers,
         };
         // Precompute the static anchor lookups first; quotas/reference reuse them.
         shared.job_anchor_ranking = shared.compute_job_anchor_ranking(&jobs);
         shared.driver_nearest_other = shared.compute_driver_nearest_other();
+        shared.caps = shared.compute_caps();
         shared.quotas = shared.compute_quotas(&jobs);
         shared.reference = shared.compute_reference(&jobs).max(1.0);
         shared
@@ -270,18 +290,59 @@ impl TerritoryShared {
 
     /// Computes each driver's quota: the total balance metric spread over drivers proportionally
     /// to their available time window. Empty when balance is disabled (unlimited spare capacity).
+    /// Per-driver capacity: the summed available shift-time window across the driver's actors.
+    fn compute_caps(&self) -> HashMap<DriverKey, Float> {
+        let mut caps: HashMap<DriverKey, Float> = HashMap::new();
+        for actor in self.actors.iter() {
+            let window = (actor.detail.time.end - actor.detail.time.start).max(0.0);
+            *caps.entry(driver_key(actor)).or_insert(0.0) += window;
+        }
+        caps
+    }
+
+    /// The static per-driver quota: the total demand spread over ALL drivers proportionally to
+    /// capacity. Empty when balance is disabled. When `allow_idle_drivers` is set this static map is
+    /// re-based per solution over the used drivers only (see [`Self::effective_quotas`]).
     fn compute_quotas(&self, jobs: &Jobs) -> HashMap<DriverKey, Float> {
         if self.balance.is_none() {
             return HashMap::new();
         }
         let total_metric: Float = jobs.all().iter().map(|j| self.job_metric(j)).sum();
-        let mut cap: HashMap<DriverKey, Float> = HashMap::new();
-        for actor in self.actors.iter() {
-            let window = (actor.detail.time.end - actor.detail.time.start).max(0.0);
-            *cap.entry(driver_key(actor)).or_insert(0.0) += window;
+        let total_cap: Float = self.caps.values().sum::<Float>().max(1e-6);
+        self.caps.iter().map(|(k, &c)| (k.clone(), total_metric * c / total_cap)).collect()
+    }
+
+    /// The quota map the balance is actually measured against for a given solution.
+    /// - `allow_idle_drivers` off: the static, all-driver quotas.
+    /// - `allow_idle_drivers` on: quotas re-based over the *used* drivers (load > 0), so idle drivers
+    ///   carry no quota and never count as a deficit, while the used drivers stay balanced among
+    ///   themselves.
+    fn effective_quotas(&self, loads: &HashMap<DriverKey, Float>) -> HashMap<DriverKey, Float> {
+        if !self.allow_idle_drivers {
+            return self.quotas.clone();
         }
-        let total_cap: Float = cap.values().sum::<Float>().max(1e-6);
-        cap.into_iter().map(|(k, c)| (k, total_metric * c / total_cap)).collect()
+        let used: Vec<&DriverKey> =
+            self.quotas.keys().filter(|k| loads.get(*k).copied().unwrap_or(0.0) > 1e-9).collect();
+        let used_cap: Float = used.iter().filter_map(|k| self.caps.get(*k)).sum::<Float>().max(1e-6);
+        let used_load: Float = used.iter().filter_map(|k| loads.get(*k)).sum();
+        used.into_iter()
+            .map(|k| (k.clone(), used_load * self.caps.get(k).copied().unwrap_or(0.0) / used_cap))
+            .collect()
+    }
+
+    /// The set of drivers PULL may steer jobs toward: with balance off, every anchored driver;
+    /// otherwise the effective-quota drivers still under their quota (which excludes idle drivers
+    /// entirely when `allow_idle_drivers` is set).
+    fn spare_set(&self, loads: &HashMap<DriverKey, Float>) -> std::collections::HashSet<DriverKey> {
+        match self.balance {
+            None => self.anchors.keys().cloned().collect(),
+            Some(_) => self
+                .effective_quotas(loads)
+                .into_iter()
+                .filter(|(k, q)| loads.get(k).copied().unwrap_or(0.0) < *q)
+                .map(|(k, _)| k)
+                .collect(),
+        }
     }
 
     /// The self-normalization reference: the sum, over all jobs, of the proximity to each job's
@@ -366,22 +427,24 @@ impl TerritoryShared {
 
     /// Proximity from a job's location to the nearest compatible anchor that still has spare
     /// quota. When balance is disabled, every driver has spare quota (unlimited capacity).
-    fn nearest_spare_anchor(&self, job_loc: Location, job: &Job, loads: &HashMap<DriverKey, Float>) -> Option<Float> {
-        let has_spare = |key: &DriverKey| match self.balance {
-            None => true,
-            Some(_) => loads.get(key).copied().unwrap_or(0.0) < *self.quotas.get(key).unwrap_or(&Float::MAX),
-        };
+    fn nearest_spare_anchor(
+        &self,
+        job_loc: Location,
+        job: &Job,
+        spare: &std::collections::HashSet<DriverKey>,
+    ) -> Option<Float> {
         // Ranking is proximity-ascending, so the first spare driver in it is the nearest spare one.
         if let Some(ranking) = job.dimens().get_job_id().and_then(|id| self.job_anchor_ranking.get(id)) {
-            return ranking.iter().find(|(k, _)| has_spare(k)).map(|(_, p)| *p);
+            return ranking.iter().find(|(k, _)| spare.contains(k)).map(|(_, p)| *p);
         }
-        self.scan_sorted_anchors(job_loc, job).into_iter().find(|(k, _)| has_spare(k)).map(|(_, p)| p)
+        self.scan_sorted_anchors(job_loc, job).into_iter().find(|(k, _)| spare.contains(k)).map(|(_, p)| p)
     }
 
     /// Total PULL for the solution: for each assigned job, the excess proximity of its assigned
     /// driver's anchor over the nearest compatible, under-quota anchor.
     fn pull(&self, solution: &SolutionContext) -> Cost {
         let loads = self.loads(solution);
+        let spare = self.spare_set(&loads);
         let mut total = 0.0;
         for route_ctx in solution.routes.iter() {
             let actor = &route_ctx.route().actor;
@@ -389,7 +452,7 @@ impl TerritoryShared {
             for job in route_ctx.route().tour.jobs() {
                 let Some(loc) = get_job_location(job) else { continue };
                 let assigned = self.proximity(loc, assigned_anchor);
-                let reference = self.nearest_spare_anchor(loc, job, &loads).unwrap_or(assigned);
+                let reference = self.nearest_spare_anchor(loc, job, &spare).unwrap_or(assigned);
                 total += (assigned - reference).max(0.0);
             }
         }
@@ -404,10 +467,12 @@ impl TerritoryShared {
             return 0.0;
         }
         let loads = self.loads(solution);
+        // With `allow_idle_drivers`, this spans only the used drivers, so idle drivers are neither
+        // deficits (targets) nor surplus (sources) — leaving one idle is not an imbalance.
+        let quotas = self.effective_quotas(&loads);
 
         // Deficit drivers (with an anchor) and their remaining room.
-        let deficits: Vec<Location> = self
-            .quotas
+        let deficits: Vec<Location> = quotas
             .iter()
             .filter_map(|(key, &quota)| {
                 let load = loads.get(key).copied().unwrap_or(0.0);
@@ -419,7 +484,7 @@ impl TerritoryShared {
         }
 
         let mut total = 0.0;
-        for (key, &quota) in self.quotas.iter() {
+        for (key, &quota) in quotas.iter() {
             let load = loads.get(key).copied().unwrap_or(0.0);
             let surplus = load - quota;
             if surplus <= 1e-9 {
@@ -438,6 +503,12 @@ impl TerritoryShared {
     /// cheap for the hot insertion-evaluation loop).
     fn push_marginal(&self, route_ctx: &RouteContext, job: &Job) -> Cost {
         if self.balance.is_none() {
+            return 0.0;
+        }
+        // When idle drivers are allowed, the estimate should not spread work off drivers (that would
+        // fill idle ones): concentration to the feasible minimum is fine and the fitness still
+        // balances the used drivers. So there is no per-insertion push signal in that mode.
+        if self.allow_idle_drivers {
             return 0.0;
         }
         let key = driver_key(&route_ctx.route().actor);

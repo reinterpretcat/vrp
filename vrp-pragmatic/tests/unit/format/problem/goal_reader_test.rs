@@ -27,6 +27,7 @@ fn builds_goal_with_territory_objective() {
                 proximity: TerritoryProximity::Distance,
                 balance: Some(BalancePeriodMetric::Distance),
                 anchors: HashMap::from([("v1_1".to_string(), 0)]),
+                allow_idle_drivers: false,
             },
             Objective::MinimizeCost,
         ]),

@@ -115,8 +115,14 @@ fn can_deserialize_territory_objective_with_anchors() {
     let json = r#"{"type":"territory","proximity":"time","balance":"production-value","anchors":{"drv-1":4,"drv-2":9}}"#;
     let obj: Objective = serde_json::from_str(json).unwrap();
     match obj {
-        Objective::Territory { proximity: TerritoryProximity::Time, balance: Some(BalancePeriodMetric::ProductionValue), anchors } => {
+        Objective::Territory {
+            proximity: TerritoryProximity::Time,
+            balance: Some(BalancePeriodMetric::ProductionValue),
+            anchors,
+            allow_idle_drivers,
+        } => {
             assert_eq!(anchors.get("drv-1"), Some(&4));
+            assert!(!allow_idle_drivers, "defaults to false when omitted from JSON");
         }
         _ => panic!("wrong variant"),
     }

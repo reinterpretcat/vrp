@@ -167,7 +167,7 @@ struct TerritoryBalanceFixtureContexts {
 /// - `balanced` puts one job per route: each driver's load lands exactly on its quota.
 /// - `overloaded` puts both jobs on "d0" and leaves "d1" idle: "d0" carries a surplus and "d1" a
 ///   deficit.
-fn territory_balanced_fixture(balance: TerritoryBalance) -> (Feature, TerritoryBalanceFixtureContexts) {
+fn territory_balanced_fixture(balance: TerritoryBalance, allow_idle: bool) -> (Feature, TerritoryBalanceFixtureContexts) {
     let vehicle_d0 = build_vehicle("v_d0", "d0");
     let vehicle_d1 = build_vehicle("v_d1", "d1");
 
@@ -200,7 +200,8 @@ fn territory_balanced_fixture(balance: TerritoryBalance) -> (Feature, TerritoryB
         .set_compatibility_fn(|_, _| true)
         .set_proximity(TerritoryProximity::Distance)
         .set_balance(Some(balance))
-        .set_anchors(anchors);
+        .set_anchors(anchors)
+        .set_allow_idle_drivers(allow_idle);
 
     if matches!(balance, TerritoryBalance::ProductionValue) {
         // Exercise the caller-supplied value function (rather than the `1.0` default) to prove
@@ -232,14 +233,14 @@ fn territory_balanced_fixture(balance: TerritoryBalance) -> (Feature, TerritoryB
 
 #[test]
 fn push_is_zero_when_loads_equal_quotas() {
-    let (_f, ctx) = territory_balanced_fixture(TerritoryBalance::Activities);
+    let (_f, ctx) = territory_balanced_fixture(TerritoryBalance::Activities, false);
     let data = ctx.balanced.solution.state.get_territory_fitness().cloned().unwrap_or_default();
     assert_eq!(data.push, 0.0);
 }
 
 #[test]
 fn push_is_positive_when_imbalanced() {
-    let (_f, ctx) = territory_balanced_fixture(TerritoryBalance::Activities);
+    let (_f, ctx) = territory_balanced_fixture(TerritoryBalance::Activities, false);
     let data = ctx.overloaded.solution.state.get_territory_fitness().cloned().unwrap_or_default();
     assert!(data.push > 0.0);
 }
@@ -253,8 +254,19 @@ fn push_reacts_to_imbalance_for_all_metrics() {
         TerritoryBalance::Activities,
         TerritoryBalance::ProductionValue,
     ] {
-        let (_f, ctx) = territory_balanced_fixture(balance);
+        let (_f, ctx) = territory_balanced_fixture(balance, false);
         let data = ctx.overloaded.solution.state.get_territory_fitness().cloned().unwrap_or_default();
         assert!(data.push > 0.0, "push must be positive when imbalanced for {balance:?}");
     }
+}
+
+#[test]
+fn allow_idle_drivers_drops_the_idle_driver_from_the_imbalance() {
+    // Same overloaded layout as `push_is_positive_when_imbalanced` (every job on "d0", "d1" idle),
+    // but with idle drivers allowed: "d1" is excluded from the balance, so the only used driver
+    // ("d0") is exactly at its re-based quota -> no surplus -> push == 0. Leaving a driver idle is
+    // not an imbalance in this mode.
+    let (_f, ctx) = territory_balanced_fixture(TerritoryBalance::Activities, true);
+    let data = ctx.overloaded.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+    assert_eq!(data.push, 0.0);
 }
