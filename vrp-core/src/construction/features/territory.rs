@@ -84,6 +84,7 @@ pub struct TerritoryFeatureBuilder {
     proximity: TerritoryProximity,
     balance: Option<TerritoryBalance>,
     anchors: HashMap<DriverKey, Location>,
+    weights: HashMap<DriverKey, Float>,
     job_value_fn: Option<JobValueFn>,
     allow_idle_drivers: bool,
 }
@@ -100,6 +101,7 @@ impl TerritoryFeatureBuilder {
             proximity: TerritoryProximity::Distance,
             balance: None,
             anchors: HashMap::new(),
+            weights: HashMap::new(),
             job_value_fn: None,
             allow_idle_drivers: false,
         }
@@ -158,6 +160,16 @@ impl TerritoryFeatureBuilder {
         self
     }
 
+    /// Sets per-driver boundary weights `w_i` used to form power cells: a job's power distance to
+    /// a driver is `proximity − w_i`, and a job is assigned overlap-free to the driver minimizing
+    /// it. A larger weight enlarges that driver's cell (so a sparse-value driver can reach further
+    /// for equal value). Defaults to `0.0` per driver, which makes power distance equal to raw
+    /// nearest-anchor proximity. Keyed like anchors (driver id, else vehicle id).
+    pub fn set_weights(mut self, w: HashMap<String, Float>) -> Self {
+        self.weights = w;
+        self
+    }
+
     /// When `true`, drivers that end up with no jobs are left out of the balance entirely (quotas
     /// are re-based over the drivers actually used), so leaving a driver idle is allowed rather than
     /// treated as a deficit. Defaults to `false` (balance spans every driver).
@@ -183,6 +195,7 @@ impl TerritoryFeatureBuilder {
             self.proximity,
             self.balance,
             self.anchors,
+            self.weights,
             job_value_fn,
             self.allow_idle_drivers,
         ));
@@ -209,6 +222,9 @@ struct TerritoryShared {
     job_value_fn: JobValueFn,
     profile: Profile,
     anchors: HashMap<DriverKey, Location>,
+    /// Per-driver boundary weight `w_i`; missing entries are `0.0` (unweighted cell). Keyed like
+    /// `anchors`: one weight per driver = per territory = per anchor.
+    weights: HashMap<DriverKey, Float>,
     /// Per-driver quota: the balance metric's ideal share, proportional to each driver's
     /// available time window. Empty when `balance` is `None` (unlimited spare capacity).
     quotas: HashMap<DriverKey, Float>,
@@ -219,6 +235,10 @@ struct TerritoryShared {
     /// and job compatibility, so they are computed once here instead of rescanning every actor on
     /// each hot-loop insertion `estimate` — the scan was the fleet-scale construction bottleneck.
     job_anchor_ranking: HashMap<String, Vec<(DriverKey, Float)>>,
+    /// Precomputed per job id: the minimum power distance `min_d (prox(loc, anchor_d) − w_d)` over
+    /// its compatible drivers — the overlap-penalty reference, static because anchors and weights
+    /// are fixed at build time.
+    job_nearest_power: HashMap<String, Float>,
     /// Precomputed per driver: the proximity to its nearest *other* driver's anchor (static).
     driver_nearest_other: HashMap<DriverKey, Float>,
     /// Per-driver capacity (summed available shift time). Used to re-base quotas over the used
@@ -238,6 +258,7 @@ impl TerritoryShared {
         proximity: TerritoryProximity,
         balance: Option<TerritoryBalance>,
         anchors: HashMap<DriverKey, Location>,
+        weights: HashMap<DriverKey, Float>,
         job_value_fn: JobValueFn,
         allow_idle_drivers: bool,
     ) -> Self {
@@ -251,15 +272,18 @@ impl TerritoryShared {
             job_value_fn,
             profile,
             anchors,
+            weights,
             quotas: HashMap::new(),
             reference: 1.0,
             job_anchor_ranking: HashMap::new(),
+            job_nearest_power: HashMap::new(),
             driver_nearest_other: HashMap::new(),
             caps: HashMap::new(),
             allow_idle_drivers,
         };
-        // Precompute the static anchor lookups first; quotas/reference reuse them.
+        // Precompute the static anchor lookups first; quotas/reference/power reuse them.
         shared.job_anchor_ranking = shared.compute_job_anchor_ranking(&jobs);
+        shared.job_nearest_power = shared.compute_job_nearest_power();
         shared.driver_nearest_other = shared.compute_driver_nearest_other();
         shared.caps = shared.compute_caps();
         shared.quotas = shared.compute_quotas(&jobs);
@@ -359,6 +383,42 @@ impl TerritoryShared {
             return ranking.first().map(|(_, p)| *p).unwrap_or(0.0);
         }
         self.scan_sorted_anchors(job_loc, job).first().map(|(_, p)| *p).unwrap_or(0.0)
+    }
+
+    /// The boundary weight for a driver; `0.0` when unset (unweighted cell).
+    fn weight(&self, key: &DriverKey) -> Float {
+        self.weights.get(key).copied().unwrap_or(0.0)
+    }
+
+    /// The minimum power distance from a job's location to any compatible driver's anchor:
+    /// `min_d (prox(loc, anchor_d) − w_d)`. This is the overlap-penalty reference (a job in its
+    /// power cell reaches it exactly). O(1) via the precomputed map; scans as a fallback for a job
+    /// absent at build time (e.g. a synthetic job without an id).
+    fn nearest_power(&self, job_loc: Location, job: &Job) -> Float {
+        if let Some(&p) = job.dimens().get_job_id().and_then(|id| self.job_nearest_power.get(id)) {
+            return p;
+        }
+        self.scan_sorted_anchors(job_loc, job)
+            .into_iter()
+            .map(|(k, prox)| prox - self.weight(&k))
+            .min_by(|a, b| a.total_cmp(b))
+            .unwrap_or(0.0)
+    }
+
+    /// Precompute, per job id, its minimum power distance over compatible anchors (static input to
+    /// the overlap penalty). Reuses `job_anchor_ranking`, so it must run after it.
+    fn compute_job_nearest_power(&self) -> HashMap<String, Float> {
+        self.job_anchor_ranking
+            .iter()
+            .map(|(id, ranking)| {
+                let np = ranking
+                    .iter()
+                    .map(|(k, prox)| prox - self.weight(k))
+                    .min_by(|a, b| a.total_cmp(b))
+                    .unwrap_or(0.0);
+                (id.clone(), np)
+            })
+            .collect()
     }
 
     /// Actor scan producing a job's compatible drivers' anchors sorted by proximity (ascending).
@@ -548,12 +608,13 @@ impl FeatureObjective for TerritoryObjective {
             MoveContext::Route { route_ctx, job, .. } => {
                 let Some(loc) = get_job_location(job) else { return Cost::default() };
                 let actor = &route_ctx.route().actor;
-                let Some(assigned_anchor) = self.shared.anchors.get(&driver_key(actor)).copied() else {
+                let key = driver_key(actor);
+                let Some(assigned_anchor) = self.shared.anchors.get(&key).copied() else {
                     return Cost::default();
                 };
-                let assigned = self.shared.proximity(loc, assigned_anchor);
-                let reference = self.shared.nearest_anchor_prox(loc, job);
-                let pull = (assigned - reference).max(0.0);
+                let assigned_power = self.shared.proximity(loc, assigned_anchor) - self.shared.weight(&key);
+                let reference = self.shared.nearest_power(loc, job);
+                let pull = (assigned_power - reference).max(0.0);
                 pull + self.shared.push_marginal(route_ctx, job)
             }
             MoveContext::Activity { .. } => Cost::default(),

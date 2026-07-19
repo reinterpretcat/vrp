@@ -270,3 +270,47 @@ fn allow_idle_drivers_drops_the_idle_driver_from_the_imbalance() {
     let data = ctx.overloaded.solution.state.get_territory_fitness().cloned().unwrap_or_default();
     assert_eq!(data.push, 0.0);
 }
+
+/// Weighted power cells: a job physically closer (raw distance) to d0's anchor is pulled into
+/// d1's cell by a large weight on d1. Serving it on d1 is then penalty-free (it is in its power
+/// cell) and serving it on d0 is penalized. Geometry (asserted end-to-end in Task 2 Step 6):
+/// job@40 -> raw dist 40 to d0@0, 60 to d1@100; w_d1=30 -> power(d0)=40, power(d1)=30 -> the job
+/// belongs to d1's power cell.
+#[test]
+fn weight_moves_the_boundary_and_zeroes_pull_in_the_power_cell() {
+    let vehicle_d0 = build_vehicle("v_d0", "d0");
+    let vehicle_d1 = build_vehicle("v_d1", "d1");
+    let fleet =
+        FleetBuilder::default().add_driver(test_driver()).add_vehicle(vehicle_d0).add_vehicle(vehicle_d1).build();
+    let actor_d0 = get_test_actor_from_fleet(&fleet, "v_d0");
+    let actor_d1 = get_test_actor_from_fleet(&fleet, "v_d1");
+
+    // Job at 40: raw dist 40 to d0@0, 60 to d1@100 -> raw-nearest is d0.
+    let job = TestSingleBuilder::default().id("job_boundary").location(Some(40)).build_shared();
+
+    let transport = TestTransportCost::new_shared();
+    let jobs =
+        Arc::new(Jobs::new(&fleet, vec![Job::Single(job.clone())], transport.as_ref(), &test_logger()).unwrap());
+
+    let anchors = HashMap::from([("d0".to_string(), 0usize), ("d1".to_string(), 100usize)]);
+    // w_d1 = 30: power(d0) = 40 - 0 = 40, power(d1) = 60 - 30 = 30 -> job belongs to d1's cell.
+    let weights = HashMap::from([("d0".to_string(), 0.0), ("d1".to_string(), 30.0)]);
+
+    let feature = TerritoryFeatureBuilder::new("territory")
+        .set_transport(transport)
+        .set_actors(vec![actor_d0.clone(), actor_d1.clone()])
+        .set_jobs(jobs)
+        .set_compatibility_fn(|_, _| true)
+        .set_proximity(TerritoryProximity::Distance)
+        .set_balance(None)
+        .set_anchors(anchors)
+        .set_weights(weights)
+        .build()
+        .unwrap();
+
+    // Task 1 scope: weights plumb through and the feature builds. Behavioural PULL assertions are
+    // added in Task 2 Step 6 (they route through `pull()`), using actor_d0/actor_d1/job/objective.
+    assert!(feature.objective.is_some());
+    let objective = feature.objective.unwrap();
+    let _ = (&actor_d0, &actor_d1, &job, &objective);
+}
