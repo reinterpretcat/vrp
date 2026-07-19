@@ -1,9 +1,11 @@
 //! A feature that builds balanced, capacity-aware territories around a per-driver anchor.
 //!
-//! PULL keeps each job on the nearest compatible driver that still has spare quota; PUSH
-//! greedily moves over-quota surplus to the nearest under-quota driver at proximity cost. Both are
-//! in proximity units, so there is no free weight between them. The anchor is supplied by the caller
-//! (objective config), never derived here.
+//! PULL is a per-driver *weighted* overlap penalty: each job is billed the excess of its driver's
+//! power distance (`proximity − weight`) over the minimum power distance across the job's
+//! compatible anchors, so a job reaching into a foreign power cell is penalized and a job in its
+//! own cell is free. PUSH greedily moves over-quota surplus to the nearest under-quota driver at
+//! proximity cost. Anchors and weights are supplied by the caller (objective config), never
+//! derived here.
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/features/territory_test.rs"]
@@ -354,21 +356,6 @@ impl TerritoryShared {
             .collect()
     }
 
-    /// The set of drivers PULL may steer jobs toward: with balance off, every anchored driver;
-    /// otherwise the effective-quota drivers still under their quota (which excludes idle drivers
-    /// entirely when `allow_idle_drivers` is set).
-    fn spare_set(&self, loads: &HashMap<DriverKey, Float>) -> std::collections::HashSet<DriverKey> {
-        match self.balance {
-            None => self.anchors.keys().cloned().collect(),
-            Some(_) => self
-                .effective_quotas(loads)
-                .into_iter()
-                .filter(|(k, q)| loads.get(k).copied().unwrap_or(0.0) < *q)
-                .map(|(k, _)| k)
-                .collect(),
-        }
-    }
-
     /// The self-normalization reference: the sum, over all jobs, of the proximity to each job's
     /// nearest compatible anchor. Guarded to stay positive by the caller.
     fn compute_reference(&self, jobs: &Jobs) -> Cost {
@@ -485,35 +472,22 @@ impl TerritoryShared {
         loads
     }
 
-    /// Proximity from a job's location to the nearest compatible anchor that still has spare
-    /// quota. When balance is disabled, every driver has spare quota (unlimited capacity).
-    fn nearest_spare_anchor(
-        &self,
-        job_loc: Location,
-        job: &Job,
-        spare: &std::collections::HashSet<DriverKey>,
-    ) -> Option<Float> {
-        // Ranking is proximity-ascending, so the first spare driver in it is the nearest spare one.
-        if let Some(ranking) = job.dimens().get_job_id().and_then(|id| self.job_anchor_ranking.get(id)) {
-            return ranking.iter().find(|(k, _)| spare.contains(k)).map(|(_, p)| *p);
-        }
-        self.scan_sorted_anchors(job_loc, job).into_iter().find(|(k, _)| spare.contains(k)).map(|(_, p)| p)
-    }
-
-    /// Total PULL for the solution: for each assigned job, the excess proximity of its assigned
-    /// driver's anchor over the nearest compatible, under-quota anchor.
+    /// Total PULL (overlap penalty) for the solution: for each assigned job, the excess of its
+    /// driver's power distance over the minimum power distance across the job's compatible anchors.
+    /// Zero when every job sits in its own power cell (no cross-boundary reaching). Depot start/end
+    /// activities are not jobs, so `tour.jobs()` already excludes the shared office from this sum.
     fn pull(&self, solution: &SolutionContext) -> Cost {
-        let loads = self.loads(solution);
-        let spare = self.spare_set(&loads);
         let mut total = 0.0;
         for route_ctx in solution.routes.iter() {
             let actor = &route_ctx.route().actor;
-            let Some(assigned_anchor) = self.anchors.get(&driver_key(actor)).copied() else { continue };
+            let key = driver_key(actor);
+            let Some(assigned_anchor) = self.anchors.get(&key).copied() else { continue };
+            let weight = self.weight(&key);
             for job in route_ctx.route().tour.jobs() {
                 let Some(loc) = get_job_location(job) else { continue };
-                let assigned = self.proximity(loc, assigned_anchor);
-                let reference = self.nearest_spare_anchor(loc, job, &spare).unwrap_or(assigned);
-                total += (assigned - reference).max(0.0);
+                let assigned_power = self.proximity(loc, assigned_anchor) - weight;
+                let reference = self.nearest_power(loc, job);
+                total += (assigned_power - reference).max(0.0);
             }
         }
         total

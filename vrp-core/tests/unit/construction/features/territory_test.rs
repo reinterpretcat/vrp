@@ -308,9 +308,113 @@ fn weight_moves_the_boundary_and_zeroes_pull_in_the_power_cell() {
         .build()
         .unwrap();
 
-    // Task 1 scope: weights plumb through and the feature builds. Behavioural PULL assertions are
-    // added in Task 2 Step 6 (they route through `pull()`), using actor_d0/actor_d1/job/objective.
     assert!(feature.objective.is_some());
     let objective = feature.objective.unwrap();
-    let _ = (&actor_d0, &actor_d1, &job, &objective);
+
+    // On d1 (its power cell): power(d1) - min_power = 30 - 30 = 0.
+    let on_d1 =
+        TestInsertionContextBuilder::default().with_routes(vec![route_with(actor_d1, job.clone(), 40)]).build();
+    assert_eq!(objective.fitness(&on_d1), 0.0);
+
+    // On d0 (foreign cell): power(d0) - min_power = 40 - 30 = 10.
+    let on_d0 = TestInsertionContextBuilder::default().with_routes(vec![route_with(actor_d0, job, 40)]).build();
+    assert_eq!(objective.fitness(&on_d0), 10.0);
+}
+
+/// The nearest-spare leak: with balance on and both drivers exactly at quota, the old pull() found
+/// no spare driver and forgave the swapped (cross-boundary) assignment (penalty 0). The
+/// power-distance pull() penalizes it: job_far on d0 and job_near on d1 each reach 90 -> 180.
+/// (push is 0 because loads equal quotas, so fitness is pure pull.)
+#[test]
+fn pull_penalizes_swapped_assignment_even_at_quota() {
+    let vehicle_d0 = build_vehicle("v_d0", "d0");
+    let vehicle_d1 = build_vehicle("v_d1", "d1");
+    let fleet =
+        FleetBuilder::default().add_driver(test_driver()).add_vehicle(vehicle_d0).add_vehicle(vehicle_d1).build();
+    let actor_d0 = get_test_actor_from_fleet(&fleet, "v_d0");
+    let actor_d1 = get_test_actor_from_fleet(&fleet, "v_d1");
+
+    let job_near = TestSingleBuilder::default().id("job_near").location(Some(5)).build_shared();
+    let job_far = TestSingleBuilder::default().id("job_far").location(Some(95)).build_shared();
+
+    let transport = TestTransportCost::new_shared();
+    let jobs = Arc::new(
+        Jobs::new(
+            &fleet,
+            vec![Job::Single(job_near.clone()), Job::Single(job_far.clone())],
+            transport.as_ref(),
+            &test_logger(),
+        )
+        .unwrap(),
+    );
+
+    let anchors = HashMap::from([("d0".to_string(), 0usize), ("d1".to_string(), 100usize)]);
+
+    let feature = TerritoryFeatureBuilder::new("territory")
+        .set_transport(transport)
+        .set_actors(vec![actor_d0.clone(), actor_d1.clone()])
+        .set_jobs(jobs)
+        .set_compatibility_fn(|_, _| true)
+        .set_proximity(TerritoryProximity::Distance)
+        .set_balance(Some(TerritoryBalance::Activities))
+        .set_anchors(anchors)
+        .build()
+        .unwrap();
+    let state = feature.state.as_ref().unwrap();
+    let objective = feature.objective.as_ref().unwrap();
+
+    // Swapped-but-balanced: job_far on d0, job_near on d1. One activity each -> load == quota,
+    // so push == 0 and the (old) spare set is empty (old pull() would forgive -> 0).
+    let mut swapped = TestInsertionContextBuilder::default()
+        .with_routes(vec![route_with(actor_d0, job_far, 95), route_with(actor_d1, job_near, 5)])
+        .build();
+    state.accept_solution_state(&mut swapped.solution);
+
+    let data = swapped.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+    assert_eq!(data.push, 0.0);
+    // PULL(job_far on d0) = (95 - 0) - min(95, 5) = 90; PULL(job_near on d1) = 90.
+    assert_eq!(data.pull, 180.0);
+    assert_eq!(objective.fitness(&swapped), 180.0);
+}
+
+/// A job whose only compatible driver is the geographically-far one incurs ZERO overlap penalty
+/// when served by that driver: `nearest_power`'s reference ranges over compatible anchors only, so
+/// the far (only) compatible seed IS the reference. Proves a skill/constraint-forced
+/// cross-territory assignment is not penalized (feasibility is handled by MinimizeUnassigned above).
+#[test]
+fn skill_forced_far_assignment_is_not_penalized() {
+    let vehicle_d0 = build_vehicle("v_d0", "d0");
+    let vehicle_d1 = build_vehicle("v_d1", "d1");
+    let fleet =
+        FleetBuilder::default().add_driver(test_driver()).add_vehicle(vehicle_d0).add_vehicle(vehicle_d1).build();
+    let actor_d0 = get_test_actor_from_fleet(&fleet, "v_d0");
+    let actor_d1 = get_test_actor_from_fleet(&fleet, "v_d1");
+
+    // Job at 10: raw-nearest anchor is d0@0 (dist 10) vs d1@100 (dist 90). But only d1 is compatible.
+    let job = TestSingleBuilder::default().id("job_skill").location(Some(10)).build_shared();
+
+    let transport = TestTransportCost::new_shared();
+    let jobs =
+        Arc::new(Jobs::new(&fleet, vec![Job::Single(job.clone())], transport.as_ref(), &test_logger()).unwrap());
+
+    let anchors = HashMap::from([("d0".to_string(), 0usize), ("d1".to_string(), 100usize)]);
+
+    let feature = TerritoryFeatureBuilder::new("territory")
+        .set_transport(transport)
+        .set_actors(vec![actor_d0.clone(), actor_d1.clone()])
+        .set_jobs(jobs)
+        // Only d1 may serve the job (stand-in for a skill / day-availability restriction).
+        .set_compatibility_fn(|_, actor| actor.vehicle.dimens.get_driver_id().map(|s| s == "d1").unwrap_or(false))
+        .set_proximity(TerritoryProximity::Distance)
+        .set_balance(None)
+        .set_anchors(anchors)
+        .build()
+        .unwrap();
+    let objective = feature.objective.unwrap();
+
+    // Served by d1 (its only compatible driver): reference = min over compatible = power(d1) = 90,
+    // assigned = power(d1) = 90 -> penalty 0, even though the job is geographically near d0.
+    let on_d1 = TestInsertionContextBuilder::default().with_routes(vec![route_with(actor_d1, job, 10)]).build();
+    assert_eq!(objective.fitness(&on_d1), 0.0);
+    let _ = actor_d0;
 }
