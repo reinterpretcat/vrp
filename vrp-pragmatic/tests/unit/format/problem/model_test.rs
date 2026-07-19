@@ -127,3 +127,14 @@ fn can_deserialize_territory_objective_with_anchors() {
         _ => panic!("wrong variant"),
     }
 }
+
+#[test]
+fn can_deserialize_territory_objective_without_anchors() {
+    // Omitted anchors deserialize to an empty map, which selects the solver-side derive path.
+    let json = r#"{"type":"territory","proximity":"distance"}"#;
+    let obj: Objective = serde_json::from_str(json).unwrap();
+    match obj {
+        Objective::Territory { anchors, .. } => assert!(anchors.is_empty(), "omitted anchors select the derive path"),
+        _ => panic!("wrong variant"),
+    }
+}

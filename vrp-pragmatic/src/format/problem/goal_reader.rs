@@ -12,9 +12,11 @@ use vrp_core::construction::features::*;
 // `TerritoryProximity` (brought in via `use super::*;`), so the core type needs an explicit,
 // disambiguating import — same reasoning as the `Location`/`Job` aliases below.
 use vrp_core::construction::features::TerritoryProximity as CoreTerritoryProximity;
+use vrp_core::algorithms::assignment::min_cost_assignment;
+use vrp_core::construction::clustering::territory_seeds::build_balanced_territory_seeds;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::{Demand, Location as CoreLocation, LoadOps, MultiDimLoad, SingleDimLoad};
-use vrp_core::models::problem::{Actor, Job as CoreJob, Single, TransportCost};
+use vrp_core::models::problem::{Actor, DriverIdDimension, Job as CoreJob, Single, TransportCost};
 use vrp_core::models::solution::Route;
 use vrp_core::models::{Feature, FeatureObjective, GoalBuilder, GoalContext, GoalContextBuilder};
 use vrp_core::rosomaxa::evolution::objectives::dominance_order;
@@ -335,8 +337,14 @@ fn get_objective_feature_layer(
                 BalancePeriodMetric::Activities => TerritoryBalance::Activities,
                 BalancePeriodMetric::ProductionValue => TerritoryBalance::ProductionValue,
             });
-            // anchors values are already routing-matrix indices; core Location is a usize.
-            let anchors = anchors.iter().map(|(k, &idx)| (k.clone(), idx as CoreLocation)).collect();
+            // Empty anchors ⇒ derive balanced medoid seeds + power weights and match drivers to
+            // them (Hungarian); explicit anchors keep the caller-supplied territory (no weights).
+            // Anchor values are already routing-matrix indices; core Location is a usize.
+            let (anchors, weights) = if anchors.is_empty() {
+                derive_territory_anchors_and_weights(blocks, proximity)
+            } else {
+                (anchors.iter().map(|(k, &idx)| (k.clone(), idx as CoreLocation)).collect(), HashMap::new())
+            };
 
             TerritoryFeatureBuilder::new("territory")
                 .set_transport(blocks.transport.clone())
@@ -345,6 +353,7 @@ fn get_objective_feature_layer(
                 .set_proximity(proximity)
                 .set_balance(balance)
                 .set_anchors(anchors)
+                .set_weights(weights)
                 .set_allow_idle_drivers(*allow_idle_drivers)
                 .set_job_value_fn(|job| job.dimens().get_production_value().copied().unwrap_or(0.))
                 .set_compatibility_fn(territory_compatibility_fn())
@@ -609,6 +618,101 @@ fn compute_ideal_round_trip_total(
                 .min_by(|a, b| a.total_cmp(b))
         })
         .sum()
+}
+
+/// Iterations of static value-balancing applied to the derived territory seeds.
+const TERRITORY_SEED_ITERATIONS: usize = 10;
+
+/// Derives per-driver territory anchors + power weights from the problem when no explicit anchors
+/// are configured: balanced medoid seeds over the customer jobs (compact by proximity, weighted so
+/// each power cell captures ~equal production value), matched to drivers by start→seed proximity
+/// via the Hungarian algorithm. Keyed like the core `driver_key` (driver id, else vehicle id).
+/// Returns empty maps when there is nothing to derive (no drivers, no jobs, no profile).
+fn derive_territory_anchors_and_weights(
+    blocks: &ProblemBlocks,
+    proximity: CoreTerritoryProximity,
+) -> (HashMap<String, CoreLocation>, HashMap<String, Float>) {
+    let Some(profile) = blocks.fleet.profiles.first().cloned() else {
+        return (HashMap::new(), HashMap::new());
+    };
+    let transport = blocks.transport.clone();
+    let dist = move |a: CoreLocation, b: CoreLocation| match proximity {
+        CoreTerritoryProximity::Distance => transport.distance_approx(&profile, a, b),
+        CoreTerritoryProximity::Time => transport.duration_approx(&profile, a, b),
+    };
+
+    // Customer jobs as (location, production value).
+    let jobs: Vec<(CoreLocation, Float)> = blocks
+        .jobs
+        .all()
+        .iter()
+        .filter_map(|job| {
+            job_primary_location(job).map(|loc| (loc, job.dimens().get_production_value().copied().unwrap_or(0.)))
+        })
+        .collect();
+
+    // Distinct drivers in first-seen order, each with a representative start location.
+    let mut driver_order: Vec<String> = Vec::new();
+    let mut driver_start: HashMap<String, CoreLocation> = HashMap::new();
+    for actor in blocks.fleet.actors.iter() {
+        let key = actor
+            .vehicle
+            .dimens
+            .get_driver_id()
+            .cloned()
+            .or_else(|| actor.vehicle.dimens.get_vehicle_id().cloned())
+            .unwrap_or_default();
+        driver_start.entry(key.clone()).or_insert_with(|| {
+            driver_order.push(key.clone());
+            actor.detail.start.as_ref().map(|p| p.location).unwrap_or(0)
+        });
+    }
+
+    let k = driver_order.len();
+    if k == 0 || jobs.is_empty() {
+        return (HashMap::new(), HashMap::new());
+    }
+
+    let seeds = build_balanced_territory_seeds(&jobs, k, dist.clone(), TERRITORY_SEED_ITERATIONS);
+    let s = seeds.len();
+    if s == 0 {
+        return (HashMap::new(), HashMap::new());
+    }
+
+    // Hungarian match drivers → seeds by start→seed proximity. When there are fewer seeds than
+    // drivers, pad the cost matrix to k×k with high-cost dummy columns so the real seeds are filled
+    // first and the leftover drivers are simply left unanchored.
+    let mut max_cost = 0.0f64;
+    let mut cost: Vec<Vec<f64>> = driver_order
+        .iter()
+        .map(|key| {
+            let start = driver_start[key];
+            seeds
+                .iter()
+                .map(|seed| {
+                    let c = dist(start, seed.location);
+                    max_cost = max_cost.max(c);
+                    c
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let big = (max_cost + 1.0) * (k as f64 + 1.0);
+    for row in cost.iter_mut() {
+        row.resize(k, big);
+    }
+
+    let assign = min_cost_assignment(&cost);
+    let mut anchors = HashMap::new();
+    let mut weights = HashMap::new();
+    for (d, key) in driver_order.iter().enumerate() {
+        let col = assign[d];
+        if col < s {
+            anchors.insert(key.clone(), seeds[col].location);
+            weights.insert(key.clone(), seeds[col].weight);
+        }
+    }
+    (anchors, weights)
 }
 
 fn job_primary_location(job: &CoreJob) -> Option<CoreLocation> {

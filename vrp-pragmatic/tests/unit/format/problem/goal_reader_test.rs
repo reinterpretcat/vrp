@@ -38,3 +38,39 @@ fn builds_goal_with_territory_objective() {
 
     assert!(result.is_ok(), "expected goal with territory objective to build, got: {:?}", result.err());
 }
+
+// checks that a `territory` objective with NO anchors triggers the solver-side derive path
+// (medoid seeds + value-balancing weights + Hungarian driver→seed matching) end-to-end, and that
+// the goal builds. Two drivers and two jobs exercise a 2×2 matching.
+#[test]
+fn builds_goal_with_derived_territory_anchors_when_omitted() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("job1", (2., 0.)), create_delivery_job("job2", (8., 0.))],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                vehicle_ids: vec!["v1_1".to_string(), "v1_2".to_string()],
+                shifts: vec![create_default_vehicle_shift_with_locations((0., 0.), (0., 0.))],
+                ..create_vehicle_with_capacity("v1", vec![10])
+            }],
+            ..create_default_fleet()
+        },
+        objectives: Some(vec![
+            Objective::MinimizeUnassigned { breaks: None },
+            Objective::Territory {
+                proximity: TerritoryProximity::Distance,
+                balance: Some(BalancePeriodMetric::ProductionValue),
+                anchors: HashMap::new(),
+                allow_idle_drivers: false,
+            },
+            Objective::MinimizeCost,
+        ]),
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let result = (problem, vec![matrix]).read_pragmatic();
+
+    assert!(result.is_ok(), "expected derived-anchor territory goal to build, got: {:?}", result.err());
+}
