@@ -706,7 +706,11 @@ pub enum Objective {
         /// When true, drivers left with no jobs are excluded from the balance (their quota is
         /// re-based over the used drivers), so leaving a driver idle is not an imbalance. Defaults
         /// to false (balance spans every driver).
-        #[serde(default)]
+        ///
+        /// Accepts the camelCase `allowIdleDrivers` key too: the enum's `rename_all` renames
+        /// variants, not struct-variant fields, so without the alias the camelCase key the field
+        /// serializer emits would be silently dropped and this would always read as false.
+        #[serde(default, alias = "allowIdleDrivers")]
         allow_idle_drivers: bool,
     },
 

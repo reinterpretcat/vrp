@@ -149,6 +149,16 @@ fn can_deserialize_territory_objective_with_explicit_balance_tolerance() {
 }
 
 #[test]
+fn can_deserialize_territory_objective_with_camelcase_allow_idle_drivers() {
+    // Regression: the camelCase key must be honoured, not silently dropped to the false default.
+    let json = r#"{"type":"territory","proximity":"distance","allowIdleDrivers":true}"#;
+    match serde_json::from_str::<Objective>(json).unwrap() {
+        Objective::Territory { allow_idle_drivers, .. } => assert!(allow_idle_drivers),
+        _ => panic!("wrong variant"),
+    }
+}
+
+#[test]
 fn can_deserialize_territory_objective_without_anchors() {
     // Omitted anchors deserialize to an empty map, which selects the solver-side derive path.
     let json = r#"{"type":"territory","proximity":"distance"}"#;
