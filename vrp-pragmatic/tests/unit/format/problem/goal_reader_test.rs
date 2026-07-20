@@ -26,6 +26,7 @@ fn builds_goal_with_territory_objective() {
             Objective::Territory {
                 proximity: TerritoryProximity::Distance,
                 balance: Some(BalancePeriodMetric::Distance),
+                balance_tolerance: 0.0,
                 anchors: HashMap::from([("v1_1".to_string(), 0)]),
                 allow_idle_drivers: false,
             },
@@ -62,6 +63,7 @@ fn builds_goal_with_derived_territory_anchors_when_omitted() {
             Objective::Territory {
                 proximity: TerritoryProximity::Distance,
                 balance: Some(BalancePeriodMetric::ProductionValue),
+                balance_tolerance: 0.0,
                 anchors: HashMap::new(),
                 allow_idle_drivers: false,
             },

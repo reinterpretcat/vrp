@@ -1,6 +1,6 @@
 use crate::construction::features::territory::TerritoryFitnessSolutionState;
 use crate::construction::features::{TerritoryBalance, TerritoryFeatureBuilder, TerritoryProximity};
-use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState};
+use crate::construction::heuristics::{InsertionContext, MoveContext, RouteContext, RouteState};
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::test_logger;
 use crate::helpers::models::problem::{
@@ -375,6 +375,125 @@ fn pull_penalizes_swapped_assignment_even_at_quota() {
     // PULL(job_far on d0) = (95 - 0) - min(95, 5) = 90; PULL(job_near on d1) = 90.
     assert_eq!(data.pull, 180.0);
     assert_eq!(objective.fitness(&swapped), 180.0);
+}
+
+/// Builds a two-driver territory feature (d0@0, d1@100) balanced on `balance` with the given
+/// `tolerance` deadband, over the jobs given as `(id, location)`. Returns the feature, both actors,
+/// and the created singles (in the given order) so a test can lay them onto routes.
+fn feature_with_jobs_and_tolerance(
+    balance: TerritoryBalance,
+    tolerance: f64,
+    job_specs: &[(&str, usize)],
+) -> (Feature, Arc<Actor>, Arc<Actor>, Vec<Arc<Single>>) {
+    let vehicle_d0 = build_vehicle("v_d0", "d0");
+    let vehicle_d1 = build_vehicle("v_d1", "d1");
+    let fleet =
+        FleetBuilder::default().add_driver(test_driver()).add_vehicle(vehicle_d0).add_vehicle(vehicle_d1).build();
+    let actor_d0 = get_test_actor_from_fleet(&fleet, "v_d0");
+    let actor_d1 = get_test_actor_from_fleet(&fleet, "v_d1");
+
+    let singles: Vec<Arc<Single>> = job_specs
+        .iter()
+        .map(|(id, loc)| TestSingleBuilder::default().id(id).location(Some(*loc)).build_shared())
+        .collect();
+
+    let transport = TestTransportCost::new_shared();
+    let jobs = Arc::new(
+        Jobs::new(&fleet, singles.iter().cloned().map(Job::Single).collect(), transport.as_ref(), &test_logger())
+            .unwrap(),
+    );
+
+    let anchors = HashMap::from([("d0".to_string(), 0usize), ("d1".to_string(), 100usize)]);
+    let feature = TerritoryFeatureBuilder::new("territory")
+        .set_transport(transport)
+        .set_actors(vec![actor_d0.clone(), actor_d1.clone()])
+        .set_jobs(jobs)
+        .set_compatibility_fn(|_, _| true)
+        .set_proximity(TerritoryProximity::Distance)
+        .set_balance(Some(balance))
+        .set_balance_tolerance(tolerance)
+        .set_anchors(anchors)
+        .build()
+        .unwrap();
+
+    (feature, actor_d0, actor_d1, singles)
+}
+
+/// FIX 1 (deadband): d0 carries 2 of 3 activities, so its load (2) sits above the exact quota
+/// (1.5). With zero tolerance that is billed as PUSH; a 50% deadband widens the quota to 2.25 and
+/// forgives the small imbalance entirely.
+#[test]
+fn balance_tolerance_forgives_small_imbalance() {
+    let specs = [("j0", 1), ("j1", 2), ("j2", 98)];
+
+    let (feat0, a0, a1, s) = feature_with_jobs_and_tolerance(TerritoryBalance::Activities, 0.0, &specs);
+    let mut strict = TestInsertionContextBuilder::default()
+        .with_routes(vec![
+            route_with_jobs(a0, vec![(s[0].clone(), 1), (s[1].clone(), 2)]),
+            route_with_jobs(a1, vec![(s[2].clone(), 98)]),
+        ])
+        .build();
+    feat0.state.as_ref().unwrap().accept_solution_state(&mut strict.solution);
+    let push_strict = strict.solution.state.get_territory_fitness().cloned().unwrap_or_default().push;
+    assert!(push_strict > 0.0, "zero-tolerance bills the small imbalance");
+
+    let (feat1, b0, b1, s2) = feature_with_jobs_and_tolerance(TerritoryBalance::Activities, 0.5, &specs);
+    let mut lenient = TestInsertionContextBuilder::default()
+        .with_routes(vec![
+            route_with_jobs(b0, vec![(s2[0].clone(), 1), (s2[1].clone(), 2)]),
+            route_with_jobs(b1, vec![(s2[2].clone(), 98)]),
+        ])
+        .build();
+    feat1.state.as_ref().unwrap().accept_solution_state(&mut lenient.solution);
+    let push_lenient = lenient.solution.state.get_territory_fitness().cloned().unwrap_or_default().push;
+    assert_eq!(push_lenient, 0.0, "the deadband forgives the small imbalance");
+}
+
+/// FIX 2 (location-aware PUSH marginal): an over-quota driver's per-insertion shedding pressure
+/// must fall on its boundary jobs, not the ones buried deep in its cell. d0 is over quota (carries
+/// three jobs against a quota of 2.5); all candidates sit in d0's cell (PULL 0), so the estimate is
+/// pure PUSH marginal. The deepest job carries none, a boundary job carries the most.
+#[test]
+fn push_marginal_sheds_boundary_jobs_not_deep_ones() {
+    // Per-job power gaps (dist to d1 anchor − dist to d0 anchor): f1=98, f2=96, f3=94, deep=90,
+    // bound=10 -> median (push_reach) = 94. So max(0, 94 − gap): f1 -> 0, deep -> 4, bound -> 84.
+    let specs = [("f1", 1), ("f2", 2), ("f3", 3), ("deep", 5), ("bound", 45)];
+    let (feature, a0, _a1, s) = feature_with_jobs_and_tolerance(TerritoryBalance::Activities, 0.0, &specs);
+    let objective = feature.objective.as_ref().unwrap();
+
+    // d0 carries the three fillers -> load 3 > quota 2.5 -> over quota.
+    let mut route_ctx = route_with_jobs(a0, vec![(s[0].clone(), 1), (s[1].clone(), 2), (s[2].clone(), 3)]);
+    feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
+
+    let ictx = TestInsertionContextBuilder::default().build();
+    let estimate = |job: &Arc<Single>| {
+        objective.estimate(&MoveContext::route(&ictx.solution, &route_ctx, &Job::Single(job.clone())))
+    };
+
+    let deepest = estimate(&s[0]); // gap 98 >= reach 94
+    let deep = estimate(&s[3]); // gap 90
+    let boundary = estimate(&s[4]); // gap 10
+
+    assert_eq!(deepest, 0.0, "the deepest job carries no shedding pressure — it stays home");
+    assert!(boundary > deep, "a boundary job is shed before a deeper one");
+    assert!(deep > 0.0, "a mid-depth job still carries some pressure");
+}
+
+/// The deadband also gates the per-insertion PUSH marginal: with the driver inside the (widened)
+/// band it is not over quota, so even a boundary job carries no shedding pressure.
+#[test]
+fn push_marginal_is_zero_within_the_deadband() {
+    let specs = [("f1", 1), ("f2", 2), ("f3", 3), ("bound", 45)];
+    // Quota = 4 activities / 2 = 2.0; a 100% deadband widens it to 4.0, so a load-3 route is inside.
+    let (feature, a0, _a1, s) = feature_with_jobs_and_tolerance(TerritoryBalance::Activities, 1.0, &specs);
+    let objective = feature.objective.as_ref().unwrap();
+
+    let mut route_ctx = route_with_jobs(a0, vec![(s[0].clone(), 1), (s[1].clone(), 2), (s[2].clone(), 3)]);
+    feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
+
+    let ictx = TestInsertionContextBuilder::default().build();
+    let boundary = objective.estimate(&MoveContext::route(&ictx.solution, &route_ctx, &Job::Single(s[3].clone())));
+    assert_eq!(boundary, 0.0, "no shedding pressure while the driver is inside the deadband");
 }
 
 /// A job whose only compatible driver is the geographically-far one incurs ZERO overlap penalty

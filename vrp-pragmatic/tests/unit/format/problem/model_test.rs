@@ -118,12 +118,32 @@ fn can_deserialize_territory_objective_with_anchors() {
         Objective::Territory {
             proximity: TerritoryProximity::Time,
             balance: Some(BalancePeriodMetric::ProductionValue),
+            balance_tolerance,
             anchors,
             allow_idle_drivers,
         } => {
             assert_eq!(anchors.get("drv-1"), Some(&4));
             assert!(!allow_idle_drivers, "defaults to false when omitted from JSON");
+            assert_eq!(balance_tolerance, 0.05, "omitted balance_tolerance defaults to 5%");
         }
+        _ => panic!("wrong variant"),
+    }
+}
+
+#[test]
+fn can_deserialize_territory_objective_with_explicit_balance_tolerance() {
+    // Documents the wire key: the Objective enum's `rename_all = "kebab-case"` renames variants,
+    // not struct-variant fields, so the field stays snake_case `balance_tolerance` on the wire.
+    let json = r#"{"type":"territory","proximity":"distance","balance_tolerance":0.3}"#;
+    match serde_json::from_str::<Objective>(json).unwrap() {
+        Objective::Territory { balance_tolerance, .. } => assert_eq!(balance_tolerance, 0.3),
+        _ => panic!("wrong variant"),
+    }
+
+    // The camelCase alias is accepted too, matching the field serializer fieldrouting emits.
+    let camel = r#"{"type":"territory","proximity":"distance","balanceTolerance":0.2}"#;
+    match serde_json::from_str::<Objective>(camel).unwrap() {
+        Objective::Territory { balance_tolerance, .. } => assert_eq!(balance_tolerance, 0.2),
         _ => panic!("wrong variant"),
     }
 }

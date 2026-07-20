@@ -691,6 +691,15 @@ pub enum Objective {
         /// Optional balance metric; omitted ⇒ pure territory-by-proximity.
         #[serde(skip_serializing_if = "Option::is_none")]
         balance: Option<BalancePeriodMetric>,
+        /// Balance deadband as a fraction of quota: a driver is billed PUSH only above
+        /// `quota * (1 + tolerance)` and counts as a deficit only below `quota * (1 - tolerance)`.
+        /// A small band stops the solver from exiling jobs into neighbouring territories just to
+        /// shave the last few percent of value imbalance. Omitted ⇒ 0.05 (5%).
+        ///
+        /// Accepts both the snake_case wire key and the camelCase `balanceTolerance` the field
+        /// serializer emits, so the objective can steer it either way.
+        #[serde(default = "default_balance_tolerance", alias = "balanceTolerance")]
+        balance_tolerance: f64,
         /// Per-driver anchor as a routing-matrix location index, keyed by driver id.
         #[serde(default)]
         anchors: std::collections::HashMap<String, usize>,
@@ -714,6 +723,11 @@ pub enum Objective {
         /// Competitive objectives except `Composite` type (nesting is currently not supported).
         objectives: Vec<Objective>,
     },
+}
+
+/// The default balance deadband for the `territory` objective when `balance_tolerance` is omitted.
+fn default_balance_tolerance() -> f64 {
+    0.05
 }
 
 /// Specifies which metric is balanced per employee by the `balance-period` objective.

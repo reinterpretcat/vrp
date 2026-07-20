@@ -326,7 +326,7 @@ fn get_objective_feature_layer(
             .set_compatibility_fn(territory_compatibility_fn())
             .build(),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
-        Objective::Territory { proximity, balance, anchors, allow_idle_drivers } => {
+        Objective::Territory { proximity, balance, balance_tolerance, anchors, allow_idle_drivers } => {
             let proximity = match proximity {
                 model::TerritoryProximity::Distance => CoreTerritoryProximity::Distance,
                 model::TerritoryProximity::Time => CoreTerritoryProximity::Time,
@@ -352,6 +352,7 @@ fn get_objective_feature_layer(
                 .set_jobs(blocks.jobs.clone())
                 .set_proximity(proximity)
                 .set_balance(balance)
+                .set_balance_tolerance(*balance_tolerance)
                 .set_anchors(anchors)
                 .set_weights(weights)
                 .set_allow_idle_drivers(*allow_idle_drivers)

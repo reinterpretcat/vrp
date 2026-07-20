@@ -43,7 +43,8 @@ fn location_index(plan: &Plan, fleet: &Fleet, loc: (f64, f64)) -> usize {
 }
 
 fn territory_objective(proximity: TerritoryProximity, balance: BalancePeriodMetric, anchors: HashMap<String, usize>) -> Objective {
-    Territory { proximity, balance: Some(balance), anchors, allow_idle_drivers: false }
+    // Zero deadband: these E2E assertions regress the strict, exact-balance PULL/PUSH mechanism.
+    Territory { proximity, balance: Some(balance), balance_tolerance: 0.0, anchors, allow_idle_drivers: false }
 }
 
 /// Two drivers sharing a start location at the origin, with distinct anchors at opposite ends

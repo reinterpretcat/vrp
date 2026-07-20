@@ -85,6 +85,7 @@ pub struct TerritoryFeatureBuilder {
     compatibility_fn: Option<ActorJobCompatibilityFn>,
     proximity: TerritoryProximity,
     balance: Option<TerritoryBalance>,
+    balance_tolerance: Float,
     anchors: HashMap<DriverKey, Location>,
     weights: HashMap<DriverKey, Float>,
     job_value_fn: Option<JobValueFn>,
@@ -102,6 +103,7 @@ impl TerritoryFeatureBuilder {
             compatibility_fn: None,
             proximity: TerritoryProximity::Distance,
             balance: None,
+            balance_tolerance: 0.0,
             anchors: HashMap::new(),
             weights: HashMap::new(),
             job_value_fn: None,
@@ -145,6 +147,16 @@ impl TerritoryFeatureBuilder {
     /// so every driver has unlimited spare capacity and PULL reduces to pure territory.
     pub fn set_balance(mut self, b: Option<TerritoryBalance>) -> Self {
         self.balance = b;
+        self
+    }
+
+    /// Sets the balance deadband: a driver is only billed PUSH once its load exceeds
+    /// `quota * (1 + tolerance)`, and only counts as a deficit below `quota * (1 - tolerance)`.
+    /// A neutral band around the quota means the solver stops shaving the last few percent of
+    /// imbalance by exiling jobs into foreign cells — the imbalance those exiles bought was tiny,
+    /// the overlap they created was not. `0.0` (the default) restores the exact, zero-slack balance.
+    pub fn set_balance_tolerance(mut self, tolerance: Float) -> Self {
+        self.balance_tolerance = tolerance.max(0.0);
         self
     }
 
@@ -196,6 +208,7 @@ impl TerritoryFeatureBuilder {
             compatibility_fn,
             self.proximity,
             self.balance,
+            self.balance_tolerance,
             self.anchors,
             self.weights,
             job_value_fn,
@@ -221,6 +234,10 @@ struct TerritoryShared {
     compatibility_fn: ActorJobCompatibilityFn,
     proximity: TerritoryProximity,
     balance: Option<TerritoryBalance>,
+    /// Balance deadband; see [`TerritoryFeatureBuilder::set_balance_tolerance`]. A driver is over
+    /// quota only above `quota * (1 + balance_tolerance)` and a deficit only below
+    /// `quota * (1 - balance_tolerance)`.
+    balance_tolerance: Float,
     job_value_fn: JobValueFn,
     profile: Profile,
     anchors: HashMap<DriverKey, Location>,
@@ -241,8 +258,20 @@ struct TerritoryShared {
     /// its compatible drivers — the overlap-penalty reference, static because anchors and weights
     /// are fixed at build time.
     job_nearest_power: HashMap<String, Float>,
-    /// Precomputed per driver: the proximity to its nearest *other* driver's anchor (static).
-    driver_nearest_other: HashMap<DriverKey, Float>,
+    /// Precomputed per job id: the *second* smallest power distance over its compatible anchors
+    /// (`+∞` when a job has only one compatible anchor). With `job_nearest_power` this gives the
+    /// per-job power gap — how much deeper a job sits in its own cell than in the next-best one —
+    /// which the location-aware PUSH marginal uses to prefer shedding boundary jobs over deep ones.
+    job_second_power: HashMap<String, Float>,
+    /// The average balance metric per job (`total_metric / job_count`, floored positive). Divides
+    /// the raw job metric in the PUSH marginal so its magnitude lives on the same (distance) scale
+    /// as PULL instead of `value × distance`, which otherwise dwarfs PULL by the value magnitude
+    /// and makes the balance pressure ignore where a job sits.
+    avg_metric: Float,
+    /// The PUSH marginal's reach: the median per-job power gap. A job whose gap exceeds this sits
+    /// too deep in its cell to be worth shedding for balance, so its PUSH marginal is zero (it stays
+    /// home); jobs within reach of a boundary are the ones balance may push to a neighbour.
+    push_reach: Float,
     /// Per-driver capacity (summed available shift time). Used to re-base quotas over the used
     /// drivers when `allow_idle_drivers` is set.
     caps: HashMap<DriverKey, Float>,
@@ -259,6 +288,7 @@ impl TerritoryShared {
         compatibility_fn: ActorJobCompatibilityFn,
         proximity: TerritoryProximity,
         balance: Option<TerritoryBalance>,
+        balance_tolerance: Float,
         anchors: HashMap<DriverKey, Location>,
         weights: HashMap<DriverKey, Float>,
         job_value_fn: JobValueFn,
@@ -271,6 +301,7 @@ impl TerritoryShared {
             compatibility_fn,
             proximity,
             balance,
+            balance_tolerance,
             job_value_fn,
             profile,
             anchors,
@@ -279,18 +310,34 @@ impl TerritoryShared {
             reference: 1.0,
             job_anchor_ranking: HashMap::new(),
             job_nearest_power: HashMap::new(),
-            driver_nearest_other: HashMap::new(),
+            job_second_power: HashMap::new(),
+            avg_metric: 1.0,
+            push_reach: 0.0,
             caps: HashMap::new(),
             allow_idle_drivers,
         };
         // Precompute the static anchor lookups first; quotas/reference/power reuse them.
         shared.job_anchor_ranking = shared.compute_job_anchor_ranking(&jobs);
         shared.job_nearest_power = shared.compute_job_nearest_power();
-        shared.driver_nearest_other = shared.compute_driver_nearest_other();
+        shared.job_second_power = shared.compute_job_second_power();
+        shared.avg_metric = shared.compute_avg_metric(&jobs);
+        shared.push_reach = shared.compute_push_reach();
         shared.caps = shared.compute_caps();
         shared.quotas = shared.compute_quotas(&jobs);
         shared.reference = shared.compute_reference(&jobs).max(1.0);
         shared
+    }
+
+    /// The threshold above which a driver's load counts as over quota (billed by PUSH): the quota
+    /// widened by the balance deadband.
+    fn over_quota(&self, quota: Float) -> Float {
+        quota * (1.0 + self.balance_tolerance)
+    }
+
+    /// The threshold below which a driver's load counts as a deficit (a PUSH target): the quota
+    /// narrowed by the balance deadband.
+    fn under_quota(&self, quota: Float) -> Float {
+        quota * (1.0 - self.balance_tolerance)
     }
 
     /// Proximity between two locations, per the configured metric and the fleet's (single)
@@ -408,6 +455,52 @@ impl TerritoryShared {
             .collect()
     }
 
+    /// Precompute, per job id, the second-smallest power distance over its compatible anchors
+    /// (`+∞` when fewer than two). Reuses `job_anchor_ranking`, so it must run after it. Note the
+    /// ranking is sorted by raw proximity; with per-driver weights the power order can differ, so
+    /// the powers are re-sorted here.
+    fn compute_job_second_power(&self) -> HashMap<String, Float> {
+        self.job_anchor_ranking
+            .iter()
+            .map(|(id, ranking)| {
+                let mut powers: Vec<Float> = ranking.iter().map(|(k, prox)| prox - self.weight(k)).collect();
+                powers.sort_by(|a, b| a.total_cmp(b));
+                (id.clone(), powers.get(1).copied().unwrap_or(Float::INFINITY))
+            })
+            .collect()
+    }
+
+    /// The average balance metric per job (floored positive). Used to normalize the PUSH marginal
+    /// onto the PULL (distance) scale. `1.0` when balance is disabled (metric is then unused).
+    fn compute_avg_metric(&self, jobs: &Jobs) -> Float {
+        if self.balance.is_none() {
+            return 1.0;
+        }
+        let all = jobs.all();
+        let n = all.len().max(1);
+        let total: Float = all.iter().map(|j| self.job_metric(j)).sum();
+        (total / n as Float).max(1e-9)
+    }
+
+    /// The median per-job power gap (`second_power − nearest_power`) over jobs with at least two
+    /// compatible anchors — the PUSH marginal's reach. `0.0` when no job has an alternative anchor
+    /// (then the marginal is always zero, i.e. no per-insertion balance pressure).
+    fn compute_push_reach(&self) -> Float {
+        let mut gaps: Vec<Float> = self
+            .job_nearest_power
+            .iter()
+            .filter_map(|(id, &np)| {
+                let sp = self.job_second_power.get(id).copied().unwrap_or(Float::INFINITY);
+                sp.is_finite().then_some(sp - np)
+            })
+            .collect();
+        if gaps.is_empty() {
+            return 0.0;
+        }
+        gaps.sort_by(|a, b| a.total_cmp(b));
+        gaps[gaps.len() / 2]
+    }
+
     /// Actor scan producing a job's compatible drivers' anchors sorted by proximity (ascending).
     /// Used to precompute `job_anchor_ranking` and as the uncached fallback for the lookups above.
     fn scan_sorted_anchors(&self, job_loc: Location, job: &Job) -> Vec<(DriverKey, Float)> {
@@ -434,23 +527,6 @@ impl TerritoryShared {
                 let id = job.dimens().get_job_id()?.clone();
                 let loc = get_job_location(job)?;
                 Some((id, self.scan_sorted_anchors(loc, job)))
-            })
-            .collect()
-    }
-
-    /// Precompute, per driver, the proximity to its nearest *other* driver's anchor.
-    fn compute_driver_nearest_other(&self) -> HashMap<DriverKey, Float> {
-        self.anchors
-            .iter()
-            .map(|(key, &anchor)| {
-                let nearest = self
-                    .anchors
-                    .iter()
-                    .filter(|(other_key, _)| *other_key != key)
-                    .map(|(_, &other)| self.proximity(anchor, other))
-                    .min_by(|x, y| x.total_cmp(y))
-                    .unwrap_or(0.0);
-                (key.clone(), nearest)
             })
             .collect()
     }
@@ -505,12 +581,13 @@ impl TerritoryShared {
         // deficits (targets) nor surplus (sources) — leaving one idle is not an imbalance.
         let quotas = self.effective_quotas(&loads);
 
-        // Deficit drivers (with an anchor) and their remaining room.
+        // Deficit drivers (with an anchor) and their remaining room. The deadband narrows the
+        // deficit threshold, so a driver only just below quota is not treated as needing more work.
         let deficits: Vec<Location> = quotas
             .iter()
             .filter_map(|(key, &quota)| {
                 let load = loads.get(key).copied().unwrap_or(0.0);
-                if load + 1e-9 < quota { self.anchors.get(key).copied() } else { None }
+                if load + 1e-9 < self.under_quota(quota) { self.anchors.get(key).copied() } else { None }
             })
             .collect();
         if deficits.is_empty() {
@@ -520,7 +597,9 @@ impl TerritoryShared {
         let mut total = 0.0;
         for (key, &quota) in quotas.iter() {
             let load = loads.get(key).copied().unwrap_or(0.0);
-            let surplus = load - quota;
+            // Only the load beyond the widened (deadband) quota is surplus: small imbalances inside
+            // the band are free, so the solver stops exiling jobs to shave the last few percent.
+            let surplus = load - self.over_quota(quota);
             if surplus <= 1e-9 {
                 continue;
             }
@@ -531,10 +610,18 @@ impl TerritoryShared {
         total
     }
 
-    /// The dual-price marginal contribution of assigning `job` to `route_ctx`'s driver: `0.0`
-    /// while the driver is under quota (per the cached route load), otherwise the job's balance
-    /// metric priced at the nearest other anchor (a proxy for the nearest deficit driver, kept
-    /// cheap for the hot insertion-evaluation loop).
+    /// The dual-price marginal contribution of assigning `job` to `route_ctx`'s driver while that
+    /// driver is over quota (per the cached route load): a *location-aware* shedding pressure.
+    ///
+    /// The old marginal was `job_metric × nearest_other_anchor` — a per-driver constant, so it
+    /// repelled every extra job from an over-quota driver by the same amount (scaled only by value),
+    /// deep-in-cell jobs as hard as boundary ones, and the value factor made it dwarf PULL. Both are
+    /// fixed here:
+    /// - the metric is normalized by `avg_metric`, putting the pressure on PULL's (distance) scale;
+    /// - it is priced by `max(0, push_reach − gap)` where `gap` is how much deeper this job sits in
+    ///   this driver's cell than in its next-best one. A boundary job (small/negative gap) is cheap
+    ///   to shed and carries pressure; a job deeper than `push_reach` carries none, so an over-quota
+    ///   driver rebalances by giving up its border jobs, not the ones buried in its territory.
     fn push_marginal(&self, route_ctx: &RouteContext, job: &Job) -> Cost {
         if self.balance.is_none() {
             return 0.0;
@@ -545,18 +632,32 @@ impl TerritoryShared {
         if self.allow_idle_drivers {
             return 0.0;
         }
-        let key = driver_key(&route_ctx.route().actor);
-        if !self.anchors.contains_key(&key) {
+        let actor = &route_ctx.route().actor;
+        let key = driver_key(actor);
+        let Some(&assigned_anchor) = self.anchors.get(&key) else {
             return 0.0;
-        }
+        };
         let load = route_ctx.state().get_territory_route_load().copied().unwrap_or(0.0);
-        if load < *self.quotas.get(&key).unwrap_or(&Float::MAX) {
+        // Deadband: no shedding pressure until the driver is over the widened quota.
+        if load <= self.over_quota(*self.quotas.get(&key).unwrap_or(&Float::MAX)) {
             return 0.0;
         }
+        let Some(loc) = get_job_location(job) else { return 0.0 };
 
-        // Nearest other anchor is static per driver — precomputed.
-        let nearest_other = self.driver_nearest_other.get(&key).copied().unwrap_or(0.0);
-        self.job_metric(job) * nearest_other
+        // gap = (nearest power among OTHER drivers) − (this driver's power for the job). Large gap ⇒
+        // this driver is much the better home ⇒ the job is deep in its cell; small/negative ⇒ it is
+        // a boundary/foreign job with a cheap alternative. `nearest_power` is the min over ALL
+        // compatible anchors; when this driver *is* that min, the nearest other is the second power.
+        let assigned_power = self.proximity(loc, assigned_anchor) - self.weight(&key);
+        let reference = self.nearest_power(loc, job);
+        let min_other = if assigned_power <= reference + 1e-9 {
+            job.dimens().get_job_id().and_then(|id| self.job_second_power.get(id)).copied().unwrap_or(Float::INFINITY)
+        } else {
+            reference
+        };
+        let gap = min_other - assigned_power;
+        let value_factor = self.job_metric(job) / self.avg_metric;
+        value_factor * (self.push_reach - gap).max(0.0)
     }
 }
 
