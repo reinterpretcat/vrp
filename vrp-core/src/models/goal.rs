@@ -35,6 +35,9 @@ pub struct GoalContext {
     alternative_goals: Vec<Goal>,
     constraints: Vec<Arc<dyn FeatureConstraint>>,
     states: Vec<Arc<dyn FeatureState>>,
+    /// Names of the features that contribute an objective, kept so callers can ask whether a
+    /// specific objective (e.g. `territory`) is part of this goal after it is built.
+    objective_names: Vec<String>,
 }
 
 impl GoalContext {
@@ -49,6 +52,12 @@ impl GoalContext {
     /// Returns an iterator over internal feature constraints.
     pub fn constraints(&self) -> impl Iterator<Item = Arc<dyn FeatureConstraint>> + '_ {
         self.constraints.iter().cloned()
+    }
+
+    /// Returns true if an objective feature with the given name is part of this goal. Lets the
+    /// solver enable objective-specific search operators only when the objective is present.
+    pub fn has_objective(&self, name: &str) -> bool {
+        self.objective_names.iter().any(|n| n == name)
     }
 }
 
@@ -109,8 +118,10 @@ impl GoalContextBuilder {
         let alternative_goals = self.alternative_goals;
         let states = self.features.iter().filter_map(|feature| feature.state.clone()).collect();
         let constraints = self.features.iter().filter_map(|feature| feature.constraint.clone()).collect();
+        let objective_names =
+            self.features.iter().filter(|f| f.objective.is_some()).map(|f| f.name.clone()).collect();
 
-        Ok(GoalContext { goal, alternative_goals, constraints, states })
+        Ok(GoalContext { goal, alternative_goals, constraints, states, objective_names })
     }
 
     fn get_heuristic_goal(features: &[Feature]) -> GenericResult<Goal> {
