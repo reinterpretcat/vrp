@@ -644,7 +644,8 @@ fn derive_territory_anchors_and_weights(
 
     // Customer jobs as (location, balance-metric value): the seeds are balanced on the SAME metric
     // the territory objective balances, so derived territories equalize whatever the caller asked
-    // for (stops, production value, duration; distance/none fall back to job count).
+    // for (stops, production value, duration; distance falls back to job count). With no balance the
+    // metric is zero and the placement degenerates to plain compact k-medoids (no equalizing).
     let jobs: Vec<(CoreLocation, Float)> = blocks
         .jobs
         .all()
@@ -724,13 +725,17 @@ fn job_primary_location(job: &CoreJob) -> Option<CoreLocation> {
 }
 
 /// The per-job quantity the derived territory seeds balance on, matching the territory objective's
-/// `balance`: production value, service duration, or job count (activities / distance / unspecified).
+/// `balance`: production value, service duration, or job count (activities / distance).
 fn territory_job_metric(job: &CoreJob, balance: Option<TerritoryBalance>) -> Float {
     match balance {
         Some(TerritoryBalance::ProductionValue) => job.dimens().get_production_value().copied().unwrap_or(0.),
         Some(TerritoryBalance::Duration) => job_service_duration(job),
-        // Activities, Distance, or no balance → equalize job count per territory.
-        _ => 1.0,
+        // Activities or Distance → equalize job count per territory.
+        Some(TerritoryBalance::Activities) | Some(TerritoryBalance::Distance) => 1.0,
+        // No balance: don't equalize anything. A zero metric makes the capacity never bind, so the
+        // capacitated placement degenerates to plain compact k-medoids — natural-size territories,
+        // pure efficiency.
+        None => 0.0,
     }
 }
 
