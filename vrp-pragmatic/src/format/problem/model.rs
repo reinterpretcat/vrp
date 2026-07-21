@@ -131,7 +131,7 @@ pub struct Job {
     pub compatibility: Option<String>,
 
     /// A vehicle group: jobs sharing this value are served by one vehicle across its shifts.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "vehicleGroup", skip_serializing_if = "Option::is_none")]
     pub vehicle_group: Option<String>,
 }
 

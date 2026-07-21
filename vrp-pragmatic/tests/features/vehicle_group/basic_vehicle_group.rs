@@ -70,6 +70,8 @@ fn can_bind_vehicle_group_jobs_to_same_vehicle_across_shifts() {
     let matrix = create_matrix_from_problem(&problem);
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
+    assert!(solution.unassigned.is_none(), "both vehicleGroup jobs must be assigned, not left unassigned");
+
     let vehicle_ids = solution
         .tours
         .iter()
@@ -83,4 +85,14 @@ fn can_bind_vehicle_group_jobs_to_same_vehicle_across_shifts() {
         .collect::<HashSet<_>>();
 
     assert_eq!(vehicle_ids.len(), 1, "both vehicleGroup jobs should be served by the same vehicle");
+
+    let served_job_ids = solution
+        .tours
+        .iter()
+        .flat_map(|tour| tour.stops.iter().flat_map(|stop| stop.activities().iter()))
+        .map(|activity| activity.job_id.as_str())
+        .filter(|id| *id == "job_day1" || *id == "job_day2")
+        .collect::<HashSet<_>>();
+
+    assert_eq!(served_job_ids.len(), 2, "both vehicleGroup jobs must actually be served, not just one");
 }

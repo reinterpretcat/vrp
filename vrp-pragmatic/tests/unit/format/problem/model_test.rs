@@ -74,6 +74,18 @@ fn can_deserialize_job_production_value() {
 }
 
 #[test]
+fn can_deserialize_job_vehicle_group() {
+    let job: Job = serde_json::from_str(r#"{ "id": "job1", "vehicleGroup": "sub-1" }"#).unwrap();
+
+    assert_eq!(job.vehicle_group, Some("sub-1".to_string()));
+
+    // The snake_case wire key must NOT be honoured: the field is camelCase-only on the wire.
+    let job: Job = serde_json::from_str(r#"{ "id": "job1", "vehicle_group": "sub-1" }"#).unwrap();
+
+    assert_eq!(job.vehicle_group, None);
+}
+
+#[test]
 fn can_deserialize_balance_production_value_objective() {
     let objective: Objective = serde_json::from_str(r#"{ "type": "balance-production-value" }"#).unwrap();
 
