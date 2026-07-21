@@ -26,6 +26,7 @@ pub fn create_job(id: &str) -> Job {
         production_value: None,
         group: None,
         compatibility: None,
+        vehicle_group: None,
     }
 }
 

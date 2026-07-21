@@ -10,7 +10,7 @@ use std::sync::Arc;
 use vrp_core::{
     construction::features::{
         BreakPolicy, JobCompatibilityDimension, JobDemandDimension, JobGroupDimension, JobSkills as FeatureJobSkills,
-        JobSkillsDimension,
+        JobSkillsDimension, VehicleGroupDimension,
     },
     models::common::*,
     models::problem::{
@@ -438,6 +438,10 @@ fn fill_dimens(job: &ApiJob, dimens: &mut Dimensions) {
 
     if let Some(group) = job.group.clone() {
         dimens.set_job_group(group);
+    }
+
+    if let Some(vehicle_group) = job.vehicle_group.clone() {
+        dimens.set_vehicle_group(vehicle_group);
     }
 
     if let Some(compat) = job.compatibility.clone() {

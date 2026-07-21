@@ -93,6 +93,7 @@ prop_compose! {
             production_value: None,
             group,
             compatibility,
+            vehicle_group: None,
         }
     }
 }
@@ -140,6 +141,7 @@ prop_compose! {
             production_value: None,
             group,
             compatibility,
+            vehicle_group: None,
         }
     }
 }

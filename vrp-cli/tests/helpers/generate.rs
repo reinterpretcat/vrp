@@ -13,6 +13,7 @@ pub fn create_empty_job() -> Job {
         production_value: None,
         group: None,
         compatibility: None,
+        vehicle_group: None,
     }
 }
 

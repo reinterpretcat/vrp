@@ -20,4 +20,5 @@ mod skills;
 mod timing;
 mod tour_shape;
 mod unassigned;
+mod vehicle_group;
 mod work_balance;
