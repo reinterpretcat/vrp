@@ -24,6 +24,9 @@ consists of the following properties:
 - **group** (optional): a group name. Jobs with the same groups are scheduled in the same tour or left unassigned.
 - **compatibility** (optional): compatibility class. Jobs with different compatibility classes cannot be assigned in
   the same tour. This is useful to avoid mixing cargo, such as hazardous goods and food.
+- **vehicleGroup** (optional): a vehicle group name. Jobs sharing the same vehicle group are served by the same
+  vehicle across all of its shifts (unlike **group**, which requires the same tour). Useful to keep the same
+  vehicle serving a recurring customer over a multi-day plan.
 
 A job should have at least one task property specified.
 
