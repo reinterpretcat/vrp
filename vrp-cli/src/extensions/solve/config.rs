@@ -451,6 +451,7 @@ fn configure_from_evolution(
                             .map(|method| create_recreate_method(method, environment.clone())),
                     )
                     .map::<(
+                        _,
                         Box<
                             dyn InitialOperator<
                                     Context = RefinementContext,
@@ -461,7 +462,8 @@ fn configure_from_evolution(
                         >,
                         _,
                     ), _>(|(recreate, weight)| {
-                        (Box::new(RecreateInitialOperator::new(recreate)), weight)
+                        // TODO: add name to the operator in the config
+                        ("config".to_string(), Box::new(RecreateInitialOperator::new(recreate)), weight)
                     })
                     .collect(),
             );

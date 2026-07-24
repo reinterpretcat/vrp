@@ -163,11 +163,11 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.environment()
     }
 
-    fn on_initial(&mut self, mut solution: Self::Solution, item_time: Timer) {
+    fn on_initial(&mut self, mut solution: Self::Solution, name: &str, item_time: Timer) {
         self.initial_footprint.add(&Shadow::from(&solution));
         solution.solution.state.set_footprint(self.initial_footprint.clone());
 
-        self.inner_context.on_initial(solution, item_time)
+        self.inner_context.on_initial(solution, name, item_time)
     }
 
     fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: Float, generation_time: Timer) {

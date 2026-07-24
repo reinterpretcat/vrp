@@ -48,12 +48,12 @@ where
         let init_size = std::mem::take(&mut config.initial.individuals).into_iter().take(config.initial.max_size).fold(
             0,
             |acc, solution| {
-                heuristic_ctx.on_initial(solution, Timer::start());
+                heuristic_ctx.on_initial(solution, "user", Timer::start());
                 acc + 1
             },
         );
 
-        let weights = config.initial.operators.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
+        let weights = config.initial.operators.iter().map(|(_, _, weight)| *weight).collect::<Vec<_>>();
         let init_time = Timer::start();
         let _ = (init_size..config.initial.max_size).try_for_each(|idx| {
             let item_time = Timer::start();
@@ -76,8 +76,9 @@ where
                 if idx < config.initial.operators.len() { idx } else { random.weighted(weights.as_slice()) };
 
             // TODO consider initial quota limit
-            let solution = config.initial.operators[operator_idx].0.create(&heuristic_ctx);
-            heuristic_ctx.on_initial(solution, item_time);
+            let (name, operator, _) = &config.initial.operators[operator_idx];
+            let solution = operator.create(&heuristic_ctx);
+            heuristic_ctx.on_initial(solution, name, item_time);
 
             Ok(())
         });

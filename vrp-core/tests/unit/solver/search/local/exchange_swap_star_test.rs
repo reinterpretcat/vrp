@@ -248,7 +248,9 @@ fn can_find_top_results_impl(job_id: &str, disallowed_pairs: Vec<(&str, &str)>, 
     let job_ids = get_jobs_by_ids(&insertion_ctx, &[job_id]);
     let route_ctx = insertion_ctx.solution.routes.first().unwrap();
 
-    let results = find_top_results(&search_ctx, route_ctx, job_ids.as_slice()).values().flat_map(|results| results.iter())
+    let results = find_top_results(&search_ctx, route_ctx, job_ids.as_slice())
+        .values()
+        .flat_map(|results| results.iter())
         .map(|result| result.as_success().map(|success| success.activities.first().unwrap().1))
         .collect::<Vec<_>>();
 

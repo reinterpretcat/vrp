@@ -42,7 +42,7 @@ pub trait InitialOperator {
 
 /// A collection of initial operators.
 pub type InitialOperators<C, O, S> =
-    Vec<(Box<dyn InitialOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>;
+    Vec<(String, Box<dyn InitialOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>;
 
 /// An initial solutions configuration.
 pub struct InitialConfig<C, O, S>

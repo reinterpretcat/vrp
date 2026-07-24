@@ -120,12 +120,12 @@ where
     }
 
     /// Reports initial solution statistics.
-    pub fn on_initial(&mut self, solution: &S, item_time: Timer) {
+    pub fn on_initial(&mut self, solution: &S, name: &str, item_time: Timer) {
         match &self.mode {
             TelemetryMode::OnlyLogging { .. } | TelemetryMode::All { .. } => {
                 self.log(
                     format!(
-                        "[{}s] created initial solution in {}ms, fitness: ({})",
+                        "[{}s] created initial solution in {}ms, fitness: ({}), by {name}",
                         self.time.elapsed_secs(),
                         item_time.elapsed_millis(),
                         format_fitness(solution.fitness())
