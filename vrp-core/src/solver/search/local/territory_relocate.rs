@@ -10,6 +10,18 @@
 //! It is registered in the local-search pool only when the goal actually contains the `territory`
 //! objective (`GoalContext::has_objective("territory")`); for every other problem the pool is
 //! byte-identical to the stock solver. See the gated registration in `solver::heuristic`.
+//!
+//! Empirical note (kept intentionally despite this): on the reference workload (1772 jobs /
+//! 14 drivers, production-value balance) this operator has **no measurable effect** on deep
+//! territory overlap. Isolated A/B (same binary, this operator toggled on/off, 3 runs each):
+//! @720s ON 4.33% vs OFF 4.47%; @300s ON 5.06% vs OFF 4.89% — the difference is within seed noise
+//! and its sign flips between budgets, and cost/balance are unchanged. The overlap reduction
+//! (~13.7% → ~4.4%) comes entirely from the territory objective's balance deadband + location-aware
+//! PUSH marginal, not from this relocation: greedy recreate re-derives the same assignment, so a
+//! removed straggler lands foreign again (the displacement chain a real fix needs is one a local
+//! per-job insertion won't compose). It is retained because it is harmless (off-path byte-identical,
+//! never worsens an accepted move) and may help other problem shapes / shorter budgets; it is NOT
+//! the overlap lever it was intended to be on this workload.
 
 use crate::construction::heuristics::*;
 use crate::models::common::Timestamp;
