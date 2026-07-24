@@ -71,6 +71,7 @@ pub(crate) fn generate_plan(
                 production_value: job_proto.production_value,
                 group: job_proto.group.clone(),
                 compatibility: job_proto.compatibility.clone(),
+                vehicle_group: job_proto.vehicle_group.clone(),
             }
         })
         .collect();

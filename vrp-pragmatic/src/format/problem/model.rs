@@ -129,6 +129,10 @@ pub struct Job {
     /// A compatibility group: jobs with different compatibility cannot be assigned to the same tour.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compatibility: Option<String>,
+
+    /// A vehicle group: jobs sharing this value are served by one vehicle across its shifts.
+    #[serde(rename = "vehicleGroup", skip_serializing_if = "Option::is_none")]
+    pub vehicle_group: Option<String>,
 }
 
 // region Clustering

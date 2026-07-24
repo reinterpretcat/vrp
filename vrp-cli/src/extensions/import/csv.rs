@@ -100,6 +100,7 @@ mod actual {
                 production_value: None,
                 group: None,
                 compatibility: None,
+                vehicle_group: None,
             })
             .collect();
 

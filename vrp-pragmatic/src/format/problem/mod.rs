@@ -105,6 +105,7 @@ struct ProblemProperties {
     has_recharges: bool,
     has_order: bool,
     has_group: bool,
+    has_vehicle_group: bool,
     has_value: bool,
     has_compatibility: bool,
     has_tour_size_limits: bool,
