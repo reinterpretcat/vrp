@@ -104,11 +104,13 @@ pub(crate) fn try_match_break_activity(
     let route_start_time = get_route_start_time(tour)?;
     let activity_time = get_activity_time(activity, stop_schedule);
 
+    // Filter to the specific vehicle type and shift for this tour
     problem
         .fleet
         .vehicles
         .iter()
-        .flat_map(|vehicle| vehicle.shifts.iter())
+        .filter(|vehicle| vehicle.vehicle_ids.contains(&tour.vehicle_id))
+        .flat_map(|vehicle| vehicle.shifts.get(tour.shift_index).into_iter())
         .flat_map(|shift| shift.breaks.iter())
         .flat_map(|brs| brs.iter())
         .filter_map(|br| match br {

@@ -1,0 +1,58 @@
+name: Enforce release-only publishing
+
+on:
+  push:
+    paths:
+      - ".github/workflows/**"
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+
+jobs:
+  enforce-release-only:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Reject external publish patterns in workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          workflows_root=".github/workflows"
+          workflows_globs=(
+            --glob "*.yaml"
+            --glob "*.yml"
+            --glob "!publish-policy.yaml"
+          )
+
+          has_violations=0
+
+          check_pattern() {
+            local pattern="$1"
+            local reason="$2"
+
+            if rg -n --no-heading -e "$pattern" "${workflows_globs[@]}" "$workflows_root"; then
+              echo "::error::${reason}"
+              has_violations=1
+            fi
+          }
+
+          check_pattern "\\bcargo\\s+publish\\b" "Found crates.io publishing command (cargo publish)."
+          check_pattern "\\bcargo\\s+login\\b" "Found crates.io auth command (cargo login)."
+          check_pattern "\\bMATURIN_PYPI_TOKEN\\b" "Found PyPI publishing secret usage (MATURIN_PYPI_TOKEN)."
+          check_pattern "\\bPYPI_API_TOKEN\\b" "Found PyPI publishing secret usage (PYPI_API_TOKEN)."
+          check_pattern "\\bcommand:\\s*upload\\b" "Found upload command in workflow."
+          check_pattern "\\btwine\\s+upload\\b" "Found PyPI upload command (twine upload)."
+          check_pattern "PyO3/maturin-action@" "Found maturin wheel-build action."
+          check_pattern "\\bmaturin\\b" "Found maturin usage in workflow."
+          check_pattern "docker/build-push-action@" "Found Docker image push action."
+          check_pattern "\\bghcr\\.io\\b" "Found container registry target (ghcr.io)."
+          check_pattern "\\bcrates\\.io\\b" "Found crates.io reference in workflow."
+          check_pattern "\\bpypi\\.org\\b" "Found PyPI reference in workflow."
+
+          if [ "$has_violations" -ne 0 ]; then
+            echo "External publishing is disabled. Only GitHub release assets are allowed."
+            exit 1
+          fi

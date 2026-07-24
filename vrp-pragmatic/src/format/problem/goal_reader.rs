@@ -1,11 +1,22 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/format/problem/goal_reader_test.rs"]
+mod goal_reader_test;
+
 use super::*;
 use std::ops::Mul;
 use vrp_core::algorithms::clustering::kmedoids::create_hierarchical_kmedoids;
 use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
-use vrp_core::construction::enablers::FeatureCombinator;
+use vrp_core::construction::enablers::{FeatureCombinator, TotalDistanceTourState, TotalDurationTourState};
 use vrp_core::construction::features::*;
-use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
-use vrp_core::models::problem::{Actor, Single, TransportCost};
+// `TerritoryProximity` is ambiguous between this glob import and the pragmatic-format model's own
+// `TerritoryProximity` (brought in via `use super::*;`), so the core type needs an explicit,
+// disambiguating import — same reasoning as the `Location`/`Job` aliases below.
+use vrp_core::construction::features::TerritoryProximity as CoreTerritoryProximity;
+use vrp_core::algorithms::assignment::min_cost_assignment;
+use vrp_core::construction::clustering::territory_seeds::build_balanced_territory_seeds;
+use vrp_core::construction::heuristics::InsertionContext;
+use vrp_core::models::common::{Demand, Location as CoreLocation, LoadOps, MultiDimLoad, SingleDimLoad};
+use vrp_core::models::problem::{Actor, DriverIdDimension, Job as CoreJob, Single, TransportCost};
 use vrp_core::models::solution::Route;
 use vrp_core::models::{Feature, FeatureObjective, GoalBuilder, GoalContext, GoalContextBuilder};
 use vrp_core::rosomaxa::evolution::objectives::dominance_order;
@@ -34,6 +45,15 @@ pub(super) fn create_goal_context(
         )?)
     }
 
+    if props.has_job_time_constraints {
+        features.push(create_job_time_limits_feature(
+            "job_time_limits",
+            blocks.transport.clone(),
+            blocks.activity.clone(),
+            JOB_TIME_CONSTRAINT_CODE,
+        )?)
+    }
+
     if props.has_breaks {
         features.push(create_optional_break_feature("break")?)
     }
@@ -52,6 +72,14 @@ pub(super) fn create_goal_context(
 
     if props.has_group {
         features.push(create_group_feature("group", blocks.jobs.size(), GROUP_CONSTRAINT_CODE)?);
+    }
+
+    if props.has_vehicle_group {
+        features.push(create_vehicle_group_feature(
+            "vehicle_group",
+            blocks.jobs.size(),
+            VEHICLE_GROUP_CONSTRAINT_CODE,
+        )?);
     }
 
     if props.has_skills {
@@ -73,6 +101,12 @@ pub(super) fn create_goal_context(
             TOUR_SIZE_CONSTRAINT_CODE,
             Arc::new(|actor| actor.vehicle.dimens.get_tour_size().copied()),
         )?);
+    }
+
+    if props.has_min_vehicle_shifts
+        && let Some(feature) = get_min_vehicle_shifts_feature("min_vehicle_shifts", api_problem)?
+    {
+        features.push(feature);
     }
 
     GoalContextBuilder::with_features(&features)?.set_main_goal(goal_builder.build()?).build()
@@ -149,6 +183,13 @@ fn get_objective_feature_layer(
             }),
             ViolationCode::unknown(),
         ),
+        Objective::BalanceShifts { saturation, weight } => {
+            const DEFAULT_VARIANCE_SATURATION: Float = 0.05;
+            let saturation = saturation.unwrap_or(DEFAULT_VARIANCE_SATURATION).max(1e-6);
+            let weight = weight.unwrap_or(1.).max(0.);
+            let penalty = Arc::new(move |variance: Float| weight * variance / (variance + saturation));
+            create_balance_shifts_feature_with_penalty("balance_shifts", penalty)
+        }
         Objective::MinimizeUnassigned { breaks } => MinimizeUnassignedBuilder::new("min_unassigned")
             .set_job_estimator({
                 let break_value = *breaks;
@@ -194,12 +235,139 @@ fn get_objective_feature_layer(
         Objective::BalanceActivities => create_activity_balanced_feature("activity_balance"),
         Objective::BalanceDistance => create_distance_balanced_feature("distance_balance"),
         Objective::BalanceDuration => create_duration_balanced_feature("duration_balance"),
+        Objective::BalanceProductionValue => {
+            create_production_value_balanced_feature("production_value_balance", |job| {
+                job.dimens().get_production_value().copied().unwrap_or(0.)
+            })
+        }
+        Objective::BalancePeriod { metric } => {
+            let group_capacities: HashMap<String, usize> =
+                blocks.fleet.actors.iter().fold(HashMap::new(), |mut acc, actor| {
+                    if let Some(vehicle_id) = actor.vehicle.dimens.get_vehicle_id() {
+                        *acc.entry(vehicle_id.clone()).or_insert(0) += 1;
+                    }
+                    acc
+                });
+            let group_key_fn = |actor: &Actor| actor.vehicle.dimens.get_vehicle_id().cloned();
+
+            // Fixed per-problem reference used to self-normalize the balance objective so its
+            // weight in a scalarizing multi-objective is a dimensionless preference on the same
+            // footing as compact-tour and vehicle-distance. It is the ideal work per shift: the
+            // metric's ideal total spread evenly over every available shift.
+            let total_capacity = group_capacities.values().sum::<usize>() as Float;
+            let reference = (compute_period_reference(metric, blocks) / total_capacity.max(1.0)).max(1e-6);
+
+            match metric {
+                BalancePeriodMetric::Distance => create_period_balanced_feature(
+                    "period_balance",
+                    group_capacities,
+                    group_key_fn,
+                    |route_ctx| route_ctx.state().get_total_distance().copied().unwrap_or(0.),
+                    reference,
+                ),
+                BalancePeriodMetric::Duration => create_period_balanced_feature(
+                    "period_balance",
+                    group_capacities,
+                    group_key_fn,
+                    |route_ctx| route_ctx.state().get_total_duration().copied().unwrap_or(0.),
+                    reference,
+                ),
+                BalancePeriodMetric::Activities => create_period_balanced_feature(
+                    "period_balance",
+                    group_capacities,
+                    group_key_fn,
+                    |route_ctx| route_ctx.route().tour.job_activity_count() as Float,
+                    reference,
+                ),
+                BalancePeriodMetric::ProductionValue => create_period_balanced_feature(
+                    "period_balance",
+                    group_capacities,
+                    group_key_fn,
+                    |route_ctx| {
+                        route_ctx
+                            .route()
+                            .tour
+                            .jobs()
+                            .map(|job| job.dimens().get_production_value().copied().unwrap_or(0.))
+                            .sum()
+                    },
+                    reference,
+                ),
+            }
+        }
         Objective::CompactTour { job_radius } => {
             create_tour_compactness_feature("tour_compact", blocks.jobs.clone(), *job_radius)
         }
         Objective::TourOrder => create_tour_order_soft_feature("tour_order", get_tour_order_fn()),
+        Objective::MinimizeTourSizeViolation => create_min_activity_limit_feature(
+            "min_tour_size_objective",
+            Arc::new(|actor| actor.vehicle.dimens.get_min_tour_size().copied()),
+        ),
         Objective::FastService => get_fast_service_feature("fast_service", blocks),
+        Objective::MinimizeOverdue => MinimizeOverdueBuilder::new("min_overdue")
+            .set_job_due_date_fn(|job| {
+                // For Multi jobs, find the earliest due date among all tasks
+                // For Single jobs, just get the due date directly
+                match job {
+                    CoreJob::Single(single) => single.dimens.get_job_due_date().copied(),
+                    CoreJob::Multi(multi) => multi
+                        .jobs
+                        .iter()
+                        .filter_map(|single| single.dimens.get_job_due_date().copied())
+                        .min_by(|a, b| a.total_cmp(b)),
+                }
+            })
+            .set_scheduled_date_fn(|route_ctx| route_ctx.route().actor.detail.time.start)
+            .set_unassigned_penalty_fn(|job| {
+                // High penalty for unassigned jobs that have a due date
+                let has_due_date = match job {
+                    CoreJob::Single(single) => single.dimens.get_job_due_date().is_some(),
+                    CoreJob::Multi(multi) => multi.jobs.iter().any(|single| single.dimens.get_job_due_date().is_some()),
+                };
+                if has_due_date { 10000.0 } else { 0.0 }
+            })
+            .build(),
+        Objective::MinimizeVehicleDistance => VehicleDistanceFeatureBuilder::new("min_vehicle_distance")
+            .set_transport(blocks.transport.clone())
+            .set_actors(blocks.fleet.actors.clone())
+            .set_jobs(blocks.jobs.clone())
+            .set_compatibility_fn(territory_compatibility_fn())
+            .build(),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
+        Objective::Territory { proximity, balance, balance_tolerance, anchors, allow_idle_drivers } => {
+            let proximity = match proximity {
+                model::TerritoryProximity::Distance => CoreTerritoryProximity::Distance,
+                model::TerritoryProximity::Time => CoreTerritoryProximity::Time,
+            };
+            let balance = balance.as_ref().map(|m| match m {
+                BalancePeriodMetric::Distance => TerritoryBalance::Distance,
+                BalancePeriodMetric::Duration => TerritoryBalance::Duration,
+                BalancePeriodMetric::Activities => TerritoryBalance::Activities,
+                BalancePeriodMetric::ProductionValue => TerritoryBalance::ProductionValue,
+            });
+            // Empty anchors ⇒ derive balanced medoid seeds + power weights and match drivers to
+            // them (Hungarian); explicit anchors keep the caller-supplied territory (no weights).
+            // Anchor values are already routing-matrix indices; core Location is a usize.
+            let (anchors, weights) = if anchors.is_empty() {
+                derive_territory_anchors_and_weights(blocks, proximity, balance)
+            } else {
+                (anchors.iter().map(|(k, &idx)| (k.clone(), idx as CoreLocation)).collect(), HashMap::new())
+            };
+
+            TerritoryFeatureBuilder::new("territory")
+                .set_transport(blocks.transport.clone())
+                .set_actors(blocks.fleet.actors.clone())
+                .set_jobs(blocks.jobs.clone())
+                .set_proximity(proximity)
+                .set_balance(balance)
+                .set_balance_tolerance(*balance_tolerance)
+                .set_anchors(anchors)
+                .set_weights(weights)
+                .set_allow_idle_drivers(*allow_idle_drivers)
+                .set_job_value_fn(|job| job.dimens().get_production_value().copied().unwrap_or(0.))
+                .set_compatibility_fn(territory_compatibility_fn())
+                .build()
+        }
         Objective::MultiObjective { objectives, strategy: composition_type } => {
             let features = objectives
                 .iter()
@@ -241,6 +409,36 @@ fn get_hierarchical_areas_feature(blocks: &ProblemBlocks, levels: usize) -> Gene
         let transport = blocks.transport.clone();
         move |profile, from, to| transport.distance_approx(profile, from, to)
     })
+}
+
+/// The actor/job compatibility check shared by `MinimizeVehicleDistance` and `Territory`: an
+/// actor may serve a job only if it has the required skills and its shift's time windows overlap
+/// at least one of the job's time windows. The latter (day-availability) check matters because
+/// both objectives compare a job against "the nearest compatible vehicle" — without it, that
+/// comparison could be made against a vehicle that isn't even working the day the job needs to be
+/// served.
+fn territory_compatibility_fn() -> impl Fn(&CoreJob, &Actor) -> bool + Send + Sync + 'static {
+    |job, actor| {
+        if let Some(job_skills) = job.dimens().get_job_skills() {
+            let vehicle_skills = actor.vehicle.dimens.get_vehicle_skills();
+            if !is_job_skills_compatible(job_skills, &vehicle_skills) {
+                return false;
+            }
+        }
+
+        let actor_tw = &actor.detail.time;
+        match job {
+            CoreJob::Single(single) => {
+                single.places.iter().flat_map(|p| p.times.iter()).any(|ts| ts.intersects(0.0, actor_tw))
+            }
+            CoreJob::Multi(multi) => multi
+                .jobs
+                .iter()
+                .flat_map(|s| s.places.iter())
+                .flat_map(|p| p.times.iter())
+                .any(|ts| ts.intersects(0.0, actor_tw)),
+        }
+    }
 }
 
 fn get_objectives(api_problem: &ApiProblem, props: &ProblemProperties) -> Vec<Objective> {
@@ -326,7 +524,236 @@ fn eval_multi_objective_strategy(
                 },
             )
         }
+
+        MultiStrategy::WeightedSumScalar { weights } => {
+            if objectives.len() != weights.len() {
+                return Err(format!(
+                    "weighted sum scalar requires same amount of weights as objective count: {} vs {}",
+                    weights.len(),
+                    objectives.len()
+                )
+                .into());
+            }
+
+            builder.add_multi(
+                objectives,
+                {
+                    // Selection: collapse the weighted fitness values into a single scalar and
+                    // compare those. This makes the weighted sum the quantity being minimized,
+                    // instead of the Pareto-dominance order used by `WeightedSum`.
+                    //
+                    // Each fitness is divided by the objective's own `fitness_scale()` so that
+                    // objectives with very different magnitudes combine on a comparable scale and
+                    // the weights stay dimensionless preferences. The objective owns this scale;
+                    // the strategy only applies it uniformly (default scale is 1.0 = no-op).
+                    let weights = weights.clone();
+                    move |os: &[Arc<dyn FeatureObjective>], a: &InsertionContext, b: &InsertionContext| {
+                        let score = |s: &InsertionContext| -> Float {
+                            os.iter().enumerate().map(|(idx, o)| weights[idx] * o.fitness(s) / o.fitness_scale()).sum()
+                        };
+                        score(a).total_cmp(&score(b))
+                    }
+                },
+                {
+                    // Insertion heuristic: same weighted, self-normalized estimate as selection.
+                    let weights = weights.clone();
+                    move |os, move_ctx| {
+                        os.iter()
+                            .enumerate()
+                            .map(|(idx, o)| weights[idx] * o.estimate(move_ctx) / o.fitness_scale())
+                            .sum()
+                    }
+                },
+            )
+        }
     })
+}
+
+/// Computes the ideal total of a period-balance metric for the whole problem: the best-case
+/// magnitude the metric can take if every job is served ideally. Divided by the number of
+/// available shifts, this yields the ideal per-shift load used as the balance objective's
+/// fixed self-normalization reference.
+fn compute_period_reference(metric: &BalancePeriodMetric, blocks: &ProblemBlocks) -> Float {
+    match metric {
+        BalancePeriodMetric::Activities => blocks
+            .jobs
+            .all()
+            .iter()
+            .map(|job| match job {
+                CoreJob::Single(_) => 1.0,
+                CoreJob::Multi(multi) => multi.jobs.len() as Float,
+            })
+            .sum(),
+        BalancePeriodMetric::ProductionValue => blocks
+            .jobs
+            .all()
+            .iter()
+            .map(|job| job.dimens().get_production_value().copied().unwrap_or(0.))
+            .sum(),
+        BalancePeriodMetric::Distance => {
+            compute_ideal_round_trip_total(blocks.transport.as_ref(), &blocks.fleet.actors, blocks.jobs.all(), false)
+        }
+        BalancePeriodMetric::Duration => {
+            compute_ideal_round_trip_total(blocks.transport.as_ref(), &blocks.fleet.actors, blocks.jobs.all(), true)
+        }
+    }
+}
+
+/// Sums, over every job, the shortest round-trip from any vehicle's start depot to the job and
+/// back (measured as distance or duration). This is the same "ideal travel" notion the
+/// vehicle-distance feature uses, ignoring compatibility: it only needs to be a stable
+/// order-of-magnitude reference, not a routed lower bound.
+fn compute_ideal_round_trip_total(
+    transport: &dyn TransportCost,
+    actors: &[Arc<Actor>],
+    jobs: &[CoreJob],
+    use_duration: bool,
+) -> Float {
+    jobs.iter()
+        .filter_map(|job| {
+            let job_loc = job_primary_location(job)?;
+            actors
+                .iter()
+                .filter_map(|actor| actor.detail.start.as_ref().map(|start| (start.location, &actor.vehicle.profile)))
+                .map(|(start, profile)| {
+                    if use_duration {
+                        transport.duration_approx(profile, start, job_loc)
+                            + transport.duration_approx(profile, job_loc, start)
+                    } else {
+                        transport.distance_approx(profile, start, job_loc)
+                            + transport.distance_approx(profile, job_loc, start)
+                    }
+                })
+                .min_by(|a, b| a.total_cmp(b))
+        })
+        .sum()
+}
+
+/// Iterations of static value-balancing applied to the derived territory seeds.
+const TERRITORY_SEED_ITERATIONS: usize = 10;
+
+/// Derives per-driver territory anchors + power weights from the problem when no explicit anchors
+/// are configured: balanced medoid seeds over the customer jobs (compact by proximity, weighted so
+/// each power cell captures ~equal production value), matched to drivers by start→seed proximity
+/// via the Hungarian algorithm. Keyed like the core `driver_key` (driver id, else vehicle id).
+/// Returns empty maps when there is nothing to derive (no drivers, no jobs, no profile).
+fn derive_territory_anchors_and_weights(
+    blocks: &ProblemBlocks,
+    proximity: CoreTerritoryProximity,
+    balance: Option<TerritoryBalance>,
+) -> (HashMap<String, CoreLocation>, HashMap<String, Float>) {
+    let Some(profile) = blocks.fleet.profiles.first().cloned() else {
+        return (HashMap::new(), HashMap::new());
+    };
+    let transport = blocks.transport.clone();
+    let dist = move |a: CoreLocation, b: CoreLocation| match proximity {
+        CoreTerritoryProximity::Distance => transport.distance_approx(&profile, a, b),
+        CoreTerritoryProximity::Time => transport.duration_approx(&profile, a, b),
+    };
+
+    // Customer jobs as (location, balance-metric value): the seeds are balanced on the SAME metric
+    // the territory objective balances, so derived territories equalize whatever the caller asked
+    // for (stops, production value, duration; distance falls back to job count). With no balance the
+    // metric is zero and the placement degenerates to plain compact k-medoids (no equalizing).
+    let jobs: Vec<(CoreLocation, Float)> = blocks
+        .jobs
+        .all()
+        .iter()
+        .filter_map(|job| job_primary_location(job).map(|loc| (loc, territory_job_metric(job, balance))))
+        .collect();
+
+    // Distinct drivers in first-seen order, each with a representative start location.
+    let mut driver_order: Vec<String> = Vec::new();
+    let mut driver_start: HashMap<String, CoreLocation> = HashMap::new();
+    for actor in blocks.fleet.actors.iter() {
+        let key = actor
+            .vehicle
+            .dimens
+            .get_driver_id()
+            .cloned()
+            .or_else(|| actor.vehicle.dimens.get_vehicle_id().cloned())
+            .unwrap_or_default();
+        driver_start.entry(key.clone()).or_insert_with(|| {
+            driver_order.push(key.clone());
+            actor.detail.start.as_ref().map(|p| p.location).unwrap_or(0)
+        });
+    }
+
+    let k = driver_order.len();
+    if k == 0 || jobs.is_empty() {
+        return (HashMap::new(), HashMap::new());
+    }
+
+    let seeds = build_balanced_territory_seeds(&jobs, k, dist.clone(), TERRITORY_SEED_ITERATIONS);
+    let s = seeds.len();
+    if s == 0 {
+        return (HashMap::new(), HashMap::new());
+    }
+
+    // Hungarian match drivers → seeds by start→seed proximity. When there are fewer seeds than
+    // drivers, pad the cost matrix to k×k with high-cost dummy columns so the real seeds are filled
+    // first and the leftover drivers are simply left unanchored.
+    let mut max_cost = 0.0f64;
+    let mut cost: Vec<Vec<f64>> = driver_order
+        .iter()
+        .map(|key| {
+            let start = driver_start[key];
+            seeds
+                .iter()
+                .map(|seed| {
+                    let c = dist(start, seed.location);
+                    max_cost = max_cost.max(c);
+                    c
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let big = (max_cost + 1.0) * (k as f64 + 1.0);
+    for row in cost.iter_mut() {
+        row.resize(k, big);
+    }
+
+    let assign = min_cost_assignment(&cost);
+    let mut anchors = HashMap::new();
+    let mut weights = HashMap::new();
+    for (d, key) in driver_order.iter().enumerate() {
+        let col = assign[d];
+        if col < s {
+            anchors.insert(key.clone(), seeds[col].location);
+            weights.insert(key.clone(), seeds[col].weight);
+        }
+    }
+    (anchors, weights)
+}
+
+fn job_primary_location(job: &CoreJob) -> Option<CoreLocation> {
+    match job {
+        CoreJob::Single(single) => single.places.first().and_then(|place| place.location),
+        CoreJob::Multi(multi) => multi.jobs.first().and_then(|single| single.places.first().and_then(|p| p.location)),
+    }
+}
+
+/// The per-job quantity the derived territory seeds balance on, matching the territory objective's
+/// `balance`: production value, service duration, or job count (activities / distance).
+fn territory_job_metric(job: &CoreJob, balance: Option<TerritoryBalance>) -> Float {
+    match balance {
+        Some(TerritoryBalance::ProductionValue) => job.dimens().get_production_value().copied().unwrap_or(0.),
+        Some(TerritoryBalance::Duration) => job_service_duration(job),
+        // Activities or Distance → equalize job count per territory.
+        Some(TerritoryBalance::Activities) | Some(TerritoryBalance::Distance) => 1.0,
+        // No balance: don't equalize anything. A zero metric makes the capacity never bind, so the
+        // capacitated placement degenerates to plain compact k-medoids — natural-size territories,
+        // pure efficiency.
+        None => 0.0,
+    }
+}
+
+/// A job's total service time (its primary place duration, summed over sub-jobs for a multi-job).
+fn job_service_duration(job: &CoreJob) -> Float {
+    match job {
+        CoreJob::Single(single) => single.places.first().map(|p| p.duration).unwrap_or(0.),
+        CoreJob::Multi(multi) => multi.jobs.iter().filter_map(|s| s.places.first().map(|p| p.duration)).sum(),
+    }
 }
 
 fn get_capacity_feature(
@@ -448,6 +875,33 @@ fn get_tour_limit_feature(
         get_limit(distances),
         get_limit(durations),
     )
+}
+
+fn get_min_vehicle_shifts_feature(name: &str, api_problem: &ApiProblem) -> GenericResult<Option<Feature>> {
+    let requirements = api_problem
+        .fleet
+        .vehicles
+        .iter()
+        .filter_map(|vehicle| vehicle.min_shifts.as_ref().map(|value| (vehicle, value.clone())))
+        .flat_map(|(vehicle, min_shifts)| {
+            vehicle.vehicle_ids.iter().map(move |vehicle_id| {
+                (
+                    vehicle_id.clone(),
+                    MinShiftRequirement { minimum: min_shifts.value, allow_zero_usage: min_shifts.allow_zero_usage },
+                )
+            })
+        })
+        .collect::<HashMap<_, _>>();
+
+    if requirements.is_empty() {
+        return Ok(None);
+    }
+
+    MinVehicleShiftsFeatureBuilder::new(name)
+        .with_violation_code(MIN_VEHICLE_SHIFTS_CONSTRAINT_CODE)
+        .with_requirements(requirements)
+        .build()
+        .map(Some)
 }
 
 fn get_recharge_feature(
@@ -582,4 +1036,57 @@ fn get_tour_order_fn() -> TourOrderFn {
             })
         })
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_problem_with_min_shifts(min_shifts: Option<VehicleMinShifts>) -> ApiProblem {
+        ApiProblem {
+            plan: Plan { jobs: vec![], relations: None, clustering: None },
+            fleet: Fleet {
+                vehicles: vec![VehicleType {
+                    type_id: "vehicle_type".to_string(),
+                    vehicle_ids: vec!["vehicle_1".to_string()],
+                    profile: VehicleProfile { matrix: "car".to_string(), scale: None },
+                    costs: VehicleCosts { fixed: Some(0.), distance: 1., time: 1., span: None },
+                    shifts: vec![VehicleShift {
+                        start: ShiftStart {
+                            earliest: "1970-01-01T00:00:00Z".to_string(),
+                            latest: None,
+                            location: Location::new_coordinate(0., 0.),
+                        },
+                        end: None,
+                        breaks: None,
+                        reloads: None,
+                        recharges: None,
+                        job_times: None,
+                    }],
+                    capacity: vec![1],
+                    skills: None,
+                    limits: None,
+                    min_shifts,
+                    driver_id: None,
+                }],
+                profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
+                resources: None,
+            },
+            objectives: None,
+        }
+    }
+
+    #[test]
+    fn creates_min_vehicle_shift_feature_when_needed() {
+        let problem = create_problem_with_min_shifts(Some(VehicleMinShifts { value: 1, allow_zero_usage: false }));
+        let feature = get_min_vehicle_shifts_feature("min_vehicle_shifts", &problem).unwrap();
+
+        assert!(feature.is_some());
+    }
+
+    #[test]
+    fn returns_none_when_no_requirements() {
+        let problem = create_problem_with_min_shifts(None);
+        assert!(get_min_vehicle_shifts_feature("min_vehicle_shifts", &problem).unwrap().is_none());
+    }
 }

@@ -11,7 +11,7 @@ pub fn create_job_place(location: (f64, f64), tag: Option<String>) -> JobPlace {
 }
 
 pub fn create_task(location: (f64, f64), tag: Option<String>) -> JobTask {
-    JobTask { places: vec![create_job_place(location, tag)], demand: Some(vec![1]), order: None }
+    JobTask { places: vec![create_job_place(location, tag)], demand: Some(vec![1]), order: None, due_date: None }
 }
 
 pub fn create_job(id: &str) -> Job {
@@ -23,8 +23,10 @@ pub fn create_job(id: &str) -> Job {
         services: None,
         skills: None,
         value: None,
+        production_value: None,
         group: None,
         compatibility: None,
+        vehicle_group: None,
     }
 }
 
@@ -38,6 +40,7 @@ pub fn create_delivery_job_with_order(id: &str, location: (f64, f64), order: i32
             places: vec![create_job_place(location, None)],
             demand: Some(vec![1]),
             order: Some(order),
+            due_date: None,
         }]),
         ..create_job(id)
     }
@@ -49,6 +52,7 @@ pub fn create_delivery_job_with_group(id: &str, location: (f64, f64), group: &st
             places: vec![create_job_place(location, None)],
             demand: Some(vec![1]),
             order: None,
+            due_date: None,
         }]),
         group: Some(group.to_string()),
         ..create_job(id)
@@ -61,6 +65,7 @@ pub fn create_delivery_job_with_compatibility(id: &str, location: (f64, f64), co
             places: vec![create_job_place(location, None)],
             demand: Some(vec![1]),
             order: None,
+            due_date: None,
         }]),
         compatibility: Some(compatibility.to_string()),
         ..create_job(id)
@@ -81,6 +86,7 @@ pub fn create_delivery_job_with_duration(id: &str, location: (f64, f64), duratio
             places: vec![JobPlace { duration, ..create_job_place(location, None) }],
             demand: Some(vec![1]),
             order: None,
+            due_date: None,
         }]),
         ..create_job(id)
     }
@@ -97,6 +103,7 @@ pub fn create_delivery_job_with_times(
             places: vec![JobPlace { duration, times: convert_times(&times), ..create_job_place(location, None) }],
             demand: Some(vec![1]),
             order: None,
+            due_date: None,
         }]),
         ..create_job(id)
     }
@@ -104,6 +111,26 @@ pub fn create_delivery_job_with_times(
 
 pub fn create_delivery_job_with_value(id: &str, location: (f64, f64), value: Float) -> Job {
     Job { deliveries: Some(vec![create_task(location, None)]), value: Some(value), ..create_job(id) }
+}
+
+pub fn create_delivery_job_with_production_value(id: &str, location: (f64, f64), production_value: Float) -> Job {
+    Job {
+        deliveries: Some(vec![create_task(location, None)]),
+        production_value: Some(production_value),
+        ..create_job(id)
+    }
+}
+
+pub fn create_delivery_job_with_due_date(id: &str, location: (f64, f64), due_date: &str) -> Job {
+    Job {
+        deliveries: Some(vec![JobTask {
+            places: vec![create_job_place(location, None)],
+            demand: Some(vec![1]),
+            order: None,
+            due_date: Some(due_date.to_string()),
+        }]),
+        ..create_job(id)
+    }
 }
 
 pub fn create_pickup_job(id: &str, location: (f64, f64)) -> Job {
@@ -145,6 +172,7 @@ pub fn create_pickup_delivery_job_with_params(
             }],
             demand: Some(demand.clone()),
             order: None,
+            due_date: None,
         }]),
         deliveries: Some(vec![JobTask {
             places: vec![JobPlace {
@@ -154,6 +182,7 @@ pub fn create_pickup_delivery_job_with_params(
             }],
             demand: Some(demand),
             order: None,
+            due_date: None,
         }]),
 
         ..create_job(id)
@@ -166,6 +195,7 @@ pub fn create_delivery_job_with_index(id: &str, index: usize) -> Job {
             places: vec![JobPlace { times: None, location: Location::Reference { index }, duration: 1., tag: None }],
             demand: Some(vec![1]),
             order: None,
+            due_date: None,
         }]),
         ..create_job(id)
     }
@@ -187,6 +217,7 @@ pub fn create_multi_job(
                 }],
                 demand: Some(demand),
                 order: None,
+                due_date: None,
             })
             .collect::<Vec<_>>();
 
@@ -211,6 +242,7 @@ pub fn create_default_open_vehicle_shift() -> VehicleShift {
         breaks: None,
         reloads: None,
         recharges: None,
+        job_times: None,
     }
 }
 
@@ -221,11 +253,12 @@ pub fn create_default_vehicle_shift_with_locations(start: (f64, f64), end: (f64,
         breaks: None,
         reloads: None,
         recharges: None,
+        job_times: None,
     }
 }
 
 pub fn create_default_vehicle_costs() -> VehicleCosts {
-    VehicleCosts { fixed: Some(10.), distance: 1., time: 1. }
+    VehicleCosts { fixed: Some(10.), distance: 1., time: 1., span: None }
 }
 
 pub fn create_default_vehicle_profile() -> VehicleProfile {
@@ -254,6 +287,15 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
         capacity,
         skills: None,
         limits: None,
+        min_shifts: None,
+        driver_id: None,
+    }
+}
+
+pub fn create_vehicle_with_driver_id(id: &str, capacity: Vec<i32>, driver_id: &str) -> VehicleType {
+    VehicleType {
+        driver_id: Some(driver_id.to_string()),
+        ..create_vehicle_with_capacity(id, capacity)
     }
 }
 

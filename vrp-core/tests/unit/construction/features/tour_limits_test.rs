@@ -56,6 +56,100 @@ mod activity {
     }
 }
 
+mod min_activity {
+    use super::*;
+    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
+
+    #[test]
+    fn can_create_min_activity_limit_feature() {
+        let feature = create_min_activity_limit_feature("min_activity_limit", Arc::new(|_| Some(3)));
+        assert!(feature.is_ok());
+        let feature = feature.unwrap();
+        // Now only has objective, no constraint
+        assert!(feature.objective.is_some());
+    }
+
+    #[test]
+    fn min_activity_objective_calculates_penalty_correctly() {
+        // Route with 1 activity when minimum is 3 should have penalty of 2
+        let insertion_ctx = TestInsertionContextBuilder::default()
+            .with_routes(vec![
+                RouteContextBuilder::default()
+                    .with_route(
+                        RouteBuilder::default()
+                            .with_vehicle(&test_fleet(), "v1")
+                            .add_activities((0..1).map(|idx| ActivityBuilder::with_location(idx).build()))
+                            .build(),
+                    )
+                    .build(),
+            ])
+            .build();
+
+        let objective = create_min_activity_limit_feature(
+            "min_activity_limit",
+            Arc::new(|_| Some(3)), // minimum 3, route has 1
+        )
+        .unwrap()
+        .objective
+        .unwrap();
+
+        let fitness = objective.fitness(&insertion_ctx);
+
+        // Penalty should be (3 - 1) = 2
+        assert!((fitness - 2.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn min_activity_objective_returns_zero_when_satisfied() {
+        // Route with 3 activities when minimum is 3 should have zero penalty
+        let insertion_ctx = TestInsertionContextBuilder::default()
+            .with_routes(vec![
+                RouteContextBuilder::default()
+                    .with_route(
+                        RouteBuilder::default()
+                            .with_vehicle(&test_fleet(), "v1")
+                            .add_activities((0..3).map(|idx| ActivityBuilder::with_location(idx).build()))
+                            .build(),
+                    )
+                    .build(),
+            ])
+            .build();
+
+        let objective = create_min_activity_limit_feature(
+            "min_activity_limit",
+            Arc::new(|_| Some(3)), // minimum 3, route has 3
+        )
+        .unwrap()
+        .objective
+        .unwrap();
+
+        let fitness = objective.fitness(&insertion_ctx);
+
+        // No penalty when constraint is satisfied
+        assert!((fitness - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn min_activity_objective_ignores_empty_routes() {
+        // Empty routes should not be penalized
+        let insertion_ctx = TestInsertionContextBuilder::default()
+            .with_routes(vec![
+                RouteContextBuilder::default()
+                    .with_route(RouteBuilder::default().with_vehicle(&test_fleet(), "v1").build())
+                    .build(),
+            ])
+            .build();
+
+        let objective =
+            create_min_activity_limit_feature("min_activity_limit", Arc::new(|_| Some(3))).unwrap().objective.unwrap();
+
+        let fitness = objective.fitness(&insertion_ctx);
+
+        // No penalty for empty routes
+        assert!((fitness - 0.0).abs() < f64::EPSILON);
+    }
+}
+
 mod traveling {
     use super::*;
     use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState};

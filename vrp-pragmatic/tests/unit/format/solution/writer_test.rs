@@ -208,3 +208,4 @@ fn can_merge_required_break_on_stop_arrival_time_properly() {
     assert_eq!(tour.stops.len(), 3);
     assert_eq!(get_ids_from_tour(&tour).into_iter().flatten().filter(|id| id == "break").count(), 1);
 }
+

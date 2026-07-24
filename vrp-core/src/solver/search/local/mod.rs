@@ -18,6 +18,9 @@ pub use self::exchange_sequence::*;
 mod exchange_swap_star;
 pub use self::exchange_swap_star::*;
 
+mod territory_relocate;
+pub use self::territory_relocate::TerritoryRelocate;
+
 mod reschedule_departure;
 pub use self::reschedule_departure::*;
 

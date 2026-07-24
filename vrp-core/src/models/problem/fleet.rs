@@ -11,6 +11,35 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 custom_dimension!(pub VehicleId typeof String);
+custom_dimension!(pub DriverId typeof String);
+
+/// Specifies which portion of a route to consider when calculating costs.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum RouteCostSpan {
+    /// Full round trip: depot to depot (default for backward compatibility).
+    #[default]
+    DepotToDepot,
+    /// Outbound only: depot to last job (no return leg).
+    DepotToLastJob,
+    /// Return only: first job to depot (no outbound leg).
+    FirstJobToDepot,
+    /// Jobs only: first job to last job (no depot legs).
+    FirstJobToLastJob,
+}
+
+custom_dimension!(pub RouteCostSpan typeof RouteCostSpan);
+
+/// Time constraints for jobs within a shift.
+/// Controls when the first job can start and when the last job must finish.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct JobTimeConstraints {
+    /// Earliest allowed arrival time at the first job.
+    pub earliest_first: Option<Timestamp>,
+    /// Latest allowed departure time from the last job.
+    pub latest_last: Option<Timestamp>,
+}
+
+custom_dimension!(pub JobTimeConstraints typeof JobTimeConstraints);
 
 /// Represents operating costs for driver and vehicle.
 #[derive(Clone, Debug)]

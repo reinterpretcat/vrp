@@ -31,6 +31,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                         ..create_default_reload()
                     }]),
                     recharges: None,
+                    job_times: None,
                 }],
                 capacity: vec![2],
                 ..create_default_vehicle_type()
@@ -66,7 +67,7 @@ fn can_properly_handle_load_without_capacity_violation() {
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
-                costs: VehicleCosts { fixed: Some(20.0), distance: 0.002, time: 0.003 },
+                costs: VehicleCosts { fixed: Some(20.0), distance: 0.002, time: 0.003, span: None },
                 shifts: vec![VehicleShift {
                     reloads: Some(vec![
                         VehicleReload {

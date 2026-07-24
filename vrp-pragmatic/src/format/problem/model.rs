@@ -80,6 +80,9 @@ pub struct JobTask {
     /// An order, bigger value - later assignment in the route.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order: Option<i32>,
+    /// A due date for the task in RFC3339 format. Used for minimize-overdue objective.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub due_date: Option<String>,
 }
 
 /// A customer job model. Actual tasks of the job specified by list of pickups and deliveries
@@ -115,6 +118,10 @@ pub struct Job {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<Float>,
 
+    /// A job production value used by the balance-production-value objective.
+    #[serde(rename = "productionValue", skip_serializing_if = "Option::is_none")]
+    pub production_value: Option<Float>,
+
     /// Job group: jobs of the same group are assigned to the same tour or unassigned.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
@@ -122,6 +129,10 @@ pub struct Job {
     /// A compatibility group: jobs with different compatibility cannot be assigned to the same tour.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compatibility: Option<String>,
+
+    /// A vehicle group: jobs sharing this value are served by one vehicle across its shifts.
+    #[serde(rename = "vehicleGroup", skip_serializing_if = "Option::is_none")]
+    pub vehicle_group: Option<String>,
 }
 
 // region Clustering
@@ -231,6 +242,21 @@ pub struct Plan {
 
 // region Fleet
 
+/// Specifies which portion of the route to include in cost calculations.
+#[derive(Clone, Deserialize, Debug, Serialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum RouteCostSpan {
+    /// Full round trip: depot to depot (default).
+    #[default]
+    DepotToDepot,
+    /// Outbound only: depot to last job.
+    DepotToLastJob,
+    /// Return only: first job to depot.
+    FirstJobToDepot,
+    /// Jobs only: first job to last job.
+    FirstJobToLastJob,
+}
+
 /// Specifies vehicle costs.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VehicleCosts {
@@ -243,6 +269,11 @@ pub struct VehicleCosts {
 
     /// Cost per time unit.
     pub time: Float,
+
+    /// Specifies which portion of the route to include in cost calculations.
+    /// Defaults to depot-to-depot for full round trip costs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub span: Option<RouteCostSpan>,
 }
 
 /// Specifies vehicle shift start.
@@ -276,8 +307,22 @@ pub struct ShiftEnd {
     pub location: Location,
 }
 
+/// Time constraints for jobs within a shift.
+/// Controls when the first job can start and when the last job must finish.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JobTimeConstraints {
+    /// Earliest allowed arrival at first job (RFC3339 format).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub earliest_first: Option<String>,
+    /// Latest allowed departure from last job (RFC3339 format).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latest_last: Option<String>,
+}
+
 /// Specifies vehicle shift.
 #[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VehicleShift {
     /// Vehicle shift start.
     pub start: ShiftStart,
@@ -298,6 +343,10 @@ pub struct VehicleShift {
     /// Vehicle recharge stations information.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub recharges: Option<VehicleRecharges>,
+
+    /// Time constraints for the first and last jobs in this shift.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub job_times: Option<JobTimeConstraints>,
 }
 
 /// Specifies a place where vehicle can load or unload cargo.
@@ -356,6 +405,11 @@ pub struct VehicleLimits {
     /// No job activities restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tour_size: Option<usize>,
+
+    /// Min amount of job activities.
+    /// No minimum job activities restrictions when omitted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_tour_size: Option<usize>,
 }
 
 /// Vehicle optional break time variant.
@@ -465,6 +519,25 @@ pub struct VehicleType {
     /// Vehicle limits.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limits: Option<VehicleLimits>,
+
+    /// Specifies a minimum amount of shifts each vehicle id of this type should serve.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_shifts: Option<VehicleMinShifts>,
+
+    /// Driver identity for territory grouping (distinct from vehicle_ids).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub driver_id: Option<String>,
+}
+
+/// Specifies minimum shift usage requirement per vehicle.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VehicleMinShifts {
+    /// Minimum number of shifts that should be used.
+    pub value: usize,
+    /// Whether zero usage is allowed without violating the minimum. Default false.
+    #[serde(default)]
+    pub allow_zero_usage: bool,
 }
 
 /// Specifies a vehicle profile.
@@ -572,6 +645,26 @@ pub enum Objective {
     /// An objective to balance duration across all tours.
     BalanceDuration,
 
+    /// An objective to balance total job production value across all tours.
+    BalanceProductionValue,
+
+    /// An objective to balance a work metric per employee across the whole planning period.
+    BalancePeriod {
+        /// Specifies which metric to balance.
+        metric: BalancePeriodMetric,
+    },
+
+    /// An objective to balance shifts across all vehicles.
+    BalanceShifts {
+        /// Controls how quickly the penalty grows as variance increases.
+        /// Lower values make even small imbalances costly. Default is 0.05.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        saturation: Option<Float>,
+        /// Scales the resulting penalty (default 1.0). Allows making shift balance more/less important.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        weight: Option<Float>,
+    },
+
     /// An objective to control how tours are built.
     CompactTour {
         /// Specifies radius of neighbourhood. Min is 1.
@@ -581,8 +674,49 @@ pub enum Objective {
     /// An objective to control order of job activities in the tour.
     TourOrder,
 
+    /// An objective to minimize tour size violations (routes with fewer activities than min_tour_size).
+    /// Only relevant when vehicles have min_tour_size limits defined.
+    MinimizeTourSizeViolation,
+
     /// An objective to prefer jobs to be served as soon as possible.
     FastService,
+
+    /// An objective to minimize total overdue days for scheduled jobs.
+    MinimizeOverdue,
+
+    /// An objective to minimize the distance from jobs to their assigned vehicle,
+    /// compared to the nearest compatible vehicle in the fleet.
+    MinimizeVehicleDistance,
+
+    /// An objective that builds balanced, capacity-aware territories around a per-driver anchor.
+    Territory {
+        /// Proximity metric defining the territory.
+        proximity: TerritoryProximity,
+        /// Optional balance metric; omitted ⇒ pure territory-by-proximity.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        balance: Option<BalancePeriodMetric>,
+        /// Balance deadband as a fraction of quota: a driver is billed PUSH only above
+        /// `quota * (1 + tolerance)` and counts as a deficit only below `quota * (1 - tolerance)`.
+        /// A small band stops the solver from exiling jobs into neighbouring territories just to
+        /// shave the last few percent of value imbalance. Omitted ⇒ 0.05 (5%).
+        ///
+        /// Accepts both the snake_case wire key and the camelCase `balanceTolerance` the field
+        /// serializer emits, so the objective can steer it either way.
+        #[serde(default = "default_balance_tolerance", alias = "balanceTolerance")]
+        balance_tolerance: f64,
+        /// Per-driver anchor as a routing-matrix location index, keyed by driver id.
+        #[serde(default)]
+        anchors: std::collections::HashMap<String, usize>,
+        /// When true, drivers left with no jobs are excluded from the balance (their quota is
+        /// re-based over the used drivers), so leaving a driver idle is not an imbalance. Defaults
+        /// to false (balance spans every driver).
+        ///
+        /// Accepts the camelCase `allowIdleDrivers` key too: the enum's `rename_all` renames
+        /// variants, not struct-variant fields, so without the alias the camelCase key the field
+        /// serializer emits would be silently dropped and this would always read as false.
+        #[serde(default, alias = "allowIdleDrivers")]
+        allow_idle_drivers: bool,
+    },
 
     /// An objective to consider hierarchy of areas while serving jobs.
     HierarchicalAreas {
@@ -599,6 +733,38 @@ pub enum Objective {
     },
 }
 
+/// The default balance deadband for the `territory` objective when `balance_tolerance` is omitted.
+fn default_balance_tolerance() -> f64 {
+    0.05
+}
+
+/// Specifies which metric is balanced per employee by the `balance-period` objective.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BalancePeriodMetric {
+    /// Balances total travelled distance.
+    Distance,
+
+    /// Balances total travelled duration.
+    Duration,
+
+    /// Balances total amount of job activities.
+    Activities,
+
+    /// Balances total job production value (the `productionValue` job property).
+    ProductionValue,
+}
+
+/// Proximity metric for the `territory` objective.
+#[derive(Clone, Copy, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TerritoryProximity {
+    /// Proximity measured by distance.
+    Distance,
+    /// Proximity measured by travel time.
+    Time,
+}
+
 /// An mupltiple objective strategy type specifies how competitive objective functions are compared
 /// among each other.
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -608,7 +774,26 @@ pub enum MultiStrategy {
     Sum,
 
     /// A weighted sum type uses linear combination of weights and the corresponding fitness values.
+    ///
+    /// NOTE: weights only steer the local insertion heuristic here; two complete solutions are still
+    /// compared by Pareto dominance, so trade-off solutions are treated as incomparable. Use
+    /// `WeightedSumScalar` if you want the weighted sum itself to be the quantity that is minimized.
     WeightedSum {
+        /// Individual weights. Size of vector must be the same as amount of objective functions.
+        weights: Vec<Float>,
+    },
+
+    /// A scalarizing weighted sum: the linear combination of weights and fitness values becomes a
+    /// single scalar that is BOTH minimized during selection and used to steer insertion.
+    ///
+    /// Unlike `WeightedSum`, this collapses the competing objectives into one total order, so the
+    /// weighted sum decreases monotonically instead of wandering along the Pareto front. Pick this
+    /// when you want one well-defined compromise point (e.g. "keep tours compact, but if a vehicle
+    /// must drive far due to skills, still keep its route compact") rather than a set of trade-offs.
+    ///
+    /// Because the raw fitness values enter the comparison directly, weights must account for the
+    /// objectives' very different magnitudes (see crate docs / objective definitions for ranges).
+    WeightedSumScalar {
         /// Individual weights. Size of vector must be the same as amount of objective functions.
         weights: Vec<Float>,
     },

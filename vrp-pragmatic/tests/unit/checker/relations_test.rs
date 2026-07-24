@@ -99,10 +99,13 @@ mod single {
                             ..create_default_reload()
                         }]),
                         recharges: None,
+                        job_times: None,
                     }],
                     capacity: vec![5],
                     skills: None,
                     limits: None,
+                    min_shifts: None,
+                    driver_id: None,
                 }],
                 ..create_default_fleet()
             },

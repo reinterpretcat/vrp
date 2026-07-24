@@ -15,7 +15,7 @@ fn create_test_plan_with_three_jobs() -> Plan {
 }
 
 fn create_test_limit() -> Option<VehicleLimits> {
-    Some(VehicleLimits { max_distance: Some(15.), max_duration: None, tour_size: None })
+    Some(VehicleLimits { max_distance: Some(15.), max_duration: None, tour_size: None, min_tour_size: None })
 }
 
 fn create_order_objective(is_constrained: bool) -> Vec<Objective> {
@@ -146,6 +146,7 @@ fn can_handle_order_between_special_activities() {
             places: vec![JobPlace { times: None, location: location.to_loc(), duration: 100., tag: None }],
             demand: Some(vec![1]),
             order: Some(order),
+            due_date: None,
         }]),
         ..create_job(id)
     };

@@ -46,6 +46,7 @@ pub(crate) fn generate_plan(
                         get_random_item(demands.as_slice(), &rnd).cloned()
                     },
                     order: task.order,
+                    due_date: task.due_date.clone(),
                 })
                 .collect::<Vec<_>>()
         })
@@ -67,8 +68,10 @@ pub(crate) fn generate_plan(
                 services: generate_tasks(&job_proto.services, true),
                 skills: job_proto.skills.clone(),
                 value: job_proto.value,
+                production_value: job_proto.production_value,
                 group: job_proto.group.clone(),
                 compatibility: job_proto.compatibility.clone(),
+                vehicle_group: job_proto.vehicle_group.clone(),
             }
         })
         .collect();

@@ -5,11 +5,24 @@ on:
     paths:
       - '**/Cargo.toml'
       - '**/Cargo.lock'
+
+# rustsec/audit-check writes check-run annotations back to GitHub. Without
+# `checks: write` the action errors with "Resource not accessible by
+# integration" even when the audit itself passes.
+permissions:
+  contents: read
+  checks: write
+  issues: write
+
 jobs:
   security-audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/audit-check@v1
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          # Unmaintained warnings (RUSTSEC informational, no CVE) are noise for
+          # transitive deps we can't fix immediately. Ignore them, fail only on
+          # real vulnerabilities.
+          ignore: RUSTSEC-2024-0436

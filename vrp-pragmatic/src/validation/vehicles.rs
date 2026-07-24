@@ -3,9 +3,9 @@
 mod vehicles_test;
 
 use super::*;
+use crate::parse_time_safe;
 use crate::utils::combine_error_results;
 use crate::validation::common::get_time_windows;
-use crate::{parse_time, parse_time_safe};
 use std::collections::HashSet;
 use vrp_core::models::common::TimeWindow;
 
@@ -73,18 +73,26 @@ fn check_e1303_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result
                 .breaks
                 .as_ref()
                 .map(|breaks| {
+                    // OffsetTime breaks: only structural validation (no absolute time computation
+                    // against shift start, since the actual anchor is unknown at validation time)
+                    let offset_valid = breaks.iter().all(|b| match b {
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::OffsetTime { earliest, latest },
+                            duration,
+                        } => *earliest >= 0. && *latest >= 0. && *earliest <= *latest && *duration > 0.,
+                        _ => true,
+                    });
+
+                    if !offset_valid {
+                        return false;
+                    }
+
+                    // ExactTime and optional breaks: validate against shift time windows as before
                     let tws = breaks
                         .iter()
                         .filter_map(|b| match b {
                             VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeWindow(tw), .. } => {
                                 Some(get_time_window_from_vec(tw))
-                            }
-                            VehicleBreak::Required {
-                                time: VehicleRequiredBreakTime::OffsetTime { earliest, latest },
-                                duration,
-                            } => {
-                                let departure = parse_time(&shift.start.earliest);
-                                Some(Some(TimeWindow::new(departure + *earliest, departure + *latest + *duration)))
                             }
                             VehicleBreak::Required {
                                 time: VehicleRequiredBreakTime::ExactTime { earliest, latest },
@@ -165,44 +173,6 @@ fn check_e1306_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), 
             format!(
                 "ensure that either time or distance cost is non-zero, \
                  vehicle type ids: '{}'",
-                type_ids.join(", ")
-            ),
-        ))
-    }
-}
-
-fn check_e1307_vehicle_offset_break_rescheduling(ctx: &ValidationContext) -> Result<(), FormatError> {
-    let type_ids = get_invalid_type_ids(
-        ctx,
-        Box::new(|_, shift, _| {
-            shift
-                .breaks
-                .as_ref()
-                .map(|breaks| {
-                    let has_time_offset = breaks.iter().any(|br| {
-                        matches!(
-                            br,
-                            VehicleBreak::Required { time: VehicleRequiredBreakTime::OffsetTime { .. }, .. }
-                                | VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeOffset { .. }, .. }
-                        )
-                    });
-                    let has_rescheduling =
-                        shift.start.latest.as_ref().is_none_or(|latest| *latest != shift.start.earliest);
-
-                    !(has_time_offset && has_rescheduling)
-                })
-                .unwrap_or(true)
-        }),
-    );
-
-    if type_ids.is_empty() {
-        Ok(())
-    } else {
-        Err(FormatError::new(
-            "E1307".to_string(),
-            "time offset interval for break is used with departure rescheduling".to_string(),
-            format!(
-                "when time offset is used, start.latest should be set equal to start.earliest in the shift, check vehicle type ids: '{}'",
                 type_ids.join(", ")
             ),
         ))
@@ -299,7 +269,6 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError
         check_e1303_vehicle_breaks_time_is_correct(ctx),
         check_e1304_vehicle_reload_time_is_correct(ctx),
         check_e1306_vehicle_has_no_zero_costs(ctx),
-        check_e1307_vehicle_offset_break_rescheduling(ctx),
         check_e1308_vehicle_reload_resources(ctx),
     ])
     .map_err(From::from)

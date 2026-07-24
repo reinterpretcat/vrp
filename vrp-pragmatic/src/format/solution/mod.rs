@@ -97,6 +97,13 @@ fn map_code_reason(code: ViolationCode) -> (&'static str, &'static str) {
             ("RELOAD_RESOURCE_CONSTRAINT", "cannot be assigned due to reload resource constraint")
         }
         RECHARGE_CONSTRAINT_CODE => ("RECHARGE_CONSTRAINT_CODE", "cannot be assigned due to recharge constraint"),
+        MIN_VEHICLE_SHIFTS_CONSTRAINT_CODE => {
+            ("MIN_SHIFT_CONSTRAINT", "cannot be assigned due to minimum shift requirement")
+        }
+        MIN_TOUR_SIZE_CONSTRAINT_CODE => {
+            ("MIN_TOUR_SIZE_CONSTRAINT", "cannot be assigned due to min tour size constraint of vehicle")
+        }
+        JOB_TIME_CONSTRAINT_CODE => ("JOB_TIME_CONSTRAINT", "cannot be assigned due to shift job time constraints"),
         _ => ("NO_REASON_FOUND", "unknown"),
     }
 }
@@ -118,6 +125,9 @@ fn map_reason_code(reason: &str) -> ViolationCode {
         "COMPATIBILITY_CONSTRAINT" => COMPATIBILITY_CONSTRAINT_CODE,
         "RELOAD_RESOURCE_CONSTRAINT" => RELOAD_RESOURCE_CONSTRAINT_CODE,
         "RECHARGE_CONSTRAINT_CODE" => RECHARGE_CONSTRAINT_CODE,
+        "MIN_SHIFT_CONSTRAINT" => MIN_VEHICLE_SHIFTS_CONSTRAINT_CODE,
+        "MIN_TOUR_SIZE_CONSTRAINT" => MIN_TOUR_SIZE_CONSTRAINT_CODE,
+        "JOB_TIME_CONSTRAINT" => JOB_TIME_CONSTRAINT_CODE,
         _ => ViolationCode::unknown(),
     }
 }

@@ -26,6 +26,9 @@ pub use self::fleet_usage::*;
 mod groups;
 pub use self::groups::{JobGroupDimension, create_group_feature};
 
+mod vehicle_groups;
+pub use self::vehicle_groups::{VehicleGroupDimension, create_vehicle_group_feature};
+
 mod hierarchical_areas;
 pub use self::hierarchical_areas::*;
 
@@ -34,6 +37,12 @@ pub use self::known_edge::create_known_edge_feature;
 
 mod locked_jobs;
 pub use self::locked_jobs::*;
+
+mod vehicle_distance;
+pub use self::vehicle_distance::*;
+
+mod minimize_overdue;
+pub use self::minimize_overdue::*;
 
 mod minimize_unassigned;
 pub use self::minimize_unassigned::*;
@@ -48,7 +57,9 @@ mod reloads;
 pub use self::reloads::{ReloadFeatureFactory, ReloadIntervalsTourState, SharedResource, SharedResourceId};
 
 mod skills;
-pub use self::skills::{JobSkills, JobSkillsDimension, VehicleSkillsDimension, create_skills_feature};
+pub use self::skills::{
+    JobSkills, JobSkillsDimension, VehicleSkillsDimension, create_skills_feature, is_job_skills_compatible,
+};
 
 mod total_value;
 pub use self::total_value::*;
@@ -59,14 +70,26 @@ pub use self::tour_compactness::*;
 mod tour_limits;
 pub use self::tour_limits::*;
 
+mod job_time_limits;
+pub use self::job_time_limits::*;
+
 mod tour_order;
 pub use self::tour_order::*;
 
 mod transport;
 pub use self::transport::*;
 
+mod vehicle_shifts;
+pub use self::vehicle_shifts::*;
+
 mod work_balance;
 pub use self::work_balance::{
     create_activity_balanced_feature, create_distance_balanced_feature, create_duration_balanced_feature,
-    create_max_load_balanced_feature,
+    create_max_load_balanced_feature, create_production_value_balanced_feature,
 };
+
+mod period_balance;
+pub use self::period_balance::create_period_balanced_feature;
+
+mod territory;
+pub use self::territory::*;

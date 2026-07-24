@@ -34,6 +34,8 @@ prop_compose! {
             capacity,
             skills,
             limits,
+            min_shifts: None,
+            driver_id: None,
         }
     }
 }
@@ -110,6 +112,7 @@ prop_compose! {
           breaks,
           reloads,
           recharges,
+          job_times: None,
         }
     }
 }

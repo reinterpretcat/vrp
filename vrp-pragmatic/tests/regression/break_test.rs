@@ -25,6 +25,7 @@ fn can_handle_properly_invalid_break_removal() {
                             }],
                             demand: Some(vec![1]),
                             order: None,
+                            due_date: None,
                         }]),
                         ..create_job("job1")
                     },
@@ -41,6 +42,7 @@ fn can_handle_properly_invalid_break_removal() {
                             }],
                             demand: Some(vec![1]),
                             order: None,
+                            due_date: None,
                         }]),
                         ..create_job("job2")
                     },
@@ -57,6 +59,7 @@ fn can_handle_properly_invalid_break_removal() {
                             }],
                             demand: Some(vec![1]),
                             order: None,
+                            due_date: None,
                         }]),
                         ..create_job("job3")
                     },
@@ -73,6 +76,7 @@ fn can_handle_properly_invalid_break_removal() {
                             }],
                             demand: Some(vec![2]),
                             order: None,
+                            due_date: None,
                         }]),
                         ..create_job("job4")
                     },
@@ -89,6 +93,7 @@ fn can_handle_properly_invalid_break_removal() {
                             }],
                             demand: Some(vec![3]),
                             order: None,
+                            due_date: None,
                         }]),
                         ..create_job("job5")
                     },
@@ -105,6 +110,7 @@ fn can_handle_properly_invalid_break_removal() {
                             }],
                             demand: Some(vec![1]),
                             order: None,
+                            due_date: None,
                         }]),
                         ..create_job("job6")
                     },
@@ -116,7 +122,7 @@ fn can_handle_properly_invalid_break_removal() {
                     type_id: "vehicle1".to_string(),
                     vehicle_ids: vec!["vehicle1_1".to_string()],
                     profile: VehicleProfile { matrix: "car".to_string(), scale: None },
-                    costs: VehicleCosts { fixed: Some(20.), distance: 0.002, time: 0.003 },
+                    costs: VehicleCosts { fixed: Some(20.), distance: 0.002, time: 0.003, span: None },
                     shifts: vec![VehicleShift {
                         start: ShiftStart {
                             earliest: "2020-07-04T09:00:00Z".to_string(),
@@ -138,10 +144,13 @@ fn can_handle_properly_invalid_break_removal() {
                         }]),
                         reloads: None,
                         recharges: None,
+                        job_times: None,
                     }],
                     capacity: vec![5],
                     skills: None,
                     limits: None,
+                    min_shifts: None,
+                    driver_id: None,
                 }],
                 ..create_default_fleet()
             },

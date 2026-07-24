@@ -86,6 +86,13 @@ impl FeatureConstraint for SkillsConstraint {
     }
 }
 
+/// Checks whether a job's skill requirements are compatible with a vehicle's skills.
+pub fn is_job_skills_compatible(job_skills: &JobSkills, vehicle_skills: &Option<&HashSet<String>>) -> bool {
+    check_all_of(job_skills, vehicle_skills)
+        && check_one_of(job_skills, vehicle_skills)
+        && check_none_of(job_skills, vehicle_skills)
+}
+
 fn check_all_of(job_skills: &JobSkills, vehicle_skills: &Option<&HashSet<String>>) -> bool {
     match (job_skills.all_of.as_ref(), vehicle_skills) {
         (Some(job_skills), Some(vehicle_skills)) => job_skills.is_subset(vehicle_skills),

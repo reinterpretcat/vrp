@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/construction/enablers/reserved_time_test.rs"]
 mod reserved_time_test;
 
+use crate::construction::enablers::get_offset_anchor;
 use crate::models::common::*;
 use crate::models::problem::{ActivityCost, Actor, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
@@ -85,8 +86,6 @@ impl ActivityCost for DynamicActivityCost {
 
             // NOTE: do not allow to start or restart work after break finished
             if activity_start + extra_duration > activity.place.time.end {
-                // TODO this branch is the reason why departure rescheduling is disabled.
-                //      theoretically, rescheduling should be aware somehow about dynamic costs
                 ControlFlow::Break(departure + extra_duration)
             } else {
                 ControlFlow::Continue(departure + extra_duration)
@@ -187,6 +186,14 @@ fn reduce_waiting_by_reserved_time(_route: &mut Route, _reserved_times_fn: &Rese
     // TODO: could be added if necessary, but it should be thought carefully to keep solution feasibility
 }
 
+type SpanGroup = (Vec<u64>, Vec<ReservedTimeSpan>);
+
+/// Sorted group data: window spans and offset spans, each independently sorted and validated.
+struct PartitionedSpans {
+    window_group: Option<SpanGroup>,
+    offset_group: Option<SpanGroup>,
+}
+
 /// Creates a reserved time function from reserved time index.
 pub(crate) fn create_reserved_times_fn(
     reserved_times_index: ReservedTimesIndex,
@@ -196,92 +203,120 @@ pub(crate) fn create_reserved_times_fn(
     }
 
     let reserved_times = reserved_times_index.into_iter().try_fold(
-        HashMap::<_, (Vec<_>, Vec<_>)>::new(),
-        |mut acc, (actor, mut times)| {
-            // NOTE do not allow different types to simplify interval searching
-            let are_same_types = times.windows(2).all(|pair| {
-                if let [ReservedTimeSpan { time: a, .. }, ReservedTimeSpan { time: b, .. }] = pair {
-                    matches!(
-                        (a, b),
-                        (TimeSpan::Window(_), TimeSpan::Window(_)) | (TimeSpan::Offset(_), TimeSpan::Offset(_))
-                    )
-                } else {
-                    false
-                }
-            });
+        HashMap::<_, PartitionedSpans>::new(),
+        |mut acc, (actor, times)| -> Result<_, GenericError> {
+            // Partition into window and offset groups
+            let (mut window_spans, mut offset_spans): (Vec<_>, Vec<_>) =
+                times.into_iter().partition(|span| matches!(span.time, TimeSpan::Window(_)));
 
-            if !are_same_types {
-                return Err("has reserved types of different time span types".to_string());
-            }
+            let window_group = build_span_group(&mut window_spans)?;
+            let offset_group = build_span_group(&mut offset_spans)?;
 
-            times.sort_by(|ReservedTimeSpan { time: a, .. }, ReservedTimeSpan { time: b, .. }| {
-                let (a, b) = match (a, b) {
-                    (TimeSpan::Window(a), TimeSpan::Window(b)) => (a.start, b.start),
-                    (TimeSpan::Offset(a), TimeSpan::Offset(b)) => (a.start, b.start),
-                    _ => unreachable!(),
-                };
-                a.total_cmp(&b)
-            });
-            let has_no_intersections = times.windows(2).all(|pair| {
-                if let [ReservedTimeSpan { time: a, .. }, ReservedTimeSpan { time: b, .. }] = pair {
-                    !a.intersects(0., &b.to_time_window(0.))
-                } else {
-                    false
-                }
-            });
-
-            if has_no_intersections {
-                let (indices, intervals): (Vec<_>, Vec<_>) = times
-                    .into_iter()
-                    .map(|span| {
-                        let start = match &span.time {
-                            TimeSpan::Window(time) => time.end,
-                            TimeSpan::Offset(time) => time.end,
-                        };
-
-                        (start as u64, span)
-                    })
-                    .unzip();
-                acc.insert(actor, (indices, intervals));
-
-                Ok(acc)
-            } else {
-                Err("reserved times have intersections".to_string())
-            }
+            acc.insert(actor, PartitionedSpans { window_group, offset_group });
+            Ok(acc)
         },
     )?;
 
     // NOTE: this function considers only latest time from reserved time
     //       reserved_time.time.start is ignored and should be handled by post processing
     Ok(Arc::new(move |route: &Route, time_window: &TimeWindow| {
-        reserved_times.get(&route.actor).and_then(|(indices, intervals)| {
-            let offset = route.tour.start().map(|a| a.schedule.departure).unwrap_or(0.);
+        reserved_times.get(&route.actor).and_then(|partitioned| {
+            let offset = get_offset_anchor(route);
 
-            // NOTE map external absolute time window to time span's start/end
-            let (interval_start, interval_end) = match intervals.first().map(|rt| &rt.time) {
-                Some(TimeSpan::Offset(_)) => (time_window.start - offset, time_window.end - offset),
-                Some(TimeSpan::Window(_)) => (time_window.start, time_window.end),
-                _ => unreachable!(),
-            };
+            // Search window group with absolute time
+            let window_result = partitioned
+                .window_group
+                .as_ref()
+                .and_then(|(indices, intervals)| search_group(indices, intervals, time_window.start, time_window.end));
 
-            match indices.binary_search(&(interval_start as u64)) {
-                Ok(idx) => intervals.get(idx),
-                Err(idx) => (idx.max(1) - 1..=idx) // NOTE left (earliest) wins
-                    .map(|idx| intervals.get(idx))
-                    .find(|reserved_time| {
-                        reserved_time.is_some_and(|reserved_time| {
-                            let (reserved_start, reserved_end) = match &reserved_time.time {
-                                TimeSpan::Offset(to) => (to.end, to.end + reserved_time.duration),
-                                TimeSpan::Window(tw) => (tw.end, tw.end + reserved_time.duration),
-                            };
+            // Search offset group with offset-relative time
+            let offset_result = partitioned.offset_group.as_ref().and_then(|(indices, intervals)| {
+                let rel_start = time_window.start - offset;
+                let rel_end = time_window.end - offset;
+                search_group(indices, intervals, rel_start, rel_end)
+            });
 
-                            // NOTE use exclusive intersection
-                            interval_start < reserved_end && reserved_start < interval_end
-                        })
-                    })
-                    .flatten(),
+            // Pick the earliest trigger (by reserved time start)
+            match (window_result, offset_result) {
+                (Some(w), Some(o)) => {
+                    let w_start = match &w.time {
+                        TimeSpan::Window(tw) => tw.end,
+                        _ => unreachable!(),
+                    };
+                    let o_start = match &o.time {
+                        TimeSpan::Offset(to) => to.end + offset,
+                        _ => unreachable!(),
+                    };
+                    if w_start <= o_start { Some(w) } else { Some(o) }
+                }
+                (Some(w), None) => Some(w),
+                (None, Some(o)) => Some(o),
+                (None, None) => None,
             }
             .map(|reserved_time| reserved_time.to_reserved_time_window(offset))
         })
     }))
+}
+
+fn build_span_group(spans: &mut Vec<ReservedTimeSpan>) -> Result<Option<SpanGroup>, GenericError> {
+    if spans.is_empty() {
+        return Ok(None);
+    }
+
+    spans.sort_by(|ReservedTimeSpan { time: a, .. }, ReservedTimeSpan { time: b, .. }| {
+        let (a, b) = match (a, b) {
+            (TimeSpan::Window(a), TimeSpan::Window(b)) => (a.start, b.start),
+            (TimeSpan::Offset(a), TimeSpan::Offset(b)) => (a.start, b.start),
+            _ => unreachable!(),
+        };
+        a.total_cmp(&b)
+    });
+
+    let has_no_intersections = spans.windows(2).all(|pair| {
+        if let [ReservedTimeSpan { time: a, .. }, ReservedTimeSpan { time: b, .. }] = pair {
+            !a.intersects(0., &b.to_time_window(0.))
+        } else {
+            false
+        }
+    });
+
+    if !has_no_intersections {
+        return Err("reserved times have intersections".into());
+    }
+
+    let (indices, intervals): (Vec<_>, Vec<_>) = spans
+        .drain(..)
+        .map(|span| {
+            let end = match &span.time {
+                TimeSpan::Window(time) => time.end,
+                TimeSpan::Offset(time) => time.end,
+            };
+            (end as u64, span)
+        })
+        .unzip();
+
+    Ok(Some((indices, intervals)))
+}
+
+fn search_group<'a>(
+    indices: &[u64],
+    intervals: &'a [ReservedTimeSpan],
+    interval_start: f64,
+    interval_end: f64,
+) -> Option<&'a ReservedTimeSpan> {
+    let has_intersection = |reserved_time: &ReservedTimeSpan| {
+        let (reserved_start, reserved_end) = match &reserved_time.time {
+            TimeSpan::Offset(to) => (to.end, to.end + reserved_time.duration),
+            TimeSpan::Window(tw) => (tw.end, tw.end + reserved_time.duration),
+        };
+        // NOTE use exclusive intersection
+        interval_start < reserved_end && reserved_start < interval_end
+    };
+
+    match indices.binary_search(&(interval_start as u64)) {
+        Ok(idx) => intervals.get(idx).filter(|reserved_time| has_intersection(reserved_time)),
+        Err(idx) => (idx.max(1) - 1..=idx)
+            .filter_map(|idx| intervals.get(idx))
+            .find(|reserved_time| has_intersection(reserved_time)),
+    }
 }

@@ -16,6 +16,7 @@ fn can_handle_two_pd_jobs_with_same_locations_and_unusual_routing() {
         }],
         demand: Some(vec![1]),
         order: None,
+        due_date: None,
     };
 
     let problem = Problem {
@@ -36,7 +37,7 @@ fn can_handle_two_pd_jobs_with_same_locations_and_unusual_routing() {
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
-                costs: VehicleCosts { fixed: None, distance: 0.0, time: 1.0 },
+                costs: VehicleCosts { fixed: None, distance: 0.0, time: 1.0, span: None },
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
                         earliest: format_time(0.),

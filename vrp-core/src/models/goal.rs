@@ -35,6 +35,9 @@ pub struct GoalContext {
     alternative_goals: Vec<Goal>,
     constraints: Vec<Arc<dyn FeatureConstraint>>,
     states: Vec<Arc<dyn FeatureState>>,
+    /// Names of the features that contribute an objective, kept so callers can ask whether a
+    /// specific objective (e.g. `territory`) is part of this goal after it is built.
+    objective_names: Vec<String>,
 }
 
 impl GoalContext {
@@ -49,6 +52,12 @@ impl GoalContext {
     /// Returns an iterator over internal feature constraints.
     pub fn constraints(&self) -> impl Iterator<Item = Arc<dyn FeatureConstraint>> + '_ {
         self.constraints.iter().cloned()
+    }
+
+    /// Returns true if an objective feature with the given name is part of this goal. Lets the
+    /// solver enable objective-specific search operators only when the objective is present.
+    pub fn has_objective(&self, name: &str) -> bool {
+        self.objective_names.iter().any(|n| n == name)
     }
 }
 
@@ -109,8 +118,10 @@ impl GoalContextBuilder {
         let alternative_goals = self.alternative_goals;
         let states = self.features.iter().filter_map(|feature| feature.state.clone()).collect();
         let constraints = self.features.iter().filter_map(|feature| feature.constraint.clone()).collect();
+        let objective_names =
+            self.features.iter().filter(|f| f.objective.is_some()).map(|f| f.name.clone()).collect();
 
-        Ok(GoalContext { goal, alternative_goals, constraints, states })
+        Ok(GoalContext { goal, alternative_goals, constraints, states, objective_names })
     }
 
     fn get_heuristic_goal(features: &[Feature]) -> GenericResult<Goal> {
@@ -452,6 +463,19 @@ pub trait FeatureObjective: Send + Sync {
 
     /// Estimates the cost of insertion.
     fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost;
+
+    /// A per-problem reference magnitude that this objective's `fitness` (and `estimate`) are
+    /// measured in. Scalarizing combinators (e.g. a weighted-sum-scalar strategy) divide by this
+    /// value so that objectives with very different magnitudes can be summed on a comparable,
+    /// dimensionless scale and the weights express preference rather than accidental scale.
+    ///
+    /// The default of `1.0` means "no normalization" and leaves `fitness`/`estimate` unchanged.
+    /// An objective that knows its own scale (e.g. a theoretical maximum or an ideal-value total)
+    /// overrides this; the value is expected to be a positive constant for a given problem so that
+    /// the resulting comparison stays a consistent total order.
+    fn fitness_scale(&self) -> Cost {
+        1.0
+    }
 }
 
 impl HeuristicObjective for GoalContext {

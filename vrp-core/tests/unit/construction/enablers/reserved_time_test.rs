@@ -37,7 +37,8 @@ parameterized_test! {can_search_for_reserved_time, (times, tests), {
 
 can_search_for_reserved_time! {
     case01: (vec![((5., 5.), 5.), ((20., 20.), 10.)],
-        vec![((6., 6.), Some(0)), ((2., 6.), Some(0)), ((10., 11.), None), ((2., 4.), None),
+        vec![((6., 6.), Some(0)), ((5., 5.), None), ((2., 6.), Some(0)), ((10., 11.), None), ((2., 4.), None),
+             ((20., 20.), None),
              ((10., 21.), Some(1)), ((25., 27.), Some(1)), ((29., 31.), Some(1)),
              ((0., 3.), None), ((31., 33.), None)]),
     case02: (vec![((0.,0.), 10.), ((5., 5.), 10.)], vec![]),

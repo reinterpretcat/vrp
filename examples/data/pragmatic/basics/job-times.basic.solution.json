@@ -1,0 +1,114 @@
+{
+  "statistic": {
+    "cost": 29.5652,
+    "distance": 8990,
+    "duration": 1200,
+    "times": {
+      "driving": 900,
+      "serving": 300,
+      "waiting": 0,
+      "break": 0,
+      "commuting": 0,
+      "parking": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T08:00:00Z",
+            "departure": "2019-07-04T09:52:30Z"
+          },
+          "distance": 0,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52599,
+            "lng": 13.45413
+          },
+          "time": {
+            "arrival": "2019-07-04T10:00:00Z",
+            "departure": "2019-07-04T10:05:00Z"
+          },
+          "distance": 4495,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "assignableJob",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T10:12:30Z",
+            "departure": "2019-07-04T10:12:30Z"
+          },
+          "distance": 8990,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 29.5652,
+        "distance": 8990,
+        "duration": 1200,
+        "times": {
+          "driving": 900,
+          "serving": 300,
+          "waiting": 0,
+          "break": 0,
+          "commuting": 0,
+          "parking": 0
+        }
+      }
+    }
+  ],
+  "unassigned": [
+    {
+      "jobId": "unassignableJob",
+      "reasons": [
+        {
+          "code": "TIME_WINDOW_CONSTRAINT",
+          "description": "cannot be visited within time window",
+          "details": [
+            {
+              "vehicleId": "vehicle_1",
+              "shiftIndex": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

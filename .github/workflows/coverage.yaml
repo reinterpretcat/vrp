@@ -15,23 +15,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          override: true
 
       - name: Generate code coverage
         run: |
           cargo install --features vendored-openssl cargo-tarpaulin
-          cargo tarpaulin --exclude-files *_test.rs *tests* *benches* *heuristic-research* --out xml
+          cargo tarpaulin --timeout 600 --exclude-files *_test.rs *tests* *benches* *heuristic-research* --out xml
 
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v1.0.2
+        uses: codecov/codecov-action@v5
         with:
-          token: ${{secrets.CODECOV_TOKEN}}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: cobertura.xml
+          # Coverage upload is informational. A Codecov outage or transient
+          # rate limit should not turn the whole CI red; the cobertura.xml
+          # is still archived as an artifact in the next step.
+          fail_ci_if_error: false
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v4
