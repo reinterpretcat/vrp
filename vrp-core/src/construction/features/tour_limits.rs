@@ -144,6 +144,42 @@ impl TravelLimitConstraint {
     fn calculate_travel(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> (Distance, Duration) {
         calculate_travel_delta(route_ctx, activity_ctx, self.transport.as_ref())
     }
+
+    /// Returns the idle stretch in front of the first job of an otherwise empty route, which the
+    /// duration limit must not be charged for.
+    ///
+    /// An empty route departs at its shift's `earliest`, and `advance_departure_time` bails out on
+    /// a tour without jobs (`departure_time.rs`), so it cannot run during insertion evaluation.
+    /// The travel delta, however, already contains the waiting time (`calculate_travel_leg`), so a
+    /// full-day shift charges everything between the shift start and the job's time window against
+    /// the limit — and a job whose window opens late in the day can then never open a tour, even
+    /// though the route it would form is trivially short.
+    ///
+    /// Reclaiming that stretch is not a relaxation: moving the departure forward by it is always
+    /// legal on a virgin route, because there is no other activity whose schedule could break, and
+    /// a break (`TimeSpan::Offset`) cannot be present either. Routes that already carry a job are
+    /// left alone — there the shift is bounded by the existing activities.
+    fn reclaimable_leading_wait(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Duration {
+        if route_ctx.route().tour.job_count() != 0 {
+            return Duration::default();
+        }
+
+        let route = route_ctx.route();
+        let prev = activity_ctx.prev;
+        let departure = prev.schedule.departure;
+
+        let travel = self.transport.duration(
+            route,
+            prev.place.location,
+            activity_ctx.target.place.location,
+            TravelTime::Departure(departure),
+        );
+
+        let latest_departure =
+            route.actor.detail.start.as_ref().and_then(|start| start.time.latest).unwrap_or(Float::MAX);
+
+        (activity_ctx.target.place.time.start - departure - travel).max(0.).min(latest_departure - departure)
+    }
 }
 
 impl FeatureConstraint for TravelLimitConstraint {
@@ -167,7 +203,8 @@ impl FeatureConstraint for TravelLimitConstraint {
 
                     if let Some(duration_limit) = tour_duration_limit {
                         let curr_dur = route_ctx.state().get_total_duration().copied().unwrap_or(0.);
-                        let total_duration = curr_dur + change_duration;
+                        let total_duration =
+                            curr_dur + change_duration - self.reclaimable_leading_wait(route_ctx, activity_ctx);
                         if duration_limit < total_duration {
                             return ConstraintViolation::skip(self.duration_code);
                         }

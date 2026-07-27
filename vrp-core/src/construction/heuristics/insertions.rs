@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/construction/heuristics/insertions_test.rs"]
 mod insertions_test;
 
+use crate::construction::enablers::advance_departure_time;
 use crate::construction::heuristics::*;
 use crate::models::ViolationCode;
 use crate::models::common::Cost;
@@ -383,17 +384,20 @@ pub(crate) fn finalize_insertion_ctx(insertion_ctx: &mut InsertionContext) {
 }
 
 pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
-    let route_index = match insertion_ctx.solution.registry.get_route(&success.actor) {
+    let (route_index, is_new_route) = match insertion_ctx.solution.registry.get_route(&success.actor) {
         Some(new_route_ctx) => {
             insertion_ctx.solution.routes.push(new_route_ctx);
-            insertion_ctx.solution.routes.len() - 1
+            (insertion_ctx.solution.routes.len() - 1, true)
         }
-        _ => insertion_ctx
-            .solution
-            .routes
-            .iter()
-            .position(|route_ctx| route_ctx.route().actor == success.actor)
-            .expect("registry is out of sync with used routes"),
+        _ => (
+            insertion_ctx
+                .solution
+                .routes
+                .iter()
+                .position(|route_ctx| route_ctx.route().actor == success.actor)
+                .expect("registry is out of sync with used routes"),
+            false,
+        ),
     };
 
     let route_ctx = insertion_ctx.solution.routes.get_mut(route_index).unwrap();
@@ -406,6 +410,29 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
     insertion_ctx.solution.required.retain(|j| *j != job);
     insertion_ctx.solution.unassigned.remove(&job);
     insertion_ctx.problem.goal.accept_insertion(&mut insertion_ctx.solution, route_index, &job);
+
+    // A route taken from the registry departs at its shift's `earliest`, so its statistics carry the
+    // whole idle stretch in front of the job that just opened it. Nothing else advances the departure
+    // during the search (`advance_departure_time` runs in post-processing and in the reschedule local
+    // operator only), so the fresh route would keep a pessimistic total duration and reject a second
+    // job until that operator happens to be drawn. Fixing it here keeps the route's budget honest from
+    // the first insertion on. Safe: the route holds exactly this one job, so there is no other
+    // schedule to break.
+    if is_new_route {
+        let problem = insertion_ctx.problem.clone();
+        if let Some(route_ctx) = insertion_ctx.solution.routes.get_mut(route_index) {
+            let departure_before = route_ctx.route().tour.start().map(|start| start.schedule.departure);
+            advance_departure_time(route_ctx, problem.activity.as_ref(), problem.transport.as_ref(), true);
+            let departure_after = route_ctx.route().tour.start().map(|start| start.schedule.departure);
+
+            // only re-accept when the departure actually moved: `accept_route_state` clears the stale
+            // flag, so calling it unconditionally would perturb the search on routes that have nothing
+            // to reclaim.
+            if departure_before != departure_after {
+                problem.goal.accept_route_state(route_ctx);
+            }
+        }
+    }
 }
 
 fn apply_insertion_failure(

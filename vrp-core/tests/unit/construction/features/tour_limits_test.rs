@@ -241,7 +241,12 @@ mod traveling {
 
     #[test]
     fn can_consider_waiting_time() {
-        let (feature, route_ctx) = create_test_data("v1", "v1", (None, Some(100.)));
+        let (feature, mut route_ctx) = create_test_data("v1", "v1", (None, Some(100.)));
+        // a route which already carries a job keeps paying for waiting time: its departure is pinned
+        // by the activities already scheduled and cannot be moved forward freely.
+        route_ctx.route_mut().tour.insert_last(
+            ActivityBuilder::with_location(50).job(Some(TestSingleBuilder::default().build_shared())).build(),
+        );
         let solution_ctx = TestInsertionContextBuilder::default().build().solution;
 
         let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(
@@ -256,6 +261,29 @@ mod traveling {
         ));
 
         assert_eq!(result, ConstraintViolation::skip(DURATION_CODE));
+    }
+
+    #[test]
+    fn can_reclaim_leading_wait_on_empty_route() {
+        // same numbers as `can_consider_waiting_time`, but on a route without any job: the idle
+        // stretch in front of the first job is reclaimable, because the departure can simply be
+        // moved forward. Charging it would make a late time window unable to ever open a tour.
+        let (feature, route_ctx) = create_test_data("v1", "v1", (None, Some(100.)));
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        assert_eq!(route_ctx.route().tour.job_count(), 0);
+
+        let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(
+            &solution_ctx,
+            &route_ctx,
+            &ActivityContext {
+                index: 0,
+                prev: &ActivityBuilder::with_location(50).build(),
+                target: &ActivityBuilder::with_location_and_tw(75, TimeWindow::new(100., 100.)).build(),
+                next: Some(&ActivityBuilder::with_location(50).build()),
+            },
+        ));
+
+        assert_eq!(result, None);
     }
 }
 

@@ -22,6 +22,12 @@ are already published. So, I stick to it for now.
 * add an experimental objective
 * add naive implementation of LKH local search
 
+### Fixed
+
+* do not charge the tour duration limit for the idle time in front of the first job of an empty route: the departure
+  can always be advanced there, but `advance_departure_time` cannot run before the route holds a job, so a job with a
+  late time window could never open a new tour on a wide shift
+
 
 ## [1.25.0] 2024-11-10
 
