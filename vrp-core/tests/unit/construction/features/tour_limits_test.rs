@@ -71,7 +71,7 @@ mod min_activity {
 
     #[test]
     fn min_activity_objective_calculates_penalty_correctly() {
-        // Route with 1 activity when minimum is 3 should have penalty of 2
+        // Route with 1 activity when minimum is 3 should have penalty of 4
         let insertion_ctx = TestInsertionContextBuilder::default()
             .with_routes(vec![
                 RouteContextBuilder::default()
@@ -95,8 +95,8 @@ mod min_activity {
 
         let fitness = objective.fitness(&insertion_ctx);
 
-        // Penalty should be (3 - 1) = 2
-        assert!((fitness - 2.0).abs() < f64::EPSILON);
+        // Penalty is squared: (3 - 1)^2 = 4
+        assert!((fitness - 4.0).abs() < f64::EPSILON);
     }
 
     #[test]
