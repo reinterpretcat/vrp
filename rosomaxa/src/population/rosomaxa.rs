@@ -274,24 +274,32 @@ where
                     (self.environment.logger)("skip exploration phase");
                     self.phase = RosomaxaPhases::Exploitation { selection_size }
                 } else if individuals.len() >= self.config.initial_size {
-                    let network = Self::create_network(
+                    let network_result = Self::create_network(
                         &self.external_ctx,
                         self.objective.clone(),
                         self.environment.clone(),
                         &self.config,
                         std::mem::take(individuals),
-                    )
-                    // TODO: avoid panic here
-                    .expect("cannot create network");
+                    );
 
-                    let coordinates = network.get_coordinates().collect();
+                    match network_result {
+                        Ok(network) => {
+                            let coordinates = network.get_coordinates().collect();
 
-                    self.phase = RosomaxaPhases::Exploration {
-                        network,
-                        coordinates,
-                        statistics: statistics.clone(),
-                        selection_size,
-                    };
+                            self.phase = RosomaxaPhases::Exploration {
+                                network,
+                                coordinates,
+                                statistics: statistics.clone(),
+                                selection_size,
+                            };
+                        }
+                        Err(err) => {
+                            (self.environment.logger)(&format!(
+                                "skip exploration phase: cannot create GSOM network: {err}"
+                            ));
+                            self.phase = RosomaxaPhases::Exploitation { selection_size };
+                        }
+                    }
                 }
             }
             RosomaxaPhases::Exploration {

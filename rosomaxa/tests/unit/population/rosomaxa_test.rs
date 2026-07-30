@@ -138,6 +138,22 @@ mod selection {
     }
 
     #[test]
+    fn can_fallback_to_exploitation_when_network_creation_fails() {
+        let initial_size = 4;
+        let mut rosomaxa = create_rosomaxa(initial_size);
+
+        for i in 0..initial_size {
+            let weights = if i == 0 { vec![i as Float] } else { vec![i as Float, i as Float] };
+            rosomaxa.add(VectorSolution { data: weights.clone(), weights, fitness: -(i as Float) });
+        }
+
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..HeuristicStatistics::default() });
+
+        assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploitation);
+        assert!(rosomaxa.select().next().is_some());
+    }
+
+    #[test]
     fn can_keep_phase_boundary_when_speed_is_slow() {
         let initial_size = 4;
         let mut rosomaxa = create_rosomaxa(initial_size);
