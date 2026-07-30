@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/evolution/config_test.rs"]
+mod config_test;
+
 use crate::evolution::*;
 use crate::hyper::*;
 use crate::termination::*;
@@ -304,8 +308,15 @@ where
     pub fn build(self) -> Result<EvolutionConfig<C, O, S>, GenericError> {
         let context = self.context.ok_or_else(|| "missing heuristic context".to_string())?;
         let logger = context.environment().logger.clone();
-        let termination =
-            Self::get_termination(&logger, self.max_generations, self.max_time, self.min_cv, self.target_proximity)?;
+        let termination = match self.termination {
+            Some(termination) => {
+                (logger)("configured to use a custom termination");
+                termination
+            }
+            None => {
+                Self::get_termination(&logger, self.max_generations, self.max_time, self.min_cv, self.target_proximity)?
+            }
+        };
 
         Ok(EvolutionConfig {
             initial: self.initial,
