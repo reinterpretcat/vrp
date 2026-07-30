@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/algorithms/math/statistics_test.rs"]
+mod statistics_test;
+
 use crate::prelude::Float;
 
 /// Returns coefficient variation.
@@ -50,6 +54,10 @@ pub fn get_stdev(values: &[Float]) -> Float {
 
 /// Returns variance and mean.
 fn get_variance_mean(values: &[Float]) -> (Float, Float) {
+    if values.is_empty() {
+        return (0., 0.);
+    }
+
     let mean = get_mean_slice(values);
 
     let (first, second) = values.iter().fold((0., 0.), |acc, v| {

@@ -39,6 +39,14 @@ fn can_get_max_load_variance() {
 }
 
 #[test]
+fn can_get_zero_deviation_metrics_without_routes() {
+    let insertion_ctx = create_insertion_ctx(0, &|_, _| RouteContextBuilder::default().build());
+
+    assert_eq!(get_max_load_variance(&insertion_ctx), 0.);
+    assert_eq!(get_customers_deviation(&insertion_ctx), 0.);
+}
+
+#[test]
 fn can_get_duration_mean() {
     let insertion_ctx = create_insertion_ctx(3, &|_, idx| {
         let value = match idx {
