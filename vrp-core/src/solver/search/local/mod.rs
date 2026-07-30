@@ -21,6 +21,9 @@ pub use self::exchange_sequence::*;
 mod exchange_swap_star;
 pub use self::exchange_swap_star::*;
 
+mod exchange_two_opt_star;
+pub use self::exchange_two_opt_star::*;
+
 mod reschedule_departure;
 pub use self::reschedule_departure::*;
 

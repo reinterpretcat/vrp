@@ -670,6 +670,7 @@ mod dynamic {
                 "local_relocate_inter_route".to_string(),
                 1.,
             ),
+            (Arc::new(LocalSearch::new(Arc::new(ExchangeTwoOptStar::default()))), "local_two_opt_star".to_string(), 1.),
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeIntraRouteRandom::default()))),
                 "local_exch_intra_route_random".to_string(),
