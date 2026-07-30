@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../../tests/unit/solver/search/recreate/recreate_with_skip_random_test.rs"]
+mod recreate_with_skip_random_test;
+
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
@@ -66,14 +70,13 @@ impl RouteSelector for SkipRandomRouteSelector {
         insertion_ctx: &'a InsertionContext,
         _: &[&Job],
     ) -> Box<dyn Iterator<Item = &'a RouteContext> + 'a> {
-        let skip = insertion_ctx.environment.random.uniform_int(0, 4);
-
-        let skip = match (skip > insertion_ctx.solution.routes.len() as i32, insertion_ctx.solution.routes.len() > 1) {
-            (true, true) => (skip - 1) as usize,
-            (false, true) => 1,
-            _ => 0,
-        };
+        let skip = insertion_ctx.environment.random.uniform_int(0, 4) as usize;
+        let skip = get_route_skip(skip, insertion_ctx.solution.routes.len());
 
         Box::new(insertion_ctx.solution.routes.iter().skip(skip).chain(insertion_ctx.solution.registry.next_route()))
     }
+}
+
+fn get_route_skip(skip: usize, route_count: usize) -> usize {
+    skip.min(route_count.saturating_sub(1))
 }
