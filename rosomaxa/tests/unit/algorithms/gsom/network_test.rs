@@ -67,6 +67,19 @@ fn can_use_initial_error_parameter() {
     assert!(network_with_error.size() > network_without_error.size());
 }
 
+#[test]
+fn can_create_network_from_less_than_four_inputs() {
+    for data_size in 1..4 {
+        let initial_data = (1..=data_size).map(|value| Data::new(value as Float, 1., 1.)).collect::<Vec<_>>();
+        let config = NetworkConfig { has_initial_error: false, ..create_config(2) };
+        let network = NetworkType::new(&(), initial_data, config, Arc::new(IdentityRandom), |_| DataStorageFactory)
+            .expect("cannot create network");
+
+        assert_eq!(network.size(), 4);
+        assert_eq!(count_data_stored(&network.nodes), data_size);
+    }
+}
+
 fn get_min_max(items: &[Data]) -> MinMaxWeights {
     let dimension = items[0].values.len();
     items.iter().fold(MinMaxWeights::new(dimension), |mut min_max, data| {

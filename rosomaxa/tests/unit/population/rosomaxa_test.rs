@@ -34,6 +34,23 @@ mod selection {
     }
 
     #[test]
+    fn can_handle_less_than_four_initial_solutions() {
+        for initial_size in 1..4 {
+            let mut rosomaxa = create_rosomaxa(initial_size);
+
+            for i in 1..=initial_size {
+                let value = i as Float;
+                rosomaxa.add(VectorSolution { data: vec![value], weights: vec![value], fitness: -value });
+            }
+
+            rosomaxa
+                .on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..HeuristicStatistics::default() });
+
+            assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
+        }
+    }
+
+    #[test]
     fn can_handle_exploration_phase() {
         let initial_size = 4;
         let selection_size = 4;

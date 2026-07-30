@@ -494,8 +494,12 @@ where
         let mut min_max = MinMaxWeights::new(dimension);
         data.iter().for_each(|i| min_max.update(i.weights()));
 
-        let initial_node_indices = Self::select_initial_samples(&data, sample_size, &min_max, noise.random())
+        let unique_sample_size = sample_size.min(data.len());
+        let unique_node_indices = Self::select_initial_samples(&data, unique_sample_size, &min_max, noise.random())
             .ok_or_else(|| GenericError::from("cannot select initial samples"))?;
+        // Keep the four-node minimum required by the learning-rate schedule when fewer distinct inputs are available.
+        let initial_node_indices =
+            (0..sample_size).map(|idx| unique_node_indices[idx % unique_node_indices.len()]).collect::<Vec<_>>();
 
         // create initial node coordinates and data assignments (by index)
         let grid_size = (initial_node_indices.len() as f64).sqrt().ceil() as i32;
