@@ -225,8 +225,18 @@ where
         environment: Arc<Environment>,
         config: RosomaxaConfig,
     ) -> Result<Self, GenericError> {
-        if config.elite_size < 1 || config.node_size < 1 || config.selection_size < 2 {
-            return Err("Rosomaxa algorithm requires some parameters to be above thresholds".into());
+        if config.initial_size < 1
+            || config.elite_size < 1
+            || config.node_size < 1
+            || config.rebalance_memory < 1
+            || config.selection_size < 2
+        {
+            return Err("Rosomaxa population sizes and rebalance memory must be above their minimums".into());
+        }
+        if !(config.spread_factor > 0. && config.spread_factor < 1.)
+            || !(config.distribution_factor > 0. && config.distribution_factor < 1.)
+        {
+            return Err("Rosomaxa spread and distribution factors must be finite and within (0, 1)".into());
         }
 
         Ok(Self {

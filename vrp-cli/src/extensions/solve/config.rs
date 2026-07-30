@@ -79,13 +79,13 @@ pub enum PopulationType {
         selection_size: Option<usize>,
         /// Elite population size. Default is 2.
         max_elite_size: Option<usize>,
-        /// Node population size. Default is 4.
+        /// Node population size. Default is 2.
         max_node_size: Option<usize>,
         /// Spread factor. Default is 0.75.
         spread_factor: Option<Float>,
-        /// Distribution factor. Default is 0.75.
+        /// Distribution factor. Default is 0.9.
         distribution_factor: Option<Float>,
-        /// A rebalance memory. Default is 100.
+        /// A rebalance memory. Default is 200.
         rebalance_memory: Option<usize>,
         /// An exploration phase ratio. Default is 0.9.
         exploration_ratio: Option<Float>,

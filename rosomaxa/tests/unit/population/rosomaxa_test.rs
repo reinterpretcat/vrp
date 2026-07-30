@@ -4,6 +4,27 @@ use crate::helpers::example::create_example_objective;
 
 type RosomaxaType = Rosomaxa<VectorRosomaxaContext, VectorObjective, VectorSolution>;
 
+#[test]
+fn can_reject_invalid_config() {
+    let invalid_configs = [
+        RosomaxaConfig { initial_size: 0, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { rebalance_memory: 0, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { spread_factor: 0., ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { spread_factor: 1., ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { spread_factor: Float::NAN, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { distribution_factor: 0., ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { distribution_factor: 1., ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { distribution_factor: Float::NAN, ..RosomaxaConfig::new_with_defaults(4) },
+    ];
+
+    for config in invalid_configs {
+        let result =
+            Rosomaxa::new(VectorRosomaxaContext, create_example_objective(), Arc::new(Environment::default()), config);
+
+        assert!(result.is_err());
+    }
+}
+
 mod selection {
     use super::*;
 
