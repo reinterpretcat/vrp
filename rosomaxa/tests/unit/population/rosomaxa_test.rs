@@ -71,6 +71,35 @@ mod selection {
     }
 
     #[test]
+    fn can_keep_phase_boundary_when_speed_is_slow() {
+        let initial_size = 4;
+        let mut rosomaxa = create_rosomaxa(initial_size);
+
+        for i in 0..initial_size {
+            let solution = VectorSolution { data: vec![i as Float], weights: vec![i as Float], fitness: -(i as Float) };
+            rosomaxa.add(solution);
+        }
+
+        let slow_speed = HeuristicSpeed::Slow { ratio: 0.1, average: 1., median: Some(1000) };
+        rosomaxa.on_generation(&HeuristicStatistics {
+            termination_estimate: 0.5,
+            speed: slow_speed.clone(),
+            ..HeuristicStatistics::default()
+        });
+
+        assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
+        assert_eq!(rosomaxa.select().count(), 1);
+
+        rosomaxa.on_generation(&HeuristicStatistics {
+            termination_estimate: 0.9,
+            speed: slow_speed,
+            ..HeuristicStatistics::default()
+        });
+
+        assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploitation);
+    }
+
+    #[test]
     fn can_handle_all_phases() {
         let initial_size = 4;
         let selection_size = 4;

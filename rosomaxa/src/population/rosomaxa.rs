@@ -253,10 +253,7 @@ where
             }
         };
 
-        let exploration_ratio = match statistics.speed {
-            HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } => self.config.exploration_ratio,
-            HeuristicSpeed::Slow { ratio, .. } => self.config.exploration_ratio * ratio,
-        };
+        let exploration_ratio = self.config.exploration_ratio;
 
         match &mut self.phase {
             RosomaxaPhases::Initial { solutions: individuals } => {
