@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../../tests/unit/solver/search/recreate/recreate_with_regret_test.rs"]
+mod recreate_with_regret_test;
+
 use crate::construction::heuristics::*;
 use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
@@ -60,10 +64,10 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
         leg_selection: &LegSelection,
         result_selector: &dyn ResultSelector,
     ) -> InsertionResult {
-        let regret_index = insertion_ctx.environment.random.uniform_int(self.min as i32, self.max as i32) as usize;
+        let regret_rank = insertion_ctx.environment.random.uniform_int(self.min as i32, self.max as i32) as usize;
 
         // NOTE no need to proceed with regret, fallback to more performant reducer
-        if regret_index == 1 || jobs.len() == 1 || routes.is_empty() || insertion_ctx.solution.routes.len() < 2 {
+        if regret_rank == 1 || jobs.len() == 1 || routes.is_empty() || insertion_ctx.solution.routes.len() < 2 {
             return self.fallback_evaluator.evaluate_all(insertion_ctx, jobs, routes, leg_selection, result_selector);
         }
 
@@ -77,34 +81,12 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
             })
             .collect_group_by_key::<Job, InsertionSuccess, _>(|success| success.job.clone())
             .into_values()
-            .filter_map(|mut successes| {
-                if successes.len() < regret_index {
+            .filter_map(|successes| {
+                if successes.len() < regret_rank {
                     return None;
                 }
 
-                successes.sort_by(|a, b| a.cost.cmp(&b.cost));
-
-                let (_, mut job_results) = successes.into_iter().fold(
-                    (HashSet::with_capacity(insertion_ctx.solution.routes.len()), Vec::default()),
-                    |(mut actors, mut results), result| {
-                        if !actors.contains(&result.actor) {
-                            results.push(result);
-                        } else {
-                            actors.insert(result.actor);
-                        }
-
-                        (actors, results)
-                    },
-                );
-
-                if regret_index < job_results.len() {
-                    let worst = job_results.swap_remove(regret_index);
-                    let best = job_results.swap_remove(0);
-
-                    Some((worst.cost - &best.cost, best))
-                } else {
-                    None
-                }
+                get_regret(successes, regret_rank, insertion_ctx.solution.routes.len())
             })
             .collect::<Vec<_>>();
 
@@ -117,5 +99,35 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
         } else {
             self.fallback_evaluator.evaluate_all(insertion_ctx, jobs, routes, leg_selection, result_selector)
         }
+    }
+}
+
+fn get_regret(
+    mut successes: Vec<InsertionSuccess>,
+    regret_rank: usize,
+    route_count: usize,
+) -> Option<(InsertionCost, InsertionSuccess)> {
+    debug_assert!(regret_rank > 1);
+
+    successes.sort_by(|a, b| a.cost.cmp(&b.cost));
+
+    let (_, mut route_results) = successes.into_iter().fold(
+        (HashSet::with_capacity(route_count), Vec::default()),
+        |(mut actors, mut results), result| {
+            if actors.insert(result.actor.clone()) {
+                results.push(result);
+            }
+
+            (actors, results)
+        },
+    );
+
+    if regret_rank <= route_results.len() {
+        let kth = route_results.swap_remove(regret_rank - 1);
+        let best = route_results.swap_remove(0);
+
+        Some((kth.cost - &best.cost, best))
+    } else {
+        None
     }
 }
