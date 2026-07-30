@@ -666,6 +666,11 @@ mod dynamic {
                 1.,
             ),
             (
+                Arc::new(LocalSearch::new(Arc::new(RelocateInterRouteBest::default()))),
+                "local_relocate_inter_route_best".to_string(),
+                1.,
+            ),
+            (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeIntraRouteRandom::default()))),
                 "local_exch_intra_route_random".to_string(),
                 1.,
