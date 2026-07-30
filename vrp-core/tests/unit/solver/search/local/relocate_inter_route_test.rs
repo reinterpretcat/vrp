@@ -24,7 +24,7 @@ fn can_improve_solution_with_one_way_relocation() {
     let insertion_ctx = create_insertion_ctx(&[vec!["c0", "c1", "c2", "c3"], vec!["c4", "c5"]]);
     let refinement_ctx = create_default_refinement_ctx(insertion_ctx.problem.clone());
 
-    let result = RelocateInterRouteBest::default().explore(&refinement_ctx, &insertion_ctx).expect("no improvement");
+    let result = RelocateInterRoute::default().explore(&refinement_ctx, &insertion_ctx).expect("no improvement");
 
     assert_eq!(insertion_ctx.problem.goal.total_order(&result, &insertion_ctx), Ordering::Less);
     assert_eq!(
@@ -47,7 +47,7 @@ fn can_remove_empty_source_route() {
     rearrange_jobs_in_routes(&mut insertion_ctx, &[vec!["c0"], vec!["c1", "c2", "c3", "c4", "c5"]]);
     let refinement_ctx = create_default_refinement_ctx(insertion_ctx.problem.clone());
 
-    let result = RelocateInterRouteBest::default().explore(&refinement_ctx, &insertion_ctx).expect("no improvement");
+    let result = RelocateInterRoute::default().explore(&refinement_ctx, &insertion_ctx).expect("no improvement");
 
     assert_eq!(insertion_ctx.problem.goal.total_order(&result, &insertion_ctx), Ordering::Less);
     assert_eq!(result.solution.routes.len(), 1);
@@ -61,7 +61,7 @@ fn does_not_return_non_improving_relocation() {
     );
     let refinement_ctx = create_default_refinement_ctx(insertion_ctx.problem.clone());
 
-    let result = RelocateInterRouteBest::default().explore(&refinement_ctx, &insertion_ctx);
+    let result = RelocateInterRoute::default().explore(&refinement_ctx, &insertion_ctx);
 
     assert!(result.is_none());
 }

@@ -2,123 +2,234 @@
 #[path = "../../../../tests/unit/solver/search/local/relocate_inter_route_test.rs"]
 mod relocate_inter_route_test;
 
-use super::create_route_pairs;
 use crate::construction::heuristics::*;
+use crate::models::common::{Cost, Profile, Timestamp};
 use crate::models::problem::Job;
 use crate::solver::RefinementContext;
-use crate::solver::search::{LocalOperator, create_environment_with_custom_quota};
-use rosomaxa::prelude::{HeuristicContext, HeuristicObjective, HeuristicSolution};
+use crate::solver::search::{LocalOperator, get_route_jobs};
+use rosomaxa::prelude::{HeuristicObjective, HeuristicSolution};
 use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet};
 
-/// A granular local-search operator which relocates one job between candidate route pairs.
-pub struct RelocateInterRouteBest {
-    route_pairs_threshold: usize,
+/// A cost-guided local-search operator which relocates one job to a nearby route.
+///
+/// The operator uses a two-stage search to avoid copying the complete solution for every possible
+/// source job:
+///
+/// 1. It maps jobs to their current routes and uses the problem's nearest-job index to find nearby
+///    target routes. Jobs on singleton routes are considered first because relocating such a job can
+///    eliminate a route, which is typically a higher-priority objective than transport cost.
+/// 2. It keeps at most `source_job_threshold` source jobs, ordered by cross-route proximity. These
+///    candidates are ranked using insertion-cost deltas computed with route-local copies only.
+/// 3. It copies the complete solution once for the selected source job, removes the job, refreshes
+///    solution state, and evaluates every insertion position in at most `target_route_threshold`
+///    nearby routes through the normal constraint pipeline.
+///
+/// The move is returned only when it is a strict lexicographic improvement. Therefore, the first
+/// stage is only a bounded ranking heuristic; feasibility and the final objective comparison are
+/// always decided using the materialized solution.
+pub struct RelocateInterRoute {
+    source_job_threshold: usize,
+    target_route_threshold: usize,
 }
 
-impl RelocateInterRouteBest {
-    /// Creates a new instance of `RelocateInterRouteBest`.
-    pub fn new(route_pairs_threshold: usize) -> Self {
-        assert!(route_pairs_threshold > 0);
+impl RelocateInterRoute {
+    /// Creates a new instance of `RelocateInterRoute`.
+    ///
+    /// `source_job_threshold` limits how many granular source candidates receive route-local delta
+    /// evaluation. `target_route_threshold` limits how many nearby target routes receive exact
+    /// insertion-position evaluation for the selected job.
+    pub fn new(source_job_threshold: usize, target_route_threshold: usize) -> Self {
+        assert!(source_job_threshold > 0);
+        assert!(target_route_threshold > 0);
 
-        Self { route_pairs_threshold }
+        Self { source_job_threshold, target_route_threshold }
     }
 }
 
-impl Default for RelocateInterRouteBest {
+impl Default for RelocateInterRoute {
     fn default() -> Self {
-        Self::new(8)
+        Self::new(32, 8)
     }
 }
 
-impl LocalOperator for RelocateInterRouteBest {
-    fn explore(
-        &self,
-        refinement_ctx: &RefinementContext,
-        insertion_ctx: &InsertionContext,
-    ) -> Option<InsertionContext> {
+impl LocalOperator for RelocateInterRoute {
+    fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         if insertion_ctx.solution.routes.len() < 2 {
             return None;
         }
 
-        let route_pairs = create_route_pairs(insertion_ctx, self.route_pairs_threshold);
-        let limit =
-            refinement_ctx.statistics().speed.get_median().map(|median| ((median.max(10) as f64) * 1.5) as usize);
-        let insertion_ctx = InsertionContext {
-            environment: create_environment_with_custom_quota(limit, insertion_ctx.environment.as_ref()),
-            ..insertion_ctx.deep_copy()
-        };
+        let relocation = select_relocation(insertion_ctx, self.source_job_threshold, self.target_route_threshold)?;
+        let candidate = relocate_job(insertion_ctx, relocation)?;
 
-        find_best_relocation(&insertion_ctx, route_pairs.as_slice())
-            .map(|result| InsertionContext { environment: refinement_ctx.environment.clone(), ..result })
+        (insertion_ctx.problem.goal.total_order(&candidate, insertion_ctx) == Ordering::Less).then_some(candidate)
     }
 }
 
-fn find_best_relocation(insertion_ctx: &InsertionContext, route_pairs: &[(usize, usize)]) -> Option<InsertionContext> {
-    let goal = insertion_ctx.problem.goal.as_ref();
-    let quota = insertion_ctx.environment.quota.as_ref();
-    let mut best: Option<InsertionContext> = None;
+struct Relocation {
+    source_idx: usize,
+    job: Job,
+    target_indices: Vec<usize>,
+}
 
-    for &(outer_idx, inner_idx) in route_pairs {
-        for (source_idx, target_idx) in [(outer_idx, inner_idx), (inner_idx, outer_idx)] {
-            let jobs = insertion_ctx.solution.routes[source_idx]
+fn select_relocation(
+    insertion_ctx: &InsertionContext,
+    source_job_threshold: usize,
+    target_route_threshold: usize,
+) -> Option<Relocation> {
+    let route_jobs = get_route_jobs(&insertion_ctx.solution);
+    let mut source_candidates = insertion_ctx
+        .solution
+        .routes
+        .iter()
+        .enumerate()
+        .flat_map(|(source_idx, route_ctx)| {
+            let profile = route_ctx.route().actor.vehicle.profile.clone();
+            let is_singleton = insertion_ctx.solution.routes[source_idx].route().tour.job_count() == 1;
+            let route_jobs = &route_jobs;
+
+            route_ctx
                 .route()
                 .tour
                 .jobs()
                 .filter(|job| !insertion_ctx.solution.locked.contains(*job))
                 .cloned()
-                .collect::<Vec<_>>();
+                .filter_map(move |job| {
+                    let (target_indices, neighbor_cost) = get_target_indices(
+                        insertion_ctx,
+                        route_jobs,
+                        &profile,
+                        source_idx,
+                        &job,
+                        target_route_threshold,
+                    )?;
 
-            for job in jobs {
-                if quota.is_some_and(|quota| quota.is_reached()) {
-                    return best;
-                }
+                    Some((is_singleton, neighbor_cost, Relocation { source_idx, job, target_indices }))
+                })
+        })
+        .collect::<Vec<_>>();
 
-                let Some(candidate) = relocate_job(insertion_ctx, source_idx, target_idx, &job) else {
-                    continue;
-                };
+    source_candidates.sort_unstable_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.total_cmp(&right.1)));
+    source_candidates.truncate(source_job_threshold);
 
-                if goal.total_order(&candidate, insertion_ctx) != Ordering::Less {
-                    continue;
-                }
+    source_candidates
+        .into_iter()
+        .map(|(is_singleton, _, relocation)| {
+            let estimated_cost = relocation.target_indices.first().and_then(|&target_idx| {
+                estimate_relocation_cost(insertion_ctx, relocation.source_idx, target_idx, &relocation.job)
+            });
+            let estimated_cost = estimated_cost.unwrap_or_else(|| InsertionCost::max_value().clone());
 
-                if best.as_ref().is_none_or(|best| goal.total_order(&candidate, best) == Ordering::Less) {
-                    best = Some(candidate);
-                }
-            }
-        }
-    }
-
-    best
+            (is_singleton, estimated_cost, relocation)
+        })
+        .min_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)))
+        .map(|(_, _, relocation)| relocation)
 }
 
-fn relocate_job(
+fn get_target_indices(
+    insertion_ctx: &InsertionContext,
+    route_jobs: &HashMap<Job, usize>,
+    profile: &Profile,
+    source_idx: usize,
+    job: &Job,
+    target_route_threshold: usize,
+) -> Option<(Vec<usize>, Cost)> {
+    let mut used = HashSet::new();
+    let mut neighbor_cost = None;
+
+    let target_indices = insertion_ctx
+        .problem
+        .jobs
+        .neighbors(profile, job, Timestamp::default())
+        .filter_map(|(neighbor, cost)| route_jobs.get(neighbor).copied().map(|target_idx| (target_idx, cost)))
+        .filter(|(target_idx, _)| *target_idx != source_idx && used.insert(*target_idx))
+        .inspect(|(_, cost)| {
+            neighbor_cost.get_or_insert(*cost);
+        })
+        .map(|(target_idx, _)| target_idx)
+        .take(target_route_threshold)
+        .collect::<Vec<_>>();
+
+    neighbor_cost.map(|cost| (target_indices, cost))
+}
+
+fn estimate_relocation_cost(
     insertion_ctx: &InsertionContext,
     source_idx: usize,
     target_idx: usize,
     job: &Job,
-) -> Option<InsertionContext> {
-    let mut candidate = insertion_ctx.deep_copy();
-    let source_route = candidate.solution.routes.get_mut(source_idx)?;
+) -> Option<InsertionCost> {
+    // This route-local delta is used only to rank the bounded source shortlist. The selected move is
+    // subsequently rebuilt on a full solution copy, where shared state and all constraints are exact.
+    let source_route = insertion_ctx.solution.routes.get(source_idx)?;
+    let insertion_idx = source_route.route().tour.index(job)?;
+    let mut source_route = source_route.deep_copy();
+    source_route.route_mut().tour.remove(job);
+    insertion_ctx.problem.goal.accept_route_state(&mut source_route);
 
-    if !source_route.route_mut().tour.remove(job) {
-        return None;
-    }
-    candidate.problem.goal.accept_route_state(source_route);
-
-    let target_route = candidate.solution.routes.get(target_idx)?;
+    let result_selector = BestResultSelector::default();
     let eval_ctx = EvaluationContext {
-        goal: candidate.problem.goal.as_ref(),
+        goal: insertion_ctx.problem.goal.as_ref(),
         job,
         leg_selection: &LegSelection::Exhaustive,
-        result_selector: &BestResultSelector::default(),
+        result_selector: &result_selector,
     };
-    let result = eval_job_insertion_in_route(
-        &candidate,
+    let removal_cost = eval_job_insertion_in_route(
+        insertion_ctx,
+        &eval_ctx,
+        &source_route,
+        InsertionPosition::Concrete(insertion_idx - 1),
+        InsertionResult::make_failure(),
+    )
+    .as_success()
+    .map(|success| success.cost.clone())
+    .unwrap_or_default();
+
+    let target_route = insertion_ctx.solution.routes.get(target_idx)?;
+    let insertion_cost = eval_job_insertion_in_route(
+        insertion_ctx,
         &eval_ctx,
         target_route,
         InsertionPosition::Any,
         InsertionResult::make_failure(),
-    );
+    )
+    .as_success()
+    .map(|success| success.cost.clone())?;
+
+    Some(&insertion_cost - removal_cost)
+}
+
+fn relocate_job(insertion_ctx: &InsertionContext, relocation: Relocation) -> Option<InsertionContext> {
+    // Full solution materialization is deliberately delayed until a single source job is selected.
+    let mut candidate = insertion_ctx.deep_copy();
+    let source_route = candidate.solution.routes.get_mut(relocation.source_idx)?;
+
+    if !source_route.route_mut().tour.remove(&relocation.job) {
+        return None;
+    }
+    candidate.solution.required.push(relocation.job.clone());
+    candidate.problem.goal.accept_route_state(source_route);
+    candidate.problem.goal.accept_solution_state(&mut candidate.solution);
+
+    let result_selector = BestResultSelector::default();
+    let eval_ctx = EvaluationContext {
+        goal: candidate.problem.goal.as_ref(),
+        job: &relocation.job,
+        leg_selection: &LegSelection::Exhaustive,
+        result_selector: &result_selector,
+    };
+    let result = relocation.target_indices.into_iter().fold(InsertionResult::make_failure(), |best, target_idx| {
+        if candidate.environment.quota.as_ref().is_some_and(|quota| quota.is_reached()) {
+            return best;
+        }
+
+        match candidate.solution.routes.get(target_idx) {
+            Some(target_route) => {
+                eval_job_insertion_in_route(&candidate, &eval_ctx, target_route, InsertionPosition::Any, best)
+            }
+            None => best,
+        }
+    });
 
     let InsertionResult::Success(success) = result else {
         return None;
