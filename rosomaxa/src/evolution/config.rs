@@ -308,6 +308,20 @@ where
     pub fn build(self) -> Result<EvolutionConfig<C, O, S>, GenericError> {
         let context = self.context.ok_or_else(|| "missing heuristic context".to_string())?;
         let logger = context.environment().logger.clone();
+
+        let has_phase_gated_variation = self.min_cv.as_ref().is_some_and(|(_, _, _, is_global, _)| {
+            !is_global && context.selection_phase() != SelectionPhase::Exploitation
+        });
+        let has_progress_limit = self.max_generations.is_some() || self.max_time.is_some();
+        let has_external_quota = context.environment().quota.is_some();
+
+        if self.termination.is_none() && has_phase_gated_variation && !has_progress_limit && !has_external_quota {
+            return Err(
+                "non-global variation termination requires max-generations, max-time, an external quota, or an exploitation-phase population"
+                    .into(),
+            );
+        }
+
         let termination = match self.termination {
             Some(termination) => {
                 (logger)("configured to use a custom termination");
