@@ -137,9 +137,10 @@ where
         // Update Variance (Beta)
         // This is the Bayesian adaptation of Welford's online variance algorithm.
         // It incrementally updates the sum of squared errors.
-        // The term `effective_n / (effective_n + 1.0)` weights the new sample's
-        // contribution to the variance relative to prior knowledge.
-        self.beta += 0.5 * (reward - old_mu).powi(2) * effective_n / (effective_n + 1.0);
+        // Weight the residual by the evidence available before this observation relative to the
+        // evidence after it: N_before / N_after = (effective_n - 1) / effective_n.
+        let previous_n = effective_n - 1.;
+        self.beta += 0.5 * (reward - old_mu).powi(2) * previous_n / effective_n;
 
         // 3. Variance Estimation
 

@@ -113,6 +113,21 @@ fn can_adapt_to_reward_regime_change() {
 }
 
 #[test]
+fn can_update_normal_inverse_gamma_state() {
+    let action_sampler = DefaultDistributionSampler::new(create_test_random());
+    let mut slot = SlotMachine::new(1., TestAction(action_sampler), OptimisticDistributionSampler);
+
+    slot.update(&TestFeedback(3.));
+
+    let (alpha, beta, mu, variance, observations) = slot.get_params();
+    assert_eq!(alpha, 2.5);
+    assert!((beta - 2.595).abs() < 1e-12);
+    assert_eq!(mu, 1.4);
+    assert!((variance - 1.73).abs() < 1e-12);
+    assert_eq!(observations, 1);
+}
+
+#[test]
 fn can_find_proper_estimations() {
     let sockets = 5;
     let total_episodes = 100;
