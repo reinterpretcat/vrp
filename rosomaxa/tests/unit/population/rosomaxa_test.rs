@@ -15,6 +15,9 @@ fn can_reject_invalid_config() {
         RosomaxaConfig { distribution_factor: 0., ..RosomaxaConfig::new_with_defaults(4) },
         RosomaxaConfig { distribution_factor: 1., ..RosomaxaConfig::new_with_defaults(4) },
         RosomaxaConfig { distribution_factor: Float::NAN, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { exploration_ratio: -0.1, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { exploration_ratio: 1.1, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { exploration_ratio: Float::NAN, ..RosomaxaConfig::new_with_defaults(4) },
     ];
 
     for config in invalid_configs {
@@ -22,6 +25,17 @@ fn can_reject_invalid_config() {
             Rosomaxa::new(VectorRosomaxaContext, create_example_objective(), Arc::new(Environment::default()), config);
 
         assert!(result.is_err());
+    }
+}
+
+#[test]
+fn can_accept_exploration_ratio_boundaries() {
+    for exploration_ratio in [0., 1.] {
+        let config = RosomaxaConfig { exploration_ratio, ..RosomaxaConfig::new_with_defaults(4) };
+        let result =
+            Rosomaxa::new(VectorRosomaxaContext, create_example_objective(), Arc::new(Environment::default()), config);
+
+        assert!(result.is_ok());
     }
 }
 
@@ -106,6 +120,21 @@ mod selection {
 
         assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploitation);
         assert_eq!(rosomaxa.select().count(), selection_size);
+    }
+
+    #[test]
+    fn can_skip_exploration_at_exact_phase_boundary() {
+        let initial_size = 4;
+        let mut rosomaxa = create_rosomaxa(initial_size);
+
+        for i in 0..initial_size {
+            let solution = VectorSolution { data: vec![i as Float], weights: vec![i as Float], fitness: -(i as Float) };
+            rosomaxa.add(solution);
+        }
+
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.9, ..HeuristicStatistics::default() });
+
+        assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploitation);
     }
 
     #[test]

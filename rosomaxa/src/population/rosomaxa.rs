@@ -238,6 +238,9 @@ where
         {
             return Err("Rosomaxa spread and distribution factors must be finite and within (0, 1)".into());
         }
+        if !(config.exploration_ratio >= 0. && config.exploration_ratio <= 1.) {
+            return Err("Rosomaxa exploration ratio must be finite and within [0, 1]".into());
+        }
 
         Ok(Self {
             external_ctx,
@@ -267,7 +270,7 @@ where
 
         match &mut self.phase {
             RosomaxaPhases::Initial { solutions: individuals } => {
-                if statistics.termination_estimate > exploration_ratio {
+                if statistics.termination_estimate >= exploration_ratio {
                     (self.environment.logger)("skip exploration phase");
                     self.phase = RosomaxaPhases::Exploitation { selection_size }
                 } else if individuals.len() >= self.config.initial_size {
