@@ -272,8 +272,8 @@ fn get_limits(problem: &Problem) -> (RemovalLimits, RemovalLimits) {
     let normal_limits = RemovalLimits::new(problem);
     let activities_range = normal_limits.removed_activities_range.clone();
     let small_limits = RemovalLimits {
-        removed_activities_range: (activities_range.start / 3).max(2)..(activities_range.end / 3).max(8),
-        affected_routes_range: 1..2,
+        removed_activities_range: (*activities_range.start() / 3).max(2)..=(*activities_range.end() / 3).max(8),
+        affected_routes_range: 1..=2,
     };
 
     (normal_limits, small_limits)
@@ -856,7 +856,7 @@ mod dynamic {
     }
 
     fn create_composite_decompose_search(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetSearchOperator {
-        let limits = RemovalLimits { removed_activities_range: (10..100), affected_routes_range: 1..2 };
+        let limits = RemovalLimits { removed_activities_range: 10..=100, affected_routes_range: 1..=2 };
         let ruin = WeightedRuin::new(vec![
             (Arc::new(RandomRouteRemoval::new(limits.clone())), 1),
             (Arc::new(WorstRouteRemoval::new(limits)), 1),

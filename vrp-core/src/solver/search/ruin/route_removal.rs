@@ -23,7 +23,7 @@ impl RandomRouteRemoval {
 impl Ruin for RandomRouteRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let random = insertion_ctx.environment.random.clone();
-        let affected = self.limits.affected_routes_range.end.min(insertion_ctx.solution.routes.len());
+        let affected = (*self.limits.affected_routes_range.end()).min(insertion_ctx.solution.routes.len());
         let mut tracker = JobRemovalTracker::new(&self.limits, random.as_ref());
 
         (0..affected).for_each(|_| {
@@ -45,8 +45,8 @@ pub struct CloseRouteRemoval {
 impl CloseRouteRemoval {
     /// Creates a new instance of `CloseRouteRemoval`.
     pub fn new(mut limits: RemovalLimits) -> Self {
-        limits.affected_routes_range.start = limits.affected_routes_range.start.max(2);
-        limits.affected_routes_range.end = limits.affected_routes_range.end.max(3);
+        limits.affected_routes_range =
+            (*limits.affected_routes_range.start()).max(2)..=(*limits.affected_routes_range.end()).max(3);
 
         Self { limits }
     }

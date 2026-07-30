@@ -44,7 +44,7 @@ can_ruin_jobs! {
 }
 
 fn can_ruin_jobs_impl(limit: usize, expected: usize) {
-    let limits = RemovalLimits { removed_activities_range: limit..limit, affected_routes_range: 8..8 };
+    let limits = RemovalLimits { removed_activities_range: limit..=limit, affected_routes_range: 8..=8 };
     let (problem, solution) = generate_matrix_routes(
         8,
         1,

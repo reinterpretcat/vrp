@@ -663,7 +663,7 @@ fn create_ruin_group(problem: &Arc<Problem>, group: &RuinGroupConfig) -> (Arc<dy
 fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn Ruin>, Float) {
     let limits = RemovalLimits::new(problem.as_ref());
     let get_limits = |min: usize, max: usize| RemovalLimits {
-        removed_activities_range: min..max,
+        removed_activities_range: min..=max,
         ..RemovalLimits::new(problem.as_ref())
     };
 

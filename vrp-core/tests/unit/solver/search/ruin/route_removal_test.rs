@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 #[test]
 fn can_remove_whole_random_routes_from_context() {
-    let limits = RemovalLimits { removed_activities_range: 10..10, affected_routes_range: 2..2 };
+    let limits = RemovalLimits { removed_activities_range: 10..=10, affected_routes_range: 2..=2 };
     let matrix = (4, 4);
     let ints = vec![10, 2, 0, 2];
 
@@ -29,7 +29,7 @@ fn can_remove_whole_random_routes_from_context() {
 
 #[test]
 fn can_remove_parts_random_routes_from_context() {
-    let limits = RemovalLimits { removed_activities_range: 10..10, affected_routes_range: 1..1 };
+    let limits = RemovalLimits { removed_activities_range: 10..=10, affected_routes_range: 1..=1 };
     let matrix = (8, 1);
     let ints = vec![10, 1, 0, 2];
 
@@ -71,7 +71,7 @@ fn can_remove_parts_random_routes_from_context() {
 
 #[test]
 fn can_remove_worst_route() {
-    let limits = RemovalLimits { removed_activities_range: 10..10, affected_routes_range: 3..3 };
+    let limits = RemovalLimits { removed_activities_range: 10..=10, affected_routes_range: 3..=3 };
     let matrix = (4, 4);
     let ints = vec![3, 1];
     let reals = vec![1.];

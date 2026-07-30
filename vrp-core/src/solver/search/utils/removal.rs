@@ -22,10 +22,12 @@ impl JobRemovalTracker {
     /// Creates a new instance of `JobRemoval`.
     pub fn new(limits: &RemovalLimits, random: &dyn Random) -> Self {
         Self {
-            activities_left: random
-                .uniform_int(limits.removed_activities_range.start as i32, limits.removed_activities_range.end as i32),
+            activities_left: random.uniform_int(
+                *limits.removed_activities_range.start() as i32,
+                *limits.removed_activities_range.end() as i32,
+            ),
             routes_left: random
-                .uniform_int(limits.affected_routes_range.start as i32, limits.affected_routes_range.end as i32),
+                .uniform_int(*limits.affected_routes_range.start() as i32, *limits.affected_routes_range.end() as i32),
             affected_actors: HashSet::default(),
             removed_jobs: HashSet::default(),
         }
