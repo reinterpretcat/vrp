@@ -17,8 +17,7 @@ use std::collections::{HashMap, HashSet};
 /// source job:
 ///
 /// 1. It maps jobs to their current routes and uses the problem's nearest-job index to find nearby
-///    target routes. Jobs on singleton routes are considered first because relocating such a job can
-///    eliminate a route, which is typically a higher-priority objective than transport cost.
+///    target routes.
 /// 2. It keeps at most `source_job_threshold` source jobs, ordered by cross-route proximity. These
 ///    candidates are ranked using insertion-cost deltas computed with route-local copies only.
 /// 3. It copies the complete solution once for the selected source job, removes the job, refreshes
@@ -85,7 +84,6 @@ fn select_relocation(
         .enumerate()
         .flat_map(|(source_idx, route_ctx)| {
             let profile = route_ctx.route().actor.vehicle.profile.clone();
-            let is_singleton = insertion_ctx.solution.routes[source_idx].route().tour.job_count() == 1;
             let route_jobs = &route_jobs;
 
             route_ctx
@@ -104,26 +102,26 @@ fn select_relocation(
                         target_route_threshold,
                     )?;
 
-                    Some((is_singleton, neighbor_cost, Relocation { source_idx, job, target_indices }))
+                    Some((neighbor_cost, Relocation { source_idx, job, target_indices }))
                 })
         })
         .collect::<Vec<_>>();
 
-    source_candidates.sort_unstable_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.total_cmp(&right.1)));
+    source_candidates.sort_unstable_by(|left, right| left.0.total_cmp(&right.0));
     source_candidates.truncate(source_job_threshold);
 
     source_candidates
         .into_iter()
-        .map(|(is_singleton, _, relocation)| {
+        .map(|(_, relocation)| {
             let estimated_cost = relocation.target_indices.first().and_then(|&target_idx| {
                 estimate_relocation_cost(insertion_ctx, relocation.source_idx, target_idx, &relocation.job)
             });
             let estimated_cost = estimated_cost.unwrap_or_else(|| InsertionCost::max_value().clone());
 
-            (is_singleton, estimated_cost, relocation)
+            (estimated_cost, relocation)
         })
-        .min_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)))
-        .map(|(_, _, relocation)| relocation)
+        .min_by(|left, right| left.0.cmp(&right.0))
+        .map(|(_, relocation)| relocation)
 }
 
 fn get_target_indices(
