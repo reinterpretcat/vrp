@@ -125,10 +125,13 @@ where
         assert!(config.distribution_factor > 0. && config.distribution_factor < 1.);
         assert!(config.spread_factor > 0. && config.spread_factor < 1.);
 
+        // GSOM growth threshold: GT = -D * ln(SF).
+        let growing_threshold = -(dimension as Float) * config.spread_factor.ln();
+
         // create initial nodes
         // note that storage factory creates storage with size up to data_size
         // it should help to prevent data lost until the network is rebalanced
-        let (nodes, min_max_weights) = Self::create_initial_nodes(
+        let (mut nodes, min_max_weights) = Self::create_initial_nodes(
             context,
             initial_data,
             config.rebalance_memory,
@@ -136,12 +139,14 @@ where
             // apply small noise to initial weights
             Noise::new_with_ratio(1., (0.99, 1.), random.clone()),
         )?;
+        if config.has_initial_error {
+            nodes.values_mut().for_each(|node| node.error = growing_threshold);
+        }
 
         // create a network with more aggressive initial parameters
         let mut network = Self {
             dimension,
-            // GSOM growth threshold: GT = -D * ln(SF).
-            growing_threshold: -(dimension as Float) * config.spread_factor.ln(),
+            growing_threshold,
             distribution_factor: config.distribution_factor,
             learning_rate: config.learning_rate,
             time: 0,

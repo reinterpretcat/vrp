@@ -1,10 +1,39 @@
 use super::*;
 use crate::helpers::algorithms::gsom::{Data, DataStorage, DataStorageFactory};
 use crate::helpers::utils::create_test_random;
-use crate::utils::Float;
+use crate::utils::{Float, Random, RandomGen};
 use std::collections::HashSet;
+use std::sync::Arc;
 
 type NetworkType = Network<(), Data, DataStorage, DataStorageFactory>;
+
+struct IdentityRandom;
+
+impl Random for IdentityRandom {
+    fn uniform_int(&self, min: i32, _: i32) -> i32 {
+        min
+    }
+
+    fn uniform_real(&self, _: Float, max: Float) -> Float {
+        max
+    }
+
+    fn is_head_not_tails(&self) -> bool {
+        true
+    }
+
+    fn is_hit(&self, _: Float) -> bool {
+        true
+    }
+
+    fn weighted(&self, _: &[usize]) -> usize {
+        0
+    }
+
+    fn get_rng(&self) -> RandomGen {
+        RandomGen::new_repeatable()
+    }
+}
 
 fn create_config(node_size: usize) -> NetworkConfig {
     // NOTE these numbers are used in rosomaxa population
@@ -16,6 +45,26 @@ fn create_config(node_size: usize) -> NetworkConfig {
         learning_rate: 0.1,
         has_initial_error: true,
     }
+}
+
+fn create_uniform_network(has_initial_error: bool) -> NetworkType {
+    Network::new(
+        &(),
+        vec![Data::new(1., 1., 1.); 4],
+        NetworkConfig { has_initial_error, ..create_config(2) },
+        Arc::new(IdentityRandom),
+        |_| DataStorageFactory,
+    )
+    .unwrap()
+}
+
+#[test]
+fn can_use_initial_error_parameter() {
+    let network_without_error = create_uniform_network(false);
+    let network_with_error = create_uniform_network(true);
+
+    assert_eq!(network_without_error.size(), 4);
+    assert!(network_with_error.size() > network_without_error.size());
 }
 
 fn get_min_max(items: &[Data]) -> MinMaxWeights {
