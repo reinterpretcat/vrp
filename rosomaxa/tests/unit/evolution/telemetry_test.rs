@@ -38,3 +38,18 @@ fn can_update_statistic() {
     telemetry.on_generation(population, 0., Timer::start(), true);
     compare_statistic(telemetry.get_statistics(), (1000, 2. / 1001., 0.001));
 }
+
+#[test]
+fn can_recover_from_slow_speed() {
+    let time = Timer::start();
+    let mut tracker = SpeedTracker::default();
+
+    tracker.track(0, &time, 0.);
+    tracker.track(1, &time, 0.15);
+
+    assert!(matches!(tracker.get_current_speed(), HeuristicSpeed::Slow { ratio, .. } if ratio == 0.1));
+
+    tracker.track(200, &time, 0.15);
+
+    assert!(matches!(tracker.get_current_speed(), HeuristicSpeed::Moderate { .. }));
+}

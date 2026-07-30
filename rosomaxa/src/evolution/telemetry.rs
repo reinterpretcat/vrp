@@ -416,11 +416,10 @@ impl SpeedTracker {
             let is_slow = ratio < 1.;
             let median = self.median.approx_median();
 
-            self.speed = match &self.speed {
-                HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } if !is_slow => {
-                    HeuristicSpeed::Moderate { average, median }
-                }
-                _ => HeuristicSpeed::Slow { ratio, average, median },
+            self.speed = if is_slow {
+                HeuristicSpeed::Slow { ratio, average, median }
+            } else {
+                HeuristicSpeed::Moderate { average, median }
             }
         }
     }
