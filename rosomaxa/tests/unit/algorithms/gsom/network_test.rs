@@ -142,7 +142,8 @@ fn can_create_network() {
 
     // Verify network properties
     assert_eq!(network.dimension, 3);
-    assert!((network.growing_threshold - -3. * 0.75_f64.log2()).abs() < 1e-6);
+    // GSOM defines the growth threshold as GT = -D * ln(SF).
+    assert!((network.growing_threshold - -3. * 0.75_f64.ln()).abs() < 1e-6);
     assert_eq!(network.distribution_factor, config.distribution_factor);
     assert_eq!(network.learning_rate, config.learning_rate);
     assert_eq!(network.rebalance_memory, config.rebalance_memory);
