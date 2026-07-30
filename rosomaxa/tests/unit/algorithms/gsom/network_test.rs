@@ -59,6 +59,51 @@ fn create_uniform_network(has_initial_error: bool) -> NetworkType {
 }
 
 #[test]
+fn rejects_empty_initial_data() {
+    let result =
+        NetworkType::new(&(), Vec::<Data>::new(), create_config(2), Arc::new(IdentityRandom), |_| DataStorageFactory);
+
+    assert_eq!(result.err().map(|err| err.to_string()), Some("GSOM network requires initial data".to_string()));
+}
+
+#[test]
+fn rejects_inconsistent_input_dimensions() {
+    let result = NetworkType::new(
+        &(),
+        vec![Data::new(1., 1., 1.), Data { values: vec![1., 1.] }],
+        create_config(2),
+        Arc::new(IdentityRandom),
+        |_| DataStorageFactory,
+    );
+
+    assert_eq!(
+        result.err().map(|err| err.to_string()),
+        Some("GSOM inputs must have the same weight dimension".to_string())
+    );
+}
+
+#[test]
+fn rejects_invalid_gsom_factors() {
+    let invalid_factors = [Float::NAN, Float::NEG_INFINITY, 0., 1., Float::INFINITY];
+
+    for invalid_factor in invalid_factors {
+        for config in [
+            NetworkConfig { spread_factor: invalid_factor, ..create_config(2) },
+            NetworkConfig { distribution_factor: invalid_factor, ..create_config(2) },
+        ] {
+            let result = NetworkType::new(&(), vec![Data::new(1., 1., 1.)], config, Arc::new(IdentityRandom), |_| {
+                DataStorageFactory
+            });
+
+            assert_eq!(
+                result.err().map(|err| err.to_string()),
+                Some("GSOM spread and distribution factors must be finite and within (0, 1)".to_string())
+            );
+        }
+    }
+}
+
+#[test]
 fn can_use_initial_error_parameter() {
     let network_without_error = create_uniform_network(false);
     let network_with_error = create_uniform_network(true);

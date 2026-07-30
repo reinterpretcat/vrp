@@ -118,12 +118,22 @@ where
     where
         SF: Fn(usize) -> F,
     {
-        assert!(!initial_data.is_empty());
+        if initial_data.is_empty() {
+            return Err("GSOM network requires initial data".into());
+        }
+
         let dimension = initial_data[0].weights().len();
         let data_size = initial_data.len();
-        assert!(initial_data.iter().all(|r| r.weights().len() == dimension));
-        assert!(config.distribution_factor > 0. && config.distribution_factor < 1.);
-        assert!(config.spread_factor > 0. && config.spread_factor < 1.);
+        if !initial_data.iter().all(|input| input.weights().len() == dimension) {
+            return Err("GSOM inputs must have the same weight dimension".into());
+        }
+        if !(config.distribution_factor > 0.
+            && config.distribution_factor < 1.
+            && config.spread_factor > 0.
+            && config.spread_factor < 1.)
+        {
+            return Err("GSOM spread and distribution factors must be finite and within (0, 1)".into());
+        }
 
         // GSOM growth threshold: GT = -D * ln(SF).
         let growing_threshold = -(dimension as Float) * config.spread_factor.ln();
