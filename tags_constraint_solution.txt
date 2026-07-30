@@ -1,0 +1,21 @@
+--- Tags Constraint Example Results ---
+Total routes: 2
+Assigned jobs: 4
+Unassigned jobs: 0
+
+Route 1:
+  Vehicle: v1
+  Jobs:
+    - job1
+    - job2
+
+Route 2:
+  Vehicle: v2
+  Jobs:
+    - job4
+    - job3
+
+Expected behavior:
+  - job1 and job2 (fragile) should be assigned to vehicle_1 (has fragile tag)
+  - job3 and job4 (no tags) can be assigned to any vehicle
+  - vehicle_2 (no tags) cannot serve job1 or job2
