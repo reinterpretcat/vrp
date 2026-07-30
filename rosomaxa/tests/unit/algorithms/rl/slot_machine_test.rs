@@ -1,6 +1,8 @@
 use super::*;
 use crate::helpers::utils::create_test_random;
 use crate::utils::DefaultDistributionSampler;
+use std::cell::Cell;
+use std::rc::Rc;
 
 #[derive(Clone)]
 struct TestAction(DefaultDistributionSampler);
@@ -25,12 +27,89 @@ impl SlotFeedback for TestFeedback {
     }
 }
 
+#[derive(Clone, Default)]
+struct TestDistributionSampler {
+    last_std_dev: Rc<Cell<Float>>,
+}
+
+impl DistributionSampler for TestDistributionSampler {
+    fn gamma(&self, _: Float, _: Float) -> Float {
+        1.
+    }
+
+    fn normal(&self, mean: Float, std_dev: Float) -> Float {
+        self.last_std_dev.set(std_dev);
+        mean
+    }
+}
+
+#[derive(Clone)]
+struct OptimisticDistributionSampler;
+
+impl DistributionSampler for OptimisticDistributionSampler {
+    fn gamma(&self, shape: Float, scale: Float) -> Float {
+        shape * scale
+    }
+
+    fn normal(&self, mean: Float, std_dev: Float) -> Float {
+        mean + std_dev
+    }
+}
+
 #[test]
 fn can_use_prior_mean_as_specified() {
     let sampler = DefaultDistributionSampler::new(create_test_random());
     let slot = SlotMachine::new(2.5, TestAction(sampler.clone()), sampler);
 
     assert_eq!(slot.get_params().2, 2.5);
+}
+
+#[test]
+fn can_sample_posterior_mean_using_effective_count() {
+    let action_sampler = DefaultDistributionSampler::new(create_test_random());
+    let sampler = TestDistributionSampler::default();
+    let mut slot = SlotMachine::new(1., TestAction(action_sampler), sampler.clone());
+
+    slot.update(&TestFeedback(1.));
+    slot.sample();
+
+    let alpha = slot.get_params().0;
+    let expected_std_dev = (1. / (2. * alpha)).sqrt();
+    assert!((sampler.last_std_dev.get() - expected_std_dev).abs() < f64::EPSILON);
+
+    let initial_std_dev = sampler.last_std_dev.get();
+    (0..100).for_each(|_| slot.update(&TestFeedback(1.)));
+    slot.sample();
+
+    assert!(sampler.last_std_dev.get() < initial_std_dev);
+}
+
+#[test]
+fn can_prefer_mean_over_observation_variance() {
+    let action_sampler = DefaultDistributionSampler::new(create_test_random());
+    let sampler = OptimisticDistributionSampler;
+    let mut stable = SlotMachine::new(1., TestAction(action_sampler.clone()), sampler.clone());
+    let mut noisy = SlotMachine::new(1., TestAction(action_sampler), sampler);
+
+    (0..200).for_each(|idx| {
+        stable.update(&TestFeedback(1.));
+        noisy.update(&TestFeedback(if idx % 2 == 0 { -2. } else { 2. }));
+    });
+
+    assert!(stable.mu > noisy.mu);
+    assert!(stable.sample() > noisy.sample());
+}
+
+#[test]
+fn can_adapt_to_reward_regime_change() {
+    let action_sampler = DefaultDistributionSampler::new(create_test_random());
+    let mut slot = SlotMachine::new(0., TestAction(action_sampler), OptimisticDistributionSampler);
+
+    (0..200).for_each(|_| slot.update(&TestFeedback(1.)));
+    assert!(slot.mu > 0.9);
+
+    (0..500).for_each(|_| slot.update(&TestFeedback(-1.)));
+    assert!(slot.mu < -0.8);
 }
 
 #[test]

@@ -69,10 +69,10 @@ where
         Self { n: 0, alpha, beta, mu, v, action, sampler }
     }
 
-    /// Samples a reward prediction from the estimated Normal-Inverse-Gamma distribution.
+    /// Samples the mean reward from the estimated Normal-Inverse-Gamma distribution.
     ///
     /// 1. Samples precision (τ) from Gamma(α, β).
-    /// 2. Samples reward from Normal(μ, 1/√(τ)).
+    /// 2. Samples the mean from Normal(μ, 1/√(τN)), where N = 2α is the effective count.
     pub fn sample(&self) -> Float {
         // Sample precision from Gamma distribution
         let precision = self.sampler.gamma(self.alpha, 1. / self.beta);
@@ -80,8 +80,9 @@ where
         // Safety: If precision is numerically zero (rare), fallback to high variance
         let precision = if precision == 0. || self.n == 0 { 0.001 } else { precision };
         let variance = 1. / precision;
+        let effective_n = self.alpha * 2.;
 
-        self.sampler.normal(self.mu, variance.sqrt())
+        self.sampler.normal(self.mu, (variance / effective_n).sqrt())
     }
 
     /// Plays the slot machine by executing the action within the given context.
