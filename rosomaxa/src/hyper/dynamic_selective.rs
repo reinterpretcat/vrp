@@ -128,6 +128,12 @@ const REWARD_MIN: Float = -1.0;
 /// Ceiling for rewards (maximum jackpot + efficiency bonus).
 const REWARD_MAX: Float = 10.0;
 
+/// Minimum initial mean used for operator rewards.
+const PRIOR_MEAN_MIN: Float = 0.1;
+
+/// Maximum initial mean used for operator rewards.
+const PRIOR_MEAN_MAX: Float = 2.0;
+
 /// Search state for Thompson sampling.
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub enum SearchState {
@@ -245,13 +251,7 @@ where
             search_operators
                 .iter()
                 .map(|(operator, name, initial_weight)| {
-                    // Smooth mapping of weight ratio to prior mean range [0.1, 3.0].
-                    // Uses tanh for smooth compression without hard cutoffs.
-                    // ratio=1 (average) → prior=1.0, higher ratios → up to 3.0, lower → down to 0.1
-                    let ratio = initial_weight / avg_weight;
-                    let t = (ratio - 1.0).tanh(); // smooth compression to [-1, 1]
-                    // Asymmetric scaling: [−1,0] → [0.1,1.0], [0,1] → [1.0,3.0]
-                    let prior_mean = if t >= 0.0 { 1.0 + t * 2.0 } else { 1.0 + t * 0.9 };
+                    let prior_mean = get_prior_mean(*initial_weight, avg_weight);
                     (
                         SlotMachine::new(
                             prior_mean,
@@ -325,6 +325,15 @@ where
             });
         });
     }
+}
+
+/// Maps an operator's relative weight to the prior mean used by the reward model.
+fn get_prior_mean(initial_weight: Float, avg_weight: Float) -> Float {
+    let ratio = initial_weight / avg_weight;
+    let normalized = (ratio - 1.0).tanh();
+    let prior_mean = if normalized >= 0.0 { 1.0 + normalized * 2.0 } else { 1.0 + normalized * 0.9 };
+
+    prior_mean.clamp(PRIOR_MEAN_MIN, PRIOR_MEAN_MAX)
 }
 
 /// Computes the reward for an operator based on solution improvement.

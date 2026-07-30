@@ -5,6 +5,12 @@ use std::ops::Range;
 use std::time::Duration;
 
 #[test]
+fn can_apply_prior_mean_policy() {
+    assert_eq!(get_prior_mean(1., 1.), 1.);
+    assert_eq!(get_prior_mean(10., 1.), PRIOR_MEAN_MAX);
+}
+
+#[test]
 fn can_estimate_median() {
     struct DelayableHeuristicOperator {
         delay_range: Range<i32>,

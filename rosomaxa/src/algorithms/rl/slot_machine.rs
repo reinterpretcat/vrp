@@ -50,7 +50,7 @@ where
     A: SlotAction + Clone,
     S: DistributionSampler + Clone,
 {
-    /// Creates a new instance with Universal Priors.
+    /// Creates a new instance with universal variance priors and the specified mean.
     pub fn new(prior_mean: Float, action: A, sampler: S) -> Self {
         // Universal priors for a Standard Normal distribution N(0, 1):
         // Alpha = 2.0 implies a weak prior belief with mathematically defined variance.
@@ -58,8 +58,8 @@ where
         let alpha = 2.0;
         let beta = 1.0;
 
-        // Prior mean is clamped to a reasonable reward range [0.1, 2.0].
-        let mu = prior_mean.clamp(0.1, 2.0);
+        // The caller owns the reward scale and its corresponding prior-mean policy.
+        let mu = prior_mean;
 
         // Variance expectation v = Beta / (Alpha - 1) = 1.0.
         // This implies we are "uncertain" by about +/- 1.0 standard deviation unit,

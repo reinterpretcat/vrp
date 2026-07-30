@@ -26,6 +26,14 @@ impl SlotFeedback for TestFeedback {
 }
 
 #[test]
+fn can_use_prior_mean_as_specified() {
+    let sampler = DefaultDistributionSampler::new(create_test_random());
+    let slot = SlotMachine::new(2.5, TestAction(sampler.clone()), sampler);
+
+    assert_eq!(slot.get_params().2, 2.5);
+}
+
+#[test]
 fn can_find_proper_estimations() {
     let sockets = 5;
     let total_episodes = 100;
