@@ -10,11 +10,61 @@ use crate::models::solution::Activity;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-custom_activity_state!(pub(crate) CurrentCapacity typeof T: LoadOps);
+struct CapacityActivityStateKey<T: LoadOps>(PhantomData<T>);
 
-custom_activity_state!(pub(crate) MaxFutureCapacity typeof T: LoadOps);
+struct CapacityActivityState<T: LoadOps> {
+    current: Vec<T>,
+    max_future: Vec<T>,
+    max_past: Vec<T>,
+}
 
-custom_activity_state!(pub(crate) MaxPastCapacity typeof T: LoadOps);
+#[cfg(test)]
+pub(crate) trait CurrentCapacityActivityState {
+    fn get_current_capacity_at<T: LoadOps>(&self, activity_idx: usize) -> Option<&T>;
+}
+
+pub(crate) trait MaxFutureCapacityActivityState {
+    fn get_max_future_capacity_at<T: LoadOps>(&self, activity_idx: usize) -> Option<&T>;
+}
+
+pub(crate) trait MaxPastCapacityActivityState {
+    fn get_max_past_capacity_at<T: LoadOps>(&self, activity_idx: usize) -> Option<&T>;
+}
+
+trait CapacityActivityStateAccess {
+    fn get_capacity_states<T: LoadOps>(&self) -> Option<&CapacityActivityState<T>>;
+
+    fn set_capacity_states<T: LoadOps>(&mut self, current: Vec<T>, max_future: Vec<T>, max_past: Vec<T>);
+}
+
+impl CapacityActivityStateAccess for RouteState {
+    fn get_capacity_states<T: LoadOps>(&self) -> Option<&CapacityActivityState<T>> {
+        self.get_tour_state::<CapacityActivityStateKey<T>, _>()
+    }
+
+    fn set_capacity_states<T: LoadOps>(&mut self, current: Vec<T>, max_future: Vec<T>, max_past: Vec<T>) {
+        self.set_tour_state::<CapacityActivityStateKey<T>, _>(CapacityActivityState { current, max_future, max_past });
+    }
+}
+
+#[cfg(test)]
+impl CurrentCapacityActivityState for RouteState {
+    fn get_current_capacity_at<T: LoadOps>(&self, activity_idx: usize) -> Option<&T> {
+        self.get_capacity_states::<T>()?.current.get(activity_idx)
+    }
+}
+
+impl MaxFutureCapacityActivityState for RouteState {
+    fn get_max_future_capacity_at<T: LoadOps>(&self, activity_idx: usize) -> Option<&T> {
+        self.get_capacity_states::<T>()?.max_future.get(activity_idx)
+    }
+}
+
+impl MaxPastCapacityActivityState for RouteState {
+    fn get_max_past_capacity_at<T: LoadOps>(&self, activity_idx: usize) -> Option<&T> {
+        self.get_capacity_states::<T>()?.max_past.get(activity_idx)
+    }
+}
 
 custom_tour_state!(pub(crate) MaxVehicleLoad typeof Float);
 
@@ -192,9 +242,7 @@ where
                 (current - end_pickup, current_max.max_load(max))
             });
 
-        route_ctx.state_mut().set_current_capacity_states(current_capacities);
-        route_ctx.state_mut().set_max_past_capacity_states(max_past_capacities);
-        route_ctx.state_mut().set_max_future_capacity_states(max_future_capacities);
+        route_ctx.state_mut().set_capacity_states(current_capacities, max_future_capacities, max_past_capacities);
 
         if let Some(capacity) = route_ctx.route().actor.clone().vehicle.dimens.get_vehicle_capacity::<T>() {
             route_ctx.state_mut().set_max_vehicle_load(max_load.ratio(capacity));
@@ -302,11 +350,11 @@ fn has_demand_violation<T: LoadOps>(
         return Some(stopped);
     };
 
-    let state = route_ctx.state();
+    let states = route_ctx.state().get_capacity_states::<T>();
 
     // check how static delivery affects a past max load
     if demand.delivery.0.is_not_empty() {
-        let past: T = state.get_max_past_capacity_at(pivot_idx).copied().unwrap_or_default();
+        let past: T = states.and_then(|states| states.max_past.get(pivot_idx)).copied().unwrap_or_default();
         if !capacity.can_fit(&(past + demand.delivery.0)) {
             return Some(stopped);
         }
@@ -314,7 +362,7 @@ fn has_demand_violation<T: LoadOps>(
 
     // check how static pickup affect future max load
     if demand.pickup.0.is_not_empty() {
-        let future: T = state.get_max_future_capacity_at(pivot_idx).copied().unwrap_or_default();
+        let future: T = states.and_then(|states| states.max_future.get(pivot_idx)).copied().unwrap_or_default();
         if !capacity.can_fit(&(future + demand.pickup.0)) {
             return Some(false);
         }
@@ -323,12 +371,12 @@ fn has_demand_violation<T: LoadOps>(
     // check dynamic load change
     let change = demand.change();
     if change.is_not_empty() {
-        let future: T = state.get_max_future_capacity_at(pivot_idx).copied().unwrap_or_default();
+        let future: T = states.and_then(|states| states.max_future.get(pivot_idx)).copied().unwrap_or_default();
         if !capacity.can_fit(&(future + change)) {
             return Some(false);
         }
 
-        let current: T = state.get_current_capacity_at(pivot_idx).copied().unwrap_or_default();
+        let current: T = states.and_then(|states| states.current.get(pivot_idx)).copied().unwrap_or_default();
         if !capacity.can_fit(&(current + change)) {
             return Some(false);
         }
