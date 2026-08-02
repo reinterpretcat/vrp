@@ -196,30 +196,7 @@ impl RosomaxaSolution for InsertionContext {
     type Context = Footprint;
 
     fn on_init(&mut self, context: &Self::Context) {
-        // built a feature vector which is used to classify solution in population
-        let weights = vec![
-            // load related features
-            get_max_load_variance(self),
-            get_max_load_mean(self),
-            get_full_load_ratio(self),
-            // time related features
-            get_duration_mean(self),
-            get_waiting_mean(self),
-            // distance related features
-            get_distance_mean(self),
-            get_longest_distance_between_customers_mean(self),
-            get_first_distance_customer_mean(self),
-            get_last_distance_customer_mean(self),
-            // depot related features
-            get_average_distance_between_depot_customer_mean(self),
-            get_longest_distance_between_depot_customer_mean(self),
-            // tour related features
-            get_customers_deviation(self),
-            // default objective related
-            self.solution.unassigned.len() as Float,
-            self.solution.routes.len() as Float,
-            self.get_total_cost().unwrap_or_default(),
-        ];
+        let weights = Vec::from(get_rosomaxa_solution_features(self));
 
         self.solution.state.set_solution_weights(weights);
         self.on_update(context);
