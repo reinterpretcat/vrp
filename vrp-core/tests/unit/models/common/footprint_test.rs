@@ -52,8 +52,8 @@ fn can_use_footprint_union() {
     let problem = create_test_problem();
     let mut footprint1 = Footprint::new(&problem);
     let mut footprint2 = Footprint::new(&problem);
-    footprint1.repr[0] = 1;
-    footprint2.repr[1] = 1;
+    footprint1.repr_mut()[0] = 1;
+    footprint2.repr_mut()[1] = 1;
 
     footprint1.union(&footprint2);
 
@@ -65,7 +65,7 @@ fn can_use_footprint_union() {
 fn can_use_footprint_get() {
     let problem = create_test_problem();
     let mut footprint = Footprint::new(&problem);
-    footprint.repr[0] = 2;
+    footprint.repr_mut()[0] = 2;
 
     assert_eq!(footprint.get(0, 0), 2);
 }
@@ -74,8 +74,8 @@ fn can_use_footprint_get() {
 fn tcan_use_footprint_iter() {
     let problem = create_test_problem();
     let mut footprint = Footprint::new(&problem);
-    footprint.repr[0] = 1;
-    footprint.repr[1] = 2;
+    footprint.repr_mut()[0] = 1;
+    footprint.repr_mut()[1] = 2;
 
     #[rustfmt::skip]
     let expected = vec![
@@ -92,9 +92,9 @@ fn tcan_use_footprint_iter() {
 fn can_use_footprint_forget() {
     let problem = create_test_problem();
     let mut footprint = Footprint::new(&problem);
-    footprint.repr[0] = 16;
-    footprint.repr[1] = 4;
-    footprint.repr[2] = 0;
+    footprint.repr_mut()[0] = 16;
+    footprint.repr_mut()[1] = 4;
+    footprint.repr_mut()[2] = 0;
 
     footprint.forget();
 
@@ -107,9 +107,9 @@ fn can_use_footprint_forget() {
 fn can_use_footprint_estimate_solution() {
     let problem = create_test_problem();
     let mut footprint = Footprint::new(&problem);
-    footprint.repr[1] = 1; // 0 -> 1
-    footprint.repr[5] = 2; // 1 -> 2
-    footprint.repr[6] = 3; // 2 -> 0
+    footprint.repr_mut()[1] = 1; // 0 -> 1
+    footprint.repr_mut()[5] = 2; // 1 -> 2
+    footprint.repr_mut()[6] = 3; // 2 -> 0
     let solution_ctx = TestInsertionContextBuilder::default()
         .with_problem(problem)
         .with_routes(vec![
@@ -134,11 +134,27 @@ fn can_use_footprint_estimate_solution() {
 fn can_use_footprint_estimate_edge() {
     let problem = create_test_problem();
     let mut footprint = Footprint::new(&problem);
-    footprint.repr[0] = 3;
+    footprint.repr_mut()[0] = 3;
 
     let cost = footprint.estimate_edge(0, 0);
 
     assert_eq!(cost, 3);
+}
+
+#[test]
+fn can_keep_cloned_footprint_as_snapshot() {
+    let problem = create_test_problem();
+    let mut footprint = Footprint::new(&problem);
+    let snapshot = footprint.clone();
+    let mut shadow = Shadow { repr: BitVec::new(footprint.dimension() * footprint.dimension()) };
+    shadow.repr.set(0, true);
+    assert!(Arc::ptr_eq(&footprint.repr, &snapshot.repr));
+
+    footprint.add(&shadow);
+
+    assert!(!Arc::ptr_eq(&footprint.repr, &snapshot.repr));
+    assert_eq!(footprint.get(0, 0), 1);
+    assert_eq!(snapshot.get(0, 0), 0);
 }
 
 #[test]

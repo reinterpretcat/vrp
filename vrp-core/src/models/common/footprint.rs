@@ -9,6 +9,7 @@ use crate::models::common::Location;
 use crate::prelude::*;
 use rosomaxa::population::RosomaxaContext;
 use rosomaxa::utils::fold_reduce;
+use std::sync::Arc;
 
 custom_solution_state!(pub(crate) Footprint typeof Footprint);
 
@@ -16,8 +17,9 @@ custom_solution_state!(pub(crate) Footprint typeof Footprint);
 #[derive(Clone, Debug)]
 pub struct Footprint {
     /// repr here is the same adjacency matrix as in [Shadow], but instead of storing bits
-    /// we store here the number of times the edge was present in multiple solutions.
-    repr: Vec<u8>,
+    /// we store here the number of times the edge was present in multiple solutions. It is
+    /// copy-on-write because every Rosomaxa solution keeps an immutable footprint snapshot.
+    repr: Arc<[u8]>,
     dimension: usize,
     counter: usize,
 }
@@ -26,12 +28,12 @@ impl Footprint {
     /// Creates a new instance of a `Snapshot`.
     pub fn new(problem: &Problem) -> Self {
         let dim = get_dimension(problem);
-        Self { repr: vec![0; dim * dim], dimension: dim, counter: 0 }
+        Self { repr: vec![0; dim * dim].into(), dimension: dim, counter: 0 }
     }
 
     /// Adds shadow to the footprint.
     pub fn add(&mut self, shadow: &Shadow) {
-        self.repr.iter_mut().enumerate().for_each(|(index, value)| {
+        self.repr_mut().iter_mut().enumerate().for_each(|(index, value)| {
             let bit_value = shadow.repr.get(index).map(|bit| bit as u8).unwrap_or_default();
             *value = value.saturating_add(bit_value);
         });
@@ -39,7 +41,7 @@ impl Footprint {
 
     /// Merges/unites the given footprint into the current one.
     pub fn union(&mut self, other: &Footprint) {
-        self.repr.iter_mut().zip(other.repr.iter()).for_each(|(value, other_value)| {
+        self.repr_mut().iter_mut().zip(other.repr.iter()).for_each(|(value, other_value)| {
             *value = value.saturating_add(*other_value);
         });
     }
@@ -59,7 +61,7 @@ impl Footprint {
 
     /// Reshapes the footprint to keep sensitivity to new solutions.
     pub fn forget(&mut self) {
-        self.repr.iter_mut().for_each(|value| {
+        self.repr_mut().iter_mut().for_each(|value| {
             // NOTE use log2 to reduce the impact of the number of times the edge was present in multiple solutions.
             *value = (*value as f64).log2() as u8;
         });
@@ -90,6 +92,10 @@ impl Footprint {
     /// Returns dimension of adjacency matrix.
     pub fn dimension(&self) -> usize {
         self.dimension
+    }
+
+    fn repr_mut(&mut self) -> &mut [u8] {
+        Arc::make_mut(&mut self.repr)
     }
 }
 
