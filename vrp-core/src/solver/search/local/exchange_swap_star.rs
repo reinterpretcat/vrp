@@ -160,22 +160,40 @@ fn find_insertion_cost(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteC
         .unwrap_or_default()
 }
 
-/// Tries to find insertion cost for `insert_job` in place of `extract_job`.
+struct InPlaceRouteContext {
+    route_ctx: RouteContext,
+    position: InsertionPosition,
+}
+
+/// Creates a route context with `extract_job` removed for subsequent in-place evaluations.
+fn create_in_place_route_context(
+    search_ctx: &SearchContext,
+    route_ctx: &RouteContext,
+    extract_job: &Job,
+) -> InPlaceRouteContext {
+    let insertion_index = route_ctx.route().tour.index(extract_job).expect("cannot find job in route");
+    let position = InsertionPosition::Concrete(insertion_index - 1);
+    let route_ctx = remove_job_with_copy(search_ctx, extract_job, route_ctx);
+
+    InPlaceRouteContext { route_ctx, position }
+}
+
+/// Tries to find insertion cost for `insert_job` in place of a previously extracted job.
 /// NOTE hard constraints are NOT evaluated.
 fn find_in_place_result(
     search_ctx: &SearchContext,
-    route_ctx: &RouteContext,
+    in_place_ctx: &InPlaceRouteContext,
     insert_job: &Job,
-    extract_job: &Job,
 ) -> InsertionResult {
-    let insertion_index = route_ctx.route().tour.index(extract_job).expect("cannot find job in route");
-    let position = InsertionPosition::Concrete(insertion_index - 1);
-
-    let route_ctx = remove_job_with_copy(search_ctx, extract_job, route_ctx);
-
     let eval_ctx = get_evaluation_context(search_ctx, insert_job);
 
-    eval_job_insertion_in_route(search_ctx.0, &eval_ctx, &route_ctx, position, InsertionResult::make_failure())
+    eval_job_insertion_in_route(
+        search_ctx.0,
+        &eval_ctx,
+        &in_place_ctx.route_ctx,
+        in_place_ctx.position,
+        InsertionResult::make_failure(),
+    )
 }
 
 fn find_top_results(
@@ -322,6 +340,26 @@ fn try_exchange_jobs_in_routes(
         return true;
     }
 
+    // Removing a job and refreshing its route state depends only on that job and route. Reuse the
+    // prepared route for every candidate paired with the extracted job.
+    let outer_in_place_contexts = outer_jobs
+        .iter()
+        .map(|outer_job| create_in_place_route_context(&search_ctx, outer_route_ctx, outer_job))
+        .collect::<Vec<_>>();
+
+    if is_quota_reached() {
+        return true;
+    }
+
+    let inner_in_place_contexts = inner_jobs
+        .iter()
+        .map(|inner_job| create_in_place_route_context(&search_ctx, inner_route_ctx, inner_job))
+        .collect::<Vec<_>>();
+
+    if is_quota_reached() {
+        return true;
+    }
+
     let mut job_pairs = Vec::with_capacity(outer_jobs.len() * inner_jobs.len());
     (0..outer_jobs.len()).for_each(|outer_idx| {
         job_pairs.extend((0..inner_jobs.len()).map(|inner_idx| (outer_idx, inner_idx)));
@@ -338,8 +376,10 @@ fn try_exchange_jobs_in_routes(
             let outer_job = &outer_jobs[*outer_idx];
             let inner_job = &inner_jobs[*inner_idx];
 
-            let outer_in_place_result = find_in_place_result(&search_ctx, inner_route_ctx, outer_job, inner_job);
-            let inner_in_place_result = find_in_place_result(&search_ctx, outer_route_ctx, inner_job, outer_job);
+            let outer_in_place_result =
+                find_in_place_result(&search_ctx, &inner_in_place_contexts[*inner_idx], outer_job);
+            let inner_in_place_result =
+                find_in_place_result(&search_ctx, &outer_in_place_contexts[*outer_idx], inner_job);
 
             let outer_result = choose_best_result(
                 &search_ctx,
