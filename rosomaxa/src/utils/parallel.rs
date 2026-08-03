@@ -44,7 +44,13 @@ mod actual {
         A: Send + Sync + 'a,
         B: Send + Sync + 'a,
     {
-        a.par_iter().flat_map(|a| b.par_iter().map(move |b| (a, b)))
+        let b_len = b.len();
+        let product_len = a.len().checked_mul(b_len).expect("cartesian product size overflow");
+
+        // A single indexed range lets rayon split the complete product directly. Nested parallel
+        // iterators create a task tree per item in `a`, which adds work-stealing overhead when the
+        // caller itself is already running multiple searches in parallel.
+        (0..product_len).into_par_iter().map(move |idx| (&a[idx / b_len], &b[idx % b_len]))
     }
 
     /// Maps collection and collects results into vector in parallel.
