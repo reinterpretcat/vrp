@@ -3,7 +3,30 @@ use crate::construction::features::MaxVehicleLoadTourState;
 use crate::construction::heuristics::*;
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder, RouteStateBuilder};
+use crate::helpers::utils::create_test_environment_with_random;
+use crate::helpers::utils::random::FakeRandom;
 use rosomaxa::prelude::Float;
+use std::sync::Arc;
+
+#[test]
+fn can_group_routes_by_proximity() {
+    let routes = [1, 10, 100]
+        .into_iter()
+        .map(|start_location| {
+            let activities =
+                (start_location..start_location + 3).map(ActivityBuilder::with_location).map(|mut a| a.build());
+            let route = RouteBuilder::default().add_activities(activities).build();
+
+            RouteContextBuilder::default().with_route(route).build()
+        })
+        .collect();
+    let mut insertion_ctx = TestInsertionContextBuilder::default().with_routes(routes).build();
+    insertion_ctx.environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], vec![0.; 12])));
+
+    let result = group_routes_by_proximity(&insertion_ctx);
+
+    assert_eq!(result, vec![vec![1, 2], vec![0, 2], vec![1, 0]]);
+}
 
 #[test]
 fn can_extract_rosomaxa_features() {

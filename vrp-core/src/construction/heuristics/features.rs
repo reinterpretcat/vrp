@@ -5,11 +5,12 @@ mod features_test;
 use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState, WaitingTimeActivityState};
 use crate::construction::features::MaxVehicleLoadTourState;
 use crate::construction::heuristics::InsertionContext;
-use crate::models::common::Distance;
+use crate::models::common::{Distance, Location};
 use crate::models::problem::TravelTime;
 use rosomaxa::prelude::*;
 use rosomaxa::utils::{SelectionSamplingIterator, parallel_collect};
 use std::cmp::Ordering;
+use tinyvec::TinyVec;
 
 /// Features used to position a solution in the Rosomaxa population.
 pub(crate) struct RosomaxaSolutionFeatures {
@@ -226,16 +227,16 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Vec<Vec<us
                 random.clone(),
             )
             .map(|activity| activity.place.location)
-            .collect::<Vec<_>>()
+            .collect::<TinyVec<[Location; LOCATION_SAMPLE_SIZE]>>()
         })
         .enumerate()
         .collect::<Vec<_>>();
 
     parallel_collect(&indexed_route_clusters, |(outer_idx, outer_clusters)| {
-        let mut route_distances = indexed_route_clusters
-            .iter()
-            .filter(move |(inner_idx, _)| *outer_idx != *inner_idx)
-            .map(move |(inner_idx, inner_clusters)| {
+        let mut route_distances = Vec::with_capacity(indexed_route_clusters.len().saturating_sub(1));
+
+        indexed_route_clusters.iter().for_each(|(inner_idx, inner_clusters)| {
+            if *outer_idx != *inner_idx {
                 // get a sum of distances between all pairs of sampled locations
                 let pair_distance = outer_clusters
                     .iter()
@@ -258,9 +259,9 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Vec<Vec<us
                     Some(pair_distance / total_pairs as Float)
                 };
 
-                (*inner_idx, distance)
-            })
-            .collect::<Vec<_>>();
+                route_distances.push((*inner_idx, distance));
+            }
+        });
 
         route_distances.sort_unstable_by(|(_, a_distance), (_, b_distance)| match (a_distance, b_distance) {
             (Some(a_distance), Some(b_distance)) => a_distance.total_cmp(b_distance),
@@ -268,8 +269,6 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Vec<Vec<us
             _ => Ordering::Greater,
         });
 
-        let (indices, _): (Vec<_>, Vec<_>) = route_distances.into_iter().unzip();
-
-        indices
+        route_distances.into_iter().map(|(index, _)| index).collect()
     })
 }
