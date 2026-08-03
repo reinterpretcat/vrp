@@ -302,23 +302,41 @@ fn try_exchange_jobs_in_routes(
     let outer_top_results = find_top_results(&search_ctx, inner_route_ctx, outer_jobs.as_slice());
     let inner_top_results = find_top_results(&search_ctx, outer_route_ctx, inner_jobs.as_slice());
 
-    let job_pairs = outer_jobs
+    // A job's current insertion cost depends only on its original route, not on the job paired with it.
+    // Compute it once before evaluating the Cartesian product of swap candidates.
+    let outer_job_costs = outer_jobs
         .iter()
-        .flat_map(|outer_job| {
-            let delta_outer_job_cost = find_insertion_cost(&search_ctx, outer_job, outer_route_ctx);
-            inner_jobs.iter().map(move |inner_job| (outer_job, inner_job, delta_outer_job_cost.clone()))
-        })
+        .map(|outer_job| find_insertion_cost(&search_ctx, outer_job, outer_route_ctx))
         .collect::<Vec<_>>();
+
+    if is_quota_reached() {
+        return true;
+    }
+
+    let inner_job_costs = inner_jobs
+        .iter()
+        .map(|inner_job| find_insertion_cost(&search_ctx, inner_job, inner_route_ctx))
+        .collect::<Vec<_>>();
+
+    if is_quota_reached() {
+        return true;
+    }
+
+    let mut job_pairs = Vec::with_capacity(outer_jobs.len() * inner_jobs.len());
+    (0..outer_jobs.len()).for_each(|outer_idx| {
+        job_pairs.extend((0..inner_jobs.len()).map(|inner_idx| (outer_idx, inner_idx)));
+    });
 
     // search phase
     let (outer_best, inner_best, _) = map_reduce(
         job_pairs.as_slice(),
-        |(outer_job, inner_job, delta_outer_job_cost)| {
+        |(outer_idx, inner_idx)| {
             if is_quota_reached() {
                 return (InsertionResult::make_failure(), InsertionResult::make_failure(), InsertionCost::default());
             }
 
-            let delta_inner_job_cost = find_insertion_cost(&search_ctx, inner_job, inner_route_ctx);
+            let outer_job = &outer_jobs[*outer_idx];
+            let inner_job = &inner_jobs[*inner_idx];
 
             let outer_in_place_result = find_in_place_result(&search_ctx, inner_route_ctx, outer_job, inner_job);
             let inner_in_place_result = find_in_place_result(&search_ctx, outer_route_ctx, inner_job, outer_job);
@@ -326,18 +344,20 @@ fn try_exchange_jobs_in_routes(
             let outer_result = choose_best_result(
                 &search_ctx,
                 outer_in_place_result,
-                outer_top_results.get(*outer_job).unwrap().as_slice(),
+                outer_top_results.get(outer_job).unwrap().as_slice(),
             );
 
             let inner_result = choose_best_result(
                 &search_ctx,
                 inner_in_place_result,
-                inner_top_results.get(*inner_job).unwrap().as_slice(),
+                inner_top_results.get(inner_job).unwrap().as_slice(),
             );
 
             let delta_cost = match (&outer_result, &inner_result) {
                 (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) => {
-                    &outer_success.cost + &inner_success.cost - delta_outer_job_cost - delta_inner_job_cost
+                    &outer_success.cost + &inner_success.cost
+                        - &outer_job_costs[*outer_idx]
+                        - &inner_job_costs[*inner_idx]
                 }
                 _ => InsertionCost::default(),
             };
