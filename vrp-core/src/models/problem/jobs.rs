@@ -430,12 +430,8 @@ fn get_cost_between_jobs(
     lhs: &Job,
     rhs: &Job,
 ) -> LowPrecisionCost {
-    let outer: Vec<Option<Location>> = get_job_locations(lhs).collect();
-    let inner: Vec<Option<Location>> = get_job_locations(rhs).collect();
-
-    outer
-        .iter()
-        .flat_map(|o| inner.iter().map(move |i| (*o, *i)))
+    get_job_locations(lhs)
+        .flat_map(|from| get_job_locations(rhs).map(move |to| (from, to)))
         .map(|pair| match pair {
             (Some(from), Some(to)) => get_cost_between_locations(profile, costs, transport, from, to),
             _ => DEFAULT_COST,
