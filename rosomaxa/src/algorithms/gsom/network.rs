@@ -304,8 +304,7 @@ where
     /// Trains network on given input data.
     pub(super) fn train_on_data(&mut self, context: &C, data: Vec<I>, is_new_input: bool) {
         let nodes_data = parallel_into_collect(data, |input| {
-            let bmu = self.find_bmu(&input);
-            let error = self.distance(&bmu.weights, input.weights());
+            let (bmu, error) = self.find_bmu(&input);
             (bmu.coordinate, error, input)
         });
 
@@ -313,12 +312,13 @@ where
     }
 
     /// Finds the best matching unit within the map for the given input.
-    fn find_bmu(&self, input: &I) -> &Node<I, S> {
+    fn find_bmu(&self, input: &I) -> (&Node<I, S>, Float) {
+        let input_weights = input.weights();
+
         self.nodes
             .values()
-            .map(|node| (node, self.distance(&node.weights, input.weights())))
+            .map(|node| (node, self.distance(&node.weights, input_weights)))
             .min_by(|(_, x), (_, y)| x.partial_cmp(y).unwrap_or(Ordering::Less))
-            .map(|(node, _)| node)
             .expect("no nodes")
     }
 
