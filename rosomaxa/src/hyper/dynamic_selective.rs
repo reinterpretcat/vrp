@@ -187,7 +187,7 @@ where
         let (new_solution, duration) =
             Timer::measure_duration(|| self.operator.search(context.heuristic_ctx, context.solution));
 
-        let duration = duration.as_millis() as usize;
+        let duration = get_duration_micros(duration);
 
         // Compute reward using the simplified V2.1 formula.
         let reward =
@@ -388,7 +388,7 @@ where
         let base_utility = (DIVERSE_CAP * saturated * proximity_factor).clamp(MIN_REWARD, DIVERSE_CAP);
 
         // Apply efficiency modulation: fast improvements get bonus, slow ones get penalty.
-        let median = approx_median.unwrap_or(duration.max(1)).max(1) as Float;
+        let duration_ratio = get_duration_ratio(duration, approx_median);
         let improvement_ratio = heuristic_ctx.statistics().improvement_1000_ratio;
 
         // "Flow" measures search progress: 0 = stagnating, 1 = fast progress.
@@ -400,18 +400,27 @@ where
         let min_eff = 0.9 - flow * 0.1;
         let max_eff = 1.1 + flow * 0.1;
 
-        let efficiency = (median / duration as Float).clamp(min_eff, max_eff);
+        let efficiency = (1.0 / duration_ratio).clamp(min_eff, max_eff);
 
         base_utility * efficiency
     } else {
         // FAILURE: time-proportional penalty.
-        let median = approx_median.unwrap_or(duration.max(1)).max(1) as Float;
-        let time_ratio = duration as Float / median;
-        -PENALTY_SCALE * time_ratio
+        -PENALTY_SCALE * get_duration_ratio(duration, approx_median)
     };
 
     // Clamp to bounded range for stable Bayesian updates.
     raw_reward.clamp(REWARD_MIN, REWARD_MAX)
+}
+
+fn get_duration_micros(duration: std::time::Duration) -> usize {
+    (duration.as_micros().min(usize::MAX as u128) as usize).max(1)
+}
+
+fn get_duration_ratio(duration: usize, approx_median: Option<usize>) -> Float {
+    let duration = duration.max(1);
+    let median = approx_median.unwrap_or(duration).max(1);
+
+    duration as Float / median as Float
 }
 
 fn compare_to_best<C, O, S>(heuristic_ctx: &C, solution: &S) -> Ordering
@@ -466,7 +475,7 @@ where
 
 /// Diagnostic tracker for Thompson sampling analysis.
 struct HeuristicTracker {
-    total_median: RemedianUsize,
+    duration_median: RemedianUsize,
     search_telemetry: Vec<(usize, SearchSample)>,
     heuristic_telemetry: Vec<(usize, HeuristicSample)>,
     is_experimental: bool,
@@ -476,7 +485,7 @@ impl HeuristicTracker {
     /// Creates a new tracker with diagnostic configuration.
     pub fn new(is_experimental: bool) -> Self {
         Self {
-            total_median: RemedianUsize::new(11, 7, |a, b| a.cmp(b)),
+            duration_median: RemedianUsize::new(11, 7, |a, b| a.cmp(b)),
             search_telemetry: Default::default(),
             heuristic_telemetry: Default::default(),
             is_experimental,
@@ -490,12 +499,12 @@ impl HeuristicTracker {
 
     /// Returns the median approximation.
     pub fn approx_median(&self) -> Option<usize> {
-        self.total_median.approx_median()
+        self.duration_median.approx_median()
     }
 
     /// Observes the current sample and updates the total duration median.
     pub fn observe_sample(&mut self, generation: usize, sample: SearchSample) {
-        self.total_median.add_observation(sample.duration);
+        self.duration_median.add_observation(sample.duration);
         if self.telemetry_enabled() {
             self.search_telemetry.push((generation, sample));
         }
@@ -548,7 +557,7 @@ where
 
         f.write_fmt(format_args!("TELEMETRY\n"))?;
         f.write_fmt(format_args!("search:\n"))?;
-        f.write_fmt(format_args!("name,generation,reward,from,to,duration\n"))?;
+        f.write_fmt(format_args!("name,generation,reward,from,to,duration_us\n"))?;
 
         let search_total = self.agent.tracker.search_telemetry.len();
         if search_total <= MAX_SAMPLES {

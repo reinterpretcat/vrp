@@ -1,6 +1,6 @@
 use super::*;
 use crate::example::{VectorContext, VectorObjective, VectorSolution};
-use crate::helpers::example::create_default_heuristic_context;
+use crate::helpers::example::{create_default_heuristic_context, create_heuristic_context_with_solutions};
 use std::ops::Range;
 use std::time::Duration;
 
@@ -11,7 +11,7 @@ fn can_apply_prior_mean_policy() {
 }
 
 #[test]
-fn can_estimate_median() {
+fn can_estimate_duration_median_in_microseconds() {
     struct DelayableHeuristicOperator {
         delay_range: Range<i32>,
         random: Arc<dyn Random>,
@@ -59,7 +59,56 @@ fn can_estimate_median() {
     heuristic.search_many(&create_default_heuristic_context(), (0..100).map(|_| &solution).collect());
 
     let median = heuristic.agent.tracker.approx_median().expect("cannot be None");
-    assert!(median > 0);
+    assert!(median >= 1_000);
+}
+
+#[test]
+fn can_penalize_sub_millisecond_failure() {
+    let duration = get_duration_micros(Duration::from_micros(500));
+    let reward = -PENALTY_SCALE * get_duration_ratio(duration, Some(1_000));
+
+    assert_eq!(duration, 500);
+    assert_eq!(reward, -0.05);
+}
+
+#[test]
+fn can_keep_duration_ratio_independent_of_unit_scale() {
+    assert_eq!(get_duration_ratio(500, Some(1_000)), get_duration_ratio(500_000, Some(1_000_000)));
+}
+
+#[test]
+fn can_avoid_zero_duration_reward() {
+    assert_eq!(get_duration_micros(Duration::ZERO), 1);
+    assert_eq!(get_duration_ratio(0, Some(10)), 0.1);
+}
+
+#[test]
+fn can_penalize_fast_noop_through_search_action() {
+    struct Noop;
+
+    impl HeuristicSearchOperator for Noop {
+        type Context = VectorContext;
+        type Objective = VectorObjective;
+        type Solution = VectorSolution;
+
+        fn search(&self, _: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+            solution.deep_copy()
+        }
+    }
+
+    let heuristic_ctx = create_heuristic_context_with_solutions(vec![vec![0.0, 0.0]]);
+    let solution = VectorSolution::new(vec![0.0, 0.0], 1.0, vec![0.0, 0.0]);
+    let action = SearchAction { operator: Arc::new(Noop), operator_name: "noop".to_string() };
+    let feedback = action.take(SearchContext {
+        heuristic_ctx: &heuristic_ctx,
+        from: SearchState::BestKnown,
+        slot_idx: 0,
+        solution: &solution,
+        approx_median: Some(1_000),
+    });
+
+    assert!(feedback.sample.reward < 0.0);
+    assert!(feedback.sample.duration > 0);
 }
 
 parameterized_test! {can_compute_relative_distance, (fitness_a, fitness_b, expected), {
@@ -97,6 +146,7 @@ fn can_display_heuristic_info() {
     // Should contain TELEMETRY section when experimental mode is enabled
     if is_experimental {
         assert!(formatted.contains("TELEMETRY"));
+        assert!(formatted.contains("duration_us"));
     } else {
         // When not experimental, should be empty or minimal
         assert!(formatted.is_empty() || !formatted.contains("thompson_diagnostics:"));

@@ -32,6 +32,10 @@ mod actual {
             (Instant::now() - self.start).as_millis()
         }
 
+        pub fn elapsed_duration(&self) -> Duration {
+            Instant::now() - self.start
+        }
+
         pub fn measure_duration<R, F: FnOnce() -> R>(action_fn: F) -> (R, Duration) {
             measure_duration(action_fn)
         }
@@ -75,6 +79,10 @@ mod actual {
             (now() - self.start) as u128
         }
 
+        pub fn elapsed_duration(&self) -> Duration {
+            Duration::from_secs_f64(((now() - self.start) / 1000.0).max(0.0))
+        }
+
         pub fn measure_duration<R, F: FnOnce() -> R>(action_fn: F) -> (R, Duration) {
             measure_duration(action_fn)
         }
@@ -99,7 +107,7 @@ mod actual {
 fn measure_duration<R, F: FnOnce() -> R>(action_fn: F) -> (R, Duration) {
     let start = Timer::start();
     let result = action_fn();
-    let elapsed = start.elapsed_millis();
+    let elapsed = start.elapsed_duration();
 
-    (result, Duration::from_millis(elapsed as u64))
+    (result, elapsed)
 }
