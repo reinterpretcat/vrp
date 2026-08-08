@@ -244,6 +244,7 @@ fn analyze_insertion_in_route(
     route_costs: InsertionCost,
     init: SingleContext,
 ) -> SingleContext {
+    let start_time = route_ctx.route().tour.start().map_or(Timestamp::default(), |act| act.schedule.departure);
     let mut analyze_leg_insertion = |leg: Leg<'_>, init| {
         analyze_insertion_in_route_leg(
             eval_ctx,
@@ -252,7 +253,8 @@ fn analyze_insertion_in_route(
             leg,
             single,
             target,
-            route_costs.clone(),
+            &route_costs,
+            start_time,
             init,
         )
     };
@@ -289,7 +291,8 @@ fn analyze_insertion_in_route_leg(
     leg: Leg,
     single: &Single,
     target: &mut Activity,
-    route_costs: InsertionCost,
+    route_costs: &InsertionCost,
+    start_time: Timestamp,
     mut single_ctx: SingleContext,
 ) -> ControlFlow<SingleContext, SingleContext> {
     let (items, index) = leg;
@@ -298,8 +301,6 @@ fn analyze_insertion_in_route_leg(
         [prev, next] => (prev, Some(next)),
         _ => return ControlFlow::Break(single_ctx),
     };
-    let start_time = route_ctx.route().tour.start().map_or(Timestamp::default(), |act| act.schedule.departure);
-
     // iterate over places and times to find the next best insertion point
     for (place_idx, place) in single.places.iter().enumerate() {
         target.place.idx = place_idx;
@@ -325,7 +326,7 @@ fn analyze_insertion_in_route_leg(
                 }
             }
 
-            let costs = eval_ctx.goal.estimate(&move_ctx) + &route_costs;
+            let costs = eval_ctx.goal.estimate(&move_ctx) + route_costs;
             let other_costs = single_ctx.cost.as_ref().unwrap_or(InsertionCost::max_value());
 
             match eval_ctx.result_selector.select_cost(&costs, other_costs) {

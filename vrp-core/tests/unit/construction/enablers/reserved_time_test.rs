@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::enablers::LatestArrivalActivityState;
+use crate::construction::enablers::ScheduleActivityState;
 use crate::construction::features::TransportFeatureBuilder;
 use crate::construction::heuristics::*;
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
@@ -163,7 +163,7 @@ fn can_update_state_for_reserved_time_impl(
 
     let schedules = get_schedules(&route_ctx);
     let late_arrival_result = (0..route_ctx.route().tour.total())
-        .map(|activity_idx| route_ctx.state().get_latest_arrival_at(activity_idx).copied())
+        .map(|activity_idx| route_ctx.state().get_schedule_at(activity_idx).map(|state| state.latest_arrival))
         .collect::<Vec<_>>();
 
     assert_eq!(schedules, expected_schedules);

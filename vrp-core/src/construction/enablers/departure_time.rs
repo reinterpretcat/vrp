@@ -70,7 +70,7 @@ fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
     let first = route_ctx.route().tour.get(1)?;
     let start = route_ctx.route().tour.start()?;
 
-    let max_change = *route_ctx.state().get_latest_arrival_at(1)? - first.schedule.arrival;
+    let max_change = route_ctx.state().get_schedule_at(1)?.latest_arrival - first.schedule.arrival;
 
     let earliest_allowed_departure =
         route_ctx.route().actor.detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(start.place.time.start);

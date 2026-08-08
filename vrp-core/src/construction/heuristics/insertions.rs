@@ -141,6 +141,18 @@ impl PartialOrd for InsertionCost {
 
 impl Ord for InsertionCost {
     fn cmp(&self, other: &Self) -> Ordering {
+        if self.data.len() == other.data.len() {
+            return self
+                .data
+                .iter()
+                .zip(other.data.iter())
+                .try_fold(Ordering::Equal, |acc, (left, right)| match left.total_cmp(right) {
+                    Ordering::Equal => ControlFlow::Continue(acc),
+                    result => ControlFlow::Break(result),
+                })
+                .unwrap_value();
+        }
+
         let size = self.data.len().max(other.data.len());
         (0..size)
             .try_fold(Ordering::Equal, |acc, idx| {

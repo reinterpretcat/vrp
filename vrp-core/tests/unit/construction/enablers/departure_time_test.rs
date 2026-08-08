@@ -102,7 +102,10 @@ fn can_recede_departure_time_impl(
         .build();
     let (route, state) = route_ctx.as_mut();
     route.tour.get_mut(0).unwrap().schedule.departure = start_departure;
-    state.set_latest_arrival_states(vec![0., latest_first_arrival]);
+    state.set_schedule_states(vec![
+        ActivityScheduleState::default(),
+        ActivityScheduleState { latest_arrival: latest_first_arrival, ..ActivityScheduleState::default() },
+    ]);
 
     if let Some((total, limit)) = total_duration_limit {
         state.set_total_duration(total);

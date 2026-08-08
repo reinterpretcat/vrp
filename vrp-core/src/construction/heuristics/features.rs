@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/construction/heuristics/features_test.rs"]
 mod features_test;
 
-use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState, WaitingTimeActivityState};
+use crate::construction::enablers::{ScheduleActivityState, TotalDistanceTourState, TotalDurationTourState};
 use crate::construction::features::MaxVehicleLoadTourState;
 use crate::construction::heuristics::InsertionContext;
 use crate::models::common::{Distance, Location};
@@ -110,7 +110,7 @@ pub(crate) fn get_rosomaxa_solution_features(insertion_ctx: &InsertionContext) -
         customer_count.add(route.tour.job_count() as Float);
 
         if route.tour.get(1).is_some() {
-            waiting.add(state.get_waiting_time_at(1).copied().unwrap_or_default());
+            waiting.add(state.get_schedule_at(1).map(|state| state.waiting_time).unwrap_or_default());
         }
 
         let route_longest_customer_distance = route.tour.legs().fold(0., |acc, (activities, _)| match activities {
@@ -237,16 +237,23 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Vec<Vec<us
 
         indexed_route_clusters.iter().for_each(|(inner_idx, inner_clusters)| {
             if *outer_idx != *inner_idx {
+                let inner_profile = &routes[*inner_idx].route().actor.vehicle.profile;
+                let outer_profile = &routes[*outer_idx].route().actor.vehicle.profile;
+
                 // get a sum of distances between all pairs of sampled locations
                 let pair_distance = outer_clusters
                     .iter()
                     .flat_map(|outer| inner_clusters.iter().map(move |inner| (inner, outer)))
                     .map(|(&o, &i)| {
                         // NOTE use outer and inner route profiles to estimate distance
-                        let inner_profile = &routes[*inner_idx].route().actor.vehicle.profile;
-                        let outer_profile = &routes[*outer_idx].route().actor.vehicle.profile;
-                        transport.distance_approx(inner_profile, o, i).max(0.)
-                            + transport.distance_approx(outer_profile, o, i).max(0.)
+                        let inner_distance = transport.distance_approx(inner_profile, o, i).max(0.);
+                        let outer_distance = if inner_profile.index == outer_profile.index {
+                            inner_distance
+                        } else {
+                            transport.distance_approx(outer_profile, o, i).max(0.)
+                        };
+
+                        inner_distance + outer_distance
                     })
                     .sum::<Distance>()
                     / 2.;
