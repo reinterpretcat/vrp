@@ -6,7 +6,7 @@ use super::*;
 use crate::Timer;
 use crate::algorithms::math::RemedianUsize;
 use crate::algorithms::rl::{SlotAction, SlotFeedback, SlotMachine};
-use crate::utils::{DefaultDistributionSampler, random_argmax};
+use crate::utils::{DefaultDistributionSampler, ParallelismScope, random_argmax};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::Formatter;
@@ -55,11 +55,8 @@ where
     }
 
     fn search_many(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
-        let feedbacks = parallel_into_collect(solutions.iter().enumerate().collect(), |(idx, solution)| {
-            heuristic_ctx
-                .environment()
-                .parallelism
-                .thread_pool_execute(idx, || self.agent.search(heuristic_ctx, solution))
+        let feedbacks = parallel_into_collect(solutions, ParallelismScope::Coarse, |solution| {
+            self.agent.search(heuristic_ctx, solution)
         });
 
         let generation = heuristic_ctx.statistics().generation;

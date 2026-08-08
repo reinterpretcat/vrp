@@ -7,7 +7,7 @@ mod static_selective;
 pub use self::static_selective::*;
 
 use crate::prelude::*;
-use crate::utils::parallel_into_collect;
+use crate::utils::{ParallelismScope, parallel_into_collect};
 use std::fmt::Display;
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -104,7 +104,7 @@ where
 }
 
 /// For each solution, picks an operator with equal probability and runs diversify once.
-/// Uses parallelism setting to run diversification on thread pool.
+/// Runs diversification concurrently on the shared scheduler.
 fn diversify_solutions<C, O, S>(
     heuristic_ctx: &C,
     solutions: Vec<&S>,
@@ -122,11 +122,8 @@ where
 
     let solutions = solutions.into_iter().filter(|_| random.is_hit(probability)).collect::<Vec<_>>();
 
-    parallel_into_collect(solutions.iter().enumerate().collect(), |(solution_idx, solution)| {
-        heuristic_ctx
-            .environment()
-            .parallelism
-            .thread_pool_execute(solution_idx, || diversify_solution(heuristic_ctx, solution, operators))
+    parallel_into_collect(solutions, ParallelismScope::Coarse, |solution| {
+        diversify_solution(heuristic_ctx, solution, operators)
     })
     .into_iter()
     .flatten()

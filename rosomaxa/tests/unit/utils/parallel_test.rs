@@ -35,7 +35,8 @@ fn can_create_cartesian_product() {
     let left = [1, 2];
     let right = ['a', 'b', 'c'];
 
-    let result = parallel_collect(cartesian_product(&left, &right), |(left, right)| (*left, *right));
+    let result =
+        parallel_collect(cartesian_product(&left, &right, ParallelismPolicy::Default), |(left, right)| (*left, *right));
 
     assert_eq!(result, vec![(1, 'a'), (1, 'b'), (1, 'c'), (2, 'a'), (2, 'b'), (2, 'c')]);
 }
@@ -45,7 +46,15 @@ fn can_create_empty_cartesian_product() {
     let left = [1, 2];
     let right: [char; 0] = [];
 
-    let result = parallel_collect(cartesian_product(&left, &right), |(left, right)| (*left, *right));
+    let result = parallel_collect(cartesian_product(&left, &right, ParallelismPolicy::adaptive(4)), |(left, right)| {
+        (*left, *right)
+    });
 
     assert!(result.is_empty());
+}
+
+#[test]
+#[should_panic(expected = "tasks per worker must be greater than zero")]
+fn cannot_create_adaptive_policy_without_tasks() {
+    ParallelismPolicy::adaptive(0);
 }

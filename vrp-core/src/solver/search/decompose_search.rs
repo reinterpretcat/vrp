@@ -7,7 +7,7 @@ use crate::models::GoalContext;
 use crate::solver::search::create_environment_with_custom_quota;
 use crate::solver::*;
 use crate::utils::Either;
-use rosomaxa::utils::parallel_into_collect;
+use rosomaxa::utils::{ParallelismScope, parallel_into_collect};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::iter::{empty, once};
@@ -64,20 +64,22 @@ impl DecomposeSearch {
         });
 
         // do actual refinement independently for each decomposed context
-        let decomposed = parallel_into_collect(decomposed, |(mut refinement_ctx, route_indices)| {
-            let actual_repeat_count = get_repeat_count(self.repeat_count, refinement_ctx.environment.random.as_ref());
+        let decomposed =
+            parallel_into_collect(decomposed, ParallelismScope::Coarse, |(mut refinement_ctx, route_indices)| {
+                let actual_repeat_count =
+                    get_repeat_count(self.repeat_count, refinement_ctx.environment.random.as_ref());
 
-            let _ = (0..actual_repeat_count).try_for_each(|_| {
-                let insertion_ctx = refinement_ctx.selected().next().expect(GREEDY_ERROR);
-                let insertion_ctx = self.inner_search.search(&refinement_ctx, insertion_ctx);
-                let is_quota_reached =
-                    refinement_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached());
-                refinement_ctx.add_solution(insertion_ctx);
+                let _ = (0..actual_repeat_count).try_for_each(|_| {
+                    let insertion_ctx = refinement_ctx.selected().next().expect(GREEDY_ERROR);
+                    let insertion_ctx = self.inner_search.search(&refinement_ctx, insertion_ctx);
+                    let is_quota_reached =
+                        refinement_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached());
+                    refinement_ctx.add_solution(insertion_ctx);
 
-                if is_quota_reached { Err(()) } else { Ok(()) }
+                    if is_quota_reached { Err(()) } else { Ok(()) }
+                });
+                (refinement_ctx, route_indices)
             });
-            (refinement_ctx, route_indices)
-        });
 
         // get new and old parts and detect if there was any improvement in any part
         let ((new_parts, old_parts), improvements): ((Vec<_>, Vec<_>), Vec<_>) =

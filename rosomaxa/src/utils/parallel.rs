@@ -2,7 +2,6 @@
 #[path = "../../tests/unit/utils/parallel_test.rs"]
 mod parallel_test;
 
-pub use self::actual::ThreadPool;
 pub use self::actual::cartesian_product;
 pub use self::actual::fold_reduce;
 pub use self::actual::map_reduce;
@@ -10,47 +9,88 @@ pub use self::actual::parallel_collect;
 pub use self::actual::parallel_foreach_mut;
 pub use self::actual::parallel_into_collect;
 
+/// Specifies whether mapped items represent local work or coarse operations which can launch
+/// nested parallel work.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ParallelismScope {
+    /// Does not contribute mapped items to the coarse parallelism estimate.
+    #[default]
+    Local,
+    /// Treats each mapped item as an independent coarse operation.
+    Coarse,
+}
+
+/// Specifies how a fine-grained indexed iterator should be split.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ParallelismPolicy {
+    /// Uses Rayon's default splitting strategy.
+    #[default]
+    Default,
+    /// Adapts the minimum chunk size to the active pool and enclosing coarse operations.
+    Adaptive(std::num::NonZeroUsize),
+}
+
+impl ParallelismPolicy {
+    /// Creates an adaptive policy with the desired amount of stealable fine-grained tasks per
+    /// worker across all coarse operations.
+    pub const fn adaptive(tasks_per_worker: usize) -> Self {
+        match std::num::NonZeroUsize::new(tasks_per_worker) {
+            Some(tasks_per_worker) => Self::Adaptive(tasks_per_worker),
+            None => panic!("tasks per worker must be greater than zero"),
+        }
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 mod actual {
+    use super::{ParallelismPolicy, ParallelismScope};
     use rayon::prelude::*;
-    use rayon::{ThreadPool as RayonThreadPool, ThreadPoolBuilder};
+    use std::cell::Cell;
+    use std::sync::OnceLock;
 
-    /// Represents a thread pool wrapper.
-    pub struct ThreadPool {
-        inner: RayonThreadPool,
+    thread_local! {
+        static COARSE_PARALLELISM: Cell<usize> = const { Cell::new(1) };
     }
 
-    impl ThreadPool {
-        /// Creates a new instance of `ThreadPool`
-        pub fn new(num_threads: usize) -> Self {
-            Self {
-                inner: ThreadPoolBuilder::new().num_threads(num_threads).build().expect("cannot build a thread pool"),
-            }
-        }
+    static PHYSICAL_CPUS: OnceLock<usize> = OnceLock::new();
 
-        /// Executes given operation on thread pool.
-        pub fn execute<OP, R>(&self, op: OP) -> R
-        where
-            OP: FnOnce() -> R + Send,
-            R: Send,
-        {
-            self.inner.install(op)
+    struct CoarseParallelismGuard(usize);
+
+    impl CoarseParallelismGuard {
+        fn set(value: usize) -> Self {
+            Self(COARSE_PARALLELISM.replace(value))
         }
     }
 
-    /// Creates a cartesian product returning a parallel iterator.
-    pub fn cartesian_product<'a, A, B>(a: &'a [A], b: &'a [B]) -> impl IntoParallelIterator<Item = (&'a A, &'a B)>
+    impl Drop for CoarseParallelismGuard {
+        fn drop(&mut self) {
+            COARSE_PARALLELISM.set(self.0);
+        }
+    }
+
+    /// Creates a cartesian product returning a parallel iterator using the given splitting policy.
+    pub fn cartesian_product<'a, A, B>(
+        a: &'a [A],
+        b: &'a [B],
+        policy: ParallelismPolicy,
+    ) -> impl IntoParallelIterator<Item = (&'a A, &'a B)>
     where
         A: Send + Sync + 'a,
         B: Send + Sync + 'a,
     {
         let b_len = b.len();
         let product_len = a.len().checked_mul(b_len).expect("cartesian product size overflow");
+        let min_len = match policy {
+            ParallelismPolicy::Default => 1,
+            ParallelismPolicy::Adaptive(tasks_per_worker) => {
+                get_fine_grained_min_len(product_len, tasks_per_worker.get())
+            }
+        };
 
         // A single indexed range lets rayon split the complete product directly. Nested parallel
         // iterators create a task tree per item in `a`, which adds work-stealing overhead when the
         // caller itself is already running multiple searches in parallel.
-        (0..product_len).into_par_iter().map(move |idx| (&a[idx / b_len], &b[idx % b_len]))
+        (0..product_len).into_par_iter().with_min_len(min_len.max(1)).map(move |idx| (&a[idx / b_len], &b[idx % b_len]))
     }
 
     /// Maps collection and collects results into vector in parallel.
@@ -64,14 +104,25 @@ mod actual {
         source.into_par_iter().map(map_op).collect()
     }
 
-    /// Maps collection and collects results into vector in parallel.
-    pub fn parallel_into_collect<T, F, R>(source: Vec<T>, map_op: F) -> Vec<R>
+    /// Maps collection and collects results into vector in parallel using the given scope.
+    pub fn parallel_into_collect<T, F, R>(source: Vec<T>, scope: ParallelismScope, map_op: F) -> Vec<R>
     where
         T: Send + Sync,
         F: Fn(T) -> R + Sync + Send,
         R: Send,
     {
-        source.into_par_iter().map(map_op).collect()
+        let coarse_parallelism = match scope {
+            ParallelismScope::Local => None,
+            ParallelismScope::Coarse => Some(COARSE_PARALLELISM.get().saturating_mul(source.len()).max(1)),
+        };
+
+        source
+            .into_par_iter()
+            .map(|item| {
+                let _guard = coarse_parallelism.map(CoarseParallelismGuard::set);
+                map_op(item)
+            })
+            .collect()
     }
 
     /// Performs map reduce operations in parallel.
@@ -108,31 +159,36 @@ mod actual {
     {
         source.par_iter_mut().for_each(action)
     }
+
+    /// Gets a minimum chunk size for fine-grained work nested under coarse parallel work.
+    fn get_fine_grained_min_len(source_len: usize, tasks_per_worker: usize) -> usize {
+        let worker_count = rayon::current_num_threads();
+        let physical_cpus = *PHYSICAL_CPUS.get_or_init(|| num_cpus::get_physical().max(1));
+
+        // Rayon's adaptive splitting performs well when workers map to physical cores. A wider
+        // logical/SMT pool can over-split every inner iterator while several outer searches are
+        // already active. Keep a small stealing reserve per worker across the complete coarse level.
+        if worker_count <= physical_cpus {
+            return 1;
+        }
+
+        let coarse_parallelism = COARSE_PARALLELISM.get().max(1);
+        let max_tasks = worker_count.saturating_mul(tasks_per_worker).div_ceil(coarse_parallelism).max(1);
+
+        source_len.div_ceil(max_tasks).max(1)
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
 mod actual {
-    /// Represents a thread pool wrapper.
-    pub struct ThreadPool;
+    use super::{ParallelismPolicy, ParallelismScope};
 
-    impl ThreadPool {
-        /// Creates a new instance of `ThreadPool`.
-        pub fn new(_num_threads: usize) -> Self {
-            Self {}
-        }
-
-        /// Executes given operation on thread pool (dummy).
-        pub fn execute<OP, R>(&self, op: OP) -> R
-        where
-            OP: FnOnce() -> R + Send,
-            R: Send,
-        {
-            op()
-        }
-    }
-
-    /// Creates a cartesian product returning an iterator.
-    pub fn cartesian_product<'a, A, B>(a: &'a [A], b: &'a [B]) -> impl Iterator<Item = (&'a A, &'a B)>
+    /// Creates a cartesian product returning an iterator. Splitting policy is ignored on wasm.
+    pub fn cartesian_product<'a, A, B>(
+        a: &'a [A],
+        b: &'a [B],
+        _policy: ParallelismPolicy,
+    ) -> impl Iterator<Item = (&'a A, &'a B)>
     where
         A: Send + Sync + 'a,
         B: Send + Sync + 'a,
@@ -150,8 +206,8 @@ mod actual {
         source.iter().map(map_op).collect()
     }
 
-    /// Map collections and collects results into vector synchronously.
-    pub fn parallel_into_collect<T, F, R>(source: Vec<T>, map_op: F) -> Vec<R>
+    /// Map collections and collects results into vector synchronously. Scope is ignored on wasm.
+    pub fn parallel_into_collect<T, F, R>(source: Vec<T>, _scope: ParallelismScope, map_op: F) -> Vec<R>
     where
         T: Send + Sync,
         F: Fn(T) -> R + Sync + Send,

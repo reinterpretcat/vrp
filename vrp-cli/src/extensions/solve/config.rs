@@ -18,7 +18,6 @@ use vrp_core::prelude::*;
 use vrp_core::rosomaxa::evolution::{InitialOperator, TelemetryMode};
 use vrp_core::rosomaxa::get_default_selection_size;
 use vrp_core::rosomaxa::prelude::*;
-use vrp_core::rosomaxa::utils::*;
 use vrp_core::solver::RecreateInitialOperator;
 use vrp_core::solver::search::*;
 use vrp_core::solver::*;
@@ -379,25 +378,13 @@ pub struct MetricsConfig {
 /// An environment specific configuration.
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct EnvironmentConfig {
-    /// Specifies a data parallelism configuration.
-    pub parallelism: Option<ParallelismConfig>,
-
     /// Specifies a logging configuration.
     pub logging: Option<LoggingConfig>,
 
     /// Specifies experimental behavior flag.
     pub is_experimental: Option<bool>,
-}
-
-/// Data parallelism configuration.
-#[derive(Clone, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct ParallelismConfig {
-    /// Number of thread pools.
-    pub num_thread_pools: usize,
-    /// Specifies amount of threads in each thread pool.
-    pub threads_per_pool: usize,
 }
 
 /// Global logging configuration.
@@ -761,11 +748,6 @@ fn configure_from_environment(
     max_time: Option<usize>,
 ) -> Arc<Environment> {
     let mut environment = Environment::new_with_time_quota(max_time);
-
-    if let Some(parallelism) = environment_config.as_ref().and_then(|c| c.parallelism.as_ref()) {
-        // TODO validate parameters
-        environment.parallelism = Parallelism::new(parallelism.num_thread_pools, parallelism.threads_per_pool);
-    }
 
     if let Some(logging) = environment_config.as_ref().and_then(|c| c.logging.as_ref()) {
         environment.logger = match (logging.enabled, logging.prefix.clone()) {

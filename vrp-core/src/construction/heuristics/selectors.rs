@@ -11,6 +11,8 @@ use std::cmp::Ordering;
 use std::ops::ControlFlow;
 use std::sync::Arc;
 
+const INSERTION_EVALUATION_TASKS_PER_WORKER: usize = 4;
+
 /// On each insertion step, selects a list of routes where jobs can be inserted.
 /// It is up to implementation to decide whether list consists of all possible routes or just some subset.
 pub trait RouteSelector: Send + Sync {
@@ -153,7 +155,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         let goal = &insertion_ctx.problem.goal;
 
         fold_reduce(
-            cartesian_product(routes, jobs),
+            cartesian_product(routes, jobs, ParallelismPolicy::adaptive(INSERTION_EVALUATION_TASKS_PER_WORKER)),
             InsertionResult::make_failure,
             |acc, (route_ctx, job)| {
                 let eval_ctx = EvaluationContext { goal, job, leg_selection, result_selector };

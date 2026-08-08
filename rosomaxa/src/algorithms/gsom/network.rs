@@ -303,7 +303,7 @@ where
 
     /// Trains network on given input data.
     pub(super) fn train_on_data(&mut self, context: &C, data: Vec<I>, is_new_input: bool) {
-        let nodes_data = parallel_into_collect(data, |input| {
+        let nodes_data = parallel_into_collect(data, ParallelismScope::Local, |input| {
             let (bmu, error) = self.find_bmu(&input);
             (bmu.coordinate, error, input)
         });

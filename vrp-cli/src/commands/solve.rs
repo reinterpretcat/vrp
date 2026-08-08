@@ -35,7 +35,6 @@ const CONFIG_ARG_NAME: &str = "config";
 const LOG_ARG_NAME: &str = "log";
 const CHECK_ARG_NAME: &str = "check";
 const SEARCH_MODE_ARG_NAME: &str = "search-mode";
-const PARALLELISM_ARG_NAME: &str = "parallelism";
 const HEURISTIC_ARG_NAME: &str = "heuristic";
 const EXPERIMENTAL_ARG_NAME: &str = "experimental";
 const ROUNDED_ARG_NAME: &str = "round";
@@ -145,13 +144,6 @@ pub fn get_solve_app() -> Command {
                 .required(false)
                 .value_parser(["broad", "deep"])
                 .default_value("broad"),
-        )
-        .arg(
-            Arg::new(PARALLELISM_ARG_NAME)
-                .help("Specifies data parallelism settings in format \"num_thread_pools,threads_per_pool\"")
-                .long(PARALLELISM_ARG_NAME)
-                .short('p')
-                .required(false)
         )
         .arg(
             Arg::new(HEURISTIC_ARG_NAME)
@@ -372,30 +364,7 @@ fn get_environment(matches: &ArgMatches) -> GenericResult<Arc<Environment>> {
     let quota = Some(create_interruption_quota(max_time));
     let is_experimental = matches.get_one::<bool>(EXPERIMENTAL_ARG_NAME).copied().unwrap_or(false);
 
-    matches
-        .get_one::<String>(PARALLELISM_ARG_NAME)
-        .map(|arg| {
-            if let [num_thread_pools, threads_per_pool] =
-                arg.split(',').filter_map(|line| line.parse::<usize>().ok()).collect::<Vec<_>>().as_slice()
-            {
-                let parallelism = Parallelism::new(*num_thread_pools, *threads_per_pool);
-                let logger: InfoLogger = if matches.get_one::<bool>(LOG_ARG_NAME).copied().unwrap_or(false) {
-                    Arc::new(|msg: &str| println!("{msg}"))
-                } else {
-                    Arc::new(|_: &str| {})
-                };
-                Ok(Arc::new(Environment::new(
-                    Arc::new(DefaultRandom::default()),
-                    quota.clone(),
-                    parallelism,
-                    logger,
-                    is_experimental,
-                )))
-            } else {
-                Err("cannot parse parallelism parameter".into())
-            }
-        })
-        .unwrap_or_else(|| Ok(Arc::new(Environment { quota, is_experimental, ..Environment::default() })))
+    Ok(Arc::new(Environment { quota, is_experimental, ..Environment::default() }))
 }
 
 fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {

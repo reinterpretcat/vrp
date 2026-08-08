@@ -6,7 +6,7 @@ use super::*;
 use crate::algorithms::gsom::*;
 use crate::algorithms::math::relative_distance;
 use crate::population::elitism::{Alternative, DedupFn};
-use crate::utils::{Environment, Random, parallel_into_collect};
+use crate::utils::{Environment, ParallelismScope, Random, parallel_into_collect};
 use rand::prelude::SliceRandom;
 use std::f64::consts::{E, PI};
 use std::fmt::Formatter;
@@ -34,8 +34,7 @@ pub struct RosomaxaConfig {
 }
 
 impl RosomaxaConfig {
-    /// Creates an instance of `RosomaxaConfig` using default parameters, but taking into
-    /// account data parallelism settings.
+    /// Creates an instance of `RosomaxaConfig` using default parameters and the given selection size.
     pub fn new_with_defaults(selection_size: usize) -> Self {
         Self {
             initial_size: 16,
@@ -113,7 +112,9 @@ where
             }
             RosomaxaPhases::Exploration { network, statistics, .. } => {
                 self.external_ctx.on_change(individuals.as_slice());
-                let data = parallel_into_collect(individuals, |i| init_individual(&self.external_ctx, i));
+                let data = parallel_into_collect(individuals, ParallelismScope::Local, |i| {
+                    init_individual(&self.external_ctx, i)
+                });
                 network.store_batch(&self.external_ctx, data, statistics.generation);
             }
             RosomaxaPhases::Exploitation { .. } => {}
@@ -373,7 +374,7 @@ where
         config: &RosomaxaConfig,
         individuals: Vec<S>,
     ) -> GenericResult<IndividualNetwork<C, O, S>> {
-        let inputs_vec = parallel_into_collect(individuals, |i| init_individual(context, i));
+        let inputs_vec = parallel_into_collect(individuals, ParallelismScope::Local, |i| init_individual(context, i));
 
         Network::new(
             context,

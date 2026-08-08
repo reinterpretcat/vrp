@@ -362,10 +362,6 @@
     }
   },
   "environment": {
-    "parallelism": {
-      "numThreadPools": 6,
-      "threadsPerPool": 8
-    },
     "logging": {
       "enabled": true,
       "prefix": "[config.full]"

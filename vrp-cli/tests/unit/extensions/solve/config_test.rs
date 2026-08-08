@@ -1,5 +1,6 @@
 use super::*;
 use std::fs::File;
+use std::io::Cursor;
 use vrp_core::models::examples::create_example_problem;
 
 #[test]
@@ -109,10 +110,6 @@ fn can_read_full_config() {
     let environment = config.environment.expect("no environment config");
     assert_eq!(environment.is_experimental, Some(false));
 
-    let parallelism = environment.parallelism.expect("no parallelism config");
-    assert_eq!(parallelism.num_thread_pools, 6);
-    assert_eq!(parallelism.threads_per_pool, 8);
-
     let logging = environment.logging.expect("no logging config");
     assert!(logging.enabled);
     assert_eq!(logging.prefix, Some("[config.full]".to_string()));
@@ -129,6 +126,15 @@ fn can_create_default_config() {
     assert!(config.hyper.is_none());
     assert!(config.termination.is_none());
     assert!(config.telemetry.is_none());
+}
+
+#[test]
+fn cannot_read_removed_parallelism_config() {
+    let config = r#"{"environment":{"parallelism":{"numThreadPools":6,"threadsPerPool":8}}}"#;
+
+    let error = read_config(BufReader::new(Cursor::new(config))).unwrap_err();
+
+    assert!(error.to_string().contains("unknown field `parallelism`"));
 }
 
 #[test]
