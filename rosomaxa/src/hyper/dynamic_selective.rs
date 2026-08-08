@@ -111,7 +111,7 @@ const JACKPOT_BASE: Float = 2.0;
 /// At 1.0, jackpots are guaranteed to be at least 2x more valuable than any diverse improvement.
 const DIVERSE_CAP: Float = 1.0;
 
-/// Minimum reward for any improvement (prevents near-zero rewards).
+/// Minimum reward for any improvement above numerical precision (prevents near-zero rewards).
 /// Set high enough to be a meaningful positive signal.
 const MIN_REWARD: Float = 0.1;
 
@@ -371,7 +371,11 @@ where
         // ln_1p(x * 1000) transforms: 0.001 -> ~0.69, 0.01 -> ~2.4, 0.1 -> ~4.6
         let improvement_distance = get_relative_distance(new_solution, initial_solution);
         let magnitude = (improvement_distance * 1000.0).ln_1p();
-        JACKPOT_BASE + magnitude
+        // Floating point aggregation can create a nominal new best without measurable progress.
+        // Scale the jackpot down around numerical precision, but keep it for objectives which do not expose distance.
+        let significance = get_numerical_significance(improvement_distance);
+
+        (JACKPOT_BASE + magnitude) * significance
     } else if is_improvement {
         // DIVERSE IMPROVEMENT: Better than starting point, but not global best.
         // Use tanh for soft saturation - large improvements asymptote to DIVERSE_CAP,
@@ -385,7 +389,8 @@ where
         let proximity_factor = (1.0 - gap_to_best).powi(2);
 
         // Base utility: soft-capped and bounded [MIN_REWARD, DIVERSE_CAP].
-        let base_utility = (DIVERSE_CAP * saturated * proximity_factor).clamp(MIN_REWARD, DIVERSE_CAP);
+        let base_utility = (DIVERSE_CAP * saturated * proximity_factor).clamp(MIN_REWARD, DIVERSE_CAP)
+            * get_numerical_significance(improvement_distance);
 
         // Apply efficiency modulation: fast improvements get bonus, slow ones get penalty.
         let duration_ratio = get_duration_ratio(duration, approx_median);
@@ -414,6 +419,10 @@ where
 
 fn get_duration_micros(duration: std::time::Duration) -> usize {
     (duration.as_micros().min(usize::MAX as u128) as usize).max(1)
+}
+
+fn get_numerical_significance(distance: Float) -> Float {
+    if distance == 0. { 1. } else { (distance / Float::EPSILON.sqrt()).clamp(0., 1.) }
 }
 
 fn get_duration_ratio(duration: usize, approx_median: Option<usize>) -> Float {

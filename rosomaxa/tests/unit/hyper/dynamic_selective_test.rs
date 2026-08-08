@@ -111,6 +111,28 @@ fn can_penalize_fast_noop_through_search_action() {
     assert!(feedback.sample.duration > 0);
 }
 
+#[test]
+fn can_ignore_numerical_noise_in_new_best_reward() {
+    let heuristic_ctx = create_heuristic_context_with_solutions(vec![vec![0., 0.]]);
+    let initial_solution = VectorSolution::new(vec![], 1., vec![]);
+    let new_solution = VectorSolution::new(vec![], 1. - Float::EPSILON, vec![]);
+
+    let reward = compute_reward(&heuristic_ctx, &initial_solution, &new_solution, 500, Some(1_000));
+
+    assert!((0. ..1e-6).contains(&reward));
+}
+
+#[test]
+fn can_ignore_numerical_noise_in_diverse_improvement_reward() {
+    let heuristic_ctx = create_heuristic_context_with_solutions(vec![vec![1., 1.]]);
+    let initial_solution = VectorSolution::new(vec![], 1., vec![]);
+    let new_solution = VectorSolution::new(vec![], 1. - Float::EPSILON, vec![]);
+
+    let reward = compute_reward(&heuristic_ctx, &initial_solution, &new_solution, 500, Some(1_000));
+
+    assert!((0. ..1e-6).contains(&reward));
+}
+
 parameterized_test! {can_compute_relative_distance, (fitness_a, fitness_b, expected), {
     can_compute_relative_distance_impl(fitness_a, fitness_b, expected);
 }}

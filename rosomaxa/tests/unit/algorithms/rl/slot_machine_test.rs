@@ -113,6 +113,17 @@ fn can_adapt_to_reward_regime_change() {
 }
 
 #[test]
+fn can_keep_variance_numerically_stable() {
+    let sampler = DefaultDistributionSampler::new(create_test_random());
+    let mut slot = SlotMachine::new(1., TestAction(sampler.clone()), sampler);
+
+    (0..200_000).for_each(|_| slot.update(&TestFeedback(1.)));
+
+    assert!(slot.get_params().1.is_normal());
+    assert!(slot.sample().is_finite());
+}
+
+#[test]
 fn can_update_normal_inverse_gamma_state() {
     let action_sampler = DefaultDistributionSampler::new(create_test_random());
     let mut slot = SlotMachine::new(1., TestAction(action_sampler), OptimisticDistributionSampler);

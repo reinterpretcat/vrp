@@ -25,6 +25,18 @@ fn can_keep_best_solution() {
 }
 
 #[test]
+fn can_keep_best_solution_from_batch() {
+    let objective = create_example_objective();
+    let mut population = Greedy::<_, _>::new(objective.clone(), 1, None);
+
+    assert!(population.add_all(vec![
+        VectorSolution::new_with_objective(vec![-1., -1.], objective.as_ref()),
+        VectorSolution::new_with_objective(vec![0., 0.], objective.as_ref()),
+    ]));
+    assert_eq!(get_best_fitness(&population), 1.);
+}
+
+#[test]
 fn can_format_empty_population() {
     let population = Greedy::<_, _>::new(create_example_objective(), 1, None);
 

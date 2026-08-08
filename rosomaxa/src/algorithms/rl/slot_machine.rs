@@ -112,7 +112,8 @@ where
         // distribution is defined as Beta / (Alpha - 1). If Alpha <= 1, variance is undefined.
         // Keeping Alpha >= 2.0 ensures numerical stability and prevents division by zero.
         self.alpha = (self.alpha * DECAY_FACTOR).max(2.0);
-        self.beta *= DECAY_FACTOR;
+        // Keep the rate normal so its reciprocal remains finite after long sequences with no residual variance.
+        self.beta = (self.beta * DECAY_FACTOR).max(Float::EPSILON);
 
         // Increment usage counter (purely for human telemetry/diagnostics).
         // We do not decay this value so we can track total lifetime usage.
