@@ -395,22 +395,24 @@ struct RouteCache {
 pub struct RegistryContext {
     registry: Registry,
     /// Index keeps track of actor mapping to empty route prototypes.
-    index: HashMap<Arc<Actor>, Arc<RouteContext>>,
+    index: Arc<HashMap<Arc<Actor>, RouteContext>>,
 }
 
 impl RegistryContext {
     /// Creates a new instance of `RouteRegistry`.
     pub fn new(goal: &GoalContext, registry: Registry) -> Self {
-        let index = registry
-            .all()
-            .map(|actor| {
-                let mut route_ctx = RouteContext::new(actor.clone());
-                // NOTE: need to initialize empty route with states
-                goal.accept_route_state(&mut route_ctx);
+        let index = Arc::new(
+            registry
+                .all()
+                .map(|actor| {
+                    let mut route_ctx = RouteContext::new(actor.clone());
+                    // NOTE: need to initialize empty route with states
+                    goal.accept_route_state(&mut route_ctx);
 
-                (actor, Arc::new(route_ctx))
-            })
-            .collect();
+                    (actor, route_ctx)
+                })
+                .collect(),
+        );
         Self { registry, index }
     }
 
@@ -421,7 +423,7 @@ impl RegistryContext {
 
     /// Returns next route available for insertion.
     pub fn next_route(&self) -> impl Iterator<Item = &RouteContext> {
-        self.registry.next().map(move |actor| self.index[&actor].as_ref())
+        self.registry.next().map(move |actor| &self.index[&actor])
     }
 
     /// Gets route for given actor and marks it as used.
@@ -445,21 +447,12 @@ impl RegistryContext {
 
     /// Creates a deep copy of `RegistryContext`.
     pub fn deep_copy(&self) -> Self {
-        Self {
-            registry: self.registry.deep_copy(),
-            index: self.index.iter().map(|(actor, route_ctx)| (actor.clone(), route_ctx.clone())).collect(),
-        }
+        Self { registry: self.registry.deep_copy(), index: self.index.clone() }
     }
 
     /// Creates a deep sliced copy of `RegistryContext` keeping only specific actors data.
     pub fn deep_slice(&self, filter: impl Fn(&Actor) -> bool) -> Self {
-        let index = self
-            .index
-            .iter()
-            .filter(|(actor, _)| filter(actor.as_ref()))
-            .map(|(actor, route_ctx)| (actor.clone(), route_ctx.clone()))
-            .collect();
-        Self { registry: self.registry.deep_slice(filter), index }
+        Self { registry: self.registry.deep_slice(filter), index: self.index.clone() }
     }
 }
 

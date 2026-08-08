@@ -11,6 +11,8 @@ use std::cmp::Ordering;
 use std::ops::ControlFlow;
 use std::sync::Arc;
 
+// NOTE insertion evaluations have different costs. Keep a few extra tasks per worker to balance
+// the load, but not too many to avoid scheduling overhead. Four worked well across tested workloads.
 const INSERTION_EVALUATION_TASKS_PER_WORKER: usize = 4;
 
 /// On each insertion step, selects a list of routes where jobs can be inserted.

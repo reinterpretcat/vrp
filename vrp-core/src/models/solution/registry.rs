@@ -10,8 +10,8 @@ use std::sync::Arc;
 /// Specifies an entity responsible for providing actors and keeping track of their usage.
 pub struct Registry {
     available: HashMap<usize, HashSet<Arc<Actor>>>,
-    index: HashMap<Arc<Actor>, usize>,
-    all: Vec<Arc<Actor>>,
+    index: Arc<HashMap<Arc<Actor>, usize>>,
+    all: Arc<Vec<Arc<Actor>>>,
     random: Arc<dyn Random>,
 }
 
@@ -24,7 +24,7 @@ impl Registry {
             .flat_map(|(group_id, actors)| actors.iter().map(|a| (a.clone(), *group_id)).collect::<Vec<_>>())
             .collect();
 
-        Self { available: fleet.groups.clone(), index, all: fleet.actors.to_vec(), random }
+        Self { available: fleet.groups.clone(), index: Arc::new(index), all: Arc::new(fleet.actors.to_vec()), random }
     }
 
     /// Removes an actor from the list of available actors.
@@ -79,13 +79,14 @@ impl Registry {
                     (*idx, actors)
                 })
                 .collect(),
-            index: self
-                .index
-                .iter()
-                .filter(|(actor, _)| filter(actor.as_ref()))
-                .map(|(actor, idx)| (actor.clone(), *idx))
-                .collect(),
-            all: self.all.iter().filter(|actor| filter(actor.as_ref())).cloned().collect(),
+            index: Arc::new(
+                self.index
+                    .iter()
+                    .filter(|(actor, _)| filter(actor.as_ref()))
+                    .map(|(actor, idx)| (actor.clone(), *idx))
+                    .collect(),
+            ),
+            all: Arc::new(self.all.iter().filter(|actor| filter(actor.as_ref())).cloned().collect()),
             random: self.random.clone(),
         }
     }

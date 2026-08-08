@@ -1,8 +1,9 @@
-use crate::construction::heuristics::{RouteState, UnassignmentInfo};
+use crate::construction::heuristics::{RegistryContext, RouteState, UnassignmentInfo};
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
-use crate::helpers::models::domain::TestGoalContextBuilder;
-use crate::helpers::models::problem::{TestSingleBuilder, test_fleet};
+use crate::helpers::models::domain::{TestGoalContextBuilder, test_random};
+use crate::helpers::models::problem::{FleetBuilder, TestSingleBuilder, TestVehicleBuilder, test_driver, test_fleet};
 use crate::helpers::models::solution::*;
+use crate::models::solution::Registry;
 
 #[test]
 fn can_set_and_get_activity_states_with_different_type_keys() {
@@ -84,4 +85,24 @@ fn can_use_debug_fmt_for_insertion_ctx() {
 
     assert!(result.contains("unassigned"));
     assert!(result.contains("id: \"single\""));
+}
+
+#[test]
+fn can_only_use_routes_retained_by_deep_slice() {
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicles(vec![
+            TestVehicleBuilder::default().id("v1").build(),
+            TestVehicleBuilder::default().id("v2").build(),
+        ])
+        .build();
+    let retained = fleet.actors[0].clone();
+    let excluded = fleet.actors[1].clone();
+    let registry = Registry::new(&fleet, test_random());
+    let mut registry = RegistryContext::new(&TestGoalContextBuilder::default().build(), registry)
+        .deep_slice(|actor| std::ptr::eq(actor, retained.as_ref()));
+
+    assert_eq!(registry.next_route().count(), 1);
+    assert!(registry.get_route(&excluded).is_none());
+    assert!(registry.get_route(&retained).is_some());
 }
