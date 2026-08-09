@@ -149,7 +149,7 @@ where
 
         self.metrics.generations = generation;
         self.improvement_tracker.track(generation, is_improved);
-        self.speed_tracker.track(generation, &self.time, termination_estimate);
+        self.speed_tracker.track(generation, &self.time, termination_estimate, population.selection_phase());
         self.next_generation = Some(generation + 1);
 
         self.statistics = HeuristicStatistics {
@@ -309,11 +309,15 @@ where
 
         let value = if let Some((r#gen, gen_time)) = gen_info {
             format!(
-                "[{}s] generation {} took {}ms, median: {}ms fitness: ({})",
+                "[{}s] generation {} took {}, median: {} fitness: ({})",
                 self.time.elapsed_secs(),
                 r#gen,
-                gen_time.elapsed_millis(),
-                self.speed_tracker.median.approx_median().unwrap_or(0),
+                format_duration(gen_time.elapsed_duration().as_micros()),
+                self.speed_tracker
+                    .duration_median
+                    .approx_median()
+                    .map(|duration| format_duration(duration as u128))
+                    .unwrap_or_else(|| "unknown".to_string()),
                 fitness
             )
         } else {
@@ -363,9 +367,10 @@ impl ImprovementTracker {
 
 struct SpeedTracker {
     initial_estimate: Float,
-    initial_time: Float,
-    last_time: Float,
-    median: RemedianUsize,
+    initial_time: u128,
+    last_time: u128,
+    duration_median: RemedianUsize,
+    phase: Option<SelectionPhase>,
     speed: HeuristicSpeed,
 }
 
@@ -373,29 +378,42 @@ impl Default for SpeedTracker {
     fn default() -> Self {
         Self {
             initial_estimate: 0.,
-            initial_time: 0.,
-            last_time: 0.,
-            median: RemedianUsize::new(11, 7, |a, b| a.cmp(b)),
+            initial_time: 0,
+            last_time: 0,
+            duration_median: create_duration_median(),
+            phase: None,
             speed: HeuristicSpeed::Unknown,
         }
     }
 }
 
 impl SpeedTracker {
-    pub fn track(&mut self, generation: usize, time: &Timer, termination_estimate: Float) {
-        let elapsed = (time.elapsed_millis() as Float) * 1000.;
+    pub fn track(&mut self, generation: usize, time: &Timer, termination_estimate: Float, phase: SelectionPhase) {
+        self.track_elapsed(generation, time.elapsed_duration().as_micros(), termination_estimate, phase);
+    }
+
+    fn track_elapsed(&mut self, generation: usize, elapsed: u128, termination_estimate: Float, phase: SelectionPhase) {
+        // Exploration and exploitation have very different generation times, so mixing their
+        // observations would make the estimate describe neither phase during the transition.
+        if self.phase.as_ref() != Some(&phase) {
+            self.duration_median = create_duration_median();
+            self.phase = Some(phase);
+        }
+
         if generation == 0 {
             self.initial_estimate = termination_estimate;
             self.initial_time = elapsed;
             self.last_time = elapsed;
         } else {
-            let duration = ((elapsed - self.last_time) / 1000.).round() as usize;
-            self.median.add_observation(duration);
+            // Keep microsecond precision: fast generations are common during exploitation and
+            // rounding them to milliseconds would turn valid measurements into zeroes.
+            let duration = usize::try_from(elapsed.saturating_sub(self.last_time)).unwrap_or(usize::MAX).max(1);
+            self.duration_median.add_observation(duration);
             self.last_time = elapsed;
 
             // average gen/sec speed excluding initial solutions
             let average = if elapsed > self.initial_time {
-                generation as Float / ((elapsed - self.initial_time) / 1_000_000.)
+                generation as Float / ((elapsed - self.initial_time) as Float / 1_000_000.)
             } else {
                 1000.
             };
@@ -414,7 +432,8 @@ impl SpeedTracker {
             };
 
             let is_slow = ratio < 1.;
-            let median = self.median.approx_median();
+            // Keep the public value in milliseconds as it is also used as a time quota.
+            let median = self.duration_median.approx_median().map(duration_to_millis);
 
             self.speed = if is_slow {
                 HeuristicSpeed::Slow { ratio, average, median }
@@ -427,6 +446,18 @@ impl SpeedTracker {
     pub fn get_current_speed(&self) -> HeuristicSpeed {
         self.speed.clone()
     }
+}
+
+fn create_duration_median() -> RemedianUsize {
+    RemedianUsize::new(11, 7, |a, b| a.cmp(b))
+}
+
+fn duration_to_millis(duration: usize) -> usize {
+    duration.div_ceil(1000)
+}
+
+fn format_duration(duration: u128) -> String {
+    if duration < 1000 { format!("{duration}µs") } else { format!("{:.2}ms", duration as Float / 1000.) }
 }
 
 fn get_fitness_change<O, S>(population: &DynHeuristicPopulation<O, S>, solution: &S) -> Float

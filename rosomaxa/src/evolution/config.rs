@@ -96,7 +96,8 @@ where
     strategy: Option<Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>>,
 
     search_operators: Option<HeuristicSearchOperators<C, O, S>>,
-    diversify_operators: Option<HeuristicDiversifyOperators<C, O, S>>,
+    diversify_operators: HeuristicDiversifyOperators<C, O, S>,
+    intensify_operators: HeuristicIntensifyOperators<C, O, S>,
 
     objective: Option<Arc<dyn HeuristicObjective<Solution = S>>>,
 
@@ -122,7 +123,8 @@ where
             termination: None,
             strategy: None,
             search_operators: None,
-            diversify_operators: None,
+            diversify_operators: Vec::new(),
+            intensify_operators: Vec::new(),
             objective: None,
             initial: InitialConfig { operators: vec![], max_size: 4, quota: 0.05, individuals: vec![] },
             processing: ProcessingConfig { context: vec![], solution: vec![] },
@@ -228,9 +230,15 @@ where
         self
     }
 
-    /// Sets diversify operators for dynamic heuristic.
+    /// Sets diversification operators for the default dynamic heuristic.
     pub fn with_diversify_operators(mut self, diversify_operators: HeuristicDiversifyOperators<C, O, S>) -> Self {
-        self.diversify_operators = Some(diversify_operators);
+        self.diversify_operators = diversify_operators;
+        self
+    }
+
+    /// Sets intensification operators for the default dynamic heuristic.
+    pub fn with_intensify_operators(mut self, intensify_operators: HeuristicIntensifyOperators<C, O, S>) -> Self {
+        self.intensify_operators = intensify_operators;
         self
     }
 
@@ -342,12 +350,15 @@ where
                 _ => {
                     let heuristic = match self.heuristic {
                         Some(heuristic) => heuristic,
-                        _ => Box::new(DynamicSelective::new(
-                            self.search_operators.ok_or_else(|| "missing search operators or heuristic".to_string())?,
-                            self.diversify_operators
-                                .ok_or_else(|| "missing diversify operators or heuristic".to_string())?,
-                            context.environment(),
-                        )),
+                        _ => Box::new(
+                            DynamicSelective::new(
+                                self.search_operators
+                                    .ok_or_else(|| "missing search operators or heuristic".to_string())?,
+                                context.environment(),
+                            )
+                            .with_diversify_operators(self.diversify_operators)
+                            .with_intensify_operators(self.intensify_operators),
+                        ),
                     };
                     Box::new(strategies::Iterative::new(heuristic, 1))
                 }

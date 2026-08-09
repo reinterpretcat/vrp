@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/evolution/iterative_test.rs"]
+mod iterative_test;
+
 use super::*;
 use crate::utils::Timer;
 
@@ -57,15 +61,14 @@ where
 
             let parents = heuristic_ctx.selected().collect::<Vec<_>>();
 
-            let diverse_offspring = if heuristic_ctx.selection_phase() == SelectionPhase::Exploitation {
-                Vec::default()
-            } else {
-                heuristic.diversify_many(&heuristic_ctx, parents.clone())
+            let secondary_offspring = match heuristic_ctx.selection_phase() {
+                SelectionPhase::Exploitation => heuristic.intensify_many(&heuristic_ctx, parents.clone()),
+                _ => heuristic.diversify_many(&heuristic_ctx, parents.clone()),
             };
 
             let search_offspring = heuristic.search_many(&heuristic_ctx, parents);
 
-            let offspring = search_offspring.into_iter().chain(diverse_offspring).collect::<Vec<_>>();
+            let offspring = search_offspring.into_iter().chain(secondary_offspring).collect::<Vec<_>>();
 
             let termination_estimate = termination.estimate(&heuristic_ctx);
 

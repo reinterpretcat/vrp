@@ -1,8 +1,60 @@
 use super::*;
 use crate::example::{VectorContext, VectorObjective, VectorSolution};
-use crate::helpers::example::{create_default_heuristic_context, create_heuristic_context_with_solutions};
+use crate::helpers::example::{
+    create_default_heuristic_context, create_example_objective, create_heuristic_context_with_solutions,
+};
+use crate::population::Greedy;
 use std::ops::Range;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
+
+#[test]
+fn can_run_intensify_operator_without_replacing_search() {
+    struct Noop;
+    struct CountingIntensify {
+        count: Arc<AtomicUsize>,
+    }
+
+    impl HeuristicSearchOperator for Noop {
+        type Context = VectorContext;
+        type Objective = VectorObjective;
+        type Solution = VectorSolution;
+
+        fn search(&self, _: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+            solution.deep_copy()
+        }
+    }
+
+    impl HeuristicIntensifyOperator for CountingIntensify {
+        type Context = VectorContext;
+        type Objective = VectorObjective;
+        type Solution = VectorSolution;
+
+        fn intensify(&self, _: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
+            self.count.fetch_add(1, Ordering::Relaxed);
+            vec![solution.deep_copy()]
+        }
+    }
+
+    let environment = Arc::new(Environment::default());
+    let objective = create_example_objective();
+    let solution = VectorSolution::new(vec![0., 0.], 0., vec![0., 0.]);
+    let population = Box::new(Greedy::new(objective.clone(), 1, Some(solution.deep_copy())));
+    let heuristic_ctx = VectorContext::new(objective, population, TelemetryMode::None, environment.clone());
+    let count = Arc::new(AtomicUsize::new(0));
+    let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
+        vec![(Arc::new(Noop), "noop".to_string(), 1.)],
+        environment.as_ref(),
+    )
+    .with_intensify_operators(vec![Arc::new(CountingIntensify { count: count.clone() })]);
+
+    let search_offspring = heuristic.search_many(&heuristic_ctx, vec![&solution]);
+    let intensify_offspring = heuristic.intensify_many(&heuristic_ctx, vec![&solution]);
+
+    assert_eq!(search_offspring.len(), 1);
+    assert_eq!(intensify_offspring.len(), 1);
+    assert_eq!(count.load(Ordering::Relaxed), 1);
+}
 
 #[test]
 fn can_apply_prior_mean_policy() {
@@ -52,9 +104,12 @@ fn can_estimate_duration_median_in_microseconds() {
                 1.,
             ),
         ],
-        vec![Arc::new(DelayableHeuristicOperator { delay_range: (2..3), random: random.clone() })],
         &environment,
-    );
+    )
+    .with_diversify_operators(vec![Arc::new(DelayableHeuristicOperator {
+        delay_range: (2..3),
+        random: random.clone(),
+    })]);
 
     heuristic.search_many(&create_default_heuristic_context(), (0..100).map(|_| &solution).collect());
 
@@ -175,7 +230,6 @@ fn can_display_heuristic_info() {
     let environment = Environment { is_experimental, ..Environment::default() };
     let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
         vec![(Arc::new(Noop), "noop".to_string(), 1.)],
-        vec![],
         &environment,
     );
     let solution = VectorSolution::new(vec![0., 0.], 0., vec![0., 0.]);

@@ -6,7 +6,7 @@ use crate::construction::heuristics::*;
 use crate::models::GoalContext;
 use crate::models::problem::Job;
 use crate::solver::RefinementContext;
-use rosomaxa::hyper::HeuristicDiversifyOperator;
+use rosomaxa::hyper::{HeuristicDiversifyOperator, HeuristicIntensifyOperator};
 use rosomaxa::prelude::*;
 use rosomaxa::utils::{ParallelismPolicy, ParallelismScope, parallel_collect};
 use std::cmp::Reverse;
@@ -147,6 +147,16 @@ impl HeuristicDiversifyOperator for GuidedEjectionSearch {
     type Solution = InsertionContext;
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
+        self.try_search(heuristic_ctx, solution).into_iter().collect()
+    }
+}
+
+impl HeuristicIntensifyOperator for GuidedEjectionSearch {
+    type Context = RefinementContext;
+    type Objective = GoalContext;
+    type Solution = InsertionContext;
+
+    fn intensify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
         self.try_search(heuristic_ctx, solution).into_iter().collect()
     }
 }

@@ -41,15 +41,52 @@ fn can_update_statistic() {
 
 #[test]
 fn can_recover_from_slow_speed() {
-    let time = Timer::start();
     let mut tracker = SpeedTracker::default();
 
-    tracker.track(0, &time, 0.);
-    tracker.track(1, &time, 0.15);
+    tracker.track_elapsed(0, 0, 0., SelectionPhase::Initial);
+    tracker.track_elapsed(1, 1, 0.15, SelectionPhase::Initial);
 
     assert!(matches!(tracker.get_current_speed(), HeuristicSpeed::Slow { ratio, .. } if ratio == 0.1));
 
-    tracker.track(200, &time, 0.15);
+    tracker.track_elapsed(200, 2, 0.15, SelectionPhase::Initial);
 
     assert!(matches!(tracker.get_current_speed(), HeuristicSpeed::Moderate { .. }));
+}
+
+#[test]
+fn can_track_sub_millisecond_generation_duration() {
+    let mut tracker = SpeedTracker::default();
+
+    tracker.track_elapsed(0, 0, 0., SelectionPhase::Exploration);
+    (1..=11).for_each(|generation| {
+        tracker.track_elapsed(generation, generation as u128 * 250, 0., SelectionPhase::Exploration);
+    });
+
+    assert_eq!(tracker.duration_median.approx_median(), Some(250));
+    assert_eq!(tracker.get_current_speed().get_median(), Some(1));
+}
+
+#[test]
+fn can_track_generation_duration_per_phase() {
+    let mut tracker = SpeedTracker::default();
+
+    tracker.track_elapsed(0, 0, 0., SelectionPhase::Exploration);
+    (1..=11).for_each(|generation| {
+        tracker.track_elapsed(generation, generation as u128 * 12_000, 0., SelectionPhase::Exploration);
+    });
+    assert_eq!(tracker.duration_median.approx_median(), Some(12_000));
+
+    tracker.track_elapsed(12, 132_250, 0., SelectionPhase::Exploitation);
+
+    assert_eq!(tracker.duration_median.approx_median(), Some(250));
+    assert_eq!(tracker.get_current_speed().get_median(), Some(1));
+}
+
+#[test]
+fn can_convert_duration_for_public_speed_and_log() {
+    assert_eq!(duration_to_millis(250), 1);
+    assert_eq!(duration_to_millis(12_000), 12);
+    assert_eq!(duration_to_millis(12_001), 13);
+    assert_eq!(format_duration(250), "250µs");
+    assert_eq!(format_duration(12_345), "12.35ms");
 }

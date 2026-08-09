@@ -275,6 +275,17 @@ impl HeuristicDiversifyOperator for VectorHeuristicOperator {
     }
 }
 
+impl HeuristicIntensifyOperator for VectorHeuristicOperator {
+    type Context = VectorContext;
+    type Objective = VectorObjective;
+    type Solution = VectorSolution;
+
+    fn intensify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
+        // NOTE: just reuse search operator logic
+        vec![self.search(heuristic_ctx, solution)]
+    }
+}
+
 type TargetInitialOperator = Box<
     dyn InitialOperator<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution> + Send + Sync,
 >;
@@ -287,6 +298,12 @@ type TargetSearchOperator = Arc<
 
 type TargetDiversifyOperator = Arc<
     dyn HeuristicDiversifyOperator<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution>
+        + Send
+        + Sync,
+>;
+
+type TargetIntensifyOperator = Arc<
+    dyn HeuristicIntensifyOperator<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution>
         + Send
         + Sync,
 >;
@@ -314,6 +331,7 @@ pub struct Solver {
     target_proximity: Option<(Vec<Float>, Float)>,
     search_operators: Vec<(TargetSearchOperator, String, Float)>,
     diversify_operators: Vec<TargetDiversifyOperator>,
+    intensify_operators: Vec<TargetIntensifyOperator>,
     context_factory: Option<ContextFactory>,
 }
 
@@ -333,6 +351,7 @@ impl Default for Solver {
             target_proximity: None,
             search_operators: vec![],
             diversify_operators: vec![],
+            intensify_operators: vec![],
             context_factory: None,
         }
     }
@@ -393,9 +412,15 @@ impl Solver {
         self
     }
 
-    /// Sets diversify operator.
+    /// Adds a diversification operator.
     pub fn with_diversify_operator(mut self, mode: VectorHeuristicOperatorMode) -> Self {
         self.diversify_operators.push(Arc::new(VectorHeuristicOperator { mode }));
+        self
+    }
+
+    /// Adds an intensification operator.
+    pub fn with_intensify_operator(mut self, mode: VectorHeuristicOperatorMode) -> Self {
+        self.intensify_operators.push(Arc::new(VectorHeuristicOperator { mode }));
         self
     }
 
@@ -498,27 +523,33 @@ impl Solver {
     }
 
     fn create_dynamic_heuristic(&self, environment: &Environment) -> TargetHeuristic {
-        Box::new(DynamicSelective::new(
-            self.search_operators.iter().map(|(op, name, weight)| (op.clone(), name.clone(), *weight)).collect(),
-            self.diversify_operators.clone(),
-            environment,
-        ))
+        Box::new(
+            DynamicSelective::new(
+                self.search_operators.iter().map(|(op, name, weight)| (op.clone(), name.clone(), *weight)).collect(),
+                environment,
+            )
+            .with_diversify_operators(self.diversify_operators.clone())
+            .with_intensify_operators(self.intensify_operators.clone()),
+        )
     }
 
     fn create_static_heuristic(&self, environment: &Environment) -> TargetHeuristic {
-        Box::new(StaticSelective::new(
-            self.search_operators
-                .iter()
-                .map(|(op, _, probability)| {
-                    let random = environment.random.clone();
-                    let probability = *probability;
-                    let probability_fn: HeuristicProbability<VectorContext, VectorObjective, VectorSolution> =
-                        (Box::new(move |_, _| random.is_hit(probability)), Default::default());
-                    (op.clone(), probability_fn)
-                })
-                .collect(),
-            self.diversify_operators.clone(),
-        ))
+        Box::new(
+            StaticSelective::new(
+                self.search_operators
+                    .iter()
+                    .map(|(op, _, probability)| {
+                        let random = environment.random.clone();
+                        let probability = *probability;
+                        let probability_fn: HeuristicProbability<VectorContext, VectorObjective, VectorSolution> =
+                            (Box::new(move |_, _| random.is_hit(probability)), Default::default());
+                        (op.clone(), probability_fn)
+                    })
+                    .collect(),
+            )
+            .with_diversify_operators(self.diversify_operators.clone())
+            .with_intensify_operators(self.intensify_operators.clone()),
+        )
     }
 }
 

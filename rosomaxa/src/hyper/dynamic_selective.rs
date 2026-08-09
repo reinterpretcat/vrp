@@ -18,10 +18,6 @@ use std::sync::Arc;
 pub type HeuristicSearchOperators<C, O, S> =
     Vec<(Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String, Float)>;
 
-/// A collection of heuristic diversify operators.
-pub type HeuristicDiversifyOperators<C, O, S> =
-    Vec<Arc<dyn HeuristicDiversifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>>;
-
 /// An experimental dynamic selective hyper heuristic which selects inner heuristics
 /// based on how they work during the search. The selection process is modeled using reinforcement
 /// learning techniques.
@@ -33,6 +29,7 @@ where
 {
     agent: SearchAgent<'static, C, O, S>,
     diversify_operators: HeuristicDiversifyOperators<C, O, S>,
+    intensify_operators: HeuristicIntensifyOperators<C, O, S>,
 }
 
 impl<C, O, S> HyperHeuristic for DynamicSelective<C, O, S>
@@ -71,16 +68,19 @@ where
     }
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
-        let probability = get_diversify_probability(heuristic_ctx);
-        if heuristic_ctx.environment().random.is_hit(probability) {
-            diversify_solution(heuristic_ctx, solution, self.diversify_operators.as_slice())
-        } else {
-            Vec::default()
-        }
+        diversify_solution(heuristic_ctx, solution, self.diversify_operators.as_slice())
     }
 
     fn diversify_many(&self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
         diversify_solutions(heuristic_ctx, solutions, self.diversify_operators.as_slice())
+    }
+
+    fn intensify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
+        intensify_solution(heuristic_ctx, solution, self.intensify_operators.as_slice())
+    }
+
+    fn intensify_many(&self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
+        intensify_solutions(heuristic_ctx, solutions, self.intensify_operators.as_slice())
     }
 }
 
@@ -91,12 +91,24 @@ where
     S: HeuristicSolution + 'static,
 {
     /// Creates a new instance of `DynamicSelective` heuristic.
-    pub fn new(
-        search_operators: HeuristicSearchOperators<C, O, S>,
-        diversify_operators: HeuristicDiversifyOperators<C, O, S>,
-        environment: &Environment,
-    ) -> Self {
-        Self { agent: SearchAgent::new(search_operators, environment), diversify_operators }
+    pub fn new(search_operators: HeuristicSearchOperators<C, O, S>, environment: &Environment) -> Self {
+        Self {
+            agent: SearchAgent::new(search_operators, environment),
+            diversify_operators: Vec::new(),
+            intensify_operators: Vec::new(),
+        }
+    }
+
+    /// Adds operators which diversify search during exploration.
+    pub fn with_diversify_operators(mut self, operators: HeuristicDiversifyOperators<C, O, S>) -> Self {
+        self.diversify_operators = operators;
+        self
+    }
+
+    /// Adds operators which intensify search during exploitation.
+    pub fn with_intensify_operators(mut self, operators: HeuristicIntensifyOperators<C, O, S>) -> Self {
+        self.intensify_operators = operators;
+        self
     }
 }
 

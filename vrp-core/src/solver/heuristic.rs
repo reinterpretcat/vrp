@@ -160,10 +160,12 @@ pub fn get_static_heuristic_from_heuristic_group(
     environment: Arc<Environment>,
     heuristic_group: TargetHeuristicGroup,
 ) -> StaticSelective<RefinementContext, GoalContext, InsertionContext> {
-    StaticSelective::<RefinementContext, GoalContext, InsertionContext>::new(
-        heuristic_group,
-        create_diversify_operators(problem, environment),
-    )
+    let guided_ejection = Arc::new(GuidedEjectionSearch::new());
+    let diversify_operators = create_diversify_operators(problem, environment, guided_ejection.clone());
+
+    StaticSelective::<RefinementContext, GoalContext, InsertionContext>::new(heuristic_group)
+        .with_diversify_operators(diversify_operators)
+        .with_intensify_operators(vec![guided_ejection])
 }
 
 /// Gets dynamic heuristic using default settings.
@@ -172,13 +174,12 @@ pub fn get_dynamic_heuristic(
     environment: Arc<Environment>,
 ) -> DynamicSelective<RefinementContext, GoalContext, InsertionContext> {
     let search_operators = dynamic::get_operators(problem.clone(), environment.clone());
-    let diversify_operators = create_diversify_operators(problem, environment.clone());
+    let guided_ejection = Arc::new(GuidedEjectionSearch::new());
+    let diversify_operators = create_diversify_operators(problem, environment.clone(), guided_ejection.clone());
 
-    DynamicSelective::<RefinementContext, GoalContext, InsertionContext>::new(
-        search_operators,
-        diversify_operators,
-        environment.as_ref(),
-    )
+    DynamicSelective::<RefinementContext, GoalContext, InsertionContext>::new(search_operators, environment.as_ref())
+        .with_diversify_operators(diversify_operators)
+        .with_intensify_operators(vec![guided_ejection])
 }
 
 /// Creates elitism population algorithm.
@@ -330,6 +331,7 @@ mod builder {
 fn create_diversify_operators(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
+    guided_ejection: Arc<GuidedEjectionSearch>,
 ) -> HeuristicDiversifyOperators<RefinementContext, GoalContext, InsertionContext> {
     let random = environment.random.clone();
 
@@ -369,7 +371,7 @@ fn create_diversify_operators(
 
     // Route elimination is additive: a scheduled success contributes an extra offspring without
     // replacing the regular diversification selected for this parent.
-    vec![Arc::new(CompositeDiversifyOperator::new(vec![regular, Arc::new(GuidedEjectionSearch::new())]))]
+    vec![Arc::new(CompositeDiversifyOperator::new(vec![regular, guided_ejection]))]
 }
 
 mod statik {
