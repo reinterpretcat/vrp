@@ -7,7 +7,7 @@ use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
 use crate::utils::{Either, short_type_name};
 use rosomaxa::prelude::{Float, GenericResult, InfoLogger};
-use rosomaxa::utils::{Timer, parallel_collect};
+use rosomaxa::utils::{ParallelismPolicy, ParallelismScope, Timer, parallel_collect};
 use std::cmp::Ordering::Less;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
@@ -358,7 +358,7 @@ fn create_index(
                     .collect();
 
                 // create job index
-                let item = parallel_collect(&jobs, |job| {
+                let item = parallel_collect(&jobs, ParallelismScope::Local, ParallelismPolicy::Default, |job| {
                     let mut sorted_job_costs: Vec<(Job, LowPrecisionCost)> = jobs
                         .iter()
                         .filter(|j| **j != *job)

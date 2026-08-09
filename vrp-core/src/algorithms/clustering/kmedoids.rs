@@ -4,7 +4,7 @@
 #[path = "../../../tests/unit/algorithms/clustering/kmedoids_test.rs"]
 mod kmedoids_test;
 
-use rosomaxa::utils::{fold_reduce, map_reduce};
+use rosomaxa::utils::{ParallelismScope, fold_reduce, map_reduce};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -92,6 +92,7 @@ where
         let first_medoid = data.iter().min_by(|a, b| {
             let (sum_a, sum_b) = map_reduce(
                 data,
+                ParallelismScope::Local,
                 |p| ((self.distance_fn)(a, p), (self.distance_fn)(b, p)),
                 || (0., 0.),
                 |(sum_a, sum_b), (a, b)| (sum_a + a, sum_b + b),
@@ -110,6 +111,7 @@ where
         while medoids.len() < self.k {
             let next_medoid = fold_reduce(
                 data,
+                ParallelismScope::Local,
                 || (f64::NEG_INFINITY, Option::<P>::None),
                 |(max_distance, best_medoid), point| {
                     if medoids.contains(point) {
@@ -138,6 +140,7 @@ where
     fn assign_points_to_medoids(&self, data: &[P], medoids: &[P]) -> HashMap<P, Vec<P>> {
         fold_reduce(
             data,
+            ParallelismScope::Local,
             || HashMap::<P, Vec<P>>::new(),
             |mut clusters, point| {
                 let nearest_medoid = medoids

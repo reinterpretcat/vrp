@@ -128,14 +128,14 @@ impl PositionInsertionEvaluator {
         // NOTE using `fold_reduce` seems less effective
         // TODO use alternative strategies specific for each use case when `evaluate_and_collect_all` is used?
         if is_fold_jobs {
-            parallel_collect(jobs, |job| {
+            parallel_collect(jobs, ParallelismScope::Local, ParallelismPolicy::Default, |job| {
                 let eval_ctx = EvaluationContext { goal, job, leg_selection, result_selector };
                 routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
                     eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
                 })
             })
         } else {
-            parallel_collect(routes, |route_ctx| {
+            parallel_collect(routes, ParallelismScope::Local, ParallelismPolicy::Default, |route_ctx| {
                 jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
                     let eval_ctx = EvaluationContext { goal, job, leg_selection, result_selector };
                     eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
@@ -158,6 +158,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
 
         fold_reduce(
             cartesian_product(routes, jobs, ParallelismPolicy::adaptive(INSERTION_EVALUATION_TASKS_PER_WORKER)),
+            ParallelismScope::Local,
             InsertionResult::make_failure,
             |acc, (route_ctx, job)| {
                 let eval_ctx = EvaluationContext { goal, job, leg_selection, result_selector };

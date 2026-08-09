@@ -8,13 +8,16 @@ use crate::models::problem::Job;
 use crate::solver::RefinementContext;
 use rosomaxa::hyper::HeuristicDiversifyOperator;
 use rosomaxa::prelude::*;
-use rosomaxa::utils::parallel_collect;
+use rosomaxa::utils::{ParallelismPolicy, ParallelismScope, parallel_collect};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 use std::iter::once;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 const MAX_ATTEMPTS: usize = 1_000;
+// Ejection candidates differ in cost depending on route size and constraints. Keep enough tasks for
+// load balancing without letting this inner loop compete with every coarse search for tiny work.
+const EJECTION_EVALUATION_TASKS_PER_WORKER: usize = 4;
 // Consecutive failures double the retry interval up to eight problem-sized intervals. This gives a
 // new local optimum an early second chance, while repeated hard failures become rare.
 const FAILED_SEARCH_INTERVALS: usize = 8;
@@ -355,7 +358,12 @@ fn find_ejection(
         let tier_end = tier_start
             + singles[tier_start..].partition_point(|(candidate_penalty, _, _, _)| *candidate_penalty == penalty);
         let tier = &singles[tier_start..tier_end];
-        let evaluated = parallel_collect(tier, evaluate);
+        let evaluated = parallel_collect(
+            tier,
+            ParallelismScope::Local,
+            ParallelismPolicy::adaptive(EJECTION_EVALUATION_TASKS_PER_WORKER),
+            evaluate,
+        );
         let best_single = evaluated.into_iter().flatten().fold(None, |best, (cost, ejection)| match best {
             Some((best_cost, best_ejection)) if best_cost <= cost => Some((best_cost, best_ejection)),
             _ => Some((cost, ejection)),

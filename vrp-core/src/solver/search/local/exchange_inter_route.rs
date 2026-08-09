@@ -7,7 +7,7 @@ use crate::models::problem::Job;
 use crate::solver::RefinementContext;
 use crate::solver::search::{LocalOperator, TabuList, select_seed_job_with_tabu_list};
 use crate::utils::Noise;
-use rosomaxa::utils::map_reduce;
+use rosomaxa::utils::{ParallelismScope, map_reduce};
 
 /// A local search operator which tries to exchange jobs in best way between different routes.
 pub struct ExchangeInterRouteBest {
@@ -119,6 +119,7 @@ fn find_best_insertion_pair(
                         .filter(|(idx, job)| !locked.contains(*job) && filter_jobs_indices(*idx))
                         .collect::<Vec<_>>()
                         .as_slice(),
+                    ParallelismScope::Local,
                     |(_, test_job)| {
                         // try to insert test job into seed tour
                         let seed_success = test_job_insertion(

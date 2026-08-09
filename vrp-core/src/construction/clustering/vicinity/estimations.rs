@@ -7,7 +7,7 @@ use crate::models::GoalContext;
 use crate::models::common::*;
 use crate::models::problem::{Place, Single, TransportCost};
 use crate::models::solution::CommuteInfo;
-use rosomaxa::utils::parallel_foreach_mut;
+use rosomaxa::utils::{ParallelismScope, parallel_foreach_mut};
 use std::collections::{HashMap, HashSet};
 
 type PlaceInfo = (PlaceIndex, Location, Duration, Vec<TimeWindow>);
@@ -41,11 +41,15 @@ pub(crate) fn get_clusters(
         .collect::<Vec<(_, (Option<Job>, HashSet<_>))>>();
 
     loop {
-        parallel_foreach_mut(cluster_estimates.as_mut_slice(), |(center_job, (cluster, _))| {
-            if cluster.is_none() {
-                *cluster = build_job_cluster(variant, center_job, &estimates, &used_jobs, config, check_insertion)
-            }
-        });
+        parallel_foreach_mut(
+            cluster_estimates.as_mut_slice(),
+            ParallelismScope::Local,
+            |(center_job, (cluster, _))| {
+                if cluster.is_none() {
+                    *cluster = build_job_cluster(variant, center_job, &estimates, &used_jobs, config, check_insertion)
+                }
+            },
+        );
 
         cluster_estimates.sort_unstable_by(|(a_job, (_, a_can)), (b_job, (_, b_can))| {
             (config.building.ordering_global_fn)((b_job, b_can), (a_job, a_can))

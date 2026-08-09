@@ -9,7 +9,7 @@ use crate::models::problem::{Job, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
 use crate::solver::RefinementContext;
 use crate::solver::search::{JobRemovalTracker, TabuList, get_route_jobs};
-use rosomaxa::utils::parallel_collect;
+use rosomaxa::utils::{ParallelismPolicy, ParallelismScope, parallel_collect};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::iter::once;
@@ -83,7 +83,7 @@ impl Ruin for WorstJobRemoval {
 }
 
 fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(Profile, Vec<(Job, Cost)>)> {
-    parallel_collect(&insertion_ctx.solution.routes, |route_ctx| {
+    parallel_collect(&insertion_ctx.solution.routes, ParallelismScope::Local, ParallelismPolicy::Default, |route_ctx| {
         let route = route_ctx.route();
         let mut savings: Vec<(Job, Cost)> = route
             .tour
