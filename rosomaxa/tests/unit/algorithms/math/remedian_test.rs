@@ -1,4 +1,6 @@
 use super::Remedian;
+use std::cmp::Ordering;
+use std::ops::ControlFlow;
 
 #[test]
 pub fn can_estimate_median() {
@@ -85,4 +87,55 @@ pub fn can_handle_estimate_median_with_more_data() {
     });
 
     assert_eq!(medians, expected);
+}
+
+#[test]
+pub fn can_keep_estimate_equivalent_to_weighted_buffer_median() {
+    let mut seed = 42_u64;
+
+    for (base, exponent) in [(1_usize, 3_usize), (3, 3), (5, 2), (11, 2)] {
+        let mut remedian = Remedian::new(base, exponent, |a: &u64, b: &u64| a.cmp(b));
+        let capacity = base.pow(exponent as u32);
+
+        for _ in 0..capacity {
+            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+            assert!(remedian.add_observation(seed % 17));
+            assert_eq!(remedian.approx_median(), get_weighted_buffer_median(&remedian));
+        }
+
+        assert!(!remedian.add_observation(100));
+        assert_eq!(remedian.approx_median(), get_weighted_buffer_median(&remedian));
+    }
+
+    let mut remedian = Remedian::new(11, 7, |a: &u64, b: &u64| a.cmp(b));
+    for _ in 0..10_000 {
+        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+        assert!(remedian.add_observation(seed % 17));
+        assert_eq!(remedian.approx_median(), get_weighted_buffer_median(&remedian));
+    }
+}
+
+fn get_weighted_buffer_median<F>(remedian: &Remedian<u64, F>) -> Option<u64>
+where
+    F: Fn(&u64, &u64) -> Ordering,
+{
+    let mut values = remedian
+        .buffers
+        .iter()
+        .enumerate()
+        .flat_map(|(idx, buffer)| buffer.iter().map(move |value| (*value, (remedian.base as u64).pow(idx as u32))))
+        .collect::<Vec<_>>();
+    values.sort_by_key(|(value, _)| *value);
+
+    values
+        .iter()
+        .try_fold(0, |running_weight, (value, weight)| {
+            let running_weight = running_weight + weight;
+            if running_weight >= remedian.count as u64 / 2 {
+                ControlFlow::Break(*value)
+            } else {
+                ControlFlow::Continue(running_weight)
+            }
+        })
+        .break_value()
 }

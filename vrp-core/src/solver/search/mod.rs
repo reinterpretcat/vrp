@@ -12,6 +12,7 @@ use crate::solver::{RefinementContext, TargetSearchOperator};
 use rosomaxa::HeuristicSolution;
 use rosomaxa::hyper::HeuristicDiversifyOperator;
 use rosomaxa::prelude::{Float, HeuristicSearchOperator};
+use std::sync::Arc;
 
 mod local;
 pub use self::local::*;
@@ -30,6 +31,9 @@ pub use self::decompose_search::DecomposeSearch;
 
 mod infeasible_search;
 pub use self::infeasible_search::InfeasibleSearch;
+
+mod guided_ejection_search;
+pub use self::guided_ejection_search::GuidedEjectionSearch;
 
 mod lkh_search;
 pub use self::lkh_search::{LKHSearch, LKHSearchMode};
@@ -75,6 +79,34 @@ impl HeuristicDiversifyOperator for WeightedHeuristicOperator {
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
         vec![self.search(heuristic_ctx, solution)]
+    }
+}
+
+type TargetDiversifyOperator = Arc<
+    dyn HeuristicDiversifyOperator<Context = RefinementContext, Objective = GoalContext, Solution = InsertionContext>
+        + Send
+        + Sync,
+>;
+
+/// Runs multiple diversification operators and combines their offspring.
+pub struct CompositeDiversifyOperator {
+    operators: Vec<TargetDiversifyOperator>,
+}
+
+impl CompositeDiversifyOperator {
+    /// Creates a composite diversification operator.
+    pub fn new(operators: Vec<TargetDiversifyOperator>) -> Self {
+        Self { operators }
+    }
+}
+
+impl HeuristicDiversifyOperator for CompositeDiversifyOperator {
+    type Context = RefinementContext;
+    type Objective = GoalContext;
+    type Solution = InsertionContext;
+
+    fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
+        self.operators.iter().flat_map(|operator| operator.diversify(heuristic_ctx, solution)).collect()
     }
 }
 

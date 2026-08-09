@@ -23,6 +23,9 @@ where
     base: usize,
     exponent: usize,
     buffers: Vec<Vec<T>>,
+    // Keeps buffer positions ordered by value, so reading the estimate does not need a temporary
+    // allocation and sort. Positions from a compacted buffer are removed before it is reused.
+    ordered: Vec<(usize, usize)>,
     count: usize,
     is_full: bool,
     order_fn: F,
@@ -45,7 +48,15 @@ where
             buffers.push(Vec::with_capacity(base));
         });
 
-        Self { base, exponent, buffers, count: 0, is_full: false, order_fn }
+        Self {
+            base,
+            exponent,
+            buffers,
+            ordered: Vec::with_capacity(base.saturating_mul(exponent)),
+            count: 0,
+            is_full: false,
+            order_fn,
+        }
     }
 
     /// Adds a new observation.
@@ -57,19 +68,25 @@ where
 
         self.count += 1;
         self.buffers[0].push(value);
+        self.insert_ordered(0);
 
         let _ = (0..self.exponent).try_for_each(|i| {
-            let batch = &mut self.buffers[i];
-
-            if batch.len() == self.base {
-                batch.sort_by(&self.order_fn);
-
+            if self.buffers[i].len() == self.base {
                 // not yet the last buffer, so calculate intermediate median and store it to the next buffer
                 if i != self.exponent - 1 {
-                    let median = batch[self.base / 2].clone();
-                    batch.clear();
+                    let median = self
+                        .ordered
+                        .iter()
+                        .filter(|(buffer_idx, _)| *buffer_idx == i)
+                        .nth(self.base / 2)
+                        .map(|(buffer_idx, value_idx)| self.buffers[*buffer_idx][*value_idx].clone())
+                        .expect("cannot get intermediate median");
+
+                    self.ordered.retain(|(buffer_idx, _)| *buffer_idx != i);
+                    self.buffers[i].clear();
 
                     self.buffers[i + 1].push(median);
+                    self.insert_ordered(i + 1);
                 } else {
                     self.is_full = true;
                 }
@@ -85,32 +102,27 @@ where
 
     /// Returns a median approximation if it is there.
     pub fn approx_median(&self) -> Option<T> {
-        // buffers are full, return the last buffer's median
-        if self.is_full {
-            return Some(self.buffers[self.exponent - 1][self.base / 2].clone());
-        }
-
-        let mut weighted_medians = self
-            .buffers
-            .iter()
-            .enumerate()
-            .map(|(idx, buffer)| (buffer, (self.base as u64).pow(idx as u32)))
-            .flat_map(|(buffer, w)| buffer.iter().map(move |m| (m, w)))
-            .collect::<Vec<_>>();
-
-        weighted_medians.sort_by(|(a, _), (b, _)| (self.order_fn)(a, b));
-
         let half_count = self.count as u64 / 2;
-        weighted_medians
+        self.ordered
             .iter()
-            .try_fold(0, |running_weight, (m, w)| {
-                let running_weight = running_weight + w;
+            .try_fold(0, |running_weight, (buffer_idx, value_idx)| {
+                let running_weight = running_weight + (self.base as u64).pow(*buffer_idx as u32);
                 if running_weight >= half_count {
-                    return ControlFlow::Break(*m);
+                    return ControlFlow::Break(&self.buffers[*buffer_idx][*value_idx]);
                 }
                 ControlFlow::Continue(running_weight)
             })
             .map_break(|m| m.clone())
             .break_value()
+    }
+
+    fn insert_ordered(&mut self, buffer_idx: usize) {
+        let value_idx = self.buffers[buffer_idx].len() - 1;
+        let value = &self.buffers[buffer_idx][value_idx];
+        let insert_idx = self.ordered.partition_point(|(other_buffer_idx, other_value_idx)| {
+            (self.order_fn)(&self.buffers[*other_buffer_idx][*other_value_idx], value) != Ordering::Greater
+        });
+
+        self.ordered.insert(insert_idx, (buffer_idx, value_idx));
     }
 }

@@ -98,7 +98,7 @@ fn can_penalize_fast_noop_through_search_action() {
 
     let heuristic_ctx = create_heuristic_context_with_solutions(vec![vec![0.0, 0.0]]);
     let solution = VectorSolution::new(vec![0.0, 0.0], 1.0, vec![0.0, 0.0]);
-    let action = SearchAction { operator: Arc::new(Noop), operator_name: "noop".to_string() };
+    let action = SearchAction { operator: Arc::new(Noop) };
     let feedback = action.take(SearchContext {
         heuristic_ctx: &heuristic_ctx,
         from: SearchState::BestKnown,
@@ -117,8 +117,10 @@ fn can_ignore_numerical_noise_in_new_best_reward() {
     let initial_solution = VectorSolution::new(vec![], 1., vec![]);
     let new_solution = VectorSolution::new(vec![], 1. - Float::EPSILON, vec![]);
 
-    let reward = compute_reward(&heuristic_ctx, &initial_solution, &new_solution, 500, Some(1_000));
+    let Reward { value: reward, is_new_best } =
+        compute_reward(&heuristic_ctx, &initial_solution, &new_solution, 500, Some(1_000));
 
+    assert!(is_new_best);
     assert!((0. ..1e-6).contains(&reward));
 }
 
@@ -128,8 +130,10 @@ fn can_ignore_numerical_noise_in_diverse_improvement_reward() {
     let initial_solution = VectorSolution::new(vec![], 1., vec![]);
     let new_solution = VectorSolution::new(vec![], 1. - Float::EPSILON, vec![]);
 
-    let reward = compute_reward(&heuristic_ctx, &initial_solution, &new_solution, 500, Some(1_000));
+    let Reward { value: reward, is_new_best } =
+        compute_reward(&heuristic_ctx, &initial_solution, &new_solution, 500, Some(1_000));
 
+    assert!(!is_new_best);
     assert!((0. ..1e-6).contains(&reward));
 }
 
@@ -155,10 +159,27 @@ fn can_compute_relative_distance_impl(fitness_a: Vec<Float>, fitness_b: Vec<Floa
 
 #[test]
 fn can_display_heuristic_info() {
+    struct Noop;
+
+    impl HeuristicSearchOperator for Noop {
+        type Context = VectorContext;
+        type Objective = VectorObjective;
+        type Solution = VectorSolution;
+
+        fn search(&self, _: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+            solution.deep_copy()
+        }
+    }
+
     let is_experimental = true;
     let environment = Environment { is_experimental, ..Environment::default() };
-    let heuristic =
-        DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(vec![], vec![], &environment);
+    let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
+        vec![(Arc::new(Noop), "noop".to_string(), 1.)],
+        vec![],
+        &environment,
+    );
+    let solution = VectorSolution::new(vec![0., 0.], 0., vec![0., 0.]);
+    heuristic.search(&create_default_heuristic_context(), &solution);
 
     // Test that diagnostic system is properly initialized
     assert_eq!(heuristic.agent.tracker.telemetry_enabled(), is_experimental);
@@ -169,6 +190,7 @@ fn can_display_heuristic_info() {
     if is_experimental {
         assert!(formatted.contains("TELEMETRY"));
         assert!(formatted.contains("duration_us"));
+        assert!(formatted.contains("noop,0,"));
     } else {
         // When not experimental, should be empty or minimal
         assert!(formatted.is_empty() || !formatted.contains("thompson_diagnostics:"));

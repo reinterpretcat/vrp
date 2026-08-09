@@ -14,7 +14,7 @@ impl Quota for CompositeTimeQuota {
     }
 }
 
-/// Creates a new environment with extra limit quota. Limit is specified in seconds.
+/// Creates a new environment with an extra time quota. Limit is specified in milliseconds.
 pub fn create_environment_with_custom_quota(limit: Option<usize>, environment: &Environment) -> Arc<Environment> {
     Arc::new(Environment {
         quota: match (limit, environment.quota.clone()) {

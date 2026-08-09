@@ -362,10 +362,14 @@ fn create_diversify_operators(
         4,
     ))));
 
-    vec![Arc::new(WeightedHeuristicOperator::new(
+    let regular = Arc::new(WeightedHeuristicOperator::new(
         vec![redistribute_search, local_search, infeasible_search],
         vec![10, 2, 1],
-    ))]
+    ));
+
+    // Route elimination is additive: a scheduled success contributes an extra offspring without
+    // replacing the regular diversification selected for this parent.
+    vec![Arc::new(CompositeDiversifyOperator::new(vec![regular, Arc::new(GuidedEjectionSearch::new())]))]
 }
 
 mod statik {

@@ -55,8 +55,9 @@ where
     }
 
     fn search_many(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
+        let approx_median = self.agent.tracker.approx_median();
         let feedbacks = parallel_into_collect(solutions, ParallelismScope::Coarse, |solution| {
-            self.agent.search(heuristic_ctx, solution)
+            self.agent.search_with_median(heuristic_ctx, solution, approx_median)
         });
 
         let generation = heuristic_ctx.statistics().generation;
@@ -165,12 +166,11 @@ impl<S> SlotFeedback for SearchFeedback<S> {
 /// Search action wrapper for Thompson sampling.
 pub struct SearchAction<'a, C, O, S> {
     operator: Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync + 'a>,
-    operator_name: String,
 }
 
 impl<C, O, S> Clone for SearchAction<'_, C, O, S> {
     fn clone(&self) -> Self {
-        Self { operator: self.operator.clone(), operator_name: self.operator_name.clone() }
+        Self { operator: self.operator.clone() }
     }
 }
 
@@ -190,14 +190,13 @@ where
         let duration = get_duration_micros(duration);
 
         // Compute reward using the simplified V2.1 formula.
-        let reward =
+        let Reward { value: reward, is_new_best } =
             compute_reward(context.heuristic_ctx, context.solution, &new_solution, duration, context.approx_median);
 
-        let is_new_best = compare_to_best(context.heuristic_ctx, &new_solution) == Ordering::Less;
         let to = if is_new_best { SearchState::BestKnown } else { SearchState::Diverse };
         let transition = (context.from, to);
 
-        let sample = SearchSample { name: self.operator_name.clone(), duration, reward, transition };
+        let sample = SearchSample { duration, reward, transition };
 
         SearchFeedback { sample, slot_idx: context.slot_idx, solution: Some(new_solution) }
     }
@@ -252,7 +251,7 @@ where
                     (
                         SlotMachine::new(
                             prior_mean,
-                            SearchAction { operator: operator.clone(), operator_name: name.to_string() },
+                            SearchAction { operator: operator.clone() },
                             DefaultDistributionSampler::new(environment.random.clone()),
                         ),
                         name.clone(),
@@ -275,6 +274,10 @@ where
 
     /// Picks the relevant search operator using pure Thompson Sampling and runs the search.
     pub fn search(&self, heuristic_ctx: &C, solution: &S) -> SearchFeedback<S> {
+        self.search_with_median(heuristic_ctx, solution, self.tracker.approx_median())
+    }
+
+    fn search_with_median(&self, heuristic_ctx: &C, solution: &S, approx_median: Option<usize>) -> SearchFeedback<S> {
         // Determine search context - critical for operator selection.
         let from = if matches!(compare_to_best(heuristic_ctx, solution), Ordering::Equal) {
             SearchState::BestKnown
@@ -290,8 +293,6 @@ where
         let slot_idx = random_argmax(samples, self.random.as_ref()).unwrap_or(0);
         let slot_machine = &slots[slot_idx].0;
 
-        let approx_median = self.tracker.approx_median();
-
         // Execute with full context information.
         slot_machine.play(SearchContext { heuristic_ctx, from, slot_idx, solution, approx_median })
     }
@@ -300,10 +301,11 @@ where
     pub fn update(&mut self, generation: usize, feedback: &SearchFeedback<S>) {
         let from = &feedback.sample.transition.0;
         let slots = self.slot_machines.get_mut(from).expect("cannot get slot machines");
-        slots[feedback.slot_idx].0.update(feedback);
+        let (slot_machine, name) = &mut slots[feedback.slot_idx];
+        slot_machine.update(feedback);
 
         // Track telemetry.
-        self.tracker.observe_sample(generation, feedback.sample.clone());
+        self.tracker.observe_sample(generation, name, &feedback.sample);
     }
 
     /// Updates statistics about heuristic internal parameters.
@@ -333,19 +335,24 @@ fn get_prior_mean(initial_weight: Float, avg_weight: Float) -> Float {
     prior_mean.clamp(PRIOR_MEAN_MIN, PRIOR_MEAN_MAX)
 }
 
+struct Reward {
+    value: Float,
+    is_new_best: bool,
+}
+
 /// Computes the reward for an operator based on solution improvement.
 ///
 /// Key design principles:
 /// 1. **Best-Known Anchoring**: Improvements far from best get diminished credit.
 /// 2. **Stagnation-Aware Efficiency**: Slow operators tolerated during stagnation.
-/// 3. **Bounded Output**: Rewards in [-1, 5] for stable Bayesian updates.
+/// 3. **Bounded Output**: Rewards are clamped before the Bayesian update.
 fn compute_reward<C, O, S>(
     heuristic_ctx: &C,
     initial_solution: &S,
     new_solution: &S,
     duration: usize,
     approx_median: Option<usize>,
-) -> Float
+) -> Reward
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
@@ -356,7 +363,7 @@ where
     // Get best known solution for anchoring.
     let best_known = match heuristic_ctx.ranked().next() {
         Some(best) => best,
-        None => return 0.0, // No population yet, neutral reward.
+        None => return Reward { value: 0.0, is_new_best: true }, // No population yet, neutral reward.
     };
 
     // Determine improvement types.
@@ -414,7 +421,7 @@ where
     };
 
     // Clamp to bounded range for stable Bayesian updates.
-    raw_reward.clamp(REWARD_MIN, REWARD_MAX)
+    Reward { value: raw_reward.clamp(REWARD_MIN, REWARD_MAX), is_new_best }
 }
 
 fn get_duration_micros(duration: std::time::Duration) -> usize {
@@ -485,7 +492,7 @@ where
 /// Diagnostic tracker for Thompson sampling analysis.
 struct HeuristicTracker {
     duration_median: RemedianUsize,
-    search_telemetry: Vec<(usize, SearchSample)>,
+    search_telemetry: Vec<(usize, String, SearchSample)>,
     heuristic_telemetry: Vec<(usize, HeuristicSample)>,
     is_experimental: bool,
 }
@@ -512,10 +519,10 @@ impl HeuristicTracker {
     }
 
     /// Observes the current sample and updates the total duration median.
-    pub fn observe_sample(&mut self, generation: usize, sample: SearchSample) {
+    pub fn observe_sample(&mut self, generation: usize, name: &str, sample: &SearchSample) {
         self.duration_median.add_observation(sample.duration);
         if self.telemetry_enabled() {
-            self.search_telemetry.push((generation, sample));
+            self.search_telemetry.push((generation, name.to_string(), sample.clone()));
         }
     }
 
@@ -530,7 +537,6 @@ impl HeuristicTracker {
 /// A sample of search telemetry.
 #[derive(Clone)]
 struct SearchSample {
-    name: String,
     duration: usize,
     reward: Float,
     transition: (SearchState, SearchState),
@@ -571,10 +577,10 @@ where
         let search_total = self.agent.tracker.search_telemetry.len();
         if search_total <= MAX_SAMPLES {
             // Small enough, output all
-            for (generation, sample) in self.agent.tracker.search_telemetry.iter() {
+            for (generation, name, sample) in self.agent.tracker.search_telemetry.iter() {
                 f.write_fmt(format_args!(
                     "{},{},{},{},{},{}\n",
-                    sample.name, generation, sample.reward, sample.transition.0, sample.transition.1, sample.duration
+                    name, generation, sample.reward, sample.transition.0, sample.transition.1, sample.duration
                 ))?;
             }
         } else {
@@ -584,7 +590,7 @@ where
             let middle_end = search_total - RECENT_SAMPLES;
             let step = (middle_end - middle_start) / middle_samples;
 
-            for (i, (generation, sample)) in self.agent.tracker.search_telemetry.iter().enumerate() {
+            for (i, (generation, name, sample)) in self.agent.tracker.search_telemetry.iter().enumerate() {
                 let include = i < EARLY_SAMPLES
                     || i >= search_total - RECENT_SAMPLES
                     || (i >= middle_start && i < middle_end && (i - middle_start).is_multiple_of(step));
@@ -592,12 +598,7 @@ where
                 if include {
                     f.write_fmt(format_args!(
                         "{},{},{},{},{},{}\n",
-                        sample.name,
-                        generation,
-                        sample.reward,
-                        sample.transition.0,
-                        sample.transition.1,
-                        sample.duration
+                        name, generation, sample.reward, sample.transition.0, sample.transition.1, sample.duration
                     ))?;
                 }
             }
