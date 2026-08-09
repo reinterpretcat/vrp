@@ -156,6 +156,8 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .iter()
         .any(|v| v.limits.as_ref().is_some_and(|l| l.max_duration.or(l.max_distance).is_some()));
 
+    let has_min_vehicle_shifts = api_problem.fleet.vehicles.iter().any(|vehicle| vehicle.min_shifts.is_some());
+
     ProblemProperties {
         has_multi_dimen_capacity,
         has_breaks,
@@ -169,6 +171,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_compatibility,
         has_tour_size_limits,
         has_tour_travel_limits,
+        has_min_vehicle_shifts,
     }
 }
 

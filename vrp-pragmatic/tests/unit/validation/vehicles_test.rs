@@ -64,8 +64,8 @@ parameterized_test! {can_handle_rescheduling_with_required_break, (latest, expec
 }}
 
 can_handle_rescheduling_with_required_break! {
-    case01: (None, Some("E1307".to_string())),
-    case02: (Some(1.), Some("E1307".to_string())),
+    case01: (None, None),
+    case02: (Some(1.), None),
     case03: (Some(0.), None),
 }
 
@@ -92,13 +92,10 @@ fn can_handle_rescheduling_with_required_break_impl(latest: Option<Float>, expec
         ..create_empty_problem()
     };
 
-    let result = check_e1307_vehicle_offset_break_rescheduling(&ValidationContext::new(
-        &problem,
-        None,
-        &CoordIndex::new(&problem),
-    ));
+    let result = validate_vehicles(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
 
-    assert_eq!(result.err().map(|err| err.code), expected);
+    let error_code = result.err().and_then(|err| err.errors.first().map(|err| err.code.clone()));
+    assert_eq!(error_code, expected);
 }
 
 parameterized_test! {can_handle_reload_resources, (resources, expected), {

@@ -254,6 +254,7 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
         capacity,
         skills: None,
         limits: None,
+        min_shifts: None,
     }
 }
 

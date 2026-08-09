@@ -3,7 +3,10 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::*;
 use crate::models::problem::*;
+use crate::models::problem::Place as JobPlace;
+use crate::models::solution::{Activity, Place as ActivityPlace};
 use rosomaxa::prelude::Float;
+use std::sync::Arc;
 
 parameterized_test! {can_advance_departure_time, (latest, optimize_whole_tour, tws, expected), {
     let tws = tws.into_iter().map(|(start, end)| TimeWindow::new(start, end)).collect::<Vec<_>>();
@@ -112,4 +115,49 @@ fn can_recede_departure_time_impl(
     let departure_time = try_recede_departure_time(&route_ctx);
 
     assert_eq!(departure_time, expected);
+}
+
+#[test]
+fn recomputes_offset_time_windows_on_departure_shift() {
+    let offset = TimeOffset::new(10., 12.);
+    let old_departure = 0.;
+    let new_departure = 5.;
+
+    let job = {
+        let mut dimens = Dimensions::default();
+        dimens.set_job_id("break".to_string());
+
+        Arc::new(Single {
+            places: vec![JobPlace { location: Some(1), duration: 0., times: vec![TimeSpan::Offset(offset.clone())] }],
+            dimens,
+        })
+    };
+
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(
+            RouteBuilder::default()
+                .with_vehicle(&test_fleet(), "v1")
+                .add_activity({
+                    let mut activity = Activity::new_with_job(job.clone());
+                    activity.place = ActivityPlace {
+                        idx: 0,
+                        location: job.places[0].location.unwrap(),
+                        duration: job.places[0].duration,
+                        time: TimeSpan::Offset(offset.clone()).to_time_window(old_departure),
+                    };
+                    activity
+                })
+                .build(),
+        )
+        .build();
+
+    update_route_departure(
+        &mut route_ctx,
+        &TestActivityCost::default(),
+        &TestTransportCost::default(),
+        new_departure,
+    );
+
+    let activity = route_ctx.route().tour.get(1).unwrap();
+    assert_eq!(activity.place.time, TimeSpan::Offset(offset).to_time_window(new_departure));
 }
