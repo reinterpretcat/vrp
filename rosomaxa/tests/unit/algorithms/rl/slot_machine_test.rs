@@ -65,6 +65,17 @@ fn can_use_prior_mean_as_specified() {
 }
 
 #[test]
+fn can_reset_learning_state_and_keep_usage() {
+    let sampler = DefaultDistributionSampler::new(create_test_random());
+    let mut slot = SlotMachine::new(2.5, TestAction(sampler.clone()), sampler);
+
+    slot.update(&TestFeedback(-1.));
+    slot.reset();
+
+    assert_eq!(slot.get_params(), (PRIOR_ALPHA, PRIOR_BETA, 2.5, 1., 1));
+}
+
+#[test]
 fn can_sample_posterior_mean_using_effective_count() {
     let action_sampler = DefaultDistributionSampler::new(create_test_random());
     let sampler = TestDistributionSampler::default();

@@ -4,6 +4,9 @@ mod slot_machine_test;
 
 use crate::utils::{DistributionSampler, Float};
 
+const PRIOR_ALPHA: Float = 2.;
+const PRIOR_BETA: Float = 1.;
+
 /// Represents an action on slot machine.
 pub trait SlotAction {
     /// An environment context.
@@ -29,6 +32,8 @@ pub trait SlotFeedback {
 /// effectiveness of operators changes over time (e.g., VRP search phases).
 #[derive(Clone)]
 pub struct SlotMachine<A, S> {
+    /// Mean used to initialize and restart learning.
+    prior_mean: Float,
     /// The number of times this slot machine has been used (telemetry only).
     n: usize,
     /// Shape parameter (α) of the Inverse-Gamma distribution (tracks sample count/confidence).
@@ -55,8 +60,8 @@ where
         // Universal priors for a Standard Normal distribution N(0, 1):
         // Alpha = 2.0 implies a weak prior belief with mathematically defined variance.
         // Beta = 1.0 combined with Alpha=2.0 implies an expected variance of ~1.0.
-        let alpha = 2.0;
-        let beta = 1.0;
+        let alpha = PRIOR_ALPHA;
+        let beta = PRIOR_BETA;
 
         // The caller owns the reward scale and its corresponding prior-mean policy.
         let mu = prior_mean;
@@ -66,7 +71,7 @@ where
         // which allows the bandit to explore even if one operator starts ahead.
         let v = beta / (alpha - 1.0);
 
-        Self { n: 0, alpha, beta, mu, v, action, sampler }
+        Self { prior_mean, n: 0, alpha, beta, mu, v, action, sampler }
     }
 
     /// Samples the mean reward from the estimated Normal-Inverse-Gamma distribution.
@@ -88,6 +93,14 @@ where
     /// Plays the slot machine by executing the action within the given context.
     pub fn play(&self, context: A::Context) -> A::Feedback {
         self.action.take(context)
+    }
+
+    /// Restores the learning state while preserving the lifetime usage counter.
+    pub fn reset(&mut self) {
+        self.alpha = PRIOR_ALPHA;
+        self.beta = PRIOR_BETA;
+        self.mu = self.prior_mean;
+        self.v = PRIOR_BETA / (PRIOR_ALPHA - 1.);
     }
 
     /// Updates the internal Bayesian state with a new reward observation.

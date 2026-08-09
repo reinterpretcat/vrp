@@ -62,6 +62,29 @@ fn can_apply_prior_mean_policy() {
     assert_eq!(get_prior_mean(10., 1.), PRIOR_MEAN_MAX);
 }
 
+parameterized_test! {can_decide_when_to_reset_best_known, (generation, next_reset, improvement_ratio, expected), {
+    let statistics = HeuristicStatistics { generation, improvement_1000_ratio: improvement_ratio, ..Default::default() };
+
+    assert_eq!(should_reset_best_known(&statistics, next_reset), expected);
+}}
+
+can_decide_when_to_reset_best_known! {
+    case_01: (1000, 1000, 0., true),
+    case_02: (999, 1000, 0., false),
+    case_03: (2000, 3000, 0., false),
+    case_04: (2000, 1000, 0.01, false),
+}
+
+parameterized_test! {can_advance_stagnation_reset, (generation, interval, expected), {
+    assert_eq!(advance_stagnation_reset(generation, interval), expected);
+}}
+
+can_advance_stagnation_reset! {
+    case_01: (1000, 1000, (2000, 3000)),
+    case_02: (3000, 2000, (3000, 6000)),
+    case_03: (usize::MAX, usize::MAX, (usize::MAX, usize::MAX)),
+}
+
 #[test]
 fn can_estimate_duration_median_in_microseconds() {
     struct DelayableHeuristicOperator {

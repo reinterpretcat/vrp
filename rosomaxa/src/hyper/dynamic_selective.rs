@@ -44,6 +44,7 @@ where
 
     fn search(&mut self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
         let generation = heuristic_ctx.statistics().generation;
+        self.agent.reset_if_stagnant(heuristic_ctx.statistics());
         let feedback = self.agent.search(heuristic_ctx, solution);
 
         self.agent.update(generation, &feedback);
@@ -52,6 +53,7 @@ where
     }
 
     fn search_many(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
+        self.agent.reset_if_stagnant(heuristic_ctx.statistics());
         let approx_median = self.agent.tracker.approx_median();
         let feedbacks = parallel_into_collect(solutions, ParallelismScope::Coarse, |solution| {
             self.agent.search_with_median(heuristic_ctx, solution, approx_median)
@@ -144,6 +146,9 @@ const PRIOR_MEAN_MIN: Float = 0.1;
 /// Maximum initial mean used for operator rewards.
 const PRIOR_MEAN_MAX: Float = 2.0;
 
+/// Restarts a collapsed best-known posterior after this many generations without improvement.
+const STAGNATION_WINDOW: usize = 1000;
+
 /// Search state for Thompson sampling.
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub enum SearchState {
@@ -235,6 +240,10 @@ struct SearchAgent<'a, C, O, S> {
     tracker: HeuristicTracker,
     /// Random number generator for Thompson sampling selection.
     random: Arc<dyn Random>,
+    /// Current delay between best-known posterior resets during stagnation.
+    stagnation_reset_interval: usize,
+    /// Generation at which the next stagnant best-known posterior can be reset.
+    next_stagnation_reset: usize,
 }
 
 impl<'a, C, O, S> SearchAgent<'a, C, O, S>
@@ -281,7 +290,24 @@ where
             slot_machines,
             tracker: HeuristicTracker::new(environment.is_experimental),
             random: environment.random.clone(),
+            stagnation_reset_interval: STAGNATION_WINDOW,
+            next_stagnation_reset: STAGNATION_WINDOW,
         }
+    }
+
+    fn reset_if_stagnant(&mut self, statistics: &HeuristicStatistics) {
+        if !should_reset_best_known(statistics, self.next_stagnation_reset) {
+            return;
+        }
+
+        self.slot_machines
+            .get_mut(&SearchState::BestKnown)
+            .expect("cannot get slot machines")
+            .iter_mut()
+            .for_each(|(slot, _)| slot.reset());
+
+        (self.stagnation_reset_interval, self.next_stagnation_reset) =
+            advance_stagnation_reset(statistics.generation, self.stagnation_reset_interval);
     }
 
     /// Picks the relevant search operator using pure Thompson Sampling and runs the search.
@@ -311,6 +337,11 @@ where
 
     /// Updates the slot machine with the raw reward (no normalization needed).
     pub fn update(&mut self, generation: usize, feedback: &SearchFeedback<S>) {
+        if feedback.sample.transition.1 == SearchState::BestKnown {
+            self.stagnation_reset_interval = STAGNATION_WINDOW;
+            self.next_stagnation_reset = generation.saturating_add(STAGNATION_WINDOW);
+        }
+
         let from = &feedback.sample.transition.0;
         let slots = self.slot_machines.get_mut(from).expect("cannot get slot machines");
         let (slot_machine, name) = &mut slots[feedback.slot_idx];
@@ -336,6 +367,15 @@ where
             });
         });
     }
+}
+
+fn should_reset_best_known(statistics: &HeuristicStatistics, next_reset: usize) -> bool {
+    statistics.generation >= next_reset && statistics.improvement_1000_ratio == 0.
+}
+
+fn advance_stagnation_reset(generation: usize, interval: usize) -> (usize, usize) {
+    let interval = interval.saturating_add(STAGNATION_WINDOW);
+    (interval, generation.saturating_add(interval))
 }
 
 /// Maps an operator's relative weight to the prior mean used by the reward model.
