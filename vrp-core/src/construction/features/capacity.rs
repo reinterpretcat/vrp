@@ -21,6 +21,7 @@ struct CapacityActivityState<T: LoadOps> {
 
 struct CapacityRouteState<T: LoadOps> {
     activities: Vec<CapacityActivityState<T>>,
+    capacity: Option<T>,
 }
 
 #[cfg(test)]
@@ -39,7 +40,7 @@ pub(crate) trait MaxPastCapacityActivityState {
 trait CapacityActivityStateAccess {
     fn get_capacity_states<T: LoadOps>(&self) -> Option<&CapacityRouteState<T>>;
 
-    fn set_capacity_states<T: LoadOps>(&mut self, activities: Vec<CapacityActivityState<T>>);
+    fn set_capacity_states<T: LoadOps>(&mut self, activities: Vec<CapacityActivityState<T>>, capacity: Option<T>);
 }
 
 impl CapacityActivityStateAccess for RouteState {
@@ -47,8 +48,8 @@ impl CapacityActivityStateAccess for RouteState {
         self.get_tour_state::<CapacityRouteStateKey<T>, _>()
     }
 
-    fn set_capacity_states<T: LoadOps>(&mut self, activities: Vec<CapacityActivityState<T>>) {
-        self.set_tour_state::<CapacityRouteStateKey<T>, _>(CapacityRouteState { activities });
+    fn set_capacity_states<T: LoadOps>(&mut self, activities: Vec<CapacityActivityState<T>>, capacity: Option<T>) {
+        self.set_tour_state::<CapacityRouteStateKey<T>, _>(CapacityRouteState { activities, capacity });
     }
 }
 
@@ -245,10 +246,11 @@ where
                 (current - end_pickup, current_max.max_load(max))
             });
 
-        route_ctx.state_mut().set_capacity_states(capacity_states);
+        let capacity = route_ctx.route().actor.vehicle.dimens.get_vehicle_capacity::<T>().copied();
+        route_ctx.state_mut().set_capacity_states(capacity_states, capacity);
 
-        if let Some(capacity) = route_ctx.route().actor.clone().vehicle.dimens.get_vehicle_capacity::<T>() {
-            route_ctx.state_mut().set_max_vehicle_load(max_load.ratio(capacity));
+        if let Some(capacity) = capacity {
+            route_ctx.state_mut().set_max_vehicle_load(max_load.ratio(&capacity));
         }
     }
 
@@ -344,8 +346,12 @@ fn has_demand_violation<T: LoadOps>(
     demand: Option<&Demand<T>>,
     stopped: bool,
 ) -> Option<bool> {
-    let capacity: Option<&T> = route_ctx.route().actor.vehicle.dimens.get_vehicle_capacity();
     let demand = demand?;
+    let capacity_state = route_ctx.state().get_capacity_states::<T>();
+    let capacity = match capacity_state {
+        Some(state) => state.capacity.as_ref(),
+        None => route_ctx.route().actor.vehicle.dimens.get_vehicle_capacity(),
+    };
 
     let capacity = if let Some(capacity) = capacity {
         capacity
@@ -353,7 +359,7 @@ fn has_demand_violation<T: LoadOps>(
         return Some(stopped);
     };
 
-    let state = route_ctx.state().get_capacity_states::<T>().and_then(|states| states.activities.get(pivot_idx));
+    let state = capacity_state.and_then(|states| states.activities.get(pivot_idx));
 
     // check how static delivery affects a past max load
     if demand.delivery.0.is_not_empty() {
