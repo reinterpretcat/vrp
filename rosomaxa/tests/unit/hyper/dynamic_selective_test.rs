@@ -177,8 +177,10 @@ fn can_penalize_fast_noop_through_search_action() {
     let heuristic_ctx = create_heuristic_context_with_solutions(vec![vec![0.0, 0.0]]);
     let solution = VectorSolution::new(vec![0.0, 0.0], 1.0, vec![0.0, 0.0]);
     let action = SearchAction { operator: Arc::new(Noop) };
+    let best_known = heuristic_ctx.ranked().next();
     let feedback = action.take(SearchContext {
         heuristic_ctx: &heuristic_ctx,
+        best_known,
         from: SearchState::BestKnown,
         slot_idx: 0,
         solution: &solution,
@@ -194,9 +196,10 @@ fn can_ignore_numerical_noise_in_new_best_reward() {
     let heuristic_ctx = create_heuristic_context_with_solutions(vec![vec![0., 0.]]);
     let initial_solution = VectorSolution::new(vec![], 1., vec![]);
     let new_solution = VectorSolution::new(vec![], 1. - Float::EPSILON, vec![]);
+    let best_known = heuristic_ctx.ranked().next();
 
     let Reward { value: reward, is_new_best } =
-        compute_reward(&heuristic_ctx, &initial_solution, &new_solution, 500, Some(1_000));
+        compute_reward(&heuristic_ctx, best_known, &initial_solution, &new_solution, 500, Some(1_000));
 
     assert!(is_new_best);
     assert!((0. ..1e-6).contains(&reward));
@@ -207,9 +210,10 @@ fn can_ignore_numerical_noise_in_diverse_improvement_reward() {
     let heuristic_ctx = create_heuristic_context_with_solutions(vec![vec![1., 1.]]);
     let initial_solution = VectorSolution::new(vec![], 1., vec![]);
     let new_solution = VectorSolution::new(vec![], 1. - Float::EPSILON, vec![]);
+    let best_known = heuristic_ctx.ranked().next();
 
     let Reward { value: reward, is_new_best } =
-        compute_reward(&heuristic_ctx, &initial_solution, &new_solution, 500, Some(1_000));
+        compute_reward(&heuristic_ctx, best_known, &initial_solution, &new_solution, 500, Some(1_000));
 
     assert!(!is_new_best);
     assert!((0. ..1e-6).contains(&reward));
@@ -219,16 +223,30 @@ parameterized_test! {can_compute_relative_distance, (fitness_a, fitness_b, expec
     can_compute_relative_distance_impl(fitness_a, fitness_b, expected);
 }}
 
+struct FitnessSolution(Vec<Float>);
+
+impl HeuristicSolution for FitnessSolution {
+    fn fitness(&self) -> impl Iterator<Item = Float> {
+        self.0.iter().copied()
+    }
+
+    fn deep_copy(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
 can_compute_relative_distance! {
     case_01_improvement: (vec![90.0], vec![100.0], 0.1),           // 10% distance: |100-90|/100 = 0.1
     case_02_regression: (vec![110.0], vec![100.0], 0.09),          // 9% distance: |110-100|/110 ≈ 0.09
     case_03_equal: (vec![100.0], vec![100.0], 0.0),                // Equal = no distance
     case_04_primary_priority: (vec![90.0, 100.0], vec![100.0, 90.0], 0.1), // Primary objective distance
+    case_05_secondary_priority: (vec![100.0, 90.0], vec![100.0, 100.0], 0.05),
+    case_06_trailing_value: (vec![100.0, 90.0], vec![100.0], 0.0),
 }
 
 fn can_compute_relative_distance_impl(fitness_a: Vec<Float>, fitness_b: Vec<Float>, expected: Float) {
-    let solution_a = VectorSolution::new(vec![], fitness_a.first().copied().unwrap_or(0.0), fitness_a);
-    let solution_b = VectorSolution::new(vec![], fitness_b.first().copied().unwrap_or(0.0), fitness_b);
+    let solution_a = FitnessSolution(fitness_a);
+    let solution_b = FitnessSolution(fitness_b);
 
     let result = get_relative_distance(&solution_a, &solution_b);
 

@@ -55,8 +55,10 @@ where
     fn search_many(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
         self.agent.reset_if_stagnant(heuristic_ctx.statistics());
         let approx_median = self.agent.tracker.approx_median();
+        // Population is unchanged while the batch runs, so all searches can use the same best solution.
+        let best_known = heuristic_ctx.ranked().next();
         let feedbacks = parallel_into_collect(solutions, ParallelismScope::Coarse, |solution| {
-            self.agent.search_with_median(heuristic_ctx, solution, approx_median)
+            self.agent.search_with_median(heuristic_ctx, solution, best_known, approx_median)
         });
 
         let generation = heuristic_ctx.statistics().generation;
@@ -207,8 +209,14 @@ where
         let duration = get_duration_micros(duration);
 
         // Compute reward using the simplified V2.1 formula.
-        let Reward { value: reward, is_new_best } =
-            compute_reward(context.heuristic_ctx, context.solution, &new_solution, duration, context.approx_median);
+        let Reward { value: reward, is_new_best } = compute_reward(
+            context.heuristic_ctx,
+            context.best_known,
+            context.solution,
+            &new_solution,
+            duration,
+            context.approx_median,
+        );
 
         let to = if is_new_best { SearchState::BestKnown } else { SearchState::Diverse };
         let transition = (context.from, to);
@@ -227,6 +235,7 @@ where
     S: HeuristicSolution,
 {
     heuristic_ctx: &'a C,
+    best_known: Option<&'a S>,
     from: SearchState,
     slot_idx: usize,
     solution: &'a S,
@@ -312,12 +321,19 @@ where
 
     /// Picks the relevant search operator using pure Thompson Sampling and runs the search.
     pub fn search(&self, heuristic_ctx: &C, solution: &S) -> SearchFeedback<S> {
-        self.search_with_median(heuristic_ctx, solution, self.tracker.approx_median())
+        let best_known = heuristic_ctx.ranked().next();
+        self.search_with_median(heuristic_ctx, solution, best_known, self.tracker.approx_median())
     }
 
-    fn search_with_median(&self, heuristic_ctx: &C, solution: &S, approx_median: Option<usize>) -> SearchFeedback<S> {
+    fn search_with_median(
+        &self,
+        heuristic_ctx: &C,
+        solution: &S,
+        best_known: Option<&S>,
+        approx_median: Option<usize>,
+    ) -> SearchFeedback<S> {
         // Determine search context - critical for operator selection.
-        let from = if matches!(compare_to_best(heuristic_ctx, solution), Ordering::Equal) {
+        let from = if matches!(compare_to_best(heuristic_ctx.objective(), best_known, solution), Ordering::Equal) {
             SearchState::BestKnown
         } else {
             SearchState::Diverse
@@ -332,7 +348,7 @@ where
         let slot_machine = &slots[slot_idx].0;
 
         // Execute with full context information.
-        slot_machine.play(SearchContext { heuristic_ctx, from, slot_idx, solution, approx_median })
+        slot_machine.play(SearchContext { heuristic_ctx, best_known, from, slot_idx, solution, approx_median })
     }
 
     /// Updates the slot machine with the raw reward (no normalization needed).
@@ -400,6 +416,7 @@ struct Reward {
 /// 3. **Bounded Output**: Rewards are clamped before the Bayesian update.
 fn compute_reward<C, O, S>(
     heuristic_ctx: &C,
+    best_known: Option<&S>,
     initial_solution: &S,
     new_solution: &S,
     duration: usize,
@@ -412,8 +429,7 @@ where
 {
     let objective = heuristic_ctx.objective();
 
-    // Get best known solution for anchoring.
-    let best_known = match heuristic_ctx.ranked().next() {
+    let best_known = match best_known {
         Some(best) => best,
         None => return Reward { value: 0.0, is_new_best: true }, // No population yet, neutral reward.
     };
@@ -491,17 +507,12 @@ fn get_duration_ratio(duration: usize, approx_median: Option<usize>) -> Float {
     duration as Float / median as Float
 }
 
-fn compare_to_best<C, O, S>(heuristic_ctx: &C, solution: &S) -> Ordering
+fn compare_to_best<O, S>(objective: &O, best_known: Option<&S>, solution: &S) -> Ordering
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    heuristic_ctx
-        .ranked()
-        .next()
-        .map(|best_known| heuristic_ctx.objective().total_order(solution, best_known))
-        .unwrap_or(Ordering::Less)
+    best_known.map(|best_known| objective.total_order(solution, best_known)).unwrap_or(Ordering::Less)
 }
 
 /// Returns the normalized distance in `[0.0, 1.0]`.
@@ -509,34 +520,31 @@ fn get_relative_distance<S>(a: &S, b: &S) -> Float
 where
     S: HeuristicSolution,
 {
-    // Find the first differing fitness component.
-    let idx = a
-        .fitness()
-        .zip(b.fitness())
-        .enumerate()
-        .find(|(_, (fitness_a, fitness_b))| fitness_a != fitness_b)
-        .map(|(idx, _)| idx);
+    let mut first_difference = None;
+    let mut total_objectives = 0;
+    let mut fitness_b = b.fitness();
 
-    let idx = match idx {
-        Some(idx) => idx,
+    for fitness_a in a.fitness() {
+        if first_difference.is_none() {
+            if let Some(fitness_b) = fitness_b.next()
+                && fitness_a != fitness_b
+            {
+                first_difference = Some((total_objectives, fitness_a, fitness_b));
+            }
+        }
+        total_objectives += 1;
+    }
+
+    let (idx, fitness_a, fitness_b) = match first_difference {
+        Some(difference) => difference,
         None => return 0., // All fitness values equal.
     };
-
-    let total_objectives = a.fitness().count();
-    if total_objectives == 0 || total_objectives == idx {
-        return 0.;
-    }
 
     // Priority amplifier: earlier objectives matter more.
     let priority_amplifier = (total_objectives - idx) as Float / total_objectives as Float;
 
     // Relative difference in the differing component.
-    let value = a
-        .fitness()
-        .nth(idx)
-        .zip(b.fitness().nth(idx))
-        .map(|(a, b)| (a - b).abs() / a.abs().max(b.abs()).max(f64::EPSILON))
-        .unwrap_or(0.0);
+    let value = (fitness_a - fitness_b).abs() / fitness_a.abs().max(fitness_b.abs()).max(f64::EPSILON);
 
     value * priority_amplifier
 }
