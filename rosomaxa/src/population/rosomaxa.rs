@@ -267,7 +267,7 @@ where
             }
         };
 
-        let exploration_ratio = self.config.exploration_ratio;
+        let exploration_ratio = get_exploration_ratio(self.config.exploration_ratio, statistics.improvement_1000_ratio);
 
         match &mut self.phase {
             RosomaxaPhases::Initial { solutions: individuals } => {
@@ -567,6 +567,19 @@ fn get_keep_size(rebalance_memory: usize, termination_estimate: Float) -> usize 
     let keep_ratio = 2. * (1. - rate);
 
     rebalance_memory + (rebalance_memory as Float * keep_ratio as Float) as usize
+}
+
+/// Keeps exploration active a bit longer when it is still improving solutions.
+fn get_exploration_ratio(exploration_ratio: Float, improvement_ratio: Float) -> Float {
+    const EXPLORATION_EXTENSION: Float = 0.05;
+    const MAX_EXPLORATION_RATIO: Float = 0.95;
+
+    if exploration_ratio == 0. || improvement_ratio <= 0. {
+        exploration_ratio
+    } else {
+        // Keep a final exploitation window and do not shorten an explicitly larger ratio.
+        (exploration_ratio + EXPLORATION_EXTENSION).min(MAX_EXPLORATION_RATIO).max(exploration_ratio)
+    }
 }
 
 /// Gets learning rate decay using cosine annealing.

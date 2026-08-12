@@ -138,6 +138,34 @@ mod selection {
     }
 
     #[test]
+    fn can_extend_exploration_while_improving() {
+        let initial_size = 4;
+        let mut rosomaxa = create_rosomaxa(initial_size);
+
+        for i in 0..initial_size {
+            let solution = VectorSolution { data: vec![i as Float], weights: vec![i as Float], fitness: -(i as Float) };
+            rosomaxa.add(solution);
+        }
+
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..HeuristicStatistics::default() });
+        rosomaxa.on_generation(&HeuristicStatistics {
+            termination_estimate: 0.9,
+            improvement_1000_ratio: 0.001,
+            ..HeuristicStatistics::default()
+        });
+
+        assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
+
+        rosomaxa.on_generation(&HeuristicStatistics {
+            termination_estimate: 0.95,
+            improvement_1000_ratio: 0.001,
+            ..HeuristicStatistics::default()
+        });
+
+        assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploitation);
+    }
+
+    #[test]
     fn can_fallback_to_exploitation_when_network_creation_fails() {
         let initial_size = 4;
         let mut rosomaxa = create_rosomaxa(initial_size);
@@ -292,6 +320,14 @@ mod auxiliary {
         let size_late = get_keep_size(rebalance_memory, 0.8);
         assert!(size_late >= rebalance_memory);
         assert!(size_late < size_mid);
+    }
+
+    #[test]
+    fn can_get_exploration_ratio() {
+        assert_eq!(get_exploration_ratio(0.9, 0.), 0.9);
+        assert_eq!(get_exploration_ratio(0.9, 0.001), 0.95);
+        assert_eq!(get_exploration_ratio(0., 0.001), 0.);
+        assert_eq!(get_exploration_ratio(0.97, 0.001), 0.97);
     }
 
     #[test]
