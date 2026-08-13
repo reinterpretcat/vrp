@@ -104,6 +104,40 @@ mod selection {
     }
 
     #[test]
+    fn can_identify_strict_local_optimum() {
+        assert!(RosomaxaType::is_strict_local_optimum([Ordering::Less, Ordering::Equal].into_iter()));
+        assert!(!RosomaxaType::is_strict_local_optimum([Ordering::Greater, Ordering::Less].into_iter()));
+        assert!(!RosomaxaType::is_strict_local_optimum([Ordering::Equal, Ordering::Equal].into_iter()));
+        assert!(!RosomaxaType::is_strict_local_optimum(std::iter::empty()));
+    }
+
+    #[test]
+    fn can_promote_local_optimum() {
+        let mut coordinates = [Coordinate(0, 0), Coordinate(1, 0)];
+
+        RosomaxaType::promote_coordinate(&mut coordinates, &DefaultRandom::new_repeatable(), |coordinate| {
+            coordinate.0 == 1
+        });
+
+        assert_eq!(coordinates[0], Coordinate(1, 0));
+    }
+
+    #[test]
+    fn can_select_smooth_diverse_local_optimum() {
+        let mut candidates = [(1, 0.1), (2, 0.2), (3, 0.3), (4, 0.9)];
+        let distances = [0., 0.2, 0.8, 0.9, 10.];
+        let evaluations = std::cell::Cell::new(0);
+
+        let selected = RosomaxaType::select_diverse_local_optimum(&mut candidates, |index| {
+            evaluations.set(evaluations.get() + 1);
+            distances[index]
+        });
+
+        assert_eq!(selected, Some(3));
+        assert_eq!(evaluations.get(), 3);
+    }
+
+    #[test]
     fn can_handle_exploitation_phase() {
         let initial_size = 4;
         let selection_size = 4;

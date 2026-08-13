@@ -91,13 +91,25 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         C: Send + Sync,
         F: StorageFactory<C, I, S>,
     {
+        self.neighbour_nodes(network, radius).map(|(node, offset)| (node.map(|node| node.coordinate), offset))
+    }
+
+    fn neighbour_nodes<'a, C, F>(
+        &self,
+        network: &'a Network<C, I, S, F>,
+        radius: usize,
+    ) -> impl Iterator<Item = (Option<&'a Node<I, S>>, (i32, i32))> + 'a + use<'a, C, F, I, S>
+    where
+        C: Send + Sync,
+        F: StorageFactory<C, I, S>,
+    {
         let radius = radius as i32;
         let Coordinate(node_x, node_y) = self.coordinate;
 
         (-radius..=radius).flat_map(move |x| {
             (-radius..=radius)
                 .filter(move |&y| !(x == 0 && y == 0))
-                .map(move |y| (network.find(&Coordinate(node_x + x, node_y + y)).map(|node| node.coordinate), (x, y)))
+                .map(move |y| (network.find(&Coordinate(node_x + x, node_y + y)), (x, y)))
         })
     }
 
@@ -107,10 +119,8 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         C: Send + Sync,
         F: StorageFactory<C, I, S>,
     {
-        let (sum, count) = self
-            .neighbours(network, radius)
-            .filter_map(|(coord, _)| coord.and_then(|coord| network.find(&coord)))
-            .fold((0., 0), |(sum, count), node| {
+        let (sum, count) =
+            self.neighbour_nodes(network, radius).filter_map(|(node, _)| node).fold((0., 0), |(sum, count), node| {
                 let distance = network.distance(self.weights.as_slice(), node.weights.as_slice());
                 (sum + distance, count + 1)
             });

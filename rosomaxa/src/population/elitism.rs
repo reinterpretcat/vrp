@@ -169,6 +169,11 @@ where
         self.individuals.drain(range).collect()
     }
 
+    /// Returns the best individual in the population.
+    pub(crate) fn best(&self) -> Option<&S> {
+        self.individuals.first()
+    }
+
     /// Shrinks the population to the specified size.
     pub fn set_max_population_size(&mut self, max_population_size: usize) {
         self.max_population_size = max_population_size;

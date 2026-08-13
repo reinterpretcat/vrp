@@ -97,7 +97,7 @@ where
 
     fn add_all(&mut self, individuals: Vec<Self::Individual>) -> bool {
         // NOTE avoid extra deep copy
-        let best_known = self.elite.ranked().next();
+        let best_known = self.elite.best();
         let elite = individuals
             .iter()
             .filter(|individual| self.is_comparable_with_best_known(individual, best_known))
@@ -138,21 +138,22 @@ where
     fn select(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         match &self.phase {
             RosomaxaPhases::Initial { solutions } => Box::new(solutions.iter()),
-            RosomaxaPhases::Exploration { network, coordinates, selection_size, statistics, .. } => {
+            RosomaxaPhases::Exploration { network, selection_coordinates, selection_size, statistics, .. } => {
                 let random = self.environment.random.as_ref();
 
                 let (elite_explore_size, node_explore_size) = match *selection_size {
                     value if value > 6 => {
                         let ratio = statistics.improvement_1000_ratio;
-                        let elite_exlr_prob = (1. - 1. / (1. + E.powf(-10. * (ratio - 0.166)))) as Float;
+                        let elite_explore_prob = (1. - 1. / (1. + E.powf(-10. * (ratio - 0.166)))) as Float;
                         let elite_size = (1..=2).fold(0, |acc, idx| {
-                            acc + if random.is_hit(elite_exlr_prob / idx as Float) { 2 } else { 1 }
+                            acc + if random.is_hit(elite_explore_prob / idx as Float) { 2 } else { 1 }
                         });
 
+                        // A second item is sampled from the same node, so keep it rare to preserve node diversity.
                         const NODE_EXPLORE_PROB: Float = 0.1;
-                        let node_size = if random.is_hit(NODE_EXPLORE_PROB) { 2 } else { 1 };
+                        let node_selection_size = if random.is_hit(NODE_EXPLORE_PROB) { 2 } else { 1 };
 
-                        (elite_size, node_size)
+                        (elite_size, node_selection_size)
                     }
                     _ => (1, 1),
                 };
@@ -162,7 +163,7 @@ where
                         .select()
                         .take(elite_explore_size)
                         .chain(
-                            coordinates
+                            selection_coordinates
                                 .iter()
                                 .filter_map(move |coordinate| network.find(coordinate))
                                 .flat_map(move |node| node.storage.population.select().take(node_explore_size)),
@@ -285,11 +286,12 @@ where
 
                     match network_result {
                         Ok(network) => {
-                            let coordinates = network.get_coordinates().collect();
+                            let selection_coordinates = network.get_coordinates().collect();
 
                             self.phase = RosomaxaPhases::Exploration {
                                 network,
-                                coordinates,
+                                selection_coordinates,
+                                local_optimum_candidates: Vec::new(),
                                 statistics: statistics.clone(),
                                 selection_size,
                             };
@@ -305,7 +307,8 @@ where
             }
             RosomaxaPhases::Exploration {
                 network,
-                coordinates,
+                selection_coordinates,
+                local_optimum_candidates,
                 statistics: old_statistics,
                 selection_size: old_selection_size,
             } => {
@@ -315,7 +318,15 @@ where
 
                     Self::optimize_network(&self.external_ctx, network, statistics, &self.config);
 
-                    Self::fill_populations(network, coordinates, self.environment.random.as_ref());
+                    Self::prepare_selection(
+                        network,
+                        selection_coordinates,
+                        local_optimum_candidates,
+                        self.environment.random.as_ref(),
+                        self.objective.as_ref(),
+                        statistics.generation,
+                        selection_size,
+                    );
                 } else {
                     self.phase = RosomaxaPhases::Exploitation { selection_size }
                 }
@@ -358,13 +369,143 @@ where
         network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
     }
 
-    fn fill_populations(network: &IndividualNetwork<C, O, S>, coordinates: &mut Vec<Coordinate>, random: &dyn Random) {
-        coordinates.clear();
-        coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
+    fn prepare_selection(
+        network: &IndividualNetwork<C, O, S>,
+        selection_coordinates: &mut Vec<Coordinate>,
+        local_optimum_candidates: &mut Vec<(usize, Float)>,
+        random: &dyn Random,
+        objective: &O,
+        generation: usize,
+        selection_size: usize,
+    ) {
+        selection_coordinates.clear();
+        selection_coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
             if node.storage.population.size() > 0 { Some(*coordinate) } else { None }
         }));
 
-        coordinates.shuffle(&mut random.get_rng());
+        selection_coordinates.shuffle(&mut random.get_rng());
+
+        // Give a local optimum another chance to occupy the first GSOM slot; keep the rest shuffled.
+        if selection_size > 2 && selection_coordinates.len() > 1 {
+            Self::promote_coordinate(selection_coordinates, random, |coordinate| {
+                Self::is_local_optimum(network, coordinate, objective)
+            });
+
+            // Periodically reserve the second GSOM slot for a smooth local optimum far from the first.
+            if selection_size > 6 && generation.is_multiple_of(4) {
+                Self::promote_diverse_local_optimum(
+                    network,
+                    selection_coordinates,
+                    local_optimum_candidates,
+                    objective,
+                );
+            }
+        }
+    }
+
+    fn promote_coordinate(
+        coordinates: &mut [Coordinate],
+        random: &dyn Random,
+        is_preferred: impl Fn(&Coordinate) -> bool,
+    ) {
+        debug_assert!(coordinates.len() > 1);
+        let candidate_idx = random.uniform_int(1, coordinates.len() as i32 - 1) as usize;
+        if !is_preferred(&coordinates[0]) && is_preferred(&coordinates[candidate_idx]) {
+            coordinates.swap(0, candidate_idx);
+        }
+    }
+
+    fn promote_diverse_local_optimum(
+        network: &IndividualNetwork<C, O, S>,
+        coordinates: &mut [Coordinate],
+        local_optima: &mut Vec<(usize, Float)>,
+        objective: &O,
+    ) {
+        local_optima.clear();
+
+        let reference_coordinate = coordinates[0];
+        let Some(reference_node) = network.find(&reference_coordinate) else { return };
+        let reference_weights = reference_node.weights.as_slice();
+
+        // A shuffled reference rotates which distant basin is promoted.
+        local_optima.extend(coordinates.iter().copied().enumerate().skip(1).filter_map(|(index, coordinate)| {
+            let node = network.find(&coordinate)?;
+            let solution = node.storage.population.best()?;
+
+            Self::is_local_optimum_solution(network, &coordinate, solution, objective).then(|| {
+                let smoothness = node.unified_distance(network, 1);
+                (index, smoothness)
+            })
+        }));
+
+        let Some(coordinate_idx) = Self::select_diverse_local_optimum(local_optima, |index| {
+            network
+                .find(&coordinates[index])
+                .map(|node| network.distance(node.weights.as_slice(), reference_weights))
+                .unwrap_or_default()
+        }) else {
+            return;
+        };
+
+        coordinates.swap(1, coordinate_idx);
+    }
+
+    fn select_diverse_local_optimum(
+        candidates: &mut [(usize, Float)],
+        distance: impl Fn(usize) -> Float,
+    ) -> Option<usize> {
+        if candidates.is_empty() {
+            return None;
+        }
+
+        // Smoothness filters map noise; distance provides a distinct search direction.
+        let middle = candidates.len() / 2;
+        candidates.select_nth_unstable_by(middle, |(_, left), (_, right)| left.total_cmp(right));
+        candidates[..=middle]
+            .iter()
+            .map(|(index, _)| (*index, distance(*index)))
+            .max_by(|(_, left), (_, right)| left.total_cmp(right))
+            .map(|(index, _)| index)
+    }
+
+    fn is_local_optimum(network: &IndividualNetwork<C, O, S>, coordinate: &Coordinate, objective: &O) -> bool {
+        let Some(node) = network.find(coordinate) else { return false };
+        let Some(solution) = node.storage.population.best() else { return false };
+
+        Self::is_local_optimum_solution(network, coordinate, solution, objective)
+    }
+
+    fn is_local_optimum_solution(
+        network: &IndividualNetwork<C, O, S>,
+        coordinate: &Coordinate,
+        solution: &S,
+        objective: &O,
+    ) -> bool {
+        let Coordinate(x, y) = *coordinate;
+
+        let comparisons = [Coordinate(x - 1, y), Coordinate(x + 1, y), Coordinate(x, y - 1), Coordinate(x, y + 1)]
+            .into_iter()
+            .filter_map(|coordinate| network.find(&coordinate))
+            .filter_map(|node| node.storage.population.best())
+            .map(|neighbor| objective.total_order(solution, neighbor));
+
+        Self::is_strict_local_optimum(comparisons)
+    }
+
+    fn is_strict_local_optimum(comparisons: impl Iterator<Item = Ordering>) -> bool {
+        let mut has_worse_neighbor = false;
+        let mut has_neighbor = false;
+
+        for comparison in comparisons {
+            has_neighbor = true;
+            match comparison {
+                Ordering::Greater => return false,
+                Ordering::Less => has_worse_neighbor = true,
+                Ordering::Equal => {}
+            }
+        }
+
+        has_neighbor && has_worse_neighbor
     }
 
     fn create_network(
@@ -429,7 +570,9 @@ where
     },
     Exploration {
         network: IndividualNetwork<C, O, S>,
-        coordinates: Vec<Coordinate>,
+        selection_coordinates: Vec<Coordinate>,
+        // Reuse this scratch space instead of allocating while preparing each selection.
+        local_optimum_candidates: Vec<(usize, Float)>,
         statistics: HeuristicStatistics,
         selection_size: usize,
     },
