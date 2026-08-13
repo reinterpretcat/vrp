@@ -174,6 +174,11 @@ where
         self.individuals.first()
     }
 
+    /// Returns an individual by its objective rank.
+    pub(crate) fn get(&self, index: usize) -> Option<&S> {
+        self.individuals.get(index)
+    }
+
     /// Shrinks the population to the specified size.
     pub fn set_max_population_size(&mut self, max_population_size: usize) {
         self.max_population_size = max_population_size;

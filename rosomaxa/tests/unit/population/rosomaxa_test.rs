@@ -43,8 +43,11 @@ mod selection {
     use super::*;
 
     fn create_rosomaxa(initial_size: usize) -> RosomaxaType {
+        create_rosomaxa_with_config(RosomaxaConfig { initial_size, ..RosomaxaConfig::new_with_defaults(4) })
+    }
+
+    fn create_rosomaxa_with_config(config: RosomaxaConfig) -> RosomaxaType {
         let env = Arc::new(Environment::default());
-        let config = RosomaxaConfig { initial_size, ..RosomaxaConfig::new_with_defaults(4) };
         let objective = create_example_objective();
 
         Rosomaxa::new(VectorRosomaxaContext, objective, env, config).unwrap()
@@ -101,6 +104,30 @@ mod selection {
         rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..HeuristicStatistics::default() });
         assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
         assert_eq!(rosomaxa.select().count(), selection_size);
+    }
+
+    #[test]
+    fn can_fill_different_exploration_selection_budgets() {
+        for (selection_size, node_size) in [(2, 1), (4, 2), (8, 2), (16, 4)] {
+            let initial_size = 16;
+            let config = RosomaxaConfig {
+                initial_size,
+                selection_size,
+                node_size,
+                ..RosomaxaConfig::new_with_defaults(selection_size)
+            };
+            let mut rosomaxa = create_rosomaxa_with_config(config);
+
+            for value in 0..initial_size {
+                let value = value as Float;
+                rosomaxa.add(VectorSolution { data: vec![value], weights: vec![value], fitness: -value });
+            }
+
+            rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
+
+            assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
+            assert_eq!(rosomaxa.select().count(), selection_size);
+        }
     }
 
     #[test]
@@ -362,6 +389,25 @@ mod auxiliary {
         assert_eq!(get_exploration_ratio(0.9, 0.001), 0.95);
         assert_eq!(get_exploration_ratio(0., 0.001), 0.);
         assert_eq!(get_exploration_ratio(0.97, 0.001), 0.97);
+    }
+
+    #[test]
+    fn can_scale_elite_selection_size() {
+        for selection_size in 2..=6 {
+            assert_eq!(get_elite_selection_size(selection_size, 0., |_| true), 1);
+        }
+
+        assert_eq!(get_elite_selection_size(8, 0., |_| false), 2);
+        assert_eq!(get_elite_selection_size(8, 0., |_| true), 4);
+        assert_eq!(get_elite_selection_size(16, 0., |_| false), 4);
+        assert_eq!(get_elite_selection_size(16, 0., |_| true), 8);
+    }
+
+    #[test]
+    fn can_scale_exploitation_selection_size() {
+        assert_eq!((1..=8).map(get_exploitation_selection_size).collect::<Vec<_>>(), [2, 2, 2, 2, 3, 3, 4, 4]);
+        assert_eq!(get_exploitation_selection_size(16), 8);
+        assert_eq!(get_exploitation_selection_size(64), 32);
     }
 
     #[test]

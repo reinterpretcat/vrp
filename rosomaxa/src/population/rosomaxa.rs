@@ -21,7 +21,8 @@ pub struct RosomaxaConfig {
     pub selection_size: usize,
     /// Elite population size.
     pub elite_size: usize,
-    /// Node population size.
+    /// Maximum number of solutions retained by each GSOM node. Smoothing replays all retained solutions; parent
+    /// selection takes one solution per node and normally favors its best one.
     pub node_size: usize,
     /// Spread factor of GSOM.
     pub spread_factor: Float,
@@ -140,34 +141,27 @@ where
             RosomaxaPhases::Initial { solutions } => Box::new(solutions.iter()),
             RosomaxaPhases::Exploration { network, selection_coordinates, selection_size, statistics, .. } => {
                 let random = self.environment.random.as_ref();
+                let elite_selection_size =
+                    get_elite_selection_size(*selection_size, statistics.improvement_1000_ratio, |probability| {
+                        random.is_hit(probability)
+                    });
 
-                let (elite_explore_size, node_explore_size) = match *selection_size {
-                    value if value > 6 => {
-                        let ratio = statistics.improvement_1000_ratio;
-                        let elite_explore_prob = (1. - 1. / (1. + E.powf(-10. * (ratio - 0.166)))) as Float;
-                        let elite_size = (1..=2).fold(0, |acc, idx| {
-                            acc + if random.is_hit(elite_explore_prob / idx as Float) { 2 } else { 1 }
-                        });
-
-                        // A second item is sampled from the same node, so keep it rare to preserve node diversity.
-                        const NODE_EXPLORE_PROB: Float = 0.1;
-                        let node_selection_size = if random.is_hit(NODE_EXPLORE_PROB) { 2 } else { 1 };
-
-                        (elite_size, node_selection_size)
-                    }
-                    _ => (1, 1),
-                };
+                // Occasionally try a retained alternative without reducing the number of selected GSOM regions.
+                const NODE_ALTERNATIVE_PROBABILITY: Float = 0.05;
+                let node_alternative_probability = if *selection_size > 6 { NODE_ALTERNATIVE_PROBABILITY } else { 0. };
 
                 Box::new(
                     self.elite
                         .select()
-                        .take(elite_explore_size)
+                        .take(elite_selection_size)
                         .chain(
                             selection_coordinates
                                 .iter()
                                 .filter_map(move |coordinate| network.find(coordinate))
-                                .flat_map(move |node| node.storage.population.select().take(node_explore_size)),
+                                .flat_map(move |node| node.storage.select(random, node_alternative_probability)),
                         )
+                        // A small map might not have enough retained node solutions to fill a large selection budget.
+                        .chain(self.elite.select())
                         .take(*selection_size),
                 )
             }
@@ -333,7 +327,7 @@ where
             }
             RosomaxaPhases::Exploitation { selection_size: old_selection_size, .. } => {
                 // NOTE as we exploit elite only, limit how many solutions are exploited simultaneously
-                *old_selection_size = ((*old_selection_size as f64 / 2.).round() as usize).clamp(2, 4)
+                *old_selection_size = get_exploitation_selection_size(*old_selection_size)
             }
         }
     }
@@ -633,6 +627,25 @@ where
     population: Elitism<O, S>,
 }
 
+impl<C, O, S> IndividualStorage<C, O, S>
+where
+    C: RosomaxaContext<Solution = S>,
+    O: HeuristicObjective<Solution = S> + Alternative,
+    S: RosomaxaSolution<Context = C>,
+{
+    fn select(&self, random: &dyn Random, alternative_probability: Float) -> Option<&S> {
+        let rank = match self.population.size() {
+            0 => return None,
+            size if size > 1 && random.is_hit(alternative_probability) => {
+                random.uniform_int(1, size as i32 - 1) as usize
+            }
+            _ => 0,
+        };
+
+        self.population.get(rank)
+    }
+}
+
 impl<C, O, S> Storage for IndividualStorage<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
@@ -698,6 +711,31 @@ where
             distance < threshold
         }
     })
+}
+
+/// Gets the elite share of the exploration budget. Each block of four parents adds one elite selection tournament,
+/// with more elite searches used when the population is not improving.
+fn get_elite_selection_size(
+    selection_size: usize,
+    improvement_ratio: Float,
+    mut is_hit: impl FnMut(Float) -> bool,
+) -> usize {
+    if selection_size <= 6 {
+        return 1;
+    }
+
+    let probability = (1. - 1. / (1. + E.powf(-10. * (improvement_ratio - 0.166)))) as Float;
+    let tournament_count = selection_size.div_ceil(4);
+
+    (1..=tournament_count)
+        .map(|idx| if is_hit(probability / idx as Float) { 2 } else { 1 })
+        .sum::<usize>()
+        .min(selection_size - 1)
+}
+
+/// Gets the exploitation budget by using half of the configured selection capacity.
+fn get_exploitation_selection_size(selection_size: usize) -> usize {
+    selection_size.div_ceil(2).max(2)
 }
 
 /// Gets network size to keep.
