@@ -148,7 +148,7 @@ mod selection {
     }
 
     #[test]
-    fn can_track_new_exploration_inputs() {
+    fn can_track_new_exploration_inputs_and_warm_up_network() {
         let initial_size = 4;
         let mut rosomaxa = create_rosomaxa(initial_size);
 
@@ -158,19 +158,44 @@ mod selection {
         }
         rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
 
-        let RosomaxaPhases::Exploration { new_input_count, .. } = &rosomaxa.phase else { unreachable!() };
+        let RosomaxaPhases::Exploration { new_input_count, is_network_warmed_up, .. } = &rosomaxa.phase else {
+            unreachable!()
+        };
         assert_eq!(*new_input_count, 0);
+        assert!(!is_network_warmed_up);
 
         rosomaxa.add(VectorSolution { data: vec![5.], weights: vec![5.], fitness: -5. });
         rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
-        let RosomaxaPhases::Exploration { new_input_count, .. } = &rosomaxa.phase else { unreachable!() };
+        let RosomaxaPhases::Exploration { new_input_count, is_network_warmed_up, .. } = &rosomaxa.phase else {
+            unreachable!()
+        };
         assert_eq!(*new_input_count, 1);
+        assert!(!is_network_warmed_up);
+
+        let observation_count = match &rosomaxa.phase {
+            RosomaxaPhases::Exploration { network, .. } => {
+                network.size().max(rosomaxa.config.max_network_size.div_ceil(6))
+            }
+            _ => unreachable!(),
+        };
+
+        let RosomaxaPhases::Exploration { new_input_count, .. } = &mut rosomaxa.phase else { unreachable!() };
+        *new_input_count = observation_count;
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
+        let RosomaxaPhases::Exploration { new_input_count, is_network_warmed_up, .. } = &rosomaxa.phase else {
+            unreachable!()
+        };
+        assert_eq!(*new_input_count, observation_count);
+        assert!(!is_network_warmed_up);
 
         let RosomaxaPhases::Exploration { new_input_count, .. } = &mut rosomaxa.phase else { unreachable!() };
         *new_input_count = usize::MAX;
         rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
-        let RosomaxaPhases::Exploration { new_input_count, .. } = &rosomaxa.phase else { unreachable!() };
+        let RosomaxaPhases::Exploration { new_input_count, is_network_warmed_up, .. } = &rosomaxa.phase else {
+            unreachable!()
+        };
         assert_eq!(*new_input_count, 0);
+        assert!(is_network_warmed_up);
     }
 
     #[test]

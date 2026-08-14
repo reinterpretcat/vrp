@@ -218,6 +218,9 @@ type IndividualNetwork<C, O, S> = Network<C, S, IndividualStorage<C, O, S>, Indi
 // Hit history is exposed in GSOM state, but does not control its maintenance or capacity.
 const HIT_MEMORY_SIZE: usize = 200;
 
+// Let the young map grow before smoothing can reset the node errors which drive GSOM growth.
+const INITIAL_GROWTH_OBSERVATION_WINDOWS: usize = 4;
+
 // A larger candidate pool gives different constructors a chance to improve before GSOM is trained. Keep its input
 // bounded to the previous default size so weak outliers do not increase training work or shape the whole map.
 const INITIAL_NETWORK_SIZE: usize = 16;
@@ -299,6 +302,7 @@ where
                             self.phase = RosomaxaPhases::Exploration {
                                 network,
                                 new_input_count: 0,
+                                is_network_warmed_up: false,
                                 selection_coordinates,
                                 local_optimum_candidates: Vec::new(),
                                 statistics: statistics.clone(),
@@ -317,6 +321,7 @@ where
             RosomaxaPhases::Exploration {
                 network,
                 new_input_count,
+                is_network_warmed_up,
                 selection_coordinates,
                 local_optimum_candidates,
                 statistics: old_statistics,
@@ -326,7 +331,14 @@ where
                     *old_statistics = statistics.clone();
                     *old_selection_size = selection_size;
 
-                    Self::optimize_network(&self.external_ctx, network, new_input_count, statistics, &self.config);
+                    Self::optimize_network(
+                        &self.external_ctx,
+                        network,
+                        new_input_count,
+                        is_network_warmed_up,
+                        statistics,
+                        &self.config,
+                    );
 
                     Self::prepare_selection(
                         network,
@@ -356,6 +368,7 @@ where
         external_ctx: &C,
         network: &mut IndividualNetwork<C, O, S>,
         new_input_count: &mut usize,
+        is_network_warmed_up: &mut bool,
         statistics: &HeuristicStatistics,
         config: &RosomaxaConfig,
     ) {
@@ -364,7 +377,15 @@ where
         // Check distortion after each node has seen about one new solution on average. A small floor avoids repeatedly
         // rebuilding a young map from just a few inputs.
         let observation_count = network.size().max(config.max_network_size.div_ceil(6));
+        let observation_count = if *is_network_warmed_up {
+            observation_count
+        } else {
+            observation_count.saturating_mul(INITIAL_GROWTH_OBSERVATION_WINDOWS)
+        };
         if *new_input_count >= observation_count {
+            // The map has seen enough inputs to use the regular cadence even when it does not need smoothing yet.
+            *is_network_warmed_up = true;
+
             // set the MSE threshold to a fraction of the maximum possible normalized distance
             let mse = network.mse();
             let threshold = 0.5 / (network.dimension() as Float).sqrt();
@@ -382,6 +403,7 @@ where
 
         network.compact(external_ctx);
         network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
+        *is_network_warmed_up = true;
     }
 
     fn prepare_selection(
@@ -624,6 +646,7 @@ where
         network: IndividualNetwork<C, O, S>,
         // Inputs added since the last distortion check; smoothing and compaction replay does not contribute.
         new_input_count: usize,
+        is_network_warmed_up: bool,
         selection_coordinates: Vec<Coordinate>,
         // Reuse this scratch space instead of allocating while preparing each selection.
         local_optimum_candidates: Vec<(usize, Float)>,
