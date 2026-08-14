@@ -219,7 +219,7 @@ type IndividualNetwork<C, O, S> = Network<C, S, IndividualStorage<C, O, S>, Indi
 const HIT_MEMORY_SIZE: usize = 200;
 
 // Let the young map grow before smoothing can reset the node errors which drive GSOM growth.
-const INITIAL_GROWTH_OBSERVATION_WINDOWS: usize = 4;
+const INITIAL_GROWTH_OBSERVATION_WINDOWS: usize = 2;
 
 // A larger candidate pool gives different constructors a chance to improve before GSOM is trained. Keep its input
 // bounded to the previous default size so weak outliers do not increase training work or shape the whole map.

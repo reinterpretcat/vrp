@@ -189,7 +189,7 @@ mod selection {
         assert!(!is_network_warmed_up);
 
         let RosomaxaPhases::Exploration { new_input_count, .. } = &mut rosomaxa.phase else { unreachable!() };
-        *new_input_count = usize::MAX;
+        *new_input_count = observation_count.saturating_mul(INITIAL_GROWTH_OBSERVATION_WINDOWS);
         rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
         let RosomaxaPhases::Exploration { new_input_count, is_network_warmed_up, .. } = &rosomaxa.phase else {
             unreachable!()
