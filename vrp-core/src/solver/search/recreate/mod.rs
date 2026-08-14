@@ -15,7 +15,7 @@ pub trait Recreate: Send + Sync {
 }
 
 mod recreate_with_blinks;
-pub use self::recreate_with_blinks::RecreateWithBlinks;
+pub use self::recreate_with_blinks::{BlinkJobOrder, RecreateWithBlinks};
 
 mod recreate_with_cheapest;
 pub use self::recreate_with_cheapest::RecreateWithCheapest;

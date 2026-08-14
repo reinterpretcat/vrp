@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../../tests/unit/solver/search/recreate/recreate_with_blinks_test.rs"]
+mod recreate_with_blinks_test;
+
 use crate::construction::heuristics::*;
 use crate::construction::heuristics::{InsertionContext, JobSelector};
 use crate::models::Problem;
@@ -7,6 +11,7 @@ use crate::solver::RefinementContext;
 use crate::solver::search::recreate::Recreate;
 use rosomaxa::prelude::*;
 use rosomaxa::utils::{ParallelismScope, fold_reduce};
+use std::cmp::Reverse;
 use std::sync::Arc;
 
 /// A recreate method as described in "Slack Induction by String Removals for
@@ -21,6 +26,25 @@ pub struct RecreateWithBlinks {
     result_selector: Box<dyn ResultSelector>,
     insertion_heuristic: InsertionHeuristic,
     weights: Vec<usize>,
+}
+
+/// Specifies the one-pass job order used by blink insertion.
+#[derive(Clone, Copy)]
+pub enum BlinkJobOrder {
+    /// Uses a random order.
+    Random,
+    /// Puts jobs with larger demand first.
+    Demand,
+    /// Puts jobs farther from the depot first.
+    Far,
+    /// Puts jobs closer to the depot first.
+    Close,
+    /// Puts jobs with shorter time windows first.
+    TimeWindowLength,
+    /// Puts jobs with earlier time-window starts first.
+    TimeWindowStart,
+    /// Puts jobs with later time-window ends first.
+    TimeWindowEnd,
 }
 
 impl RecreateWithBlinks {
@@ -49,7 +73,7 @@ impl RecreateWithBlinks {
                 // 1. Random (Weight: 4)
                 (Box::<AllJobSelector>::default(), 4),
                 // 2. Demand: Largest First (Weight: 4)
-                (Box::new(DemandJobSelector::new(true)), 4),
+                (Box::new(DemandJobSelector), 4),
                 // 3. Far: Largest Distance First (Weight: 2)
                 (Box::new(RankedJobSelector::new(true)), 2),
                 // 4. Close: Smallest Distance First (Weight: 1)
@@ -65,6 +89,27 @@ impl RecreateWithBlinks {
             blink_ratio,
             random,
         )
+    }
+
+    /// Creates a new instance which always uses the specified job order.
+    pub fn new_with_job_order(job_order: BlinkJobOrder, random: Arc<dyn Random>) -> Self {
+        let selector: Box<dyn JobSelector> = match job_order {
+            BlinkJobOrder::Random => Box::<AllJobSelector>::default(),
+            BlinkJobOrder::Demand => Box::new(DemandJobSelector),
+            BlinkJobOrder::Far => Box::new(RankedJobSelector::new(true)),
+            BlinkJobOrder::Close => Box::new(RankedJobSelector::new(false)),
+            BlinkJobOrder::TimeWindowLength => {
+                Box::new(TimeWindowJobSelector::new(TimeWindowSelectionMode::LengthAscending))
+            }
+            BlinkJobOrder::TimeWindowStart => {
+                Box::new(TimeWindowJobSelector::new(TimeWindowSelectionMode::StartAscending))
+            }
+            BlinkJobOrder::TimeWindowEnd => {
+                Box::new(TimeWindowJobSelector::new(TimeWindowSelectionMode::EndDescending))
+            }
+        };
+
+        Self::new(vec![(selector, 1)], 0.01, random)
     }
 }
 
@@ -243,46 +288,33 @@ impl JobSelector for RankedJobSelector {
     }
 }
 
-struct DemandJobSelector {
-    asc_order: bool,
-}
-
-impl DemandJobSelector {
-    pub fn new(asc_order: bool) -> Self {
-        Self { asc_order }
-    }
-}
+struct DemandJobSelector;
 
 impl JobSelector for DemandJobSelector {
     fn prepare(&self, insertion_ctx: &mut InsertionContext) {
-        insertion_ctx.solution.required.sort_by(|a, b| {
-            use crate::construction::features::JobDemandDimension;
-            use crate::models::common::{MultiDimLoad, SingleDimLoad};
+        sort_jobs_by_demand(&mut insertion_ctx.solution.required);
+    }
+}
 
-            // Get total demand size (sum of all pickup and delivery components)
-            // Try SingleDimLoad first, then MultiDimLoad (only one type per problem)
-            let get_demand = |job: &Job| -> i32 {
-                let dimens = job.dimens();
+fn sort_jobs_by_demand(jobs: &mut [Job]) {
+    jobs.sort_by_key(|job| Reverse(get_job_demand(job)));
+}
 
-                if let Some(demand) = dimens.get_job_demand::<SingleDimLoad>() {
-                    demand.pickup.0.value + demand.pickup.1.value + demand.delivery.0.value + demand.delivery.1.value
-                } else if let Some(demand) = dimens.get_job_demand::<MultiDimLoad>() {
-                    let sum_load = |load: &MultiDimLoad| load.load[..load.size].iter().sum::<i32>();
-                    sum_load(&demand.pickup.0)
-                        + sum_load(&demand.pickup.1)
-                        + sum_load(&demand.delivery.0)
-                        + sum_load(&demand.delivery.1)
-                } else {
-                    0
-                }
-            };
+fn get_job_demand(job: &Job) -> i32 {
+    use crate::construction::features::JobDemandDimension;
+    use crate::models::common::{MultiDimLoad, SingleDimLoad};
 
-            get_demand(a).cmp(&get_demand(b))
-        });
-
-        if !self.asc_order {
-            insertion_ctx.solution.required.reverse();
-        }
+    let dimens = job.dimens();
+    if let Some(demand) = dimens.get_job_demand::<SingleDimLoad>() {
+        demand.pickup.0.value + demand.pickup.1.value + demand.delivery.0.value + demand.delivery.1.value
+    } else if let Some(demand) = dimens.get_job_demand::<MultiDimLoad>() {
+        let sum_load = |load: &MultiDimLoad| load.load[..load.size].iter().sum::<i32>();
+        sum_load(&demand.pickup.0)
+            + sum_load(&demand.pickup.1)
+            + sum_load(&demand.delivery.0)
+            + sum_load(&demand.delivery.1)
+    } else {
+        0
     }
 }
 

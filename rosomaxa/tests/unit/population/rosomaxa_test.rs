@@ -72,6 +72,47 @@ mod selection {
     }
 
     #[test]
+    fn can_limit_initial_selection_to_best_parents() {
+        let selection_size = 4;
+        let mut rosomaxa = create_rosomaxa_with_config(RosomaxaConfig {
+            initial_size: 16,
+            selection_size,
+            ..RosomaxaConfig::new_with_defaults(selection_size)
+        });
+
+        for fitness in (0..8).rev() {
+            let fitness = fitness as Float;
+            rosomaxa.add(VectorSolution { data: vec![fitness], weights: vec![fitness], fitness });
+        }
+
+        let selected = rosomaxa.select().map(|solution| solution.fitness).collect::<Vec<_>>();
+
+        assert_eq!(selected, vec![0., 1., 2., 3.]);
+    }
+
+    #[test]
+    fn can_select_quality_diverse_initial_data() {
+        let objective = create_example_objective();
+        let data = [
+            (0., 1.),
+            (1., 1.1),
+            (2., 10.),
+            // The structurally most distant solution is too weak to shape the initial map.
+            (100., 1_000.),
+        ]
+        .into_iter()
+        .map(|(fitness, weight)| VectorSolution { data: vec![weight], weights: vec![weight], fitness })
+        .collect();
+
+        let selected = RosomaxaType::select_initial_data(data, objective.as_ref(), 2)
+            .into_iter()
+            .map(|solution| solution.fitness)
+            .collect::<Vec<_>>();
+
+        assert_eq!(selected, vec![0., 2.]);
+    }
+
+    #[test]
     fn can_handle_less_than_four_initial_solutions() {
         for initial_size in 1..4 {
             let mut rosomaxa = create_rosomaxa(initial_size);

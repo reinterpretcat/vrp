@@ -107,7 +107,7 @@ impl VrpConfigBuilder {
             .with_heuristic(heuristic)
             .with_context(RefinementContext::new(problem.clone(), population, telemetry_mode, environment.clone()))
             .with_processing(create_default_processing())
-            .with_initial(4, 0.05, create_default_init_operators(problem, environment)))
+            .with_initial(16, 0.05, create_default_init_operators(problem, environment)))
     }
 }
 
@@ -280,38 +280,48 @@ mod builder {
         let wrap: fn(Arc<dyn Recreate>) -> Box<VrpInitialOperator> =
             |recreate| Box::new(RecreateInitialOperator::new(recreate));
 
-        std::iter::once({
-            // main stable constructive heuristics
-            ("blinks".to_string(), wrap(Arc::new(RecreateWithBlinks::new_with_defaults(random.clone()))), 1)
-        })
-        .chain(
-            // alternative constructive heuristics
+        let mut operators = vec![
+            ("cheapest".to_string(), wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 1),
+            (
+                "blink_far".to_string(),
+                wrap(Arc::new(RecreateWithBlinks::new_with_job_order(BlinkJobOrder::Far, random.clone()))),
+                1,
+            ),
+            (
+                "blink_close".to_string(),
+                wrap(Arc::new(RecreateWithBlinks::new_with_job_order(BlinkJobOrder::Close, random.clone()))),
+                1,
+            ),
+            (
+                "blink_tw_start".to_string(),
+                wrap(Arc::new(RecreateWithBlinks::new_with_job_order(BlinkJobOrder::TimeWindowStart, random.clone()))),
+                1,
+            ),
+        ];
+
+        operators.extend(
             get_recreate_with_alternative_goal(problem.goal.as_ref(), {
                 let random = random.clone();
-                move || RecreateWithBlinks::new_with_defaults(random.clone())
+                move || RecreateWithCheapest::new(random.clone())
             })
             .enumerate()
-            .map(|(index, recreate)| (format!("alternative_{}", index), wrap(recreate), 1)),
-        )
-        .chain([
-            // additional constructive heuristics
-            ("cheapest".to_string(), wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 1),
-            ("farthest".to_string(), wrap(Arc::new(RecreateWithFarthest::new(random.clone()))), 1),
-            ("regret".to_string(), wrap(Arc::new(RecreateWithRegret::new(2, 3, random.clone()))), 1),
-            (
-                "gaps".to_string(),
-                wrap(Arc::new(RecreateWithGaps::new(1, (problem.jobs.size() / 10).max(1), random.clone()))),
-                1,
-            ),
-            ("skip_best".to_string(), wrap(Arc::new(RecreateWithSkipBest::new(1, 2, random.clone()))), 1),
-            (
-                "perturbation".to_string(),
-                wrap(Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone()))),
-                1,
-            ),
-            ("nearest_neighbor".to_string(), wrap(Arc::new(RecreateWithNearestNeighbor::new(random.clone()))), 1),
-        ])
-        .collect()
+            .map(|(index, recreate)| (format!("alternative_cheapest_{index}"), wrap(recreate), 1)),
+        );
+
+        for (name, job_order) in
+            [("far", BlinkJobOrder::Far), ("close", BlinkJobOrder::Close), ("tw_start", BlinkJobOrder::TimeWindowStart)]
+        {
+            operators.extend(
+                get_recreate_with_alternative_goal(problem.goal.as_ref(), {
+                    let random = random.clone();
+                    move || RecreateWithBlinks::new_with_job_order(job_order, random.clone())
+                })
+                .enumerate()
+                .map(|(index, recreate)| (format!("alternative_{name}_{index}"), wrap(recreate), 1)),
+            );
+        }
+
+        operators
     }
 
     /// Create default processing.

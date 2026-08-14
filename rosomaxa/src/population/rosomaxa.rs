@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 /// Specifies rosomaxa configuration settings.
 pub struct RosomaxaConfig {
-    /// Initial population size.
+    /// Number of candidates collected before GSOM initialization.
     pub initial_size: usize,
     /// Selection size.
     pub selection_size: usize,
@@ -38,7 +38,7 @@ impl RosomaxaConfig {
     /// Creates an instance of `RosomaxaConfig` using default parameters and the given selection size.
     pub fn new_with_defaults(selection_size: usize) -> Self {
         Self {
-            initial_size: 16,
+            initial_size: 32,
             selection_size,
             elite_size: 2,
             node_size: 2,
@@ -139,7 +139,13 @@ where
 
     fn select(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         match &self.phase {
-            RosomaxaPhases::Initial { solutions } => Box::new(solutions.iter()),
+            RosomaxaPhases::Initial { solutions } => {
+                let mut parents = solutions.iter().collect::<Vec<_>>();
+                parents.sort_by(|left, right| self.objective.total_order(left, right));
+                parents.truncate(self.config.selection_size);
+
+                Box::new(parents.into_iter())
+            }
             RosomaxaPhases::Exploration { network, selection_coordinates, selection_size, statistics, .. } => {
                 let random = self.environment.random.as_ref();
                 let elite_selection_size =
@@ -211,6 +217,10 @@ type IndividualNetwork<C, O, S> = Network<C, S, IndividualStorage<C, O, S>, Indi
 
 // Hit history is exposed in GSOM state, but does not control its maintenance or capacity.
 const HIT_MEMORY_SIZE: usize = 200;
+
+// A larger candidate pool gives different constructors a chance to improve before GSOM is trained. Keep its input
+// bounded to the previous default size so weak outliers do not increase training work or shape the whole map.
+const INITIAL_NETWORK_SIZE: usize = 16;
 
 impl<C, O, S> Rosomaxa<C, O, S>
 where
@@ -521,6 +531,7 @@ where
         individuals: Vec<S>,
     ) -> GenericResult<IndividualNetwork<C, O, S>> {
         let inputs_vec = parallel_into_collect(individuals, ParallelismScope::Local, |i| init_individual(context, i));
+        let inputs_vec = Self::select_initial_data(inputs_vec, objective.as_ref(), INITIAL_NETWORK_SIZE);
 
         Network::new(
             context,
@@ -544,6 +555,42 @@ where
                 }
             },
         )
+    }
+
+    fn select_initial_data(mut data: Vec<S>, objective: &O, keep_size: usize) -> Vec<S> {
+        if data.len() <= keep_size {
+            return data;
+        }
+
+        data.sort_by(|left, right| objective.total_order(left, right));
+
+        // Remove the weakest quarter before looking at feature distance. Otherwise, an incomplete or otherwise poor
+        // solution can be retained simply because it is far away from every useful solution.
+        let candidate_size = data.len().saturating_mul(3).div_ceil(4).max(keep_size).min(data.len());
+        data.truncate(candidate_size);
+
+        let mut selected = Vec::with_capacity(keep_size);
+        selected.push(data.swap_remove(0));
+
+        while selected.len() < keep_size && !data.is_empty() {
+            let candidate_idx = data
+                .iter()
+                .map(|candidate| {
+                    selected
+                        .iter()
+                        .map(|known| relative_distance(candidate.weights().iter(), known.weights().iter()))
+                        .min_by(Float::total_cmp)
+                        .expect("at least one initial solution is selected")
+                })
+                .enumerate()
+                .max_by(|(_, left), (_, right)| left.total_cmp(right))
+                .map(|(index, _)| index)
+                .expect("at least one initial solution remains");
+
+            selected.push(data.swap_remove(candidate_idx));
+        }
+
+        selected
     }
 }
 

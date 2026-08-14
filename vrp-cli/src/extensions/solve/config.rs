@@ -280,7 +280,12 @@ pub enum RecreateMethod {
     SkipBest { weight: usize, start: usize, end: usize },
     /// Insertion with blinks method.
     #[serde(rename(deserialize = "blinks"))]
-    Blinks { weight: usize },
+    Blinks {
+        weight: usize,
+        /// A fixed job order. Uses the standard weighted SISR selection when omitted.
+        #[serde(rename(deserialize = "jobOrder"), default)]
+        job_order: Option<BlinksJobOrder>,
+    },
     /// Insertion with gaps method.
     #[serde(rename(deserialize = "gaps"))]
     Gaps { weight: usize, min: usize, max: usize },
@@ -302,6 +307,19 @@ pub enum RecreateMethod {
     /// Insertion with regret method.
     #[serde(rename(deserialize = "regret"))]
     Regret { weight: usize, start: usize, end: usize },
+}
+
+/// Specifies a fixed job order for blink insertion.
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub enum BlinksJobOrder {
+    Random,
+    Demand,
+    Far,
+    Close,
+    TimeWindowLength,
+    TimeWindowStart,
+    TimeWindowEnd,
 }
 
 /// A local search configuration.
@@ -568,7 +586,26 @@ fn create_recreate_method(method: &RecreateMethod, environment: Arc<Environment>
             (Arc::new(RecreateWithSkipBest::new(*start, *end, random)), *weight)
         }
         RecreateMethod::Slice { weight } => (Arc::new(RecreateWithSlice::new(random)), *weight),
-        RecreateMethod::Blinks { weight } => (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), *weight),
+        RecreateMethod::Blinks { weight, job_order } => {
+            let recreate = job_order.as_ref().map_or_else(
+                || RecreateWithBlinks::new_with_defaults(random.clone()),
+                |job_order| {
+                    let job_order = match job_order {
+                        BlinksJobOrder::Random => BlinkJobOrder::Random,
+                        BlinksJobOrder::Demand => BlinkJobOrder::Demand,
+                        BlinksJobOrder::Far => BlinkJobOrder::Far,
+                        BlinksJobOrder::Close => BlinkJobOrder::Close,
+                        BlinksJobOrder::TimeWindowLength => BlinkJobOrder::TimeWindowLength,
+                        BlinksJobOrder::TimeWindowStart => BlinkJobOrder::TimeWindowStart,
+                        BlinksJobOrder::TimeWindowEnd => BlinkJobOrder::TimeWindowEnd,
+                    };
+
+                    RecreateWithBlinks::new_with_job_order(job_order, random.clone())
+                },
+            );
+
+            (Arc::new(recreate), *weight)
+        }
         RecreateMethod::SkipRandom { weight } => (Arc::new(RecreateWithSkipRandom::new(random)), *weight),
         RecreateMethod::Gaps { weight, min, max } => (Arc::new(RecreateWithGaps::new(*min, *max, random)), *weight),
         RecreateMethod::Nearest { weight } => (Arc::new(RecreateWithNearestNeighbor::new(random)), *weight),

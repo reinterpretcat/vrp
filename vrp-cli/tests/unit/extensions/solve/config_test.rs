@@ -129,6 +129,16 @@ fn can_create_default_config() {
 }
 
 #[test]
+fn can_configure_blinks_job_order() {
+    let method: RecreateMethod = serde_json::from_str(r#"{"type":"blinks","weight":2,"jobOrder":"far"}"#).unwrap();
+
+    match method {
+        RecreateMethod::Blinks { weight: 2, job_order: Some(BlinksJobOrder::Far) } => {}
+        _ => unreachable!(),
+    }
+}
+
+#[test]
 fn cannot_read_removed_parallelism_config() {
     let config = r#"{"environment":{"parallelism":{"numThreadPools":6,"threadsPerPool":8}}}"#;
 
