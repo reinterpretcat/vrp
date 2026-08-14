@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/solver/heuristic_test.rs"]
+mod heuristic_test;
+
 use super::*;
 use crate::construction::heuristics::*;
 use crate::models::common::FootprintSolutionState;
@@ -281,7 +285,7 @@ mod builder {
             |recreate| Box::new(RecreateInitialOperator::new(recreate));
 
         let mut operators = vec![
-            ("cheapest".to_string(), wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 1),
+            ("cheapest".to_string(), wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 0),
             (
                 "blink_far".to_string(),
                 wrap(Arc::new(RecreateWithBlinks::new_with_job_order(BlinkJobOrder::Far, random.clone()))),

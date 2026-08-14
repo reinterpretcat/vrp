@@ -44,7 +44,10 @@ pub trait InitialOperator {
     fn create(&self, heuristic_ctx: &Self::Context) -> Self::Solution;
 }
 
-/// A collection of initial operators.
+/// A collection of initial operators with their names and repeat weights.
+///
+/// Operators are considered in their configured order while the initial pool is built. A zero weight
+/// keeps an operator in that first pass, but excludes it from later weighted sampling.
 pub type InitialOperators<C, O, S> =
     Vec<(String, Box<dyn InitialOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>;
 
