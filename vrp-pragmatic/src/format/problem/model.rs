@@ -704,9 +704,54 @@ pub enum Objective {
         /// serializer emits, so the objective can steer it either way.
         #[serde(default = "default_balance_tolerance", alias = "balanceTolerance")]
         balance_tolerance: f64,
-        /// Per-driver anchor as a routing-matrix location index, keyed by driver id.
+        /// Per-driver anchors as routing-matrix location indices, keyed by driver id. A driver holds
+        /// a *list*, one entry per patch of ground it works: a technician may hold several separate
+        /// service areas, each contested with a different colleague, and a single anchor would be a
+        /// compromise that loses the tiebreak in whichever patch it sits further from. Every
+        /// proximity to a driver is the minimum over its list.
+        ///
+        /// An empty list is the same as an absent key: that driver takes no part in the territory
+        /// (no overlap penalty, never a balance source or target). Sending none is the right thing
+        /// for a technician who is the sole holder of their ground and has no tiebreak to make.
+        ///
+        /// An empty *map* selects the solver-side derive path instead.
         #[serde(default)]
-        anchors: std::collections::HashMap<String, usize>,
+        anchors: std::collections::HashMap<String, Vec<usize>>,
+        /// Per-driver power weight `w_d` supplied by the caller, keyed by the same driver identity
+        /// `anchors` and `quota` are keyed by (driver id, else vehicle id). A job's power distance
+        /// to a driver is `prox(loc, anchor_d) − w_d`, so a larger weight enlarges that driver's
+        /// cell — the mechanism that lets a driver over sparse ground reach further for equal work.
+        ///
+        /// Only read when `anchors` are supplied. The derive path produces the weights that pair
+        /// with the anchors it just placed, and those win: a weight computed against a different
+        /// anchor set is meaningless. Omitted ⇒ every weight is `0.0`, which makes power distance
+        /// equal to raw nearest-anchor proximity — the behaviour supplied anchors always had.
+        ///
+        /// Note the derived weights are themselves all `0.0` today (the seed placement equalizes
+        /// value directly instead of through weights), so this field is currently the only way any
+        /// territory gets a non-zero `w_d` at all.
+        ///
+        /// One weight per driver, not per anchor: the weight shifts the whole territory's boundary,
+        /// however many patches of ground that territory covers.
+        ///
+        /// Single-word key, so its snake_case and camelCase spellings coincide and no `alias` is
+        /// needed — same reasoning as `quota`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        weights: Option<std::collections::HashMap<String, Float>>,
+        /// Per-driver quota supplied by the caller, keyed by the same driver identity the
+        /// objective keys on (driver id, else vehicle id). When present, used verbatim instead of
+        /// deriving the quota from the problem's total demand — the caller knows which work each
+        /// driver can actually reach, and a quota derived from total demand is inflated for a
+        /// driver a hard constraint keeps off part of it. Omitted ⇒ derive as before.
+        ///
+        /// Values are in the unit of the chosen `balance` metric. A key matching no driver is
+        /// ignored; a driver absent from the map is left out of the balance entirely.
+        ///
+        /// The key is a single word, so its snake_case and camelCase spellings coincide and no
+        /// `alias` is needed (unlike `balance_tolerance`/`allow_idle_drivers`, whose camelCase
+        /// forms the field serializer emits would otherwise be dropped).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        quota: Option<std::collections::HashMap<String, Float>>,
         /// When true, drivers left with no jobs are excluded from the balance (their quota is
         /// re-based over the used drivers), so leaving a driver idle is not an imbalance. Defaults
         /// to false (balance spans every driver).

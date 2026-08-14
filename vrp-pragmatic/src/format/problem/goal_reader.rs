@@ -3,6 +3,7 @@
 mod goal_reader_test;
 
 use super::*;
+use std::collections::BTreeMap;
 use std::ops::Mul;
 use vrp_core::algorithms::clustering::kmedoids::create_hierarchical_kmedoids;
 use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
@@ -334,24 +335,28 @@ fn get_objective_feature_layer(
             .set_compatibility_fn(territory_compatibility_fn())
             .build(),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
-        Objective::Territory { proximity, balance, balance_tolerance, anchors, allow_idle_drivers } => {
-            let proximity = match proximity {
-                model::TerritoryProximity::Distance => CoreTerritoryProximity::Distance,
-                model::TerritoryProximity::Time => CoreTerritoryProximity::Time,
-            };
-            let balance = balance.as_ref().map(|m| match m {
-                BalancePeriodMetric::Distance => TerritoryBalance::Distance,
-                BalancePeriodMetric::Duration => TerritoryBalance::Duration,
-                BalancePeriodMetric::Activities => TerritoryBalance::Activities,
-                BalancePeriodMetric::ProductionValue => TerritoryBalance::ProductionValue,
-            });
-            // Empty anchors ⇒ derive balanced medoid seeds + power weights and match drivers to
-            // them (Hungarian); explicit anchors keep the caller-supplied territory (no weights).
+        Objective::Territory { proximity, balance, balance_tolerance, anchors, weights, allow_idle_drivers, quota } => {
+            let proximity = to_core_proximity(*proximity);
+            let balance = balance.clone().map(to_core_balance);
+            // Empty anchors ⇒ derive balanced medoid seeds and match drivers to them (Hungarian);
+            // explicit anchors keep the caller-supplied territory together with the caller's own
+            // weights. Supplying weights is currently the ONLY way to get a non-zero `w_d`: the
+            // derive path's seeds are unweighted by construction (`build_balanced_territory_seeds`
+            // equalizes value at placement time and returns `weight: 0.0`), so "supplied" and
+            // "derived" were both flat before this. Omitted weights ⇒ all 0.0, as before.
+            // The derived weights still belong to the derived anchors, so the derive path ignores a
+            // supplied map rather than pairing weights with anchors they were not computed for.
             // Anchor values are already routing-matrix indices; core Location is a usize.
             let (anchors, weights) = if anchors.is_empty() {
-                derive_territory_anchors_and_weights(blocks, proximity, balance)
+                derive_territory_anchors_and_weights(&blocks.jobs, &blocks.fleet, &blocks.transport, proximity, balance)
             } else {
-                (anchors.iter().map(|(k, &idx)| (k.clone(), idx as CoreLocation)).collect(), HashMap::new())
+                (
+                    anchors
+                        .iter()
+                        .map(|(k, idx)| (k.clone(), idx.iter().map(|&i| i as CoreLocation).collect()))
+                        .collect(),
+                    weights.clone().unwrap_or_default(),
+                )
             };
 
             TerritoryFeatureBuilder::new("territory")
@@ -363,6 +368,8 @@ fn get_objective_feature_layer(
                 .set_balance_tolerance(*balance_tolerance)
                 .set_anchors(anchors)
                 .set_weights(weights)
+                // Omitted `quota` ⇒ an empty map ⇒ the derived quota, unchanged.
+                .set_quotas(quota.clone().unwrap_or_default())
                 .set_allow_idle_drivers(*allow_idle_drivers)
                 .set_job_value_fn(|job| job.dimens().get_production_value().copied().unwrap_or(0.))
                 .set_compatibility_fn(territory_compatibility_fn())
@@ -632,20 +639,88 @@ fn compute_ideal_round_trip_total(
 /// Iterations of static value-balancing applied to the derived territory seeds.
 const TERRITORY_SEED_ITERATIONS: usize = 10;
 
+/// The territory the solver derives for a problem: exactly the `anchors` and `weights` a caller
+/// would otherwise send on the `territory` objective, keyed by driver id (else vehicle id).
+///
+/// Sorted maps, so the serialized form is byte-stable and two runs can be diffed directly. That is
+/// the point of the type: it is the reference answer a reimplementation of the derivation elsewhere
+/// is checked against.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct TerritoryDerivation {
+    /// Per-driver anchor locations as routing-matrix indices. Always a single-element list here:
+    /// the derivation places one seed per driver; the multi-patch shape exists for callers who
+    /// supply their own.
+    pub anchors: BTreeMap<String, Vec<usize>>,
+    /// Per-driver power weight `w_d` that pairs with the anchor above. Currently `0.0` for every
+    /// driver: [`build_balanced_territory_seeds`] equalizes value at placement time and returns
+    /// unweighted seeds, so a non-zero weight can only come from the caller today.
+    pub weights: BTreeMap<String, Float>,
+}
+
+/// Runs the solver's territory derivation against an already-built core problem and returns the
+/// anchors and weights it produces, without solving anything.
+///
+/// This is the same code path [`create_goal_context`] takes when a `territory` objective is
+/// configured with no explicit anchors, so its output is the reference a port of the derivation
+/// must reproduce. `proximity` and `balance` are the corresponding fields of that objective; both
+/// change the answer, so they have to be passed the same way the real solve would.
+pub fn derive_territory(
+    problem: &CoreProblem,
+    proximity: model::TerritoryProximity,
+    balance: Option<BalancePeriodMetric>,
+) -> TerritoryDerivation {
+    let (anchors, weights) = derive_territory_anchors_and_weights(
+        &problem.jobs,
+        &problem.fleet,
+        &problem.transport,
+        to_core_proximity(proximity),
+        balance.map(to_core_balance),
+    );
+
+    TerritoryDerivation { anchors: anchors.into_iter().collect(), weights: weights.into_iter().collect() }
+}
+
+/// The pragmatic-format proximity metric as the core one. `TerritoryProximity` is ambiguous between
+/// this module's two glob imports, so the format type needs the explicit `model::` path.
+fn to_core_proximity(proximity: model::TerritoryProximity) -> CoreTerritoryProximity {
+    match proximity {
+        model::TerritoryProximity::Distance => CoreTerritoryProximity::Distance,
+        model::TerritoryProximity::Time => CoreTerritoryProximity::Time,
+    }
+}
+
+/// The pragmatic-format balance metric as the core one. Shared by the objective reader and
+/// [`derive_territory`] so a new metric cannot reach one path and silently miss the other.
+fn to_core_balance(balance: BalancePeriodMetric) -> TerritoryBalance {
+    match balance {
+        BalancePeriodMetric::Distance => TerritoryBalance::Distance,
+        BalancePeriodMetric::Duration => TerritoryBalance::Duration,
+        BalancePeriodMetric::Activities => TerritoryBalance::Activities,
+        BalancePeriodMetric::ProductionValue => TerritoryBalance::ProductionValue,
+    }
+}
+
 /// Derives per-driver territory anchors + power weights from the problem when no explicit anchors
 /// are configured: balanced medoid seeds over the customer jobs (compact by proximity, weighted so
 /// each power cell captures ~equal production value), matched to drivers by start→seed proximity
 /// via the Hungarian algorithm. Keyed like the core `driver_key` (driver id, else vehicle id).
 /// Returns empty maps when there is nothing to derive (no drivers, no jobs, no profile).
+///
+/// Takes the three problem blocks it actually reads rather than the whole [`ProblemBlocks`], so the
+/// full input of the derivation is visible in the signature: it is a pure function of (jobs, fleet,
+/// transport matrix) and nothing else. [`derive_territory`] is the public entry point that runs it
+/// against an already-built core problem.
 fn derive_territory_anchors_and_weights(
-    blocks: &ProblemBlocks,
+    jobs: &CoreJobs,
+    fleet: &CoreFleet,
+    transport: &Arc<dyn TransportCost>,
     proximity: CoreTerritoryProximity,
     balance: Option<TerritoryBalance>,
-) -> (HashMap<String, CoreLocation>, HashMap<String, Float>) {
-    let Some(profile) = blocks.fleet.profiles.first().cloned() else {
+) -> (HashMap<String, Vec<CoreLocation>>, HashMap<String, Float>) {
+    let Some(profile) = fleet.profiles.first().cloned() else {
         return (HashMap::new(), HashMap::new());
     };
-    let transport = blocks.transport.clone();
+    let transport = transport.clone();
     let dist = move |a: CoreLocation, b: CoreLocation| match proximity {
         CoreTerritoryProximity::Distance => transport.distance_approx(&profile, a, b),
         CoreTerritoryProximity::Time => transport.duration_approx(&profile, a, b),
@@ -655,8 +730,7 @@ fn derive_territory_anchors_and_weights(
     // the territory objective balances, so derived territories equalize whatever the caller asked
     // for (stops, production value, duration; distance falls back to job count). With no balance the
     // metric is zero and the placement degenerates to plain compact k-medoids (no equalizing).
-    let jobs: Vec<(CoreLocation, Float)> = blocks
-        .jobs
+    let jobs: Vec<(CoreLocation, Float)> = jobs
         .all()
         .iter()
         .filter_map(|job| job_primary_location(job).map(|loc| (loc, territory_job_metric(job, balance))))
@@ -665,7 +739,7 @@ fn derive_territory_anchors_and_weights(
     // Distinct drivers in first-seen order, each with a representative start location.
     let mut driver_order: Vec<String> = Vec::new();
     let mut driver_start: HashMap<String, CoreLocation> = HashMap::new();
-    for actor in blocks.fleet.actors.iter() {
+    for actor in fleet.actors.iter() {
         let key = actor
             .vehicle
             .dimens
@@ -719,7 +793,9 @@ fn derive_territory_anchors_and_weights(
     for (d, key) in driver_order.iter().enumerate() {
         let col = assign[d];
         if col < s {
-            anchors.insert(key.clone(), seeds[col].location);
+            // One derived seed per driver: the derive path has no notion of several patches, so
+            // it produces a single-element list.
+            anchors.insert(key.clone(), vec![seeds[col].location]);
             weights.insert(key.clone(), seeds[col].weight);
         }
     }

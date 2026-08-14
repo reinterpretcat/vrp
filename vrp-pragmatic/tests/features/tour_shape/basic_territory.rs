@@ -42,9 +42,44 @@ fn location_index(plan: &Plan, fleet: &Fleet, loc: (f64, f64)) -> usize {
         .unwrap_or_else(|| panic!("location {loc:?} is not indexed by the problem"))
 }
 
-fn territory_objective(proximity: TerritoryProximity, balance: BalancePeriodMetric, anchors: HashMap<String, usize>) -> Objective {
+fn territory_objective(
+    proximity: TerritoryProximity,
+    balance: BalancePeriodMetric,
+    anchors: HashMap<String, Vec<usize>>,
+) -> Objective {
+    territory_objective_with_quota(proximity, balance, anchors, None)
+}
+
+/// Like [`territory_objective`], but with a caller-supplied per-driver `quota` map -- the input that
+/// replaces the solver's own capacity-share derivation. `None` selects the derive path.
+fn territory_objective_with_quota(
+    proximity: TerritoryProximity,
+    balance: BalancePeriodMetric,
+    anchors: HashMap<String, Vec<usize>>,
+    quota: Option<HashMap<String, Float>>,
+) -> Objective {
+    territory_objective_with_quota_and_weights(proximity, balance, anchors, quota, None)
+}
+
+/// Like [`territory_objective_with_quota`], but also with a caller-supplied per-driver power
+/// `weights` map. `None` leaves every weight at `0.0`, which is what supplied anchors always got.
+fn territory_objective_with_quota_and_weights(
+    proximity: TerritoryProximity,
+    balance: BalancePeriodMetric,
+    anchors: HashMap<String, Vec<usize>>,
+    quota: Option<HashMap<String, Float>>,
+    weights: Option<HashMap<String, Float>>,
+) -> Objective {
     // Zero deadband: these E2E assertions regress the strict, exact-balance PULL/PUSH mechanism.
-    Territory { proximity, balance: Some(balance), balance_tolerance: 0.0, anchors, allow_idle_drivers: false }
+    Territory {
+        proximity,
+        balance: Some(balance),
+        balance_tolerance: 0.0,
+        anchors,
+        weights,
+        allow_idle_drivers: false,
+        quota,
+    }
 }
 
 /// Two drivers sharing a start location at the origin, with distinct anchors at opposite ends
@@ -102,7 +137,7 @@ fn problem_two_drivers_shared_start(metric: BalancePeriodMetric) -> TerritoryFix
     let fleet = Fleet { vehicles, ..create_default_fleet() };
 
     let anchors = (0..anchor_coords.len())
-        .map(|d| (format!("driver{d}"), location_index(&plan, &fleet, anchor_coords[d])))
+        .map(|d| (format!("driver{d}"), vec![location_index(&plan, &fleet, anchor_coords[d])]))
         .collect::<HashMap<_, _>>();
 
     let objectives = Some(vec![
@@ -181,7 +216,7 @@ fn problem_grid(cluster_sizes: &[usize], metric: BalancePeriodMetric) -> Territo
     let fleet = Fleet { vehicles, ..create_default_fleet() };
 
     let anchors = (0..num_drivers)
-        .map(|d| (format!("driver{d}"), location_index(&plan, &fleet, anchor_coords[d])))
+        .map(|d| (format!("driver{d}"), vec![location_index(&plan, &fleet, anchor_coords[d])]))
         .collect::<HashMap<_, _>>();
 
     let objectives = Some(vec![
@@ -198,6 +233,74 @@ fn problem_grid(cluster_sizes: &[usize], metric: BalancePeriodMetric) -> Territo
         anchor_locations: anchor_coords,
         vehicle_ids,
     }
+}
+
+/// Two drivers anchored at (-30,0) and (30,0) sharing a start at the origin, with six jobs placed on
+/// the perpendicular bisector `x = 0`. Every job is then *exactly* equidistant from both anchors, so
+/// PULL is identically zero for any assignment and the territory objective reduces to its PUSH term
+/// -- which is driven by nothing but the quotas. The split the solver settles on therefore IS the
+/// quota split, and that is what lets this fixture tell a supplied quota from a derived one (the
+/// clustered fixtures above cannot: there, geography and quota push the same way). Both drivers get
+/// the same shift window, so the derived quota is an even 3/3.
+///
+/// Returns the problem plus the full vehicle id roster, so a driver that ends up with no tour at all
+/// still counts as a zero rather than being silently dropped.
+fn problem_equidistant_jobs(quota: Option<HashMap<String, Float>>) -> (Problem, Vec<String>) {
+    problem_equidistant_jobs_with_weights(quota, None)
+}
+
+/// Like [`problem_equidistant_jobs`], but also carrying a caller-supplied per-driver power `weights`
+/// map. This fixture is where a weight is legible on its own: PULL is zero for every assignment
+/// while the weights are absent, so any split away from the even 3/3 is the weights and nothing
+/// else. With `w_d1 = w`, a job served by driver0 reaches `prox - (prox - w) = w` of PULL and the
+/// same job on driver1 reaches zero, while pulling one job across costs `1 x 60` of PUSH (the
+/// anchor-to-anchor ground distance) -- so a weight well above 60 per job makes driver1 the home for
+/// all six.
+fn problem_equidistant_jobs_with_weights(
+    quota: Option<HashMap<String, Float>>,
+    weights: Option<HashMap<String, Float>>,
+) -> (Problem, Vec<String>) {
+    let start = (0., 0.);
+    let anchor_coords = [(-30., 0.), (30., 0.)];
+    let job_offsets = [-5., -3., -1., 1., 3., 5.];
+
+    let mut vehicles = Vec::new();
+    let mut vehicle_ids = Vec::new();
+    for (d, &anchor) in anchor_coords.iter().enumerate() {
+        let driver_id = format!("driver{d}");
+        vehicle_ids.push(format!("{driver_id}_1"));
+        vehicles.push(VehicleType {
+            shifts: vec![create_default_vehicle_shift_with_locations(start, anchor)],
+            ..create_vehicle_with_driver_id(&driver_id, vec![10], &driver_id)
+        });
+    }
+
+    let jobs = job_offsets
+        .iter()
+        .enumerate()
+        .map(|(j, &y)| create_delivery_job_with_production_value(&format!("job{j}"), (0., y), 1.))
+        .collect();
+
+    let plan = Plan { jobs, ..create_empty_plan() };
+    let fleet = Fleet { vehicles, ..create_default_fleet() };
+
+    let anchors = (0..anchor_coords.len())
+        .map(|d| (format!("driver{d}"), vec![location_index(&plan, &fleet, anchor_coords[d])]))
+        .collect::<HashMap<_, _>>();
+
+    let objectives = Some(vec![
+        MinimizeUnassigned { breaks: None },
+        territory_objective_with_quota_and_weights(
+            TerritoryProximity::Distance,
+            BalancePeriodMetric::Activities,
+            anchors,
+            quota,
+            weights,
+        ),
+        MinimizeCost,
+    ]);
+
+    (Problem { plan, fleet, objectives }, vehicle_ids)
 }
 
 fn solve(problem: Problem, generations: usize) -> Solution {
@@ -446,6 +549,217 @@ fn territory_scales_to_many_drivers() {
         "a driver was >25% off its quota share: totals={totals:?}"
     );
     assert!(overlap < 0.1, "territory overlap ratio too high: {overlap:.3}");
+}
+
+/// The supplied quota is used verbatim: "driver0" is quoted at 1 against a capacity share of 3 and
+/// ends up carrying strictly less work than "driver1". On this fixture PULL is zero by construction
+/// (see `problem_equidistant_jobs`), so nothing but the quota could have produced the split -- and a
+/// build that ignored the input would land on the derived, even 3/3 asserted by the control test
+/// below, failing the `<= 2` bound here.
+#[test]
+fn supplied_quota_shifts_work_away_from_the_low_quota_driver() {
+    let quota = HashMap::from([("driver0".to_string(), 1.), ("driver1".to_string(), 5.)]);
+    let (problem, vehicle_ids) = problem_equidistant_jobs(Some(quota));
+    let solution = solve(problem, SMALL_GENERATIONS);
+
+    assert!(solution.unassigned.is_none(), "unexpected unassigned jobs: {:?}", solution.unassigned);
+
+    let counts = activity_counts_per_tour(&solution, &vehicle_ids);
+    eprintln!("=== supplied_quota_shifts_work_away_from_the_low_quota_driver ===");
+    eprintln!("  activity counts per tour: {counts:?}");
+
+    assert_eq!(counts.iter().sum::<usize>(), 6, "every job must be served: {counts:?}");
+    assert!(counts[0] < counts[1], "the low-quota driver must carry less work: {counts:?}");
+    assert!(counts[0] <= 2, "the low-quota driver must land below its 3/3 capacity share: {counts:?}");
+}
+
+/// Supplied anchors keep the caller's power weights instead of flooring every `w_d` at zero, which
+/// is what made a supplied territory strictly weaker than a derived one. On this fixture PULL is
+/// zero by construction while the weights are absent, so nothing but the weights could move the
+/// split: a build that dropped them would land on the even 3/3 of the control test below.
+#[test]
+fn supplied_weights_pull_work_toward_the_heavier_driver() {
+    // 200 per job against the 60 of PUSH it costs to pull one across: driver1's power cell swallows
+    // the whole bisector.
+    let weights = HashMap::from([("driver0".to_string(), 0.), ("driver1".to_string(), 200.)]);
+    let (problem, vehicle_ids) = problem_equidistant_jobs_with_weights(None, Some(weights));
+    let solution = solve(problem, SMALL_GENERATIONS);
+
+    assert!(solution.unassigned.is_none(), "unexpected unassigned jobs: {:?}", solution.unassigned);
+
+    let counts = activity_counts_per_tour(&solution, &vehicle_ids);
+    eprintln!("=== supplied_weights_pull_work_toward_the_heavier_driver ===");
+    eprintln!("  activity counts per tour: {counts:?}");
+
+    assert_eq!(counts.iter().sum::<usize>(), 6, "every job must be served: {counts:?}");
+    assert!(counts[0] < counts[1], "the weighted driver must carry more work: {counts:?}");
+    assert!(counts[0] <= 1, "the weighted cell must swallow the bisector, not settle on 3/3: {counts:?}");
+}
+
+/// The two edge cases `weights` inherits from `quota`, in one solve: a key matching no driver is
+/// ignored, and a driver absent from a non-empty map keeps weight `0.0` rather than being an error.
+/// "driver0" is left out entirely and a "ghost" key is added, yet the split matches the full-map
+/// test above -- so the absent driver was read as zero and the unknown key perturbed nothing.
+#[test]
+fn supplied_weights_ignore_unknown_keys_and_default_absent_drivers_to_zero() {
+    let weights = HashMap::from([("driver1".to_string(), 200.), ("ghost-driver".to_string(), 999.)]);
+    let (problem, vehicle_ids) = problem_equidistant_jobs_with_weights(None, Some(weights));
+    let solution = solve(problem, SMALL_GENERATIONS);
+
+    assert!(solution.unassigned.is_none(), "unexpected unassigned jobs: {:?}", solution.unassigned);
+
+    let counts = activity_counts_per_tour(&solution, &vehicle_ids);
+    eprintln!("=== supplied_weights_ignore_unknown_keys_and_default_absent_drivers_to_zero ===");
+    eprintln!("  activity counts per tour: {counts:?}");
+
+    assert_eq!(counts.iter().sum::<usize>(), 6, "every job must be served: {counts:?}");
+    assert!(counts[0] <= 1, "an absent driver keeps weight 0 and an unknown key is inert: {counts:?}");
+}
+
+/// Control for the test above: the SAME fixture with the weights omitted leaves every `w_d` at zero,
+/// which restores the even split -- so the assertion above is reading the weights, not the geometry.
+#[test]
+fn omitted_weights_leave_every_power_weight_at_zero() {
+    let (problem, vehicle_ids) = problem_equidistant_jobs_with_weights(None, None);
+    let solution = solve(problem, SMALL_GENERATIONS);
+
+    assert!(solution.unassigned.is_none(), "unexpected unassigned jobs: {:?}", solution.unassigned);
+
+    let counts = activity_counts_per_tour(&solution, &vehicle_ids);
+    eprintln!("=== omitted_weights_leave_every_power_weight_at_zero ===");
+    eprintln!("  activity counts per tour: {counts:?}");
+
+    assert_eq!(counts.iter().sum::<usize>(), 6, "every job must be served: {counts:?}");
+    assert!((counts[0] as i32 - counts[1] as i32).abs() <= 1, "zero weights must split evenly: {counts:?}");
+}
+
+/// Control for the test above: the SAME fixture with the quota omitted derives it from total demand
+/// and capacity share as before, which is an even 3/3 here.
+#[test]
+fn omitted_quota_derives_the_capacity_share() {
+    let (problem, vehicle_ids) = problem_equidistant_jobs(None);
+    let solution = solve(problem, SMALL_GENERATIONS);
+
+    assert!(solution.unassigned.is_none(), "unexpected unassigned jobs: {:?}", solution.unassigned);
+
+    let counts = activity_counts_per_tour(&solution, &vehicle_ids);
+    eprintln!("=== omitted_quota_derives_the_capacity_share ===");
+    eprintln!("  activity counts per tour: {counts:?}");
+
+    assert_eq!(counts.iter().sum::<usize>(), 6, "every job must be served: {counts:?}");
+    // Six jobs over two drivers makes the difference even, so "within 1" is exactly the 3/3 split.
+    assert!((counts[0] as i32 - counts[1] as i32).abs() <= 1, "derived quota must split evenly: {counts:?}");
+}
+
+/// A quota key matching no driver is ignored rather than fatal: the solve completes and lands on the
+/// same split the two real keys ask for.
+#[test]
+fn unknown_driver_key_in_supplied_quota_does_not_break_the_solve() {
+    let quota =
+        HashMap::from([("ghost-driver".to_string(), 99.), ("driver0".to_string(), 1.), ("driver1".to_string(), 5.)]);
+    let (problem, vehicle_ids) = problem_equidistant_jobs(Some(quota));
+    let solution = solve(problem, SMALL_GENERATIONS);
+
+    assert!(solution.unassigned.is_none(), "unexpected unassigned jobs: {:?}", solution.unassigned);
+
+    let counts = activity_counts_per_tour(&solution, &vehicle_ids);
+    eprintln!("=== unknown_driver_key_in_supplied_quota_does_not_break_the_solve ===");
+    eprintln!("  activity counts per tour: {counts:?}");
+
+    assert_eq!(counts.iter().sum::<usize>(), 6, "every job must be served: {counts:?}");
+    assert!(counts[0] <= 2, "the unknown key must not perturb the two that match: {counts:?}");
+}
+
+/// Which vehicle served each job in the solution.
+fn serving_vehicle(solution: &Solution) -> HashMap<String, String> {
+    solution
+        .tours
+        .iter()
+        .flat_map(|tour| tour_job_ids(tour).map(move |id| (id.to_string(), tour.vehicle_id.clone())))
+        .collect()
+}
+
+/// End-to-end proof that a driver's WHOLE anchor list crosses the wire format and reaches the
+/// objective, not just its first entry. "driver0" holds two far-apart patches, at (-40,0) and
+/// (40,0); "driver1" holds one at (0,60). Two jobs sit beside each patch. Quotas are supplied large
+/// enough that no driver can ever be over quota, so PUSH is identically zero and PULL alone decides
+/// the assignment -- which makes this a direct read of the anchor geometry.
+///
+/// With both of "driver0"'s anchors honoured, every outer job sits in one of its own patches (PULL
+/// 0) and belongs to it. If only one anchor of the pair counted, the two jobs beside the *other*
+/// patch would sit 80 from "driver0" against 72 from "driver1", so PULL would hand them to
+/// "driver1" -- and, since the territory objective outranks `MinimizeCost`, it would do so however
+/// long the detour. Asserting both outer clusters land on "driver0" therefore fails on any
+/// first-anchor-only reading, whichever of the two the map happened to yield first.
+#[test]
+fn a_driver_keeps_the_ground_around_every_anchor_in_its_list() {
+    // Anchors have to be locations the routing matrix indexes, so each patch centre is itself a job.
+    let job_specs = [
+        ("j_left_a", (-40., 0.)),
+        ("j_left_b", (-38., 0.)),
+        ("j_right_a", (40., 0.)),
+        ("j_right_b", (38., 0.)),
+        ("j_up_a", (0., 60.)),
+        ("j_up_b", (0., 58.)),
+    ];
+    let depot = (0., 0.);
+
+    let jobs = job_specs.iter().map(|(id, loc)| create_delivery_job_with_production_value(id, *loc, 1.)).collect();
+    let vehicles = ["driver0", "driver1"]
+        .iter()
+        .map(|driver_id| VehicleType {
+            shifts: vec![create_default_vehicle_shift_with_locations(depot, depot)],
+            ..create_vehicle_with_driver_id(driver_id, vec![10], driver_id)
+        })
+        .collect();
+
+    let plan = Plan { jobs, ..create_empty_plan() };
+    let fleet = Fleet { vehicles, ..create_default_fleet() };
+
+    let anchors = HashMap::from([
+        (
+            "driver0".to_string(),
+            vec![location_index(&plan, &fleet, (-40., 0.)), location_index(&plan, &fleet, (40., 0.))],
+        ),
+        ("driver1".to_string(), vec![location_index(&plan, &fleet, (0., 60.))]),
+    ]);
+    // Quotas far above any reachable load: nobody is ever a surplus, so PUSH stays 0 throughout and
+    // the split is decided by PULL (i.e. by the anchors) alone.
+    let quota = HashMap::from([("driver0".to_string(), 999.), ("driver1".to_string(), 999.)]);
+
+    let objectives = Some(vec![
+        MinimizeUnassigned { breaks: None },
+        territory_objective_with_quota(
+            TerritoryProximity::Distance,
+            BalancePeriodMetric::Activities,
+            anchors,
+            Some(quota),
+        ),
+        MinimizeCost,
+    ]);
+
+    let solution = solve(Problem { plan, fleet, objectives }, SMALL_GENERATIONS);
+
+    assert!(solution.unassigned.is_none(), "unexpected unassigned jobs: {:?}", solution.unassigned);
+
+    let served_by = serving_vehicle(&solution);
+    eprintln!("=== a_driver_keeps_the_ground_around_every_anchor_in_its_list ===");
+    eprintln!("  job -> vehicle: {served_by:?}");
+
+    for job_id in ["j_left_a", "j_left_b", "j_right_a", "j_right_b"] {
+        assert_eq!(
+            served_by.get(job_id).map(String::as_str),
+            Some("driver0_1"),
+            "{job_id} sits beside one of driver0's own anchors: {served_by:?}"
+        );
+    }
+    for job_id in ["j_up_a", "j_up_b"] {
+        assert_eq!(
+            served_by.get(job_id).map(String::as_str),
+            Some("driver1_1"),
+            "{job_id} sits in driver1's patch: {served_by:?}"
+        );
+    }
 }
 
 // Manual perf benchmark for the territory objective's construction cost (the hot path that, at

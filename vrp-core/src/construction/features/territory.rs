@@ -1,11 +1,12 @@
-//! A feature that builds balanced, capacity-aware territories around a per-driver anchor.
+//! A feature that builds balanced, capacity-aware territories around a per-driver anchor list.
 //!
 //! PULL is a per-driver *weighted* overlap penalty: each job is billed the excess of its driver's
 //! power distance (`proximity − weight`) over the minimum power distance across the job's
 //! compatible anchors, so a job reaching into a foreign power cell is penalized and a job in its
 //! own cell is free. PUSH greedily moves over-quota surplus to the nearest under-quota driver at
 //! proximity cost. Anchors and weights are supplied by the caller (objective config), never
-//! derived here.
+//! derived here; the per-driver quota may be too (see [`TerritoryFeatureBuilder::set_quotas`]),
+//! and is otherwise derived from total demand.
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/features/territory_test.rs"]
@@ -86,8 +87,9 @@ pub struct TerritoryFeatureBuilder {
     proximity: TerritoryProximity,
     balance: Option<TerritoryBalance>,
     balance_tolerance: Float,
-    anchors: HashMap<DriverKey, Location>,
+    anchors: HashMap<DriverKey, Vec<Location>>,
     weights: HashMap<DriverKey, Float>,
+    quotas: HashMap<DriverKey, Float>,
     job_value_fn: Option<JobValueFn>,
     allow_idle_drivers: bool,
 }
@@ -106,6 +108,7 @@ impl TerritoryFeatureBuilder {
             balance_tolerance: 0.0,
             anchors: HashMap::new(),
             weights: HashMap::new(),
+            quotas: HashMap::new(),
             job_value_fn: None,
             allow_idle_drivers: false,
         }
@@ -162,7 +165,19 @@ impl TerritoryFeatureBuilder {
 
     /// Sets the per-driver anchor locations, keyed by driver id (or vehicle id when no driver id
     /// dimension is set). Anchors are supplied by the caller, never derived from a dimension.
-    pub fn set_anchors(mut self, a: HashMap<String, Location>) -> Self {
+    ///
+    /// A driver holds a *list* of anchors, one per patch of ground it works, because a technician
+    /// may hold several separate service areas — each contested with a different colleague — and a
+    /// single anchor would be a compromise that loses the tiebreak in whichever patch it sits
+    /// further from. Every proximity to a driver is therefore the minimum over that driver's list:
+    /// `π(job, driver) = min_k π(job, anchor_k)`, and the PUSH ground cost between two drivers is
+    /// the minimum over their anchor pairs.
+    ///
+    /// A driver with **no** anchor — absent key or empty list — takes no part in the territory at
+    /// all: it accrues no PULL, is never a PUSH source or target, and is never a job's overlap
+    /// reference. That is deliberate, not a gap: a technician who is the sole holder of their
+    /// ground has no tiebreak to make, so no anchor is sent and none is synthesised here.
+    pub fn set_anchors(mut self, a: HashMap<String, Vec<Location>>) -> Self {
         self.anchors = a;
         self
     }
@@ -181,6 +196,30 @@ impl TerritoryFeatureBuilder {
     /// nearest-anchor proximity. Keyed like anchors (driver id, else vehicle id).
     pub fn set_weights(mut self, w: HashMap<String, Float>) -> Self {
         self.weights = w;
+        self
+    }
+
+    /// Sets per-driver quotas supplied by the caller, keyed like anchors (driver id, else vehicle
+    /// id). A non-empty map is used verbatim in place of the derived quota, following the same
+    /// principle as the anchor: only the caller knows which work a driver can actually reach.
+    /// Deriving the quota from the problem's *total* demand inflates it for a driver a hard
+    /// constraint keeps off part of that work — the deficit then never closes, PUSH floors at a
+    /// non-zero constant, and the balance axis stops producing a gradient. Empty (the default) ⇒
+    /// derive from total demand as before.
+    ///
+    /// Three edge cases, all defined rather than left to chance:
+    /// - A key matching no driver in the fleet is **ignored**. It can never be keyed to a route, so
+    ///   it can only be noise. A map whose keys *all* miss therefore leaves no driver with a quota,
+    ///   which switches the balance term off rather than silently reverting to the derived quotas
+    ///   the caller explicitly replaced.
+    /// - A fleet driver **absent** from a non-empty map gets **no quota**, which leaves it out of
+    ///   the balance entirely: never a surplus, never a deficit, no per-insertion shedding
+    ///   pressure. Omission stays a no-op instead of being read as "quota 0", which would order
+    ///   that driver to shed every job it holds.
+    /// - Ignored when balance is `None`: quotas are meaningless without a balance metric, so that
+    ///   mode keeps its "no quotas at all" invariant.
+    pub fn set_quotas(mut self, q: HashMap<String, Float>) -> Self {
+        self.quotas = q;
         self
     }
 
@@ -211,6 +250,7 @@ impl TerritoryFeatureBuilder {
             self.balance_tolerance,
             self.anchors,
             self.weights,
+            self.quotas,
             job_value_fn,
             self.allow_idle_drivers,
         ));
@@ -240,13 +280,21 @@ struct TerritoryShared {
     balance_tolerance: Float,
     job_value_fn: JobValueFn,
     profile: Profile,
-    anchors: HashMap<DriverKey, Location>,
+    /// Per-driver anchor list; see [`TerritoryFeatureBuilder::set_anchors`]. A missing key or an
+    /// empty list means "no anchor", which keeps that driver out of the territory entirely.
+    anchors: HashMap<DriverKey, Vec<Location>>,
     /// Per-driver boundary weight `w_i`; missing entries are `0.0` (unweighted cell). Keyed like
-    /// `anchors`: one weight per driver = per territory = per anchor.
+    /// `anchors`: one weight per driver = per territory (however many patches that territory has).
     weights: HashMap<DriverKey, Float>,
-    /// Per-driver quota: the balance metric's ideal share, proportional to each driver's
-    /// available time window. Empty when `balance` is `None` (unlimited spare capacity).
+    /// Per-driver quota: the caller-supplied map when one was given (see
+    /// [`TerritoryFeatureBuilder::set_quotas`]), otherwise the balance metric's ideal share,
+    /// proportional to each driver's available time window. Empty when `balance` is `None`
+    /// (unlimited spare capacity).
     quotas: HashMap<DriverKey, Float>,
+    /// True when [`Self::quotas`] came from the caller instead of [`Self::compute_quotas`].
+    /// Supplied quotas are already the intended targets, so they are never re-based (see
+    /// [`Self::effective_quotas`]).
+    quotas_supplied: bool,
     /// Reference magnitude used by `fitness_scale` to normalize PULL + PUSH.
     reference: Cost,
     /// Precomputed per job id: its compatible drivers' anchors sorted by proximity (ascending).
@@ -289,12 +337,15 @@ impl TerritoryShared {
         proximity: TerritoryProximity,
         balance: Option<TerritoryBalance>,
         balance_tolerance: Float,
-        anchors: HashMap<DriverKey, Location>,
+        anchors: HashMap<DriverKey, Vec<Location>>,
         weights: HashMap<DriverKey, Float>,
+        supplied_quotas: HashMap<DriverKey, Float>,
         job_value_fn: JobValueFn,
         allow_idle_drivers: bool,
     ) -> Self {
         let profile = actors.first().map(|a| a.vehicle.profile.clone()).unwrap_or_default();
+        // Quotas are meaningless without a balance metric, so that mode keeps deriving nothing.
+        let quotas_supplied = balance.is_some() && !supplied_quotas.is_empty();
         let mut shared = Self {
             transport,
             actors,
@@ -307,6 +358,7 @@ impl TerritoryShared {
             anchors,
             weights,
             quotas: HashMap::new(),
+            quotas_supplied,
             reference: 1.0,
             job_anchor_ranking: HashMap::new(),
             job_nearest_power: HashMap::new(),
@@ -323,7 +375,10 @@ impl TerritoryShared {
         shared.avg_metric = shared.compute_avg_metric(&jobs);
         shared.push_reach = shared.compute_push_reach();
         shared.caps = shared.compute_caps();
-        shared.quotas = shared.compute_quotas(&jobs);
+        // `filter_supplied_quotas` reads `caps` to tell a real driver from an unknown key, so it
+        // must run after it.
+        shared.quotas =
+            if quotas_supplied { shared.filter_supplied_quotas(supplied_quotas) } else { shared.compute_quotas(&jobs) };
         shared.reference = shared.compute_reference(&jobs).max(1.0);
         shared
     }
@@ -385,13 +440,24 @@ impl TerritoryShared {
         self.caps.iter().map(|(k, &c)| (k.clone(), total_metric * c / total_cap)).collect()
     }
 
+    /// The caller-supplied quota map, narrowed to drivers that exist in the fleet. A key matching
+    /// no driver is dropped (it could never be keyed to a route) and a driver the caller omitted
+    /// stays absent, which leaves it out of the balance — see
+    /// [`TerritoryFeatureBuilder::set_quotas`] for why each of those is the chosen behaviour.
+    fn filter_supplied_quotas(&self, supplied: HashMap<DriverKey, Float>) -> HashMap<DriverKey, Float> {
+        supplied.into_iter().filter(|(key, _)| self.caps.contains_key(key)).collect()
+    }
+
     /// The quota map the balance is actually measured against for a given solution.
-    /// - `allow_idle_drivers` off: the static, all-driver quotas.
-    /// - `allow_idle_drivers` on: quotas re-based over the *used* drivers (load > 0), so idle drivers
-    ///   carry no quota and never count as a deficit, while the used drivers stay balanced among
-    ///   themselves.
+    /// - quotas supplied by the caller: used as they are, in every mode. They are already the
+    ///   intended targets, so re-basing them would overwrite the caller's numbers with a capacity
+    ///   share it deliberately did not ask for.
+    /// - derived, `allow_idle_drivers` off: the static, all-driver quotas.
+    /// - derived, `allow_idle_drivers` on: quotas re-based over the *used* drivers (load > 0), so
+    ///   idle drivers carry no quota and never count as a deficit, while the used drivers stay
+    ///   balanced among themselves.
     fn effective_quotas(&self, loads: &HashMap<DriverKey, Float>) -> HashMap<DriverKey, Float> {
-        if !self.allow_idle_drivers {
+        if !self.allow_idle_drivers || self.quotas_supplied {
             return self.quotas.clone();
         }
         let used: Vec<&DriverKey> =
@@ -422,6 +488,26 @@ impl TerritoryShared {
     /// The boundary weight for a driver; `0.0` when unset (unweighted cell).
     fn weight(&self, key: &DriverKey) -> Float {
         self.weights.get(key).copied().unwrap_or(0.0)
+    }
+
+    /// A driver's anchor list, or `None` when it holds no anchor at all — an absent key and an empty
+    /// list are the same thing, and both mean the driver takes no part in the territory (see
+    /// [`TerritoryFeatureBuilder::set_anchors`]). Every anchor read goes through here so that
+    /// "no anchor ⇒ no participation" cannot be lost at one call site.
+    fn driver_anchors(&self, key: &DriverKey) -> Option<&[Location]> {
+        self.anchors.get(key).map(Vec::as_slice).filter(|anchors| !anchors.is_empty())
+    }
+
+    /// Proximity from a location to a driver's *nearest* anchor: `min_k π(loc, anchor_k)`. `None`
+    /// when the driver holds no anchor.
+    fn driver_prox(&self, key: &DriverKey, loc: Location) -> Option<Float> {
+        self.driver_anchors(key).map(|anchors| self.min_prox_to(anchors, loc))
+    }
+
+    /// The smallest proximity from `loc` to any of `anchors`. `0.0` for an empty slice, which
+    /// `driver_anchors` already rules out for every caller that matters.
+    fn min_prox_to(&self, anchors: &[Location], loc: Location) -> Float {
+        anchors.iter().map(|&a| self.proximity(loc, a)).min_by(|x, y| x.total_cmp(y)).unwrap_or(0.0)
     }
 
     /// The minimum power distance from a job's location to any compatible driver's anchor:
@@ -501,8 +587,10 @@ impl TerritoryShared {
         gaps[gaps.len() / 2]
     }
 
-    /// Actor scan producing a job's compatible drivers' anchors sorted by proximity (ascending).
-    /// Used to precompute `job_anchor_ranking` and as the uncached fallback for the lookups above.
+    /// Actor scan producing, per compatible driver, the proximity to that driver's NEAREST anchor,
+    /// sorted ascending. Used to precompute `job_anchor_ranking` and as the uncached fallback for
+    /// the lookups above. A driver holding no anchor never enters the ranking, so it is invisible to
+    /// PULL's reference and to the power lookups built on top of it.
     fn scan_sorted_anchors(&self, job_loc: Location, job: &Job) -> Vec<(DriverKey, Float)> {
         let mut seen: HashMap<DriverKey, Float> = HashMap::new();
         for actor in self.actors.iter() {
@@ -510,8 +598,11 @@ impl TerritoryShared {
                 continue;
             }
             let key = driver_key(actor);
-            if let Some(&anchor) = self.anchors.get(&key) {
-                seen.entry(key).or_insert_with(|| self.proximity(job_loc, anchor));
+            if seen.contains_key(&key) {
+                continue;
+            }
+            if let Some(prox) = self.driver_prox(&key, job_loc) {
+                seen.insert(key, prox);
             }
         }
         let mut ranking: Vec<(DriverKey, Float)> = seen.into_iter().collect();
@@ -557,11 +648,12 @@ impl TerritoryShared {
         for route_ctx in solution.routes.iter() {
             let actor = &route_ctx.route().actor;
             let key = driver_key(actor);
-            let Some(assigned_anchor) = self.anchors.get(&key).copied() else { continue };
+            // A driver holding no anchor takes no part in the territory, so it accrues no PULL.
+            let Some(assigned_anchors) = self.driver_anchors(&key) else { continue };
             let weight = self.weight(&key);
             for job in route_ctx.route().tour.jobs() {
                 let Some(loc) = get_job_location(job) else { continue };
-                let assigned_power = self.proximity(loc, assigned_anchor) - weight;
+                let assigned_power = self.min_prox_to(assigned_anchors, loc) - weight;
                 let reference = self.nearest_power(loc, job);
                 total += (assigned_power - reference).max(0.0);
             }
@@ -581,14 +673,17 @@ impl TerritoryShared {
         // deficits (targets) nor surplus (sources) — leaving one idle is not an imbalance.
         let quotas = self.effective_quotas(&loads);
 
-        // Deficit drivers (with an anchor) and their remaining room. The deadband narrows the
-        // deficit threshold, so a driver only just below quota is not treated as needing more work.
+        // Every anchor held by a deficit driver. The deadband narrows the deficit threshold, so a
+        // driver only just below quota is not treated as needing more work. Flattening the lists is
+        // exactly right for the ground cost below: the minimum over this flat set, taken from each
+        // source anchor, IS the minimum over the (source anchor, deficit anchor) pairs. A driver
+        // holding no anchor contributes nothing and so is never a target.
         let deficits: Vec<Location> = quotas
             .iter()
-            .filter_map(|(key, &quota)| {
-                let load = loads.get(key).copied().unwrap_or(0.0);
-                if load + 1e-9 < self.under_quota(quota) { self.anchors.get(key).copied() } else { None }
-            })
+            .filter(|(key, quota)| loads.get(*key).copied().unwrap_or(0.0) + 1e-9 < self.under_quota(**quota))
+            .filter_map(|(key, _)| self.driver_anchors(key))
+            .flatten()
+            .copied()
             .collect();
         if deficits.is_empty() {
             return 0.0;
@@ -603,8 +698,16 @@ impl TerritoryShared {
             if surplus <= 1e-9 {
                 continue;
             }
-            let Some(anchor) = self.anchors.get(key).copied() else { continue };
-            let nearest = deficits.iter().map(|&d| self.proximity(anchor, d)).min_by(|x, y| x.total_cmp(y)).unwrap_or(0.0);
+            // A driver holding no anchor is never a source either.
+            let Some(anchors) = self.driver_anchors(key) else { continue };
+            // Ground cost = min over (source anchor, deficit anchor) pairs. Kept in the source →
+            // deficit direction, because `proximity` is not required to be symmetric.
+            let nearest = anchors
+                .iter()
+                .flat_map(|&s| deficits.iter().map(move |&d| (s, d)))
+                .map(|(s, d)| self.proximity(s, d))
+                .min_by(|x, y| x.total_cmp(y))
+                .unwrap_or(0.0);
             total += surplus * nearest;
         }
         total
@@ -634,7 +737,7 @@ impl TerritoryShared {
         }
         let actor = &route_ctx.route().actor;
         let key = driver_key(actor);
-        let Some(&assigned_anchor) = self.anchors.get(&key) else {
+        let Some(assigned_anchors) = self.driver_anchors(&key) else {
             return 0.0;
         };
         let load = route_ctx.state().get_territory_route_load().copied().unwrap_or(0.0);
@@ -648,7 +751,7 @@ impl TerritoryShared {
         // this driver is much the better home ⇒ the job is deep in its cell; small/negative ⇒ it is
         // a boundary/foreign job with a cheap alternative. `nearest_power` is the min over ALL
         // compatible anchors; when this driver *is* that min, the nearest other is the second power.
-        let assigned_power = self.proximity(loc, assigned_anchor) - self.weight(&key);
+        let assigned_power = self.min_prox_to(assigned_anchors, loc) - self.weight(&key);
         let reference = self.nearest_power(loc, job);
         let min_other = if assigned_power <= reference + 1e-9 {
             job.dimens().get_job_id().and_then(|id| self.job_second_power.get(id)).copied().unwrap_or(Float::INFINITY)
@@ -684,10 +787,10 @@ impl FeatureObjective for TerritoryObjective {
                 let Some(loc) = get_job_location(job) else { return Cost::default() };
                 let actor = &route_ctx.route().actor;
                 let key = driver_key(actor);
-                let Some(assigned_anchor) = self.shared.anchors.get(&key).copied() else {
+                let Some(assigned_prox) = self.shared.driver_prox(&key, loc) else {
                     return Cost::default();
                 };
-                let assigned_power = self.shared.proximity(loc, assigned_anchor) - self.shared.weight(&key);
+                let assigned_power = assigned_prox - self.shared.weight(&key);
                 let reference = self.shared.nearest_power(loc, job);
                 let pull = (assigned_power - reference).max(0.0);
                 pull + self.shared.push_marginal(route_ctx, job)

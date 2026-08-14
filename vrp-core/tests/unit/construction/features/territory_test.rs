@@ -1,5 +1,7 @@
 use crate::construction::features::territory::TerritoryFitnessSolutionState;
-use crate::construction::features::{TerritoryBalance, TerritoryFeatureBuilder, TerritoryProximity};
+use crate::construction::features::{
+    TerritoryBalance, TerritoryFeatureBuilder, TerritoryFitnessData, TerritoryProximity,
+};
 use crate::construction::heuristics::{InsertionContext, MoveContext, RouteContext, RouteState};
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::test_logger;
@@ -11,6 +13,7 @@ use crate::models::Feature;
 use crate::models::common::TimeInterval;
 use crate::models::problem::{Actor, DriverIdDimension, Job, Jobs, Single, VehicleDetail, VehiclePlace};
 use crate::models::solution::{Route, Tour};
+use crate::prelude::Float;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -87,7 +90,7 @@ fn territory_fixture(
         .unwrap(),
     );
 
-    let anchors = HashMap::from([("d0".to_string(), 0usize), ("d1".to_string(), 100usize)]);
+    let anchors = HashMap::from([("d0".to_string(), vec![0usize]), ("d1".to_string(), vec![100usize])]);
 
     let feature = TerritoryFeatureBuilder::new("territory")
         .set_transport(transport)
@@ -167,7 +170,20 @@ struct TerritoryBalanceFixtureContexts {
 /// - `balanced` puts one job per route: each driver's load lands exactly on its quota.
 /// - `overloaded` puts both jobs on "d0" and leaves "d1" idle: "d0" carries a surplus and "d1" a
 ///   deficit.
-fn territory_balanced_fixture(balance: TerritoryBalance, allow_idle: bool) -> (Feature, TerritoryBalanceFixtureContexts) {
+fn territory_balanced_fixture(
+    balance: TerritoryBalance,
+    allow_idle: bool,
+) -> (Feature, TerritoryBalanceFixtureContexts) {
+    territory_balanced_fixture_with_quotas(balance, allow_idle, HashMap::new())
+}
+
+/// [`territory_balanced_fixture`] with a caller-supplied per-driver quota map. An empty map is the
+/// "no quota supplied" case and must reproduce the derived path exactly.
+fn territory_balanced_fixture_with_quotas(
+    balance: TerritoryBalance,
+    allow_idle: bool,
+    quotas: HashMap<String, Float>,
+) -> (Feature, TerritoryBalanceFixtureContexts) {
     let vehicle_d0 = build_vehicle("v_d0", "d0");
     let vehicle_d1 = build_vehicle("v_d1", "d1");
 
@@ -191,7 +207,7 @@ fn territory_balanced_fixture(balance: TerritoryBalance, allow_idle: bool) -> (F
         .unwrap(),
     );
 
-    let anchors = HashMap::from([("d0".to_string(), 0usize), ("d1".to_string(), 100usize)]);
+    let anchors = HashMap::from([("d0".to_string(), vec![0usize]), ("d1".to_string(), vec![100usize])]);
 
     let mut builder = TerritoryFeatureBuilder::new("territory")
         .set_transport(transport)
@@ -201,6 +217,7 @@ fn territory_balanced_fixture(balance: TerritoryBalance, allow_idle: bool) -> (F
         .set_proximity(TerritoryProximity::Distance)
         .set_balance(Some(balance))
         .set_anchors(anchors)
+        .set_quotas(quotas)
         .set_allow_idle_drivers(allow_idle);
 
     if matches!(balance, TerritoryBalance::ProductionValue) {
@@ -271,6 +288,120 @@ fn allow_idle_drivers_drops_the_idle_driver_from_the_imbalance() {
     assert_eq!(data.push, 0.0);
 }
 
+/// Pins the exact numbers the DERIVED quota path produces, so a change to how quotas are resolved
+/// cannot quietly move them. Two equal-window drivers and two activities ⇒ derived quota 1.0 each:
+/// - `balanced` (one job per driver): both loads sit on quota ⇒ no surplus ⇒ PUSH 0; each job sits
+///   on its own nearest anchor ⇒ PULL 0.
+/// - `overloaded` (both jobs on "d0", "d1" idle): surplus 1 shipped to the only deficit anchor at
+///   π(0, 100) = 100 ⇒ PUSH 100; job_far@95 served from anchor 0 reaches 95 − 5 = 90 ⇒ PULL 90.
+#[test]
+fn derived_quotas_produce_exact_pull_and_push() {
+    let (_f, ctx) = territory_balanced_fixture(TerritoryBalance::Activities, false);
+
+    let balanced = ctx.balanced.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+    let overloaded = ctx.overloaded.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+
+    assert_eq!(balanced.pull, 0.0);
+    assert_eq!(balanced.push, 0.0);
+    assert_eq!(overloaded.pull, 90.0);
+    assert_eq!(overloaded.push, 100.0);
+}
+
+/// Reads the caller's quota verbatim rather than merging it with, or correcting it against, the
+/// derived one. The derived quota here is 1.0 per driver (pinned above), so supplying
+/// `{d0: 2, d1: 0}` inverts which layout is balanced:
+/// - `balanced` (one job each): "d1" is now 1.0 over its zero quota while "d0" is a deficit, so the
+///   surplus ships at π(100, 0) = 100 ⇒ PUSH 100, where the derived quota gave 0.
+/// - `overloaded` (both jobs on "d0"): "d0" sits exactly on its quota of 2 and idle "d1" is not
+///   below its quota of 0, so nothing is surplus ⇒ PUSH 0, where the derived quota gave 100.
+#[test]
+fn supplied_quotas_are_used_verbatim() {
+    let quotas = HashMap::from([("d0".to_string(), 2.0), ("d1".to_string(), 0.0)]);
+    let (_f, ctx) = territory_balanced_fixture_with_quotas(TerritoryBalance::Activities, false, quotas);
+
+    let balanced = ctx.balanced.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+    let overloaded = ctx.overloaded.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+
+    assert_eq!(balanced.push, 100.0);
+    assert_eq!(overloaded.push, 0.0);
+}
+
+/// An empty supplied map is exactly "no quota supplied": the derived path runs untouched, so the
+/// numbers pinned by `derived_quotas_produce_exact_pull_and_push` come back byte for byte.
+#[test]
+fn empty_supplied_quotas_reproduce_the_derivation() {
+    let (_f, ctx) = territory_balanced_fixture_with_quotas(TerritoryBalance::Activities, false, HashMap::new());
+
+    let balanced = ctx.balanced.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+    let overloaded = ctx.overloaded.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+
+    assert_eq!(balanced.pull, 0.0);
+    assert_eq!(balanced.push, 0.0);
+    assert_eq!(overloaded.pull, 90.0);
+    assert_eq!(overloaded.push, 100.0);
+}
+
+/// A key matching no driver in the fleet is dropped, never fatal: it cannot be keyed to any route,
+/// so it can only be noise. The outcome is identical to `supplied_quotas_are_used_verbatim`, which
+/// also proves the unknown key did not displace or perturb the two that do match.
+#[test]
+fn unknown_driver_key_in_supplied_quotas_is_ignored() {
+    let quotas = HashMap::from([("d0".to_string(), 2.0), ("d1".to_string(), 0.0), ("nobody".to_string(), 999.0)]);
+    let (_f, ctx) = territory_balanced_fixture_with_quotas(TerritoryBalance::Activities, false, quotas);
+
+    let balanced = ctx.balanced.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+    let overloaded = ctx.overloaded.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+
+    assert_eq!(balanced.push, 100.0);
+    assert_eq!(overloaded.push, 0.0);
+}
+
+/// A fleet driver the caller omitted is left OUT of the balance: never a surplus, never a deficit.
+/// Two fixtures, because each rules out one of the two alternative readings.
+#[test]
+fn driver_absent_from_supplied_quotas_is_left_out_of_the_balance() {
+    // Only "d0" is quoted, generously (5 against a load of 1), so "d0" can never be the surplus.
+    // What "d1" is decides the PUSH on the balanced layout:
+    // - left out (the chosen behaviour): "d1" is neither surplus nor deficit ⇒ 0.
+    // - read as "quota 0": "d1"'s single job would be a surplus shipped to "d0" at π(100, 0) ⇒ 100.
+    let (_f, generous) = territory_balanced_fixture_with_quotas(
+        TerritoryBalance::Activities,
+        false,
+        HashMap::from([("d0".to_string(), 5.0)]),
+    );
+    let balanced = generous.balanced.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+    assert_eq!(balanced.push, 0.0, "an omitted driver must not be read as quota 0");
+
+    // Only "d0" is quoted, tightly (0.5 against a load of 2), so "d0" IS the surplus on the
+    // overloaded layout. What "d1" is decides again:
+    // - left out (the chosen behaviour): there is no deficit to ship the surplus to ⇒ 0.
+    // - back-filled with the DERIVED quota of 1.0: idle "d1" would be a deficit and the 1.5 surplus
+    //   would ship at π(0, 100) ⇒ 150 — which would reintroduce exactly the total-demand quota the
+    //   supplied map exists to replace.
+    let (_f, tight) = territory_balanced_fixture_with_quotas(
+        TerritoryBalance::Activities,
+        false,
+        HashMap::from([("d0".to_string(), 0.5)]),
+    );
+    let overloaded = tight.overloaded.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+    assert_eq!(overloaded.push, 0.0, "an omitted driver must not be back-filled from the derivation");
+}
+
+/// Supplied quotas bypass the `allow_idle_drivers` re-basing, because they are already the intended
+/// targets: re-basing would overwrite the caller's numbers with a capacity share it deliberately did
+/// not ask for. Same overloaded layout as
+/// `allow_idle_drivers_drops_the_idle_driver_from_the_imbalance` (both jobs on "d0", "d1" idle),
+/// which the DERIVED path re-bases onto "d0" alone (quota 2) for PUSH 0. With an explicit 1/1 quota
+/// there is no re-basing: "d0" is 1 over and idle "d1" is a deficit ⇒ PUSH 100.
+#[test]
+fn supplied_quotas_are_not_rebased_when_idle_drivers_are_allowed() {
+    let quotas = HashMap::from([("d0".to_string(), 1.0), ("d1".to_string(), 1.0)]);
+    let (_f, ctx) = territory_balanced_fixture_with_quotas(TerritoryBalance::Activities, true, quotas);
+
+    let data = ctx.overloaded.solution.state.get_territory_fitness().cloned().unwrap_or_default();
+    assert_eq!(data.push, 100.0);
+}
+
 /// Weighted power cells: a job physically closer (raw distance) to d0's anchor is pulled into
 /// d1's cell by a large weight on d1. Serving it on d1 is then penalty-free (it is in its power
 /// cell) and serving it on d0 is penalized. Geometry (asserted end-to-end in Task 2 Step 6):
@@ -292,7 +423,7 @@ fn weight_moves_the_boundary_and_zeroes_pull_in_the_power_cell() {
     let jobs =
         Arc::new(Jobs::new(&fleet, vec![Job::Single(job.clone())], transport.as_ref(), &test_logger()).unwrap());
 
-    let anchors = HashMap::from([("d0".to_string(), 0usize), ("d1".to_string(), 100usize)]);
+    let anchors = HashMap::from([("d0".to_string(), vec![0usize]), ("d1".to_string(), vec![100usize])]);
     // w_d1 = 30: power(d0) = 40 - 0 = 40, power(d1) = 60 - 30 = 30 -> job belongs to d1's cell.
     let weights = HashMap::from([("d0".to_string(), 0.0), ("d1".to_string(), 30.0)]);
 
@@ -348,7 +479,7 @@ fn pull_penalizes_swapped_assignment_even_at_quota() {
         .unwrap(),
     );
 
-    let anchors = HashMap::from([("d0".to_string(), 0usize), ("d1".to_string(), 100usize)]);
+    let anchors = HashMap::from([("d0".to_string(), vec![0usize]), ("d1".to_string(), vec![100usize])]);
 
     let feature = TerritoryFeatureBuilder::new("territory")
         .set_transport(transport)
@@ -403,7 +534,7 @@ fn feature_with_jobs_and_tolerance(
             .unwrap(),
     );
 
-    let anchors = HashMap::from([("d0".to_string(), 0usize), ("d1".to_string(), 100usize)]);
+    let anchors = HashMap::from([("d0".to_string(), vec![0usize]), ("d1".to_string(), vec![100usize])]);
     let feature = TerritoryFeatureBuilder::new("territory")
         .set_transport(transport)
         .set_actors(vec![actor_d0.clone(), actor_d1.clone()])
@@ -516,7 +647,7 @@ fn skill_forced_far_assignment_is_not_penalized() {
     let jobs =
         Arc::new(Jobs::new(&fleet, vec![Job::Single(job.clone())], transport.as_ref(), &test_logger()).unwrap());
 
-    let anchors = HashMap::from([("d0".to_string(), 0usize), ("d1".to_string(), 100usize)]);
+    let anchors = HashMap::from([("d0".to_string(), vec![0usize]), ("d1".to_string(), vec![100usize])]);
 
     let feature = TerritoryFeatureBuilder::new("territory")
         .set_transport(transport)
@@ -537,3 +668,143 @@ fn skill_forced_far_assignment_is_not_penalized() {
     assert_eq!(objective.fitness(&on_d1), 0.0);
     let _ = actor_d0;
 }
+
+// region: per-driver anchor LISTS
+
+/// Builds a territory feature over the two standard drivers ("d0", "d1") with caller-given anchor
+/// LISTS and the jobs given as `(id, location)`. Returns the feature, both actors, and the created
+/// singles in the given order so a test can lay them onto routes.
+fn feature_with_anchor_lists(
+    anchors: HashMap<String, Vec<usize>>,
+    balance: Option<TerritoryBalance>,
+    job_specs: &[(&str, usize)],
+) -> (Feature, Arc<Actor>, Arc<Actor>, Vec<Arc<Single>>) {
+    let vehicle_d0 = build_vehicle("v_d0", "d0");
+    let vehicle_d1 = build_vehicle("v_d1", "d1");
+    let fleet =
+        FleetBuilder::default().add_driver(test_driver()).add_vehicle(vehicle_d0).add_vehicle(vehicle_d1).build();
+    let actor_d0 = get_test_actor_from_fleet(&fleet, "v_d0");
+    let actor_d1 = get_test_actor_from_fleet(&fleet, "v_d1");
+
+    let singles: Vec<Arc<Single>> = job_specs
+        .iter()
+        .map(|(id, loc)| TestSingleBuilder::default().id(id).location(Some(*loc)).build_shared())
+        .collect();
+
+    let transport = TestTransportCost::new_shared();
+    let jobs = Arc::new(
+        Jobs::new(&fleet, singles.iter().cloned().map(Job::Single).collect(), transport.as_ref(), &test_logger())
+            .unwrap(),
+    );
+
+    let feature = TerritoryFeatureBuilder::new("territory")
+        .set_transport(transport)
+        .set_actors(vec![actor_d0.clone(), actor_d1.clone()])
+        .set_jobs(jobs)
+        .set_compatibility_fn(|_, _| true)
+        .set_proximity(TerritoryProximity::Distance)
+        .set_balance(balance)
+        .set_anchors(anchors)
+        .build()
+        .unwrap();
+
+    (feature, actor_d0, actor_d1, singles)
+}
+
+/// The primed PULL/PUSH for the standard two-job scenario (job_near@5, job_far@95) laid out with
+/// BOTH jobs on "d0" and "d1" left idle, under the given anchor lists and balance metric.
+fn both_jobs_on_d0_fitness(
+    anchors: HashMap<String, Vec<usize>>,
+    balance: Option<TerritoryBalance>,
+) -> TerritoryFitnessData {
+    let (feature, actor_d0, actor_d1, singles) =
+        feature_with_anchor_lists(anchors, balance, &[("job_near", 5), ("job_far", 95)]);
+
+    let mut ctx = TestInsertionContextBuilder::default()
+        .with_routes(vec![
+            route_with_jobs(actor_d0, vec![(singles[0].clone(), 5), (singles[1].clone(), 95)]),
+            route_with_jobs(actor_d1, vec![]),
+        ])
+        .build();
+    feature.state.as_ref().unwrap().accept_solution_state(&mut ctx.solution);
+
+    ctx.solution.state.get_territory_fitness().cloned().unwrap_or_default()
+}
+
+/// A driver holding several anchors is judged by its NEAREST one. "d0" holds anchors at 0 and 100
+/// while "d1" holds a single one at 50, and "d0" serves a job beside each of its own anchors: both
+/// sit 5 from the nearer of the pair (against 45 to "d1"), so neither reaches into a foreign cell
+/// and PULL is 0. Collapsing "d0" to its first anchor alone would leave job_far 95 from its driver
+/// against a reference of 45, i.e. PULL 50 — asserted as the control, so this cannot pass by
+/// accident.
+#[test]
+fn a_driver_is_judged_by_its_nearest_anchor_of_several() {
+    let specs = [("job_near", 5), ("job_far", 95)];
+
+    let (paired, a0, _a1, s) = feature_with_anchor_lists(
+        HashMap::from([("d0".to_string(), vec![0, 100]), ("d1".to_string(), vec![50])]),
+        None,
+        &specs,
+    );
+    let on_paired = TestInsertionContextBuilder::default()
+        .with_routes(vec![route_with_jobs(a0, vec![(s[0].clone(), 5), (s[1].clone(), 95)])])
+        .build();
+    assert_eq!(paired.objective.unwrap().fitness(&on_paired), 0.0, "each job sits beside one of d0's own anchors");
+
+    let (single, b0, _b1, s2) = feature_with_anchor_lists(
+        HashMap::from([("d0".to_string(), vec![0]), ("d1".to_string(), vec![50])]),
+        None,
+        &specs,
+    );
+    let on_single = TestInsertionContextBuilder::default()
+        .with_routes(vec![route_with_jobs(b0, vec![(s2[0].clone(), 5), (s2[1].clone(), 95)])])
+        .build();
+    assert_eq!(single.objective.unwrap().fitness(&on_single), 50.0, "with only the first anchor, job_far is foreign");
+}
+
+/// An empty anchor list is exactly an absent key: that driver takes no part in the territory. It is
+/// not a job's overlap reference — a bug that read "no anchors" as proximity 0 would make it the
+/// nearest reference for every job and inflate the OTHER drivers' PULL — and it is neither a PUSH
+/// source nor a PUSH target.
+#[test]
+fn an_empty_anchor_list_behaves_exactly_like_an_absent_driver() {
+    let empty = both_jobs_on_d0_fitness(
+        HashMap::from([("d0".to_string(), vec![0]), ("d1".to_string(), Vec::new())]),
+        Some(TerritoryBalance::Activities),
+    );
+    let absent =
+        both_jobs_on_d0_fitness(HashMap::from([("d0".to_string(), vec![0])]), Some(TerritoryBalance::Activities));
+    let anchored = both_jobs_on_d0_fitness(
+        HashMap::from([("d0".to_string(), vec![0]), ("d1".to_string(), vec![100])]),
+        Some(TerritoryBalance::Activities),
+    );
+
+    assert_eq!((empty.pull, empty.push), (absent.pull, absent.push), "empty list and absent key must agree");
+    // "d1" is no reference, so both jobs sit in d0's only cell (PULL 0); and "d1" is no deficit, so
+    // d0's surplus has nowhere to ship (PUSH 0).
+    assert_eq!((empty.pull, empty.push), (0.0, 0.0));
+    // The same layout with "d1" actually anchored: job_far reaches 90 past d1's cell, and d0's
+    // surplus of one activity ships to d1 at π(0, 100) = 100.
+    assert_eq!((anchored.pull, anchored.push), (90.0, 100.0));
+}
+
+/// The PUSH ground cost between two drivers is the minimum over their ANCHOR PAIRS, not the distance
+/// between one designated anchor each. Over-quota "d0" holds anchors at 0 and 90; the only deficit
+/// driver "d1" holds one at 100. The nearest pair is (90, 100) = 10, so the surplus of one activity
+/// ships for 10 — against 100 when "d0" holds only its first anchor, asserted as the control.
+#[test]
+fn push_ground_cost_is_the_minimum_over_anchor_pairs() {
+    let near_pair = both_jobs_on_d0_fitness(
+        HashMap::from([("d0".to_string(), vec![0, 90]), ("d1".to_string(), vec![100])]),
+        Some(TerritoryBalance::Activities),
+    );
+    assert_eq!(near_pair.push, 10.0);
+
+    let far_only = both_jobs_on_d0_fitness(
+        HashMap::from([("d0".to_string(), vec![0]), ("d1".to_string(), vec![100])]),
+        Some(TerritoryBalance::Activities),
+    );
+    assert_eq!(far_only.push, 100.0);
+}
+
+// endregion
