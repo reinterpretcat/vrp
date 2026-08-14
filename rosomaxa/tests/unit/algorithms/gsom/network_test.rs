@@ -41,7 +41,7 @@ fn create_config(node_size: usize) -> NetworkConfig {
         node_size,
         spread_factor: 0.75,
         distribution_factor: 0.75,
-        rebalance_memory: 100,
+        hit_memory_size: 100,
         learning_rate: 0.1,
         has_initial_error: true,
     }
@@ -253,7 +253,7 @@ fn can_create_network() {
     assert!((network.growing_threshold - -3. * 0.75_f64.ln()).abs() < 1e-6);
     assert_eq!(network.distribution_factor, config.distribution_factor);
     assert_eq!(network.learning_rate, config.learning_rate);
-    assert_eq!(network.rebalance_memory, config.rebalance_memory);
+    assert_eq!(network.hit_memory_size, config.hit_memory_size);
 
     // Verify initial nodes setup
     assert!(network.size() >= 4); // Should have at least 4 initial nodes
@@ -276,13 +276,13 @@ fn can_create_initial_nodes() {
         Data::new(3., 3., 0.), //
         Data::new(4., 4., 0.),
     ];
-    let rebalance_memory = 5;
+    let hit_memory_size = 5;
     let storage_factory = DataStorageFactory;
     let random = create_test_random();
     let noise = Noise::new_with_ratio(1.0, (1., 1.), random);
 
     let (nodes, min_max_weights) =
-        NetworkType::create_initial_nodes(&context, data.clone(), rebalance_memory, &storage_factory, noise).unwrap();
+        NetworkType::create_initial_nodes(&context, data.clone(), hit_memory_size, &storage_factory, noise).unwrap();
 
     // Verify nodes
     assert!(nodes.len() >= 4);
@@ -299,7 +299,7 @@ fn can_create_initial_nodes() {
     // Verify node properties
     for node in nodes.values() {
         assert_eq!(node.weights.len(), 3, "weight dimension");
-        assert!(node.storage.size() <= rebalance_memory, "storage size");
+        assert!(node.storage.size() <= hit_memory_size, "storage size");
 
         // Check coordinate bounds based on grid size
         let grid_size = (nodes.len() as f64).sqrt().ceil() as i32;

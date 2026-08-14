@@ -8,7 +8,7 @@ type RosomaxaType = Rosomaxa<VectorRosomaxaContext, VectorObjective, VectorSolut
 fn can_reject_invalid_config() {
     let invalid_configs = [
         RosomaxaConfig { initial_size: 0, ..RosomaxaConfig::new_with_defaults(4) },
-        RosomaxaConfig { rebalance_memory: 0, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { max_network_size: 0, ..RosomaxaConfig::new_with_defaults(4) },
         RosomaxaConfig { spread_factor: 0., ..RosomaxaConfig::new_with_defaults(4) },
         RosomaxaConfig { spread_factor: 1., ..RosomaxaConfig::new_with_defaults(4) },
         RosomaxaConfig { spread_factor: Float::NAN, ..RosomaxaConfig::new_with_defaults(4) },
@@ -104,6 +104,32 @@ mod selection {
         rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..HeuristicStatistics::default() });
         assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
         assert_eq!(rosomaxa.select().count(), selection_size);
+    }
+
+    #[test]
+    fn can_track_new_exploration_inputs() {
+        let initial_size = 4;
+        let mut rosomaxa = create_rosomaxa(initial_size);
+
+        for value in 0..initial_size {
+            let value = value as Float;
+            rosomaxa.add(VectorSolution { data: vec![value], weights: vec![value], fitness: -value });
+        }
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
+
+        let RosomaxaPhases::Exploration { new_input_count, .. } = &rosomaxa.phase else { unreachable!() };
+        assert_eq!(*new_input_count, 0);
+
+        rosomaxa.add(VectorSolution { data: vec![5.], weights: vec![5.], fitness: -5. });
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
+        let RosomaxaPhases::Exploration { new_input_count, .. } = &rosomaxa.phase else { unreachable!() };
+        assert_eq!(*new_input_count, 1);
+
+        let RosomaxaPhases::Exploration { new_input_count, .. } = &mut rosomaxa.phase else { unreachable!() };
+        *new_input_count = usize::MAX;
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
+        let RosomaxaPhases::Exploration { new_input_count, .. } = &rosomaxa.phase else { unreachable!() };
+        assert_eq!(*new_input_count, 0);
     }
 
     #[test]
@@ -366,21 +392,23 @@ mod auxiliary {
 
     #[test]
     fn can_get_keep_size() {
-        let rebalance_memory = 100;
+        let max_network_size = 300;
 
         // early phase
-        let size_early = get_keep_size(rebalance_memory, 0.0);
-        assert!(size_early > rebalance_memory * 2);
+        let size_early = get_keep_size(max_network_size, 0.0);
+        assert!(size_early > max_network_size * 2 / 3);
 
         // mid phase
-        let size_mid = get_keep_size(rebalance_memory, 0.5);
-        assert!(size_mid > rebalance_memory);
+        let size_mid = get_keep_size(max_network_size, 0.5);
+        assert!(size_mid > max_network_size / 3);
         assert!(size_mid < size_early);
 
         // late phase
-        let size_late = get_keep_size(rebalance_memory, 0.8);
-        assert!(size_late >= rebalance_memory);
+        let size_late = get_keep_size(max_network_size, 0.8);
+        assert!(size_late >= max_network_size / 3);
         assert!(size_late < size_mid);
+
+        assert_eq!(get_keep_size(4, 1.), 4);
     }
 
     #[test]

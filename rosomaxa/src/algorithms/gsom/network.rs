@@ -32,7 +32,7 @@ where
     distribution_factor: Float,
     learning_rate: Float,
     time: usize,
-    rebalance_memory: usize,
+    hit_memory_size: usize,
     min_max_weights: MinMaxWeights,
     nodes: NodeHashMap<I, S>,
     storage_factory: F,
@@ -51,8 +51,8 @@ pub struct NetworkConfig {
     pub distribution_factor: Float,
     /// Initial learning rate.
     pub learning_rate: Float,
-    /// A rebalance memory.
-    pub rebalance_memory: usize,
+    /// Number of recent generations tracked in each node's hit history.
+    pub hit_memory_size: usize,
     /// If set to true, initial nodes have error set to the value equal to a growing threshold.
     pub has_initial_error: bool,
 }
@@ -144,7 +144,7 @@ where
         let (mut nodes, min_max_weights) = Self::create_initial_nodes(
             context,
             initial_data,
-            config.rebalance_memory,
+            config.hit_memory_size,
             &storage_factory(data_size),
             // apply small noise to initial weights
             Noise::new_with_ratio(1., (0.99, 1.), random.clone()),
@@ -160,7 +160,7 @@ where
             distribution_factor: config.distribution_factor,
             learning_rate: config.learning_rate,
             time: 0,
-            rebalance_memory: config.rebalance_memory,
+            hit_memory_size: config.hit_memory_size,
             min_max_weights,
             nodes,
             storage_factory: storage_factory(data_size),
@@ -484,14 +484,14 @@ where
 
     /// Creates a new node for given data.
     fn create_node(&self, context: &C, coord: Coordinate, weights: &[Float], error: Float) -> Node<I, S> {
-        Node::new(coord, weights, error, self.rebalance_memory, self.storage_factory.eval(context))
+        Node::new(coord, weights, error, self.hit_memory_size, self.storage_factory.eval(context))
     }
 
     /// Creates nodes for initial topology.
     fn create_initial_nodes(
         context: &C,
         data: Vec<I>,
-        rebalance_memory: usize,
+        hit_memory_size: usize,
         storage_factory: &F,
         noise: Noise,
     ) -> GenericResult<(NodeHashMap<I, S>, MinMaxWeights)> {
@@ -547,7 +547,7 @@ where
         for (&coord, indices) in node_assignments.iter() {
             let init_idx = indices[0];
             let weights: Vec<Float> = data[init_idx].weights().iter().map(|&v| noise.generate(v)).collect();
-            let node = Node::new(coord, &weights, 0., rebalance_memory, storage_factory.eval(context));
+            let node = Node::new(coord, &weights, 0., hit_memory_size, storage_factory.eval(context));
 
             nodes.insert(coord, node);
         }

@@ -56,7 +56,7 @@
       "maxNodeSize": 2,
       "spreadFactor": 0.75,
       "distributionFactor": 0.75,
-      "rebalanceMemory": 100,
+      "maxNetworkSize": 300,
       "explorationRatio": 0.9
     }
   },

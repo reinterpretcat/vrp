@@ -84,8 +84,8 @@ pub enum PopulationType {
         spread_factor: Option<Float>,
         /// Distribution factor. Default is 0.9.
         distribution_factor: Option<Float>,
-        /// A rebalance memory. Default is 200.
-        rebalance_memory: Option<usize>,
+        /// GSOM network size which triggers compaction. Default is 600.
+        max_network_size: Option<usize>,
         /// An exploration phase ratio. Default is 0.9.
         exploration_ratio: Option<Float>,
     },
@@ -476,7 +476,7 @@ fn configure_from_evolution(
                     spread_factor,
                     distribution_factor,
                     selection_size,
-                    rebalance_memory,
+                    max_network_size,
                     exploration_ratio,
                 } => {
                     let mut config = RosomaxaConfig::new_with_defaults(default_selection_size);
@@ -495,8 +495,8 @@ fn configure_from_evolution(
                     if let Some(distribution_factor) = distribution_factor {
                         config.distribution_factor = *distribution_factor;
                     }
-                    if let Some(rebalance_memory) = rebalance_memory {
-                        config.rebalance_memory = *rebalance_memory;
+                    if let Some(max_network_size) = max_network_size {
+                        config.max_network_size = *max_network_size;
                     }
                     if let Some(exploration_ratio) = exploration_ratio {
                         config.exploration_ratio = *exploration_ratio;

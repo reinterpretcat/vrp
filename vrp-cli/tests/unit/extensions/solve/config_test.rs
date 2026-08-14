@@ -37,7 +37,7 @@ fn can_read_full_config() {
             max_node_size,
             spread_factor,
             distribution_factor,
-            rebalance_memory,
+            max_network_size,
             exploration_ratio,
         } => {
             assert_eq!(selection_size, Some(8));
@@ -45,7 +45,7 @@ fn can_read_full_config() {
             assert_eq!(max_node_size, Some(2));
             assert_eq!(spread_factor, Some(0.75));
             assert_eq!(distribution_factor, Some(0.75));
-            assert_eq!(rebalance_memory, Some(100));
+            assert_eq!(max_network_size, Some(300));
             assert_eq!(exploration_ratio, Some(0.9));
         }
         _ => unreachable!(),

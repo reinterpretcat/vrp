@@ -28,8 +28,8 @@ pub struct RosomaxaConfig {
     pub spread_factor: Float,
     /// Distribution factor of GSOM.
     pub distribution_factor: Float,
-    /// A node rebalance memory of GSOM.
-    pub rebalance_memory: usize,
+    /// Maximum number of nodes retained by GSOM before compaction.
+    pub max_network_size: usize,
     /// A ratio of exploration phase.
     pub exploration_ratio: Float,
 }
@@ -44,7 +44,7 @@ impl RosomaxaConfig {
             node_size: 2,
             spread_factor: 0.75,
             distribution_factor: 0.9,
-            rebalance_memory: 200,
+            max_network_size: 600,
             exploration_ratio: 0.9,
         }
     }
@@ -111,11 +111,12 @@ where
                 self.external_ctx.on_change(individuals.as_slice());
                 known_individuals.extend(individuals)
             }
-            RosomaxaPhases::Exploration { network, statistics, .. } => {
+            RosomaxaPhases::Exploration { network, new_input_count, statistics, .. } => {
                 self.external_ctx.on_change(individuals.as_slice());
                 let data = parallel_into_collect(individuals, ParallelismScope::Local, |i| {
                     init_individual(&self.external_ctx, i)
                 });
+                *new_input_count = new_input_count.saturating_add(data.len());
                 network.store_batch(&self.external_ctx, data, statistics.generation);
             }
             RosomaxaPhases::Exploitation { .. } => {}
@@ -208,6 +209,9 @@ where
 
 type IndividualNetwork<C, O, S> = Network<C, S, IndividualStorage<C, O, S>, IndividualStorageFactory<C, O, S>>;
 
+// Hit history is exposed in GSOM state, but does not control its maintenance or capacity.
+const HIT_MEMORY_SIZE: usize = 200;
+
 impl<C, O, S> Rosomaxa<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
@@ -224,10 +228,10 @@ where
         if config.initial_size < 1
             || config.elite_size < 1
             || config.node_size < 1
-            || config.rebalance_memory < 1
+            || config.max_network_size < 4
             || config.selection_size < 2
         {
-            return Err("Rosomaxa population sizes and rebalance memory must be above their minimums".into());
+            return Err("Rosomaxa population and network sizes must be above their minimums".into());
         }
         if !(config.spread_factor > 0. && config.spread_factor < 1.)
             || !(config.distribution_factor > 0. && config.distribution_factor < 1.)
@@ -284,6 +288,7 @@ where
 
                             self.phase = RosomaxaPhases::Exploration {
                                 network,
+                                new_input_count: 0,
                                 selection_coordinates,
                                 local_optimum_candidates: Vec::new(),
                                 statistics: statistics.clone(),
@@ -301,6 +306,7 @@ where
             }
             RosomaxaPhases::Exploration {
                 network,
+                new_input_count,
                 selection_coordinates,
                 local_optimum_candidates,
                 statistics: old_statistics,
@@ -310,7 +316,7 @@ where
                     *old_statistics = statistics.clone();
                     *old_selection_size = selection_size;
 
-                    Self::optimize_network(&self.external_ctx, network, statistics, &self.config);
+                    Self::optimize_network(&self.external_ctx, network, new_input_count, statistics, &self.config);
 
                     Self::prepare_selection(
                         network,
@@ -339,21 +345,26 @@ where
     fn optimize_network(
         external_ctx: &C,
         network: &mut IndividualNetwork<C, O, S>,
+        new_input_count: &mut usize,
         statistics: &HeuristicStatistics,
         config: &RosomaxaConfig,
     ) {
         network.set_learning_rate(get_learning_rate(statistics.termination_estimate));
 
-        if statistics.generation.is_multiple_of(config.rebalance_memory) {
+        // Check distortion after each node has seen about one new solution on average. A small floor avoids repeatedly
+        // rebuilding a young map from just a few inputs.
+        let observation_count = network.size().max(config.max_network_size.div_ceil(6));
+        if *new_input_count >= observation_count {
             // set the MSE threshold to a fraction of the maximum possible normalized distance
             let mse = network.mse();
             let threshold = 0.5 / (network.dimension() as Float).sqrt();
             if mse > threshold {
                 network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
             }
+            *new_input_count = 0;
         }
 
-        let keep_size = get_keep_size(config.rebalance_memory, statistics.termination_estimate);
+        let keep_size = get_keep_size(config.max_network_size, statistics.termination_estimate);
         // no need to shrink network
         if network.size() <= keep_size {
             return;
@@ -519,7 +530,7 @@ where
                 spread_factor: config.spread_factor,
                 distribution_factor: config.distribution_factor,
                 learning_rate: 0.3,
-                rebalance_memory: config.rebalance_memory,
+                hit_memory_size: HIT_MEMORY_SIZE,
                 has_initial_error: true,
             },
             environment.random.clone(),
@@ -564,6 +575,8 @@ where
     },
     Exploration {
         network: IndividualNetwork<C, O, S>,
+        // Inputs added since the last distortion check; smoothing and compaction replay does not contribute.
+        new_input_count: usize,
         selection_coordinates: Vec<Coordinate>,
         // Reuse this scratch space instead of allocating while preparing each selection.
         local_optimum_candidates: Vec<(usize, Float)>,
@@ -739,15 +752,16 @@ fn get_exploitation_selection_size(selection_size: usize) -> usize {
 }
 
 /// Gets network size to keep.
-/// Slowly decrease size of network from `3 * rebalance_memory` to `rebalance_memory`.
-fn get_keep_size(rebalance_memory: usize, termination_estimate: Float) -> usize {
+/// Slowly decreases the network limit from its configured maximum to one third of it.
+fn get_keep_size(max_network_size: usize, termination_estimate: Float) -> usize {
     #![allow(clippy::unnecessary_cast)]
     let termination_estimate = termination_estimate.clamp(0., 0.8) as f64;
     // Sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
     let rate = 1. / (1. + E.powf(-10. * (termination_estimate - 0.5)));
-    let keep_ratio = 2. * (1. - rate);
+    let min_network_size = (max_network_size / 3).max(4);
+    let network_size_range = max_network_size - min_network_size;
 
-    rebalance_memory + (rebalance_memory as Float * keep_ratio as Float) as usize
+    min_network_size + (network_size_range as Float * (1. - rate) as Float) as usize
 }
 
 /// Keeps exploration active a bit longer when it is still improving solutions.
