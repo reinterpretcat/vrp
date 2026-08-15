@@ -223,6 +223,33 @@ fn check_e1609_no_jobs_with_production_value_objective(
     }
 }
 
+/// Checks that a `territory` objective carries the anchors that define the territory.
+///
+/// The solver derives nothing: whatever arrives in `anchors` IS the territory. An absent key and an
+/// empty map are the same value here (the field defaults), and both leave every driver unanchored,
+/// which makes the objective inert -- PULL and PUSH are zero and the run silently comes back as if
+/// the objective had never been asked for. That is the failure this check exists to turn into a
+/// refusal.
+///
+/// A *partial* map stays legal: the caller draws one anchor per distinct job location, so a chunk
+/// with fewer distinct locations than drivers leaves the surplus drivers without an entry. So does
+/// an entry whose list is empty, which says that driver takes no part in the territory.
+fn check_e1610_territory_objective_without_anchors(objectives: &[&Objective]) -> Result<(), FormatError> {
+    let has_territory_without_anchors = get_objectives_flattened(objectives)
+        .any(|objective| matches!(objective, Territory { anchors, .. } if anchors.is_empty()));
+
+    if has_territory_without_anchors {
+        Err(FormatError::new(
+            "E1610".to_string(),
+            "missing anchors in territory objective".to_string(),
+            "supply a non-empty 'anchors' map in the 'territory' objective: the solver does not derive anchors, so an empty map holds no ground for any driver and the objective does nothing"
+                .to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> {
     ctx.problem.objectives.as_ref().map(|objectives| objectives.iter().collect())
 }
@@ -247,6 +274,7 @@ pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), MultiFormatErr
             check_e1607_jobs_with_value_but_no_objective(ctx, &objectives),
             check_e1608_vehicles_with_min_tour_size_but_no_objective(ctx, &objectives),
             check_e1609_no_jobs_with_production_value_objective(ctx, &objectives),
+            check_e1610_territory_objective_without_anchors(&objectives),
         ])
         .map_err(From::from)
     } else {

@@ -284,6 +284,99 @@ fn can_accept_balance_period_production_value_with_valued_jobs() {
     assert!(result.is_ok());
 }
 
+/// Builds a `territory` objective around `anchors`, leaving every other field at the shape a
+/// caller emits for a plain proximity territory.
+fn territory_with_anchors(anchors: std::collections::HashMap<String, Vec<usize>>) -> Objective {
+    Territory {
+        proximity: TerritoryProximity::Distance,
+        balance: None,
+        balance_tolerance: 0.05,
+        anchors,
+        weights: None,
+        allow_idle_drivers: false,
+        quota: None,
+    }
+}
+
+fn check_anchors(objectives: Vec<Objective>) -> Option<String> {
+    let problem = Problem { objectives: Some(objectives), ..create_empty_problem() };
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
+    let objectives = get_objectives(&ctx).unwrap();
+
+    check_e1610_territory_objective_without_anchors(&objectives).err().map(|err| err.code)
+}
+
+#[test]
+fn can_detect_territory_objective_with_an_absent_anchors_key() {
+    // The key being absent and the map being empty are the same value by the time validation runs
+    // (`anchors` defaults), so this goes through the wire form to pin that the omitted key really
+    // does reach the check -- and is refused rather than quietly building an inert objective.
+    let objective: Objective =
+        serde_json::from_str(r#"{"type":"territory","proximity":"distance"}"#).expect("territory without anchors");
+
+    let result = check_anchors(vec![MinimizeCost, objective]);
+
+    assert_eq!(result, Some("E1610".to_string()));
+}
+
+#[test]
+fn can_detect_territory_objective_with_an_empty_anchors_map() {
+    let result = check_anchors(vec![MinimizeCost, territory_with_anchors(Default::default())]);
+
+    assert_eq!(result, Some("E1610".to_string()));
+}
+
+#[test]
+fn can_accept_territory_objective_with_a_partial_anchors_map() {
+    // The caller draws one anchor per DISTINCT job location and hands drivers to those anchors, so
+    // a chunk with fewer distinct locations than drivers leaves surplus drivers with no entry at
+    // all. Two technicians and one job location produce exactly this, and it is an ordinary small
+    // chunk -- requiring an entry per driver would turn it into a failed run.
+    let anchors = std::collections::HashMap::from([("driver1".to_string(), vec![0])]);
+
+    let result = check_anchors(vec![MinimizeCost, territory_with_anchors(anchors)]);
+
+    assert_eq!(result, None);
+}
+
+#[test]
+fn can_accept_territory_objective_with_an_empty_anchor_list() {
+    // An empty list is a deliberate value: "this driver takes no part in the territory". Only the
+    // map as a whole being empty is the error.
+    let anchors =
+        std::collections::HashMap::from([("driver1".to_string(), vec![0]), ("driver2".to_string(), Vec::new())]);
+
+    let result = check_anchors(vec![MinimizeCost, territory_with_anchors(anchors)]);
+
+    assert_eq!(result, None);
+}
+
+#[test]
+fn can_detect_anchorless_territory_objective_nested_in_a_multi_objective() {
+    let nested = MultiObjective {
+        strategy: MultiStrategy::Sum,
+        objectives: vec![MinimizeCost, territory_with_anchors(Default::default())],
+    };
+
+    let result = check_anchors(vec![MinimizeUnassigned { breaks: None }, nested]);
+
+    assert_eq!(result, Some("E1610".to_string()));
+}
+
+#[test]
+fn can_accept_objectives_without_a_territory_objective() {
+    let result = check_anchors(vec![
+        MinimizeUnassigned { breaks: None },
+        BalanceDistance,
+        MinimizeTourSizeViolation,
+        MinimizeVehicleDistance,
+        MinimizeCost,
+    ]);
+
+    assert_eq!(result, None);
+}
+
 parameterized_test! {can_detect_missing_min_tour_size_objective, (objectives, min_tour_size, expected), {
     can_detect_missing_min_tour_size_objective_impl(objectives, min_tour_size, expected);
 }}

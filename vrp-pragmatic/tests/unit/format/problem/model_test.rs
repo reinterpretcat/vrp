@@ -213,7 +213,7 @@ fn territory_objective_omits_absent_weights_when_serialized() {
         proximity: TerritoryProximity::Distance,
         balance: None,
         balance_tolerance: 0.05,
-        anchors: Default::default(),
+        anchors: std::collections::HashMap::from([("drv-1".to_string(), vec![4])]),
         weights: None,
         allow_idle_drivers: false,
         quota: None,
@@ -261,7 +261,7 @@ fn territory_objective_omits_an_absent_quota_when_serialized() {
         proximity: TerritoryProximity::Distance,
         balance: None,
         balance_tolerance: 0.05,
-        anchors: Default::default(),
+        anchors: std::collections::HashMap::from([("drv-1".to_string(), vec![4])]),
         weights: None,
         allow_idle_drivers: false,
         quota: None,
@@ -302,8 +302,12 @@ fn can_deserialize_territory_objective_with_camelcase_allow_idle_drivers() {
 
 #[test]
 fn can_deserialize_territory_objective_without_anchors() {
-    // Omitted anchors deserialize to an empty map. Nothing is derived from that any more: an empty
-    // map is a territory no driver holds, so the objective it builds is inert.
+    // Omitted anchors deserialize to an empty map — the format layer still parses this shape, which
+    // is why an absent key and an explicit `{}` are one and the same value downstream and why both
+    // are refused by the SAME check. The refusal itself is validation's job, not serde's: nothing
+    // is derived from an empty map any more, so it is a territory no driver holds, and
+    // `check_e1610_territory_objective_without_anchors` rejects it rather than letting an inert
+    // objective through.
     let json = r#"{"type":"territory","proximity":"distance"}"#;
     let obj: Objective = serde_json::from_str(json).unwrap();
     match obj {

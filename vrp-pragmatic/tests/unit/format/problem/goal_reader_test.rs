@@ -44,14 +44,13 @@ fn builds_goal_with_territory_objective() {
 
 // An empty `anchors` map used to select a solver-side derive path (medoid seeds + Hungarian
 // driver→seed matching). That derivation is gone: the caller owns the territory, so an empty map
-// is now simply a territory nobody holds. The problem must still READ — the format accepts it, and
-// the objective it builds is inert (pinned at the feature level by
-// `an_empty_anchor_map_leaves_the_objective_inert`) rather than rejected. Making the field
-// mandatory is deliberately NOT done here: the caller emits `anchors: {}` on its degenerate paths
-// (a chunk whose fleet or plan comes out empty), so rejecting it would turn a no-op solve into a
-// failed run.
+// is a territory nobody holds and the objective it would build is inert — PULL and PUSH are zero.
+// The caller no longer sends one (a chunk with no technicians or no jobs never reaches its writer),
+// so this is refused rather than silently solved as if the objective had not been asked for. This
+// test pins the refusal end-to-end through `read_pragmatic()`, i.e. that E1610 is actually reached
+// on the real read path and not only when the check is called directly.
 #[test]
-fn builds_goal_with_territory_objective_when_anchors_are_empty() {
+fn refuses_goal_with_territory_objective_when_anchors_are_empty() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", (2., 0.)), create_delivery_job("job2", (8., 0.))],
@@ -83,5 +82,11 @@ fn builds_goal_with_territory_objective_when_anchors_are_empty() {
 
     let result = (problem, vec![matrix]).read_pragmatic();
 
-    assert!(result.is_ok(), "expected an empty-anchor territory goal to build, got: {:?}", result.err());
+    let Err(errors) = result else {
+        panic!("expected an empty-anchor territory objective to be refused");
+    };
+    assert!(
+        errors.errors.iter().any(|err| err.code == "E1610"),
+        "expected E1610 among the reported errors, got: {errors}"
+    );
 }

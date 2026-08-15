@@ -605,3 +605,11 @@ but user defined objective doesn't include the `minimize-tour-size-violation` ob
 `balance-production-value`, or with `balance-period` using the `production-value` metric, but there is no jobs with
 positive production value specified. To fix the issue, specify at least one job with a positive `productionValue`
 or simply delete the `balance-production-value` (or `balance-period` with `production-value` metric) objective.
+
+#### E1610
+
+`missing anchors in territory objective` error is returned when the `territory` objective is specified without an
+`anchors` map, or with an empty one. The solver does not derive anchors: whatever is supplied in `anchors` is the
+territory, so an empty map holds no ground for any driver and the objective does nothing. To fix the issue, supply a
+non-empty `anchors` map, or delete the `territory` objective. A *partial* map is valid: drivers absent from the map,
+and drivers mapped to an empty list, simply take no part in the territory.
