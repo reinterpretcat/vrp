@@ -76,6 +76,15 @@ fn driver_key(actor: &Actor) -> DriverKey {
         .unwrap_or_default()
 }
 
+/// The keys of a per-driver map, ascending — see [`TerritoryShared::driver_order`] for why that
+/// order is pinned. Takes the map it orders as an argument rather than reading a field, so the
+/// "must be built from `caps`, after `caps`" dependency is in the signature instead of a comment.
+fn sorted_driver_keys(caps: &HashMap<DriverKey, Float>) -> Vec<DriverKey> {
+    let mut keys: Vec<DriverKey> = caps.keys().cloned().collect();
+    keys.sort_unstable();
+    keys
+}
+
 /// Provides a way to build a feature that keeps jobs within balanced, capacity-aware territories
 /// around a per-driver anchor.
 pub struct TerritoryFeatureBuilder {
@@ -323,6 +332,13 @@ struct TerritoryShared {
     /// Per-driver capacity (summed available shift time). Used to re-base quotas over the used
     /// drivers when `allow_idle_drivers` is set.
     caps: HashMap<DriverKey, Float>,
+    /// Every driver key in the fleet, ascending — the canonical order for per-driver reductions.
+    /// A `HashMap` iterates in hash order and the standard library seeds every map from a
+    /// per-thread counter, so the *n*-th map a process builds gets its own order; a float sum or a
+    /// pick taken straight off `caps`/`quotas` therefore depends on how many maps were built
+    /// earlier, which supplying anchors instead of deriving them changes. Folding in this order
+    /// pins the arithmetic to the input.
+    driver_order: Vec<DriverKey>,
     /// See [`TerritoryFeatureBuilder::set_allow_idle_drivers`].
     allow_idle_drivers: bool,
 }
@@ -366,6 +382,7 @@ impl TerritoryShared {
             avg_metric: 1.0,
             push_reach: 0.0,
             caps: HashMap::new(),
+            driver_order: Vec::new(),
             allow_idle_drivers,
         };
         // Precompute the static anchor lookups first; quotas/reference/power reuse them.
@@ -375,6 +392,7 @@ impl TerritoryShared {
         shared.avg_metric = shared.compute_avg_metric(&jobs);
         shared.push_reach = shared.compute_push_reach();
         shared.caps = shared.compute_caps();
+        shared.driver_order = sorted_driver_keys(&shared.caps);
         // `filter_supplied_quotas` reads `caps` to tell a real driver from an unknown key, so it
         // must run after it.
         shared.quotas =
@@ -436,7 +454,9 @@ impl TerritoryShared {
             return HashMap::new();
         }
         let total_metric: Float = jobs.all().iter().map(|j| self.job_metric(j)).sum();
-        let total_cap: Float = self.caps.values().sum::<Float>().max(1e-6);
+        // Summed in `driver_order`, not hash order: the rounding of a float sum depends on the
+        // order it is folded in, and every quota is scaled by this total.
+        let total_cap: Float = self.driver_order.iter().filter_map(|key| self.caps.get(key)).sum::<Float>().max(1e-6);
         self.caps.iter().map(|(k, &c)| (k.clone(), total_metric * c / total_cap)).collect()
     }
 
@@ -460,8 +480,14 @@ impl TerritoryShared {
         if !self.allow_idle_drivers || self.quotas_supplied {
             return self.quotas.clone();
         }
-        let used: Vec<&DriverKey> =
-            self.quotas.keys().filter(|k| loads.get(*k).copied().unwrap_or(0.0) > 1e-9).collect();
+        // Walked in `driver_order`, so the two sums below fold in a fixed order (see
+        // [`Self::driver_order`]).
+        let used: Vec<&DriverKey> = self
+            .driver_order
+            .iter()
+            .filter(|k| self.quotas.contains_key(*k))
+            .filter(|k| loads.get(*k).copied().unwrap_or(0.0) > 1e-9)
+            .collect();
         let used_cap: Float = used.iter().filter_map(|k| self.caps.get(*k)).sum::<Float>().max(1e-6);
         let used_load: Float = used.iter().filter_map(|k| loads.get(*k)).sum();
         used.into_iter()
@@ -606,7 +632,14 @@ impl TerritoryShared {
             }
         }
         let mut ranking: Vec<(DriverKey, Float)> = seen.into_iter().collect();
-        ranking.sort_by(|a, b| a.1.total_cmp(&b.1));
+        // Two drivers exactly equidistant from a job are a real tie (mirrored anchors, a shared
+        // depot, a coarse matrix). `seen` is a `HashMap` and the sort is stable, so without a
+        // second key the tied pair would keep hash order — which is the order of the *n*-th map
+        // this process happened to build, not a property of the input. The driver key breaks it.
+        // Every reader of this ranking today takes only a proximity, so the tie is currently
+        // invisible; it is broken here so that a reader of the *key* at a tied position — the
+        // obvious next use of a ranking — inherits a defined order instead of the hash seed.
+        ranking.sort_by(|a, b| a.1.total_cmp(&b.1).then_with(|| a.0.cmp(&b.0)));
         ranking
     }
 
@@ -678,8 +711,15 @@ impl TerritoryShared {
         // exactly right for the ground cost below: the minimum over this flat set, taken from each
         // source anchor, IS the minimum over the (source anchor, deficit anchor) pairs. A driver
         // holding no anchor contributes nothing and so is never a target.
-        let deficits: Vec<Location> = quotas
+        // Walked in `driver_order` rather than the quota map's hash order, so the flattened anchor
+        // list is the same sequence in every process (see [`Self::driver_order`]). Only a `min`
+        // reads it below, which is order-free, so this is hygiene rather than a live fix — but it
+        // keeps every per-driver walk in this feature on one order, and the next reduction added
+        // here is then right by default.
+        let deficits: Vec<Location> = self
+            .driver_order
             .iter()
+            .filter_map(|key| quotas.get(key).map(|quota| (key, quota)))
             .filter(|(key, quota)| loads.get(*key).copied().unwrap_or(0.0) + 1e-9 < self.under_quota(**quota))
             .filter_map(|(key, _)| self.driver_anchors(key))
             .flatten()
@@ -690,7 +730,9 @@ impl TerritoryShared {
         }
 
         let mut total = 0.0;
-        for (key, &quota) in quotas.iter() {
+        // Again `driver_order`: this is a float sum, so its rounding depends on the fold order.
+        for key in self.driver_order.iter() {
+            let Some(&quota) = quotas.get(key) else { continue };
             let load = loads.get(key).copied().unwrap_or(0.0);
             // Only the load beyond the widened (deadband) quota is surplus: small imbalances inside
             // the band are free, so the solver stops exiling jobs to shave the last few percent.

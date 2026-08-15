@@ -1,4 +1,4 @@
-use crate::construction::features::territory::TerritoryFitnessSolutionState;
+use crate::construction::features::territory::{TerritoryFitnessSolutionState, TerritoryShared};
 use crate::construction::features::{
     TerritoryBalance, TerritoryFeatureBuilder, TerritoryFitnessData, TerritoryProximity,
 };
@@ -805,6 +805,165 @@ fn push_ground_cost_is_the_minimum_over_anchor_pairs() {
         Some(TerritoryBalance::Activities),
     );
     assert_eq!(far_only.push, 100.0);
+}
+
+// endregion
+
+// region: independence from hash seeding
+
+/// A `TerritoryShared` and the pieces needed to drive it: the jobs it was built over and the
+/// actors its routes must be keyed to.
+struct SharedFixture {
+    shared: TerritoryShared,
+    singles: Vec<Arc<Single>>,
+    actors: Vec<Arc<Actor>>,
+}
+
+/// Builds the feature's internal `TerritoryShared` directly: these tests need the anchor ranking,
+/// the derived quota and the raw PUSH total, and none of the three is reachable through `Feature`.
+/// `drivers` is `(driver key, anchor location, shift end)` — the shift end is the driver's
+/// capacity, which sizes its derived quota — and every job is compatible with every driver.
+fn shared_over(
+    drivers: &[(&str, usize, Float)],
+    job_locations: &[usize],
+    balance: Option<TerritoryBalance>,
+    supplied_quotas: HashMap<String, Float>,
+) -> SharedFixture {
+    let mut fleet_builder = FleetBuilder::default();
+    fleet_builder.add_driver(test_driver());
+    for (key, _, end) in drivers {
+        let mut vehicle_builder = TestVehicleBuilder::default();
+        vehicle_builder.id(format!("v_{key}").as_str()).details(vec![VehicleDetail {
+            start: Some(VehiclePlace { location: 0, time: TimeInterval { earliest: Some(0.0), latest: None } }),
+            end: Some(VehiclePlace { location: 0, time: TimeInterval { earliest: None, latest: Some(*end) } }),
+        }]);
+        vehicle_builder.dimens_mut().set_driver_id((*key).to_string());
+        fleet_builder.add_vehicle(vehicle_builder.build());
+    }
+    let fleet = fleet_builder.build();
+
+    let actors: Vec<Arc<Actor>> =
+        drivers.iter().map(|(key, ..)| get_test_actor_from_fleet(&fleet, format!("v_{key}").as_str())).collect();
+
+    let transport = TestTransportCost::new_shared();
+    let singles: Vec<Arc<Single>> = job_locations
+        .iter()
+        .enumerate()
+        .map(|(idx, location)| {
+            TestSingleBuilder::default().id(format!("job_{idx}").as_str()).location(Some(*location)).build_shared()
+        })
+        .collect();
+    let job_list: Vec<Job> = singles.iter().cloned().map(Job::Single).collect();
+    let jobs = Arc::new(Jobs::new(&fleet, job_list, transport.as_ref(), &test_logger()).unwrap());
+
+    let anchors: HashMap<String, Vec<usize>> =
+        drivers.iter().map(|(key, anchor, _)| ((*key).to_string(), vec![*anchor])).collect();
+
+    let shared = TerritoryShared::new(
+        transport,
+        actors.clone(),
+        jobs,
+        Arc::new(|_: &Job, _: &Actor| true),
+        TerritoryProximity::Distance,
+        balance,
+        0.0,
+        anchors,
+        HashMap::new(),
+        supplied_quotas,
+        Arc::new(|_: &Job| 1.0),
+        false,
+    );
+
+    SharedFixture { shared, singles, actors }
+}
+
+/// Three drivers anchored on the same location are exactly equidistant from a job — a real tie in
+/// the anchor ranking (mirrored anchors, a shared depot and a coarse matrix all produce one).
+/// `scan_sorted_anchors` collects into a `HashMap` and sorts stably, so before the tie-break the
+/// tied entries kept that map's hash order; the standard library gives the *n*-th map a process
+/// builds its own seed, so the order moved with how many maps had been built earlier — something a
+/// caller changes merely by supplying the anchors instead of letting them be derived.
+///
+/// Every iteration below builds a fresh `seen` map, hence a fresh seed. The fleet is ordered d2,
+/// d0, d1 so that neither hash order nor fleet order can pass by accident.
+#[test]
+fn tied_anchors_rank_by_driver_key_whatever_the_hash_seed() {
+    let drivers = [("d2", 10, 1000.0), ("d0", 10, 1000.0), ("d1", 10, 1000.0)];
+    let fixture = shared_over(&drivers, &[0], None, HashMap::new());
+    let job = Job::Single(fixture.singles[0].clone());
+
+    for _ in 0..64 {
+        let ranking = fixture.shared.scan_sorted_anchors(0, &job);
+
+        assert!(ranking.iter().all(|(_, prox)| *prox == 10.0), "the fixture must be an exact tie");
+        assert_eq!(
+            ranking.iter().map(|(key, _)| key.as_str()).collect::<Vec<_>>(),
+            ["d0", "d1", "d2"],
+            "tied drivers must rank by driver key"
+        );
+    }
+}
+
+/// The derived quota is `total_metric * cap / Σcaps`, and a float sum rounds by the order it is
+/// folded in. `caps` is a `HashMap`, so summing it as it iterates made every quota depend on that
+/// map's hash seed. The capacities disagree under reordering on purpose — `1e16 + 1` is still
+/// `1e16`, while `1 + 1 + 1e16` gives `1e16 + 2`: real capacities rarely differ by sixteen orders
+/// of magnitude, but the last-bit difference they do produce is the same difference, and only an
+/// amplified one is assertable.
+///
+/// Each iteration builds a whole new `TerritoryShared`, so `caps` is a new map with a new seed.
+#[test]
+fn derived_quotas_do_not_depend_on_the_hash_seed() {
+    let drivers = [("d0", 0usize, 1e16), ("d1", 10usize, 1.0), ("d2", 20usize, 1.0)];
+    let quotas_once =
+        || shared_over(&drivers, &[0, 10, 20], Some(TerritoryBalance::Activities), HashMap::new()).shared.quotas;
+
+    let expected = quotas_once();
+    assert_eq!(expected.len(), 3, "every driver must carry a derived quota");
+
+    for _ in 0..64 {
+        assert_eq!(quotas_once(), expected, "the derived quota must not move with the hash seed");
+    }
+}
+
+/// PUSH sums `surplus × (distance to the nearest deficit anchor)` over the drivers, and that sum
+/// went round the quota `HashMap` — so the solution's fitness, not just an internal, moved with the
+/// map's hash seed. Three drivers are over quota (quota `0.0`, one job each) and only "d3" is under
+/// (quota `10.0`, no jobs), so every source ships to "d3"'s anchor at 1:
+///
+/// - "d0" is anchored 1e16 away, so its term is 1e16;
+/// - "d1" (anchor 0) and "d2" (anchor 2) are one unit away, so their terms are 1 each.
+///
+/// Folded low-to-high that is `1e16 + 2`; folded high-first — which is what the pinned ascending
+/// driver order gives — the two ones vanish under the leading term and the total is exactly `1e16`.
+/// Same amplifier, and the same caveat, as the quota test above.
+#[test]
+fn push_total_does_not_depend_on_the_hash_seed() {
+    const FAR: usize = 10_000_000_000_000_000;
+    let drivers = [("d0", FAR, 1000.0), ("d1", 0usize, 1000.0), ("d2", 2usize, 1000.0), ("d3", 1usize, 1000.0)];
+    let quotas = HashMap::from([
+        ("d0".to_string(), 0.0),
+        ("d1".to_string(), 0.0),
+        ("d2".to_string(), 0.0),
+        ("d3".to_string(), 10.0),
+    ]);
+
+    for _ in 0..64 {
+        let fixture = shared_over(&drivers, &[FAR, 0, 2], Some(TerritoryBalance::Activities), quotas.clone());
+        let solution = TestInsertionContextBuilder::default()
+            .with_routes(
+                fixture
+                    .actors
+                    .iter()
+                    .take(3)
+                    .zip(fixture.singles.iter())
+                    .map(|(actor, single)| route_with(actor.clone(), single.clone(), 0))
+                    .collect(),
+            )
+            .build();
+
+        assert_eq!(fixture.shared.push(&solution.solution), 1e16, "the PUSH total must not move with the hash seed");
+    }
 }
 
 // endregion
