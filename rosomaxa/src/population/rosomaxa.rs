@@ -153,9 +153,11 @@ where
                         random.is_hit(probability)
                     });
 
-                // Occasionally try a retained alternative without reducing the number of selected GSOM regions.
-                const NODE_ALTERNATIVE_PROBABILITY: Float = 0.05;
-                let node_alternative_probability = if *selection_size > 6 { NODE_ALTERNATIVE_PROBABILITY } else { 0. };
+                let node_alternative_probability = if *selection_size > 6 {
+                    get_node_alternative_probability(statistics.termination_estimate)
+                } else {
+                    0.
+                };
 
                 Box::new(
                     self.elite
@@ -814,6 +816,13 @@ fn get_elite_selection_size(
         .map(|idx| if is_hit(probability / idx as Float) { 2 } else { 1 })
         .sum::<usize>()
         .min(selection_size - 1)
+}
+
+/// Cools direct node-alternative sampling as the map matures. Retained alternatives still participate in replay.
+fn get_node_alternative_probability(termination_estimate: Float) -> Float {
+    const INITIAL_PROBABILITY: Float = 0.05;
+
+    INITIAL_PROBABILITY * (1. - termination_estimate.clamp(0., 1.))
 }
 
 /// Gets the exploitation budget by using half of the configured selection capacity.

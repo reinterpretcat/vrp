@@ -498,6 +498,13 @@ mod auxiliary {
     }
 
     #[test]
+    fn can_cool_node_alternative_probability() {
+        assert_eq!(get_node_alternative_probability(0.), 0.05);
+        assert_eq!(get_node_alternative_probability(0.5), 0.025);
+        assert_eq!(get_node_alternative_probability(1.), 0.);
+    }
+
+    #[test]
     fn can_scale_exploitation_selection_size() {
         assert_eq!((1..=8).map(get_exploitation_selection_size).collect::<Vec<_>>(), [2, 2, 2, 2, 3, 3, 4, 4]);
         assert_eq!(get_exploitation_selection_size(16), 8);
