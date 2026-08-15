@@ -67,6 +67,17 @@ fn territory_fixture(
     proximity: TerritoryProximity,
     balance: Option<TerritoryBalance>,
 ) -> (Feature, TerritoryFixtureContexts) {
+    let anchors = HashMap::from([("d0".to_string(), vec![0usize]), ("d1".to_string(), vec![100usize])]);
+    territory_fixture_with_anchors(proximity, balance, anchors)
+}
+
+/// [`territory_fixture`] over an arbitrary anchor map, so a test can vary the one input the solver
+/// no longer derives.
+fn territory_fixture_with_anchors(
+    proximity: TerritoryProximity,
+    balance: Option<TerritoryBalance>,
+    anchors: HashMap<String, Vec<usize>>,
+) -> (Feature, TerritoryFixtureContexts) {
     let vehicle_d0 = build_vehicle("v_d0", "d0");
     let vehicle_d1 = build_vehicle("v_d1", "d1");
 
@@ -89,8 +100,6 @@ fn territory_fixture(
         )
         .unwrap(),
     );
-
-    let anchors = HashMap::from([("d0".to_string(), vec![0usize]), ("d1".to_string(), vec![100usize])]);
 
     let feature = TerritoryFeatureBuilder::new("territory")
         .set_transport(transport)
@@ -129,6 +138,21 @@ fn pull_penalizes_a_job_served_by_the_far_anchor() {
     let (feature, ctx) = territory_fixture(TerritoryProximity::Distance, None);
     let objective = feature.objective.unwrap();
     assert!(objective.fitness(&ctx.swapped_assignment) > 0.0);
+}
+
+/// An EMPTY anchor map leaves the objective inert, it does not fall back to anything. The solver
+/// used to derive anchors from the jobs when the caller sent none, so this same fixture scored the
+/// swapped assignment as a penalty either way; now nothing is derived and no driver holds ground,
+/// so the assignment that is maximally wrong under real anchors costs exactly zero. Distinguishing
+/// "inert" from "derived" is the whole point — the assertion is `== 0.0`, not `is_ok()`, because
+/// only a zero proves nothing was invented in place of the missing input.
+#[test]
+fn an_empty_anchor_map_leaves_the_objective_inert() {
+    let (feature, ctx) = territory_fixture_with_anchors(TerritoryProximity::Distance, None, HashMap::new());
+    let objective = feature.objective.unwrap();
+
+    assert_eq!(objective.fitness(&ctx.swapped_assignment), 0.0);
+    assert_eq!(objective.fitness(&ctx.correct_assignment), 0.0);
 }
 
 /// Regression test for the double-normalization bug: `fitness()` must return the RAW PULL+PUSH
@@ -881,8 +905,8 @@ fn shared_over(
 /// the anchor ranking (mirrored anchors, a shared depot and a coarse matrix all produce one).
 /// `scan_sorted_anchors` collects into a `HashMap` and sorts stably, so before the tie-break the
 /// tied entries kept that map's hash order; the standard library gives the *n*-th map a process
-/// builds its own seed, so the order moved with how many maps had been built earlier — something a
-/// caller changes merely by supplying the anchors instead of letting them be derived.
+/// builds its own seed, so the order moved with how many maps had been built earlier — which any
+/// change to the work done before the solve moves in turn.
 ///
 /// Every iteration below builds a fresh `seen` map, hence a fresh seed. The fleet is ordered d2,
 /// d0, d1 so that neither hash order nor fleet order can pass by accident.

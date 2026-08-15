@@ -302,11 +302,12 @@ fn can_deserialize_territory_objective_with_camelcase_allow_idle_drivers() {
 
 #[test]
 fn can_deserialize_territory_objective_without_anchors() {
-    // Omitted anchors deserialize to an empty map, which selects the solver-side derive path.
+    // Omitted anchors deserialize to an empty map. Nothing is derived from that any more: an empty
+    // map is a territory no driver holds, so the objective it builds is inert.
     let json = r#"{"type":"territory","proximity":"distance"}"#;
     let obj: Objective = serde_json::from_str(json).unwrap();
     match obj {
-        Objective::Territory { anchors, .. } => assert!(anchors.is_empty(), "omitted anchors select the derive path"),
+        Objective::Territory { anchors, .. } => assert!(anchors.is_empty(), "omitted anchors read as an empty map"),
         _ => panic!("wrong variant"),
     }
 }

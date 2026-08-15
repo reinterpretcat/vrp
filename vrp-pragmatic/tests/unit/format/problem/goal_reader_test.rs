@@ -42,11 +42,16 @@ fn builds_goal_with_territory_objective() {
     assert!(result.is_ok(), "expected goal with territory objective to build, got: {:?}", result.err());
 }
 
-// checks that a `territory` objective with NO anchors triggers the solver-side derive path
-// (medoid seeds + value-balancing weights + Hungarian driver→seed matching) end-to-end, and that
-// the goal builds. Two drivers and two jobs exercise a 2×2 matching.
+// An empty `anchors` map used to select a solver-side derive path (medoid seeds + Hungarian
+// driver→seed matching). That derivation is gone: the caller owns the territory, so an empty map
+// is now simply a territory nobody holds. The problem must still READ — the format accepts it, and
+// the objective it builds is inert (pinned at the feature level by
+// `an_empty_anchor_map_leaves_the_objective_inert`) rather than rejected. Making the field
+// mandatory is deliberately NOT done here: the caller emits `anchors: {}` on its degenerate paths
+// (a chunk whose fleet or plan comes out empty), so rejecting it would turn a no-op solve into a
+// failed run.
 #[test]
-fn builds_goal_with_derived_territory_anchors_when_omitted() {
+fn builds_goal_with_territory_objective_when_anchors_are_empty() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", (2., 0.)), create_delivery_job("job2", (8., 0.))],
@@ -78,5 +83,5 @@ fn builds_goal_with_derived_territory_anchors_when_omitted() {
 
     let result = (problem, vec![matrix]).read_pragmatic();
 
-    assert!(result.is_ok(), "expected derived-anchor territory goal to build, got: {:?}", result.err());
+    assert!(result.is_ok(), "expected an empty-anchor territory goal to build, got: {:?}", result.err());
 }

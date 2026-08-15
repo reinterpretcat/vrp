@@ -24,7 +24,6 @@ mod fleet_reader;
 pub use self::fleet_reader::create_approx_matrices;
 
 mod goal_reader;
-pub use self::goal_reader::{TerritoryDerivation, derive_territory};
 
 mod job_reader;
 

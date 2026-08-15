@@ -4,9 +4,10 @@
 //! power distance (`proximity − weight`) over the minimum power distance across the job's
 //! compatible anchors, so a job reaching into a foreign power cell is penalized and a job in its
 //! own cell is free. PUSH greedily moves over-quota surplus to the nearest under-quota driver at
-//! proximity cost. Anchors and weights are supplied by the caller (objective config), never
-//! derived here; the per-driver quota may be too (see [`TerritoryFeatureBuilder::set_quotas`]),
-//! and is otherwise derived from total demand.
+//! proximity cost. Anchors and weights are supplied by the caller (objective config) and are never
+//! derived anywhere — an empty anchor map is a territory nobody holds, not a request to invent one.
+//! The per-driver quota may be supplied too (see [`TerritoryFeatureBuilder::set_quotas`]), and is
+//! otherwise derived from total demand.
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/features/territory_test.rs"]

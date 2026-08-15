@@ -714,7 +714,9 @@ pub enum Objective {
         /// (no overlap penalty, never a balance source or target). Sending none is the right thing
         /// for a technician who is the sole holder of their ground and has no tiebreak to make.
         ///
-        /// An empty *map* selects the solver-side derive path instead.
+        /// The solver does not derive anchors: whatever arrives here IS the territory. An empty map
+        /// therefore leaves every driver unanchored, which makes the objective inert rather than
+        /// selecting a fallback — a caller that wants a territory must send one.
         #[serde(default)]
         anchors: std::collections::HashMap<String, Vec<usize>>,
         /// Per-driver power weight `w_d` supplied by the caller, keyed by the same driver identity
@@ -722,13 +724,8 @@ pub enum Objective {
         /// to a driver is `prox(loc, anchor_d) − w_d`, so a larger weight enlarges that driver's
         /// cell — the mechanism that lets a driver over sparse ground reach further for equal work.
         ///
-        /// Only read when `anchors` are supplied. The derive path produces the weights that pair
-        /// with the anchors it just placed, and those win: a weight computed against a different
-        /// anchor set is meaningless. Omitted ⇒ every weight is `0.0`, which makes power distance
-        /// equal to raw nearest-anchor proximity — the behaviour supplied anchors always had.
-        ///
-        /// Note the derived weights are themselves all `0.0` today (the seed placement equalizes
-        /// value directly instead of through weights), so this field is currently the only way any
+        /// Omitted ⇒ every weight is `0.0`, which makes power distance equal to raw nearest-anchor
+        /// proximity. With the solver no longer deriving anything, this field is the ONLY way any
         /// territory gets a non-zero `w_d` at all.
         ///
         /// One weight per driver, not per anchor: the weight shifts the whole territory's boundary,
