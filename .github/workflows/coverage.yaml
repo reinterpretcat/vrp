@@ -13,6 +13,10 @@ env:
 jobs:
   measure-test-coverage:
     runs-on: ubuntu-latest
+    # The slowest workflow here, and the widest spread: eight to fifteen minutes across recent
+    # runs. The cap is deliberately far above that — it is there to bound a hang, not to police
+    # a slow day.
+    timeout-minutes: 45
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4

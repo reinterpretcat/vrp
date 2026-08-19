@@ -17,6 +17,8 @@ permissions:
 jobs:
   security-audit:
     runs-on: ubuntu-latest
+    # Runs in three to four minutes; the cap is for a wedged fetch of the advisory database.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: rustsec/audit-check@v2

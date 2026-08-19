@@ -11,6 +11,8 @@ on:
 jobs:
   enforce-release-only:
     runs-on: ubuntu-latest
+    # Seconds of work — anything past this is a stuck runner, not a slow one.
+    timeout-minutes: 5
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
