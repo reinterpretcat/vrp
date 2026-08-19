@@ -3,7 +3,7 @@ use crate::construction::enablers::create_typed_actor_groups;
 use crate::helpers::models::domain::{TestGoalContextBuilder, test_random};
 use crate::helpers::models::problem::{FleetBuilder, TestSingleBuilder, test_driver, test_vehicle_with_id};
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder, RouteStateBuilder};
-use crate::models::problem::{Actor, Fleet, Single};
+use crate::models::problem::{Actor, DriverIdDimension, Fleet, Single, VehicleIdDimension};
 use crate::models::solution::Registry;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -102,6 +102,57 @@ fn different_vehicle_is_rejected() {
     let route_ctx = ctx.routes.first().unwrap(); // inserting into v1 while g1 is on v2
     let constraint = create_test_feature(total).constraint.unwrap();
     let job = Job::Single(create_test_single(Some("g1")));
+    assert_eq!(
+        constraint.evaluate(&MoveContext::route(&ctx, route_ctx, &job)),
+        Some(ConstraintViolation { code: VIOLATION_CODE, stopped: true })
+    );
+}
+
+// Two vehicles carrying different ids but the same `driverId`: one technician whose per-day limits
+// or skills forced the caller to emit them separately.
+fn create_one_driver_two_vehicles_fleet() -> Fleet {
+    let with_driver = |id: &str, driver: &str| {
+        let mut vehicle = test_vehicle_with_id(id);
+        vehicle.dimens.set_driver_id(driver.to_string());
+        vehicle
+    };
+
+    FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicle(with_driver("v1", "emp-7"))
+        .add_vehicle(with_driver("v2", "emp-7"))
+        .add_vehicle(with_driver("v3", "emp-9"))
+        .with_group_key_fn(Box::new(|actors| {
+            Box::new(create_typed_actor_groups(actors, |a| a.vehicle.dimens.get_vehicle_id().cloned().unwrap()))
+        }))
+        .build()
+}
+
+/// The arrangement the vehicle id cannot express: the group is spread over two vehicles, but one
+/// person drives both, which is what the caller asked to keep together.
+#[test]
+fn same_driver_on_two_vehicles_is_allowed() {
+    let fleet = create_one_driver_two_vehicles_fleet();
+    let (v1, v2) = (nth_actor(&fleet, "v1", 0), nth_actor(&fleet, "v2", 0));
+    let total = 3;
+    let ctx = solution_ctx(total, &fleet, vec![(v1, vec![]), (v2, vec![Some("g1")])]);
+    let route_ctx = ctx.routes.first().unwrap();
+    let constraint = create_test_feature(total).constraint.unwrap();
+    let job = Job::Single(create_test_single(Some("g1")));
+
+    assert_eq!(constraint.evaluate(&MoveContext::route(&ctx, route_ctx, &job)), None);
+}
+
+#[test]
+fn different_driver_is_rejected_even_though_both_are_vehicles() {
+    let fleet = create_one_driver_two_vehicles_fleet();
+    let (v1, v3) = (nth_actor(&fleet, "v1", 0), nth_actor(&fleet, "v3", 0));
+    let total = 3;
+    let ctx = solution_ctx(total, &fleet, vec![(v1, vec![]), (v3, vec![Some("g1")])]);
+    let route_ctx = ctx.routes.first().unwrap();
+    let constraint = create_test_feature(total).constraint.unwrap();
+    let job = Job::Single(create_test_single(Some("g1")));
+
     assert_eq!(
         constraint.evaluate(&MoveContext::route(&ctx, route_ctx, &job)),
         Some(ConstraintViolation { code: VIOLATION_CODE, stopped: true })

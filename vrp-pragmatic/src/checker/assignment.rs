@@ -261,47 +261,46 @@ fn is_valid_job_info(
     }
 }
 
-/// Checks that jobs sharing a `vehicleGroup` are all served by the same vehicle.
+/// Checks that jobs sharing a `vehicleGroup` are all served by the same person.
 ///
-/// Deliberately keyed on the vehicle alone, unlike `check_groups` above: `vehicleGroup` binds a
-/// group to one vehicle *across its shifts*, so the same vehicle on two shifts is one holder, not
-/// two. Keying on `(type_id, vehicle_id, shift_index)` here would report every multi-shift group
-/// as a violation, which is exactly the arrangement the feature exists to allow.
+/// Keyed on `driverId` — falling back to the vehicle id when none is set — and never on
+/// `(type_id, vehicle_id, shift_index)` the way `check_groups` above keys the stock `group` field.
+/// Two things would break under that key, and both are ordinary: a group spread over two shifts of
+/// one vehicle, and a group spread over two vehicles of one driver. The second is not exotic —
+/// pragmatic hangs `limits` and `skills` off the vehicle type, so a technician whose cap or tags
+/// differ between days has to be emitted as several vehicles held together by one `driverId`.
 fn check_vehicle_groups(ctx: &CheckerContext) -> GenericResult<()> {
-    let violations = ctx
-        .solution
-        .tours
-        .iter()
-        .fold(HashMap::<String, HashSet<_>>::default(), |mut acc, tour| {
-            tour.stops
-                .iter()
-                .flat_map(|stop| stop.activities().iter())
-                .flat_map(|activity| ctx.get_job_by_id(&activity.job_id))
-                .flat_map(|job| job.vehicle_group.as_ref())
-                .for_each(|group| {
-                    acc.entry(group.clone()).or_default().insert(tour.vehicle_id.clone());
-                });
+    let mut holders = HashMap::<String, HashSet<String>>::default();
 
-            acc
-        })
-        .into_iter()
-        .filter(|(_, vehicles)| vehicles.len() > 1)
-        .collect::<Vec<_>>();
+    for tour in ctx.solution.tours.iter() {
+        let driver = ctx.get_vehicle(&tour.vehicle_id)?.driver_id.clone().unwrap_or_else(|| tour.vehicle_id.clone());
+
+        tour.stops
+            .iter()
+            .flat_map(|stop| stop.activities().iter())
+            .flat_map(|activity| ctx.get_job_by_id(&activity.job_id))
+            .flat_map(|job| job.vehicle_group.as_ref())
+            .for_each(|group| {
+                holders.entry(group.clone()).or_default().insert(driver.clone());
+            });
+    }
+
+    let violations = holders.into_iter().filter(|(_, drivers)| drivers.len() > 1).collect::<Vec<_>>();
 
     if violations.is_empty() {
         Ok(())
     } else {
-        let err_info = violations
+        let mut err_info = violations
             .into_iter()
-            .map(|(group, vehicles)| {
-                let mut vehicles = vehicles.into_iter().collect::<Vec<_>>();
-                vehicles.sort();
-                format!("'{}' served by {}", group, vehicles.join(", "))
+            .map(|(group, drivers)| {
+                let mut drivers = drivers.into_iter().collect::<Vec<_>>();
+                drivers.sort();
+                format!("'{}' served by {}", group, drivers.join(", "))
             })
-            .collect::<Vec<_>>()
-            .join("; ");
+            .collect::<Vec<_>>();
+        err_info.sort();
 
-        Err(format!("vehicle groups are not respected: {err_info}").into())
+        Err(format!("vehicle groups are not respected: {}", err_info.join("; ")).into())
     }
 }
 

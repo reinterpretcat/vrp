@@ -159,6 +159,24 @@ impl Debug for Actor {
     }
 }
 
+/// Identifies the person behind an actor: the driver id, falling back to the vehicle id when none
+/// is set.
+///
+/// One person is routinely several vehicles. A caller whose per-vehicle attributes vary — pragmatic
+/// hangs `limits` and `skills` off the vehicle type rather than the shift — must emit one vehicle
+/// per combination, each with an id of its own, and ties them back together by giving them the same
+/// `driverId`. Any feature meaning "the same person" has to group on this rather than on the
+/// vehicle id, or it counts one technician as several.
+pub fn driver_key(actor: &Actor) -> String {
+    actor
+        .vehicle
+        .dimens
+        .get_driver_id()
+        .cloned()
+        .or_else(|| actor.vehicle.dimens.get_vehicle_id().cloned())
+        .unwrap_or_default()
+}
+
 /// Represents available resources to serve jobs.
 pub struct Fleet {
     /// All fleet drivers.

@@ -15,7 +15,7 @@ mod territory_test;
 
 use super::vehicle_distance::get_job_location;
 use super::*;
-use crate::models::problem::{DriverIdDimension, JobIdDimension, VehicleIdDimension};
+use crate::models::problem::{JobIdDimension, driver_key};
 use std::collections::HashMap;
 
 pub use crate::construction::features::vehicle_distance::ActorJobCompatibilityFn;
@@ -62,20 +62,10 @@ pub struct TerritoryFitnessData {
     pub push: Cost,
 }
 
-/// A per-driver grouping key: `actor.vehicle.dimens.get_driver_id()`, falling back to the
-/// vehicle id when no driver id dimension is set.
+/// A per-driver grouping key — see [`driver_key`], which every feature that means "the same
+/// person" shares so they cannot drift apart on what a person is.
 type DriverKey = String;
 type JobValueFn = Arc<dyn Fn(&Job) -> Float + Send + Sync>;
-
-fn driver_key(actor: &Actor) -> DriverKey {
-    actor
-        .vehicle
-        .dimens
-        .get_driver_id()
-        .cloned()
-        .or_else(|| actor.vehicle.dimens.get_vehicle_id().cloned())
-        .unwrap_or_default()
-}
 
 /// The keys of a per-driver map, ascending — see [`TerritoryShared::driver_order`] for why that
 /// order is pinned. Takes the map it orders as an argument rather than reading a field, so the

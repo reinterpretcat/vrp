@@ -1,6 +1,7 @@
-//! A feature keeping a group of jobs on one vehicle across all of its shifts.
+//! A feature keeping a group of jobs with one technician across all of their shifts.
 
 use super::*;
+use crate::models::problem::driver_key;
 use std::collections::HashSet;
 
 #[cfg(test)]
@@ -10,8 +11,12 @@ mod vehicle_groups_test;
 custom_dimension!(pub VehicleGroup typeof String);
 custom_tour_state!(CurrentVehicleGroups typeof HashSet<String>);
 
-/// Creates a vehicle-group feature as a hard constraint: every job sharing a
-/// group value must be served by the same vehicle (any of its shifts/tours).
+/// Creates a vehicle-group feature as a hard constraint: every job sharing a group value must be
+/// served by the same person, on any of their shifts or vehicles.
+///
+/// Grouped by [`driver_key`], not by vehicle id: what the caller cares about is that the same
+/// technician shows up, and one technician is routinely several vehicles when their limits or
+/// skills differ between days.
 pub fn create_vehicle_group_feature(
     name: &str,
     total_jobs: usize,
@@ -40,16 +45,16 @@ impl FeatureConstraint for VehicleGroupConstraint {
                     return ConstraintViolation::fail(self.code);
                 }
 
-                let this_vehicle = route_ctx.route().actor.vehicle.dimens.get_vehicle_id();
+                let this_driver = driver_key(&route_ctx.route().actor);
 
-                let on_other_vehicle = solution_ctx
+                let on_other_driver = solution_ctx
                     .routes
                     .iter()
-                    .filter(|rc| rc.route().actor.vehicle.dimens.get_vehicle_id() != this_vehicle)
+                    .filter(|rc| driver_key(&rc.route().actor) != this_driver)
                     .filter_map(|rc| rc.state().get_current_vehicle_groups())
                     .any(|groups| groups.contains(group));
 
-                if on_other_vehicle { ConstraintViolation::fail(self.code) } else { None }
+                if on_other_driver { ConstraintViolation::fail(self.code) } else { None }
             }),
             MoveContext::Activity { .. } => None,
         }

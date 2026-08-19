@@ -338,7 +338,29 @@ fn create_vehicle_group_tour(vehicle_id: &str, shift_index: usize, job_id: &str)
         .build()
 }
 
-fn create_vehicle_group_context(solution: Solution) -> CheckerContext {
+fn create_vehicle_group_context(solution: Solution, drivers: Option<(&str, &str)>) -> CheckerContext {
+    let vehicles = match drivers {
+        // One vehicle type holding both ids, no driver set: each id stands for its own person.
+        None => {
+            vec![VehicleType { vehicle_ids: vec!["v1".to_string(), "v2".to_string()], ..create_default_vehicle_type() }]
+        }
+        // Two vehicle types, one per id, each naming the driver behind it.
+        Some((d1, d2)) => vec![
+            VehicleType {
+                type_id: "v1".to_string(),
+                vehicle_ids: vec!["v1".to_string()],
+                driver_id: Some(d1.to_string()),
+                ..create_default_vehicle_type()
+            },
+            VehicleType {
+                type_id: "v2".to_string(),
+                vehicle_ids: vec!["v2".to_string()],
+                driver_id: Some(d2.to_string()),
+                ..create_default_vehicle_type()
+            },
+        ],
+    };
+
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -347,13 +369,7 @@ fn create_vehicle_group_context(solution: Solution) -> CheckerContext {
             ],
             ..create_empty_plan()
         },
-        fleet: Fleet {
-            vehicles: vec![VehicleType {
-                vehicle_ids: vec!["v1".to_string(), "v2".to_string()],
-                ..create_default_vehicle_type()
-            }],
-            ..create_default_fleet()
-        },
+        fleet: Fleet { vehicles, ..create_default_fleet() },
         ..create_empty_problem()
     };
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
@@ -368,7 +384,7 @@ fn can_detect_vehicle_group_violations() {
         .tour(create_vehicle_group_tour("v2", 0, "job2"))
         .build();
 
-    let result = check_vehicle_groups(&create_vehicle_group_context(solution));
+    let result = check_vehicle_groups(&create_vehicle_group_context(solution, None));
 
     assert_eq!(result, Err("vehicle groups are not respected: 'sub-1' served by v1, v2".into()));
 }
@@ -382,7 +398,34 @@ fn can_pass_a_vehicle_group_spread_across_shifts_of_one_vehicle() {
         .tour(create_vehicle_group_tour("v1", 1, "job2"))
         .build();
 
-    let result = check_vehicle_groups(&create_vehicle_group_context(solution));
+    let result = check_vehicle_groups(&create_vehicle_group_context(solution, None));
 
     assert_eq!(result, Ok(()));
+}
+
+/// The case the vehicle id cannot express: one technician driving two vehicles. A caller whose
+/// limits or skills differ between a technician's days has to emit them as separate vehicle types,
+/// tied together only by `driverId` — grouping on the vehicle would call that person two people.
+#[test]
+fn can_pass_a_vehicle_group_spread_across_two_vehicles_of_one_driver() {
+    let solution = SolutionBuilder::default()
+        .tour(create_vehicle_group_tour("v1", 0, "job1"))
+        .tour(create_vehicle_group_tour("v2", 0, "job2"))
+        .build();
+
+    let result = check_vehicle_groups(&create_vehicle_group_context(solution, Some(("emp-7", "emp-7"))));
+
+    assert_eq!(result, Ok(()));
+}
+
+#[test]
+fn can_detect_a_vehicle_group_split_between_two_drivers() {
+    let solution = SolutionBuilder::default()
+        .tour(create_vehicle_group_tour("v1", 0, "job1"))
+        .tour(create_vehicle_group_tour("v2", 0, "job2"))
+        .build();
+
+    let result = check_vehicle_groups(&create_vehicle_group_context(solution, Some(("emp-7", "emp-9"))));
+
+    assert_eq!(result, Err("vehicle groups are not respected: 'sub-1' served by emp-7, emp-9".into()));
 }
