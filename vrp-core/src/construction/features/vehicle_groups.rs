@@ -81,7 +81,16 @@ impl FeatureState for VehicleGroupState {
         }
     }
 
-    fn accept_route_state(&self, _: &mut RouteContext) {}
+    /// Rebuilds the route's groups from its tour.
+    ///
+    /// Not a no-op, though the stock group feature leaves it one: this runs whenever a route's
+    /// state is rebuilt, and leaving it empty drops the group set of a route that still carries the
+    /// job. The constraint then reads `None` for a route holding the group, sees no holder, and
+    /// admits the same group onto a second driver.
+    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
+        let groups = collect_vehicle_groups(route_ctx);
+        route_ctx.state_mut().set_current_vehicle_groups(groups);
+    }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         solution_ctx.routes.iter_mut().for_each(|route_ctx| {

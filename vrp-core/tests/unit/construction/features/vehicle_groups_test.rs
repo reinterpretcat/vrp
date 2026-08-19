@@ -6,6 +6,7 @@ use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteConte
 use crate::models::problem::{Actor, DriverIdDimension, Fleet, Single, VehicleIdDimension};
 use crate::models::solution::Registry;
 use std::collections::HashSet;
+use std::iter::once;
 use std::sync::Arc;
 
 const VIOLATION_CODE: ViolationCode = ViolationCode(1);
@@ -157,4 +158,27 @@ fn different_driver_is_rejected_even_though_both_are_vehicles() {
         constraint.evaluate(&MoveContext::route(&ctx, route_ctx, &job)),
         Some(ConstraintViolation { code: VIOLATION_CODE, stopped: true })
     );
+}
+
+/// The defect behind the end-to-end failure: a route whose state is rebuilt kept its jobs but lost
+/// its group set, so the constraint read no holder and let the group onto a second driver.
+#[test]
+fn rebuilding_a_route_state_keeps_its_groups() {
+    let fleet = create_test_fleet();
+    let actor = nth_actor(&fleet, "v1", 0);
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(
+            RouteBuilder::default()
+                .with_actor(actor)
+                .add_activity(ActivityBuilder::with_location(1).job(Some(create_test_single(Some("g1")))).build())
+                .build(),
+        )
+        .build();
+
+    // A fresh context has no group state at all — exactly what the constraint used to read.
+    assert_eq!(route_ctx.state().get_current_vehicle_groups(), None);
+
+    create_test_feature(1).state.unwrap().accept_route_state(&mut route_ctx);
+
+    assert_eq!(route_ctx.state().get_current_vehicle_groups(), Some(&once("g1".to_string()).collect::<HashSet<_>>()));
 }
