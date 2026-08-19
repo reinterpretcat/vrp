@@ -48,10 +48,8 @@ impl HeuristicSolutionProcessing for UnassignmentReason {
                         })
                         .collect_group_by_key(|code| code.constraint)
                         .into_iter()
-                        // NOTE: pick only the most frequent reason, and the lowest code among ties.
-                        // The grouping is a `HashMap`, so without the second key the winner of a tie
-                        // is whatever the hash order happened to be that run.
-                        .max_by(|(code_a, a), (code_b, b)| a.len().cmp(&b.len()).then(code_b.0.cmp(&code_a.0)))
+                        // NOTE: pick only the most frequent reason
+                        .max_by(|(_, a), (_, b)| a.len().cmp(&b.len()))
                         .map(|(code, _)| (route_ctx.route().actor.clone(), code))
                 })
                 .collect::<Vec<_>>();
