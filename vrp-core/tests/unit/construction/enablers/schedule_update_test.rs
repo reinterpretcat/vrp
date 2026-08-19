@@ -4,7 +4,7 @@ use crate::construction::enablers::{
 };
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::models::common::{Location, Schedule, TimeInterval, TimeSpan, TimeWindow, Timestamp};
+use crate::models::common::{Location, Schedule, TimeInterval, TimeOffset, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::{RouteCostSpan, RouteCostSpanDimension, VehicleDetail, VehiclePlace};
 use std::sync::Arc;
 
@@ -421,4 +421,39 @@ fn is_schedule_feasible_returns_false_when_break_exceeds_activity_tw() {
         .build();
 
     assert!(!is_schedule_feasible(route_ctx.route(), activity_cost.as_ref(), &transport));
+}
+
+/// The anchor must skip an activity whose own window is derived from it. Anchoring on the break
+/// defines its window in terms of itself, and it then sits before the first customer at whatever
+/// time the search happened to give it.
+#[test]
+fn can_skip_an_offset_anchored_activity_when_choosing_the_anchor() {
+    let mut vehicle = TestVehicleBuilder::default().id("v1").details(vec![create_detail(0, 0)]).build();
+    vehicle.dimens.set_route_cost_span(RouteCostSpan::FirstJobToLastJob);
+    let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(vehicle).build();
+
+    // A required break placed by an offset span, landing ahead of every customer.
+    let offset_activity = {
+        let mut activity = create_activity_with_location_and_schedule(5, 20., 22.);
+        let mut single = TestSingleBuilder::default().location(Some(5)).build();
+        single.places.first_mut().unwrap().times = vec![TimeSpan::Offset(TimeOffset::new(7., 7.))];
+        activity.job = Some(Arc::new(single));
+        activity
+    };
+
+    let route = RouteBuilder::default()
+        .with_vehicle(&fleet, "v1")
+        .with_start({
+            let mut start = ActivityBuilder::default().build();
+            start.place.location = 0;
+            start.schedule = Schedule::new(0., 0.);
+            start.job = None;
+            start
+        })
+        .add_activity(offset_activity)
+        .add_activity(create_activity_with_location_and_schedule(10, 40., 41.))
+        .build();
+
+    // 40. is the customer's arrival, 20. the break's — the break must not become the anchor.
+    assert_eq!(get_offset_anchor(&route), 40.);
 }

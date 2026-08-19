@@ -48,17 +48,35 @@ pub fn update_route_schedule(route_ctx: &mut RouteContext, activity: &dyn Activi
 /// Returns the offset anchor timestamp based on the route's `RouteCostSpan`.
 /// For `DepotToDepot`/`DepotToLastJob`, this is the start departure time.
 /// For `FirstJobToDepot`/`FirstJobToLastJob`, this is the first job's arrival time (if available).
+///
+/// "First job" means the first activity that is not itself positioned by this anchor. A required
+/// break with an offset span is an activity like any other and can land at index 1, ahead of every
+/// customer; anchoring on it would define its own window in terms of itself, and the break would
+/// then sit before the first job at whatever time the search happened to give it.
 pub fn get_offset_anchor(route: &Route) -> Timestamp {
     let cost_span = route.actor.vehicle.dimens.get_route_cost_span().copied().unwrap_or_default();
     let start_departure = route.tour.start().map(|a| a.schedule.departure).unwrap_or(0.);
 
     match cost_span {
         RouteCostSpan::DepotToDepot | RouteCostSpan::DepotToLastJob => start_departure,
-        RouteCostSpan::FirstJobToDepot | RouteCostSpan::FirstJobToLastJob => {
-            // First job is at index 1 (after start depot)
-            route.tour.get(1).filter(|a| a.job.is_some()).map(|a| a.schedule.arrival).unwrap_or(start_departure)
-        }
+        RouteCostSpan::FirstJobToDepot | RouteCostSpan::FirstJobToLastJob => route
+            .tour
+            .all_activities()
+            .skip(1)
+            .find(|activity| activity.job.is_some() && !is_offset_anchored(activity))
+            .map(|activity| activity.schedule.arrival)
+            .unwrap_or(start_departure),
     }
+}
+
+/// Whether the activity's chosen window came from an offset span, i.e. it is placed relative to the
+/// anchor rather than at a time of its own.
+fn is_offset_anchored(activity: &Activity) -> bool {
+    activity
+        .job
+        .as_ref()
+        .and_then(|job| job.places.get(activity.place.idx))
+        .is_some_and(|place| place.times.iter().any(|span| matches!(span, TimeSpan::Offset(_))))
 }
 
 /// Checks whether the route schedule is feasible by simulating the forward pass of `update_schedules`.
