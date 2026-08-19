@@ -15,6 +15,12 @@ pub fn check_limits(context: &CheckerContext) -> Result<(), Vec<GenericError>> {
 /// Check that shift limits are not violated:
 /// * max shift time
 /// * max distance
+/// * tour size
+///
+/// NOTE `minTourSize` is deliberately absent. The solver models it as an objective
+/// (`min_tour_size_objective`), not a constraint, so an under-sized tour is a worse
+/// solution and never an infeasible one. Checking it here reported every solution as
+/// broken and drowned the violations that are real.
 fn check_shift_limits(context: &CheckerContext) -> GenericResult<()> {
     context.solution.tours.iter().try_for_each::<_, GenericResult<_>>(|tour| {
         let vehicle = context.get_vehicle(&tour.vehicle_id)?;
@@ -51,20 +57,6 @@ fn check_shift_limits(context: &CheckerContext) -> GenericResult<()> {
                 }
             }
 
-            if let Some(min_tour_size_limit) = limits.min_tour_size {
-                let shift = context.get_vehicle_shift(tour)?;
-
-                let extra_activities = if shift.end.is_some() { 2 } else { 1 };
-                let tour_activities = tour.stops.iter().flat_map(|stop| stop.activities()).count();
-                let tour_activities = tour_activities.saturating_sub(extra_activities);
-
-                if tour_activities < min_tour_size_limit {
-                    return Err(format!(
-                        "min tour size limit violation, expected: not less than {}, got: {}, vehicle id '{}', shift index: {}",
-                        min_tour_size_limit, tour_activities, tour.vehicle_id, tour.shift_index
-                    ).into())
-                }
-            }
         }
 
         Ok(())

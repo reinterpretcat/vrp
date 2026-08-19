@@ -14,7 +14,13 @@ use vrp_core::utils::GenericError;
 
 /// Checks assignment of jobs and vehicles.
 pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<GenericError>> {
-    combine_error_results(&[check_vehicles(ctx), check_jobs_presence(ctx), check_jobs_match(ctx), check_groups(ctx)])
+    combine_error_results(&[
+        check_vehicles(ctx),
+        check_jobs_presence(ctx),
+        check_jobs_match(ctx),
+        check_groups(ctx),
+        check_vehicle_groups(ctx),
+    ])
 }
 
 /// Checks that vehicles in each tour are used once per shift and they are known in problem.
@@ -252,6 +258,50 @@ fn is_valid_job_info(
                 || not_equal(a_commute.backward.distance, d_commute.backward.distance)
                 || not_equal(a_commute.backward.duration, d_commute.backward.duration)
         }
+    }
+}
+
+/// Checks that jobs sharing a `vehicleGroup` are all served by the same vehicle.
+///
+/// Deliberately keyed on the vehicle alone, unlike `check_groups` above: `vehicleGroup` binds a
+/// group to one vehicle *across its shifts*, so the same vehicle on two shifts is one holder, not
+/// two. Keying on `(type_id, vehicle_id, shift_index)` here would report every multi-shift group
+/// as a violation, which is exactly the arrangement the feature exists to allow.
+fn check_vehicle_groups(ctx: &CheckerContext) -> GenericResult<()> {
+    let violations = ctx
+        .solution
+        .tours
+        .iter()
+        .fold(HashMap::<String, HashSet<_>>::default(), |mut acc, tour| {
+            tour.stops
+                .iter()
+                .flat_map(|stop| stop.activities().iter())
+                .flat_map(|activity| ctx.get_job_by_id(&activity.job_id))
+                .flat_map(|job| job.vehicle_group.as_ref())
+                .for_each(|group| {
+                    acc.entry(group.clone()).or_default().insert(tour.vehicle_id.clone());
+                });
+
+            acc
+        })
+        .into_iter()
+        .filter(|(_, vehicles)| vehicles.len() > 1)
+        .collect::<Vec<_>>();
+
+    if violations.is_empty() {
+        Ok(())
+    } else {
+        let err_info = violations
+            .into_iter()
+            .map(|(group, vehicles)| {
+                let mut vehicles = vehicles.into_iter().collect::<Vec<_>>();
+                vehicles.sort();
+                format!("'{}' served by {}", group, vehicles.join(", "))
+            })
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        Err(format!("vehicle groups are not respected: {err_info}").into())
     }
 }
 

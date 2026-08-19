@@ -79,6 +79,7 @@ impl CheckerContext {
             .chain(check_assignment(self).err())
             .chain(check_routing(self).err())
             .chain(check_limits(self).err())
+            .chain(check_skills(self).err())
             .flatten()
             .fold((HashSet::new(), Vec::default()), |(mut used, mut errors), error| {
                 if !used.contains(&error) {
@@ -467,3 +468,6 @@ use crate::checker::relations::check_relations;
 
 mod routing;
 use crate::checker::routing::check_routing;
+
+mod skills;
+use crate::checker::skills::check_skills;

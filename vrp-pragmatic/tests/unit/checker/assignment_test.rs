@@ -310,3 +310,79 @@ fn can_detect_group_violations() {
 
     assert_eq!(result, Err("job groups are not respected: 'group1'".into()));
 }
+
+fn create_delivery_job_with_vehicle_group(id: &str, location: (f64, f64), group: &str) -> Job {
+    Job { vehicle_group: Some(group.to_string()), ..create_delivery_job(id, location) }
+}
+
+fn create_vehicle_group_tour(vehicle_id: &str, shift_index: usize, job_id: &str) -> Tour {
+    TourBuilder::default()
+        .vehicle_id(vehicle_id)
+        .shift_index(shift_index)
+        .stops(vec![
+            StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![1]).build_departure(),
+            StopBuilder::default()
+                .coordinate((1., 0.))
+                .schedule_stamp(1., 2.)
+                .load(vec![0])
+                .distance(1)
+                .build_single(job_id, "delivery"),
+            StopBuilder::default()
+                .coordinate((0., 0.))
+                .schedule_stamp(3., 3.)
+                .load(vec![0])
+                .distance(2)
+                .build_arrival(),
+        ])
+        .statistic(StatisticBuilder::default().driving(2).serving(2).waiting(2).build())
+        .build()
+}
+
+fn create_vehicle_group_context(solution: Solution) -> CheckerContext {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job_with_vehicle_group("job1", (1., 0.), "sub-1"),
+                create_delivery_job_with_vehicle_group("job2", (1., 0.), "sub-1"),
+            ],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                vehicle_ids: vec!["v1".to_string(), "v2".to_string()],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
+
+    CheckerContext::new(core_problem, problem, None, solution).unwrap()
+}
+
+#[test]
+fn can_detect_vehicle_group_violations() {
+    let solution = SolutionBuilder::default()
+        .tour(create_vehicle_group_tour("v1", 0, "job1"))
+        .tour(create_vehicle_group_tour("v2", 0, "job2"))
+        .build();
+
+    let result = check_vehicle_groups(&create_vehicle_group_context(solution));
+
+    assert_eq!(result, Err("vehicle groups are not respected: 'sub-1' served by v1, v2".into()));
+}
+
+/// The arrangement the feature exists to allow: one vehicle serving the group over two of its
+/// shifts. Keying the check on the shift as well would report this as a violation.
+#[test]
+fn can_pass_a_vehicle_group_spread_across_shifts_of_one_vehicle() {
+    let solution = SolutionBuilder::default()
+        .tour(create_vehicle_group_tour("v1", 0, "job1"))
+        .tour(create_vehicle_group_tour("v1", 1, "job2"))
+        .build();
+
+    let result = check_vehicle_groups(&create_vehicle_group_context(solution));
+
+    assert_eq!(result, Ok(()));
+}

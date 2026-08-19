@@ -119,8 +119,10 @@ pub fn can_check_tour_size_limit() {
     );
 }
 
+/// `minTourSize` feeds an objective, not a constraint, so an under-sized tour is a
+/// worse solution and never an infeasible one — the checker must let it pass.
 #[test]
-pub fn can_check_min_tour_size_limit() {
+pub fn can_ignore_min_tour_size_because_it_is_an_objective() {
     let problem = create_test_problem(Some(VehicleLimits {
         max_distance: None,
         max_duration: None,
@@ -155,11 +157,7 @@ pub fn can_check_min_tour_size_limit() {
 
     let result = check_shift_limits(&ctx);
 
-    assert_eq!(
-        result,
-        Err("min tour size limit violation, expected: not less than 3, got: 2, vehicle id 'some_real_vehicle', shift index: 0"
-            .into())
-    );
+    assert_eq!(result, Ok(()));
 }
 
 #[test]
