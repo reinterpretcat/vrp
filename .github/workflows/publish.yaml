@@ -15,6 +15,11 @@ jobs:
   build-binaries:
     name: Build ${{ matrix.asset_target }}
     runs-on: ${{ matrix.os }}
+    # A build that cannot finish in half an hour is stuck, not slow: the slowest target takes six
+    # minutes. Without this the job runs to GitHub's six-hour default, and because the upload waits
+    # on every target, one wedged runner leaves the release with no assets at all — which it did,
+    # twice, on v0.1.14 and v0.1.15.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -50,9 +55,16 @@ jobs:
 
       - name: Install Linux ARM64 linker
         if: matrix.target == 'aarch64-unknown-linux-gnu'
+        # Both hangs sat here, in `apt-get update`, never reaching the compiler. `noninteractive`
+        # takes away apt's one way of waiting for an answer nobody is there to give, and the step
+        # timeout bounds a mirror that stops responding — a retry costs a minute, the wedge cost
+        # three hours.
+        timeout-minutes: 5
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
+          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu
 
       - name: Build vrp-cli (Linux ARM64)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
