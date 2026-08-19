@@ -119,8 +119,9 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Gen
     assert_eq!(result, expected_result);
 }
 
+/// A job served at the start location is merged into the departure stop, which then reports the
+/// load it leaves with rather than the one it started with — the same rule every other stop obeys.
 #[test]
-#[ignore]
 fn can_check_load_when_departure_has_other_activity() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_pickup_delivery_job("job1", (0., 0.), (1., 0.))], ..create_empty_plan() },
