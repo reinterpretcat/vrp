@@ -137,7 +137,7 @@ pub(crate) fn get_rosomaxa_solution_features(insertion_ctx: &InsertionContext) -
                     route,
                     activity.place.location,
                     depot.place.location,
-                    TravelTime::Departure(depot.schedule.departure),
+                    TravelTime::Departure(activity.schedule.departure),
                 ));
             }
         }

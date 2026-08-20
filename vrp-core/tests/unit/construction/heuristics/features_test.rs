@@ -5,8 +5,37 @@ use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder, RouteStateBuilder};
 use crate::helpers::utils::create_test_environment_with_random;
 use crate::helpers::utils::random::FakeRandom;
+use crate::models::common::{Distance, Duration, Location, Profile, Schedule};
+use crate::models::problem::{TransportCost, TravelTime};
+use crate::models::solution::Route;
 use rosomaxa::prelude::Float;
 use std::sync::Arc;
+
+struct TimeDependentDistance;
+
+impl TransportCost for TimeDependentDistance {
+    fn duration_approx(&self, _: &Profile, _: Location, _: Location) -> Duration {
+        0.
+    }
+
+    fn distance_approx(&self, _: &Profile, _: Location, _: Location) -> Distance {
+        0.
+    }
+
+    fn duration(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Duration {
+        0.
+    }
+
+    fn distance(&self, _: &Route, _: Location, _: Location, travel_time: TravelTime) -> Distance {
+        match travel_time {
+            TravelTime::Departure(timestamp) | TravelTime::Arrival(timestamp) => timestamp,
+        }
+    }
+
+    fn size(&self) -> usize {
+        1
+    }
+}
 
 #[test]
 fn can_group_routes_by_proximity() {
@@ -69,6 +98,22 @@ fn can_extract_rosomaxa_features() {
     actual.iter().zip(expected).enumerate().for_each(|(idx, (actual, expected))| {
         assert!((actual - expected).abs() < 1E-12, "unexpected feature at index {idx}: {actual} != {expected}");
     });
+}
+
+#[test]
+fn uses_actual_departure_time_for_last_route_leg() {
+    let mut activity = ActivityBuilder::with_location(1);
+    activity.schedule(Schedule::new(10., 17.));
+    let mut route = RouteBuilder::default().add_activity(activity.build()).build();
+    let end_idx = route.tour.total() - 1;
+    route.tour.get_mut(end_idx).unwrap().schedule = Schedule::new(100., 100.);
+    let route = RouteContextBuilder::default().with_route(route).build();
+    let mut insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route]).build();
+    Arc::get_mut(&mut insertion_ctx.problem).unwrap().transport = Arc::new(TimeDependentDistance);
+
+    let features = Vec::from(get_rosomaxa_solution_features(&insertion_ctx));
+
+    assert_eq!(features[8], 17.);
 }
 
 #[test]
