@@ -1,5 +1,5 @@
 use super::*;
-use crate::helpers::algorithms::gsom::{Data, DataStorage, DataStorageFactory};
+use crate::helpers::algorithms::gsom::{Data, DataStorage, DataStorageFactory, create_test_network};
 use crate::helpers::utils::create_test_random;
 use crate::utils::{Float, Random, RandomGen};
 use std::collections::HashSet;
@@ -229,6 +229,38 @@ fn can_reset_min_max_weights() {
     min_max_weights.reset();
     assert!(min_max_weights.is_reset);
     assert_eq!(min_max_weights.iter().collect::<Vec<_>>(), vec![(0.0, 1.0); dimension]);
+}
+
+#[test]
+fn can_refresh_normalization_from_retained_state() {
+    let mut network = create_uniform_network(false);
+
+    network.nodes.values_mut().for_each(|node| {
+        node.weights.fill(0.);
+        node.storage.data.clear();
+    });
+    let node = network.nodes.values_mut().next().unwrap();
+    node.storage.add(Data::new(1., 2., 3.));
+    node.storage.add(Data::new(4., 5., 6.));
+    network.min_max_weights.update(&[100., 200., 300.]);
+
+    network.refresh_normalization();
+
+    assert_eq!(network.min_max_weights.min, vec![0., 0., 0.]);
+    assert_eq!(network.min_max_weights.max, vec![4., 5., 6.]);
+}
+
+#[test]
+fn can_measure_distortion_without_obsolete_extremes() {
+    let mut network = create_test_network(false);
+
+    network.min_max_weights.update(&[1_000., 1_000., 1_000.]);
+    let stale_mse = network.mse();
+
+    network.refresh_normalization();
+    let refreshed_mse = network.mse();
+
+    assert!(refreshed_mse > stale_mse);
 }
 
 #[test]

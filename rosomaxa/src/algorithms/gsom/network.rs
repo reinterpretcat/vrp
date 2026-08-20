@@ -266,6 +266,15 @@ where
         self.iter_nodes().map(|node| node.unified_distance(self, 1)).max_by(|a, b| a.total_cmp(b)).unwrap_or_default()
     }
 
+    /// Rebuilds normalization ranges from the state retained by the network.
+    pub(crate) fn refresh_normalization(&mut self) {
+        self.min_max_weights.reset();
+        self.nodes.values().for_each(|node| {
+            node.storage.iter().for_each(|input| self.min_max_weights.update(input.weights()));
+            self.min_max_weights.update(node.weights.as_slice());
+        });
+    }
+
     /// Performs training loop multiple times.
     fn retrain<FM>(&mut self, context: &C, rebalance_count: usize, allow_growth: bool, node_fn: FM)
     where
@@ -281,9 +290,7 @@ where
             // update min max weights to reflect the current state
             self.min_max_weights.reset();
             data.iter().for_each(|i| self.min_max_weights.update(i.weights()));
-            self.nodes.iter().for_each(|(_, node)| {
-                self.min_max_weights.update(node.weights.as_slice());
-            });
+            self.nodes.values().for_each(|node| self.min_max_weights.update(node.weights.as_slice()));
 
             self.train_on_data(context, data, allow_growth);
 

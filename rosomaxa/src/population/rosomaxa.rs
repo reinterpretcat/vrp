@@ -391,8 +391,13 @@ where
             // set the MSE threshold to a fraction of the maximum possible normalized distance
             let mse = network.mse();
             let threshold = 0.5 / (network.dimension() as Float).sqrt();
+
             if mse > threshold {
                 network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
+            } else {
+                // Smoothing rebuilds the ranges while replaying retained inputs. Keep them current on the cheaper
+                // path too, so rejected inputs cannot stretch the feature scale beyond this observation window.
+                network.refresh_normalization();
             }
             *new_input_count = 0;
         }
