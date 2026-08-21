@@ -610,6 +610,11 @@ where
         euclidian_distance(left, right, &self.min_max_weights)
     }
 
+    /// Returns squared normalized Euclidean distance for callers which only compare distances and do not need a root.
+    pub(crate) fn squared_distance(&self, left: &[Float], right: &[Float]) -> Float {
+        squared_euclidian_distance(left, right, &self.min_max_weights)
+    }
+
     /// Returns normalized weights.
     pub(crate) fn normalize<'a>(&'a self, values: &'a [Float]) -> impl Iterator<Item = Float> + 'a {
         normalize(values, &self.min_max_weights)
@@ -629,9 +634,20 @@ fn normalize<'a>(values: &'a [Float], min_max: &'a MinMaxWeights) -> impl Iterat
 }
 
 fn euclidian_distance(left: &[Float], right: &[Float], min_max: &MinMaxWeights) -> Float {
+    squared_euclidian_distance(left, right, min_max).sqrt()
+}
+
+/// Calculates squared Euclidean distance after applying the network's min--max normalization.
+fn squared_euclidian_distance(left: &[Float], right: &[Float], min_max: &MinMaxWeights) -> Float {
     let left_iter = normalize(left, min_max);
     let right_iter = normalize(right, min_max);
 
     // TODO allow to pass custom distance function
-    left_iter.zip(right_iter).map(|(a, b)| (a - b).powi(2)).sum::<Float>().sqrt()
+    left_iter
+        .zip(right_iter)
+        .map(|(left, right)| {
+            let difference = left - right;
+            difference * difference
+        })
+        .sum()
 }

@@ -214,37 +214,108 @@ mod selection {
     }
 
     #[test]
-    fn can_identify_strict_local_optimum() {
-        assert!(RosomaxaType::is_strict_local_optimum([Ordering::Less, Ordering::Equal].into_iter()));
-        assert!(!RosomaxaType::is_strict_local_optimum([Ordering::Greater, Ordering::Less].into_iter()));
-        assert!(!RosomaxaType::is_strict_local_optimum([Ordering::Equal, Ordering::Equal].into_iter()));
-        assert!(!RosomaxaType::is_strict_local_optimum(std::iter::empty()));
+    fn can_identify_basin_sink() {
+        let coordinate = Coordinate(0, 0);
+
+        assert!(is_basin_sink(
+            &coordinate,
+            [(Coordinate(1, 0), Ordering::Less), (Coordinate(0, 1), Ordering::Equal)].into_iter()
+        ));
+        assert!(!is_basin_sink(&coordinate, [(Coordinate(1, 0), Ordering::Greater)].into_iter()));
+        assert!(!is_basin_sink(&coordinate, [(Coordinate(-1, 0), Ordering::Equal)].into_iter()));
+        assert!(is_basin_sink(&coordinate, std::iter::empty()));
     }
 
     #[test]
-    fn can_promote_local_optimum() {
-        let mut coordinates = [Coordinate(0, 0), Coordinate(1, 0)];
+    fn can_prioritize_basins_and_keep_coverage_slot() {
+        let mut coordinates = (0..8).map(|idx| Coordinate(idx, 0)).collect::<Vec<_>>();
+        let basins = [5, 6, 7, 4, 3].map(|idx| BasinCandidate::new(Coordinate(idx, 0)));
 
-        RosomaxaType::promote_coordinate(&mut coordinates, &DefaultRandom::new_repeatable(), |coordinate| {
-            coordinate.0 == 1
-        });
+        promote_basin_coordinates(&mut coordinates, &basins, 6, 1);
 
-        assert_eq!(coordinates[0], Coordinate(1, 0));
+        assert_eq!(coordinates[..6], [5, 6, 7, 0, 4, 3].map(|idx| Coordinate(idx, 0)));
     }
 
     #[test]
-    fn can_select_smooth_diverse_local_optimum() {
-        let mut candidates = [(1, 0.1), (2, 0.2), (3, 0.3), (4, 0.9)];
-        let distances = [0., 0.2, 0.8, 0.9, 10.];
+    fn can_distribute_multiple_coverage_slots() {
+        let mut coordinates = (0..12).map(|idx| Coordinate(idx, 0)).collect::<Vec<_>>();
+        let basins = (3..12).rev().map(|idx| BasinCandidate::new(Coordinate(idx, 0))).collect::<Vec<_>>();
+
+        promote_basin_coordinates(&mut coordinates, &basins, 12, 3);
+
+        let coverage = [coordinates[2], coordinates[6], coordinates[10]];
+        let prioritized = coordinates[..12]
+            .iter()
+            .enumerate()
+            .filter(|(idx, _)| ![2, 6, 10].contains(idx))
+            .map(|(_, coordinate)| *coordinate)
+            .collect::<Vec<_>>();
+        assert!(coverage.iter().all(|coordinate| basins.iter().all(|candidate| candidate.coordinate != *coordinate)));
+        assert_eq!(prioritized, basins.iter().map(|candidate| candidate.coordinate).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn can_select_structurally_different_basins() {
+        let mut candidates = [0, 1, 3, 10].map(|idx| BasinCandidate::new(Coordinate(idx, 0)));
         let evaluations = std::cell::Cell::new(0);
 
-        let selected = RosomaxaType::select_diverse_local_optimum(&mut candidates, |index| {
+        select_diverse_basin_candidates(&mut candidates, 3, 0, |left, right| {
             evaluations.set(evaluations.get() + 1);
-            distances[index]
+            (left.0 - right.0).abs() as Float
         });
 
-        assert_eq!(selected, Some(3));
-        assert_eq!(evaluations.get(), 3);
+        assert_eq!(
+            candidates[..3].iter().map(|candidate| candidate.coordinate).collect::<Vec<_>>(),
+            [0, 10, 3].map(|idx| Coordinate(idx, 0))
+        );
+        assert_eq!(evaluations.get(), 5);
+    }
+
+    #[test]
+    fn can_keep_incremental_basin_selection_equivalent() {
+        let coordinates = [
+            Coordinate(0, 0),
+            Coordinate(1, 3),
+            Coordinate(2, 1),
+            Coordinate(4, 5),
+            Coordinate(7, 2),
+            Coordinate(9, 8),
+        ];
+        let distance = |left: &Coordinate, right: &Coordinate| {
+            let dx = (left.0 - right.0) as Float;
+            let dy = (left.1 - right.1) as Float;
+            dx.hypot(dy)
+        };
+
+        for selected_size in 1..=coordinates.len() {
+            for reference_idx in 0..coordinates.len() {
+                let mut expected = coordinates;
+                expected.swap(0, reference_idx);
+                for selected_idx in 1..selected_size {
+                    let candidate_idx = (selected_idx..expected.len())
+                        .map(|candidate_idx| {
+                            let min_distance = expected[..selected_idx]
+                                .iter()
+                                .map(|selected| distance(&expected[candidate_idx], selected))
+                                .min_by(Float::total_cmp)
+                                .unwrap_or_default();
+                            (candidate_idx, min_distance)
+                        })
+                        .max_by(|(_, left), (_, right)| left.total_cmp(right))
+                        .map(|(idx, _)| idx)
+                        .unwrap();
+                    expected.swap(selected_idx, candidate_idx);
+                }
+
+                let mut actual = coordinates.map(BasinCandidate::new);
+                select_diverse_basin_candidates(&mut actual, selected_size, reference_idx, distance);
+
+                assert_eq!(
+                    actual[..selected_size].iter().map(|candidate| candidate.coordinate).collect::<Vec<_>>(),
+                    expected[..selected_size]
+                );
+            }
+        }
     }
 
     #[test]
@@ -488,6 +559,28 @@ mod auxiliary {
         assert_eq!(get_elite_selection_size(8, 0., |_| true), 4);
         assert_eq!(get_elite_selection_size(16, 0., |_| false), 4);
         assert_eq!(get_elite_selection_size(16, 0., |_| true), 8);
+    }
+
+    #[test]
+    fn can_keep_enough_quality_gated_basins_for_selection() {
+        assert_eq!(get_basin_candidate_size(0, 4), 0);
+        assert_eq!(get_basin_candidate_size(3, 4), 3);
+        assert_eq!(get_basin_candidate_size(10, 4), 5);
+        assert_eq!(get_basin_candidate_size(20, 4), 10);
+    }
+
+    #[test]
+    fn can_reserve_coverage_for_different_selection_sizes() {
+        assert_eq!((1..=8).map(get_coverage_selection_size).collect::<Vec<_>>(), [0, 1, 1, 1, 1, 1, 1, 2]);
+        assert_eq!(get_coverage_selection_size(12), 3);
+    }
+
+    #[test]
+    fn can_reserve_periodic_full_map_generation() {
+        assert_eq!(
+            (1..=8).map(is_basin_selection_generation).collect::<Vec<_>>(),
+            [true, true, true, false, true, true, true, false]
+        );
     }
 
     #[test]

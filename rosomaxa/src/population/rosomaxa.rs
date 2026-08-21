@@ -224,6 +224,25 @@ const HIT_MEMORY_SIZE: usize = 200;
 // bounded to the previous default size so weak outliers do not increase training work or shape the whole map.
 const INITIAL_NETWORK_SIZE: usize = 16;
 
+// Three generations revisit promising GSOM regions, while the fourth samples the whole occupied map uniformly.
+const BASIN_SELECTION_PERIOD: usize = 4;
+
+// Reserve roughly one quarter of the GSOM parent budget for uniformly sampled occupied nodes.
+const BASIN_COVERAGE_DIVISOR: usize = 4;
+
+/// Keeps a GSOM coordinate and its cached distance to the closest selected basin.
+struct BasinCandidate {
+    coordinate: Coordinate,
+    min_distance: Float,
+}
+
+impl BasinCandidate {
+    /// Creates a candidate whose nearest-selected distance will be initialized before ranking.
+    fn new(coordinate: Coordinate) -> Self {
+        Self { coordinate, min_distance: Float::MAX }
+    }
+}
+
 impl<C, O, S> Rosomaxa<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
@@ -296,13 +315,14 @@ where
 
                     match network_result {
                         Ok(network) => {
-                            let selection_coordinates = network.get_coordinates().collect();
+                            let selection_coordinates = network.get_coordinates().collect::<Vec<_>>();
+                            let basin_candidates = Vec::with_capacity(selection_coordinates.len());
 
                             self.phase = RosomaxaPhases::Exploration {
                                 network,
                                 new_input_count: 0,
                                 selection_coordinates,
-                                local_optimum_candidates: Vec::new(),
+                                basin_candidates,
                                 statistics: statistics.clone(),
                                 selection_size,
                             };
@@ -320,7 +340,7 @@ where
                 network,
                 new_input_count,
                 selection_coordinates,
-                local_optimum_candidates,
+                basin_candidates,
                 statistics: old_statistics,
                 selection_size: old_selection_size,
             } => {
@@ -333,7 +353,7 @@ where
                     Self::prepare_selection(
                         network,
                         selection_coordinates,
-                        local_optimum_candidates,
+                        basin_candidates,
                         self.environment.random.as_ref(),
                         self.objective.as_ref(),
                         statistics.generation,
@@ -397,7 +417,7 @@ where
     fn prepare_selection(
         network: &IndividualNetwork<C, O, S>,
         selection_coordinates: &mut Vec<Coordinate>,
-        local_optimum_candidates: &mut Vec<(usize, Float)>,
+        basin_candidates: &mut Vec<BasinCandidate>,
         random: &dyn Random,
         objective: &O,
         generation: usize,
@@ -410,127 +430,84 @@ where
 
         selection_coordinates.shuffle(&mut random.get_rng());
 
-        // Give a local optimum another chance to occupy the first GSOM slot; keep the rest shuffled.
-        if selection_size > 2 && selection_coordinates.len() > 1 {
-            Self::promote_coordinate(selection_coordinates, random, |coordinate| {
-                Self::is_local_optimum(network, coordinate, objective)
-            });
-
-            // Periodically reserve the second GSOM slot for a smooth local optimum far from the first.
-            if selection_size > 6 && generation.is_multiple_of(4) {
-                Self::promote_diverse_local_optimum(
-                    network,
-                    selection_coordinates,
-                    local_optimum_candidates,
-                    objective,
-                );
-            }
-        }
-    }
-
-    fn promote_coordinate(
-        coordinates: &mut [Coordinate],
-        random: &dyn Random,
-        is_preferred: impl Fn(&Coordinate) -> bool,
-    ) {
-        debug_assert!(coordinates.len() > 1);
-        let candidate_idx = random.uniform_int(1, coordinates.len() as i32 - 1) as usize;
-        if !is_preferred(&coordinates[0]) && is_preferred(&coordinates[candidate_idx]) {
-            coordinates.swap(0, candidate_idx);
-        }
-    }
-
-    fn promote_diverse_local_optimum(
-        network: &IndividualNetwork<C, O, S>,
-        coordinates: &mut [Coordinate],
-        local_optima: &mut Vec<(usize, Float)>,
-        objective: &O,
-    ) {
-        local_optima.clear();
-
-        let reference_coordinate = coordinates[0];
-        let Some(reference_node) = network.find(&reference_coordinate) else { return };
-        let reference_weights = reference_node.weights.as_slice();
-
-        // A shuffled reference rotates which distant basin is promoted.
-        local_optima.extend(coordinates.iter().copied().enumerate().skip(1).filter_map(|(index, coordinate)| {
-            let node = network.find(&coordinate)?;
-            let solution = node.storage.population.best()?;
-
-            Self::is_local_optimum_solution(network, &coordinate, solution, objective).then(|| {
-                let smoothness = node.unified_distance(network, 1);
-                (index, smoothness)
-            })
-        }));
-
-        let Some(coordinate_idx) = Self::select_diverse_local_optimum(local_optima, |index| {
-            network
-                .find(&coordinates[index])
-                .map(|node| network.distance(node.weights.as_slice(), reference_weights))
-                .unwrap_or_default()
-        }) else {
+        // Periodic full-map batches keep exploration coherent instead of diluting every basin-focused batch.
+        if !is_basin_selection_generation(generation) {
             return;
+        }
+
+        let node_selection_budget = selection_size.saturating_sub(get_min_elite_selection_size(selection_size));
+        // Most node searches revisit distinct basins; a smaller share keeps every occupied region reachable.
+        let coverage_selection_size = get_coverage_selection_size(node_selection_budget);
+        let basin_selection_size = node_selection_budget.saturating_sub(coverage_selection_size);
+        if basin_selection_size == 0 {
+            return;
+        }
+
+        basin_candidates.clear();
+        // Local sinks are cheap basin proxies: tracing every occupied node to its sink would add more map scans here.
+        basin_candidates.extend(
+            selection_coordinates
+                .iter()
+                .filter(|coordinate| Self::is_basin_sink_node(network, coordinate, objective))
+                .map(|coordinate| BasinCandidate::new(*coordinate)),
+        );
+        let compare_quality = |left: &BasinCandidate, right: &BasinCandidate| {
+            let left = network
+                .find(&left.coordinate)
+                .and_then(|node| node.storage.population.best())
+                .expect("basin candidates are occupied GSOM nodes");
+            let right = network
+                .find(&right.coordinate)
+                .and_then(|node| node.storage.population.best())
+                .expect("basin candidates are occupied GSOM nodes");
+
+            objective.total_order(left, right)
         };
 
-        coordinates.swap(1, coordinate_idx);
-    }
-
-    fn select_diverse_local_optimum(
-        candidates: &mut [(usize, Float)],
-        distance: impl Fn(usize) -> Float,
-    ) -> Option<usize> {
-        if candidates.is_empty() {
-            return None;
+        // Keep a rank-based quality gate independent of the objective's numeric scale. Small basin sets remain intact.
+        let candidate_size = get_basin_candidate_size(basin_candidates.len(), basin_selection_size);
+        if candidate_size < basin_candidates.len() {
+            basin_candidates.select_nth_unstable_by(candidate_size, compare_quality);
+            basin_candidates.truncate(candidate_size);
         }
 
-        // Smoothness filters map noise; distance provides a distinct search direction.
-        let middle = candidates.len() / 2;
-        candidates.select_nth_unstable_by(middle, |(_, left), (_, right)| left.total_cmp(right));
-        candidates[..=middle]
-            .iter()
-            .map(|(index, _)| (*index, distance(*index)))
-            .max_by(|(_, left), (_, right)| left.total_cmp(right))
-            .map(|(index, _)| index)
+        let selected_size = basin_selection_size.min(basin_candidates.len());
+        if selected_size == 0 {
+            return;
+        }
+
+        // Rotate the reference within the quality-gated set, then add candidates far from everything already selected.
+        let reference_idx = random.uniform_int(0, basin_candidates.len() as i32 - 1) as usize;
+        select_diverse_basin_candidates(basin_candidates, selected_size, reference_idx, |left, right| {
+            let left = network.find(left).expect("basin candidates belong to the GSOM");
+            let right = network.find(right).expect("basin candidates belong to the GSOM");
+            network.squared_distance(left.weights.as_slice(), right.weights.as_slice())
+        });
+
+        // Interleave basin representatives with shuffled nodes, preserving a direct path to every occupied region.
+        promote_basin_coordinates(
+            selection_coordinates,
+            &basin_candidates[..selected_size],
+            node_selection_budget,
+            coverage_selection_size,
+        );
     }
 
-    fn is_local_optimum(network: &IndividualNetwork<C, O, S>, coordinate: &Coordinate, objective: &O) -> bool {
+    /// Checks whether the best solution in a GSOM node represents a map-local basin sink.
+    fn is_basin_sink_node(network: &IndividualNetwork<C, O, S>, coordinate: &Coordinate, objective: &O) -> bool {
         let Some(node) = network.find(coordinate) else { return false };
         let Some(solution) = node.storage.population.best() else { return false };
-
-        Self::is_local_optimum_solution(network, coordinate, solution, objective)
-    }
-
-    fn is_local_optimum_solution(
-        network: &IndividualNetwork<C, O, S>,
-        coordinate: &Coordinate,
-        solution: &S,
-        objective: &O,
-    ) -> bool {
         let Coordinate(x, y) = *coordinate;
 
-        let comparisons = [Coordinate(x - 1, y), Coordinate(x + 1, y), Coordinate(x, y - 1), Coordinate(x, y + 1)]
+        let neighbors = [Coordinate(x - 1, y), Coordinate(x + 1, y), Coordinate(x, y - 1), Coordinate(x, y + 1)]
             .into_iter()
-            .filter_map(|coordinate| network.find(&coordinate))
-            .filter_map(|node| node.storage.population.best())
-            .map(|neighbor| objective.total_order(solution, neighbor));
+            .filter_map(|neighbor_coordinate| {
+                let neighbor = network.find(&neighbor_coordinate)?;
+                let neighbor_solution = neighbor.storage.population.best()?;
+                Some((neighbor_coordinate, objective.total_order(solution, neighbor_solution)))
+            });
 
-        Self::is_strict_local_optimum(comparisons)
-    }
-
-    fn is_strict_local_optimum(comparisons: impl Iterator<Item = Ordering>) -> bool {
-        let mut has_worse_neighbor = false;
-        let mut has_neighbor = false;
-
-        for comparison in comparisons {
-            has_neighbor = true;
-            match comparison {
-                Ordering::Greater => return false,
-                Ordering::Less => has_worse_neighbor = true,
-                Ordering::Equal => {}
-            }
-        }
-
-        has_neighbor && has_worse_neighbor
+        is_basin_sink(coordinate, neighbors)
     }
 
     fn create_network(
@@ -634,9 +611,10 @@ where
         network: IndividualNetwork<C, O, S>,
         // Inputs added since the last distortion check; smoothing and compaction replay does not contribute.
         new_input_count: usize,
+        // Occupied nodes in the order used by the next parent selection.
         selection_coordinates: Vec<Coordinate>,
         // Reuse this scratch space instead of allocating while preparing each selection.
-        local_optimum_candidates: Vec<(usize, Float)>,
+        basin_candidates: Vec<BasinCandidate>,
         statistics: HeuristicStatistics,
         selection_size: usize,
     },
@@ -783,6 +761,89 @@ where
     })
 }
 
+/// Moves selected basin representatives into the parent prefix while preserving uniformly sampled coverage slots.
+fn promote_basin_coordinates(
+    coordinates: &mut [Coordinate],
+    basins: &[BasinCandidate],
+    selection_size: usize,
+    coverage_size: usize,
+) {
+    let mut basin_idx = 0;
+    let mut coverage_idx = 0;
+    let selection_size = selection_size.min(coordinates.len());
+
+    for selection_idx in 0..selection_size {
+        // Place coverage at the midpoint of each equally sized part of the selected prefix.
+        let is_coverage_slot = coverage_idx < coverage_size
+            && selection_idx == (2 * coverage_idx + 1) * selection_size / (2 * coverage_size);
+
+        if is_coverage_slot {
+            let remaining_basins = &basins[basin_idx..];
+            if remaining_basins.iter().any(|candidate| candidate.coordinate == coordinates[selection_idx])
+                && let Some(candidate_idx) = ((selection_idx + 1)..coordinates.len()).find(|&candidate_idx| {
+                    remaining_basins.iter().all(|candidate| candidate.coordinate != coordinates[candidate_idx])
+                })
+            {
+                coordinates.swap(selection_idx, candidate_idx);
+            }
+            coverage_idx += 1;
+        } else if let Some(candidate) = basins.get(basin_idx)
+            && let Some(candidate_idx) =
+                (selection_idx..coordinates.len()).find(|&idx| coordinates[idx] == candidate.coordinate)
+        {
+            coordinates.swap(selection_idx, candidate_idx);
+            basin_idx += 1;
+        }
+    }
+}
+
+/// Orders the selected prefix using incremental maximum--minimum distance from the already selected representatives.
+fn select_diverse_basin_candidates(
+    candidates: &mut [BasinCandidate],
+    selected_size: usize,
+    reference_idx: usize,
+    distance: impl Fn(&Coordinate, &Coordinate) -> Float,
+) {
+    let selected_size = selected_size.min(candidates.len());
+    if selected_size == 0 {
+        return;
+    }
+
+    candidates.swap(0, reference_idx);
+    if selected_size == 1 {
+        return;
+    }
+
+    let reference = candidates[0].coordinate;
+    for candidate in &mut candidates[1..] {
+        candidate.min_distance = distance(&candidate.coordinate, &reference);
+    }
+
+    for selected_idx in 1..selected_size {
+        let candidate_idx = (selected_idx..candidates.len())
+            .max_by(|&left, &right| candidates[left].min_distance.total_cmp(&candidates[right].min_distance))
+            .expect("at least one basin candidate remains");
+
+        candidates.swap(selected_idx, candidate_idx);
+
+        if selected_idx + 1 < selected_size {
+            let selected = candidates[selected_idx].coordinate;
+            for candidate in &mut candidates[(selected_idx + 1)..] {
+                let candidate_distance = distance(&candidate.coordinate, &selected);
+                if candidate_distance.total_cmp(&candidate.min_distance).is_lt() {
+                    candidate.min_distance = candidate_distance;
+                }
+            }
+        }
+    }
+}
+
+/// Returns true when no cardinal neighbor dominates the coordinate, resolving equal-fitness plateaus by coordinate.
+fn is_basin_sink(coordinate: &Coordinate, mut neighbors: impl Iterator<Item = (Coordinate, Ordering)>) -> bool {
+    // Coordinate order gives equal-fitness plateaus a stable direction instead of selecting every plateau node.
+    neighbors.all(|(neighbor, order)| order == Ordering::Less || (order == Ordering::Equal && *coordinate < neighbor))
+}
+
 /// Gets the elite share of the exploration budget. Each block of four parents adds one elite selection tournament,
 /// with more elite searches used when the population is not improving.
 fn get_elite_selection_size(
@@ -791,7 +852,7 @@ fn get_elite_selection_size(
     mut is_hit: impl FnMut(Float) -> bool,
 ) -> usize {
     if selection_size <= 6 {
-        return 1;
+        return get_min_elite_selection_size(selection_size);
     }
 
     let probability = (1. - 1. / (1. + E.powf(-10. * (improvement_ratio - 0.166)))) as Float;
@@ -801,6 +862,30 @@ fn get_elite_selection_size(
         .map(|idx| if is_hit(probability / idx as Float) { 2 } else { 1 })
         .sum::<usize>()
         .min(selection_size - 1)
+}
+
+/// Returns the elite budget guaranteed before randomized extra elite tournaments are considered.
+fn get_min_elite_selection_size(selection_size: usize) -> usize {
+    if selection_size <= 6 { selection_size.min(1) } else { selection_size.div_ceil(4) }
+}
+
+/// Keeps the better half of basin sinks, or enough candidates to fill all basin positions.
+fn get_basin_candidate_size(basin_count: usize, selection_size: usize) -> usize {
+    basin_count.div_ceil(2).max(selection_size).min(basin_count)
+}
+
+/// Uses basin-focused ordering for three generations and uniform map ordering for the fourth.
+fn is_basin_selection_generation(generation: usize) -> bool {
+    !generation.is_multiple_of(BASIN_SELECTION_PERIOD)
+}
+
+/// Reserves roughly one quarter of node positions for uniformly shuffled map coverage.
+fn get_coverage_selection_size(selection_size: usize) -> usize {
+    if selection_size <= 1 {
+        return 0;
+    }
+
+    (selection_size / BASIN_COVERAGE_DIVISOR).max(1)
 }
 
 /// Cools direct node-alternative sampling as the map matures. Retained alternatives still participate in replay.

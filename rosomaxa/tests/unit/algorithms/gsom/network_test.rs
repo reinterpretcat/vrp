@@ -59,6 +59,18 @@ fn create_uniform_network(has_initial_error: bool) -> NetworkType {
 }
 
 #[test]
+fn can_calculate_squared_distance() {
+    let mut min_max = MinMaxWeights::new(2);
+    min_max.update(&[0., 0.]);
+    min_max.update(&[2., 4.]);
+
+    let squared_distance = squared_euclidian_distance(&[0., 0.], &[2., 4.], &min_max);
+
+    assert_eq!(squared_distance, 2.);
+    assert_eq!(super::euclidian_distance(&[0., 0.], &[2., 4.], &min_max), squared_distance.sqrt());
+}
+
+#[test]
 fn rejects_empty_initial_data() {
     let result =
         NetworkType::new(&(), Vec::<Data>::new(), create_config(2), Arc::new(IdentityRandom), |_| DataStorageFactory);
