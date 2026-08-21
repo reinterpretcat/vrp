@@ -220,9 +220,6 @@ type IndividualNetwork<C, O, S> = Network<C, S, IndividualStorage<C, O, S>, Indi
 // Hit history is exposed in GSOM state, but does not control its maintenance or capacity.
 const HIT_MEMORY_SIZE: usize = 200;
 
-// Let the young map grow before smoothing can reset the node errors which drive GSOM growth.
-const INITIAL_GROWTH_OBSERVATION_WINDOWS: usize = 2;
-
 // A larger candidate pool gives different constructors a chance to improve before GSOM is trained. Keep its input
 // bounded to the previous default size so weak outliers do not increase training work or shape the whole map.
 const INITIAL_NETWORK_SIZE: usize = 16;
@@ -304,7 +301,6 @@ where
                             self.phase = RosomaxaPhases::Exploration {
                                 network,
                                 new_input_count: 0,
-                                is_network_warmed_up: false,
                                 selection_coordinates,
                                 local_optimum_candidates: Vec::new(),
                                 statistics: statistics.clone(),
@@ -323,7 +319,6 @@ where
             RosomaxaPhases::Exploration {
                 network,
                 new_input_count,
-                is_network_warmed_up,
                 selection_coordinates,
                 local_optimum_candidates,
                 statistics: old_statistics,
@@ -333,14 +328,7 @@ where
                     *old_statistics = statistics.clone();
                     *old_selection_size = selection_size;
 
-                    Self::optimize_network(
-                        &self.external_ctx,
-                        network,
-                        new_input_count,
-                        is_network_warmed_up,
-                        statistics,
-                        &self.config,
-                    );
+                    Self::optimize_network(&self.external_ctx, network, new_input_count, statistics, &self.config);
 
                     Self::prepare_selection(
                         network,
@@ -370,24 +358,18 @@ where
         external_ctx: &C,
         network: &mut IndividualNetwork<C, O, S>,
         new_input_count: &mut usize,
-        is_network_warmed_up: &mut bool,
         statistics: &HeuristicStatistics,
         config: &RosomaxaConfig,
     ) {
         network.set_learning_rate(get_learning_rate(statistics.termination_estimate));
 
-        // Check distortion after each node has seen about one new solution on average. A small floor avoids repeatedly
-        // rebuilding a young map from just a few inputs.
-        let observation_count = network.size().max(config.max_network_size.div_ceil(6));
-        let observation_count = if *is_network_warmed_up {
-            observation_count
-        } else {
-            observation_count.saturating_mul(INITIAL_GROWTH_OBSERVATION_WINDOWS)
-        };
-        if *new_input_count >= observation_count {
-            // The map has seen enough inputs to use the regular cadence even when it does not need smoothing yet.
-            *is_network_warmed_up = true;
+        // Let a young map learn enough topology before smoothing can reset the errors which drive GSOM growth.
+        let can_smooth = network.size() >= get_min_network_size(config.max_network_size);
 
+        // Check distortion after each node has seen about one new solution on average. A small floor avoids repeatedly
+        // rebuilding the map from just a few inputs.
+        let observation_count = network.size().max(config.max_network_size.div_ceil(6));
+        if can_smooth && *new_input_count >= observation_count {
             // set the MSE threshold to a fraction of the maximum possible normalized distance
             let mse = network.mse();
             let threshold = 0.5 / (network.dimension() as Float).sqrt();
@@ -410,7 +392,6 @@ where
 
         network.compact(external_ctx);
         network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
-        *is_network_warmed_up = true;
     }
 
     fn prepare_selection(
@@ -653,7 +634,6 @@ where
         network: IndividualNetwork<C, O, S>,
         // Inputs added since the last distortion check; smoothing and compaction replay does not contribute.
         new_input_count: usize,
-        is_network_warmed_up: bool,
         selection_coordinates: Vec<Coordinate>,
         // Reuse this scratch space instead of allocating while preparing each selection.
         local_optimum_candidates: Vec<(usize, Float)>,
@@ -835,17 +815,23 @@ fn get_exploitation_selection_size(selection_size: usize) -> usize {
     selection_size.div_ceil(2).max(2)
 }
 
-/// Gets network size to keep.
-/// Slowly decreases the network limit from its configured maximum to one third of it.
+/// Gets the minimum useful network size derived from its configured capacity.
+fn get_min_network_size(max_network_size: usize) -> usize {
+    (max_network_size / 3).max(4).min(max_network_size)
+}
+
+/// Gets the network size at which compaction is triggered.
+/// Slowly decreases the trigger from the configured maximum to two thirds of it. As compaction retains roughly half
+/// of the lattice, the map does not fall far below one third of its configured capacity.
 fn get_keep_size(max_network_size: usize, termination_estimate: Float) -> usize {
     #![allow(clippy::unnecessary_cast)]
     let termination_estimate = termination_estimate.clamp(0., 0.8) as f64;
     // Sigmoid: https://www.wolframalpha.com/input?i=plot+1+*+%281%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
     let rate = 1. / (1. + E.powf(-10. * (termination_estimate - 0.5)));
-    let min_network_size = (max_network_size / 3).max(4);
-    let network_size_range = max_network_size - min_network_size;
+    let min_compaction_size = get_min_network_size(max_network_size).saturating_mul(2).min(max_network_size);
+    let network_size_range = max_network_size - min_compaction_size;
 
-    min_network_size + (network_size_range as Float * (1. - rate) as Float) as usize
+    min_compaction_size + (network_size_range as Float * (1. - rate) as Float) as usize
 }
 
 /// Keeps exploration active a bit longer when it is still improving solutions.
