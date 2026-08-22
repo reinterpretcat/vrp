@@ -39,8 +39,9 @@ export function main() {
 }
 
 /** This function is used in `vector.bootstrap.js` to setup imports. */
-export function setup(WasmChart, run_function_experiment, run_vrp_experiment, load_state, clear) {
+export function setup(WasmChart, get_function_domain, run_function_experiment, run_vrp_experiment, load_state, clear) {
     Chart = WasmChart;
+    Chart.get_function_domain = get_function_domain;
     Chart.run_function_experiment = run_function_experiment;
     Chart.run_vrp_experiment = run_vrp_experiment;
     Chart.load_state = load_state;
@@ -177,39 +178,19 @@ function toggleInitPointMode() {
 /** Update initial point input ranges based on selected function */
 function updateInitPointRanges() {
     const functionName = plotFunction.value;
-    let min, max;
-    
-    switch(functionName) {
-        case 'rosenbrock':
-            min = -2.0; max = 2.0;
-            break;
-        case 'rastrigin':
-            min = -5.12; max = 5.12;
-            break;
-        case 'himmelblau':
-            min = -5.0; max = 5.0;
-            break;
-        case 'ackley':
-            min = -5.0; max = 5.0;
-            break;
-        case 'matyas':
-            min = -10.0; max = 10.0;
-            break;
-        default:
-            min = -5.0; max = 5.0;
-    }
-    
-    initX.min = min;
-    initX.max = max;
-    initZ.min = min;
-    initZ.max = max;
+    const [minX, maxX, minZ, maxZ] = Chart.get_function_domain(functionName);
+
+    initX.min = minX;
+    initX.max = maxX;
+    initZ.min = minZ;
+    initZ.max = maxZ;
     
     // Reset to center if out of range
-    if (parseFloat(initX.value) < min || parseFloat(initX.value) > max) {
-        initX.value = 0;
+    if (parseFloat(initX.value) < minX || parseFloat(initX.value) > maxX) {
+        initX.value = (minX + maxX) / 2;
     }
-    if (parseFloat(initZ.value) < min || parseFloat(initZ.value) > max) {
-        initZ.value = 0;
+    if (parseFloat(initZ.value) < minZ || parseFloat(initZ.value) > maxZ) {
+        initZ.value = (minZ + maxZ) / 2;
     }
 }
 
@@ -260,29 +241,10 @@ function updateDynamicPlots(run) {
     switch (getExperimentType()) {
         case 'function': {
             // apply solution space visualization
-            const selected = plotFunction.selectedOptions[0];
-            switch(selected.value) {
-                case 'rosenbrock':
-                    Chart.rosenbrock(solutionCanvas, generation_value, pitch_value, yaw_value);
-                    break;
-                case 'rastrigin':
-                    Chart.rastrigin(solutionCanvas, generation_value, pitch_value, yaw_value);
-                    break;
-                case 'himmelblau':
-                    Chart.himmelblau(solutionCanvas, generation_value, pitch_value, yaw_value);
-                    break;
-                case 'ackley':
-                    Chart.ackley(solutionCanvas, generation_value, pitch_value, yaw_value);
-                    break;
-                case 'matyas':
-                    Chart.matyas(solutionCanvas, generation_value, pitch_value, yaw_value);
-                    break;
-                default:
-                    break;
-            }
+            const functionName = plotFunction.value;
+            Chart.function(solutionCanvas, generation_value, pitch_value, yaw_value, functionName);
 
             if (run) {
-                let function_name = plotFunction.selectedOptions[0].value;
                 var x = 0.0, z = 0.0;
                 
                 // Use manual point if checkbox is unchecked, otherwise random
@@ -290,34 +252,13 @@ function updateDynamicPlots(run) {
                     x = parseFloat(initX.value);
                     z = parseFloat(initZ.value);
                 } else {
-                    switch(function_name) {
-                        case 'rosenbrock':
-                            x = getRandomInRange(-2.0, 2.0)
-                            z = getRandomInRange(-2.0, 2.0)
-                            break;
-                        case 'rastrigin':
-                            x = getRandomInRange(-5.12, 5.12)
-                            z = getRandomInRange(-5.12, 5.12)
-                            break;
-                        case 'himmelblau':
-                            x = getRandomInRange(-5.0, 5.0)
-                            z = getRandomInRange(-5.0, 5.0)
-                            break;
-                        case 'ackley':
-                            x = getRandomInRange(-5.0, 5.0)
-                            z = getRandomInRange(-5.0, 5.0)
-                            break;
-                        case 'matyas':
-                            x = getRandomInRange(-10.0, 10.0)
-                            z = getRandomInRange(-10.0, 10.0)
-                            break;
-                        default:
-                            break;
-                    }
+                    const [minX, maxX, minZ, maxZ] = Chart.get_function_domain(functionName);
+                    x = getRandomInRange(minX, maxX);
+                    z = getRandomInRange(minZ, maxZ);
                 }
 
                 console.log(`init point is: (${x}, ${z})`)
-                Chart.run_function_experiment(function_name, population_type, x, z, max_gen);
+                Chart.run_function_experiment(functionName, population_type, x, z, max_gen);
             }
 
             break;

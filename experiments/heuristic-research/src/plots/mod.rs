@@ -32,42 +32,16 @@ impl Chart {
         draw_fitness_plots(get_canvas_drawing_area(canvas), "vrp").map_err(|err| JsValue::from_str(&err.to_string()))
     }
 
-    /// Draws plot for rosenbrock function.
-    pub fn rosenbrock(canvas: HtmlCanvasElement, generation: usize, pitch: Float, yaw: Float) -> Result<(), JsValue> {
-        let axes = Axes { x: (-2.0..2.0, 0.15), y: (0.0..3610.), z: (-2.0..2.0, 0.15) };
-        draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rosenbrock")
-            .map_err(|err| JsValue::from_str(&err.to_string()))?;
-        Ok(())
-    }
-
-    /// Draws plot for rastrigin function.
-    pub fn rastrigin(canvas: HtmlCanvasElement, generation: usize, pitch: Float, yaw: Float) -> Result<(), JsValue> {
-        let axes = Axes { x: (-5.12..5.12, 0.2), y: (0.0..80.), z: (-5.12..5.12, 0.2) };
-        draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "rastrigin")
-            .map_err(|err| JsValue::from_str(&err.to_string()))?;
-        Ok(())
-    }
-
-    /// Draws plot for himmelblau function.
-    pub fn himmelblau(canvas: HtmlCanvasElement, generation: usize, pitch: Float, yaw: Float) -> Result<(), JsValue> {
-        let axes = Axes { x: (-5.0..5.0, 0.2), y: (0.0..700.), z: (-5.0..5.0, 0.2) };
-        draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "himmelblau")
-            .map_err(|err| JsValue::from_str(&err.to_string()))?;
-        Ok(())
-    }
-
-    /// Draws plot for ackley function.
-    pub fn ackley(canvas: HtmlCanvasElement, generation: usize, pitch: Float, yaw: Float) -> Result<(), JsValue> {
-        let axes = Axes { x: (-5.0..5.0, 0.2), y: (0.0..14.), z: (-5.0..5.0, 0.2) };
-        draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "ackley")
-            .map_err(|err| JsValue::from_str(&err.to_string()))?;
-        Ok(())
-    }
-
-    /// Draws plot for matyas function.
-    pub fn matyas(canvas: HtmlCanvasElement, generation: usize, pitch: Float, yaw: Float) -> Result<(), JsValue> {
-        let axes = Axes { x: (-10.0..10.0, 0.4), y: (0.0..100.), z: (-10.0..10.0, 0.4) };
-        draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, "matyas")
+    /// Draws a known two-dimensional benchmark function and the population projected onto its surface.
+    pub fn function(
+        canvas: HtmlCanvasElement,
+        generation: usize,
+        pitch: Float,
+        yaw: Float,
+        function_name: &str,
+    ) -> Result<(), JsValue> {
+        let axes = get_function_axes(function_name);
+        draw_population_plots(get_canvas_drawing_area(canvas), generation, pitch, yaw, axes, function_name)
             .map_err(|err| JsValue::from_str(&err.to_string()))?;
         Ok(())
     }
@@ -104,6 +78,30 @@ impl Chart {
         draw_search_overall_statistics_plots(get_canvas_drawing_area(canvas), generation, kind)
             .map_err(|err| JsValue::from_str(&err.to_string()))
     }
+}
+
+fn get_function_axes(function_name: &str) -> Axes {
+    const RESOLUTION: usize = 50;
+
+    let config = get_function_config(function_name);
+    let fitness_fn = get_fitness_fn_by_name(function_name);
+    let x_step = (config.x.end - config.x.start) / RESOLUTION as Float;
+    let z_step = (config.z.end - config.z.start) / RESOLUTION as Float;
+    let (min, max) = (0..=RESOLUTION)
+        .flat_map(|x_idx| {
+            let fitness_fn = fitness_fn.clone();
+            let config = &config;
+            (0..=RESOLUTION).map(move |z_idx| {
+                let x = config.x.start + x_step * x_idx as Float;
+                let z = config.z.start + z_step * z_idx as Float;
+                fitness_fn(&[x, z])
+            })
+        })
+        .chain(config.optima.iter().map(|[_, _, fitness]| *fitness))
+        .fold((Float::MAX, Float::MIN), |(min, max), value| (min.min(value), max.max(value)));
+    let padding = ((max - min) * 0.05).max(Float::EPSILON);
+
+    Axes { x: (config.x, x_step), y: (min - padding)..(max + padding), z: (config.z, z_step) }
 }
 
 /// Draws fitness plot on given area.

@@ -39,3 +39,27 @@ fn can_find_matyas_optimum() {
 
     assert!((matyas_fn)(&[0., 0.]).abs() < FITNESS_EPSILON);
 }
+
+#[test]
+fn can_find_configured_function_optima() {
+    for name in [
+        "rosenbrock",
+        "rastrigin",
+        "himmelblau",
+        "ackley",
+        "matyas",
+        "branin",
+        "six_hump_camel",
+        "goldstein_price",
+        "easom",
+        "eggholder",
+        "bukin6",
+    ] {
+        let fitness_fn = get_fitness_fn_by_name(name);
+        let config = get_function_config(name);
+
+        for [x, z, fitness] in config.optima {
+            assert!(((fitness_fn)(&[*x, *z]) - fitness).abs() < FITNESS_EPSILON, "invalid optimum for {name}");
+        }
+    }
+}

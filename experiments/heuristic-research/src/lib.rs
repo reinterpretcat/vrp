@@ -22,7 +22,7 @@ pub use self::plots::{
 };
 
 mod solver;
-pub use self::solver::{solve_function, solve_vrp};
+pub use self::solver::{FunctionConfig, get_fitness_fn_by_name, get_function_config, solve_function, solve_vrp};
 
 /// Coordinate of the node.
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Ord, PartialOrd)]
@@ -108,6 +108,13 @@ pub fn run_function_experiment(function_name: &str, population_type: &str, x: Fl
     });
 
     solve_function(function_name, population_type, selection_size, vec![x, z], generations, logger)
+}
+
+/// Returns the visible `[x_min, x_max, z_min, z_max]` domain of a benchmark function.
+#[wasm_bindgen]
+pub fn get_function_domain(function_name: &str) -> Vec<Float> {
+    let config = get_function_config(function_name);
+    vec![config.x.start, config.x.end, config.z.start, config.z.end]
 }
 
 /// Runs VRP experiment.
