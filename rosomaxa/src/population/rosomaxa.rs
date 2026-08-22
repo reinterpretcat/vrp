@@ -386,19 +386,19 @@ where
         // Let a young map learn enough topology before smoothing can reset the errors which drive GSOM growth.
         let can_smooth = network.size() >= get_min_network_size(config.max_network_size);
 
-        // Check distortion after each node has seen about one new solution on average. A small floor avoids repeatedly
-        // rebuilding the map from just a few inputs.
+        // Revisit the feature scale after each node has seen about one new solution on average. A small floor avoids
+        // repeatedly scanning a young map after just a few inputs.
         let observation_count = network.size().max(config.max_network_size.div_ceil(6));
-        if can_smooth && *new_input_count >= observation_count {
+        if *new_input_count >= observation_count {
             // set the MSE threshold to a fraction of the maximum possible normalized distance
-            let mse = network.mse();
             let threshold = 0.5 / (network.dimension() as Float).sqrt();
+            let should_smooth = can_smooth && network.mse() > threshold;
 
-            if mse > threshold {
+            if should_smooth {
                 network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
             } else {
-                // Smoothing rebuilds the ranges while replaying retained inputs. Keep them current on the cheaper
-                // path too, so rejected inputs cannot stretch the feature scale beyond this observation window.
+                // Smoothing rebuilds the ranges while replaying retained inputs. Keep them current on the cheaper path
+                // too, including while the map is too young to smooth, so rejected inputs cannot stretch the scale.
                 network.refresh_normalization();
             }
             *new_input_count = 0;

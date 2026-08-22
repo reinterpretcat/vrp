@@ -148,7 +148,7 @@ mod selection {
     }
 
     #[test]
-    fn can_track_new_exploration_inputs_and_warm_up_network() {
+    fn can_track_exploration_inputs_and_refresh_young_network() {
         let initial_size = 4;
         let mut rosomaxa = create_rosomaxa(initial_size);
 
@@ -175,15 +175,6 @@ mod selection {
 
         let RosomaxaPhases::Exploration { new_input_count, .. } = &mut rosomaxa.phase else { unreachable!() };
         *new_input_count = observation_count;
-        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
-        let RosomaxaPhases::Exploration { new_input_count, .. } = &rosomaxa.phase else { unreachable!() };
-        assert_eq!(*new_input_count, observation_count);
-
-        let network_size = match &rosomaxa.phase {
-            RosomaxaPhases::Exploration { network, .. } => network.size(),
-            _ => unreachable!(),
-        };
-        rosomaxa.config.max_network_size = network_size * 3;
         rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
         let RosomaxaPhases::Exploration { new_input_count, .. } = &rosomaxa.phase else { unreachable!() };
         assert_eq!(*new_input_count, 0);
