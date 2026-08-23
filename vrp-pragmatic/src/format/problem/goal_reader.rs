@@ -1,4 +1,5 @@
 use super::*;
+use std::cmp::Ordering;
 use std::ops::Mul;
 use vrp_core::algorithms::clustering::kmedoids::create_hierarchical_kmedoids;
 use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
@@ -8,7 +9,6 @@ use vrp_core::models::common::{Demand, LoadOps, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Single, TransportCost};
 use vrp_core::models::solution::Route;
 use vrp_core::models::{Feature, FeatureObjective, GoalBuilder, GoalContext, GoalContextBuilder};
-use vrp_core::rosomaxa::evolution::objectives::dominance_order;
 
 pub(super) fn create_goal_context(
     api_problem: &ApiProblem,
@@ -303,7 +303,10 @@ fn eval_multi_objective_strategy(
     Ok(match composition_type {
         MultiStrategy::Sum => builder.add_multi(
             objectives,
-            |os, a, b| dominance_order(a, b, os.iter().map(|o| |a, b| o.fitness(a).total_cmp(&o.fitness(b)))),
+            |os, a, b| {
+                let fitness = |solution| os.iter().map(|objective| objective.fitness(solution)).sum::<Float>();
+                compare_fitness(fitness(a), fitness(b))
+            },
             |os, move_ctx| os.iter().map(|o| o.estimate(move_ctx)).sum(),
         ),
 
@@ -317,16 +320,34 @@ fn eval_multi_objective_strategy(
                 .into());
             }
 
+            let fitness_weights = weights.clone();
+            let estimate_weights = weights.clone();
+
             builder.add_multi(
                 objectives,
-                |os, a, b| dominance_order(a, b, os.iter().map(|o| |a, b| o.fitness(a).total_cmp(&o.fitness(b)))),
-                {
-                    let weights = weights.clone();
-                    move |os, move_ctx| os.iter().enumerate().map(|(idx, o)| o.estimate(move_ctx) * weights[idx]).sum()
+                move |os, a, b| {
+                    let fitness = |solution| {
+                        os.iter()
+                            .zip(&fitness_weights)
+                            .map(|(objective, weight)| objective.fitness(solution) * weight)
+                            .sum::<Float>()
+                    };
+                    compare_fitness(fitness(a), fitness(b))
+                },
+                move |os, move_ctx| {
+                    os.iter()
+                        .zip(&estimate_weights)
+                        .map(|(objective, weight)| objective.estimate(move_ctx) * weight)
+                        .sum()
                 },
             )
         }
     })
+}
+
+fn compare_fitness(left: Float, right: Float) -> Ordering {
+    // Signed zero has no semantic difference in an objective value.
+    if left == 0. && right == 0. { Ordering::Equal } else { left.total_cmp(&right) }
 }
 
 fn get_capacity_feature(
