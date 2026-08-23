@@ -1,6 +1,7 @@
 use crate::plots::*;
 
 mod draw_fitness;
+mod draw_gsom;
 mod draw_population;
 mod draw_search;
 mod draw_solution;
@@ -18,7 +19,8 @@ pub fn draw_population<B: DrawingBackend + 'static>(
             draw_solution::draw_on_area(&area, &solution_config)?;
         }
         (PopulationSeries::Rosomaxa { .. }, Some(solution_config)) => {
-            let (left, right) = area.split_horizontally(50.percent_width());
+            let left_width = (area.dim_in_pixel().0 as Float * solution_config.area_ratio.clamp(0., 1.)).round() as u32;
+            let (left, right) = area.split_horizontally(left_width);
             draw_solution::draw_on_area(&left, &solution_config)?;
             draw_population::draw_on_area(&right, &population_config)?;
         }
@@ -35,6 +37,15 @@ pub fn draw_fitness<B: DrawingBackend + 'static>(
     fitness_config: FitnessDrawConfig,
 ) -> DrawResult<()> {
     draw_fitness::draw_on_area(&area, &fitness_config)
+}
+
+pub fn draw_gsom_statistics<B: DrawingBackend + 'static>(
+    area: DrawingArea<B, Shift>,
+    config: GsomDrawConfig,
+) -> DrawResult<()> {
+    draw_gsom::draw_on_area(&area, &config)?;
+    area.present()?;
+    Ok(())
 }
 
 pub fn draw_search_iteration<B: DrawingBackend + 'static>(

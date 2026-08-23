@@ -1,6 +1,7 @@
-# Description
+# Heuristic research playground
 
-This crate is, essentially, a heuristic research playground.
+This crate runs vector-function and VRP experiments and visualizes the population, objective convergence,
+hyper-heuristic telemetry, and GSOM topology over generations.
 
 
 ## Build
@@ -15,7 +16,30 @@ basic-http-server
 # open http://127.0.0.1:4000/www/
 ```
 
-## TODO
+The solver runs in a web worker, so the page can report progress and cancel a run without freezing its controls.
+Long runs retain roughly 250 population/GSOM snapshots and two dozen larger VRP footprint snapshots. The generation
+slider resolves to the nearest retained snapshot.
 
-- refactor html-css-js scripts to avoid duplication
-- add more insights from heuristic
+## Reading the GSOM views
+
+The population map shows objective planes and the neighbor-distance, hit, and error matrices for the selected generation. Fitness
+arrows point from a worse occupied node towards a better neighbor; a red cross marks an occupied node with no better
+four-neighbor and is used as a local-basin proxy. In exploitation the network is inactive, so the UI retains and labels
+the last exploration map instead of displaying a misleading blank map.
+
+For VRP experiments a compact left-hand surface retains the aggregate directed-edge footprint as a coarse reminder of
+population structure, while GSOM receives most of the canvas. Peaks show how many stored population members use each
+directed edge. Its axes are location identifiers rather than spatial coordinates, so apparent geometric proximity is
+not meaningful.
+
+The GSOM evolution tab separates several concerns which a single node count hides:
+
+- total versus occupied nodes indicates storage utilization;
+- recently hit nodes and their ratio indicate how broadly selection/training still touches the map;
+- local fitness sinks approximate how many distinct promising regions the topology exposes;
+- bounding-box density reveals sparse expansion or fragmentation;
+- map MSE and learning rate show representation error and adaptation pressure;
+- sudden node-count drops expose compaction events and their effect on occupied regions and basins.
+
+These are diagnostics, not optimization objectives. In particular, more basin proxies can also mean fragmentation or
+low-quality isolated nodes; interpret them together with the best-fitness curve and objective planes.

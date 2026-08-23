@@ -59,26 +59,45 @@ fn draw_bar_plot<B: DrawingBackend + 'static>(
 ) -> DrawResult<()> {
     area.fill(&WHITE)?;
 
-    let max_x = data.iter().copied().max_by(|a, b| a.total_cmp(b)).unwrap_or(1.);
-    let max_y = data.len() - 1;
-    // TODO: improve font size detection
-    let font_size = if max_y < TOP_SIZE { 16 } else { 6 };
+    if data.is_empty() {
+        area.draw(&Text::new(
+            "No heuristic telemetry at this generation",
+            (20, 30),
+            ("sans-serif", 16).into_font().color(&BLACK),
+        ))?;
+        return Ok(());
+    }
+
+    let max_x = data.iter().copied().max_by(|a, b| a.total_cmp(b)).unwrap_or(1.).max(Float::EPSILON) * 1.05;
+    let max_y = data.len();
 
     let mut chart = ChartBuilder::on(area)
+        .margin(10)
+        .set_label_area_size(LabelAreaPosition::Left, 300)
         .set_label_area_size(LabelAreaPosition::Bottom, 40)
         .build_cartesian_2d(0.0..max_x, (0..max_y).into_segmented())?;
 
-    chart.configure_mesh().draw()?;
+    chart
+        .configure_mesh()
+        .disable_y_mesh()
+        .y_labels(max_y)
+        .label_style(("sans-serif", 14))
+        .y_label_formatter(&|position| match position {
+            SegmentValue::CenterOf(index) => index
+                .checked_add(1)
+                .and_then(|index| max_y.checked_sub(index))
+                .and_then(|index| labels.get(index))
+                .cloned()
+                .unwrap_or_default(),
+            _ => String::new(),
+        })
+        .draw()?;
 
-    chart.draw_series((0..).zip(data.iter()).map(|(y, x)| {
+    chart.draw_series(data.iter().rev().enumerate().map(|(y, x)| {
         let mut bar =
             Rectangle::new([(0.0, SegmentValue::Exact(y)), (*x, SegmentValue::Exact(y + 1))], BLUE_200.filled());
         bar.set_margin(2, 2, 0, 0);
         bar
-    }))?;
-
-    chart.draw_series((0..).zip(labels.iter()).map(|(y, label)| {
-        Text::new(label.clone(), (0.0, SegmentValue::Exact(y + 1)), ("sans-serif", font_size).into_font().color(&BLACK))
     }))?;
 
     Ok(())

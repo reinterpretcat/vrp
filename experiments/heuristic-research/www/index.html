@@ -3,169 +3,200 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Heuristic Research Playground: 3D vector data</title>
+    <title>Heuristic Research Playground</title>
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+<noscript>This playground requires JavaScript and WebAssembly.</noscript>
 <script src="bootstrap.js"></script>
+
+<header class="hero">
+    <div>
+        <p class="eyebrow">Rosomaxa research tools</p>
+        <h1>Heuristic Research Playground</h1>
+        <p class="subtitle">Inspect convergence, heuristic behavior, and GSOM topology without blocking the browser.</p>
+    </div>
+    <span id="wasmStatus" class="badge badge-loading">Loading WebAssembly</span>
+</header>
+
 <main>
-    <h1>🔬 Heuristic Research Playground</h1>
+    <section class="configuration-grid" aria-label="Experiment configuration">
+        <article class="panel">
+            <div class="panel-heading">
+                <span class="step">1</span>
+                <div><h2>Experiment</h2><p>Choose the search space and input.</p></div>
+            </div>
 
-    <div class="row">
-        <!-- Benchmark Configuration -->
-        <div class="column controls-panel">
-            <div class="control-group">
-                <div class="select-wrap">
-                    <label>Benchmark Type</label>
-                    <select id="benchmarkType">
-                        <option value="function">Function Optimization</option>
-                        <option value="vrp">Vehicle Routing Problem</option>
+            <label class="field">
+                <span>Benchmark type</span>
+                <select id="benchmarkType">
+                    <option value="function">Function optimization</option>
+                    <option value="vrp">Vehicle routing problem</option>
+                </select>
+            </label>
+
+            <div id="functionControls" class="stack">
+                <label class="field">
+                    <span>Function</span>
+                    <select id="plotFunction">
+                        <option value="rosenbrock">Rosenbrock</option>
+                        <option value="rastrigin">Rastrigin</option>
+                        <option value="himmelblau">Himmelblau</option>
+                        <option value="ackley">Ackley</option>
+                        <option value="matyas">Matyas</option>
+                        <option value="branin">Branin</option>
+                        <option value="six_hump_camel">Six-hump camel</option>
+                        <option value="goldstein_price">Goldstein–Price</option>
+                        <option value="easom">Easom</option>
+                        <option value="eggholder">Eggholder</option>
+                        <option value="bukin6">Bukin N.6</option>
                     </select>
-                </div>
+                </label>
+
+                <fieldset class="fieldset">
+                    <legend>Starting point</legend>
+                    <div class="segmented" role="radiogroup" aria-label="Starting point mode">
+                        <label><input type="radio" name="startMode" value="random" checked><span>Random</span></label>
+                        <label><input type="radio" name="startMode" value="manual"><span>Manual</span></label>
+                    </div>
+                    <div id="manualPointControls" class="coordinate-grid hide">
+                        <label class="field compact"><span>X</span><input type="number" id="initX" step="0.1" value="0"></label>
+                        <label class="field compact"><span>Z</span><input type="number" id="initZ" step="0.1" value="0"></label>
+                    </div>
+                    <p id="functionDomain" class="hint"></p>
+                </fieldset>
             </div>
 
-            <div id="functionControls" class="benchmark-controls">
-                <div class="control-group">
-                    <div class="select-wrap">
-                        <label>Function</label>
-                        <select id="plotFunction">
-                            <option value="rosenbrock">Rosenbrock</option>
-                            <option value="rastrigin">Rastrigin</option>
-                            <option value="himmelblau">Himmelblau</option>
-                            <option value="ackley">Ackley</option>
-                            <option value="matyas">Matyas</option>
-                            <option value="branin">Branin</option>
-                            <option value="six_hump_camel">Six-hump camel</option>
-                            <option value="goldstein_price">Goldstein–Price</option>
-                            <option value="easom">Easom</option>
-                            <option value="eggholder">Eggholder</option>
-                            <option value="bukin6">Bukin N.6</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="control-group" style="min-height: 60px;">
-                    <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
-                        <input type="checkbox" id="autoInitPoint" checked>
-                        <span style="font-size: 11px;">Random Initial Point</span>
-                    </label>
-                    
-                    <div id="manualPointControls" class="hide">
-                        <div class="control-row" style="gap: 6px;">
-                            <div style="flex: 1;">
-                                <input type="number" id="initX" step="0.1" value="0" 
-                                       placeholder="X" 
-                                       style="width: 100%; padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px;">
-                            </div>
-                            <div style="flex: 1;">
-                                <input type="number" id="initZ" step="0.1" value="0" 
-                                       placeholder="Z"
-                                       style="width: 100%; padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px;">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="vrpControls" class="benchmark-controls hide">
-                <div class="control-group">
-                    <div class="select-wrap">
-                        <label>Format</label>
-                        <select id="vrpFormat">
-                            <option value="tsplib">TSPLIB95</option>
-                            <option value="solomon">Solomon</option>
-                            <option value="lilim">LiLim</option>
-                            <option value="state">Heuristic State</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="control-group">
-                    <div class="input-container">
-                        <input type="file" id="fileSelector" accept='.txt,.vrp,.json'>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Algorithm Parameters -->
-        <div class="column controls-panel">
-            <div class="control-group">
-                <div class="select-wrap">
-                    <label>Population Type</label>
-                    <select id="plotPopulation">
-                        <option value="rosomaxa">Rosomaxa</option>
-                        <option value="elitism">Elitism</option>
-                        <option value="greedy">Greedy</option>
+            <div id="vrpControls" class="stack hide">
+                <label class="field">
+                    <span>Format</span>
+                    <select id="vrpFormat">
+                        <option value="tsplib">TSPLIB95</option>
+                        <option value="solomon">Solomon</option>
+                        <option value="lilim">Li &amp; Lim</option>
+                        <option value="state">Saved heuristic state</option>
                     </select>
+                </label>
+                <label class="file-field">
+                    <span>Problem or state file</span>
+                    <input type="file" id="fileSelector" accept=".txt,.vrp,.json,.log">
+                </label>
+                <p id="fileInfo" class="hint">No file selected.</p>
+            </div>
+        </article>
+
+        <article class="panel">
+            <div class="panel-heading">
+                <span class="step">2</span>
+                <div><h2>Search</h2><p>Configure the population and run budget.</p></div>
+            </div>
+
+            <label class="field">
+                <span>Population</span>
+                <select id="plotPopulation">
+                    <option value="rosomaxa">Rosomaxa</option>
+                    <option value="elitism">Elitism</option>
+                    <option value="greedy">Greedy</option>
+                </select>
+            </label>
+            <label class="field">
+                <span>Generation limit</span>
+                <input type="number" id="maxGenerations" min="1" step="100" value="2000">
+            </label>
+
+            <div class="action-row">
+                <button type="button" id="run" class="button button-primary">Run experiment</button>
+                <button type="button" id="cancel" class="button button-secondary hide">Cancel</button>
+            </div>
+            <div id="status" class="status-box" role="status">Ready to run.</div>
+        </article>
+    </section>
+
+    <section id="progressPanel" class="panel progress-panel hide" aria-live="polite">
+        <div class="progress-heading">
+            <div><p class="eyebrow">Run progress</p><h2 id="progressTitle">No active run</h2></div>
+            <span id="runState" class="badge">Idle</span>
+        </div>
+        <div class="progress-track" aria-hidden="true"><div id="progressBar" class="progress-value"></div></div>
+        <div class="metric-grid progress-metrics">
+            <div><span>Generation</span><strong id="progressGeneration">—</strong></div>
+            <div><span>Phase</span><strong id="progressPhase">—</strong></div>
+            <div><span>Best fitness</span><strong id="progressFitness">—</strong></div>
+            <div><span>Elapsed</span><strong id="progressElapsed">—</strong></div>
+        </div>
+        <p id="liveLog" class="live-log">Progress messages from the solver will appear here.</p>
+    </section>
+
+    <section id="insights" class="metric-grid insight-grid hide" aria-label="Generation summary">
+        <article><span>Phase</span><strong id="summaryPhase">—</strong><small id="summarySnapshot">—</small></article>
+        <article><span>Best fitness</span><strong id="summaryFitness">—</strong><small>Lexicographic objective vector</small></article>
+        <article><span>Population</span><strong id="summaryPopulation">—</strong><small id="summaryStorage">—</small></article>
+        <article><span>GSOM topology</span><strong id="summaryGsom">—</strong><small id="summaryGsomDetail">—</small></article>
+    </section>
+
+    <section id="canvasTab" class="visualization">
+        <div id="generationControl" class="generation-panel hide">
+            <div class="generation-heading">
+                <div><p class="eyebrow">Recorded result</p><h2>Generation <span id="currentGen">0</span> <small>/ <span id="maxGen">0</span></small></h2></div>
+                <div class="generation-actions">
+                    <label class="field compact generation-input"><span>Go to</span><input type="number" id="generationNumber" min="0" value="0"></label>
+                    <button type="button" id="latestGeneration" class="button button-secondary">Latest</button>
                 </div>
             </div>
-
-            <div class="control-group">
-                <label style="font-size: 10px; margin-bottom: 4px;">Max Generations</label>
-                <input type="number" id="maxGenerations" min="100" max="10000" step="100" value="2000" 
-                       style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px;">
+            <input type="range" min="0" max="1" id="generations" value="0">
+            <p id="snapshotInfo" class="hint">Move the slider or use arrow keys to inspect the run.</p>
+        </div>
+        <div class="tab" role="tablist" aria-label="Experiment visualizations">
+            <button id="solutionTabButton" class="tablinks active" data-tab="solution" role="tab">Population map</button>
+            <button id="gsomTabButton" class="tablinks" data-tab="gsom" role="tab">GSOM evolution</button>
+            <button id="fitnessTabButton" class="tablinks" data-tab="fitness" role="tab">Best fitness</button>
+            <button id="searchTabButton" class="tablinks" data-tab="search" role="tab">Latest rewards</button>
+            <button id="bestTabButton" class="tablinks" data-tab="best" role="tab">Best discoveries</button>
+            <button id="overallTabButton" class="tablinks" data-tab="overall" role="tab">Operator calls</button>
+            <button id="durationTabButton" class="tablinks" data-tab="duration" role="tab">Operator duration</button>
+        </div>
+        <div class="chart-context">
+            <p id="chartHelp" class="chart-help"></p>
+            <p id="renderInfo" class="render-info">Only the visible chart is rendered.</p>
+        </div>
+        <details id="gsomGuide" class="chart-guide">
+            <summary>How to read the GSOM state</summary>
+            <div class="guide-grid">
+                <div id="footprintGuide"><strong>VRP edge footprint</strong><span>The compact left surface aggregates directed edges over stored solutions. Peak height is the number of population members using an edge; axes are location indices, not geography.</span></div>
+                <div><strong>Objective planes</strong><span>Best stored fitness at each occupied node. White cells have no stored solution.</span></div>
+                <div><strong>Map distance</strong><span>Average feature distance to neighboring nodes. High values often separate regions of the learned topology.</span></div>
+                <div><strong>Fitness flow</strong><span>Arrows point to a better cardinal neighbor. A red cross is a local sink proxy, not proof of a search-space basin.</span></div>
+                <div><strong>Total / recent hits</strong><span>Long-term training usage versus activity in the current hit-memory window.</span></div>
+                <div><strong>Node error</strong><span>Local quantization error. The caption also reports network-wide MSE and current learning rate.</span></div>
+                <div><strong>Inactive snapshot</strong><span>During exploitation Rosomaxa no longer trains GSOM, so the last exploration map is shown and marked inactive.</span></div>
             </div>
-
-            <div class="hide" id="generationControl" style="margin-top: 8px;">
-                <label style="font-size: 10px;">Generation: <span id="currentGen">0</span> / <span id="maxGen">0</span></label>
-                <input type="range" min="1" max="1000" id="generations" value="0" />
+        </details>
+        <div id="solutionTab" class="tabcontent active" role="tabpanel">
+            <div id="projectionControls" class="plot-toolbar">
+                <span id="projectionTitle" class="plot-toolbar-title">Objective surface view</span>
+                <label class="field compact range-field">
+                    <span>Pitch <output id="pitchValue">0.10</output></span>
+                    <input type="range" min="0" max="157" id="pitch" value="10">
+                </label>
+                <label class="field compact range-field">
+                    <span>Yaw <output id="yawValue">0.50</output></span>
+                    <input type="range" min="0" max="314" id="yaw" value="50">
+                </label>
             </div>
-
+            <canvas id="solutionCanvas" width="1000" height="620"></canvas>
         </div>
-
-        <!-- Visualization Controls -->
-        <div class="column controls-panel">
-            <div class="control-row" style="gap: 8px;">
-                <div class="control-group flex-1">
-                    <label style="font-size: 10px;">Pitch <span id="pitchValue">0.10</span></label>
-                    <input type="range" min="0" max="157" id="pitch" value="10" />
-                </div>
-                <div class="control-group flex-1">
-                    <label style="font-size: 10px;">Yaw <span id="yawValue">0.50</span></label>
-                    <input type="range" min="0" max="314" id="yaw" value="50" />
-                </div>
-            </div>
-
-            <div id="status" class="status-box" style="margin-top: 8px;">Loading WebAssembly...</div>
-            <button type="button" id="run" class="block run-button" style="margin-top: 12px;">▶ Run Experiment</button>
-        </div>
-    </div>
-
-    <!-- horizontal tabulation with canvases -->
-    <div id="canvasTab">
-        <div class="tab">
-            <button id="solutionTabButton" class="tablinks">Solution Space</button>
-            <button id="searchTabButton" class="tablinks">Search Iteration</button>
-            <button id="overallTabButton" class="tablinks">Overall Stats</button>
-            <button id="bestTabButton" class="tablinks">Best Stats</button>
-            <button id="durationTabButton" class="tablinks">Duration Stats</button>
-            <button id="fitnessTabButton" class="tablinks">Best Fitness</button>
-        </div>
-        <div id="solutionTab" class="tabcontent">
-            <canvas id="solutionCanvas" width="800" height="600"></canvas>
-        </div>
-        <div id="searchTab" class="tabcontent">
-            <canvas id="searchCanvas" width="800" height="400"></canvas>
-        </div>
-        <div id="bestTab" class="tabcontent">
-            <canvas id="bestCanvas" width="800" height="600"></canvas>
-        </div>
-        <div id="durationTab" class="tabcontent">
-            <canvas id="durationCanvas" width="800" height="600"></canvas>
-        </div>
-        <div id="overallTab" class="tabcontent">
-            <canvas id="overallCanvas" width="800" height="600"></canvas>
-        </div>
-        <div id="fitnessTab" class="tabcontent">
-            <canvas id="fitnessCanvas" width="800" height="600"></canvas>
-        </div>
-    </div>
+        <div id="gsomTab" class="tabcontent" role="tabpanel"><canvas id="gsomCanvas" width="1000" height="680"></canvas></div>
+        <div id="fitnessTab" class="tabcontent" role="tabpanel"><canvas id="fitnessCanvas" width="1000" height="560"></canvas></div>
+        <div id="searchTab" class="tabcontent" role="tabpanel"><canvas id="searchCanvas" width="1000" height="520"></canvas></div>
+        <div id="bestTab" class="tabcontent" role="tabpanel"><canvas id="bestCanvas" width="1000" height="560"></canvas></div>
+        <div id="overallTab" class="tabcontent" role="tabpanel"><canvas id="overallCanvas" width="1000" height="560"></canvas></div>
+        <div id="durationTab" class="tabcontent" role="tabpanel"><canvas id="durationCanvas" width="1000" height="560"></canvas></div>
+    </section>
 </main>
+
 <footer>
-    <a href="https://github.com/reinterpretcat/vrp" target="a">Repo</a> |
-    <a href="https://crates.io/crates/vrp-cli" target="a">Crates</a> |
-    <a href="https://docs.rs/vrp-core" target="a">Docs</a>
+    <a href="https://github.com/reinterpretcat/vrp" target="_blank" rel="noreferrer">Repository</a>
+    <a href="https://docs.rs/vrp-core" target="_blank" rel="noreferrer">API documentation</a>
 </footer>
 </body>
 </html>

@@ -33,7 +33,11 @@ fn main() {
     let pitch = 0.;
     let yaw = 0.;
     let area = BitMapBackend::new("population_plots.png", (800, 400)).into_drawing_area();
-    draw_population_plots(area, generation, pitch, yaw, axes, function_name).unwrap();
+    if function_name == "vrp" {
+        draw_vrp_population_plots(area, generation, pitch, yaw).unwrap();
+    } else {
+        draw_population_plots(area, generation, pitch, yaw, axes, function_name).unwrap();
+    }
 
     let area = BitMapBackend::new("fitness_plot.png", (800, 400)).into_drawing_area();
     draw_fitness_plots(area, function_name).unwrap();

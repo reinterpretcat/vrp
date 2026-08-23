@@ -28,6 +28,8 @@ pub struct Projection {
 pub struct SolutionDrawConfig {
     /// Chart caption.
     pub caption: String,
+    /// Fraction of a combined population plot reserved for this view.
+    pub area_ratio: Float,
     /// Axes configuration
     pub axes: Axes,
     /// Projection configuration.
@@ -48,8 +50,8 @@ pub struct Axes {
 
 /// A series configuration.
 pub struct Series3D {
-    /// Surface function.
-    pub surface: Box<dyn Fn(Float, Float) -> Float>,
+    /// Optional surface function.
+    pub surface: Option<Box<dyn Fn(Float, Float) -> Float>>,
     /// Points iterator.
     pub points: Box<dyn Fn() -> Vec<ColoredDataPoint3D>>,
 }
@@ -58,6 +60,8 @@ pub struct Series3D {
 pub struct PopulationDrawConfig {
     /// Series configuration.
     pub series: PopulationSeries,
+    /// Labels of objective fitness planes.
+    pub fitness_labels: Vec<String>,
 }
 
 /// A population series.
@@ -66,14 +70,18 @@ pub enum PopulationSeries {
     Unknown,
     /// Rosomaxa population type.
     Rosomaxa {
+        /// Generation represented by this GSOM snapshot.
+        generation: usize,
+        /// True when a later generation has no active GSOM and the last exploration snapshot is shown.
+        is_stale: bool,
         /// Rows range.
         rows: Range<i32>,
         /// Columns range.
         cols: Range<i32>,
         /// MSE distance.
         mse: Float,
-        /// Best fitness values.
-        fitness_values: Vec<Float>,
+        /// Learning rate.
+        learning_rate: Float,
         /// Objective values chart series.
         fitness_matrices: Vec<Series2D>,
         /// U-matrix values chart series.
@@ -113,6 +121,34 @@ pub struct SearchDrawConfig {
 
 /// A series configuration.
 pub struct Series2D {
-    /// A matrix data receiver function.
-    pub matrix_fn: Box<dyn Fn() -> MatrixData>,
+    /// Matrix data.
+    pub matrix: MatrixData,
+}
+
+/// GSOM topology metrics captured at one generation.
+pub struct GsomStatePoint {
+    /// Generation.
+    pub generation: usize,
+    /// Total map nodes.
+    pub nodes: usize,
+    /// Nodes containing at least one solution.
+    pub occupied_nodes: usize,
+    /// Nodes hit within the GSOM hit-memory window.
+    pub active_nodes: usize,
+    /// Map-local fitness sinks used as basin proxies.
+    pub sink_proxies: usize,
+    /// Fraction of the map bounding box occupied by nodes.
+    pub density: Float,
+    /// Fraction of nodes hit recently.
+    pub active_ratio: Float,
+    /// Mean squared map error.
+    pub mse: Float,
+    /// GSOM learning rate.
+    pub learning_rate: Float,
+}
+
+/// GSOM topology evolution drawing configuration.
+pub struct GsomDrawConfig {
+    /// Captured GSOM states.
+    pub points: Vec<GsomStatePoint>,
 }

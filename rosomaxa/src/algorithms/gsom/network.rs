@@ -14,7 +14,8 @@ use std::iter::once;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-type NodeHashMap<I, S> = HashMap<Coordinate, Node<I, S>, BuildHasherDefault<FxHasher>>;
+type CoordinateHashMap<T> = HashMap<Coordinate, T, BuildHasherDefault<FxHasher>>;
+type NodeHashMap<I, S> = CoordinateHashMap<Node<I, S>>;
 
 /// A customized Growing Self Organizing Map designed to store and retrieve trained input.
 pub struct Network<C, I, S, F>
@@ -520,7 +521,7 @@ where
 
         // create initial node coordinates and data assignments (by index)
         let grid_size = (initial_node_indices.len() as f64).sqrt().ceil() as i32;
-        let mut node_assignments: HashMap<Coordinate, Vec<usize>> = initial_node_indices
+        let mut node_assignments: CoordinateHashMap<Vec<usize>> = initial_node_indices
             .iter()
             .enumerate()
             .map(|(grid_idx, &data_idx)| {

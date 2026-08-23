@@ -4,10 +4,10 @@ use rosomaxa::population::{Alternative, Rosomaxa, RosomaxaContext, RosomaxaSolut
 use rosomaxa::prelude::*;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::any::TypeId;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::ops::Range;
-use vrp_scientific::core::models::common::{Footprint, Shadow};
+use vrp_scientific::core::models::common::Shadow;
 
 /// Represents population state specific for supported types.
 #[allow(clippy::large_enum_variant)]
@@ -26,6 +26,9 @@ pub enum PopulationState {
         cols: Range<i32>,
         /// MSE distance.
         mse: Float,
+        /// Current GSOM learning rate.
+        #[serde(default)]
+        learning_rate: Float,
         /// Best fitness values.
         fitness_values: Vec<Float>,
         /// Overall fitness values data split into separate matrices.
@@ -69,6 +72,7 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<Float>
         rows,
         cols,
         mse: 0.,
+        learning_rate: network_state.learning_rate,
         fitness_values,
         fitness_matrices: Default::default(),
         u_matrix: Default::default(),
@@ -127,9 +131,9 @@ pub struct HyperHeuristicState {
     /// Unique state names.
     pub states: HashMap<String, usize>,
     /// Search states at specific generations.
-    pub search_states: HashMap<usize, Vec<SearchResult>>,
+    pub search_states: BTreeMap<usize, Vec<SearchResult>>,
     /// Heuristic states at specific generations.
-    pub heuristic_states: HashMap<usize, Vec<HeuristicResult>>,
+    pub heuristic_states: BTreeMap<usize, Vec<HeuristicResult>>,
 }
 
 impl HyperHeuristicState {
@@ -145,7 +149,7 @@ impl HyperHeuristicState {
             };
 
             let mut search_states = data.lines().skip(3).take_while(|line| *line != "heuristic:").fold(
-                HashMap::<_, Vec<_>>::new(),
+                BTreeMap::<_, Vec<_>>::new(),
                 |mut data, line| {
                     let fields: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
                     let name = fields[0].clone();
@@ -172,7 +176,7 @@ impl HyperHeuristicState {
 
             let mut heuristic_states =
                 data.lines().skip_while(|line| *line != "heuristic:").skip(2).take_while(|line| !line.is_empty()).fold(
-                    HashMap::<_, Vec<_>>::new(),
+                    BTreeMap::<_, Vec<_>>::new(),
                     |mut data, line| {
                         let fields: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
 
@@ -205,54 +209,49 @@ impl HyperHeuristicState {
     }
 }
 
+/// Aggregate directed-edge footprint of the recorded VRP population.
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct FootprintState {
     repr: HashMap<FootprintKey, u8>,
+    #[serde(default)]
+    dimension: usize,
 }
 
 impl FootprintState {
-    pub fn apply(&mut self, shadow_state: &ShadowState) {
-        shadow_state.shadow.iter().flat_map(|shadow| shadow.iter()).for_each(|((from, to), bit)| {
+    pub(crate) fn apply_shadow(&mut self, shadow: &Shadow) {
+        self.dimension = self.dimension.max(shadow.dimension());
+        shadow.iter().for_each(|((from, to), bit)| {
             self.repr
                 .entry(FootprintKey(from, to))
                 .and_modify(|value| *value = value.saturating_add(bit as u8))
                 .or_insert(bit as u8);
-        })
+        });
     }
 
-    pub fn get(&self, from: usize, to: usize) -> u8 {
+    pub(crate) fn edge_count(&self) -> usize {
+        self.repr.values().filter(|value| **value > 0).count()
+    }
+
+    pub(crate) fn dimension(&self) -> usize {
+        if self.dimension > 0 {
+            self.dimension
+        } else {
+            self.repr.keys().map(|FootprintKey(from, to)| from.max(to) + 1).max().unwrap_or_default()
+        }
+    }
+
+    pub(crate) fn max_value(&self) -> u8 {
+        self.repr.values().copied().max().unwrap_or_default()
+    }
+
+    pub(crate) fn get(&self, from: usize, to: usize) -> u8 {
         self.repr.get(&FootprintKey(from, to)).copied().unwrap_or_default()
     }
-
-    pub fn desc(&self) -> String {
-        self.repr.iter().filter(|(_, v)| **v > 0).count().to_string()
-    }
 }
 
-impl From<&Footprint> for FootprintState {
-    fn from(footprint: &Footprint) -> Self {
-        Self { repr: footprint.iter().map(|((x, y), v)| (FootprintKey(x, y), v)).collect() }
-    }
-}
-
+/// Legacy serialized VRP observation kept so older experiment states remain readable.
 #[derive(Default, Serialize, Deserialize)]
-pub struct ShadowState {
-    // NOTE use original shadow as more space efficient representation.
-    #[serde(skip)]
-    shadow: Option<Shadow>,
-}
-
-impl From<&Shadow> for ShadowState {
-    fn from(shadow: &Shadow) -> Self {
-        Self { shadow: Some(shadow.clone()) }
-    }
-}
-
-impl ShadowState {
-    pub fn dimension(&self) -> usize {
-        self.shadow.as_ref().map(|shadow| shadow.dimension()).unwrap_or_default()
-    }
-}
+pub struct ShadowState {}
 
 // NOTE non-string keys requires some special handling
 #[derive(Clone, Default, Hash, Eq, PartialEq)]
@@ -286,5 +285,17 @@ impl<'de> Deserialize<'de> for FootprintKey {
         let x = parts[0].parse().map_err(serde::de::Error::custom)?;
         let y = parts[1].parse().map_err(serde::de::Error::custom)?;
         Ok(FootprintKey(x, y))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn infers_dimension_for_legacy_footprint() {
+        let state = FootprintState { repr: [(FootprintKey(1, 4), 1)].into_iter().collect(), dimension: 0 };
+
+        assert_eq!(state.dimension(), 5);
     }
 }

@@ -8,5 +8,5 @@ fn can_get_state() {
     let state = get_network_state(&network);
 
     assert_eq!(state.nodes.len(), 4);
-    assert_eq!(state.shape, (0..1, 0..1, 3));
+    assert_eq!(state.shape, (0..2, 0..2, 3));
 }

@@ -9,7 +9,7 @@ use std::ops::Range;
 
 /// Represents state of the network.
 pub struct NetworkState {
-    /// Shape of the network as (rows, cols, num of weights).
+    /// Shape of the network as (rows, cols, num of weights), using exclusive upper bounds.
     pub shape: (Range<i32>, Range<i32>, usize),
     /// Mean squared error of the network.
     pub mse: Float,
@@ -69,7 +69,12 @@ where
 
     let dim = nodes.first().map_or(0, |node| node.weights.len());
 
-    NetworkState { shape: (x_min..x_max, y_min..y_max, dim), nodes, mse, learning_rate: network.get_learning_rate() }
+    NetworkState {
+        shape: (x_min..x_max.saturating_add(1), y_min..y_max.saturating_add(1), dim),
+        nodes,
+        mse,
+        learning_rate: network.get_learning_rate(),
+    }
 }
 
 /// Gets network's shape: min-max coordinate indices.

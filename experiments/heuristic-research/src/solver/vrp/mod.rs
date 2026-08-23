@@ -2,9 +2,6 @@
 #[path = "../../../tests/unit/solver/vrp/vrp_test.rs"]
 mod vrp_test;
 
-mod population;
-pub use self::population::{get_population_desc, get_population_fitness_fn};
-
 use super::*;
 use std::io::BufWriter;
 use vrp_scientific::core::models::common::Footprint;
@@ -43,8 +40,14 @@ pub fn solve_vrp(
         ..Environment::new_with_time_quota(Some(300))
     });
     let footprint = Footprint::new(problem.as_ref());
-    let population =
-        get_population(footprint, population_type, problem.goal.clone(), environment.clone(), selection_size);
+    let population = get_population(
+        footprint,
+        population_type,
+        problem.goal.clone(),
+        environment.clone(),
+        selection_size,
+        generations,
+    );
     let telemetry_mode = TelemetryMode::OnlyLogging { logger: logger.clone(), log_best: 100, log_population: 1000 };
 
     let config = VrpConfigBuilder::new(problem.clone())

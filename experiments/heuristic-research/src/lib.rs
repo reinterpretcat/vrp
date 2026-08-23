@@ -17,8 +17,9 @@ use wasm_bindgen::prelude::*;
 
 mod plots;
 pub use self::plots::{
-    Axes, draw_fitness_plots, draw_population_plots, draw_search_best_statistics_plots,
+    Axes, draw_fitness_plots, draw_gsom_statistics_plots, draw_population_plots, draw_search_best_statistics_plots,
     draw_search_duration_statistics_plots, draw_search_iteration_plots, draw_search_overall_statistics_plots,
+    draw_vrp_population_plots,
 };
 
 mod solver;
@@ -78,8 +79,29 @@ pub enum ObservationData {
     /// Observation for benchmarking 3D function experiment.
     Function(DataPoint3D),
 
-    /// Observation for Vehicle Routing Problem experiment.
+    /// Legacy VRP observation retained for saved-state compatibility.
     Vrp(ShadowState),
+}
+
+#[derive(Serialize)]
+struct ExperimentSummary {
+    generation: usize,
+    snapshot_generation: usize,
+    max_generations: usize,
+    recording_interval: usize,
+    snapshots: usize,
+    phase: String,
+    fitness: Vec<Float>,
+    population_size: usize,
+    gsom_generation: Option<usize>,
+    gsom_is_stale: bool,
+    gsom_nodes: usize,
+    gsom_occupied_nodes: usize,
+    gsom_active_nodes: usize,
+    gsom_sink_proxies: usize,
+    gsom_density: Float,
+    gsom_mse: Option<Float>,
+    gsom_learning_rate: Option<Float>,
 }
 
 lazy_static! {
@@ -130,16 +152,100 @@ pub fn run_vrp_experiment(format_type: &str, problem: &str, population_type: &st
     solve_vrp(format_type, problem, population_type, selection_size, generations, logger)
 }
 
+/// Serializes the current experiment data so it can be transferred from a worker to the UI thread.
+#[wasm_bindgen]
+pub fn get_experiment_state() -> Result<String, JsValue> {
+    let data = EXPERIMENT_DATA.lock().map_err(|_| JsValue::from_str("experiment data lock is poisoned"))?;
+    serde_json::to_string(data.deref()).map_err(|err| JsValue::from_str(&format!("cannot serialize experiment: {err}")))
+}
+
+/// Returns a compact summary for the requested generation.
+#[wasm_bindgen]
+pub fn get_experiment_summary(generation: usize) -> Result<String, JsValue> {
+    let data = EXPERIMENT_DATA.lock().map_err(|_| JsValue::from_str("experiment data lock is poisoned"))?;
+    let (snapshot_generation, current_state) = data
+        .population_state
+        .range(..=generation)
+        .next_back()
+        .ok_or_else(|| JsValue::from_str("no experiment snapshot is available"))?;
+    let fitness = match current_state {
+        PopulationState::Rosomaxa { fitness_values, .. } | PopulationState::Unknown { fitness_values } => {
+            fitness_values.clone()
+        }
+    };
+    let phase = data
+        .population_phases
+        .range(..=generation)
+        .next_back()
+        .map(|(_, phase)| phase.clone())
+        .unwrap_or_else(|| "unknown".to_string());
+    let population_size =
+        data.population_sizes.range(..=generation).next_back().map(|(_, size)| *size).unwrap_or_default();
+    let gsom = data.population_state.range(..=generation).rev().find_map(|(generation, state)| match state {
+        PopulationState::Rosomaxa { rows, cols, mse, learning_rate, fitness_matrices, u_matrix, l_matrix, .. } => {
+            Some((generation, rows, cols, mse, learning_rate, fitness_matrices, u_matrix, l_matrix))
+        }
+        PopulationState::Unknown { .. } => None,
+    });
+    let (
+        gsom_generation,
+        gsom_nodes,
+        gsom_occupied_nodes,
+        gsom_active_nodes,
+        gsom_sink_proxies,
+        gsom_density,
+        gsom_mse,
+        gsom_learning_rate,
+    ) = gsom.map_or(
+        (None, 0, 0, 0, 0, 0., None, None),
+        |(generation, rows, cols, mse, learning_rate, fitness, nodes, hits)| {
+            let node_count = nodes.len();
+            let cells =
+                ((rows.end - rows.start).max(1) as usize).saturating_mul((cols.end - cols.start).max(1) as usize);
+            (
+                Some(*generation),
+                node_count,
+                fitness.first().map_or(0, MatrixData::len),
+                hits.values().filter(|hits| **hits > 0.).count(),
+                plots::count_fitness_sinks(fitness),
+                node_count as Float / cells.max(1) as Float,
+                Some(*mse),
+                Some(*learning_rate),
+            )
+        },
+    );
+    let summary = ExperimentSummary {
+        generation,
+        snapshot_generation: *snapshot_generation,
+        max_generations: data.max_generations.max(data.generation),
+        recording_interval: data.recording_interval.max(1),
+        snapshots: data.population_state.len(),
+        phase,
+        fitness,
+        population_size,
+        gsom_generation,
+        gsom_is_stale: gsom_generation.is_some_and(|gsom_generation| gsom_generation < *snapshot_generation),
+        gsom_nodes,
+        gsom_occupied_nodes,
+        gsom_active_nodes,
+        gsom_sink_proxies,
+        gsom_density,
+        gsom_mse,
+        gsom_learning_rate,
+    };
+
+    serde_json::to_string(&summary).map_err(|err| JsValue::from_str(&format!("cannot serialize summary: {err}")))
+}
+
 /// Loads experiment data from json serialized representation.
 #[wasm_bindgen]
-pub fn load_state(data: &str) -> usize {
+pub fn load_state(data: &str) -> Result<usize, JsValue> {
     set_panic_hook_once();
-    match ExperimentData::try_from(data) {
-        Ok(data) => *EXPERIMENT_DATA.lock().unwrap() = data,
-        Err(err) => web_sys::console::log_1(&err.into()),
-    }
+    let data = ExperimentData::try_from(data).map_err(|err| JsValue::from_str(&err))?;
+    let generation = data.generation;
+    *EXPERIMENT_DATA.lock().map_err(|_| JsValue::from_str("experiment data lock is poisoned"))? = data;
 
-    EXPERIMENT_DATA.lock().unwrap().generation
+    Ok(generation)
 }
 
 /// Clears experiment data.
