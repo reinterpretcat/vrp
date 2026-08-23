@@ -34,11 +34,7 @@ pub fn solve_vrp(
 
     let problem = Arc::new(problem);
 
-    let environment = Arc::new(Environment {
-        logger: logger.clone(),
-        is_experimental,
-        ..Environment::new_with_time_quota(Some(300))
-    });
+    let environment = Arc::new(Environment { logger: logger.clone(), is_experimental, ..Environment::default() });
     let footprint = Footprint::new(problem.as_ref());
     let population = get_population(
         footprint,

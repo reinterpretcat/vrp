@@ -17,6 +17,7 @@ basic-http-server
 ```
 
 The solver runs in a web worker, so the page can report progress and cancel a run without freezing its controls.
+Experiments use the requested generation limit without an additional hidden wall-time cutoff.
 Long runs retain roughly 250 population/GSOM snapshots and two dozen larger VRP footprint snapshots. The generation
 slider resolves to the nearest retained snapshot.
 
