@@ -207,29 +207,107 @@ fn get_gsom_config(generation: usize) -> GsomDrawConfig {
 }
 
 pub(crate) fn count_fitness_sinks(fitness_matrices: &[MatrixData]) -> usize {
-    let Some(primary) = fitness_matrices.first() else { return 0 };
-    let get_fitness = |coordinate: &Coordinate| {
-        fitness_matrices.iter().map(|matrix| matrix.get(coordinate).copied()).collect::<Option<Vec<_>>>()
-    };
-    let compare = |left: &[Float], right: &[Float]| {
-        left.iter()
-            .zip(right)
-            .map(|(left, right)| left.total_cmp(right))
-            .find(|order| *order != std::cmp::Ordering::Equal)
-            .unwrap_or(std::cmp::Ordering::Equal)
+    let matrices = fitness_matrices.iter().collect::<Vec<_>>();
+    get_fitness_basins(matrices.as_slice()).sinks.len()
+}
+
+/// Describes the discrete downhill flow induced by objective values on occupied GSOM nodes.
+pub(crate) struct FitnessBasins {
+    /// Best cardinal neighbour for each node, or the node itself at a sink.
+    pub next: HashMap<Coordinate, Coordinate>,
+    /// Sink reached by following `next` from each occupied node.
+    pub sink_by_coordinate: HashMap<Coordinate, Coordinate>,
+    /// Number of downhill lattice steps from each node to its sink.
+    pub depth_by_coordinate: HashMap<Coordinate, usize>,
+    /// Unique sinks in stable coordinate order.
+    pub sinks: Vec<Coordinate>,
+}
+
+/// Partitions occupied nodes into map-local fitness basins using steepest cardinal descent.
+pub(crate) fn get_fitness_basins(fitness_matrices: &[&MatrixData]) -> FitnessBasins {
+    let Some(primary) = fitness_matrices.first() else {
+        return FitnessBasins {
+            next: HashMap::new(),
+            sink_by_coordinate: HashMap::new(),
+            depth_by_coordinate: HashMap::new(),
+            sinks: Vec::new(),
+        };
     };
 
-    primary
+    let compare = |left: &Coordinate, right: &Coordinate| {
+        fitness_matrices
+            .iter()
+            .map(|matrix| {
+                matrix
+                    .get(left)
+                    .expect("fitness planes use the same occupied coordinates")
+                    .total_cmp(matrix.get(right).expect("fitness planes use the same occupied coordinates"))
+            })
+            .find(|order| *order != std::cmp::Ordering::Equal)
+            // A stable tie break turns an equal-fitness plateau into one acyclic basin.
+            .unwrap_or_else(|| left.cmp(right))
+    };
+
+    let next = primary
         .keys()
-        .filter(|coordinate| {
-            let Coordinate(x, y) = **coordinate;
-            let current = get_fitness(coordinate).expect("fitness planes use the same occupied coordinates");
-            [Coordinate(x - 1, y), Coordinate(x + 1, y), Coordinate(x, y - 1), Coordinate(x, y + 1)]
-                .iter()
-                .filter_map(get_fitness)
-                .all(|neighbor| compare(&neighbor, &current) != std::cmp::Ordering::Less)
+        .map(|coordinate| {
+            let Coordinate(x, y) = *coordinate;
+            let best =
+                [*coordinate, Coordinate(x - 1, y), Coordinate(x + 1, y), Coordinate(x, y - 1), Coordinate(x, y + 1)]
+                    .into_iter()
+                    .filter(|candidate| primary.contains_key(candidate))
+                    .min_by(compare)
+                    .expect("the current coordinate is occupied");
+
+            (*coordinate, best)
         })
-        .count()
+        .collect::<HashMap<_, _>>();
+
+    let mut sink_by_coordinate = HashMap::with_capacity(next.len());
+    let mut depth_by_coordinate = HashMap::with_capacity(next.len());
+
+    for start in next.keys().copied() {
+        if sink_by_coordinate.contains_key(&start) {
+            continue;
+        }
+
+        let mut path = Vec::new();
+        let mut current = start;
+        loop {
+            if let Some(&sink) = sink_by_coordinate.get(&current) {
+                let mut depth = depth_by_coordinate[&current];
+                for coordinate in path.into_iter().rev() {
+                    depth += 1;
+                    sink_by_coordinate.insert(coordinate, sink);
+                    depth_by_coordinate.insert(coordinate, depth);
+                }
+                break;
+            }
+
+            let next_coordinate = next[&current];
+            if next_coordinate == current {
+                sink_by_coordinate.insert(current, current);
+                depth_by_coordinate.insert(current, 0);
+
+                let mut depth = 0;
+                for coordinate in path.into_iter().rev() {
+                    depth += 1;
+                    sink_by_coordinate.insert(coordinate, current);
+                    depth_by_coordinate.insert(coordinate, depth);
+                }
+                break;
+            }
+
+            path.push(current);
+            current = next_coordinate;
+        }
+    }
+
+    let mut sinks = sink_by_coordinate.values().copied().collect::<Vec<_>>();
+    sinks.sort_unstable();
+    sinks.dedup();
+
+    FitnessBasins { next, sink_by_coordinate, depth_by_coordinate, sinks }
 }
 
 /// Draws population plots on given area.
@@ -501,5 +579,27 @@ mod tests {
         let primary = [(Coordinate(0, 0), 1.), (Coordinate(2, 0), 2.)].into_iter().collect();
 
         assert_eq!(count_fitness_sinks(&[primary]), 2);
+    }
+
+    #[test]
+    fn partitions_fitness_flow_into_basins() {
+        let coordinates = (0..6).map(|x| Coordinate(x, 0)).collect::<Vec<_>>();
+        let primary = coordinates.iter().copied().zip([3., 2., 1., 3., 0., 2.]).collect();
+        let basins = get_fitness_basins(&[&primary]);
+
+        assert_eq!(basins.sinks, vec![Coordinate(2, 0), Coordinate(4, 0)]);
+        assert_eq!(basins.sink_by_coordinate[&Coordinate(0, 0)], Coordinate(2, 0));
+        assert_eq!(basins.sink_by_coordinate[&Coordinate(3, 0)], Coordinate(4, 0));
+        assert_eq!(basins.depth_by_coordinate[&Coordinate(0, 0)], 2);
+    }
+
+    #[test]
+    fn turns_equal_fitness_plateau_into_one_acyclic_basin() {
+        let primary = (0..3).map(|x| (Coordinate(x, 0), 1.)).collect();
+        let basins = get_fitness_basins(&[&primary]);
+
+        assert_eq!(basins.sinks, vec![Coordinate(0, 0)]);
+        assert_eq!(basins.next[&Coordinate(2, 0)], Coordinate(1, 0));
+        assert_eq!(basins.depth_by_coordinate[&Coordinate(2, 0)], 2);
     }
 }

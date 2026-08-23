@@ -1,7 +1,6 @@
 use super::*;
 use itertools::{Itertools, MinMaxResult};
 use rosomaxa::prelude::Float;
-use std::cmp::Ordering;
 
 /// Draws rosomaxa population state.
 pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
@@ -75,7 +74,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                 Ok(())
             };
 
-            // Draw local fitness flow between occupied cardinal neighbours.
+            // Draw the discrete fitness watershed induced by occupied cardinal neighbours.
             let draw_gradients =
                 |area: &mut DrawingArea<B, Shift>, caption: &str, series: &Vec<Series2D>| -> DrawResult<()> {
                     let vertical_offset = 21;
@@ -92,46 +91,22 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                         return Ok(());
                     }
 
-                    let get_fitness = |coord: &Coordinate| {
-                        series[0].matrix.get(coord).copied().map(|v| {
-                            std::iter::once(v)
-                                .chain((1..series.len()).map(move |idx| *series[idx].matrix.get(coord).unwrap()))
-                                .collect::<Vec<_>>()
-                        })
-                    };
-
-                    let compare_fitness = |left: &[Float], right: &[Float]| {
-                        (left.iter())
-                            .zip(right.iter())
-                            .map(|(lhs, rhs)| lhs.total_cmp(rhs))
-                            .find_or_first(|ord| *ord != Ordering::Equal)
-                            .unwrap_or(Ordering::Equal)
-                    };
-
-                    let to_relation = |left: &Coordinate, right: &Coordinate| {
-                        get_fitness(left)
-                            .zip(get_fitness(right))
-                            .map(|(left, right)| compare_fitness(left.as_slice(), right.as_slice()))
-                    };
+                    let matrices = series.iter().map(|series| &series.matrix).collect::<Vec<_>>();
+                    let basins = get_fitness_basins(matrices.as_slice());
+                    let max_depth = basins.depth_by_coordinate.values().copied().max().unwrap_or_default().max(1);
 
                     let to_points = |left: &Coordinate, right: &Coordinate| {
-                        to_relation(left, right).filter(|ord| *ord == Ordering::Greater).map(|_| {
-                            let x_step = x_step.round() as i32;
-                            let y_step = y_step.round() as i32;
+                        let x_step = x_step.round() as i32;
+                        let y_step = y_step.round() as i32;
 
-                            let (direction, line) = match (left.0 - right.0, left.1 - right.1) {
-                                (0, 1) => (ArrowDirection::Bottom, [(0, 0), (0, y_step)]),
-                                (0, -1) => (ArrowDirection::Top, [(0, 0), (0, -y_step)]),
-                                (1, 0) => (ArrowDirection::Left, [(0, 0), (-x_step, 0)]),
-                                (-1, 0) => (ArrowDirection::Right, [(0, 0), (x_step, 0)]),
-                                _ => unreachable!(),
-                            };
-                            (line, direction.get_points(1.))
-                        })
-                    };
-
-                    let get_neighbours = |x: i32, y: i32| {
-                        [Coordinate(x, y + 1), Coordinate(x, y - 1), Coordinate(x + 1, y), Coordinate(x - 1, y)]
+                        let (direction, line) = match (left.0 - right.0, left.1 - right.1) {
+                            (0, 1) => (ArrowDirection::Bottom, [(0, 0), (0, y_step)]),
+                            (0, -1) => (ArrowDirection::Top, [(0, 0), (0, -y_step)]),
+                            (1, 0) => (ArrowDirection::Left, [(0, 0), (-x_step, 0)]),
+                            (-1, 0) => (ArrowDirection::Right, [(0, 0), (x_step, 0)]),
+                            _ => unreachable!(),
+                        };
+                        (line, direction.get_points(1.))
                     };
 
                     let translate = |x: i32, y: i32| {
@@ -147,50 +122,46 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                         (x, y)
                     };
 
-                    // draw arrows
-                    rows.clone()
-                        .cartesian_product(cols.clone())
-                        .filter_map(|(x, y)| {
-                            let current = Coordinate(x, y);
+                    // Basin hue identifies the sink; lighter cells are farther uphill from it.
+                    basins.sink_by_coordinate.iter().try_for_each(|(coordinate, sink)| {
+                        let basin_idx = basins.sinks.binary_search(sink).expect("basin sink is indexed");
+                        let depth = basins.depth_by_coordinate[coordinate];
+                        let hue = ((basin_idx * 137) % 360) as f64 / 360.;
+                        let lightness = 0.78 + 0.16 * depth as f64 / max_depth as f64;
+                        let (x, y) = translate(coordinate.0, coordinate.1);
+                        let half_x = (x_step / 2.).round() as i32;
+                        let half_y = (y_step / 2.).round() as i32;
 
-                            let arrows = get_neighbours(x, y)
-                                .map(|coordinate| to_points(&current, &coordinate))
-                                .into_iter()
-                                .flatten()
-                                .collect::<Vec<_>>();
+                        area.draw(&Rectangle::new(
+                            [(x - half_x, y - half_y), (x + half_x, y + half_y)],
+                            HSLColor(hue, 0.55, lightness).filled(),
+                        ))
+                    })?;
 
-                            if arrows.is_empty() { None } else { Some(((x, y), arrows)) }
-                        })
-                        .flat_map(|(coord, arrows)| arrows.into_iter().map(move |arrow| (coord, arrow)))
-                        .try_for_each(|((x, y), (line, arrow))| {
-                            let (x, y) = translate(x, y);
+                    // One arrow per node follows its steepest lexicographic descent.
+                    basins.next.iter().filter(|(coordinate, next)| coordinate != next).try_for_each(
+                        |(coordinate, next)| {
+                            let (line, arrow) = to_points(coordinate, next);
+                            let (x, y) = translate(coordinate.0, coordinate.1);
 
                             let figure = EmptyElement::at((x, y))
                                 + PathElement::new(line, BLUE)
                                 + Polygon::new(arrow.map(|(x, y)| (x + line[1].0, y + line[1].1)), BLUE);
 
                             area.draw(&figure)
-                        })?;
+                        },
+                    )?;
 
-                    // draw local optimum markers
-                    rows.clone()
-                        .cartesian_product(cols.clone())
-                        .filter(|&(x, y)| series[0].matrix.contains_key(&Coordinate(x, y)))
-                        .filter(|&(x, y)| {
-                            get_neighbours(x, y)
-                                .map(|coordinate| to_relation(&Coordinate(x, y), &coordinate))
-                                .into_iter()
-                                .flatten()
-                                .all(|ord| ord != Ordering::Greater)
-                        })
-                        .map(|(x, y)| translate(x, y))
-                        .try_for_each(|(x, y)| {
+                    // Mark the unique sink of each equal-fitness plateau.
+                    basins.sinks.iter().map(|coordinate| translate(coordinate.0, coordinate.1)).try_for_each(
+                        |(x, y)| {
                             let size = 12;
                             let coord = (x - size / 2, y - size / 2);
                             let style = ("sans-serif", size).into_font().color(&RED);
 
                             area.draw(&Text::new("x", coord, style))
-                        })?;
+                        },
+                    )?;
 
                     Ok(())
                 };
@@ -213,7 +184,11 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                 &get_caption_float(format!("map distance{snapshot}").as_str()),
                 u_matrix,
             )?;
-            draw_gradients(sub_areas.get_mut(len + 1).unwrap(), "fitness flow · red x = sink", fitness_matrices)?;
+            draw_gradients(
+                sub_areas.get_mut(len + 1).unwrap(),
+                "fitness basins · hue = sink · red x = minimum",
+                fitness_matrices,
+            )?;
             draw_series2d(sub_areas.get_mut(len + 2).unwrap(), &get_caption_usize("total hits"), t_matrix)?;
             draw_series2d(sub_areas.get_mut(len + 3).unwrap(), &get_caption_usize("recent hits"), l_matrix)?;
             draw_series2d(
