@@ -8,6 +8,8 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
     config: &PopulationDrawConfig,
 ) -> DrawResult<()> {
     #![allow(clippy::unnecessary_cast)]
+    const CAPTION_FONT_SIZE: u32 = 10;
+
     match &config.series {
         PopulationSeries::Rosomaxa {
             generation,
@@ -51,7 +53,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                 let span = max - min;
 
                 let mut chart = ChartBuilder::on(area)
-                    .caption(caption_fn(min, max).as_str(), ("sans-serif", 12))
+                    .caption(caption_fn(min, max).as_str(), ("sans-serif", CAPTION_FONT_SIZE))
                     .margin(5)
                     .build_cartesian_2d(rows.clone(), cols.clone())?;
 
@@ -75,96 +77,98 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
             };
 
             // Draw the discrete fitness watershed induced by occupied cardinal neighbours.
-            let draw_gradients =
-                |area: &mut DrawingArea<B, Shift>, caption: &str, series: &Vec<Series2D>| -> DrawResult<()> {
-                    let vertical_offset = 21;
-                    let (w, h) = area.dim_in_pixel();
-                    let h = h - vertical_offset;
+            let draw_gradients = |area: &mut DrawingArea<B, Shift>,
+                                  caption: &str,
+                                  series: &Vec<Series2D>|
+             -> DrawResult<()> {
+                let vertical_offset = 18;
+                let (w, h) = area.dim_in_pixel();
+                let h = h - vertical_offset;
 
-                    let x_step = (w as Float / (rows.len()) as Float).round();
-                    let y_step = (h as Float / (cols.len()) as Float).round();
+                let x_step = (w as Float / (rows.len()) as Float).round();
+                let y_step = (h as Float / (cols.len()) as Float).round();
 
-                    area.fill(&WHITE)?;
-                    area.draw(&Text::new(caption, (5, 14), ("sans-serif", 12).into_font().color(&BLACK)))?;
+                area.fill(&WHITE)?;
+                area.draw(&Text::new(caption, (5, 12), ("sans-serif", CAPTION_FONT_SIZE).into_font().color(&BLACK)))?;
 
-                    if series.is_empty() {
-                        return Ok(());
-                    }
+                if series.is_empty() {
+                    return Ok(());
+                }
 
-                    let matrices = series.iter().map(|series| &series.matrix).collect::<Vec<_>>();
-                    let basins = get_fitness_basins(matrices.as_slice());
-                    let max_depth = basins.depth_by_coordinate.values().copied().max().unwrap_or_default().max(1);
+                let matrices = series.iter().map(|series| &series.matrix).collect::<Vec<_>>();
+                let basins = get_fitness_basins(matrices.as_slice());
+                let max_depth = basins.depth_by_coordinate.values().copied().max().unwrap_or_default().max(1);
 
-                    let to_points = |left: &Coordinate, right: &Coordinate| {
-                        let x_step = x_step.round() as i32;
-                        let y_step = y_step.round() as i32;
+                let to_points = |left: &Coordinate, right: &Coordinate| {
+                    let x_step = x_step.round() as i32;
+                    let y_step = y_step.round() as i32;
 
-                        let (direction, line) = match (left.0 - right.0, left.1 - right.1) {
-                            (0, 1) => (ArrowDirection::Bottom, [(0, 0), (0, y_step)]),
-                            (0, -1) => (ArrowDirection::Top, [(0, 0), (0, -y_step)]),
-                            (1, 0) => (ArrowDirection::Left, [(0, 0), (-x_step, 0)]),
-                            (-1, 0) => (ArrowDirection::Right, [(0, 0), (x_step, 0)]),
-                            _ => unreachable!(),
-                        };
-                        (line, direction.get_points(1.))
+                    let (direction, line) = match (left.0 - right.0, left.1 - right.1) {
+                        (0, 1) => (ArrowDirection::Bottom, [(0, 0), (0, y_step)]),
+                        (0, -1) => (ArrowDirection::Top, [(0, 0), (0, -y_step)]),
+                        (1, 0) => (ArrowDirection::Left, [(0, 0), (-x_step, 0)]),
+                        (-1, 0) => (ArrowDirection::Right, [(0, 0), (x_step, 0)]),
+                        _ => unreachable!(),
                     };
-
-                    let translate = |x: i32, y: i32| {
-                        let x = ((x - rows.start) as Float * x_step).round() as i32;
-                        let x_offset = (x_step / 2.).round() as i32;
-                        let x = x + x_offset;
-
-                        let y = y - cols.start;
-                        let y = (y as Float * y_step).round() as i32;
-                        let y_offset = (y_step / 2.).round() as i32;
-                        let y = (vertical_offset + h) as i32 - (y + y_offset);
-
-                        (x, y)
-                    };
-
-                    // Basin hue identifies the sink; lighter cells are farther uphill from it.
-                    basins.sink_by_coordinate.iter().try_for_each(|(coordinate, sink)| {
-                        let basin_idx = basins.sinks.binary_search(sink).expect("basin sink is indexed");
-                        let depth = basins.depth_by_coordinate[coordinate];
-                        let hue = ((basin_idx * 137) % 360) as f64 / 360.;
-                        let lightness = 0.78 + 0.16 * depth as f64 / max_depth as f64;
-                        let (x, y) = translate(coordinate.0, coordinate.1);
-                        let half_x = (x_step / 2.).round() as i32;
-                        let half_y = (y_step / 2.).round() as i32;
-
-                        area.draw(&Rectangle::new(
-                            [(x - half_x, y - half_y), (x + half_x, y + half_y)],
-                            HSLColor(hue, 0.55, lightness).filled(),
-                        ))
-                    })?;
-
-                    // One arrow per node follows its steepest lexicographic descent.
-                    basins.next.iter().filter(|(coordinate, next)| coordinate != next).try_for_each(
-                        |(coordinate, next)| {
-                            let (line, arrow) = to_points(coordinate, next);
-                            let (x, y) = translate(coordinate.0, coordinate.1);
-
-                            let figure = EmptyElement::at((x, y))
-                                + PathElement::new(line, BLUE)
-                                + Polygon::new(arrow.map(|(x, y)| (x + line[1].0, y + line[1].1)), BLUE);
-
-                            area.draw(&figure)
-                        },
-                    )?;
-
-                    // Mark the unique sink of each equal-fitness plateau.
-                    basins.sinks.iter().map(|coordinate| translate(coordinate.0, coordinate.1)).try_for_each(
-                        |(x, y)| {
-                            let size = 12;
-                            let coord = (x - size / 2, y - size / 2);
-                            let style = ("sans-serif", size).into_font().color(&RED);
-
-                            area.draw(&Text::new("x", coord, style))
-                        },
-                    )?;
-
-                    Ok(())
+                    (line, direction.get_points(1.))
                 };
+
+                let translate = |x: i32, y: i32| {
+                    let x = ((x - rows.start) as Float * x_step).round() as i32;
+                    let x_offset = (x_step / 2.).round() as i32;
+                    let x = x + x_offset;
+
+                    let y = y - cols.start;
+                    let y = (y as Float * y_step).round() as i32;
+                    let y_offset = (y_step / 2.).round() as i32;
+                    let y = (vertical_offset + h) as i32 - (y + y_offset);
+
+                    (x, y)
+                };
+
+                // Basin hue identifies the sink; lighter cells are farther uphill from it.
+                basins.sink_by_coordinate.iter().try_for_each(|(coordinate, sink)| {
+                    let basin_idx = basins.sinks.binary_search(sink).expect("basin sink is indexed");
+                    let depth = basins.depth_by_coordinate[coordinate];
+                    let hue = ((basin_idx * 137) % 360) as f64 / 360.;
+                    let lightness = 0.78 + 0.16 * depth as f64 / max_depth as f64;
+                    let (x, y) = translate(coordinate.0, coordinate.1);
+                    let half_x = (x_step / 2.).round() as i32;
+                    let half_y = (y_step / 2.).round() as i32;
+
+                    area.draw(&Rectangle::new(
+                        [(x - half_x, y - half_y), (x + half_x, y + half_y)],
+                        HSLColor(hue, 0.55, lightness).filled(),
+                    ))
+                })?;
+
+                // One arrow per node follows its steepest lexicographic descent.
+                basins.next.iter().filter(|(coordinate, next)| coordinate != next).try_for_each(
+                    |(coordinate, next)| {
+                        let (line, arrow) = to_points(coordinate, next);
+                        let (x, y) = translate(coordinate.0, coordinate.1);
+
+                        let figure = EmptyElement::at((x, y))
+                            + PathElement::new(line, BLUE)
+                            + Polygon::new(arrow.map(|(x, y)| (x + line[1].0, y + line[1].1)), BLUE);
+
+                        area.draw(&figure)
+                    },
+                )?;
+
+                // Mark the unique sink of each equal-fitness plateau.
+                basins.sinks.iter().map(|coordinate| translate(coordinate.0, coordinate.1)).try_for_each(
+                    |(x, y)| {
+                        let size = 12;
+                        let coord = (x - size / 2, y - size / 2);
+                        let style = ("sans-serif", size).into_font().color(&RED);
+
+                        area.draw(&Text::new("x", coord, style))
+                    },
+                )?;
+
+                Ok(())
+            };
 
             let get_caption_float = |caption: &str| {
                 let caption = caption.to_string();
@@ -184,11 +188,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                 &get_caption_float(format!("map distance{snapshot}").as_str()),
                 u_matrix,
             )?;
-            draw_gradients(
-                sub_areas.get_mut(len + 1).unwrap(),
-                "fitness basins · hue = sink · red x = minimum",
-                fitness_matrices,
-            )?;
+            draw_gradients(sub_areas.get_mut(len + 1).unwrap(), "fitness basins · red x = minimum", fitness_matrices)?;
             draw_series2d(sub_areas.get_mut(len + 2).unwrap(), &get_caption_usize("total hits"), t_matrix)?;
             draw_series2d(sub_areas.get_mut(len + 3).unwrap(), &get_caption_usize("recent hits"), l_matrix)?;
             draw_series2d(
