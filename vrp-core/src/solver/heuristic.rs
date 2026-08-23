@@ -362,7 +362,7 @@ fn create_diversify_operators(
     let infeasible_search = Arc::new(InfeasibleSearch::new(
         Arc::new(WeightedHeuristicOperator::new(
             vec![
-                dynamic::create_default_inner_ruin_recreate(problem, environment.clone()),
+                dynamic::create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
                 dynamic::create_default_local_search(random.clone()),
             ],
             vec![10, 1],
@@ -377,15 +377,21 @@ fn create_diversify_operators(
         2,
         4,
     ))));
+    let path_relinking = Arc::new(PathRelinkingSearch::new(
+        Arc::new(RecreateWithBlinks::new_with_defaults(environment.random.clone())),
+        dynamic::create_default_inner_ruin_recreate(problem, environment),
+        64,
+        5,
+    ));
 
     let regular = Arc::new(WeightedHeuristicOperator::new(
         vec![redistribute_search, local_search, infeasible_search],
         vec![10, 2, 1],
     ));
 
-    // Route elimination is additive: a scheduled success contributes an extra offspring without
-    // replacing the regular diversification selected for this parent.
-    vec![Arc::new(CompositeDiversifyOperator::new(vec![regular, guided_ejection]))]
+    // Deep population-level searches are additive: a scheduled success contributes an extra
+    // offspring without replacing the regular diversification selected for this parent.
+    vec![Arc::new(CompositeDiversifyOperator::new(vec![regular, guided_ejection, path_relinking]))]
 }
 
 mod statik {
