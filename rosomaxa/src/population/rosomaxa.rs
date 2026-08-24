@@ -243,10 +243,18 @@ impl BasinCandidate {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum NetworkMaintenanceAction {
+    RefreshNormalization,
+    CheckDistortion,
+}
+
 /// Keeps smoothing responsive without letting repeated full-map replay dominate ordinary training.
 struct NetworkMaintenance {
     /// Inputs added since the last distortion check; smoothing and compaction replay does not contribute.
     new_input_count: usize,
+    /// Inputs added since the normalization ranges were rebuilt from retained solutions.
+    normalization_input_count: usize,
     /// Small maps wait for this many observations before checking distortion.
     min_observation_count: usize,
     /// Consecutive smoothing grows the evidence window; a stable observation gradually shrinks it again.
@@ -258,6 +266,7 @@ impl NetworkMaintenance {
     fn new(config: &RosomaxaConfig) -> Self {
         Self {
             new_input_count: 0,
+            normalization_input_count: 0,
             min_observation_count: config.max_network_size.div_ceil(6),
             observation_multiplier: 1,
             max_observation_multiplier: get_max_smoothing_observation_multiplier(config.node_size),
@@ -266,23 +275,41 @@ impl NetworkMaintenance {
 
     fn add_observations(&mut self, count: usize) {
         self.new_input_count = self.new_input_count.saturating_add(count);
+        self.normalization_input_count = self.normalization_input_count.saturating_add(count);
     }
 
-    fn is_distortion_check_due(&self, network_size: usize) -> bool {
-        let observation_count =
-            network_size.max(self.min_observation_count).saturating_mul(self.observation_multiplier);
+    fn base_observation_count(&self, network_size: usize) -> usize {
+        network_size.max(self.min_observation_count)
+    }
 
-        self.new_input_count >= observation_count
+    fn next_action(&mut self, network_size: usize) -> Option<NetworkMaintenanceAction> {
+        let observation_count = self.base_observation_count(network_size);
+        let is_distortion_due = self.new_input_count >= observation_count.saturating_mul(self.observation_multiplier);
+        let is_normalization_due = self.normalization_input_count >= observation_count;
+
+        if is_distortion_due || is_normalization_due {
+            self.normalization_input_count = 0;
+        }
+
+        if is_distortion_due {
+            Some(NetworkMaintenanceAction::CheckDistortion)
+        } else if is_normalization_due {
+            Some(NetworkMaintenanceAction::RefreshNormalization)
+        } else {
+            None
+        }
     }
 
     fn on_smoothing(&mut self) {
         self.new_input_count = 0;
+        self.normalization_input_count = 0;
         self.observation_multiplier =
             self.observation_multiplier.saturating_mul(2).min(self.max_observation_multiplier);
     }
 
     fn on_stable_observation(&mut self) {
         self.new_input_count = 0;
+        self.normalization_input_count = 0;
         self.observation_multiplier = self.observation_multiplier.div_ceil(2).max(1);
     }
 }
@@ -438,25 +465,29 @@ where
             return;
         }
 
-        // Let a young map learn enough topology before smoothing can reset the errors which drive GSOM growth.
-        let can_smooth = network.size() >= get_min_network_size(config.max_network_size);
-
-        // Revisit the feature scale after each node has seen about one new solution on average. A small floor avoids
-        // repeatedly scanning a young map after just a few inputs.
-        if maintenance.is_distortion_check_due(network.size()) {
-            // set the MSE threshold to a fraction of the maximum possible normalized distance
-            let threshold = 0.5 / (network.dimension() as Float).sqrt();
-            let should_smooth = can_smooth && network.mse() > threshold;
-
-            if should_smooth {
-                network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
-                maintenance.on_smoothing();
-            } else {
-                // Smoothing rebuilds the ranges while replaying retained inputs. Keep them current on the cheaper path
-                // too, including while the map is too young to smooth, so rejected inputs cannot stretch the scale.
+        match maintenance.next_action(network.size()) {
+            Some(NetworkMaintenanceAction::RefreshNormalization) => {
+                // Keep feature ranges representative of retained solutions even while expensive replay is backed off.
                 network.refresh_normalization();
-                maintenance.on_stable_observation();
             }
+            Some(NetworkMaintenanceAction::CheckDistortion) => {
+                // Distortion has to be measured using the current retained population, not historical outliers.
+                network.refresh_normalization();
+
+                // Let a young map learn enough topology before smoothing can reset the errors which drive GSOM growth.
+                let can_smooth = network.size() >= get_min_network_size(config.max_network_size);
+                // Set the MSE threshold to a fraction of the maximum possible normalized distance.
+                let threshold = 0.5 / (network.dimension() as Float).sqrt();
+                let should_smooth = can_smooth && network.mse() > threshold;
+
+                if should_smooth {
+                    network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
+                    maintenance.on_smoothing();
+                } else {
+                    maintenance.on_stable_observation();
+                }
+            }
+            None => {}
         }
     }
 

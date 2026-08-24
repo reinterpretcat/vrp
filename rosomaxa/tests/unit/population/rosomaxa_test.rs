@@ -180,30 +180,34 @@ mod selection {
         let mut maintenance = NetworkMaintenance::new(&config);
 
         maintenance.add_observations(99);
-        assert!(!maintenance.is_distortion_check_due(100));
+        assert_eq!(maintenance.next_action(100), None);
         maintenance.add_observations(1);
-        assert!(maintenance.is_distortion_check_due(100));
+        assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::CheckDistortion));
 
         maintenance.on_smoothing();
         assert_eq!(maintenance.new_input_count, 0);
-        maintenance.add_observations(199);
-        assert!(!maintenance.is_distortion_check_due(100));
-        maintenance.add_observations(1);
-        assert!(maintenance.is_distortion_check_due(100));
+        maintenance.add_observations(100);
+        assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::RefreshNormalization));
+        maintenance.add_observations(100);
+        assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::CheckDistortion));
 
         maintenance.on_smoothing();
         maintenance.on_smoothing();
         maintenance.on_smoothing();
-        maintenance.add_observations(799);
-        assert!(!maintenance.is_distortion_check_due(100));
-        maintenance.add_observations(1);
-        assert!(maintenance.is_distortion_check_due(100));
+        for _ in 0..7 {
+            maintenance.add_observations(100);
+            assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::RefreshNormalization));
+        }
+        maintenance.add_observations(100);
+        assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::CheckDistortion));
 
         maintenance.on_stable_observation();
-        maintenance.add_observations(399);
-        assert!(!maintenance.is_distortion_check_due(100));
-        maintenance.add_observations(1);
-        assert!(maintenance.is_distortion_check_due(100));
+        for _ in 0..3 {
+            maintenance.add_observations(100);
+            assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::RefreshNormalization));
+        }
+        maintenance.add_observations(100);
+        assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::CheckDistortion));
     }
 
     #[test]
