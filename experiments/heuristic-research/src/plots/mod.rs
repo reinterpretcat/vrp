@@ -5,6 +5,7 @@ use plotters::coord::Shift;
 use plotters::prelude::*;
 use plotters_canvas::CanvasBackend;
 use rosomaxa::prelude::{Float, GenericError};
+use std::collections::{HashSet, VecDeque};
 use web_sys::HtmlCanvasElement;
 
 /// Type alias for the result of a drawing function.
@@ -310,6 +311,163 @@ pub(crate) fn get_fitness_basins(fitness_matrices: &[&MatrixData]) -> FitnessBas
     FitnessBasins { next, sink_by_coordinate, depth_by_coordinate, sinks }
 }
 
+/// Describes fitness basins after short-lived map minima are merged into persistent ancestors.
+pub(crate) struct PersistentFitnessBasins {
+    /// Raw downhill flow, retained to show how the simplified regions were formed.
+    pub next: HashMap<Coordinate, Coordinate>,
+    /// Persistent sink assigned to each occupied coordinate.
+    pub sink_by_coordinate: HashMap<Coordinate, Coordinate>,
+    /// Lattice distance from each coordinate to its persistent sink.
+    pub depth_by_coordinate: HashMap<Coordinate, usize>,
+    /// Minima retained after simplification.
+    pub sinks: Vec<Coordinate>,
+    /// All minima before simplification.
+    pub raw_sinks: Vec<Coordinate>,
+}
+
+/// Keeps the most persistent minima in the objective filtration and merges the remaining watershed regions.
+pub(crate) fn get_persistent_fitness_basins(
+    fitness_matrices: &[&MatrixData],
+    keep_size: usize,
+) -> PersistentFitnessBasins {
+    let raw = get_fitness_basins(fitness_matrices);
+    let Some(primary) = fitness_matrices.first() else {
+        return PersistentFitnessBasins {
+            next: raw.next,
+            sink_by_coordinate: HashMap::new(),
+            depth_by_coordinate: HashMap::new(),
+            sinks: Vec::new(),
+            raw_sinks: Vec::new(),
+        };
+    };
+
+    let compare = |left: &Coordinate, right: &Coordinate| {
+        fitness_matrices
+            .iter()
+            .map(|matrix| {
+                matrix
+                    .get(left)
+                    .expect("fitness planes use the same occupied coordinates")
+                    .total_cmp(matrix.get(right).expect("fitness planes use the same occupied coordinates"))
+            })
+            .find(|order| *order != std::cmp::Ordering::Equal)
+            .unwrap_or_else(|| left.cmp(right))
+    };
+
+    let mut coordinates = primary.keys().copied().collect::<Vec<_>>();
+    coordinates.sort_unstable_by(compare);
+    let coordinate_idx =
+        coordinates.iter().enumerate().map(|(idx, coordinate)| (*coordinate, idx)).collect::<HashMap<_, _>>();
+    let mut parents = (0..coordinates.len()).collect::<Vec<_>>();
+    let births = (0..coordinates.len()).collect::<Vec<_>>();
+    let mut active = vec![false; coordinates.len()];
+    let mut merge_parent = HashMap::new();
+    let mut persistence_by_sink = HashMap::new();
+
+    fn find(parents: &mut [usize], mut idx: usize) -> usize {
+        let mut root = idx;
+        while parents[root] != root {
+            root = parents[root];
+        }
+        while parents[idx] != idx {
+            let parent = parents[idx];
+            parents[idx] = root;
+            idx = parent;
+        }
+        root
+    }
+
+    for (rank, coordinate) in coordinates.iter().copied().enumerate() {
+        let idx = coordinate_idx[&coordinate];
+        active[idx] = true;
+        let Coordinate(x, y) = coordinate;
+
+        for neighbor in [Coordinate(x - 1, y), Coordinate(x + 1, y), Coordinate(x, y - 1), Coordinate(x, y + 1)] {
+            let Some(&neighbor_idx) = coordinate_idx.get(&neighbor).filter(|&&neighbor_idx| active[neighbor_idx])
+            else {
+                continue;
+            };
+            let left_root = find(&mut parents, idx);
+            let right_root = find(&mut parents, neighbor_idx);
+            if left_root == right_root {
+                continue;
+            }
+
+            let (older_root, younger_root) =
+                if births[left_root] < births[right_root] { (left_root, right_root) } else { (right_root, left_root) };
+            let older_birth = births[older_root];
+            let younger_birth = births[younger_root];
+            let older_sink = coordinates[older_birth];
+            let younger_sink = coordinates[younger_birth];
+
+            parents[younger_root] = older_root;
+            merge_parent.insert(younger_sink, older_sink);
+            persistence_by_sink.insert(younger_sink, rank.saturating_sub(younger_birth));
+        }
+    }
+
+    // A minimum in a disconnected component never dies in this filtration and must remain representable.
+    let roots = raw.sinks.iter().copied().filter(|sink| !merge_parent.contains_key(sink)).collect::<HashSet<_>>();
+    for sink in &roots {
+        let birth = coordinate_idx[sink];
+        persistence_by_sink.insert(*sink, coordinates.len().saturating_sub(birth));
+    }
+
+    let target_size = keep_size.max(roots.len()).min(raw.sinks.len());
+    let mut ranked_sinks = raw.sinks.clone();
+    ranked_sinks.sort_unstable_by(|left, right| {
+        persistence_by_sink[right].cmp(&persistence_by_sink[left]).then_with(|| compare(left, right))
+    });
+    let mut retained = roots;
+    for sink in ranked_sinks {
+        if retained.len() == target_size {
+            break;
+        }
+        retained.insert(sink);
+    }
+
+    let resolve_sink = |raw_sink: &Coordinate| {
+        let mut sink = *raw_sink;
+        while !retained.contains(&sink) {
+            sink = merge_parent[&sink];
+        }
+        sink
+    };
+    let sink_by_coordinate = raw
+        .sink_by_coordinate
+        .iter()
+        .map(|(coordinate, sink)| (*coordinate, resolve_sink(sink)))
+        .collect::<HashMap<_, _>>();
+    let mut sinks = retained.into_iter().collect::<Vec<_>>();
+    sinks.sort_unstable();
+
+    let mut depth_by_coordinate = HashMap::with_capacity(sink_by_coordinate.len());
+    let mut queue = VecDeque::new();
+    for sink in &sinks {
+        depth_by_coordinate.insert(*sink, 0);
+        queue.push_back(*sink);
+    }
+    while let Some(coordinate) = queue.pop_front() {
+        let depth = depth_by_coordinate[&coordinate];
+        let sink = sink_by_coordinate[&coordinate];
+        let Coordinate(x, y) = coordinate;
+        for neighbor in [Coordinate(x - 1, y), Coordinate(x + 1, y), Coordinate(x, y - 1), Coordinate(x, y + 1)] {
+            if sink_by_coordinate.get(&neighbor).is_some_and(|neighbor_sink| *neighbor_sink == sink)
+                && !depth_by_coordinate.contains_key(&neighbor)
+            {
+                depth_by_coordinate.insert(neighbor, depth + 1);
+                queue.push_back(neighbor);
+            }
+        }
+    }
+    // A raw watershed remains well-defined even if a merge saddle was assigned to the neighboring component.
+    raw.depth_by_coordinate.iter().for_each(|(coordinate, depth)| {
+        depth_by_coordinate.entry(*coordinate).or_insert(*depth);
+    });
+
+    PersistentFitnessBasins { next: raw.next, sink_by_coordinate, depth_by_coordinate, sinks, raw_sinks: raw.sinks }
+}
+
 /// Draws population plots on given area.
 pub fn draw_population_plots<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
@@ -601,5 +759,24 @@ mod tests {
         assert_eq!(basins.sinks, vec![Coordinate(0, 0)]);
         assert_eq!(basins.next[&Coordinate(2, 0)], Coordinate(1, 0));
         assert_eq!(basins.depth_by_coordinate[&Coordinate(2, 0)], 2);
+    }
+
+    #[test]
+    fn merges_short_lived_minima_before_persistent_basins() {
+        let primary = (0..5).map(|x| Coordinate(x, 0)).zip([0., 3., 2., 3., 1.]).collect();
+        let basins = get_persistent_fitness_basins(&[&primary], 2);
+
+        assert_eq!(basins.raw_sinks, vec![Coordinate(0, 0), Coordinate(2, 0), Coordinate(4, 0)]);
+        assert_eq!(basins.sinks, vec![Coordinate(0, 0), Coordinate(4, 0)]);
+        assert_eq!(basins.sink_by_coordinate[&Coordinate(2, 0)], Coordinate(0, 0));
+        assert_eq!(basins.sink_by_coordinate[&Coordinate(4, 0)], Coordinate(4, 0));
+    }
+
+    #[test]
+    fn keeps_minimum_of_each_disconnected_component() {
+        let primary = [(Coordinate(0, 0), 0.), (Coordinate(2, 0), 1.)].into_iter().collect();
+        let basins = get_persistent_fitness_basins(&[&primary], 1);
+
+        assert_eq!(basins.sinks, vec![Coordinate(0, 0), Coordinate(2, 0)]);
     }
 }

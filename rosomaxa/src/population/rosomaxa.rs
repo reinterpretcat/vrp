@@ -357,6 +357,7 @@ where
                         self.environment.random.as_ref(),
                         self.objective.as_ref(),
                         statistics.generation,
+                        statistics.improvement_1000_ratio,
                         selection_size,
                     );
                 } else {
@@ -421,6 +422,7 @@ where
         random: &dyn Random,
         objective: &O,
         generation: usize,
+        improvement_ratio: Float,
         selection_size: usize,
     ) {
         selection_coordinates.clear();
@@ -484,6 +486,16 @@ where
             network.squared_distance(left.weights.as_slice(), right.weights.as_slice())
         });
 
+        // Occasionally replace the least distinctive basin with a good distant slope. Put it first so extra elite
+        // selections cannot truncate the escape attempt from the GSOM prefix.
+        if is_basin_shoulder_selection_generation(generation, improvement_ratio)
+            && let Some(shoulder) =
+                Self::select_basin_shoulder(network, selection_coordinates, basin_candidates, selected_size, objective)
+        {
+            basin_candidates[..selected_size].rotate_right(1);
+            basin_candidates[0] = BasinCandidate::new(shoulder);
+        }
+
         // Interleave basin representatives with shuffled nodes, preserving a direct path to every occupied region.
         promote_basin_coordinates(
             selection_coordinates,
@@ -508,6 +520,55 @@ where
             });
 
         is_basin_sink(coordinate, neighbors)
+    }
+
+    /// Selects a good non-minimum node far from the basin representatives as a cheap approximation of a basin shoulder.
+    fn select_basin_shoulder(
+        network: &IndividualNetwork<C, O, S>,
+        occupied: &[Coordinate],
+        basin_candidates: &[BasinCandidate],
+        selected_size: usize,
+        objective: &O,
+    ) -> Option<Coordinate> {
+        if selected_size < 2 {
+            return None;
+        }
+
+        let mut candidates = occupied
+            .iter()
+            .filter(|coordinate| !Self::is_basin_sink_node(network, coordinate, objective))
+            .copied()
+            .collect::<Vec<_>>();
+        let get_node =
+            |coordinate: &Coordinate| network.find(coordinate).expect("selection candidates belong to the GSOM");
+        let get_solution = |coordinate: &Coordinate| {
+            get_node(coordinate).storage.population.best().expect("selection candidates have a solution")
+        };
+        let compare =
+            |left: &Coordinate, right: &Coordinate| objective.total_order(get_solution(left), get_solution(right));
+
+        let candidate_size = get_basin_candidate_size(candidates.len(), 1);
+        if candidate_size < candidates.len() {
+            candidates.select_nth_unstable_by(candidate_size, compare);
+            candidates.truncate(candidate_size);
+        }
+
+        let selected_weights = basin_candidates[..selected_size]
+            .iter()
+            .map(|candidate| get_node(&candidate.coordinate).weights.as_slice())
+            .collect::<Vec<_>>();
+        candidates.into_iter().max_by(|left, right| {
+            let min_distance = |coordinate: &Coordinate| {
+                let weights = get_node(coordinate).weights.as_slice();
+                selected_weights
+                    .iter()
+                    .map(|selected| network.squared_distance(weights, selected))
+                    .min_by(Float::total_cmp)
+                    .unwrap_or_default()
+            };
+
+            min_distance(left).total_cmp(&min_distance(right)).then_with(|| compare(right, left))
+        })
     }
 
     fn create_network(
@@ -877,6 +938,14 @@ fn get_basin_candidate_size(basin_count: usize, selection_size: usize) -> usize 
 /// Uses basin-focused ordering for three generations and uniform map ordering for the fourth.
 fn is_basin_selection_generation(generation: usize) -> bool {
     !generation.is_multiple_of(BASIN_SELECTION_PERIOD)
+}
+
+/// Tests a basin shoulder occasionally while search is progressing and every basin cycle when it is nearly stagnant.
+fn is_basin_shoulder_selection_generation(generation: usize, improvement_ratio: Float) -> bool {
+    let period =
+        if improvement_ratio <= 0.1 { BASIN_SELECTION_PERIOD } else { BASIN_SELECTION_PERIOD * BASIN_SELECTION_PERIOD };
+
+    generation % period == 1
 }
 
 /// Reserves roughly one quarter of node positions for uniformly shuffled map coverage.

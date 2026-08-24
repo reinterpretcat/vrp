@@ -77,10 +77,8 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
             };
 
             // Draw the discrete fitness watershed induced by occupied cardinal neighbours.
-            let draw_gradients = |area: &mut DrawingArea<B, Shift>,
-                                  caption: &str,
-                                  series: &Vec<Series2D>|
-             -> DrawResult<()> {
+            let draw_basins = |area: &mut DrawingArea<B, Shift>, series: &Vec<Series2D>| -> DrawResult<()> {
+                const PERSISTENT_BASIN_SIZE: usize = 8;
                 let vertical_offset = 18;
                 let (w, h) = area.dim_in_pixel();
                 let h = h - vertical_offset;
@@ -89,15 +87,17 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                 let y_step = (h as Float / (cols.len()) as Float).round();
 
                 area.fill(&WHITE)?;
-                area.draw(&Text::new(caption, (5, 12), ("sans-serif", CAPTION_FONT_SIZE).into_font().color(&BLACK)))?;
 
                 if series.is_empty() {
                     return Ok(());
                 }
 
                 let matrices = series.iter().map(|series| &series.matrix).collect::<Vec<_>>();
-                let basins = get_fitness_basins(matrices.as_slice());
+                let basins = get_persistent_fitness_basins(matrices.as_slice(), PERSISTENT_BASIN_SIZE);
                 let max_depth = basins.depth_by_coordinate.values().copied().max().unwrap_or_default().max(1);
+                let caption =
+                    format!("persistent basins {}→{} · red x = retained", basins.raw_sinks.len(), basins.sinks.len());
+                area.draw(&Text::new(caption, (5, 12), ("sans-serif", CAPTION_FONT_SIZE).into_font().color(&BLACK)))?;
 
                 let to_points = |left: &Coordinate, right: &Coordinate| {
                     let x_step = x_step.round() as i32;
@@ -188,7 +188,7 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                 &get_caption_float(format!("map distance{snapshot}").as_str()),
                 u_matrix,
             )?;
-            draw_gradients(sub_areas.get_mut(len + 1).unwrap(), "fitness basins · red x = minimum", fitness_matrices)?;
+            draw_basins(sub_areas.get_mut(len + 1).unwrap(), fitness_matrices)?;
             draw_series2d(sub_areas.get_mut(len + 2).unwrap(), &get_caption_usize("total hits"), t_matrix)?;
             draw_series2d(sub_areas.get_mut(len + 3).unwrap(), &get_caption_usize("recent hits"), l_matrix)?;
             draw_series2d(

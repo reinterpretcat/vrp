@@ -190,6 +190,9 @@ input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer
 .render-info { flex: 0 0 auto; margin: 0; color: var(--muted); font-size: 11px; white-space: nowrap; }
 .chart-guide { margin: 10px 14px 0; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-soft); }
 .chart-guide summary { padding: 9px 11px; color: var(--ink); cursor: pointer; font-size: 12px; font-weight: 700; }
+.chart-guide[open] summary { border-bottom: 1px solid var(--line); }
+.guide-intro { margin: 10px 12px 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.guide-heading { margin: 12px 12px 7px; color: var(--ink); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
 .guide-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0 10px 10px; }
 .guide-grid div { padding: 8px 9px; border-radius: 7px; background: var(--surface); }
 .guide-grid strong, .guide-grid span { display: block; }

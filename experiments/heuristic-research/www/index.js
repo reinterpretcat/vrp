@@ -12,7 +12,7 @@ let renderTimer;
 const element = (id) => document.getElementById(id);
 const canvases = {};
 const chartHelp = {
-    gsom: "Shows how the learned map changes over time. Node counts describe capacity and use; density describes the rectangular bounding box rather than solution quality; sink proxies summarize local fitness flow on occupied cardinal neighbors.",
+    gsom: "Shows how the learned map changes over time. Read node counts, activity, learning rate, and quantization error together; open the GSOM guide below for definitions and common smoothing/compaction patterns.",
     fitness: "Best objective vector over recorded generations. Secondary objectives are rescaled only for display; optimization still uses the original lexicographic objective.",
     search: "Rewards reported by the operators sampled nearest to the selected generation.",
     best: "Cumulative operator calls which produced a best-known transition.",

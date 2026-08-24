@@ -572,6 +572,15 @@ mod auxiliary {
             (1..=8).map(is_basin_selection_generation).collect::<Vec<_>>(),
             [true, true, true, false, true, true, true, false]
         );
+        assert_eq!(
+            (1..=8).map(|generation| is_basin_shoulder_selection_generation(generation, 0.2)).collect::<Vec<_>>(),
+            [true, false, false, false, false, false, false, false]
+        );
+        assert!(is_basin_shoulder_selection_generation(17, 0.2));
+        assert_eq!(
+            (1..=8).map(|generation| is_basin_shoulder_selection_generation(generation, 0.1)).collect::<Vec<_>>(),
+            [true, false, false, false, true, false, false, false]
+        );
     }
 
     #[test]

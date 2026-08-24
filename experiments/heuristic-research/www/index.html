@@ -161,14 +161,28 @@
         </div>
         <details id="gsomGuide" class="chart-guide">
             <summary>How to read the GSOM state</summary>
+            <p class="guide-intro">Read the plots at the same generation. They describe representation and activity; use <strong>Best fitness</strong> to judge solver quality.</p>
+            <h3 class="guide-heading">Population snapshot</h3>
             <div class="guide-grid">
                 <div id="footprintGuide"><strong>VRP edge footprint</strong><span>The compact left surface aggregates directed edges over stored solutions. Peak height is the number of population members using an edge; axes are location indices, not geography.</span></div>
                 <div><strong>Objective planes</strong><span>Best stored fitness at each occupied node. White cells have no stored solution.</span></div>
                 <div><strong>Map distance</strong><span>Average feature distance to neighboring nodes. High values often separate regions of the learned topology.</span></div>
-                <div><strong>Fitness basins</strong><span>Color groups nodes reaching the same map-local minimum; arrows show steepest descent and lighter cells are farther uphill. A red cross is only a map-local sink proxy.</span></div>
+                <div><strong>Fitness basins</strong><span>Color groups nodes reaching the same map-local minimum; arrows show steepest descent and lighter cells are farther uphill. A red cross is a lattice-local sink proxy, not a proven search-space optimum.</span></div>
                 <div><strong>Total / recent hits</strong><span>Long-term training usage versus activity in the current hit-memory window.</span></div>
                 <div><strong>Node error</strong><span>Local quantization error. The caption also reports network-wide MSE and current learning rate.</span></div>
                 <div><strong>Inactive snapshot</strong><span>During exploitation Rosomaxa no longer trains GSOM, so the last exploration map is shown and marked inactive.</span></div>
+            </div>
+            <h3 class="guide-heading">GSOM evolution</h3>
+            <div class="guide-grid">
+                <div><strong>Map / occupied</strong><span><em>Map</em> is every prototype node; <em>occupied</em> counts nodes currently storing a solution. A node can exist without contributing a selectable parent.</span></div>
+                <div><strong>Recently hit</strong><span>Nodes used as a best-matching unit within the last 200 GSOM generations. A recently hit node can be empty after replay; a high ratio means broad use, not high solution quality.</span></div>
+                <div><strong>Sink proxies</strong><span>Objective-local minima among occupied cardinal neighbors, using the lexicographic objective. Their count changes with occupancy and replay and is not a count of proven VRP local optima.</span></div>
+                <div><strong>Density</strong><span>Total nodes divided by the rectangular map bounding-box area. It measures shape compactness, not occupied-node ratio, diversity, or fitness.</span></div>
+                <div><strong>Learning rate</strong><span>Cosine cycles from 1.0 to 0.1 and resets at each quarter of normalized termination progress. High values reorganize prototypes; low values stabilize them. Resets are not triggered by MSE or stagnation.</span></div>
+                <div><strong>Quantization MSE</strong><span>Average normalized squared feature distance from stored solutions to their prototypes. Lower means a closer representation; it is not objective cost, topographic error, or convergence.</span></div>
+                <div><strong>Smoothing</strong><span>A sudden occupied-node drop while map size stays level usually means retained solutions were drained and reassigned without growth. Empty nodes can become occupied again as new offspring arrive.</span></div>
+                <div><strong>Compaction</strong><span>A sudden drop in total map nodes indicates row/column decimation, followed by replay. If only occupied nodes drop, the map itself was not compacted.</span></div>
+                <div><strong>Read the pattern</strong><span>A learning-rate reset can increase MSE; smoothing can then reduce occupancy before it recovers. Low MSE, recovered occupancy, and broad recent hits indicate an active map—but only fitness trajectories establish optimization value.</span></div>
             </div>
         </details>
         <div id="solutionTab" class="tabcontent active" role="tabpanel">
