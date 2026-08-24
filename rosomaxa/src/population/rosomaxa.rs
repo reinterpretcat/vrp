@@ -111,12 +111,12 @@ where
                 self.external_ctx.on_change(individuals.as_slice());
                 known_individuals.extend(individuals)
             }
-            RosomaxaPhases::Exploration { network, new_input_count, statistics, .. } => {
+            RosomaxaPhases::Exploration { network, maintenance, statistics, .. } => {
                 self.external_ctx.on_change(individuals.as_slice());
                 let data = parallel_into_collect(individuals, ParallelismScope::Local, |i| {
                     init_individual(&self.external_ctx, i)
                 });
-                *new_input_count = new_input_count.saturating_add(data.len());
+                maintenance.add_observations(data.len());
                 network.store_batch(&self.external_ctx, data, statistics.generation);
             }
             RosomaxaPhases::Exploitation { .. } => {}
@@ -243,6 +243,50 @@ impl BasinCandidate {
     }
 }
 
+/// Keeps smoothing responsive without letting repeated full-map replay dominate ordinary training.
+struct NetworkMaintenance {
+    /// Inputs added since the last distortion check; smoothing and compaction replay does not contribute.
+    new_input_count: usize,
+    /// Small maps wait for this many observations before checking distortion.
+    min_observation_count: usize,
+    /// Consecutive smoothing grows the evidence window; a stable observation gradually shrinks it again.
+    observation_multiplier: usize,
+    max_observation_multiplier: usize,
+}
+
+impl NetworkMaintenance {
+    fn new(config: &RosomaxaConfig) -> Self {
+        Self {
+            new_input_count: 0,
+            min_observation_count: config.max_network_size.div_ceil(6),
+            observation_multiplier: 1,
+            max_observation_multiplier: get_max_smoothing_observation_multiplier(config.node_size),
+        }
+    }
+
+    fn add_observations(&mut self, count: usize) {
+        self.new_input_count = self.new_input_count.saturating_add(count);
+    }
+
+    fn is_distortion_check_due(&self, network_size: usize) -> bool {
+        let observation_count =
+            network_size.max(self.min_observation_count).saturating_mul(self.observation_multiplier);
+
+        self.new_input_count >= observation_count
+    }
+
+    fn on_smoothing(&mut self) {
+        self.new_input_count = 0;
+        self.observation_multiplier =
+            self.observation_multiplier.saturating_mul(2).min(self.max_observation_multiplier);
+    }
+
+    fn on_stable_observation(&mut self) {
+        self.new_input_count = 0;
+        self.observation_multiplier = self.observation_multiplier.div_ceil(2).max(1);
+    }
+}
+
 impl<C, O, S> Rosomaxa<C, O, S>
 where
     C: RosomaxaContext<Solution = S>,
@@ -320,7 +364,7 @@ where
 
                             self.phase = RosomaxaPhases::Exploration {
                                 network,
-                                new_input_count: 0,
+                                maintenance: NetworkMaintenance::new(&self.config),
                                 selection_coordinates,
                                 basin_candidates,
                                 statistics: statistics.clone(),
@@ -338,7 +382,7 @@ where
             }
             RosomaxaPhases::Exploration {
                 network,
-                new_input_count,
+                maintenance,
                 selection_coordinates,
                 basin_candidates,
                 statistics: old_statistics,
@@ -348,7 +392,7 @@ where
                     *old_statistics = statistics.clone();
                     *old_selection_size = selection_size;
 
-                    Self::optimize_network(&self.external_ctx, network, new_input_count, statistics, &self.config);
+                    Self::optimize_network(&self.external_ctx, network, maintenance, statistics, &self.config);
 
                     Self::prepare_selection(
                         network,
@@ -378,41 +422,42 @@ where
     fn optimize_network(
         external_ctx: &C,
         network: &mut IndividualNetwork<C, O, S>,
-        new_input_count: &mut usize,
+        maintenance: &mut NetworkMaintenance,
         statistics: &HeuristicStatistics,
         config: &RosomaxaConfig,
     ) {
         network.set_learning_rate(get_learning_rate(statistics.termination_estimate));
+
+        let keep_size = get_keep_size(config.max_network_size, statistics.termination_estimate);
+        if network.size() > keep_size {
+            // Compaction already rebuilds the map, so handle it before periodic smoothing and start a fresh
+            // evidence window.
+            network.compact(external_ctx);
+            network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
+            maintenance.on_smoothing();
+            return;
+        }
 
         // Let a young map learn enough topology before smoothing can reset the errors which drive GSOM growth.
         let can_smooth = network.size() >= get_min_network_size(config.max_network_size);
 
         // Revisit the feature scale after each node has seen about one new solution on average. A small floor avoids
         // repeatedly scanning a young map after just a few inputs.
-        let observation_count = network.size().max(config.max_network_size.div_ceil(6));
-        if *new_input_count >= observation_count {
+        if maintenance.is_distortion_check_due(network.size()) {
             // set the MSE threshold to a fraction of the maximum possible normalized distance
             let threshold = 0.5 / (network.dimension() as Float).sqrt();
             let should_smooth = can_smooth && network.mse() > threshold;
 
             if should_smooth {
                 network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
+                maintenance.on_smoothing();
             } else {
                 // Smoothing rebuilds the ranges while replaying retained inputs. Keep them current on the cheaper path
                 // too, including while the map is too young to smooth, so rejected inputs cannot stretch the scale.
                 network.refresh_normalization();
+                maintenance.on_stable_observation();
             }
-            *new_input_count = 0;
         }
-
-        let keep_size = get_keep_size(config.max_network_size, statistics.termination_estimate);
-        // no need to shrink network
-        if network.size() <= keep_size {
-            return;
-        }
-
-        network.compact(external_ctx);
-        network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
     }
 
     fn prepare_selection(
@@ -670,8 +715,7 @@ where
     },
     Exploration {
         network: IndividualNetwork<C, O, S>,
-        // Inputs added since the last distortion check; smoothing and compaction replay does not contribute.
-        new_input_count: usize,
+        maintenance: NetworkMaintenance,
         // Occupied nodes in the order used by the next parent selection.
         selection_coordinates: Vec<Coordinate>,
         // Reuse this scratch space instead of allocating while preparing each selection.
@@ -972,6 +1016,13 @@ fn get_exploitation_selection_size(selection_size: usize) -> usize {
 /// Gets the minimum useful network size derived from its configured capacity.
 fn get_min_network_size(max_network_size: usize) -> usize {
     (max_network_size / 3).max(4).min(max_network_size)
+}
+
+/// Caps adaptive smoothing backoff. Four ordinary assignments per retained node item keep steady-state replay work
+/// near one quarter of ordinary GSOM assignment work for the usual small node capacities. The upper bound keeps
+/// maintenance reachable when a custom configuration uses larger node storage.
+fn get_max_smoothing_observation_multiplier(node_size: usize) -> usize {
+    node_size.saturating_mul(4).clamp(4, 16)
 }
 
 /// Gets the network size at which compaction is triggered.

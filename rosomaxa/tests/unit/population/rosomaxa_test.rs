@@ -158,26 +158,60 @@ mod selection {
         }
         rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
 
-        let RosomaxaPhases::Exploration { new_input_count, .. } = &rosomaxa.phase else { unreachable!() };
-        assert_eq!(*new_input_count, 0);
+        let RosomaxaPhases::Exploration { maintenance, .. } = &rosomaxa.phase else { unreachable!() };
+        assert_eq!(maintenance.new_input_count, 0);
 
         rosomaxa.add(VectorSolution { data: vec![5.], weights: vec![5.], fitness: -5. });
         rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
-        let RosomaxaPhases::Exploration { new_input_count, .. } = &rosomaxa.phase else { unreachable!() };
-        assert_eq!(*new_input_count, 1);
+        let RosomaxaPhases::Exploration { maintenance, .. } = &rosomaxa.phase else { unreachable!() };
+        assert_eq!(maintenance.new_input_count, 1);
 
-        let observation_count = match &rosomaxa.phase {
-            RosomaxaPhases::Exploration { network, .. } => {
-                network.size().max(rosomaxa.config.max_network_size.div_ceil(6))
-            }
-            _ => unreachable!(),
-        };
-
-        let RosomaxaPhases::Exploration { new_input_count, .. } = &mut rosomaxa.phase else { unreachable!() };
-        *new_input_count = observation_count;
+        let max_network_size = rosomaxa.config.max_network_size;
+        let RosomaxaPhases::Exploration { maintenance, .. } = &mut rosomaxa.phase else { unreachable!() };
+        maintenance.add_observations(max_network_size);
         rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
-        let RosomaxaPhases::Exploration { new_input_count, .. } = &rosomaxa.phase else { unreachable!() };
-        assert_eq!(*new_input_count, 0);
+        let RosomaxaPhases::Exploration { maintenance, .. } = &rosomaxa.phase else { unreachable!() };
+        assert_eq!(maintenance.new_input_count, 0);
+    }
+
+    #[test]
+    fn can_adapt_smoothing_observation_window() {
+        let config = RosomaxaConfig { max_network_size: 600, node_size: 2, ..RosomaxaConfig::new_with_defaults(4) };
+        let mut maintenance = NetworkMaintenance::new(&config);
+
+        maintenance.add_observations(99);
+        assert!(!maintenance.is_distortion_check_due(100));
+        maintenance.add_observations(1);
+        assert!(maintenance.is_distortion_check_due(100));
+
+        maintenance.on_smoothing();
+        assert_eq!(maintenance.new_input_count, 0);
+        maintenance.add_observations(199);
+        assert!(!maintenance.is_distortion_check_due(100));
+        maintenance.add_observations(1);
+        assert!(maintenance.is_distortion_check_due(100));
+
+        maintenance.on_smoothing();
+        maintenance.on_smoothing();
+        maintenance.on_smoothing();
+        maintenance.add_observations(799);
+        assert!(!maintenance.is_distortion_check_due(100));
+        maintenance.add_observations(1);
+        assert!(maintenance.is_distortion_check_due(100));
+
+        maintenance.on_stable_observation();
+        maintenance.add_observations(399);
+        assert!(!maintenance.is_distortion_check_due(100));
+        maintenance.add_observations(1);
+        assert!(maintenance.is_distortion_check_due(100));
+    }
+
+    #[test]
+    fn can_bound_smoothing_observation_window_for_different_node_sizes() {
+        assert_eq!(get_max_smoothing_observation_multiplier(1), 4);
+        assert_eq!(get_max_smoothing_observation_multiplier(2), 8);
+        assert_eq!(get_max_smoothing_observation_multiplier(4), 16);
+        assert_eq!(get_max_smoothing_observation_multiplier(10), 16);
     }
 
     #[test]
