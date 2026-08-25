@@ -43,16 +43,16 @@ fn main() {
     draw_fitness_plots(area, function_name).unwrap();
 
     let area = BitMapBackend::new("search_best_plot.png", (800, 400)).into_drawing_area();
-    draw_search_best_statistics_plots(area, generation, "best").unwrap();
+    draw_search_best_statistics_plots(area, generation, "best", 1000).unwrap();
 
     let area = BitMapBackend::new("search_duration_plot.png", (800, 400)).into_drawing_area();
-    draw_search_duration_statistics_plots(area, generation, "best").unwrap();
+    draw_search_duration_statistics_plots(area, generation, "best", 1000).unwrap();
 
     let area = BitMapBackend::new("search_overall_plot.png", (800, 400)).into_drawing_area();
-    draw_search_overall_statistics_plots(area, generation, "best").unwrap();
+    draw_search_overall_statistics_plots(area, generation, "best", 1000).unwrap();
 
     let area = BitMapBackend::new("search_iteration_plot.png", (800, 400)).into_drawing_area();
-    draw_search_iteration_plots(area, generation, "best").unwrap();
+    draw_search_iteration_plots(area, generation, "best", 1000).unwrap();
 
     save_state("heuristic_state.json");
 }

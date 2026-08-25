@@ -150,15 +150,51 @@
             <button id="solutionTabButton" class="tablinks active" data-tab="solution" role="tab">Population map</button>
             <button id="gsomTabButton" class="tablinks" data-tab="gsom" role="tab">GSOM evolution</button>
             <button id="fitnessTabButton" class="tablinks" data-tab="fitness" role="tab">Best fitness</button>
-            <button id="searchTabButton" class="tablinks" data-tab="search" role="tab">Latest rewards</button>
-            <button id="bestTabButton" class="tablinks" data-tab="best" role="tab">Best discoveries</button>
+            <button id="searchTabButton" class="tablinks" data-tab="search" role="tab">TS posterior</button>
+            <button id="bestTabButton" class="tablinks" data-tab="best" role="tab">Success rate</button>
             <button id="overallTabButton" class="tablinks" data-tab="overall" role="tab">Operator calls</button>
-            <button id="durationTabButton" class="tablinks" data-tab="duration" role="tab">Operator duration</button>
+            <button id="durationTabButton" class="tablinks" data-tab="duration" role="tab">Mean duration</button>
         </div>
         <div class="chart-context">
             <p id="chartHelp" class="chart-help"></p>
             <p id="renderInfo" class="render-info">Only the visible chart is rendered.</p>
         </div>
+        <div id="operatorControls" class="plot-toolbar operator-toolbar hide">
+            <div>
+                <span class="plot-toolbar-title">Dynamic heuristic statistics</span>
+                <p id="operatorScopeHint" class="hint">Exact counters at recorded posterior checkpoints.</p>
+            </div>
+            <label class="field compact">
+                <span>Parent bank</span>
+                <select id="operatorState">
+                    <option value="best">Best-known parents</option>
+                    <option value="diverse">Diverse parents</option>
+                </select>
+            </label>
+            <label class="field compact">
+                <span>Counter window</span>
+                <select id="operatorWindow">
+                    <option value="100">Last 100 generations</option>
+                    <option value="1000" selected>Last 1,000 generations</option>
+                    <option value="5000">Last 5,000 generations</option>
+                    <option value="0">Cumulative</option>
+                </select>
+            </label>
+        </div>
+        <details id="operatorGuide" class="chart-guide hide">
+            <summary>How to read the dynamic heuristic statistics</summary>
+            <p class="guide-intro">Use the same generation picker for fitness, population, and operator charts. Operator data resolves to the nearest complete posterior checkpoint at or before the selected generation; each chart caption names the checkpoint or exact checkpoint delta.</p>
+            <div class="guide-grid operator-guide-grid">
+                <div><strong>Cumulative / global</strong><span>Cumulative shows exact counters from the start of search through the selected checkpoint. A recent window subtracts an earlier complete checkpoint; when the requested boundary was not retained, the caption shows the actual interval used.</span></div>
+                <div><strong>Parent banks</strong><span>Best-known and diverse parents have independent posteriors because operators behave differently on them. Calls and outcomes are attributed to the parent bank used before the operator ran; the same operator therefore has two learned states.</span></div>
+                <div><strong>TS posterior</strong><span>The Beta posterior mean is the learned probability that the next call produces an incumbent-improving candidate. Higher is better, but Thompson sampling draws from the whole posterior, so uncertainty still gives less-proven operators a chance. The chart shows the mean, not an objective-improvement magnitude or a confidence interval.</span></div>
+                <div><strong>Success rate</strong><span>This is empirical successes/calls without prior pseudo-observations. A success means the child strictly beats the common pre-batch incumbent under the configured objective. Several parallel children can succeed in one generation even though only one can become the next incumbent.</span></div>
+                <div><strong>Why posterior and rate differ</strong><span>The posterior includes the expert prior, bounded recent evidence, and stagnation resets; the empirical rate uses exact counters from the selected interval. A reset changes the posterior but does not erase lifetime call or success counters.</span></div>
+                <div><strong>Calls and duration</strong><span>Calls show exact allocation in the selected bank and interval. Mean duration is measured elapsed time per call and remains diagnostic—it is not mixed into the learned solution reward. Read call share together with success rate rather than treating either alone as operator quality.</span></div>
+                <div><strong>Inspect stagnation</strong><span>Move to a flat region in Best fitness, select Last 1,000 generations, then compare calls, success rates, and posterior means in both banks. Repeat near the beginning and end of the region to see whether allocation adapts or collapses.</span></div>
+                <div><strong>Older saved states</strong><span>Legacy files can still provide exact state-specific lifetime calls from posterior counters. If cumulative success or duration was not recorded, those charts explicitly report that the metric is unavailable instead of estimating it from sampled events.</span></div>
+            </div>
+        </details>
         <details id="gsomGuide" class="chart-guide">
             <summary>How to read the GSOM state</summary>
             <p class="guide-intro">Read the plots at the same generation. They describe representation and activity; use <strong>Best fitness</strong> to judge solver quality.</p>

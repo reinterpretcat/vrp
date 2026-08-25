@@ -54,27 +54,55 @@ impl Chart {
         Ok(())
     }
 
-    /// Draws plot for search estimations.
-    pub fn search_iteration(canvas: HtmlCanvasElement, generation: usize, kind: &str) -> Result<(), JsValue> {
-        draw_search_iteration_plots(get_canvas_drawing_area(canvas), generation, kind)
+    /// Draws state-specific Thompson posterior means.
+    pub fn search_iteration(
+        canvas: HtmlCanvasElement,
+        generation: usize,
+        kind: &str,
+        window: usize,
+    ) -> Result<(), JsValue> {
+        let config = get_search_config(generation, kind, window);
+        resize_search_canvas(&canvas, config.posterior.len());
+        draw_search_iteration(get_canvas_drawing_area(canvas), config)
             .map_err(|err| JsValue::from_str(&err.to_string()))
     }
 
-    /// Draws plot for best statistics.
-    pub fn search_best_statistics(canvas: HtmlCanvasElement, generation: usize, kind: &str) -> Result<(), JsValue> {
-        draw_search_best_statistics_plots(get_canvas_drawing_area(canvas), generation, kind)
+    /// Draws state-specific empirical success rates.
+    pub fn search_best_statistics(
+        canvas: HtmlCanvasElement,
+        generation: usize,
+        kind: &str,
+        window: usize,
+    ) -> Result<(), JsValue> {
+        let config = get_search_config(generation, kind, window);
+        resize_search_canvas(&canvas, config.success_rates.len());
+        draw_search_best_statistics(get_canvas_drawing_area(canvas), config)
             .map_err(|err| JsValue::from_str(&err.to_string()))
     }
 
-    /// Draws plot for duration statistics.
-    pub fn search_duration_statistics(canvas: HtmlCanvasElement, generation: usize, kind: &str) -> Result<(), JsValue> {
-        draw_search_duration_statistics_plots(get_canvas_drawing_area(canvas), generation, kind)
+    /// Draws state-specific mean durations.
+    pub fn search_duration_statistics(
+        canvas: HtmlCanvasElement,
+        generation: usize,
+        kind: &str,
+        window: usize,
+    ) -> Result<(), JsValue> {
+        let config = get_search_config(generation, kind, window);
+        resize_search_canvas(&canvas, config.durations.len());
+        draw_search_duration_statistics(get_canvas_drawing_area(canvas), config)
             .map_err(|err| JsValue::from_str(&err.to_string()))
     }
 
-    /// Draws plot for overall statistics.
-    pub fn search_overall_statistics(canvas: HtmlCanvasElement, generation: usize, kind: &str) -> Result<(), JsValue> {
-        draw_search_overall_statistics_plots(get_canvas_drawing_area(canvas), generation, kind)
+    /// Draws state-specific operator calls.
+    pub fn search_overall_statistics(
+        canvas: HtmlCanvasElement,
+        generation: usize,
+        kind: &str,
+        window: usize,
+    ) -> Result<(), JsValue> {
+        let config = get_search_config(generation, kind, window);
+        resize_search_canvas(&canvas, config.calls.len());
+        draw_search_overall_statistics(get_canvas_drawing_area(canvas), config)
             .map_err(|err| JsValue::from_str(&err.to_string()))
     }
 
@@ -83,6 +111,16 @@ impl Chart {
         draw_gsom_statistics_plots(get_canvas_drawing_area(canvas), generation)
             .map_err(|err| JsValue::from_str(&err.to_string()))
     }
+}
+
+fn resize_search_canvas(canvas: &HtmlCanvasElement, operators: usize) {
+    const MIN_HEIGHT: u32 = 420;
+    const MAX_HEIGHT: u32 = 5000;
+    const ROW_HEIGHT: u32 = 25;
+    const CHART_PADDING: u32 = 120;
+
+    let height = (operators as u32).saturating_mul(ROW_HEIGHT).saturating_add(CHART_PADDING);
+    canvas.set_height(height.clamp(MIN_HEIGHT, MAX_HEIGHT));
 }
 
 fn get_function_axes(function_name: &str) -> Axes {
@@ -126,32 +164,36 @@ pub fn draw_search_iteration_plots<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
     generation: usize,
     kind: &str,
+    window: usize,
 ) -> Result<(), GenericError> {
-    draw_search_iteration(area, get_search_config(generation, kind)).map_err(From::from)
+    draw_search_iteration(area, get_search_config(generation, kind, window)).map_err(From::from)
 }
 
 pub fn draw_search_best_statistics_plots<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
     generation: usize,
     kind: &str,
+    window: usize,
 ) -> Result<(), GenericError> {
-    draw_search_best_statistics(area, get_search_config(generation, kind)).map_err(From::from)
+    draw_search_best_statistics(area, get_search_config(generation, kind, window)).map_err(From::from)
 }
 
 pub fn draw_search_duration_statistics_plots<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
     generation: usize,
     kind: &str,
+    window: usize,
 ) -> Result<(), GenericError> {
-    draw_search_duration_statistics(area, get_search_config(generation, kind)).map_err(From::from)
+    draw_search_duration_statistics(area, get_search_config(generation, kind, window)).map_err(From::from)
 }
 
 pub fn draw_search_overall_statistics_plots<B: DrawingBackend + 'static>(
     area: DrawingArea<B, Shift>,
     generation: usize,
     kind: &str,
+    window: usize,
 ) -> Result<(), GenericError> {
-    draw_search_overall_statistics(area, get_search_config(generation, kind)).map_err(From::from)
+    draw_search_overall_statistics(area, get_search_config(generation, kind, window)).map_err(From::from)
 }
 
 /// Draws GSOM topology evolution up to the requested generation.
@@ -612,62 +654,86 @@ fn get_solution_points(generation: usize) -> Vec<ColoredDataPoint3D> {
         .unwrap_or_default()
 }
 
-fn get_search_config(generation: usize, kind: &str) -> SearchDrawConfig {
+fn get_search_config(generation: usize, kind: &str, window: usize) -> SearchDrawConfig {
     EXPERIMENT_DATA
         .lock()
         .ok()
-        .and_then(|data| {
-            let names_rev = data.heuristic_state.names.iter().map(|(k, v)| (*v, k)).collect::<HashMap<_, _>>();
-            let (&nearest_generation, current) = data.heuristic_state.search_states.range(..=generation).next_back()?;
-            let names_size = names_rev.len();
-            let best_state = data.heuristic_state.states.get(kind);
-            let mut best = vec![0_usize; names_size];
-            let mut overall = vec![0_usize; names_size];
-            let mut durations = vec![(0_usize, 0_usize); names_size];
-
-            data.heuristic_state.search_states.range(..=nearest_generation).for_each(|(_, states)| {
-                states.iter().for_each(|SearchResult(name_idx, _, (_, to_state), duration)| {
-                    if let Some(value) = overall.get_mut(*name_idx) {
-                        *value += 1;
-                    }
-                    if best_state.is_some_and(|best_state| best_state == to_state)
-                        && let Some(value) = best.get_mut(*name_idx)
-                    {
-                        *value += 1;
-                    }
-                    if let Some((total, count)) = durations.get_mut(*name_idx) {
-                        *total = total.saturating_add(*duration);
-                        *count += 1;
-                    }
-                });
-            });
-
-            let with_names = |values: Vec<usize>| {
-                values
-                    .into_iter()
-                    .enumerate()
-                    .filter_map(|(idx, value)| names_rev.get(&idx).map(|name| ((*name).clone(), value)))
-                    .collect::<Vec<_>>()
-            };
-            let estimations = current
-                .iter()
-                .filter_map(|SearchResult(name_idx, reward, _, _)| {
-                    names_rev.get(name_idx).map(|name| ((*name).clone(), *reward))
-                })
-                .collect();
-            let best = if best_state.is_some() { with_names(best) } else { Vec::new() };
-            let overall = with_names(overall);
-            let durations = durations
-                .into_iter()
-                .enumerate()
-                .filter_map(|(idx, (total, count))| {
-                    names_rev.get(&idx).map(|name| ((*name).clone(), total.checked_div(count).unwrap_or_default()))
-                })
-                .collect();
-
-            Some(SearchDrawConfig { estimations, best, overall, durations })
-        })
+        .and_then(|data| create_search_config(&data.heuristic_state, generation, kind, window))
         .unwrap_or_default()
+}
+
+fn create_search_config(
+    state: &HyperHeuristicState,
+    generation: usize,
+    kind: &str,
+    window: usize,
+) -> Option<SearchDrawConfig> {
+    let names_rev = state.names.iter().map(|(name, idx)| (*idx, name)).collect::<HashMap<_, _>>();
+    let state_idx = *state.states.get(kind)?;
+    let (&current_generation, current) = state.heuristic_states.range(..=generation).next_back()?;
+    let baseline = if window == 0 || current_generation <= window {
+        None
+    } else {
+        state.heuristic_states.range(..=current_generation.saturating_sub(window)).next_back()
+    };
+    let baseline_generation = baseline.map(|(generation, _)| *generation).unwrap_or_default();
+    let baseline = baseline
+        .map(|(_, values)| {
+            values.iter().filter(|value| value.0 == state_idx).map(|value| (value.1, value)).collect::<HashMap<_, _>>()
+        })
+        .unwrap_or_default();
+    let state_label = if kind == "best" { "Best-known parents" } else { "Diverse parents" };
+    let interval_label = if window == 0 {
+        format!("{state_label} · cumulative through generation {current_generation}")
+    } else if baseline.is_empty() {
+        format!("{state_label} · start through generation {current_generation}")
+    } else {
+        format!("{state_label} · exact checkpoint delta {baseline_generation}→{current_generation}")
+    };
+
+    let mut config = SearchDrawConfig {
+        posterior_caption: format!("{state_label} · posterior at generation {current_generation}"),
+        interval_caption: interval_label,
+        unavailable: "Exact success and duration counters are unavailable in this older saved state.".to_string(),
+        ..Default::default()
+    };
+
+    current.iter().filter(|value| value.0 == state_idx).for_each(|value| {
+        let HeuristicResult(_, name_idx, _, _, mean, _, calls, successes, duration) = value;
+        let Some(name) = names_rev.get(name_idx) else { return };
+        let previous = baseline.get(name_idx).copied();
+        let calls = calls.saturating_sub(previous.map(|value| value.6).unwrap_or_default());
+        let successes = successes.and_then(|successes| {
+            let previous = match previous {
+                Some(HeuristicResult(_, _, _, _, _, _, _, Some(successes), _)) => *successes,
+                Some(_) => return None,
+                None => 0,
+            };
+            Some(successes.saturating_sub(previous))
+        });
+        let duration = duration.and_then(|duration| {
+            let previous = match previous {
+                Some(HeuristicResult(_, _, _, _, _, _, _, _, Some(duration))) => *duration,
+                Some(_) => return None,
+                None => 0,
+            };
+            Some(duration.saturating_sub(previous))
+        });
+
+        config.posterior.push((format!("{name} · {mean:.3}"), *mean));
+        config.calls.push((format!("{name} · {calls}"), calls as Float));
+
+        if let Some(successes) = successes {
+            let rate = if calls == 0 { 0. } else { successes as Float / calls as Float };
+            config.success_rates.push((format!("{name} · {successes}/{calls}"), rate));
+        }
+        if let Some(duration) = duration.filter(|_| calls > 0) {
+            let mean = duration as Float / calls as Float;
+            config.durations.push(((*name).clone(), mean));
+        }
+    });
+
+    Some(config)
 }
 
 fn to_data_point(observations: &[ObservationData]) -> impl Iterator<Item = &DataPoint3D> + '_ {
@@ -778,5 +844,51 @@ mod tests {
         let basins = get_persistent_fitness_basins(&[&primary], 1);
 
         assert_eq!(basins.sinks, vec![Coordinate(0, 0), Coordinate(2, 0)]);
+    }
+
+    #[test]
+    fn builds_exact_state_specific_operator_window() {
+        let mut state = HyperHeuristicState {
+            names: [("first".to_string(), 0), ("second".to_string(), 1)].into_iter().collect(),
+            states: [("best".to_string(), 0), ("diverse".to_string(), 1)].into_iter().collect(),
+            ..Default::default()
+        };
+        let result = |state, name, mean, calls, successes, duration| {
+            HeuristicResult(state, name, 1., 1., mean, 0.1, calls, Some(successes), Some(duration))
+        };
+        state.heuristic_states.insert(
+            1000,
+            vec![result(0, 0, 0.5, 2, 1, 20), result(0, 1, 0.5, 0, 0, 0), result(1, 0, 0.9, 100, 90, 100)],
+        );
+        state.heuristic_states.insert(
+            2000,
+            vec![result(0, 0, 0.3, 10, 3, 100), result(0, 1, 0.7, 4, 2, 200), result(1, 0, 0.8, 150, 120, 200)],
+        );
+
+        let config = create_search_config(&state, 2200, "best", 1000).unwrap();
+
+        assert_eq!(config.calls, vec![("first · 8".to_string(), 8.), ("second · 4".to_string(), 4.)]);
+        assert_eq!(config.posterior, vec![("first · 0.300".to_string(), 0.3), ("second · 0.700".to_string(), 0.7)]);
+        assert_eq!(config.success_rates, vec![("first · 2/8".to_string(), 0.25), ("second · 2/4".to_string(), 0.5)]);
+        assert_eq!(config.durations, vec![("first".to_string(), 10.), ("second".to_string(), 50.)]);
+        assert!(config.interval_caption.ends_with("1000→2000"));
+    }
+
+    #[test]
+    fn keeps_exact_calls_but_marks_legacy_rates_unavailable() {
+        let state = HyperHeuristicState {
+            names: [("operator".to_string(), 0)].into_iter().collect(),
+            states: [("best".to_string(), 0)].into_iter().collect(),
+            heuristic_states: [(10, vec![HeuristicResult(0, 0, 1., 1., 0.5, 0.1, 7, None, None)])]
+                .into_iter()
+                .collect(),
+            ..Default::default()
+        };
+
+        let config = create_search_config(&state, 10, "best", 0).unwrap();
+
+        assert_eq!(config.calls, vec![("operator · 7".to_string(), 7.)]);
+        assert!(config.success_rates.is_empty());
+        assert!(config.durations.is_empty());
     }
 }

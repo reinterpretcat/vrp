@@ -14,10 +14,10 @@ const canvases = {};
 const chartHelp = {
     gsom: "Shows how the learned map changes over time. Read node counts, activity, learning rate, and quantization error together; open the GSOM guide below for definitions and common smoothing/compaction patterns.",
     fitness: "Best objective vector over recorded generations. Secondary objectives are rescaled only for display; optimization still uses the original lexicographic objective.",
-    search: "Rewards reported by the operators sampled nearest to the selected generation.",
-    best: "Cumulative operator calls which produced a best-known transition.",
-    overall: "Cumulative calls per search operator. Large imbalance can reveal hyper-heuristic collapse.",
-    duration: "Mean measured duration per search operator in the recorded telemetry.",
+    search: "Current Thompson posterior mean for each operator in the selected parent bank. With the Beta model, this is the learned probability of producing an incumbent-improving candidate.",
+    best: "Exact empirical incumbent-improvement rate in the selected interval. Labels show successes/calls; parallel children can each be successful against their common pre-batch incumbent.",
+    overall: "Exact calls in the selected parent bank and interval. Compare with success rate and posterior to detect starvation or monopoly.",
+    duration: "Exact mean operator duration in the selected parent bank and interval. Duration is telemetry and is not part of the learned solution reward.",
 };
 
 /** Main entry point. */
@@ -77,6 +77,12 @@ function setupListeners() {
         input.addEventListener("input", () => {
             updateProjectionValues();
             if (activeTab === "solution") scheduleRender();
+        });
+    });
+    [element("operatorState"), element("operatorWindow")].forEach((input) => {
+        input.addEventListener("change", () => {
+            updateChartHelp();
+            scheduleRender();
         });
     });
 
@@ -386,13 +392,15 @@ function renderActivePlot() {
                 Chart.vrp(canvases.solution, generation, pitch, yaw);
             }
         } else if (hasResult) {
+            const state = element("operatorState").value;
+            const window = Number(element("operatorWindow").value) || 0;
             const render = {
                 gsom: () => Chart.gsom_statistics(canvases.gsom, generation),
                 fitness: () => experimentType() === "function" ? Chart.fitness_func(canvases.fitness) : Chart.fitness_vrp(canvases.fitness),
-                search: () => Chart.search_iteration(canvases.search, generation, "best"),
-                best: () => Chart.search_best_statistics(canvases.best, generation, "best"),
-                overall: () => Chart.search_overall_statistics(canvases.overall, generation, "best"),
-                duration: () => Chart.search_duration_statistics(canvases.duration, generation, "best"),
+                search: () => Chart.search_iteration(canvases.search, generation, state, window),
+                best: () => Chart.search_best_statistics(canvases.best, generation, state, window),
+                overall: () => Chart.search_overall_statistics(canvases.overall, generation, state, window),
+                duration: () => Chart.search_duration_statistics(canvases.duration, generation, state, window),
             }[activeTab];
             if (render) render();
         }
@@ -470,7 +478,19 @@ function updateChartHelp() {
             ? "The compact left surface is an aggregate directed-edge footprint: peak height shows how many population members use an edge. Its axes are location indices, not geography. Rotate it with pitch and yaw. The larger right side is GSOM feature-space topology."
             : "The edge-footprint surface aggregates directed edges over the recorded population; peak height is edge frequency and its axes are location indices, not geography. Rotate it with pitch and yaw.";
 
-    element("chartHelp").textContent = activeTab === "solution" ? solutionHelp : chartHelp[activeTab] || "";
+    const operatorTabs = new Set(["search", "best", "overall", "duration"]);
+    const isOperatorTab = operatorTabs.has(activeTab);
+    const isPosterior = activeTab === "search";
+    const state = element("operatorState").selectedOptions[0]?.textContent || "selected parent bank";
+    const window = element("operatorWindow").selectedOptions[0]?.textContent || "selected interval";
+    const help = activeTab === "solution" ? solutionHelp : chartHelp[activeTab] || "";
+    const scope = isPosterior ? state.toLowerCase() : `${state.toLowerCase()}, ${window.toLowerCase()}`;
+    element("chartHelp").textContent = isOperatorTab ? `${help} Showing ${scope}.` : help;
+    element("operatorControls").classList.toggle("hide", !isOperatorTab);
+    element("operatorGuide").classList.toggle("hide", !isOperatorTab);
+    element("operatorScopeHint").textContent = isPosterior
+        ? `Posterior for ${state.toLowerCase()} at the nearest recorded checkpoint. Counter window applies to success, calls, and duration.`
+        : `Exact counters for ${state.toLowerCase()}; ${window.toLowerCase()}. Chart captions show the actual checkpoint interval.`;
     element("projectionTitle").textContent = isFunction ? "Objective surface view" : "Edge footprint view";
     element("projectionControls").classList.toggle("hide", activeTab !== "solution");
     element("footprintGuide").classList.toggle("hide", isFunction);

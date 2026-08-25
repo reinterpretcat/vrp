@@ -106,17 +106,23 @@ pub struct FitnessDrawConfig {
     pub target_idx: usize,
 }
 
-/// /// Specifies drawing configuration for search results.
+/// Specifies drawing configuration for state-specific operator statistics.
 #[derive(Default)]
 pub struct SearchDrawConfig {
-    /// Actual estimations with respective labels.
-    pub estimations: Vec<(String, Float)>,
-    /// Number of discovered best known solutions with the respective label.
-    pub best: Vec<(String, usize)>,
-    /// Overall calls of specific heuristics.
-    pub overall: Vec<(String, usize)>,
-    /// Actual durations with respective labels.
-    pub durations: Vec<(String, usize)>,
+    /// State and checkpoint shown by posterior statistics.
+    pub posterior_caption: String,
+    /// State and exact generation interval shown by cumulative statistics.
+    pub interval_caption: String,
+    /// Current posterior mean with respective operator labels.
+    pub posterior: Vec<(String, Float)>,
+    /// Exact empirical success rate with successful/call counts in the label.
+    pub success_rates: Vec<(String, Float)>,
+    /// Exact calls of specific operators.
+    pub calls: Vec<(String, Float)>,
+    /// Exact mean duration in microseconds for specific operators.
+    pub durations: Vec<(String, Float)>,
+    /// Explanation shown when the selected metric is unavailable.
+    pub unavailable: String,
 }
 
 /// A series configuration.

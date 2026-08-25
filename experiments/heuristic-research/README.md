@@ -19,7 +19,24 @@ basic-http-server
 The solver runs in a web worker, so the page can report progress and cancel a run without freezing its controls.
 Experiments use the requested generation limit without an additional hidden wall-time cutoff.
 Long runs retain roughly 250 population/GSOM snapshots and two dozen larger VRP footprint snapshots. The generation
-slider resolves to the nearest retained snapshot.
+slider resolves to the nearest retained snapshot. Dynamic-heuristic telemetry similarly retains complete posterior
+banks at an adaptive interval rather than every raw operator call.
+
+## Reading operator statistics
+
+The operator tabs separate the independent `best` and `diverse` Thompson-sampling banks. Calls, empirical success
+rates, and mean durations use cumulative counters captured at complete posterior checkpoints, so downsampling does not
+change their totals. Select a recent generation window to inspect changing operator behavior during stagnation, or use
+the cumulative view for global statistics from the start of search through the generation picker. Chart captions report
+the actual checkpoint or checkpoint interval used.
+
+An operator success means that its child strictly improved the common pre-batch incumbent according to the configured
+objective order. Multiple parallel children can therefore be successful in one generation; the statistic measures the
+feedback learned by Thompson sampling, not the number of incumbent replacements accepted into the population. The
+posterior chart shows the learned success-probability estimate, while duration remains diagnostic and is not part of
+the solution reward. The posterior mean includes expert prior evidence, bounded recent evidence, and stagnation resets;
+it can therefore differ from the empirical success rate for the selected interval. Thompson sampling draws from the
+posterior distribution rather than always choosing its largest mean, so uncertainty continues to influence allocation.
 
 ## Reading the GSOM views
 

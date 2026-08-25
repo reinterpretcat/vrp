@@ -1,194 +1,104 @@
 use super::*;
 use crate::helpers::utils::create_test_random;
 use crate::utils::DefaultDistributionSampler;
-use std::cell::Cell;
-use std::rc::Rc;
 
 #[derive(Clone)]
-struct TestAction(DefaultDistributionSampler);
+struct TestAction;
 
 impl SlotAction for TestAction {
-    type Context = (Float, Float);
+    type Context = bool;
     type Feedback = TestFeedback;
 
-    fn take(&self, context: Self::Context) -> Self::Feedback {
-        let (mean, var) = context;
-        let reward = self.0.normal(mean, var.sqrt());
-
-        TestFeedback(reward)
+    fn take(&self, success: Self::Context) -> Self::Feedback {
+        TestFeedback(success)
     }
 }
 
-struct TestFeedback(Float);
+struct TestFeedback(bool);
 
 impl SlotFeedback for TestFeedback {
-    fn reward(&self) -> Float {
+    fn is_success(&self) -> bool {
         self.0
     }
 }
 
-#[derive(Clone, Default)]
-struct TestDistributionSampler {
-    last_std_dev: Rc<Cell<Float>>,
-}
+#[derive(Clone)]
+struct MeanDistributionSampler;
 
-impl DistributionSampler for TestDistributionSampler {
-    fn gamma(&self, _: Float, _: Float) -> Float {
-        1.
+impl DistributionSampler for MeanDistributionSampler {
+    fn gamma(&self, shape: Float, _: Float) -> Float {
+        shape
     }
 
-    fn normal(&self, mean: Float, std_dev: Float) -> Float {
-        self.last_std_dev.set(std_dev);
+    fn normal(&self, mean: Float, _: Float) -> Float {
         mean
     }
 }
 
-#[derive(Clone)]
-struct OptimisticDistributionSampler;
-
-impl DistributionSampler for OptimisticDistributionSampler {
-    fn gamma(&self, shape: Float, scale: Float) -> Float {
-        shape * scale
-    }
-
-    fn normal(&self, mean: Float, std_dev: Float) -> Float {
-        mean + std_dev
-    }
-}
-
 #[test]
-fn can_use_prior_mean_as_specified() {
-    let sampler = DefaultDistributionSampler::new(create_test_random());
-    let slot = SlotMachine::new(2.5, TestAction(sampler.clone()), sampler);
+fn can_use_success_prior_as_specified() {
+    let slot = SlotMachine::new(2.5, TestAction, MeanDistributionSampler);
 
-    assert_eq!(slot.get_params().2, 2.5);
+    assert_eq!(slot.get_params().0, 2.5);
+    assert_eq!(slot.sample(), 2.5 / 3.5);
 }
 
 #[test]
 fn can_reset_learning_state_and_keep_usage() {
-    let sampler = DefaultDistributionSampler::new(create_test_random());
-    let mut slot = SlotMachine::new(2.5, TestAction(sampler.clone()), sampler);
+    let mut slot = SlotMachine::new(2.5, TestAction, MeanDistributionSampler);
 
-    slot.update(&TestFeedback(-1.));
+    slot.update(&TestFeedback(false));
     slot.reset();
 
-    assert_eq!(slot.get_params(), (PRIOR_ALPHA, PRIOR_BETA, 2.5, 1., 1));
+    let (alpha, beta, mean, variance, observations) = slot.get_params();
+    assert_eq!((alpha, beta, mean, observations), (2.5, PRIOR_BETA, 2.5 / 3.5, 1));
+    assert!((variance - 2.5 / (3.5_f64.powi(2) * 4.5)).abs() < 1e-12);
+    assert_eq!(slot.sample(), 2.5 / 3.5);
 }
 
 #[test]
-fn can_sample_posterior_mean_using_effective_count() {
-    let action_sampler = DefaultDistributionSampler::new(create_test_random());
-    let sampler = TestDistributionSampler::default();
-    let mut slot = SlotMachine::new(1., TestAction(action_sampler), sampler.clone());
+fn can_update_beta_posterior() {
+    let mut slot = SlotMachine::new(1., TestAction, MeanDistributionSampler);
 
-    slot.update(&TestFeedback(1.));
-    slot.sample();
+    slot.update(&TestFeedback(true));
 
-    let alpha = slot.get_params().0;
-    let expected_std_dev = (1. / (2. * alpha)).sqrt();
-    assert!((sampler.last_std_dev.get() - expected_std_dev).abs() < f64::EPSILON);
-
-    let initial_std_dev = sampler.last_std_dev.get();
-    (0..100).for_each(|_| slot.update(&TestFeedback(1.)));
-    slot.sample();
-
-    assert!(sampler.last_std_dev.get() < initial_std_dev);
+    let (alpha, beta, mean, variance, observations) = slot.get_params();
+    assert_eq!((alpha, beta, mean, observations), (2., 1., 2. / 3., 1));
+    assert!((variance - 1. / 18.).abs() < 1e-12);
 }
 
 #[test]
-fn can_prefer_mean_over_observation_variance() {
-    let action_sampler = DefaultDistributionSampler::new(create_test_random());
-    let sampler = OptimisticDistributionSampler;
-    let mut stable = SlotMachine::new(1., TestAction(action_sampler.clone()), sampler.clone());
-    let mut noisy = SlotMachine::new(1., TestAction(action_sampler), sampler);
+fn can_limit_confidence_and_adapt_to_regime_change() {
+    let mut slot = SlotMachine::new(1., TestAction, MeanDistributionSampler);
 
-    (0..200).for_each(|idx| {
-        stable.update(&TestFeedback(1.));
-        noisy.update(&TestFeedback(if idx % 2 == 0 { -2. } else { 2. }));
-    });
+    (0..1_000).for_each(|_| slot.update(&TestFeedback(true)));
+    let successful = slot.get_params();
+    assert!(successful.0 + successful.1 <= MAX_EVIDENCE + f64::EPSILON);
+    assert!(successful.2 > 0.99);
 
-    assert!(stable.mu > noisy.mu);
-    assert!(stable.sample() > noisy.sample());
+    (0..1_000).for_each(|_| slot.update(&TestFeedback(false)));
+    let unsuccessful = slot.get_params();
+    assert!(unsuccessful.0 + unsuccessful.1 <= MAX_EVIDENCE + f64::EPSILON);
+    assert!(unsuccessful.2 < 0.01);
 }
 
 #[test]
-fn can_adapt_to_reward_regime_change() {
-    let action_sampler = DefaultDistributionSampler::new(create_test_random());
-    let mut slot = SlotMachine::new(0., TestAction(action_sampler), OptimisticDistributionSampler);
-
-    (0..200).for_each(|_| slot.update(&TestFeedback(1.)));
-    assert!(slot.mu > 0.9);
-
-    (0..500).for_each(|_| slot.update(&TestFeedback(-1.)));
-    assert!(slot.mu < -0.8);
-}
-
-#[test]
-fn can_keep_variance_numerically_stable() {
+fn can_keep_sampling_numerically_stable() {
     let sampler = DefaultDistributionSampler::new(create_test_random());
-    let mut slot = SlotMachine::new(1., TestAction(sampler.clone()), sampler);
+    let mut slot = SlotMachine::new(1., TestAction, sampler);
 
-    (0..200_000).for_each(|_| slot.update(&TestFeedback(1.)));
-
-    assert!(slot.get_params().1.is_normal());
+    (0..200_000).for_each(|_| slot.update(&TestFeedback(false)));
     assert!(slot.sample().is_finite());
+
+    (0..1_000).for_each(|_| slot.update(&TestFeedback(true)));
+    assert!(slot.sample().is_finite());
+    assert!(slot.get_params().2 > 0.99);
 }
 
 #[test]
-fn can_update_normal_inverse_gamma_state() {
-    let action_sampler = DefaultDistributionSampler::new(create_test_random());
-    let mut slot = SlotMachine::new(1., TestAction(action_sampler), OptimisticDistributionSampler);
+fn can_play_action() {
+    let slot = SlotMachine::new(1., TestAction, MeanDistributionSampler);
 
-    slot.update(&TestFeedback(3.));
-
-    let (alpha, beta, mu, variance, observations) = slot.get_params();
-    assert_eq!(alpha, 2.5);
-    assert!((beta - 2.595).abs() < 1e-12);
-    assert_eq!(mu, 1.4);
-    assert!((variance - 1.73).abs() < 1e-12);
-    assert_eq!(observations, 1);
-}
-
-#[test]
-fn can_find_proper_estimations() {
-    let sockets = 5;
-    let total_episodes = 100;
-    let expected_failures_threshold = (0.3 * (sockets * total_episodes) as Float) as usize;
-    let failed_slot_estimations: usize = (0..total_episodes)
-        .map(|_| {
-            let slot_means: &[Float; 5] = &[5., 9., 7., 13., 11.];
-            let slot_vars: &[Float; 5] = &[2., 3., 4., 6., 1.];
-            let prior_mean = 1.;
-            let attempts_per_slot = 1000;
-            let delta = 2.;
-
-            let random = create_test_random();
-            let sampler = DefaultDistributionSampler::new(random.clone());
-            let mut slots = (0..sockets)
-                .map(|_| SlotMachine::new(prior_mean, TestAction(sampler.clone()), sampler.clone()))
-                .collect::<Vec<_>>();
-
-            // Play each slot independently to test estimation convergence
-            for slot_idx in 0..sockets {
-                for _ in 0..attempts_per_slot {
-                    let slot = &mut slots[slot_idx];
-                    let feedback = slot.play((slot_means[slot_idx], slot_vars[slot_idx]));
-                    slot.update(&feedback);
-                }
-            }
-
-            slots
-                .iter()
-                .enumerate()
-                .filter(|(idx, slot)| {
-                    (slot.mu - slot_means[*idx]).abs() > delta || (slot.v - slot_vars[*idx]).abs() > delta
-                })
-                .map(|_| 1)
-                .sum::<usize>()
-        })
-        .sum();
-
-    if failed_slot_estimations > expected_failures_threshold {
-        panic!("too many estimation failures: {failed_slot_estimations} < {expected_failures_threshold}")
-    }
+    assert!(slot.play(true).is_success());
+    assert!(!slot.play(false).is_success());
 }

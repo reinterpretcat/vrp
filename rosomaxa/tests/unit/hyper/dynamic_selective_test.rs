@@ -4,7 +4,6 @@ use crate::helpers::example::{
     create_default_heuristic_context, create_example_objective, create_heuristic_context_with_solutions,
 };
 use crate::population::Greedy;
-use std::ops::Range;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
@@ -57,18 +56,18 @@ fn can_run_intensify_operator_without_replacing_search() {
 }
 
 #[test]
-fn can_apply_prior_mean_policy() {
-    assert_eq!(get_prior_mean(1., 1.), 1.);
-    assert_eq!(get_prior_mean(10., 1.), PRIOR_MEAN_MAX);
+fn can_apply_prior_policy() {
+    assert_eq!(get_prior_alpha(1., 1.), 1.);
+    assert_eq!(get_prior_alpha(10., 1.), PRIOR_ALPHA_MAX);
 }
 
-parameterized_test! {can_decide_when_to_reset_best_known, (generation, next_reset, improvement_ratio, expected), {
+parameterized_test! {can_decide_when_to_reset, (generation, next_reset, improvement_ratio, expected), {
     let statistics = HeuristicStatistics { generation, improvement_1000_ratio: improvement_ratio, ..Default::default() };
 
-    assert_eq!(should_reset_best_known(&statistics, next_reset), expected);
+    assert_eq!(should_reset(&statistics, next_reset), expected);
 }}
 
-can_decide_when_to_reset_best_known! {
+can_decide_when_to_reset! {
     case_01: (1000, 1000, 0., true),
     case_02: (999, 1000, 0., false),
     case_03: (2000, 3000, 0., false),
@@ -86,82 +85,50 @@ can_advance_stagnation_reset! {
 }
 
 #[test]
-fn can_estimate_duration_median_in_microseconds() {
-    struct DelayableHeuristicOperator {
-        delay_range: Range<i32>,
-        random: Arc<dyn Random>,
-    }
-    impl HeuristicSearchOperator for DelayableHeuristicOperator {
+fn can_reset_both_search_states_during_stagnation() {
+    struct Noop;
+
+    impl HeuristicSearchOperator for Noop {
         type Context = VectorContext;
         type Objective = VectorObjective;
         type Solution = VectorSolution;
 
         fn search(&self, _: &Self::Context, solution: &Self::Solution) -> Self::Solution {
-            let delay = self.random.uniform_int(self.delay_range.start, self.delay_range.end);
-            std::thread::sleep(Duration::from_millis(delay as u64));
             solution.deep_copy()
         }
     }
-    impl HeuristicDiversifyOperator for DelayableHeuristicOperator {
-        type Context = VectorContext;
-        type Objective = VectorObjective;
-        type Solution = VectorSolution;
 
-        fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
-            vec![self.search(heuristic_ctx, solution)]
-        }
-    }
     let environment = Environment::default();
-    let random = environment.random.clone();
-    let solution = VectorSolution::new(vec![0., 0.], 0., vec![0., 0.]);
     let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
-        vec![
-            (
-                Arc::new(DelayableHeuristicOperator { delay_range: (2..3), random: random.clone() }),
-                "first".to_string(),
-                1.,
-            ),
-            (
-                Arc::new(DelayableHeuristicOperator { delay_range: (7..10), random: random.clone() }),
-                "second".to_string(),
-                1.,
-            ),
-        ],
+        vec![(Arc::new(Noop), "noop".to_string(), 1.)],
         &environment,
-    )
-    .with_diversify_operators(vec![Arc::new(DelayableHeuristicOperator {
-        delay_range: (2..3),
-        random: random.clone(),
-    })]);
+    );
+    let feedback = SearchFeedback {
+        sample: SearchSample { duration: 1, reward: 0., transition: (SearchState::BestKnown, SearchState::Diverse) },
+        slot_idx: 0,
+        solution: None,
+    };
+    heuristic.agent.slot_machines.values_mut().for_each(|slots| slots[0].0.update(&feedback));
 
-    heuristic.search_many(&create_default_heuristic_context(), (0..100).map(|_| &solution).collect());
+    heuristic.agent.reset_if_stagnant(&HeuristicStatistics {
+        generation: STAGNATION_WINDOW,
+        improvement_1000_ratio: 0.,
+        ..Default::default()
+    });
 
-    let median = heuristic.agent.tracker.approx_median().expect("cannot be None");
-    assert!(median >= 1_000);
+    heuristic.agent.slot_machines.values().for_each(|slots| {
+        let (alpha, beta, _, _, observations) = slots[0].0.get_params();
+        assert_eq!((alpha, beta, observations), (1., 1., 1));
+    });
 }
 
 #[test]
-fn can_penalize_sub_millisecond_failure() {
-    let duration = get_duration_micros(Duration::from_micros(500));
-    let reward = -PENALTY_SCALE * get_duration_ratio(duration, Some(1_000));
-
-    assert_eq!(duration, 500);
-    assert_eq!(reward, -0.05);
-}
-
-#[test]
-fn can_keep_duration_ratio_independent_of_unit_scale() {
-    assert_eq!(get_duration_ratio(500, Some(1_000)), get_duration_ratio(500_000, Some(1_000_000)));
-}
-
-#[test]
-fn can_avoid_zero_duration_reward() {
+fn can_avoid_zero_duration_in_telemetry() {
     assert_eq!(get_duration_micros(Duration::ZERO), 1);
-    assert_eq!(get_duration_ratio(0, Some(10)), 0.1);
 }
 
 #[test]
-fn can_penalize_fast_noop_through_search_action() {
+fn can_treat_noop_as_unsuccessful_through_search_action() {
     struct Noop;
 
     impl HeuristicSearchOperator for Noop {
@@ -184,73 +151,11 @@ fn can_penalize_fast_noop_through_search_action() {
         from: SearchState::BestKnown,
         slot_idx: 0,
         solution: &solution,
-        approx_median: Some(1_000),
     });
 
-    assert!(feedback.sample.reward < 0.0);
+    assert_eq!(feedback.sample.reward, 0.);
+    assert!(!feedback.is_success());
     assert!(feedback.sample.duration > 0);
-}
-
-#[test]
-fn can_ignore_numerical_noise_in_new_best_reward() {
-    let heuristic_ctx = create_heuristic_context_with_solutions(vec![vec![0., 0.]]);
-    let initial_solution = VectorSolution::new(vec![], 1., vec![]);
-    let new_solution = VectorSolution::new(vec![], 1. - Float::EPSILON, vec![]);
-    let best_known = heuristic_ctx.ranked().next();
-
-    let Reward { value: reward, is_new_best } =
-        compute_reward(&heuristic_ctx, best_known, &initial_solution, &new_solution, 500, Some(1_000));
-
-    assert!(is_new_best);
-    assert!((0. ..1e-6).contains(&reward));
-}
-
-#[test]
-fn can_ignore_numerical_noise_in_diverse_improvement_reward() {
-    let heuristic_ctx = create_heuristic_context_with_solutions(vec![vec![1., 1.]]);
-    let initial_solution = VectorSolution::new(vec![], 1., vec![]);
-    let new_solution = VectorSolution::new(vec![], 1. - Float::EPSILON, vec![]);
-    let best_known = heuristic_ctx.ranked().next();
-
-    let Reward { value: reward, is_new_best } =
-        compute_reward(&heuristic_ctx, best_known, &initial_solution, &new_solution, 500, Some(1_000));
-
-    assert!(!is_new_best);
-    assert!((0. ..1e-6).contains(&reward));
-}
-
-parameterized_test! {can_compute_relative_distance, (fitness_a, fitness_b, expected), {
-    can_compute_relative_distance_impl(fitness_a, fitness_b, expected);
-}}
-
-struct FitnessSolution(Vec<Float>);
-
-impl HeuristicSolution for FitnessSolution {
-    fn fitness(&self) -> impl Iterator<Item = Float> {
-        self.0.iter().copied()
-    }
-
-    fn deep_copy(&self) -> Self {
-        Self(self.0.clone())
-    }
-}
-
-can_compute_relative_distance! {
-    case_01_improvement: (vec![90.0], vec![100.0], 0.1),           // 10% distance: |100-90|/100 = 0.1
-    case_02_regression: (vec![110.0], vec![100.0], 0.09),          // 9% distance: |110-100|/110 ≈ 0.09
-    case_03_equal: (vec![100.0], vec![100.0], 0.0),                // Equal = no distance
-    case_04_primary_priority: (vec![90.0, 100.0], vec![100.0, 90.0], 0.1), // Primary objective distance
-    case_05_secondary_priority: (vec![100.0, 90.0], vec![100.0, 100.0], 0.05),
-    case_06_trailing_value: (vec![100.0, 90.0], vec![100.0], 0.0),
-}
-
-fn can_compute_relative_distance_impl(fitness_a: Vec<Float>, fitness_b: Vec<Float>, expected: Float) {
-    let solution_a = FitnessSolution(fitness_a);
-    let solution_b = FitnessSolution(fitness_b);
-
-    let result = get_relative_distance(&solution_a, &solution_b);
-
-    assert!((result - expected).abs() < 0.02, "Expected ~{expected}, got {result}");
 }
 
 #[test]
@@ -275,6 +180,7 @@ fn can_display_heuristic_info() {
     );
     let solution = VectorSolution::new(vec![0., 0.], 0., vec![0., 0.]);
     heuristic.search(&create_default_heuristic_context(), &solution);
+    heuristic.agent.save_params(0);
 
     // Test that diagnostic system is properly initialized
     assert_eq!(heuristic.agent.tracker.telemetry_enabled(), is_experimental);
@@ -285,7 +191,8 @@ fn can_display_heuristic_info() {
     if is_experimental {
         assert!(formatted.contains("TELEMETRY"));
         assert!(formatted.contains("duration_us"));
-        assert!(formatted.contains("noop,0,"));
+        assert!(formatted.contains("0,best,noop,"));
+        assert!(formatted.contains("n,successes,duration_us"));
     } else {
         // When not experimental, should be empty or minimal
         assert!(formatted.is_empty() || !formatted.contains("thompson_diagnostics:"));
@@ -293,22 +200,38 @@ fn can_display_heuristic_info() {
 }
 
 #[test]
-fn can_handle_equal_fitness_solutions() {
-    // Test that solutions with identical fitness return 0 distance.
-    struct TestData;
+fn can_track_exact_state_specific_summary() {
+    let mut tracker = HeuristicTracker::new(true);
+    tracker.observe_sample(
+        1,
+        "operator",
+        &SearchSample { duration: 10, reward: 1., transition: (SearchState::BestKnown, SearchState::BestKnown) },
+    );
+    tracker.observe_sample(
+        2,
+        "operator",
+        &SearchSample { duration: 20, reward: 0., transition: (SearchState::BestKnown, SearchState::Diverse) },
+    );
+    tracker.observe_sample(
+        2,
+        "operator",
+        &SearchSample { duration: 30, reward: 1., transition: (SearchState::Diverse, SearchState::BestKnown) },
+    );
 
-    impl HeuristicSolution for TestData {
-        fn fitness(&self) -> impl Iterator<Item = Float> {
-            // fitness is the same
-            Box::new(once(1.))
-        }
+    let best = tracker.get_summary(&SearchState::BestKnown, "operator");
+    let diverse = tracker.get_summary(&SearchState::Diverse, "operator");
 
-        fn deep_copy(&self) -> Self {
-            unreachable!()
-        }
-    }
+    assert_eq!((best.successes, best.duration), (1, 30));
+    assert_eq!((diverse.successes, diverse.duration), (1, 30));
+}
 
-    let distance = get_relative_distance(&TestData, &TestData);
+#[test]
+fn can_compact_complete_parameter_snapshots() {
+    let mut telemetry = (0..5).map(|generation| (generation, Vec::new())).collect();
+    let mut recording_interval = 1;
 
-    assert_eq!(distance, 0.)
+    compact_params(&mut telemetry, &mut recording_interval, 4);
+
+    assert_eq!(recording_interval, 2);
+    assert_eq!(telemetry.into_iter().map(|(generation, _)| generation).collect::<Vec<_>>(), vec![0, 2, 4]);
 }

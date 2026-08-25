@@ -200,6 +200,10 @@ input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer
 .guide-grid span { color: var(--muted); font-size: 11px; line-height: 1.4; }
 .plot-toolbar { display: grid; grid-template-columns: auto minmax(170px, 1fr) minmax(170px, 1fr); align-items: end; gap: 16px; margin-bottom: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); }
 .plot-toolbar-title { align-self: center; font-size: 12px; font-weight: 700; }
+.operator-toolbar { margin: 10px 14px 0; }
+.operator-toolbar > div { align-self: center; }
+.operator-toolbar .hint { margin-bottom: 0; }
+.operator-guide-grid { margin-top: 10px; }
 .tab { display: flex; gap: 3px; overflow-x: auto; padding: 7px; border-bottom: 1px solid var(--line); background: var(--surface-soft); }
 .tab button { flex: 0 0 auto; padding: 8px 11px; border: 0; border-radius: 7px; color: var(--muted); background: transparent; cursor: pointer; font-size: 12px; font-weight: 650; }
 .tab button:hover { color: var(--primary); background: var(--primary-soft); }

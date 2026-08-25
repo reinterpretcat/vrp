@@ -4,7 +4,6 @@ mod dynamic_selective_test;
 
 use super::*;
 use crate::Timer;
-use crate::algorithms::math::RemedianUsize;
 use crate::algorithms::rl::{SlotAction, SlotFeedback, SlotMachine};
 use crate::utils::{DefaultDistributionSampler, ParallelismScope, random_argmax};
 use std::cmp::Ordering;
@@ -54,11 +53,10 @@ where
 
     fn search_many(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
         self.agent.reset_if_stagnant(heuristic_ctx.statistics());
-        let approx_median = self.agent.tracker.approx_median();
         // Population is unchanged while the batch runs, so all searches can use the same best solution.
         let best_known = heuristic_ctx.ranked().next();
         let feedbacks = parallel_into_collect(solutions, ParallelismScope::Coarse, |solution| {
-            self.agent.search_with_median(heuristic_ctx, solution, best_known, approx_median)
+            self.agent.search_with_best(heuristic_ctx, solution, best_known)
         });
 
         let generation = heuristic_ctx.statistics().generation;
@@ -119,36 +117,11 @@ where
 /// Type alias for slot machines used in Thompson sampling.
 pub type SlotMachines<'a, C, O, S> = Vec<(SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler>, String)>;
 
-/// Base reward for finding a new global best solution.
-/// This is the "jackpot" that operators compete for.
-const JACKPOT_BASE: Float = 2.0;
+/// Bounds applied to relative operator weights before using them as successful-outcome priors.
+const PRIOR_ALPHA_MIN: Float = 0.1;
+const PRIOR_ALPHA_MAX: Float = 2.0;
 
-/// Maximum reward for diverse improvements (soft ceiling via tanh saturation).
-/// Must be well below JACKPOT_BASE to ensure exploitation of best-finding operators.
-/// At 1.0, jackpots are guaranteed to be at least 2x more valuable than any diverse improvement.
-const DIVERSE_CAP: Float = 1.0;
-
-/// Minimum reward for any improvement above numerical precision (prevents near-zero rewards).
-/// Set high enough to be a meaningful positive signal.
-const MIN_REWARD: Float = 0.1;
-
-/// Penalty scale for failures (multiplied by time ratio).
-/// A failure that takes median time costs -0.1; twice median costs -0.2.
-const PENALTY_SCALE: Float = 0.1;
-
-/// Floor for rewards (maximum penalty).
-const REWARD_MIN: Float = -1.0;
-
-/// Ceiling for rewards (maximum jackpot + efficiency bonus).
-const REWARD_MAX: Float = 10.0;
-
-/// Minimum initial mean used for operator rewards.
-const PRIOR_MEAN_MIN: Float = 0.1;
-
-/// Maximum initial mean used for operator rewards.
-const PRIOR_MEAN_MAX: Float = 2.0;
-
-/// Restarts a collapsed best-known posterior after this many generations without improvement.
+/// Restarts learned operator posteriors after this many generations without improvement.
 const STAGNATION_WINDOW: usize = 1000;
 
 /// Search state for Thompson sampling.
@@ -177,8 +150,8 @@ pub struct SearchFeedback<S> {
 }
 
 impl<S> SlotFeedback for SearchFeedback<S> {
-    fn reward(&self) -> Float {
-        self.sample.reward
+    fn is_success(&self) -> bool {
+        self.sample.reward > 0.
     }
 }
 
@@ -208,15 +181,12 @@ where
 
         let duration = get_duration_micros(duration);
 
-        // Compute reward using the simplified V2.1 formula.
-        let Reward { value: reward, is_new_best } = compute_reward(
-            context.heuristic_ctx,
-            context.best_known,
-            context.solution,
-            &new_solution,
-            duration,
-            context.approx_median,
-        );
+        // Only a strict incumbent improvement is a success. Improving a weak parent is useful search
+        // movement, but rewarding it here lets frequent local moves starve rare basin-changing operators.
+        let is_new_best = context.best_known.is_some_and(|best_known| {
+            context.heuristic_ctx.objective().total_order(&new_solution, best_known) == Ordering::Less
+        });
+        let reward = if is_new_best { 1. } else { 0. };
 
         let to = if is_new_best { SearchState::BestKnown } else { SearchState::Diverse };
         let transition = (context.from, to);
@@ -239,19 +209,18 @@ where
     from: SearchState,
     slot_idx: usize,
     solution: &'a S,
-    approx_median: Option<usize>,
 }
 
 struct SearchAgent<'a, C, O, S> {
     /// Separate learning contexts for different search phases (BestKnown vs Diverse).
     slot_machines: HashMap<SearchState, SlotMachines<'a, C, O, S>>,
-    /// Tracks operator durations for median calculation.
+    /// Tracks experimental operator statistics.
     tracker: HeuristicTracker,
     /// Random number generator for Thompson sampling selection.
     random: Arc<dyn Random>,
-    /// Current delay between best-known posterior resets during stagnation.
+    /// Current delay between posterior resets during stagnation.
     stagnation_reset_interval: usize,
-    /// Generation at which the next stagnant best-known posterior can be reset.
+    /// Generation at which the next stagnant posterior can be reset.
     next_stagnation_reset: usize,
 }
 
@@ -262,8 +231,7 @@ where
     S: HeuristicSolution + 'a,
 {
     pub fn new(search_operators: HeuristicSearchOperators<C, O, S>, environment: &Environment) -> Self {
-        // Normalize weights so the average operator has prior_mean ≈ 1.0.
-        // This aligns with typical success rewards (~1-3 range).
+        // Normalize expert weights so an average operator starts with one successful pseudo-observation.
         let total_weight: Float = search_operators.iter().map(|(_, _, w)| *w).sum();
         let count = search_operators.len() as Float;
         let avg_weight = if count > 0.0 && total_weight > f64::EPSILON { total_weight / count } else { 1.0 };
@@ -277,10 +245,10 @@ where
             search_operators
                 .iter()
                 .map(|(operator, name, initial_weight)| {
-                    let prior_mean = get_prior_mean(*initial_weight, avg_weight);
+                    let prior_alpha = get_prior_alpha(*initial_weight, avg_weight);
                     (
                         SlotMachine::new(
-                            prior_mean,
+                            prior_alpha,
                             SearchAction { operator: operator.clone() },
                             DefaultDistributionSampler::new(environment.random.clone()),
                         ),
@@ -305,15 +273,11 @@ where
     }
 
     fn reset_if_stagnant(&mut self, statistics: &HeuristicStatistics) {
-        if !should_reset_best_known(statistics, self.next_stagnation_reset) {
+        if !should_reset(statistics, self.next_stagnation_reset) {
             return;
         }
 
-        self.slot_machines
-            .get_mut(&SearchState::BestKnown)
-            .expect("cannot get slot machines")
-            .iter_mut()
-            .for_each(|(slot, _)| slot.reset());
+        self.slot_machines.values_mut().flat_map(|slots| slots.iter_mut()).for_each(|(slot, _)| slot.reset());
 
         (self.stagnation_reset_interval, self.next_stagnation_reset) =
             advance_stagnation_reset(statistics.generation, self.stagnation_reset_interval);
@@ -322,16 +286,10 @@ where
     /// Picks the relevant search operator using pure Thompson Sampling and runs the search.
     pub fn search(&self, heuristic_ctx: &C, solution: &S) -> SearchFeedback<S> {
         let best_known = heuristic_ctx.ranked().next();
-        self.search_with_median(heuristic_ctx, solution, best_known, self.tracker.approx_median())
+        self.search_with_best(heuristic_ctx, solution, best_known)
     }
 
-    fn search_with_median(
-        &self,
-        heuristic_ctx: &C,
-        solution: &S,
-        best_known: Option<&S>,
-        approx_median: Option<usize>,
-    ) -> SearchFeedback<S> {
+    fn search_with_best(&self, heuristic_ctx: &C, solution: &S, best_known: Option<&S>) -> SearchFeedback<S> {
         // Determine search context - critical for operator selection.
         let from = if matches!(compare_to_best(heuristic_ctx.objective(), best_known, solution), Ordering::Equal) {
             SearchState::BestKnown
@@ -348,10 +306,10 @@ where
         let slot_machine = &slots[slot_idx].0;
 
         // Execute with full context information.
-        slot_machine.play(SearchContext { heuristic_ctx, best_known, from, slot_idx, solution, approx_median })
+        slot_machine.play(SearchContext { heuristic_ctx, best_known, from, slot_idx, solution })
     }
 
-    /// Updates the slot machine with the raw reward (no normalization needed).
+    /// Updates the selected slot with its incumbent-improvement outcome.
     pub fn update(&mut self, generation: usize, feedback: &SearchFeedback<S>) {
         if feedback.sample.transition.1 == SearchState::BestKnown {
             self.stagnation_reset_interval = STAGNATION_WINDOW;
@@ -369,23 +327,38 @@ where
 
     /// Updates statistics about heuristic internal parameters.
     pub fn save_params(&mut self, generation: usize) {
-        if !self.tracker.telemetry_enabled() {
+        if !self.tracker.should_record_params(generation) {
             return;
         }
 
-        self.slot_machines.iter().for_each(|(state, slots)| {
-            slots.iter().for_each(|(slot, name)| {
-                let (alpha, beta, mu, v, n) = slot.get_params();
-                self.tracker.observe_params(
-                    generation,
-                    HeuristicSample { state: state.clone(), name: name.clone(), alpha, beta, mu, v, n },
-                );
-            });
-        });
+        self.tracker.observe_params(generation, self.get_params());
+    }
+
+    fn get_params(&self) -> Vec<HeuristicSample> {
+        self.slot_machines
+            .iter()
+            .flat_map(|(state, slots)| {
+                slots.iter().map(|(slot, name)| {
+                    let (alpha, beta, mu, v, n) = slot.get_params();
+                    let summary = self.tracker.get_summary(state, name);
+                    HeuristicSample {
+                        state: state.clone(),
+                        name: name.clone(),
+                        alpha,
+                        beta,
+                        mu,
+                        v,
+                        n,
+                        successes: summary.successes,
+                        duration: summary.duration,
+                    }
+                })
+            })
+            .collect()
     }
 }
 
-fn should_reset_best_known(statistics: &HeuristicStatistics, next_reset: usize) -> bool {
+fn should_reset(statistics: &HeuristicStatistics, next_reset: usize) -> bool {
     statistics.generation >= next_reset && statistics.improvement_1000_ratio == 0.
 }
 
@@ -394,117 +367,13 @@ fn advance_stagnation_reset(generation: usize, interval: usize) -> (usize, usize
     (interval, generation.saturating_add(interval))
 }
 
-/// Maps an operator's relative weight to the prior mean used by the reward model.
-fn get_prior_mean(initial_weight: Float, avg_weight: Float) -> Float {
-    let ratio = initial_weight / avg_weight;
-    let normalized = (ratio - 1.0).tanh();
-    let prior_mean = if normalized >= 0.0 { 1.0 + normalized * 2.0 } else { 1.0 + normalized * 0.9 };
-
-    prior_mean.clamp(PRIOR_MEAN_MIN, PRIOR_MEAN_MAX)
-}
-
-struct Reward {
-    value: Float,
-    is_new_best: bool,
-}
-
-/// Computes the reward for an operator based on solution improvement.
-///
-/// Key design principles:
-/// 1. **Best-Known Anchoring**: Improvements far from best get diminished credit.
-/// 2. **Stagnation-Aware Efficiency**: Slow operators tolerated during stagnation.
-/// 3. **Bounded Output**: Rewards are clamped before the Bayesian update.
-fn compute_reward<C, O, S>(
-    heuristic_ctx: &C,
-    best_known: Option<&S>,
-    initial_solution: &S,
-    new_solution: &S,
-    duration: usize,
-    approx_median: Option<usize>,
-) -> Reward
-where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-{
-    let objective = heuristic_ctx.objective();
-
-    let best_known = match best_known {
-        Some(best) => best,
-        None => return Reward { value: 0.0, is_new_best: true }, // No population yet, neutral reward.
-    };
-
-    // Determine improvement types.
-    let is_new_best = objective.total_order(new_solution, best_known) == Ordering::Less;
-    let is_improvement = objective.total_order(new_solution, initial_solution) == Ordering::Less;
-
-    // COMPUTE REWARD BASED ON IMPROVEMENT TYPE
-    let raw_reward = if is_new_best {
-        // JACKPOT: Found new global best!
-        // Apply magnitude scaling so small improvements become meaningful signals.
-        // Raw distance is often tiny (0.001 for 0.1% improvement).
-        // ln_1p(x * 1000) transforms: 0.001 -> ~0.69, 0.01 -> ~2.4, 0.1 -> ~4.6
-        let improvement_distance = get_relative_distance(new_solution, initial_solution);
-        let magnitude = (improvement_distance * 1000.0).ln_1p();
-        // Floating point aggregation can create a nominal new best without measurable progress.
-        // Scale the jackpot down around numerical precision, but keep it for objectives which do not expose distance.
-        let significance = get_numerical_significance(improvement_distance);
-
-        (JACKPOT_BASE + magnitude) * significance
-    } else if is_improvement {
-        // DIVERSE IMPROVEMENT: Better than starting point, but not global best.
-        // Use tanh for soft saturation - large improvements asymptote to DIVERSE_CAP,
-        // ensuring diverse rewards stay well below JACKPOT_BASE.
-        let improvement_distance = get_relative_distance(new_solution, initial_solution);
-        let magnitude = (improvement_distance * 1000.0).ln_1p();
-        let saturated = magnitude.tanh();
-
-        // Proximity to best: closer solutions get higher reward.
-        let gap_to_best = get_relative_distance(new_solution, best_known);
-        let proximity_factor = (1.0 - gap_to_best).powi(2);
-
-        // Base utility: soft-capped and bounded [MIN_REWARD, DIVERSE_CAP].
-        let base_utility = (DIVERSE_CAP * saturated * proximity_factor).clamp(MIN_REWARD, DIVERSE_CAP)
-            * get_numerical_significance(improvement_distance);
-
-        // Apply efficiency modulation: fast improvements get bonus, slow ones get penalty.
-        let duration_ratio = get_duration_ratio(duration, approx_median);
-        let improvement_ratio = heuristic_ctx.statistics().improvement_1000_ratio;
-
-        // "Flow" measures search progress: 0 = stagnating, 1 = fast progress.
-        let flow = (improvement_ratio * 10.0).clamp(0.0, 1.0);
-
-        // Efficiency clamp range adapts to search phase (reduced impact):
-        // - Stagnation (flow=0): [0.9, 1.1] - 10% penalty to 10% bonus
-        // - Fast progress (flow=1): [0.8, 1.2] - 20% penalty to 20% bonus
-        let min_eff = 0.9 - flow * 0.1;
-        let max_eff = 1.1 + flow * 0.1;
-
-        let efficiency = (1.0 / duration_ratio).clamp(min_eff, max_eff);
-
-        base_utility * efficiency
-    } else {
-        // FAILURE: time-proportional penalty.
-        -PENALTY_SCALE * get_duration_ratio(duration, approx_median)
-    };
-
-    // Clamp to bounded range for stable Bayesian updates.
-    Reward { value: raw_reward.clamp(REWARD_MIN, REWARD_MAX), is_new_best }
+/// Maps an operator's relative expert weight to its successful-outcome prior.
+fn get_prior_alpha(initial_weight: Float, avg_weight: Float) -> Float {
+    (initial_weight / avg_weight).clamp(PRIOR_ALPHA_MIN, PRIOR_ALPHA_MAX)
 }
 
 fn get_duration_micros(duration: std::time::Duration) -> usize {
     (duration.as_micros().min(usize::MAX as u128) as usize).max(1)
-}
-
-fn get_numerical_significance(distance: Float) -> Float {
-    if distance == 0. { 1. } else { (distance / Float::EPSILON.sqrt()).clamp(0., 1.) }
-}
-
-fn get_duration_ratio(duration: usize, approx_median: Option<usize>) -> Float {
-    let duration = duration.max(1);
-    let median = approx_median.unwrap_or(duration).max(1);
-
-    duration as Float / median as Float
 }
 
 fn compare_to_best<O, S>(objective: &O, best_known: Option<&S>, solution: &S) -> Ordering
@@ -515,45 +384,12 @@ where
     best_known.map(|best_known| objective.total_order(solution, best_known)).unwrap_or(Ordering::Less)
 }
 
-/// Returns the normalized distance in `[0.0, 1.0]`.
-fn get_relative_distance<S>(a: &S, b: &S) -> Float
-where
-    S: HeuristicSolution,
-{
-    let mut first_difference = None;
-    let mut total_objectives = 0;
-    let mut fitness_b = b.fitness();
-
-    for fitness_a in a.fitness() {
-        if first_difference.is_none() {
-            if let Some(fitness_b) = fitness_b.next()
-                && fitness_a != fitness_b
-            {
-                first_difference = Some((total_objectives, fitness_a, fitness_b));
-            }
-        }
-        total_objectives += 1;
-    }
-
-    let (idx, fitness_a, fitness_b) = match first_difference {
-        Some(difference) => difference,
-        None => return 0., // All fitness values equal.
-    };
-
-    // Priority amplifier: earlier objectives matter more.
-    let priority_amplifier = (total_objectives - idx) as Float / total_objectives as Float;
-
-    // Relative difference in the differing component.
-    let value = (fitness_a - fitness_b).abs() / fitness_a.abs().max(fitness_b.abs()).max(f64::EPSILON);
-
-    value * priority_amplifier
-}
-
 /// Diagnostic tracker for Thompson sampling analysis.
 struct HeuristicTracker {
-    duration_median: RemedianUsize,
-    search_telemetry: Vec<(usize, String, SearchSample)>,
-    heuristic_telemetry: Vec<(usize, HeuristicSample)>,
+    heuristic_telemetry: Vec<(usize, Vec<HeuristicSample>)>,
+    summaries: HashMap<SearchState, HashMap<String, HeuristicSummary>>,
+    recording_interval: usize,
+    last_generation: usize,
     is_experimental: bool,
 }
 
@@ -561,9 +397,10 @@ impl HeuristicTracker {
     /// Creates a new tracker with diagnostic configuration.
     pub fn new(is_experimental: bool) -> Self {
         Self {
-            duration_median: RemedianUsize::new(11, 7, |a, b| a.cmp(b)),
-            search_telemetry: Default::default(),
             heuristic_telemetry: Default::default(),
+            summaries: Default::default(),
+            recording_interval: 1,
+            last_generation: 0,
             is_experimental,
         }
     }
@@ -573,24 +410,65 @@ impl HeuristicTracker {
         self.is_experimental
     }
 
-    /// Returns the median approximation.
-    pub fn approx_median(&self) -> Option<usize> {
-        self.duration_median.approx_median()
-    }
-
-    /// Observes the current sample and updates the total duration median.
+    /// Observes the current sample.
     pub fn observe_sample(&mut self, generation: usize, name: &str, sample: &SearchSample) {
-        self.duration_median.add_observation(sample.duration);
         if self.telemetry_enabled() {
-            self.search_telemetry.push((generation, name.to_string(), sample.clone()));
+            self.last_generation = generation;
+            let state = &sample.transition.0;
+            if let Some(summary) = self.summaries.get_mut(state).and_then(|summaries| summaries.get_mut(name)) {
+                summary.observe(sample);
+            } else {
+                let mut summary = HeuristicSummary::default();
+                summary.observe(sample);
+                self.summaries.entry(state.clone()).or_default().insert(name.to_string(), summary);
+            }
         }
     }
 
-    /// Observes heuristic parameters for telemetry tracking.
-    pub fn observe_params(&mut self, generation: usize, sample: HeuristicSample) {
-        if self.telemetry_enabled() {
-            self.heuristic_telemetry.push((generation, sample));
+    /// Returns exact cumulative telemetry for a state-specific operator.
+    fn get_summary(&self, state: &SearchState, name: &str) -> HeuristicSummary {
+        self.summaries.get(state).and_then(|summaries| summaries.get(name)).copied().unwrap_or_default()
+    }
+
+    fn should_record_params(&self, generation: usize) -> bool {
+        self.telemetry_enabled() && generation.is_multiple_of(self.recording_interval)
+    }
+
+    /// Retains complete posterior banks at an adaptive interval.
+    pub fn observe_params(&mut self, generation: usize, samples: Vec<HeuristicSample>) {
+        const MAX_RETAINED_PARAMS: usize = 20_000;
+
+        if !self.telemetry_enabled() || samples.is_empty() {
+            return;
         }
+
+        let max_snapshots = (MAX_RETAINED_PARAMS / samples.len()).max(2);
+        self.heuristic_telemetry.push((generation, samples));
+        compact_params(&mut self.heuristic_telemetry, &mut self.recording_interval, max_snapshots);
+    }
+}
+
+fn compact_params(
+    telemetry: &mut Vec<(usize, Vec<HeuristicSample>)>,
+    recording_interval: &mut usize,
+    max_snapshots: usize,
+) {
+    if telemetry.len() > max_snapshots {
+        *recording_interval = recording_interval.saturating_mul(2).max(1);
+        telemetry.retain(|(generation, _)| generation.is_multiple_of(*recording_interval));
+    }
+}
+
+#[derive(Clone, Copy, Default)]
+struct HeuristicSummary {
+    successes: usize,
+    duration: u64,
+}
+
+impl HeuristicSummary {
+    fn observe(&mut self, sample: &SearchSample) {
+        self.successes += usize::from(sample.reward > 0.);
+        self.duration = self.duration.saturating_add(sample.duration as u64);
     }
 }
 
@@ -611,6 +489,8 @@ struct HeuristicSample {
     mu: Float,
     v: Float,
     n: usize,
+    successes: usize,
+    duration: u64,
 }
 
 impl<C, O, S> Display for DynamicSelective<C, O, S>
@@ -624,77 +504,48 @@ where
             return Ok(());
         }
 
-        // To avoid WASM memory issues, downsample telemetry while preserving analysis capability
-        // Strategy: keep early samples, sample periodically, and keep recent samples
-        const MAX_SAMPLES: usize = 5000;
-        const EARLY_SAMPLES: usize = 500;
-        const RECENT_SAMPLES: usize = 500;
-
         f.write_fmt(format_args!("TELEMETRY\n"))?;
         f.write_fmt(format_args!("search:\n"))?;
         f.write_fmt(format_args!("name,generation,reward,from,to,duration_us\n"))?;
 
-        let search_total = self.agent.tracker.search_telemetry.len();
-        if search_total <= MAX_SAMPLES {
-            // Small enough, output all
-            for (generation, name, sample) in self.agent.tracker.search_telemetry.iter() {
+        f.write_fmt(format_args!("heuristic:\n"))?;
+        f.write_fmt(format_args!("generation,state,name,alpha,beta,mu,v,n,successes,duration_us\n"))?;
+
+        let final_generation = self.agent.tracker.last_generation;
+        let final_params = self.agent.get_params();
+        for (generation, samples) in
+            self.agent.tracker.heuristic_telemetry.iter().filter(|(generation, _)| *generation != final_generation)
+        {
+            for sample in samples {
                 f.write_fmt(format_args!(
-                    "{},{},{},{},{},{}\n",
-                    name, generation, sample.reward, sample.transition.0, sample.transition.1, sample.duration
+                    "{},{},{},{},{},{},{},{},{},{}\n",
+                    generation,
+                    sample.state,
+                    sample.name,
+                    sample.alpha,
+                    sample.beta,
+                    sample.mu,
+                    sample.v,
+                    sample.n,
+                    sample.successes,
+                    sample.duration
                 ))?;
-            }
-        } else {
-            // Downsample: early + periodic middle + recent
-            let middle_samples = MAX_SAMPLES - EARLY_SAMPLES - RECENT_SAMPLES;
-            let middle_start = EARLY_SAMPLES;
-            let middle_end = search_total - RECENT_SAMPLES;
-            let step = (middle_end - middle_start) / middle_samples;
-
-            for (i, (generation, name, sample)) in self.agent.tracker.search_telemetry.iter().enumerate() {
-                let include = i < EARLY_SAMPLES
-                    || i >= search_total - RECENT_SAMPLES
-                    || (i >= middle_start && i < middle_end && (i - middle_start).is_multiple_of(step));
-
-                if include {
-                    f.write_fmt(format_args!(
-                        "{},{},{},{},{},{}\n",
-                        name, generation, sample.reward, sample.transition.0, sample.transition.1, sample.duration
-                    ))?;
-                }
             }
         }
-
-        f.write_fmt(format_args!("heuristic:\n"))?;
-        f.write_fmt(format_args!("generation,state,name,alpha,beta,mu,v,n\n"))?;
-
-        let heuristic_total = self.agent.tracker.heuristic_telemetry.len();
-        if heuristic_total <= MAX_SAMPLES {
-            // Small enough, output all
-            for (generation, sample) in self.agent.tracker.heuristic_telemetry.iter() {
-                f.write_fmt(format_args!(
-                    "{},{},{},{},{},{},{},{}\n",
-                    generation, sample.state, sample.name, sample.alpha, sample.beta, sample.mu, sample.v, sample.n
-                ))?;
-            }
-        } else {
-            // Downsample: early + periodic middle + recent
-            let middle_samples = MAX_SAMPLES - EARLY_SAMPLES - RECENT_SAMPLES;
-            let middle_start = EARLY_SAMPLES;
-            let middle_end = heuristic_total - RECENT_SAMPLES;
-            let step = (middle_end - middle_start) / middle_samples;
-
-            for (i, (generation, sample)) in self.agent.tracker.heuristic_telemetry.iter().enumerate() {
-                let include = i < EARLY_SAMPLES
-                    || i >= heuristic_total - RECENT_SAMPLES
-                    || (i >= middle_start && i < middle_end && (i - middle_start).is_multiple_of(step));
-
-                if include {
-                    f.write_fmt(format_args!(
-                        "{},{},{},{},{},{},{},{}\n",
-                        generation, sample.state, sample.name, sample.alpha, sample.beta, sample.mu, sample.v, sample.n
-                    ))?;
-                }
-            }
+        for sample in final_params {
+            f.write_fmt(format_args!(
+                "{},{},{},{},{},{},{},{},{},{}\n",
+                final_generation,
+                sample.state,
+                sample.name,
+                sample.alpha,
+                sample.beta,
+                sample.mu,
+                sample.v,
+                sample.n,
+                sample.successes,
+                sample.duration
+            ))?;
         }
 
         Ok(())

@@ -119,9 +119,22 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<Float>
 #[derive(Default, Serialize, Deserialize)]
 pub struct SearchResult(pub usize, pub Float, pub (usize, usize), pub usize);
 
-/// Heuristic state result represented as (state idx, name idx, alpha, beta, mu, v, n).
+/// Heuristic state result represented as
+/// (state idx, name idx, alpha, beta, mu, v, calls, successes, total duration).
+///
+/// The optional counters keep saved states produced before exact aggregation readable.
 #[derive(Default, Serialize, Deserialize)]
-pub struct HeuristicResult(pub usize, pub usize, pub Float, pub Float, pub Float, pub Float, pub usize);
+pub struct HeuristicResult(
+    pub usize,
+    pub usize,
+    pub Float,
+    pub Float,
+    pub Float,
+    pub Float,
+    pub usize,
+    #[serde(default)] pub Option<usize>,
+    #[serde(default)] pub Option<u64>,
+);
 
 /// Keeps track of dynamic selective hyper heuristic state.
 #[derive(Default, Serialize, Deserialize)]
@@ -188,6 +201,8 @@ impl HyperHeuristicState {
                         let mu = fields[5].parse().unwrap();
                         let v = fields[6].parse().unwrap();
                         let n = fields[7].parse().unwrap();
+                        let successes = fields.get(8).and_then(|value| value.parse().ok());
+                        let duration = fields.get(9).and_then(|value| value.parse().ok());
 
                         insert_to_map(&mut states, state.clone());
                         insert_to_map(&mut names, name.clone());
@@ -195,7 +210,9 @@ impl HyperHeuristicState {
                         let state = states.get(&state).copied().unwrap();
                         let name = names.get(&name).copied().unwrap();
 
-                        data.entry(generation).or_default().push(HeuristicResult(state, name, alpha, beta, mu, v, n));
+                        data.entry(generation)
+                            .or_default()
+                            .push(HeuristicResult(state, name, alpha, beta, mu, v, n, successes, duration));
 
                         data
                     },
@@ -297,5 +314,25 @@ mod tests {
         let state = FootprintState { repr: [(FootprintKey(1, 4), 1)].into_iter().collect(), dimension: 0 };
 
         assert_eq!(state.dimension(), 5);
+    }
+
+    #[test]
+    fn parses_exact_operator_counters() {
+        let state = HyperHeuristicState::try_parse_all(
+            "TELEMETRY\nsearch:\nname,generation,reward,from,to,duration_us\nheuristic:\n\
+             generation,state,name,alpha,beta,mu,v,n,successes,duration_us\n\
+             10,best,operator,2,3,0.4,0.04,7,2,140\n",
+        )
+        .unwrap();
+        let HeuristicResult(_, _, _, _, _, _, calls, successes, duration) = &state.heuristic_states[&10][0];
+
+        assert_eq!((*calls, *successes, *duration), (7, Some(2), Some(140)));
+    }
+
+    #[test]
+    fn reads_legacy_heuristic_result_without_exact_counters() {
+        let result: HeuristicResult = serde_json::from_str("[0,1,2.0,3.0,0.4,0.04,7]").unwrap();
+
+        assert_eq!((result.6, result.7, result.8), (7, None, None));
     }
 }
