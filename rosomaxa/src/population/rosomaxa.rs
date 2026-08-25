@@ -243,6 +243,72 @@ impl BasinCandidate {
     }
 }
 
+/// Groups the selected basin representatives with the complete set of detected sinks.
+struct BasinSelection<'a> {
+    representatives: &'a [BasinCandidate],
+    sink_coordinates: &'a [Coordinate],
+}
+
+impl BasinSelection<'_> {
+    /// Selects a good non-minimum node far from the basin representatives as a cheap approximation of a basin shoulder.
+    fn select_shoulder<C, O, S>(
+        &self,
+        network: &IndividualNetwork<C, O, S>,
+        occupied_coordinates: &[Coordinate],
+        objective: &O,
+    ) -> Option<Coordinate>
+    where
+        C: RosomaxaContext<Solution = S>,
+        O: HeuristicObjective<Solution = S> + Alternative,
+        S: RosomaxaSolution<Context = C>,
+    {
+        if self.representatives.len() < 2 {
+            return None;
+        }
+
+        let mut candidates = occupied_coordinates
+            .iter()
+            .filter(|coordinate| self.sink_coordinates.binary_search(coordinate).is_err())
+            .copied()
+            .collect::<Vec<_>>();
+        let get_node =
+            |coordinate: &Coordinate| network.find(coordinate).expect("selection candidates belong to the GSOM");
+        let get_solution = |coordinate: &Coordinate| {
+            get_node(coordinate).storage.population.best().expect("selection candidates have a solution")
+        };
+        let compare =
+            |left: &Coordinate, right: &Coordinate| objective.total_order(get_solution(left), get_solution(right));
+
+        let candidate_size = get_basin_candidate_size(candidates.len(), 1);
+        if candidate_size < candidates.len() {
+            candidates.select_nth_unstable_by(candidate_size, compare);
+            candidates.truncate(candidate_size);
+        }
+
+        let selected_weights = self
+            .representatives
+            .iter()
+            .map(|candidate| get_node(&candidate.coordinate).weights.as_slice())
+            .collect::<Vec<_>>();
+        candidates
+            .into_iter()
+            .map(|coordinate| {
+                let weights = get_node(&coordinate).weights.as_slice();
+                let min_distance = selected_weights
+                    .iter()
+                    .map(|selected| network.squared_distance(weights, selected))
+                    .min_by(Float::total_cmp)
+                    .unwrap_or_default();
+
+                (coordinate, min_distance)
+            })
+            .max_by(|(left, left_distance), (right, right_distance)| {
+                left_distance.total_cmp(right_distance).then_with(|| compare(right, left))
+            })
+            .map(|(coordinate, _)| coordinate)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum NetworkMaintenanceAction {
     RefreshNormalization,
@@ -522,6 +588,7 @@ where
         }
 
         basin_candidates.clear();
+        let should_select_shoulder = is_basin_shoulder_selection_generation(generation, improvement_ratio);
         // Local sinks are cheap basin proxies: tracing every occupied node to its sink would add more map scans here.
         basin_candidates.extend(
             selection_coordinates
@@ -529,6 +596,14 @@ where
                 .filter(|coordinate| Self::is_basin_sink_node(network, coordinate, objective))
                 .map(|coordinate| BasinCandidate::new(*coordinate)),
         );
+        // Preserve the complete sink set before quality gating and diversity ordering mutate the candidates.
+        let sink_coordinates = if should_select_shoulder {
+            let mut coordinates = basin_candidates.iter().map(|candidate| candidate.coordinate).collect::<Vec<_>>();
+            coordinates.sort_unstable();
+            coordinates
+        } else {
+            Vec::new()
+        };
         let compare_quality = |left: &BasinCandidate, right: &BasinCandidate| {
             let left = network
                 .find(&left.coordinate)
@@ -564,9 +639,10 @@ where
 
         // Occasionally replace the least distinctive basin with a good distant slope. Put it first so extra elite
         // selections cannot truncate the escape attempt from the GSOM prefix.
-        if is_basin_shoulder_selection_generation(generation, improvement_ratio)
-            && let Some(shoulder) =
-                Self::select_basin_shoulder(network, selection_coordinates, basin_candidates, selected_size, objective)
+        let basins =
+            BasinSelection { representatives: &basin_candidates[..selected_size], sink_coordinates: &sink_coordinates };
+        if should_select_shoulder
+            && let Some(shoulder) = basins.select_shoulder(network, selection_coordinates, objective)
         {
             basin_candidates[..selected_size].rotate_right(1);
             basin_candidates[0] = BasinCandidate::new(shoulder);
@@ -596,55 +672,6 @@ where
             });
 
         is_basin_sink(coordinate, neighbors)
-    }
-
-    /// Selects a good non-minimum node far from the basin representatives as a cheap approximation of a basin shoulder.
-    fn select_basin_shoulder(
-        network: &IndividualNetwork<C, O, S>,
-        occupied: &[Coordinate],
-        basin_candidates: &[BasinCandidate],
-        selected_size: usize,
-        objective: &O,
-    ) -> Option<Coordinate> {
-        if selected_size < 2 {
-            return None;
-        }
-
-        let mut candidates = occupied
-            .iter()
-            .filter(|coordinate| !Self::is_basin_sink_node(network, coordinate, objective))
-            .copied()
-            .collect::<Vec<_>>();
-        let get_node =
-            |coordinate: &Coordinate| network.find(coordinate).expect("selection candidates belong to the GSOM");
-        let get_solution = |coordinate: &Coordinate| {
-            get_node(coordinate).storage.population.best().expect("selection candidates have a solution")
-        };
-        let compare =
-            |left: &Coordinate, right: &Coordinate| objective.total_order(get_solution(left), get_solution(right));
-
-        let candidate_size = get_basin_candidate_size(candidates.len(), 1);
-        if candidate_size < candidates.len() {
-            candidates.select_nth_unstable_by(candidate_size, compare);
-            candidates.truncate(candidate_size);
-        }
-
-        let selected_weights = basin_candidates[..selected_size]
-            .iter()
-            .map(|candidate| get_node(&candidate.coordinate).weights.as_slice())
-            .collect::<Vec<_>>();
-        candidates.into_iter().max_by(|left, right| {
-            let min_distance = |coordinate: &Coordinate| {
-                let weights = get_node(coordinate).weights.as_slice();
-                selected_weights
-                    .iter()
-                    .map(|selected| network.squared_distance(weights, selected))
-                    .min_by(Float::total_cmp)
-                    .unwrap_or_default()
-            };
-
-            min_distance(left).total_cmp(&min_distance(right)).then_with(|| compare(right, left))
-        })
     }
 
     fn create_network(
