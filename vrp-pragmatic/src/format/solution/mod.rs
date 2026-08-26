@@ -1,5 +1,9 @@
 //! Specifies logic to create a "pragmatic" solution and write it into json format.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/format/solution/reason_codes_test.rs"]
+mod reason_codes_test;
+
 pub(crate) mod activity_matcher;
 
 mod break_writer;
@@ -90,6 +94,9 @@ fn map_code_reason(code: ViolationCode) -> (&'static str, &'static str) {
         }
         TOUR_ORDER_CONSTRAINT_CODE => ("TOUR_ORDER_CONSTRAINT", "cannot be assigned due to tour order constraint"),
         GROUP_CONSTRAINT_CODE => ("GROUP_CONSTRAINT", "cannot be assigned due to group constraint"),
+        VEHICLE_GROUP_CONSTRAINT_CODE => {
+            ("VEHICLE_GROUP_CONSTRAINT", "cannot be assigned because its vehicle group is served by another driver")
+        }
         COMPATIBILITY_CONSTRAINT_CODE => {
             ("COMPATIBILITY_CONSTRAINT", "cannot be assigned due to compatibility constraint")
         }
@@ -122,6 +129,7 @@ fn map_reason_code(reason: &str) -> ViolationCode {
         "TOUR_SIZE_CONSTRAINT" => TOUR_SIZE_CONSTRAINT_CODE,
         "TOUR_ORDER_CONSTRAINT" => TOUR_ORDER_CONSTRAINT_CODE,
         "GROUP_CONSTRAINT" => GROUP_CONSTRAINT_CODE,
+        "VEHICLE_GROUP_CONSTRAINT" => VEHICLE_GROUP_CONSTRAINT_CODE,
         "COMPATIBILITY_CONSTRAINT" => COMPATIBILITY_CONSTRAINT_CODE,
         "RELOAD_RESOURCE_CONSTRAINT" => RELOAD_RESOURCE_CONSTRAINT_CODE,
         "RECHARGE_CONSTRAINT_CODE" => RECHARGE_CONSTRAINT_CODE,
