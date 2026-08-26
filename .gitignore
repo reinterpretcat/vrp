@@ -27,3 +27,5 @@ heuristic_state.json
 callgrind*
 
 .claude
+# Built by hand when the Actions budget is exhausted; never committed.
+release-artifacts/
