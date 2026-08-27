@@ -159,58 +159,37 @@ fn create_route_pairs(insertion_ctx: &InsertionContext, route_pairs_threshold: u
     }
 }
 
-/// Finds insertion cost of the existing job in the route.
-fn find_insertion_cost(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -> InsertionCost {
-    route_ctx
-        .route()
-        .tour
-        .index(job)
-        .and_then(|idx| {
-            assert_ne!(idx, 0);
-
-            let mut route_ctx = route_ctx.deep_copy();
-            route_ctx.route_mut().tour.remove(job);
-            search_ctx.0.problem.goal.accept_route_state(&mut route_ctx);
-
-            // NOTE This is not the best approach for multi-jobs
-            let &(insertion_ctx, leg_selection, result_selector) = search_ctx;
-            eval_job_insertion_in_route(
-                insertion_ctx,
-                &EvaluationContext { goal: insertion_ctx.problem.goal.as_ref(), job, leg_selection, result_selector },
-                &route_ctx,
-                InsertionPosition::Concrete(idx - 1),
-                InsertionResult::make_failure(),
-            )
-            .try_into()
-            .ok()
-            .map(|success: InsertionSuccess| success.cost)
-        })
-        .unwrap_or_default()
-}
-
-struct InPlaceRouteContext {
+struct JobRemovalContext {
     route_ctx: RouteContext,
     position: InsertionPosition,
+    original_cost: InsertionCost,
 }
 
-/// Creates a route context with `extract_job` removed for subsequent in-place evaluations.
-fn create_in_place_route_context(
-    search_ctx: &SearchContext,
-    route_ctx: &RouteContext,
-    extract_job: &Job,
-) -> InPlaceRouteContext {
+/// Creates a route context with `extract_job` removed and evaluates its original insertion cost.
+fn prepare_job_removal(search_ctx: &SearchContext, route_ctx: &RouteContext, extract_job: &Job) -> JobRemovalContext {
     let insertion_index = route_ctx.route().tour.index(extract_job).expect("cannot find job in route");
     let position = InsertionPosition::Concrete(insertion_index - 1);
     let route_ctx = remove_job_with_copy(search_ctx, extract_job, route_ctx);
+    let original_cost = eval_job_insertion_in_route(
+        search_ctx.0,
+        &get_evaluation_context(search_ctx, extract_job),
+        &route_ctx,
+        position,
+        InsertionResult::make_failure(),
+    )
+    .try_into()
+    .ok()
+    .map(|success: InsertionSuccess| success.cost)
+    .unwrap_or_default();
 
-    InPlaceRouteContext { route_ctx, position }
+    JobRemovalContext { route_ctx, position, original_cost }
 }
 
 /// Tries to find insertion cost for `insert_job` in place of a previously extracted job.
 /// NOTE hard constraints are NOT evaluated.
 fn find_in_place_result(
     search_ctx: &SearchContext,
-    in_place_ctx: &InPlaceRouteContext,
+    removal_ctx: &JobRemovalContext,
     insert_job: &Job,
 ) -> InsertionResult {
     let eval_ctx = get_evaluation_context(search_ctx, insert_job);
@@ -218,8 +197,8 @@ fn find_in_place_result(
     eval_job_insertion_in_route(
         search_ctx.0,
         &eval_ctx,
-        &in_place_ctx.route_ctx,
-        in_place_ctx.position,
+        &removal_ctx.route_ctx,
+        removal_ctx.position,
         InsertionResult::make_failure(),
     )
 }
@@ -346,40 +325,20 @@ fn find_exchange_jobs_in_routes(
     let outer_top_results = find_top_results(&search_ctx, inner_route_ctx, outer_jobs.as_slice());
     let inner_top_results = find_top_results(&search_ctx, outer_route_ctx, inner_jobs.as_slice());
 
-    // A job's current insertion cost depends only on its original route, not on the job paired with it.
-    // Compute it once before evaluating the Cartesian product of swap candidates.
-    let outer_job_costs = outer_jobs
+    // Removing a job, refreshing its route state, and evaluating its original cost depend only on
+    // that job and route. Prepare them once for every candidate paired with the extracted job.
+    let outer_removal_contexts = outer_jobs
         .iter()
-        .map(|outer_job| find_insertion_cost(&search_ctx, outer_job, outer_route_ctx))
+        .map(|outer_job| prepare_job_removal(&search_ctx, outer_route_ctx, outer_job))
         .collect::<Vec<_>>();
 
     if is_quota_reached() {
         return (None, true);
     }
 
-    let inner_job_costs = inner_jobs
+    let inner_removal_contexts = inner_jobs
         .iter()
-        .map(|inner_job| find_insertion_cost(&search_ctx, inner_job, inner_route_ctx))
-        .collect::<Vec<_>>();
-
-    if is_quota_reached() {
-        return (None, true);
-    }
-
-    // Removing a job and refreshing its route state depends only on that job and route. Reuse the
-    // prepared route for every candidate paired with the extracted job.
-    let outer_in_place_contexts = outer_jobs
-        .iter()
-        .map(|outer_job| create_in_place_route_context(&search_ctx, outer_route_ctx, outer_job))
-        .collect::<Vec<_>>();
-
-    if is_quota_reached() {
-        return (None, true);
-    }
-
-    let inner_in_place_contexts = inner_jobs
-        .iter()
-        .map(|inner_job| create_in_place_route_context(&search_ctx, inner_route_ctx, inner_job))
+        .map(|inner_job| prepare_job_removal(&search_ctx, inner_route_ctx, inner_job))
         .collect::<Vec<_>>();
 
     if is_quota_reached() {
@@ -404,9 +363,9 @@ fn find_exchange_jobs_in_routes(
             let inner_job = &inner_jobs[*inner_idx];
 
             let outer_in_place_result =
-                find_in_place_result(&search_ctx, &inner_in_place_contexts[*inner_idx], outer_job);
+                find_in_place_result(&search_ctx, &inner_removal_contexts[*inner_idx], outer_job);
             let inner_in_place_result =
-                find_in_place_result(&search_ctx, &outer_in_place_contexts[*outer_idx], inner_job);
+                find_in_place_result(&search_ctx, &outer_removal_contexts[*outer_idx], inner_job);
 
             let outer_result =
                 choose_best_result(&search_ctx, outer_in_place_result, outer_top_results[*outer_idx].as_slice());
@@ -417,8 +376,8 @@ fn find_exchange_jobs_in_routes(
             let delta_cost = match (&outer_result, &inner_result) {
                 (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) => {
                     &outer_success.cost + &inner_success.cost
-                        - &outer_job_costs[*outer_idx]
-                        - &inner_job_costs[*inner_idx]
+                        - &outer_removal_contexts[*outer_idx].original_cost
+                        - &inner_removal_contexts[*inner_idx].original_cost
                 }
                 _ => InsertionCost::default(),
             };

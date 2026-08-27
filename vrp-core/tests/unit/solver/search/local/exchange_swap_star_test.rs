@@ -190,7 +190,7 @@ fn can_find_insertion_cost_impl(job_id: &str, expected: Cost) {
     let job = get_jobs_by_ids(&insertion_ctx, &[job_id]).first().cloned().unwrap();
     let route_ctx = insertion_ctx.solution.routes.first().unwrap();
 
-    let result = find_insertion_cost(&search_ctx, &job, route_ctx);
+    let result = prepare_job_removal(&search_ctx, route_ctx, &job).original_cost;
 
     assert_eq!(result, InsertionCost::new(&[expected]));
 }
@@ -223,7 +223,7 @@ fn can_find_in_place_result_impl(
     let route_ctx = insertion_ctx.solution.routes.get(route_idx).unwrap();
     let insert_job = jobs_map.get(insert_job).unwrap();
     let extract_job = jobs_map.get(extract_job).unwrap();
-    let in_place_ctx = create_in_place_route_context(&search_ctx, route_ctx, extract_job);
+    let in_place_ctx = prepare_job_removal(&search_ctx, route_ctx, extract_job);
 
     let result = find_in_place_result(&search_ctx, &in_place_ctx, insert_job)
         .try_into()
