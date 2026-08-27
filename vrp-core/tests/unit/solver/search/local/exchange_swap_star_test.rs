@@ -81,11 +81,13 @@ fn can_use_exchange_swap_star_impl(jobs_order: Vec<Vec<&str>>, expected: Vec<Vec
         .collect::<Vec<_>>();
     assert_eq!(vehicles, vec!["0", "1", "2"]);
 
-    let insertion_ctx = ExchangeSwapStar::new(environment.random.clone())
-        .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
-        .expect("cannot find new solution");
+    let result = ExchangeSwapStar::new(environment.random.clone())
+        .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx);
 
-    compare_with_ignore(get_customer_ids_from_routes(&insertion_ctx).as_slice(), expected.as_slice(), "");
+    match result {
+        Some(result) => compare_with_ignore(get_customer_ids_from_routes(&result).as_slice(), expected.as_slice(), ""),
+        None => assert_eq!(jobs_order, expected),
+    }
 }
 
 #[test]
@@ -250,8 +252,8 @@ fn can_find_top_results_impl(job_id: &str, disallowed_pairs: Vec<(&str, &str)>, 
     let route_ctx = insertion_ctx.solution.routes.first().unwrap();
 
     let results = find_top_results(&search_ctx, route_ctx, job_ids.as_slice())
-        .values()
-        .flat_map(|results| results.iter())
+        .iter()
+        .flatten()
         .map(|result| result.as_success().map(|success| success.activities.first().unwrap().1))
         .collect::<Vec<_>>();
 

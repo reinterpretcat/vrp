@@ -46,3 +46,43 @@ fn can_use_exchange_inter_route_best_operator_impl(
 
     compare_with_ignore(get_customer_ids_from_routes(&new_insertion_ctx).as_slice(), expected_ids, "cX");
 }
+
+#[test]
+fn can_skip_locked_seed_job() {
+    let ints = [0, 1].into_iter().chain([16; 1024]).collect();
+    let reals = vec![1.; 1024];
+    let (problem, solution) = generate_matrix_routes_with_defaults(3, 3, true);
+    let insertion_ctx = promote_to_locked(
+        InsertionContext::new_from_solution(
+            Arc::new(problem),
+            (solution, None),
+            create_test_environment_with_random(Arc::new(FakeRandom::new(ints, reals))),
+        ),
+        &["c0"],
+    );
+
+    let new_insertion_ctx = ExchangeInterRouteBest::default()
+        .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
+        .expect("cannot find new solution");
+
+    assert!(get_customer_ids_from_routes(&new_insertion_ctx)[0].iter().any(|job_id| job_id == "c0"));
+}
+
+#[test]
+fn can_search_many_routes_in_one_reduction() {
+    let ints = [0, 1].into_iter().chain([16; 4096]).collect();
+    let reals = vec![1.; 4096];
+    let (problem, solution) = generate_matrix_routes_with_defaults(2, 17, true);
+    let insertion_ctx = InsertionContext::new_from_solution(
+        Arc::new(problem),
+        (solution, None),
+        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, reals))),
+    );
+
+    let new_insertion_ctx = ExchangeInterRouteBest::default()
+        .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
+        .expect("cannot find new solution");
+
+    assert_eq!(new_insertion_ctx.solution.routes.len(), 17);
+    assert_eq!(new_insertion_ctx.solution.get_jobs_amount(), insertion_ctx.solution.get_jobs_amount());
+}

@@ -9,7 +9,7 @@ use crate::solver::RefinementContext;
 use crate::solver::search::{LocalOperator, get_route_jobs};
 use rosomaxa::prelude::{HeuristicObjective, HeuristicSolution};
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// A cost-guided local-search operator which relocates one job to a nearby route.
 ///
@@ -54,7 +54,9 @@ impl Default for RelocateInterRoute {
 
 impl LocalOperator for RelocateInterRoute {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
-        if insertion_ctx.solution.routes.len() < 2 {
+        if insertion_ctx.solution.routes.len() < 2
+            || insertion_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached())
+        {
             return None;
         }
 
@@ -86,24 +88,12 @@ fn select_relocation(
             let profile = route_ctx.route().actor.vehicle.profile.clone();
             let route_jobs = &route_jobs;
 
-            route_ctx
-                .route()
-                .tour
-                .jobs()
-                .filter(|job| !insertion_ctx.solution.locked.contains(*job))
-                .cloned()
-                .filter_map(move |job| {
-                    let (target_indices, neighbor_cost) = get_target_indices(
-                        insertion_ctx,
-                        route_jobs,
-                        &profile,
-                        source_idx,
-                        &job,
-                        target_route_threshold,
-                    )?;
-
-                    Some((neighbor_cost, Relocation { source_idx, job, target_indices }))
-                })
+            route_ctx.route().tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(*job)).filter_map(
+                move |job| {
+                    get_closest_target_cost(insertion_ctx, route_jobs, &profile, source_idx, job)
+                        .map(|neighbor_cost| (neighbor_cost, source_idx, job))
+                },
+            )
         })
         .collect::<Vec<_>>();
 
@@ -112,7 +102,11 @@ fn select_relocation(
 
     source_candidates
         .into_iter()
-        .map(|(_, relocation)| {
+        .map(|(_, source_idx, job)| {
+            let profile = &insertion_ctx.solution.routes[source_idx].route().actor.vehicle.profile;
+            let target_indices =
+                get_target_indices(insertion_ctx, &route_jobs, profile, source_idx, job, target_route_threshold);
+            let relocation = Relocation { source_idx, job: job.clone(), target_indices };
             let estimated_cost = relocation.target_indices.first().and_then(|&target_idx| {
                 estimate_relocation_cost(insertion_ctx, relocation.source_idx, target_idx, &relocation.job)
             });
@@ -131,24 +125,38 @@ fn get_target_indices(
     source_idx: usize,
     job: &Job,
     target_route_threshold: usize,
-) -> Option<(Vec<usize>, Cost)> {
-    let mut used = HashSet::new();
-    let mut neighbor_cost = None;
+) -> Vec<usize> {
+    let capacity = target_route_threshold.min(insertion_ctx.solution.routes.len().saturating_sub(1));
+    let mut target_indices = Vec::with_capacity(capacity);
 
-    let target_indices = insertion_ctx
+    for (neighbor, _) in insertion_ctx.problem.jobs.neighbors(profile, job, Timestamp::default()) {
+        let Some(&target_idx) = route_jobs.get(neighbor) else {
+            continue;
+        };
+        if target_idx != source_idx && !target_indices.contains(&target_idx) {
+            target_indices.push(target_idx);
+            if target_indices.len() == target_route_threshold {
+                break;
+            }
+        }
+    }
+
+    target_indices
+}
+
+fn get_closest_target_cost(
+    insertion_ctx: &InsertionContext,
+    route_jobs: &HashMap<Job, usize>,
+    profile: &Profile,
+    source_idx: usize,
+    job: &Job,
+) -> Option<Cost> {
+    insertion_ctx
         .problem
         .jobs
         .neighbors(profile, job, Timestamp::default())
-        .filter_map(|(neighbor, cost)| route_jobs.get(neighbor).copied().map(|target_idx| (target_idx, cost)))
-        .filter(|(target_idx, _)| *target_idx != source_idx && used.insert(*target_idx))
-        .inspect(|(_, cost)| {
-            neighbor_cost.get_or_insert(*cost);
-        })
-        .map(|(target_idx, _)| target_idx)
-        .take(target_route_threshold)
-        .collect::<Vec<_>>();
-
-    neighbor_cost.map(|cost| (target_indices, cost))
+        .filter_map(|(neighbor, cost)| route_jobs.get(neighbor).map(|&target_idx| (target_idx, cost)))
+        .find_map(|(target_idx, cost)| (target_idx != source_idx).then_some(cost))
 }
 
 fn estimate_relocation_cost(

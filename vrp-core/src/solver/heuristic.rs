@@ -659,21 +659,10 @@ mod dynamic {
     ) -> Vec<(TargetSearchOperator, String, Float)> {
         vec![
             (
-                Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
-                "local_exch_inter_route_best".to_string(),
-                1.,
-            ),
-            (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteRandom::default()))),
                 "local_exch_inter_route_random".to_string(),
                 1.,
             ),
-            (
-                Arc::new(LocalSearch::new(Arc::new(RelocateInterRoute::default()))),
-                "local_relocate_inter_route".to_string(),
-                1.,
-            ),
-            (Arc::new(LocalSearch::new(Arc::new(ExchangeTwoOptStar::default()))), "local_two_opt_star".to_string(), 1.),
             (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeIntraRouteRandom::default()))),
                 "local_exch_intra_route_random".to_string(),
@@ -685,11 +674,7 @@ mod dynamic {
                 1.,
             ),
             (Arc::new(LKHSearch::new(LKHSearchMode::ImprovementOnly)), "lkh_strict".to_string(), 1.),
-            (
-                Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(environment.random.clone())))),
-                "local_swap_star".to_string(),
-                2.,
-            ),
+            (create_variable_neighborhood_search(environment.as_ref()), "local_vnd".to_string(), 1.),
             (
                 create_variable_search_decompose_search(problem.clone(), environment.clone()),
                 "variable_decompose_search".to_string(),
@@ -697,6 +682,25 @@ mod dynamic {
             ),
             (create_composite_decompose_search(problem, environment), "composite_decompose_search".to_string(), 2.),
         ]
+    }
+
+    fn create_variable_neighborhood_search(environment: &Environment) -> TargetSearchOperator {
+        // The limit lets neighborhoods interact without allowing one selected parent to consume the
+        // whole generation. Exchange cost perturbation is disabled; its stochastic seed and leg
+        // selection still let repeated descents propose different moves.
+        const MAX_IMPROVEMENTS: usize = 8;
+
+        let operators: Vec<Arc<dyn LocalOperator>> = vec![
+            Arc::new(RelocateInterRoute::default()),
+            Arc::new(ExchangeSequenceBest::default()),
+            Arc::new(ExchangeTwoOptStar::default()),
+            Arc::new(ExchangeInterRouteBest::new(0., 0., 0.)),
+            Arc::new(ExchangeSwapStar::new(environment.random.clone())),
+        ];
+        let search = VariableNeighborhoodSearch::new(operators, MAX_IMPROVEMENTS)
+            .with_extended_operator(Arc::new(ExchangeSequenceBest::new_global(32, 2)));
+
+        Arc::new(LocalSearch::new(Arc::new(search)))
     }
 
     pub fn get_operators(

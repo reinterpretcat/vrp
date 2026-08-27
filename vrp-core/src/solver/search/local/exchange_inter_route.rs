@@ -5,7 +5,7 @@ mod exchange_inter_route_test;
 use super::*;
 use crate::models::problem::Job;
 use crate::solver::RefinementContext;
-use crate::solver::search::{LocalOperator, TabuList, select_seed_job_with_tabu_list};
+use crate::solver::search::{LocalOperator, TabuList, select_seed_job};
 use crate::utils::Noise;
 use rosomaxa::utils::{ParallelismScope, map_reduce};
 
@@ -82,6 +82,10 @@ impl LocalOperator for ExchangeInterRouteRandom {
 
 type InsertionSuccessPair = ((InsertionSuccess, Option<RouteContext>), (InsertionSuccess, Option<RouteContext>));
 
+// Flattening avoids repeated rayon setup when a solution has many routes. For small route sets, keep
+// the existing reduction order: its setup cost is small and changing stochastic selection brings no benefit.
+const FLAT_REDUCTION_ROUTE_THRESHOLD: usize = 16;
+
 fn find_best_insertion_pair(
     insertion_ctx: &InsertionContext,
     noise: Noise,
@@ -89,69 +93,78 @@ fn find_best_insertion_pair(
     filter_jobs_indices: Box<dyn Fn(usize) -> bool + Send + Sync>,
 ) -> Option<InsertionContext> {
     let mut tabu_list = TabuList::from(insertion_ctx);
+    let locked = &insertion_ctx.solution.locked;
+    let seed = select_seed_job(
+        insertion_ctx.solution.routes.as_slice(),
+        insertion_ctx.environment.random.as_ref(),
+        &|route_ctx| !tabu_list.is_actor_tabu(route_ctx.route().actor.as_ref()),
+        &|job| !tabu_list.is_job_tabu(job) && !locked.contains(job),
+    );
 
-    if let Some((_, seed_route_idx, seed_job)) = select_seed_job_with_tabu_list(insertion_ctx, &tabu_list) {
-        let locked = &insertion_ctx.solution.locked;
-
-        // bad luck: cannot move locked job
-        if locked.contains(&seed_job) {
-            return None;
-        }
-
+    if let Some((_, seed_route_idx, seed_job)) = seed {
         let new_insertion_ctx = get_new_insertion_ctx(insertion_ctx, &seed_job, seed_route_idx).unwrap();
         let seed_route = new_insertion_ctx.solution.routes.get(seed_route_idx).unwrap();
         let leg_selection = LegSelection::Stochastic(insertion_ctx.environment.random.clone());
         let result_selector = NoiseResultSelector::new(noise.clone());
 
-        let insertion_pair = new_insertion_ctx
+        let routes = new_insertion_ctx
             .solution
             .routes
             .iter()
             .enumerate()
-            .filter(|(idx, _)| *idx != seed_route_idx && filter_route_indices(*idx))
-            .fold(Option::<InsertionSuccessPair>::None, |acc, (_, test_route)| {
-                let new_result = map_reduce(
+            .filter(|(idx, _)| *idx != seed_route_idx && filter_route_indices(*idx));
+        let evaluate = |test_route: &RouteContext, test_job: &Job| {
+            evaluate_exchange_candidate(
+                &new_insertion_ctx,
+                seed_route,
+                &seed_job,
+                test_route,
+                test_job,
+                &leg_selection,
+                &result_selector,
+            )
+        };
+        let insertion_pair = if new_insertion_ctx.solution.routes.len() <= FLAT_REDUCTION_ROUTE_THRESHOLD {
+            routes.fold(Option::<InsertionSuccessPair>::None, |acc, (_, test_route)| {
+                let test_jobs = test_route
+                    .route()
+                    .tour
+                    .jobs()
+                    .enumerate()
+                    .filter(|(idx, job)| !locked.contains(*job) && filter_jobs_indices(*idx))
+                    .collect::<Vec<_>>();
+                let result = map_reduce(
+                    test_jobs.as_slice(),
+                    ParallelismScope::Local,
+                    |(_, test_job)| evaluate(test_route, test_job),
+                    || None,
+                    |left, right| reduce_pair_with_noise(left, right, &noise),
+                );
+
+                reduce_pair_with_noise(acc, result, &noise)
+            })
+        } else {
+            // A single reduction avoids creating a task tree and temporary job vector for every route.
+            let test_jobs = routes
+                .flat_map(|(_, test_route)| {
                     test_route
                         .route()
                         .tour
                         .jobs()
                         .enumerate()
                         .filter(|(idx, job)| !locked.contains(*job) && filter_jobs_indices(*idx))
-                        .collect::<Vec<_>>()
-                        .as_slice(),
-                    ParallelismScope::Local,
-                    |(_, test_job)| {
-                        // try to insert test job into seed tour
-                        let seed_success = test_job_insertion(
-                            &new_insertion_ctx,
-                            seed_route,
-                            test_job,
-                            &leg_selection,
-                            &result_selector,
-                        )?;
+                        .map(move |(_, test_job)| (test_route, test_job))
+                })
+                .collect::<Vec<_>>();
 
-                        // try to insert seed job into test route
-                        let mut test_route = test_route.deep_copy();
-                        // NOTE would be nice to add job to list of required
-                        test_route.route_mut().tour.remove(test_job);
-                        new_insertion_ctx.problem.goal.accept_route_state(&mut test_route);
-
-                        let test_success = test_job_insertion(
-                            &new_insertion_ctx,
-                            &test_route,
-                            &seed_job,
-                            &leg_selection,
-                            &result_selector,
-                        )?;
-
-                        Some(((seed_success, None), (test_success, Some(test_route))))
-                    },
-                    || None,
-                    |left, right| reduce_pair_with_noise(left, right, &noise),
-                );
-
-                reduce_pair_with_noise(acc, new_result, &noise)
-            });
+            map_reduce(
+                test_jobs.as_slice(),
+                ParallelismScope::Local,
+                |(test_route, test_job)| evaluate(test_route, test_job),
+                || None,
+                |left, right| reduce_pair_with_noise(left, right, &noise),
+            )
+        };
 
         if let Some(insertion_pair) = insertion_pair {
             let mut new_insertion_ctx = new_insertion_ctx;
@@ -171,6 +184,29 @@ fn find_best_insertion_pair(
     }
 
     None
+}
+
+fn evaluate_exchange_candidate(
+    insertion_ctx: &InsertionContext,
+    seed_route: &RouteContext,
+    seed_job: &Job,
+    test_route: &RouteContext,
+    test_job: &Job,
+    leg_selection: &LegSelection,
+    result_selector: &dyn ResultSelector,
+) -> Option<InsertionSuccessPair> {
+    // try to insert test job into seed tour
+    let seed_success = test_job_insertion(insertion_ctx, seed_route, test_job, leg_selection, result_selector)?;
+
+    // try to insert seed job into test route
+    let mut test_route = test_route.deep_copy();
+    // NOTE would be nice to add job to list of required
+    test_route.route_mut().tour.remove(test_job);
+    insertion_ctx.problem.goal.accept_route_state(&mut test_route);
+
+    let test_success = test_job_insertion(insertion_ctx, &test_route, seed_job, leg_selection, result_selector)?;
+
+    Some(((seed_success, None), (test_success, Some(test_route))))
 }
 
 fn test_job_insertion(

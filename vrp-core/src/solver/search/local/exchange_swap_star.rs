@@ -8,7 +8,7 @@ use crate::solver::search::create_environment_with_custom_quota;
 use crate::utils::Either;
 use rosomaxa::utils::*;
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::iter::once;
 
 /// Implements a SWAP* algorithm described in "Hybrid Genetic Search for the CVRP:
@@ -47,23 +47,51 @@ impl LocalOperator for ExchangeSwapStar {
         // modify environment to include median as an extra quota to prevent long runs
         let limit =
             refinement_ctx.statistics().speed.get_median().map(|median| ((median.max(10) as f64) * 1.5) as usize);
-        let mut insertion_ctx = InsertionContext {
-            environment: create_environment_with_custom_quota(limit, insertion_ctx.environment.as_ref()),
-            ..insertion_ctx.deep_copy()
-        };
+        let search_environment = create_environment_with_custom_quota(limit, insertion_ctx.environment.as_ref());
+        let quota = search_environment.quota.clone();
+        let mut candidate = None;
 
         let _ = route_pairs.into_iter().try_for_each(|route_pair| {
-            let is_quota_reached = try_exchange_jobs_in_routes(
-                &mut insertion_ctx,
+            let source = candidate.as_ref().unwrap_or(insertion_ctx);
+            let (insertion_pair, is_quota_reached) = find_exchange_jobs_in_routes(
+                source,
                 route_pair,
                 &self.leg_selection,
                 self.result_selector.as_ref(),
+                quota.as_deref(),
             );
+
+            if let Some(insertion_pair) = insertion_pair {
+                match candidate.as_mut() {
+                    Some(candidate) => {
+                        try_exchange_jobs(
+                            candidate,
+                            insertion_pair,
+                            &self.leg_selection,
+                            self.result_selector.as_ref(),
+                        );
+                    }
+                    None => {
+                        // Most sampled route pairs have no improving exchange. Materialize the full solution only
+                        // after preprocessing has found a pair which can actually be applied.
+                        let mut next =
+                            InsertionContext { environment: search_environment.clone(), ..insertion_ctx.deep_copy() };
+                        if try_exchange_jobs(
+                            &mut next,
+                            insertion_pair,
+                            &self.leg_selection,
+                            self.result_selector.as_ref(),
+                        ) {
+                            candidate = Some(next);
+                        }
+                    }
+                }
+            }
 
             if is_quota_reached { Err(()) } else { Ok(()) }
         });
 
-        Some(InsertionContext { environment: refinement_ctx.environment.clone(), ..insertion_ctx })
+        candidate.map(|candidate| InsertionContext { environment: refinement_ctx.environment.clone(), ..candidate })
     }
 }
 
@@ -196,11 +224,7 @@ fn find_in_place_result(
     )
 }
 
-fn find_top_results(
-    search_ctx: &SearchContext,
-    route_ctx: &RouteContext,
-    jobs: &[Job],
-) -> HashMap<Job, Vec<InsertionResult>> {
+fn find_top_results(search_ctx: &SearchContext, route_ctx: &RouteContext, jobs: &[Job]) -> Vec<Vec<InsertionResult>> {
     let legs_count = route_ctx.route().tour.legs().count();
 
     jobs.iter()
@@ -229,7 +253,7 @@ fn find_top_results(
 
             results.truncate(3);
 
-            (job.clone(), results)
+            results
         })
         .collect()
 }
@@ -294,17 +318,19 @@ fn remove_job_with_copy(search_ctx: &SearchContext, job: &Job, route_ctx: &Route
 }
 
 /// Tries to exchange jobs between two routes.
-fn try_exchange_jobs_in_routes(
-    insertion_ctx: &mut InsertionContext,
+type InsertionResultPair = (InsertionResult, InsertionResult);
+
+fn find_exchange_jobs_in_routes(
+    insertion_ctx: &InsertionContext,
     route_pair: (usize, usize),
     leg_selection: &LegSelection,
     result_selector: &dyn ResultSelector,
-) -> bool {
-    let quota = insertion_ctx.environment.quota.clone();
-    let is_quota_reached = move || quota.as_ref().is_some_and(|quota| quota.is_reached());
+    quota: Option<&dyn Quota>,
+) -> (Option<InsertionResultPair>, bool) {
+    let is_quota_reached = || quota.is_some_and(|quota| quota.is_reached());
 
     if is_quota_reached() {
-        return true;
+        return (None, true);
     }
 
     let search_ctx: SearchContext = (insertion_ctx, leg_selection, result_selector);
@@ -328,7 +354,7 @@ fn try_exchange_jobs_in_routes(
         .collect::<Vec<_>>();
 
     if is_quota_reached() {
-        return true;
+        return (None, true);
     }
 
     let inner_job_costs = inner_jobs
@@ -337,7 +363,7 @@ fn try_exchange_jobs_in_routes(
         .collect::<Vec<_>>();
 
     if is_quota_reached() {
-        return true;
+        return (None, true);
     }
 
     // Removing a job and refreshing its route state depends only on that job and route. Reuse the
@@ -348,7 +374,7 @@ fn try_exchange_jobs_in_routes(
         .collect::<Vec<_>>();
 
     if is_quota_reached() {
-        return true;
+        return (None, true);
     }
 
     let inner_in_place_contexts = inner_jobs
@@ -357,7 +383,7 @@ fn try_exchange_jobs_in_routes(
         .collect::<Vec<_>>();
 
     if is_quota_reached() {
-        return true;
+        return (None, true);
     }
 
     let mut job_pairs = Vec::with_capacity(outer_jobs.len() * inner_jobs.len());
@@ -382,17 +408,11 @@ fn try_exchange_jobs_in_routes(
             let inner_in_place_result =
                 find_in_place_result(&search_ctx, &outer_in_place_contexts[*outer_idx], inner_job);
 
-            let outer_result = choose_best_result(
-                &search_ctx,
-                outer_in_place_result,
-                outer_top_results.get(outer_job).unwrap().as_slice(),
-            );
+            let outer_result =
+                choose_best_result(&search_ctx, outer_in_place_result, outer_top_results[*outer_idx].as_slice());
 
-            let inner_result = choose_best_result(
-                &search_ctx,
-                inner_in_place_result,
-                inner_top_results.get(inner_job).unwrap().as_slice(),
-            );
+            let inner_result =
+                choose_best_result(&search_ctx, inner_in_place_result, inner_top_results[*inner_idx].as_slice());
 
             let delta_cost = match (&outer_result, &inner_result) {
                 (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) => {
@@ -412,9 +432,12 @@ fn try_exchange_jobs_in_routes(
         },
     );
 
-    try_exchange_jobs(insertion_ctx, (outer_best, inner_best), leg_selection, result_selector);
+    let insertion_pair = match (&outer_best, &inner_best) {
+        (InsertionResult::Success(_), InsertionResult::Success(_)) => Some((outer_best, inner_best)),
+        _ => None,
+    };
 
-    is_quota_reached()
+    (insertion_pair, is_quota_reached())
 }
 
 /// Tries to apply insertion results to target insertion context.
@@ -423,7 +446,7 @@ fn try_exchange_jobs(
     insertion_pair: (InsertionResult, InsertionResult),
     leg_selection: &LegSelection,
     result_selector: &dyn ResultSelector,
-) {
+) -> bool {
     if let (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) = insertion_pair {
         let constraint = insertion_ctx.problem.goal.clone();
 
@@ -467,6 +490,28 @@ fn try_exchange_jobs(
             apply_insertion_with_route(insertion_ctx, insertion_successes.pop().unwrap());
             apply_insertion_with_route(insertion_ctx, insertion_successes.pop().unwrap());
             finalize_insertion_ctx(insertion_ctx);
+
+            return true;
         }
     }
+
+    false
+}
+
+#[cfg(test)]
+fn try_exchange_jobs_in_routes(
+    insertion_ctx: &mut InsertionContext,
+    route_pair: (usize, usize),
+    leg_selection: &LegSelection,
+    result_selector: &dyn ResultSelector,
+) -> bool {
+    let quota = insertion_ctx.environment.quota.clone();
+    let (insertion_pair, is_quota_reached) =
+        find_exchange_jobs_in_routes(insertion_ctx, route_pair, leg_selection, result_selector, quota.as_deref());
+
+    if let Some(insertion_pair) = insertion_pair {
+        try_exchange_jobs(insertion_ctx, insertion_pair, leg_selection, result_selector);
+    }
+
+    is_quota_reached
 }

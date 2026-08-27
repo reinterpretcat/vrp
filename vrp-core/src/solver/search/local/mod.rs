@@ -18,11 +18,17 @@ pub use self::relocate_inter_route::*;
 mod exchange_sequence;
 pub use self::exchange_sequence::*;
 
+mod exchange_sequence_best;
+pub use self::exchange_sequence_best::*;
+
 mod exchange_swap_star;
 pub use self::exchange_swap_star::*;
 
 mod exchange_two_opt_star;
 pub use self::exchange_two_opt_star::*;
+
+mod variable_neighborhood_search;
+pub use self::variable_neighborhood_search::*;
 
 mod reschedule_departure;
 pub use self::reschedule_departure::*;
