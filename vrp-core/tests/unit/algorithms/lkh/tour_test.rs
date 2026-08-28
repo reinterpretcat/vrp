@@ -15,6 +15,16 @@ fn test_tour_creation() {
     // NOTE edges always reordered
     assert_eq!(t.edges, edge_set(&[(0, 2), (1, 2), (1, 3), (0, 3)]));
     assert_eq!(t.len(), 4);
+    assert_eq!(t.index_of(1), Some(2));
+    assert_eq!(t.index_of(4), None);
+}
+
+#[test]
+fn test_tour_with_sparse_node_ids() {
+    let t = Tour::new([100, 300, 200]);
+
+    assert_eq!(t.index_of(300), Some(1));
+    assert_eq!(t.index_of(400), None);
 }
 
 #[test]

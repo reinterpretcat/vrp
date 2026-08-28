@@ -93,13 +93,9 @@ mod cost_matrix_tests {
 
         let cost_matrix = CostMatrix::new(&route_ctx, &transport);
 
-        assert_eq!(cost_matrix.locations.len(), expected_count);
-        assert_eq!(cost_matrix.neighbourhood.len(), expected_count);
-        assert!(
-            cost_matrix.neighbourhood.iter().all(|n| n.len() == expected_count - 1),
-            "each node should have {} neighbors (all other nodes)",
-            expected_count - 1
-        );
+        assert_eq!(cost_matrix.size, expected_count);
+        assert_eq!(cost_matrix.neighbourhood.len(), expected_count * (expected_count - 1));
+        assert!((0..expected_count).all(|node| cost_matrix.neighbours(node).len() == expected_count - 1));
     }
 
     #[test]
@@ -109,8 +105,8 @@ mod cost_matrix_tests {
 
         let cost_matrix = CostMatrix::new(&route_ctx, &transport);
 
-        assert_eq!(cost_matrix.locations.len(), 4);
-        assert_eq!(cost_matrix.neighbourhood.len(), 4);
+        assert_eq!(cost_matrix.size, 4);
+        assert_eq!(cost_matrix.neighbourhood.len(), 12);
         assert_eq!(cost_matrix.neighbours(0), &[3, 1, 2]);
         assert_eq!(cost_matrix.neighbours(1), &[2, 0, 3]);
         assert_eq!(cost_matrix.neighbours(2), &[1, 3, 0]);

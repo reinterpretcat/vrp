@@ -4,15 +4,13 @@ mod tour_test;
 
 use super::*;
 use crate::utils::Either;
-use std::{
-    collections::{HashMap, HashSet},
-    iter::{empty, once},
-};
+use std::iter::{empty, once};
 
 /// A tour is a sequence of nodes that visits each node exactly once.
 pub struct Tour {
     path: Path,
     edges: EdgeSet,
+    indices: Option<TinyVec<[usize; 32]>>,
 }
 
 impl Tour {
@@ -28,8 +26,18 @@ impl Tour {
             .chain(path.last().copied().zip(path.first().copied()))
             .map(|(from, to)| make_edge(from, to))
             .collect();
+        let indices = path.iter().max().filter(|&&max| max < path.len().saturating_mul(2)).map(|&max| {
+            let mut indices = TinyVec::<[usize; 32]>::new();
+            indices.resize(max + 1, usize::MAX);
+            path.iter().enumerate().for_each(|(index, &node)| {
+                if indices[node] == usize::MAX {
+                    indices[node] = index;
+                }
+            });
+            indices
+        });
 
-        Tour { path, edges }
+        Tour { path, edges, indices }
     }
 
     /// Returns true if the given edge is in the tour.
@@ -39,7 +47,10 @@ impl Tour {
 
     /// Returns the index of the given node in the tour.
     pub fn index_of(&self, node: Node) -> Option<usize> {
-        self.path.iter().position(|&n| n == node)
+        match &self.indices {
+            Some(indices) => indices.get(node).copied().filter(|&index| index != usize::MAX),
+            None => self.path.iter().position(|&candidate| candidate == node),
+        }
     }
 
     /// Returns neighbours around of a given node.
@@ -67,7 +78,13 @@ impl Tour {
     /// Applies modifications on the copy of existing tour's path and returns a new path if it is valid.
     /// Please note that validity of the path is checked only from TSP prospective.
     pub(crate) fn try_path(&self, broken: &EdgeSet, joined: &EdgeSet) -> Option<Path> {
-        let mut edges: EdgeSet = self.edges.difference(broken).cloned().chain(joined.iter().cloned()).collect();
+        let mut edges = self.edges.clone();
+        broken.iter().for_each(|edge| {
+            edges.remove(edge);
+        });
+        joined.iter().copied().for_each(|edge| {
+            edges.insert(edge);
+        });
 
         // if we do not have enough edges, we cannot form a tour, but this should not happen in LKH.
         if edges.len() < self.len() {
@@ -77,12 +94,16 @@ impl Tour {
         // NOTE: get start location, assume that the tour starts always from it (e.g. from depot).
         let start_node = self.index_of(self.path[0])?;
 
-        let mut successors = HashMap::new();
+        let mut successors = TinyVec::<[Edge; 16]>::new();
         let mut node = start_node;
         while !edges.is_empty() {
             if let Some(&edge) = edges.iter().find(|&&(i, j)| i == node || j == node) {
                 let next_node = if edge.0 == node { edge.1 } else { edge.0 };
-                successors.insert(node, next_node);
+                if let Some((_, successor)) = successors.iter_mut().find(|(current, _)| *current == node) {
+                    *successor = next_node;
+                } else {
+                    successors.push((node, next_node));
+                }
                 edges.remove(&edge);
                 node = next_node;
             } else {
@@ -95,15 +116,15 @@ impl Tour {
             return None;
         }
 
-        let mut visited = HashSet::with_capacity(self.len());
-        visited.insert(start_node);
+        let mut visited = TinyVec::<[Node; 16]>::new();
+        visited.push(start_node);
 
         let new_tour: Path = std::iter::successors(Some(start_node), |&node| {
-            successors.get(&node).copied().and_then(|next| {
+            successors.iter().find(|(current, _)| *current == node).map(|(_, next)| *next).and_then(|next| {
                 if visited.contains(&next) {
                     None
                 } else {
-                    visited.insert(next);
+                    visited.push(next);
                     Some(next)
                 }
             })

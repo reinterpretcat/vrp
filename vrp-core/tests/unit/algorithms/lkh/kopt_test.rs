@@ -59,8 +59,8 @@ fn test_find_closest() {
     let closest = kopt.find_closest(&tour, t2i, gain, &broken, &joined);
 
     assert_eq!(
-        closest,
-        vec![
+        closest.as_slice(),
+        &[
             (6, (1792., 1271.)),
             (1, (1166., 1393.)),
             (8, (1144., 1372.)),

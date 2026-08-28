@@ -44,6 +44,18 @@ fn can_set_and_get_empty_route_state() {
 }
 
 #[test]
+fn can_mutate_deep_copied_route_state_independently() {
+    let mut original = RouteContextBuilder::default().build();
+    original.state_mut().set_tour_state::<i8, _>("original".to_string());
+
+    let mut copy = original.deep_copy();
+    copy.state_mut().set_tour_state::<i8, _>("copy".to_string());
+
+    assert_eq!(original.state().get_tour_state::<i8, String>().unwrap(), "original");
+    assert_eq!(copy.state().get_tour_state::<i8, String>().unwrap(), "copy");
+}
+
+#[test]
 fn can_use_stale_flag() {
     let mut route_ctx = RouteContextBuilder::default().build();
 

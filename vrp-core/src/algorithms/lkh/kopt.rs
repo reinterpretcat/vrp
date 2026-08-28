@@ -16,7 +16,6 @@ use std::iter::once;
 /// * `T` - The adjacency specification type that provides distance information between nodes
 pub(crate) struct KOpt<T> {
     adjacency: T,
-    solutions: Vec<Path>,
 }
 
 impl<T> KOpt<T>
@@ -25,28 +24,26 @@ where
 {
     /// Creates a new instance of [KOpt].
     pub fn new(adjacency: T) -> Self {
-        KOpt { adjacency, solutions: Vec::default() }
+        KOpt { adjacency }
     }
 
     /// Tries to optimize a given path using modified Lin-Kernighan-Helsgaun algorithm.
-    /// Returns discovered solutions in the order of their improvement.
-    pub fn optimize(mut self, path: Path) -> Vec<Path> {
+    /// Returns the last accepted path as a single-item collection.
+    pub fn optimize(self, mut path: Path) -> Vec<Path> {
         // Scale with problem size: linear growth with safety cap to prevent infinite loops
         let max_iterations = (path.len() * 10).min(2000);
 
-        self.solutions.push(path);
         let mut iterations = 0;
 
-        while let Some(improved_path) = self.solutions.last().and_then(|p| self.improve(p.iter().copied())) {
+        while let Some(improved_path) = self.improve(path.iter().copied()) {
             iterations += 1;
             if iterations >= max_iterations {
                 break;
             }
-            self.solutions.clear();
-            self.solutions.push(improved_path);
+            path = improved_path;
         }
 
-        self.solutions
+        vec![path]
     }
 
     /// Attempts to improve a given tour using the Lin-Kernighan-Helsgaun algorithm.
@@ -65,7 +62,11 @@ where
         let tour = Tour::new(path);
 
         for t1 in tour.path() {
-            let around: BTreeSet<_> = tour.around(t1).collect();
+            let mut around = tour.around(t1).collect::<TinyVec<[Node; 2]>>();
+            around.sort_unstable();
+            if around.len() == 2 && around[0] == around[1] {
+                around.pop();
+            }
             for &t2 in around.iter() {
                 let broken = make_edge_set(once((t1, t2)));
 
@@ -126,13 +127,14 @@ where
         gain: Cost,
         broken: &EdgeSet,
         joined: &EdgeSet,
-    ) -> Vec<(Node, (Cost, Cost))> {
-        let mut neighbours = HashMap::new();
+    ) -> TinyVec<[(Node, (Cost, Cost)); 16]> {
+        let mut neighbours = TinyVec::<[(Node, (Cost, Cost)); 16]>::new();
 
         // create the neighbours of t_2i
         for &node in self.adjacency.neighbours(t2i) {
             let yi = make_edge(t2i, node);
-            let gi = gain - self.adjacency.cost(&(t2i, node));
+            let joined_cost = self.adjacency.cost(&(t2i, node));
+            let gi = gain - joined_cost;
 
             // any new edge has to have a positive running sum, not be a broken
             // edge and not belong to the tour.
@@ -140,28 +142,26 @@ where
                 continue;
             }
 
-            for succ in tour.around(node) {
+            let candidate = tour.around(node).filter_map(|succ| {
                 let xi = make_edge(node, succ);
 
                 // check that "x_i+1 exists"
                 if !broken.contains(&xi) && !joined.contains(&xi) {
-                    let diff = self.adjacency.cost(&(node, succ)) - self.adjacency.cost(&(t2i, node));
-
-                    neighbours
-                        .entry(node)
-                        .and_modify(|(d, g)| {
-                            *d = diff;
-                            if diff < *d {
-                                *g = gi;
-                            }
-                        })
-                        .or_insert((diff, gi));
+                    let diff = self.adjacency.cost(&(node, succ)) - joined_cost;
+                    Some((node, (diff, gi)))
+                } else {
+                    None
                 }
+            });
+
+            // Both adjacent tour edges are valid candidates at most; the previous map-based code
+            // retained the last one as well.
+            if let Some(candidate) = candidate.last() {
+                neighbours.push(candidate);
             }
         }
 
         // sort by diff
-        let mut neighbours = neighbours.into_iter().collect::<Vec<_>>();
         neighbours.sort_by(|(_, (a, _)), (_, (b, _))| b.total_cmp(a));
 
         neighbours
@@ -215,8 +215,8 @@ where
             }
 
             let yi = make_edge(t2i, t1);
-            let added = joined.iter().cloned().chain(once(yi)).collect();
-            let removed = broken.iter().cloned().chain(once(xi)).collect();
+            let added = joined.with_edge(yi);
+            let removed = broken.with_edge(xi);
 
             // get gain at current iteration and try to relink the tour
             let gi = gain + self.adjacency.cost(&(last, t2i));
@@ -226,7 +226,7 @@ where
                 // Try to find valid path
                 match tour.try_path(&removed, &added) {
                     // save the current solution on caller site if the tour is better
-                    Some(new_path) if !self.is_known_path(&new_path) => return Some(new_path),
+                    Some(new_path) if !Self::is_known_path(tour, &new_path) => return Some(new_path),
                     // skip already found tour
                     Some(_) => return None,
                     // the current solution does not form a valid tour
@@ -270,14 +270,14 @@ where
 
         closest.into_iter().take(max_tries).find_map(|(node, (_, gi))| {
             let yi = make_edge(t2i, node);
-            let added = joined.iter().cloned().chain(once(yi)).collect();
+            let added = joined.with_edge(yi);
 
             self.choose_x(tour, t1, node, gi, broken, &added)
         })
     }
 
     /// Checks if the given path is already known.
-    fn is_known_path(&self, path: &[Node]) -> bool {
-        self.solutions.iter().any(|p| p.iter().eq(path))
+    fn is_known_path(tour: &Tour, path: &[Node]) -> bool {
+        tour.path().eq(path.iter().copied())
     }
 }

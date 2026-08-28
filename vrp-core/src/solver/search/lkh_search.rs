@@ -6,7 +6,7 @@ use super::*;
 use crate::{
     algorithms::lkh::*,
     construction::probing::repair_solution_from_unknown,
-    models::{common::Profile, solution::Tour},
+    models::solution::Tour,
     prelude::{Cost, Location, RouteContext, TransportCost},
 };
 use rosomaxa::utils::{ParallelismScope, parallel_foreach_mut};
@@ -170,15 +170,14 @@ fn get_activity_range(tour: &Tour) -> Range<usize> {
 }
 
 /// Provides an implementation of [AdjacencySpec] for LKH algorithm.
-struct CostMatrix<'a> {
-    profile: Profile,
-    transport: &'a dyn TransportCost,
-    neighbourhood: Vec<Vec<Node>>,
-    locations: Vec<Location>,
+struct CostMatrix {
+    costs: Vec<Cost>,
+    size: usize,
+    neighbourhood: Vec<Node>,
 }
 
-impl<'a> CostMatrix<'a> {
-    fn new(route_ctx: &RouteContext, transport: &'a dyn TransportCost) -> Self {
+impl CostMatrix {
+    fn new(route_ctx: &RouteContext, transport: &dyn TransportCost) -> Self {
         let profile = route_ctx.route().actor.vehicle.profile.clone();
         let tour = &route_ctx.route().tour;
 
@@ -186,39 +185,49 @@ impl<'a> CostMatrix<'a> {
         let locations: Vec<Location> =
             get_activity_range(tour).filter_map(|idx| tour.get(idx)).map(|a| a.place.location).collect();
         let size = locations.len();
-
-        // build neighborhood: for each node, store all other nodes sorted by distance
-        let neighbourhood: Vec<Vec<Node>> = (0..size)
-            .map(|i| {
-                // calculate distances to all other nodes
-                let mut neighbors: Vec<(Node, Cost)> = (0..size)
-                    .filter(|&j| i != j)
-                    .map(|j| (j, transport.distance_approx(&profile, locations[i], locations[j])))
-                    .collect();
-
-                // sort by distance
-                neighbors.sort_by(|a, b| a.1.total_cmp(&b.1));
-
-                // keep only the node indices
-                neighbors.into_iter().map(|(node, _)| node).collect()
+        // Approximate distance is time-independent and LKH queries the same route edges repeatedly.
+        let costs = (0..size)
+            .flat_map(|from| {
+                let profile = &profile;
+                let locations = &locations;
+                (0..size).map(move |to| {
+                    if from == to {
+                        Cost::default()
+                    } else {
+                        transport.distance_approx(profile, locations[from], locations[to])
+                    }
+                })
             })
-            .collect();
+            .collect::<Vec<_>>();
 
-        CostMatrix { profile, transport, neighbourhood, locations }
+        // Store all rows in one allocation. Each row contains every other node sorted by distance.
+        let row_size = size.saturating_sub(1);
+        let mut neighbourhood = Vec::with_capacity(size * row_size);
+        for from in 0..size {
+            let offset = neighbourhood.len();
+            neighbourhood.extend((0..size).filter(|&to| from != to));
+            neighbourhood[offset..]
+                .sort_by(|&left, &right| costs[from * size + left].total_cmp(&costs[from * size + right]));
+        }
+
+        CostMatrix { costs, size, neighbourhood }
     }
 }
 
-impl AdjacencySpec for CostMatrix<'_> {
+impl AdjacencySpec for CostMatrix {
     fn cost(&self, edge: &Edge) -> Cost {
         let &(from, to) = edge;
         // NOTE: LKH assumes symmetric distances
         // TODO: handle one-direction reachable only locations
         let (from, to) = if from > to { (to, from) } else { (from, to) };
 
-        self.transport.distance_approx(&self.profile, self.locations[from], self.locations[to])
+        self.costs[from * self.size + to]
     }
 
     fn neighbours(&self, node: Node) -> &[Node] {
-        self.neighbourhood[node].as_slice()
+        let row_size = self.size.saturating_sub(1);
+        let offset = node * row_size;
+
+        &self.neighbourhood[offset..offset + row_size]
     }
 }

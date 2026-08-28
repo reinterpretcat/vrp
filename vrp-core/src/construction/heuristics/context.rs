@@ -248,7 +248,7 @@ impl SolutionState {
 /// Specifies insertion context for route.
 pub struct RouteContext {
     route: Route,
-    state: RouteState,
+    state: Arc<RouteState>,
     cache: RouteCache,
 }
 
@@ -269,12 +269,13 @@ impl RouteContext {
 
     /// Creates a new instance of `RouteContext` with arguments provided.
     pub fn new_with_state(route: Route, state: RouteState) -> Self {
-        RouteContext { route, state, cache: RouteCache { is_stale: true } }
+        RouteContext { route, state: Arc::new(state), cache: RouteCache { is_stale: true } }
     }
 
     /// Creates a deep copy of `RouteContext`.
     pub fn deep_copy(&self) -> Self {
         let new_route = Route { actor: self.route.actor.clone(), tour: self.route.tour.deep_copy() };
+        // State is read-only until a route is changed, so unchanged routes can share it.
         let new_state = self.state.clone();
 
         RouteContext { route: new_route, state: new_state, cache: RouteCache { is_stale: self.cache.is_stale } }
@@ -287,14 +288,14 @@ impl RouteContext {
 
     /// Returns a reference to state.
     pub fn state(&self) -> &RouteState {
-        &self.state
+        self.state.as_ref()
     }
 
     /// Unwraps given `RouteContext` as pair of mutable references.
     /// Marks context as stale.
     pub fn as_mut(&mut self) -> (&mut Route, &mut RouteState) {
-        self.mark_stale(true);
-        (&mut self.route, &mut self.state)
+        self.cache.is_stale = true;
+        (&mut self.route, Arc::make_mut(&mut self.state))
     }
 
     /// Returns mutable reference to used `Route`.
@@ -307,8 +308,8 @@ impl RouteContext {
     /// Returns mutable reference to used `RouteState`.
     /// Marks context as stale.
     pub fn state_mut(&mut self) -> &mut RouteState {
-        self.mark_stale(true);
-        &mut self.state
+        self.cache.is_stale = true;
+        Arc::make_mut(&mut self.state)
     }
 
     /// Returns true if context is stale. Context is marked stale when it is accessed by `mut`
