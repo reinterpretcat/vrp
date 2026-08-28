@@ -229,9 +229,11 @@ pub fn create_matrix_transport_cost_with_fallback<T: TransportFallback + 'static
 
 /// A time agnostic matrix routing costs.
 struct TimeAgnosticMatrixTransportCost<T: TransportFallback> {
-    durations: Vec<Vec<Duration>>,
-    distances: Vec<Vec<Distance>>,
+    durations: Vec<Duration>,
+    distances: Vec<Distance>,
     size: usize,
+    matrix_size: usize,
+    profile_count: usize,
     fallback: T,
 }
 
@@ -249,35 +251,47 @@ impl<T: TransportFallback> TimeAgnosticMatrixTransportCost<T> {
             return Err("duplicate profiles can be passed only for time aware routing".into());
         }
 
-        let (durations, distances) = costs.into_iter().fold((vec![], vec![]), |mut acc, data| {
-            acc.0.push(data.durations);
-            acc.1.push(data.distances);
+        let profile_count = costs.len();
+        let matrix_size = size * size;
+        let (durations, distances) = if profile_count == 1 {
+            let data = costs.pop().unwrap();
+            (data.durations, data.distances)
+        } else {
+            let mut durations = Vec::with_capacity(profile_count * matrix_size);
+            let mut distances = Vec::with_capacity(profile_count * matrix_size);
 
-            acc
-        });
+            costs.into_iter().for_each(|data| {
+                durations.extend(data.durations);
+                distances.extend(data.distances);
+            });
 
-        Ok(Self { durations, distances, size, fallback })
+            (durations, distances)
+        };
+
+        Ok(Self { durations, distances, size, matrix_size, profile_count, fallback })
+    }
+
+    #[inline]
+    fn get_value(&self, values: &[Float], profile: &Profile, from: Location, to: Location) -> Option<Float> {
+        assert!(profile.index < self.profile_count, "unknown profile index: {}", profile.index);
+
+        let location_index = from * self.size + to;
+        if location_index >= self.matrix_size {
+            return None;
+        }
+
+        values.get(profile.index * self.matrix_size + location_index).copied()
     }
 }
 
 impl<T: TransportFallback> TransportCost for TimeAgnosticMatrixTransportCost<T> {
     fn duration_approx(&self, profile: &Profile, from: Location, to: Location) -> Duration {
-        self.durations
-            .get(profile.index)
-            .unwrap()
-            .get(from * self.size + to)
-            .copied()
-            .unwrap_or_else(|| self.fallback.duration(profile, from, to))
+        self.get_value(&self.durations, profile, from, to).unwrap_or_else(|| self.fallback.duration(profile, from, to))
             * profile.scale
     }
 
     fn distance_approx(&self, profile: &Profile, from: Location, to: Location) -> Distance {
-        self.distances
-            .get(profile.index)
-            .unwrap()
-            .get(from * self.size + to)
-            .copied()
-            .unwrap_or_else(|| self.fallback.distance(profile, from, to))
+        self.get_value(&self.distances, profile, from, to).unwrap_or_else(|| self.fallback.distance(profile, from, to))
     }
 
     fn duration(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Duration {

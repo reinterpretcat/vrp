@@ -353,7 +353,6 @@ fn find_exchange_jobs_in_routes(
     // search phase
     let (outer_best, inner_best, _) = map_reduce(
         job_pairs.as_slice(),
-        ParallelismScope::Local,
         |(outer_idx, inner_idx)| {
             if is_quota_reached() {
                 return (InsertionResult::make_failure(), InsertionResult::make_failure(), InsertionCost::default());

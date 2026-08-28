@@ -8,7 +8,7 @@ use crate::algorithms::structures::BitVec;
 use crate::models::common::Location;
 use crate::prelude::*;
 use rosomaxa::population::RosomaxaContext;
-use rosomaxa::utils::{ParallelismScope, fold_reduce};
+use rosomaxa::utils::fold_reduce;
 use std::sync::Arc;
 
 custom_solution_state!(pub(crate) Footprint typeof Footprint);
@@ -172,7 +172,6 @@ impl RosomaxaContext for Footprint {
         let problem = solutions[0].problem.clone();
         let footprint = fold_reduce(
             solutions,
-            ParallelismScope::Local,
             || Footprint::new(&problem),
             |mut footprint, solution| {
                 footprint.add(&Shadow::from(solution));

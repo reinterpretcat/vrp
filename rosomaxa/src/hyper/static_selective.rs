@@ -3,7 +3,7 @@
 mod static_selective_test;
 
 use super::*;
-use crate::utils::{ParallelismScope, UnwrapValue, parallel_into_collect};
+use crate::utils::{ParallelismPolicy, UnwrapValue, parallel_collect};
 use std::cmp::Ordering;
 use std::fmt::Formatter;
 use std::ops::ControlFlow;
@@ -48,7 +48,7 @@ where
     }
 
     fn search_many(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
-        parallel_into_collect(solutions, ParallelismScope::Coarse, |solution| self.search_once(heuristic_ctx, solution))
+        parallel_collect(solutions, ParallelismPolicy::Coarse, |solution| self.search_once(heuristic_ctx, solution))
     }
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {

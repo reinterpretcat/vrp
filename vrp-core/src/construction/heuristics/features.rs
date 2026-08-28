@@ -8,7 +8,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::models::common::{Distance, Location};
 use crate::models::problem::TravelTime;
 use rosomaxa::prelude::*;
-use rosomaxa::utils::{ParallelismPolicy, ParallelismScope, SelectionSamplingIterator, parallel_collect};
+use rosomaxa::utils::{ParallelismPolicy, SelectionSamplingIterator, parallel_collect};
 use std::cmp::Ordering;
 use tinyvec::TinyVec;
 
@@ -232,55 +232,50 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> Vec<Vec<us
         .enumerate()
         .collect::<Vec<_>>();
 
-    parallel_collect(
-        &indexed_route_clusters,
-        ParallelismScope::Local,
-        ParallelismPolicy::Default,
-        |(outer_idx, outer_clusters)| {
-            let mut route_distances = Vec::with_capacity(indexed_route_clusters.len().saturating_sub(1));
+    parallel_collect(&indexed_route_clusters, ParallelismPolicy::Default, |(outer_idx, outer_clusters)| {
+        let mut route_distances = Vec::with_capacity(indexed_route_clusters.len().saturating_sub(1));
 
-            indexed_route_clusters.iter().for_each(|(inner_idx, inner_clusters)| {
-                if *outer_idx != *inner_idx {
-                    let inner_profile = &routes[*inner_idx].route().actor.vehicle.profile;
-                    let outer_profile = &routes[*outer_idx].route().actor.vehicle.profile;
+        indexed_route_clusters.iter().for_each(|(inner_idx, inner_clusters)| {
+            if *outer_idx != *inner_idx {
+                let inner_profile = &routes[*inner_idx].route().actor.vehicle.profile;
+                let outer_profile = &routes[*outer_idx].route().actor.vehicle.profile;
 
-                    // get a sum of distances between all pairs of sampled locations
-                    let pair_distance = outer_clusters
-                        .iter()
-                        .flat_map(|outer| inner_clusters.iter().map(move |inner| (inner, outer)))
-                        .map(|(&o, &i)| {
-                            // NOTE use outer and inner route profiles to estimate distance
-                            let inner_distance = transport.distance_approx(inner_profile, o, i).max(0.);
-                            let outer_distance = if inner_profile.index == outer_profile.index {
-                                inner_distance
-                            } else {
-                                transport.distance_approx(outer_profile, o, i).max(0.)
-                            };
+                // get a sum of distances between all pairs of sampled locations
+                let pair_distance = outer_clusters
+                    .iter()
+                    .flat_map(|outer| inner_clusters.iter().map(move |inner| (inner, outer)))
+                    .map(|(&o, &i)| {
+                        // NOTE use outer and inner route profiles to estimate distance
+                        let inner_distance = transport.distance_approx(inner_profile, o, i).max(0.);
+                        let outer_distance = if inner_profile.index == outer_profile.index {
+                            inner_distance
+                        } else {
+                            transport.distance_approx(outer_profile, o, i).max(0.)
+                        };
 
-                            inner_distance + outer_distance
-                        })
-                        .sum::<Distance>()
-                        / 2.;
+                        inner_distance + outer_distance
+                    })
+                    .sum::<Distance>()
+                    / 2.;
 
-                    let total_pairs = outer_clusters.len() * inner_clusters.len();
-                    let distance = if total_pairs == 0 {
-                        None
-                    } else {
-                        // get average distance between clusters
-                        Some(pair_distance / total_pairs as Float)
-                    };
+                let total_pairs = outer_clusters.len() * inner_clusters.len();
+                let distance = if total_pairs == 0 {
+                    None
+                } else {
+                    // get average distance between clusters
+                    Some(pair_distance / total_pairs as Float)
+                };
 
-                    route_distances.push((*inner_idx, distance));
-                }
-            });
+                route_distances.push((*inner_idx, distance));
+            }
+        });
 
-            route_distances.sort_unstable_by(|(_, a_distance), (_, b_distance)| match (a_distance, b_distance) {
-                (Some(a_distance), Some(b_distance)) => a_distance.total_cmp(b_distance),
-                (Some(_), None) => Ordering::Less,
-                _ => Ordering::Greater,
-            });
+        route_distances.sort_unstable_by(|(_, a_distance), (_, b_distance)| match (a_distance, b_distance) {
+            (Some(a_distance), Some(b_distance)) => a_distance.total_cmp(b_distance),
+            (Some(_), None) => Ordering::Less,
+            _ => Ordering::Greater,
+        });
 
-            route_distances.into_iter().map(|(index, _)| index).collect()
-        },
-    )
+        route_distances.into_iter().map(|(index, _)| index).collect()
+    })
 }

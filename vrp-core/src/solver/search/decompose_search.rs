@@ -7,7 +7,7 @@ use crate::models::GoalContext;
 use crate::solver::search::create_environment_with_custom_quota;
 use crate::solver::*;
 use crate::utils::Either;
-use rosomaxa::utils::{ParallelismScope, parallel_into_collect};
+use rosomaxa::utils::{ParallelismPolicy, parallel_collect};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::iter::{empty, once};
@@ -65,7 +65,7 @@ impl DecomposeSearch {
 
         // do actual refinement independently for each decomposed context
         let decomposed =
-            parallel_into_collect(decomposed, ParallelismScope::Coarse, |(mut refinement_ctx, route_indices)| {
+            parallel_collect(decomposed, ParallelismPolicy::Coarse, |(mut refinement_ctx, route_indices)| {
                 let actual_repeat_count =
                     get_repeat_count(self.repeat_count, refinement_ctx.environment.random.as_ref());
 

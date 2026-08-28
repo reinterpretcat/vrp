@@ -9,7 +9,7 @@ use crate::{
     models::solution::Tour,
     prelude::{Cost, Location, RouteContext, TransportCost},
 };
-use rosomaxa::utils::{ParallelismScope, parallel_foreach_mut};
+use rosomaxa::utils::parallel_foreach_mut;
 use std::{
     collections::{HashMap, HashSet},
     ops::Range,
@@ -41,9 +41,7 @@ impl HeuristicSearchOperator for LKHSearch {
         let mut new_solution = solution.deep_copy();
 
         // apply LKH optimization to each route separately
-        parallel_foreach_mut(&mut new_solution.solution.routes, ParallelismScope::Local, |route_ctx| {
-            optimize_route(route_ctx, transport)
-        });
+        parallel_foreach_mut(&mut new_solution.solution.routes, |route_ctx| optimize_route(route_ctx, transport));
 
         self.repair_routes(new_solution, solution)
     }

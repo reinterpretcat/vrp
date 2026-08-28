@@ -6,7 +6,7 @@ use super::*;
 use crate::algorithms::gsom::*;
 use crate::algorithms::math::relative_distance;
 use crate::population::elitism::{Alternative, DedupFn};
-use crate::utils::{Environment, ParallelismScope, Random, parallel_into_collect};
+use crate::utils::{Environment, ParallelismPolicy, Random, parallel_collect};
 use rand::prelude::SliceRandom;
 use std::f64::consts::{E, PI};
 use std::fmt::Formatter;
@@ -113,7 +113,7 @@ where
             }
             RosomaxaPhases::Exploration { network, maintenance, statistics, .. } => {
                 self.external_ctx.on_change(individuals.as_slice());
-                let data = parallel_into_collect(individuals, ParallelismScope::Local, |i| {
+                let data = parallel_collect(individuals, ParallelismPolicy::Default, |i| {
                     init_individual(&self.external_ctx, i)
                 });
                 maintenance.add_observations(data.len());
@@ -681,7 +681,7 @@ where
         config: &RosomaxaConfig,
         individuals: Vec<S>,
     ) -> GenericResult<IndividualNetwork<C, O, S>> {
-        let inputs_vec = parallel_into_collect(individuals, ParallelismScope::Local, |i| init_individual(context, i));
+        let inputs_vec = parallel_collect(individuals, ParallelismPolicy::Default, |i| init_individual(context, i));
         let inputs_vec = Self::select_initial_data(inputs_vec, objective.as_ref(), INITIAL_NETWORK_SIZE);
 
         Network::new(

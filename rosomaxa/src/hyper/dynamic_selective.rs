@@ -5,7 +5,7 @@ mod dynamic_selective_test;
 use super::*;
 use crate::Timer;
 use crate::algorithms::rl::{SlotAction, SlotFeedback, SlotMachine};
-use crate::utils::{DefaultDistributionSampler, ParallelismScope, random_argmax};
+use crate::utils::{DefaultDistributionSampler, ParallelismPolicy, parallel_collect, random_argmax};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::Formatter;
@@ -55,7 +55,7 @@ where
         self.agent.reset_if_stagnant(heuristic_ctx.statistics());
         // Population is unchanged while the batch runs, so all searches can use the same best solution.
         let best_known = heuristic_ctx.ranked().next();
-        let feedbacks = parallel_into_collect(solutions, ParallelismScope::Coarse, |solution| {
+        let feedbacks = parallel_collect(solutions, ParallelismPolicy::Coarse, |solution| {
             self.agent.search_with_best(heuristic_ctx, solution, best_known)
         });
 

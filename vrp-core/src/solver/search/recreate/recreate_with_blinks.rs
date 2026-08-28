@@ -10,7 +10,7 @@ use crate::prelude::Cost;
 use crate::solver::RefinementContext;
 use crate::solver::search::recreate::Recreate;
 use rosomaxa::prelude::*;
-use rosomaxa::utils::{ParallelismScope, fold_reduce};
+use rosomaxa::utils::fold_reduce;
 use std::cmp::Reverse;
 use std::sync::Arc;
 
@@ -163,7 +163,6 @@ impl InsertionEvaluator for BlinkInsertionEvaluator {
 
         let result = fold_reduce(
             routes,
-            ParallelismScope::Local,
             InsertionResult::make_failure,
             |best_in_thread, route_ctx| {
                 let mut best_in_route = best_in_thread;

@@ -11,10 +11,6 @@ use std::cmp::Ordering;
 use std::ops::ControlFlow;
 use std::sync::Arc;
 
-// NOTE insertion evaluations have different costs. Keep a few extra tasks per worker to balance
-// the load, but not too many to avoid scheduling overhead. Four worked well across tested workloads.
-const INSERTION_EVALUATION_TASKS_PER_WORKER: usize = 4;
-
 /// On each insertion step, selects a list of routes where jobs can be inserted.
 /// It is up to implementation to decide whether list consists of all possible routes or just some subset.
 pub trait RouteSelector: Send + Sync {
@@ -128,14 +124,14 @@ impl PositionInsertionEvaluator {
         // NOTE using `fold_reduce` seems less effective
         // TODO use alternative strategies specific for each use case when `evaluate_and_collect_all` is used?
         if is_fold_jobs {
-            parallel_collect(jobs, ParallelismScope::Local, ParallelismPolicy::Default, |job| {
+            parallel_collect(jobs, ParallelismPolicy::Default, |job| {
                 let eval_ctx = EvaluationContext { goal, job, leg_selection, result_selector };
                 routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
                     eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
                 })
             })
         } else {
-            parallel_collect(routes, ParallelismScope::Local, ParallelismPolicy::Default, |route_ctx| {
+            parallel_collect(routes, ParallelismPolicy::Default, |route_ctx| {
                 jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
                     let eval_ctx = EvaluationContext { goal, job, leg_selection, result_selector };
                     eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
@@ -157,8 +153,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         let goal = &insertion_ctx.problem.goal;
 
         fold_reduce(
-            cartesian_product(routes, jobs, ParallelismPolicy::adaptive(INSERTION_EVALUATION_TASKS_PER_WORKER)),
-            ParallelismScope::Local,
+            cartesian_product(routes, jobs),
             InsertionResult::make_failure,
             |acc, (route_ctx, job)| {
                 let eval_ctx = EvaluationContext { goal, job, leg_selection, result_selector };

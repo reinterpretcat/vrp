@@ -4,7 +4,7 @@ mod unassignment_reason_test;
 
 use super::*;
 use crate::construction::heuristics::*;
-use rosomaxa::utils::{CollectGroupBy, ParallelismScope, parallel_into_collect};
+use rosomaxa::utils::{CollectGroupBy, ParallelismPolicy, parallel_collect};
 
 /// Tries to improve job unassignment reason.
 #[derive(Default)]
@@ -20,7 +20,7 @@ impl HeuristicSolutionProcessing for UnassignmentReason {
         let leg_selection = LegSelection::Exhaustive;
         let result_selector = BestResultSelector::default();
 
-        let unassigned = parallel_into_collect(unassigned, ParallelismScope::Local, |(job, code)| {
+        let unassigned = parallel_collect(unassigned, ParallelismPolicy::Default, |(job, code)| {
             let eval_ctx = EvaluationContext {
                 goal: &insertion_ctx.problem.goal,
                 job: &job,

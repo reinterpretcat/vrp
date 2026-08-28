@@ -7,7 +7,7 @@ mod static_selective;
 pub use self::static_selective::*;
 
 use crate::prelude::*;
-use crate::utils::{ParallelismScope, parallel_into_collect};
+use crate::utils::{ParallelismPolicy, parallel_collect};
 use std::fmt::Display;
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -171,7 +171,7 @@ where
 
     let solutions = solutions.into_iter().filter(|_| should_diversify(heuristic_ctx)).collect::<Vec<_>>();
 
-    parallel_into_collect(solutions, ParallelismScope::Coarse, |solution| {
+    parallel_collect(solutions, ParallelismPolicy::Coarse, |solution| {
         apply_diversify_operator(heuristic_ctx, solution, operators)
     })
     .into_iter()
@@ -215,7 +215,7 @@ where
         return Vec::new();
     }
 
-    parallel_into_collect(solutions, ParallelismScope::Coarse, |solution| {
+    parallel_collect(solutions, ParallelismPolicy::Coarse, |solution| {
         intensify_solution(heuristic_ctx, solution, operators)
     })
     .into_iter()
