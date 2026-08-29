@@ -183,32 +183,27 @@ fn create_partial_insertion_ctx(
     environment: Arc<Environment>,
     route_indices: HashSet<usize>,
 ) -> (InsertionContext, HashSet<usize>) {
+    debug_assert!(!route_indices.is_empty());
     let solution = &insertion_ctx.solution;
 
     let routes = route_indices.iter().map(|idx| solution.routes[*idx].deep_copy()).collect::<Vec<_>>();
     let actors = routes.iter().map(|route_ctx| route_ctx.route().actor.clone()).collect::<HashSet<_>>();
     let registry = solution.registry.deep_slice(|actor| actors.contains(actor));
+    let locked = if solution.locked.is_empty() {
+        HashSet::default()
+    } else {
+        let jobs = routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect::<HashSet<_>>();
+        solution.locked.iter().filter(|job| jobs.contains(*job)).cloned().collect()
+    };
 
     (
         InsertionContext {
             problem: insertion_ctx.problem.clone(),
             solution: SolutionContext {
-                // NOTE we need to handle empty route indices case differently
-                required: if route_indices.is_empty() { solution.required.clone() } else { Default::default() },
-                ignored: if route_indices.is_empty() { solution.ignored.clone() } else { Default::default() },
-                unassigned: if route_indices.is_empty() { solution.unassigned.clone() } else { Default::default() },
-                locked: if route_indices.is_empty() {
-                    let jobs = solution
-                        .routes
-                        .iter()
-                        .flat_map(|route_ctx| route_ctx.route().tour.jobs())
-                        .collect::<HashSet<_>>();
-                    solution.locked.iter().filter(|job| !jobs.contains(*job)).cloned().collect()
-                } else {
-                    let jobs =
-                        routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect::<HashSet<_>>();
-                    solution.locked.iter().filter(|job| jobs.contains(*job)).cloned().collect()
-                },
+                required: Default::default(),
+                ignored: Default::default(),
+                unassigned: Default::default(),
+                locked,
                 routes,
                 registry,
                 state: Default::default(),
@@ -224,11 +219,18 @@ fn create_empty_insertion_ctxs(
     environment: Arc<Environment>,
 ) -> impl Iterator<Item = (InsertionContext, HashSet<usize>)> + use<> {
     let solution = &insertion_ctx.solution;
+    let locked = if solution.locked.is_empty() {
+        HashSet::default()
+    } else {
+        let assigned =
+            solution.routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect::<HashSet<_>>();
+        solution.locked.iter().filter(|job| !assigned.contains(*job)).cloned().collect()
+    };
 
     if solution.required.is_empty()
         && solution.unassigned.is_empty()
         && solution.ignored.is_empty()
-        && solution.locked.is_empty()
+        && locked.is_empty()
     {
         Either::Left(empty())
     } else {
@@ -239,7 +241,7 @@ fn create_empty_insertion_ctxs(
                     required: solution.required.clone(),
                     ignored: solution.ignored.clone(),
                     unassigned: solution.unassigned.clone(),
-                    locked: solution.locked.clone(),
+                    locked,
                     routes: Default::default(),
                     registry: solution.registry.deep_copy(),
                     state: Default::default(),

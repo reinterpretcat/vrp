@@ -10,7 +10,11 @@ use std::sync::Arc;
 
 /// A trait which specifies logic to produce a new feasible solution from partial one.
 pub trait Recreate: Send + Sync {
-    /// Recreates a new solution from the given.
+    /// Recreates a new solution from the given partial solution.
+    ///
+    /// Ruin strategies can leave cached state stale. Implementations must restore solution state
+    /// before selecting jobs or evaluating insertions. The common insertion pipeline does this in
+    /// `prepare_insertion_ctx`.
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 

@@ -12,6 +12,9 @@ use std::sync::Arc;
 /// A trait which specifies logic to destroy parts of solution.
 pub trait Ruin: Send + Sync {
     /// Ruins given solution and returns a new one with less jobs assigned.
+    ///
+    /// The returned partial solution can contain stale route or solution state. A consumer must
+    /// restore it before reading cached state or evaluating insertions.
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 

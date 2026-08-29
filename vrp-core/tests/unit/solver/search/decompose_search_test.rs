@@ -52,6 +52,53 @@ fn can_create_multiple_insertion_ctxs_with_unassigned() {
 }
 
 #[test]
+fn can_partition_locked_jobs() {
+    let environment = Arc::new(Environment::default());
+    let (problem, solution) = generate_matrix_routes_with_defaults(4, 3, false);
+    let mut individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
+    individual.solution.locked =
+        individual.solution.routes.iter().flat_map(|route| route.route().tour.jobs().take(1).cloned()).collect();
+
+    let expected = individual.solution.locked.clone();
+    let individuals = create_multiple_insertion_contexts(&individual, environment, (2, 2)).unwrap();
+    let actual = individuals
+        .iter()
+        .flat_map(|(individual, _)| individual.solution.locked.iter().cloned())
+        .collect::<HashSet<_>>();
+
+    assert_eq!(actual, expected);
+    assert_eq!(individuals.len(), 2);
+    assert!(individuals.iter().all(|(individual, _)| {
+        individual.solution.locked.iter().all(|job| {
+            individual.solution.routes.iter().any(|route| route.route().tour.jobs().any(|candidate| candidate == job))
+        })
+    }));
+}
+
+#[test]
+fn can_partition_assigned_and_unassigned_locked_jobs() {
+    let environment = Arc::new(Environment::default());
+    let (problem, mut solution) = generate_matrix_routes_with_defaults(3, 2, false);
+    let assigned = solution.routes[1].tour.jobs().next().unwrap().clone();
+    let unassigned = solution.routes[0].tour.jobs().next().unwrap().clone();
+    solution.registry.free_actor(&solution.routes[0].actor);
+    solution.unassigned.extend(solution.routes[0].tour.jobs().cloned().map(|job| (job, UnassignmentInfo::Unknown)));
+    solution.routes.remove(0);
+
+    let mut individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
+    individual.solution.locked.extend([assigned.clone(), unassigned.clone()]);
+    let individuals = create_multiple_insertion_contexts(&individual, environment, (2, 2)).unwrap();
+    let empty = individuals.iter().find(|(individual, _)| individual.solution.routes.is_empty()).unwrap();
+    let assigned_part = individuals
+        .iter()
+        .find(|(individual, _)| individual.solution.routes.iter().any(|route| route.route().tour.contains(&assigned)))
+        .unwrap();
+
+    assert_eq!(empty.0.solution.locked, HashSet::from([unassigned]));
+    assert_eq!(assigned_part.0.solution.locked, HashSet::from([assigned]));
+}
+
+#[test]
 fn can_perform_search() {
     let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
