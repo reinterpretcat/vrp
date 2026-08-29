@@ -211,13 +211,12 @@ where
     }
 
     fn recalculate_states(&self, route_ctx: &mut RouteContext) {
+        let tour_len = route_ctx.route().tour.total();
         let marker_intervals = self
             .get_route_intervals()
             .get_marker_intervals(route_ctx)
             .cloned()
-            .unwrap_or_else(|| vec![(0, route_ctx.route().tour.total() - 1)]);
-
-        let tour_len = route_ctx.route().tour.total();
+            .unwrap_or_else(|| vec![(0, tour_len - 1)]);
         let capacity = route_ctx.route().actor.vehicle.dimens.get_vehicle_capacity::<T>().copied();
         let (route, state) = route_ctx.as_mut();
         let capacity_states = state.prepare_capacity_states::<T>(tour_len, capacity);
@@ -389,9 +388,10 @@ fn has_demand_violation<T: LoadOps>(
         }
     }
 
-    // check dynamic load change
-    let change = demand.change();
-    if change.is_not_empty() {
+    // Static demand is covered by the past and future load checks above. A dynamic activity can
+    // combine both demand types, so keep using the complete change in that case.
+    if demand.has_dynamic() {
+        let change = demand.change();
         let future = state.map(|state| state.max_future).unwrap_or_default();
         if !capacity.can_fit(&(future + change)) {
             return Some(false);

@@ -145,6 +145,49 @@ fn can_evaluate_demand_on_activity_impl(
     assert_eq!(result, expected);
 }
 
+#[test]
+fn can_match_static_insertion_with_recalculated_load() {
+    let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
+    let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+
+    for sizes in [vec![-4, -3], vec![4, 3], vec![-4, 3, -2, 2], vec![4, -3, 2, -1]] {
+        let mut route_ctx = RouteContextBuilder::default()
+            .with_route(
+                RouteBuilder::default()
+                    .with_vehicle(&fleet, "v1")
+                    .add_activities(sizes.into_iter().map(create_activity_with_simple_demand))
+                    .build(),
+            )
+            .build();
+        let feature = create_feature();
+        let constraint = feature.constraint.unwrap();
+        let state = feature.state.unwrap();
+        state.accept_route_state(&mut route_ctx);
+
+        for size in [-6, -3, 3, 6] {
+            let target = create_activity_with_simple_demand(size);
+
+            for (activities, index) in route_ctx.route().tour.legs() {
+                let (prev, next) = match activities {
+                    [prev, next] => (prev, Some(next)),
+                    [prev] => (prev, None),
+                    _ => unreachable!(),
+                };
+                let activity_ctx = ActivityContext { index, prev, target: &target, next };
+                let is_allowed =
+                    constraint.evaluate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx)).is_none();
+
+                let mut inserted = route_ctx.deep_copy();
+                inserted.route_mut().tour.insert_at(target.deep_copy(), index + 1);
+                state.accept_route_state(&mut inserted);
+                let is_feasible = inserted.state().get_max_vehicle_load().is_some_and(|load| *load <= 1.);
+
+                assert_eq!(is_allowed, is_feasible, "unexpected result for demand {size} at index {index}");
+            }
+        }
+    }
+}
+
 parameterized_test! {can_merge_jobs_with_demand, (cluster, candidate, expected), {
     can_merge_jobs_with_demand_impl(cluster, candidate, expected);
 }}

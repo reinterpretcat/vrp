@@ -12,7 +12,7 @@ const LOAD_DIMENSION_SIZE: usize = 8;
 
 /// Represents a load type used to represent customer's demand or vehicle's load.
 pub trait Load: Add + Sub + PartialOrd + Copy + Default + Debug + Send + Sync {
-    /// Returns true if it represents an empty load.
+    /// Returns true if it represents a non-empty load.
     fn is_not_empty(&self) -> bool;
 
     /// Returns max load value.
@@ -50,6 +50,11 @@ impl<T: LoadOps> Demand<T> {
             (false, false) if self.delivery.1.is_not_empty() && self.pickup.1.is_not_empty() => DemandType::Dynamic,
             _ => DemandType::Mixed,
         }
+    }
+
+    /// Returns true when pickup or delivery has a dynamic component.
+    pub fn has_dynamic(&self) -> bool {
+        self.pickup.1.is_not_empty() || self.delivery.1.is_not_empty()
     }
 }
 
@@ -250,22 +255,26 @@ impl MultiDimLoad {
 
 impl Load for MultiDimLoad {
     fn is_not_empty(&self) -> bool {
-        self.size == 0 || self.load.iter().any(|v| *v != 0)
+        self.load[..self.size].iter().any(|&value| value != 0)
     }
 
     fn max_load(self, other: Self) -> Self {
         let mut result = self;
-        result.load.iter_mut().zip(other.load.iter()).for_each(|(a, b)| *a = (*a).max(*b));
+        result.load.iter_mut().zip(other.load.iter()).for_each(|(left, right)| *left = (*left).max(*right));
+        result.size = result.size.max(other.size);
 
         result
     }
 
     fn can_fit(&self, other: &Self) -> bool {
-        self.load.iter().zip(other.load.iter()).all(|(a, b)| a >= b)
+        self.load.iter().zip(other.load.iter()).all(|(left, right)| left >= right)
     }
 
     fn ratio(&self, other: &Self) -> Float {
-        self.load.iter().zip(other.load.iter()).fold(0., |acc, (a, b)| (*a as Float / *b as Float).max(acc))
+        self.load
+            .iter()
+            .zip(other.load.iter())
+            .fold(0., |acc, (left, right)| (*left as Float / *right as Float).max(acc))
     }
 }
 
@@ -281,19 +290,15 @@ impl Add for MultiDimLoad {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        fn sum(acc: MultiDimLoad, rhs: &MultiDimLoad) -> MultiDimLoad {
-            let mut dimens = acc;
+        let mut result = self;
 
-            for (idx, value) in rhs.load.iter().enumerate() {
-                dimens.load[idx] += *value;
-            }
-
-            dimens.size = dimens.size.max(rhs.size);
-
-            dimens
+        for (index, value) in rhs.load.iter().enumerate() {
+            result.load[index] += *value;
         }
 
-        if self.load.len() >= rhs.load.len() { sum(self, &rhs) } else { sum(rhs, &self) }
+        result.size = result.size.max(rhs.size);
+
+        result
     }
 }
 
@@ -301,15 +306,15 @@ impl Sub for MultiDimLoad {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let mut dimens = self;
+        let mut result = self;
 
-        for (idx, value) in rhs.load.iter().enumerate() {
-            dimens.load[idx] -= *value;
+        for (index, value) in rhs.load.iter().enumerate() {
+            result.load[index] -= *value;
         }
 
-        dimens.size = dimens.size.max(rhs.size);
+        result.size = result.size.max(rhs.size);
 
-        dimens
+        result
     }
 }
 
@@ -339,13 +344,13 @@ impl Mul<Float> for MultiDimLoad {
     type Output = Self;
 
     fn mul(self, value: Float) -> Self::Output {
-        let mut dimens = self;
+        let mut result = self;
 
-        dimens.load.iter_mut().for_each(|item| {
+        result.load.iter_mut().for_each(|item| {
             *item = (*item as Float * value).round() as i32;
         });
 
-        dimens
+        result
     }
 }
 
