@@ -35,9 +35,6 @@ pub use self::infeasible_search::InfeasibleSearch;
 mod guided_ejection_search;
 pub use self::guided_ejection_search::GuidedEjectionSearch;
 
-mod lkh_search;
-pub use self::lkh_search::{LKHSearch, LKHSearchMode};
-
 mod path_relinking_search;
 pub use self::path_relinking_search::PathRelinkingSearch;
 

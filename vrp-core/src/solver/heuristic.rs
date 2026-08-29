@@ -146,10 +146,6 @@ pub fn get_static_heuristic(
                 environment.random.clone(),
             ),
         ),
-        (
-            Arc::new(LKHSearch::new(LKHSearchMode::ImprovementOnly)),
-            create_scalar_operator_probability(0.05, environment.random.clone()),
-        ),
         (local_search.clone(), create_scalar_operator_probability(0.05, environment.random.clone())),
         (default_operator.clone(), create_scalar_operator_probability(1., environment.random.clone())),
         (local_search, create_scalar_operator_probability(0.05, environment.random.clone())),
@@ -673,7 +669,6 @@ mod dynamic {
                 "local_reschedule_departure".to_string(),
                 1.,
             ),
-            (Arc::new(LKHSearch::new(LKHSearchMode::ImprovementOnly)), "lkh_strict".to_string(), 1.),
             (create_variable_neighborhood_search(environment.as_ref()), "local_vnd".to_string(), 1.),
             (
                 create_variable_search_decompose_search(problem.clone(), environment.clone()),

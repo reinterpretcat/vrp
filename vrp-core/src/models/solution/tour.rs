@@ -121,11 +121,6 @@ impl Tour {
         Arc::make_mut(&mut self.data).activities.iter_mut()
     }
 
-    /// Returns all activities in tour as mutable.
-    pub(crate) fn activities_mut(&mut self) -> &mut Vec<Activity> {
-        &mut Arc::make_mut(&mut self.data).activities
-    }
-
     /// Returns all activities in tour for a specific job.
     pub fn job_activities<'a>(&'a self, job: &'a Job) -> impl Iterator<Item = &'a Activity> + 'a {
         self.data.activities.iter().filter(move |a| a.has_same_job(job))
