@@ -16,6 +16,8 @@ use std::iter::once;
 /// * `T` - The adjacency specification type that provides distance information between nodes
 pub(crate) struct KOpt<T> {
     adjacency: T,
+    // Path relinking is attempted many times during one descent, so keep its temporary buffers here.
+    scratch: TourScratch,
 }
 
 impl<T> KOpt<T>
@@ -24,12 +26,12 @@ where
 {
     /// Creates a new instance of [KOpt].
     pub fn new(adjacency: T) -> Self {
-        KOpt { adjacency }
+        KOpt { adjacency, scratch: TourScratch::default() }
     }
 
     /// Tries to optimize a given path using modified Lin-Kernighan-Helsgaun algorithm.
     /// Returns the last accepted path as a single-item collection.
-    pub fn optimize(self, mut path: Path) -> Vec<Path> {
+    pub fn optimize(mut self, mut path: Path) -> Vec<Path> {
         // Scale with problem size: linear growth with safety cap to prevent infinite loops
         let max_iterations = (path.len() * 10).min(2000);
 
@@ -55,7 +57,7 @@ where
     /// # Returns
     ///
     /// Some([`Path`]) if an improved tour is found, None otherwise.
-    fn improve<I>(&self, path: I) -> Option<Path>
+    fn improve<I>(&mut self, path: I) -> Option<Path>
     where
         I: IntoIterator<Item = Node>,
     {
@@ -182,7 +184,7 @@ where
     ///
     /// Some([`Path`]) if an improved tour is found, None otherwise.
     fn choose_x(
-        &self,
+        &mut self,
         tour: &Tour,
         t1: Node,
         last: Node,
@@ -224,7 +226,7 @@ where
 
             if relink > 0. {
                 // Try to find valid path
-                match tour.try_path(&removed, &added) {
+                match tour.try_path(&removed, &added, &mut self.scratch) {
                     // save the current solution on caller site if the tour is better
                     Some(new_path) if !Self::is_known_path(tour, &new_path) => return Some(new_path),
                     // skip already found tour
@@ -257,7 +259,7 @@ where
     ///
     /// Some([`Path`]) if an improved tour is found, None otherwise.
     fn choose_y(
-        &self,
+        &mut self,
         tour: &Tour,
         t1: Node,
         t2i: Node,

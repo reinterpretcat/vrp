@@ -30,10 +30,11 @@ fn test_tour_with_sparse_node_ids() {
 #[test]
 fn test_optimal_2opt() {
     let t = Tour::new([0, 2, 1, 3]);
+    let mut scratch = TourScratch::default();
     let broken = edge_set(&[(0, 2), (1, 3)]);
     let joined = edge_set(&[(0, 1), (2, 3)]);
 
-    let new_tour = t.try_path(&broken, &joined).expect("2-opt failed");
+    let new_tour = t.try_path(&broken, &joined, &mut scratch).expect("2-opt failed");
 
     assert_eq!(new_tour, [0, 1, 2, 3]);
 }
@@ -41,10 +42,11 @@ fn test_optimal_2opt() {
 #[test]
 fn test_optimal_3opt() {
     let t = Tour::new([0, 3, 2, 4, 5, 1]);
+    let mut scratch = TourScratch::default();
     let broken = edge_set(&[(0, 3), (2, 4), (1, 5)]);
     let joined = edge_set(&[(0, 5), (3, 4), (1, 2)]);
 
-    let new_tour = t.try_path(&broken, &joined).expect("3-opt failed");
+    let new_tour = t.try_path(&broken, &joined, &mut scratch).expect("3-opt failed");
 
     assert_eq!(new_tour, [0, 1, 2, 3, 4, 5]);
 }
@@ -52,10 +54,11 @@ fn test_optimal_3opt() {
 #[test]
 fn test_disjoint_path() {
     let t = Tour::new([0, 3, 2, 4, 5, 1]);
+    let mut scratch = TourScratch::default();
     let broken = edge_set(&[(0, 3), (4, 5)]);
     let joined = edge_set(&[(0, 5), (3, 4)]);
 
-    let new_tour = t.try_path(&broken, &joined);
+    let new_tour = t.try_path(&broken, &joined, &mut scratch);
 
     assert!(new_tour.is_none());
 }

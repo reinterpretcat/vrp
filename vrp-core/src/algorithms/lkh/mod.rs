@@ -7,7 +7,7 @@ use std::iter::FromIterator;
 use tinyvec::TinyVec;
 
 mod tour;
-use self::tour::Tour;
+use self::tour::{Tour, TourScratch};
 
 mod kopt;
 use self::kopt::KOpt;
@@ -59,10 +59,6 @@ impl EdgeSet {
         self.edges.len()
     }
 
-    fn is_empty(&self) -> bool {
-        self.edges.is_empty()
-    }
-
     fn contains(&self, edge: &Edge) -> bool {
         self.edges.binary_search(edge).is_ok()
     }
@@ -78,15 +74,6 @@ impl EdgeSet {
 
     fn iter(&self) -> std::slice::Iter<'_, Edge> {
         self.edges.iter()
-    }
-
-    fn remove(&mut self, edge: &Edge) -> bool {
-        if let Ok(index) = self.edges.binary_search(edge) {
-            self.edges.remove(index);
-            true
-        } else {
-            false
-        }
     }
 
     fn with_edge(&self, edge: Edge) -> Self {

@@ -13,6 +13,15 @@ pub struct Tour {
     indices: Option<TinyVec<[usize; 32]>>,
 }
 
+/// Reusable buffers for path relinking.
+#[derive(Default)]
+pub(crate) struct TourScratch {
+    edges: Vec<Edge>,
+    successors: Vec<(Node, Node)>,
+    visited: Vec<Node>,
+    path: Path,
+}
+
 impl Tour {
     /// Creates a new tour from a sequence of nodes.
     pub fn new<I>(path: I) -> Self
@@ -77,13 +86,20 @@ impl Tour {
 
     /// Applies modifications on the copy of existing tour's path and returns a new path if it is valid.
     /// Please note that validity of the path is checked only from TSP prospective.
-    pub(crate) fn try_path(&self, broken: &EdgeSet, joined: &EdgeSet) -> Option<Path> {
-        let mut edges = self.edges.clone();
+    pub(crate) fn try_path(&self, broken: &EdgeSet, joined: &EdgeSet, scratch: &mut TourScratch) -> Option<Path> {
+        let TourScratch { edges, successors, visited, path } = scratch;
+
+        edges.clear();
+        edges.extend(self.edges.iter().copied());
         broken.iter().for_each(|edge| {
-            edges.remove(edge);
+            if let Ok(index) = edges.binary_search(edge) {
+                edges.remove(index);
+            }
         });
         joined.iter().copied().for_each(|edge| {
-            edges.insert(edge);
+            if let Err(index) = edges.binary_search(&edge) {
+                edges.insert(index, edge);
+            }
         });
 
         // if we do not have enough edges, we cannot form a tour, but this should not happen in LKH.
@@ -94,17 +110,17 @@ impl Tour {
         // NOTE: get start location, assume that the tour starts always from it (e.g. from depot).
         let start_node = self.index_of(self.path[0])?;
 
-        let mut successors = TinyVec::<[Edge; 16]>::new();
+        successors.clear();
         let mut node = start_node;
         while !edges.is_empty() {
-            if let Some(&edge) = edges.iter().find(|&&(i, j)| i == node || j == node) {
+            if let Some(index) = edges.iter().position(|&(i, j)| i == node || j == node) {
+                let edge = edges.remove(index);
                 let next_node = if edge.0 == node { edge.1 } else { edge.0 };
                 if let Some((_, successor)) = successors.iter_mut().find(|(current, _)| *current == node) {
                     *successor = next_node;
                 } else {
                     successors.push((node, next_node));
                 }
-                edges.remove(&edge);
                 node = next_node;
             } else {
                 break;
@@ -116,21 +132,22 @@ impl Tour {
             return None;
         }
 
-        let mut visited = TinyVec::<[Node; 16]>::new();
+        visited.clear();
         visited.push(start_node);
 
-        let new_tour: Path = std::iter::successors(Some(start_node), |&node| {
-            successors.iter().find(|(current, _)| *current == node).map(|(_, next)| *next).and_then(|next| {
-                if visited.contains(&next) {
-                    None
-                } else {
-                    visited.push(next);
-                    Some(next)
-                }
-            })
-        })
-        .collect();
+        path.clear();
+        path.push(start_node);
+        let mut node = start_node;
+        while let Some((_, next)) = successors.iter().find(|(current, _)| *current == node) {
+            if visited.contains(next) {
+                break;
+            }
 
-        if new_tour.len() == self.len() { Some(new_tour) } else { None }
+            node = *next;
+            visited.push(node);
+            path.push(node);
+        }
+
+        if path.len() == self.len() { Some(path.clone()) } else { None }
     }
 }
