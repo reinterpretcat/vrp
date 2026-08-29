@@ -14,6 +14,7 @@ use rosomaxa::evolution::TelemetryMetrics;
 use rosomaxa::prelude::*;
 use rustc_hash::FxHasher;
 use std::any::{Any, TypeId};
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::hash::BuildHasherDefault;
@@ -348,14 +349,48 @@ impl Default for RouteState {
 }
 
 impl RouteState {
+    #[inline]
+    fn get_exclusive_state<V: Send + Sync + 'static>(state: &mut Arc<dyn Any + Send + Sync>) -> Option<&mut V> {
+        Arc::get_mut(state)?.downcast_mut::<V>()
+    }
+
     /// Gets a value associated with the tour using `K` type as a key.
     pub fn get_tour_state<K: 'static, V: Send + Sync + 'static>(&self) -> Option<&V> {
         self.index.get(&TypeId::of::<K>()).and_then(|any| any.downcast_ref::<V>())
     }
 
+    /// Gets an exclusively owned tour state, initializing it when it is missing or shared.
+    pub(crate) fn get_or_init_exclusive_tour_state<K: 'static, V: Send + Sync + 'static>(
+        &mut self,
+        init: impl FnOnce() -> V,
+    ) -> &mut V {
+        let state = match self.index.entry(TypeId::of::<K>()) {
+            Entry::Occupied(mut entry) => {
+                if Self::get_exclusive_state::<V>(entry.get_mut()).is_none() {
+                    entry.insert(Arc::new(init()));
+                }
+                entry.into_mut()
+            }
+            Entry::Vacant(entry) => entry.insert(Arc::new(init())),
+        };
+
+        Self::get_exclusive_state(state).expect("tour state should be initialized with the requested type")
+    }
+
     /// Sets the value associated with the tour using `K` type as a key.
     pub fn set_tour_state<K: 'static, V: Send + Sync + 'static>(&mut self, value: V) {
         self.index.insert(TypeId::of::<K>(), Arc::new(value));
+    }
+
+    /// Updates an exclusively owned tour state or inserts a new value.
+    pub(crate) fn update_tour_state<K: 'static, V: Send + Sync + 'static>(&mut self, value: V) {
+        let key = TypeId::of::<K>();
+        if let Some(state) = self.index.get_mut(&key).and_then(Self::get_exclusive_state::<V>) {
+            *state = value;
+            return;
+        }
+
+        self.index.insert(key, Arc::new(value));
     }
 
     /// Removes the value associated with the tour using `K` type as a key. Returns true if the

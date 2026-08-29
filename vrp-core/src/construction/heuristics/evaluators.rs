@@ -245,7 +245,7 @@ fn analyze_insertion_in_route(
     init: SingleContext,
 ) -> SingleContext {
     let start_time = route_ctx.route().tour.start().map_or(Timestamp::default(), |act| act.schedule.departure);
-    let mut analyze_leg_insertion = |leg: Leg<'_>, init| {
+    let mut analyze_leg_insertion = |leg: Leg<'_>, result: &mut SingleContext| {
         analyze_insertion_in_route_leg(
             eval_ctx,
             solution_ctx,
@@ -255,22 +255,21 @@ fn analyze_insertion_in_route(
             target,
             &route_costs,
             start_time,
-            init,
+            result,
         )
     };
 
     match insertion_idx {
         Some(idx) => match route_ctx.route().tour.legs().nth(idx) {
-            Some(leg) => analyze_leg_insertion(leg, init).unwrap_value(),
+            Some(leg) => {
+                let mut result = init;
+                let _ = analyze_leg_insertion(leg, &mut result);
+                result
+            }
             _ => init,
         },
-        None => eval_ctx.leg_selection.sample_best(
-            route_ctx,
-            eval_ctx.job,
-            init.index,
-            init,
-            &mut |leg: Leg<'_>, init| analyze_leg_insertion(leg, init),
-            {
+        None => {
+            eval_ctx.leg_selection.sample_best(route_ctx, eval_ctx.job, init.index, init, &mut analyze_leg_insertion, {
                 let max_value = InsertionCost::max_value();
                 move |lhs: &SingleContext, rhs: &SingleContext| {
                     eval_ctx
@@ -278,8 +277,8 @@ fn analyze_insertion_in_route(
                         .select_cost(lhs.cost.as_ref().unwrap_or(max_value), rhs.cost.as_ref().unwrap_or(max_value))
                         .is_left()
                 }
-            },
-        ),
+            })
+        }
     }
 }
 
@@ -293,13 +292,13 @@ fn analyze_insertion_in_route_leg(
     target: &mut Activity,
     route_costs: &InsertionCost,
     start_time: Timestamp,
-    mut single_ctx: SingleContext,
-) -> ControlFlow<SingleContext, SingleContext> {
+    single_ctx: &mut SingleContext,
+) -> ControlFlow<()> {
     let (items, index) = leg;
     let (prev, next) = match items {
         [prev] => (prev, None),
         [prev, next] => (prev, Some(next)),
-        _ => return ControlFlow::Break(single_ctx),
+        _ => return ControlFlow::Break(()),
     };
     // iterate over places and times to find the next best insertion point
     for (place_idx, place) in single.places.iter().enumerate() {
@@ -319,7 +318,7 @@ fn analyze_insertion_in_route_leg(
                 single_ctx.violation = Some(violation);
                 if is_stopped {
                     // should stop processing this leg and next ones
-                    return ControlFlow::Break(single_ctx);
+                    return ControlFlow::Break(());
                 } else {
                     // can continue within the next place
                     continue;
@@ -342,7 +341,7 @@ fn analyze_insertion_in_route_leg(
         }
     }
 
-    ControlFlow::Continue(single_ctx)
+    ControlFlow::Continue(())
 }
 
 fn get_insertion_index(route_ctx: &RouteContext, position: InsertionPosition) -> Option<usize> {

@@ -90,15 +90,17 @@ macro_rules! custom_dimension {
 }
 
 /// A macro to define a custom activity state on [crate::construction::heuristics::RouteState].
+/// An optional `setter(attribute)` applies the attribute only to the generated setter.
 #[macro_export]
 macro_rules! custom_activity_state {
-    ($vis:vis $name:ident typeof $type:ty $(: $gen:ident)?) => {
+    ($vis:vis $name:ident typeof $type:ty $(: $gen:ident)? $(, setter($setter_meta:meta))?) => {
         paste::paste! {
             #[doc = " Extends [RouteState] within a new ["[<$name ActivityState>]"]."]
             $vis trait [<$name ActivityState>] {
                 #[doc = " Gets `"$name "` activity state."]
                 fn [<get_ $name:snake:lower _at>]$(<$type : $gen>)?(&self, activity_idx: usize) -> Option<&$type>;
                 #[doc = " Sets `"$name "` activity states."]
+                $(#[$setter_meta])?
                 fn [<set_ $name:snake:lower _states>]$(<$type : $gen>)?(&mut self, values: Vec<$type>);
             }
 
@@ -109,6 +111,7 @@ macro_rules! custom_activity_state {
                     self.get_activity_state::<[<$name ActivityStateKey>], _>(activity_idx)
                 }
 
+                $(#[$setter_meta])?
                 fn [<set_ $name:snake:lower _states>]$(<$type : $gen>)?(&mut self, values: Vec<$type>) {
                     self.set_activity_states::<[<$name ActivityStateKey>], _>(values);
                 }
@@ -118,15 +121,17 @@ macro_rules! custom_activity_state {
 }
 
 /// A macro to define custom route state on [crate::construction::heuristics::RouteState].
+/// An optional `setter(attribute)` applies the attribute only to the generated setter.
 #[macro_export]
 macro_rules! custom_tour_state {
-    ($vis:vis $name:ident typeof $type:ty $(: $gen:ident)?) => {
+    ($vis:vis $name:ident typeof $type:ty $(: $gen:ident)? $(, setter($setter_meta:meta))?) => {
         paste::paste! {
             #[doc = " Extends [RouteState] within a new ["[<$name TourState>]"]."]
             $vis trait [<$name TourState>] {
                 #[doc = " Gets `"$name "` tour state."]
                 fn [<get_ $name:snake:lower>]$(<$type : $gen>)?(&self) -> Option<&$type>;
                 #[doc = " Sets `"$name "` tour state."]
+                $(#[$setter_meta])?
                 fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: $type);
 
                 #[doc = " Removes `"$name "` tour state."]
@@ -141,6 +146,7 @@ macro_rules! custom_tour_state {
                     self.get_tour_state::<[<$name TourStateKey>], _>()
                 }
 
+                $(#[$setter_meta])?
                 fn [<set_ $name:snake:lower>]$(<$type : $gen>)?(&mut self, value: $type) {
                     self.set_tour_state::<[<$name TourStateKey>], _>(value);
                 }

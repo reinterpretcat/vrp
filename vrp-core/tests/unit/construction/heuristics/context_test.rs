@@ -34,6 +34,50 @@ fn can_set_and_get_route_state() {
 }
 
 #[test]
+fn can_reuse_exclusive_route_state() {
+    let mut route_state = RouteState::default();
+    route_state.set_tour_state::<i8, _>(vec![1]);
+
+    route_state.get_or_init_exclusive_tour_state::<i8, Vec<i32>>(|| panic!("state should be reused")).push(2);
+
+    assert_eq!(route_state.get_tour_state::<i8, Vec<i32>>().unwrap(), &[1, 2]);
+}
+
+#[test]
+fn can_replace_shared_route_state_without_changing_original() {
+    let mut route_state = RouteState::default();
+    route_state.set_tour_state::<i8, _>(vec![1]);
+    let original = route_state.clone();
+
+    route_state.get_or_init_exclusive_tour_state::<i8, Vec<i32>>(|| vec![2]).push(3);
+
+    assert_eq!(original.get_tour_state::<i8, Vec<i32>>().unwrap(), &[1]);
+    assert_eq!(route_state.get_tour_state::<i8, Vec<i32>>().unwrap(), &[2, 3]);
+}
+
+#[test]
+fn can_update_exclusive_route_state() {
+    let mut route_state = RouteState::default();
+    route_state.set_tour_state::<i8, _>(1);
+
+    route_state.update_tour_state::<i8, _>(2);
+
+    assert_eq!(route_state.get_tour_state::<i8, i32>(), Some(&2));
+}
+
+#[test]
+fn can_update_shared_route_state_without_changing_original() {
+    let mut route_state = RouteState::default();
+    route_state.set_tour_state::<i8, _>(1);
+    let original = route_state.clone();
+
+    route_state.update_tour_state::<i8, _>(2);
+
+    assert_eq!(original.get_tour_state::<i8, i32>(), Some(&1));
+    assert_eq!(route_state.get_tour_state::<i8, i32>(), Some(&2));
+}
+
+#[test]
 fn can_set_and_get_empty_route_state() {
     let mut route_state = RouteState::default();
 

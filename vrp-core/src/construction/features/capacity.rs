@@ -37,19 +37,35 @@ pub(crate) trait MaxPastCapacityActivityState {
     fn get_max_past_capacity_at<T: LoadOps>(&self, activity_idx: usize) -> Option<&T>;
 }
 
-trait CapacityActivityStateAccess {
+trait CapacityStateAccess {
     fn get_capacity_states<T: LoadOps>(&self) -> Option<&CapacityRouteState<T>>;
 
-    fn set_capacity_states<T: LoadOps>(&mut self, activities: Vec<CapacityActivityState<T>>, capacity: Option<T>);
+    fn prepare_capacity_states<T: LoadOps>(
+        &mut self,
+        activity_count: usize,
+        capacity: Option<T>,
+    ) -> &mut [CapacityActivityState<T>];
 }
 
-impl CapacityActivityStateAccess for RouteState {
+impl CapacityStateAccess for RouteState {
     fn get_capacity_states<T: LoadOps>(&self) -> Option<&CapacityRouteState<T>> {
         self.get_tour_state::<CapacityRouteStateKey<T>, _>()
     }
 
-    fn set_capacity_states<T: LoadOps>(&mut self, activities: Vec<CapacityActivityState<T>>, capacity: Option<T>) {
-        self.set_tour_state::<CapacityRouteStateKey<T>, _>(CapacityRouteState { activities, capacity });
+    fn prepare_capacity_states<T: LoadOps>(
+        &mut self,
+        activity_count: usize,
+        capacity: Option<T>,
+    ) -> &mut [CapacityActivityState<T>] {
+        let state = self.get_or_init_exclusive_tour_state::<CapacityRouteStateKey<T>, CapacityRouteState<T>>(|| {
+            CapacityRouteState { activities: Vec::with_capacity(activity_count), capacity }
+        });
+
+        state.activities.clear();
+        state.activities.resize(activity_count, CapacityActivityState::default());
+        state.capacity = capacity;
+
+        state.activities.as_mut_slice()
     }
 }
 
@@ -72,7 +88,7 @@ impl MaxPastCapacityActivityState for RouteState {
     }
 }
 
-custom_tour_state!(pub(crate) MaxVehicleLoad typeof Float);
+custom_tour_state!(pub(crate) MaxVehicleLoad typeof Float, setter(cfg(test)));
 
 custom_dimension!(pub VehicleCapacity typeof T: LoadOps);
 
@@ -202,13 +218,12 @@ where
             .unwrap_or_else(|| vec![(0, route_ctx.route().tour.total() - 1)]);
 
         let tour_len = route_ctx.route().tour.total();
-
-        let mut capacity_states = vec![CapacityActivityState::<T>::default(); tour_len];
+        let capacity = route_ctx.route().actor.vehicle.dimens.get_vehicle_capacity::<T>().copied();
+        let (route, state) = route_ctx.as_mut();
+        let capacity_states = state.prepare_capacity_states::<T>(tour_len, capacity);
 
         let (_, max_load) =
             marker_intervals.into_iter().fold((T::default(), T::default()), |(acc, max), (start_idx, end_idx)| {
-                let route = route_ctx.route();
-
                 // determine static deliveries loaded at the begin and static pickups brought to the end
                 let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
                     (acc, T::default()),
@@ -246,11 +261,8 @@ where
                 (current - end_pickup, current_max.max_load(max))
             });
 
-        let capacity = route_ctx.route().actor.vehicle.dimens.get_vehicle_capacity::<T>().copied();
-        route_ctx.state_mut().set_capacity_states(capacity_states, capacity);
-
         if let Some(capacity) = capacity {
-            route_ctx.state_mut().set_max_vehicle_load(max_load.ratio(&capacity));
+            state.update_tour_state::<MaxVehicleLoadTourStateKey, _>(max_load.ratio(&capacity));
         }
     }
 

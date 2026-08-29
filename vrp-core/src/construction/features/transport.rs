@@ -234,6 +234,11 @@ impl TransportConstraint {
                 TravelTime::Departure(departure),
             );
 
+        // Neither service nor travel can recover an arrival beyond these upper bounds.
+        if arr_time_at_target > target.place.time.end || arr_time_at_target > latest_arr_time_at_next {
+            return ConstraintViolation::skip(self.time_window_code);
+        }
+
         let latest_departure_at_target = latest_arr_time_at_next
             - self.transport.duration(
                 route,

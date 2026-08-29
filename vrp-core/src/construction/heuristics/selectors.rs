@@ -373,7 +373,8 @@ pub enum LegSelection {
 }
 
 impl LegSelection {
-    /// Selects a best leg for insertion.
+    /// Selects a best leg for insertion. The visitor updates its result in place and can stop an
+    /// exhaustive scan by returning `ControlFlow::Break`.
     pub(crate) fn sample_best<R, FM, FC>(
         &self,
         route_ctx: &RouteContext,
@@ -385,7 +386,7 @@ impl LegSelection {
     ) -> R
     where
         R: Default,
-        FM: FnMut(Leg, R) -> ControlFlow<R, R>,
+        FM: FnMut(Leg, &mut R) -> ControlFlow<()>,
         FC: Fn(&R, &R) -> bool,
     {
         match self.get_sample_data(route_ctx, job, skip) {
@@ -397,12 +398,24 @@ impl LegSelection {
                 .sample_search(
                     sample_size,
                     random.clone(),
-                    &mut |leg: Leg<'_>| map_fn(leg, R::default()).unwrap_value(),
+                    &mut |leg: Leg<'_>| {
+                        let mut result = R::default();
+                        let _ = map_fn(leg, &mut result);
+                        result
+                    },
                     |leg: &Leg<'_>| leg.1 - skip,
                     &compare_fn,
                 )
                 .unwrap_or(init),
-            _ => route_ctx.route().tour.legs().skip(skip).try_fold(init, |acc, leg| map_fn(leg, acc)).unwrap_value(),
+            _ => {
+                let mut result = init;
+                for leg in route_ctx.route().tour.legs().skip(skip) {
+                    if map_fn(leg, &mut result).is_break() {
+                        break;
+                    }
+                }
+                result
+            }
         }
     }
 
@@ -410,26 +423,20 @@ impl LegSelection {
     fn get_sample_data(&self, route_ctx: &RouteContext, job: &Job, skip: usize) -> Option<(usize, Arc<dyn Random>)> {
         match self {
             Self::Stochastic(random) => {
-                let gen_usize = |min: i32, max: i32| random.uniform_int(min, max) as usize;
-                let greedy_threshold = match job {
-                    Job::Single(_) => gen_usize(32, 48),
-                    Job::Multi(_) => gen_usize(16, 32),
+                let (min_threshold, max_threshold, sample_size): (i32, i32, usize) = match job {
+                    Job::Single(_) => (32, 48, 8),
+                    Job::Multi(_) => (16, 32, 4),
                 };
-
                 let total_legs = route_ctx.route().tour.legs().size_hint().0;
                 let visit_legs = total_legs.saturating_sub(skip);
 
-                if visit_legs < greedy_threshold {
-                    None
-                } else {
-                    Some((
-                        match job {
-                            Job::Single(_) => 8,
-                            Job::Multi(_) => 4,
-                        },
-                        random.clone(),
-                    ))
+                // Avoid drawing a threshold when exhaustive evaluation is guaranteed.
+                if visit_legs < min_threshold as usize {
+                    return None;
                 }
+
+                let threshold = random.uniform_int(min_threshold, max_threshold) as usize;
+                (visit_legs >= threshold).then(|| (sample_size, random.clone()))
             }
             Self::Exhaustive => None,
         }

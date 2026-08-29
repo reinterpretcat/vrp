@@ -91,9 +91,10 @@ mod selections {
             &TestSingleBuilder::default().build_as_job_ref(),
             skip,
             -1,
-            &mut |leg: Leg, _| {
+            &mut |leg: Leg, result: &mut i32| {
                 counter += 1;
-                ControlFlow::Continue(leg.1 as i32)
+                *result = leg.1 as i32;
+                ControlFlow::Continue(())
             },
             |lhs: &i32, rhs: &i32| {
                 match (*lhs % 2 == 0, *rhs % 2 == 0) {
@@ -110,5 +111,49 @@ mod selections {
         );
 
         assert!(counter < expected_threshold);
+    }
+
+    #[test]
+    fn can_skip_random_threshold_below_stochastic_selection_minimum() {
+        let selection_mode = LegSelection::Stochastic(Arc::new(FakeRandom::new(vec![], vec![])));
+        let (_, solution) = generate_matrix_routes_with_defaults(30, 1, false);
+        let route_ctx = RouteContext::new_with_state(solution.routes.into_iter().next().unwrap(), Default::default());
+        let expected = route_ctx.route().tour.legs().count();
+        let mut counter = 0;
+
+        let _ = selection_mode.sample_best(
+            &route_ctx,
+            &TestSingleBuilder::default().build_as_job_ref(),
+            0,
+            (),
+            &mut |_: Leg<'_>, _: &mut ()| {
+                counter += 1;
+                ControlFlow::Continue(())
+            },
+            |_, _| false,
+        );
+
+        assert_eq!(counter, expected);
+    }
+
+    #[test]
+    fn can_stop_exhaustive_selection_and_keep_result() {
+        let selection_mode = LegSelection::Exhaustive;
+        let (_, solution) = generate_matrix_routes_with_defaults(5, 1, false);
+        let route_ctx = RouteContext::new_with_state(solution.routes.into_iter().next().unwrap(), Default::default());
+
+        let result = selection_mode.sample_best(
+            &route_ctx,
+            &TestSingleBuilder::default().build_as_job_ref(),
+            0,
+            0,
+            &mut |_: Leg<'_>, result: &mut usize| {
+                *result += 1;
+                if *result == 3 { ControlFlow::Break(()) } else { ControlFlow::Continue(()) }
+            },
+            |_, _| false,
+        );
+
+        assert_eq!(result, 3);
     }
 }
