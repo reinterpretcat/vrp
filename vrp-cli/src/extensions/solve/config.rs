@@ -643,10 +643,13 @@ fn create_operator(
         }
         SearchOperatorType::Decomposition { routes, repeat, probability } => {
             if *repeat < 1 {
-                return Err(format!("repeat must be greater than 1. Specified: {repeat}").into());
+                return Err(format!("repeat must be at least 1. Specified: {repeat}").into());
             }
             if routes.min < 2 {
-                return Err(format!("min routes must be greater than 2. Specified: {}", routes.min).into());
+                return Err(format!("min routes must be at least 2. Specified: {}", routes.min).into());
+            }
+            if routes.min > routes.max {
+                return Err(format!("min routes cannot exceed max routes: {} > {}", routes.min, routes.max).into());
             }
 
             let operator = create_default_heuristic_operator(problem, environment.clone());

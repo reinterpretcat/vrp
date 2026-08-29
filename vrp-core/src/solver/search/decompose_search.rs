@@ -7,6 +7,7 @@ use crate::models::GoalContext;
 use crate::solver::search::create_environment_with_custom_quota;
 use crate::solver::*;
 use crate::utils::Either;
+use rand::prelude::SliceRandom;
 use rosomaxa::utils::{ParallelismPolicy, parallel_collect};
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -24,6 +25,8 @@ impl DecomposeSearch {
     /// Create a new instance of `DecomposeSearch`.
     pub fn new(inner_search: TargetSearchOperator, max_routes_range: (usize, usize), repeat_count: usize) -> Self {
         assert!(max_routes_range.0 > 1);
+        assert!(max_routes_range.0 <= max_routes_range.1);
+        assert!(repeat_count > 0);
         let max_routes_range = (max_routes_range.0 as i32, max_routes_range.1 as i32);
 
         Self { inner_search, max_routes_range, repeat_count }
@@ -127,7 +130,7 @@ fn get_repeat_count(max_repeat_count: usize, random: &dyn Random) -> usize {
         4 => random.weighted(&[27, 9, 3, 1]),
         _ => {
             let weights: Vec<_> = (1..=max_repeat_count).map(|i| 3_usize.pow((max_repeat_count - i) as u32)).collect();
-            random.weighted(&weights) + 1
+            random.weighted(&weights)
         }
     };
 
@@ -143,7 +146,10 @@ fn create_multiple_insertion_contexts(
         return None;
     }
 
-    let route_groups = group_routes_by_proximity(insertion_ctx);
+    let mut route_groups = group_routes_by_proximity(insertion_ctx).into_iter().enumerate().collect::<Vec<_>>();
+    // A route which is visited first claims its closest unused neighbours. Vary this order so repeated
+    // decomposition can search across boundaries left by earlier partitions.
+    route_groups.shuffle(&mut environment.random.get_rng());
     let (min, max) = max_routes_range;
     let max = if insertion_ctx.solution.routes.len() < max as usize { (max / 2).max(min) } else { max };
 
@@ -151,7 +157,6 @@ fn create_multiple_insertion_contexts(
     let mut used_indices: HashSet<usize> = HashSet::new();
     let insertion_ctxs = route_groups
         .into_iter()
-        .enumerate()
         .filter_map(|(outer_idx, route_group)| {
             if used_indices.contains(&outer_idx) {
                 return None;

@@ -1,7 +1,14 @@
 use super::*;
 use crate::helpers::solver::generate_matrix_routes_with_defaults;
+use crate::helpers::utils::random::FakeRandom;
 use crate::solver::create_default_heuristic_operator;
 use rosomaxa::prelude::*;
+
+#[test]
+fn can_get_repeat_count_above_precomputed_range() {
+    assert_eq!(get_repeat_count(5, &FakeRandom::new(vec![0], vec![])), 1);
+    assert_eq!(get_repeat_count(5, &FakeRandom::new(vec![4], vec![])), 5);
+}
 
 #[test]
 fn can_create_multiple_insertion_ctxs_without_unassigned() {

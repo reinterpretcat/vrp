@@ -148,6 +148,24 @@ fn cannot_read_removed_parallelism_config() {
 }
 
 #[test]
+fn can_reject_invalid_decomposition_config() {
+    let create = |min, max, repeat| SearchOperatorType::Decomposition {
+        routes: MinMaxConfig { min, max },
+        repeat,
+        probability: OperatorProbabilityType::Scalar { scalar: 1. },
+    };
+    let environment = Arc::new(Environment::default());
+    let problem = create_example_problem();
+
+    let get_error =
+        |operator| create_operator(problem.clone(), environment.clone(), &operator).err().unwrap().to_string();
+
+    assert!(get_error(create(2, 4, 0)).contains("repeat must be at least 1"));
+    assert!(get_error(create(1, 4, 1)).contains("min routes must be at least 2"));
+    assert!(get_error(create(4, 2, 1)).contains("min routes cannot exceed max routes"));
+}
+
+#[test]
 fn can_configure_telemetry_metrics() {
     let config = Config {
         evolution: None,
