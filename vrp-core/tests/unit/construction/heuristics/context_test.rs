@@ -155,10 +155,72 @@ fn can_only_use_routes_retained_by_deep_slice() {
     let retained = fleet.actors[0].clone();
     let excluded = fleet.actors[1].clone();
     let registry = Registry::new(&fleet, test_random());
-    let mut registry = RegistryContext::new(&TestGoalContextBuilder::default().build(), registry)
-        .deep_slice(|actor| std::ptr::eq(actor, retained.as_ref()));
+    let mut registry = RegistryContext::new(&TestGoalContextBuilder::default().build(), registry);
+    let excluded_route = registry.get_route(&excluded).unwrap();
+    let mut registry = registry.deep_slice(|actor| std::ptr::eq(actor, retained.as_ref()));
 
     assert_eq!(registry.next_route().count(), 1);
     assert!(registry.get_route(&excluded).is_none());
+    assert!(!registry.free_route(excluded_route));
     assert!(registry.get_route(&retained).is_some());
+}
+
+#[test]
+fn can_reuse_used_route_retained_by_deep_slice() {
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicles(vec![
+            TestVehicleBuilder::default().id("v1").build(),
+            TestVehicleBuilder::default().id("v2").build(),
+        ])
+        .build();
+    let retained = fleet.actors[0].clone();
+    let registry = Registry::new(&fleet, test_random());
+    let mut registry = RegistryContext::new(&TestGoalContextBuilder::default().build(), registry);
+    let route = registry.get_route(&retained).unwrap();
+    let mut registry = registry.deep_slice(|actor| std::ptr::eq(actor, retained.as_ref()));
+
+    assert_eq!(registry.next_route().count(), 0);
+    assert!(registry.free_route(route));
+    assert_eq!(registry.next_route().count(), 1);
+}
+
+#[test]
+fn can_copy_registry_with_all_actors_available() {
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicles(vec![
+            TestVehicleBuilder::default().id("v1").build(),
+            TestVehicleBuilder::default().id("v2").build(),
+        ])
+        .build();
+    let actors = fleet.actors.clone();
+    let registry = Registry::new(&fleet, test_random());
+    let mut registry = RegistryContext::new(&TestGoalContextBuilder::default().build(), registry);
+    assert!(registry.get_route(&actors[0]).is_some());
+
+    let registry = registry.deep_copy_with_all_available();
+
+    assert_eq!(registry.resources().available().count(), actors.len());
+}
+
+#[test]
+fn can_copy_sliced_registry_with_only_retained_actors_available() {
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicles(vec![
+            TestVehicleBuilder::default().id("v1").build(),
+            TestVehicleBuilder::default().id("v2").build(),
+        ])
+        .build();
+    let retained = fleet.actors[0].clone();
+    let excluded = fleet.actors[1].clone();
+    let registry = Registry::new(&fleet, test_random());
+    let registry = RegistryContext::new(&TestGoalContextBuilder::default().build(), registry)
+        .deep_slice(|actor| std::ptr::eq(actor, retained.as_ref()))
+        .deep_copy_with_all_available();
+
+    assert_eq!(registry.resources().available().count(), 1);
+    assert!(registry.resources().available().any(|actor| actor == retained));
+    assert!(registry.resources().all().all(|actor| actor != excluded));
 }

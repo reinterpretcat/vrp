@@ -12,6 +12,7 @@ pub struct Registry {
     available: HashMap<usize, HashSet<Arc<Actor>>>,
     index: Arc<HashMap<Arc<Actor>, usize>>,
     all: Arc<Vec<Arc<Actor>>>,
+    is_scoped: bool,
     random: Arc<dyn Random>,
 }
 
@@ -24,7 +25,13 @@ impl Registry {
             .flat_map(|(group_id, actors)| actors.iter().map(|a| (a.clone(), *group_id)).collect::<Vec<_>>())
             .collect();
 
-        Self { available: fleet.groups.clone(), index: Arc::new(index), all: Arc::new(fleet.actors.to_vec()), random }
+        Self {
+            available: fleet.groups.clone(),
+            index: Arc::new(index),
+            all: Arc::new(fleet.actors.to_vec()),
+            is_scoped: false,
+            random,
+        }
     }
 
     /// Removes an actor from the list of available actors.
@@ -36,6 +43,10 @@ impl Registry {
     /// Adds actor to the list of available actors.
     /// Returns whether the actor was not present in the registry.
     pub fn free_actor(&mut self, actor: &Arc<Actor>) -> bool {
+        if self.is_scoped && !self.all.contains(actor) {
+            return false;
+        }
+
         self.index.get(actor).and_then(|idx| self.available.get_mut(idx)).is_some_and(|set| set.insert(actor.clone()))
     }
 
@@ -64,30 +75,41 @@ impl Registry {
             available: self.available.clone(),
             index: self.index.clone(),
             all: self.all.clone(),
+            is_scoped: self.is_scoped,
+            random: self.random.clone(),
+        }
+    }
+
+    /// Creates a copy in which every actor contained in this registry is available.
+    pub(crate) fn deep_copy_with_all_available(&self) -> Self {
+        let available = self.all.iter().fold(HashMap::<_, HashSet<_>>::new(), |mut available, actor| {
+            available.entry(self.index[actor]).or_default().insert(actor.clone());
+            available
+        });
+
+        Self {
+            available,
+            index: self.index.clone(),
+            all: self.all.clone(),
+            is_scoped: self.is_scoped,
             random: self.random.clone(),
         }
     }
 
     /// Creates a deep sliced copy of registry keeping only specific actors.
     pub fn deep_slice(&self, filter: impl Fn(&Actor) -> bool) -> Self {
-        Self {
-            available: self
-                .available
-                .iter()
-                .map(|(idx, actors)| {
-                    let actors = actors.iter().filter(|actor| filter(actor.as_ref())).cloned().collect::<HashSet<_>>();
-                    (*idx, actors)
-                })
-                .collect(),
-            index: Arc::new(
-                self.index
-                    .iter()
-                    .filter(|(actor, _)| filter(actor.as_ref()))
-                    .map(|(actor, idx)| (actor.clone(), *idx))
-                    .collect(),
-            ),
-            all: Arc::new(self.all.iter().filter(|actor| filter(actor.as_ref())).cloned().collect()),
-            random: self.random.clone(),
-        }
+        let all = Arc::new(self.all.iter().filter(|actor| filter(actor.as_ref())).cloned().collect::<Vec<_>>());
+        let available = all.iter().fold(HashMap::<_, HashSet<_>>::new(), |mut available, actor| {
+            let idx = self.index[actor];
+            let group = available.entry(idx).or_default();
+
+            if self.available.get(&idx).is_some_and(|actors| actors.contains(actor)) {
+                group.insert(actor.clone());
+            }
+
+            available
+        });
+
+        Self { available, index: self.index.clone(), all, is_scoped: true, random: self.random.clone() }
     }
 }
